@@ -1,5 +1,5 @@
 import { Effect, Schema } from 'effect'
-import { Command, Port } from 'foldkit'
+import { Command, Port, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { Message } from './message'
@@ -22,10 +22,10 @@ export const ReportCount = Command.define('ReportCount', {
 export const EffectsLayer = ReportCount.layer
 
 // In update, emitting is just returning the Command:
-const handleAdvance = (model: Model): UpdateReturn => {
+const handleAdvance = Update.makeStep((model: Model) => {
   const count = model.count + model.step
   return {
     model: modifyFields(model, { count: () => count }),
     commands: [ReportCount({ count })],
   }
-}
+})

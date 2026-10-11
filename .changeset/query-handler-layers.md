@@ -25,10 +25,12 @@ const postsQuery = Query.define({
   data: PostList,
   error: Schema.String,
   handler: function* () {
+    // Keep the real fetch Effect; execute it on each fetch, not during construction.
     return () => fetchPosts
   },
 })
 
+// Provide the fetch handler through the owning feature's effect bundle.
 export const EffectsLayer = postsQuery.layer
 ```
 
@@ -57,6 +59,7 @@ const postQuery = Query.define({
   data: Post,
   error: Schema.String,
   handler: function* () {
+    // The returned handler receives the requested key on every fetch.
     return ({ postId }) => fetchPost(postId)
   },
 })

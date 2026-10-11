@@ -25,6 +25,7 @@ const handle = Runtime.embed(element)
 **After**
 
 ```ts
+// Shared services satisfy the feature's handler constructors.
 const AppLayer = Layer.provide(EffectsLayer, ServicesLayer)
 
 const element = pipe(
@@ -36,9 +37,11 @@ const element = pipe(
     ports,
     container,
   }),
+  // Supply handlers and services outside the Element configuration.
   Application.provide(AppLayer),
 )
 
+// Embedding starts the runtime and builds this Element's Layer graph.
 const handle = Runtime.embed(element)
 ```
 

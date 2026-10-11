@@ -29,9 +29,11 @@ const application = Application.make({
   update,
   view,
   container,
+  // Menu's mounted views require these registrations; Tabs has none.
   mounts: Menu.mounts,
 })
 
+// Compose only the components owned by this application module.
 const EffectsLayer = Layer.mergeAll(Menu.EffectsLayer, Tabs.EffectsLayer)
 const AppLayer = EffectsLayer
 
@@ -70,6 +72,7 @@ export const view = Submodel.defineView<
   Model,
   Message,
   void,
+  // Carry Menu's Mount requirements through this exported parent view.
   Mount.RequirementsOf<typeof mounts>
 >((model, h) =>
   h.submodel({
@@ -108,6 +111,7 @@ const subscriptions = Subscription.aggregate(
 **After**
 
 ```ts
+// Stable instance names distinguish factory-owned handler requirements.
 const toast = Toast.make('AppToast', ToastPayload)
 const toastSubscriptions = Subscription.lift(toast.subscriptions)<
   Model,
@@ -120,6 +124,7 @@ const subscriptions = Subscription.aggregate(
   App.subscriptions,
   toastSubscriptions,
 )
+// Lift registrations as before, and carry the instance's handler bundle upward.
 const EffectsLayer = Layer.mergeAll(App.EffectsLayer, toast.EffectsLayer)
 ```
 
@@ -145,6 +150,7 @@ const subscriptions = Subscription.aggregate(
 **After**
 
 ```ts
+// The named instance packages the custom-root Subscriptions and their handlers.
 const slider = Slider.forRoot('SettingsSlider', getTrackRoot)
 const settingsSliderSubscriptions = Subscription.lift({
   settingsSliderPointer: slider.subscriptions.dragPointer,

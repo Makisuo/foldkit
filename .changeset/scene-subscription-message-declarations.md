@@ -16,8 +16,10 @@ scene({ update, view }, given(model), Subscription.emit(Message.Ticked()))
 
 ```ts
 scene(
+  // Register the sources this Scene may emit from; their Streams do not run.
   { update, view, subscriptions },
   given(model),
+  // Name the source as well as its declared Message.
   Subscription.emit(subscriptions.ticks, Message.Ticked()),
 )
 ```
@@ -47,6 +49,7 @@ scene(
 scene(
   { update, view },
   given(initialModel),
+  // Pass the typed step group directly instead of invoking it in a wrapper.
   inside(settingsPanel, click(saveButton)),
 )
 ```

@@ -28,12 +28,14 @@ const subscriptions = Subscription.make<Model, Message>()(_entry => ({
 ```ts
 const subscriptions = Subscription.make<Model, Message>()(entry => ({
   animationFrameTicks: entry(
+    // A named handler replaces the anonymous animation-frame helper.
     'AnimationFrameTicks',
     { isActive: Schema.Boolean },
     {
       messages: [Message.TickedFrame],
       modelToDependencies: model => ({ isActive: model.isPlaying }),
       handler: function* () {
+        // The Subscription owns activation and Message mapping; Dom owns the source.
         return ({ isActive }) =>
           isActive
             ? Dom.streamFromAnimationFrame().pipe(
@@ -72,6 +74,7 @@ const portSubscriptions = Subscription.make<Model, Message>()(entry => ({
   hostStep: entry('HostStepChanges', {
     messages: [Message.ChangedStep],
     handler: function* () {
+      // Consume the Port's decoded values, then map to declared Messages.
       return () =>
         Port.stream(ports.inbound.stepChanged).pipe(
           Stream.map(step => Message.ChangedStep({ step })),
@@ -84,5 +87,6 @@ const subscriptions = Subscription.aggregate(
   appSubscriptions,
   portSubscriptions,
 )
+// Registering the Subscription and supplying its handler are separate steps.
 const EffectsLayer = portSubscriptions.hostStep.layer
 ```

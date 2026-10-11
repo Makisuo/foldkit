@@ -58,8 +58,10 @@ export const StoreDraft = Command.define('StoreDraft', {
   args: { contents: Schema.String },
   messages: [Message.CompletedStoreDraft, Message.FailedStoreDraft],
   handler: function* () {
+    // Capture the application's storage service when the Layer builds.
     const store = yield* KeyValueStore.KeyValueStore
 
+    // Each invocation gets fresh contents and performs its own write.
     return ({ contents }) =>
       store.set(DRAFT_STORAGE_KEY, contents).pipe(
         Effect.as(Message.CompletedStoreDraft()),
@@ -68,6 +70,7 @@ export const StoreDraft = Command.define('StoreDraft', {
   },
 })
 
+// Carry the handler recipe to application assembly.
 export const EffectsLayer = StoreDraft.layer
 ```
 
@@ -86,6 +89,7 @@ const DISMISSAL_DELAY = Duration.seconds(5)
 export const WaitBeforeDismissal = Command.define('WaitBeforeDismissal', {
   messages: [Message.CompletedWaitBeforeDismissal],
   handler: function* () {
+    // No services to obtain; each invocation starts its own delay.
     return () =>
       Effect.sleep(DISMISSAL_DELAY).pipe(
         Effect.as(Message.CompletedWaitBeforeDismissal()),
@@ -146,12 +150,15 @@ const TICK_INTERVAL = Duration.seconds(1)
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   gameClockTicks: entry(
+    // Handler name; gameClockTicks is this Stream's registration key.
     'GameClockTicks',
     { isRunning: Schema.Boolean },
     {
+      // Every implementation must emit only these declared Messages.
       messages: [Message.TickedGameClock],
       modelToDependencies: model => ({ isRunning: model.isRunning }),
       handler: function* () {
+        // Dependency changes restart the Stream, not this constructor.
         return ({ isRunning }) =>
           Stream.when(
             Stream.tick(TICK_INTERVAL).pipe(
@@ -195,6 +202,7 @@ export const subscriptions = Subscription.make<Model, Message>()(_entry => ({
 
 ```ts
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  // No dependency Schema or Model projection is needed.
   heartbeatTicks: entry('HeartbeatTicks', {
     messages: [Message.TickedHeartbeat],
     handler: function* () {
@@ -220,12 +228,14 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     'DragSelectionStyles',
     { isDragging: Schema.Boolean },
     {
+      // Silent scoped work has no result Messages.
       messages: [],
       modelToDependencies: model => ({ isDragging: model.isDragging }),
       handler: function* () {
         return ({ isDragging }) =>
           Stream.when(
             Stream.fromEffect(
+              // This active Stream scope owns the style and its cleanup.
               Effect.acquireRelease(
                 Effect.sync(() => {
                   const styleElement = document.createElement('style')
@@ -281,6 +291,7 @@ import { Message } from './message'
 export const MeasurePanel = Mount.define('MeasurePanel', {
   messages: [Message.CompletedMeasurePanel],
   handler: function* () {
+    // Measure each mounted element, not during application construction.
     return ({ element }) =>
       Effect.sync(() =>
         Message.CompletedMeasurePanel({
@@ -290,6 +301,7 @@ export const MeasurePanel = Mount.define('MeasurePanel', {
   },
 })
 
+// Register the view's allowed Mount; provide its implementation separately.
 export const mounts = [MeasurePanel]
 export const EffectsLayer = MeasurePanel.layer
 ```
@@ -331,6 +343,7 @@ export const view = Submodel.defineView<
   Model,
   Message,
   void,
+  // Preserve the Mount requirement when a parent embeds this view.
   Mount.RequirementsOf<typeof mounts>
 >((model, h) => h.div([h.OnMount(MeasurePanel())], [model.label]))
 ```
@@ -366,6 +379,7 @@ import { Widget } from './widget'
 export type WidgetBuilder = CustomElement.Builder<
   typeof Widget,
   Message,
+  // Mounted attributes retain the same contract as the view builder.
   Mount.RequirementsOf<typeof mounts>
 >
 ```
@@ -434,11 +448,13 @@ export const managedResources = ManagedResource.make<Model, Message>()(
       onAcquireError: error =>
         Message.FailedAcquireCamera({ reason: String(error) }),
       handler: function* () {
+        // Construct the handler now; acquire the camera when the Model requests it.
         return {
           acquire: ({ facingMode }) =>
             Effect.tryPromise(() =>
               navigator.mediaDevices.getUserMedia({ video: { facingMode } }),
             ),
+          // Required cleanup runs when the active camera handle is released.
           release: stream =>
             Effect.sync(() =>
               stream.getTracks().forEach(track => track.stop()),
@@ -493,8 +509,10 @@ import { EffectsLayer } from './layer'
 import { Model, init, update, view } from './main'
 
 const ServicesLayer = BrowserKeyValueStore.layerLocalStorage
+// Storage satisfies the handler constructor's service requirement.
 const AppLayer = Layer.provide(EffectsLayer, ServicesLayer)
 
+// The application still requires its declared handlers until provided.
 const application = Application.make({
   Model,
   init,
@@ -503,6 +521,7 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
+// Supply the complete Layer graph before starting the Runtime.
 pipe(application, Application.provide(AppLayer), Runtime.run)
 ```
 
@@ -524,10 +543,12 @@ type HostApi = Readonly<{
 
 const HostApi = Context.Service<HostApi>('HostApi')
 
+// A host contract omits handler, so this definition has no attached .layer.
 export const RequestHostToken = Command.define('RequestHostToken', {
   messages: [Message.CompletedRequestHostToken],
 })
 
+// Build the host implementation from the original definition.
 const RequestHostTokenLayer = RequestHostToken.toLayer(
   Effect.gen(function* () {
     const host = yield* HostApi
@@ -579,6 +600,7 @@ import { StoreDraft } from './command'
 import { Message } from './message'
 import type { Model } from './model'
 
+// Infer Command requirements from the returned Commands across all branches.
 const update = Update.make((model: Model, message: Message) =>
   Message.match(message, {
     ClickedSaveDraft: () => ({
@@ -590,6 +612,7 @@ const update = Update.make((model: Model, message: Message) =>
   }),
 )
 
+// This requires StoreDraft's handler, not its underlying storage service.
 type CommandRequirements = Update.RequirementsOf<typeof update>
 ```
 
@@ -613,6 +636,7 @@ const storeDraft: Update.Step<
 **After**
 
 ```ts
+// Standalone Steps infer the same requirements without a manual annotation.
 const storeDraft = Update.makeStep((model: Model) => ({
   model,
   commands: [StoreDraft({ contents: model.contents })],

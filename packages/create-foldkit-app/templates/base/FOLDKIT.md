@@ -112,6 +112,8 @@ Mounts use the same `config.handler` generator and `.layer` convention. The retu
 
 Keep the four lifetimes distinct. Application services such as RPC clients last for one Runtime start. A Command Effect lasts for one dispatch. Subscription Streams and ManagedResource handles follow Model conditions. Mount acquisition follows one DOM element. A handler generator may capture a stable service or accessor. It must not capture current time, Command args, Subscription dependencies, a DOM element, or an active ManagedResource handle. Captured services remain fixed for the Runtime start. Contextual lookups use the merged invocation context, where invocation services win. Looking up a service retrieves a provided instance; it does not construct the provider.
 
+Handlers and services may own mutable execution bookkeeping, such as worker availability or protocol request IDs. The Model and update own pending work shown to the user, selections, and submission rules. A `Ref` created in the constructor must not become the source of truth for workflow decisions or state read by view.
+
 Command args contain values already present in the Model or Message. Calling `Date.now()`, `crypto.randomUUID()`, or another source of time or randomness while preparing a Command happens before the Command executes, whether the call appears directly in the args object or its result is assigned to a local variable first. Obtain those values in the returned handler and return them in the result Message.
 
 For the with-args shape, see `repos/foldkit/examples/weather/src/main.ts` or `repos/foldkit/examples/kanban/src/command.ts`. For an argless DOM-side-effect Command, the argless form in `kanban/src/command.ts` (`FocusAddCardInput`) is the canonical reference.

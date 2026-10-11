@@ -5,15 +5,19 @@
 
 Move the implementations of Commands, Subscriptions, Mounts, and ManagedResources into Effect Layers. The application now selects effect implementations and their service providers in one Layer graph before startup. Production and ordinary execution tests can use the same handlers while supplying different HTTP, storage, RPC, clock, browser, or other external services beneath them.
 
+The original definition's `toLayer` can supply an alternative to an attached handler. A focused runtime orchestration test can use this seam to control execution, interruption, or cleanup. Such a test exercises the runtime around the handler without covering the replaced implementation.
+
 A Command definition carries its named handler requirement through update and parent composition. Its Layer carries the implementation's service requirements. Adding an HTTP, storage, or telemetry dependency changes the handler Layer's requirements, which application assembly must satisfy, without changing update's handler requirement.
 
 The Runtime builds the provided application Layer once for each start. A definition's `config.handler` is a generator constructor that runs during that build, captures service lookups once, and returns the handler used by the Runtime. Foldkit applies `Effect.gen` internally. The returned handler still runs afresh for every Command invocation, Subscription scope, Mount element, or ManagedResource acquisition. Commands, Subscriptions, and Mounts return a function that receives the current args, dependencies, or element. ManagedResources return an object with `acquire` and `release` functions that manage each Model-controlled handle.
 
-Commands, Mounts, Subscription entries, ManagedResource entries, and experimental Query definitions may omit `handler` when an external host owns the implementation. Those definitions have no `.layer`; the host supplies its implementation through `toLayer`, which accepts the implementation Effect constructor. An attached `.layer` uses the same construction path and definition identity as `toLayer(constructor)`. A ManagedResource handler must supply both `acquire` and `release`, whether attached to the entry or passed to `toLayer`.
+Handlers and services may own mutable execution bookkeeping, such as worker availability or protocol request IDs. The Model and update own pending work shown to the user, selections, and submission rules. A `Ref` created in the constructor must not become the source of truth for workflow decisions or state read by view.
+
+Commands, Mounts, Subscription entries, ManagedResource entries, and experimental Query definitions may omit `handler` when an external host owns the implementation. Those definitions have no `.layer`; the host supplies its implementation through `toLayer`, which accepts the implementation Effect constructor. An attached `.layer` uses the same construction path and definition identity as `toLayer(constructor)`. A ManagedResource constructor must return both `acquire` and `release` functions. This applies to `config.handler` and constructors supplied to `toLayer`.
 
 ## Migration
 
-Each pair shows the affected part of an existing module. Imports from `./message` and `./model` refer to the application's existing Message and Model Schemas. When several definitions belong to one Submodel or application module, compose their `.layer` recipes in that owner's `EffectsLayer`.
+Each before/after pair shows the affected part of an existing module. Imports from `./message` and `./model` refer to the application's existing Message and Model Schemas. When several definitions belong to one Submodel or application module, compose their `.layer` recipes in that owner's `EffectsLayer`.
 
 ### Commands
 
@@ -618,6 +622,8 @@ type CommandRequirements = Update.RequirementsOf<typeof update>
 
 `CommandRequirements` is inferred from the update contract, including the `StoreDraft` handler requirement. It excludes lifecycle-only requirements such as Mounts registered separately with the application.
 
+#### Standalone Steps
+
 Use `Update.makeStep` for a standalone Step that returns Commands. With the same imports and definitions:
 
 **Before**
@@ -643,11 +649,17 @@ const storeDraft = Update.makeStep((model: Model) => ({
 }))
 ```
 
+Annotate the callback's Model parameter, as in `(model: Model) => ...`, and let `Update.makeStep` infer the result Messages, handler requirements, and OutMessage from its return. The helper's type parameter represents the complete Step function, so `Update.makeStep<Model>` does not annotate its Model.
+
 ## Layer composition and lifetimes
+
+### Composing Layers
 
 Compose attached recipes directly as `Definition.layer` in each owning module's combined `EffectsLayer`, such as `Search.EffectsLayer`. When a recipe needs its own exported or reused binding, name it `FooLayer`; name an external alternative `FooTestLayer`. At the application root, combine root and Submodel implementations in `EffectsLayer`, external providers in `ServicesLayer`, and export `AppLayer` from `Layer.provide(EffectsLayer, ServicesLayer)`. Import Effect's module as `Layer`; the bundle names avoid an alias.
 
 Foldkit UI components export their own `EffectsLayer` and, when needed, `mounts`. Compose those exports at the Submodel or application module that owns the component, then carry the resulting effect and registration bundles to the root. `Slider.forRoot(name, getTrackRoot)` and `Toast.make(name, payloadSchema)` return instance-owned Subscription and effect bundles; compose those exports where the instance is created.
+
+### Requirements and definition identities
 
 `Update.make` infers Command requirements and OutMessages across Message branches while preserving required, optional, and rest context parameters. `Update.RequirementsOf<typeof update>` reads the Command services from an update contract without including lifecycle-only services. `Application.make` and `Application.provide` carry all remaining handler and service requirements until the selected Layers satisfy them.
 
@@ -658,6 +670,8 @@ Handler requirements carry the name and protocol that share an Effect Context ke
 Distinct definitions with identical names and protocols remain structurally indistinguishable to TypeScript. Foldkit checks the private definition identity before invoking a Command handler, starting a Subscription, executing a Mount, or beginning a ManagedResource lifecycle, and rejects a Layer built from another definition. Build an external alternative with the original definition's `toLayer` so it retains that definition's identity.
 
 Each registered ManagedResource tag key has one lifecycle owner. `Application.make` and `Application.makeElement` reject the same resource key under multiple registration keys, including separately created tags with matching keys. Give independent resource instances distinct tag keys so each accessor resolves its own handle.
+
+### Startup and cleanup
 
 Application Layer construction happens before Flags, init, or the first render. A construction failure therefore stops startup before a Model exists for a crash view. `Runtime.hydrate` validates the server handoff before acquiring the application Layer.
 

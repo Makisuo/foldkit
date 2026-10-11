@@ -46,6 +46,8 @@ With no `args`, `Query.define` returns a Query that retains one value. In this d
 - The `handler` generator constructs the fetch function, and `.layer` supplies it for the generated Command.
 - `name: 'Posts'` gives the generated Command the name `FetchPosts` in DevTools and tests.
 
+Choose Query names so their generated Fetch Command names are distinct from all other Command definitions in the application. For example, `name: 'Posts'` generates `FetchPosts` and must not share that handler name with a separately declared `FetchPosts` Command. TypeScript rejects a same-named provider with an incompatible handler protocol. Definitions with identical names and protocols remain structurally indistinguishable to TypeScript, so Foldkit checks their private identity before the generated Fetch handler runs. Create alternate implementations with the original Query's `toLayer`.
+
 Add the resulting Layer to the owning feature's `EffectsLayer` export and pass the root `AppLayer` to `Application.provide` at the entry point. Loading operations carry `FetchPosts` as a handler requirement, so an application that starts this Query cannot run without a Layer for it. The handler generator can capture stable services while the application Layer is built; those services are available when the fetch Command executes later.
 
 Omit `handler` when an external host supplies the fetch implementation. That definition has no `.layer`; the host constructs its provider with `toLayer`, which accepts the implementation Effect constructor. The method also constructs an alternative to an attached handler. Ordinary execution tests keep `.layer` and replace the services required by its handler.

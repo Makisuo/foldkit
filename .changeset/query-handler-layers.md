@@ -68,3 +68,5 @@ export const EffectsLayer = postQuery.layer
 ```
 
 Include both `.layer` recipes in the owning module's combined `EffectsLayer` when it uses both Queries, and provide that Layer with the application's other handlers. Query loading operations and result Messages use the same API.
+
+Choose Query names so their generated Fetch Command names are distinct from all other Command definitions in the application. For example, `name: 'Posts'` generates `FetchPosts` and must not share that handler name with a separately declared `FetchPosts` Command. TypeScript rejects a same-named provider with an incompatible handler protocol. Definitions with identical names and protocols remain structurally indistinguishable to TypeScript, so Foldkit checks their private identity before the generated Fetch handler runs. Create alternate implementations with the original Query's `toLayer`.

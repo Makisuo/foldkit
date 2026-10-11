@@ -95,6 +95,7 @@ For a Toast instance, keep its lifted Subscriptions in the owning Submodel's reg
 
 ```ts
 const toast = Toast.make(ToastPayload)
+
 const toastSubscriptions = Subscription.lift(toast.subscriptions)<
   Model,
   Message
@@ -102,6 +103,7 @@ const toastSubscriptions = Subscription.lift(toast.subscriptions)<
   read: model => Option.some(model.toast),
   toParentMessage: message => Message.GotToastMessage({ message }),
 })
+
 const subscriptions = Subscription.aggregate(
   App.subscriptions,
   toastSubscriptions,
@@ -113,6 +115,7 @@ const subscriptions = Subscription.aggregate(
 ```ts
 // Stable instance names distinguish factory-owned handler requirements.
 const toast = Toast.make('AppToast', ToastPayload)
+
 const toastSubscriptions = Subscription.lift(toast.subscriptions)<
   Model,
   Message
@@ -120,10 +123,12 @@ const toastSubscriptions = Subscription.lift(toast.subscriptions)<
   read: model => Option.some(model.toast),
   toParentMessage: message => Message.GotToastMessage({ message }),
 })
+
 const subscriptions = Subscription.aggregate(
   App.subscriptions,
   toastSubscriptions,
 )
+
 // Lift registrations as before, and carry the instance's handler bundle upward.
 const EffectsLayer = Layer.mergeAll(App.EffectsLayer, toast.EffectsLayer)
 ```
@@ -134,6 +139,7 @@ const EffectsLayer = Layer.mergeAll(App.EffectsLayer, toast.EffectsLayer)
 
 ```ts
 const sliderSubscriptions = Slider.subscriptionsForRoot(getTrackRoot)
+
 const settingsSliderSubscriptions = Subscription.lift({
   settingsSliderPointer: sliderSubscriptions.dragPointer,
   settingsSliderEscape: sliderSubscriptions.dragEscape,
@@ -141,6 +147,7 @@ const settingsSliderSubscriptions = Subscription.lift({
   read: model => Option.some(model.settingsSlider),
   toParentMessage: message => Message.GotSettingsSliderMessage({ message }),
 })
+
 const subscriptions = Subscription.aggregate(
   App.subscriptions,
   settingsSliderSubscriptions,
@@ -152,6 +159,7 @@ const subscriptions = Subscription.aggregate(
 ```ts
 // The named instance packages the custom-root Subscriptions and their handlers.
 const slider = Slider.forRoot('SettingsSlider', getTrackRoot)
+
 const settingsSliderSubscriptions = Subscription.lift({
   settingsSliderPointer: slider.subscriptions.dragPointer,
   settingsSliderEscape: slider.subscriptions.dragEscape,
@@ -159,10 +167,12 @@ const settingsSliderSubscriptions = Subscription.lift({
   read: model => Option.some(model.settingsSlider),
   toParentMessage: message => Message.GotSettingsSliderMessage({ message }),
 })
+
 const subscriptions = Subscription.aggregate(
   App.subscriptions,
   settingsSliderSubscriptions,
 )
+
 const EffectsLayer = Layer.mergeAll(App.EffectsLayer, slider.EffectsLayer)
 ```
 

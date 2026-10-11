@@ -1,7 +1,6 @@
 import { Crypto, Effect, Layer, Schema } from 'effect'
 import { Calendar } from 'foldkit'
 
-import * as UI from '@foldkit/ui'
 import { Menu, Tabs } from '@foldkit/ui'
 
 import { SubmitApplication } from './command'
@@ -71,7 +70,8 @@ export const init = ({
 })
 
 export const EffectsLayer = Layer.mergeAll(
-  UI.EffectsLayer,
+  Menu.EffectsLayer,
+  Tabs.EffectsLayer,
   SubmitApplication.layer,
   PersonalInfo.EffectsLayer,
   WorkHistory.EffectsLayer,
@@ -81,4 +81,9 @@ export const EffectsLayer = Layer.mergeAll(
 
 export { Message, Model, update, view }
 
-export const mounts = UI.mounts
+export const mounts = [
+  ...Menu.mounts,
+  ...PersonalInfo.mounts,
+  ...WorkHistory.mounts,
+  ...Education.mounts,
+]

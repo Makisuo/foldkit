@@ -1037,6 +1037,8 @@ export const LoadPlayground = Command.define('LoadPlayground', {
 })
 
 export const EffectsLayer = Layer.mergeAll(
+  Dialog.EffectsLayer,
+  Menu.EffectsLayer,
   InjectAnalytics.layer,
   LoadBrowserEnvironment.layer,
   InjectSpeedInsights.layer,
@@ -1052,3 +1054,5 @@ export const EffectsLayer = Layer.mergeAll(
   SaveSidebarState.layer,
   CopyLink.layer,
 )
+
+export const mounts = [...Dialog.mounts, ...Menu.mounts]

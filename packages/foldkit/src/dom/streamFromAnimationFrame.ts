@@ -18,21 +18,22 @@ import { Effect, Queue, Stream } from 'effect'
  *     {
  *       messages: [Message.Ticked],
  *       modelToDependencies: model => ({ isActive: model.isActive }),
+ *       handler: function* () {
+ *         return ({ isActive }) =>
+ *           isActive
+ *             ? Dom.streamFromAnimationFrame().pipe(
+ *                 Stream.map(deltaTime => Message.Ticked({ deltaTime })),
+ *               )
+ *             : Stream.empty
+ *       },
  *     },
- *     Effect.succeed(({ isActive }) =>
- *       isActive
- *         ? Subscription.animationFrameStream.pipe(
- *             Stream.map(deltaTime => Message.Ticked({ deltaTime })),
- *           )
- *         : Stream.empty,
- *     ),
  *   ),
  * }))
  *
  * const EffectsLayer = subscriptions.frame.layer
  * ```
  */
-export const animationFrameStream: Stream.Stream<number> =
+export const streamFromAnimationFrame = (): Stream.Stream<number> =>
   Stream.callback<number>(queue =>
     Effect.acquireRelease(
       Effect.sync(() => {

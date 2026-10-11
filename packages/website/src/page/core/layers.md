@@ -28,7 +28,7 @@ Do not capture current time, Command args, Subscription dependencies, a Mount's 
 
 Handler Layers separate the operations that the update function requests from the services used to implement them. An update that returns `LoadUser({ userId })` requires the `LoadUser` handler. Its implementation requires `ApiClientService`.
 
-Suppose the handler also records successful loads through a `Telemetry` service. The constructor now obtains both services, and the returned function calls them when the Command runs. `LoadUser.layer` requires both services. The emitted Command requires `Command.Handler<'LoadUser'>`, so update and the parent updates that lift its Commands continue to carry that handler requirement.
+Suppose the handler also records successful loads through a `Telemetry` service. The constructor now obtains both services, and the returned function calls them when the Command runs. `LoadUser.layer` requires both services. The emitted Command requires `Command.HandlerOf<typeof LoadUser>`, so update and the parent updates that lift its Commands carry the same handler requirement.
 
 Compare that with a Command carrying the implementation Effect directly. Its Effect requires every service the implementation uses. Adding telemetry changes that requirement from `ApiClientService` to `ApiClientService | Telemetry`, which flows through update and its parent folds.
 
@@ -39,6 +39,21 @@ Compare that with a Command carrying the implementation Effect directly. Its Eff
 | The handler provider `LoadUser.layer`   | `ApiClientService`      | `ApiClientService \| Telemetry` |
 
 Application assembly must supply the new telemetry dependency before `Runtime.run` accepts the application. An incomplete provider composition carries `Telemetry` as an unsatisfied requirement until the root supplies it. If that requirement reaches `Runtime.run`, TypeScript rejects the application. The update and its parent folds require the `LoadUser` handler throughout.
+
+Every handler requirement also carries the definition's complete invocation protocol. The public annotation forms are:
+
+| Primitive       | Exact annotation                                            | Preferred derived annotation                               |
+| --------------- | ----------------------------------------------------------- | ---------------------------------------------------------- |
+| Command         | `Command.Handler<Name, Args, DeclaredMessage>`              | `Command.HandlerOf<typeof CommandDefinition>`              |
+| Subscription    | `Subscription.Handler<Name, Dependencies, DeclaredMessage>` | `Subscription.HandlerOf<typeof subscriptions.entry>`       |
+| Mount           | `Mount.Handler<Name, Input, DeclaredMessage>`               | `Mount.RequirementsOf<typeof MountDefinition>`             |
+| ManagedResource | `ManagedResource.Handler<Name, Params, Value>`              | `ManagedResource.HandlerOf<typeof managedResources.entry>` |
+
+The expanded types require every protocol argument. Use the derived annotation when a signature needs an explicit requirement. Definitions, update helpers, lifts, aggregates, and attached Layer recipes carry these requirements automatically.
+
+`Application.provide` compares handler contracts by primitive and name across the application's remaining requirements, the Layer's outputs, and the Layer's own input requirements. It rejects incompatible contracts passed directly, combined in one `Layer.mergeAll` bundle, or introduced by later `Application.provide` calls. This check prevents two different protocols from occupying one Effect Context key before the Runtime starts.
+
+Two separately created definitions with the same name and identical protocol remain structurally indistinguishable to TypeScript. Each definition retains a private runtime identity, and Foldkit checks that identity when a Command runs, a Subscription starts, a Mount executes, or a ManagedResource lifecycle begins. Create alternate implementations through the original definition's `toLayer` so they keep its identity. Foldkit creates the handler service and its runtime identity from the definition.
 
 An inline Effect can also carry typed dependencies and use replaceable services. Defining a separate operation service yourself can achieve the same separation. Foldkit generates that service boundary from each definition and uses it across Commands, Subscriptions, Mounts, and ManagedResources. The cost is explicit handler Layer composition, even for a small implementation.
 
@@ -60,7 +75,7 @@ For example, an editor feature can declare `SaveDocument` without choosing where
 
 ::Snippet{name="commandHostContract" label="Editor declaring its save operation"}
 
-The editor's update returns `SaveDocument({ contents })` when the user requests a save and handles `SucceededSaveDocument` or `FailedSaveDocument` when it finishes. Omitting `handler` gives the definition no `.layer`. The editor requires `Command.Handler<'SaveDocument'>`, which its parent carries to application assembly.
+The editor's update returns `SaveDocument({ contents })` when the user requests a save and handles `SucceededSaveDocument` or `FailedSaveDocument` when it finishes. Omitting `handler` gives the definition no `.layer`. The editor requires `Command.HandlerOf<typeof SaveDocument>`, which its parent carries to application assembly.
 
 A standalone host can implement this contract using browser storage:
 
@@ -155,8 +170,8 @@ The provider Layer and its handler Layers live for the application runtime. Reso
 
 ## UI Effects and Mount Registrations
 
-`@foldkit/ui` exposes `UI.EffectsLayer` and `UI.mounts` for the standard component bundle. Add `UI.EffectsLayer` to the root `EffectsLayer`, and add `UI.mounts` to the application's Mount registrations. A selective bundle can merge only the component `EffectsLayer` exports and collect only their `mounts` exports.
+Compose the `EffectsLayer` exports of the UI components a Submodel uses, such as `Dialog.EffectsLayer` and `Menu.EffectsLayer`. Collect their `mounts` exports in the Submodel's registration bundle. Each parent merges those bundles with its own until they reach the application root. Explicit composition includes the implementations the Submodel uses and keeps unrelated handlers out of its application Layer.
 
-Some component factories own instance-specific effects. `Slider.forRoot(name, getTrackRoot)` returns that instance's `subscriptions` and `EffectsLayer`. `Toast.make(name, payloadSchema)` returns its typed component module with the same two exports. Compose them at the feature boundary that owns the factory instance.
+Some component factories own instance-specific effects. `Slider.forRoot(name, getTrackRoot)` returns that instance's `subscriptions` and `EffectsLayer`. `Toast.make(name, payloadSchema)` returns its typed component module with the same two exports. Compose them at the Submodel boundary that owns the factory instance.
 
-Mount registration is separate from providing a Mount handler Layer because view and `Html` have no Effect requirement parameter. Registering a Mount tells `Application.make` which handler requirements may appear in the rendered tree. Registration starts no element-scoped work until the Mount appears in the view. Its included handler Layer builds at application startup.
+Mount registration gives the view builder its allowed Mount contracts and adds their handler requirements to the application. TypeScript rejects an unregistered Mount or an embedded child view whose Mount requirements are missing. Reusable views preserve those requirements with `HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>` or the fourth parameter of `Submodel.defineView`. Providing the handler Layer satisfies execution; registration declares which definitions the view may render. Registration starts no element work until the Mount appears in the view. Its included handler Layer builds at application startup. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for attribute and child-view composition.

@@ -1,7 +1,6 @@
 import { Effect, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 
-import * as UI from '@foldkit/ui'
 import { DragAndDrop } from '@foldkit/ui'
 
 import { DEFAULT_COLUMNS, STORAGE_KEY } from './constant'
@@ -53,5 +52,3 @@ export const init = (flags: Flags) => {
 }
 
 export { Message, Model, subscriptions, update, view }
-
-export const mounts = UI.mounts

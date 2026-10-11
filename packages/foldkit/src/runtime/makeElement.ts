@@ -5,7 +5,13 @@ import type {
   ServicesOf as ManagedResourceServicesOf,
   ManagedResources,
 } from '../managedResource/index.js'
-import type { LayeredMountDefinition, MountAction } from '../mount/index.js'
+import type {
+  AnyMountHandler,
+  LayeredMountDefinition,
+  MountAction,
+  RequirementsOf as MountRequirementsOf,
+  PreciseMountRegistry,
+} from '../mount/index.js'
 import type { Ports } from '../port/index.js'
 import type { Subscriptions } from '../subscription/subscription.js'
 import type {
@@ -34,19 +40,23 @@ type BaseElementConfig<
   Resources = never,
   ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 > = Readonly<{
   Model: Schema.Codec<Model, any, unknown, unknown>
   update: (
     model: Model,
     message: Message,
   ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
-  view: (model: Model, h: HtmlBuilder<Message>) => Html
+  view: (
+    model: Model,
+    h: HtmlBuilder<Message, MountRequirementsOf<NoInfer<Mounts>>>,
+  ) => Html
   subscriptions?: Subscriptions<
     Model,
     Message,
     Resources | ManagedResourceServices
   >
-  mounts?: ReadonlyArray<LayeredMountDefinition>
+  mounts?: Mounts
   container: HTMLElement | null
   ports?: P
   crash?: ElementCrashConfig<Model, Message>
@@ -65,7 +75,15 @@ export type ElementConfigWithFlags<
   Resources = never,
   ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
-> = BaseElementConfig<Model, Message, Resources, ManagedResourceServices, P> &
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+> = BaseElementConfig<
+  Model,
+  Message,
+  Resources,
+  ManagedResourceServices,
+  P,
+  Mounts
+> &
   FlagsSchemaConfig<Flags> &
   Readonly<{
     /**
@@ -88,7 +106,15 @@ export type ElementConfig<
   Resources = never,
   ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
-> = BaseElementConfig<Model, Message, Resources, ManagedResourceServices, P> &
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+> = BaseElementConfig<
+  Model,
+  Message,
+  Resources,
+  ManagedResourceServices,
+  P,
+  Mounts
+> &
   Readonly<{
     init: () => UpdateReturn<
       Model,
@@ -108,17 +134,45 @@ export type ElementInit<
   ManagedResourceServices = never,
 > = ApplicationInit<Model, Message, Flags, Resources, ManagedResourceServices>
 
-type InferredElementConfig<Model, Message> = ElementConfig<
+type InferredElementConfig<
   Model,
   Message,
-  any,
-  any,
-  any
-> &
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+> = ElementConfig<Model, Message, any, any, any, Mounts> &
   Readonly<{ Flags?: never; flags?: never }>
 
-type InferredElementConfigWithFlags<Model, Message, Flags> =
-  ElementConfigWithFlags<Model, Message, Flags, any, any, any>
+type InferredElementConfigWithFlags<
+  Model,
+  Message,
+  Flags,
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+> = ElementConfigWithFlags<Model, Message, Flags, any, any, any, Mounts>
+
+type ElementConfigWithFlagsInput<
+  ModelSchema extends Schema.Codec<any, any, any, any>,
+  FlagsSchema extends Schema.Codec<any, any, never, never>,
+  Update extends (model: ModelSchema['Type'], message: any) => any,
+  Mounts extends ReadonlyArray<LayeredMountDefinition>,
+> = Omit<
+  InferredElementConfigWithFlags<
+    ModelSchema['Type'],
+    UpdateMessage<Update>,
+    FlagsSchema['Type'],
+    Mounts
+  >,
+  'Model' | 'Flags' | 'update'
+> &
+  Readonly<{ Model: ModelSchema; Flags: FlagsSchema; update: Update }>
+
+type ElementConfigInput<
+  ModelSchema extends Schema.Codec<any, any, any, any>,
+  Update extends (model: ModelSchema['Type'], message: any) => any,
+  Mounts extends ReadonlyArray<LayeredMountDefinition>,
+> = Omit<
+  InferredElementConfig<ModelSchema['Type'], UpdateMessage<Update>, Mounts>,
+  'Model' | 'update'
+> &
+  Readonly<{ Model: ModelSchema; update: Update }>
 
 type ExactConfigKeys<Config, Shape> = Readonly<{
   [Key in Exclude<keyof Config, keyof Shape>]: never
@@ -288,15 +342,13 @@ export function makeElement<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
-  const Config extends Omit<
-    InferredElementConfigWithFlags<
-      ModelSchema['Type'],
-      UpdateMessage<Update>,
-      FlagsSchema['Type']
-    >,
-    'Model' | 'Flags' | 'update'
-  > &
-    Readonly<{ Model: ModelSchema; Flags: FlagsSchema; update: Update }>,
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+  const Config extends ElementConfigWithFlagsInput<
+    ModelSchema,
+    FlagsSchema,
+    Update,
+    Mounts
+  > = ElementConfigWithFlagsInput<ModelSchema, FlagsSchema, Update, Mounts>,
 >(
   config: Config &
     Readonly<{
@@ -311,20 +363,21 @@ export function makeElement<
       InferredElementConfigWithFlags<
         ModelSchema['Type'],
         UpdateMessage<Update>,
-        FlagsSchema['Type']
+        FlagsSchema['Type'],
+        Mounts
       >
     > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts> &
     SelfContainedConfig<Config, NoInfer<Update>>,
 ): MakeRuntimeReturn<ConfigPorts<Config>, void, never, 'Element'>
 
 export function makeElement<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
-  const Config extends Omit<
-    InferredElementConfig<ModelSchema['Type'], UpdateMessage<Update>>,
-    'Model' | 'update'
-  > &
-    Readonly<{ Model: ModelSchema; update: Update }>,
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+  const Config extends ElementConfigInput<ModelSchema, Update, Mounts> =
+    ElementConfigInput<ModelSchema, Update, Mounts>,
 >(
   config: Config &
     Readonly<{
@@ -335,8 +388,10 @@ export function makeElement<
     }> &
     ExactConfigKeys<
       Config,
-      InferredElementConfig<ModelSchema['Type'], UpdateMessage<Update>>
+      InferredElementConfig<ModelSchema['Type'], UpdateMessage<Update>, Mounts>
     > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts> &
     SelfContainedConfig<Config, NoInfer<Update>>,
 ): MakeRuntimeReturn<ConfigPorts<Config>, void, never, 'Element'>
 
@@ -347,6 +402,7 @@ export function makeElement<
   Resources extends never = never,
   ManagedResourceServices extends never = never,
   P extends Ports | undefined = undefined,
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 >(
   config: ElementConfigWithFlags<
     Model,
@@ -354,8 +410,11 @@ export function makeElement<
     Flags,
     Resources,
     ManagedResourceServices,
-    P
-  >,
+    P,
+    Mounts
+  > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts>,
 ): MakeRuntimeReturn<P, void, Resources, 'Element'>
 
 export function makeElement<
@@ -364,8 +423,18 @@ export function makeElement<
   Resources extends never = never,
   ManagedResourceServices extends never = never,
   P extends Ports | undefined = undefined,
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 >(
-  config: ElementConfig<Model, Message, Resources, ManagedResourceServices, P>,
+  config: ElementConfig<
+    Model,
+    Message,
+    Resources,
+    ManagedResourceServices,
+    P,
+    Mounts
+  > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts>,
 ): MakeRuntimeReturn<P, void, Resources, 'Element'>
 
 export function makeElement<
@@ -388,7 +457,10 @@ export function makeElement<
   const hasFlags = 'Flags' in config
 
   const elementView = config.view
-  const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+  const view = (
+    model: Model,
+    h: HtmlBuilder<Message, AnyMountHandler>,
+  ): Document => ({
     title: '',
     body: elementView(model, h),
   })

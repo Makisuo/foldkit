@@ -68,6 +68,7 @@ export const ScrollList = Mount.define('ScrollList', {
 })
 
 export const Mounts = [MeasurePanel, FocusButton, ScrollList]
+type MountRequirements = Mount.RequirementsOf<typeof Mounts>
 
 // INIT
 
@@ -99,7 +100,10 @@ export const update = Update.make((model: Model, message: Message) =>
 
 // VIEW
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
+export const view = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+): Html => {
   return h.div(
     [h.Class('panel-test')],
     [
@@ -136,7 +140,10 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
 /** A view that always renders both the toggle button and the panel, exposing
  *  two MeasurePanel mounts simultaneously so we can exercise the (name,
  *  occurrence) tracking. */
-export const twoPanelView = (model: Model, h: HtmlBuilder<Message>): Html => {
+export const twoPanelView = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+): Html => {
   return h.div(
     [h.Class('two-panels')],
     [
@@ -156,7 +163,7 @@ export const twoPanelView = (model: Model, h: HtmlBuilder<Message>): Html => {
  *  args and is observable on the rendered Mount marker. */
 export const scrollListView = (
   offset: number,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, MountRequirements>,
 ): Html => {
   return h.div(
     [h.Class('scroll-list')],

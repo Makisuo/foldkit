@@ -1,10 +1,10 @@
 import { Option } from 'effect'
 import { Application, ManagedResource, Subscription } from 'foldkit'
 
+import { mounts } from './layer'
 import { Flags, Model, init, update, view } from './main'
 import { Message } from './message'
-import { Example, Home, Playground, Ui } from './page'
-import * as SnippetDisclosure from './snippetDisclosure'
+import { Home, Playground, Ui } from './page'
 import * as Subscriptions from './subscription'
 
 const homeSubscriptions = Subscription.lift(Home.subscriptions)<Model, Message>(
@@ -63,12 +63,7 @@ export const makeApplication = (container: HTMLElement | null) =>
     view,
     subscriptions,
     managedResources,
-    mounts: [
-      ...Ui.mounts,
-      SnippetDisclosure.MeasureSnippetHeight,
-      ...Playground.mounts,
-      ...Example.mounts,
-    ],
+    mounts,
     container,
     routing: {
       onUrlRequest: request => Message.ClickedLink({ request }),

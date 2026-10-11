@@ -2,9 +2,9 @@
 '@foldkit/ui': minor
 ---
 
-Provide UI handlers with `UI.EffectsLayer` and register `UI.mounts` in `Application.make`. Applications selecting individual components can compose those components' `EffectsLayer` and `mounts` instead. Building the bundle installs no event listeners or DOM behavior; the relevant Command or lifecycle performs that work.
+Provide each Foldkit UI component's handler Layers and register its Mount definitions. The application module that owns a component composes that component's `EffectsLayer`; when the component exports `mounts`, the same module carries those registrations to `Application.make`.
 
-The following migration is for an application whose handler and Mount requirements come from Foldkit UI's default components. It assumes `UI` is imported as `import * as UI from '@foldkit/ui'`.
+The following migration is for an application that renders `Menu` and `Tabs`. `Menu` owns Commands and Mounts. `Tabs` owns Commands but no Mounts.
 
 **Before**
 
@@ -29,15 +29,64 @@ const application = Application.make({
   update,
   view,
   container,
-  mounts: UI.mounts,
+  mounts: Menu.mounts,
 })
 
-Runtime.run(Application.provide(application, UI.EffectsLayer))
+const EffectsLayer = Layer.mergeAll(Menu.EffectsLayer, Tabs.EffectsLayer)
+const AppLayer = EffectsLayer
+
+pipe(application, Application.provide(AppLayer), Runtime.run)
 ```
 
-Give factory instances stable names. Replace `Toast.make(payloadSchema)` with `Toast.make(name, payloadSchema)` and `Slider.subscriptionsForRoot(getTrackRoot)` with `Slider.forRoot(name, getTrackRoot)`. Compose each returned instance's `EffectsLayer` and register its `subscriptions` where that instance is used. Instance names must be distinct within an application. Scene swipe events use `Subscription.emit(toast.subscriptions.swipePointer, message)` with the factory instance's registration.
+Import `Layer` and `pipe` from `effect`, `Application` and `Runtime` from `foldkit`, and `Menu` and `Tabs` from `@foldkit/ui`. Building the Layers installs no event listeners or DOM behavior. A Command invocation or registered lifecycle starts the work. When a child Submodel renders a component, compose that component's `EffectsLayer` and export its `mounts` from the child boundary; the root combines the child exports rather than maintaining a package-wide component list.
 
-For a Toast instance, keep its lifted Subscriptions in the application graph and add its returned effect bundle. This example assumes the parent Model stores the Toast Model in `model.toast`, the parent Message union declares `GotToastMessage`, and `App` exports the application's other Subscriptions and `EffectsLayer`.
+Mounted UI views now preserve their Mount requirements through `h.submodel` and their attribute slots. An owning Submodel must carry those requirements in its exported view as well as register the definitions:
+
+**Before**
+
+```ts
+const AppMenu = Menu.create<string>()
+
+export const view = Submodel.defineView<Model, Message>((model, h) =>
+  h.submodel({
+    slotId: model.menu.id,
+    model: model.menu,
+    view: AppMenu.view,
+    viewInputs: menuViewInputs,
+    toParentMessage: message => Message.GotMenuMessage({ message }),
+  }),
+)
+```
+
+**After**
+
+```ts
+const AppMenu = Menu.create<string>()
+
+export const mounts = Menu.mounts
+export const EffectsLayer = Menu.EffectsLayer
+
+export const view = Submodel.defineView<
+  Model,
+  Message,
+  void,
+  Mount.RequirementsOf<typeof mounts>
+>((model, h) =>
+  h.submodel({
+    slotId: model.menu.id,
+    model: model.menu,
+    view: AppMenu.view,
+    viewInputs: menuViewInputs,
+    toParentMessage: message => Message.GotMenuMessage({ message }),
+  }),
+)
+```
+
+Import `Mount` and `Submodel` from `foldkit`. This pair assumes the module already declares the Menu's `menuViewInputs` and parent Message wrapper. Keep `void` when the owning view has no inputs, or use its `ViewInputs` type there. TypeScript rejects the parent application if these Mount registrations are missing. Pure UI views retain their existing signatures. For explicit slot annotations, use the component's attribute types, such as `Dialog.RenderInfo['dialog']`, so mounted slots retain their requirements.
+
+Give factory instances stable names. Replace `Toast.make(payloadSchema)` with `Toast.make(name, payloadSchema)` and `Slider.subscriptionsForRoot(getTrackRoot)` with `Slider.forRoot(name, getTrackRoot)`. Compose each returned instance's `EffectsLayer` and register its `subscriptions` where that instance is owned. Instance names must be distinct within an application. Scene swipe events use `Subscription.emit(toast.subscriptions.swipePointer, message)` with the factory instance's registration.
+
+For a Toast instance, keep its lifted Subscriptions in the owning Submodel's registration graph and add its returned effect bundle. This example assumes the Model stores the Toast Model in `model.toast`, the Message union declares `GotToastMessage`, and `App` exports the module's other Subscriptions and `EffectsLayer`.
 
 **Before**
 
@@ -74,7 +123,7 @@ const subscriptions = Subscription.aggregate(
 const EffectsLayer = Layer.mergeAll(App.EffectsLayer, toast.EffectsLayer)
 ```
 
-`Slider.forRoot` returns the same pair for a custom track root. This example assumes the parent Model stores the Slider Model in `model.settingsSlider` and the parent Message union declares `GotSettingsSliderMessage`.
+`Slider.forRoot` returns the same pair for a custom track root. This example assumes the Model stores the Slider Model in `model.settingsSlider` and the Message union declares `GotSettingsSliderMessage`.
 
 **Before**
 
@@ -111,9 +160,9 @@ const subscriptions = Subscription.aggregate(
 const EffectsLayer = Layer.mergeAll(App.EffectsLayer, slider.EffectsLayer)
 ```
 
-Component Command names identify their owning component so several components can share one application handler Context. Update direct Command references using this table. Corresponding `Message.Completed*` variants include the same component name; for example, `Menu.Message.CompletedLockScroll` becomes `Menu.Message.CompletedLockMenuScroll`. Shared result facts such as `EndedAnimation` keep their names.
+Update direct Command references using this table. Corresponding `Message.Completed*` variants include the same component name; for example, `Menu.Message.CompletedLockScroll` becomes `Menu.Message.CompletedLockMenuScroll`. Shared result facts such as `EndedAnimation` keep their names.
 
-| Previous Command                        | Command                                         |
+| Previous Command                        | New Command                                     |
 | --------------------------------------- | ----------------------------------------------- |
 | `Menu.LockScroll`                       | `Menu.LockMenuScroll`                           |
 | `Menu.UnlockScroll`                     | `Menu.UnlockMenuScroll`                         |

@@ -1,7 +1,7 @@
 export { init } from './init'
 export { Message } from './message'
 export { MeasureSnippetHeight } from './mount'
-export { EffectsLayer } from './layer'
+export { EffectsLayer, mounts } from './layer'
 export { Model, SnippetSize } from './model'
 export { renderer } from './renderer'
 export { update } from './update'

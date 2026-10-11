@@ -12,6 +12,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest'
 
 import {
   type Handler,
+  type HandlerOf,
   type ManagedResource,
   type ServiceOf,
   type ServicesOf,
@@ -529,14 +530,14 @@ describe('make', () => {
       Effect.Effect<
         Readonly<{ token: string }>,
         unknown,
-        Scope.Scope | Handler<'ManageChildSession'>
+        Scope.Scope | HandlerOf<typeof childManagedResources.session>
       >
     >()
     expectTypeOf(ManageChildSessionLayer).toEqualTypeOf<
-      Layer.Layer<Handler<'ManageChildSession'>>
+      Layer.Layer<HandlerOf<typeof childManagedResources.session>>
     >()
     expectTypeOf(ManagePingLayer).toEqualTypeOf<
-      Layer.Layer<Handler<'ManagePing'>>
+      Layer.Layer<HandlerOf<typeof parentLocalManagedResources.ping>>
     >()
   })
 
@@ -555,32 +556,96 @@ describe('make', () => {
     expectTypeOf(
       layeredManagedResources.session.acquire({ token: 'abc' }),
     ).toEqualTypeOf<
-      Effect.Effect<string, unknown, Handler<'ManageSession'> | Scope.Scope>
+      Effect.Effect<
+        string,
+        unknown,
+        HandlerOf<typeof layeredManagedResources.session> | Scope.Scope
+      >
+    >()
+    // @ts-expect-error A Handler annotation must include its params and value contract.
+    expectTypeOf<Handler<'ManageSession'>>()
+    expectTypeOf<
+      HandlerOf<typeof layeredManagedResources.session>
+    >().toEqualTypeOf<
+      Handler<'ManageSession', Readonly<{ token: string }>, string>
     >()
     expectTypeOf(layer).toEqualTypeOf<
-      Layer.Layer<Handler<'ManageSession'>, never, Prefix | Suffix>
+      Layer.Layer<
+        HandlerOf<typeof layeredManagedResources.session>,
+        never,
+        Prefix | Suffix
+      >
     >()
     expect(layeredManagedResources.session.name).toBe('ManageSession')
+  })
+
+  it('extracts a Handler whose resource value is never', () => {
+    type UnavailableHandler = Handler<'ManageUnavailable', null, never>
+    type UnavailableEntry = Readonly<{
+      acquire: () => Effect.Effect<never, never, UnavailableHandler>
+    }>
+
+    expectTypeOf<
+      HandlerOf<UnavailableEntry>
+    >().toEqualTypeOf<UnavailableHandler>()
+  })
+
+  it('rejects a same-name Layer with different params and value', () => {
+    const NumberResource = tag<number>()('NumberResource')
+    const incompatible = make<ChildModel, ChildMessage>()(entry => ({
+      session: entry(
+        'ManageSession',
+        Schema.Option(Schema.Struct({ count: Schema.Number })),
+        {
+          resource: NumberResource,
+          modelToMaybeRequirements: () => Option.some({ count: 1 }),
+          onAcquired: () => childMessage('AcquiredSession'),
+          onReleased: () => childMessage('ReleasedSession'),
+          onAcquireError: () => childMessage('FailedSession'),
+        },
+      ),
+    }))
+    const incompatibleLayer = incompatible.session.toLayer(
+      Effect.succeed({
+        acquire: ({ count }) => Effect.succeed(count),
+        release: () => Effect.void,
+      }),
+    )
+
+    if (false) {
+      const provideSession = <E, R>(
+        _layer: Layer.Layer<
+          HandlerOf<typeof layeredManagedResources.session>,
+          E,
+          R
+        >,
+      ) => undefined
+
+      // @ts-expect-error A same-name handler with a different params and value contract cannot provide this ManagedResource.
+      provideSession(incompatibleLayer)
+    }
   })
 
   it('attaches a precise lifecycle Layer and keeps host contracts bare', async () => {
     expectTypeOf(attachedManagedResources.session.layer).toEqualTypeOf<
       Layer.Layer<
-        Handler<'AttachedManageSession'>,
+        HandlerOf<typeof attachedManagedResources.session>,
         AcquireFailure,
         BuildGate | Prefix | Suffix
       >
     >()
     expectTypeOf(attachedManagedResources.failedSession.layer).toEqualTypeOf<
       Layer.Layer<
-        Handler<'FailedAttachedManageSession'>,
+        HandlerOf<typeof attachedManagedResources.failedSession>,
         AcquireFailure,
         BuildGate
       >
     >()
     expectTypeOf(
       attachedManagedResources.contextualSession.layer,
-    ).toEqualTypeOf<Layer.Layer<Handler<'ContextualAttachedManageSession'>>>()
+    ).toEqualTypeOf<
+      Layer.Layer<HandlerOf<typeof attachedManagedResources.contextualSession>>
+    >()
     expectTypeOf(
       attachedManagedResources.session.onAcquired,
     ).parameters.toEqualTypeOf<[]>()
@@ -631,7 +696,9 @@ describe('make', () => {
       }),
     )
 
-    expectTypeOf(layer).toEqualTypeOf<Layer.Layer<Handler<'ManageSession'>>>()
+    expectTypeOf(layer).toEqualTypeOf<
+      Layer.Layer<HandlerOf<typeof layeredManagedResources.session>>
+    >()
   })
 
   it('infers lifecycle requirements from an Effect supplied handler', () => {
@@ -651,7 +718,11 @@ describe('make', () => {
     )
 
     expectTypeOf(layer).toEqualTypeOf<
-      Layer.Layer<Handler<'ManageSession'>, never, BuildCount | Prefix | Suffix>
+      Layer.Layer<
+        HandlerOf<typeof layeredManagedResources.session>,
+        never,
+        BuildCount | Prefix | Suffix
+      >
     >()
   })
 
@@ -871,8 +942,15 @@ describe('lift', () => {
     expectTypeOf(
       liftedLayeredManagedResources.session.acquire({ token: 'abc' }),
     ).toEqualTypeOf<
-      Effect.Effect<string, unknown, Handler<'ManageSession'> | Scope.Scope>
+      Effect.Effect<
+        string,
+        unknown,
+        HandlerOf<typeof layeredManagedResources.session> | Scope.Scope
+      >
     >()
+    expectTypeOf<
+      HandlerOf<typeof liftedLayeredManagedResources.session>
+    >().toEqualTypeOf<HandlerOf<typeof layeredManagedResources.session>>()
   })
 
   it('preserves an attached Layer through lift', () => {

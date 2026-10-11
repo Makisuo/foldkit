@@ -7,13 +7,13 @@ Move the implementations of Commands, Subscriptions, Mounts, and ManagedResource
 
 A Command definition carries its named handler requirement through update and parent composition. Its Layer carries the implementation's service requirements. Adding an HTTP, storage, or telemetry dependency changes the handler Layer's requirements, which application assembly must satisfy, without changing update's handler requirement.
 
-The Runtime builds the provided application Layer once for each start. A definition's `config.handler` is a generator constructor that builds its handler during that build, and the definition exposes the attached recipe as `.layer`. Foldkit applies `Effect.gen` internally. Commands, Subscriptions, and Mounts return a function that performs work with the current args, dependencies, or element. ManagedResources return an object with `acquire` and `release` functions that manage each Model-controlled handle. Return the handler directly when construction has no work to perform.
+The Runtime builds the provided application Layer once for each start. A definition's `config.handler` is a generator constructor that runs during that build, captures service lookups once, and returns the handler used by the Runtime. Foldkit applies `Effect.gen` internally. The returned handler still runs afresh for every Command invocation, Subscription scope, Mount element, or ManagedResource acquisition. Commands, Subscriptions, and Mounts return a function that receives the current args, dependencies, or element. ManagedResources return an object with `acquire` and `release` functions that manage each Model-controlled handle.
 
 Commands, Mounts, Subscription entries, ManagedResource entries, and experimental Query definitions may omit `handler` when an external host owns the implementation. Those definitions have no `.layer`; the host supplies its implementation through `toLayer`, which accepts the implementation Effect constructor. An attached `.layer` uses the same construction path and definition identity as `toLayer(constructor)`. A ManagedResource handler must supply both `acquire` and `release`, whether attached to the entry or passed to `toLayer`.
 
 ## Migration
 
-Each pair shows the affected part of an existing module. Imports from `./message` and `./model` refer to the application's existing Message and Model Schemas. Compose the individual `.layer` recipes shown below in one feature `EffectsLayer` when these definitions share a feature.
+Each pair shows the affected part of an existing module. Imports from `./message` and `./model` refer to the application's existing Message and Model Schemas. When several definitions belong to one Submodel or application module, compose their `.layer` recipes in that owner's `EffectsLayer`.
 
 ### Commands
 
@@ -71,7 +71,32 @@ export const StoreDraft = Command.define('StoreDraft', {
 export const EffectsLayer = StoreDraft.layer
 ```
 
-update calls `StoreDraft({ contents })` as before. Its requirement is the `StoreDraft` handler; the storage service requirement belongs to `StoreDraft.layer` and must be supplied at assembly. Return the handler directly from `function* () { return handler }` when construction needs no services or preparation.
+update calls `StoreDraft({ contents })` as before. Its requirement is the `StoreDraft` handler; the storage service requirement belongs to `StoreDraft.layer` and must be supplied at assembly.
+
+A constructor that has no service to look up still uses the same generator shape. It yields nothing and returns the invocation function directly:
+
+```ts
+import { Duration, Effect } from 'effect'
+import { Command } from 'foldkit'
+
+import { Message } from './message'
+
+const DISMISSAL_DELAY = Duration.seconds(5)
+
+export const WaitBeforeDismissal = Command.define('WaitBeforeDismissal', {
+  messages: [Message.CompletedWaitBeforeDismissal],
+  handler: function* () {
+    return () =>
+      Effect.sleep(DISMISSAL_DELAY).pipe(
+        Effect.as(Message.CompletedWaitBeforeDismissal()),
+      )
+  },
+})
+
+export const EffectsLayer = WaitBeforeDismissal.layer
+```
+
+The generator runs once while the application Layer is built. Each `WaitBeforeDismissal()` Command invokes the returned function and starts a new delay.
 
 ### Subscriptions
 
@@ -143,7 +168,11 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
 export const EffectsLayer = subscriptions.gameClockTicks.layer
 ```
 
-The constructor builds once per application start. Changes to `isRunning` restart the Stream scope without reconstructing the handler. Keep `subscriptions` in the application configuration and provide its handler Layer.
+The constructor builds once per application start. Changes to `isRunning` restart the Stream scope and call the returned function with fresh dependencies without reconstructing the handler. Keep `subscriptions` in the application configuration and provide its handler Layer.
+
+The handler name `GameClockTicks` identifies the Layer requirement. The record key `gameClockTicks` identifies this runtime registration and its Stream scope. Several lifted registrations can share one definition and handler Layer while retaining separate registration keys and Stream scopes.
+
+The `messages` collection constrains the attached handler and every external `toLayer` implementation to a Stream of the declared Message union. Scene also uses the declaration to verify that `Subscription.emit(entry, message)` selects the registered source and that the Message satisfies one of its Schemas before applying any parent Message mappings. Subscription lifecycle entries in DevTools are follow-up work.
 
 #### Subscriptions without Model dependencies
 
@@ -181,7 +210,42 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
 export const EffectsLayer = subscriptions.heartbeatTicks.layer
 ```
 
-`HEARTBEAT_INTERVAL` is the application's existing interval. Use `messages: []` for scoped work that emits no Messages.
+`HEARTBEAT_INTERVAL` is the application's existing interval.
+
+Use `messages: []` when a Subscription owns scoped work but never emits a Message. The handler must then return `Stream<never>`. This example installs its own selection style while a drag is active and removes that style when the dependency changes or the application stops:
+
+```ts
+export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  dragSelectionStyles: entry(
+    'DragSelectionStyles',
+    { isDragging: Schema.Boolean },
+    {
+      messages: [],
+      modelToDependencies: model => ({ isDragging: model.isDragging }),
+      handler: function* () {
+        return ({ isDragging }) =>
+          Stream.when(
+            Stream.fromEffect(
+              Effect.acquireRelease(
+                Effect.sync(() => {
+                  const styleElement = document.createElement('style')
+                  styleElement.textContent =
+                    ':root { user-select: none !important; }'
+                  document.head.appendChild(styleElement)
+                  return styleElement
+                }),
+                styleElement => Effect.sync(() => styleElement.remove()),
+              ).pipe(Effect.flatMap(() => Effect.never)),
+            ),
+            Effect.sync(() => isDragging),
+          )
+      },
+    },
+  ),
+}))
+
+export const EffectsLayer = subscriptions.dragSelectionStyles.layer
+```
 
 ### Mounts
 
@@ -230,9 +294,81 @@ export const mounts = [MeasurePanel]
 export const EffectsLayer = MeasurePanel.layer
 ```
 
-Use `h.OnMount(MeasurePanel())` in the view as before. Add `mounts` to `Application.make({ mounts, ... })` and provide `EffectsLayer`. Registration is required because view and `Html` do not carry Effect requirements. A registered Mount that is absent from the rendered tree performs no element work.
+Use `h.OnMount(MeasurePanel())` in the view as before. Add `mounts` to `Application.make({ mounts, ... })` and provide `EffectsLayer`. The Mount reads the rendered panel's actual `getBoundingClientRect().height` after that element enters the DOM and reports it as `CompletedMeasurePanel`. Registration gives the view builder its allowed Mount contracts and adds their handler requirements to the application. TypeScript rejects unregistered Mounts; Foldkit also checks the exact rendered definition before patching the DOM. A registered Mount that is absent from the rendered tree performs no element work.
 
 `Mount.defineStream` uses the same `config.handler` generator, returning an element function that produces a Stream. Keep element acquisition and cleanup inside that returned handler so each element owns its own scope.
+
+### Views that use Mounts
+
+An inline application view gets its allowed Mounts from `Application.make({ mounts, ... })`. An exported view must preserve the Mount requirements in its builder signature. A plain view changes from `HtmlBuilder<Message>` to `HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>`. A branded Submodel view uses the fourth type parameter:
+
+**Before**
+
+```ts
+import { Submodel } from 'foldkit'
+
+import { MeasurePanel } from './mount'
+import type { Message } from './message'
+import type { Model } from './model'
+
+export const view = Submodel.defineView<Model, Message>((model, h) =>
+  h.div([h.OnMount(MeasurePanel())], [model.label]),
+)
+```
+
+**After**
+
+```ts
+import { Mount, Submodel } from 'foldkit'
+
+import { MeasurePanel } from './mount'
+import type { Message } from './message'
+import type { Model } from './model'
+
+export const mounts = [MeasurePanel]
+
+export const view = Submodel.defineView<
+  Model,
+  Message,
+  void,
+  Mount.RequirementsOf<typeof mounts>
+>((model, h) => h.div([h.OnMount(MeasurePanel())], [model.label]))
+```
+
+`void` is the existing default for `ViewInputs`; substitute the child's inputs type when it has one. The parent collects the child's `mounts` with its own and provides the child's `EffectsLayer`. TypeScript checks that the parent builder allows every Mount required by the child view before `h.submodel` can embed it. Views with no Mounts keep their existing signatures, and their `Html` result type is unchanged.
+
+Let TypeScript infer Mount registration arrays and composed spreads. An annotation such as `ReadonlyArray<Mount.LayeredMountDefinition>` erases the definition contracts and is rejected at application assembly. If forwarded attribute arrays need an explicit type, preserve the requirements as `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>`. `childAttributes` and `CustomElement.withMessage(h)` preserve the requirements automatically.
+
+### Typed CustomElement builders
+
+The inferred result of `Widget.withMessage(h)` retains the view builder's allowed Mounts. A `CustomElement.Builder` annotation for a builder that accepts mounted attributes needs the same capability as its third type parameter. This pair assumes the existing module exports its `Widget` spec and `mounts` registrations.
+
+**Before**
+
+```ts
+import type { CustomElement } from 'foldkit'
+
+import type { Message } from './message'
+import { Widget } from './widget'
+
+export type WidgetBuilder = CustomElement.Builder<typeof Widget, Message>
+```
+
+**After**
+
+```ts
+import type { CustomElement, Mount } from 'foldkit'
+
+import type { Message } from './message'
+import { mounts } from './mount'
+import { Widget } from './widget'
+
+export type WidgetBuilder = CustomElement.Builder<
+  typeof Widget,
+  Message,
+  Mount.RequirementsOf<typeof mounts>
+>
+```
 
 ### ManagedResources
 
@@ -322,7 +458,7 @@ Keep `managedResources` in the application configuration and provide its handler
 
 Remove the `resources` field. Define the program with `Application.make`, supply the composed `AppLayer` with `Application.provide`, then call `Runtime.run` or `Runtime.hydrate`.
 
-This example uses the storage service needed by `StoreDraft`. The feature's `./layer` module exports its composed handler `EffectsLayer`.
+This example uses the storage service needed by `StoreDraft`. The owning module's `./layer` file exports its composed handler `EffectsLayer`.
 
 **Before**
 
@@ -367,10 +503,44 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-Runtime.run(pipe(application, Application.provide(AppLayer)))
+pipe(application, Application.provide(AppLayer), Runtime.run)
 ```
 
-For an Element, replace `Runtime.makeElement(config)` with `pipe(Application.makeElement(config), Application.provide(AppLayer))` before passing the result to `Runtime.run` or `Runtime.embed`. Preserve existing Flags, routing, Ports, Subscriptions, ManagedResources, and DevTools configuration. Add each feature's `mounts` registrations when its view renders Mounts.
+For an Element, replace `Runtime.makeElement(config)` with `pipe(Application.makeElement(config), Application.provide(AppLayer))` before passing the result to `Runtime.run` or `Runtime.embed`. Preserve existing Flags, routing, Ports, Subscriptions, ManagedResources, and DevTools configuration. Add each owning module's `mounts` registrations when its view renders Mounts.
+
+### External host implementations
+
+Omit `handler` only when the definition is an implementation contract for an external host. The definition has `toLayer` but no `.layer`; the host owns the constructor Effect and supplies its Layer at the application boundary.
+
+```ts
+import { Context, Effect } from 'effect'
+import { Command } from 'foldkit'
+
+import { Message } from './message'
+
+type HostApi = Readonly<{
+  requestToken: Effect.Effect<string>
+}>
+
+const HostApi = Context.Service<HostApi>('HostApi')
+
+export const RequestHostToken = Command.define('RequestHostToken', {
+  messages: [Message.CompletedRequestHostToken],
+})
+
+const RequestHostTokenLayer = RequestHostToken.toLayer(
+  Effect.gen(function* () {
+    const host = yield* HostApi
+
+    return () =>
+      host.requestToken.pipe(
+        Effect.map(token => Message.CompletedRequestHostToken({ token })),
+      )
+  }),
+)
+```
+
+The host composes `RequestHostTokenLayer` into `AppLayer`. The same contract applies to a Subscription, Mount, ManagedResource, or experimental Query definition without `handler`: `toLayer` receives the constructor Effect that returns that definition's complete implementation.
 
 ### Update requirements
 
@@ -451,13 +621,17 @@ const storeDraft = Update.makeStep((model: Model) => ({
 
 ## Layer composition and lifetimes
 
-Compose attached recipes directly as `Definition.layer` in each feature's combined `EffectsLayer`, such as `Search.EffectsLayer`. When a recipe needs its own exported or reused binding, name it `FooLayer`; name an external alternative `FooTestLayer`. At the application root, combine feature implementations in `EffectsLayer`, external providers in `ServicesLayer`, and export `AppLayer` from `Layer.provide(EffectsLayer, ServicesLayer)`. Import Effect's module as `Layer`; the bundle names avoid an alias.
+Compose attached recipes directly as `Definition.layer` in each owning module's combined `EffectsLayer`, such as `Search.EffectsLayer`. When a recipe needs its own exported or reused binding, name it `FooLayer`; name an external alternative `FooTestLayer`. At the application root, combine root and Submodel implementations in `EffectsLayer`, external providers in `ServicesLayer`, and export `AppLayer` from `Layer.provide(EffectsLayer, ServicesLayer)`. Import Effect's module as `Layer`; the bundle names avoid an alias.
 
-Foldkit UI exports `UI.EffectsLayer` and `UI.mounts` for the default component set. Selective applications can compose each component's `EffectsLayer` and `mounts`. `Slider.forRoot(name, getTrackRoot)` and `Toast.make(name, payloadSchema)` return instance-owned Subscription and effect bundles; compose those exports where the instance is created.
+Foldkit UI components export their own `EffectsLayer` and, when needed, `mounts`. Compose those exports at the Submodel or application module that owns the component, then carry the resulting effect and registration bundles to the root. `Slider.forRoot(name, getTrackRoot)` and `Toast.make(name, payloadSchema)` return instance-owned Subscription and effect bundles; compose those exports where the instance is created.
 
 `Update.make` infers Command requirements and OutMessages across Message branches while preserving required, optional, and rest context parameters. `Update.RequirementsOf<typeof update>` reads the Command services from an update contract without including lifecycle-only services. `Application.make` and `Application.provide` carry all remaining handler and service requirements until the selected Layers satisfy them.
 
-Each handler name belongs to one definition within an application. `Application.make` rejects distinct registered Subscription, Mount, or ManagedResource definitions with the same name. A Command reports a mismatched Layer when it runs because Commands are created by update rather than registered with the application. Multiple lifted uses of the same definition can share its Layer.
+Each handler name belongs to one registered Subscription, Mount, or ManagedResource definition within an application. `Application.make` rejects distinct registered definitions of those types with the same name. Multiple lifted Subscription registrations of the same definition can share its Layer. A ManagedResource retains its handler contract through lifting; each registered resource tag key still has one lifecycle owner.
+
+Handler requirements carry the name and protocol that share an Effect Context key: decoded args and declared result Messages for Commands, decoded dependencies and declared Messages for Subscriptions, element inputs and declared result Messages for Mounts, and decoded acquire params and resource values for ManagedResources. `Application.provide` rejects incompatible same-named contracts supplied directly, combined in a `Layer.mergeAll` bundle, introduced through the Layer's own requirements, or accumulated through sequential provision.
+
+Distinct definitions with identical names and protocols remain structurally indistinguishable to TypeScript. Foldkit checks the private definition identity before invoking a Command handler, starting a Subscription, executing a Mount, or beginning a ManagedResource lifecycle, and rejects a Layer built from another definition. Build an external alternative with the original definition's `toLayer` so it retains that definition's identity.
 
 Each registered ManagedResource tag key has one lifecycle owner. `Application.make` and `Application.makeElement` reject the same resource key under multiple registration keys, including separately created tags with matching keys. Give independent resource instances distinct tag keys so each accessor resolves its own handle.
 

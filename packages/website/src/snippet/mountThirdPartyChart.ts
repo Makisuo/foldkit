@@ -43,5 +43,8 @@ const MountChart = Mount.define('MountChart', {
   },
 })
 
-const chartView = (data: ChartData, h: HtmlBuilder<Message>): Html =>
+const chartView = (
+  data: ChartData,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof MountChart>>,
+): Html =>
   h.div([h.Class('w-[480px] h-[320px]'), h.OnMount(MountChart({ data }))])

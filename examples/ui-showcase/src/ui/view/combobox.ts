@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import { Array, Option } from 'effect'
 import { Submodel } from 'foldkit'
 import { type Html, type HtmlBuilder, childAttributes } from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 
 import { Combobox } from '@foldkit/ui'
 import type { AnchorConfig } from '@foldkit/ui/combobox'
@@ -12,6 +13,15 @@ import type { City, UiModel } from '../model'
 
 export const CityCombobox = Combobox.create<City>()
 export const CityMultiCombobox = Combobox.Multi.create<City>()
+
+type MountRequirements = Mount.RequirementsOf<typeof Combobox.mounts>
+
+const defineViewWithComponentMountRequirements = Submodel.defineView<
+  UiModel,
+  UiMessage,
+  void,
+  MountRequirements
+>
 
 const CITIES: ReadonlyArray<City> = [
   'Johannesburg',
@@ -57,7 +67,7 @@ const filterCities = (inputValue: string): ReadonlyArray<City> =>
         city.toLowerCase().includes(inputValue.toLowerCase()),
       )
 
-export const comboboxInputs = (
+export const comboboxInputs = <AllowedMountRequirements>(
   {
     inputValue,
     restingInputValue,
@@ -69,7 +79,7 @@ export const comboboxInputs = (
     anchor?: AnchorConfig
     wrapperClass?: string
   }>,
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
 ): Omit<Combobox.ViewInputs<City>, 'maybeSelectedValue'> => {
   const filteredCities = filterCities(inputValue)
 
@@ -107,7 +117,7 @@ export const comboboxInputs = (
   }
 }
 
-export const view = Submodel.defineView<UiModel, UiMessage>(
+export const view = defineViewWithComponentMountRequirements(
   (model, h): Html => {
     return h.div(
       [],

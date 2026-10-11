@@ -1,4 +1,13 @@
-import { Array, Duration, Effect, Match, Number, Option, Schema } from 'effect'
+import {
+  Array,
+  Duration,
+  Effect,
+  Layer,
+  Match,
+  Number,
+  Option,
+  Schema,
+} from 'effect'
 import { Command, Update } from 'foldkit'
 import { CalendarDate } from 'foldkit/calendar'
 import {
@@ -154,7 +163,13 @@ export const ValidateEmailAsync = Command.define('ValidateEmailAsync', {
   },
 })
 
-export const EffectsLayer = ValidateEmailAsync.layer
+export const EffectsLayer = Layer.mergeAll(
+  DatePicker.EffectsLayer,
+  Listbox.EffectsLayer,
+  ValidateEmailAsync.layer,
+)
+
+export const mounts = [...DatePicker.mounts, ...Listbox.mounts]
 
 // UPDATE
 

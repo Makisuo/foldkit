@@ -14,6 +14,7 @@ export type { FocusDirection } from './dom.js'
 export { detectElementMovement } from './elementMovement.js'
 export { inertOthers, restoreInert } from './inert.js'
 export { lockScroll, unlockScroll } from './scrollLock.js'
+export { streamFromAnimationFrame } from './streamFromAnimationFrame.js'
 export {
   streamFromEvent,
   streamFromEventFilterMap,

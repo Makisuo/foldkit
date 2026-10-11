@@ -12,6 +12,7 @@ export type {
   Value,
   ServiceOf,
   Handler,
+  HandlerOf,
   Entry,
   LayeredEntry,
   ManagedResources,

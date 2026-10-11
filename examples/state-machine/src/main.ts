@@ -18,7 +18,6 @@ import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
-import * as UI from '@foldkit/ui'
 import { RadioGroup } from '@foldkit/ui'
 
 // MODEL
@@ -436,6 +435,7 @@ export const update = Update.make((model: Model, message: Message) =>
   ),
 )
 
-export const EffectsLayer = Layer.mergeAll(UI.EffectsLayer, PlaceOrder.layer)
-
-export const mounts = UI.mounts
+export const EffectsLayer = Layer.mergeAll(
+  RadioGroup.EffectsLayer,
+  PlaceOrder.layer,
+)

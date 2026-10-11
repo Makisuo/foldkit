@@ -1,4 +1,4 @@
-import { Array, Crypto, Effect, Schema } from 'effect'
+import { Array, Crypto, Effect, Layer, Schema } from 'effect'
 import { Calendar, Command, Update } from 'foldkit'
 import { type CalendarDate } from 'foldkit/calendar'
 import { defineMessageUnion } from 'foldkit/message'
@@ -61,7 +61,12 @@ export const GenerateEducationEntryId = Command.define(
   },
 )
 
-export const EffectsLayer = GenerateEducationEntryId.layer
+export const EffectsLayer = Layer.mergeAll(
+  Entry.EffectsLayer,
+  GenerateEducationEntryId.layer,
+)
+
+export const mounts = Entry.mounts
 
 // UPDATE
 

@@ -543,6 +543,7 @@ export const SchedulePlaygroundFileWrite = Command.define(
 export const mounts = [MountPlaygroundEditor]
 
 export const EffectsLayer = Layer.mergeAll(
+  Tabs.EffectsLayer,
   managedResources.webContainerPlayground.layer,
   MountPlaygroundEditor.layer,
   WaitForPlaygroundServerFailure.layer,
@@ -781,7 +782,7 @@ const editorPanelContent = (
   path: string,
   content: string,
   files: Readonly<Record<string, string>>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
 ): Html =>
   h.div(
     [h.Class('flex-1 min-w-0 min-h-0 flex flex-col bg-[#1e1e1e] text-sm')],
@@ -882,7 +883,10 @@ const tooNarrowMessageView = (): Html =>
     ],
   )
 
-const responsiveEditorView = (model: Model, h: HtmlBuilder<Message>): Html =>
+const responsiveEditorView = (
+  model: Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
+): Html =>
   h.div(
     [h.Class('flex-1 min-h-0 flex flex-col')],
     [
@@ -915,7 +919,10 @@ const foldPlaygroundFileTabs = Update.foldChild({
   foldOutMessage: foldPlaygroundFileTabsOutMessage,
 })
 
-const editorLayoutView = (model: Model, h: HtmlBuilder<Message>): Html => {
+const editorLayoutView = (
+  model: Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
+): Html => {
   const paths = sortedPaths(model.files)
   return h.div(
     [h.Class('flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden')],
@@ -992,70 +999,73 @@ type ViewInputs = Readonly<{
   maybeIsPlaygroundSupported: Option.Option<boolean>
 }>
 
-export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { maybeIsPlaygroundSupported }, h): Html => {
-    const maybeMeta = findBySlug(model.slug)
-    const maybeFiles = Option.fromNullishOr(filesBySlug[model.slug])
+export const view = Submodel.defineView<
+  Model,
+  Message,
+  ViewInputs,
+  Mount.RequirementsOf<typeof mounts>
+>((model, { maybeIsPlaygroundSupported }, h): Html => {
+  const maybeMeta = findBySlug(model.slug)
+  const maybeFiles = Option.fromNullishOr(filesBySlug[model.slug])
 
-    const content = Match.value({
-      maybeIsPlaygroundSupported,
-      maybeMeta,
-      maybeFiles,
-    }).pipe(
-      Match.when(
-        ({ maybeMeta }) => isUnavailableExample(maybeMeta),
-        () =>
-          messageView(
-            'Playground unavailable',
-            'This example is paused while we update and verify LiveStore compatibility with Effect 4 stable.',
-            maybeMeta,
-          ),
-      ),
-      Match.when(
-        ({ maybeIsPlaygroundSupported }) =>
-          Option.isNone(maybeIsPlaygroundSupported),
-        () =>
-          messageView(
-            'Playground availability',
-            'The Playground needs SharedArrayBuffer on an isolated page and a compatible embedded preview. If the editor does not open, you can still see the example on its detail page.',
-            maybeMeta,
-          ),
-      ),
-      Match.when(
-        ({ maybeIsPlaygroundSupported }) =>
-          Option.contains(maybeIsPlaygroundSupported, false),
-        () =>
-          messageView(
-            'Playground cannot run here',
-            'The Playground needs SharedArrayBuffer on a cross-origin isolated page and a working embedded preview. This browser session did not provide that combination. You can still see the example running on its detail page.',
-            maybeMeta,
-          ),
-      ),
-      Match.orElse(() =>
-        Option.match(Option.all([maybeMeta, maybeFiles]), {
-          onNone: () =>
-            messageView(
-              'Playground coming soon',
-              'This example is not yet available in the embedded playground. Open its example detail page to see it running.',
-              maybeMeta,
-            ),
-          onSome: () => responsiveEditorView(model, h),
-        }),
-      ),
-    )
-
-    return h.div(
-      [h.Class('flex flex-col h-screen')],
-      [
-        h.main(
-          [
-            h.Id('main-content'),
-            h.Class('flex-1 flex flex-col min-h-0'),
-            h.AriaLabel('Playground'),
-          ],
-          [content],
+  const content = Match.value({
+    maybeIsPlaygroundSupported,
+    maybeMeta,
+    maybeFiles,
+  }).pipe(
+    Match.when(
+      ({ maybeMeta }) => isUnavailableExample(maybeMeta),
+      () =>
+        messageView(
+          'Playground unavailable',
+          'This example is paused while we update and verify LiveStore compatibility with Effect 4 stable.',
+          maybeMeta,
         ),
-      ],
-    )
-  },
-)
+    ),
+    Match.when(
+      ({ maybeIsPlaygroundSupported }) =>
+        Option.isNone(maybeIsPlaygroundSupported),
+      () =>
+        messageView(
+          'Playground availability',
+          'The Playground needs SharedArrayBuffer on an isolated page and a compatible embedded preview. If the editor does not open, you can still see the example on its detail page.',
+          maybeMeta,
+        ),
+    ),
+    Match.when(
+      ({ maybeIsPlaygroundSupported }) =>
+        Option.contains(maybeIsPlaygroundSupported, false),
+      () =>
+        messageView(
+          'Playground cannot run here',
+          'The Playground needs SharedArrayBuffer on a cross-origin isolated page and a working embedded preview. This browser session did not provide that combination. You can still see the example running on its detail page.',
+          maybeMeta,
+        ),
+    ),
+    Match.orElse(() =>
+      Option.match(Option.all([maybeMeta, maybeFiles]), {
+        onNone: () =>
+          messageView(
+            'Playground coming soon',
+            'This example is not yet available in the embedded playground. Open its example detail page to see it running.',
+            maybeMeta,
+          ),
+        onSome: () => responsiveEditorView(model, h),
+      }),
+    ),
+  )
+
+  return h.div(
+    [h.Class('flex flex-col h-screen')],
+    [
+      h.main(
+        [
+          h.Id('main-content'),
+          h.Class('flex-1 flex flex-col min-h-0'),
+          h.AriaLabel('Playground'),
+        ],
+        [content],
+      ),
+    ],
+  )
+})

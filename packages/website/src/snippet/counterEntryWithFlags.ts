@@ -1,3 +1,4 @@
+import { pipe } from 'effect'
 import { Application, Runtime } from 'foldkit'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
@@ -13,7 +14,8 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-Runtime.run(
-  Application.provide(application, BrowserKeyValueStore.layerLocalStorage),
-  { flags },
+pipe(
+  application,
+  Application.provide(BrowserKeyValueStore.layerLocalStorage),
+  runnable => Runtime.run(runnable, { flags }),
 )

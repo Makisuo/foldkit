@@ -1,4 +1,4 @@
-import { Array, Crypto, Effect, Schema } from 'effect'
+import { Array, Crypto, Effect, Layer, Schema } from 'effect'
 import { Command, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -55,7 +55,10 @@ export const GenerateSkillsEntryId = Command.define('GenerateSkillsEntryId', {
   },
 })
 
-export const EffectsLayer = GenerateSkillsEntryId.layer
+export const EffectsLayer = Layer.mergeAll(
+  Entry.EffectsLayer,
+  GenerateSkillsEntryId.layer,
+)
 
 // UPDATE
 

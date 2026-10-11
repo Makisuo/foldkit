@@ -82,6 +82,10 @@ export const init = (entryId: string, today: CalendarDate): Model => ({
   description: '',
 })
 
+export const EffectsLayer = DatePicker.EffectsLayer
+
+export const mounts = DatePicker.mounts
+
 // UPDATE
 
 const foldStartDateOutMessage = (

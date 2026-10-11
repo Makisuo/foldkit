@@ -89,7 +89,7 @@ export interface LayeredCommandDefinitionNoArgs<
   Message,
 > extends CommandDefinitionNoArgs<
   Name,
-  Effect.Effect<Message, never, Handler<Name>>
+  Effect.Effect<Message, never, Handler<Name, void, Message>>
 > {
   readonly toLayer: ToLayer<Name, void, Message>
 }
@@ -102,7 +102,11 @@ export interface LayeredCommandDefinitionWithArgs<
 > extends CommandDefinitionWithArgs<
   Name,
   Fields,
-  Effect.Effect<Message, never, Handler<Name>>
+  Effect.Effect<
+    Message,
+    never,
+    Handler<Name, Schema.Schema.Type<Schema.Struct<Fields>>, Message>
+  >
 > {
   readonly toLayer: ToLayer<
     Name,
@@ -294,7 +298,15 @@ export function define<
   Name,
   Fields,
   Pick<Schema.Schema.Type<Schema.Struct<Fields>>, KeyField>,
-  Effect.Effect<Schema.Schema.Type<Messages[number]>, never, Handler<Name>>
+  Effect.Effect<
+    Schema.Schema.Type<Messages[number]>,
+    never,
+    Handler<
+      Name,
+      Schema.Schema.Type<Schema.Struct<Fields>>,
+      Schema.Schema.Type<Messages[number]>
+    >
+  >
 > &
   Readonly<{
     toLayer: ToLayer<
@@ -303,7 +315,11 @@ export function define<
       Schema.Schema.Type<Messages[number]>
     >
     layer: Layer.Layer<
-      Handler<Name>,
+      Handler<
+        Name,
+        Schema.Schema.Type<Schema.Struct<Fields>>,
+        Schema.Schema.Type<Messages[number]>
+      >,
       Effect.Error<Yielded>,
       Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
     >
@@ -333,7 +349,15 @@ export function define<
   Name,
   Fields,
   Pick<Schema.Schema.Type<Schema.Struct<Fields>>, KeyField>,
-  Effect.Effect<Schema.Schema.Type<Messages[number]>, never, Handler<Name>>
+  Effect.Effect<
+    Schema.Schema.Type<Messages[number]>,
+    never,
+    Handler<
+      Name,
+      Schema.Schema.Type<Schema.Struct<Fields>>,
+      Schema.Schema.Type<Messages[number]>
+    >
+  >
 > &
   Readonly<{
     toLayer: ToLayer<
@@ -375,7 +399,15 @@ export function define<
 ): Interruptible.DefinitionWithArgsNameKeyed<
   Name,
   Fields,
-  Effect.Effect<Schema.Schema.Type<Messages[number]>, never, Handler<Name>>
+  Effect.Effect<
+    Schema.Schema.Type<Messages[number]>,
+    never,
+    Handler<
+      Name,
+      Schema.Schema.Type<Schema.Struct<Fields>>,
+      Schema.Schema.Type<Messages[number]>
+    >
+  >
 > &
   Readonly<{
     toLayer: ToLayer<
@@ -384,7 +416,11 @@ export function define<
       Schema.Schema.Type<Messages[number]>
     >
     layer: Layer.Layer<
-      Handler<Name>,
+      Handler<
+        Name,
+        Schema.Schema.Type<Schema.Struct<Fields>>,
+        Schema.Schema.Type<Messages[number]>
+      >,
       Effect.Error<Yielded>,
       Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
     >
@@ -406,7 +442,15 @@ export function define<
 ): Interruptible.DefinitionWithArgsNameKeyed<
   Name,
   Fields,
-  Effect.Effect<Schema.Schema.Type<Messages[number]>, never, Handler<Name>>
+  Effect.Effect<
+    Schema.Schema.Type<Messages[number]>,
+    never,
+    Handler<
+      Name,
+      Schema.Schema.Type<Schema.Struct<Fields>>,
+      Schema.Schema.Type<Messages[number]>
+    >
+  >
 > &
   Readonly<{
     toLayer: ToLayer<
@@ -452,7 +496,11 @@ export function define<
 > &
   Readonly<{
     layer: Layer.Layer<
-      Handler<Name>,
+      Handler<
+        Name,
+        Schema.Schema.Type<Schema.Struct<Fields>>,
+        Schema.Schema.Type<Messages[number]>
+      >,
       Effect.Error<Yielded>,
       Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
     >
@@ -505,12 +553,16 @@ export function define<
   }>,
 ): Interruptible.DefinitionNoArgs<
   Name,
-  Effect.Effect<Schema.Schema.Type<Messages[number]>, never, Handler<Name>>
+  Effect.Effect<
+    Schema.Schema.Type<Messages[number]>,
+    never,
+    Handler<Name, void, Schema.Schema.Type<Messages[number]>>
+  >
 > &
   Readonly<{
     toLayer: ToLayer<Name, void, Schema.Schema.Type<Messages[number]>>
     layer: Layer.Layer<
-      Handler<Name>,
+      Handler<Name, void, Schema.Schema.Type<Messages[number]>>,
       Effect.Error<Yielded>,
       Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
     >
@@ -530,7 +582,11 @@ export function define<
   }>,
 ): Interruptible.DefinitionNoArgs<
   Name,
-  Effect.Effect<Schema.Schema.Type<Messages[number]>, never, Handler<Name>>
+  Effect.Effect<
+    Schema.Schema.Type<Messages[number]>,
+    never,
+    Handler<Name, void, Schema.Schema.Type<Messages[number]>>
+  >
 > &
   Readonly<{
     toLayer: ToLayer<Name, void, Schema.Schema.Type<Messages[number]>>
@@ -565,7 +621,7 @@ export function define<
 ): LayeredCommandDefinitionNoArgs<Name, Schema.Schema.Type<Messages[number]>> &
   Readonly<{
     layer: Layer.Layer<
-      Handler<Name>,
+      Handler<Name, void, Schema.Schema.Type<Messages[number]>>,
       Effect.Error<Yielded>,
       Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
     >

@@ -274,7 +274,11 @@ if (false) {
     },
   })
   expectTypeOf(TypedEffectHandler.layer).toEqualTypeOf<
-    Layer.Layer<Mount.Handler<'TypedEffectHandler'>, never, Prefix | Suffix>
+    Layer.Layer<
+      Mount.RequirementsOf<typeof TypedEffectHandler>,
+      never,
+      Prefix | Suffix
+    >
   >()
 
   const failedTypedEffectHandler: Effect.Effect<
@@ -296,7 +300,7 @@ if (false) {
   })
   expectTypeOf(FailedTypedEffectHandler.layer).toEqualTypeOf<
     Layer.Layer<
-      Mount.Handler<'FailedTypedEffectHandler'>,
+      Mount.RequirementsOf<typeof FailedTypedEffectHandler>,
       'mount-build-failure',
       Prefix
     >
@@ -336,7 +340,11 @@ if (false) {
     },
   })
   expectTypeOf(TypedStreamHandler.layer).toEqualTypeOf<
-    Layer.Layer<Mount.Handler<'TypedStreamHandler'>, never, Prefix | Suffix>
+    Layer.Layer<
+      Mount.RequirementsOf<typeof TypedStreamHandler>,
+      never,
+      Prefix | Suffix
+    >
   >()
 
   Mount.define('InvalidHandlerResult', {
@@ -607,10 +615,14 @@ describe('Layer-backed Mount.define handlers', () => {
 
   it('carries the handler requirement and its implementation dependencies', () => {
     expectTypeOf(MeasurePanel({ panelId: 'panel' })).toMatchTypeOf<
-      Mount.MountAction<Message, never, Mount.Handler<'MeasureLayeredPanel'>>
+      Mount.MountAction<
+        Message,
+        never,
+        Mount.RequirementsOf<typeof MeasurePanel>
+      >
     >()
     expectTypeOf(MeasurePanel.layer).toEqualTypeOf<
-      Layer.Layer<Mount.Handler<'MeasureLayeredPanel'>, never, Prefix>
+      Layer.Layer<Mount.RequirementsOf<typeof MeasurePanel>, never, Prefix>
     >()
 
     const constructedLayer = MeasurePanel.toLayer(
@@ -627,7 +639,11 @@ describe('Layer-backed Mount.define handlers', () => {
       ),
     )
     expectTypeOf(constructedLayer).toEqualTypeOf<
-      Layer.Layer<Mount.Handler<'MeasureLayeredPanel'>, never, Prefix | Suffix>
+      Layer.Layer<
+        Mount.RequirementsOf<typeof MeasurePanel>,
+        never,
+        Prefix | Suffix
+      >
     >()
   })
 
@@ -775,7 +791,7 @@ describe('Layer-backed Mount.define handlers', () => {
 
     expectTypeOf(NestedRequirements.layer).toEqualTypeOf<
       Layer.Layer<
-        Mount.Handler<'NestedRequirements'>,
+        Mount.RequirementsOf<typeof NestedRequirements>,
         BuildFailure,
         Prefix | Suffix
       >
@@ -791,7 +807,7 @@ describe('Layer-backed Mount.define handlers', () => {
     })
 
     expectTypeOf(MountBuildFailure.layer).toEqualTypeOf<
-      Layer.Layer<Mount.Handler<'MountBuildFailure'>, string, never>
+      Layer.Layer<Mount.RequirementsOf<typeof MountBuildFailure>, string, never>
     >()
   })
 

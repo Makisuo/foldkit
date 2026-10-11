@@ -22,19 +22,15 @@ The Kind column below identifies each component category.
 
 ## Application Wiring
 
-Some components use Commands, Subscriptions, or Mounts for focus, positioning, animation, and other effects. `UI.EffectsLayer` aggregates the attached recipes for the standard component set, while `UI.mounts` aggregates their Mount definitions. Merge the Layer into the application's `EffectsLayer`, and include the Mount definitions in the application's `mounts` registration.
+Some components use Commands, Subscriptions, or Mounts for focus, positioning, animation, and other effects. Compose the `EffectsLayer` exports of the components your Submodel uses, and register their `mounts` exports when present. The Submodel exports these bundles to its parent. Each parent composes its children's bundles until the application root supplies the assembled Layer and registrations.
 
 The examples below assume `./main` exports the application's Model, init, update, view, and its own handler `EffectsLayer`. Supply any external service providers beneath the combined Layer as described in [Layers](/core/layers).
 
 ::Snippet{name="uiEffects" label="Providing Foldkit UI effects"}
 
-Mount registration is necessary because view and `Html` do not carry Effect requirements. Registering the complete UI Mount collection is inert for components the view never renders.
+Mounted UI views and attribute slots carry their Mount requirements. The owning Submodel preserves them with the fourth parameter of `Submodel.defineView`, derived as `Mount.RequirementsOf<typeof mounts>`. A plain view uses that requirement as the second parameter of `HtmlBuilder`. TypeScript checks registration at application assembly and handler provision before startup. Foldkit also checks each rendered definition before patching the DOM. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views).
 
-Applications that select a smaller component set can merge individual exports such as `Dialog.EffectsLayer` and `Menu.EffectsLayer`, then collect those components' `mounts`. The aggregate and selective paths provide the same component handlers; the selective path leaves unused definitions out of the application graph.
-
-::Snippet{name="uiEffectsSelective" label="Providing selected UI component effects"}
-
-Component factories with instance-specific behavior return their own bundles. `Slider.forRoot(name, getTrackRoot)` returns its `EffectsLayer` and `subscriptions`; `Toast.make(name, payloadSchema)` returns the corresponding effect and Subscription exports for that Toast instance. Compose those values in the feature that owns the instance.
+Component factories with instance-specific behavior return their own bundles. `Slider.forRoot(name, getTrackRoot)` returns its `EffectsLayer` and `subscriptions`; `Toast.make(name, payloadSchema)` returns the corresponding effect and Subscription exports for that Toast instance. Compose those values in the Submodel that owns the instance.
 
 ## Components
 

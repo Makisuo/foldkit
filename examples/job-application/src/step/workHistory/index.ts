@@ -5,6 +5,7 @@ export {
   update,
   GenerateWorkHistoryEntryId,
   EffectsLayer,
+  mounts,
   hasErrors,
   isComplete,
   revealErrors,

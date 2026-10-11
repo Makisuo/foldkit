@@ -51,6 +51,12 @@ Each Dom Stream helper returns a composable Stream, not a complete Subscription 
 
 The [Subscriptions guide](/core/subscriptions) covers named entries with Model-driven and always-active lifetimes.
 
+### Animation Frames
+
+`Dom.streamFromAnimationFrame()` emits the elapsed milliseconds since the previous browser animation frame. Each subscriber owns its loop, and closing its scope cancels the pending frame. The browser pauses frames in hidden tabs, so cap the elapsed value when using it for motion or physics.
+
+A named Subscription maps these values to declared Messages and controls when the loop is active. See [Animation Frames](/core/subscriptions#animation-frames) for that wiring.
+
 ### Event Streams
 
 `Dom.streamFromEvent` turns an `EventTarget` into a Stream. The target may be `window`, `document`, or a rendered element. The helper adds the listener when the Stream starts and removes it when the Stream stops.

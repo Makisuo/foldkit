@@ -1,5 +1,6 @@
 import { Option, Schema } from 'effect'
 import { type Update } from 'foldkit'
+import type * as Mount from 'foldkit/mount'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
 import {
@@ -12,6 +13,7 @@ import {
   baseInit,
   makeUpdate,
   makeView,
+  type mounts,
 } from './shared.js'
 
 // MODEL
@@ -78,18 +80,26 @@ export type ViewInputs<
 
 const internalView = makeView<Model>({ ariaMultiSelectable: false })
 
+type MountRequirements = Mount.RequirementsOf<typeof mounts>
+
 const arrayBasedView = internalView<unknown, string>()
 
-const singleViewImpl = defineView<Model, Message, ViewInputs<unknown, string>>(
-  (model, { maybeSelectedValue, ...baseInputs }, h) =>
-    arrayBasedView(
-      model,
-      {
-        ...baseInputs,
-        selectedValues: Option.toArray(maybeSelectedValue),
-      },
-      h,
-    ),
+type InternalInputs = ViewInputs<unknown, string>
+
+const singleViewImpl = defineView<
+  Model,
+  Message,
+  InternalInputs,
+  MountRequirements
+>((model, { maybeSelectedValue, ...baseInputs }, h) =>
+  arrayBasedView(
+    model,
+    {
+      ...baseInputs,
+      selectedValues: Option.toArray(maybeSelectedValue),
+    },
+    h,
+  ),
 )
 
 type BundleUpdateReturn<Value extends string> = Update.ReturnWithOutMessage<
@@ -108,7 +118,12 @@ export type Bundle<
   Item = string,
   Value extends string = Item extends string ? Item : string,
 > = Readonly<{
-  view: SubmodelView<Model, Message, ViewInputs<Item, Value>>
+  view: SubmodelView<
+    Model,
+    Message,
+    ViewInputs<Item, Value>,
+    Mount.RequirementsOf<typeof mounts>
+  >
   update: (model: Model, message: Message) => BundleUpdateReturn<Value>
   selectItem: (model: Model, item: Value) => BundleUpdateReturn<Value>
   open: (model: Model) => BundleUpdateReturn<Value>
@@ -151,7 +166,8 @@ export const create = <
     singleViewImpl as unknown as SubmodelView<
       Model,
       Message,
-      ViewInputs<Item, Value>
+      ViewInputs<Item, Value>,
+      MountRequirements
     >
   return {
     view,

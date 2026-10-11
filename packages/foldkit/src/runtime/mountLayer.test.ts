@@ -38,10 +38,8 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-const makeApplication = <
-  const Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
->(
-  mounts: Mounts,
+const makeApplication = (
+  mounts: readonly [typeof AnchorPanel, ...ReadonlyArray<typeof AnchorPanel>],
 ) =>
   Application.make({
     Model,
@@ -89,7 +87,10 @@ describe('Layer-backed Mount runtime', () => {
       view: (model, h) => ({
         title: 'Unregistered Mount test',
         body: h.div(
-          [h.OnMount(AnchorPanel({ label: 'anchored' }))],
+          [
+            // @ts-expect-error Layer-backed Mount is not registered.
+            h.OnMount(AnchorPanel({ label: 'anchored' })),
+          ],
           [model.status],
         ),
       }),
@@ -119,6 +120,56 @@ describe('Layer-backed Mount runtime', () => {
     }
   })
 
+  it('keeps the runtime identity check for a same-contract definition instance', async () => {
+    const OtherAnchorPanel = Mount.define('AnchorPanel', {
+      args: { label: Schema.String },
+      messages: [Message.CompletedAnchorPanel],
+    })
+    let reportedError: Error | undefined
+    const application = Application.make({
+      Model,
+      init: () => ({ model: { status: 'ready' } }),
+      update,
+      view: (model, h) => ({
+        title: 'Mount identity test',
+        body: h.div(
+          [h.OnMount(OtherAnchorPanel({ label: 'anchored' }))],
+          [model.status],
+        ),
+      }),
+      mounts: [AnchorPanel],
+      crash: {
+        report: ({ error }) => {
+          reportedError = error
+        },
+      },
+      container,
+    })
+    const provided = Application.provide(
+      application,
+      AnchorPanel.toLayer(
+        Effect.succeed(({ label }) =>
+          Effect.succeed(Message.CompletedAnchorPanel({ label })),
+        ),
+      ),
+    )
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const fiber = Effect.runFork(__startProgram(provided, undefined, 'Fresh'))
+
+    try {
+      await vi.waitFor(() => {
+        expect(reportedError?.message).toContain(
+          'Layer-backed Mounts that were not registered: AnchorPanel',
+        )
+        expect(document.title).toBe('Application Crash')
+        expect(document.body.textContent).not.toContain('anchored')
+      })
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+      consoleError.mockRestore()
+    }
+  })
+
   it('checks a Layer-backed Mount revealed by a later Model state', async () => {
     let reportedError: Error | undefined
     const application = Application.make({
@@ -130,7 +181,10 @@ describe('Layer-backed Mount runtime', () => {
         body:
           model.status === 'revealing Mount'
             ? h.div(
-                [h.OnMount(AnchorPanel({ label: 'anchored' }))],
+                [
+                  // @ts-expect-error Conditional views carry the same registration requirement.
+                  h.OnMount(AnchorPanel({ label: 'anchored' })),
+                ],
                 [model.status],
               )
             : h.button(

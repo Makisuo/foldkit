@@ -136,7 +136,15 @@ A handler can own execution bookkeeping, such as a resource pool or worker respo
 
 Compose `FetchCount.layer` directly in the feature's `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. A feature's `layer.ts` imports its definitions and exposes the bundle through its namespace, such as `Search.EffectsLayer`. The root combines feature effect handlers in `EffectsLayer`, shared providers in `ServicesLayer`, and both in `AppLayer`. The entry point imports `AppLayer`. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
 
-Give each Layer-backed Command definition a distinct name within an application. A Command accepts a Layer built from its own definition. Providing a Layer from a different definition with the same name fails when the Command runs.
+Give each Layer-backed Command definition a distinct name within an application. Its handler requirement includes that name, its decoded args, and its declared result Messages. `Application.provide` rejects a same-named provider with a different args or result contract. The check applies when providing one Layer, a bundle built with `Layer.mergeAll`, or several Layers through sequential `Application.provide` calls.
+
+Derive an explicit handler requirement from its owning definition. `Command.HandlerOf` keeps the annotation aligned with the definition's args Schema and declared result Messages:
+
+::Snippet{name="handlerRequirementAnnotation" label="Deriving a Command handler requirement"}
+
+`Update.make` normally infers the requirement, so most application code needs no annotation. The explicit expanded form is `Command.Handler<Name, Args, DeclaredMessage>`.
+
+Two distinct definitions with identical names and protocols have the same structural requirement type. Foldkit checks the definition identity before invoking the supplied handler and rejects a Layer belonging to the other definition. Build an external implementation or test alternative with the original definition's `toLayer` so it retains that definition's identity.
 
 ### Testing the Handler Through Its Services
 

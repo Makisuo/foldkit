@@ -20,7 +20,6 @@ import { modifyFields } from 'foldkit/struct'
 import type { Map as MapInstance } from 'maplibre-gl'
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 
-import * as UI from '@foldkit/ui'
 import { Button, Input } from '@foldkit/ui'
 
 import { Location, featuredLocations } from './locations'
@@ -473,10 +472,9 @@ export const MountMap = Mount.defineStream('MountMap', {
   },
 })
 
-export const mounts = [...UI.mounts, MountMap]
+export const mounts = [MountMap]
 
 export const EffectsLayer = Layer.mergeAll(
-  UI.EffectsLayer,
   FlyTo.layer,
   Geolocate.layer,
   FocusSearchInput.layer,
@@ -516,7 +514,10 @@ const filterLocations = (
   }
 }
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+export const view = (
+  model: Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
+): Document => ({
   title: 'Foldkit Map',
   body: h.div(
     [h.Class('h-screen w-screen flex bg-slate-100 text-slate-900')],
@@ -670,7 +671,10 @@ const footerView = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-const mapPaneView = (model: Model, h: HtmlBuilder<Message>): Html =>
+const mapPaneView = (
+  model: Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof MountMap>>,
+): Html =>
   h.main(
     [h.Class('flex-1 relative')],
     [

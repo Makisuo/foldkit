@@ -5,6 +5,7 @@ export type {
   EntryWithoutKeepAlive,
   GatedDependencies,
   Handler,
+  HandlerOf,
   LayeredEntryWithKeepAlive,
   LayeredEntryWithoutKeepAlive,
   Subscription,
@@ -12,5 +13,3 @@ export type {
   ToLayerWithKeepAlive,
   ToLayerWithoutKeepAlive,
 } from './subscription.js'
-
-export { animationFrameStream } from './animationFrame.js'

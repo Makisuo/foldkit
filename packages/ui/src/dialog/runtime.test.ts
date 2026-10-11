@@ -1,6 +1,7 @@
 import { Effect, Fiber, Schema } from 'effect'
 import { Application } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -13,6 +14,8 @@ import {
   update,
   view,
 } from './index.js'
+
+type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
 
 const dialogId = 'preserved-dialog'
 
@@ -38,7 +41,7 @@ const makeDialogProgram = (container: HTMLElement) =>
 
         return { model: dialogUpdate.model, commands: dialogUpdate.commands }
       },
-      view: (model: Model, h: HtmlBuilder<Message>) =>
+      view: (model: Model, h: TestHtmlBuilder) =>
         view(
           model,
           {

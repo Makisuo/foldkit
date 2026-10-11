@@ -2,10 +2,27 @@ import { Context, Effect, Layer, type Scope } from 'effect'
 
 declare const HandlerTypeId: unique symbol
 
-/** The service required by a ManagedResource whose lifecycle is supplied by a Layer. */
-export interface Handler<Name extends string> {
-  readonly [HandlerTypeId]: Name
+type Invariant<Value> = (value: Value) => Value
+type AnyHandler = Readonly<{ readonly [HandlerTypeId]: unknown }>
+
+/** The service required by a ManagedResource whose lifecycle is supplied by a
+ * Layer. Its name, decoded acquire params, and resource value identify the
+ * handler contract. */
+export interface Handler<Name extends string, Params, Value> {
+  readonly [HandlerTypeId]: Readonly<{
+    name: Invariant<Name>
+    params: Invariant<Params>
+    value: Invariant<Value>
+  }>
 }
+
+/** Extracts the exact lifecycle handler requirement carried by a
+ * ManagedResource entry. */
+export type HandlerOf<
+  Entry extends {
+    acquire: (...args: ReadonlyArray<any>) => Effect.Effect<any, any, any>
+  },
+> = Extract<Effect.Services<ReturnType<Entry['acquire']>>, AnyHandler>
 
 type LifecycleHandler<Params, Value> = Readonly<{
   acquire: (params: Params) => Effect.Effect<Value, any, any>
@@ -44,7 +61,7 @@ export interface ToLayer<Name extends string, Params, Value> {
   >(
     build: Effect.Effect<Lifecycle, BuildError, BuildRequirements>,
   ): Layer.Layer<
-    Handler<Name>,
+    Handler<Name, Params, Value>,
     BuildError,
     Exclude<LifecycleRequirements<Lifecycle> | BuildRequirements, Scope.Scope>
   >
@@ -53,13 +70,18 @@ export interface ToLayer<Name extends string, Params, Value> {
 /** @internal Builds the service-backed lifecycle functions for a ManagedResource entry. */
 export const makeHandler = <Name extends string, Params, Value>(name: Name) => {
   const identity = Symbol(name)
-  const service = Context.Service<Handler<Name>, HandlerService<Params, Value>>(
-    `foldkit/ManagedResource/${name}`,
-  )
+  const service = Context.Service<
+    Handler<Name, Params, Value>,
+    HandlerService<Params, Value>
+  >(`foldkit/ManagedResource/${name}`)
 
   const acquire = (
     params: Params,
-  ): Effect.Effect<Value, unknown, Handler<Name> | Scope.Scope> =>
+  ): Effect.Effect<
+    Value,
+    unknown,
+    Handler<Name, Params, Value> | Scope.Scope
+  > =>
     Effect.flatMap(service, handler => {
       if (handler.identity !== identity) {
         return Effect.die(
@@ -77,7 +99,7 @@ export const makeHandler = <Name extends string, Params, Value>(name: Name) => {
 
   const release = (
     value: Value,
-  ): Effect.Effect<void, unknown, Handler<Name> | Scope.Scope> =>
+  ): Effect.Effect<void, unknown, Handler<Name, Params, Value> | Scope.Scope> =>
     Effect.flatMap(service, handler => {
       if (handler.identity !== identity) {
         return Effect.die(
@@ -100,7 +122,7 @@ export const makeHandler = <Name extends string, Params, Value>(name: Name) => {
   >(
     build: Effect.Effect<Lifecycle, BuildError, BuildRequirements>,
   ): Layer.Layer<
-    Handler<Name>,
+    Handler<Name, Params, Value>,
     BuildError,
     Exclude<LifecycleRequirements<Lifecycle> | BuildRequirements, Scope.Scope>
   > =>

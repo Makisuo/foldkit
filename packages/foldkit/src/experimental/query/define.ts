@@ -1,6 +1,6 @@
 import { Effect, Layer, Predicate, type Schema, type Scope } from 'effect'
 
-import type { Handler } from '../../command/handler.js'
+import type { HandlerOf } from '../../command/handler.js'
 import {
   type KeyedQueryConfig,
   type LayeredKeyedQuery,
@@ -154,7 +154,7 @@ export function define<
 ): LayeredKeyedQuery<Name, A, AI, E, EI, Fields> &
   Readonly<{
     layer: Layer.Layer<
-      Handler<`Fetch${Name}`>,
+      HandlerOf<LayeredKeyedQuery<Name, A, AI, E, EI, Fields>['Fetch']>,
       Effect.Error<Yielded>,
       Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
     >
@@ -186,7 +186,7 @@ export function define<
 ): LayeredQuery<Name, A, AI, E, EI> &
   Readonly<{
     layer: Layer.Layer<
-      Handler<`Fetch${Name}`>,
+      HandlerOf<LayeredQuery<Name, A, AI, E, EI>['Fetch']>,
       Effect.Error<Yielded>,
       Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
     >

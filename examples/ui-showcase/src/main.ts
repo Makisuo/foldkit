@@ -10,6 +10,7 @@ import {
 } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { defineRouteUnion, literal } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
@@ -19,6 +20,10 @@ import { Dialog, Nav } from '@foldkit/ui'
 
 import * as Icon from './icon'
 import * as Ui from './ui'
+
+type MountRequirements = Mount.RequirementsOf<typeof mounts>
+type MobileMenuMountRequirements = Mount.RequirementsOf<typeof Dialog.mounts>
+type UiMountRequirements = Mount.RequirementsOf<typeof Ui.mounts>
 
 // ROUTE
 
@@ -185,6 +190,7 @@ const LoadExternal = Command.define('LoadExternal', {
 })
 
 export const EffectsLayer = Layer.mergeAll(
+  Dialog.EffectsLayer,
   Ui.EffectsLayer,
   NavigateInternal.layer,
   LoadExternal.layer,
@@ -346,10 +352,10 @@ const componentNav = (
     toView,
   })
 
-const navListView = <Message>(
+const navListView = <Message, AllowedMountRequirements>(
   items: ReadonlyArray<Nav.ItemInfo>,
   linkClassName: (isActive: boolean) => string,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, AllowedMountRequirements>,
 ): Html =>
   h.ul(
     [h.Class('flex flex-col gap-0.5')],
@@ -386,7 +392,10 @@ const mobileNavLinkClassName = (isActive: boolean): string =>
       : 'text-gray-700 hover:bg-gray-200',
   )
 
-const sidebarView = (currentRoute: AppRoute, h: HtmlBuilder<Message>): Html => {
+const sidebarView = <AllowedMountRequirements>(
+  currentRoute: AppRoute,
+  h: HtmlBuilder<Message, AllowedMountRequirements>,
+): Html => {
   const sidebarNavView = ({ nav, items }: Nav.RenderInfo): Html =>
     h.nav(
       [
@@ -418,10 +427,10 @@ const sidebarView = (currentRoute: AppRoute, h: HtmlBuilder<Message>): Html => {
   return componentNav(currentRoute, sidebarNavView)
 }
 
-const mobileMenuContent = (
+const mobileMenuContent = <AllowedMountRequirements>(
   currentRoute: AppRoute,
   closeButton: Dialog.RenderInfo['closeButton'],
-  h: HtmlBuilder<Ui.Message>,
+  h: HtmlBuilder<Ui.Message, AllowedMountRequirements>,
 ): Html => {
   const mobileNavView = ({ nav, items }: Nav.RenderInfo): Html =>
     h.nav(
@@ -479,7 +488,10 @@ const mobileMenuContent = (
   )
 }
 
-const mobileHeaderView = (model: Model, h: HtmlBuilder<Message>): Html =>
+const mobileHeaderView = <AllowedMountRequirements>(
+  model: Model,
+  h: HtmlBuilder<Message, AllowedMountRequirements>,
+): Html =>
   h.header(
     [
       h.Class(
@@ -526,7 +538,8 @@ type MobileMenuViewInputs = Readonly<{
 const mobileMenuDialogView = Submodel.defineView<
   Ui.Model,
   Ui.Message,
-  MobileMenuViewInputs
+  MobileMenuViewInputs,
+  MobileMenuMountRequirements
 >((model, { currentRoute }, h): Html => {
   const mobileMenuDialogContent = ({
     dialog,
@@ -563,7 +576,10 @@ const mobileMenuDialogView = Submodel.defineView<
   })
 })
 
-const mobileMenuView = (model: Model, h: HtmlBuilder<Message>): Html =>
+const mobileMenuView = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+): Html =>
   h.submodel({
     slotId: 'mobile-menu',
     model: model.uiModel,
@@ -572,7 +588,9 @@ const mobileMenuView = (model: Model, h: HtmlBuilder<Message>): Html =>
     toParentMessage: toUiMessage,
   })
 
-const homeView = (h: HtmlBuilder<Message>): Html =>
+const homeView = <AllowedMountRequirements>(
+  h: HtmlBuilder<Message, AllowedMountRequirements>,
+): Html =>
   h.div(
     [h.Class('max-w-2xl')],
     [
@@ -595,7 +613,10 @@ const homeView = (h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-const notFoundView = (path: string, h: HtmlBuilder<Message>): Html =>
+const notFoundView = <AllowedMountRequirements>(
+  path: string,
+  h: HtmlBuilder<Message, AllowedMountRequirements>,
+): Html =>
   h.div(
     [h.Class('max-w-2xl')],
     [
@@ -614,10 +635,13 @@ const notFoundView = (path: string, h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-const contentView = (model: Model, h: HtmlBuilder<Message>): Html => {
+const contentView = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+): Html => {
   const embedUi = (
     id: string,
-    view: Submodel.View<Ui.Model, Ui.Message>,
+    view: Submodel.View<Ui.Model, Ui.Message, void, UiMountRequirements>,
   ): Html =>
     h.submodel({
       slotId: id,
@@ -665,7 +689,10 @@ const routeTitle = (route: Model['route']): string =>
     Match.orElse(({ _tag }) => `${_tag} | Foldkit UI Showcase`),
   )
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+export const view = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+): Document => ({
   title: routeTitle(model.route),
   body: h.div(
     [h.Class('flex flex-col md:flex-row min-h-screen bg-white')],
@@ -691,4 +718,4 @@ export const subscriptions = Subscription.lift(Ui.subscriptions)<
   toParentMessage: message => Message.GotUiMessage({ message }),
 })
 
-export const mounts = Ui.mounts
+export const mounts = [...Dialog.mounts, ...Ui.mounts]

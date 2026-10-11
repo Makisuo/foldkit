@@ -53,4 +53,8 @@ const application = Application.make({
   managedResources,
 })
 
-Runtime.run(Application.provide(application, managedResources.camera.layer))
+pipe(
+  application,
+  Application.provide(managedResources.camera.layer),
+  Runtime.run,
+)

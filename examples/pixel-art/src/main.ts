@@ -1,7 +1,6 @@
 import { Effect, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 
-import * as UI from '@foldkit/ui'
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
 import {
@@ -83,4 +82,4 @@ export const init = (flags: Flags) => ({
 
 export { Message, Model, subscriptions, update, view }
 
-export const mounts = UI.mounts
+export const mounts = [...Dialog.mounts, ...Listbox.mounts]

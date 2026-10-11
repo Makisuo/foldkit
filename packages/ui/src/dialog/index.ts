@@ -591,7 +591,7 @@ export const descriptionId = (model: Model): string =>
  *    `transitionState`. The consumer renders backdrop + panel only
  *    while this is true. */
 export type RenderInfo = Readonly<{
-  dialog: ReadonlyArray<ChildAttribute>
+  dialog: ReadonlyArray<ChildAttribute<Mount.RequirementsOf<typeof mounts>>>
   backdrop: ReadonlyArray<ChildAttribute>
   panel: ReadonlyArray<ChildAttribute>
   title: ReadonlyArray<ChildAttribute>
@@ -611,110 +611,113 @@ export type ViewInputs = Readonly<{
  *  `ShowDialog` and the dialog's Mount open it through `Dom.showDialog`,
  *  isolate the background, trap focus, and handle Escape on the topmost
  *  dialog. The component supplies its own backdrop. */
-export const view = defineView<Model, Message, ViewInputs>(
-  (model, viewInputs, h): Html => {
-    const {
-      id,
-      isOpen,
-      animation: { transitionState },
-    } = model
-    const { toView, hasDescription = false } = viewInputs
+export const view = defineView<
+  Model,
+  Message,
+  ViewInputs,
+  Mount.RequirementsOf<typeof mounts>
+>((model, viewInputs, h): Html => {
+  const {
+    id,
+    isOpen,
+    animation: { transitionState },
+  } = model
+  const { toView, hasDescription = false } = viewInputs
 
-    const isVisible = isOpen || isLeaving(model)
+  const isVisible = isOpen || isLeaving(model)
 
-    const animationAttributes = Match.value(transitionState).pipe(
-      Match.when('EnterStart', () => [
-        h.DataAttribute('closed', ''),
-        h.DataAttribute('enter', ''),
-        h.DataAttribute('transition', ''),
-      ]),
-      Match.when('EnterAnimating', () => [
-        h.DataAttribute('enter', ''),
-        h.DataAttribute('transition', ''),
-      ]),
-      Match.when('LeaveStart', () => [
-        h.DataAttribute('leave', ''),
-        h.DataAttribute('transition', ''),
-      ]),
-      Match.when('LeaveAnimating', () => [
-        h.DataAttribute('closed', ''),
-        h.DataAttribute('leave', ''),
-        h.DataAttribute('transition', ''),
-      ]),
-      Match.orElse(() => []),
-    )
+  const animationAttributes = Match.value(transitionState).pipe(
+    Match.when('EnterStart', () => [
+      h.DataAttribute('closed', ''),
+      h.DataAttribute('enter', ''),
+      h.DataAttribute('transition', ''),
+    ]),
+    Match.when('EnterAnimating', () => [
+      h.DataAttribute('enter', ''),
+      h.DataAttribute('transition', ''),
+    ]),
+    Match.when('LeaveStart', () => [
+      h.DataAttribute('leave', ''),
+      h.DataAttribute('transition', ''),
+    ]),
+    Match.when('LeaveAnimating', () => [
+      h.DataAttribute('closed', ''),
+      h.DataAttribute('leave', ''),
+      h.DataAttribute('transition', ''),
+    ]),
+    Match.orElse(() => []),
+  )
 
-    const describedByAttributes = hasDescription
-      ? [h.AriaDescribedBy(descriptionId(model))]
-      : []
+  const describedByAttributes = hasDescription
+    ? [h.AriaDescribedBy(descriptionId(model))]
+    : []
 
-    const dialogAttributes = [
-      h.Id(id),
-      h.AriaLabelledBy(titleId(model)),
-      ...describedByAttributes,
-      ...(isVisible ? [h.AriaModal(true)] : []),
-      // NOTE: Chromium reports canceling a file picker as a native `cancel`
-      // event observed by the containing dialog. Dom.showDialog uses a
-      // CustomEvent for its unhandled-Escape signal, so the two are separable.
-      h.OnCancelPreventDefault(Message.RequestedClose()),
-      h.Open(isVisible),
-      h.Style({
-        width: '100%',
-        height: '100%',
-        maxWidth: '100%',
-        maxHeight: '100%',
-        padding: '0',
-        border: 'none',
-        background: 'transparent',
-        ...(isVisible
-          ? { position: 'fixed', inset: '0', zIndex: '2147483600' }
-          : {}),
-      }),
+  const dialogAttributes = [
+    h.Id(id),
+    h.AriaLabelledBy(titleId(model)),
+    ...describedByAttributes,
+    ...(isVisible ? [h.AriaModal(true)] : []),
+    // NOTE: Chromium reports canceling a file picker as a native `cancel`
+    // event observed by the containing dialog. Dom.showDialog uses a
+    // CustomEvent for its unhandled-Escape signal, so the two are separable.
+    h.OnCancelPreventDefault(Message.RequestedClose()),
+    h.Open(isVisible),
+    h.Style({
+      width: '100%',
+      height: '100%',
+      maxWidth: '100%',
+      maxHeight: '100%',
+      padding: '0',
+      border: 'none',
+      background: 'transparent',
       ...(isVisible
-        ? [
-            h.DataAttribute('open', ''),
-            h.OnMount(
-              AcquireResources({
-                id,
-                focusSelector: Option.getOrElse(
-                  model.maybeFocusSelector,
-                  () => initialFocusMarkerSelector,
-                ),
-              }),
-            ),
-            h.OnUnmount(Message.Unmounted()),
-          ]
-        : []),
-    ]
+        ? { position: 'fixed', inset: '0', zIndex: '2147483600' }
+        : {}),
+    }),
+    ...(isVisible
+      ? [
+          h.DataAttribute('open', ''),
+          h.OnMount(
+            AcquireResources({
+              id,
+              focusSelector: Option.getOrElse(
+                model.maybeFocusSelector,
+                () => initialFocusMarkerSelector,
+              ),
+            }),
+          ),
+          h.OnUnmount(Message.Unmounted()),
+        ]
+      : []),
+  ]
 
-    const backdropAttributes = [
-      h.Style({ minHeight: '100vh' }),
-      ...animationAttributes,
-      ...(isLeaving(model) ? [] : [h.OnClick(Message.RequestedClose())]),
-    ]
+  const backdropAttributes = [
+    h.Style({ minHeight: '100vh' }),
+    ...animationAttributes,
+    ...(isLeaving(model) ? [] : [h.OnClick(Message.RequestedClose())]),
+  ]
 
-    const panelAttributes = [h.Id(`${id}-panel`), ...animationAttributes]
+  const panelAttributes = [h.Id(`${id}-panel`), ...animationAttributes]
 
-    const titleAttributes = [h.Id(titleId(model))]
-    const descriptionAttributes = [h.Id(descriptionId(model))]
-    const initialFocusAttributes = [
-      h.DataAttribute(initialFocusMarkerAttribute, ''),
-    ]
+  const titleAttributes = [h.Id(titleId(model))]
+  const descriptionAttributes = [h.Id(descriptionId(model))]
+  const initialFocusAttributes = [
+    h.DataAttribute(initialFocusMarkerAttribute, ''),
+  ]
 
-    const closeButtonAttributes = [
-      h.Type('button'),
-      ...(isLeaving(model) ? [] : [h.OnClick(Message.RequestedClose())]),
-    ]
+  const closeButtonAttributes = [
+    h.Type('button'),
+    ...(isLeaving(model) ? [] : [h.OnClick(Message.RequestedClose())]),
+  ]
 
-    return toView({
-      dialog: childAttributes(dialogAttributes),
-      backdrop: childAttributes(backdropAttributes),
-      panel: childAttributes(panelAttributes),
-      title: childAttributes(titleAttributes),
-      description: childAttributes(descriptionAttributes),
-      initialFocus: childAttributes(initialFocusAttributes),
-      closeButton: childAttributes(closeButtonAttributes),
-      isVisible,
-    })
-  },
-)
+  return toView({
+    dialog: childAttributes(dialogAttributes),
+    backdrop: childAttributes(backdropAttributes),
+    panel: childAttributes(panelAttributes),
+    title: childAttributes(titleAttributes),
+    description: childAttributes(descriptionAttributes),
+    initialFocus: childAttributes(initialFocusAttributes),
+    closeButton: childAttributes(closeButtonAttributes),
+    isVisible,
+  })
+})

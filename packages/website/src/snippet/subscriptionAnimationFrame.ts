@@ -1,5 +1,5 @@
 import { Effect, Schema, Stream } from 'effect'
-import { Subscription } from 'foldkit'
+import { Dom, Subscription } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 // MESSAGE
@@ -30,7 +30,7 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
       handler: function* () {
         return ({ isActive }) =>
           isActive
-            ? Subscription.animationFrameStream.pipe(
+            ? Dom.streamFromAnimationFrame().pipe(
                 Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
               )
             : Stream.empty

@@ -13,6 +13,7 @@ import { DEVTOOLS_HOST_ID } from 'foldkit/devtools-host'
 import * as Dom from 'foldkit/dom'
 import type { ChildAttribute, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import type * as Runtime from 'foldkit/runtime'
 import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
@@ -36,10 +37,13 @@ import {
   init,
   initialFocusMarkerAttribute,
   initialFocusMarkerSelector,
+  mounts,
   titleId,
   update,
   view,
 } from './index.js'
+
+type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
 
 const provideEffects = Effect.provide(EffectsLayer)
 
@@ -94,15 +98,16 @@ const parentInit: Runtime.ApplicationInit<
 const isDialogVisible = (model: Model): boolean =>
   model.isOpen || model.animation.transitionState !== 'Idle'
 
-const isOnUnmount = (childAttribute: ChildAttribute): boolean =>
-  Predicate.isTagged(childAttribute.attribute, 'OnUnmount')
+const isOnUnmount = <RequiredMountRequirements>(
+  childAttribute: ChildAttribute<RequiredMountRequirements>,
+): boolean => Predicate.isTagged(childAttribute.attribute, 'OnUnmount')
 
 // Renders the dialog view through the Scene harness (which manages the runtime
 // frame) and reports whether the published `dialog` attribute group carries the
 // OnUnmount backstop.
 const dialogHasOnUnmount = (model: Model): boolean => {
   let hasOnUnmount = false
-  const sceneView = (currentModel: Model, h: HtmlBuilder<Message>) =>
+  const sceneView = (currentModel: Model, h: TestHtmlBuilder) =>
     view(
       currentModel,
       {
@@ -128,13 +133,15 @@ const dialogHasOnUnmount = (model: Model): boolean => {
 
 // Renders the dialog view through the Scene harness and returns the chosen
 // RenderInfo attribute group so a test can inspect what the consumer receives.
-const renderGroup = (
+const renderGroup = <RequiredMountRequirements>(
   model: Model,
-  selectGroup: (render: RenderInfo) => ReadonlyArray<ChildAttribute>,
+  selectGroup: (
+    render: RenderInfo,
+  ) => ReadonlyArray<ChildAttribute<RequiredMountRequirements>>,
   hasDescription = false,
-): ReadonlyArray<ChildAttribute> => {
-  let captured: ReadonlyArray<ChildAttribute> = []
-  const sceneView = (currentModel: Model, h: HtmlBuilder<Message>) =>
+): ReadonlyArray<ChildAttribute<RequiredMountRequirements>> => {
+  let captured: ReadonlyArray<ChildAttribute<RequiredMountRequirements>> = []
+  const sceneView = (currentModel: Model, h: TestHtmlBuilder) =>
     view(
       currentModel,
       {
@@ -181,8 +188,8 @@ const renderGroup = (
   return captured
 }
 
-const hasIdAttribute = (
-  group: ReadonlyArray<ChildAttribute>,
+const hasIdAttribute = <RequiredMountRequirements>(
+  group: ReadonlyArray<ChildAttribute<RequiredMountRequirements>>,
   id: string,
 ): boolean =>
   group.some(
@@ -192,8 +199,8 @@ const hasIdAttribute = (
       attribute.value === id,
   )
 
-const hasDataAttribute = (
-  group: ReadonlyArray<ChildAttribute>,
+const hasDataAttribute = <RequiredMountRequirements>(
+  group: ReadonlyArray<ChildAttribute<RequiredMountRequirements>>,
   key: string,
 ): boolean =>
   group.some(
@@ -203,7 +210,9 @@ const hasDataAttribute = (
       attribute.key === key,
   )
 
-const hasButtonType = (group: ReadonlyArray<ChildAttribute>): boolean =>
+const hasButtonType = <RequiredMountRequirements>(
+  group: ReadonlyArray<ChildAttribute<RequiredMountRequirements>>,
+): boolean =>
   group.some(
     ({ attribute }) =>
       Predicate.isTagged(attribute, 'Type') &&
@@ -211,8 +220,8 @@ const hasButtonType = (group: ReadonlyArray<ChildAttribute>): boolean =>
       attribute.value === 'button',
   )
 
-const hasAriaDescribedBy = (
-  group: ReadonlyArray<ChildAttribute>,
+const hasAriaDescribedBy = <RequiredMountRequirements>(
+  group: ReadonlyArray<ChildAttribute<RequiredMountRequirements>>,
   id: string,
 ): boolean =>
   group.some(
@@ -222,13 +231,15 @@ const hasAriaDescribedBy = (
       attribute.value === id,
   )
 
-const hasCancelPrevention = (group: ReadonlyArray<ChildAttribute>): boolean =>
+const hasCancelPrevention = <RequiredMountRequirements>(
+  group: ReadonlyArray<ChildAttribute<RequiredMountRequirements>>,
+): boolean =>
   group.some(({ attribute }) =>
     Predicate.isTagged(attribute, 'OnCancelPreventDefault'),
   )
 
-const hasEscapeCancelMapping = (
-  group: ReadonlyArray<ChildAttribute>,
+const hasEscapeCancelMapping = <RequiredMountRequirements>(
+  group: ReadonlyArray<ChildAttribute<RequiredMountRequirements>>,
 ): boolean =>
   group.some(
     ({ attribute }) =>
@@ -1251,7 +1262,7 @@ describe('Dialog', () => {
   })
 
   describe('view modal semantics', () => {
-    const sceneView = (model: Model, h: HtmlBuilder<Message>) =>
+    const sceneView = (model: Model, h: TestHtmlBuilder) =>
       view(model, { toView: ({ dialog }) => h.dialog([...dialog]) }, h)
 
     it('marks a visible dialog as modal to assistive technology', () => {

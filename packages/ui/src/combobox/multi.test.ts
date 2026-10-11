@@ -1,5 +1,6 @@
 import { Option } from 'effect'
 import { type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
@@ -23,10 +24,13 @@ import {
   ScrollComboboxItemIntoView,
   UnlockComboboxScroll,
   inputId,
+  mounts,
 } from './shared.js'
 
 const TestCombobox = create<string>()
 const view = TestCombobox.view
+
+type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
 
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorCombobox,
@@ -357,7 +361,7 @@ describe('Combobox.Multi', () => {
           'items' | 'itemToValue' | 'itemToDisplayText'
         > = {},
       ) =>
-      (model: Model, h: HtmlBuilder<Message>) =>
+      (model: Model, h: TestHtmlBuilder) =>
         view(
           model,
           {

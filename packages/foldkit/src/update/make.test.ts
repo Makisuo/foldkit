@@ -54,7 +54,7 @@ const LoadPreferences = Command.define('LoadPreferences', {
 
 const loadPreferences = (
   model: Model,
-): Return<Model, Message, Command.Handler<'LoadPreferences'>> => ({
+): Return<Model, Message, Command.HandlerOf<typeof LoadPreferences>> => ({
   model,
   commands: [LoadPreferences()],
 })
@@ -154,7 +154,8 @@ describe('make', () => {
       ) => Return<
         Model,
         Message,
-        Command.Handler<'LoadProfile'> | Command.Handler<'LoadPreferences'>
+        | Command.HandlerOf<typeof LoadProfile>
+        | Command.HandlerOf<typeof LoadPreferences>
       >
     >()
   })
@@ -177,7 +178,8 @@ describe('make', () => {
         Model,
         Message,
         OutMessage,
-        Command.Handler<'LoadProfile'> | Command.Handler<'LoadPreferences'>
+        | Command.HandlerOf<typeof LoadProfile>
+        | Command.HandlerOf<typeof LoadPreferences>
       >
     >()
 
@@ -229,7 +231,8 @@ describe('make', () => {
         Model,
         Message,
         OutMessage,
-        Command.Handler<'LoadProfile'> | Command.Handler<'LoadPreferences'>
+        | Command.HandlerOf<typeof LoadProfile>
+        | Command.HandlerOf<typeof LoadPreferences>
       >
     >()
 
@@ -239,7 +242,8 @@ describe('make', () => {
         ParentMessage,
         Message,
         OutMessage,
-        Command.Handler<'LoadProfile'> | Command.Handler<'LoadPreferences'>
+        | Command.HandlerOf<typeof LoadProfile>
+        | Command.HandlerOf<typeof LoadPreferences>
       >
     >()
 
@@ -267,7 +271,7 @@ describe('makeStep', () => {
       ) => Return<
         Model,
         typeof Message.CompletedLoadProfile.Type,
-        Command.Handler<'LoadProfile'>
+        Command.HandlerOf<typeof LoadProfile>
       >
     >()
     expectTypeOf(outwardStep).toEqualTypeOf<
@@ -278,7 +282,7 @@ describe('makeStep', () => {
         Model,
         typeof Message.CompletedLoadPreferences.Type,
         OutMessage,
-        Command.Handler<'LoadPreferences'>
+        Command.HandlerOf<typeof LoadPreferences>
       >
     >()
     expectTypeOf(modelOnlyStep).toEqualTypeOf<
@@ -322,7 +326,8 @@ describe('combine inference', () => {
         Model,
         | typeof Message.CompletedLoadProfile.Type
         | typeof Message.CompletedLoadPreferences.Type,
-        Command.Handler<'LoadProfile'> | Command.Handler<'LoadPreferences'>
+        | Command.HandlerOf<typeof LoadProfile>
+        | Command.HandlerOf<typeof LoadPreferences>
       >
     >()
     expectTypeOf(result).toEqualTypeOf<
@@ -330,7 +335,8 @@ describe('combine inference', () => {
         Model,
         | typeof Message.CompletedLoadProfile.Type
         | typeof Message.CompletedLoadPreferences.Type,
-        Command.Handler<'LoadProfile'> | Command.Handler<'LoadPreferences'>
+        | Command.HandlerOf<typeof LoadProfile>
+        | Command.HandlerOf<typeof LoadPreferences>
       >
     >()
     expect(combined(model).commands?.map(({ name }) => name)).toEqual([

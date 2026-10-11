@@ -315,20 +315,21 @@ export type StreamFromEventFilterMapPreventDefaultConfig<
  *     {
  *       messages: [Message.PressedEscape],
  *       modelToDependencies: model => ({ isListening: model.isListening }),
+ *       handler: function* () {
+ *         return ({ isListening }) =>
+ *           Stream.when(
+ *             Dom.streamFromEventFilterMap({
+ *               target: window,
+ *               type: 'keydown',
+ *               filterMapEvent: event =>
+ *                 event.key === 'Escape'
+ *                   ? Option.some(Message.PressedEscape())
+ *                   : Option.none(),
+ *             }),
+ *             Effect.sync(() => isListening),
+ *           )
+ *       },
  *     },
- *     Effect.succeed(({ isListening }) =>
- *       Stream.when(
- *         Dom.streamFromEventFilterMap({
- *           target: window,
- *           type: 'keydown',
- *           filterMapEvent: event =>
- *             event.key === 'Escape'
- *               ? Option.some(Message.PressedEscape())
- *               : Option.none(),
- *         }),
- *         Effect.sync(() => isListening),
- *       ),
- *     ),
  *   ),
  * }))
  *
@@ -380,17 +381,18 @@ export const streamFromEventFilterMap = <
  *     {
  *       messages: [Message.PressedKey],
  *       modelToDependencies: model => ({ isListening: model.isListening }),
+ *       handler: function* () {
+ *         return ({ isListening }) =>
+ *           Stream.when(
+ *             Dom.streamFromEvent({
+ *               target: window,
+ *               type: 'keydown',
+ *               mapEvent: event => Message.PressedKey({ key: event.key }),
+ *             }),
+ *             Effect.sync(() => isListening),
+ *           )
+ *       },
  *     },
- *     Effect.succeed(({ isListening }) =>
- *       Stream.when(
- *         Dom.streamFromEvent({
- *           target: window,
- *           type: 'keydown',
- *           mapEvent: event => Message.PressedKey({ key: event.key }),
- *         }),
- *         Effect.sync(() => isListening),
- *       ),
- *     ),
  *   ),
  * }))
  *
@@ -454,17 +456,18 @@ export const streamFromEvent = <
  *     {
  *       messages: [Message.SuppressedWheelScroll],
  *       modelToDependencies: model => ({ isModalOpen: model.isModalOpen }),
+ *       handler: function* () {
+ *         return ({ isModalOpen }) =>
+ *           Stream.when(
+ *             Dom.streamFromEventFilterMapPreventDefault({
+ *               target: window,
+ *               type: 'wheel',
+ *               filterMapEvent: () => Option.some(Message.SuppressedWheelScroll()),
+ *             }),
+ *             Effect.sync(() => isModalOpen),
+ *           )
+ *       },
  *     },
- *     Effect.succeed(({ isModalOpen }) =>
- *       Stream.when(
- *         Dom.streamFromEventFilterMapPreventDefault({
- *           target: window,
- *           type: 'wheel',
- *           filterMapEvent: () => Option.some(Message.SuppressedWheelScroll()),
- *         }),
- *         Effect.sync(() => isModalOpen),
- *       ),
- *     ),
  *   ),
  * }))
  *

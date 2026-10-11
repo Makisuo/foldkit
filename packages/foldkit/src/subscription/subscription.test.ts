@@ -17,6 +17,7 @@ import { defineTaggedUnion } from '../schema/index.js'
 import {
   type GatedDependencies,
   type Handler,
+  type HandlerOf,
   type Subscriptions,
   aggregate,
   lift,
@@ -795,6 +796,15 @@ describe('Layer-backed entries', () => {
     expectTypeOf(combined.observed.toLayer).toEqualTypeOf(
       contracted.observed.toLayer,
     )
+    expectTypeOf<HandlerOf<typeof lifted.observed>>().toEqualTypeOf<
+      HandlerOf<typeof contracted.observed>
+    >()
+    expectTypeOf<HandlerOf<typeof combined.observed>>().toEqualTypeOf<
+      HandlerOf<typeof contracted.observed>
+    >()
+    expectTypeOf<HandlerOf<typeof contracted.silent>>().toEqualTypeOf<
+      Handler<'SilentWatch', Record<string, never>, never>
+    >()
   })
 
   if (false) {
@@ -1094,16 +1104,19 @@ describe('Layer-backed entries', () => {
 
   it('contextually types attached persistent and keep-alive handlers', () => {
     expectTypeOf(attachedVariants.failed.layer).toEqualTypeOf<
-      Layer.Layer<Handler<'AttachedFailedValues'>, HandlerBuildFailure>
+      Layer.Layer<
+        HandlerOf<typeof attachedVariants.failed>,
+        HandlerBuildFailure
+      >
     >()
     expectTypeOf(attachedVariants.persistent.layer).toEqualTypeOf<
-      Layer.Layer<Handler<'AttachedPersistentValues'>>
+      Layer.Layer<HandlerOf<typeof attachedVariants.persistent>>
     >()
     expectTypeOf(attachedVariants.contextual.layer).toEqualTypeOf<
-      Layer.Layer<Handler<'AttachedContextualValues'>>
+      Layer.Layer<HandlerOf<typeof attachedVariants.contextual>>
     >()
     expectTypeOf(attachedVariants.keepAlive.layer).toEqualTypeOf<
-      Layer.Layer<Handler<'AttachedKeepAliveValues'>>
+      Layer.Layer<HandlerOf<typeof attachedVariants.keepAlive>>
     >()
   })
 
@@ -1116,7 +1129,7 @@ describe('Layer-backed entries', () => {
 
     expectTypeOf(attached.values.layer).toEqualTypeOf<
       Layer.Layer<
-        Handler<'AttachedLabelValues'>,
+        HandlerOf<typeof attached.values>,
         HandlerBuildFailure,
         Prefix | Suffix
       >
@@ -1202,7 +1215,9 @@ describe('Layer-backed entries', () => {
     expect(persistent.heartbeat.messages).toEqual([Schema.String])
     expect(dependencies).toEqual({})
     expect(nextDependencies).toEqual(dependencies)
-    expectTypeOf(layer).toEqualTypeOf<Layer.Layer<Handler<'HeartbeatTicks'>>>()
+    expectTypeOf(layer).toEqualTypeOf<
+      Layer.Layer<HandlerOf<typeof persistent.heartbeat>>
+    >()
 
     const result = await Effect.runPromise(
       Stream.runCollect(
@@ -1227,14 +1242,23 @@ describe('Layer-backed entries', () => {
       'latestLabel',
     ])
     expect(subscriptions.registrationKey.name).toBe('LabelValues')
+    // @ts-expect-error A Handler annotation must include its dependencies and Message contract.
+    expectTypeOf<Handler<'LabelValues'>>()
+    expectTypeOf<
+      HandlerOf<typeof subscriptions.registrationKey>
+    >().toEqualTypeOf<Handler<'LabelValues', ChildDependencies, string>>()
     expectTypeOf(layer).toEqualTypeOf<
-      Layer.Layer<Handler<'LabelValues'>, never, Prefix>
+      Layer.Layer<
+        HandlerOf<typeof subscriptions.registrationKey>,
+        never,
+        Prefix
+      >
     >()
     expectTypeOf<
       StreamServices<
         ReturnType<typeof subscriptions.registrationKey.dependenciesToStream>
       >
-    >().toEqualTypeOf<Handler<'LabelValues'>>()
+    >().toEqualTypeOf<HandlerOf<typeof subscriptions.registrationKey>>()
 
     const constructedLayer = subscriptions.registrationKey.toLayer(
       Effect.map(
@@ -1247,8 +1271,41 @@ describe('Layer-backed entries', () => {
       ),
     )
     expectTypeOf(constructedLayer).toEqualTypeOf<
-      Layer.Layer<Handler<'LabelValues'>, never, Prefix | Suffix>
+      Layer.Layer<
+        HandlerOf<typeof subscriptions.registrationKey>,
+        never,
+        Prefix | Suffix
+      >
     >()
+  })
+
+  it('rejects a same-name Layer with different dependencies and output', () => {
+    const incompatible = make<ChildModel, number>()(entry => ({
+      registrationKey: entry(
+        'LabelValues',
+        { count: Schema.Number },
+        {
+          messages: [Schema.Number],
+          modelToDependencies: () => ({ count: 1 }),
+        },
+      ),
+    }))
+    const incompatibleLayer = incompatible.registrationKey.toLayer(
+      Effect.succeed(({ count }) => Stream.succeed(count)),
+    )
+
+    if (false) {
+      const provideRegistrationKey = <E, R>(
+        _layer: Layer.Layer<
+          HandlerOf<typeof subscriptions.registrationKey>,
+          E,
+          R
+        >,
+      ) => undefined
+
+      // @ts-expect-error A same-name handler with a different dependency and Message contract cannot provide this Subscription.
+      provideRegistrationKey(incompatibleLayer)
+    }
   })
 
   it('uses invocation context over the context captured by the handler Layer', async () => {
@@ -1442,9 +1499,9 @@ describe('lift types', () => {
       StreamServices<
         ReturnType<typeof subscriptions.ticks.dependenciesToStream>
       >
-    >().toEqualTypeOf<Handler<'LiftedTicks'>>()
+    >().toEqualTypeOf<HandlerOf<typeof childSubscriptions.ticks>>()
     expectTypeOf(LiftedTicksLayer).toEqualTypeOf<
-      Layer.Layer<Handler<'LiftedTicks'>, never, Clock>
+      Layer.Layer<HandlerOf<typeof childSubscriptions.ticks>, never, Clock>
     >()
   })
 })
@@ -1660,11 +1717,11 @@ describe('aggregate', () => {
       StreamServices<
         ReturnType<typeof curried.systemTheme.dependenciesToStream>
       >
-    >().toEqualTypeOf<Handler<'SystemTheme'>>()
+    >().toEqualTypeOf<HandlerOf<typeof themeSubscriptions.systemTheme>>()
 
     expectTypeOf<
       StreamServices<ReturnType<typeof curried.clockTick.dependenciesToStream>>
-    >().toEqualTypeOf<Handler<'ClockTick'>>()
+    >().toEqualTypeOf<HandlerOf<typeof clockSubscriptions.clockTick>>()
 
     expectTypeOf<keyof typeof combined>().toEqualTypeOf<
       'systemTheme' | 'scroll' | 'viewportWidth' | 'clockTick'
@@ -1681,30 +1738,37 @@ describe('aggregate', () => {
     >().toEqualTypeOf<ThemeMessage>()
 
     expectTypeOf(combined).toExtend<
-      Subscriptions<ThemeModel, ThemeMessage | ViewportMessage, Handler<string>>
+      Subscriptions<
+        ThemeModel,
+        ThemeMessage | ViewportMessage,
+        | HandlerOf<typeof themeSubscriptions.systemTheme>
+        | HandlerOf<typeof themeSubscriptions.scroll>
+        | HandlerOf<typeof viewportSubscriptions.viewportWidth>
+        | HandlerOf<typeof clockSubscriptions.clockTick>
+      >
     >()
 
     expectTypeOf<
       StreamServices<
         ReturnType<typeof combined.systemTheme.dependenciesToStream>
       >
-    >().toEqualTypeOf<Handler<'SystemTheme'>>()
+    >().toEqualTypeOf<HandlerOf<typeof themeSubscriptions.systemTheme>>()
 
     expectTypeOf<
       StreamServices<ReturnType<typeof combined.clockTick.dependenciesToStream>>
-    >().toEqualTypeOf<Handler<'ClockTick'>>()
+    >().toEqualTypeOf<HandlerOf<typeof clockSubscriptions.clockTick>>()
 
     expectTypeOf(ClockTickLayer).toEqualTypeOf<
-      Layer.Layer<Handler<'ClockTick'>, never, Clock>
+      Layer.Layer<HandlerOf<typeof clockSubscriptions.clockTick>, never, Clock>
     >()
     expectTypeOf(SystemThemeLayer).toEqualTypeOf<
-      Layer.Layer<Handler<'SystemTheme'>>
+      Layer.Layer<HandlerOf<typeof themeSubscriptions.systemTheme>>
     >()
     expectTypeOf(ScrollThemeLayer).toEqualTypeOf<
-      Layer.Layer<Handler<'ScrollTheme'>>
+      Layer.Layer<HandlerOf<typeof themeSubscriptions.scroll>>
     >()
     expectTypeOf(ViewportWidthLayer).toEqualTypeOf<
-      Layer.Layer<Handler<'ViewportWidth'>>
+      Layer.Layer<HandlerOf<typeof viewportSubscriptions.viewportWidth>>
     >()
 
     expectTypeOf(combined.scroll.keepAliveEquivalence).toEqualTypeOf<

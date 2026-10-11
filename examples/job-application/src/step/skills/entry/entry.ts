@@ -71,6 +71,8 @@ export const init = (entryId: string): Model => ({
   }),
 })
 
+export const EffectsLayer = RadioGroup.EffectsLayer
+
 // UPDATE
 
 const foldProficiencyRadioGroupOutMessage = (

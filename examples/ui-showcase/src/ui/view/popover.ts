@@ -1,10 +1,20 @@
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 
 import { Popover } from '@foldkit/ui'
 
 import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
+
+type MountRequirements = Mount.RequirementsOf<typeof Popover.mounts>
+
+const defineViewWithComponentMountRequirements = Submodel.defineView<
+  UiModel,
+  UiMessage,
+  void,
+  MountRequirements
+>
 
 const triggerClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -25,7 +35,9 @@ const POPOVER_ANCHOR = {
   padding: 8,
 }
 
-const popoverPanelContent = (h: HtmlBuilder<UiMessage>): Html => {
+const popoverPanelContent = <AllowedMountRequirements>(
+  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
+): Html => {
   return h.div(
     [],
     [
@@ -43,7 +55,7 @@ const popoverDemo = (
   popoverModel: Popover.Model,
   toParentMessage: (message: Popover.Message) => UiMessage,
   panelClassNameValue: string,
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder<UiMessage, MountRequirements>,
 ): Html => {
   const popoverView = ({
     button,
@@ -92,7 +104,7 @@ const nestedChildButtonSelector = '#popover-nested-child-demo-button'
 
 const nestedChildPopover = (
   childPopoverModel: Popover.Model,
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder<UiMessage, MountRequirements>,
 ): Html => {
   const childPopoverView = ({
     button,
@@ -147,7 +159,7 @@ const nestedChildPopover = (
 const nestedDemo = (
   parentPopoverModel: Popover.Model,
   childPopoverModel: Popover.Model,
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder<UiMessage, MountRequirements>,
 ): Html => {
   const parentPopoverView = ({
     button,
@@ -204,7 +216,7 @@ const nestedDemo = (
   )
 }
 
-export const view = Submodel.defineView<UiModel, UiMessage>(
+export const view = defineViewWithComponentMountRequirements(
   (model, h): Html => {
     return h.div(
       [],

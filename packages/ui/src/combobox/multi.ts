@@ -1,5 +1,6 @@
 import { Option, Schema } from 'effect'
 import { type Update } from 'foldkit'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 import type { View as SubmodelView } from 'foldkit/submodel'
 
@@ -13,6 +14,7 @@ import {
   closedBaseModel,
   makeUpdate,
   makeView,
+  type mounts,
 } from './shared.js'
 
 // MODEL
@@ -97,7 +99,12 @@ type BundleUpdateReturn<Item extends string> = Update.ReturnWithOutMessage<
  *  config object or a function parameter that takes the bundle rather than
  *  calling `create` itself. */
 export type Bundle<Item extends string = string> = Readonly<{
-  view: SubmodelView<Model, Message, ViewInputs<Item>>
+  view: SubmodelView<
+    Model,
+    Message,
+    ViewInputs<Item>,
+    Mount.RequirementsOf<typeof mounts>
+  >
   update: (model: Model, message: Message) => BundleUpdateReturn<Item>
   selectItem: (model: Model, item: Item) => BundleUpdateReturn<Item>
   open: (model: Model) => BundleUpdateReturn<Item>

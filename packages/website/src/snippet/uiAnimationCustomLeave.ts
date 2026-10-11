@@ -29,7 +29,7 @@ const foldAnimationOutMessage = (
   { liftCommand }: Update.FoldContext<Animation.Message, Message>,
 ) =>
   Animation.OutMessage.match<
-    Update.Step<Model, Message, Command.Handler<'WaitForPanelSettled'>>
+    Update.Step<Model, Message, Command.HandlerOf<typeof WaitForPanelSettled>>
   >(outMessage, {
     StartedLeaveAnimating: ({ generation }) =>
       Update.makeStep((model: Model) => ({

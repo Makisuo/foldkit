@@ -89,8 +89,8 @@ describe('rendering templates', () => {
     expect(readTemplateFile('rendering/ssg/src/entry.server.ts')).toContain(
       'export const prerenderPaths',
     )
-    expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
-      'Runtime.hydrate(Application.provide(application, EffectsLayer))',
+    expect(readTemplateFile('rendering/ssg/src/entry.ts')).toMatch(
+      /runnable\s*=>\s*Runtime\.hydrate\(runnable\)/,
     )
     expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
       'Application.make({',
@@ -122,8 +122,8 @@ describe('rendering templates', () => {
     expect(readTemplateFile('rendering/ssr/src/entry.server.ts')).toContain(
       'flags: flagsForRequest(',
     )
-    expect(readTemplateFile('rendering/ssr/src/entry.ts')).toContain(
-      'Runtime.hydrate(Application.provide(application, EffectsLayer))',
+    expect(readTemplateFile('rendering/ssr/src/entry.ts')).toMatch(
+      /runnable\s*=>\s*Runtime\.hydrate\(runnable\)/,
     )
   })
 

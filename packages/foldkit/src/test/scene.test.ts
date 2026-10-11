@@ -8,6 +8,7 @@ import {
   inertHtml,
 } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
+import * as Mount from '../mount/index.js'
 import * as PublicScene from '../scene/public.js'
 import { h } from '../snabbdom/index.js'
 import type { VNode } from '../snabbdom/index.js'
@@ -116,6 +117,7 @@ import {
   type Model as MountPanelModel,
   ScrollList,
   initialModel as mountInitialModel,
+  Mounts as mountPanelMounts,
   scrollListView as mountScrollListView,
   twoPanelView as mountTwoPanelView,
   update as mountUpdate,
@@ -3261,7 +3263,7 @@ const inactiveCounterSubscriptions = SubscriptionDefinition.make<
 const widenedCounterSubscriptions: SubscriptionDefinition.Subscriptions<
   CounterModel,
   CounterMessage,
-  SubscriptionDefinition.Handler<string>
+  SubscriptionDefinition.HandlerOf<typeof keepAliveCounterSubscriptions.clock>
 > = keepAliveCounterSubscriptions
 
 const mountSubscriptions = SubscriptionDefinition.make<
@@ -5630,10 +5632,14 @@ describe('scene mounts', () => {
     }>
     type ParentModel = { readonly child: ChildModel }
 
-    const childView = defineView<ChildModel, ChildMessage>(() => {
-      const h = attributeHtml<ChildMessage>()
-      return h.button([h.OnMount(FocusButton())])
-    })
+    type ChildMountRequirements = Mount.RequirementsOf<typeof FocusButton>
+
+    const childView = defineView<
+      ChildModel,
+      ChildMessage,
+      void,
+      ChildMountRequirements
+    >((_model, h) => h.button([h.OnMount(FocusButton())]))
 
     const seen: Array<ParentMessage> = []
     const parentUpdate = (
@@ -5645,7 +5651,7 @@ describe('scene mounts', () => {
     }
 
     const parentView = (model: ParentModel) => {
-      const h = attributeHtml<ParentMessage>()
+      const h = attributeHtml<ParentMessage, ChildMountRequirements>()
       return h.div(
         [],
         [
@@ -5682,7 +5688,10 @@ describe('scene mounts', () => {
   test('mounts on view returning Document are tracked', () => {
     const documentView = (
       model: typeof mountInitialModel,
-      h: HtmlBuilder<MountPanelMessage>,
+      h: HtmlBuilder<
+        MountPanelMessage,
+        Mount.RequirementsOf<typeof mountPanelMounts>
+      >,
     ) => ({
       title: 'Mount panel',
       body: mountView(model, h),

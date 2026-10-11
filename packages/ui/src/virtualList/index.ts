@@ -1281,6 +1281,8 @@ export const ObserveVirtualList = Mount.defineStream('ObserveVirtualList', {
 /** Mount Definitions rendered by VirtualList views. */
 export const mounts = [ObserveVirtualList]
 
+type MountRequirements = Mount.RequirementsOf<typeof mounts>
+
 /** Provides VirtualList's Command and Mount handlers. */
 export const EffectsLayer = Layer.mergeAll(
   ApplyScroll.layer,
@@ -1335,13 +1337,20 @@ export type ViewInputs<Item> = BaseViewInputs<Item> & RowHeightInputs<Item>
  *  embed site to get a `SubmodelView` typed for your item type. The
  *  underlying view implementation is shared; the call only narrows the
  *  type. */
-type ViewForItem<Item> = SubmodelView<Model, Message, ViewInputs<Item>>
+type ViewForItem<Item> = SubmodelView<
+  Model,
+  Message,
+  ViewInputs<Item>,
+  MountRequirements
+>
 
 export const view = <Item>() =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   viewImpl as unknown as ViewForItem<Item>
 
-const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
+type InternalInputs = ViewInputs<unknown>
+
+const viewImpl = defineView<Model, Message, InternalInputs, MountRequirements>(
   (model, viewInputs, h) => {
     const {
       items,

@@ -46,6 +46,7 @@ import {
   HYDRATION_IDENTITY_ATTRIBUTE,
   HYDRATION_KEY_ATTRIBUTE,
 } from '../../hydrationMarkers.js'
+import type { AnyMountHandler } from '../../mount/index.js'
 import { hasTrustedInnerHtml } from '../../propertyProvenance.js'
 import type { VNode } from '../../snabbdom/vnode.js'
 import { tagNameFromSelector } from '../../tagName.js'
@@ -1107,7 +1108,7 @@ export type RoutingApplicationConfigWithFlags<Model, Message, Flags> =
     Flags: Schema.Codec<Flags, any, never, never>
     routing: unknown
     init: (flags: Flags, url: Url) => InitReturn<Model, Message>
-    view: (model: Model, h: HtmlBuilder<Message>) => Document
+    view: (model: Model, h: HtmlBuilder<Message, AnyMountHandler>) => Document
   }>
 
 /** Server-side subset of a routing `makeApplication` config without Flags.
@@ -1117,7 +1118,7 @@ export type RoutingApplicationConfigWithFlags<Model, Message, Flags> =
 export type RoutingApplicationConfig<Model, Message> = Readonly<{
   routing: unknown
   init: (url: Url) => InitReturn<Model, Message>
-  view: (model: Model, h: HtmlBuilder<Message>) => Document
+  view: (model: Model, h: HtmlBuilder<Message, AnyMountHandler>) => Document
 }>
 
 /** Server-side subset of a non-routing `makeApplication` config with Flags.
@@ -1127,7 +1128,7 @@ export type RoutingApplicationConfig<Model, Message> = Readonly<{
 export type ApplicationConfigWithFlags<Model, Message, Flags> = Readonly<{
   Flags: Schema.Codec<Flags, any, never, never>
   init: (flags: Flags) => InitReturn<Model, Message>
-  view: (model: Model, h: HtmlBuilder<Message>) => Document
+  view: (model: Model, h: HtmlBuilder<Message, AnyMountHandler>) => Document
 }>
 
 /** Server-side subset of a non-routing `makeApplication` config.
@@ -1136,7 +1137,7 @@ export type ApplicationConfigWithFlags<Model, Message, Flags> = Readonly<{
  */
 export type ApplicationConfig<Model, Message> = Readonly<{
   init: () => InitReturn<Model, Message>
-  view: (model: Model, h: HtmlBuilder<Message>) => Document
+  view: (model: Model, h: HtmlBuilder<Message, AnyMountHandler>) => Document
 }>
 
 // Shared by both render shapes. `runtimeId` names the application in the root
@@ -1236,14 +1237,14 @@ const noOpDispatch: DispatchSync = () => {}
 // that suspended mid-render would break the invariant; views are pure and
 // cannot.
 const runView = <Model>(
-  view: (model: Model, h: HtmlBuilder<any>) => Document,
+  view: (model: Model, h: HtmlBuilder<any, AnyMountHandler>) => Document,
   model: Model,
 ): Document => {
   const boundaryRegistry = createBoundaryRegistry()
   beginRender(boundaryRegistry)
   setRuntime(noOpDispatch, Context.empty(), boundaryRegistry)
   try {
-    return view(model, htmlBuilderFor())
+    return view(model, htmlBuilderFor<any, AnyMountHandler>())
   } finally {
     clearRuntime()
   }
@@ -1389,7 +1390,7 @@ export function renderToString(
     Flags?: Schema.Codec<unknown, any, never, never>
     routing?: unknown
     init: (...initArguments: ReadonlyArray<any>) => InitReturn<unknown, any>
-    view: (model: any, h: HtmlBuilder<any>) => Document
+    view: (model: any, h: HtmlBuilder<any, AnyMountHandler>) => Document
   }>,
   options?: RenderOptions &
     Readonly<{

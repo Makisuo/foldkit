@@ -85,9 +85,9 @@ const WorkspaceMessage = defineMessageUnion({
 type WorkspaceMessage = typeof WorkspaceMessage.Type
 
 type InitHandlerRequirements =
-  | Command.Handler<'LoadSearch'>
-  | Command.Handler<'SaveDraft'>
-  | Command.Handler<'RecordSearchBoot'>
+  | Command.HandlerOf<typeof loadSearch>
+  | Command.HandlerOf<typeof saveDraft>
+  | Command.HandlerOf<typeof recordSearchBoot>
 
 const WorkspaceSearchOutMessage = defineMessageUnion({
   RestoredQuery: { query: Schema.String },
@@ -154,7 +154,7 @@ const InitEffectsLayer = Layer.mergeAll(
 const searchInit: Return<
   SearchModel,
   SearchMessage,
-  Command.Handler<'LoadSearch'>
+  Command.HandlerOf<typeof loadSearch>
 > = {
   model: SearchModel.make({ query: 'foldkit' }),
   commands: [loadSearch()],
@@ -163,7 +163,7 @@ const searchInit: Return<
 const editorInit: Return<
   EditorModel,
   EditorMessage,
-  Command.Handler<'SaveDraft'>
+  Command.HandlerOf<typeof saveDraft>
 > = {
   model: EditorModel.make({ draft: 'Draft' }),
   commands: [saveDraft()],
@@ -173,7 +173,7 @@ const searchInitWithOutMessage: ReturnWithOutMessage<
   SearchModel,
   SearchMessage,
   SearchOutMessage,
-  Command.Handler<'LoadSearch'>
+  Command.HandlerOf<typeof loadSearch>
 > = {
   model: SearchModel.make({ query: 'foldkit' }),
   commands: [loadSearch()],
@@ -184,7 +184,7 @@ const editorInitWithOutMessage: ReturnWithOutMessage<
   EditorModel,
   EditorMessage,
   EditorOutMessage,
-  Command.Handler<'SaveDraft'>
+  Command.HandlerOf<typeof saveDraft>
 > = {
   model: EditorModel.make({ draft: 'Draft' }),
   commands: [saveDraft()],
@@ -220,7 +220,8 @@ describe('foldChildInits', () => {
       Return<
         AppModel,
         AppMessage,
-        Command.Handler<'LoadSearch'> | Command.Handler<'SaveDraft'>
+        | Command.HandlerOf<typeof loadSearch>
+        | Command.HandlerOf<typeof saveDraft>
       >
     >()
     expect(factoryCalls.count).toBe(1)
@@ -254,7 +255,8 @@ describe('foldChildInits', () => {
       Return<
         AppModel,
         AppMessage,
-        Command.Handler<'LoadSearch'> | Command.Handler<'SaveDraft'>
+        | Command.HandlerOf<typeof loadSearch>
+        | Command.HandlerOf<typeof saveDraft>
       >['commands']
     >()
   })
@@ -303,7 +305,7 @@ describe('foldChildInits', () => {
         AppModel,
         FoldMessage,
         ParentCandidate,
-        Command.Handler<'RecordSearchBoot'>
+        Command.HandlerOf<typeof recordSearchBoot>
       >
     >({
       RequestedSearchNavigation: () => model => ({
@@ -385,7 +387,7 @@ describe('foldChildInits', () => {
       SearchModel,
       SearchMessage,
       SearchOutMessage,
-      Command.Handler<'LoadSearch'>
+      Command.HandlerOf<typeof loadSearch>
     > = searchInit
     const configuration = {
       toParentModel: toAppModel,
@@ -583,7 +585,8 @@ describe('foldChildInits', () => {
       Return<
         KeyOrderModel,
         AppMessage,
-        Command.Handler<'LoadSearch'> | Command.Handler<'SaveDraft'>
+        | Command.HandlerOf<typeof loadSearch>
+        | Command.HandlerOf<typeof saveDraft>
       >
     >()
     expect((appInit.commands ?? []).map(command => command.name)).toEqual([
@@ -1040,7 +1043,9 @@ describe('foldChildInits inference', () => {
       Return<
         AppModel,
         AppMessage | FoldMessage,
-        SearchRequirements | FoldRequirements | Command.Handler<'SaveDraft'>
+        | SearchRequirements
+        | FoldRequirements
+        | Command.HandlerOf<typeof saveDraft>
       >
     >()
     expectTypeOf(outwardInit).toEqualTypeOf<
@@ -1048,7 +1053,9 @@ describe('foldChildInits inference', () => {
         AppModel,
         AppMessage | FoldMessage,
         typeof AppOutMessage.FinishedBoot.Type,
-        SearchRequirements | FoldRequirements | Command.Handler<'SaveDraft'>
+        | SearchRequirements
+        | FoldRequirements
+        | Command.HandlerOf<typeof saveDraft>
       >
     >()
   })
@@ -1106,7 +1113,8 @@ describe('foldChildInits inference', () => {
       Return<
         AppModel,
         AppMessage,
-        Command.Handler<'LoadSearch'> | Command.Handler<'SaveDraft'>
+        | Command.HandlerOf<typeof loadSearch>
+        | Command.HandlerOf<typeof saveDraft>
       >['commands']
     >()
   })
@@ -1131,7 +1139,9 @@ describe('foldChildInits inference', () => {
       AppModel,
       AppMessage | FoldMessage,
       typeof AppOutMessage.FinishedBoot.Type,
-      SearchRequirements | FoldRequirements | Command.Handler<'SaveDraft'>
+      | SearchRequirements
+      | FoldRequirements
+      | Command.HandlerOf<typeof saveDraft>
     >
     expectTypeOf(appInit.model).toEqualTypeOf<AppModel>()
     expectTypeOf(appInit.commands).toEqualTypeOf<ExpectedReturn['commands']>()
@@ -1182,7 +1192,9 @@ describe('foldChildInits inference', () => {
       AppModel,
       AppMessage | FoldMessage,
       typeof AppOutMessage.FinishedBoot.Type,
-      SearchRequirements | FoldRequirements | Command.Handler<'SaveDraft'>
+      | SearchRequirements
+      | FoldRequirements
+      | Command.HandlerOf<typeof saveDraft>
     >
     expectTypeOf(optionalFoldInit.model).toEqualTypeOf<AppModel>()
     expectTypeOf(optionalFoldInit.commands).toEqualTypeOf<
@@ -1340,14 +1352,18 @@ describe('foldChildInits inference', () => {
               foldOutMessage: (_outMessage, { liftCommand }) => {
                 const lifted = liftCommand(loadSearch())
                 expectTypeOf(lifted).toEqualTypeOf<
-                  Command.Command<unknown, never, Command.Handler<'LoadSearch'>>
+                  Command.Command<
+                    unknown,
+                    never,
+                    Command.HandlerOf<typeof loadSearch>
+                  >
                 >()
 
                 // @ts-expect-error an unannotated context cannot lift into a known parent Message
                 const typedLifted: Command.Command<
                   typeof AppMessage.GotSearchMessage.Type,
                   never,
-                  Command.Handler<'LoadSearch'>
+                  Command.HandlerOf<typeof loadSearch>
                 > = lifted
                 void typedLifted
 

@@ -93,7 +93,7 @@ const ChildEffectsLayer = Layer.mergeAll(
 const childInit: Return<
   ChildModel,
   ChildMessage,
-  Command.Handler<'CompleteChildWork'>
+  Command.HandlerOf<typeof completeChildWork>
 > = {
   model: ChildModel.make({ value: 3 }),
   commands: [completeChildWork()],
@@ -103,7 +103,7 @@ const childInitWithOutMessage: ReturnWithOutMessage<
   ChildModel,
   ChildMessage,
   ChildOutMessage,
-  Command.Handler<'CompleteChildWork'>
+  Command.HandlerOf<typeof completeChildWork>
 > = {
   model: ChildModel.make({ value: 3 }),
   commands: [completeChildWork()],
@@ -130,7 +130,11 @@ describe('foldChildInit', () => {
     })
 
     expectTypeOf(parentInit).toEqualTypeOf<
-      Return<ParentModel, ParentMessage, Command.Handler<'CompleteChildWork'>>
+      Return<
+        ParentModel,
+        ParentMessage,
+        Command.HandlerOf<typeof completeChildWork>
+      >
     >()
     expect(parentInit.model).toEqual({
       child: { value: 3 },
@@ -191,7 +195,7 @@ describe('foldChildInit', () => {
       ChildModel,
       ChildMessage,
       ChildOutMessage,
-      Command.Handler<'CompleteChildWork'>
+      Command.HandlerOf<typeof completeChildWork>
     > = childInit
     const parentInit = foldChildInit(silentChildInit, {
       toParentModel,
@@ -233,7 +237,7 @@ describe('foldChildInit', () => {
       Step<
         ParentModel,
         OutMessageStepMessage,
-        Command.Handler<'RecordChildValue'>
+        Command.HandlerOf<typeof recordChildValue>
       >
     >({
       ReportedValue: () => model => ({
@@ -254,8 +258,8 @@ describe('foldChildInit', () => {
       Return<
         ParentModel,
         ParentMessage | OutMessageStepMessage,
-        | Command.Handler<'CompleteChildWork'>
-        | Command.Handler<'RecordChildValue'>
+        | Command.HandlerOf<typeof completeChildWork>
+        | Command.HandlerOf<typeof recordChildValue>
       >
     >()
     expect(parentInit.model.reportedValue).toBe(3)
@@ -274,8 +278,8 @@ describe('foldChildInit', () => {
       ): Step<
         ParentModel,
         ParentMessage,
-        | Command.Handler<'CompleteChildWork'>
-        | Command.Handler<'CompleteChildFollowUp'>
+        | Command.HandlerOf<typeof completeChildWork>
+        | Command.HandlerOf<typeof completeChildFollowUp>
       > =>
       model => ({
         model,
@@ -362,7 +366,7 @@ describe('foldChildInit', () => {
         ParentModel,
         ParentMessage,
         typeof ParentOutMessage.DerivedValue.Type,
-        Command.Handler<'CompleteChildWork'>
+        Command.HandlerOf<typeof completeChildWork>
       >
     >()
     expect(parentInit.outMessage).toEqual(ParentOutMessage.DerivedValue())
@@ -380,7 +384,7 @@ describe('foldChildInit', () => {
         ParentModel,
         ParentMessage,
         typeof ParentOutMessage.ForwardedValue.Type,
-        Command.Handler<'CompleteChildWork'>
+        Command.HandlerOf<typeof completeChildWork>
       >
     >()
     expect(parentInit.outMessage).toEqual(ParentOutMessage.ForwardedValue())
@@ -439,7 +443,7 @@ describe('foldChildInit', () => {
         ParentModel,
         ParentMessage,
         ParentOutMessage,
-        Command.Handler<'CompleteChildWork'>
+        Command.HandlerOf<typeof completeChildWork>
       >
     >()
     expect(callbackCounts.forward).toBe(0)

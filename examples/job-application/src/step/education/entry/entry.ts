@@ -85,6 +85,10 @@ export const init = (entryId: string): Model => ({
   isCurrentlyEnrolled: false,
 })
 
+export const EffectsLayer = Listbox.EffectsLayer
+
+export const mounts = Listbox.mounts
+
 // UPDATE
 
 const foldGraduationYearListboxOutMessage = (

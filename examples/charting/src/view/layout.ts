@@ -1,5 +1,5 @@
 import { Array, Option } from 'effect'
-import { AsyncData } from 'foldkit'
+import { AsyncData, type Mount } from 'foldkit'
 import type { Html } from 'foldkit/html'
 import { HtmlBuilder } from 'foldkit/html'
 
@@ -8,7 +8,7 @@ import { Button } from '@foldkit/ui'
 import type { Telemetry } from '../domain'
 import { Message } from '../message'
 import type { Model } from '../model'
-import { chartPanelView } from './chart'
+import { MountChart, chartPanelView } from './chart'
 import { sidebarView } from './sidebar'
 
 export const headerView = (model: Model, h: HtmlBuilder<Message>): Html => {
@@ -82,7 +82,7 @@ const dashboardBanner = (
 
 export const telemetryStateView = (
   model: Model,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof MountChart>>,
 ): Html =>
   AsyncData.matchData(model.telemetry, {
     onEmpty: () => loadingView(h),
@@ -160,7 +160,7 @@ export const dashboardShellView = (
   model: Model,
   telemetry: Telemetry,
   maybeBanner: Option.Option<string>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof MountChart>>,
 ): Html =>
   h.section(
     [

@@ -2,10 +2,31 @@ import { Context, Effect, Layer, type Scope, Stream } from 'effect'
 
 declare const HandlerTypeId: unique symbol
 
-/** The service required by a Subscription whose implementation is supplied by a Layer. */
-export interface Handler<Name extends string> {
-  readonly [HandlerTypeId]: Name
+type Invariant<Value> = (value: Value) => Value
+type AnyHandler = Readonly<{ readonly [HandlerTypeId]: unknown }>
+
+/** The service required by a Subscription whose implementation is supplied by
+ * a Layer. Its name, decoded dependencies, and declared Message identify the
+ * handler contract. */
+export interface Handler<Name extends string, Dependencies, Message> {
+  readonly [HandlerTypeId]: Readonly<{
+    name: Invariant<Name>
+    dependencies: Invariant<Dependencies>
+    message: Invariant<Message>
+  }>
 }
+
+/** Extracts the exact handler requirement carried by a Subscription entry. */
+export type HandlerOf<
+  Entry extends {
+    dependenciesToStream: (
+      ...args: ReadonlyArray<any>
+    ) => Stream.Stream<any, any, any>
+  },
+> = Extract<
+  Stream.Services<ReturnType<Entry['dependenciesToStream']>>,
+  AnyHandler
+>
 
 type StreamHandlerWithoutKeepAlive<Dependencies, Message, R> = (
   dependencies: Dependencies,
@@ -46,7 +67,7 @@ export interface ToLayerWithoutKeepAlive<
       BuildRequirements
     >,
   ): Layer.Layer<
-    Handler<Name>,
+    Handler<Name, Dependencies, Message>,
     E,
     Exclude<StreamRequirements | BuildRequirements, Scope.Scope>
   >
@@ -74,7 +95,7 @@ export interface ToLayerWithKeepAlive<
       BuildRequirements
     >,
   ): Layer.Layer<
-    Handler<Name>,
+    Handler<Name, Dependencies, Message>,
     E,
     Exclude<StreamRequirements | BuildRequirements, Scope.Scope>
   >
@@ -86,14 +107,14 @@ export const makeHandler = <Name extends string, Dependencies, Message>(
 ) => {
   const identity = Symbol(name)
   const service = Context.Service<
-    Handler<Name>,
+    Handler<Name, Dependencies, Message>,
     HandlerService<Dependencies, Message>
   >(`foldkit/Subscription/${name}`)
 
   const toStream = (
     dependencies: Dependencies,
     readDependencies?: () => Dependencies,
-  ): Stream.Stream<Message, never, Handler<Name>> =>
+  ): Stream.Stream<Message, never, Handler<Name, Dependencies, Message>> =>
     Stream.unwrap(
       Effect.map(service, handler => {
         if (handler.identity !== identity) {
@@ -123,7 +144,7 @@ export const makeHandler = <Name extends string, Dependencies, Message>(
       BuildRequirements
     >,
   ): Layer.Layer<
-    Handler<Name>,
+    Handler<Name, Dependencies, Message>,
     E,
     Exclude<StreamRequirements | BuildRequirements, Scope.Scope>
   > =>

@@ -468,6 +468,8 @@ export const PortalPopoverBackdrop = Mount.define('PortalPopoverBackdrop', {
 /** Mount Definitions rendered by Popover views. */
 export const mounts = [AnchorPopover, PortalPopoverBackdrop]
 
+type MountRequirements = Mount.RequirementsOf<typeof mounts>
+
 /** Provides Popover's Command and Mount handlers. */
 export const EffectsLayer = Layer.mergeAll(
   LockPopoverScroll.layer,
@@ -514,8 +516,12 @@ export const close = (model: Model) => update(model, Message.RequestedClose())
  *    while this is true. */
 export type RenderInfo = Readonly<{
   button: ReadonlyArray<ChildAttribute>
-  panel: ReadonlyArray<ChildAttribute>
-  backdrop: ReadonlyArray<ChildAttribute>
+  panel: ReadonlyArray<
+    ChildAttribute<Mount.RequirementsOf<typeof AnchorPopover>>
+  >
+  backdrop: ReadonlyArray<
+    ChildAttribute<Mount.RequirementsOf<typeof PortalPopoverBackdrop>>
+  >
   arrow: ReadonlyArray<ChildAttribute>
   isVisible: boolean
 }>
@@ -532,7 +538,7 @@ export type ViewInputs = Readonly<{
 }>
 
 /** Renders a headless popover with a trigger button and a floating panel. */
-export const view = defineView<Model, Message, ViewInputs>(
+export const view = defineView<Model, Message, ViewInputs, MountRequirements>(
   (model, viewInputs, h): Html => {
     const {
       id,

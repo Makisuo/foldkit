@@ -1,8 +1,9 @@
 import clsx from 'clsx'
 import { Array, Equal, HashSet, Match, Option, pipe } from 'effect'
+import type { Mount } from 'foldkit'
 import type { ChildAttribute, Document, Html, HtmlBuilder } from 'foldkit/html'
 
-import { Button, Tabs } from '@foldkit/ui'
+import { Button, Menu, Tabs } from '@foldkit/ui'
 
 import { Step } from '../domain'
 import { Message } from '../message'
@@ -20,6 +21,13 @@ import { review } from './review'
 import { stepMenu, stepTabButton } from './stepNav'
 
 const StepTabs = Tabs.create<Step.Step>()
+
+type MountRequirements = Mount.RequirementsOf<
+  | typeof Menu.mounts
+  | typeof PersonalInfo.mounts
+  | typeof WorkHistory.mounts
+  | typeof Education.mounts
+>
 
 const stepHasErrors =
   (model: Model) =>
@@ -61,7 +69,7 @@ const stepsNeedingAttention = (model: Model): ReadonlyArray<Step.Step> =>
 const stepContent = (
   model: Model,
   attentionSteps: ReadonlyArray<Step.Step>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, MountRequirements>,
 ): Html =>
   Match.value(model.currentStep).pipe(
     Match.when('PersonalInfo', () =>
@@ -188,7 +196,7 @@ const stepContentPanel = (
   model: Model,
   attentionSteps: ReadonlyArray<Step.Step>,
   panelAttributes: ReadonlyArray<ChildAttribute>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, MountRequirements>,
 ): Html =>
   h.div(
     [...panelAttributes, h.Class('flex-1 min-w-0')],
@@ -209,7 +217,7 @@ const stepTabsLayout = (
   model: Model,
   attentionSteps: ReadonlyArray<Step.Step>,
   attentionStepSet: HashSet.HashSet<Step.Step>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, MountRequirements>,
 ): Html =>
   h.submodel({
     slotId: model.stepTabs.id,
@@ -328,7 +336,10 @@ const mobilePreviewOverlay = (model: Model, h: HtmlBuilder<Message>): Html =>
     [preview(model)],
   )
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+export const view = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+): Document => {
   const attentionSteps = stepsNeedingAttention(model)
   const attentionStepSet = HashSet.fromIterable(attentionSteps)
   const body = h.div(

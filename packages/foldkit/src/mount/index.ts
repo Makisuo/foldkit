@@ -12,6 +12,7 @@ import {
 } from 'effect'
 
 import {
+  type AnyHandler,
   type Handler,
   type ToEffectLayer,
   type ToStreamLayer,
@@ -19,7 +20,12 @@ import {
   makeStreamHandler,
 } from './handler.js'
 
-export type { Handler, ToEffectLayer, ToStreamLayer } from './handler.js'
+export type {
+  AnyHandler,
+  Handler,
+  ToEffectLayer,
+  ToStreamLayer,
+} from './handler.js'
 
 /** Effect service tag that observes Mount lifecycle events. The runtime
  *  provides an implementation that buffers events for DevTools history;
@@ -139,7 +145,11 @@ export interface MountDefinitionWithArgs<
 export interface LayeredMountDefinitionNoArgs<
   Name extends string,
   ResultMessage,
-> extends MountDefinitionNoArgs<Name, ResultMessage, Handler<Name>> {
+> extends MountDefinitionNoArgs<
+  Name,
+  ResultMessage,
+  Handler<Name, ExecuteRuntimeInput, ResultMessage>
+> {
   readonly [MountRegistrationTypeId]: MountRegistration
   readonly toLayer: ToEffectLayer<Name, ExecuteRuntimeInput, ResultMessage>
 }
@@ -149,7 +159,16 @@ export interface LayeredMountDefinitionWithArgs<
   Name extends string,
   Fields extends Schema.Struct.Fields,
   ResultMessage,
-> extends MountDefinitionWithArgs<Name, Fields, ResultMessage, Handler<Name>> {
+> extends MountDefinitionWithArgs<
+  Name,
+  Fields,
+  ResultMessage,
+  Handler<
+    Name,
+    ExecuteRuntimeInput & Schema.Schema.Type<Schema.Struct<Fields>>,
+    ResultMessage
+  >
+> {
   readonly [MountRegistrationTypeId]: MountRegistration
   readonly toLayer: ToEffectLayer<
     Name,
@@ -162,7 +181,11 @@ export interface LayeredMountDefinitionWithArgs<
 export interface LayeredStreamMountDefinitionNoArgs<
   Name extends string,
   ResultMessage,
-> extends MountDefinitionNoArgs<Name, ResultMessage, Handler<Name>> {
+> extends MountDefinitionNoArgs<
+  Name,
+  ResultMessage,
+  Handler<Name, ExecuteRuntimeInput, ResultMessage>
+> {
   readonly [MountRegistrationTypeId]: MountRegistration
   readonly toLayer: ToStreamLayer<Name, ExecuteRuntimeInput, ResultMessage>
 }
@@ -172,7 +195,16 @@ export interface LayeredStreamMountDefinitionWithArgs<
   Name extends string,
   Fields extends Schema.Struct.Fields,
   ResultMessage,
-> extends MountDefinitionWithArgs<Name, Fields, ResultMessage, Handler<Name>> {
+> extends MountDefinitionWithArgs<
+  Name,
+  Fields,
+  ResultMessage,
+  Handler<
+    Name,
+    ExecuteRuntimeInput & Schema.Schema.Type<Schema.Struct<Fields>>,
+    ResultMessage
+  >
+> {
   readonly [MountRegistrationTypeId]: MountRegistration
   readonly toLayer: ToStreamLayer<
     Name,
@@ -201,6 +233,79 @@ export type MountDefinition<
 > =
   | MountDefinitionNoArgs<Name, ResultMessage, R>
   | MountDefinitionWithArgs<Name, any, ResultMessage, R>
+
+/** The Layer service required by a Layer-backed Mount Definition or registry. */
+export type RequirementsOf<DefinitionOrDefinitions> =
+  DefinitionOrDefinitions extends ReadonlyArray<infer Definition>
+    ? RequirementsOf<Definition>
+    : DefinitionOrDefinitions extends (...args: infer _Args) => infer Action
+      ? Action extends MountAction<
+          infer _Message,
+          infer _Error,
+          infer Requirements
+        >
+        ? Requirements
+        : never
+      : never
+
+type IsAny<Value> = 0 extends 1 & Value ? true : false
+
+type HasErasedMountContract<Requirement> =
+  Requirement extends Handler<infer Name, infer Input, infer ResultMessage>
+    ? true extends IsAny<Name> | IsAny<Input> | IsAny<ResultMessage>
+      ? true
+      : unknown extends Input | ResultMessage
+        ? true
+        : false
+    : true
+
+type DeclaredMountArgs<Definition> = Definition extends (
+  ...args: infer Args
+) => unknown
+  ? Args extends [infer DeclaredArgs]
+    ? DeclaredArgs
+    : never
+  : never
+
+type HasErasedMountArgs<Definition> = [DeclaredMountArgs<Definition>] extends [
+  never,
+]
+  ? false
+  : IsAny<DeclaredMountArgs<Definition>> extends true
+    ? true
+    : unknown extends DeclaredMountArgs<Definition>
+      ? true
+      : string extends keyof DeclaredMountArgs<Definition>
+        ? true
+        : false
+
+type MountNames<Mounts extends ReadonlyArray<LayeredMountDefinition>> =
+  Mounts[number] extends Readonly<{ name: infer Name }> ? Name : never
+
+/** @internal Rejects registries whose annotations erased a Definition name or
+ *  handler protocol that the view capability check needs. */
+export type PreciseMountRegistry<
+  Mounts extends ReadonlyArray<LayeredMountDefinition>,
+> = [Mounts[number]] extends [never]
+  ? unknown
+  : IsAny<MountNames<Mounts>> extends true
+    ? Readonly<{
+        'Mount registry must preserve each definition type': never
+      }>
+    : string extends MountNames<Mounts>
+      ? Readonly<{
+          'Mount registry must preserve each definition name': never
+        }>
+      : true extends
+            | HasErasedMountContract<RequirementsOf<Mounts>>
+            | HasErasedMountArgs<Mounts[number]>
+        ? Readonly<{
+            'Mount registry must preserve each definition contract': never
+          }>
+        : unknown
+
+/** @internal The capability accepted by renderers that do not execute Mounts. */
+export type AnyMountHandler = AnyHandler
 
 /** @internal Rejects an args field named `element`. The handler receives the live
  *  element under that name, so an arg of the same name would shadow it. The
@@ -470,7 +575,11 @@ export function define<
 > &
   Readonly<{
     layer: Layer.Layer<
-      Handler<Name>,
+      Handler<
+        Name,
+        ExecuteRuntimeInput & Schema.Struct.Type<NoInfer<Fields>>,
+        Schema.Schema.Type<Messages[number]>
+      >,
       Effect.Error<Yielded>,
       Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
     >
@@ -502,7 +611,7 @@ export function define<
 ): LayeredMountDefinitionNoArgs<Name, Schema.Schema.Type<Messages[number]>> &
   Readonly<{
     layer: Layer.Layer<
-      Handler<Name>,
+      Handler<Name, ExecuteRuntimeInput, Schema.Schema.Type<Messages[number]>>,
       Effect.Error<Yielded>,
       Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
     >
@@ -707,7 +816,11 @@ export function defineStream<
 > &
   Readonly<{
     layer: Layer.Layer<
-      Handler<Name>,
+      Handler<
+        Name,
+        ExecuteRuntimeInput & Schema.Struct.Type<NoInfer<Fields>>,
+        Schema.Schema.Type<Messages[number]>
+      >,
       Effect.Error<Yielded>,
       Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
     >
@@ -742,7 +855,7 @@ export function defineStream<
 > &
   Readonly<{
     layer: Layer.Layer<
-      Handler<Name>,
+      Handler<Name, ExecuteRuntimeInput, Schema.Schema.Type<Messages[number]>>,
       Effect.Error<Yielded>,
       Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
     >

@@ -2,17 +2,28 @@ import { Context, Effect, Layer, type Scope } from 'effect'
 
 declare const HandlerTypeId: unique symbol
 
-/** The service required by a Command whose implementation is supplied by a Layer. */
-export interface Handler<Name extends string> {
-  readonly [HandlerTypeId]: Name
+type Invariant<Value> = (value: Value) => Value
+type AnyHandler = Readonly<{ readonly [HandlerTypeId]: unknown }>
+
+/** The service required by a Command whose implementation is supplied by a
+ * Layer. Its name, decoded arguments, and declared result Message identify the
+ * handler contract. */
+export interface Handler<Name extends string, Args, Message> {
+  readonly [HandlerTypeId]: Readonly<{
+    name: Invariant<Name>
+    args: Invariant<Args>
+    message: Invariant<Message>
+  }>
 }
 
-/** Extracts the handler requirement carried by a Command definition. */
+/** Extracts the exact handler requirement carried by a Command definition.
+ * Prefer this to repeating the definition's decoded args and result Message in
+ * an explicit {@link Handler} annotation. */
 export type HandlerOf<
   Definition extends (...args: any) => { effect: Effect.Effect<any, any, any> },
 > =
   ReturnType<Definition>['effect'] extends Effect.Effect<any, any, infer R>
-    ? Extract<R, Handler<string>>
+    ? Extract<R, AnyHandler>
     : never
 
 type HandlerService<Args, Message> = Readonly<{
@@ -39,7 +50,7 @@ export interface ToLayer<Name extends string, Args, Message> {
       BuildRequirements
     >,
   ): Layer.Layer<
-    Handler<Name>,
+    Handler<Name, Args, Message>,
     E,
     Exclude<ExecuteRequirements | BuildRequirements, Scope.Scope>
   >
@@ -48,11 +59,14 @@ export interface ToLayer<Name extends string, Args, Message> {
 /** @internal Builds the service-backed execution and Layer constructor for a Command definition. */
 export const makeHandler = <Name extends string, Args, Message>(name: Name) => {
   const identity = Symbol(name)
-  const service = Context.Service<Handler<Name>, HandlerService<Args, Message>>(
-    `foldkit/Command/${name}`,
-  )
+  const service = Context.Service<
+    Handler<Name, Args, Message>,
+    HandlerService<Args, Message>
+  >(`foldkit/Command/${name}`)
 
-  const execute = (args: Args): Effect.Effect<Message, never, Handler<Name>> =>
+  const execute = (
+    args: Args,
+  ): Effect.Effect<Message, never, Handler<Name, Args, Message>> =>
     Effect.flatMap(service, handler => {
       if (handler.identity !== identity) {
         return Effect.die(
@@ -79,7 +93,7 @@ export const makeHandler = <Name extends string, Args, Message>(name: Name) => {
       BuildRequirements
     >,
   ): Layer.Layer<
-    Handler<Name>,
+    Handler<Name, Args, Message>,
     E,
     Exclude<ExecuteRequirements | BuildRequirements, Scope.Scope>
   > =>

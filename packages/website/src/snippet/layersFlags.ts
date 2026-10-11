@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option, Schema } from 'effect'
+import { Context, Effect, Layer, Option, Schema, pipe } from 'effect'
 import { Application, Runtime } from 'foldkit'
 
 class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(
@@ -33,6 +33,6 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-Runtime.run(Application.provide(application, ApiClientLayer), {
-  flags,
-})
+pipe(application, Application.provide(ApiClientLayer), runnable =>
+  Runtime.run(runnable, { flags }),
+)

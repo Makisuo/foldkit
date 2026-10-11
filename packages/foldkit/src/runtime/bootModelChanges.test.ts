@@ -101,7 +101,7 @@ const update = Update.make((model: Model, message: Message) =>
   }),
 )
 
-const h = __htmlBuilder<Message>()
+const h = __htmlBuilder<Message, Mount.AnyMountHandler>()
 
 const view = (model: Model) =>
   h.div(

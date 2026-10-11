@@ -24,7 +24,6 @@ const postsQuery = Query.define({
   name: 'Posts',
   data: PostList,
   error: Schema.String,
-
   handler: function* () {
     return () => fetchPosts
   },
@@ -57,7 +56,6 @@ const postQuery = Query.define({
   args: { postId: Schema.String },
   data: Post,
   error: Schema.String,
-
   handler: function* () {
     return ({ postId }) => fetchPost(postId)
   },
@@ -66,4 +64,4 @@ const postQuery = Query.define({
 export const EffectsLayer = postQuery.layer
 ```
 
-Include both `.layer` recipes in the feature's combined `EffectsLayer` when it uses both Queries, and provide that Layer with the application's other handlers. Query loading operations and result Messages use the same API.
+Include both `.layer` recipes in the owning module's combined `EffectsLayer` when it uses both Queries, and provide that Layer with the application's other handlers. Query loading operations and result Messages use the same API.

@@ -13,6 +13,7 @@ export {
   scrollIntoViewAfterPaint,
   scrollIntoViewIfNotVisible,
   showDialog,
+  streamFromAnimationFrame,
   streamFromEvent,
   streamFromEventFilterMap,
   streamFromEventFilterMapPreventDefault,

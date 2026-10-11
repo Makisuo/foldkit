@@ -99,11 +99,31 @@ export type KeyedQueryConfig<
   execute?: never
 }>
 
+type KeyedQueryFetchArgs<Fields extends SyncFields> = Readonly<{
+  args: KeyedArgs<Fields>
+  generation: number
+}>
+
+type KeyedQueryFetchHandler<
+  Name extends string,
+  A,
+  AI,
+  E,
+  EI,
+  Fields extends SyncFields,
+> = Command.Handler<
+  `Fetch${Name}`,
+  KeyedQueryFetchArgs<Fields>,
+  CompletedFetchOf<KeyedQueryMessage<A, AI, E, EI, Fields>>
+>
+
 /** Builds a KeyedQuery fetch handler Layer from an Effect that constructs a fetch. */
 export interface KeyedQueryToLayer<
   Name extends string,
   A,
+  AI,
   E,
+  EI,
   Fields extends SyncFields,
 > {
   <R, BuildE = never, BuildR = never>(
@@ -113,7 +133,7 @@ export interface KeyedQueryToLayer<
       BuildR
     >,
   ): Layer.Layer<
-    Command.Handler<`Fetch${Name}`>,
+    KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>,
     BuildE,
     Exclude<R | BuildR, Scope.Scope>
   >
@@ -134,7 +154,7 @@ export interface LayeredKeyedQuery<
   E,
   EI,
   Fields,
-  Command.Handler<`Fetch${Name}`>
+  KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>
 > {
   readonly Fetch: Command.LayeredCommandDefinitionWithArgs<
     `Fetch${Name}`,
@@ -144,7 +164,7 @@ export interface LayeredKeyedQuery<
     },
     CompletedFetchOf<KeyedQueryMessage<A, AI, E, EI, Fields>>
   >
-  readonly toLayer: KeyedQueryToLayer<Name, A, E, Fields>
+  readonly toLayer: KeyedQueryToLayer<Name, A, AI, E, EI, Fields>
 }
 
 const makeKeyedQueryMessage = <A, AI, E, EI, Fields extends SyncFields>(
@@ -492,7 +512,7 @@ export function defineKeyedQuery<
 ): LayeredKeyedQuery<Name, A, AI, E, EI, Fields> &
   Readonly<{
     layer?: Layer.Layer<
-      Command.Handler<`Fetch${Name}`>,
+      KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>,
       BuildError,
       Exclude<HandlerRequirements | BuildRequirements, Scope.Scope>
     >
@@ -522,7 +542,7 @@ export function defineKeyedQuery<
     )
   const query = makeKeyedQuery(config, Message, Fetch, run)
 
-  const toLayer: KeyedQueryToLayer<Name, A, E, Fields> = <
+  const toLayer: KeyedQueryToLayer<Name, A, AI, E, EI, Fields> = <
     HandlerR,
     BuildE = never,
     BuildR = never,

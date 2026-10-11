@@ -5,7 +5,12 @@ import type {
   ServicesOf as ManagedResourceServicesOf,
   ManagedResources,
 } from '../managedResource/index.js'
-import type { LayeredMountDefinition, MountAction } from '../mount/index.js'
+import type {
+  LayeredMountDefinition,
+  MountAction,
+  RequirementsOf as MountRequirementsOf,
+  PreciseMountRegistry,
+} from '../mount/index.js'
 import type { Ports } from '../port/index.js'
 import type { Subscriptions } from '../subscription/subscription.js'
 import type {
@@ -36,19 +41,23 @@ type BaseApplicationConfig<
   Resources = never,
   ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 > = Readonly<{
   Model: Schema.Codec<Model, any, unknown, unknown>
   update: (
     model: Model,
     message: Message,
   ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
-  view: (model: Model, h: HtmlBuilder<Message>) => Document
+  view: (
+    model: Model,
+    h: HtmlBuilder<Message, MountRequirementsOf<NoInfer<Mounts>>>,
+  ) => Document
   subscriptions?: Subscriptions<
     Model,
     Message,
     Resources | ManagedResourceServices
   >
-  mounts?: ReadonlyArray<LayeredMountDefinition>
+  mounts?: Mounts
   container: HTMLElement | null
   ports?: P
   crash?: CrashConfig<Model, Message>
@@ -68,12 +77,14 @@ export type RoutingApplicationConfigWithFlags<
   Resources = never,
   ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 > = BaseApplicationConfig<
   Model,
   Message,
   Resources,
   ManagedResourceServices,
-  P
+  P,
+  Mounts
 > &
   FlagsSchemaConfig<Flags> &
   Readonly<{
@@ -91,12 +102,14 @@ export type RoutingApplicationConfig<
   Resources = never,
   ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 > = BaseApplicationConfig<
   Model,
   Message,
   Resources,
   ManagedResourceServices,
-  P
+  P,
+  Mounts
 > &
   Readonly<{
     routing: RoutingConfig<Message>
@@ -113,12 +126,14 @@ export type ApplicationConfigWithFlags<
   Resources = never,
   ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 > = BaseApplicationConfig<
   Model,
   Message,
   Resources,
   ManagedResourceServices,
-  P
+  P,
+  Mounts
 > &
   FlagsSchemaConfig<Flags> &
   Readonly<{
@@ -134,12 +149,14 @@ export type ApplicationConfig<
   Resources = never,
   ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 > = BaseApplicationConfig<
   Model,
   Message,
   Resources,
   ManagedResourceServices,
-  P
+  P,
+  Mounts
 > &
   Readonly<{
     init: () => UpdateReturn<
@@ -178,22 +195,95 @@ export type RoutingApplicationInit<
       url: Url,
     ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
 
-type InferredApplicationConfig<Model, Message> = ApplicationConfig<
+type InferredApplicationConfig<
   Model,
   Message,
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+> = ApplicationConfig<Model, Message, any, any, any, Mounts>
+
+type InferredApplicationConfigWithFlags<
+  Model,
+  Message,
+  Flags,
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+> = ApplicationConfigWithFlags<Model, Message, Flags, any, any, any, Mounts>
+
+type InferredRoutingApplicationConfig<
+  Model,
+  Message,
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+> = RoutingApplicationConfig<Model, Message, any, any, any, Mounts>
+
+type InferredRoutingApplicationConfigWithFlags<
+  Model,
+  Message,
+  Flags,
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+> = RoutingApplicationConfigWithFlags<
+  Model,
+  Message,
+  Flags,
   any,
   any,
-  any
+  any,
+  Mounts
 >
 
-type InferredApplicationConfigWithFlags<Model, Message, Flags> =
-  ApplicationConfigWithFlags<Model, Message, Flags, any, any, any>
+type RoutingApplicationConfigWithFlagsInput<
+  ModelSchema extends Schema.Codec<any, any, any, any>,
+  FlagsSchema extends Schema.Codec<any, any, never, never>,
+  Update extends (model: ModelSchema['Type'], message: any) => any,
+  Mounts extends ReadonlyArray<LayeredMountDefinition>,
+> = Omit<
+  InferredRoutingApplicationConfigWithFlags<
+    ModelSchema['Type'],
+    UpdateMessage<Update>,
+    FlagsSchema['Type'],
+    Mounts
+  >,
+  'Model' | 'Flags' | 'update'
+> &
+  Readonly<{ Model: ModelSchema; Flags: FlagsSchema; update: Update }>
 
-type InferredRoutingApplicationConfig<Model, Message> =
-  RoutingApplicationConfig<Model, Message, any, any, any>
+type RoutingApplicationConfigInput<
+  ModelSchema extends Schema.Codec<any, any, any, any>,
+  Update extends (model: ModelSchema['Type'], message: any) => any,
+  Mounts extends ReadonlyArray<LayeredMountDefinition>,
+> = Omit<
+  InferredRoutingApplicationConfig<
+    ModelSchema['Type'],
+    UpdateMessage<Update>,
+    Mounts
+  >,
+  'Model' | 'update'
+> &
+  Readonly<{ Model: ModelSchema; update: Update }>
 
-type InferredRoutingApplicationConfigWithFlags<Model, Message, Flags> =
-  RoutingApplicationConfigWithFlags<Model, Message, Flags, any, any, any>
+type ApplicationConfigWithFlagsInput<
+  ModelSchema extends Schema.Codec<any, any, any, any>,
+  FlagsSchema extends Schema.Codec<any, any, never, never>,
+  Update extends (model: ModelSchema['Type'], message: any) => any,
+  Mounts extends ReadonlyArray<LayeredMountDefinition>,
+> = Omit<
+  InferredApplicationConfigWithFlags<
+    ModelSchema['Type'],
+    UpdateMessage<Update>,
+    FlagsSchema['Type'],
+    Mounts
+  >,
+  'Model' | 'Flags' | 'update'
+> &
+  Readonly<{ Model: ModelSchema; Flags: FlagsSchema; update: Update }>
+
+type ApplicationConfigInput<
+  ModelSchema extends Schema.Codec<any, any, any, any>,
+  Update extends (model: ModelSchema['Type'], message: any) => any,
+  Mounts extends ReadonlyArray<LayeredMountDefinition>,
+> = Omit<
+  InferredApplicationConfig<ModelSchema['Type'], UpdateMessage<Update>, Mounts>,
+  'Model' | 'update'
+> &
+  Readonly<{ Model: ModelSchema; update: Update }>
 
 type ExactConfigKeys<Config, Shape> = Readonly<{
   [Key in Exclude<keyof Config, keyof Shape>]: never
@@ -326,15 +416,18 @@ export function makeApplication<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
-  const Config extends Omit<
-    InferredRoutingApplicationConfigWithFlags<
-      ModelSchema['Type'],
-      UpdateMessage<Update>,
-      FlagsSchema['Type']
-    >,
-    'Model' | 'Flags' | 'update'
-  > &
-    Readonly<{ Model: ModelSchema; Flags: FlagsSchema; update: Update }>,
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+  const Config extends RoutingApplicationConfigWithFlagsInput<
+    ModelSchema,
+    FlagsSchema,
+    Update,
+    Mounts
+  > = RoutingApplicationConfigWithFlagsInput<
+    ModelSchema,
+    FlagsSchema,
+    Update,
+    Mounts
+  >,
 >(
   config: Config &
     Readonly<{
@@ -349,9 +442,12 @@ export function makeApplication<
       InferredRoutingApplicationConfigWithFlags<
         ModelSchema['Type'],
         UpdateMessage<Update>,
-        FlagsSchema['Type']
+        FlagsSchema['Type'],
+        Mounts
       >
     > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts> &
     SelfContainedConfig<Config, NoInfer<Update>>,
 ): MakeRuntimeReturn<
   ConfigPorts<Config>,
@@ -363,14 +459,12 @@ export function makeApplication<
 export function makeApplication<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
-  const Config extends Omit<
-    InferredRoutingApplicationConfig<
-      ModelSchema['Type'],
-      UpdateMessage<Update>
-    >,
-    'Model' | 'update'
-  > &
-    Readonly<{ Model: ModelSchema; update: Update }>,
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+  const Config extends RoutingApplicationConfigInput<
+    ModelSchema,
+    Update,
+    Mounts
+  > = RoutingApplicationConfigInput<ModelSchema, Update, Mounts>,
 >(
   config: Config &
     Readonly<{
@@ -383,9 +477,12 @@ export function makeApplication<
       Config,
       InferredRoutingApplicationConfig<
         ModelSchema['Type'],
-        UpdateMessage<Update>
+        UpdateMessage<Update>,
+        Mounts
       >
     > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts> &
     SelfContainedConfig<Config, NoInfer<Update>>,
 ): MakeRuntimeReturn<ConfigPorts<Config>, void, never, 'Application'>
 
@@ -393,15 +490,13 @@ export function makeApplication<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
-  const Config extends Omit<
-    InferredApplicationConfigWithFlags<
-      ModelSchema['Type'],
-      UpdateMessage<Update>,
-      FlagsSchema['Type']
-    >,
-    'Model' | 'Flags' | 'update'
-  > &
-    Readonly<{ Model: ModelSchema; Flags: FlagsSchema; update: Update }>,
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+  const Config extends ApplicationConfigWithFlagsInput<
+    ModelSchema,
+    FlagsSchema,
+    Update,
+    Mounts
+  > = ApplicationConfigWithFlagsInput<ModelSchema, FlagsSchema, Update, Mounts>,
 >(
   config: Config &
     Readonly<{
@@ -416,9 +511,12 @@ export function makeApplication<
       InferredApplicationConfigWithFlags<
         ModelSchema['Type'],
         UpdateMessage<Update>,
-        FlagsSchema['Type']
+        FlagsSchema['Type'],
+        Mounts
       >
     > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts> &
     SelfContainedConfig<Config, NoInfer<Update>>,
 ): MakeRuntimeReturn<
   ConfigPorts<Config>,
@@ -430,11 +528,9 @@ export function makeApplication<
 export function makeApplication<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
-  const Config extends Omit<
-    InferredApplicationConfig<ModelSchema['Type'], UpdateMessage<Update>>,
-    'Model' | 'update'
-  > &
-    Readonly<{ Model: ModelSchema; update: Update }>,
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+  const Config extends ApplicationConfigInput<ModelSchema, Update, Mounts> =
+    ApplicationConfigInput<ModelSchema, Update, Mounts>,
 >(
   config: Config &
     Readonly<{
@@ -445,8 +541,14 @@ export function makeApplication<
     }> &
     ExactConfigKeys<
       Config,
-      InferredApplicationConfig<ModelSchema['Type'], UpdateMessage<Update>>
+      InferredApplicationConfig<
+        ModelSchema['Type'],
+        UpdateMessage<Update>,
+        Mounts
+      >
     > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts> &
     SelfContainedConfig<Config, NoInfer<Update>>,
 ): MakeRuntimeReturn<ConfigPorts<Config>, void, never, 'Application'>
 
@@ -457,6 +559,7 @@ export function makeApplication<
   Resources extends never = never,
   ManagedResourceServices extends never = never,
   P extends Ports | undefined = undefined,
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 >(
   config: RoutingApplicationConfigWithFlags<
     Model,
@@ -464,8 +567,11 @@ export function makeApplication<
     Flags,
     Resources,
     ManagedResourceServices,
-    P
-  >,
+    P,
+    Mounts
+  > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts>,
 ): MakeRuntimeReturn<P, Flags, Resources, 'Application'>
 
 export function makeApplication<
@@ -474,14 +580,18 @@ export function makeApplication<
   Resources extends never = never,
   ManagedResourceServices extends never = never,
   P extends Ports | undefined = undefined,
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 >(
   config: RoutingApplicationConfig<
     Model,
     Message,
     Resources,
     ManagedResourceServices,
-    P
-  >,
+    P,
+    Mounts
+  > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts>,
 ): MakeRuntimeReturn<P, void, Resources, 'Application'>
 
 export function makeApplication<
@@ -491,6 +601,7 @@ export function makeApplication<
   Resources extends never = never,
   ManagedResourceServices extends never = never,
   P extends Ports | undefined = undefined,
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 >(
   config: ApplicationConfigWithFlags<
     Model,
@@ -498,8 +609,11 @@ export function makeApplication<
     Flags,
     Resources,
     ManagedResourceServices,
-    P
-  >,
+    P,
+    Mounts
+  > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts>,
 ): MakeRuntimeReturn<P, Flags, Resources, 'Application'>
 
 export function makeApplication<
@@ -508,14 +622,18 @@ export function makeApplication<
   Resources extends never = never,
   ManagedResourceServices extends never = never,
   P extends Ports | undefined = undefined,
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
 >(
   config: ApplicationConfig<
     Model,
     Message,
     Resources,
     ManagedResourceServices,
-    P
-  >,
+    P,
+    Mounts
+  > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts>,
 ): MakeRuntimeReturn<P, void, Resources, 'Application'>
 
 export function makeApplication<

@@ -12,7 +12,7 @@ import {
   Types,
   pipe,
 } from 'effect'
-import { Command, Route, Update } from 'foldkit'
+import { Command, type Mount, Route, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl, replaceUrl } from 'foldkit/navigation'
@@ -21,7 +21,6 @@ import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
-import * as UI from '@foldkit/ui'
 import { Button, Input, Listbox } from '@foldkit/ui'
 import { AnchorConfig } from '@foldkit/ui/listbox'
 
@@ -281,7 +280,7 @@ const LoadExternal = Command.define('LoadExternal', {
 })
 
 export const EffectsLayer = Layer.mergeAll(
-  UI.EffectsLayer,
+  Listbox.EffectsLayer,
   ReplaceFilters.layer,
   NavigateInternal.layer,
   LoadExternal.layer,
@@ -653,7 +652,7 @@ const periodLabel = (item: string): string =>
 const browseView = (
   model: Model,
   route: typeof AppRoute.Browse.Type,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Listbox.mounts>>,
 ): Html => {
   const fields = routeToBrowseFields(route)
   const results = filterAndSort(fields)
@@ -869,7 +868,10 @@ const routeTitle = (route: Model['route']): string =>
     Match.orElse(() => 'Not Found | Dinosaur Explorer'),
   )
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+export const view = (
+  model: Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
+): Document => {
   const routeContent = AppRoute.match(model.route, {
     Browse: route => browseView(model, route, h),
     NotFound: ({ path }) => notFoundView(path, h),
@@ -900,4 +902,4 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   return { title: routeTitle(model.route), body }
 }
 
-export const mounts = UI.mounts
+export const mounts = Listbox.mounts

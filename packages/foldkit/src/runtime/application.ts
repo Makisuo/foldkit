@@ -14,9 +14,11 @@ import {
   type LayeredMountDefinition,
   type MountAction,
   MountRegistrationTypeId,
+  type PreciseMountRegistry,
 } from '../mount/index.js'
 import type { Ports } from '../port/index.js'
 import type { Return as UpdateReturn } from '../update/index.js'
+import type { ValidHandlerContracts } from './handlerContracts.js'
 import type {
   ApplicationConfig,
   ApplicationConfigWithFlags,
@@ -30,34 +32,129 @@ import { type MakeRuntimeReturn, runtimeInternals } from './runtime.js'
 
 declare const ApplicationTypeId: unique symbol
 
-type InferredApplicationConfig<Model, Message> = ApplicationConfig<
+type InferredApplicationConfig<
   Model,
   Message,
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+> = ApplicationConfig<Model, Message, any, any, any, Mounts>
+
+type InferredApplicationConfigWithFlags<
+  Model,
+  Message,
+  Flags,
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+> = ApplicationConfigWithFlags<Model, Message, Flags, any, any, any, Mounts>
+
+type InferredRoutingApplicationConfig<
+  Model,
+  Message,
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+> = RoutingApplicationConfig<Model, Message, any, any, any, Mounts>
+
+type InferredRoutingApplicationConfigWithFlags<
+  Model,
+  Message,
+  Flags,
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+> = RoutingApplicationConfigWithFlags<
+  Model,
+  Message,
+  Flags,
   any,
   any,
-  any
+  any,
+  Mounts
 >
 
-type InferredApplicationConfigWithFlags<Model, Message, Flags> =
-  ApplicationConfigWithFlags<Model, Message, Flags, any, any, any>
-
-type InferredRoutingApplicationConfig<Model, Message> =
-  RoutingApplicationConfig<Model, Message, any, any, any>
-
-type InferredRoutingApplicationConfigWithFlags<Model, Message, Flags> =
-  RoutingApplicationConfigWithFlags<Model, Message, Flags, any, any, any>
-
-type InferredElementConfig<Model, Message> = ElementConfig<
+type InferredElementConfig<
   Model,
   Message,
-  any,
-  any,
-  any
-> &
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+> = ElementConfig<Model, Message, any, any, any, Mounts> &
   Readonly<{ Flags?: never; flags?: never }>
 
-type InferredElementConfigWithFlags<Model, Message, Flags> =
-  ElementConfigWithFlags<Model, Message, Flags, any, any, any>
+type InferredElementConfigWithFlags<
+  Model,
+  Message,
+  Flags,
+  Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+> = ElementConfigWithFlags<Model, Message, Flags, any, any, any, Mounts>
+
+type RoutingApplicationConfigWithFlagsInput<
+  ModelSchema extends Schema.Codec<any, any, any, any>,
+  FlagsSchema extends Schema.Codec<any, any, never, never>,
+  Update extends (model: ModelSchema['Type'], message: any) => any,
+  Mounts extends ReadonlyArray<LayeredMountDefinition>,
+> = Omit<
+  InferredRoutingApplicationConfigWithFlags<
+    ModelSchema['Type'],
+    UpdateMessage<Update>,
+    FlagsSchema['Type'],
+    Mounts
+  >,
+  'Model' | 'Flags' | 'update'
+>
+
+type RoutingApplicationConfigInput<
+  ModelSchema extends Schema.Codec<any, any, any, any>,
+  Update extends (model: ModelSchema['Type'], message: any) => any,
+  Mounts extends ReadonlyArray<LayeredMountDefinition>,
+> = Omit<
+  InferredRoutingApplicationConfig<
+    ModelSchema['Type'],
+    UpdateMessage<Update>,
+    Mounts
+  >,
+  'Model' | 'update'
+>
+
+type ApplicationConfigWithFlagsInput<
+  ModelSchema extends Schema.Codec<any, any, any, any>,
+  FlagsSchema extends Schema.Codec<any, any, never, never>,
+  Update extends (model: ModelSchema['Type'], message: any) => any,
+  Mounts extends ReadonlyArray<LayeredMountDefinition>,
+> = Omit<
+  InferredApplicationConfigWithFlags<
+    ModelSchema['Type'],
+    UpdateMessage<Update>,
+    FlagsSchema['Type'],
+    Mounts
+  >,
+  'Model' | 'Flags' | 'update'
+>
+
+type ApplicationConfigInput<
+  ModelSchema extends Schema.Codec<any, any, any, any>,
+  Update extends (model: ModelSchema['Type'], message: any) => any,
+  Mounts extends ReadonlyArray<LayeredMountDefinition>,
+> = Omit<
+  InferredApplicationConfig<ModelSchema['Type'], UpdateMessage<Update>, Mounts>,
+  'Model' | 'update'
+>
+
+type ElementConfigWithFlagsInput<
+  ModelSchema extends Schema.Codec<any, any, any, any>,
+  FlagsSchema extends Schema.Codec<any, any, never, never>,
+  Update extends (model: ModelSchema['Type'], message: any) => any,
+  Mounts extends ReadonlyArray<LayeredMountDefinition>,
+> = Omit<
+  InferredElementConfigWithFlags<
+    ModelSchema['Type'],
+    UpdateMessage<Update>,
+    FlagsSchema['Type'],
+    Mounts
+  >,
+  'Model' | 'Flags' | 'update'
+>
+
+type ElementConfigInput<
+  ModelSchema extends Schema.Codec<any, any, any, any>,
+  Update extends (model: ModelSchema['Type'], message: any) => any,
+  Mounts extends ReadonlyArray<LayeredMountDefinition>,
+> = Omit<
+  InferredElementConfig<ModelSchema['Type'], UpdateMessage<Update>, Mounts>,
+  'Model' | 'update'
+>
 
 type ExactConfigKeys<Config, Shape> = Readonly<{
   [Key in Exclude<keyof Config, keyof Shape>]: never
@@ -347,13 +444,17 @@ export function make<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
-  const Config extends Omit<
-    InferredRoutingApplicationConfigWithFlags<
-      ModelSchema['Type'],
-      UpdateMessage<Update>,
-      FlagsSchema['Type']
-    >,
-    'Model' | 'Flags' | 'update'
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+  const Config extends RoutingApplicationConfigWithFlagsInput<
+    ModelSchema,
+    FlagsSchema,
+    Update,
+    Mounts
+  > = RoutingApplicationConfigWithFlagsInput<
+    ModelSchema,
+    FlagsSchema,
+    Update,
+    Mounts
   >,
 >(
   config: Config &
@@ -367,9 +468,12 @@ export function make<
       InferredRoutingApplicationConfigWithFlags<
         ModelSchema['Type'],
         UpdateMessage<Update>,
-        FlagsSchema['Type']
+        FlagsSchema['Type'],
+        Mounts
       >
-    >,
+    > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts>,
 ): Application<
   ConfigPorts<Config>,
   FlagsSchema['Type'],
@@ -380,13 +484,12 @@ export function make<
 export function make<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
-  const Config extends Omit<
-    InferredRoutingApplicationConfig<
-      ModelSchema['Type'],
-      UpdateMessage<Update>
-    >,
-    'Model' | 'update'
-  >,
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+  const Config extends RoutingApplicationConfigInput<
+    ModelSchema,
+    Update,
+    Mounts
+  > = RoutingApplicationConfigInput<ModelSchema, Update, Mounts>,
 >(
   config: Config &
     Readonly<{
@@ -397,9 +500,12 @@ export function make<
       Config,
       InferredRoutingApplicationConfig<
         ModelSchema['Type'],
-        UpdateMessage<Update>
+        UpdateMessage<Update>,
+        Mounts
       >
-    >,
+    > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts>,
 ): Application<
   ConfigPorts<Config>,
   void,
@@ -411,14 +517,13 @@ export function make<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
-  const Config extends Omit<
-    InferredApplicationConfigWithFlags<
-      ModelSchema['Type'],
-      UpdateMessage<Update>,
-      FlagsSchema['Type']
-    >,
-    'Model' | 'Flags' | 'update'
-  >,
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+  const Config extends ApplicationConfigWithFlagsInput<
+    ModelSchema,
+    FlagsSchema,
+    Update,
+    Mounts
+  > = ApplicationConfigWithFlagsInput<ModelSchema, FlagsSchema, Update, Mounts>,
 >(
   config: Config &
     Readonly<{
@@ -431,9 +536,12 @@ export function make<
       InferredApplicationConfigWithFlags<
         ModelSchema['Type'],
         UpdateMessage<Update>,
-        FlagsSchema['Type']
+        FlagsSchema['Type'],
+        Mounts
       >
-    >,
+    > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts>,
 ): Application<
   ConfigPorts<Config>,
   FlagsSchema['Type'],
@@ -444,10 +552,9 @@ export function make<
 export function make<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
-  const Config extends Omit<
-    InferredApplicationConfig<ModelSchema['Type'], UpdateMessage<Update>>,
-    'Model' | 'update'
-  >,
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+  const Config extends ApplicationConfigInput<ModelSchema, Update, Mounts> =
+    ApplicationConfigInput<ModelSchema, Update, Mounts>,
 >(
   config: Config &
     Readonly<{
@@ -456,8 +563,14 @@ export function make<
     }> &
     ExactConfigKeys<
       Config,
-      InferredApplicationConfig<ModelSchema['Type'], UpdateMessage<Update>>
-    >,
+      InferredApplicationConfig<
+        ModelSchema['Type'],
+        UpdateMessage<Update>,
+        Mounts
+      >
+    > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts>,
 ): Application<
   ConfigPorts<Config>,
   void,
@@ -497,14 +610,13 @@ export function makeElement<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
-  const Config extends Omit<
-    InferredElementConfigWithFlags<
-      ModelSchema['Type'],
-      UpdateMessage<Update>,
-      FlagsSchema['Type']
-    >,
-    'Model' | 'Flags' | 'update'
-  >,
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+  const Config extends ElementConfigWithFlagsInput<
+    ModelSchema,
+    FlagsSchema,
+    Update,
+    Mounts
+  > = ElementConfigWithFlagsInput<ModelSchema, FlagsSchema, Update, Mounts>,
 >(
   config: Config &
     Readonly<{
@@ -517,9 +629,12 @@ export function makeElement<
       InferredElementConfigWithFlags<
         ModelSchema['Type'],
         UpdateMessage<Update>,
-        FlagsSchema['Type']
+        FlagsSchema['Type'],
+        Mounts
       >
-    >,
+    > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts>,
 ): Element<
   ConfigPorts<Config>,
   ConfigRequirements<Config, Update>,
@@ -529,10 +644,9 @@ export function makeElement<
 export function makeElement<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
-  const Config extends Omit<
-    InferredElementConfig<ModelSchema['Type'], UpdateMessage<Update>>,
-    'Model' | 'update'
-  >,
+  const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
+  const Config extends ElementConfigInput<ModelSchema, Update, Mounts> =
+    ElementConfigInput<ModelSchema, Update, Mounts>,
 >(
   config: Config &
     Readonly<{
@@ -541,8 +655,10 @@ export function makeElement<
     }> &
     ExactConfigKeys<
       Config,
-      InferredElementConfig<ModelSchema['Type'], UpdateMessage<Update>>
-    >,
+      InferredElementConfig<ModelSchema['Type'], UpdateMessage<Update>, Mounts>
+    > &
+    Readonly<{ mounts?: Mounts }> &
+    PreciseMountRegistry<Mounts>,
 ): Element<
   ConfigPorts<Config>,
   ConfigRequirements<Config, Update>,
@@ -589,8 +705,11 @@ export function makeElement(
  * disposal ordering. Call data-first or pass a Layer alone to use this
  * function in a pipe. */
 export const provide: {
-  <Provided, E, Needed>(
-    layer: Layer.Layer<Provided, E, Needed>,
+  <const LayerType extends Layer.Layer<never, any, any>>(
+    layer: LayerType &
+      ValidHandlerContracts<
+        Layer.Success<NoInfer<LayerType>> | Layer.Services<NoInfer<LayerType>>
+      >,
   ): <ApplicationProgram extends Readonly<{ ports: Ports | undefined }>>(
     application: ApplicationProgram,
   ) => ApplicationProgram extends PendingApplication<
@@ -601,19 +720,31 @@ export const provide: {
     infer ProvidedServices,
     infer Kind
   >
-    ? Program<
-        P,
-        Flags,
-        ResidualRequirements<
-          CurrentRequirements,
-          Provided,
-          Needed,
-          RuntimeServices
-        >,
-        RuntimeServices,
-        ProvidedServices | Provided,
-        Kind
-      >
+    ? ValidHandlerContracts<
+        | CurrentRequirements
+        | ProvidedServices
+        | Layer.Success<LayerType>
+        | Layer.Services<LayerType>
+      > extends Readonly<{ 'Conflicting Foldkit handler contracts': string }>
+      ? ValidHandlerContracts<
+          | CurrentRequirements
+          | ProvidedServices
+          | Layer.Success<LayerType>
+          | Layer.Services<LayerType>
+        >
+      : Program<
+          P,
+          Flags,
+          ResidualRequirements<
+            CurrentRequirements,
+            Layer.Success<LayerType>,
+            Layer.Services<LayerType>,
+            RuntimeServices
+          >,
+          RuntimeServices,
+          ProvidedServices | Layer.Success<LayerType>,
+          Kind
+        >
     : never
   <
     P extends Ports | undefined,
@@ -622,9 +753,7 @@ export const provide: {
     RuntimeServices,
     ProvidedServices,
     Kind extends 'Application' | 'Element',
-    Provided,
-    E,
-    Needed,
+    const LayerType extends Layer.Layer<never, any, any>,
   >(
     application: PendingApplication<
       P,
@@ -634,18 +763,24 @@ export const provide: {
       ProvidedServices,
       Kind
     >,
-    layer: Layer.Layer<Provided, E, Needed>,
+    layer: LayerType &
+      ValidHandlerContracts<
+        | NoInfer<CurrentRequirements>
+        | NoInfer<ProvidedServices>
+        | Layer.Success<NoInfer<LayerType>>
+        | Layer.Services<NoInfer<LayerType>>
+      >,
   ): Program<
     P,
     Flags,
     ResidualRequirements<
       CurrentRequirements,
-      Provided,
-      Needed,
+      Layer.Success<LayerType>,
+      Layer.Services<LayerType>,
       RuntimeServices
     >,
     RuntimeServices,
-    ProvidedServices | Provided,
+    ProvidedServices | Layer.Success<LayerType>,
     Kind
   >
 } = Function.dual(

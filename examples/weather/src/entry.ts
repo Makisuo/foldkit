@@ -1,4 +1,4 @@
-import { Layer } from 'effect'
+import { Layer, pipe } from 'effect'
 import { Application, Http, Runtime } from 'foldkit'
 
 import { EffectsLayer, Message, Model, init, update, view } from './main'
@@ -16,4 +16,4 @@ const application = Application.make({
   },
 })
 
-Runtime.run(Application.provide(application, AppLayer))
+pipe(application, Application.provide(AppLayer), Runtime.run)

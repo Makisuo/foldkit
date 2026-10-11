@@ -1,3 +1,4 @@
+import { pipe } from 'effect'
 import { Application, Runtime } from 'foldkit'
 
 import { AppLayer } from './layer'
@@ -7,7 +8,6 @@ import {
   Model,
   flags,
   init,
-  mounts,
   subscriptions,
   update,
   view,
@@ -20,11 +20,12 @@ const application = Application.make({
   update,
   view,
   subscriptions,
-  mounts,
   container: document.getElementById('root'),
   devTools: {
     Message,
   },
 })
 
-Runtime.run(Application.provide(application, AppLayer), { flags })
+pipe(application, Application.provide(AppLayer), runnable =>
+  Runtime.run(runnable, { flags }),
+)

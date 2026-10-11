@@ -123,6 +123,7 @@ const ObserveExampleUrlMessages = Mount.defineStream(
 export const mounts = [ObserveExampleUrlMessages]
 
 export const EffectsLayer = Layer.mergeAll(
+  Tabs.EffectsLayer,
   LoadExampleSources.layer,
   ObserveExampleUrlMessages.layer,
 )
@@ -375,7 +376,7 @@ const livePreviewDisclosureView = (
   meta: ExampleMeta,
   slug: string,
   maybeExampleUrl: Option.Option<string>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
 ): Html =>
   Disclosure.view(
     {
@@ -640,7 +641,7 @@ const availableExampleContentView = (
   slug: string,
   isNarrowViewport: boolean,
   renderSnippet: CodeBlock.RenderSnippet,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
 ): ReadonlyArray<Html> => [
   meta.livePreview === 'PlaygroundOnly'
     ? playgroundOnlyNotice(meta)
@@ -698,29 +699,33 @@ type ViewInputs = Readonly<{
  * renderer runs in the parent's boundary, so its Messages are wrapped for the
  * parent instead of being rejected by this page's `toParentMessage`.
  */
-export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { slug, isNarrowViewport, renderSnippet }, h): Html =>
-    Option.match(findBySlug(slug), {
-      onNone: () => h.div([], ['Example not found']),
-      onSome: meta =>
-        h.keyed('div')(
-          slug,
-          [],
-          [
-            headerView(meta),
-            ...(meta.livePreview === 'Unavailable'
-              ? [pausedExampleNotice(meta)]
-              : availableExampleContentView(
-                  model,
-                  meta,
-                  slug,
-                  isNarrowViewport,
-                  renderSnippet,
-                  h,
-                )),
-          ],
-        ),
-    }),
+export const view = Submodel.defineView<
+  Model,
+  Message,
+  ViewInputs,
+  Mount.RequirementsOf<typeof mounts>
+>((model, { slug, isNarrowViewport, renderSnippet }, h): Html =>
+  Option.match(findBySlug(slug), {
+    onNone: () => h.div([], ['Example not found']),
+    onSome: meta =>
+      h.keyed('div')(
+        slug,
+        [],
+        [
+          headerView(meta),
+          ...(meta.livePreview === 'Unavailable'
+            ? [pausedExampleNotice(meta)]
+            : availableExampleContentView(
+                model,
+                meta,
+                slug,
+                isNarrowViewport,
+                renderSnippet,
+                h,
+              )),
+        ],
+      ),
+  }),
 )
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = []

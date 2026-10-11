@@ -1,5 +1,6 @@
 import { Option, Schema } from 'effect'
 import { type Update } from 'foldkit'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
@@ -13,6 +14,7 @@ import {
   closedBaseModel,
   makeUpdate,
   makeView,
+  type mounts,
 } from './shared.js'
 
 // MODEL
@@ -112,6 +114,8 @@ export type ViewInputs<Item extends string> = BaseViewInputsCommon<Item> &
 
 const internalView = makeView<Model>({ ariaMultiSelectable: false })
 
+type MountRequirements = Mount.RequirementsOf<typeof mounts>
+
 type BundleUpdateReturn<Item extends string> = Update.ReturnWithOutMessage<
   Model,
   Message,
@@ -125,7 +129,12 @@ type BundleUpdateReturn<Item extends string> = Update.ReturnWithOutMessage<
  *  function parameter that takes the bundle rather than calling `create`
  *  itself. */
 export type Bundle<Item extends string = string> = Readonly<{
-  view: SubmodelView<Model, Message, ViewInputs<Item>>
+  view: SubmodelView<
+    Model,
+    Message,
+    ViewInputs<Item>,
+    Mount.RequirementsOf<typeof mounts>
+  >
   update: (model: Model, message: Message) => BundleUpdateReturn<Item>
   selectItem: (
     model: Model,
@@ -152,7 +161,7 @@ export const create = <Item extends string = string>(): Bundle<Item> => {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const typedUpdate = update as (model: Model, message: Message) => UpdateReturn
   const arrayBasedView = internalView<Item>()
-  const view = defineView<Model, Message, ViewInputs<Item>>(
+  const view = defineView<Model, Message, ViewInputs<Item>, MountRequirements>(
     (model, { maybeSelectedValue, ...baseInputs }, h) =>
       arrayBasedView(
         model,

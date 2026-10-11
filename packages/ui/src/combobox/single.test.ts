@@ -1,6 +1,7 @@
 import { Array, Effect, Option } from 'effect'
 import { Scene, Story } from 'foldkit'
 import { type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
@@ -23,12 +24,15 @@ import {
   ScrollComboboxItemIntoView,
   UnlockComboboxScroll,
   inputId,
+  mounts,
 } from './shared.js'
 import { create, init, update } from './single.js'
 import type { Model, ViewInputs } from './single.js'
 
 const TestCombobox = create<string>()
 const view = TestCombobox.view
+
+type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
 
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorCombobox,
@@ -1303,7 +1307,7 @@ describe('Combobox', () => {
           'items' | 'itemToValue' | 'itemToDisplayText'
         > = {},
       ) =>
-      (model: Model, h: HtmlBuilder<Message>) =>
+      (model: Model, h: TestHtmlBuilder) =>
         view(
           model,
           {
@@ -1325,7 +1329,7 @@ describe('Combobox', () => {
           'items' | 'itemToValue' | 'itemToDisplayText'
         > = {},
       ) =>
-      (model: Model, h: HtmlBuilder<Message>) =>
+      (model: Model, h: TestHtmlBuilder) =>
         view(
           model,
           {
@@ -1557,7 +1561,7 @@ describe('Combobox', () => {
     it('keeps the modal backdrop available after filtering removes every item', () => {
       const input = Scene.selector('#test-input')
       const backdrop = Scene.selector('[key="test-backdrop"]')
-      const filteredItemsView = (model: Model, h: HtmlBuilder<Message>) =>
+      const filteredItemsView = (model: Model, h: TestHtmlBuilder) =>
         view(
           model,
           {

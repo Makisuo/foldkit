@@ -24,6 +24,36 @@ import * as Query from './index.js'
 const Note = Schema.Struct({ id: Schema.String, body: Schema.String })
 type Note = typeof Note.Type
 
+type CompletedFetch<Data, Error> = Readonly<{
+  _tag: 'CompletedFetch'
+  generation: number
+  result: Result.Result<Data, Error>
+}>
+
+type QueryFetchHandler<Name extends string, Data, Error> = Command.Handler<
+  `Fetch${Name}`,
+  Readonly<{ generation: number }>,
+  CompletedFetch<Data, Error>
+>
+
+type KeyedCompletedFetch<Args, Data, Error> = Readonly<{
+  _tag: 'CompletedFetch'
+  args: Args
+  generation: number
+  result: Result.Result<Data, Error>
+}>
+
+type KeyedQueryFetchHandler<
+  Name extends string,
+  Args,
+  Data,
+  Error,
+> = Command.Handler<
+  `Fetch${Name}`,
+  Readonly<{ args: Args; generation: number }>,
+  KeyedCompletedFetch<Args, Data, Error>
+>
+
 const notes = Query.define({
   name: 'Notes',
   data: Schema.Array(Note),
@@ -908,13 +938,20 @@ describe('Canonical Query handler construction', () => {
   it('infers fetch arguments and provider requirements from the declared Schemas', () => {
     expectTypeOf(canonicalNotes.layer).toEqualTypeOf<
       Layer.Layer<
-        Command.Handler<'FetchCanonicalNotes'>,
+        QueryFetchHandler<'CanonicalNotes', ReadonlyArray<Note>, string>,
         never,
         QueryTestService
       >
     >()
     expectTypeOf(canonicalNote.layer).toEqualTypeOf<
-      Layer.Layer<Command.Handler<'FetchCanonicalNote'>>
+      Layer.Layer<
+        KeyedQueryFetchHandler<
+          'CanonicalNote',
+          Readonly<{ noteId: string }>,
+          Note,
+          string
+        >
+      >
     >()
     expectTypeOf(canonicalNote.run)
       .parameter(0)
@@ -923,12 +960,21 @@ describe('Canonical Query handler construction', () => {
       Effect.Effect<
         AsyncData.AsyncData<ReadonlyArray<Note>, string>,
         never,
-        Command.Handler<'FetchCanonicalNotes'>
+        QueryFetchHandler<'CanonicalNotes', ReadonlyArray<Note>, string>
       >
     >()
     expectTypeOf(exactInference.layer).toEqualTypeOf<
       Layer.Layer<
-        Command.Handler<'FetchExactInference'>,
+        KeyedQueryFetchHandler<
+          'ExactInference',
+          Readonly<{
+            count: number
+            maybeCount: Option.Option<number>
+            label?: string | undefined
+          }>,
+          Option.Option<number>,
+          Option.Option<number>
+        >,
         QueryBuildFailure,
         QueryTestService | QueryHandlerTestService
       >
@@ -1046,7 +1092,14 @@ describe('Canonical Query handler construction', () => {
       .parameter(0)
       .toEqualTypeOf<Readonly<{ id: string }>>()
     expectTypeOf(generic.layer).toEqualTypeOf<
-      Layer.Layer<Command.Handler<'FetchGenericStrings'>>
+      Layer.Layer<
+        KeyedQueryFetchHandler<
+          'GenericStrings',
+          Readonly<{ id: string }>,
+          string,
+          never
+        >
+      >
     >()
   })
 
@@ -1070,10 +1123,21 @@ describe('Canonical Query handler construction', () => {
     })
 
     expectTypeOf(failed.layer).toEqualTypeOf<
-      Layer.Layer<Command.Handler<'FetchFailedCanonicalNotes'>, string>
+      Layer.Layer<
+        QueryFetchHandler<'FailedCanonicalNotes', ReadonlyArray<Note>, string>,
+        string
+      >
     >()
     expectTypeOf(failedKeyed.layer).toEqualTypeOf<
-      Layer.Layer<Command.Handler<'FetchFailedCanonicalNote'>, string>
+      Layer.Layer<
+        KeyedQueryFetchHandler<
+          'FailedCanonicalNote',
+          Readonly<{ noteId: string }>,
+          Note,
+          string
+        >,
+        string
+      >
     >()
   })
 
@@ -1308,7 +1372,7 @@ describe('Query handler requirements', () => {
       Effect.Effect<
         AsyncData.AsyncData<ReadonlyArray<Note>, string>,
         never,
-        Command.Handler<'FetchServedNotes'>
+        QueryFetchHandler<'ServedNotes', ReadonlyArray<Note>, string>
       >
     >()
   })
@@ -1324,7 +1388,7 @@ describe('Query handler requirements', () => {
       Update.Return<
         ServedModel,
         ServedMessage,
-        Command.Handler<'FetchServedNotes'>
+        QueryFetchHandler<'ServedNotes', ReadonlyArray<Note>, string>
       >
     >()
 
@@ -1349,7 +1413,7 @@ describe('Query handler requirements', () => {
       Update.Step<
         ParentModel,
         ParentMessage,
-        Command.Handler<'FetchServedNotes'>
+        QueryFetchHandler<'ServedNotes', ReadonlyArray<Note>, string>
       >
     >()
   })
@@ -1412,14 +1476,24 @@ describe('Query types', () => {
         (typeof noteById.Model)['Type'],
         (typeof noteById.Message)['Type'],
         { readonly noteId: string },
-        Command.Handler<'FetchNote'>
+        KeyedQueryFetchHandler<
+          'Note',
+          Readonly<{ noteId: string }>,
+          Note,
+          string
+        >
       >
     >()
     expectTypeOf(noteById.run).returns.toEqualTypeOf<
       Effect.Effect<
         AsyncData.AsyncData<Note, string>,
         never,
-        Command.Handler<'FetchNote'>
+        KeyedQueryFetchHandler<
+          'Note',
+          Readonly<{ noteId: string }>,
+          Note,
+          string
+        >
       >
     >()
   })
@@ -1480,7 +1554,12 @@ describe('Query types', () => {
         KeyedParent,
         KeyedParentMessage,
         { readonly noteId: string },
-        Command.Handler<'FetchNote'>
+        KeyedQueryFetchHandler<
+          'Note',
+          Readonly<{ noteId: string }>,
+          Note,
+          string
+        >
       >
     >()
   })

@@ -33,7 +33,7 @@ import type {
 } from '../html/index.js'
 import type { Entry as ManagedResourceEntry } from '../managedResource/index.js'
 import { MountTracker } from '../mount/index.js'
-import type { MountDefinition } from '../mount/index.js'
+import type { AnyMountHandler, MountDefinition } from '../mount/index.js'
 import { Dispatch } from '../runtime/dispatch.js'
 import {
   type Subscription as RuntimeSubscription,
@@ -328,7 +328,10 @@ type InternalSceneSimulation<
       message: Message,
     ) => SimulationUpdateReturn<Model, OutMessage>
     resolvers: ReadonlyArray<ResolverEntry>
-    viewFn: (model: Model, h: HtmlBuilder<Message>) => Html | Document
+    viewFn: (
+      model: Model,
+      h: HtmlBuilder<Message, AnyMountHandler>,
+    ) => Html | Document
     capturingDispatch: CapturingDispatch
     scope: Option.Option<Locator>
     mountSlots: ReadonlyArray<MountSlotState>
@@ -559,7 +562,10 @@ const createCapturingDispatch = (): CapturingDispatch => {
 // RENDERING
 
 const renderView = <Model, Message>(
-  viewFn: (model: Model, h: HtmlBuilder<Message>) => Html | Document,
+  viewFn: (
+    model: Model,
+    h: HtmlBuilder<Message, AnyMountHandler>,
+  ) => Html | Document,
   model: Model,
   dispatch: DispatchService,
 ): VNode => {
@@ -573,7 +579,7 @@ const renderView = <Model, Message>(
   setHtmlRuntime(dispatch.dispatchSync, sceneContext)
   let result: Html | Document
   try {
-    result = viewFn(model, htmlBuilderFor<Message>())
+    result = viewFn(model, htmlBuilderFor<Message, AnyMountHandler>())
   } finally {
     clearHtmlRuntime()
   }
@@ -3143,12 +3149,12 @@ export const withViewInputs =
     view: (
       model: Model,
       viewInputs: ViewInputs,
-      h: HtmlBuilder<Message>,
+      h: HtmlBuilder<Message, AnyMountHandler>,
     ) => Html,
     defaults: NoInfer<ViewInputs>,
   ) =>
   (overrides?: Omit<Partial<NoInfer<ViewInputs>>, 'toView'>) =>
-  (model: Model, h: HtmlBuilder<Message>): Html =>
+  (model: Model, h: HtmlBuilder<Message, AnyMountHandler>): Html =>
     view(model, { ...defaults, ...overrides }, h)
 
 // SCENE
@@ -3178,7 +3184,10 @@ export const scene: {
         commands?: ReadonlyArray<AnyCommand>
         outMessage?: OutMessage
       }>
-      view: (model: Model, h: HtmlBuilder<Message>) => Html | Document
+      view: (
+        model: Model,
+        h: HtmlBuilder<Message, AnyMountHandler>,
+      ) => Html | Document
       subscriptions?: Subscriptions
     }>,
     ...steps: ReadonlyArray<
@@ -3206,7 +3215,10 @@ export const scene: {
         commands?: ReadonlyArray<AnyCommand>
         outMessage?: never
       }>
-      view: (model: Model, h: HtmlBuilder<Message>) => Html | Document
+      view: (
+        model: Model,
+        h: HtmlBuilder<Message, AnyMountHandler>,
+      ) => Html | Document
       subscriptions?: Subscriptions
     }>,
     ...steps: ReadonlyArray<
@@ -3229,7 +3241,10 @@ export const scene: {
       model: Model,
       message: Message,
     ) => SimulationUpdateReturn<Model, OutMessage>
-    view: (model: Model, h: HtmlBuilder<Message>) => Html | Document
+    view: (
+      model: Model,
+      h: HtmlBuilder<Message, AnyMountHandler>,
+    ) => Html | Document
     subscriptions?: Subscriptions
   }>,
   ...steps: ReadonlyArray<SceneStep<Model, Message, OutMessage, Subscriptions>>

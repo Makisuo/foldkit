@@ -77,7 +77,7 @@ const update = Update.make((model: Model, message: Message) =>
 )
 
 expectTypeOf<Update.RequirementsOf<typeof update>>().toEqualTypeOf<
-  Command.Handler<'ReadValue'>
+  Command.HandlerOf<typeof ReadValue>
 >()
 
 const documentView = (model: Model, h: HtmlBuilder<Message>) => ({

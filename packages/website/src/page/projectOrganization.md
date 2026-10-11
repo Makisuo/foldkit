@@ -56,7 +56,7 @@ Handler Layers and runtime registrations are parallel graphs with different jobs
 
 `Application.make` receives the completed registration graph inside `makeApplication`. `entry.ts` imports that factory and `AppLayer`, resolves the container, then starts the provided application. It does not import feature Commands, Subscription handlers, Mount handlers, or ManagedResource handlers.
 
-The same propagation applies to UI component bundles. A feature using the standard UI set merges `UI.EffectsLayer` into its effect bundle and adds `UI.mounts` to its registration bundle. A feature using a selective component set composes those components' `EffectsLayer` and `mounts`. Instance factories such as Slider and Toast return their own effect and Subscription bundles; the feature that creates an instance also owns those returned registrations.
+The same propagation applies to UI component bundles. Each Submodel composes the `EffectsLayer` exports of the components it uses and collects their `mounts` exports when present. Instance factories such as Slider and Toast return their own effect and Subscription bundles; the Submodel that creates an instance also owns those returned registrations.
 
 When a parent update needs an explicit requirement union, derive each child branch from `Update.RequirementsOf<typeof Child.update>` and include other Command-producing helpers. Do not derive it from `Layer.Success<typeof Child.EffectsLayer>`: a feature effect bundle may also implement Subscriptions, Mounts, or ManagedResources that the update never returns.
 

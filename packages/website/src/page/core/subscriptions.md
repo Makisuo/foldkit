@@ -65,9 +65,9 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 
 `modelToDependencies` extracts the values that control the entry. The `handler` generator constructs the Stream factory, and `subscriptions.gameClockTicks.layer` supplies it to the application. Foldkit compares the extracted record structurally by default, so unrelated Model updates do not restart the timer.
 
-The declared Message Schemas constrain the Stream returned by the handler and describe its output contract to runtime tooling.
+The declared Message Schemas constrain the Stream returned by both the attached handler and an external `toLayer` implementation. Emitting an undeclared Message is a type error. Scene uses these Schemas to validate `Subscription.emit(entry, message)` against the registered source, including its Message mapping through parents. An empty declaration requires a `Stream<never>` for work that emits no Messages.
 
-Each entry, such as `subscriptions.gameClockTicks`, is an individual definition. Its record key identifies the running Subscription, while its handler name identifies the Layer requirement. An entry with `handler` exposes `.layer`; `Application.provide` supplies that Layer. `Subscription.lift` and `Subscription.aggregate` preserve the definition, attached recipe, handler identity, and Model-driven restart behavior.
+Each entry, such as `subscriptions.gameClockTicks`, is an individual definition. Its record key identifies the runtime registration, while its handler name identifies the Layer requirement that assembly must satisfy. Several lifted registrations can share one definition and handler Layer while retaining separate Stream scopes. Naming also gives tools a declared identity to display; Subscription lifecycle events in DevTools are follow-up work. An entry with `handler` exposes `.layer`; `Application.provide` supplies that Layer. `Subscription.lift` and `Subscription.aggregate` preserve the definition, attached recipe, handler identity, and Model-driven restart behavior.
 
 The Runtime runs the attached handler generator once while building the application Layer and obtains a `dependencies => Stream` function. Return that function directly when construction needs no services. The constructor must not capture the current dependency record; Foldkit passes that record when starting each Stream. A dependency change restarts the Stream scope without reconstructing the handler or its provider. Scoped resources owned by the application Layer release when the runtime stops.
 
@@ -75,7 +75,11 @@ Omit `handler` for a Subscription contract whose Stream belongs to an external h
 
 In a whole-application execution test, retain that real Stream handler and replace its upstream capabilities. A fake clock, event source, RPC transport, or browser service can make emissions deterministic while the real Subscription still transforms them and Foldkit still applies its Model-driven start, restart, and stop behavior.
 
-Distinct Subscription definitions within one application need distinct handler names. The same definition can be lifted into multiple registration keys and share one handler Layer. `Application.make` rejects duplicate names from different definitions.
+Distinct Subscription definitions within one application need distinct handler names. The same definition can be lifted into multiple registration keys and share one handler Layer. `Application.make` rejects duplicate registered names from different definitions.
+
+A Subscription handler requirement contains its name, decoded dependency record, and declared Message union. `Application.provide` rejects a same-named Layer with a different dependency or Message contract, including Layers combined with `Layer.mergeAll` or supplied through separate calls. Use `Subscription.HandlerOf<typeof subscriptions.gameClockTicks>` for an explicit requirement; the expanded form is `Subscription.Handler<Name, Dependencies, DeclaredMessage>`, with all three arguments required.
+
+Two definitions with the same name and identical protocol have the same structural type. If a Layer from one is supplied for the other, Foldkit rejects it when the Subscription starts because their private definition identities differ. An external implementation should use the registered entry's `toLayer`.
 
 When `isAutoCounting` changes to `true`, the new Stream starts ticking. When it changes back to `false`, the active scope closes and the timer stops.
 
@@ -95,7 +99,7 @@ Unlike a Command, a Subscription may emit many Messages or maintain scoped work 
 
 ## Animation Frames
 
-`Subscription.animationFrameStream` is a Stream tied to the browser's paint clock. It emits the inter-frame delta in milliseconds on each `requestAnimationFrame` tick. The Stream is cold: every subscriber owns its animation loop, and closing that subscriber's scope cancels the pending frame request.
+`Dom.streamFromAnimationFrame()` returns a Stream tied to the browser's paint clock. It emits the inter-frame delta in milliseconds on each `requestAnimationFrame` tick. The Stream is cold: every subscriber owns its animation loop, and closing that subscriber's scope cancels the pending frame request. The browser source belongs to `Dom`; the named Subscription controls its activation and maps elapsed time to Messages.
 
 Define a named entry with the dependencies and Messages your feature needs, then map the frame deltas in its handler. The example uses an `isActive` dependency so the handler can return `Stream.empty` while the animation is paused. Foldkit restarts the Subscription when that dependency changes:
 
@@ -103,7 +107,7 @@ Define a named entry with the dependencies and Messages your feature needs, then
 
 Use the delta to make motion independent of refresh rate. Convert the milliseconds to seconds before multiplying a per-second velocity, so the simulation behaves consistently at 60Hz, 120Hz, and after a background tab regains focus.
 
-Use `Stream.tick` for discrete wall-clock steps that should occur every N milliseconds. It emits once when its scope opens, so add `Stream.drop(1)` when the first step should wait for the interval to elapse. `Subscription.animationFrameStream` follows the display; `Stream.tick` follows elapsed time. The [canvas-art example](/example-apps/canvas-art) uses animation frames for per-frame physics, while the [snake example](/example-apps/snake) uses `Stream.tick` for game cadence.
+Use `Stream.tick` for discrete wall-clock steps that should occur every N milliseconds. It emits once when its scope opens, so add `Stream.drop(1)` when the first step should wait for the interval to elapse. `Dom.streamFromAnimationFrame()` follows the display; `Stream.tick` follows elapsed time. The [canvas-art example](/example-apps/canvas-art) uses animation frames for per-frame physics, while the [snake example](/example-apps/snake) uses `Stream.tick` for game cadence.
 
 ## Streams Without Local Model Dependencies
 

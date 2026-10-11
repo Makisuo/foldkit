@@ -2,9 +2,22 @@ import { Context, Effect, Layer, type Scope, Stream } from 'effect'
 
 declare const HandlerTypeId: unique symbol
 
+/** @internal The capability shared by all Layer-backed Mount handlers. */
+export interface AnyHandler {
+  readonly [HandlerTypeId]: Readonly<{ name: string }>
+}
+
 /** The service required by a Mount whose implementation is supplied by a Layer. */
-export interface Handler<Name extends string> {
-  readonly [HandlerTypeId]: Name
+export interface Handler<
+  Name extends string,
+  Input,
+  ResultMessage,
+> extends AnyHandler {
+  readonly [HandlerTypeId]: Readonly<{
+    name: Name
+    input: (input: Input) => Input
+    result: (result: ResultMessage) => ResultMessage
+  }>
 }
 
 type EffectHandler<Input, Message, R> = (
@@ -44,7 +57,7 @@ export interface ToEffectLayer<Name extends string, Input, Message> {
       BuildRequirements
     >,
   ): Layer.Layer<
-    Handler<Name>,
+    Handler<Name, Input, Message>,
     E,
     Exclude<ExecuteRequirements | BuildRequirements, Scope.Scope>
   >
@@ -67,7 +80,7 @@ export interface ToStreamLayer<Name extends string, Input, Message> {
       BuildRequirements
     >,
   ): Layer.Layer<
-    Handler<Name>,
+    Handler<Name, Input, Message>,
     E,
     Exclude<StreamRequirements | BuildRequirements, Scope.Scope>
   >
@@ -79,13 +92,17 @@ export const makeEffectHandler = <Name extends string, Input, Message>(
 ) => {
   const identity = Symbol(name)
   const service = Context.Service<
-    Handler<Name>,
+    Handler<Name, Input, Message>,
     EffectHandlerService<Input, Message>
   >(`foldkit/Mount/${name}`)
 
   const execute = (
     input: Input,
-  ): Effect.Effect<Message, never, Handler<Name> | Scope.Scope> =>
+  ): Effect.Effect<
+    Message,
+    never,
+    Handler<Name, Input, Message> | Scope.Scope
+  > =>
     Effect.flatMap(service, handler => {
       if (handler.identity !== identity) {
         return Effect.die(
@@ -112,7 +129,7 @@ export const makeEffectHandler = <Name extends string, Input, Message>(
       BuildRequirements
     >,
   ): Layer.Layer<
-    Handler<Name>,
+    Handler<Name, Input, Message>,
     E,
     Exclude<ExecuteRequirements | BuildRequirements, Scope.Scope>
   > =>
@@ -136,13 +153,13 @@ export const makeStreamHandler = <Name extends string, Input, Message>(
 ) => {
   const identity = Symbol(name)
   const service = Context.Service<
-    Handler<Name>,
+    Handler<Name, Input, Message>,
     StreamHandlerService<Input, Message>
   >(`foldkit/Mount/${name}`)
 
   const execute = (
     input: Input,
-  ): Stream.Stream<Message, never, Handler<Name>> =>
+  ): Stream.Stream<Message, never, Handler<Name, Input, Message>> =>
     Stream.unwrap(
       Effect.map(service, handler => {
         if (handler.identity !== identity) {
@@ -172,7 +189,7 @@ export const makeStreamHandler = <Name extends string, Input, Message>(
       BuildRequirements
     >,
   ): Layer.Layer<
-    Handler<Name>,
+    Handler<Name, Input, Message>,
     E,
     Exclude<StreamRequirements | BuildRequirements, Scope.Scope>
   > =>

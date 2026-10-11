@@ -1,12 +1,24 @@
 import { Option } from 'effect'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 
 import { Combobox, Dialog } from '@foldkit/ui'
 
 import { Message as UiMessage } from '../message'
 import type { City, UiModel } from '../model'
 import { CityCombobox, comboboxInputs } from './combobox'
+
+type MountRequirements = Mount.RequirementsOf<
+  typeof Combobox.mounts | typeof Dialog.mounts
+>
+
+const defineViewWithComponentMountRequirements = Submodel.defineView<
+  UiModel,
+  UiMessage,
+  void,
+  MountRequirements
+>
 
 const triggerClassName =
   'px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -58,21 +70,21 @@ const OVERLAY_COMBOBOX_ANCHOR = {
 
 // PANEL CONTENT
 
-const trigger = (
+const trigger = <AllowedMountRequirements>(
   label: string,
   message: UiMessage,
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
 ): Html =>
   h.div(
     [h.Class(triggerRowClassName)],
     [h.button([h.Class(triggerClassName), h.OnClick(message)], [label])],
   )
 
-const confirmContent = (
+const confirmContent = <AllowedMountRequirements>(
   closeButton: Dialog.RenderInfo['closeButton'],
   title: Dialog.RenderInfo['title'],
   description: Dialog.RenderInfo['description'],
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
 ): Html =>
   h.div(
     [],
@@ -105,7 +117,7 @@ const editFiltersContent = (
   description: Dialog.RenderInfo['description'],
   comboboxModel: Combobox.Model,
   maybeSelectedCity: Option.Option<City>,
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder<UiMessage, MountRequirements>,
 ): ReadonlyArray<Html> => [
   h.h2([...title, h.Class(titleClassName)], ['Edit filters']),
   h.p(
@@ -135,11 +147,11 @@ const editFiltersContent = (
   }),
 ]
 
-const projectSettingsContent = (
+const projectSettingsContent = <AllowedMountRequirements>(
   closeButton: Dialog.RenderInfo['closeButton'],
   title: Dialog.RenderInfo['title'],
   description: Dialog.RenderInfo['description'],
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
 ): ReadonlyArray<Html> => [
   h.h2([...title, h.Class(titleClassName)], ['Project settings']),
   h.p(
@@ -163,11 +175,11 @@ const projectSettingsContent = (
   ),
 ]
 
-const deleteProjectContent = (
+const deleteProjectContent = <AllowedMountRequirements>(
   closeButton: Dialog.RenderInfo['closeButton'],
   title: Dialog.RenderInfo['title'],
   description: Dialog.RenderInfo['description'],
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
 ): ReadonlyArray<Html> => [
   h.h2([...title, h.Class(titleClassName)], ['Delete project?']),
   h.p(
@@ -192,7 +204,7 @@ const dialogWithPanel = (
   backdropClassName: string,
   panelClassNameValue: string,
   content: () => ReadonlyArray<Html>,
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder<UiMessage, MountRequirements>,
 ): Html =>
   h.dialog(
     [...dialog, h.Class(dialogClassName)],
@@ -206,7 +218,7 @@ const dialogWithPanel = (
 
 const basicDemo = (
   dialogModel: Dialog.Model,
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder<UiMessage, MountRequirements>,
 ): Html => {
   const basicDialogView = (render: Dialog.RenderInfo): Html =>
     dialogWithPanel(
@@ -233,7 +245,7 @@ const basicDemo = (
 
 const animatedDemo = (
   dialogModel: Dialog.Model,
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder<UiMessage, MountRequirements>,
 ): Html => {
   const animatedDialogView = (render: Dialog.RenderInfo): Html =>
     dialogWithPanel(
@@ -263,7 +275,7 @@ const overlayDemo = (
   dialogModel: Dialog.Model,
   comboboxModel: Combobox.Model,
   maybeSelectedCity: Option.Option<City>,
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder<UiMessage, MountRequirements>,
 ): Html => {
   const overlayDialogView = (render: Dialog.RenderInfo): Html =>
     dialogWithPanel(
@@ -303,7 +315,7 @@ const overlayDemo = (
 const nestedDemo = (
   parentDialogModel: Dialog.Model,
   childDialogModel: Dialog.Model,
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder<UiMessage, MountRequirements>,
 ): Html => {
   const settingsDialogView = (render: Dialog.RenderInfo): Html =>
     dialogWithPanel(
@@ -371,7 +383,7 @@ const nestedDemo = (
 
 // VIEW
 
-export const view = Submodel.defineView<UiModel, UiMessage>(
+export const view = defineViewWithComponentMountRequirements(
   (model, h): Html => {
     return h.div(
       [],

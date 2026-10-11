@@ -5,6 +5,7 @@ export {
   update,
   ValidateEmailAsync,
   EffectsLayer,
+  mounts,
   hasErrors,
   isComplete,
   revealErrors,

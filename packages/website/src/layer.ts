@@ -21,6 +21,16 @@ export const EffectsLayer = Layer.mergeAll(
   Subscriptions.EffectsLayer,
 )
 
+export const mounts = [
+  ...Main.mounts,
+  ...Ui.mounts,
+  ...Search.mounts,
+  ...Home.mounts,
+  ...Playground.mounts,
+  ...Example.mounts,
+  ...SnippetDisclosure.mounts,
+]
+
 const ServicesLayer = Layer.mergeAll(
   LocalStorageLayer,
   SessionStorageLayer,

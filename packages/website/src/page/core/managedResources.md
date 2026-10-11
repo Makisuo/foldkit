@@ -16,7 +16,11 @@ The Runtime runs the attached handler generator once while building the applicat
 
 Omit `handler` when an external host owns the lifecycle implementation. That entry has no `.layer`; the host supplies the implementation with `entry.toLayer`. The method also constructs an alternative to an attached handler. `toLayer` accepts the implementation Effect constructor, and both `acquire` and `release` are required in either constructor.
 
-Distinct ManagedResource definitions within one application need distinct handler names. A lifted use of the same definition can share its handler Layer. `Application.make` rejects duplicate names from different definitions.
+Distinct ManagedResource definitions within one application need distinct handler names. A lifted use of the same definition can share its handler Layer. `Application.make` rejects duplicate registered names from different definitions.
+
+A ManagedResource handler requirement contains its name, decoded acquire params, and resource value type. `Application.provide` rejects a same-named Layer with a different params or value contract, including Layers combined with `Layer.mergeAll` or supplied through separate calls. Use `ManagedResource.HandlerOf<typeof managedResources.camera>` for an explicit requirement; the expanded form is `ManagedResource.Handler<Name, Params, Value>`, with all three arguments required.
+
+Two definitions with the same name and identical protocol have the same structural type. If a Layer from one is supplied for the other, Foldkit rejects it when acquisition begins because their private definition identities differ. An external implementation should use the registered entry's `toLayer`.
 
 Each registered `ManagedResource.tag` key has one handle accessor and one lifecycle owner. `Application.make` and `Application.makeElement` reject that tag key under two record keys, including separately created tags whose key strings match. Give independent resource instances distinct tag keys. Lifting an entry through its parents preserves its existing handle identity.
 

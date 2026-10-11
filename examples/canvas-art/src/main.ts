@@ -9,7 +9,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { Canvas, Command, Subscription, Update } from 'foldkit'
+import { Canvas, Command, Dom, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -184,7 +184,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       handler: function* () {
         return ({ isActive }) =>
           isActive
-            ? Subscription.animationFrameStream.pipe(
+            ? Dom.streamFromAnimationFrame().pipe(
                 Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
               )
             : Stream.empty

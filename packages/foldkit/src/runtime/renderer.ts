@@ -25,6 +25,7 @@ import {
 import { __hydrateVNode } from '../hydrate.js'
 import { FOLDKIT_APP_ATTRIBUTE } from '../hydrationMarker.js'
 import {
+  type AnyMountHandler,
   type LayeredMountDefinition,
   MountRegistrationTypeId,
   MountRuntime,
@@ -145,8 +146,8 @@ export const makeRenderer = <Model, Message>({
 }: Readonly<{
   status: RuntimeStatus
   container: HTMLElement
-  view: (model: Model, h: HtmlBuilder<Message>) => Document
-  htmlBuilder: HtmlBuilder<Message>
+  view: (model: Model, h: HtmlBuilder<Message, AnyMountHandler>) => Document
+  htmlBuilder: HtmlBuilder<Message, AnyMountHandler>
   manageDocument: boolean
   crash: CrashConfig<Model, Message> | undefined
   buildId: string | undefined

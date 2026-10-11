@@ -1,3 +1,4 @@
+import { pipe } from 'effect'
 import { Application, Runtime } from 'foldkit'
 
 import { registerEcharts } from './echarts'
@@ -22,4 +23,4 @@ const application = Application.make({
   },
 })
 
-Runtime.run(Application.provide(application, AppLayer))
+pipe(application, Application.provide(AppLayer), Runtime.run)

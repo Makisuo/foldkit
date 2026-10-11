@@ -825,6 +825,8 @@ export const mounts = [
   PortalComboboxBackdrop,
 ]
 
+type MountRequirements = Mount.RequirementsOf<typeof mounts>
+
 /** Provides Combobox's Command and Mount handlers. */
 export const EffectsLayer = Layer.mergeAll(
   LockComboboxScroll.layer,
@@ -948,9 +950,11 @@ export type ViewBehavior = Readonly<{
   ariaMultiSelectable: boolean
 }>
 
+type InternalInputs = BaseViewInputs<string>
+
 /** Creates a combobox view function from variant-specific behavior. Shared rendering logic (input, items, transitions, keyboard navigation) is handled internally; only listbox multi-select semantics vary by variant. */
 export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
-  const impl = defineView<Model, Message, BaseViewInputs<string>>(
+  const impl = defineView<Model, Message, InternalInputs, MountRequirements>(
     (model, viewInputs, h): Html => {
       const {
         id,
@@ -1526,5 +1530,10 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
 
   return <Item extends string>() =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    impl as unknown as SubmodelView<Model, Message, BaseViewInputs<Item>>
+    impl as unknown as SubmodelView<
+      Model,
+      Message,
+      BaseViewInputs<Item>,
+      MountRequirements
+    >
 }

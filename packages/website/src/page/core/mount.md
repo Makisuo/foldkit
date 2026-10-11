@@ -54,7 +54,7 @@ A Mount starts when its element enters the DOM and stops when that element leave
 
 ::Snippet{name="mountHandlerLayers" label="Registering a Mount handler Layer"}
 
-Foldkit checks each rendered Mount before patching the DOM and reports any definition missing from `mounts`. Use the same definition in the view, registration, and Layer composition. Distinct Mount definitions within one application need distinct names; the same definition can appear on multiple elements. The handler Layer lives for the application lifetime, while each Mount acquisition and cleanup follows its element.
+`Application.make` derives the view builder's allowed Mounts from `mounts`. TypeScript rejects a view that requires an unregistered Mount, and supplying the registrations leaves their handler Layers as application requirements. Foldkit also checks each rendered definition before patching the DOM. Use the same definition in the view, registration, and Layer composition. Distinct Mount definitions within one application need distinct names; the same definition can appear on multiple elements. The handler Layer lives for the application lifetime, while each Mount acquisition and cleanup follows its element.
 
 The Runtime runs the attached handler generator once while building the application Layer and obtains the element handler. Return it directly from the generator when construction has no dependencies. The constructor must not capture a DOM element or Mount args; Foldkit supplies those when each element is mounted. Each element receives its own Mount scope. Removing and reinserting an element reruns the real handler without rebuilding its provider.
 
@@ -64,7 +64,21 @@ A whole-application execution test retains the real Layer-backed Mount handler a
 
 Name the Mount for the imperative work attached to the element, using a verb-first name such as `MeasurePanel`, `AnchorPopover`, or `PortalMenuBackdrop`. Compose `MeasurePanel.layer` directly in the feature's `EffectsLayer` export. Name an individual provider `MeasurePanelLayer` only when it is intentionally public or independently reused outside that bundle's assembly.
 
-Registration is necessary because view and `Html` do not carry an Effect requirement parameter. The `mounts` collection tells `Application.make` which handler requirements a rendered tree may introduce. Registering a Mount that the view never renders is inert: Foldkit does not construct an element lifecycle, install listeners, or change browser behavior for that Mount.
+Registering a Mount that the view never renders starts no element lifecycle, listeners, or DOM work. Its provided handler constructor still runs during application startup.
+
+### Mount Requirements in Reusable Views
+
+An inline application view receives a builder whose allowed Mounts are inferred from the registrations. An exported view must preserve its required Mounts in its signature. Use `HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>` for a plain view function, or the fourth type parameter of `Submodel.defineView` for a branded child view:
+
+::Snippet{name="mountSubmodelView" label="Preserving a Submodel view's Mount requirements"}
+
+The parent must include the child's `mounts` in its application registrations before its builder can embed this view with `h.submodel`. The third type parameter is `void` because this view has no `ViewInputs`. A child with inputs uses its `ViewInputs` type there instead.
+
+Only views that attach a Mount or embed a view requiring Mounts need the extra parameter. Keep ordinary views as `HtmlBuilder<Message>` or `Submodel.defineView<Model, Message>`. The returned `Html` type stays the same.
+
+Let TypeScript infer `mounts` arrays and composed spreads. Widening the array to `ReadonlyArray<Mount.LayeredMountDefinition>` discards the contracts required for registration checking, so application assembly rejects it. Forwarded attribute arrays preserve the same evidence: use `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>` when an explicit annotation is necessary. `childAttributes` infers those requirements from its input, and `CustomElement.withMessage(h)` retains the builder's allowed Mounts.
+
+Two distinct definitions with identical names, args, and result Messages have identical structural types. Runtime registration and handler identity checks still reject the wrong definition in that case. Alternate implementations belong to the original definition's `toLayer`.
 
 :::Info{label="Two rules for Mount work"}
 First, the handler must use the live element. If it does not read or write that element, a Message or Model condition is probably the real cause. Second, the work must be safe to repeat whenever that element is inserted again. DOM measurement, paired DOM manipulation, observers, and element-owned library instances fit these rules.

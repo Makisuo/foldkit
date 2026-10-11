@@ -1,6 +1,7 @@
 import { Option } from 'effect'
 import { Scene, Story } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
@@ -27,11 +28,14 @@ import {
   create,
   groupContiguous,
   init,
+  mounts,
   resolveTypeaheadMatch,
   update,
 } from './index.js'
 
 const TestMenu = create<string>()
+
+type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
 
 const sceneView =
   (
@@ -40,7 +44,7 @@ const sceneView =
       'ariaLabel' | 'ariaLabelledBy'
     > = {},
   ) =>
-  (model: Model, h: HtmlBuilder<Message>) =>
+  (model: Model, h: TestHtmlBuilder) =>
     TestMenu.view(
       model,
       {

@@ -25,12 +25,20 @@ export type QueryConfig<Name extends string, A, AI, E, EI> = Readonly<{
   execute?: never
 }>
 
+type QueryFetchArgs = Readonly<{ generation: number }>
+
+type QueryFetchHandler<Name extends string, A, AI, E, EI> = Command.Handler<
+  `Fetch${Name}`,
+  QueryFetchArgs,
+  CompletedFetchOf<QueryMessage<A, AI, E, EI>>
+>
+
 /** Builds a Query fetch handler Layer from an Effect that constructs a fetch. */
-export interface QueryToLayer<Name extends string, A, E> {
+export interface QueryToLayer<Name extends string, A, AI, E, EI> {
   <R, BuildE = never, BuildR = never>(
     build: Effect.Effect<() => Effect.Effect<A, E, R>, BuildE, BuildR>,
   ): Layer.Layer<
-    Command.Handler<`Fetch${Name}`>,
+    QueryFetchHandler<Name, A, AI, E, EI>,
     BuildE,
     Exclude<R | BuildR, Scope.Scope>
   >
@@ -43,14 +51,14 @@ export interface LayeredQuery<Name extends string, A, AI, E, EI> extends Query<
   AI,
   E,
   EI,
-  Command.Handler<`Fetch${Name}`>
+  QueryFetchHandler<Name, A, AI, E, EI>
 > {
   readonly Fetch: Command.LayeredCommandDefinitionWithArgs<
     `Fetch${Name}`,
     { readonly generation: typeof Schema.Number },
     CompletedFetchOf<QueryMessage<A, AI, E, EI>>
   >
-  readonly toLayer: QueryToLayer<Name, A, E>
+  readonly toLayer: QueryToLayer<Name, A, AI, E, EI>
 }
 
 const makeQueryMessage = <A, AI, E, EI>(
@@ -308,7 +316,7 @@ export function defineQuery<
 ): LayeredQuery<Name, A, AI, E, EI> &
   Readonly<{
     layer?: Layer.Layer<
-      Command.Handler<`Fetch${Name}`>,
+      QueryFetchHandler<Name, A, AI, E, EI>,
       BuildError,
       Exclude<HandlerRequirements | BuildRequirements, Scope.Scope>
     >
@@ -325,7 +333,7 @@ export function defineQuery<
   )
   const query = makeQuery(config, Message, Fetch, run)
 
-  const toLayer: QueryToLayer<Name, A, E> = <
+  const toLayer: QueryToLayer<Name, A, AI, E, EI> = <
     HandlerR,
     BuildE = never,
     BuildR = never,

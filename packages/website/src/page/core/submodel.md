@@ -358,30 +358,30 @@ The configuration record passed to `h.submodel`.
 | ----------------- | ------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `slotId`          | `string`                                                      | —       | DOM-slot identity for this embed site under the current boundary. Must be distinct from every other h.submodel slotId under the same parent boundary. For lists, use a per-item id (row.id); for fixed slots, name by position. |
 | `model`           | `View extends SubmodelView<infer Model, ...> ? Model : never` | —       | The child Submodel’s slice of the parent Model. Type is inferred from the branded view.                                                                                                                                         |
-| `view`            | `SubmodelView<Model, Message, ViewInputs?>`                   | —       | The child’s exported view, branded via Submodel.defineView so the embed site can infer the child’s Message type.                                                                                                                |
+| `view`            | `SubmodelView<Model, Message, ViewInputs, RequiredMounts>`    | —       | The child’s exported view, branded via Submodel.defineView so the embed site can infer the child’s Message type.                                                                                                                |
 | `viewInputs`      | `ViewInputs \| undefined`                                     | —       | Optional per-render data threaded into the view’s second argument. Top-level functions are auto-wrapped to execute in the parent’s boundary; nested functions throw at view-build time.                                         |
 | `toParentMessage` | `(message: ChildMessage) => ParentMessage`                    | —       | Lifts each child Message into the parent’s wrapper Message type, typically a closure over the Got\*Message constructor.                                                                                                         |
 
 ### Submodel.defineView {#api-define-view}
 
-`Submodel.defineView<Model, Message, ViewInputs = void>(fn): SubmodelView<Model, Message, ViewInputs>`
+`Submodel.defineView<Model, Message, ViewInputs = void, RequiredMounts = never>(fn): SubmodelView<Model, Message, ViewInputs, RequiredMounts>`
 
-Brands a view function with its Message type so `h.submodel` can type-check the embed site without a per-call type argument, and types the builder the runtime passes the view as its last parameter. The `<Model, Message>` parameters are required at the definition site; `ViewInputs` is optional and, when supplied, makes the view take a second `viewInputs` argument before the builder. Also exported as `defineView` from `foldkit/html`.
+Brands a view function with its Message type so `h.submodel` can type-check the embed site without a per-call type argument, and types the builder the runtime passes the view as its last parameter. The `<Model, Message>` parameters are required at the definition site; `ViewInputs` is optional and, when supplied, makes the view take a second `viewInputs` argument before the builder. When the view attaches Mounts or embeds mounted children, supply `Mount.RequirementsOf<typeof mounts>` as the fourth parameter. `h.submodel` checks those requirements against the parent builder. A view with no inputs uses `void` as the third parameter. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views). Also exported as `defineView` from `foldkit/html`.
 
 ### Submodel.View {#api-submodel-view}
 
-`Submodel.View<Model, Message, ViewInputs = void> = (model, viewInputs, h) => Html`
+`Submodel.View<Model, Message, ViewInputs = void, RequiredMounts = never>`
 
-The branded view type produced by `Submodel.defineView`. Without `ViewInputs` the shape is `(model, h) => Html`. Carries the child’s Message type at the type level. Consumers don’t usually annotate values with this type directly; the brand and `Parameters<View>` carry the inference at the embed site. Also exported as `SubmodelView` from `foldkit/html`.
+The branded view type produced by `Submodel.defineView`. Without `ViewInputs` the shape is `(model, h) => Html`. Carries the child’s Message type and required Mount contracts at the type level. The builder parameter is `HtmlBuilder<Message, RequiredMounts>`. Consumers don’t usually annotate values with this type directly; the brand and `Parameters<View>` carry the inference at the embed site. Also exported as `SubmodelView` from `foldkit/html`.
 
 ### childAttributes {#api-child-attributes}
 
-`childAttributes<Attribute>(attributes: ReadonlyArray<Attribute>): ReadonlyArray<ChildAttribute>`
+`childAttributes(attributes)` returns a `ReadonlyArray<ChildAttribute<RequiredMounts>>`, with `RequiredMounts` inferred from the supplied `OnMount` actions. Attribute groups without Mounts have `RequiredMounts = never`.
 
 Snapshots the Submodel’s dispatcher at publish time and brands each attribute so handlers route through the Submodel’s boundary when later spread into the consumer’s elements. Called inside a Submodel that publishes attribute bundles to a consumer’s `toView` slot. See [childAttributes](#child-attributes) for the full mechanism.
 
 ### ChildAttribute {#api-child-attribute}
 
-`ChildAttribute` is the branded attribute type returned by `childAttributes`. Element constructors (`h.button`, `h.input`, etc.) accept `ChildAttribute` alongside ordinary `Attribute<Message>` values, using the carried dispatcher when present.
+`ChildAttribute<RequiredMounts = never>` is the branded attribute type returned by `childAttributes`. Element constructors (`h.button`, `h.input`, etc.) accept these alongside ordinary `Attribute<Message, AllowedMounts>` values, check that the builder allows the required Mounts, and use the carried dispatcher for child Messages.
 
 With Model, Messages, update, view, Commands, and Submodels in place, you have the full vocabulary for describing a Foldkit app. The next page covers the [Runtime](/core/runtime): the engine that executes Commands, runs Subscriptions, manages Mount and ManagedResource lifecycles, and routes Messages back into update.

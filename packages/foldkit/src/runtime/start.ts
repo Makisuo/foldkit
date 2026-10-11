@@ -110,17 +110,22 @@ const startProgram = (
  *  To start a runtime under a host-controlled lifecycle, use `embed`. */
 export function run<
   P extends Ports | undefined,
-  Resources,
-  Kind extends 'Application' | 'Element',
->(program: MakeRuntimeReturn<P, void, Resources, Kind>): void
-export function run<
-  P extends Ports | undefined,
   Flags,
   Resources,
   Kind extends 'Application' | 'Element',
 >(
   program: MakeRuntimeReturn<P, Flags, Resources, Kind>,
   options: RunOptions<Flags, Resources>,
+): void
+export function run(
+  program: Readonly<{
+    runtimeId: string
+    start: (preservedModel?: unknown) => Effect.Effect<void>
+    ports: Ports | undefined
+    '~foldkit/RuntimeBoot'?: Readonly<{
+      Flags: (flags: void) => void
+    }>
+  }>,
 ): void
 export function run(
   program: RuntimeProgram,

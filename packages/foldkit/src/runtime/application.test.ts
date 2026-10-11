@@ -34,6 +34,20 @@ const Send = Command.define('Send', {
   messages: [Message.CompletedSend],
 })
 
+const SendWithOptionalTextArgs = Command.define('Send', {
+  args: { text: Schema.optional(Schema.String) },
+  messages: [Message.CompletedSend],
+})
+
+const CompletedSendWithOptionalText = Schema.TaggedStruct('CompletedSend', {
+  text: Schema.optional(Schema.String),
+})
+
+const SendWithOptionalTextResult = Command.define('Send', {
+  args: { text: Schema.String },
+  messages: [CompletedSendWithOptionalText],
+})
+
 const Other = Command.define('Other', {
   messages: [Message.CompletedSend],
 })
@@ -366,6 +380,9 @@ const checkApplicationTypes = (): void => {
   // @ts-expect-error The inferred Send handler has not been provided.
   run(application)
 
+  // @ts-expect-error The inferred Send handler has not been provided.
+  pipe(application, run)
+
   const otherLayer = Other.toLayer(
     Effect.succeed(() =>
       Effect.succeed(Message.CompletedSend({ text: 'other' })),
@@ -374,6 +391,24 @@ const checkApplicationTypes = (): void => {
 
   // @ts-expect-error A different Command handler leaves Send unsatisfied.
   run(Application.provide(application, otherLayer))
+
+  const sameNameDifferentArgsLayer = SendWithOptionalTextArgs.toLayer(
+    Effect.succeed(({ text }) =>
+      Effect.succeed(Message.CompletedSend({ text: text ?? 'missing' })),
+    ),
+  )
+
+  // @ts-expect-error A same-name handler with different args leaves Send unsatisfied.
+  run(Application.provide(application, sameNameDifferentArgsLayer))
+
+  const sameNameDifferentResultLayer = SendWithOptionalTextResult.toLayer(
+    Effect.succeed(({ text }) =>
+      Effect.succeed(CompletedSendWithOptionalText.make({ text })),
+    ),
+  )
+
+  // @ts-expect-error A same-name handler with a different result leaves Send unsatisfied.
+  run(Application.provide(application, sameNameDifferentResultLayer))
 
   const combinedLayer = Layer.mergeAll(
     Send.toLayer(
@@ -385,6 +420,7 @@ const checkApplicationTypes = (): void => {
     DatabaseLayer,
   )
   run(Application.provide(application, combinedLayer))
+  pipe(application, Application.provide(combinedLayer), run)
 
   const applicationWithTwoHandlers = Application.make({
     Model,
@@ -458,8 +494,12 @@ const checkApplicationTypes = (): void => {
   // @ts-expect-error Database remains after the Command handler is provided.
   run(withHandler)
 
+  // @ts-expect-error Database remains after the Command handler is provided.
+  pipe(withHandler, run)
+
   const provided = pipe(withHandler, Application.provide(DatabaseLayer))
   run(provided)
+  pipe(withHandler, Application.provide(DatabaseLayer), run)
 
   const subscriptions = Subscription.make<Model, Message>()(entry => ({
     storedValue: entry('StoredValue', {
@@ -593,6 +633,9 @@ const checkApplicationTypes = (): void => {
 
   // @ts-expect-error Flags must be supplied when starting a fresh runtime.
   run(providedFlagsApplication)
+
+  // @ts-expect-error Flags must be supplied when starting a fresh runtime.
+  pipe(providedFlagsApplication, run)
   run(providedFlagsApplication, {
     flags: Effect.succeed({ initialStatus: 'configured' }),
   })

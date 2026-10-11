@@ -21,7 +21,7 @@ import {
   __htmlBuilder as htmlBuilderFor,
 } from '../html/index.js'
 import type { ManagedResources } from '../managedResource/index.js'
-import type { LayeredMountDefinition } from '../mount/index.js'
+import type { AnyMountHandler, LayeredMountDefinition } from '../mount/index.js'
 import type { Ports } from '../port/index.js'
 import { RenderCommit, createCommitNotifier } from '../render/commit.js'
 import type { Subscriptions } from '../subscription/subscription.js'
@@ -102,7 +102,7 @@ export type RuntimeConfig<
     model: Model,
     message: Message,
   ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
-  view: (model: Model, h: HtmlBuilder<Message>) => Document
+  view: (model: Model, h: HtmlBuilder<Message, AnyMountHandler>) => Document
   /**
    * Whether the runtime owns document-level state. When `true`, each render
    * applies the view's `title`, `canonical`, and `og:url` to the document
@@ -298,7 +298,7 @@ export const makeRuntime = <
   const isSlowVisible = (show: Visibility): boolean =>
     isVisible(show, !!import.meta.hot)
 
-  const htmlBuilder = htmlBuilderFor<Message>()
+  const htmlBuilder = htmlBuilderFor<Message, AnyMountHandler>()
 
   const maybeResolvedSlow = __resolveSlowConfig(slow, isSlowVisible)
 

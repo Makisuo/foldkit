@@ -1,4 +1,5 @@
 import { type HtmlBuilder } from 'foldkit/html'
+import type * as MountDefinition from 'foldkit/mount'
 import { Mount, click, expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
@@ -16,19 +17,27 @@ const longCode = globalThis.Array.from(
   (_, index) => `const value${index} = ${index}`,
 ).join('\n')
 
-const testView = (rawCode: string) => (model: Model, h: HtmlBuilder<Message>) =>
-  renderer(
-    model,
-    message => message,
-    () => h.empty,
-    h,
-  )({
-    id: snippetId,
-    title: 'Counter state',
-    content: h.pre([], [rawCode]),
-    rawCode,
-    copyAriaLabel: 'Copy counter state',
-  })
+const testView =
+  (rawCode: string) =>
+  (
+    model: Model,
+    h: HtmlBuilder<
+      Message,
+      MountDefinition.RequirementsOf<typeof MeasureSnippetHeight>
+    >,
+  ) =>
+    renderer(
+      model,
+      message => message,
+      () => h.empty,
+      h,
+    )({
+      id: snippetId,
+      title: 'Counter state',
+      content: h.pre([], [rawCode]),
+      rawCode,
+      copyAriaLabel: 'Copy counter state',
+    })
 
 describe('snippet disclosure', () => {
   test('shows and hides the full code', () => {

@@ -86,13 +86,13 @@ const update = Update.make((model: Model, message: Message) =>
   }),
 )
 
-const h = __htmlBuilder<Message>()
+const h = __htmlBuilder<Message, Mount.AnyMountHandler>()
 
-const editorView = <Requirements>(
+const editorView = <Requirements extends Mount.AnyMountHandler = never>(
   mount: Mount.MountAction<Message, never, Requirements>,
 ): Html => h.div([h.Id('editor'), h.OnMount(mount)])
 
-const modelView = <Requirements>(
+const modelView = <Requirements extends Mount.AnyMountHandler = never>(
   model: Model,
   mount: Mount.MountAction<Message, never, Requirements>,
 ): Html =>
@@ -433,7 +433,7 @@ describe('Mount view-state awareness', () => {
         ),
       ),
     )
-    const childH = __htmlBuilder<ChildMessage>()
+    const childH = __htmlBuilder<ChildMessage, Mount.AnyMountHandler>()
     const lazyChild = createLazy()
     const renderChildEditor = () =>
       childH.div([childH.Id('editor'), childH.OnMount(MountChildEditor())])
@@ -568,7 +568,7 @@ describe('Mount view-state awareness', () => {
         ),
       ),
     )
-    const childH = __htmlBuilder<ChildMessage>()
+    const childH = __htmlBuilder<ChildMessage, Mount.AnyMountHandler>()
     const childView = defineView<ChildModel, ChildMessage>(() =>
       childH.button([
         childH.Id('editor'),
@@ -1641,7 +1641,12 @@ describe('Mount view-state awareness', () => {
     const MountChildEditorLayer = MountChildEditor.toLayer(
       Effect.succeed(() => Effect.succeed(ChildMessage.CompletedChildMount())),
     )
-    const childView = defineView<ChildModel, ChildMessage>((_model, childH) =>
+    const childView = defineView<
+      ChildModel,
+      ChildMessage,
+      void,
+      Mount.RequirementsOf<typeof MountChildEditor>
+    >((_model, childH) =>
       childH.div(
         [childH.Id('child-editor'), childH.OnMount(MountChildEditor())],
         [
@@ -1937,7 +1942,10 @@ describe('Mount view-state awareness', () => {
             }),
           },
         )
-      const lifecycleHtml = __htmlBuilder<LifecycleMessage>()
+      const lifecycleHtml = __htmlBuilder<
+        LifecycleMessage,
+        Mount.AnyMountHandler
+      >()
       const mountPanel: Mount.MountAction<LifecycleMessage> = {
         name: 'MountPanel',
         f: () => Stream.make(LifecycleMessage.CompletedMountPanel()),

@@ -28,5 +28,7 @@ const PortalToBody = Mount.define('PortalToBody', {
   },
 })
 
-const overlayView = (h: HtmlBuilder<Message>): Html =>
+const overlayView = (
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof PortalToBody>>,
+): Html =>
   h.div([h.Class('fixed inset-0 bg-black/50'), h.OnMount(PortalToBody())])

@@ -145,7 +145,7 @@ const EffectsLayer = Layer.mergeAll(
   TrackHostLayer,
 )
 
-const h = __htmlBuilder<Message>()
+const h = __htmlBuilder<Message, Mount.AnyMountHandler>()
 
 const view = (model: Model): Html =>
   h.div(
@@ -159,9 +159,9 @@ const view = (model: Model): Html =>
 
 let container: HTMLElement
 
-const makeWidget = <Requirements = never>(
+const makeWidget = (
   initCommands: ReadonlyArray<
-    Command.Command<Message, never, Requirements>
+    Command.Command<Message, never, Command.HandlerOf<typeof ReportCount>>
   > = [],
 ) =>
   Application.provide(

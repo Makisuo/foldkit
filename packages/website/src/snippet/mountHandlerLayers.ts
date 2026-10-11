@@ -1,4 +1,4 @@
-import { Effect, Option, Schema } from 'effect'
+import { Effect, Option, Schema, pipe } from 'effect'
 import { Application, Mount, Runtime } from 'foldkit'
 import type { Document, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -35,7 +35,10 @@ const update = (model: Model, message: Message) =>
     }),
   })
 
-const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+const view = (
+  model: Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof MeasurePanel>>,
+): Document => ({
   title: 'Measured panel',
   body: h.div(
     [h.OnMount(MeasurePanel())],
@@ -57,4 +60,4 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-Runtime.run(Application.provide(application, MeasurePanel.layer))
+pipe(application, Application.provide(MeasurePanel.layer), Runtime.run)

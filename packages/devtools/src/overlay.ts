@@ -20,7 +20,7 @@ import {
   pipe,
 } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import { Application, Update } from 'foldkit'
+import { Application, type Mount, Update } from 'foldkit'
 import * as Command from 'foldkit/command'
 import {
   type CommandRecord,
@@ -962,7 +962,7 @@ const overlaySubscriptions = Subscription.make<Model, Message>()(entry => ({
       handler: function* () {
         return ({ isActive }) =>
           isActive
-            ? Subscription.animationFrameStream.pipe(
+            ? Dom.streamFromAnimationFrame().pipe(
                 Stream.map(() => Message.TickedScrubFrame()),
               )
             : Stream.empty
@@ -1035,7 +1035,10 @@ const makeView = (
   mode: DevToolsMode,
   shadow: ShadowRoot,
   maybeBanner: Option.Option<string>,
-): ((model: Model, h: HtmlBuilder<Message>) => Html) => {
+): ((
+  model: Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Listbox.mounts>>,
+) => Html) => {
   let viewWithBuilder: ((model: Model) => Html) | undefined
 
   return (model, h) => {
@@ -1049,7 +1052,7 @@ const buildOverlayView = (
   mode: DevToolsMode,
   shadow: ShadowRoot,
   maybeBanner: Option.Option<string>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Listbox.mounts>>,
 ): ((model: Model) => Html) => {
   const lazyTreeNode = createKeyedLazy()
   const lazyMessageRow = createKeyedLazy()

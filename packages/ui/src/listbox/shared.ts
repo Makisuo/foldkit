@@ -686,6 +686,8 @@ export const PortalListboxBackdrop = Mount.define('PortalListboxBackdrop', {
 /** Mount Definitions rendered by Listbox views. */
 export const mounts = [AnchorListbox, PortalListboxBackdrop]
 
+type MountRequirements = Mount.RequirementsOf<typeof mounts>
+
 /** Provides Listbox's Command and Mount handlers. */
 export const EffectsLayer = Layer.mergeAll(
   LockListboxScroll.layer,
@@ -809,8 +811,10 @@ type ViewBehavior = Readonly<{
   ariaMultiSelectable: boolean
 }>
 
+type InternalInputs = BaseViewInputs<unknown, string>
+
 export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
-  const impl = defineView<Model, Message, BaseViewInputs<unknown, string>>(
+  const impl = defineView<Model, Message, InternalInputs, MountRequirements>(
     (model, viewInputs, h) => {
       const {
         id,
@@ -1337,5 +1341,10 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
 
   return <Item, Value extends string = string>() =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    impl as unknown as SubmodelView<Model, Message, BaseViewInputs<Item, Value>>
+    impl as unknown as SubmodelView<
+      Model,
+      Message,
+      BaseViewInputs<Item, Value>,
+      MountRequirements
+    >
 }

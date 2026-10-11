@@ -14,7 +14,7 @@ import {
 
 import { type Handler, type ToLayer, makeHandler } from './handler.js'
 
-export type { Handler, ToLayer } from './handler.js'
+export type { Handler, HandlerOf, ToLayer } from './handler.js'
 
 /** Typed error raised when a command accesses a managed resource that is not currently acquired. */
 export class ResourceNotAvailable extends Data.TaggedError(
@@ -189,7 +189,7 @@ export type LayeredEntry<
   Value,
   Service,
   OnAcquired,
-  Handler<Name>,
+  Handler<Name, Params, Value>,
   Params
 > &
   Readonly<{
@@ -291,7 +291,11 @@ export interface EntryBuilder<Model, Message> {
   > &
     Readonly<{
       layer: Layer.Layer<
-        Handler<Name>,
+        Handler<
+          Name,
+          AcquireParamsFromSchema<RequirementsSchema>,
+          Value<Resource>
+        >,
         Effect.Error<Yielded>,
         Exclude<
           AcquireRequirements | ReleaseRequirements | Effect.Services<Yielded>,

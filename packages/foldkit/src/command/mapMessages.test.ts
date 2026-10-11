@@ -29,6 +29,9 @@ const FetchArchivedNotes = Command.define('FetchArchivedNotes', {
   messages: [CompletedFetchNotes],
 })
 
+type FetchNotesHandler = Command.HandlerOf<typeof FetchNotes>
+type FetchArchivedNotesHandler = Command.HandlerOf<typeof FetchArchivedNotes>
+
 const toGotNotesMessage = (message: ChildMessage): ParentMessage => ({
   _tag: 'GotNotesMessage',
   message,
@@ -76,9 +79,7 @@ describe('Command.mapMessages', () => {
       toGotNotesMessage,
     )
     expectTypeOf(mappedCommands).toEqualTypeOf<
-      ReadonlyArray<
-        Command.Command<ParentMessage, never, Command.Handler<'FetchNotes'>>
-      >
+      ReadonlyArray<Command.Command<ParentMessage, never, FetchNotesHandler>>
     >()
   })
 
@@ -87,9 +88,7 @@ describe('Command.mapMessages', () => {
       FetchNotes(),
     ])
     expectTypeOf(mappedCommands).toEqualTypeOf<
-      ReadonlyArray<
-        Command.Command<ParentMessage, never, Command.Handler<'FetchNotes'>>
-      >
+      ReadonlyArray<Command.Command<ParentMessage, never, FetchNotesHandler>>
     >()
   })
 
@@ -104,7 +103,7 @@ describe('Command.mapMessages', () => {
         Command.Command<
           ParentMessage,
           never,
-          Command.Handler<'FetchNotes'> | Command.Handler<'FetchArchivedNotes'>
+          FetchNotesHandler | FetchArchivedNotesHandler
         >
       >
     >()
@@ -168,7 +167,7 @@ describe('Command.mapEffect', () => {
     const mappedCommand = Command.mapEffect(Effect.orDie)(FetchNotes())
 
     expectTypeOf(mappedCommand).toEqualTypeOf<
-      Command.Command<ChildMessage, never, Command.Handler<'FetchNotes'>>
+      Command.Command<ChildMessage, never, FetchNotesHandler>
     >()
   })
 })

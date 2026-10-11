@@ -1,6 +1,7 @@
 import { Option } from 'effect'
 import { Scene, Story } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
@@ -23,12 +24,15 @@ import {
   ScrollListboxItemIntoView,
   UnlockListboxScroll,
   buttonId,
+  mounts,
 } from './shared.js'
 import { create, init, update } from './single.js'
 import type { Model, ViewInputs } from './single.js'
 
 const TestListbox = create<string>()
 const view = TestListbox.view
+
+type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
 
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorListbox,
@@ -1407,7 +1411,7 @@ describe('Listbox', () => {
 
     const sceneView =
       (overrides: Omit<Partial<ViewInputs<string>>, 'buttonContent'> = {}) =>
-      (model: Model, h: HtmlBuilder<Message>) =>
+      (model: Model, h: TestHtmlBuilder) =>
         view(
           model,
           {
@@ -2224,7 +2228,7 @@ describe('Listbox', () => {
             'items' | 'itemToValue' | 'itemToConfig' | 'buttonContent'
           > = {},
         ) =>
-        (model: Model, h: HtmlBuilder<Message>) =>
+        (model: Model, h: TestHtmlBuilder) =>
           PersonListbox.view(
             model,
             {

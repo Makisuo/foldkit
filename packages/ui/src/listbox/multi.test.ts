@@ -1,5 +1,6 @@
 import { Option } from 'effect'
 import type { HtmlBuilder } from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
 import { expect } from 'vitest'
@@ -17,10 +18,13 @@ import {
   PortalListboxBackdrop,
   ScrollListboxItemIntoView,
   buttonId,
+  mounts,
 } from './shared.js'
 
 const TestListbox = create<string>()
 const view = TestListbox.view
+
+type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
 
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorListbox,
@@ -148,7 +152,7 @@ describe('Listbox.Multi', () => {
           'items' | 'itemToConfig' | 'buttonContent'
         > = {},
       ) =>
-      (model: Model, h: HtmlBuilder<Message>) =>
+      (model: Model, h: TestHtmlBuilder) =>
         view(
           model,
           {

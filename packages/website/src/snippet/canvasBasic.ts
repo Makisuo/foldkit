@@ -1,5 +1,5 @@
 import { Effect, Schema, Stream } from 'effect'
-import { Canvas, Subscription } from 'foldkit'
+import { Canvas, Dom, Subscription } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 
 const subscriptions = Subscription.make<Model, Message>()(entry => ({
@@ -12,7 +12,7 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
       handler: function* () {
         return ({ isActive }) =>
           isActive
-            ? Subscription.animationFrameStream.pipe(
+            ? Dom.streamFromAnimationFrame().pipe(
                 Stream.map(deltaTime => TickedFrame({ deltaTime })),
               )
             : Stream.empty

@@ -549,6 +549,7 @@ const PlayNote = Command.define('PlayNote', {
 })
 
 export const EffectsLayer = Layer.mergeAll(
+  RadioGroup.EffectsLayer,
   DelayAdvanceNotePlayerPhase.layer,
   PlayNote.layer,
   managedResources.audioContext.layer,

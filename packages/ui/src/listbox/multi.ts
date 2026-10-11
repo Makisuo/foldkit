@@ -1,5 +1,6 @@
 import { Option, Schema } from 'effect'
 import { type Update } from 'foldkit'
+import type * as Mount from 'foldkit/mount'
 import type { View as SubmodelView } from 'foldkit/submodel'
 
 import {
@@ -11,6 +12,7 @@ import {
   baseInit,
   makeUpdate,
   makeView,
+  type mounts,
 } from './shared.js'
 
 // MODEL
@@ -85,7 +87,12 @@ export type Bundle<
   Item = string,
   Value extends string = Item extends string ? Item : string,
 > = Readonly<{
-  view: SubmodelView<Model, Message, ViewInputs<Item, Value>>
+  view: SubmodelView<
+    Model,
+    Message,
+    ViewInputs<Item, Value>,
+    Mount.RequirementsOf<typeof mounts>
+  >
   update: (model: Model, message: Message) => BundleUpdateReturn<Value>
   selectItem: (model: Model, item: Value) => BundleUpdateReturn<Value>
   open: (model: Model) => BundleUpdateReturn<Value>

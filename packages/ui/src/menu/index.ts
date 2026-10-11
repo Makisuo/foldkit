@@ -699,6 +699,8 @@ export const PortalMenuBackdrop = Mount.define('PortalMenuBackdrop', {
 /** Mount definitions rendered by Menu. */
 export const mounts = [AnchorMenu, PortalMenuBackdrop]
 
+type MountRequirements = Mount.RequirementsOf<typeof mounts>
+
 /** Effect providers used by the Menu component. */
 export const EffectsLayer = Layer.mergeAll(
   LockMenuScroll.layer,
@@ -792,14 +794,17 @@ const itemId = (id: string, index: number): string => `${id}-item-${index}`
 type ViewForItem<Item extends string> = SubmodelView<
   Model,
   Message,
-  ViewInputs<Item>
+  ViewInputs<Item>,
+  MountRequirements
 >
 
 const internalView = <Item extends string>() =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   menuViewImpl as unknown as ViewForItem<Item>
 
-const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
+type MenuInputs = ViewInputs<string>
+
+const menuViewImpl = defineView<Model, Message, MenuInputs, MountRequirements>(
   (model, viewInputs, h) => {
     const {
       id,
@@ -1264,7 +1269,12 @@ type BundleUpdateReturn<Item extends string> = Update.ReturnWithOutMessage<
 >
 
 export type Bundle<Item extends string = string> = Readonly<{
-  view: SubmodelView<Model, Message, ViewInputs<Item>>
+  view: SubmodelView<
+    Model,
+    Message,
+    ViewInputs<Item>,
+    Mount.RequirementsOf<typeof mounts>
+  >
   update: (model: Model, message: Message) => BundleUpdateReturn<Item>
   selectItem: (
     model: Model,

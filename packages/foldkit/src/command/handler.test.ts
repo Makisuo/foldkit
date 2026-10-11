@@ -9,6 +9,12 @@ const Message = defineMessageUnion({
   CompletedSendMessage: { text: Schema.String },
 })
 type Message = typeof Message.Type
+type CompletedSendMessage = typeof Message.CompletedSendMessage.Type
+type SendMessageHandler = Command.Handler<
+  'SendMessage',
+  Readonly<{ text: string }>,
+  CompletedSendMessage
+>
 
 const Model = Schema.Struct({ text: Schema.String })
 type Model = typeof Model.Type
@@ -61,14 +67,17 @@ type CommandRequirements<UpdateResult> = UpdateResult extends {
   : never
 
 it('carries the handler requirement and its implementation dependencies', () => {
+  // @ts-expect-error A Handler annotation must include its args and result Message contract.
+  expectTypeOf<Command.Handler<'SendMessage'>>()
+
   expectTypeOf(SendMessage({ text: 'hello' })).toMatchTypeOf<
-    Command.Command<Message, never, Command.Handler<'SendMessage'>>
+    Command.Command<Message, never, SendMessageHandler>
   >()
-  expectTypeOf<Command.HandlerOf<typeof SendMessage>>().toEqualTypeOf<
-    Command.Handler<'SendMessage'>
-  >()
+  expectTypeOf<
+    Command.HandlerOf<typeof SendMessage>
+  >().toEqualTypeOf<SendMessageHandler>()
   expectTypeOf(SendMessageLayer).toEqualTypeOf<
-    Layer.Layer<Command.Handler<'SendMessage'>, never, Prefix>
+    Layer.Layer<SendMessageHandler, never, Prefix>
   >()
 
   const constructedLayer = SendMessage.toLayer(
@@ -82,21 +91,29 @@ it('carries the handler requirement and its implementation dependencies', () => 
     ),
   )
   expectTypeOf(constructedLayer).toEqualTypeOf<
-    Layer.Layer<Command.Handler<'SendMessage'>, never, Prefix | Suffix>
+    Layer.Layer<SendMessageHandler, never, Prefix | Suffix>
   >()
-  expectTypeOf<CommandRequirements<ReturnType<typeof update>>>().toEqualTypeOf<
-    Command.Handler<'SendMessage'>
-  >()
+  expectTypeOf<
+    CommandRequirements<ReturnType<typeof update>>
+  >().toEqualTypeOf<SendMessageHandler>()
 
   const lifted = Command.mapMessage(
     SendMessage({ text: 'hello' }),
     message => message,
   )
   expectTypeOf(lifted).toMatchTypeOf<
-    Command.Command<Message, never, Command.Handler<'SendMessage'>>
+    Command.Command<Message, never, SendMessageHandler>
   >()
   expect(lifted.name).toBe('SendMessage')
   expect(lifted.args).toEqual({ text: 'hello' })
+})
+
+it('extracts a handler whose declared result Message is never', () => {
+  const NeverCompletes = Command.define('NeverCompletes', { messages: [] })
+
+  expectTypeOf<Command.HandlerOf<typeof NeverCompletes>>().toEqualTypeOf<
+    Command.Handler<'NeverCompletes', void, never>
+  >()
 })
 
 it('uses invocation context over the context captured by the handler Layer', async () => {
@@ -244,7 +261,11 @@ it('infers constructor failures and nested handler requirements', () => {
 
   expectTypeOf(NestedRequirements.layer).toEqualTypeOf<
     Layer.Layer<
-      Command.Handler<'NestedRequirements'>,
+      Command.Handler<
+        'NestedRequirements',
+        Readonly<{ text: string }>,
+        CompletedSendMessage
+      >,
       BuildFailure,
       Prefix | Suffix
     >

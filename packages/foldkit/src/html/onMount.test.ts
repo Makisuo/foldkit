@@ -656,7 +656,6 @@ describe('OnMount', () => {
   })
 
   it('Mount.define wraps an Effect: dispatches the result Message and holds the scope open until destroy for acquireRelease finalizers', async () => {
-    const h = __htmlBuilder<typeof Message.MountedRoot.Type>()
     const { dispatch, dispatched } = createCapturingDispatch()
     let acquired = false
     let released = false
@@ -664,6 +663,10 @@ describe('OnMount', () => {
     const WrappedEffect = Mount.define('WrappedEffect', {
       messages: [Message.MountedRoot],
     })
+    const h = __htmlBuilder<
+      typeof Message.MountedRoot.Type,
+      Mount.RequirementsOf<typeof WrappedEffect>
+    >()
 
     const WrappedEffectLayer = WrappedEffect.toLayer(
       Effect.succeed(() =>

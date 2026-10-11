@@ -1,4 +1,4 @@
-import { Layer } from 'effect'
+import { Layer, pipe } from 'effect'
 import { Application, Runtime } from 'foldkit'
 
 import { BrowserCrypto } from '@effect/platform-browser'
@@ -27,4 +27,4 @@ const application = Application.make({
   },
 })
 
-Runtime.run(Application.provide(application, AppLayer))
+pipe(application, Application.provide(AppLayer), Runtime.run)

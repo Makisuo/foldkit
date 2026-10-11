@@ -1,6 +1,5 @@
 import { Array, Option } from 'effect'
 
-import * as UI from '@foldkit/ui'
 import { Slider } from '@foldkit/ui'
 
 import { GenerateAmbientParticle } from './command'
@@ -59,5 +58,3 @@ export const init = () => ({
 })
 
 export { Message, Model, subscriptions, update, view }
-
-export const mounts = UI.mounts

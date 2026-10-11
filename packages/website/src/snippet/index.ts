@@ -622,3 +622,8 @@ export { default as asyncDataTypeRaw } from './asyncDataType.ts?raw'
 export { default as asyncDataTypeHighlighted } from './asyncDataType.ts?highlighted'
 export { default as keyingIdentityNotDataRaw } from './keyingIdentityNotData.ts?raw'
 export { default as keyingIdentityNotDataHighlighted } from './keyingIdentityNotData.ts?highlighted'
+export { default as mountSubmodelViewRaw } from './mountSubmodelView.ts?raw'
+export { default as mountSubmodelViewHighlighted } from './mountSubmodelView.ts?highlighted'
+
+export { default as handlerRequirementAnnotationRaw } from './handlerRequirementAnnotation.ts?raw'
+export { default as handlerRequirementAnnotationHighlighted } from './handlerRequirementAnnotation.ts?highlighted'

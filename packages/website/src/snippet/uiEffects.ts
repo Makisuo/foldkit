@@ -1,11 +1,15 @@
 import { Layer, pipe } from 'effect'
 import { Application, Runtime } from 'foldkit'
 
-import * as UI from '@foldkit/ui'
+import { Dialog, Menu } from '@foldkit/ui'
 
 import * as App from './main'
 
-const EffectsLayer = Layer.mergeAll(App.EffectsLayer, UI.EffectsLayer)
+const EffectsLayer = Layer.mergeAll(
+  App.EffectsLayer,
+  Dialog.EffectsLayer,
+  Menu.EffectsLayer,
+)
 
 const application = Application.make({
   Model: App.Model,
@@ -13,9 +17,7 @@ const application = Application.make({
   update: App.update,
   view: App.view,
   container: document.getElementById('root'),
-  mounts: UI.mounts,
+  mounts: [...Dialog.mounts, ...Menu.mounts],
 })
 
-const runnable = pipe(application, Application.provide(EffectsLayer))
-
-Runtime.run(runnable)
+pipe(application, Application.provide(EffectsLayer), Runtime.run)

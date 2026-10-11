@@ -934,28 +934,33 @@ const keyBindingStream = <Message>(
  *       modelToDependencies: model => ({
  *         isPaletteOpen: model.paletteState._tag === 'Open',
  *       }),
+ *       handler: function* () {
+ *         return ({ isPaletteOpen }) =>
+ *           Dom.streamFromKeyBindings<
+ *             | typeof Message.PressedEscape.Type
+ *             | typeof Message.PressedSearchShortcut.Type
+ *             | typeof Message.PressedListShortcut.Type
+ *           >({
+ *             bindings: [
+ *               {
+ *                 keys: 'Escape',
+ *                 isEnabled: isPaletteOpen,
+ *                 whileTyping: 'Allow',
+ *                 mapEvent: () => Message.PressedEscape(),
+ *               },
+ *               {
+ *                 keys: 'Mod+K',
+ *                 whileTyping: 'Allow',
+ *                 mapEvent: () => Message.PressedSearchShortcut(),
+ *               },
+ *               {
+ *                 keys: ['G', 'L'],
+ *                 mapEvent: () => Message.PressedListShortcut(),
+ *               },
+ *             ],
+ *           })
+ *       },
  *     },
- *     Effect.succeed(({ isPaletteOpen }) =>
- *       Dom.streamFromKeyBindings<Message>({
- *         bindings: [
- *           {
- *             keys: 'Escape',
- *             isEnabled: isPaletteOpen,
- *             whileTyping: 'Allow',
- *             mapEvent: () => Message.PressedEscape(),
- *           },
- *           {
- *             keys: 'Mod+K',
- *             whileTyping: 'Allow',
- *             mapEvent: () => Message.PressedSearchShortcut(),
- *           },
- *           {
- *             keys: ['G', 'L'],
- *             mapEvent: () => Message.PressedListShortcut(),
- *           },
- *         ],
- *       }),
- *     ),
  *   ),
  * }))
  *

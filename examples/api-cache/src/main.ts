@@ -16,7 +16,6 @@ import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import * as UI from '@foldkit/ui'
 import { Button, Tabs } from '@foldkit/ui'
 
 import {
@@ -323,7 +322,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
 }))
 
 export const EffectsLayer = Layer.mergeAll(
-  UI.EffectsLayer,
+  Tabs.EffectsLayer,
   FetchPosts.layer,
   FetchPostDetail.layer,
   FetchStats.layer,
@@ -768,5 +767,3 @@ const errorPanel = (
       ),
     ],
   )
-
-export const mounts = UI.mounts

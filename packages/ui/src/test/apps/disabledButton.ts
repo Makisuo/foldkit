@@ -1,6 +1,7 @@
 import { Option, Schema } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 
@@ -22,6 +23,11 @@ export const Message = defineMessageUnion({
   GotDialogMessage: { message: Dialog.Message },
 })
 export type Message = typeof Message.Type
+
+type DialogHtmlBuilder = HtmlBuilder<
+  Message,
+  Mount.RequirementsOf<typeof Dialog.mounts>
+>
 
 // INIT
 
@@ -59,7 +65,10 @@ export const update = Update.make((model: Model, message: Message) =>
 
 // VIEW
 
-const submitButton = (isEnabled: boolean, h: HtmlBuilder<Message>): Html =>
+const submitButton = <AllowedMountRequirements>(
+  isEnabled: boolean,
+  h: HtmlBuilder<Message, AllowedMountRequirements>,
+): Html =>
   h.button(
     [
       h.Class('submit'),
@@ -82,7 +91,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
 }
 
 /** View with submit button inside a dialog's panel. */
-export const viewWithDialog = (model: Model, h: HtmlBuilder<Message>): Html => {
+export const viewWithDialog = (model: Model, h: DialogHtmlBuilder): Html => {
   return h.div(
     [],
     [

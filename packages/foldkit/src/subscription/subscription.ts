@@ -22,6 +22,7 @@ import {
 
 export type {
   Handler,
+  HandlerOf,
   ToLayerWithKeepAlive,
   ToLayerWithoutKeepAlive,
 } from './handler.js'
@@ -71,7 +72,12 @@ export type LayeredEntryWithoutKeepAlive<
   Message,
   Dependencies,
   Messages extends ReadonlyArray<Schema.Top> = ReadonlyArray<Schema.Top>,
-> = EntryWithoutKeepAlive<Model, Message, Dependencies, Handler<Name>> &
+> = EntryWithoutKeepAlive<
+  Model,
+  Message,
+  Dependencies,
+  Handler<Name, Dependencies, Message>
+> &
   Readonly<{
     name: Name
     messages: Messages
@@ -86,7 +92,12 @@ export type LayeredEntryWithKeepAlive<
   Message,
   Dependencies,
   Messages extends ReadonlyArray<Schema.Top> = ReadonlyArray<Schema.Top>,
-> = EntryWithKeepAlive<Model, Message, Dependencies, Handler<Name>> &
+> = EntryWithKeepAlive<
+  Model,
+  Message,
+  Dependencies,
+  Handler<Name, Dependencies, Message>
+> &
   Readonly<{
     name: Name
     messages: Messages
@@ -226,7 +237,7 @@ export interface EntryBuilder<Model> {
   > &
     Readonly<{
       layer: Layer.Layer<
-        Handler<Name>,
+        Handler<Name, Schema.Struct.Type<Fields>, EmittedMessage<Messages>>,
         Effect.Error<Yielded>,
         Exclude<StreamRequirements | Effect.Services<Yielded>, Scope.Scope>
       >
@@ -271,7 +282,7 @@ export interface EntryBuilder<Model> {
   > &
     Readonly<{
       layer: Layer.Layer<
-        Handler<Name>,
+        Handler<Name, Schema.Struct.Type<Fields>, EmittedMessage<Messages>>,
         Effect.Error<Yielded>,
         Exclude<StreamRequirements | Effect.Services<Yielded>, Scope.Scope>
       >
@@ -312,7 +323,7 @@ export interface EntryBuilder<Model> {
   > &
     Readonly<{
       layer: Layer.Layer<
-        Handler<Name>,
+        Handler<Name, Record<string, never>, EmittedMessage<Messages>>,
         Effect.Error<Yielded>,
         Exclude<StreamRequirements | Effect.Services<Yielded>, Scope.Scope>
       >
@@ -416,11 +427,7 @@ type RuntimeHandlerGenerator = () => Generator<
  */
 export const make =
   <Model, Message>() =>
-  <
-    Entries extends Readonly<
-      Record<string, Entry<Model, Message, any, Handler<string>>>
-    >,
-  >(
+  <Entries extends Readonly<Record<string, Entry<Model, Message, any, any>>>>(
     build: (entry: EntryBuilder<Model>) => Entries,
   ): {
     readonly [K in keyof Entries]: Entries[K] & SubscriptionBrand

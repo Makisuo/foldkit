@@ -129,7 +129,7 @@ export const MountChart = Mount.defineStream('MountChart', {
 export const chartPanelView = (
   model: Model,
   telemetry: Telemetry,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof MountChart>>,
 ): Html =>
   h.section(
     [

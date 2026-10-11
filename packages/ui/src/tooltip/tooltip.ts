@@ -271,7 +271,7 @@ export const reflectShowDelay: Reflect<Model, Duration.Input> = Function.dual(
  *    the panel conditionally on this. */
 export type RenderInfo = Readonly<{
   trigger: ReadonlyArray<ChildAttribute>
-  panel: ReadonlyArray<ChildAttribute>
+  panel: ReadonlyArray<ChildAttribute<Mount.RequirementsOf<typeof mounts>>>
   isVisible: boolean
 }>
 
@@ -287,73 +287,76 @@ export type ViewInputs = Readonly<{
 /** Renders a headless tooltip with an anchored non-interactive panel.
  *  Shows on hover (after delay) or focus (from keyboard, touch, or pen;
  *  mouse-click focus is excluded). Hides on leave, blur, or Escape. */
-export const view = defineView<Model, Message, ViewInputs>(
-  (model, viewInputs, h): Html => {
-    const { id, isOpen } = model
-    const { anchor, toView, isDisabled, ariaLabel, ariaLabelledBy } = viewInputs
+export const view = defineView<
+  Model,
+  Message,
+  ViewInputs,
+  Mount.RequirementsOf<typeof mounts>
+>((model, viewInputs, h): Html => {
+  const { id, isOpen } = model
+  const { anchor, toView, isDisabled, ariaLabel, ariaLabelledBy } = viewInputs
 
-    const resolveTriggerLabel = () => {
-      if (Predicate.isNotUndefined(ariaLabel)) {
-        return [h.AriaLabel(ariaLabel)]
-      } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
-        return [h.AriaLabelledBy(ariaLabelledBy)]
-      } else {
-        return []
-      }
+  const resolveTriggerLabel = () => {
+    if (Predicate.isNotUndefined(ariaLabel)) {
+      return [h.AriaLabel(ariaLabel)]
+    } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
+      return [h.AriaLabelledBy(ariaLabelledBy)]
+    } else {
+      return []
     }
+  }
 
-    const triggerLabelAttributes = resolveTriggerLabel()
+  const triggerLabelAttributes = resolveTriggerLabel()
 
-    const handleTriggerKeyDown = (
-      key: string,
-    ): Option.Option<typeof Message.PressedEscape.Type> =>
-      Match.value(key).pipe(
-        Match.when('Escape', () =>
-          OptionExt.when(isOpen, Message.PressedEscape()),
-        ),
-        Match.orElse(() => Option.none()),
-      )
+  const handleTriggerKeyDown = (
+    key: string,
+  ): Option.Option<typeof Message.PressedEscape.Type> =>
+    Match.value(key).pipe(
+      Match.when('Escape', () =>
+        OptionExt.when(isOpen, Message.PressedEscape()),
+      ),
+      Match.orElse(() => Option.none()),
+    )
 
-    const handleTriggerPointerDown = (
-      pointerType: string,
-    ): Option.Option<typeof Message.PressedPointerOnTrigger.Type> =>
-      Option.some(Message.PressedPointerOnTrigger({ pointerType }))
+  const handleTriggerPointerDown = (
+    pointerType: string,
+  ): Option.Option<typeof Message.PressedPointerOnTrigger.Type> =>
+    Option.some(Message.PressedPointerOnTrigger({ pointerType }))
 
-    const triggerAttributes = [
-      h.Id(triggerId(id)),
-      h.Type('button'),
-      h.AriaDescribedBy(panelId(id)),
-      ...triggerLabelAttributes,
-      ...(isOpen ? [h.DataAttribute('open', '')] : []),
-      ...(isDisabled
-        ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
-        : [
-            h.OnMouseEnter(Message.EnteredTrigger()),
-            h.OnMouseLeave(Message.LeftTrigger()),
-            h.OnFocus(Message.FocusedTrigger()),
-            h.OnBlur(Message.BlurredTrigger()),
-            h.OnKeyDownPreventDefault(handleTriggerKeyDown),
-            h.OnPointerDown(handleTriggerPointerDown),
-          ]),
-    ]
+  const triggerAttributes = [
+    h.Id(triggerId(id)),
+    h.Type('button'),
+    h.AriaDescribedBy(panelId(id)),
+    ...triggerLabelAttributes,
+    ...(isOpen ? [h.DataAttribute('open', '')] : []),
+    ...(isDisabled
+      ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
+      : [
+          h.OnMouseEnter(Message.EnteredTrigger()),
+          h.OnMouseLeave(Message.LeftTrigger()),
+          h.OnFocus(Message.FocusedTrigger()),
+          h.OnBlur(Message.BlurredTrigger()),
+          h.OnKeyDownPreventDefault(handleTriggerKeyDown),
+          h.OnPointerDown(handleTriggerPointerDown),
+        ]),
+  ]
 
-    const panelAttributes = [
-      h.Id(panelId(id)),
-      h.Role('tooltip'),
-      h.Style({
-        position: 'absolute',
-        margin: '0',
-        visibility: 'hidden',
-        pointerEvents: 'none',
-      }),
-      h.OnMount(AnchorTooltip({ buttonId: triggerId(id), anchor })),
-      ...(isOpen ? [h.DataAttribute('open', '')] : []),
-    ]
+  const panelAttributes = [
+    h.Id(panelId(id)),
+    h.Role('tooltip'),
+    h.Style({
+      position: 'absolute',
+      margin: '0',
+      visibility: 'hidden',
+      pointerEvents: 'none',
+    }),
+    h.OnMount(AnchorTooltip({ buttonId: triggerId(id), anchor })),
+    ...(isOpen ? [h.DataAttribute('open', '')] : []),
+  ]
 
-    return toView({
-      trigger: childAttributes(triggerAttributes),
-      panel: childAttributes(panelAttributes),
-      isVisible: isOpen,
-    })
-  },
-)
+  return toView({
+    trigger: childAttributes(triggerAttributes),
+    panel: childAttributes(panelAttributes),
+    isVisible: isOpen,
+  })
+})

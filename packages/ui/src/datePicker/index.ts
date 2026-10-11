@@ -3,6 +3,7 @@ import * as Calendar from 'foldkit/calendar'
 import type { CalendarDate } from 'foldkit/calendar'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 import { type Reflect, defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
@@ -112,6 +113,8 @@ export const EffectsLayer = Layer.mergeAll(
 
 /** Mount Definitions rendered by DatePicker's Popover child. */
 export const mounts = Popover.mounts
+
+type MountRequirements = Mount.RequirementsOf<typeof mounts>
 
 const dropCalendarToDays = Update.makeStep((model: Model) => ({
   model: modifyFields(model, { calendar: UiCalendar.dropToDays }),
@@ -357,7 +360,7 @@ export type ViewInputs = Readonly<{
  * embedded Calendar and Popover components into one flat API. Consumers
  * provide the trigger face and the calendar grid layout, DatePicker handles
  * focus choreography, open/close state, and form submission. */
-export const view = defineView<Model, Message, ViewInputs>(
+export const view = defineView<Model, Message, ViewInputs, MountRequirements>(
   (model, viewInputs, h): Html => {
     const {
       anchor,

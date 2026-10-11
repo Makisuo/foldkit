@@ -16,13 +16,22 @@ The counter's update function has only changed the count so far. Add a button th
 
 ::Snippet{name="counterCommands" label="Counter with a delayed reset"}
 
+:::Info{label="Why function*?"}
+`handler` accepts a JavaScript generator function. Foldkit applies `Effect.gen` internally to construct the function that executes the Command.
+
+There are two phases:
+
+- **Construction:** the generator runs once when the application Layer builds. It can use `yield*` to obtain stable services, then returns the invocation function.
+- **Execution:** the returned function runs for each Command, receives its args, and performs the work. The one-second timer in this example starts here.
+
+When construction has no setup work, the generator simply returns the invocation function without using `yield*`. Accepting the generator directly lets TypeScript infer the returned function's args from the Schemas in the same definition, including when the constructor obtains services.
+:::
+
 Three pieces connect the work to update:
 
 - `Command.define` names `WaitBeforeReset`, declares the Messages it can produce, and stores its handler constructor in `config.handler`. The returned handler waits one second, then produces `CompletedWaitBeforeReset`.
 - `WaitBeforeReset.layer` is the Layer recipe for that handler.
 - `WaitBeforeReset()` creates the Command value that update returns. Creating that value does not start the timer.
-
-`config.handler` is a generator constructor. Foldkit applies `Effect.gen` internally, builds the invocation function once, and exposes its Layer recipe for application assembly. Return the invocation function directly from the generator when construction has no setup work.
 
 `Update.make` infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
 

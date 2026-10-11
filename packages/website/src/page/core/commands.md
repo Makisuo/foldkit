@@ -25,6 +25,8 @@ There are two phases:
 - **Execution:** the returned function runs for each Command, receives its args, and performs the work. The one-second timer in this example starts here.
 
 When construction has no setup work, the generator simply returns the invocation function without using `yield*`. Accepting the generator directly lets TypeScript infer the returned function's args from the Schemas in the same definition, including when the constructor obtains services.
+
+Constructors prepare execution machinery. Application state and workflow decisions belong in the Model and update. [State in handlers](/core/layers#state-in-handlers) explains which state a handler can own.
 :::
 
 Three pieces connect the work to update:
@@ -127,6 +129,8 @@ When a handler has no dependencies or setup, return it directly from `function* 
 Omit `handler` when the definition is a contract whose implementation belongs to an external host. That definition has no `.layer`. The host calls `toLayer` with its implementation Effect at its assembly boundary. [Host implementations for reusable features](/core/layers#host-implementations-for-reusable-features) shows an editor declaring a save operation that its host implements. It also accepts an alternative handler when a focused test deliberately replaces the entire handler. Most execution tests keep `.layer` and replace the HTTP, storage, RPC, clock, or browser service beneath it.
 
 Keep changing values inside the invocation. Command args, the current time, and an active ManagedResource handle belong to the operation that uses them. Capturing a value in the constructor gives it application lifetime. [Layers](/core/layers) explains acquisition and provider lifetimes in depth.
+
+A handler can own execution bookkeeping, such as a resource pool or worker response callbacks. Keep user-visible pending work, selections, and submission rules in the Model. [State in handlers](/core/layers#state-in-handlers) covers state ownership and scoped preparation.
 
 ### Naming and Composition
 

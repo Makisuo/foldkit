@@ -72,6 +72,31 @@ The same editor could be used inside a publishing application whose host saves t
 
 Use a host implementation when the operation's behavior belongs to the host. If the feature owns the save workflow and its result mapping, attach its constructor and let the host provide the storage or API service beneath that handler. Ordinary execution tests retain whichever handler the application uses and substitute its underlying services.
 
+## State in Handlers
+
+Handlers and services can own mutable execution bookkeeping. The Model owns the application state used by update and view. Pass per-dispatch inputs through Command args, and report results through Messages so update can change the Model.
+
+For an asset editor, the Model records the requested thumbnail jobs and their results. A handler can own the worker pool that performs those jobs. The workers' availability controls how the work executes; update decides which jobs to request.
+
+| State                                         | Owner                                                                              |
+| --------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Worker availability and lease bookkeeping     | A handler's resource pool, or a shared service                                     |
+| Worker request IDs and response callbacks     | The worker client's protocol bookkeeping                                           |
+| Cached deterministic calculations             | A handler or service, with cache keys covering every input that affects the result |
+| Selected document and submitted form contents | The Model, passed to the Command through args                                      |
+| Pending thumbnail jobs and their results      | The Model, updated through result Messages                                         |
+| Whether the user may submit another message   | The Model and update                                                               |
+
+An `isSending` Ref in a handler that rejects another `SendMessage` invocation hides a submission rule from the Model. A Story can observe two submissions each returning a Command while the running handler rejects one using state that update never sees. Represent the request state as Model variants such as `Idle` and `Sending`. Let update decide whether a submission returns a Command, and handle its success or failure Message to leave `Sending`.
+
+Moving that flag into a service leaves the application decision outside the Model. Stateful clients can manage connections, protocol correlation, and resource availability; application workflow transitions belong in update. An ongoing external event source belongs in a [Subscription](/core/subscriptions), rather than a background constructor task that advances application state independently.
+
+### Preparing Execution Resources
+
+A constructor can create an operation-specific pool with `Pool.make` or acquire a private resource with `Effect.acquireRelease`. Those resources belong to the application Layer's Scope and release when the application stops. For pooled resources, register each item's cleanup in its acquisition Effect. Put a pool used by several handlers in a shared service. Keep concrete platform providers selectable at root; a handler can obtain a resource factory service there and prepare its own machinery.
+
+Constructors run during application startup even when their handlers are never invoked. Acquisition that fails in the constructor fails startup before a Model exists. When loading, failure, or retry needs to appear in the UI, perform that work in a Command invocation or a [ManagedResource](/core/managed-resources) and report the outcome through Messages. Resources that exist only while a Model condition holds belong in a ManagedResource; work tied to a live element belongs in a [Mount](/core/mount).
+
 ## Choosing the Lifetime
 
 Put a value in the scope that owns its start and stop:
@@ -134,4 +159,4 @@ The provider Layer and its handler Layers live for the application runtime. Reso
 
 Some component factories own instance-specific effects. `Slider.forRoot(name, getTrackRoot)` returns that instance's `subscriptions` and `EffectsLayer`. `Toast.make(name, payloadSchema)` returns its typed component module with the same two exports. Compose them at the feature boundary that owns the factory instance.
 
-Mount registration is separate from providing a Mount handler Layer because view and `Html` have no Effect requirement parameter. Registering a Mount tells `Application.make` which handler requirements may appear in the rendered tree. A registered Mount that never appears in the view is inert: Foldkit performs no setup and installs no behavior for it.
+Mount registration is separate from providing a Mount handler Layer because view and `Html` have no Effect requirement parameter. Registering a Mount tells `Application.make` which handler requirements may appear in the rendered tree. Registration starts no element-scoped work until the Mount appears in the view. Its included handler Layer builds at application startup.

@@ -354,6 +354,8 @@ export const view = Submodel.defineView<
 
 `void` is the existing default for `ViewInputs`; substitute the child's inputs type when it has one. The parent collects the child's `mounts` with its own and provides the child's `EffectsLayer`. TypeScript checks that the parent builder allows every Mount required by the child view before `h.submodel` can embed it. Views with no Mounts keep their existing signatures, and their `Html` result type is unchanged.
 
+When several helpers share a mounted view path, export one `HtmlBuilder` type from the owning module, derived from its Message type and inferred `mounts` registry. Helpers then use `h: HtmlBuilder`, or `h: Chart.HtmlBuilder` through a module namespace import. Application assembly includes those exported registrations. This preserves the registration check without repeating the Mount contract in every helper signature; pure helpers keep the framework's `HtmlBuilder<Message>`.
+
 Let TypeScript infer Mount registration arrays and composed spreads. An annotation such as `ReadonlyArray<Mount.LayeredMountDefinition>` erases the definition contracts and is rejected at application assembly. If forwarded attribute arrays need an explicit type, preserve the requirements as `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>`. `childAttributes` and `CustomElement.withMessage(h)` preserve the requirements automatically.
 
 ### Typed CustomElement builders

@@ -8,7 +8,7 @@ import { GitHubApiLayer } from './githubApi'
 import { NpmApiLayer } from './npmApi'
 import { MountChart } from './view'
 
-export const mounts = [MountChart]
+export { mounts } from './view'
 
 const TelemetryApisLayer = Layer.mergeAll(GitHubApiLayer, NpmApiLayer)
 

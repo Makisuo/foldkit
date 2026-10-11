@@ -82,13 +82,13 @@ Registering a Mount that the view never renders starts no element lifecycle, lis
 
 ### Mount Requirements in Reusable Views
 
-An inline application view receives a builder whose allowed Mounts are inferred from the registrations. An exported view must preserve its required Mounts in its signature. Use `HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>` for a plain view function, or the fourth type parameter of `Submodel.defineView` for a branded child view:
+An inline application view receives a builder whose allowed Mounts are inferred from the registrations. An exported view preserves its required Mounts in its signature. When several helpers share a mounted view path, export one `HtmlBuilder` type from the owning module, derived from its Message type and inferred `mounts` registry. Those helpers use `h: HtmlBuilder`, or `h: Chart.HtmlBuilder` through a module namespace import. A branded child view preserves the same requirements in the fourth type parameter of `Submodel.defineView`:
 
 ::Snippet{name="mountSubmodelView" label="Preserving a Submodel view's Mount requirements"}
 
 The parent must include the child's `mounts` in its application registrations before its builder can embed this view with `h.submodel`. The third type parameter is `void` because this view has no `ViewInputs`. A child with inputs uses its `ViewInputs` type there instead.
 
-Only views that attach a Mount or embed a view requiring Mounts need the extra parameter. Keep ordinary views as `HtmlBuilder<Message>` or `Submodel.defineView<Model, Message>`. The returned `Html` type stays the same.
+The owner derives its builder type from its inferred `mounts` export, and application assembly includes those exported registrations. Missing registrations still fail at the application boundary, and helpers cannot attach Mounts outside their builder's declared set. Keep pure helpers on the framework's `HtmlBuilder<Message>` and pure child views as `Submodel.defineView<Model, Message>`. The returned `Html` type stays the same.
 
 Let TypeScript infer `mounts` arrays and composed spreads. Widening the array to `ReadonlyArray<Mount.LayeredMountDefinition>` discards the contracts required for registration checking, so application assembly rejects it. Forwarded attribute arrays preserve the same evidence: use `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>` when an explicit annotation is necessary. `childAttributes` infers those requirements from its input, and `CustomElement.withMessage(h)` retains the builder's allowed Mounts.
 

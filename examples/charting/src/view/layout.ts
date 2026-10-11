@@ -1,5 +1,5 @@
 import { Array, Option } from 'effect'
-import { AsyncData, type Mount } from 'foldkit'
+import { AsyncData } from 'foldkit'
 import type { Html } from 'foldkit/html'
 import { HtmlBuilder } from 'foldkit/html'
 
@@ -8,7 +8,7 @@ import { Button } from '@foldkit/ui'
 import type { Telemetry } from '../domain'
 import { Message } from '../message'
 import type { Model } from '../model'
-import { MountChart, chartPanelView } from './chart'
+import * as Chart from './chart'
 import { sidebarView } from './sidebar'
 
 export const headerView = (model: Model, h: HtmlBuilder<Message>): Html => {
@@ -80,10 +80,7 @@ const dashboardBanner = (
       }),
   })
 
-export const telemetryStateView = (
-  model: Model,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof MountChart>>,
-): Html =>
+export const telemetryStateView = (model: Model, h: Chart.HtmlBuilder): Html =>
   AsyncData.matchData(model.telemetry, {
     onEmpty: () => loadingView(h),
     onFailure: error => failureView(error, h),
@@ -160,7 +157,7 @@ export const dashboardShellView = (
   model: Model,
   telemetry: Telemetry,
   maybeBanner: Option.Option<string>,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof MountChart>>,
+  h: Chart.HtmlBuilder,
 ): Html =>
   h.section(
     [
@@ -170,6 +167,6 @@ export const dashboardShellView = (
     ],
     [
       sidebarView(model, telemetry, maybeBanner, h),
-      chartPanelView(model, telemetry, h),
+      Chart.chartPanelView(model, telemetry, h),
     ],
   )

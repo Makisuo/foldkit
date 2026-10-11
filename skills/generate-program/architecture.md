@@ -378,6 +378,8 @@ export const EffectsLayer = MeasurePanel.layer
 
 The view uses `h.OnMount(MeasurePanel())`. Its builder has type `HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>`; a branded Submodel view uses `Submodel.defineView<Model, Message, void, Mount.RequirementsOf<typeof mounts>>`. Replace `void` with `ViewInputs` when the view has inputs. Only views that attach Mounts or embed mounted child views need the extra requirement. Carry `mounts` into `Application.make` and `EffectsLayer` into `AppLayer`. Keep registration arrays inferred, and retain requirements in explicit forwarded attribute annotations with `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>`. A component that renders Mounts exports both from its owning Submodel boundary. Use `Mount.defineStream` when the element supplies an ongoing event Stream; keep listener or observer acquisition and cleanup inside the returned Stream so each element owns its own scope.
 
+When several helpers share a mounted view path, export one `HtmlBuilder` type from the owning module, derived from its Message type and inferred `mounts` registry. Helpers then use `h: HtmlBuilder`, or `h: Chart.HtmlBuilder` through a module namespace import. Application assembly includes those exported registrations. Pure helpers retain the framework's `HtmlBuilder<Message>`.
+
 Direct `Subscription.aggregate(first, second)` preserves each Subscription definition's key and Message contract. The curried `Subscription.aggregate<Model, Message>()(...records)` form intentionally exposes one broad record type at an explicit module boundary. Keep the direct form while the application composes known Submodel records.
 
 ## The Submodel Pattern

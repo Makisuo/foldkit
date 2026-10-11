@@ -1,5 +1,6 @@
 import { Effect, Schema } from 'effect'
 import { Mount, Submodel } from 'foldkit'
+import type { HtmlBuilder as FoldkitHtmlBuilder, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Model = Schema.Struct({ label: Schema.String })
@@ -25,9 +26,16 @@ const MeasurePanel = Mount.define('MeasurePanel', {
 export const mounts = [MeasurePanel]
 export const EffectsLayer = MeasurePanel.layer
 
+type MountRequirements = Mount.RequirementsOf<typeof mounts>
+
+export type HtmlBuilder = FoldkitHtmlBuilder<Message, MountRequirements>
+
+const panelView = (model: Model, h: HtmlBuilder): Html =>
+  h.div([h.OnMount(MeasurePanel())], [model.label])
+
 export const view = Submodel.defineView<
   Model,
   Message,
   void,
-  Mount.RequirementsOf<typeof mounts>
->((model, h) => h.div([h.OnMount(MeasurePanel())], [model.label]))
+  MountRequirements
+>((model, h) => panelView(model, h))

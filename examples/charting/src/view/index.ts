@@ -1,3 +1,3 @@
 export { view } from './view'
 
-export { MountChart } from './chart'
+export { MountChart, mounts, type HtmlBuilder } from './chart'

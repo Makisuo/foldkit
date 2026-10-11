@@ -1,8 +1,7 @@
 import * as echarts from 'echarts/core'
 import { Effect, Option, Queue, Schema, Stream, pipe } from 'effect'
 import { Mount } from 'foldkit'
-import type { Html } from 'foldkit/html'
-import { HtmlBuilder } from 'foldkit/html'
+import type { HtmlBuilder as FoldkitHtmlBuilder, Html } from 'foldkit/html'
 
 import { removeChart, setChart } from '../chartHost'
 import type { Telemetry } from '../domain'
@@ -126,10 +125,17 @@ export const MountChart = Mount.defineStream('MountChart', {
   },
 })
 
+export const mounts = [MountChart]
+
+export type HtmlBuilder = FoldkitHtmlBuilder<
+  Message,
+  Mount.RequirementsOf<typeof mounts>
+>
+
 export const chartPanelView = (
   model: Model,
   telemetry: Telemetry,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof MountChart>>,
+  h: HtmlBuilder,
 ): Html =>
   h.section(
     [
@@ -150,7 +156,7 @@ export const chartPanelView = (
 export const chartFooterView = (
   model: Model,
   telemetry: Telemetry,
-  h: HtmlBuilder<Message>,
+  h: FoldkitHtmlBuilder<Message>,
 ): Html =>
   h.div(
     [
@@ -185,7 +191,10 @@ export const chartFooterLabel = (model: Model, telemetry: Telemetry): string =>
       )} open pull requests`,
   )
 
-export const chartStatusView = (model: Model, h: HtmlBuilder<Message>): Html =>
+export const chartStatusView = (
+  model: Model,
+  h: FoldkitHtmlBuilder<Message>,
+): Html =>
   Option.match(model.maybeChartError, {
     onNone: () =>
       h.div([h.Class('text-xs font-medium text-emerald-700')], ['Chart ready']),

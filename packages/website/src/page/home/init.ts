@@ -14,7 +14,6 @@ export const init = () => {
 
   return {
     model: Model.make({
-      aiHeadingToggleCount: 0,
       demoTabs: Tabs.init({ id: 'demo-tabs' }),
       activeDemoTab,
       playgroundMenu: Menu.init({

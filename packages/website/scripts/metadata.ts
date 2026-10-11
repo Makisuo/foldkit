@@ -234,7 +234,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreRuntime: core(
     'Runtime',
-    'Configure a page-owning application with makeApplication, or mount a reusable widget with makeElement and embed.',
+    'Configure a page-owning application with Application.make, or mount a reusable widget with Application.makeElement and Runtime.embed.',
   ),
   CoreServerRendering: core(
     'Server Rendering',

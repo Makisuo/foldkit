@@ -2,6 +2,7 @@ import { clsx } from 'clsx'
 import { HashMap, HashSet, Option, Predicate } from 'effect'
 import { Mount } from 'foldkit'
 import { type HtmlBuilder } from 'foldkit/html'
+import { twMerge } from 'tailwind-merge'
 
 import { Disclosure } from '@foldkit/ui'
 
@@ -41,8 +42,17 @@ export const renderer =
       Mount.RequirementsOf<typeof MeasureSnippetHeight>
     >,
   ): CodeBlock.RenderSnippet =>
-  ({ id, title, content, rawCode, copyAriaLabel, className }) => {
-    const isOpen = HashSet.has(model.openSnippetIds, id)
+  ({
+    id,
+    disclosureGroupId,
+    title,
+    content,
+    rawCode,
+    copyAriaLabel,
+    className,
+  }) => {
+    const disclosureId = disclosureGroupId ?? id
+    const isOpen = HashSet.has(model.openDisclosureIds, disclosureId)
     const isCollapsible = isMeasuredToOverflow(model, id, rawCode)
     const hasTitle = Predicate.isNotUndefined(title)
     const titleId = `${id}-title`
@@ -87,7 +97,7 @@ export const renderer =
       ...(hasTitle ? [h.DataAttribute('llm-label', title)] : []),
       ...(hasTitle ? [h.AriaLabelledBy(titleId)] : []),
       h.Class(
-        clsx(
+        twMerge(
           'code-surface relative mt-6 min-w-0 overflow-clip rounded-lg border border-gray-200 dark:border-gray-700/50',
           className,
         ),
@@ -108,7 +118,10 @@ export const renderer =
         isOpen,
         onToggle: nextIsOpen =>
           toParentMessage(
-            Message.ToggledSnippet({ snippetId: id, isOpen: nextIsOpen }),
+            Message.ToggledCodeDisclosure({
+              disclosureId,
+              isOpen: nextIsOpen,
+            }),
           ),
         toView: ({ button, panel, animatePanel }) =>
           shell(shellAttributes, [
@@ -138,18 +151,30 @@ export const renderer =
                 h.div(
                   [
                     h.Class(
-                      'pointer-events-none inset-x-0 sticky bottom-0 z-10 flex h-0 -translate-y-3 items-start justify-center',
+                      'pointer-events-none absolute inset-x-0 top-2 bottom-0 flex flex-col justify-end',
                     ),
                   ],
                   [
-                    h.button(
+                    h.div(
                       [
-                        ...button,
                         h.Class(
-                          'pointer-events-auto -translate-y-full cursor-pointer whitespace-nowrap rounded-full border border-gray-300 bg-[var(--code-background)] px-3.5 py-1.5 text-sm font-normal text-gray-700 shadow-sm transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800 dark:focus-visible:outline-accent-400',
+                          clsx(
+                            'z-10 flex h-12 items-center justify-center',
+                            isOpen && 'sticky bottom-0',
+                          ),
                         ),
                       ],
-                      [isOpen ? 'Hide code' : 'Show code'],
+                      [
+                        h.button(
+                          [
+                            ...button,
+                            h.Class(
+                              'pointer-events-auto cursor-pointer whitespace-nowrap rounded-full border border-gray-300 bg-[var(--code-background)] px-3.5 py-1.5 text-sm font-normal text-gray-700 shadow-sm transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800 dark:focus-visible:outline-accent-400',
+                            ),
+                          ],
+                          [isOpen ? 'Hide code' : 'Show code'],
+                        ),
+                      ],
                     ),
                   ],
                 ),

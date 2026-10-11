@@ -7,13 +7,6 @@ import { Message } from './message'
 import { Home, Playground, Ui } from './page'
 import * as Subscriptions from './subscription'
 
-const homeSubscriptions = Subscription.lift(Home.subscriptions)<Model, Message>(
-  {
-    read: model => model.maybeHome,
-    toParentMessage: message => Message.GotHomeMessage({ message }),
-  },
-)
-
 const uiPagesSubscriptions = Subscription.lift(Ui.subscriptions)<
   Model,
   Message
@@ -24,7 +17,6 @@ const uiPagesSubscriptions = Subscription.lift(Ui.subscriptions)<
 
 export const subscriptions = Subscription.aggregate(
   Subscriptions.ActiveSection.subscriptions,
-  homeSubscriptions,
   uiPagesSubscriptions,
   Subscriptions.SearchShortcut.subscriptions,
   Subscriptions.SystemTheme.subscriptions,
@@ -73,7 +65,7 @@ export const makeApplication = (container: HTMLElement | null) =>
       show: 'Always',
       mode: { development: 'TimeTravel', production: 'Inspect' },
       banner:
-        'Welcome to Foldkit DevTools. This site runs on Foldkit. Navigate around or interact with the page and every action appears here as a Message. Click any row to see the Model state it produced.',
+        'Welcome to Foldkit DevTools. This site runs on Foldkit. Select a recorded Message to inspect its payload, Model changes, returned Commands, and Mount activity. Browse earlier states in the timeline. In development, you can pause and resume the view, and AI agents can inspect the history through MCP.',
       Message,
     },
   })

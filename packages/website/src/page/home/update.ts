@@ -1,4 +1,4 @@
-import { Number, Option } from 'effect'
+import { Option } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
@@ -76,9 +76,6 @@ const foldNotePlayerDemo = Update.foldChild({
 
 export const update = Update.make((model: Model, message: Message) =>
   Message.match(message, {
-    ToggledAiHeading: () => ({
-      model: modifyFields(model, { aiHeadingToggleCount: Number.increment }),
-    }),
     GotDemoTabsMessage: ({ message }) => foldDemoTabs(model, message),
     GotPlaygroundMenuMessage: ({ message }) =>
       foldPlaygroundMenu(model, message),

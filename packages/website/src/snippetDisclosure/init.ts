@@ -2,7 +2,7 @@ import { HashMap, HashSet } from 'effect'
 
 export const init = () => ({
   model: {
-    openSnippetIds: HashSet.empty(),
+    openDisclosureIds: HashSet.empty(),
     snippetSizes: HashMap.empty(),
   },
 })

@@ -1,6 +1,6 @@
 # Commands
 
-## Overview
+## One-Shot Effects as Data {#overview}
 
 Have update return a Command when the Runtime should perform one-time work in response to a Message: make an HTTP request, wait before a reset, or focus a button. The Command describes the work as data. The Runtime performs it and dispatches its result as another Message. Update handles that Message to change the Model.
 
@@ -13,6 +13,10 @@ The [weather example](/example-apps/weather) connects form input, Command args, 
 ## Anatomy of a Command
 
 The counter's update function has only changed the count so far. Add a button that resets it after one second. Put this application code in `main.ts`:
+
+### Definition Fields
+
+`Command.define` gives the work a name and a result contract. This example keeps the definition and its handler together:
 
 ::Snippet{name="counterCommands" label="Counter with a delayed reset"}
 
@@ -51,6 +55,8 @@ When the user clicks **Reset after one second**, the loop is:
 
 The Runtime builds the Layer once when the application starts. Later Command executions reuse its handler; each execution starts its own timer.
 
+### Command and Result Names
+
 Command names are verb-first imperatives such as `FetchWeather`, `FocusItems`, and `LockScroll`. Name the effect performed by the handler. Here, `WaitBeforeReset` waits; the later update branch resets the count. Result Messages use `Completed` for ordinary completion, or `Succeeded` and `Failed` when the distinction matters: `CompletedWaitBeforeReset`, `SucceededFetchWeather`, and `FailedFetchWeather`.
 
 ## Testing Update Decisions {#testable-by-design}
@@ -81,6 +87,8 @@ Network work follows the same loop. This excerpt also uses the counter's Model. 
 
 ::Snippet{name="counterHttpCommand" label="Fetching and decoding a count"}
 
+### Handling Request Results
+
 The `FetchCount` handler captures the application's `HttpClient` when its Layer is built. `fetchCount` constructs the request, checks for a successful status, and decodes the JSON with Schema. It produces `SucceededFetchCount` with the decoded count. Update then puts that value in the Model.
 
 `Effect.catch` converts request, status, and decoding failures into `FailedFetchCount`. A failed request becomes a fact for update to handle. This small counter keeps its current count on failure; an application can store an error state and render a retry button in that branch.
@@ -102,7 +110,7 @@ The two Layers serve different purposes:
 
 This tutorial names the individual provider `FetchCountLayer` because both root composition and the direct execution test reuse it. In ordinary feature assembly, compose `FetchCount.layer` directly in `EffectsLayer`. For an execution test, keep that real handler and provide a deterministic HTTP client beneath it. The request and result handling then run as they do in the application.
 
-### Providing Services
+### Providing the HTTP Client
 
 Compose the HTTP provider beneath the handler at the application root:
 
@@ -208,6 +216,8 @@ The next update belongs to a search feature. Its Model holds the query, suggesti
 
 The first `UpdatedQuery` received while a request runs increments `generation`, enters `Cancelling`, and returns one Interrupt. Incrementing the generation makes the old request's result stale before cancellation begins. More query changes replace `model.query` without dispatching another Interrupt. When cancellation completes, update reads the latest query and returns one replacement with the current generation.
 
+#### Rejecting Stale Results
+
 The result Message does not carry the outcome because `Interrupted` and `NotFound` mean the same thing here: the key is free. Each request carries its generation so a result that finished just before `NotFound` cannot overwrite newer suggestions, even when the user returns to the same query.
 
 ### Recording Why Cancellation Happened
@@ -218,7 +228,11 @@ Use a different result Message when cancellation records a different fact. Click
 
 The Message records why cancellation completed; update chooses the follow-up. Data needed for that decision, such as `uploadId` or the newly selected file, belongs in the payload. Avoid adding a second behavior tag to one result Message.
 
+#### Shared Cancellation Results
+
 Use one result Message when the meaning is the same. A per-row Cancel button and Cancel all both record `CompletedCancelUploadFile`; they only differ in how many keys they interrupt.
+
+#### Changing Intent During Cancellation
 
 If the desired follow-up can change before the Interrupt completes, store that intent in the Model. For example, a `CancellingToStop | CancellingToReplace` union lets a later Message replace the intent. The cancellation result then reads the current variant instead of obeying a decision captured earlier.
 

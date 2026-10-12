@@ -32,7 +32,7 @@ const frameSubscription = Subscription.make<Model, Message>()(entry => ({
       handler: function* () {
         return ({ isActive }) =>
           Stream.when(
-            Dom.streamFromAnimationFrame().pipe(
+            Dom.animationFrameTicks.pipe(
               Stream.map(deltaTimeMs => Message.TickedFrame({ deltaTimeMs })),
             ),
             Effect.sync(() => isActive),

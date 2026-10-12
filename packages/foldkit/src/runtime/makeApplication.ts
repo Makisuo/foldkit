@@ -405,13 +405,15 @@ type ValidUpdate<Model, Update> = Update extends (
     : never
   : never
 
-/** Creates a self-contained Foldkit application that owns the page and returns
+/**
+ * Creates a self-contained Foldkit application that owns the page and returns
  *  a runtime that can be passed to `run`. The `view` returns a `Document`, so
  *  the runtime manages `document.title` and the canonical / og:url tags. Add a
  *  `routing` config for URL routing. Use one page-owning application per
  *  document. Use `Application.make` when Commands, Flags, Subscriptions,
  *  Mounts, or ManagedResources need services. To mount an app scoped to a node
- *  without touching the document `<head>`, use `makeElement`. */
+ *  without touching the document `<head>`, use `makeElement`.
+ */
 export function makeApplication<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,

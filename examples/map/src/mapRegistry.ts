@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option } from 'effect'
+import { Context, Effect, HashMap, Layer, Option, Ref } from 'effect'
 import type { Map as MapInstance } from 'maplibre-gl'
 
 type MapRegistryShape = Readonly<{
@@ -14,20 +14,27 @@ export class MapRegistry extends Context.Service<
 
 export const MapRegistryLayer = Layer.effect(
   MapRegistry,
-  Effect.sync(() => {
-    const instancesByHostId = new Map<string, MapInstance>()
+  Effect.gen(function* () {
+    const instancesByHostId = yield* Ref.make(
+      HashMap.empty<string, MapInstance>(),
+    )
 
     return {
       get: hostId =>
-        Effect.sync(() => Option.fromNullishOr(instancesByHostId.get(hostId))),
+        Ref.get(instancesByHostId).pipe(Effect.map(HashMap.get(hostId))),
       set: (hostId, instance) =>
-        Effect.sync(() => {
-          instancesByHostId.set(hostId, instance)
-        }),
+        Ref.update(instancesByHostId, HashMap.set(hostId, instance)),
       remove: (hostId, instance) =>
-        Effect.sync(() => {
-          if (instancesByHostId.get(hostId) === instance) {
-            instancesByHostId.delete(hostId)
+        Ref.update(instancesByHostId, instances => {
+          const maybeInstance = HashMap.get(instances, hostId)
+
+          if (
+            Option.isSome(maybeInstance) &&
+            maybeInstance.value === instance
+          ) {
+            return HashMap.remove(instances, hostId)
+          } else {
+            return instances
           }
         }),
     }

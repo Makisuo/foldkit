@@ -184,7 +184,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       handler: function* () {
         return ({ isActive }) =>
           isActive
-            ? Dom.streamFromAnimationFrame().pipe(
+            ? Dom.animationFrameTicks.pipe(
                 Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
               )
             : Stream.empty

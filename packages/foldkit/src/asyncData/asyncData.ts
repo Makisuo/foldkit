@@ -145,7 +145,8 @@ export type AsyncDataSchema<A, AI, E, EI> = Readonly<{
   Success: (payload: Readonly<{ data: A }>) => AsyncData<A, E>
 }>
 
-/** Builds the six-state `AsyncData` Schema for the given data and error
+/**
+ * Builds the six-state `AsyncData` Schema for the given data and error
  *  Schemas (value-first). Put `schema` in your Model; use the returned
  *  constructors when you want ones typed to this instance's `A` and `E`.
  *
@@ -194,7 +195,8 @@ export const Schema = <A, AI, E, EI>(
 
 // OPERATION
 
-/** Handles all six states exhaustively, passing each handler its unwrapped
+/**
+ * Handles all six states exhaustively, passing each handler its unwrapped
  *  payload. `onStale` alone receives the whole `{ error, data }` payload
  *  object because `Stale` carries two fields. Use `matchData` when the view
  *  does not care which of the data-bearing states it is rendering.
@@ -510,14 +512,16 @@ export const getOrElse: {
     Option.getOrElse(getData(self), onEmpty),
 )
 
-/** Collapses a possibly-missing cache entry to an AsyncData: `Some(entry)`
+/**
+ * Collapses a possibly-missing cache entry to an AsyncData: `Some(entry)`
  *  is the entry, `None` is `Idle`. The keyed-cache read idiom, where a key
  *  that was never fetched is simply absent and absence means nothing was
  *  requested yet:
  *
  *  ```ts
  * const notes = AsyncData.fromOptionOrIdle(HashMap.get(model.notesByNotebook, notebookId))
- * ``` */
+ * ```
+ */
 export const fromOptionOrIdle = <A, E>(
   maybeEntry: Option.Option<AsyncData<A, E>>,
 ): AsyncData<A, E> => Option.getOrElse(maybeEntry, () => Idle())
@@ -802,7 +806,8 @@ export const all: <
   return allRecord(inputs)
 }
 
-/** Folds a settled `Result` into the previous state, keeping the last good
+/**
+ * Folds a settled `Result` into the previous state, keeping the last good
  *  data: a `Result` success becomes `Success`, and a `Result` failure
  *  becomes `Stale({ error, data })` when `self` holds data, else a bare
  *  `Failure`. The primary way to fold a fetch back into the Model, and the

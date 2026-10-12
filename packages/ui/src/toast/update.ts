@@ -149,13 +149,15 @@ const documentStylesWhileSwiping = Stream.callback<never>(() =>
   ).pipe(Effect.flatMap(() => Effect.never)),
 )
 
-/** Factory that binds Toast's runtime (update fn, helpers, commands) to a
+/**
+ * Factory that binds Toast's runtime (update fn, helpers, commands) to a
  *  specific payload schema. Called by `make` in index.ts; inner helpers close
  *  over the payload-specific Entry / Model / Added types so generics don't
  *  have to propagate through every helper signature.
  *
  *  @internal Consumers should use `Toast.make(name, PayloadSchema)`. This is
- *  only exported so `index.ts` can wire the view into the bound runtime. */
+ *  only exported so `index.ts` can wire the view into the bound runtime.
+ */
 export const makeRuntime = <const Name extends string, A, I>(
   name: Name,
   payloadSchema: Schema.Codec<A, I>,

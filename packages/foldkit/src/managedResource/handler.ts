@@ -5,9 +5,11 @@ declare const HandlerTypeId: unique symbol
 type Invariant<Value> = (value: Value) => Value
 type AnyHandler = Readonly<{ readonly [HandlerTypeId]: unknown }>
 
-/** The service required by a ManagedResource whose lifecycle is supplied by a
+/**
+ * The service required by a ManagedResource whose lifecycle is supplied by a
  * Layer. Its name, decoded acquire params, and resource value identify the
- * handler contract. */
+ * handler contract.
+ */
 export interface Handler<Name extends string, Params, Value> {
   readonly [HandlerTypeId]: Readonly<{
     name: Invariant<Name>
@@ -16,8 +18,10 @@ export interface Handler<Name extends string, Params, Value> {
   }>
 }
 
-/** Extracts the exact lifecycle handler requirement carried by a
- * ManagedResource entry. */
+/**
+ * Extracts the exact lifecycle handler requirement carried by a
+ * ManagedResource entry.
+ */
 export type HandlerOf<
   Entry extends {
     acquire: (...args: ReadonlyArray<any>) => Effect.Effect<any, any, any>

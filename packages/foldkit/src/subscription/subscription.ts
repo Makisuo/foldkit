@@ -63,9 +63,11 @@ type Entry<Model, Message, Dependencies, Services = never> =
   | EntryWithoutKeepAlive<Model, Message, Dependencies, Services>
   | EntryWithKeepAlive<Model, Message, Dependencies, Services>
 
-/** A Subscription entry whose Stream implementation is supplied by a Layer.
+/**
+ * A Subscription entry whose Stream implementation is supplied by a Layer.
  * `messages` declares the schemas the handler Stream may emit; `toLayer`
- * accepts only that Message union. */
+ * accepts only that Message union.
+ */
 export type LayeredEntryWithoutKeepAlive<
   Name extends string,
   Model,
@@ -84,8 +86,10 @@ export type LayeredEntryWithoutKeepAlive<
     toLayer: ToLayerWithoutKeepAlive<Name, Dependencies, Message>
   }>
 
-/** A keep-alive Subscription entry whose Stream implementation is supplied by
- * a Layer. Its declared `messages` constrain the handler Stream output. */
+/**
+ * A keep-alive Subscription entry whose Stream implementation is supplied by
+ * a Layer. Its declared `messages` constrain the handler Stream output.
+ */
 export type LayeredEntryWithKeepAlive<
   Name extends string,
   Model,
@@ -909,8 +913,10 @@ export const lift =
       toLiftedEntry(subscription, config, toEntryWhen(config.when, key)),
     ) as any
 
-/** @internal A declared Subscription Message and the lift chain production
- * applies before dispatching it to the root update. */
+/**
+ * @internal A declared Subscription Message and the lift chain production
+ * applies before dispatching it to the root update.
+ */
 export type MessageDeclaration = Readonly<{
   entry: Subscription<any, any, any, any>
   entryKey: string
@@ -918,8 +924,10 @@ export type MessageDeclaration = Readonly<{
   messageMappers: ReadonlyArray<(message: unknown) => unknown>
 }>
 
-/** @internal Reads Message declarations retained by `make`, `lift`, and
- * `aggregate` for Scene's Subscription boundary. */
+/**
+ * @internal Reads Message declarations retained by `make`, `lift`, and
+ * `aggregate` for Scene's Subscription boundary.
+ */
 export const __messageDeclarations = (
   subscriptions: Readonly<Record<string, Subscription<any, any, any, any>>>,
 ): ReadonlyArray<MessageDeclaration> => {

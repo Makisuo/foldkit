@@ -1,6 +1,7 @@
 export {
   ElementNotFound,
   advanceFocus,
+  animationFrameTicks,
   clickElement,
   closeDialog,
   detectElementMovement,
@@ -13,7 +14,6 @@ export {
   scrollIntoViewAfterPaint,
   scrollIntoViewIfNotVisible,
   showDialog,
-  streamFromAnimationFrame,
   streamFromEvent,
   streamFromEventFilterMap,
   streamFromEventFilterMapPreventDefault,

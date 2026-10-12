@@ -94,13 +94,15 @@ export interface CustomElementConfig<
   readonly events: Events
 }
 
-/** A defined custom element, untyped on Message at definition time so the
+/**
+ * A defined custom element, untyped on Message at definition time so the
  *  spec can be exported and shared across modules. Call `.withMessage(h)`
  *  with a view's builder to mint a typed `ElementBuilder` bound to that
  *  frame's Message universe and registered Mount capabilities. The builder
  *  argument is a type witness: it fixes `Message` to the frame the element
  *  renders in, so the spec cannot be bound to a Message universe its events
- *  will not dispatch into. */
+ *  will not dispatch into.
+ */
 export interface CustomElementSpec<
   Tag extends string,
   Properties extends Record<string, Schema.Top>,
@@ -114,11 +116,13 @@ export interface CustomElementSpec<
   ) => ElementBuilder<Message, Properties, Events, AllowedMountRequirements>
 }
 
-/** The typed builder for a given spec and Message universe. Equivalent to
+/**
+ * The typed builder for a given spec and Message universe. Equivalent to
  *  the value `Spec.withMessage(h)` returns, expressed as a type
  *  consumers can name without reaching for `ReturnType<typeof ...>`. Supply
  *  the third parameter when the builder forwards mounted attributes, using
- *  `Mount.RequirementsOf<typeof mounts>` from the owning registrations. */
+ *  `Mount.RequirementsOf<typeof mounts>` from the owning registrations.
+ */
 export type Builder<Spec, Message, AllowedMountRequirements = never> =
   Spec extends CustomElementSpec<string, infer Properties, infer Events>
     ? ElementBuilder<Message, Properties, Events, AllowedMountRequirements>

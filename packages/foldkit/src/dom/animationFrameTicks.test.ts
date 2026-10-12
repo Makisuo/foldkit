@@ -1,13 +1,14 @@
 import { Array, Effect, Fiber, Stream } from 'effect'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { streamFromAnimationFrame } from './streamFromAnimationFrame.js'
-
 const START_TIME = 100
 const FIRST_FRAME_TIME = 116
 const SECOND_FRAME_TIME = 132
 const FIRST_FRAME_ID = 1
 const SECOND_FRAME_ID = 2
+
+const loadAnimationFrameTicks = async () =>
+  (await import('./animationFrameTicks.js')).animationFrameTicks
 
 const stubAnimationFrames = () => {
   const callbacks = new Map<number, FrameRequestCallback>()
@@ -43,22 +44,26 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('streamFromAnimationFrame', () => {
-  it('does not access the paint clock until the Stream starts', () => {
+describe('animationFrameTicks', () => {
+  it('does not start an animation loop until the Stream starts', async () => {
     const harness = stubAnimationFrames()
+    vi.resetModules()
 
-    const stream = streamFromAnimationFrame()
+    const animationFrameTicks = await loadAnimationFrameTicks()
 
-    expect(Stream.isStream(stream)).toBe(true)
-    expect(harness.currentTime).not.toHaveBeenCalled()
+    expect(Stream.isStream(animationFrameTicks)).toBe(true)
     expect(harness.requestFrame).not.toHaveBeenCalled()
   })
 
   it('gives concurrent subscribers independent elapsed times and cleanup', async () => {
     const harness = stubAnimationFrames()
-    const stream = streamFromAnimationFrame()
-    const first = Effect.runFork(Stream.runCollect(Stream.take(stream, 1)))
-    const second = Effect.runFork(Stream.runCollect(Stream.take(stream, 1)))
+    const animationFrameTicks = await loadAnimationFrameTicks()
+    const first = Effect.runFork(
+      Stream.runCollect(Stream.take(animationFrameTicks, 1)),
+    )
+    const second = Effect.runFork(
+      Stream.runCollect(Stream.take(animationFrameTicks, 1)),
+    )
 
     try {
       await vi.waitFor(() => expect(harness.callbacks.size).toBe(2))
@@ -85,16 +90,16 @@ describe('streamFromAnimationFrame', () => {
 
   it('cancels the pending frame on interruption without stopping another subscriber', async () => {
     const harness = stubAnimationFrames()
-    const stream = streamFromAnimationFrame()
+    const animationFrameTicks = await loadAnimationFrameTicks()
     const received: Array<number> = []
     const first = Effect.runFork(
-      Stream.runForEach(stream, elapsed =>
+      Stream.runForEach(animationFrameTicks, elapsed =>
         Effect.sync(() => {
           received.push(elapsed)
         }),
       ),
     )
-    const second = Effect.runFork(Stream.runDrain(stream))
+    const second = Effect.runFork(Stream.runDrain(animationFrameTicks))
 
     try {
       await vi.waitFor(() => expect(harness.callbacks.size).toBe(2))

@@ -124,7 +124,8 @@ const DEFAULT_ARIA_LABEL = 'Notifications'
 
 const LEFT_MOUSE_BUTTON = 0
 
-/** Factory that binds `Toast` to a stable instance name and user-provided
+/**
+ * Factory that binds `Toast` to a stable instance name and user-provided
  *  payload schema. The name identifies this instance's Subscription handlers,
  *  so every Toast instance in an application must use a distinct name. The
  *  returned module contains everything needed to wire a toast stack into an

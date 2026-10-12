@@ -10,7 +10,7 @@ The declared Message Schemas constrain the attached handler and external `toLaye
 
 Remove uses of `Subscription.persistentEntry`, `Subscription.animationFrameEntry`, and `Port.subscriptionEntry`. Define ordinary named entries instead. Replace `Subscription.persistentEntry(stream)` with `entry(name, { messages, handler: function* () { return () => stream } })`, then provide the entry's `.layer`.
 
-For an animation frame entry whose Model has `isPlaying`, migrate the helper to a dependency-bearing entry. Map the cold Stream returned by `Dom.streamFromAnimationFrame()` to the entry's Message in its handler. The raw browser source belongs to `Dom`; the Subscription owns its Model condition and Message mapping. Each subscriber owns its animation loop and cancels the pending frame request when its scope closes.
+For an animation frame entry whose Model has `isPlaying`, migrate the helper to a dependency-bearing entry. Map the cold `Dom.animationFrameTicks` Stream to the entry's Message in its handler. The raw browser source belongs to `Dom`; the Subscription owns its Model condition and Message mapping. Each subscriber owns its animation loop and cancels the pending frame request when its scope closes.
 
 **Before**
 
@@ -38,7 +38,7 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
         // The Subscription owns activation and Message mapping; Dom owns the source.
         return ({ isActive }) =>
           isActive
-            ? Dom.streamFromAnimationFrame().pipe(
+            ? Dom.animationFrameTicks.pipe(
                 Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
               )
             : Stream.empty

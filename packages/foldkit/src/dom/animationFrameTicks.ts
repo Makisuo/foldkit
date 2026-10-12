@@ -21,7 +21,7 @@ import { Effect, Queue, Stream } from 'effect'
  *       handler: function* () {
  *         return ({ isActive }) =>
  *           isActive
- *             ? Dom.streamFromAnimationFrame().pipe(
+ *             ? Dom.animationFrameTicks.pipe(
  *                 Stream.map(deltaTime => Message.Ticked({ deltaTime })),
  *               )
  *             : Stream.empty
@@ -33,7 +33,7 @@ import { Effect, Queue, Stream } from 'effect'
  * const EffectsLayer = subscriptions.frame.layer
  * ```
  */
-export const streamFromAnimationFrame = (): Stream.Stream<number> =>
+export const animationFrameTicks: Stream.Stream<number> =
   Stream.callback<number>(queue =>
     Effect.acquireRelease(
       Effect.sync(() => {

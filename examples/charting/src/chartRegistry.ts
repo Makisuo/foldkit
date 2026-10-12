@@ -1,5 +1,5 @@
 import type { EChartsType } from 'echarts/core'
-import { Context, Effect, Layer, Option } from 'effect'
+import { Context, Effect, HashMap, Layer, Option, Ref } from 'effect'
 
 type ChartRegistryShape = Readonly<{
   get: (hostId: string) => Effect.Effect<Option.Option<EChartsType>>
@@ -14,20 +14,27 @@ export class ChartRegistry extends Context.Service<
 
 export const ChartRegistryLayer = Layer.effect(
   ChartRegistry,
-  Effect.sync(() => {
-    const instancesByHostId = new Map<string, EChartsType>()
+  Effect.gen(function* () {
+    const instancesByHostId = yield* Ref.make(
+      HashMap.empty<string, EChartsType>(),
+    )
 
     return {
       get: hostId =>
-        Effect.sync(() => Option.fromNullishOr(instancesByHostId.get(hostId))),
+        Ref.get(instancesByHostId).pipe(Effect.map(HashMap.get(hostId))),
       set: (hostId, instance) =>
-        Effect.sync(() => {
-          instancesByHostId.set(hostId, instance)
-        }),
+        Ref.update(instancesByHostId, HashMap.set(hostId, instance)),
       remove: (hostId, instance) =>
-        Effect.sync(() => {
-          if (instancesByHostId.get(hostId) === instance) {
-            instancesByHostId.delete(hostId)
+        Ref.update(instancesByHostId, instances => {
+          const maybeInstance = HashMap.get(instances, hostId)
+
+          if (
+            Option.isSome(maybeInstance) &&
+            maybeInstance.value === instance
+          ) {
+            return HashMap.remove(instances, hostId)
+          } else {
+            return instances
           }
         }),
     }

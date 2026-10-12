@@ -111,7 +111,7 @@ Unlike a Command, a Subscription may emit many Messages or maintain scoped work 
 
 ## Animation Frames
 
-`Dom.streamFromAnimationFrame()` returns a Stream tied to the browser's paint clock. It emits the inter-frame delta in milliseconds on each `requestAnimationFrame` tick. The Stream is cold: every subscriber owns its animation loop, and closing that subscriber's scope cancels the pending frame request. The browser source belongs to `Dom`; the named Subscription controls its activation and maps elapsed time to Messages.
+`Dom.animationFrameTicks` is a Stream tied to the browser's paint clock. It emits the inter-frame delta in milliseconds on each `requestAnimationFrame` tick. The Stream is cold: every subscriber owns its animation loop, and closing that subscriber's scope cancels the pending frame request. The browser source belongs to `Dom`; the named Subscription controls its activation and maps elapsed time to Messages.
 
 Define a named entry with the dependencies and Messages your feature needs, then map the frame deltas in its handler. The example uses an `isActive` dependency so the handler can return `Stream.empty` while the animation is paused. Foldkit restarts the Subscription when that dependency changes:
 
@@ -123,7 +123,7 @@ Use the animation frame delta to make motion independent of refresh rate. Conver
 
 ### Animation Frames and Timers
 
-Use `Stream.tick` for discrete wall-clock steps that should occur every N milliseconds. It emits once when its scope opens, so add `Stream.drop(1)` when the first step should wait for the interval to elapse. `Dom.streamFromAnimationFrame()` follows the display; `Stream.tick` follows elapsed time. The [canvas-art example](/example-apps/canvas-art) uses animation frames for per-frame physics, while the [snake example](/example-apps/snake) uses `Stream.tick` for game cadence.
+Use `Stream.tick` for discrete wall-clock steps that should occur every N milliseconds. It emits once when its scope opens, so add `Stream.drop(1)` when the first step should wait for the interval to elapse. `Dom.animationFrameTicks` follows the display; `Stream.tick` follows elapsed time. The [canvas-art example](/example-apps/canvas-art) uses animation frames for per-frame physics, while the [snake example](/example-apps/snake) uses `Stream.tick` for game cadence.
 
 ## Streams Without Local Model Dependencies
 

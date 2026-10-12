@@ -472,7 +472,7 @@ Build them with `Subscription.make<Model, Message>()(entry => ({ ... }))`. Use t
 
 Name the handler for the events or scoped behavior the entry supplies, such as `KeyboardPresses`, `SystemThemeChanges`, or `GameClockTicks`. The handler name identifies the Layer requirement. Keep the record key parallel, such as `keyboardPresses`, `systemThemeChanges`, or `gameClockTicks`; the key identifies the runtime registration and Stream scope. Several lifted registrations can share one definition and handler Layer while retaining distinct keys. The Model dependencies determine when its scope is active. Avoid generic `Watch*` names that identify only the input source. Compose the entry's attached recipe directly in `EffectsLayer`; create a standalone binding such as `KeyboardPressesLayer` only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. Subscription lifecycle entries in DevTools are follow-up work.
 
-For Layer-backed Subscriptions without local Model dependencies (keyboard listeners, window resize, animation frame ticks), pass the stable handler name, Message Schemas, and `handler: function* () { return () => stream }`. The Subscription then stays active across local Model updates. Its parent can still gate it when lifted.
+For Layer-backed Subscriptions without local Model dependencies (keyboard listeners, window resize, animation frame ticks), pass the stable handler name, Message Schemas, and `handler: function* () { return () => stream }`. Use the cold `Dom.animationFrameTicks` Stream for animation frame ticks. The Subscription then stays active across local Model updates. Its parent can still gate it when lifted.
 
 A silent Subscription can own scoped DOM state. Keep acquisition and cleanup inside the `Stream<never>` so dependency changes and runtime shutdown remove the owned style:
 
@@ -548,7 +548,7 @@ If a key can change while the same conceptual thing stays on screen, the key is 
 
 ## DOM and Effect Helpers
 
-Commands that interact with the DOM use Foldkit's `Dom` module. Time, randomness, and delays use Effect's built-in services. Both are pure Effect wrappers, so they compose naturally in Commands.
+DOM operations and browser Streams use Foldkit's `Dom` module. Time, randomness, and delays use Effect's built-in services. The Effects compose in Commands, while the Streams compose in Subscriptions and Mounts.
 
 ### Foldkit `Dom` module
 
@@ -566,6 +566,7 @@ Import as `import { Dom } from 'foldkit'` (or `import * as Dom from 'foldkit/dom
 | `Dom.inertOthers` / `restoreInert` | Toggle `inert` on siblings of an element (focus containment) |
 | `Dom.detectElementMovement(...)`   | Observe an element for layout-affecting movement             |
 | `Dom.waitForAnimationSettled(sel)` | Wait for CSS animations/transitions on an element to finish  |
+| `Dom.animationFrameTicks`          | Stream elapsed milliseconds for each browser animation frame |
 
 ### Effect built-ins
 

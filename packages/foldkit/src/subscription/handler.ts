@@ -5,9 +5,11 @@ declare const HandlerTypeId: unique symbol
 type Invariant<Value> = (value: Value) => Value
 type AnyHandler = Readonly<{ readonly [HandlerTypeId]: unknown }>
 
-/** The service required by a Subscription whose implementation is supplied by
+/**
+ * The service required by a Subscription whose implementation is supplied by
  * a Layer. Its name, decoded dependencies, and declared Message identify the
- * handler contract. */
+ * handler contract.
+ */
 export interface Handler<Name extends string, Dependencies, Message> {
   readonly [HandlerTypeId]: Readonly<{
     name: Invariant<Name>

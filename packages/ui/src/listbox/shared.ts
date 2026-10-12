@@ -630,7 +630,8 @@ export const makeUpdate = <Model extends BaseModel>(
   return internalUpdate
 }
 
-/** The anchor-positioning Mount this Listbox renders on its items panel.
+/**
+ * The anchor-positioning Mount this Listbox renders on its items panel.
  *  The panel is always anchored to the button via Floating UI and portaled
  *  to the document body, or into the enclosing `<dialog>` when there is one
  *  (opt out of portaling with `anchor.portal: false`), so it escapes ancestor
@@ -644,7 +645,8 @@ export const makeUpdate = <Model extends BaseModel>(
  *  configured, where the panel is visible as soon as the render commits.
  *
  *  Exposed so Scene tests can call
- *  `Scene.Mount.resolve(AnchorListbox, CompletedAnchorListbox())`. */
+ *  `Scene.Mount.resolve(AnchorListbox, CompletedAnchorListbox())`.
+ */
 export const AnchorListbox = Mount.define('AnchorListbox', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorListbox],

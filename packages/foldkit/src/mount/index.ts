@@ -69,8 +69,10 @@ export const MountDefinitionTypeId: unique symbol = Symbol.for(
 /** Type-level brand for MountDefinition values. */
 export type MountDefinitionTypeId = typeof MountDefinitionTypeId
 
-/** @internal Runtime identity shared by a layered Mount Definition and every
- *  action constructed from it. */
+/**
+ * @internal Runtime identity shared by a layered Mount Definition and every
+ *  action constructed from it.
+ */
 export type MountRegistration = Readonly<{ name: string }>
 
 /** @internal Property carrying a layered Mount's registration identity. */
@@ -82,7 +84,8 @@ export const MountRegistrationTypeId: unique symbol = Symbol.for(
 /** @internal Property carrying a layered Mount's registration identity. */
 export type MountRegistrationTypeId = typeof MountRegistrationTypeId
 
-/** A named, type-constrained per-element side effect, optionally carrying the
+/**
+ * A named, type-constrained per-element side effect, optionally carrying the
  *  args used to construct it. The runtime invokes `f` with the live `Element`
  *  and required view-state Stream when the element mounts. A Mount acquired by
  *  a live render keeps live dispatch, while one acquired by a historical
@@ -94,7 +97,8 @@ export type MountRegistrationTypeId = typeof MountRegistrationTypeId
  *
  *  Authors don't construct this shape directly. `Mount.define` builds the
  *  one-shot case, while `Mount.defineStream` exposes the continuous-event
- *  shape. */
+ *  shape.
+ */
 export type MountAction<Message, E = never, R = never> = Readonly<{
   name: string
   args?: Record<string, unknown>
@@ -282,8 +286,10 @@ type HasErasedMountArgs<Definition> = [DeclaredMountArgs<Definition>] extends [
 type MountNames<Mounts extends ReadonlyArray<LayeredMountDefinition>> =
   Mounts[number] extends Readonly<{ name: infer Name }> ? Name : never
 
-/** @internal Rejects registries whose annotations erased a Definition name or
- *  handler protocol that the view capability check needs. */
+/**
+ * @internal Rejects registries whose annotations erased a Definition name or
+ *  handler protocol that the view capability check needs.
+ */
 export type PreciseMountRegistry<
   Mounts extends ReadonlyArray<LayeredMountDefinition>,
 > = [Mounts[number]] extends [never]
@@ -307,14 +313,18 @@ export type PreciseMountRegistry<
 /** @internal The capability accepted by renderers that do not execute Mounts. */
 export type AnyMountHandler = AnyHandler
 
-/** @internal Rejects an args field named `element`. The handler receives the live
+/**
+ * @internal Rejects an args field named `element`. The handler receives the live
  *  element under that name, so an arg of the same name would shadow it. The
- *  literal is the type error a colliding declaration produces. */
+ *  literal is the type error a colliding declaration produces.
+ */
 type ElementFieldIsReserved =
   'Mount args cannot declare `element`: the handler already receives the live element'
 
-/** @internal Rejects an args field named `viewStateChanges`. The handler
- *  receives the runtime-owned Stream under that name. */
+/**
+ * @internal Rejects an args field named `viewStateChanges`. The handler
+ *  receives the runtime-owned Stream under that name.
+ */
 type ViewStateChangesFieldIsReserved =
   'Mount args cannot declare `viewStateChanges`: the handler already receives the view-state Stream'
 

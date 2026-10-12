@@ -67,7 +67,7 @@ The [Subscriptions guide](/core/subscriptions) covers named entries with Model-d
 
 ### Animation Frames
 
-`Dom.streamFromAnimationFrame()` emits the elapsed milliseconds since the previous browser animation frame. Each subscriber owns its loop, and closing its scope cancels the pending frame. The browser pauses frames in hidden tabs, so cap the elapsed value when using it for motion or physics.
+`Dom.animationFrameTicks` emits the elapsed milliseconds since the previous browser animation frame. Each subscriber owns its loop, and closing its scope cancels the pending frame. The browser pauses frames in hidden tabs, so cap the elapsed value when using it for motion or physics.
 
 A named Subscription maps these values to declared Messages and controls when the loop is active. See [Animation Frames](/core/subscriptions#animation-frames) for that wiring.
 

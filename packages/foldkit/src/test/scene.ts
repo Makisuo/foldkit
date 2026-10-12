@@ -1352,9 +1352,11 @@ const applyExternalMessage = <Model, Message, OutMessage>(
   return applyExternalMessages(simulation, [message], context)
 }
 
-/** Feeds a declared Message through update as if a registered Subscription
+/**
+ * Feeds a declared Message through update as if a registered Subscription
  *  emitted it, then re-renders. A lifted Subscription accepts its raw child
- *  Message and applies the same `toParentMessage` chain as production. */
+ *  Message and applies the same `toParentMessage` chain as production.
+ */
 const emitSubscriptionMessage = <
   Entry extends Readonly<{
     messages: ReadonlyArray<Schema.Top>
@@ -1615,13 +1617,15 @@ export const Mount = {
 /** Steps that model Messages arriving from a Subscription.
  *  Destructure as `const { Subscription } = Scene` for concise call sites. */
 export const Subscription = {
-  /** Feeds a Message declared by the Scene's registered Subscriptions through
+  /**
+   * Feeds a Message declared by the Scene's registered Subscriptions through
    *  update, then re-renders. Pass the raw child Message for a lifted
    *  Subscription; Scene applies its `toParentMessage` chain. The selected
    *  entry must be registered in the Scene config and declare the Message.
    *  Silent Subscriptions accept no Messages. Use this only for Messages whose
    *  real cause is a Subscription;
-   *  interact with the rendered DOM for DOM Messages. */
+   *  interact with the rendered DOM for DOM Messages.
+   */
   emit: emitSubscriptionMessage,
 } as const
 
@@ -3159,13 +3163,15 @@ export const withViewInputs =
 
 // SCENE
 
-/** Executes a scene test. Register the tested program's `subscriptions` to use
+/**
+ * Executes a scene test. Register the tested program's `subscriptions` to use
  *  {@link Subscription.emit}; the exact record retains each entry's declared
  *  Message schemas and lift path. A scene without registered Subscriptions
  *  cannot use that step.
  *
  *  Throws if any Commands or Mounts remain unresolved, any unmount is
- *  unacknowledged, or any interaction fell through unacknowledged. */
+ *  unacknowledged, or any interaction fell through unacknowledged.
+ */
 export const scene: {
   <
     Model,

@@ -408,10 +408,12 @@ type Program<
     ? MakeRuntimeReturn<P, Flags, ProvidedServices, Kind>
     : unknown)
 
-/** A page-owning Foldkit application whose Effect requirements are carried in
+/**
+ * A page-owning Foldkit application whose Effect requirements are carried in
  * its type. Applications with no requirements can be passed directly to
  * `Runtime.run`. Supply a Layer to an application with requirements through
- * {@link provide} before starting it. */
+ * {@link provide} before starting it.
+ */
 export type Application<
   P extends Ports | undefined = undefined,
   Flags = void,
@@ -427,9 +429,11 @@ export type Application<
   'Application'
 >
 
-/** A container-scoped Foldkit Element whose Effect requirements are carried
+/**
+ * A container-scoped Foldkit Element whose Effect requirements are carried
  * in its type. Supply its handler Layers through {@link provide} before
- * passing it to `Runtime.run` or `Runtime.embed`. */
+ * passing it to `Runtime.run` or `Runtime.embed`.
+ */
 export type Element<
   P extends Ports | undefined = undefined,
   Requirements = never,
@@ -437,9 +441,11 @@ export type Element<
   ProvidedServices = never,
 > = Program<P, void, Requirements, RuntimeServices, ProvidedServices, 'Element'>
 
-/** Defines a page-owning Foldkit application and preserves the services its
+/**
+ * Defines a page-owning Foldkit application and preserves the services its
  * init and update Commands, Subscriptions, registered Mounts, and
- * ManagedResources require. */
+ * ManagedResources require.
+ */
 export function make<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
@@ -602,10 +608,12 @@ export function make(
   return makeApplication(config as any)
 }
 
-/** Defines a container-scoped Foldkit Element with requirements inferred from
+/**
+ * Defines a container-scoped Foldkit Element with requirements inferred from
  * its Flags Effect, init and update Commands, Subscriptions, registered Mounts,
  * and ManagedResources. Its view returns `Html` and does not manage page
- * metadata. */
+ * metadata.
+ */
 export function makeElement<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
@@ -687,7 +695,8 @@ export function makeElement(
   return makeRuntimeElement(config as any)
 }
 
-/** Supplies the services a Layer produces and carries its own requirements
+/**
+ * Supplies the services a Layer produces and carries its own requirements
  * forward on the application. Combine independent feature Layers with
  * `Layer.mergeAll` before calling this once. A bundle may produce services
  * beyond the application's requirements; they remain available to Flags and
@@ -703,7 +712,8 @@ export function makeElement(
  * A hydrating start validates its server handoff before building
  * Layers. Provided variants of one program share its embed activity and
  * disposal ordering. Call data-first or pass a Layer alone to use this
- * function in a pipe. */
+ * function in a pipe.
+ */
 export const provide: {
   <const LayerType extends Layer.Layer<never, any, any>>(
     layer: LayerType &

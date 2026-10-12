@@ -643,7 +643,8 @@ export const update = Update.define((model: Model, message: Message) => {
   })
 })
 
-/** The anchor-positioning Mount this Menu renders on its panel. The panel is
+/**
+ * The anchor-positioning Mount this Menu renders on its panel. The panel is
  *  always anchored to the button via Floating UI and portaled to the document
  *  body, or into the enclosing `<dialog>` when there is one (opt out of
  *  portaling with `anchor.portal: false`), so it escapes ancestor stacking
@@ -657,7 +658,8 @@ export const update = Update.define((model: Model, message: Message) => {
  *  configured, where the panel is visible as soon as the render commits.
  *
  *  Exposed so Scene tests can call
- *  `Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu())`. */
+ *  `Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu())`.
+ */
 export const AnchorMenu = Mount.define('AnchorMenu', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorMenu],

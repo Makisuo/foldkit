@@ -1,22 +1,22 @@
 import { Layer } from 'effect'
 
-import * as Commands from './command'
+import * as Command from './command'
 import { subscriptions } from './subscription'
 import { NavigateHome } from './update'
 
 export const EffectsLayer = Layer.mergeAll(
-  Commands.FetchRoom.layer,
-  Commands.LoadSession.layer,
-  Commands.JoinRoom.layer,
-  Commands.StartGame.layer,
-  Commands.UpdatePlayerProgress.layer,
-  Commands.CopyRoomId.layer,
-  Commands.WaitForExitCountdownInterval.layer,
-  Commands.WaitBeforeHidingRoomIdCopiedIndicator.layer,
-  Commands.SavePlayerSession.layer,
-  Commands.ClearSession.layer,
-  Commands.FocusRoomPageUsernameInput.layer,
-  Commands.FocusUserGameTextInput.layer,
+  Command.FetchRoom.layer,
+  Command.LoadSession.layer,
+  Command.JoinRoom.layer,
+  Command.StartGame.layer,
+  Command.UpdatePlayerProgress.layer,
+  Command.CopyRoomId.layer,
+  Command.WaitForExitCountdownInterval.layer,
+  Command.WaitBeforeHidingRoomIdCopiedIndicator.layer,
+  Command.SavePlayerSession.layer,
+  Command.ClearSession.layer,
+  Command.FocusRoomPageUsernameInput.layer,
+  Command.FocusUserGameTextInput.layer,
   subscriptions.roomUpdates.layer,
   subscriptions.roomKeyPresses.layer,
   NavigateHome.layer,

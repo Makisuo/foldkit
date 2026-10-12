@@ -968,7 +968,7 @@ const overlaySubscriptions = Subscription.make<Model, Message>()(entry => ({
       handler: function* () {
         return ({ isActive }) =>
           isActive
-            ? Dom.streamFromAnimationFrame().pipe(
+            ? Dom.animationFrameTicks.pipe(
                 Stream.map(() => Message.TickedScrubFrame()),
               )
             : Stream.empty
@@ -2868,6 +2868,7 @@ export const createOverlay = (
     container.id = '__foldkit_devtools_overlay__'
 
     const scrubberSlider = Slider.forRoot('DevToolsScrubber', () => shadow)
+
     const scrubberSubscriptions = Subscription.lift({
       scrubberPointer: scrubberSlider.subscriptions.dragPointer,
       scrubberEscape: scrubberSlider.subscriptions.dragEscape,
@@ -2875,6 +2876,7 @@ export const createOverlay = (
       read: model => Option.some(model.scrubberSlider),
       toParentMessage: message => Message.GotScrubberSliderMessage({ message }),
     })
+
     const subscriptions = Subscription.aggregate(
       overlaySubscriptions,
       scrubberSubscriptions,
@@ -2899,17 +2901,21 @@ export const createOverlay = (
       Tabs.EffectsLayer,
       scrubberSlider.EffectsLayer,
     )
+
     const ServicesLayer = Layer.mergeAll(
       Layer.succeed(StoreService, store),
       Layer.succeed(ShadowRootService, shadow),
       BrowserKeyValueStore.layerLocalStorage,
     )
+
     const AppLayer = EffectsLayer.pipe(Layer.provideMerge(ServicesLayer))
 
     const flags = Effect.gen(function* () {
       const store = yield* StoreService
+
       const storeState = yield* SubscriptionRef.get(store.stateRef)
       const { isOpen, isFlattened } = yield* readPersistedState
+
       return {
         isOpen,
         isMobile: window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches,

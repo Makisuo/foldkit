@@ -134,12 +134,14 @@ const startProgram = (
   )
 }
 
-/** Starts a Foldkit runtime that owns the page for the page's whole lifetime,
+/**
+ * Starts a Foldkit runtime that owns the page for the page's whole lifetime,
  *  with state-preserving live reload for development. The first render builds
  *  the DOM fresh in the container, replacing whatever is there. On a
  *  server-rendered page use `hydrate` instead, which adopts the existing DOM.
  *  To start a runtime under a host-controlled lifecycle, use `embed`. Call
- *  data-first, or pass the options alone to use `run` in a pipe. */
+ *  data-first, or pass the options alone to use `run` in a pipe.
+ */
 export const run: {
   <Flags, FlagsRequirements>(
     options: RunOptions<Flags, FlagsRequirements>,

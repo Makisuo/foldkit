@@ -75,12 +75,16 @@ export type SubmodelView<
   readonly [SUBMODEL_MOUNT_REQUIREMENTS_BRAND]: RequiredMountRequirements
 }
 
-/** @internal A view function whose parameter types can be recovered without
- *  contextually widening unannotated parameters to `any`. */
+/**
+ * @internal A view function whose parameter types can be recovered without
+ *  contextually widening unannotated parameters to `any`.
+ */
 type InferableSubmodelView = (...args: ReadonlyArray<never>) => VNode | null
 
-/** @internal Detects explicit or inferred `any`, which would erase a
- *  Submodel view's Message or Mount contract. */
+/**
+ * @internal Detects explicit or inferred `any`, which would erase a
+ *  Submodel view's Message or Mount contract.
+ */
 type IsAny<Value> = 0 extends 1 & Value ? true : false
 
 /** @internal Builds a branded view from an annotated Model and builder. */
@@ -97,8 +101,10 @@ type InferredSubmodelViewFromBuilder<Model, ViewInputs, Builder> =
             : SubmodelView<Model, Message, ViewInputs, Requirements>
         : never
 
-/** @internal Builds the branded view type from an explicitly annotated
- *  two- or three-parameter view function. */
+/**
+ * @internal Builds the branded view type from an explicitly annotated
+ *  two- or three-parameter view function.
+ */
 type InferredSubmodelView<View extends InferableSubmodelView> =
   Parameters<View> extends [infer Model, infer Builder]
     ? InferredSubmodelViewFromBuilder<Model, void, Builder>
@@ -110,12 +116,15 @@ type InferredSubmodelView<View extends InferableSubmodelView> =
           : InferredSubmodelViewFromBuilder<Model, ViewInputs, Builder>
       : never
 
-/** @internal Excludes callbacks whose annotations do not describe one of the
- *  runtime-supported Submodel view shapes from the inference overload. */
+/**
+ * @internal Excludes callbacks whose annotations do not describe one of the
+ *  runtime-supported Submodel view shapes from the inference overload.
+ */
 type ValidInferredSubmodelView<View extends InferableSubmodelView> =
   InferredSubmodelView<View> extends never ? never : unknown
 
-/** Defines the view function of a Submodel, a child component embedded
+/**
+ * Defines the view function of a Submodel, a child component embedded
  *  via `h.submodel`.
  *
  *  The runtime supplies the view's `h` builder, typed by the Submodel's
@@ -138,7 +147,8 @@ type ValidInferredSubmodelView<View extends InferableSubmodelView> =
  *  When using explicit type arguments, `Message` defaults to `never` so that
  *  omitting it fails loudly. An unannotated callback receives the same
  *  `HtmlBuilder<never>` default instead of widening to a builder that accepts
- *  any Message. */
+ *  any Message.
+ */
 export function defineView<View extends InferableSubmodelView>(
   fn: View & ValidInferredSubmodelView<View>,
 ): InferredSubmodelView<View>

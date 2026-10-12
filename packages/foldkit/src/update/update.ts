@@ -3,7 +3,8 @@ import { Array, type Effect, Function, Option, pipe } from 'effect'
 import { type AsyncData } from '../asyncData/index.js'
 import { type Command, mapMessage, mapMessages } from '../command/index.js'
 
-/** The Commands collection an update return may include. The collection keeps
+/**
+ * The Commands collection an update return may include. The collection keeps
  *  the order in which the update returned them, but the runtime forks the
  *  Commands independently. `R` is the services the Commands need and defaults
  *  to `never` for updates without service requirements.
@@ -12,12 +13,14 @@ import { type Command, mapMessage, mapMessages } from '../command/index.js'
  *
  *  ```ts
  *  export type Commands = Update.Commands<Message, AppServices>
- *  ``` */
+ *  ```
+ */
 export type Commands<Message, R = never> = ReadonlyArray<
   Command<Message, never, R>
 >
 
-/** The record an update returns when it cannot emit an OutMessage: the next
+/**
+ * The record an update returns when it cannot emit an OutMessage: the next
  *  Model and any Commands to run.
  *
  *  Inline the type when a matcher is its only use:
@@ -35,7 +38,8 @@ export type Commands<Message, R = never> = ReadonlyArray<
  *  Give it a local `UpdateReturn` alias when another matcher or helper in the
  *  module needs the same type. When Commands use handler Layers, wrap the
  *  update with {@link define} to infer their requirements across branches.
- *  An explicit `Return<Model, Message>` annotation fixes `R` to `never`. */
+ *  An explicit `Return<Model, Message>` annotation fixes `R` to `never`.
+ */
 export type Return<Model, Message, R = never> = Readonly<{
   model: Model
   commands?: Commands<Message, R>
@@ -73,10 +77,12 @@ type CommandMessage<Output> = Output extends unknown
     : never
   : never
 
-/** The Effect services required by the Commands an update can return. This
+/**
+ * The Effect services required by the Commands an update can return. This
  * reads the update's return contract, including requirements carried through
  * child folds, without including services used only by Subscriptions, Mounts,
- * or ManagedResources. */
+ * or ManagedResources.
+ */
 export type RequirementsOf<
   Update extends (...args: ReadonlyArray<any>) => any,
 > = CommandRequirements<ReturnType<Update>>
@@ -126,7 +132,8 @@ type DefinedUpdate<Update extends AnyUpdate> = (
       CommandRequirements<ReturnType<Update>>
     >
 
-/** Defines an update while inferring the union of services required by the
+/**
+ * Defines an update while inferring the union of services required by the
  * Commands returned across all Message branches. If a branch emits an
  * OutMessage, the returned function has a {@link ReturnWithOutMessage}
  * contract so a parent must handle it. Otherwise it has a {@link Return}
@@ -144,7 +151,8 @@ type DefinedUpdate<Update extends AnyUpdate> = (
  *     CompletedSave: () => ({ model }),
  *   }),
  * )
- * ``` */
+ * ```
+ */
 export function define<const Update extends AnyUpdate>(
   update: Update & ValidateUpdate<Update>,
 ): DefinedUpdate<Update>

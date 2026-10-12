@@ -413,10 +413,12 @@ export const valueFromPointer = (
   }
 }
 
-/** Builds named Slider drag Subscriptions and their handlers for a track root.
+/**
+ * Builds named Slider drag Subscriptions and their handlers for a track root.
  *  Use this when the Slider is rendered inside a Shadow DOM. The resolver runs
  *  only while the drag Subscription is active. Each custom Slider bundle in
- *  an application must use a distinct name. */
+ *  an application must use a distinct name.
+ */
 export const forRoot = <const Name extends string>(
   name: Name,
   getTrackRoot: () => Document | ShadowRoot,

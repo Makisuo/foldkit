@@ -5,9 +5,11 @@ declare const HandlerTypeId: unique symbol
 type Invariant<Value> = (value: Value) => Value
 type AnyHandler = Readonly<{ readonly [HandlerTypeId]: unknown }>
 
-/** The service required by a Command whose implementation is supplied by a
+/**
+ * The service required by a Command whose implementation is supplied by a
  * Layer. Its name, decoded arguments, and declared result Message identify the
- * handler contract. */
+ * handler contract.
+ */
 export interface Handler<Name extends string, Args, Message> {
   readonly [HandlerTypeId]: Readonly<{
     name: Invariant<Name>
@@ -16,9 +18,11 @@ export interface Handler<Name extends string, Args, Message> {
   }>
 }
 
-/** Extracts the exact handler requirement carried by a Command definition.
+/**
+ * Extracts the exact handler requirement carried by a Command definition.
  * Prefer this to repeating the definition's decoded args and result Message in
- * an explicit {@link Handler} annotation. */
+ * an explicit {@link Handler} annotation.
+ */
 export type HandlerOf<
   Definition extends (...args: any) => { effect: Effect.Effect<any, any, any> },
 > =

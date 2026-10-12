@@ -346,10 +346,6 @@ type FoldAnimationStep =
   | ReturnType<typeof foldStartedLeaveAnimating>
   | typeof foldTransitionedOut
 
-type FoldAnimationRequirements =
-  | Update.RequirementsOf<ReturnType<typeof foldStartedLeaveAnimating>>
-  | Update.RequirementsOf<typeof foldTransitionedOut>
-
 const foldAnimationOutMessage = (
   outMessage: Animation.OutMessage,
   { liftCommand }: Update.FoldContext<Animation.Message, Message>,
@@ -367,7 +363,7 @@ const animationFold: Update.ChildFoldWithOutMessage<
   Animation.Message,
   Animation.OutMessage,
   Update.RequirementsOf<typeof AnimationUpdate.update>,
-  FoldAnimationRequirements
+  Update.RequirementsOf<ReturnType<typeof foldAnimationOutMessage>>
 > = {
   update: (animation, message) => AnimationUpdate.update(animation, message),
   read: (model: Model) => Option.some(model.animation),

@@ -657,6 +657,10 @@ const storeDraft = Update.defineStep((model: Model) => ({
 
 Annotate the callback's Model parameter, as in `(model: Model) => ...`, and let `Update.defineStep` infer the result Messages, handler requirements, and OutMessage from its return. The helper's type parameter represents the complete Step function, so `Update.defineStep<Model>` does not annotate its Model.
 
+Bind an OutMessage fold directly to its union's matcher instead of wrapping a call that forwards the OutMessage. A pure fold can supply `Update.Step<Model, Message>` as the matcher output, which types its Model callbacks without `Update.defineStep`. For a generic child, pass the refined OutMessage type as the second matcher type argument.
+
+A Command-producing fold can infer its requirements through `Update.defineStep`, or derive the matcher output from an existing Step producer's `ReturnType`. `Update.Step<Model, Message>` sets requirements to `never` and cannot represent Commands that require handler Layers. Retain collection keys, other context consumed by the matcher branches, and `FoldContext` lifters.
+
 ## Layer composition and lifetimes
 
 ### Composing Layers

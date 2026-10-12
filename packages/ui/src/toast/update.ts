@@ -281,12 +281,11 @@ export const makeRuntime = <const Name extends string, A, I>(
     (message: AnimationMessage): Message =>
       MessageSchema.GotAnimationMessage({ entryId, message })
 
-  const toDismissedToastOutMessage =
-    (payload: A) => (outMessage: AnimationOutMessage) =>
-      AnimationOutMessage.match<OutMessage | undefined>(outMessage, {
-        StartedLeaveAnimating: () => undefined,
-        TransitionedOut: () => OutMessageSchema.DismissedToast({ payload }),
-      })
+  const toDismissedToastOutMessage = (payload: A) =>
+    AnimationOutMessage.match<OutMessage | undefined>({
+      StartedLeaveAnimating: () => undefined,
+      TransitionedOut: () => OutMessageSchema.DismissedToast({ payload }),
+    })
 
   const foldEntryAnimationOutMessage =
     (entryId: string) =>

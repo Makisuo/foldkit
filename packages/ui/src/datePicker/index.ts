@@ -129,7 +129,9 @@ const writePopover = (model: Model, nextPopover: Popover.Model): Model =>
 const toGotPopoverMessage = (message: Popover.Message): Message =>
   Message.GotPopoverMessage({ message })
 
-const foldPopoverOutMessage = Popover.OutMessage.match({
+const foldPopoverOutMessage = Popover.OutMessage.match<
+  Update.Step<Model, Message>
+>({
   Opened: () => dropCalendarToDays,
   Closed: () => dropCalendarToDays,
 })

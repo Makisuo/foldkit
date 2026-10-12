@@ -178,6 +178,18 @@ Use `Agent` with `subagent_type: general-purpose`. Suggested fan-out:
 
   A child fold includes `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit the property when every variant stops here. `foldOutMessage` still handles each variant locally, including variants that continue upward. Flag `toParentOutMessage: () => undefined`.
 
+  A `fold<Child>OutMessage` that needs only the OutMessage binds the child
+  union's exhaustive matcher directly. Flag a function that merely forwards
+  its argument to a data-first match. Keep a function or factory when matcher
+  branches consume other per-dispatch context, including a collection key,
+  previous Model state, an entry payload, or `FoldContext` lifters. Every
+  matcher names every variant, including a singleton union. A
+  `toParentOutMessage` mapper that needs only the OutMessage uses the same
+  direct matcher form. A generic child passes its refined OutMessage type as
+  the matcher's second generic. Command-producing `Update.defineStep` branches
+  retain their inferred requirements instead of being constrained to a
+  requirement-free `Update.Step`.
+
 - **Subagent C (Naming and decomposition)**. `maybe*` reserved for `Option<T>`, `is*` for booleans, no opaque abbreviations or unexplained single-letter names, conventional domain shorthand allowed, `Updated*` not `Changed*`, `Completed*` mirrors Command name verb-first, named helpers use specific verbs not generic ones, handlers over ~15 lines extracted, view branches over ~30 lines extracted, no function exceeds ~40 lines. Comments are sparse and mark architecture handoffs or a genuinely surprising constraint; they do not narrate ordinary control flow.
 - **Subagent D (Foldkit UI and accessibility)**. Hand-rolled `input` / `textarea` / `button` / `dialog` flagged unless NOTE-justified, label/input pairing via `For(id)` + `Id(id)`, dynamic errors announce via `Role('alert')` or `AriaLive('polite')`, icon-only buttons have `AriaLabel`, external links carry `Rel('noopener noreferrer')`, exactly one `h1` per route, semantic landmarks (`main`, `nav`, `header`, `footer`) over `div` soup, focus visibility preserved (no `outline-none` without `focus-visible:` replacement).
 - **Subagent E (Testing, Tier 3+)**. `story.test.ts` exists with `story` pipelines, every fallible Command tested for both `Succeeded*` and `Failed*` paths, at least one multi-step interaction test, Submodel tests assert `outMessage`, Commands resolved via `Command.resolve(Definition, resultMessage)` not by running Effects directly. **`scene.test.ts` is REQUIRED at Tier 3+** and is a BLOCKER if absent. Each `scene` block must contain at least one `expect(...)` or interactive resolution. Locators must be accessible (`role`, `label`, `text`) over `placeholder` or CSS selectors. A Scene using `Subscription.emit` must register `subscriptions` in its config, pass the exact entry, and emit only Messages declared by that entry; Scene validates both the selected source and its Message Schema before applying lift mappings. Lifted entries take raw child Messages. Whole-application execution tests keep the real handler Layers and replace deterministic providers below them. A test that replaces an entire handler exercises only code above that seam.

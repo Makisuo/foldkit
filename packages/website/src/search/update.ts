@@ -91,13 +91,12 @@ export const FocusSearchInput = Command.define('FocusSearchInput', {
   },
 })
 
-const foldSearchDialogOutMessage = (
-  outMessage: typeof Dialog.OutMessage.Type,
-) =>
-  Dialog.OutMessage.match(outMessage, {
-    Opened: () => Update.defineStep((model: Model) => ({ model })),
-    Closed: () => Update.defineStep((model: Model) => ({ model })),
-  })
+const foldSearchDialogOutMessage = Dialog.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Opened: () => model => ({ model }),
+  Closed: () => model => ({ model }),
+})
 
 const foldSearchDialog = Update.foldChild({
   update: Dialog.update,

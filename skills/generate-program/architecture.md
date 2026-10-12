@@ -403,14 +403,13 @@ const update = (model: Model, message: Message) =>
   )
 
 // Parent folds the child update and handles its OutMessage
-const foldChildOutMessage = (outMessage: Child.OutMessage) =>
-  Child.OutMessage.match(outMessage, {
-    SucceededCreateRoom: ({ roomId }) =>
-      Update.defineStep((model: ParentModel) => ({
-        model,
-        commands: [navigateToRoom(roomId)],
-      })),
-  })
+const foldChildOutMessage = Child.OutMessage.match({
+  SucceededCreateRoom: ({ roomId }) =>
+    Update.defineStep((model: ParentModel) => ({
+      model,
+      commands: [navigateToRoom(roomId)],
+    })),
+})
 
 const foldChild = Update.foldChild({
   update: Child.update,
@@ -426,6 +425,17 @@ const update = Update.define((model: ParentModel, message: ParentMessage) =>
   }),
 )
 ```
+
+Bind an OutMessage union's matcher directly when the fold only dispatches on
+that value. Name every variant, including the only variant in a singleton
+union. Use the same direct matcher form for a `toParentOutMessage` mapper that
+needs only the OutMessage. Keep a function or factory when matcher branches
+consume other per-dispatch context, including a collection key, previous Model
+state, an entry payload, or `FoldContext` lifters. For a generic child whose
+OutMessage payload is structurally narrower than the Schema-backed union, pass
+the refined OutMessage type as the matcher's second generic. Let
+`Update.defineStep` infer Command requirements from Command-producing branches
+instead of constraining the matcher to a requirement-free `Update.Step`.
 
 ### View Delegation
 

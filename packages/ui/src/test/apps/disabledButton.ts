@@ -38,9 +38,11 @@ export const initialModel: Model = {
 
 // UPDATE
 
-const foldDialogOutMessage = Dialog.OutMessage.match({
-  Opened: () => Update.defineStep((model: Model) => ({ model })),
-  Closed: () => Update.defineStep((model: Model) => ({ model })),
+const foldDialogOutMessage = Dialog.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Opened: () => model => ({ model }),
+  Closed: () => model => ({ model }),
 })
 
 const foldDialog = Update.foldChild({

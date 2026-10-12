@@ -90,21 +90,25 @@ export const EffectsLayer = Layer.mergeAll(
 
 // UPDATE
 
-const foldProductsOutMessage = (outMessage: typeof Products.OutMessage.Type) =>
-  Products.OutMessage.match(outMessage, {
-    AddedToCart: ({ item }) =>
-      Update.defineStep((model: Model) => ({
-        model: modifyFields(model, { cart: Cart.addItem(item) }),
-      })),
-    IncrementedQuantity: ({ itemId }) =>
-      Update.defineStep((model: Model) => ({
-        model: modifyFields(model, { cart: Cart.incrementQuantity(itemId) }),
-      })),
-    DecrementedQuantity: ({ itemId }) =>
-      Update.defineStep((model: Model) => ({
-        model: modifyFields(model, { cart: Cart.decrementQuantity(itemId) }),
-      })),
-  })
+const foldProductsOutMessage = Products.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  AddedToCart:
+    ({ item }) =>
+    model => ({
+      model: modifyFields(model, { cart: Cart.addItem(item) }),
+    }),
+  IncrementedQuantity:
+    ({ itemId }) =>
+    model => ({
+      model: modifyFields(model, { cart: Cart.incrementQuantity(itemId) }),
+    }),
+  DecrementedQuantity:
+    ({ itemId }) =>
+    model => ({
+      model: modifyFields(model, { cart: Cart.decrementQuantity(itemId) }),
+    }),
+})
 
 const foldProducts = Update.foldChild({
   update: Products.update,

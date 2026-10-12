@@ -391,17 +391,16 @@ const stepMachine = (message: Message) => (model: Model) => {
   }
 }
 
-const foldEditionRadioGroupOutMessage = (
-  outMessage: typeof RadioGroup.OutMessage.Type,
-) =>
-  RadioGroup.OutMessage.match(outMessage, {
-    Selected: ({ value }) =>
-      stepMachine(
-        Message.SelectedEdition({
-          isShippingRequired: value === HARDCOVER_EDITION,
-        }),
-      ),
-  })
+const foldEditionRadioGroupOutMessage = RadioGroup.OutMessage.match<
+  ReturnType<typeof stepMachine>
+>({
+  Selected: ({ value }) =>
+    stepMachine(
+      Message.SelectedEdition({
+        isShippingRequired: value === HARDCOVER_EDITION,
+      }),
+    ),
+})
 
 const foldEditionRadioGroup = Update.foldChild({
   update: EditionRadioGroup.update,

@@ -298,26 +298,28 @@ export const init = (flags: Flags, url: Url) => {
 
 const isPathnameEqual = (a: Url, b: Url): boolean => a.pathname === b.pathname
 
-const foldThemeMenuOutMessage = (
-  outMessage: Menu.OutMessage<ThemePreference>,
-) =>
-  Menu.OutMessage.match(outMessage, {
-    Selected: ({ value: preference }) =>
-      Update.defineStep((model: Model) => {
-        const resolvedTheme = resolveTheme(preference, model.systemTheme)
+const selectThemePreference = (preference: ThemePreference) =>
+  Update.defineStep((model: Model) => {
+    const resolvedTheme = resolveTheme(preference, model.systemTheme)
 
-        return {
-          model: modifyFields(model, {
-            maybeThemePreference: () => Option.some(preference),
-            resolvedTheme: () => resolvedTheme,
-          }),
-          commands: [
-            ApplyTheme({ theme: resolvedTheme }),
-            SaveThemePreference({ preference }),
-          ],
-        }
+    return {
+      model: modifyFields(model, {
+        maybeThemePreference: () => Option.some(preference),
+        resolvedTheme: () => resolvedTheme,
       }),
+      commands: [
+        ApplyTheme({ theme: resolvedTheme }),
+        SaveThemePreference({ preference }),
+      ],
+    }
   })
+
+const foldThemeMenuOutMessage = Menu.OutMessage.match<
+  ReturnType<typeof selectThemePreference>,
+  Menu.OutMessage<ThemePreference>
+>({
+  Selected: ({ value }) => selectThemePreference(value),
+})
 
 const readThemeMenu = (model: Model): Option.Option<Menu.Model> =>
   Option.some(model.themeMenu)
@@ -344,13 +346,12 @@ const foldThemeMenuClose = Update.foldChildStep({
   foldOutMessage: foldThemeMenuOutMessage,
 })
 
-const foldMobileMenuDialogOutMessage = (
-  outMessage: typeof Dialog.OutMessage.Type,
-) =>
-  Dialog.OutMessage.match(outMessage, {
-    Opened: () => Update.defineStep((model: Model) => ({ model })),
-    Closed: () => Update.defineStep((model: Model) => ({ model })),
-  })
+const foldMobileMenuDialogOutMessage = Dialog.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Opened: () => model => ({ model }),
+  Closed: () => model => ({ model }),
+})
 
 const readMobileMenuDialog = (model: Model): Option.Option<Dialog.Model> =>
   Option.some(model.mobileMenuDialog)
@@ -422,14 +423,18 @@ const writeHome = (model: Model, nextHome: Home.Model): Model =>
 const toGotHomeMessage = (message: Home.Message): Message =>
   Message.GotHomeMessage({ message })
 
-const foldHomeOutMessage = (outMessage: Home.OutMessage) =>
-  Home.OutMessage.match(outMessage, {
-    SelectedPlaygroundExample: ({ exampleSlug }) =>
-      Update.defineStep((model: Model) => ({
-        model,
-        commands: [LoadPlayground({ exampleSlug })],
-      })),
-  })
+const loadPlaygroundExample = (exampleSlug: Example.ExampleSlug) =>
+  Update.defineStep((model: Model) => ({
+    model,
+    commands: [LoadPlayground({ exampleSlug })],
+  }))
+
+const foldHomeOutMessage = Home.OutMessage.match<
+  ReturnType<typeof loadPlaygroundExample>
+>({
+  SelectedPlaygroundExample: ({ exampleSlug }) =>
+    loadPlaygroundExample(exampleSlug),
+})
 
 const foldHome = Update.foldChild({
   update: Home.update,

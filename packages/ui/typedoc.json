@@ -11,7 +11,7 @@
     "BaseInitConfig",
     "BaseViewInputs",
     "BundleUpdateReturn",
-    "FoldAnimationRequirements",
+    "FoldAnimationStep",
     "UpdateReturn",
     "ViewForItem",
     "src/animation/update.ts:UpdateRequirements",

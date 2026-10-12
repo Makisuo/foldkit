@@ -38,13 +38,17 @@ const modelWith = (maybeSelectedValue: Option.Option<string>): Model => ({
 
 const nothingSelected = modelWith(Option.none())
 
-const foldRadioGroupOutMessage = RadioGroupOutMessage.match({
-  Selected: ({ value }) =>
-    Update.defineStep((model: Model) => ({
+const foldRadioGroupOutMessage = RadioGroupOutMessage.match<
+  Update.Step<Model, Message>,
+  RadioGroupOutMessage<string>
+>({
+  Selected:
+    ({ value }) =>
+    model => ({
       model: modifyFields(model, {
         maybeSelectedValue: () => Option.some(value),
       }),
-    })),
+    }),
 })
 
 const foldRadioGroup = Update.foldChild({

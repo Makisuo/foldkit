@@ -291,22 +291,21 @@ export const EffectsLayer = Layer.mergeAll(
 const DietListbox = Listbox.create<string>()
 const PeriodListbox = Listbox.create<string>()
 
-const foldDietListboxOutMessage = (outMessage: Listbox.OutMessage<string>) =>
-  Listbox.OutMessage.match(outMessage, {
-    Selected: ({ value }) =>
-      Update.defineStep((model: Model) => {
-        const fields = routeToBrowseFields(model.route)
-        return {
-          model,
-          commands: [
-            ReplaceFilters({
-              ...fields,
-              diet: selectionToParam(Option.some(value), Diet),
-            }),
-          ],
-        }
-      }),
-  })
+const foldDietListboxOutMessage = Listbox.OutMessage.match({
+  Selected: ({ value }) =>
+    Update.defineStep((model: Model) => {
+      const fields = routeToBrowseFields(model.route)
+      return {
+        model,
+        commands: [
+          ReplaceFilters({
+            ...fields,
+            diet: selectionToParam(Option.some(value), Diet),
+          }),
+        ],
+      }
+    }),
+})
 
 const foldDietListbox = Update.foldChild({
   update: DietListbox.update,
@@ -317,22 +316,21 @@ const foldDietListbox = Update.foldChild({
   foldOutMessage: foldDietListboxOutMessage,
 })
 
-const foldPeriodListboxOutMessage = (outMessage: Listbox.OutMessage<string>) =>
-  Listbox.OutMessage.match(outMessage, {
-    Selected: ({ value }) =>
-      Update.defineStep((model: Model) => {
-        const fields = routeToBrowseFields(model.route)
-        return {
-          model,
-          commands: [
-            ReplaceFilters({
-              ...fields,
-              period: selectionToParam(Option.some(value), Period),
-            }),
-          ],
-        }
-      }),
-  })
+const foldPeriodListboxOutMessage = Listbox.OutMessage.match({
+  Selected: ({ value }) =>
+    Update.defineStep((model: Model) => {
+      const fields = routeToBrowseFields(model.route)
+      return {
+        model,
+        commands: [
+          ReplaceFilters({
+            ...fields,
+            period: selectionToParam(Option.some(value), Period),
+          }),
+        ],
+      }
+    }),
+})
 
 const foldPeriodListbox = Update.foldChild({
   update: PeriodListbox.update,

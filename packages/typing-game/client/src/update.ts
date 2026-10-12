@@ -64,11 +64,10 @@ const enterJoinedRoom = (roomId: string, player: Shared.Player) =>
     })(player),
   ])
 
-const foldHomeOutMessage = (outMessage: Home.OutMessage) =>
-  Home.OutMessage.match(outMessage, {
-    CreatedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
-    JoinedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
-  })
+const foldHomeOutMessage = Home.OutMessage.match({
+  CreatedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
+  JoinedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
+})
 
 const foldHomeMessage = Update.foldChild({
   update: Home.update,

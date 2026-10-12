@@ -192,7 +192,7 @@ Use `Update.foldChildAt` to run a child update for one Submodel selected by key.
 
 #### OutMessages by Key
 
-When the selected child emits an OutMessage, `foldOutMessage` takes the key and returns a matcher whose handlers produce parent Steps. If an OutMessage handler returns a child Command, give the `foldOutMessage` factory a second `FoldContext` parameter and use its lifters to wrap the Command's result Message. To forward an OutMessage, `toParentOutMessage` takes the key and returns a matcher that produces a parent OutMessage. Neither factory runs when the child emits no OutMessage.
+When the selected child emits an OutMessage, `foldOutMessage` takes the key and returns a matcher whose handlers produce parent Steps. The branches consume the key, so this fold remains a factory instead of a direct matcher binding. If an OutMessage handler returns a child Command, give the `foldOutMessage` factory a second `FoldContext` parameter and use its lifters to wrap the Command's result Message. To forward an OutMessage, `toParentOutMessage` takes the key and returns a matcher that produces a parent OutMessage. Neither factory runs when the child emits no OutMessage.
 
 ## Memoization Across Submodel Boundaries {#memoization}
 
@@ -259,7 +259,7 @@ The child update returns its Model, optional Commands, and an optional OutMessag
 
 #### Folding OutMessages
 
-Handle the OutMessage through `foldOutMessage` on [Update.foldChild](#fold-child). `Update.foldChildInit` accepts the same OutMessage adapters when one child emits a fact during initialization. `Update.foldChildInits` applies those adapters to each named child after its shared `toParentModel` has constructed the parent Model. Bind the fold as a standalone `fold<Child>OutMessage` value and match on every OutMessage tag. The returned `Update.Step<ParentModel, ParentMessage>` receives the parent Model after the updated child has been written back or after `toParentModel` has constructed it.
+Handle the OutMessage through `foldOutMessage` on [Update.foldChild](#fold-child). `Update.foldChildInit` accepts the same OutMessage adapters when one child emits a fact during initialization. `Update.foldChildInits` applies those adapters to each named child after its shared `toParentModel` has constructed the parent Model. Bind `fold<Child>OutMessage` directly to the child union's exhaustive matcher when the fold needs only the OutMessage. Use the same direct matcher form for a `toParentOutMessage` mapper that needs only the OutMessage. Name every variant, including the only variant in a singleton union. Keep a function or factory when matcher branches consume other per-dispatch context, such as a collection key, previous Model state, an entry payload, or `FoldContext` lifters. The returned `Update.Step<ParentModel, ParentMessage>` receives the parent Model after the updated child has been written back or after `toParentModel` has constructed it.
 
 Do not unpack a child update, helper, init, or boot result by hand. Destructuring `model` and `commands` can leave its `outMessage` behind without a type error. Dot access can still ignore an OutMessage, but an operation-named value keeps all three returned fields visible together. Use `Update.foldChild`, `Update.foldChildStep`, `Update.foldChildInit`, or `Update.foldChildInits` so the child Model, lifted Commands, and OutMessage remain part of one fold.
 

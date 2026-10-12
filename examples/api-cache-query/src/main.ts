@@ -152,11 +152,15 @@ const activateTab = (model: Model, tab: Tab) => {
   )
 }
 
-const foldTabsOutMessage = (outMessage: Tabs.OutMessage<Tab>) =>
-  Tabs.OutMessage.match(outMessage, {
-    Selected: ({ value }) =>
-      Update.defineStep((model: Model) => activateTab(model, value)),
-  })
+const activateTabStep = (tab: Tab) =>
+  Update.defineStep((model: Model) => activateTab(model, tab))
+
+const foldTabsOutMessage = Tabs.OutMessage.match<
+  ReturnType<typeof activateTabStep>,
+  Tabs.OutMessage<Tab>
+>({
+  Selected: ({ value }) => activateTabStep(value),
+})
 
 const foldTabs = Update.foldChild({
   update: AppTabs.update,

@@ -446,17 +446,17 @@ const livePreviewDisclosureView = (
 
 const SourceFileTabs = Tabs.create()
 
-const foldSourceFileTabsOutMessage = (
-  outMessage: typeof Tabs.OutMessage.Type,
-) =>
-  Tabs.OutMessage.match(outMessage, {
-    Selected: ({ value }) =>
-      Update.defineStep((model: Model) => ({
-        model: modifyFields(model, {
-          maybeActiveSourceFilePath: () => Option.some(value),
-        }),
-      })),
-  })
+const foldSourceFileTabsOutMessage = Tabs.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Selected:
+    ({ value }) =>
+    model => ({
+      model: modifyFields(model, {
+        maybeActiveSourceFilePath: () => Option.some(value),
+      }),
+    }),
+})
 
 const foldSourceFileTabs = Update.foldChild({
   update: SourceFileTabs.update,

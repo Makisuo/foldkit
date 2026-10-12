@@ -47,14 +47,14 @@ const applyFill = (model: Model, x: number, y: number) => {
   )
 }
 
-const foldErrorDialogOutMessage = (outMessage: typeof Dialog.OutMessage.Type) =>
-  Dialog.OutMessage.match(outMessage, {
-    Opened: () => Update.defineStep((model: Model) => ({ model })),
-    Closed: () =>
-      Update.defineStep((model: Model) => ({
-        model: modifyFields(model, { maybeExportError: () => Option.none() }),
-      })),
-  })
+const foldErrorDialogOutMessage = Dialog.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Opened: () => model => ({ model }),
+  Closed: () => model => ({
+    model: modifyFields(model, { maybeExportError: () => Option.none() }),
+  }),
+})
 
 const foldErrorDialog = Update.foldChild({
   update: Dialog.update,
@@ -74,22 +74,21 @@ const foldErrorDialogOpen = Update.foldChildStep({
   foldOutMessage: foldErrorDialogOutMessage,
 })
 
-const foldThemeListboxOutMessage = (outMessage: Listbox.OutMessage) =>
-  Listbox.OutMessage.match(outMessage, {
-    Selected: ({ value }) =>
-      Update.defineStep((model: Model) => {
-        const themeIndex = Number(value)
-        const maybeNextTheme = Array.get(PALETTE_THEMES, themeIndex)
-        if (Option.isNone(maybeNextTheme)) {
-          return { model }
-        }
-        const nextModel = modifyFields(model, {
-          paletteThemeIndex: () => themeIndex,
-          selectedColorIndex: () => DEFAULT_COLOR_INDEX,
-        })
-        return { model: nextModel, commands: [saveCanvas(nextModel)] }
-      }),
-  })
+const foldThemeListboxOutMessage = Listbox.OutMessage.match({
+  Selected: ({ value }) =>
+    Update.defineStep((model: Model) => {
+      const themeIndex = Number(value)
+      const maybeNextTheme = Array.get(PALETTE_THEMES, themeIndex)
+      if (Option.isNone(maybeNextTheme)) {
+        return { model }
+      }
+      const nextModel = modifyFields(model, {
+        paletteThemeIndex: () => themeIndex,
+        selectedColorIndex: () => DEFAULT_COLOR_INDEX,
+      })
+      return { model: nextModel, commands: [saveCanvas(nextModel)] }
+    }),
+})
 
 const foldThemeListbox = Update.foldChild({
   update: ThemeListbox.update,
@@ -100,18 +99,16 @@ const foldThemeListbox = Update.foldChild({
   foldOutMessage: foldThemeListboxOutMessage,
 })
 
-const foldGridSizeConfirmDialogOutMessage = (
-  outMessage: typeof Dialog.OutMessage.Type,
-) =>
-  Dialog.OutMessage.match(outMessage, {
-    Opened: () => Update.defineStep((model: Model) => ({ model })),
-    Closed: () =>
-      Update.defineStep((model: Model) => ({
-        model: modifyFields(model, {
-          maybePendingGridSize: () => Option.none(),
-        }),
-      })),
-  })
+const foldGridSizeConfirmDialogOutMessage = Dialog.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Opened: () => model => ({ model }),
+  Closed: () => model => ({
+    model: modifyFields(model, {
+      maybePendingGridSize: () => Option.none(),
+    }),
+  }),
+})
 
 const foldGridSizeConfirmDialog = Update.foldChild({
   update: Dialog.update,
@@ -160,13 +157,15 @@ const selectColor = (model: Model, colorIndex: PaletteIndex) => {
   return { model: nextModel, commands: [saveCanvas(nextModel)] }
 }
 
-const foldToolRadioGroupOutMessage = (
-  outMessage: RadioGroup.OutMessage<Tool>,
-) =>
-  RadioGroup.OutMessage.match(outMessage, {
-    Selected: ({ value }) =>
-      Update.defineStep((model: Model) => selectTool(model, value)),
-  })
+const foldToolRadioGroupOutMessage = RadioGroup.OutMessage.match<
+  (model: Model) => ReturnType<typeof selectTool>,
+  RadioGroup.OutMessage<Tool>
+>({
+  Selected:
+    ({ value }) =>
+    model =>
+      selectTool(model, value),
+})
 
 const foldToolRadioGroup = Update.foldChild({
   update: ToolRadioGroup.update,
@@ -177,13 +176,14 @@ const foldToolRadioGroup = Update.foldChild({
   foldOutMessage: foldToolRadioGroupOutMessage,
 })
 
-const foldGridSizeRadioGroupOutMessage = (outMessage: RadioGroup.OutMessage) =>
-  RadioGroup.OutMessage.match(outMessage, {
-    Selected: ({ value }) =>
-      Update.defineStep((model: Model) =>
-        requestGridSizeChange(model, Number(value)),
-      ),
-  })
+const foldGridSizeRadioGroupOutMessage = RadioGroup.OutMessage.match<
+  (model: Model) => ReturnType<typeof requestGridSizeChange>
+>({
+  Selected:
+    ({ value }) =>
+    model =>
+      requestGridSizeChange(model, Number(value)),
+})
 
 const foldGridSizeRadioGroup = Update.foldChild({
   update: GridSizeRadioGroup.update,
@@ -194,16 +194,17 @@ const foldGridSizeRadioGroup = Update.foldChild({
   foldOutMessage: foldGridSizeRadioGroupOutMessage,
 })
 
-const foldPaletteRadioGroupOutMessage = (outMessage: RadioGroup.OutMessage) =>
-  RadioGroup.OutMessage.match(outMessage, {
-    Selected: ({ value }) =>
-      Update.defineStep((model: Model) =>
-        selectColor(
-          model,
-          paletteIndexFromValue(value, model.selectedColorIndex),
-        ),
+const foldPaletteRadioGroupOutMessage = RadioGroup.OutMessage.match<
+  (model: Model) => ReturnType<typeof selectColor>
+>({
+  Selected:
+    ({ value }) =>
+    model =>
+      selectColor(
+        model,
+        paletteIndexFromValue(value, model.selectedColorIndex),
       ),
-  })
+})
 
 const foldPaletteRadioGroup = Update.foldChild({
   update: PaletteRadioGroup.update,

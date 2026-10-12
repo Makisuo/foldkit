@@ -79,6 +79,18 @@ When the OutMessage is already known while constructing a new result, include it
 
 A child fold needs `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit `toParentOutMessage` when every variant stops here. `foldOutMessage` still handles each variant locally, including variants that continue upward. Flag `toParentOutMessage: () => undefined`.
 
+Bind a child union's exhaustive matcher directly as `fold<Child>OutMessage`
+when the fold needs only the OutMessage. Flag a forwarding function that takes
+an OutMessage only to pass it to `Child.OutMessage.match`. Keep a function or
+factory when matcher branches consume other per-dispatch context, including a
+collection key, previous Model state, an entry payload, or `FoldContext`
+lifters. Every matcher names every variant, including a singleton union. A
+`toParentOutMessage` mapper that needs only the OutMessage uses the same direct
+matcher form. A generic child with a refined payload passes its refined
+OutMessage type as the second matcher generic. A Command-producing branch uses
+`Update.defineStep` and keeps its inferred requirements instead of forcing the
+whole matcher to a requirement-free `Update.Step`.
+
 When several operations update the same Model in sequence, use `Update.combine`. Use `Update.foldChildInits` when several child init or boot results enter that Model together.
 
 ### `functions-doing-two-things`

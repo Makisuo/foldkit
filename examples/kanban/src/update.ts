@@ -91,12 +91,11 @@ const screenReaderTextForDrop = (
       }),
   })
 
-const foldDragAndDropOutMessage =
-  (previousModel: Model) =>
-  (outMessage: DragAndDrop.OutMessage) =>
-  (model: Model) =>
-    DragAndDrop.OutMessage.match(outMessage, {
-      Reordered: ({ itemId, fromContainerId, toContainerId, toIndex }) => {
+const foldDragAndDropOutMessage = (previousModel: Model) =>
+  DragAndDrop.OutMessage.match({
+    Reordered: outMessage =>
+      Update.defineStep((model: Model) => {
+        const { itemId, fromContainerId, toContainerId, toIndex } = outMessage
         const nextColumns = Column.reorder(
           model.columns,
           itemId,
@@ -112,14 +111,15 @@ const foldDragAndDropOutMessage =
           }),
           commands: [SaveBoard({ columns: nextColumns })],
         }
-      },
-      Cancelled: () => ({
+      }),
+    Cancelled: outMessage =>
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           announcement: () =>
             screenReaderTextForDrop(previousModel, outMessage),
         }),
-      }),
-    })
+      })),
+  })
 
 const foldDragAndDrop = (previousModel: Model) =>
   Update.foldChild({

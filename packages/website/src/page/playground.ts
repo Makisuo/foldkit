@@ -900,15 +900,15 @@ const responsiveEditorView = (
 
 const PlaygroundFileTabs = Tabs.create<string>()
 
-const foldPlaygroundFileTabsOutMessage = (
-  outMessage: typeof Tabs.OutMessage.Type,
-) =>
-  Tabs.OutMessage.match(outMessage, {
-    Selected: ({ value }) =>
-      Update.defineStep((model: Model) => ({
-        model: modifyFields(model, { activeFilePath: () => value }),
-      })),
-  })
+const foldPlaygroundFileTabsOutMessage = Tabs.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Selected:
+    ({ value }) =>
+    model => ({
+      model: modifyFields(model, { activeFilePath: () => value }),
+    }),
+})
 
 const foldPlaygroundFileTabs = Update.foldChild({
   update: PlaygroundFileTabs.update,

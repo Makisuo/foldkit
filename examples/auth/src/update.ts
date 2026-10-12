@@ -19,14 +19,13 @@ import { Model } from './model'
 import { LoggedIn, LoggedOut } from './page'
 import { AppRoute, urlToAppRoute } from './route'
 
-const foldLoggedOutOutMessage = (outMessage: LoggedOut.OutMessage) =>
-  LoggedOut.OutMessage.match(outMessage, {
-    SucceededLogin: ({ session }) =>
-      Update.defineStep((_model: Model) => ({
-        model: LoggedIn.init(AppRoute.Dashboard(), session),
-        commands: [SaveSession({ session }), RedirectToDashboard()],
-      })),
-  })
+const foldLoggedOutOutMessage = LoggedOut.OutMessage.match({
+  SucceededLogin: ({ session }) =>
+    Update.defineStep((_model: Model) => ({
+      model: LoggedIn.init(AppRoute.Dashboard(), session),
+      commands: [SaveSession({ session }), RedirectToDashboard()],
+    })),
+})
 
 const foldLoggedOut = Update.foldChild({
   update: LoggedOut.update,
@@ -42,14 +41,13 @@ const foldLoggedOut = Update.foldChild({
   foldOutMessage: foldLoggedOutOutMessage,
 })
 
-const foldLoggedInOutMessage = (outMessage: LoggedIn.OutMessage) =>
-  LoggedIn.OutMessage.match(outMessage, {
-    RequestedLogout: () =>
-      Update.defineStep((_model: Model) => ({
-        model: LoggedOut.init(AppRoute.Home()),
-        commands: [ClearSession(), RedirectToHome()],
-      })),
-  })
+const foldLoggedInOutMessage = LoggedIn.OutMessage.match({
+  RequestedLogout: () =>
+    Update.defineStep((_model: Model) => ({
+      model: LoggedOut.init(AppRoute.Home()),
+      commands: [ClearSession(), RedirectToHome()],
+    })),
+})
 
 const foldLoggedIn = Update.foldChild({
   update: LoggedIn.update,

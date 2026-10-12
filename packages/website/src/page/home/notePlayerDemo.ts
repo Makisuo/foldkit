@@ -221,18 +221,19 @@ const enterNoteCommandPhase = (
   ],
 })
 
-const foldNoteDurationRadioGroupOutMessage = (
-  outMessage: RadioGroup.OutMessage<NoteDuration>,
-) =>
-  RadioGroup.OutMessage.match(outMessage, {
-    Selected: ({ value }) =>
-      Update.defineStep((model: Model) => ({
-        model: modifyFields(model, {
-          noteDuration: () => value,
-          messageLog: prependToLog(`Selected(${value})`),
-        }),
-      })),
-  })
+const foldNoteDurationRadioGroupOutMessage = RadioGroup.OutMessage.match<
+  Update.Step<Model, Message>,
+  RadioGroup.OutMessage<NoteDuration>
+>({
+  Selected:
+    ({ value }) =>
+    model => ({
+      model: modifyFields(model, {
+        noteDuration: () => value,
+        messageLog: prependToLog(`Selected(${value})`),
+      }),
+    }),
+})
 
 const foldNoteDurationRadioGroup = Update.foldChild({
   update: NoteDurationRadioGroup.update,

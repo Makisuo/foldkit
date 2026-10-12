@@ -384,15 +384,16 @@ const taggedPayload = (
 
 // UPDATE
 
-const foldInspectorTabsOutMessage = (
-  outMessage: Tabs.OutMessage<InspectorTab>,
-) =>
-  Tabs.OutMessage.match(outMessage, {
-    Selected: ({ value }: Tabs.Selected<InspectorTab>) =>
-      Update.defineStep((model: Model) => ({
-        model: modifyFields(model, { activeInspectorTab: () => value }),
-      })),
-  })
+const foldInspectorTabsOutMessage = Tabs.OutMessage.match<
+  Update.Step<Model, Message>,
+  Tabs.OutMessage<InspectorTab>
+>({
+  Selected:
+    ({ value }) =>
+    model => ({
+      model: modifyFields(model, { activeInspectorTab: () => value }),
+    }),
+})
 
 const foldInspectorTabs = Update.foldChild({
   update: InspectorTabs.update,
@@ -403,16 +404,19 @@ const foldInspectorTabs = Update.foldChild({
   foldOutMessage: foldInspectorTabsOutMessage,
 })
 
-const foldSubmodelFilterOutMessage = (outMessage: Listbox.OutMessage<string>) =>
-  Listbox.OutMessage.match(outMessage, {
-    Selected: ({ value }: Listbox.Selected<string>) =>
-      Update.defineStep((model: Model) => ({
-        model: modifyFields(model, {
-          maybeSubmodelFilter: () =>
-            Option.liftPredicate(value, String.isNonEmpty),
-        }),
-      })),
-  })
+const foldSubmodelFilterOutMessage = Listbox.OutMessage.match<
+  Update.Step<Model, Message>,
+  Listbox.OutMessage<string>
+>({
+  Selected:
+    ({ value }) =>
+    model => ({
+      model: modifyFields(model, {
+        maybeSubmodelFilter: () =>
+          Option.liftPredicate(value, String.isNonEmpty),
+      }),
+    }),
+})
 
 const foldSubmodelFilter = Update.foldChild({
   update: SubmodelFilterListbox.update,
@@ -428,17 +432,19 @@ const foldSubmodelFilter = Update.foldChild({
 // NOTE: Pointer Messages update the thumb immediately, but jumping to and
 // inspecting the corresponding state is expensive. Keep only the latest host
 // index until TickedScrubFrame flushes one navigation on the next frame.
-const foldScrubberSliderOutMessage = (outMessage: Slider.OutMessage) =>
-  Slider.OutMessage.match(outMessage, {
-    ChangedValue: ({ value }: typeof Slider.OutMessage.ChangedValue.Type) =>
-      Update.defineStep((model: Model) => ({
-        model: modifyFields(model, {
-          scrubberValue: () => value,
-          maybePendingScrubIndex: () =>
-            Option.some(sliderValueToHostIndex(value, model.startIndex)),
-        }),
-      })),
-  })
+const foldScrubberSliderOutMessage = Slider.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  ChangedValue:
+    ({ value }) =>
+    model => ({
+      model: modifyFields(model, {
+        scrubberValue: () => value,
+        maybePendingScrubIndex: () =>
+          Option.some(sliderValueToHostIndex(value, model.startIndex)),
+      }),
+    }),
+})
 
 const foldScrubberSlider = Update.foldChild({
   update: Slider.update,

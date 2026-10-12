@@ -20,6 +20,7 @@ import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
 
 import { DARK_COLOR_SCHEME_QUERY } from './colorScheme'
+import { contract } from './definition'
 import { Deployment, isTelemetryEnabled } from './deployment'
 import {
   DOCS_SIDEBAR_NAV_ID,
@@ -28,6 +29,7 @@ import {
 } from './docsNav'
 import { Message, ResolvedTheme, ThemePreference } from './message'
 import { Model } from './model'
+import { owner } from './owner'
 import {
   ApiReference,
   ComingFromReact,
@@ -37,12 +39,7 @@ import {
   Playground,
   Ui,
 } from './page'
-import {
-  AppRoute,
-  isPlaygroundRoute,
-  playgroundRouter,
-  urlToAppRoute,
-} from './route'
+import { AppRoute, isPlaygroundRoute, urlToAppRoute } from './route'
 import * as Search from './search'
 import {
   GroupKey,
@@ -54,6 +51,7 @@ import {
 import * as SnippetCopy from './snippetCopy'
 import * as SnippetDisclosure from './snippetDisclosure'
 import { LocalStorage, SessionStorage } from './storage'
+import { home } from './submodels'
 import { ThemeSelector } from './view'
 
 export type { Message } from './message'
@@ -415,35 +413,6 @@ const foldCoreSubmodelPage = Update.foldChild({
   toParentMessage: message => Message.GotCoreSubmodelPageMessage({ message }),
 })
 
-const readHome = (model: Model): Option.Option<Home.Model> => model.maybeHome
-
-const writeHome = (model: Model, nextHome: Home.Model): Model =>
-  modifyFields(model, { maybeHome: () => Option.some(nextHome) })
-
-const toGotHomeMessage = (message: Home.Message): Message =>
-  Message.GotHomeMessage({ message })
-
-const loadPlaygroundExample = (exampleSlug: Example.ExampleSlug) =>
-  Update.defineStep((model: Model) => ({
-    model,
-    commands: [LoadPlayground({ exampleSlug })],
-  }))
-
-const foldHomeOutMessage = Home.OutMessage.match<
-  ReturnType<typeof loadPlaygroundExample>
->({
-  SelectedPlaygroundExample: ({ exampleSlug }) =>
-    loadPlaygroundExample(exampleSlug),
-})
-
-const foldHome = Update.foldChild({
-  update: Home.update,
-  read: readHome,
-  write: writeHome,
-  toParentMessage: toGotHomeMessage,
-  foldOutMessage: foldHomeOutMessage,
-})
-
 const reconcileHomePresence = (route: AppRoute) => (model: Model) =>
   Match.value(route).pipe(
     Match.tag('Home', () => {
@@ -565,7 +534,7 @@ const foldPlayground = Update.foldChild({
   toParentMessage: message => Message.GotPlaygroundMessage({ message }),
 })
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = contract.defineUpdate((model, message) =>
   Message.match(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match(request, {
@@ -774,7 +743,7 @@ export const update = Update.define((model: Model, message: Message) =>
 
     GotThemeMenuMessage: ({ message }) => foldThemeMenu(model, message),
 
-    GotHomeMessage: ({ message }) => foldHome(model, message),
+    GotHomeMessage: ({ message }) => home.fold(model, message),
 
     ChangedSystemTheme: ({ theme }) => {
       const resolvedTheme = resolveTheme(
@@ -829,7 +798,7 @@ export const update = Update.define((model: Model, message: Message) =>
 
 // COMMAND
 
-const InjectAnalytics = Command.define('InjectAnalytics', {
+const InjectAnalytics = Command.define(owner.name('InjectAnalytics'), {
   messages: [Message.CompletedInjectAnalytics],
   handler: function* () {
     return () =>
@@ -839,23 +808,26 @@ const InjectAnalytics = Command.define('InjectAnalytics', {
   },
 })
 
-const LoadBrowserEnvironment = Command.define('LoadBrowserEnvironment', {
-  messages: [Message.CompletedLoadBrowserEnvironment],
-  handler: function* () {
-    const localStorage = yield* LocalStorage
-    const sessionStorage = yield* SessionStorage
-    const clock = yield* Clock.Clock
+const LoadBrowserEnvironment = Command.define(
+  owner.name('LoadBrowserEnvironment'),
+  {
+    messages: [Message.CompletedLoadBrowserEnvironment],
+    handler: function* () {
+      const localStorage = yield* LocalStorage
+      const sessionStorage = yield* SessionStorage
+      const clock = yield* Clock.Clock
 
-    return () =>
-      loadBrowserEnvironment.pipe(
-        Effect.provideService(LocalStorage, localStorage),
-        Effect.provideService(SessionStorage, sessionStorage),
-        Effect.provideService(Clock.Clock, clock),
-      )
+      return () =>
+        loadBrowserEnvironment.pipe(
+          Effect.provideService(LocalStorage, localStorage),
+          Effect.provideService(SessionStorage, sessionStorage),
+          Effect.provideService(Clock.Clock, clock),
+        )
+    },
   },
-})
+)
 
-const InjectSpeedInsights = Command.define('InjectSpeedInsights', {
+const InjectSpeedInsights = Command.define(owner.name('InjectSpeedInsights'), {
   messages: [Message.CompletedInjectSpeedInsights],
   handler: function* () {
     return () =>
@@ -865,7 +837,7 @@ const InjectSpeedInsights = Command.define('InjectSpeedInsights', {
   },
 })
 
-const CopyLink = Command.define('CopyLink', {
+const CopyLink = Command.define(owner.name('CopyLink'), {
   args: { url: Schema.String },
   messages: [Message.SucceededCopyLink, Message.FailedCopyLink],
   handler: function* () {
@@ -880,7 +852,7 @@ const CopyLink = Command.define('CopyLink', {
   },
 })
 
-export const ScrollToTop = Command.define('ScrollToTop', {
+export const ScrollToTop = Command.define(owner.name('ScrollToTop'), {
   messages: [Message.CompletedScrollToTop],
   handler: function* () {
     return () =>
@@ -891,7 +863,7 @@ export const ScrollToTop = Command.define('ScrollToTop', {
   },
 })
 
-const ScrollToAnchor = Command.define('ScrollToAnchor', {
+const ScrollToAnchor = Command.define(owner.name('ScrollToAnchor'), {
   args: { hash: Schema.String },
   messages: [Message.CompletedScrollToAnchor],
   handler: function* () {
@@ -905,7 +877,7 @@ const ScrollToAnchor = Command.define('ScrollToAnchor', {
 })
 
 export const ScrollSidebarActiveLinkIntoView = Command.define(
-  'ScrollSidebarActiveLinkIntoView',
+  owner.name('ScrollSidebarActiveLinkIntoView'),
   {
     messages: [Message.CompletedScrollSidebarActiveLinkIntoView],
     handler: function* () {
@@ -923,7 +895,7 @@ export const ScrollSidebarActiveLinkIntoView = Command.define(
 const MOBILE_MENU_ACTIVE_LINK = `#${MOBILE_MENU_NAV_ID} [aria-current="page"]`
 
 const ScrollMobileMenuActiveLinkIntoView = Command.define(
-  'ScrollMobileMenuActiveLinkIntoView',
+  owner.name('ScrollMobileMenuActiveLinkIntoView'),
   {
     messages: [Message.CompletedScrollMobileMenuActiveLinkIntoView],
     handler: function* () {
@@ -950,7 +922,7 @@ const setThemeColorMeta = (color: string): void => {
   }
 }
 
-const ApplyTheme = Command.define('ApplyTheme', {
+const ApplyTheme = Command.define(owner.name('ApplyTheme'), {
   args: { theme: ResolvedTheme },
   messages: [Message.CompletedApplyTheme],
   handler: function* () {
@@ -972,7 +944,7 @@ const ApplyTheme = Command.define('ApplyTheme', {
   },
 })
 
-const SaveThemePreference = Command.define('SaveThemePreference', {
+const SaveThemePreference = Command.define(owner.name('SaveThemePreference'), {
   args: { preference: ThemePreference },
   messages: [Message.CompletedSaveThemePreference],
   handler: function* () {
@@ -988,7 +960,7 @@ const SaveThemePreference = Command.define('SaveThemePreference', {
   },
 })
 
-const SaveSidebarState = Command.define('SaveSidebarState', {
+const SaveSidebarState = Command.define(owner.name('SaveSidebarState'), {
   args: { state: SidebarState },
   messages: [Message.CompletedSaveSidebarState],
   handler: function* () {
@@ -1012,7 +984,7 @@ const modelToSidebarState = (model: Model): SidebarState => ({
 const saveSidebarState = (model: Model) =>
   SaveSidebarState({ state: modelToSidebarState(model) })
 
-const NavigateInternal = Command.define('NavigateInternal', {
+const NavigateInternal = Command.define(owner.name('NavigateInternal'), {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -1021,23 +993,12 @@ const NavigateInternal = Command.define('NavigateInternal', {
   },
 })
 
-const LoadExternal = Command.define('LoadExternal', {
+const LoadExternal = Command.define(owner.name('LoadExternal'), {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
     return ({ href }) =>
       load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
-  },
-})
-
-export const LoadPlayground = Command.define('LoadPlayground', {
-  args: { exampleSlug: Example.ExampleSlug },
-  messages: [Message.CompletedLoadPlayground],
-  handler: function* () {
-    return ({ exampleSlug }) =>
-      load(playgroundRouter({ exampleSlug })).pipe(
-        Effect.as(Message.CompletedLoadPlayground()),
-      )
   },
 })
 
@@ -1053,7 +1014,6 @@ export const EffectsLayer = Layer.mergeAll(
   ScrollMobileMenuActiveLinkIntoView.layer,
   NavigateInternal.layer,
   LoadExternal.layer,
-  LoadPlayground.layer,
   ApplyTheme.layer,
   SaveThemePreference.layer,
   SaveSidebarState.layer,

@@ -11,13 +11,13 @@ import { Combobox } from '@foldkit/ui'
 import type { AnchorConfig } from '@foldkit/ui/combobox'
 
 import { Icon } from '../../../icon'
+import { CityCombobox, CityMultiCombobox } from '../combobox'
 import { Message } from '../message'
 import type { City } from '../model'
 
 // DEMO CONTENT
 
-export const CityCombobox = Combobox.create<City>()
-export const CityMultiCombobox = Combobox.Multi.create<City>()
+export { CityCombobox, CityMultiCombobox }
 
 const CITIES: ReadonlyArray<City> = [
   'Johannesburg',

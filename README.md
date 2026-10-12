@@ -26,6 +26,8 @@ Foldkit uses [The Elm Architecture](https://guide.elm-lang.org/architecture/). A
 
 Each feature declares the effects it needs and bundles their handlers in [Effect Layers](https://foldkit.dev/core/layers). At the application root, compose those bundles with their required services. TypeScript checks that the requirements are satisfied before the application can run. Tests can provide controlled services while running the same effect handlers.
 
+A [Submodel](https://foldkit.dev/core/submodel) can package its Model and Message contracts, update, public Steps, lifecycle registrations, view, and handler recipes in a checked descriptor. Its parent binds the child once to a Model location and Message wrapper. Composition then collects the child’s registrations and Layers; the parent decides when to dispatch Messages, render the child, and handle its OutMessages.
+
 > [!NOTE]
 > Foldkit is pre-1.0 and under active development. The architecture is settled and the core API is stable in practice, but breaking changes may occur in minor releases. See the [roadmap](https://foldkit.dev/introduction/roadmap).
 

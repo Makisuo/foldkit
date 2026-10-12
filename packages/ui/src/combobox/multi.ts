@@ -1,20 +1,35 @@
 import { Option, Schema } from 'effect'
-import { type Update } from 'foldkit'
+import type * as Command from 'foldkit/command'
 import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
-import type { View as SubmodelView } from 'foldkit/submodel'
+import * as Submodel from 'foldkit/submodel'
+import type * as Update from 'foldkit/update'
 
+import type * as Animation from '../animation/public.js'
 import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewInputs,
+  type ClickItem,
+  type DetectMovementOrAnimationEnd,
+  EffectsLayer,
+  type FocusInput,
+  type InertOthers,
+  type LockScroll,
   Message,
+  type MessageSchema,
   OutMessage,
+  type OutMessageSchema,
+  type RestoreInert,
+  type ScrollItemIntoView,
+  type UnlockScroll,
   baseInit,
   closedBaseModel,
+  makeMessage,
+  makeOutMessage,
   makeUpdate,
   makeView,
-  type mounts,
+  mounts,
 } from './shared.js'
 
 // MODEL
@@ -42,7 +57,7 @@ export const init = (config: InitConfig): Model => baseInit(config)
  *  membership.
  *  Closing never emits `ClearedSelection` because its input rests empty by
  *  design. Clear the selection by toggling each value off. */
-export const update = makeUpdate<Model>('KeepOpen', {
+export const update = makeUpdate<Model, string>(Message, 'KeepOpen', {
   handleClose: model => ({
     model: modifyFields(closedBaseModel(model), { inputValue: () => '' }),
   }),
@@ -84,62 +99,160 @@ export const selectItem = (model: Model, item: string): UpdateReturn =>
 /** Per-render view inputs passed to the view via `h.submodel`'s `viewInputs` field. */
 export type ViewInputs<Item extends string> = BaseViewInputs<Item>
 
-const internalView = makeView<Model>({ ariaMultiSelectable: true })
+const MultiOwner = Submodel.owner('Foldkit/Combobox/Multi')
 
-type BundleUpdateReturn<Item extends string> = Update.ReturnWithOutMessage<
-  Model,
-  Message,
-  OutMessage<Item>,
-  Update.RequirementsOf<typeof update>
+/** A complete multi-select Combobox descriptor refined to one Item Schema. */
+export type Bundle<Item extends string = string> = Submodel.Descriptor<
+  Submodel.Owner<'Foldkit/Combobox/Multi'>,
+  typeof Model,
+  MessageSchema<Item>,
+  OutMessageSchema<Item>,
+  typeof mounts,
+  readonly [],
+  Readonly<{
+    view: Submodel.View<
+      Model,
+      Message<Item>,
+      ViewInputs<Item>,
+      Mount.RequirementsOf<typeof mounts>
+    >
+    init: (config: InitConfig) => Readonly<{ model: Model }>
+    update: (
+      model: Model,
+      message: Message<Item>,
+    ) => Update.ReturnWithOutMessage<
+      Model,
+      Message<Item>,
+      OutMessage<Item>,
+      | Command.HandlerOf<typeof LockScroll>
+      | Command.HandlerOf<typeof UnlockScroll>
+      | Command.HandlerOf<typeof InertOthers>
+      | Command.HandlerOf<typeof RestoreInert>
+      | Command.HandlerOf<typeof FocusInput>
+      | Command.HandlerOf<typeof ScrollItemIntoView>
+      | Command.HandlerOf<typeof ClickItem>
+      | Command.HandlerOf<typeof DetectMovementOrAnimationEnd>
+      | Update.RequirementsOf<typeof Animation.update>
+    >
+    steps: Readonly<{
+      open: (
+        model: Model,
+      ) => Update.ReturnWithOutMessage<
+        Model,
+        Message<Item>,
+        OutMessage<Item>,
+        | Command.HandlerOf<typeof LockScroll>
+        | Command.HandlerOf<typeof UnlockScroll>
+        | Command.HandlerOf<typeof InertOthers>
+        | Command.HandlerOf<typeof RestoreInert>
+        | Command.HandlerOf<typeof FocusInput>
+        | Command.HandlerOf<typeof ScrollItemIntoView>
+        | Command.HandlerOf<typeof ClickItem>
+        | Command.HandlerOf<typeof DetectMovementOrAnimationEnd>
+        | Update.RequirementsOf<typeof Animation.update>
+      >
+      close: (
+        model: Model,
+      ) => Update.ReturnWithOutMessage<
+        Model,
+        Message<Item>,
+        OutMessage<Item>,
+        | Command.HandlerOf<typeof LockScroll>
+        | Command.HandlerOf<typeof UnlockScroll>
+        | Command.HandlerOf<typeof InertOthers>
+        | Command.HandlerOf<typeof RestoreInert>
+        | Command.HandlerOf<typeof FocusInput>
+        | Command.HandlerOf<typeof ScrollItemIntoView>
+        | Command.HandlerOf<typeof ClickItem>
+        | Command.HandlerOf<typeof DetectMovementOrAnimationEnd>
+        | Update.RequirementsOf<typeof Animation.update>
+      >
+      selectItem: (
+        model: Model,
+        item: Item,
+      ) => Update.ReturnWithOutMessage<
+        Model,
+        Message<Item>,
+        OutMessage<Item>,
+        | Command.HandlerOf<typeof LockScroll>
+        | Command.HandlerOf<typeof UnlockScroll>
+        | Command.HandlerOf<typeof InertOthers>
+        | Command.HandlerOf<typeof RestoreInert>
+        | Command.HandlerOf<typeof FocusInput>
+        | Command.HandlerOf<typeof ScrollItemIntoView>
+        | Command.HandlerOf<typeof ClickItem>
+        | Command.HandlerOf<typeof DetectMovementOrAnimationEnd>
+        | Update.RequirementsOf<typeof Animation.update>
+      >
+    }>
+    EffectsLayer: typeof EffectsLayer
+  }>
 >
 
-/** The `view`, `update`, and programmatic helpers that
- *  `Combobox.Multi.create` returns, bound to one `Item` type. Name it to
- *  annotate a value that holds a created bundle, such as a field on a
- *  config object or a function parameter that takes the bundle rather than
- *  calling `create` itself. */
-export type Bundle<Item extends string = string> = Readonly<{
-  view: SubmodelView<
+const makeDescriptor = <Item extends string>(
+  Item: Schema.Schema<Item>,
+): Bundle<Item> => {
+  const ItemMessage = makeMessage(Item)
+  const ItemOutMessage = makeOutMessage(Item)
+  const definition = MultiOwner.define({
     Model,
-    Message,
-    ViewInputs<Item>,
-    Mount.RequirementsOf<typeof mounts>
-  >
-  update: (model: Model, message: Message) => BundleUpdateReturn<Item>
-  selectItem: (model: Model, item: Item) => BundleUpdateReturn<Item>
-  open: (model: Model) => BundleUpdateReturn<Item>
-  close: (model: Model) => BundleUpdateReturn<Item>
-}>
+    Message: ItemMessage,
+    OutMessage: ItemOutMessage,
+    mounts,
+  })
+  const update = definition.defineUpdate(
+    makeUpdate<Model, Item>(ItemMessage, 'KeepOpen', {
+      handleClose: model => ({
+        model: modifyFields(closedBaseModel(model), { inputValue: () => '' }),
+      }),
+      handleSelectedItem: (model, item) => ({
+        model,
+        outMessage: ItemOutMessage.Selected({ value: item }),
+      }),
+      handleImmediateActivation: (model, item) => ({
+        model,
+        outMessage: ItemOutMessage.Selected({ value: item }),
+      }),
+    }),
+  )
+  const view = definition.defineView.withInputs<ViewInputs<Item>>(
+    makeView<Model, Item>({ ariaMultiSelectable: true }, ItemMessage),
+  )
+  const open = definition.defineStep((model: Model) =>
+    update(model, ItemMessage.Opened({ maybeActiveItemIndex: Option.none() })),
+  )
+  const close = definition.defineStep((model: Model) =>
+    update(
+      model,
+      ItemMessage.Closed({ restingInputValue: '', isClearable: true }),
+    ),
+  )
+  const selectItem = definition.defineStep((model: Model, item: Item) =>
+    update(
+      model,
+      ItemMessage.SelectedItem({
+        item,
+        displayText: item,
+        wasSelected: false,
+      }),
+    ),
+  )
 
-/** Pairs the multi-select combobox's `view` and `update` (and programmatic
- *  helpers) behind a single Item-typed entry point. `selectItem` emits
- *  `Selected({ value })`; the parent toggles the value's membership. */
-export const create = <Item extends string = string>(): Bundle<Item> => {
-  type UpdateReturn = Update.ReturnWithOutMessage<
-    Model,
-    Message,
-    OutMessage<Item>,
-    Update.RequirementsOf<typeof update>
-  >
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const typedUpdate = update as (model: Model, message: Message) => UpdateReturn
-  return {
-    view: internalView<Item>(),
-    update: typedUpdate,
-    selectItem: (model, item) =>
-      typedUpdate(
-        model,
-        Message.SelectedItem({ item, displayText: item, wasSelected: false }),
-      ),
-    open: model =>
-      typedUpdate(
-        model,
-        Message.Opened({ maybeActiveItemIndex: Option.none() }),
-      ),
-    close: model =>
-      typedUpdate(
-        model,
-        Message.Closed({ restingInputValue: '', isClearable: true }),
-      ),
-  }
+  return definition.compose({
+    view,
+    init: (config: InitConfig) => ({ model: init(config) }),
+    update,
+    steps: { open, close, selectItem },
+    EffectsLayer,
+  })
+}
+
+/** Creates a checked multi-select Combobox descriptor. Pass an Item Schema to
+ * retain its exact Message and OutMessage payloads. */
+export function create(): Bundle<string>
+export function create<Item extends string>(
+  Item: Schema.Schema<Item>,
+): Bundle<Item>
+export function create(Item: Schema.Schema<string> = Schema.String) {
+  return makeDescriptor(Item)
 }

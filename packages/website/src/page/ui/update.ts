@@ -22,7 +22,7 @@ import {
   VirtualList,
 } from '@foldkit/ui'
 
-import { CityCombobox, CityMultiCombobox } from './demo/combobox'
+import { CityCombobox, CityMultiCombobox } from './combobox'
 import { CharacterListbox, ItemListbox, ItemMultiListbox } from './demo/listbox'
 import { DemoMenu, type MenuItem } from './demo/menu'
 import { PlanRadioGroup } from './demo/radioGroup'

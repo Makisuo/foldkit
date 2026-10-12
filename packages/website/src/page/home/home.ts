@@ -1,5 +1,5 @@
 import { Match, Option } from 'effect'
-import { type Mount, Submodel } from 'foldkit'
+import { type Mount } from 'foldkit'
 import {
   Html,
   type HtmlBuilder,
@@ -20,10 +20,11 @@ import {
   findBySlug,
 } from '../example'
 import * as AsyncCounterDemo from './asyncCounterDemo'
+import { asyncCounterDemo, notePlayerDemo } from './bindings'
 import { contentView } from './content'
+import { contract } from './definition'
 import * as DemoTab from './demoTab'
 import { Message } from './message'
-import { type Model } from './model'
 import * as NotePlayerDemo from './notePlayerDemo'
 
 const PlaygroundMenu = Menu.create<ExampleSlug>()
@@ -36,34 +37,27 @@ const demoTabButtonClassName =
 const demoTabPanelClassName =
   'flex-1 min-w-0 p-4 bg-cream dark:bg-gray-900 rounded-b-lg rounded-tr-lg lg:rounded-bl-lg lg:rounded-r-lg lg:rounded-tl-none border border-gray-300 dark:border-gray-800'
 
-const toAsyncCounterDemoMessage = (
-  message: AsyncCounterDemo.Message,
-): Message => Message.GotAsyncCounterDemoMessage({ message })
-
-const toNotePlayerDemoMessage = (message: NotePlayerDemo.Message): Message =>
-  Message.GotNotePlayerDemoMessage({ message })
-
 const renderAsyncCounterDemo = (
-  asyncCounterDemo: AsyncCounterDemo.Model,
+  asyncCounterDemoModel: AsyncCounterDemo.Model,
   h: HtmlBuilder<Message>,
 ): Html =>
-  h.submodel({
-    slotId: 'async-counter-demo',
-    model: asyncCounterDemo,
-    view: AsyncCounterDemo.view,
-    toParentMessage: toAsyncCounterDemoMessage,
-  })
+  h.submodel(
+    asyncCounterDemo.embed({
+      slotId: 'async-counter-demo',
+      model: asyncCounterDemoModel,
+    }),
+  )
 
 const renderNotePlayerDemo = (
-  notePlayerDemo: NotePlayerDemo.Model,
+  notePlayerDemoModel: NotePlayerDemo.Model,
   h: HtmlBuilder<Message>,
 ): Html =>
-  h.submodel({
-    slotId: 'note-player-demo',
-    model: notePlayerDemo,
-    view: NotePlayerDemo.view,
-    toParentMessage: toNotePlayerDemoMessage,
-  })
+  h.submodel(
+    notePlayerDemo.embed({
+      slotId: 'note-player-demo',
+      model: notePlayerDemoModel,
+    }),
+  )
 
 const lazyAsyncCounterDemo = createLazy()
 const lazyNotePlayerDemo = createLazy()
@@ -179,89 +173,86 @@ type ViewInputs = Readonly<{
 
 // VIEW
 
-export const view = Submodel.defineView<
-  Model,
-  Message,
-  ViewInputs,
-  Mount.RequirementsOf<typeof Menu.mounts>
->((model, viewInputs, h) => {
-  const asyncCounterDemoView = lazyAsyncCounterDemo(renderAsyncCounterDemo, [
-    model.asyncCounterDemo,
-    h,
-  ])
+export const view = contract.defineView.withInputs<ViewInputs>(
+  (model, viewInputs, h) => {
+    const asyncCounterDemoView = lazyAsyncCounterDemo(renderAsyncCounterDemo, [
+      model.asyncCounterDemo,
+      h,
+    ])
 
-  const notePlayerDemoView = lazyNotePlayerDemo(renderNotePlayerDemo, [
-    model.notePlayerDemo,
-    h,
-  ])
+    const notePlayerDemoView = lazyNotePlayerDemo(renderNotePlayerDemo, [
+      model.notePlayerDemo,
+      h,
+    ])
 
-  const playgroundMenu = playgroundMenuView(
-    model.playgroundMenu,
-    examples.map(example => example.slug),
-    h,
-  )
-
-  const buttonLabelFor = (tab: DemoTab.Tab): string =>
-    Match.value(tab).pipe(
-      Match.when('Architecture', () => 'Async Counter'),
-      Match.when('Note Player', () => 'Note Player'),
-      Match.exhaustive,
+    const playgroundMenu = playgroundMenuView(
+      model.playgroundMenu,
+      examples.map(example => example.slug),
+      h,
     )
 
-  const panelFor = (tab: DemoTab.Tab) =>
-    Match.value(tab).pipe(
-      Match.when('Architecture', () => asyncCounterDemoView),
-      Match.when('Note Player', () => notePlayerDemoView),
-      Match.exhaustive,
+    const buttonLabelFor = (tab: DemoTab.Tab): string =>
+      Match.value(tab).pipe(
+        Match.when('Architecture', () => 'Async Counter'),
+        Match.when('Note Player', () => 'Note Player'),
+        Match.exhaustive,
+      )
+
+    const panelFor = (tab: DemoTab.Tab) =>
+      Match.value(tab).pipe(
+        Match.when('Architecture', () => asyncCounterDemoView),
+        Match.when('Note Player', () => notePlayerDemoView),
+        Match.exhaustive,
+      )
+
+    const demoTabsView = h.submodel({
+      slotId: model.demoTabs.id,
+      model: model.demoTabs,
+      view: DemoTab.DemoTabs.view,
+      viewInputs: {
+        tabs: DemoTab.all,
+        selectedValue: model.activeDemoTab,
+        ariaLabel: 'Demo tabs',
+        orientation: viewInputs.isNarrowViewport ? 'Horizontal' : 'Vertical',
+        toView: ({ tablist, tabs, activeIndex }) =>
+          h.div(
+            [h.Class('lg:flex')],
+            [
+              h.div(
+                [...tablist, h.Class('flex lg:flex-col gap-1')],
+                tabs.map(tab =>
+                  h.button(
+                    [...tab.tab, h.Class(demoTabButtonClassName)],
+                    [h.span([], [buttonLabelFor(tab.value)])],
+                  ),
+                ),
+              ),
+              ...tabs
+                .filter(tab => tab.index === activeIndex)
+                .map(tab =>
+                  h.div(
+                    [...tab.panel, h.Class(demoTabPanelClassName)],
+                    [panelFor(tab.value)],
+                  ),
+                ),
+            ],
+          ),
+      },
+      toParentMessage: message => Message.GotDemoTabsMessage({ message }),
+    })
+
+    const content = contentView(
+      viewInputs.renderCopyButton,
+      viewInputs.renderSnippet,
+      demoTabsView,
+      Shared.emailSignupContent,
+      playgroundMenu,
+      viewInputs.maybeGitHubStarCount,
+      viewInputs.resolvedTheme,
+      viewInputs.isBrowserEnvironmentLoaded,
+      h,
     )
 
-  const demoTabsView = h.submodel({
-    slotId: model.demoTabs.id,
-    model: model.demoTabs,
-    view: DemoTab.DemoTabs.view,
-    viewInputs: {
-      tabs: DemoTab.all,
-      selectedValue: model.activeDemoTab,
-      ariaLabel: 'Demo tabs',
-      orientation: viewInputs.isNarrowViewport ? 'Horizontal' : 'Vertical',
-      toView: ({ tablist, tabs, activeIndex }) =>
-        h.div(
-          [h.Class('lg:flex')],
-          [
-            h.div(
-              [...tablist, h.Class('flex lg:flex-col gap-1')],
-              tabs.map(tab =>
-                h.button(
-                  [...tab.tab, h.Class(demoTabButtonClassName)],
-                  [h.span([], [buttonLabelFor(tab.value)])],
-                ),
-              ),
-            ),
-            ...tabs
-              .filter(tab => tab.index === activeIndex)
-              .map(tab =>
-                h.div(
-                  [...tab.panel, h.Class(demoTabPanelClassName)],
-                  [panelFor(tab.value)],
-                ),
-              ),
-          ],
-        ),
-    },
-    toParentMessage: message => Message.GotDemoTabsMessage({ message }),
-  })
-
-  const content = contentView(
-    viewInputs.renderCopyButton,
-    viewInputs.renderSnippet,
-    demoTabsView,
-    Shared.emailSignupContent,
-    playgroundMenu,
-    viewInputs.maybeGitHubStarCount,
-    viewInputs.resolvedTheme,
-    viewInputs.isBrowserEnvironmentLoaded,
-    h,
-  )
-
-  return content
-})
+    return content
+  },
+)

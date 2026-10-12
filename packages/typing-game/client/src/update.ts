@@ -1,17 +1,15 @@
-import { Effect, Match, Option, Schema } from 'effect'
-import { Command, Update, Url } from 'foldkit'
+import { Effect, Match, Schema } from 'effect'
+import { Command, Url } from 'foldkit'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 
-import * as Shared from '@typing-game/shared'
-
-import { NavigateToRoom } from './command'
+import { contract } from './definition'
 import { Message } from './message'
-import { Model } from './model'
-import { Home, Room } from './page'
+import { owner } from './owner'
 import { urlToAppRoute } from './route'
+import { home, room } from './submodels'
 
-export const NavigateInternal = Command.define('NavigateInternal', {
+export const NavigateInternal = Command.define(owner.name('NavigateInternal'), {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -20,7 +18,7 @@ export const NavigateInternal = Command.define('NavigateInternal', {
   },
 })
 
-export const LoadExternal = Command.define('LoadExternal', {
+export const LoadExternal = Command.define(owner.name('LoadExternal'), {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -29,64 +27,7 @@ export const LoadExternal = Command.define('LoadExternal', {
   },
 })
 
-const readHome = (model: Model): Option.Option<Home.Model.Model> =>
-  Option.some(model.home)
-
-const writeHome = (model: Model, nextHome: Home.Model.Model): Model =>
-  modifyFields(model, { home: () => nextHome })
-
-const toGotHomeMessage = (message: Home.Message): Message =>
-  Message.GotHomeMessage({ message })
-
-const readRoom = (model: Model): Option.Option<Room.Model.Model> =>
-  Option.some(model.room)
-
-const writeRoom = (model: Model, nextRoom: Room.Model.Model): Model =>
-  modifyFields(model, { room: () => nextRoom })
-
-const toGotRoomMessage = (message: Room.Message): Message =>
-  Message.GotRoomMessage({ message })
-
-const navigateToRoom = (roomId: string) => (model: Model) => ({
-  model,
-  commands: [NavigateToRoom({ roomId })],
-})
-
-const enterJoinedRoom = (roomId: string, player: Shared.Player) =>
-  Update.combine([
-    navigateToRoom(roomId),
-    Update.foldChild({
-      update: (roomModel: Room.Model.Model, joinedPlayer: Shared.Player) =>
-        Room.informJoined(roomModel, joinedPlayer, { roomId }),
-      read: readRoom,
-      write: writeRoom,
-      toParentMessage: toGotRoomMessage,
-    })(player),
-  ])
-
-const foldHomeOutMessage = Home.OutMessage.match({
-  CreatedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
-  JoinedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
-})
-
-const foldHomeMessage = Update.foldChild({
-  update: Home.update,
-  read: readHome,
-  write: writeHome,
-  toParentMessage: toGotHomeMessage,
-  foldOutMessage: foldHomeOutMessage,
-})
-
-const foldRoomMessage = (roomId: string) =>
-  Update.foldChild({
-    update: (roomModel: Room.Model.Model, message: Room.Message) =>
-      Room.update(roomModel, message, { roomId }),
-    read: readRoom,
-    write: writeRoom,
-    toParentMessage: toGotRoomMessage,
-  })
-
-export const update = Update.define((model: Model, message: Message) =>
+export const update = contract.defineUpdate((model, message) =>
   Message.match(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match(request, {
@@ -106,12 +47,12 @@ export const update = Update.define((model: Model, message: Message) =>
       }),
     }),
 
-    GotHomeMessage: ({ message }) => foldHomeMessage(model, message),
+    GotHomeMessage: ({ message }) => home.fold(model, message),
 
     GotRoomMessage: ({ message }) =>
       Match.value(model.route).pipe(
         Match.tag('Room', ({ roomId }) =>
-          foldRoomMessage(roomId)(model, message),
+          room.fold(model, message, { roomId }),
         ),
         Match.orElse(() => ({ model })),
       ),

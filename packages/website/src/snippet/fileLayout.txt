@@ -18,7 +18,10 @@ src/
 |   +-- index.ts           Re-exports all pages
 |   +-- home/
 |   |   +-- index.ts       Re-exports Home module
-|   |   +-- layer.ts       Home EffectsLayer
+|   |   +-- owner.ts       Early Home identity for effect names
+|   |   +-- definition.ts  Home Schemas, Mounts, and static children
+|   |   +-- submodel.ts    Private descriptor and public projections
+|   |   +-- layer.ts       Local Home handler recipes
 |   |   +-- init.ts        Home init
 |   |   +-- model.ts       Home state
 |   |   +-- message.ts     Home events
@@ -30,6 +33,9 @@ src/
 |   |   +-- scene.test.ts  Scene tests for the Home view
 |   +-- products/
 |       +-- index.ts
+|       +-- owner.ts
+|       +-- definition.ts
+|       +-- submodel.ts
 |       +-- layer.ts
 |       +-- init.ts
 |       +-- model.ts
@@ -45,6 +51,9 @@ src/
 |       +-- scene.test.ts
 |       +-- reviews/
 |           +-- index.ts
+|           +-- owner.ts
+|           +-- definition.ts
+|           +-- submodel.ts
 |           +-- layer.ts
 |
 +-- domain/

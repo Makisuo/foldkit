@@ -26,7 +26,7 @@ The Kind column below identifies each component category.
 
 ## Application Wiring
 
-Some components use Commands, Subscriptions, or Mounts for focus, positioning, animation, and other effects. Compose the `EffectsLayer` exports of the components your Submodel uses, and register their `mounts` exports when present. The Submodel exports these bundles to its parent. Each parent composes its children's bundles until the application root supplies the assembled Layer and registrations.
+Some components use Commands, Subscriptions, or Mounts for focus, positioning, animation, and other effects. For a checked descriptor such as `Combobox.create(ItemSchema)`, bind the placement and register it in the parent's `children`. The parent descriptor collects its handlers and Mounts together. Use explicit `EffectsLayer` and `mounts` composition for components without descriptors, as the example below shows.
 
 The examples below assume `./main` exports the application's Model, init, update, view, and its own handler `EffectsLayer`. Supply any external service providers beneath the combined Layer as described in [Layers](/core/layers).
 

@@ -1,11 +1,12 @@
 import { Match, Option } from 'effect'
-import { AsyncData, Submodel } from 'foldkit'
+import { AsyncData } from 'foldkit'
 import { Html, HtmlBuilder } from 'foldkit/html'
 
 import * as Shared from '@typing-game/shared'
 
 import { ROOM_PAGE_USERNAME_INPUT_ID } from '../../../constant'
 import { Icon } from '../../../view/icon'
+import { contract } from '../definition'
 import { Message } from '../message'
 import { Model, RoomPlayerSession } from '../model'
 import { findFirstWrongCharIndex } from '../userGameText'
@@ -17,7 +18,7 @@ import { waiting } from './waiting'
 
 export type ViewInputs = Readonly<{ roomId: string }>
 
-export const view = Submodel.defineView<Model, Message, ViewInputs>(
+export const view = contract.defineView.withInputs<ViewInputs>(
   (model, viewInputs, h): Html => {
     const { roomId } = viewInputs
 

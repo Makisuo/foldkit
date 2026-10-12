@@ -1,8 +1,10 @@
 # Subscription Organization
 
-## Lifting Child Subscriptions {#overview}
+## Overview
 
 A Submodel owns the Subscriptions that produce its Messages. Its parent lifts those Subscriptions into the parent Model and Message types, then aggregates them with other Subscription records at that level.
+
+A [checked Submodel descriptor](/core/submodel#child-submodel) performs those lifts for static placements. Register the child's binding in the parent's `children`, and use `subscriptions.when` on the binding for parent-owned gates. The examples below show the explicit primitives used by the binding, which remain available for dynamically keyed collections and modules without descriptors.
 
 This mirrors the other halves of the boundary. `Update.foldChild` lifts child update, `h.submodel` lifts child view, and `Subscription.lift` lifts child Streams.
 

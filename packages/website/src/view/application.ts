@@ -14,6 +14,7 @@ import { routeToCanonicalUrl } from '../route'
 import { routeTitle } from '../routeTitle'
 import * as SnippetCopy from '../snippetCopy'
 import * as SnippetDisclosure from '../snippetDisclosure'
+import { home } from '../submodels'
 import * as Blog from './blog'
 
 type MountRequirements = Mount.RequirementsOf<
@@ -35,25 +36,25 @@ const homeView = (
     message => Message.GotSnippetCopyMessage({ message }),
     h,
   )
-  const content = h.submodel({
-    slotId: 'home',
-    model: homeModel,
-    view: Home.view,
-    viewInputs: {
-      renderCopyButton,
-      renderSnippet: SnippetDisclosure.renderer(
-        model.snippetDisclosure,
-        message => Message.GotSnippetDisclosureMessage({ message }),
+  const content = h.submodel(
+    home.embed({
+      slotId: 'home',
+      model: homeModel,
+      viewInputs: {
         renderCopyButton,
-        h,
-      ),
-      isNarrowViewport: model.isNarrowViewport,
-      maybeGitHubStarCount: model.maybeGitHubStarCount,
-      resolvedTheme: model.resolvedTheme,
-      isBrowserEnvironmentLoaded: Option.isSome(model.maybeThemePreference),
-    },
-    toParentMessage: message => Message.GotHomeMessage({ message }),
-  })
+        renderSnippet: SnippetDisclosure.renderer(
+          model.snippetDisclosure,
+          message => Message.GotSnippetDisclosureMessage({ message }),
+          renderCopyButton,
+          h,
+        ),
+        isNarrowViewport: model.isNarrowViewport,
+        maybeGitHubStarCount: model.maybeGitHubStarCount,
+        resolvedTheme: model.resolvedTheme,
+        isBrowserEnvironmentLoaded: Option.isSome(model.maybeThemePreference),
+      },
+    }),
+  )
 
   return Marketing.view(
     model,

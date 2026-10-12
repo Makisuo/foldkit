@@ -158,11 +158,15 @@ If the service Layer fails to build, startup cannot reach init or the first rend
 
 Import Effect's `Layer` module as `Layer`. A feature's `layer.ts` imports its definitions and composes attached recipes such as `LoadUser.layer` directly in `EffectsLayer`. Create a standalone `LoadUserLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly, and name an external alternate `LoadUserTestLayer`. Access the combined bundle through the feature namespace as `Search.EffectsLayer`.
 
-Each Submodel includes its own Commands, Subscriptions, Mounts, and ManagedResources in that bundle. Its parent merges the child `EffectsLayer` with its own handler Layers. Repeating this at each Submodel boundary produces one root `EffectsLayer` without making the entry point import every leaf implementation.
+An owned Submodel passes its local handler bundle to `contract.compose({ EffectsLayer })`. A parent that registers the child's static binding in `owner.define({ children })` receives the child's complete `EffectsLayer` automatically, including its descendants. The parent composes only its local handler recipes. Repeating this at each checked descriptor boundary produces one root `EffectsLayer` without making the entry point import every leaf implementation.
 
-At the root, `EffectsLayer` combines the real handler Layers and top-level feature bundles. `ServicesLayer` combines concrete HTTP, storage, RPC, and browser providers. `AppLayer` supplies `ServicesLayer` to `EffectsLayer`. An `AppTestLayer` can supply alternate service providers to the same `EffectsLayer`.
+Manual Layer merging remains appropriate for modules without descriptors, dynamically keyed children, and a host implementation selected at the current boundary. Do not merge a statically registered child's bundle a second time. Composition checks the exact handler contracts supplied by the merged graph and reports a missing or conflicting provider before the Runtime starts.
 
-Use `Layer.mergeAll` to combine Layers. A feature may provide a business service it owns beneath its `EffectsLayer`. Leave concrete environment providers as requirements for the root to choose. The entry imports and provides only `AppLayer`.
+At the root, the descriptor's `EffectsLayer` contains the local handlers and registered child graphs. `ServicesLayer` combines concrete HTTP, storage, RPC, and browser providers. `AppLayer` supplies `ServicesLayer` to `EffectsLayer`. An `AppTestLayer` can supply alternate service providers to the same handler graph.
+
+When a feature needs a different local handler implementation, choose it with `descriptor.withEffectsLayer(localRecipe)` before binding the feature. The replacement preserves the selected descendant recipes and remains passive until application startup. Use the original definitions' `toLayer` methods to retain their protocol and runtime identity. See [Selecting a local handler recipe](/core/submodel#select-a-local-handler-recipe).
+
+Use `Layer.mergeAll` to combine local Layers. A feature may provide a business service it owns beneath its `EffectsLayer`. Leave concrete environment providers as requirements for the root to choose. The descriptor preserves those ordinary service requirements through every parent; the root `AppLayer` supplies them once for the whole runtime. The entry imports and provides only `AppLayer`.
 
 ::Snippet{name="layersMultiple" label="Multiple shared services"}
 
@@ -170,7 +174,9 @@ The provider Layer and its handler Layers live for the application runtime. Reso
 
 ## UI Effects and Mount Registrations
 
-Compose the `EffectsLayer` exports of the UI components a Submodel uses, such as `Dialog.EffectsLayer` and `Menu.EffectsLayer`. Collect their `mounts` exports in the Submodel's registration bundle. Each parent merges those bundles with its own until they reach the application root. Explicit composition includes the implementations the Submodel uses and keeps unrelated handlers out of its application Layer.
+Bind a checked UI descriptor and register that binding in the parent's `children` list. Its `EffectsLayer` and Mount registrations then reach the parent descriptor together. This keeps the implementation graph aligned with the update and view placement.
+
+For components that do not expose a descriptor, compose exports such as `Dialog.EffectsLayer` and `Menu.EffectsLayer` explicitly and collect their `mounts` in the Submodel definition. Explicit composition also remains the right policy for dynamically keyed children. Include only implementations the Submodel uses.
 
 Some component factories own instance-specific effects. `Slider.forRoot(name, getTrackRoot)` returns that instance's `subscriptions` and `EffectsLayer`. `Toast.make(name, payloadSchema)` returns its typed component module with the same two exports. Compose them at the Submodel boundary that owns the factory instance.
 

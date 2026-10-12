@@ -6,10 +6,8 @@ import { describe, expect, test } from 'vitest'
 
 import { Dialog, Menu } from '@foldkit/ui'
 
-import { managedResources } from './application'
 import { Deployment } from './deployment'
 import {
-  LoadPlayground,
   ScrollSidebarActiveLinkIntoView,
   ScrollToTop,
   init,
@@ -22,6 +20,7 @@ import * as NotePlayerDemo from './page/home/notePlayerDemo'
 import * as Search from './search'
 import * as SnippetCopy from './snippetCopy'
 import * as SnippetDisclosure from './snippetDisclosure'
+import { LoadPlayground, home } from './submodels'
 
 const parseUrl = (value: string): Url.Url =>
   pipe(Url.fromString(value), Option.getOrThrow)
@@ -43,7 +42,9 @@ const expectHomePresent = (model: Model): void => {
   expect(Option.isSome(model.maybeHome)).toBe(true)
   expect(
     Option.isSome(
-      managedResources.audioContext.modelToMaybeRequirements(model),
+      home.managedResources[
+        'notePlayerDemo/audioContext'
+      ].modelToMaybeRequirements(model),
     ),
   ).toBe(true)
 }
@@ -52,7 +53,9 @@ const expectHomeAbsent = (model: Model): void => {
   expect(Option.isNone(model.maybeHome)).toBe(true)
   expect(
     Option.isNone(
-      managedResources.audioContext.modelToMaybeRequirements(model),
+      home.managedResources[
+        'notePlayerDemo/audioContext'
+      ].modelToMaybeRequirements(model),
     ),
   ).toBe(true)
 }

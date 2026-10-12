@@ -1,6 +1,16 @@
 # Submodel
 
-## When to Create a Submodel {#overview}
+## Overview
+
+As a Foldkit feature grows, the parent repeats the same child wiring in update, view, Subscriptions, ManagedResources, Mount registrations, and handler Layers. A checked Submodel descriptor keeps those child-owned pieces together. The parent binds the descriptor once to say where the child Model lives and how facts cross the boundary.
+
+The child owns its state machine and public entry points. The parent still chooses initialization order, routes, placement, shared context, and responses to OutMessages. Composition records those choices without starting effects; the Runtime performs Commands and manages lifecycles after application assembly.
+
+:::Info{label="Complete application"}
+The [Typing Terminal application](/example-apps/typing-terminal) uses owned descriptors for Home and Room, contextual updates, route gates, OutMessage handling, and application service composition. Its [client source](https://github.com/foldkit/foldkit/tree/main/packages/typing-game/client/src) shows the complete wiring.
+:::
+
+## When to Create a Submodel
 
 ### Encapsulation and Decomposition
 
@@ -27,21 +37,85 @@ A Submodel is one station in the restaurant. The station owns its work and inter
 If a section only renders parent state and owns no Messages or update logic, make it a view function. A reusable card that receives a title and content does not need a Submodel.
 :::
 
-## The Child Submodel {#child-submodel}
+## Author a Checked Submodel {#child-submodel}
 
-A child Submodel does not know which parent embeds it. This Settings Submodel owns its state and handles its Messages without importing the root Model or Message.
+A child Submodel does not know which parent embeds it. Give it one `Submodel.owner` before defining its Commands, Subscriptions, Mounts, or ManagedResources. The Owner gives the finished descriptor a stable runtime identity. `owner.name` qualifies locally owned effect definitions with the feature namespace; the resulting name is still a plain string protocol name. Use a namespace such as `Acme/Settings` or `Foldkit/Combobox`; it is an architecture name rather than a filesystem path.
 
-::Snippet{name="submodelChildModule" label="Settings Submodel"}
+Define the Model, Message, optional OutMessage, local Mount registrations, and already-bound children through `owner.define`. Keeping the Owner in `owner.ts` and the returned contract in `definition.ts` lets Commands, update, view, and lifecycle modules import the early identities without creating a dependency on the finished descriptor.
 
-## Embedding the Submodel {#embedding}
+::Snippet{name="submodelOwnerContract" label="Owned Submodel contract"}
 
-The parent has three jobs: embed the child’s Model, wrap its Messages, and delegate to its update.
+Two independently created Owners with the same namespace are different runtime identities. Foldkit rejects those identities when they enter one composition. Create the Owner once and import it. Reusing one finished descriptor at two placements is valid because the descriptor identity stays the same.
 
-### Embedding the Model
+### Define update, view, and public Steps
 
-The child’s Model becomes a field in the parent’s Model:
+Use the contract's helpers to preserve the exact Model, Message, OutMessage, Mount, and Command requirement types across files:
 
-::Snippet{name="submodelParentModel" label="Parent Model"}
+- `defineUpdate` defines the primary child update. Extra parent context is part of its function signature and must be typed.
+- `defineView` defines a canonical two-argument view. Use `defineView.withInputs<ViewInputs>` when the parent supplies per-render inputs.
+- `defineStep` defines a named parent entry point without exposing a child Message constructor.
+
+Finish the feature with `contract.compose`. Composition is pure: it records the producers, registrations, selected handler Layer recipes, and host-owned handler declarations without building a Layer or starting a lifecycle.
+
+::Snippet{name="submodelOwnedDescriptor" label="Composing a Submodel descriptor"}
+
+The descriptor checks the complete contract at its assembly boundary. Every Command and lifecycle handler required by init, update, public Steps, Subscriptions, ManagedResources, Mounts, and bound children must be supplied by `EffectsLayer` or declared in `hostHandlers`. Provider errors, outputs, and ordinary service inputs remain exact. A handler Layer may depend on an API client or storage service; that service remains a root requirement until `Application.provide` supplies it.
+
+Keep the descriptor private in `submodel.ts`. Export `bind` for parents and the descriptor's projected registrations and `EffectsLayer` for the application root. The feature namespace then reads as `Settings.bind(...)` without publishing two synonymous descriptor values.
+
+## Bind a Static Placement {#embedding}
+
+For an optional or always-present child field, bind the descriptor once in the parent module. The binding owns the placement name, Model access, Message wrapper, Subscription gates, and OutMessage policy. Register it in the parent's `children` list before composing the parent descriptor.
+
+::Snippet{name="submodelBindDescriptor" label="Binding and embedding a Submodel"}
+
+The bound `fold` delegates the primary child update. Call `settings.fold(model, message, currentUser)` to apply it immediately, or `settings.step(message, currentUser)` to get a parent Step for `Update.combine`. A bound named Step such as `settings.steps.reset()` also returns a parent Step. These operations preserve the child's Commands, handler requirements, and OutMessages.
+
+`read` returning `Option.none()` leaves the parent Model unchanged for updates and Steps, stops lifted Subscription Streams, and releases lifted ManagedResources. Foldkit skips child dependency functions while the child is absent. A `subscriptions.when` predicate adds Stream lifecycle policy while the child Model remains present; it does not change whether `fold` can read the child or whether a ManagedResource is needed. Supply one predicate for all child Subscriptions or a record of predicates for selected registration keys.
+
+Every child with an OutMessage requires an explicit policy. Use `outMessage.fold` to handle each named variant locally, `outMessage.forward` to translate selected variants into the current Submodel's OutMessage, or both. A local fold may return Commands, and their handler requirements remain visible to parent composition.
+
+Match every child OutMessage variant in a forwarding mapper. Return `undefined` for named variants that stop at the current parent, and omit `forward` when none continue upward. Local handling still runs for a forwarded variant. If the local fold also emits a parent OutMessage, that derived value takes precedence over the forwarded value for the dispatch.
+
+The parent's descriptor automatically collects each registered child's Subscriptions, ManagedResources, Mounts, and `EffectsLayer`. Registration keys are qualified by placement, so two placements of one descriptor keep independent lifecycles without redefining the underlying handler identity. A duplicate ManagedResource handle identity is rejected because one runtime handle cannot have two lifecycle owners.
+
+### Canonical view embedding
+
+`binding.embed` supplies the canonical child view and the binding's Message wrapper. Pass the result to `h.submodel` with the placement's `slotId`, child Model, and required `viewInputs`. Pass an explicit `view` only when that placement intentionally overrides the canonical one.
+
+The parent chooses when to render the child. `embed` receives the child Model explicitly and does not read the parent Model or apply a route gate. Parent-owned render data goes through `viewInputs`; parent state needed by update is passed to `binding.fold` after the child Message. Placement names identify registrations, while `slotId` identifies a view position under the current boundary. Keep both stable.
+
+### Application assembly
+
+The root descriptor projects one registration graph and one handler graph for `Application.make` and `Application.provide`:
+
+::Snippet{name="submodelApplicationDescriptor" label="Installing the root descriptor"}
+
+`EffectsLayer` contains handler recipes from the root and every static child placement. `ServicesLayer` chooses application-lifetime HTTP, storage, RPC, clock, or browser services once. Providing those services beneath the handler graph keeps shared clients alive for the runtime instead of rebuilding them per Submodel or operation.
+
+Child initialization remains explicit. Use `Update.foldChildInit` or `Update.foldChildInits` when a child's init or boot result must enter the parent Model, because only the parent knows how several initial Models and startup OutMessages combine.
+
+### Select a local handler recipe
+
+Call `descriptor.withEffectsLayer(localRecipe)` before binding when a whole feature needs a different local handler implementation. It returns a descriptor with that recipe and the already-selected child recipes. The replacement covers the feature's local handler bundle; include every local provider the contract requires. Foldkit checks the replacement against the same producers and registrations.
+
+::Snippet{name="submodelEffectsLayerSelection" label="Selecting a feature handler recipe"}
+
+The original recipe remains passive and is not built as part of the selected descriptor. Descendants keep the recipes selected when their bindings were created. A feature that keeps its descriptor private can project `withEffectsLayer` beside `bind` when consumers need this choice.
+
+Ordinary application execution tests should keep the canonical handler graph and provide deterministic service Layers beneath it. Recipe selection is for replacing a feature's handler implementations as a group.
+
+One Owner must select one local `EffectsLayer` object across all descriptors in a composition. Foldkit rejects separately constructed Layer values even if they have equivalent types and providers. Create the local recipe once and reuse it at every simultaneous refinement or placement. The complete `EffectsLayer` also contains child recipes, so the identity check applies to the local recipe supplied to `compose` or `withEffectsLayer`.
+
+### Generic UI descriptors
+
+A reusable UI factory can build a complete descriptor from a payload Schema. Keep its Owner and handler definitions at module scope, then refine only its Model, Message, OutMessage, view inputs, update, and named Steps inside the factory. Every instance shares the same runtime handler identities and `EffectsLayer`, while TypeScript preserves the Schema's narrower payload through `bind`, OutMessage folds, and Step arguments.
+
+Keep the shared local handler Layer at module scope too. Calling the factory several times must reuse that recipe value and the Owner instead of creating new identities for each payload Schema.
+
+::Snippet{name="submodelGenericDescriptor" label="Schema-refined UI descriptor"}
+
+The factory's public `Bundle<Value>` type should describe the complete refined descriptor. The canonical view belongs on that descriptor, so the parent uses `binding.embed` instead of pairing a factory-specific view with a separately authored Message wrapper.
 
 ### Never Bypass the Child’s Update {#never-bypass-the-update}
 
@@ -51,11 +125,11 @@ The parent stores the child Model, but the child still owns it. Do not use [modi
 
 #### Parent Entry Points
 
-For a parent-initiated change, export a helper from the child and fold that helper with `Update.foldChild`. The parent can call `Settings.setTheme` without importing the internal `ChangedTheme` constructor.
+For a parent-initiated change, register a named descriptor Step and call its bound form, such as `settings.steps.reset()`. A legacy or dynamically selected child can still export a helper and fold it with `Update.foldChild`. Both paths preserve the child's transition, Commands, and OutMessage.
 
 ::Snippet{name="submodelDelegateViaHelper" label="✅ Resetting child state through update"}
 
-Stateful Foldkit UI components expose the same kind of entry point. For example: `Popover.close` and a Listbox instance's `selectItem` helper run the component's update without exposing its internal Message constructors.
+Stateful Foldkit UI components expose the same kind of entry point. For example, a bound Combobox exposes `steps.close()` and `steps.selectItem(value, displayText)` without exposing its internal Message constructors.
 
 Messages produced by the child take the regular wrapper path described below. Helpers cover the opposite direction, when the parent needs to initiate a child transition.
 
@@ -66,6 +140,10 @@ Bypassing update creates three problems:
 - The transition bypasses invariants enforced by the child's update.
 - Commands and OutMessages that the child's update would return are skipped.
 - A later change to the child Model can leave the parent writing obsolete fields.
+
+## Explicit Composition Primitives
+
+Use a checked descriptor and static binding for named, optional, or always-present placements. Use the lower-level primitives in this section when the parent selects a child dynamically by key, when child initialization must build the parent Model, or when a legacy module has not adopted descriptor authoring. These operations remain the policy underneath a binding.
 
 ### Wrapping Messages
 
@@ -81,7 +159,7 @@ A wrapper carries routing information only. It holds the child `message` and, fo
 
 ### Folding Update with Update.foldChild {#fold-child}
 
-`Update.foldChild` is the update half of embedding a Submodel. Its configuration tells Foldkit how to:
+`Update.foldChild` is the low-level update half of embedding a Submodel. `descriptor.bind` builds this fold for a static placement. Configure it directly when the placement is dynamic or needs policy outside the binding surface. Its configuration tells Foldkit how to:
 
 - run the child update;
 - read and write the child Model;
@@ -115,7 +193,7 @@ Use `Update.foldChildInits` when several children initialize together. Its `toPa
 
 #### Defining the Child View
 
-A viewless Submodel needs no runtime view wiring. Its parent can render values the child exposes through public accessors, such as Query's `read`. When a Submodel owns rendering, define its view with `Submodel.defineView<Model, Message>`. It receives the child Model and a builder for child Messages.
+A viewless Submodel needs no runtime view wiring. Its parent can render values the child exposes through public accessors, such as Query's `read`. When an owned Submodel renders, use `contract.defineView`. It receives the child Model and a builder for child Messages. Standalone low-level modules can still use `Submodel.defineView<Model, Message>`.
 
 `defineView` brands the function with its child Model and Message types. The parent can then embed it without repeating those types, and handlers inside the child accept only child Messages.
 
@@ -123,7 +201,7 @@ A viewless Submodel needs no runtime view wiring. Its parent can render values t
 
 #### Required Embed Fields
 
-The parent passes four required fields to `h.submodel`:
+The low-level `h.submodel` config has four required fields:
 
 - `slotId` identifies this position under the current boundary.
 - `model` supplies the child Model.
@@ -132,7 +210,7 @@ The parent passes four required fields to `h.submodel`:
 
 ::Snippet{name="submodelParentView" label="Parent view"}
 
-Any parent with the required Model and wrapper can embed the same `Settings.view`.
+For a static binding, prefer `h.submodel(settings.embed({ slotId, model }))`. The binding supplies `view` and `toParentMessage`, keeping view routing identical to update and lifecycle routing. Any parent with the required Model and wrapper can use the lower-level form to embed the same `Settings.view`.
 
 ### Per-render View Inputs
 
@@ -140,7 +218,7 @@ Any parent with the required Model and wrapper can embed the same `Settings.view
 
 Use `ViewInputs` for parent-owned data the child needs only while rendering. A Listbox may need items and an item renderer, while its Model owns highlight and selection state.
 
-Pass `ViewInputs` as the third type parameter to `defineView`. The view then receives `(model, viewInputs, h)`.
+With an owned contract, call `contract.defineView.withInputs<ViewInputs>`. The view receives `(model, viewInputs, h)`. The standalone `Submodel.defineView<Model, Message, ViewInputs>` form remains available for low-level modules.
 
 ::Snippet{name="submodelChildViewInputs" label="Child view with view inputs"}
 
@@ -176,7 +254,9 @@ Foldkit throws while building the view when sibling boundaries reuse a `slotId`.
 
 A parent can hold a fixed or dynamic number of child instances.
 
-For a fixed set, give each child its own Model field and `slotId`. For a dynamic set, start with an array. Use the same stable identifier for the row key, `slotId`, and wrapper Message.
+For a fixed set, bind the descriptor once per placement and give each child its own Model field and `slotId`. For a dynamic set, start with an array and use `Update.foldChildAt`. Use the same stable identifier for the row key, `slotId`, and wrapper Message.
+
+Descriptor children describe static placements known when the parent contract is authored. They do not create or remove keyed child lifecycles as collection entries change. Dynamic collections keep explicit lifted Subscription or ManagedResource policy alongside `foldChildAt`; the collection owner decides how registrations relate to each key.
 
 ### Shared and Independent State
 
@@ -259,7 +339,9 @@ The child update returns its Model, optional Commands, and an optional OutMessag
 
 #### Folding OutMessages
 
-Handle the OutMessage through `foldOutMessage` on [Update.foldChild](#fold-child). `Update.foldChildInit` accepts the same OutMessage adapters when one child emits a fact during initialization. `Update.foldChildInits` applies those adapters to each named child after its shared `toParentModel` has constructed the parent Model. Bind `fold<Child>OutMessage` directly to the child union's exhaustive matcher when the fold needs only the OutMessage. Use the same direct matcher form for a `toParentOutMessage` mapper that needs only the OutMessage. Name every variant, including the only variant in a singleton union. Keep a function or factory when matcher branches consume other per-dispatch context, such as a collection key, previous Model state, an entry payload, or `FoldContext` lifters. The returned `Update.Step<ParentModel, ParentMessage>` receives the parent Model after the updated child has been written back or after `toParentModel` has constructed it.
+For a static descriptor binding, handle the union through `outMessage.fold`, forward it through `outMessage.forward`, or provide both. The property is required when the descriptor declares an OutMessage, so a parent cannot silently discard the child's public facts. Bind the child union's exhaustive matcher directly when the policy needs only the OutMessage, and name every variant, including the only variant in a singleton union.
+
+For explicit composition, handle the OutMessage through `foldOutMessage` on [Update.foldChild](#fold-child). `Update.foldChildInit` accepts the same OutMessage adapters when one child emits a fact during initialization. `Update.foldChildInits` applies those adapters to each named child after its shared `toParentModel` has constructed the parent Model. Use the same direct matcher form for a `toParentOutMessage` mapper that needs only the OutMessage. Keep a function or factory when matcher branches consume other per-dispatch context, such as a collection key, previous Model state, an entry payload, or `FoldContext` lifters. The returned `Update.Step<ParentModel, ParentMessage>` receives the parent Model after the updated child has been written back or after `toParentModel` has constructed it.
 
 Do not unpack a child update, helper, init, or boot result by hand. Destructuring `model` and `commands` can leave its `outMessage` behind without a type error. Dot access can still ignore an OutMessage, but an operation-named value keeps all three returned fields visible together. Use `Update.foldChild`, `Update.foldChildStep`, `Update.foldChildInit`, or `Update.foldChildInits` so the child Model, lifted Commands, and OutMessage remain part of one fold.
 
@@ -423,6 +505,39 @@ Issues new Submodel users hit, and where to read about the fix:
 These checks catch wiring mistakes. See [Anti-patterns](/patterns/anti-patterns) for code that compiles but lets the parent own a child's state or internal Messages.
 
 ## API Reference
+
+### Submodel.owner {#api-owner}
+
+`Submodel.owner(namespace)` returns the authoring Owner for one Submodel identity. Call `owner.name(localName)` when naming a locally owned Command, Subscription, Mount, or ManagedResource. A namespace may contain `/` separated segments; a local name may not contain `/`.
+
+Call `owner.define({ Model, Message, OutMessage?, mounts?, children? })` after the Schemas and static child bindings exist. It returns the typed definition contract used by the helpers below.
+
+### Definition helpers {#api-definition}
+
+- `contract.defineUpdate(update)` preserves the update's exact context arguments, OutMessage, Command result Messages, and handler requirements.
+- `contract.defineStep(step)` does the same for a named parent entry point.
+- `contract.defineView(view)` defines the canonical `(model, h)` view. `contract.defineView.withInputs<ViewInputs>(view)` defines `(model, viewInputs, h)` explicitly, including when `ViewInputs` contains `undefined`.
+- `contract.compose(config)` checks the complete passive descriptor. `init`, `update`, and `EffectsLayer` are required. `view`, `steps`, `subscriptions`, `managedResources`, and `hostHandlers` are optional. Use `hostHandlers` only for original definitions whose implementations the embedding host supplies.
+
+Context parameters after Model and Message must have explicit, precise types. This prevents an unannotated context object from becoming `any` while retaining constrained generic payloads in reusable descriptor factories.
+
+### Descriptor.withEffectsLayer {#api-with-effects-layer}
+
+`descriptor.withEffectsLayer(localRecipe)` selects a replacement local handler recipe and returns a passive descriptor with the same producers, Schemas, registrations, and child bindings. The replacement must satisfy the local handler contracts. Child recipes remain selected as before, and ordinary service requirements from the replacement remain visible in the returned `EffectsLayer`.
+
+Select the recipe before calling `bind`. Reuse the same local recipe object for every descriptor with that Owner in one composition.
+
+### Descriptor.bind {#api-bind}
+
+`descriptor.bind(config)` creates one static placement in a parent Model and Message context. `placement`, `read`, `write`, and `toParentMessage` are required. A descriptor with OutMessages also requires `outMessage.fold`, `outMessage.forward`, or both. `subscriptions.when` adds placement-specific Stream gates.
+
+The returned binding exposes:
+
+- `fold(model, message, ...context)` to run the primary child update immediately;
+- `step(message, ...context)` to defer the primary update as a parent Step for `Update.combine`;
+- `steps.<name>(...args)` for the descriptor's named entry points;
+- `embed({ slotId, model, viewInputs? })` for the canonical view and Message wrapper;
+- the lifted `subscriptions`, `managedResources`, `mounts`, and `EffectsLayer` used by parent composition.
 
 ### h.submodel {#api-h-submodel}
 

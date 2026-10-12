@@ -10,9 +10,9 @@ import {
 
 import {
   indexReferences,
+  firstCommandNameArgument,
   isCallExpression,
   isIdentifier,
-  isStringLiteral,
   isVariableDeclaration,
   isVariableDeclarator,
   resolveFoldkitApiPath,
@@ -92,11 +92,11 @@ const diagnosticMessage = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<string> => {
-  const [firstArgument] = node.arguments
-  if (!isStringLiteral(firstArgument)) {
+  const nameArgument = firstCommandNameArgument(node)
+  if (nameArgument === undefined) {
     return Option.some(missingLiteralNameMessage)
   }
-  const name = firstArgument.value
+  const name = nameArgument.value
   if (!PASCAL_CASE_NAME.test(name)) {
     return Option.some(nonPascalCaseMessage(name))
   }

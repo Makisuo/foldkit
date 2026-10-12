@@ -485,3 +485,23 @@ export const firstStringArgument = (
   const [first] = node.arguments
   return isStringLiteral(first) ? first : undefined
 }
+
+export const firstCommandNameArgument = (
+  node: ESTree.CallExpression,
+): ESTree.StringLiteral | undefined => {
+  const [first] = node.arguments
+  if (isStringLiteral(first)) {
+    return first
+  }
+
+  if (!isCallExpression(first) || !isMemberExpression(first.callee)) {
+    return undefined
+  }
+
+  if (first.callee.computed || !isIdentifier(first.callee.property, 'name')) {
+    return undefined
+  }
+
+  const [name] = first.arguments
+  return isStringLiteral(name) ? name : undefined
+}

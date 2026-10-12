@@ -1,12 +1,16 @@
 import { pipe } from 'effect'
 import { Application, Runtime } from 'foldkit'
 
-import { init } from './init'
 import { AppLayer } from './layer'
 import { Message } from './message'
 import { Model } from './model'
-import { subscriptions } from './subscription'
-import { update } from './update'
+import {
+  init,
+  managedResources,
+  mounts,
+  subscriptions,
+  update,
+} from './submodel'
 import { view } from './view'
 
 const application = Application.make({
@@ -15,6 +19,8 @@ const application = Application.make({
   update,
   view,
   subscriptions,
+  managedResources,
+  mounts,
   container: document.getElementById('root'),
   devTools: {
     Message,

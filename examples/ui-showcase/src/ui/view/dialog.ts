@@ -7,7 +7,8 @@ import { Combobox, Dialog } from '@foldkit/ui'
 
 import { Message as UiMessage } from '../message'
 import type { City, UiModel } from '../model'
-import { CityCombobox, comboboxInputs } from './combobox'
+import { overlayComboboxDemo } from '../update'
+import { comboboxInputs } from './combobox'
 
 type HtmlBuilder = FoldkitHtmlBuilder<
   UiMessage,
@@ -120,25 +121,24 @@ const editFiltersContent = (
       'The combobox panel portals into the dialog, so it renders above the dialog content.',
     ],
   ),
-  h.submodel({
-    slotId: comboboxModel.id,
-    model: comboboxModel,
-    view: CityCombobox.view,
-    viewInputs: {
-      ...comboboxInputs(
-        {
-          inputValue: comboboxModel.inputValue,
-          restingInputValue: Option.getOrElse(maybeSelectedCity, () => ''),
-          anchor: OVERLAY_COMBOBOX_ANCHOR,
-          wrapperClass: 'relative w-full',
-        },
-        h,
-      ),
-      maybeSelectedValue: maybeSelectedCity,
-    },
-    toParentMessage: message =>
-      UiMessage.GotOverlayComboboxDemoMessage({ message }),
-  }),
+  h.submodel(
+    overlayComboboxDemo.embed({
+      slotId: comboboxModel.id,
+      model: comboboxModel,
+      viewInputs: {
+        ...comboboxInputs(
+          {
+            inputValue: comboboxModel.inputValue,
+            restingInputValue: Option.getOrElse(maybeSelectedCity, () => ''),
+            anchor: OVERLAY_COMBOBOX_ANCHOR,
+            wrapperClass: 'relative w-full',
+          },
+          h,
+        ),
+        maybeSelectedValue: maybeSelectedCity,
+      },
+    }),
+  ),
 ]
 
 const projectSettingsContent = (

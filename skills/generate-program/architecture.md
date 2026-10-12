@@ -173,7 +173,7 @@ const update = Update.define((model: Model, message: Message) =>
 )
 ```
 
-`Update.define` preserves the handler requirements of Commands returned by every Message branch so `Application.make` can carry them to the entry point. Use the plain function shape only when the update cannot return Commands.
+`Update.define` preserves the handler requirements of Commands returned by every Message branch so `Application.make` can carry them to the entry point. Inside an owned Submodel, use `contract.defineUpdate` for the same inference plus the definition's Model, Message, and OutMessage context. Use the plain function shape only when the update cannot return Commands.
 
 `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is the Submodel counterpart, adding an optional `outMessage` field.
 
@@ -276,18 +276,16 @@ Commands, Subscriptions, Mounts, and ManagedResources leave handler requirements
 
 Each handler requirement carries its primitive, name, and exact protocol. `Application.provide` rejects incompatible same-named contracts in direct Layers, `Layer.mergeAll` bundles, and sequential provision. Prefer `Command.HandlerOf<typeof Definition>`, `Subscription.HandlerOf<typeof subscriptions.entry>`, `Mount.RequirementsOf<typeof Definition>`, and `ManagedResource.HandlerOf<typeof managedResources.entry>` for explicit annotations. The expanded handler types require every protocol argument; name-only `Handler<Name>` annotations are invalid. Definitions with the same name and identical protocol remain structurally indistinguishable, so alternate implementations must come from the original definition's `toLayer` and retain its runtime identity.
 
-Compose Layers at the same boundaries as Model and Message ownership. A Submodel or application module's `layer.ts` imports its definitions and exports one `EffectsLayer` that combines their attached recipes with its children's effect bundles. Import Effect's module as `Layer` without an alias:
+Compose Layers at the same boundaries as Model and Message ownership. An owned Submodel's `layer.ts` imports its local definitions and exports their combined `EffectsLayer`. Its descriptor collects statically registered children's handler graphs. Import Effect's module as `Layer` without an alias:
 
 ```ts
 export const EffectsLayer = Layer.mergeAll(
   FetchResults.layer,
   subscriptions.searchEvents.layer,
-  Search.EffectsLayer,
-  Settings.EffectsLayer,
 )
 ```
 
-The root combines its own and Submodel implementations in an exported `EffectsLayer`. It combines concrete providers in `ServicesLayer`, then defines `AppLayer` with `Layer.provide(EffectsLayer, ServicesLayer)`. An alternate `AppTestLayer` reuses `EffectsLayer` with `ServicesTestLayer`. When tests import registration exports or the entry should choose the DOM container, `application.ts` exposes an application factory and the entry imports it with the selected root Layer:
+Pass this local recipe to `contract.compose`; `owner.define({ children })` supplies the static child graph. Modules without descriptors and dynamically keyed children still merge child effect bundles explicitly. The root projects its descriptor's complete `EffectsLayer`, combines concrete providers in `ServicesLayer`, and defines `AppLayer` with `Layer.provide(EffectsLayer, ServicesLayer)`. An alternate `AppTestLayer` reuses the handler graph with `ServicesTestLayer`. When tests import registration exports or the entry should choose the DOM container, `application.ts` exposes an application factory and the entry imports it with the selected root Layer:
 
 ```ts
 export const makeApplication = (container: HTMLElement | null) =>
@@ -351,7 +349,7 @@ Handlers and services may own mutable execution bookkeeping, such as worker avai
 
 Whole-application execution tests compose the same handler Layers with deterministic providers for external services before building the application Layer. Keep any business service Layer whose decoding, retries, or policy the test should cover, and replace its lower HTTP or RPC transport. That keeps Command result mapping, Subscription Stream transformation, Mount element lifecycle, and ManagedResource acquire and release behavior under test. Replacing a complete handler is a narrower way to orchestrate a result path, and does not test the replaced handler. Use Effect Layers directly for substitution rather than introducing a testing DSL.
 
-The implementation Layer graph does not replace the registration graph. A Submodel or application module also exports its `subscriptions`, `managedResources`, and `mounts`. In a large app, `application.ts` lifts child registrations into the root Model and Message types, aggregates the records, collects Mount definitions, and exposes the `Application.make` assembly. The entry imports that assembly and `AppLayer`. Use a factory whenever tests or server tooling import the registration module, or when the entry chooses the container. A static value is acceptable only when every importer is browser-side and runs after the intended container exists. A small app can perform that assembly directly in `entry.ts`.
+The implementation Layer graph does not replace the registration graph. A checked descriptor collects static child `subscriptions`, `managedResources`, and `mounts` through the same bindings that supply handler Layers. In a large app, `application.ts` passes the root descriptor's projected registrations to `Application.make` and exposes the assembly factory. Dynamic and lower-level modules still lift and aggregate registrations explicitly. The entry imports the assembly and `AppLayer`. Use a factory whenever tests or server tooling import the registration module, or when the entry chooses the container. A static value is acceptable only when every importer is browser-side and runs after the intended container exists. A small app can perform that assembly directly in `entry.ts`.
 
 ## Mounts
 
@@ -382,81 +380,104 @@ Direct `Subscription.aggregate(first, second)` preserves each Subscription defin
 
 ## The Submodel Pattern
 
-When a module grows too large, extract a Submodel: a child module with its own Model, Message, init, update, and view.
+When a module grows too large, extract a Submodel: a child module with its own Model, Message, init, update, and optional view. Author static placements through an owned descriptor so update, view, lifecycle registrations, and handler Layers stay in one checked contract.
+
+Create the Owner before the effect definitions. Qualify every locally owned Command, Subscription, Mount, and ManagedResource handler with `owner.name`. Define the Model, Message, optional OutMessage, Mounts, and already-bound children after their Schemas exist:
+
+```ts
+// owner.ts
+export const owner = Submodel.owner('Acme/Child')
+
+// command.ts
+export const Save = Command.define(owner.name('Save'), { ... })
+
+// definition.ts
+export const contract = owner.define({ Model, Message, OutMessage, mounts })
+```
+
+Use `contract.defineUpdate`, `contract.defineView` or `defineView.withInputs`, and `contract.defineStep` so exact payloads and handler requirements survive across files. Finish with one private descriptor in `submodel.ts`:
+
+```ts
+const descriptor = contract.compose({
+  init,
+  update,
+  view,
+  steps: { close, selectItem },
+  subscriptions,
+  managedResources,
+  EffectsLayer: LocalEffectsLayer,
+})
+
+export const bind = descriptor.bind
+export const EffectsLayer = descriptor.EffectsLayer
+export const subscriptions = descriptor.subscriptions
+export const managedResources = descriptor.managedResources
+export const mounts = descriptor.mounts
+```
+
+Composition is passive. It checks that every exact handler contract required by the producers and registrations is present in the selected handler graph or declared in `hostHandlers`. Ordinary API, storage, RPC, and browser service requirements stay in `EffectsLayer` and reach the root `AppLayer`; the Runtime builds those shared services once.
+
+Call `descriptor.withEffectsLayer(localRecipe)` before `bind` to replace the feature's whole local handler bundle. The selected descriptor retains its existing child bindings and their recipes. Reuse one local recipe object for every descriptor with the same Owner in a composition, including generic refinements; separately constructed equivalent Layer values are rejected. Keep the Owner, effect definitions, and shared local Layer outside a generic factory. Ordinary application execution tests keep the canonical handlers and provide deterministic service Layers beneath them.
 
 ### Communication
 
-Parent → Child: the parent routes child Messages or folds an exported child entry point
+Parent → Child: the parent routes child Messages or calls a bound named Step
 Child → Parent: the child returns a record with an optional `outMessage`
 
 ```ts
-// Child signals to parent
-const update = (model: Model, message: Message) =>
-  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
-    message,
-    {
-      CreatedRoom: ({ roomId, player }) => ({
-        model,
-        outMessage: OutMessage.SucceededCreateRoom({ roomId, player }),
-      }),
-    },
-  )
-
-// Parent folds the child update and handles its OutMessage
-const foldChildOutMessage = Child.OutMessage.match({
-  SucceededCreateRoom: ({ roomId }) =>
-    Update.defineStep((model: ParentModel) => ({
-      model,
-      commands: [navigateToRoom(roomId)],
-    })),
-})
-
-const foldChild = Update.foldChild({
-  update: Child.update,
-  read: (model: ParentModel) => Option.some(model.child),
-  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
+const child = Child.bind({
+  placement: 'child',
+  read: (model: ParentModel) => model.maybeChild,
+  write: (model, nextChild) =>
+    modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
   toParentMessage: message => ParentMessage.GotChildMessage({ message }),
-  foldOutMessage: foldChildOutMessage,
+  subscriptions: { when: model => model.route._tag === 'Child' },
+  outMessage: {
+    fold: Child.OutMessage.match({
+      SucceededCreateRoom: ({ roomId }) =>
+        Update.defineStep((model: ParentModel) => ({
+          model,
+          commands: [navigateToRoom(roomId)],
+        })),
+    }),
+  },
 })
 
-const update = Update.define((model: ParentModel, message: ParentMessage) =>
-  ParentMessage.match(message, {
-    GotChildMessage: ({ message }) => foldChild(model, message),
+export const contract = owner.define({
+  Model,
+  Message: ParentMessage,
+  children: [child],
+})
+
+const update = contract.defineUpdate(
+  (model, message, currentUser: CurrentUser) =>
+    ParentMessage.match(message, {
+      GotChildMessage: ({ message }) => child.fold(model, message, currentUser),
+    }),
+)
+```
+
+Every child descriptor with an OutMessage requires `outMessage.fold`, `outMessage.forward`, or both. Bind its union matcher directly when the policy needs only that value. Name every variant. The binding carries Command requirements from policy Steps. A generic descriptor factory keeps one module-scope Owner and handler graph while refining its Schema-backed Message, OutMessage, view inputs, and named Steps per factory result.
+
+Register the binding in `owner.define({ children })`. The parent's finished descriptor automatically aggregates the bound child's Subscriptions, ManagedResources, Mounts, and `EffectsLayer` under its placement. `read` controls optional update and ManagedResource presence. `subscriptions.when` is separate Stream lifecycle policy and does not prevent update delegation.
+
+Bindings describe static placements. Use `Update.foldChildAt`, explicit lifecycle lifting, and stable collection keys for dynamic collections. Keep `Update.foldChildInit` and `Update.foldChildInits` for parent initialization, because the parent owns construction of its complete Model and startup OutMessage policy.
+
+### View Delegation
+
+Child views are embedded via `h.submodel`. A binding's `embed` method supplies its canonical view and Message wrapper:
+
+```ts
+export const view = contract.defineView((model, h) =>
+  Option.match(model.maybeChild, {
+    onNone: () => h.empty,
+    onSome: childModel =>
+      h.submodel(child.embed({ slotId: 'child', model: childModel })),
   }),
 )
 ```
 
-Bind an OutMessage union's matcher directly when the fold only dispatches on
-that value. Name every variant, including the only variant in a singleton
-union. Use the same direct matcher form for a `toParentOutMessage` mapper that
-needs only the OutMessage. Keep a function or factory when matcher branches
-consume other per-dispatch context, including a collection key, previous Model
-state, an entry payload, or `FoldContext` lifters. For a generic child whose
-OutMessage payload is structurally narrower than the Schema-backed union, pass
-the refined OutMessage type as the matcher's second generic. Let
-`Update.defineStep` infer Command requirements from Command-producing branches
-instead of constraining the matcher to a requirement-free `Update.Step`.
-
-### View Delegation
-
-Child views are embedded via `h.submodel`. The child writes a pure `(model, h) => Html` view (no awareness of the parent); the parent declares the Message wrap as data at the embed site:
-
-```ts
-// Parent view
-h.submodel({
-  slotId: 'submit-section',
-  view: Child.view,
-  model: model.child,
-  toParentMessage: message => Message.GotChildMessage({ message }),
-})
-
-// Child view, branded with Submodel.defineView
-export const view = Submodel.defineView<Model, Message>((model, h) =>
-  h.button([h.OnClick(Message.ClickedSubmit())], ['Submit']),
-)
-```
-
-The runtime resolves the `toParentMessage` wrap at event-fire time through a scope registry, so the child's view stays pure and dispatches in its own Message type. Brand the view with `Submodel.defineView<Model, Message>` so `h.submodel` can infer the child's Message type at the embed site. The `h` the child receives is typed by the child's own Message: the runtime supplies it per frame, so handlers built in the child's body can only carry Messages the child's boundary dispatches.
+The child defines its canonical view with `contract.defineView`; with per-render inputs, it uses `contract.defineView.withInputs<ViewInputs>` and the parent supplies `viewInputs` to `embed`. The runtime resolves the wrapper at event time, so the child's builder dispatches only child Messages. Parent-built slot callbacks supplied in `viewInputs` retain the parent dispatch boundary.
 
 ## Subscriptions
 
@@ -512,7 +533,7 @@ Canonical live examples:
 - **Always-active keyboard input**: `repos/foldkit/examples/snake/src/main.ts`
 - **Animation-frame-driven game tick**: `repos/foldkit/examples/canvas-art/src/main.ts`
 - **Conditional WebSocket connection** (active only when a session exists): `repos/foldkit/examples/websocket-chat/src/main.ts`
-- **Production multi-stream pattern**: `repos/foldkit/packages/typing-game/client/src/subscription.ts`
+- **Production multi-stream pattern**: `repos/foldkit/packages/typing-game/client/src/page/room/subscription.ts`
 
 ## View Identity and Keys
 

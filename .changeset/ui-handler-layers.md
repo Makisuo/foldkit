@@ -4,6 +4,8 @@
 
 Provide each Foldkit UI component's handler Layers and register its Mount definitions. The application module that owns a component composes that component's `EffectsLayer`; when the component exports `mounts`, the same module carries those registrations to `Application.make`.
 
+For a checked UI descriptor such as the result of `Combobox.create(ItemSchema)`, bind the static placement and register it in the parent's `children`. The parent descriptor collects its handler Layers and Mounts together; do not merge or register those channels again. The explicit wiring below remains available for components without descriptors and dynamically keyed collections.
+
 The following migration is for an application that renders `Menu` and `Tabs`. `Menu` owns Commands and Mounts. `Tabs` owns Commands but no Mounts.
 
 **Before**
@@ -176,42 +178,40 @@ const subscriptions = Subscription.aggregate(
 const EffectsLayer = Layer.mergeAll(App.EffectsLayer, slider.EffectsLayer)
 ```
 
-Update direct Command references using this table. Corresponding `Message.Completed*` variants include the same component name; for example, `Menu.Message.CompletedLockScroll` becomes `Menu.Message.CompletedLockMenuScroll`. Shared result facts such as `EndedAnimation` keep their names.
+Update direct Command references using this table. For the components in this table, corresponding `Message.Completed*` variants follow the renamed operation; for example, `Menu.Message.CompletedLockScroll` becomes `Menu.Message.CompletedLockMenuScroll`. Shared result facts such as `EndedAnimation` keep their names.
 
-| Previous Command                        | New Command                                     |
-| --------------------------------------- | ----------------------------------------------- |
-| `Menu.LockScroll`                       | `Menu.LockMenuScroll`                           |
-| `Menu.UnlockScroll`                     | `Menu.UnlockMenuScroll`                         |
-| `Menu.InertOthers`                      | `Menu.InertMenuOthers`                          |
-| `Menu.RestoreInert`                     | `Menu.RestoreMenuInert`                         |
-| `Menu.FocusItems`                       | `Menu.FocusMenuItems`                           |
-| `Menu.FocusButton`                      | `Menu.FocusMenuButton`                          |
-| `Menu.ScrollIntoView`                   | `Menu.ScrollMenuItemIntoView`                   |
-| `Menu.ClickItem`                        | `Menu.ClickMenuItem`                            |
-| `Menu.DelayClearSearch`                 | `Menu.DelayClearMenuSearch`                     |
-| `Menu.DetectMovementOrAnimationEnd`     | `Menu.DetectMenuMovementOrAnimationEnd`         |
-| `Listbox.LockScroll`                    | `Listbox.LockListboxScroll`                     |
-| `Listbox.UnlockScroll`                  | `Listbox.UnlockListboxScroll`                   |
-| `Listbox.InertOthers`                   | `Listbox.InertListboxOthers`                    |
-| `Listbox.RestoreInert`                  | `Listbox.RestoreListboxInert`                   |
-| `Listbox.FocusButton`                   | `Listbox.FocusListboxButton`                    |
-| `Listbox.FocusItems`                    | `Listbox.FocusListboxItems`                     |
-| `Listbox.ScrollIntoView`                | `Listbox.ScrollListboxItemIntoView`             |
-| `Listbox.ClickItem`                     | `Listbox.ClickListboxItem`                      |
-| `Listbox.DelayClearSearch`              | `Listbox.DelayClearListboxSearch`               |
-| `Listbox.DetectMovementOrAnimationEnd`  | `Listbox.DetectListboxMovementOrAnimationEnd`   |
-| `Combobox.LockScroll`                   | `Combobox.LockComboboxScroll`                   |
-| `Combobox.UnlockScroll`                 | `Combobox.UnlockComboboxScroll`                 |
-| `Combobox.InertOthers`                  | `Combobox.InertComboboxOthers`                  |
-| `Combobox.RestoreInert`                 | `Combobox.RestoreComboboxInert`                 |
-| `Combobox.FocusInput`                   | `Combobox.FocusComboboxInput`                   |
-| `Combobox.ScrollIntoView`               | `Combobox.ScrollComboboxItemIntoView`           |
-| `Combobox.ClickItem`                    | `Combobox.ClickComboboxItem`                    |
-| `Combobox.DetectMovementOrAnimationEnd` | `Combobox.DetectComboboxMovementOrAnimationEnd` |
-| `Popover.LockScroll`                    | `Popover.LockPopoverScroll`                     |
-| `Popover.UnlockScroll`                  | `Popover.UnlockPopoverScroll`                   |
-| `Popover.InertOthers`                   | `Popover.InertPopoverOthers`                    |
-| `Popover.RestoreInert`                  | `Popover.RestorePopoverInert`                   |
-| `Popover.FocusPanel`                    | `Popover.FocusPopoverPanel`                     |
-| `Popover.FocusButton`                   | `Popover.FocusPopoverButton`                    |
-| `Popover.DetectMovementOrAnimationEnd`  | `Popover.DetectPopoverMovementOrAnimationEnd`   |
+| Previous Command                       | New Command                                   |
+| -------------------------------------- | --------------------------------------------- |
+| `Menu.LockScroll`                      | `Menu.LockMenuScroll`                         |
+| `Menu.UnlockScroll`                    | `Menu.UnlockMenuScroll`                       |
+| `Menu.InertOthers`                     | `Menu.InertMenuOthers`                        |
+| `Menu.RestoreInert`                    | `Menu.RestoreMenuInert`                       |
+| `Menu.FocusItems`                      | `Menu.FocusMenuItems`                         |
+| `Menu.FocusButton`                     | `Menu.FocusMenuButton`                        |
+| `Menu.ScrollIntoView`                  | `Menu.ScrollMenuItemIntoView`                 |
+| `Menu.ClickItem`                       | `Menu.ClickMenuItem`                          |
+| `Menu.DelayClearSearch`                | `Menu.DelayClearMenuSearch`                   |
+| `Menu.DetectMovementOrAnimationEnd`    | `Menu.DetectMenuMovementOrAnimationEnd`       |
+| `Listbox.LockScroll`                   | `Listbox.LockListboxScroll`                   |
+| `Listbox.UnlockScroll`                 | `Listbox.UnlockListboxScroll`                 |
+| `Listbox.InertOthers`                  | `Listbox.InertListboxOthers`                  |
+| `Listbox.RestoreInert`                 | `Listbox.RestoreListboxInert`                 |
+| `Listbox.FocusButton`                  | `Listbox.FocusListboxButton`                  |
+| `Listbox.FocusItems`                   | `Listbox.FocusListboxItems`                   |
+| `Listbox.ScrollIntoView`               | `Listbox.ScrollListboxItemIntoView`           |
+| `Listbox.ClickItem`                    | `Listbox.ClickListboxItem`                    |
+| `Listbox.DelayClearSearch`             | `Listbox.DelayClearListboxSearch`             |
+| `Listbox.DetectMovementOrAnimationEnd` | `Listbox.DetectListboxMovementOrAnimationEnd` |
+| `Popover.LockScroll`                   | `Popover.LockPopoverScroll`                   |
+| `Popover.UnlockScroll`                 | `Popover.UnlockPopoverScroll`                 |
+| `Popover.InertOthers`                  | `Popover.InertPopoverOthers`                  |
+| `Popover.RestoreInert`                 | `Popover.RestorePopoverInert`                 |
+| `Popover.FocusPanel`                   | `Popover.FocusPopoverPanel`                   |
+| `Popover.FocusButton`                  | `Popover.FocusPopoverButton`                  |
+| `Popover.DetectMovementOrAnimationEnd` | `Popover.DetectPopoverMovementOrAnimationEnd` |
+
+Combobox now scopes its runtime operation names through its shared `Foldkit/Combobox` Owner. Its direct Command exports remain local names such as `LockScroll` and `FocusInput`, with matching `Completed*` result Messages. Rename `Combobox.ScrollIntoView` to `Combobox.ScrollItemIntoView` and `Combobox.Message.CompletedScrollIntoView` to `Combobox.Message.CompletedScrollItemIntoView`.
+
+Its Mount exports also use local names: `AnchorCombobox` becomes `Anchor`, `AttachComboboxPreventBlur` becomes `AttachPreventBlur`, `AttachComboboxSelectOnFocus` becomes `AttachSelectOnFocus`, and `PortalComboboxBackdrop` becomes `PortalBackdrop`. A bound Combobox descriptor collects these Mount registrations and their handlers automatically.
+
+The Mount result Messages follow the same local names: `CompletedAnchorCombobox` becomes `CompletedAnchor`, `CompletedAttachComboboxPreventBlur` becomes `CompletedAttachPreventBlur`, `CompletedAttachComboboxSelectOnFocus` becomes `CompletedAttachSelectOnFocus`, and `CompletedPortalComboboxBackdrop` becomes `CompletedPortalBackdrop`.

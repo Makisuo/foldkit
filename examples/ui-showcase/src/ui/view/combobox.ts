@@ -12,11 +12,15 @@ import { Combobox } from '@foldkit/ui'
 import type { AnchorConfig } from '@foldkit/ui/combobox'
 
 import * as Icon from '../../icon'
-import { Message as UiMessage } from '../message'
+import type { Message as UiMessage } from '../message'
 import type { City, UiModel } from '../model'
-
-export const CityCombobox = Combobox.create<City>()
-export const CityMultiCombobox = Combobox.Multi.create<City>()
+import {
+  comboboxDemo,
+  comboboxMultiDemo,
+  comboboxNullableDemo,
+  comboboxPlacementLockDemo,
+  comboboxSelectOnFocusDemo,
+} from '../update'
 
 type HtmlBuilder = FoldkitHtmlBuilder<
   UiMessage,
@@ -138,26 +142,25 @@ export const view = Submodel.defineView(
         h.div(
           [h.Class('relative')],
           [
-            h.submodel({
-              slotId: model.comboboxDemo.id,
-              model: model.comboboxDemo,
-              view: CityCombobox.view,
-              viewInputs: {
-                ...comboboxInputs(
-                  {
-                    inputValue: model.comboboxDemo.inputValue,
-                    restingInputValue: Option.getOrElse(
-                      model.maybeComboboxDemoSelectedCity,
-                      () => '',
-                    ),
-                  },
-                  h,
-                ),
-                maybeSelectedValue: model.maybeComboboxDemoSelectedCity,
-              },
-              toParentMessage: message =>
-                UiMessage.GotComboboxDemoMessage({ message }),
-            }),
+            h.submodel(
+              comboboxDemo.embed({
+                slotId: model.comboboxDemo.id,
+                model: model.comboboxDemo,
+                viewInputs: {
+                  ...comboboxInputs(
+                    {
+                      inputValue: model.comboboxDemo.inputValue,
+                      restingInputValue: Option.getOrElse(
+                        model.maybeComboboxDemoSelectedCity,
+                        () => '',
+                      ),
+                    },
+                    h,
+                  ),
+                  maybeSelectedValue: model.maybeComboboxDemoSelectedCity,
+                },
+              }),
+            ),
           ],
         ),
 
@@ -181,32 +184,31 @@ export const view = Submodel.defineView(
         h.div(
           [h.Class('relative')],
           [
-            h.submodel({
-              slotId: model.comboboxPlacementLockDemo.id,
-              model: model.comboboxPlacementLockDemo,
-              view: CityCombobox.view,
-              viewInputs: {
-                ...comboboxInputs(
-                  {
-                    inputValue: model.comboboxPlacementLockDemo.inputValue,
-                    restingInputValue: Option.getOrElse(
-                      model.maybeComboboxPlacementLockDemoSelectedCity,
-                      () => '',
-                    ),
-                    anchor: {
-                      ...COMBOBOX_ANCHOR,
-                      isPlacementLocked: true,
+            h.submodel(
+              comboboxPlacementLockDemo.embed({
+                slotId: model.comboboxPlacementLockDemo.id,
+                model: model.comboboxPlacementLockDemo,
+                viewInputs: {
+                  ...comboboxInputs(
+                    {
+                      inputValue: model.comboboxPlacementLockDemo.inputValue,
+                      restingInputValue: Option.getOrElse(
+                        model.maybeComboboxPlacementLockDemoSelectedCity,
+                        () => '',
+                      ),
+                      anchor: {
+                        ...COMBOBOX_ANCHOR,
+                        isPlacementLocked: true,
+                      },
                     },
-                  },
-                  h,
-                ),
-                maybeSelectedValue:
-                  model.maybeComboboxPlacementLockDemoSelectedCity,
-                openOnFocus: true,
-              },
-              toParentMessage: message =>
-                UiMessage.GotComboboxPlacementLockDemoMessage({ message }),
-            }),
+                    h,
+                  ),
+                  maybeSelectedValue:
+                    model.maybeComboboxPlacementLockDemoSelectedCity,
+                  openOnFocus: true,
+                },
+              }),
+            ),
           ],
         ),
 
@@ -224,26 +226,26 @@ export const view = Submodel.defineView(
         h.div(
           [h.Class('relative')],
           [
-            h.submodel({
-              slotId: model.comboboxNullableDemo.id,
-              model: model.comboboxNullableDemo,
-              view: CityCombobox.view,
-              viewInputs: {
-                ...comboboxInputs(
-                  {
-                    inputValue: model.comboboxNullableDemo.inputValue,
-                    restingInputValue: Option.getOrElse(
-                      model.maybeComboboxNullableDemoSelectedCity,
-                      () => '',
-                    ),
-                  },
-                  h,
-                ),
-                maybeSelectedValue: model.maybeComboboxNullableDemoSelectedCity,
-              },
-              toParentMessage: message =>
-                UiMessage.GotComboboxNullableDemoMessage({ message }),
-            }),
+            h.submodel(
+              comboboxNullableDemo.embed({
+                slotId: model.comboboxNullableDemo.id,
+                model: model.comboboxNullableDemo,
+                viewInputs: {
+                  ...comboboxInputs(
+                    {
+                      inputValue: model.comboboxNullableDemo.inputValue,
+                      restingInputValue: Option.getOrElse(
+                        model.maybeComboboxNullableDemoSelectedCity,
+                        () => '',
+                      ),
+                    },
+                    h,
+                  ),
+                  maybeSelectedValue:
+                    model.maybeComboboxNullableDemoSelectedCity,
+                },
+              }),
+            ),
           ],
         ),
 
@@ -261,27 +263,26 @@ export const view = Submodel.defineView(
         h.div(
           [h.Class('relative')],
           [
-            h.submodel({
-              slotId: model.comboboxSelectOnFocusDemo.id,
-              model: model.comboboxSelectOnFocusDemo,
-              view: CityCombobox.view,
-              viewInputs: {
-                ...comboboxInputs(
-                  {
-                    inputValue: model.comboboxSelectOnFocusDemo.inputValue,
-                    restingInputValue: Option.getOrElse(
-                      model.maybeComboboxSelectOnFocusDemoSelectedCity,
-                      () => '',
-                    ),
-                  },
-                  h,
-                ),
-                maybeSelectedValue:
-                  model.maybeComboboxSelectOnFocusDemoSelectedCity,
-              },
-              toParentMessage: message =>
-                UiMessage.GotComboboxSelectOnFocusDemoMessage({ message }),
-            }),
+            h.submodel(
+              comboboxSelectOnFocusDemo.embed({
+                slotId: model.comboboxSelectOnFocusDemo.id,
+                model: model.comboboxSelectOnFocusDemo,
+                viewInputs: {
+                  ...comboboxInputs(
+                    {
+                      inputValue: model.comboboxSelectOnFocusDemo.inputValue,
+                      restingInputValue: Option.getOrElse(
+                        model.maybeComboboxSelectOnFocusDemoSelectedCity,
+                        () => '',
+                      ),
+                    },
+                    h,
+                  ),
+                  maybeSelectedValue:
+                    model.maybeComboboxSelectOnFocusDemoSelectedCity,
+                },
+              }),
+            ),
           ],
         ),
 
@@ -311,23 +312,22 @@ export const view = Submodel.defineView(
                   ),
               }),
             ),
-            h.submodel({
-              slotId: model.comboboxMultiDemo.id,
-              model: model.comboboxMultiDemo,
-              view: CityMultiCombobox.view,
-              viewInputs: {
-                ...comboboxInputs(
-                  {
-                    inputValue: model.comboboxMultiDemo.inputValue,
-                    restingInputValue: '',
-                  },
-                  h,
-                ),
-                selectedValues: model.comboboxMultiDemoSelectedCities,
-              },
-              toParentMessage: message =>
-                UiMessage.GotComboboxMultiDemoMessage({ message }),
-            }),
+            h.submodel(
+              comboboxMultiDemo.embed({
+                slotId: model.comboboxMultiDemo.id,
+                model: model.comboboxMultiDemo,
+                viewInputs: {
+                  ...comboboxInputs(
+                    {
+                      inputValue: model.comboboxMultiDemo.inputValue,
+                      restingInputValue: '',
+                    },
+                    h,
+                  ),
+                  selectedValues: model.comboboxMultiDemoSelectedCities,
+                },
+              }),
+            ),
           ],
         ),
       ],

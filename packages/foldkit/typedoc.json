@@ -145,6 +145,18 @@
     "src/runtime/makeApplication.ts:SelfContainedUpdate",
     "src/runtime/makeElement.ts:SelfContainedConfig",
     "src/runtime/makeElement.ts:SelfContainedUpdate",
+    "src/submodel/binding.ts:AggregatedChildren",
+    "src/submodel/binding.ts:AnyBinding",
+    "src/submodel/definition.ts:CompositionForValidation",
+    "src/submodel/definition.ts:ValidViewInputs",
+    "src/submodel/definition.ts:ValidateChildBindings",
+    "src/submodel/definition.ts:ValidateView",
+    "src/submodel/requirements.ts:HandlerContracts",
+    "src/submodel/requirements.ts:ValidateComposition",
+    "src/submodel/requirements.ts:ValidateHostDefinitions",
+    "src/submodel/requirements.ts:ValidateMissingHostHandlers",
+    "src/submodel/requirements.ts:ValidatePreciseRequirements",
+    "src/submodel/requirements.ts:ValidateUnexpectedHostHandlers",
     "src/subscription/handler.ts:StreamHandlerWithKeepAlive",
     "src/subscription/handler.ts:StreamHandlerWithoutKeepAlive"
   ]

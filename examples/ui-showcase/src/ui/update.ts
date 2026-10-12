@@ -5,7 +5,6 @@ import { modifyFields } from 'foldkit/struct'
 import {
   Animation,
   Calendar,
-  Combobox,
   DatePicker,
   Dialog,
   DragAndDrop,
@@ -21,17 +20,16 @@ import {
   VirtualList,
 } from '@foldkit/ui'
 
+import { CityCombobox, CityMultiCombobox } from './combobox'
 import { Message as UiMessage } from './message'
-import type {
-  City,
-  DemoColumn,
-  DemoTab,
-  ListboxItem,
-  Plan,
-  UiModel,
+import {
+  type DemoColumn,
+  type DemoTab,
+  type ListboxItem,
+  type Plan,
+  type UiModel,
 } from './model'
 import { Toast } from './toast'
-import { CityCombobox, CityMultiCombobox } from './view/combobox'
 import { CharacterListbox, ItemListbox, ItemMultiListbox } from './view/listbox'
 import { PlanRadioGroup } from './view/radioGroup'
 import { DemoTabs } from './view/tabs'
@@ -146,9 +144,8 @@ const foldMobileMenuDialogClose = Update.foldChildStep({
   foldOutMessage: foldDialogOutMessage,
 })
 
-const foldComboboxDemoOutMessage = Combobox.OutMessage.match<
-  Update.Step<UiModel, UiMessage>,
-  Combobox.OutMessage<City>
+const foldComboboxDemoOutMessage = CityCombobox.OutMessage.match<
+  Update.Step<UiModel, UiMessage>
 >({
   Selected:
     ({ value }) =>
@@ -160,18 +157,17 @@ const foldComboboxDemoOutMessage = Combobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const foldComboboxDemo = Update.foldChild({
-  update: CityCombobox.update,
+export const comboboxDemo = CityCombobox.bind({
+  placement: 'combobox-demo',
   read: (model: UiModel) => Option.some(model.comboboxDemo),
   write: (model, nextComboboxDemo) =>
     modifyFields(model, { comboboxDemo: () => nextComboboxDemo }),
   toParentMessage: message => UiMessage.GotComboboxDemoMessage({ message }),
-  foldOutMessage: foldComboboxDemoOutMessage,
+  outMessage: { fold: foldComboboxDemoOutMessage },
 })
 
-const foldComboboxNullableDemoOutMessage = Combobox.OutMessage.match<
-  Update.Step<UiModel, UiMessage>,
-  Combobox.OutMessage<City>
+const foldComboboxNullableDemoOutMessage = CityCombobox.OutMessage.match<
+  Update.Step<UiModel, UiMessage>
 >({
   Selected:
     ({ value }) =>
@@ -191,8 +187,8 @@ const foldComboboxNullableDemoOutMessage = Combobox.OutMessage.match<
   }),
 })
 
-const foldComboboxNullableDemo = Update.foldChild({
-  update: CityCombobox.update,
+export const comboboxNullableDemo = CityCombobox.bind({
+  placement: 'combobox-nullable-demo',
   read: (model: UiModel) => Option.some(model.comboboxNullableDemo),
   write: (model, nextComboboxNullableDemo) =>
     modifyFields(model, {
@@ -200,12 +196,11 @@ const foldComboboxNullableDemo = Update.foldChild({
     }),
   toParentMessage: message =>
     UiMessage.GotComboboxNullableDemoMessage({ message }),
-  foldOutMessage: foldComboboxNullableDemoOutMessage,
+  outMessage: { fold: foldComboboxNullableDemoOutMessage },
 })
 
-const foldComboboxMultiDemoOutMessage = Combobox.OutMessage.match<
-  Update.Step<UiModel, UiMessage>,
-  Combobox.OutMessage<City>
+const foldComboboxMultiDemoOutMessage = CityMultiCombobox.OutMessage.match<
+  Update.Step<UiModel, UiMessage>
 >({
   Selected:
     ({ value }) =>
@@ -223,19 +218,18 @@ const foldComboboxMultiDemoOutMessage = Combobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const foldComboboxMultiDemo = Update.foldChild({
-  update: CityMultiCombobox.update,
+export const comboboxMultiDemo = CityMultiCombobox.bind({
+  placement: 'combobox-multi-demo',
   read: (model: UiModel) => Option.some(model.comboboxMultiDemo),
   write: (model, nextComboboxMultiDemo) =>
     modifyFields(model, { comboboxMultiDemo: () => nextComboboxMultiDemo }),
   toParentMessage: message =>
     UiMessage.GotComboboxMultiDemoMessage({ message }),
-  foldOutMessage: foldComboboxMultiDemoOutMessage,
+  outMessage: { fold: foldComboboxMultiDemoOutMessage },
 })
 
-const foldComboboxPlacementLockDemoOutMessage = Combobox.OutMessage.match<
-  Update.Step<UiModel, UiMessage>,
-  Combobox.OutMessage<City>
+const foldComboboxPlacementLockDemoOutMessage = CityCombobox.OutMessage.match<
+  Update.Step<UiModel, UiMessage>
 >({
   Selected:
     ({ value }) =>
@@ -247,8 +241,8 @@ const foldComboboxPlacementLockDemoOutMessage = Combobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const foldComboboxPlacementLockDemo = Update.foldChild({
-  update: CityCombobox.update,
+export const comboboxPlacementLockDemo = CityCombobox.bind({
+  placement: 'combobox-placement-lock-demo',
   read: (model: UiModel) => Option.some(model.comboboxPlacementLockDemo),
   write: (model, nextComboboxPlacementLockDemo) =>
     modifyFields(model, {
@@ -256,12 +250,11 @@ const foldComboboxPlacementLockDemo = Update.foldChild({
     }),
   toParentMessage: message =>
     UiMessage.GotComboboxPlacementLockDemoMessage({ message }),
-  foldOutMessage: foldComboboxPlacementLockDemoOutMessage,
+  outMessage: { fold: foldComboboxPlacementLockDemoOutMessage },
 })
 
-const foldComboboxSelectOnFocusDemoOutMessage = Combobox.OutMessage.match<
-  Update.Step<UiModel, UiMessage>,
-  Combobox.OutMessage<City>
+const foldComboboxSelectOnFocusDemoOutMessage = CityCombobox.OutMessage.match<
+  Update.Step<UiModel, UiMessage>
 >({
   Selected:
     ({ value }) =>
@@ -273,8 +266,8 @@ const foldComboboxSelectOnFocusDemoOutMessage = Combobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const foldComboboxSelectOnFocusDemo = Update.foldChild({
-  update: CityCombobox.update,
+export const comboboxSelectOnFocusDemo = CityCombobox.bind({
+  placement: 'combobox-select-on-focus-demo',
   read: (model: UiModel) => Option.some(model.comboboxSelectOnFocusDemo),
   write: (model, nextComboboxSelectOnFocusDemo) =>
     modifyFields(model, {
@@ -282,7 +275,7 @@ const foldComboboxSelectOnFocusDemo = Update.foldChild({
     }),
   toParentMessage: message =>
     UiMessage.GotComboboxSelectOnFocusDemoMessage({ message }),
-  foldOutMessage: foldComboboxSelectOnFocusDemoOutMessage,
+  outMessage: { fold: foldComboboxSelectOnFocusDemoOutMessage },
 })
 
 const foldDialogDemo = Update.foldChild({
@@ -343,9 +336,8 @@ const foldOverlayDialogDemoOpen = Update.foldChildStep({
   foldOutMessage: foldDialogOutMessage,
 })
 
-const foldOverlayComboboxDemoOutMessage = Combobox.OutMessage.match<
-  Update.Step<UiModel, UiMessage>,
-  Combobox.OutMessage<City>
+const foldOverlayComboboxDemoOutMessage = CityCombobox.OutMessage.match<
+  Update.Step<UiModel, UiMessage>
 >({
   Selected:
     ({ value }) =>
@@ -357,14 +349,14 @@ const foldOverlayComboboxDemoOutMessage = Combobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const foldOverlayComboboxDemo = Update.foldChild({
-  update: CityCombobox.update,
+export const overlayComboboxDemo = CityCombobox.bind({
+  placement: 'overlay-combobox-demo',
   read: (model: UiModel) => Option.some(model.overlayComboboxDemo),
   write: (model, nextOverlayComboboxDemo) =>
     modifyFields(model, { overlayComboboxDemo: () => nextOverlayComboboxDemo }),
   toParentMessage: message =>
     UiMessage.GotOverlayComboboxDemoMessage({ message }),
-  foldOutMessage: foldOverlayComboboxDemoOutMessage,
+  outMessage: { fold: foldOverlayComboboxDemoOutMessage },
 })
 
 const foldNestedDialogParentDemo = Update.foldChild({
@@ -975,19 +967,19 @@ export const uiUpdate = Update.define((model: UiModel, message: UiMessage) =>
       }),
     }),
 
-    GotComboboxDemoMessage: ({ message }) => foldComboboxDemo(model, message),
+    GotComboboxDemoMessage: ({ message }) => comboboxDemo.fold(model, message),
 
     GotComboboxNullableDemoMessage: ({ message }) =>
-      foldComboboxNullableDemo(model, message),
+      comboboxNullableDemo.fold(model, message),
 
     GotComboboxMultiDemoMessage: ({ message }) =>
-      foldComboboxMultiDemo(model, message),
+      comboboxMultiDemo.fold(model, message),
 
     GotComboboxPlacementLockDemoMessage: ({ message }) =>
-      foldComboboxPlacementLockDemo(model, message),
+      comboboxPlacementLockDemo.fold(model, message),
 
     GotComboboxSelectOnFocusDemoMessage: ({ message }) =>
-      foldComboboxSelectOnFocusDemo(model, message),
+      comboboxSelectOnFocusDemo.fold(model, message),
 
     GotDialogDemoMessage: ({ message }) => foldDialogDemo(model, message),
 
@@ -998,7 +990,7 @@ export const uiUpdate = Update.define((model: UiModel, message: UiMessage) =>
       foldOverlayDialogDemo(model, message),
 
     GotOverlayComboboxDemoMessage: ({ message }) =>
-      foldOverlayComboboxDemo(model, message),
+      overlayComboboxDemo.fold(model, message),
 
     GotNestedDialogParentDemoMessage: ({ message }) =>
       foldNestedDialogParentDemo(model, message),

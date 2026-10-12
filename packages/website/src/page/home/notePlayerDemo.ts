@@ -30,6 +30,8 @@ import { Button, Input, RadioGroup } from '@foldkit/ui'
 import { Icon } from '../../icon'
 import * as DemoView from '../demoView'
 
+const owner = Submodel.owner('Website/Home/NotePlayerDemo')
+
 // CONSTANTS
 
 const NOTE_FREQUENCIES: Record<Note, number> = {
@@ -155,6 +157,8 @@ const parseNotes = (value: string) =>
       })
     }),
   )
+const contract = owner.define({ Model, Message })
+
 // INIT
 
 const INITIAL_NOTE_SEQUENCE = 'CDEFGABC'
@@ -182,7 +186,7 @@ const prependToLog =
     Array.take([entry, ...messageLog], MAX_LOG_ENTRIES)
 
 const DelayAdvanceNotePlayerPhase = Command.define(
-  'DelayAdvanceNotePlayerPhase',
+  owner.name('DelayAdvanceNotePlayerPhase'),
   {
     args: { generation: Schema.Number },
     messages: [Message.CompletedDelayAdvanceNotePlayerPhase],
@@ -246,7 +250,7 @@ const foldNoteDurationRadioGroup = Update.foldChild({
   foldOutMessage: foldNoteDurationRadioGroupOutMessage,
 })
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = contract.defineUpdate((model, message) =>
   Message.match(message, {
     ChangedNoteInput: ({ value }) => {
       const uppercased = String.toUpperCase(value)
@@ -458,35 +462,43 @@ export const update = Update.define((model: Model, message: Message) =>
 
 // MANAGED RESOURCE
 
-const AudioContextResource = ManagedResource.tag<AudioContext>()('AudioContext')
+const AudioContextResource = ManagedResource.tag<AudioContext>()(
+  owner.name('AudioContext'),
+)
 
 export const managedResources = ManagedResource.make<Model, Message>()(
   entry => ({
-    audioContext: entry('ManageAudioContext', Schema.Option(Schema.Null), {
-      resource: AudioContextResource,
-      modelToMaybeRequirements: () => Option.some(null),
-      onAcquired: () => Message.SucceededAcquireAudioContext(),
-      onReleased: () => Message.ReleasedAudioContext(),
-      onAcquireError: () => Message.FailedAcquireAudioContext(),
-      handler: function* () {
-        return {
-          acquire: () =>
-            Effect.try({
-              try: () => new AudioContext(),
-              catch: () =>
-                new Error('The Web Audio API is unavailable in this browser.'),
-            }),
-          release: audioContext =>
-            Effect.promise(() => audioContext.close().catch(() => undefined)),
-        }
+    audioContext: entry(
+      owner.name('ManageAudioContext'),
+      Schema.Option(Schema.Null),
+      {
+        resource: AudioContextResource,
+        modelToMaybeRequirements: () => Option.some(null),
+        onAcquired: () => Message.SucceededAcquireAudioContext(),
+        onReleased: () => Message.ReleasedAudioContext(),
+        onAcquireError: () => Message.FailedAcquireAudioContext(),
+        handler: function* () {
+          return {
+            acquire: () =>
+              Effect.try({
+                try: () => new AudioContext(),
+                catch: () =>
+                  new Error(
+                    'The Web Audio API is unavailable in this browser.',
+                  ),
+              }),
+            release: audioContext =>
+              Effect.promise(() => audioContext.close().catch(() => undefined)),
+          }
+        },
       },
-    }),
+    ),
   }),
 )
 
 // COMMAND
 
-const PlayNote = Command.define('PlayNote', {
+const PlayNote = Command.define(owner.name('PlayNote'), {
   args: { note: Note, duration: NoteDuration, noteIndex: Schema.Number },
   messages: [Message.CompletedPlayNote],
   handler: function* () {
@@ -578,7 +590,7 @@ const durationButtonClass = (
       !isSelected && isDisabled,
   })
 
-export const view = Submodel.defineView<Model, Message>((model, h): Html =>
+export const view = contract.defineView((model, h): Html =>
   DemoView.shell(
     DemoView.codePanel(
       'note-demo-code-panel',
@@ -979,3 +991,14 @@ const phaseIndicatorView = (model: Model): Html =>
     phaseColorClass(model.highlightPhase),
     [],
   )
+
+const descriptor = contract.compose({
+  init,
+  update,
+  view,
+  managedResources,
+  EffectsLayer,
+})
+
+export const bind = descriptor.bind
+export const withEffectsLayer = descriptor.withEffectsLayer

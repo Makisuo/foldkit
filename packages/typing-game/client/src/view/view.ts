@@ -2,8 +2,8 @@ import { Document, Html, HtmlBuilder } from 'foldkit/html'
 
 import { Message } from '../message'
 import { Model } from '../model'
-import { Home, Room } from '../page'
 import { AppRoute } from '../route'
+import { home, room } from '../submodels'
 
 const routeTitle = (route: Model['route']): string =>
   AppRoute.match(route, {
@@ -15,20 +15,20 @@ const routeTitle = (route: Model['route']): string =>
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const content = AppRoute.match(model.route, {
     Home: () =>
-      h.submodel({
-        slotId: 'home',
-        model: model.home,
-        view: Home.view,
-        toParentMessage: message => Message.GotHomeMessage({ message }),
-      }),
+      h.submodel(
+        home.embed({
+          slotId: 'home',
+          model: model.home,
+        }),
+      ),
     Room: ({ roomId }) =>
-      h.submodel({
-        slotId: 'room',
-        model: model.room,
-        view: Room.view,
-        viewInputs: { roomId },
-        toParentMessage: message => Message.GotRoomMessage({ message }),
-      }),
+      h.submodel(
+        room.embed({
+          slotId: 'room',
+          model: model.room,
+          viewInputs: { roomId },
+        }),
+      ),
     NotFound: route => notFound(route, h),
   })
 

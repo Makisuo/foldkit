@@ -10,8 +10,9 @@ import {
 import { RoomsClient } from '../../rpc'
 import { Message } from './message'
 import { RoomPlayerSession, RoomPlayerSessionJsonString } from './model'
+import { owner } from './owner'
 
-export const FetchRoom = Command.define('FetchRoom', {
+export const FetchRoom = Command.define(owner.name('FetchRoom'), {
   args: { roomId: Schema.String },
   messages: [Message.SucceededFetchRoom, Message.FailedFetchRoom],
   handler: function* () {
@@ -25,7 +26,7 @@ export const FetchRoom = Command.define('FetchRoom', {
   },
 })
 
-export const LoadSession = Command.define('LoadSession', {
+export const LoadSession = Command.define(owner.name('LoadSession'), {
   args: { roomId: Schema.String },
   messages: [Message.CompletedLoadSession],
   handler: function* () {
@@ -60,7 +61,7 @@ export const LoadSession = Command.define('LoadSession', {
   },
 })
 
-export const JoinRoom = Command.define('JoinRoom', {
+export const JoinRoom = Command.define(owner.name('JoinRoom'), {
   args: { username: Schema.String, roomId: Schema.String },
   messages: [Message.SucceededJoinRoom, Message.FailedJoinRoom],
   handler: function* () {
@@ -74,7 +75,7 @@ export const JoinRoom = Command.define('JoinRoom', {
   },
 })
 
-export const StartGame = Command.define('StartGame', {
+export const StartGame = Command.define(owner.name('StartGame'), {
   args: { roomId: Schema.String, playerId: Schema.String },
   messages: [Message.SucceededStartGame, Message.FailedStartGame],
   handler: function* () {
@@ -88,35 +89,38 @@ export const StartGame = Command.define('StartGame', {
   },
 })
 
-export const UpdatePlayerProgress = Command.define('UpdatePlayerProgress', {
-  args: {
-    playerId: Schema.String,
-    gameId: Schema.String,
-    userGameText: Schema.String,
-    charsTyped: Schema.Number,
-  },
-  messages: [Message.CompletedUpdatePlayerProgress],
-  handler: function* () {
-    const client = yield* RoomsClient
+export const UpdatePlayerProgress = Command.define(
+  owner.name('UpdatePlayerProgress'),
+  {
+    args: {
+      playerId: Schema.String,
+      gameId: Schema.String,
+      userGameText: Schema.String,
+      charsTyped: Schema.Number,
+    },
+    messages: [Message.CompletedUpdatePlayerProgress],
+    handler: function* () {
+      const client = yield* RoomsClient
 
-    return ({ playerId, gameId, userGameText, charsTyped }) =>
-      client
-        .updatePlayerProgress({
-          playerId,
-          gameId,
-          userText: userGameText,
-          charsTyped,
-        })
-        .pipe(
-          Effect.as(Message.CompletedUpdatePlayerProgress()),
-          Effect.catch(() =>
-            Effect.succeed(Message.CompletedUpdatePlayerProgress()),
-          ),
-        )
+      return ({ playerId, gameId, userGameText, charsTyped }) =>
+        client
+          .updatePlayerProgress({
+            playerId,
+            gameId,
+            userText: userGameText,
+            charsTyped,
+          })
+          .pipe(
+            Effect.as(Message.CompletedUpdatePlayerProgress()),
+            Effect.catch(() =>
+              Effect.succeed(Message.CompletedUpdatePlayerProgress()),
+            ),
+          )
+    },
   },
-})
+)
 
-export const CopyRoomId = Command.define('CopyRoomId', {
+export const CopyRoomId = Command.define(owner.name('CopyRoomId'), {
   args: { roomId: Schema.String },
   messages: [Message.SucceededCopyRoomId, Message.FailedCopyRoomId],
   handler: function* () {
@@ -132,7 +136,7 @@ export const CopyRoomId = Command.define('CopyRoomId', {
 })
 
 export const WaitForExitCountdownInterval = Command.define(
-  'WaitForExitCountdownInterval',
+  owner.name('WaitForExitCountdownInterval'),
   {
     messages: [Message.CompletedWaitForExitCountdownInterval],
     handler: function* () {
@@ -147,7 +151,7 @@ export const WaitForExitCountdownInterval = Command.define(
 const COPY_INDICATOR_DURATION = '2 seconds'
 
 export const WaitBeforeHidingRoomIdCopiedIndicator = Command.define(
-  'WaitBeforeHidingRoomIdCopiedIndicator',
+  owner.name('WaitBeforeHidingRoomIdCopiedIndicator'),
   {
     messages: [Message.CompletedWaitBeforeHidingRoomIdCopiedIndicator],
     handler: function* () {
@@ -161,27 +165,30 @@ export const WaitBeforeHidingRoomIdCopiedIndicator = Command.define(
 
 // SESSION COMMANDS
 
-export const SavePlayerSession = Command.define('SavePlayerSession', {
-  args: { session: RoomPlayerSession },
-  messages: [Message.CompletedSavePlayerSession],
-  handler: function* () {
-    const store = yield* KeyValueStore.KeyValueStore
+export const SavePlayerSession = Command.define(
+  owner.name('SavePlayerSession'),
+  {
+    args: { session: RoomPlayerSession },
+    messages: [Message.CompletedSavePlayerSession],
+    handler: function* () {
+      const store = yield* KeyValueStore.KeyValueStore
 
-    return ({ session }) =>
-      Effect.gen(function* () {
-        const encodeSession = Schema.encodeEffect(RoomPlayerSessionJsonString)
-        const sessionJson = yield* encodeSession(session)
-        yield* store.set(ROOM_PLAYER_SESSION_KEY, sessionJson)
-        return Message.CompletedSavePlayerSession()
-      }).pipe(
-        Effect.catch(() =>
-          Effect.succeed(Message.CompletedSavePlayerSession()),
-        ),
-      )
+      return ({ session }) =>
+        Effect.gen(function* () {
+          const encodeSession = Schema.encodeEffect(RoomPlayerSessionJsonString)
+          const sessionJson = yield* encodeSession(session)
+          yield* store.set(ROOM_PLAYER_SESSION_KEY, sessionJson)
+          return Message.CompletedSavePlayerSession()
+        }).pipe(
+          Effect.catch(() =>
+            Effect.succeed(Message.CompletedSavePlayerSession()),
+          ),
+        )
+    },
   },
-})
+)
 
-export const ClearSession = Command.define('ClearSession', {
+export const ClearSession = Command.define(owner.name('ClearSession'), {
   messages: [Message.CompletedClearSession],
   handler: function* () {
     const store = yield* KeyValueStore.KeyValueStore
@@ -195,7 +202,7 @@ export const ClearSession = Command.define('ClearSession', {
 })
 
 export const FocusRoomPageUsernameInput = Command.define(
-  'FocusRoomPageUsernameInput',
+  owner.name('FocusRoomPageUsernameInput'),
   {
     messages: [Message.CompletedFocusRoomPageUsernameInput],
     handler: function* () {
@@ -208,13 +215,16 @@ export const FocusRoomPageUsernameInput = Command.define(
   },
 )
 
-export const FocusUserGameTextInput = Command.define('FocusUserGameTextInput', {
-  messages: [Message.CompletedFocusUserGameTextInput],
-  handler: function* () {
-    return () =>
-      Dom.focus(`#${USER_GAME_TEXT_INPUT_ID}`).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedFocusUserGameTextInput()),
-      )
+export const FocusUserGameTextInput = Command.define(
+  owner.name('FocusUserGameTextInput'),
+  {
+    messages: [Message.CompletedFocusUserGameTextInput],
+    handler: function* () {
+      return () =>
+        Dom.focus(`#${USER_GAME_TEXT_INPUT_ID}`).pipe(
+          Effect.ignore,
+          Effect.as(Message.CompletedFocusUserGameTextInput()),
+        )
+    },
   },
-})
+)

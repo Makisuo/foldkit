@@ -10,6 +10,8 @@ import { Button } from '@foldkit/ui'
 
 import * as DemoView from '../demoView'
 
+const owner = Submodel.owner('Website/Home/AsyncCounterDemo')
+
 // CONSTANTS
 
 const PHASE_DURATION: Duration.Input = '300 millis'
@@ -62,6 +64,8 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+const contract = owner.define({ Model, Message })
+
 // INIT
 
 export const init = () => ({
@@ -78,7 +82,7 @@ export const init = () => ({
 // UPDATE
 
 export const DelayAdvanceAsyncCounterPhase = Command.define(
-  'DelayAdvanceAsyncCounterPhase',
+  owner.name('DelayAdvanceAsyncCounterPhase'),
   {
     args: { generation: Schema.Number, duration: Schema.DurationFromMillis },
     messages: [Message.CompletedDelayAdvanceAsyncCounterPhase],
@@ -102,7 +106,7 @@ const prependToLog =
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     pipe([entry, ...messageLog], Array.take(MAX_LOG_ENTRIES))
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = contract.defineUpdate((model, message) =>
   Message.match(message, {
     ClickedDemoIncrement: () => {
       const nextModel = modifyFields(model, {
@@ -328,7 +332,7 @@ const phaseColorClass = (phase: AnimationPhase): string =>
     Match.exhaustive,
   )
 
-export const view = Submodel.defineView<Model, Message>((model, h): Html =>
+export const view = contract.defineView((model, h): Html =>
   DemoView.shell(
     DemoView.codePanel(
       'demo-code-panel',
@@ -553,3 +557,8 @@ const progressBarView = (model: Model, isCommand: boolean): Html =>
       ]),
     ],
   )
+
+const descriptor = contract.compose({ init, update, view, EffectsLayer })
+
+export const bind = descriptor.bind
+export const withEffectsLayer = descriptor.withEffectsLayer

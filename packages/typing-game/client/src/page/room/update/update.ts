@@ -18,12 +18,14 @@ import {
   WaitBeforeHidingRoomIdCopiedIndicator,
   WaitForExitCountdownInterval,
 } from '../command'
+import { contract } from '../definition'
 import { Message } from '../message'
 import { Model, RoomAsyncData } from '../model'
+import { owner } from '../owner'
 import { validateUserTextInput } from '../userGameText'
 import { handleRoomUpdated } from './handleRoomUpdates'
 
-export const NavigateHome = Command.define('NavigateHome', {
+export const NavigateHome = Command.define(owner.name('NavigateHome'), {
   messages: [Message.CompletedNavigateHome],
   handler: function* () {
     return () =>
@@ -39,8 +41,8 @@ export type Context = Readonly<{
   roomId: string
 }>
 
-export const update = Update.define(
-  (model: Model, message: Message, context: Context) =>
+export const update = contract.defineUpdate(
+  (model, message, context: Context) =>
     Message.match(message, {
       PressedKey: handleKeyPressed(model),
 
@@ -250,10 +252,9 @@ const handleStartGame = (model: Model, room: Shared.Room) => () =>
     onNone: () => ({ model }),
   })
 
-export const informJoined = (
-  model: Model,
-  player: Shared.Player,
-  context: Context,
-) => update(model, Message.SucceededJoinRoom({ player }), context)
+export const informJoined = contract.defineStep(
+  (model, player: Shared.Player, context: Context) =>
+    update(model, Message.SucceededJoinRoom({ player }), context),
+)
 
 export type UpdateRequirements = Update.RequirementsOf<typeof update>

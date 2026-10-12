@@ -67,15 +67,17 @@ The resource tag holds that bare value, so Commands read it through `.get` with 
 
 A child Submodel defines its Managed Resources in its own Model and Message terms, with no knowledge of its parent. `ManagedResource.lift` translates the child record through a Model accessor and a Message wrapper, matching the shape of update delegation and `Subscription.lift`. `ManagedResource.aggregate` combines root and lifted child records into the single record the runtime config expects. Duplicate keys throw at startup instead of silently replacing an entry.
 
+A checked descriptor binding performs the same lift from its `read` and `toParentMessage` fields. Register that binding in the parent's `children` list, and the parent descriptor collects its entries under placement-qualified keys. Pass the root descriptor's `managedResources` record to `Application.make`. Composition rejects one ManagedResource tag used by two lifecycle owners; changing record keys cannot make one runtime handle independently owned twice.
+
 ### Optional Child Models
 
-`read` returns an `Option` of the child Model. Returning `None` releases the child’s resources without reading their requirements. Returning `Some` lets the child determine which resources it needs. Wrap an always-present child in `Option.some`.
+`read` returns an `Option` of the child Model. Returning `None` releases the child’s resources without reading their requirements. Returning `Some` lets the child determine which resources it needs. Wrap an always-present child in `Option.some`. A Subscription gate on the same binding does not gate ManagedResources; absence is expressed through `read` and then through each entry's `modelToMaybeRequirements`.
 
 ::Snippet{name="managedResourcesLift" label="Composing child ManagedResources"}
 
 ### Multiple Submodel Levels
 
-The same operations compose across every Submodel level: `make` at the owner, `lift` through each parent, and `aggregate` at the root. [Subscription Organization](/patterns/subscription-organization) traces that leaf-to-root shape with Subscriptions; the Managed Resource structure is identical.
+Checked descriptors automate `lift` and `aggregate` across static placements. Use the explicit operations for dynamically keyed collections and modules without descriptors. [Subscription Organization](/patterns/subscription-organization) traces the equivalent explicit leaf-to-root shape with Subscriptions.
 
 :::Info{label="Layers vs Managed Resources"}
 Use `Application.provide` for services and handler accessors that live with the runtime, such as an `RpcClient` or analytics client. Use `managedResources` for handles whose lifetime follows the Model, such as camera streams, an `AudioContext`, or `WebSocket` connections. These are separate scopes: restarting or releasing a ManagedResource handle does not rebuild the app service or handler Layer that implements its lifecycle.

@@ -5,11 +5,11 @@ import { modifyFields } from 'foldkit/struct'
 import { Menu, Tabs } from '@foldkit/ui'
 
 import { ExampleSlug } from '../example/meta'
-import * as AsyncCounterDemo from './asyncCounterDemo'
+import { asyncCounterDemo, notePlayerDemo } from './bindings'
+import { contract } from './definition'
 import * as DemoTab from './demoTab'
 import { Message, OutMessage } from './message'
 import { type Model } from './model'
-import * as NotePlayerDemo from './notePlayerDemo'
 
 // UPDATE
 
@@ -64,30 +64,14 @@ const foldPlaygroundMenu = Update.foldChild({
   foldOutMessage: foldPlaygroundMenuOutMessage,
 })
 
-const foldAsyncCounterDemo = Update.foldChild({
-  update: AsyncCounterDemo.update,
-  read: (model: Model) => Option.some(model.asyncCounterDemo),
-  write: (model, nextAsyncCounterDemo) =>
-    modifyFields(model, { asyncCounterDemo: () => nextAsyncCounterDemo }),
-  toParentMessage: message => Message.GotAsyncCounterDemoMessage({ message }),
-})
-
-const foldNotePlayerDemo = Update.foldChild({
-  update: NotePlayerDemo.update,
-  read: (model: Model) => Option.some(model.notePlayerDemo),
-  write: (model, nextNotePlayerDemo) =>
-    modifyFields(model, { notePlayerDemo: () => nextNotePlayerDemo }),
-  toParentMessage: message => Message.GotNotePlayerDemoMessage({ message }),
-})
-
-export const update = Update.define((model: Model, message: Message) =>
+export const update = contract.defineUpdate((model, message) =>
   Message.match(message, {
     GotDemoTabsMessage: ({ message }) => foldDemoTabs(model, message),
     GotPlaygroundMenuMessage: ({ message }) =>
       foldPlaygroundMenu(model, message),
     GotAsyncCounterDemoMessage: ({ message }) =>
-      foldAsyncCounterDemo(model, message),
+      asyncCounterDemo.fold(model, message),
     GotNotePlayerDemoMessage: ({ message }) =>
-      foldNotePlayerDemo(model, message),
+      notePlayerDemo.fold(model, message),
   }),
 )

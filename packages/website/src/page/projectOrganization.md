@@ -22,7 +22,7 @@ In the diagram, `products/service.ts` owns the feature's `ProductCatalogLayer` b
 
 Keep Commands within the feature whose update returns them. Small features can declare them alongside update; extract a feature-local `command.ts` when several definitions or substantial handlers make a separate file easier to navigate. A feature that fetches its own data owns that Command instead of importing it from a root Command collection. Extract `message.ts` when a Command needs to import its result Message constructors without creating a cycle.
 
-A feature that declares Subscriptions owns `subscription.ts`. The parent lifts that record into its own Model and Message types. See [Subscription Organization](/patterns/subscription-organization).
+A feature that declares Subscriptions owns `subscription.ts`. For a checked Submodel, put its early Owner in `owner.ts`, its Schema contract in `definition.ts`, and its private finished descriptor in `submodel.ts`. The barrel exposes `bind` and the needed descriptor projections. Registering a binding in the parent's `children` lifts the child's lifecycle records automatically. See [Authoring a checked Submodel](/core/submodel#child-submodel).
 
 ### Split a Feature When It Grows
 
@@ -32,9 +32,11 @@ Split a large feature again only when its own files become difficult to navigate
 
 Keep each handler attached to the Command, Subscription, Mount, or ManagedResource definition it implements. Compose `LoadProducts.layer` or `subscriptions.productUpdates.layer` directly in the feature's `EffectsLayer`. Name a standalone binding `LoadProductsLayer` only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly, and name an external alternate `LoadProductsTestLayer`. The handler owns the translation from Foldkit args or dependencies into an Effect or Stream. External clients stay in its Effect requirements.
 
-When a feature is split across modules, its `layer.ts` imports the definitions and combines their attached `.layer` recipes under one `EffectsLayer` export. The bundle also includes each child feature's `EffectsLayer`. It may provide business services that the feature owns while leaving concrete HTTP, storage, RPC, and browser providers open for the application root. Import Effect's module as `Layer`; the public bundle has a different name, so no alias is needed.
+When a feature is split across modules, its `layer.ts` imports the local definitions and combines their attached `.layer` recipes under one `EffectsLayer` export. Pass this local bundle to `contract.compose`; registered child bindings contribute their selected handler graphs. A feature may provide business services that it owns while leaving concrete HTTP, storage, RPC, and browser providers open for the application root. Import Effect's module as `Layer`; the bundle has a different name, so no alias is needed.
 
-In a small application, `main.ts` can export an `EffectsLayer` under a `// EFFECTS LAYER` section with the handlers it owns, and `entry.ts` can assemble and run the application directly. Add separate `application.ts` and `layer.ts` roots when several features make those responsibilities useful: `application.ts` lifts registrations and exposes application assembly, while `layer.ts` composes root `EffectsLayer`, `ServicesLayer`, `AppLayer`, and any alternate `AppTestLayer`.
+In a small application, `main.ts` can export an `EffectsLayer` under a `// EFFECTS LAYER` section with the handlers it owns, and `entry.ts` can assemble and run the application directly. Add separate `application.ts` and `layer.ts` roots when several features make those responsibilities useful. `application.ts` uses the root descriptor's collected registrations and exposes application assembly. Root `layer.ts` provides `ServicesLayer` beneath the descriptor's complete `EffectsLayer` and exports `AppLayer` and any alternate `AppTestLayer`.
+
+The following examples show explicit Layer and registration composition for modules without descriptors or dynamically keyed children. Static descriptors perform the child collection; their local Layer modules omit child bundles.
 
 ::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}
 
@@ -52,7 +54,7 @@ Adding another handler or changing an environment provider changes Layer composi
 
 ## Composing Runtime Registrations
 
-Handler Layers and runtime registrations are parallel graphs with different jobs. A feature's `EffectsLayer` supplies implementations. Its `subscriptions`, `managedResources`, and `mounts` say which behaviors Foldkit manages for that feature. Keep both exports at the feature boundary, then let `application.ts` assemble the root program.
+Handler Layers and runtime registrations have different jobs. A feature's `EffectsLayer` supplies implementations. Its `subscriptions`, `managedResources`, and `mounts` say which behaviors Foldkit manages for that feature. A checked descriptor collects both graphs through the same static bindings, and the root passes its projected registrations to `Application.make`. The explicit primitives below compose those graphs when a module does not use a descriptor.
 
 ::Snippet{name="applicationRegistrations" label="Root runtime registration composition"}
 
@@ -60,7 +62,7 @@ Handler Layers and runtime registrations are parallel graphs with different jobs
 
 `Application.make` receives the completed registration graph inside `makeApplication`. `entry.ts` imports that factory and `AppLayer`, resolves the container, then starts the provided application. It does not import feature Commands, Subscription handlers, Mount handlers, or ManagedResource handlers.
 
-The same propagation applies to UI component bundles. Each Submodel composes the `EffectsLayer` exports of the components it uses and collects their `mounts` exports when present. Instance factories such as Slider and Toast return their own effect and Subscription bundles; the Submodel that creates an instance also owns those returned registrations.
+The same propagation applies to UI components. Register a checked component binding, such as a bound Combobox, in the parent's `children`; the descriptor collects its handlers and Mounts. Components without descriptors use explicit `EffectsLayer` and `mounts` composition. Instance factories such as Slider and Toast return their own effect and Subscription bundles; the Submodel that creates an instance also owns those returned registrations.
 
 When a parent update needs an explicit requirement union, derive each child branch from `Update.RequirementsOf<typeof Child.update>` and include other Command-producing helpers. Do not derive it from `Layer.Success<typeof Child.EffectsLayer>`: a feature effect bundle may also implement Subscriptions, Mounts, or ManagedResources that the update never returns.
 
@@ -92,7 +94,7 @@ Import the module as a namespace and call operations such as `Cart.addItem` and 
 
 ## Index Re-exports {#index-reexports}
 
-Use `index.ts` only as a barrel. Re-export the feature's application surface: `EffectsLayer`, plus `subscriptions`, `managedResources`, or `mounts` when the feature owns them.
+Use `index.ts` only as a barrel. For a checked Submodel, re-export `bind` and the needed descriptor projections from `submodel.ts`, along with its public Schemas and initialization entry points. A module without a descriptor can re-export `EffectsLayer` and lifecycle records directly from their owning files, as below.
 
 ::Snippet{name="indexReexports" label="Index re-exports"}
 

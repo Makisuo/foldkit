@@ -17,7 +17,9 @@ Commands, Mounts, Subscription entries, ManagedResource entries, and experimenta
 
 ## Migration
 
-Each before/after pair shows the affected part of an existing module. Imports from `./message` and `./model` refer to the application's existing Message and Model Schemas. When several definitions belong to one Submodel or application module, compose their `.layer` recipes in that owner's `EffectsLayer`.
+Each before/after pair shows the affected part of an existing module. Imports from `./message` and `./model` refer to the application's existing Message and Model Schemas. When several definitions belong to one Submodel or application module, compose their `.layer` recipes in that owner's local `EffectsLayer`.
+
+Checked Submodel descriptors now collect static child bindings automatically. Pass only local handler recipes to `contract.compose({ EffectsLayer })`, register children through `owner.define({ children })`, and project the descriptor's complete `EffectsLayer` and lifecycle registrations. The explicit child Layer merging and lifecycle lifting shown here remain available for modules without descriptors and dynamically keyed collections. Locally owned definitions can use `owner.name` to qualify their protocol names before the contract is assembled.
 
 ### Commands
 
@@ -665,7 +667,7 @@ A Command-producing fold can infer its requirements through `Update.defineStep`,
 
 ### Composing Layers
 
-Keep definitions and handlers within the feature whose update returns them, alongside update or in a feature-local `command.ts`. Use a `// EFFECTS LAYER` section for a combined handler bundle in a sectioned `main.ts`. Compose attached recipes directly as `Definition.layer` in each owning module's combined `EffectsLayer`, such as `Search.EffectsLayer`. When a recipe needs its own exported or reused binding, name it `FooLayer`; name an external alternative `FooTestLayer`. At the application root, combine root and Submodel implementations in `EffectsLayer`, external providers in `ServicesLayer`, and export `AppLayer` from `Layer.provide(EffectsLayer, ServicesLayer)`. Import Effect's module as `Layer`; the bundle names avoid an alias.
+Keep definitions and handlers within the feature whose update returns them, alongside update or in a feature-local `command.ts`. Use a `// EFFECTS LAYER` section for a combined handler bundle in a sectioned `main.ts`. Compose attached recipes directly as `Definition.layer` in each owning module's local `EffectsLayer`. When a recipe needs its own exported or reused binding, name it `FooLayer`; name an external alternative `FooTestLayer`. The application root uses the checked descriptor's complete `EffectsLayer`, or combines root and child implementations explicitly for lower-level composition. Combine external providers in `ServicesLayer`, and export `AppLayer` from `Layer.provide(EffectsLayer, ServicesLayer)`. Import Effect's module as `Layer`; the bundle names avoid an alias.
 
 Foldkit UI components export their own `EffectsLayer` and, when needed, `mounts`. Compose those exports at the Submodel or application module that owns the component, then carry the resulting effect and registration bundles to the root. `Slider.forRoot(name, getTrackRoot)` and `Toast.make(name, payloadSchema)` return instance-owned Subscription and effect bundles; compose those exports where the instance is created.
 

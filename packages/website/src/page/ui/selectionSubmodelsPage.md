@@ -8,13 +8,13 @@ For example: a Listbox of plans, a Combobox of cities, Tabs for view modes, a Me
 
 ### Typed Component Bundles
 
-Each exposes a `create<Item>()` factory that pairs the view and update behind a single type parameter. The binding fixes the item type used by the view and the `Selected` OutMessage.
+Each exposes a `create` factory that keeps one item type across its view, update, and `Selected` OutMessage. Most factories take a type parameter. Combobox takes the Item Schema itself so its complete descriptor also carries exact Message and OutMessage Schemas.
 
 A Listbox over a literal-union `Plan` type:
 
 ::Snippet{name="uiListboxBasic" label="Typed Listbox"}
 
-## The `create<Item>()` Factory {#create-factory}
+## The `create` Factory {#create-factory}
 
 A call to `Listbox.create<Plan>()` returns an object whose entry points are all bound to `Plan`. Its `view` accepts `items: ReadonlyArray<Plan>`. Its `update` and `selectItem` helper can return a `Selected` OutMessage carrying a `Plan`. Declare the factory once at module scope and use the same bundle at every site that needs it.
 
@@ -22,7 +22,7 @@ There is no inbound reflect helper for the selection: the parent owns it outrigh
 
 ## Naming What `create` Returns {#bundle-type}
 
-Each component exports a `Bundle` type for what its factory returns, taking the same type parameters as the factory itself. `Listbox.Bundle<Plan>` is what `Listbox.create<Plan>()` produces, `Menu.Bundle<Action>` is what `Menu.create<Action>()` produces, and the multi-select variants export their own under `Listbox.Multi.Bundle` and `Combobox.Multi.Bundle`.
+Each component exports a `Bundle` type for what its factory returns. `Listbox.Bundle<Plan>` is what `Listbox.create<Plan>()` produces, `Combobox.Bundle<City>` is what `Combobox.create(City)` produces, and the multi-select variants export their own under `Listbox.Multi.Bundle` and `Combobox.Multi.Bundle`.
 
 ### When to Name the Bundle
 
@@ -50,13 +50,13 @@ Without the factory, the view and update would each carry their own `Item` type 
 
 The factory closes that hole by setting `Item` once. The returned `view` and `update` are bound to the same `Item` because both come from the same factory call.
 
-### The Runtime Cast Boundary
+### The Schema Boundary
 
-Internally, each Submodel’s view and update are written against an untyped string value and then cast back to the consumer’s `Item` at the factory boundary. The cast is sound because the value being emitted came from the same `items` array the consumer just supplied. The fence keeps a single `Item` type on both sides of that cast.
+Combobox builds its Message, OutMessage, view, and update from the supplied Item Schema, so it needs no erased generic cast at the factory boundary. The Schema also lets a checked parent descriptor validate the child Message and OutMessage contracts.
 
 ## The Factories {#factories}
 
-Each Submodel exposes a `create<...>()` factory. The shape of the type parameter differs by what the Submodel accepts as items.
+Each Submodel exposes a `create` factory. Its inputs differ by what the Submodel accepts as items.
 
 ### Listbox
 
@@ -66,9 +66,9 @@ Each Submodel exposes a `create<...>()` factory. The shape of the type parameter
 
 ### Combobox
 
-`Combobox.create<Item>()` takes one type parameter and constrains `Item extends string`. Combobox items are typed strings (a literal union, a branded string type, or plain `string`).
+`Combobox.create(Item)` takes one string Schema, such as `Combobox.create(City)`. Combobox items may be a literal union, a branded string Schema, or plain `Schema.String`.
 
-`Combobox.Multi.create<Item>()` is the multi-select variant. Same type-parameter shape; the `Selected` OutMessage carries only the activated `value`, and the parent toggles that value in and out of the selection it owns.
+`Combobox.Multi.create(Item)` is the multi-select variant. It takes the same Schema shape; the `Selected` OutMessage carries only the activated `value`, and the parent toggles that value in and out of the selection it owns.
 
 ### Tabs
 

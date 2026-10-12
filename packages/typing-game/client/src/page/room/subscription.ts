@@ -5,10 +5,11 @@ import { capturedKeyDownStream } from '../../keyboard'
 import { RoomsClient } from '../../rpc'
 import { Message } from './message'
 import { Model, capturesKeyboard } from './model'
+import { owner } from './owner'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   roomUpdates: entry(
-    'RoomUpdates',
+    owner.name('RoomUpdates'),
     {
       maybeRoomStream: Schema.Option(
         Schema.Struct({ roomId: Schema.String, playerId: Schema.String }),
@@ -50,7 +51,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 
   roomKeyPresses: entry(
-    'RoomKeyPresses',
+    owner.name('RoomKeyPresses'),
     { shouldCaptureKeyboard: Schema.Boolean },
     {
       messages: [Message.PressedKey],

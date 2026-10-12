@@ -3,9 +3,10 @@ import { Command } from 'foldkit'
 import { pushUrl } from 'foldkit/navigation'
 
 import { Message } from './message'
+import { owner } from './owner'
 import { roomRouter } from './route'
 
-export const NavigateToRoom = Command.define('NavigateToRoom', {
+export const NavigateToRoom = Command.define(owner.name('NavigateToRoom'), {
   args: { roomId: Schema.String },
   messages: [Message.CompletedNavigateToRoom],
   handler: function* () {

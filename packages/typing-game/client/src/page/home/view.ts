@@ -1,18 +1,12 @@
 import { Array, Option } from 'effect'
-import { Submodel } from 'foldkit'
 import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../constant'
+import { contract } from './definition'
 import { Message } from './message'
-import {
-  HOME_ACTIONS,
-  HomeAction,
-  HomeStep,
-  Model,
-  homeActionToLabel,
-} from './model'
+import { HOME_ACTIONS, HomeAction, HomeStep, homeActionToLabel } from './model'
 
-export const view = Submodel.defineView<Model, Message>((model, h): Html => {
+export const view = contract.defineView((model, h): Html => {
   const maybeUsername = HomeStep.match(model.homeStep, {
     EnterUsername: () => Option.none(),
     SelectAction: ({ username }) => Option.some(username),

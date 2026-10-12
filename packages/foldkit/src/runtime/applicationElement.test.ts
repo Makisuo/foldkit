@@ -41,7 +41,7 @@ const AnchorPanel = Mount.define('AnchorPanel', {
   messages: [Message.CompletedAnchorPanel],
 })
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ChangedStatus: ({ status }) => ({ model: Model.make({ status }) }),
     ClickedSend: () => ({

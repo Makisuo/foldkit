@@ -8,7 +8,7 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     FetchWeather: () => ({ model, commands: [FetchWeather()] }),
   }),

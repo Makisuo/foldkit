@@ -310,7 +310,7 @@ export const ResolveKeyboardMove = Command.define('ResolveKeyboardMove', {
 
 /** Processes a drag-and-drop Message and returns the next Model, optional
  *  Commands, and an optional OutMessage for the parent. */
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     PressedDraggable: ({ itemId, containerId, index, screenX, screenY }) => ({
       model: modifyFields(model, {

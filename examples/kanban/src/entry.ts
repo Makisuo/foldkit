@@ -26,6 +26,4 @@ const application = Application.make({
   },
 })
 
-pipe(application, Application.provide(AppLayer), runnable =>
-  Runtime.run(runnable, { flags }),
-)
+pipe(application, Application.provide(AppLayer), Runtime.run({ flags }))

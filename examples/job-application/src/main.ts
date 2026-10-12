@@ -15,7 +15,7 @@ import {
   WorkHistory,
 } from './step'
 import { update } from './update'
-import { view } from './view/view'
+import { mounts, view } from './view/view'
 
 // FLAGS
 
@@ -69,6 +69,8 @@ export const init = ({
   }),
 })
 
+// EFFECTS LAYER
+
 export const EffectsLayer = Layer.mergeAll(
   Menu.EffectsLayer,
   Tabs.EffectsLayer,
@@ -79,11 +81,4 @@ export const EffectsLayer = Layer.mergeAll(
   Skills.EffectsLayer,
 )
 
-export { Message, Model, update, view }
-
-export const mounts = [
-  ...Menu.mounts,
-  ...PersonalInfo.mounts,
-  ...WorkHistory.mounts,
-  ...Education.mounts,
-]
+export { Message, Model, mounts, update, view }

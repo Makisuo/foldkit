@@ -116,7 +116,7 @@ export const mounts = Popover.mounts
 
 type MountRequirements = Mount.RequirementsOf<typeof mounts>
 
-const dropCalendarToDays = Update.makeStep((model: Model) => ({
+const dropCalendarToDays = Update.defineStep((model: Model) => ({
   model: modifyFields(model, { calendar: UiCalendar.dropToDays }),
 }))
 
@@ -159,7 +159,7 @@ const foldPopoverClose = Update.foldChildStep({
 })
 
 const foldCalendarOutMessage = UiCalendar.OutMessage.match({
-  ChangedViewMonth: () => Update.makeStep((model: Model) => ({ model })),
+  ChangedViewMonth: () => Update.defineStep((model: Model) => ({ model })),
   SelectedDate: () => foldPopoverClose,
 })
 
@@ -191,7 +191,7 @@ const foldCalendarSelectDate = Update.foldChild({
 
 /** Processes a DatePicker Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. */
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     GotCalendarMessage: ({ message: calendarMessage }) =>
       foldCalendar(model, calendarMessage),

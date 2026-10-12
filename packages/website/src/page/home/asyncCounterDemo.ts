@@ -102,7 +102,7 @@ const prependToLog =
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     pipe([entry, ...messageLog], Array.take(MAX_LOG_ENTRIES))
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedDemoIncrement: () => {
       const nextModel = modifyFields(model, {

@@ -39,7 +39,7 @@ Three pieces connect the work to update:
 - `WaitBeforeReset.layer` is the Layer recipe for that handler.
 - `WaitBeforeReset()` creates the Command value that update returns. Creating that value does not start the timer.
 
-`Update.make` infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
+`Update.define` infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
 
 The entry point supplies the handler Layer and starts the application:
 
@@ -150,7 +150,7 @@ Derive an explicit handler requirement from its owning definition. `Command.Hand
 
 ::Snippet{name="handlerRequirementAnnotation" label="Deriving a Command handler requirement"}
 
-`Update.make` normally infers the requirement, so most application code needs no annotation. The explicit expanded form is `Command.Handler<Name, Args, DeclaredMessage>`.
+`Update.define` normally infers the requirement, so most application code needs no annotation. The explicit expanded form is `Command.Handler<Name, Args, DeclaredMessage>`.
 
 Two distinct definitions with identical names and protocols have the same structural requirement type. Foldkit checks the definition identity before invoking the supplied handler and rejects a Layer belonging to the other definition. Build an external implementation or test alternative with the original definition's `toLayer` so it retains that definition's identity.
 

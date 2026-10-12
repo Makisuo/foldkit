@@ -126,7 +126,7 @@ export const EffectsLayer = Layer.mergeAll(FocusTab.layer)
  *  an optional OutMessage. `Selected` fires when a tab is committed via click
  *  or keyboard; the parent stores the new value and passes it back in as
  *  `selectedValue`. */
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     SelectedTab: ({ index, value }) => ({
       model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),

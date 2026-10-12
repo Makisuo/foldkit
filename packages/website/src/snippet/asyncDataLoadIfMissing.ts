@@ -1,4 +1,4 @@
-const enterStatsRoute = Update.makeStep((model: Model) =>
+const enterStatsRoute = Update.defineStep((model: Model) =>
   Option.match(AsyncData.loadIfMissing(model.stats), {
     onNone: () => ({ model }),
     onSome: loadingStats => ({

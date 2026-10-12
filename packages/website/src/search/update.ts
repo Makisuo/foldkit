@@ -95,8 +95,8 @@ const foldSearchDialogOutMessage = (
   outMessage: typeof Dialog.OutMessage.Type,
 ) =>
   Dialog.OutMessage.match(outMessage, {
-    Opened: () => Update.makeStep((model: Model) => ({ model })),
-    Closed: () => Update.makeStep((model: Model) => ({ model })),
+    Opened: () => Update.defineStep((model: Model) => ({ model })),
+    Closed: () => Update.defineStep((model: Model) => ({ model })),
   })
 
 const foldSearchDialog = Update.foldChild({
@@ -135,7 +135,7 @@ export const open = (model: Model) =>
     }),
   ])
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     UpdatedSearchQuery: ({ query }) => {
       if (query === model.query) {

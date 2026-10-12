@@ -22,7 +22,7 @@ const init = () => {
   return posts.loadIfMissing(model)
 }
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     // Run Query's update, then write its Model back into the parent.
     GotPostsMessage: ({ message }) => posts.fold(model, message),

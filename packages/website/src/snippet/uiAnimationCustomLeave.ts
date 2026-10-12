@@ -32,7 +32,7 @@ const foldAnimationOutMessage = (
     Update.Step<Model, Message, Command.HandlerOf<typeof WaitForPanelSettled>>
   >(outMessage, {
     StartedLeaveAnimating: ({ generation }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model,
         commands: [liftCommand(WaitForPanelSettled({ generation }))],
       })),

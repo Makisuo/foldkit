@@ -39,7 +39,7 @@ export type Context = Readonly<{
   roomId: string
 }>
 
-export const update = Update.make(
+export const update = Update.define(
   (model: Model, message: Message, context: Context) =>
     Message.match(message, {
       PressedKey: handleKeyPressed(model),

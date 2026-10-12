@@ -39,7 +39,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     UpdatedZipCodeInput: ({ value }) => ({
       model: modifyFields(model, {
@@ -212,6 +212,8 @@ export const FetchWeather = Command.define('FetchWeather', {
     return ({ zipCode }) => fetchWeather(zipCode, client)
   },
 })
+
+// EFFECTS LAYER
 
 export const EffectsLayer = FetchWeather.layer
 

@@ -244,7 +244,7 @@ export const makeRuntime = <const Name extends string, A, I>(
   }
 
   const settleSnapBack = (entry: Entry) =>
-    Update.makeStep((model: Model) => {
+    Update.defineStep((model: Model) => {
       const nextSwipeVersion = Number.increment(entry.swipeVersion)
       const nextEntry = modifyFields(entry, {
         pendingDismissVersion: Number.increment,
@@ -296,7 +296,7 @@ export const makeRuntime = <const Name extends string, A, I>(
     ) =>
       AnimationOutMessage.match(outMessage, {
         StartedLeaveAnimating: () =>
-          Update.makeStep((model: Model) =>
+          Update.defineStep((model: Model) =>
             Option.match(readEntryAnimation(entryId)(model), {
               onNone: () => ({ model }),
               onSome: animation => ({
@@ -308,7 +308,7 @@ export const makeRuntime = <const Name extends string, A, I>(
             }),
           ),
         TransitionedOut: () =>
-          Update.makeStep((model: Model) => ({
+          Update.defineStep((model: Model) => ({
             model: removeEntry(model, entryId),
           })),
       })
@@ -400,7 +400,7 @@ export const makeRuntime = <const Name extends string, A, I>(
   /** Processes a Toast Message and returns the next Model, optional Commands,
    *  and an optional `DismissedToast` OutMessage emitted once an entry has
    *  finished its leave animation. */
-  const update = Update.make((model: Model, message: Message) =>
+  const update = Update.define((model: Model, message: Message) =>
     MessageSchema.match(message, {
       Added: ({ entry }) => {
         return Update.combine(model, [

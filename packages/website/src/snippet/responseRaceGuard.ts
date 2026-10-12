@@ -58,7 +58,7 @@ const Search = Command.define('Search', {
 
 // UPDATE
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     UpdatedQuery: ({ query }) => ({
       model: modifyFields(model, {

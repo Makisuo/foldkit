@@ -52,7 +52,7 @@ const FetchUser = Command.define('FetchUser', {
 
 // UPDATE
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedFetchUser: ({ userId }) => ({
       model: modifyFields(model, { user: () => UserState.Loading() }),

@@ -40,7 +40,7 @@ const nothingSelected = modelWith(Option.none())
 
 const foldRadioGroupOutMessage = RadioGroupOutMessage.match({
   Selected: ({ value }) =>
-    Update.makeStep((model: Model) => ({
+    Update.defineStep((model: Model) => ({
       model: modifyFields(model, {
         maybeSelectedValue: () => Option.some(value),
       }),
@@ -56,7 +56,7 @@ const foldRadioGroup = Update.foldChild({
   foldOutMessage: foldRadioGroupOutMessage,
 })
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     GotRadioGroupMessage: ({ message }) => foldRadioGroup(model, message),
   }),

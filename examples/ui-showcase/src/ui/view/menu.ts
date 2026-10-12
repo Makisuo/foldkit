@@ -1,6 +1,10 @@
 import { Match } from 'effect'
 import { Submodel } from 'foldkit'
-import { type Html, type HtmlBuilder, childAttributes } from 'foldkit/html'
+import {
+  type HtmlBuilder as FoldkitHtmlBuilder,
+  type Html,
+  childAttributes,
+} from 'foldkit/html'
 import type * as Mount from 'foldkit/mount'
 
 import { Menu } from '@foldkit/ui'
@@ -9,13 +13,9 @@ import * as Icon from '../../icon'
 import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
-type MountRequirements = Mount.RequirementsOf<typeof Menu.mounts>
-
-const defineViewWithComponentMountRequirements = Submodel.defineView<
-  UiModel,
+type HtmlBuilder = FoldkitHtmlBuilder<
   UiMessage,
-  void,
-  MountRequirements
+  Mount.RequirementsOf<typeof Menu.mounts>
 >
 
 const triggerClassName =
@@ -69,9 +69,9 @@ const itemGroupKey = (item: MenuItem): string =>
     Match.orElse(() => 'Actions'),
   )
 
-const groupToHeading = <AllowedMountRequirements>(
+const groupToHeading = (
   groupKey: string,
-  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
+  h: FoldkitHtmlBuilder<UiMessage>,
 ): Menu.GroupHeading | undefined => {
   return Match.value(groupKey).pipe(
     Match.when('Danger', () => ({
@@ -88,9 +88,9 @@ const MENU_ANCHOR = {
   padding: 8,
 }
 
-const menuViewConfig = <AllowedMountRequirements>(
+const menuViewConfig = (
   itemsClassNameValue: string,
-  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
+  h: FoldkitHtmlBuilder<UiMessage>,
 ) => {
   return {
     anchor: MENU_ANCHOR,
@@ -116,8 +116,8 @@ const menuViewConfig = <AllowedMountRequirements>(
   }
 }
 
-export const view = defineViewWithComponentMountRequirements(
-  (model, h): Html => {
+export const view = Submodel.defineView(
+  (model: UiModel, h: HtmlBuilder): Html => {
     return h.div(
       [],
       [

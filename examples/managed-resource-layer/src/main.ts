@@ -100,7 +100,7 @@ export const Compute = Command.define('Compute', {
 
 // UPDATE
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedStartEngine: () => ({
       model: modifyFields(model, { engine: () => EngineState.Booting() }),
@@ -180,6 +180,8 @@ export const managedResources = ManagedResource.make<Model, Message>()(
     }),
   }),
 )
+
+// EFFECTS LAYER
 
 export const EffectsLayer = Layer.mergeAll(
   Compute.layer,

@@ -412,7 +412,7 @@ const foldEditionRadioGroup = Update.foldChild({
   foldOutMessage: foldEditionRadioGroupOutMessage,
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Match.value(message).pipe(
     Match.tag('GotEditionRadioGroupMessage', ({ message }) =>
       foldEditionRadioGroup(model, message),
@@ -434,6 +434,8 @@ export const update = Update.make((model: Model, message: Message) =>
     Match.exhaustive,
   ),
 )
+
+// EFFECTS LAYER
 
 export const EffectsLayer = Layer.mergeAll(
   RadioGroup.EffectsLayer,

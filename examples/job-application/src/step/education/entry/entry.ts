@@ -91,17 +91,17 @@ export const mounts = Listbox.mounts
 
 // UPDATE
 
-const foldGraduationYearListboxOutMessage = (
-  outMessage: typeof Listbox.OutMessage.Type,
-) =>
-  Listbox.OutMessage.match(outMessage, {
-    Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
-        model: modifyFields(model, {
-          maybeGraduationYear: () => Option.some(value),
-        }),
-      })),
-  })
+const foldGraduationYearListboxOutMessage = Listbox.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Selected:
+    ({ value }) =>
+    model => ({
+      model: modifyFields(model, {
+        maybeGraduationYear: () => Option.some(value),
+      }),
+    }),
+})
 
 const foldGraduationYearListbox = Update.foldChild({
   update: GraduationYearListbox.update,
@@ -115,7 +115,7 @@ const foldGraduationYearListbox = Update.foldChild({
   foldOutMessage: foldGraduationYearListboxOutMessage,
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     UpdatedSchool: ({ value }) => ({
       model: modifyFields(model, { school: () => validateSchool(value) }),

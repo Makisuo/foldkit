@@ -47,7 +47,7 @@ export const ServicesLayer = ApiLayer
 
 // UPDATE
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedLoadUser: () => ({
       model: modifyFields(model, { user: () => UserAsyncData.Loading() }),

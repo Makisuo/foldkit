@@ -98,29 +98,27 @@ const navigationUrlByShortcut: Readonly<
   GN: nestedRouter,
 }
 
-const foldPeopleEntry = <Input>(
-  update: (
-    peoplePage: People.Model,
-    input: Input,
-  ) => ReturnType<typeof People.update>,
-) =>
-  Update.foldChild({
-    update,
-    read: (model: Model) => Option.some(model.peoplePage),
-    write: (model, nextPeoplePage) =>
-      modifyFields(model, { peoplePage: () => nextPeoplePage }),
-    toParentMessage: message => Message.GotPeopleMessage({ message }),
-  })
+const foldPeople = Update.foldChild({
+  update: People.update,
+  read: (model: Model) => Option.some(model.peoplePage),
+  write: (model, nextPeoplePage) =>
+    modifyFields(model, { peoplePage: () => nextPeoplePage }),
+  toParentMessage: message => Message.GotPeopleMessage({ message }),
+})
 
-const foldPeople = foldPeopleEntry(People.update)
-
-const foldPeopleRouteChanged = foldPeopleEntry(People.informRouteChanged)
+const foldPeopleRouteChanged = Update.foldChild({
+  update: People.informRouteChanged,
+  read: (model: Model) => Option.some(model.peoplePage),
+  write: (model, nextPeoplePage) =>
+    modifyFields(model, { peoplePage: () => nextPeoplePage }),
+  toParentMessage: message => Message.GotPeopleMessage({ message }),
+})
 
 const setRoute = (nextRoute: AppRoute) => (model: Model) => ({
   model: modifyFields(model, { route: () => nextRoute }),
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
@@ -167,9 +165,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     messages: [Message.EnteredNavigationShortcut],
     handler: function* () {
       return () =>
-        Dom.streamFromKeyBindings<
-          typeof Message.EnteredNavigationShortcut.Type
-        >({
+        Dom.streamFromKeyBindings({
           bindings: [
             {
               keys: ['G', 'H'],
@@ -196,6 +192,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     },
   }),
 }))
+
+// EFFECTS LAYER
 
 export const EffectsLayer = Layer.mergeAll(
   NavigateInternal.layer,

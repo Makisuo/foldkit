@@ -1,6 +1,6 @@
 import { Array, Match, Option, pipe } from 'effect'
 import { Submodel } from 'foldkit'
-import type { Html, HtmlBuilder } from 'foldkit/html'
+import type { HtmlBuilder as FoldkitHtmlBuilder, Html } from 'foldkit/html'
 import type * as Mount from 'foldkit/mount'
 
 import { VirtualList } from '@foldkit/ui'
@@ -8,13 +8,9 @@ import { VirtualList } from '@foldkit/ui'
 import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
-type MountRequirements = Mount.RequirementsOf<typeof VirtualList.mounts>
-
-const defineViewWithComponentMountRequirements = Submodel.defineView<
-  UiModel,
+type HtmlBuilder = FoldkitHtmlBuilder<
   UiMessage,
-  void,
-  MountRequirements
+  Mount.RequirementsOf<typeof VirtualList.mounts>
 >
 
 type Activity = Readonly<{
@@ -220,10 +216,7 @@ const variableArtifactClassName =
 
 const subsectionHeadingClassName = 'text-lg font-semibold text-gray-900 mt-2'
 
-const shortRow = <AllowedMountRequirements>(
-  row: Activity,
-  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
-): Html => {
+const shortRow = (row: Activity, h: FoldkitHtmlBuilder<UiMessage>): Html => {
   return h.div(
     [h.Class(rowClassName)],
     [
@@ -243,10 +236,10 @@ const shortRow = <AllowedMountRequirements>(
   )
 }
 
-const tallRow = <AllowedMountRequirements>(
+const tallRow = (
   row: Activity,
   summary: Summary,
-  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
+  h: FoldkitHtmlBuilder<UiMessage>,
 ): Html => {
   return h.div(
     [h.Class(variableTallRowClassName)],
@@ -275,8 +268,8 @@ const tallRow = <AllowedMountRequirements>(
   )
 }
 
-export const view = defineViewWithComponentMountRequirements(
-  (model, h): Html => {
+export const view = Submodel.defineView(
+  (model: UiModel, h: HtmlBuilder): Html => {
     return h.div(
       [],
       [

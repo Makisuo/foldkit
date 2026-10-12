@@ -65,7 +65,7 @@ export const EffectsLayer = ReplaceSearchUrl.layer
 
 // UPDATE
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     CompletedReplaceSearchUrl: () => ({ model }),
 

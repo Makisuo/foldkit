@@ -521,7 +521,7 @@ Use `taggedStruct` when the variants cannot be declared together:
 ## Code Style
 
 - No inline or block comments. If code needs explanation, use better names
-- Section headers are allowed: `// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// VIEW`
+- Section headers are allowed: `// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// COMMAND`, `// EFFECTS LAYER`, `// VIEW`
 - TSDoc (`/** ... */`) on public exports
 - Always use braces for control flow: `if (foo) { return true }` not `if (foo) return true`
 - Use `const` exclusively. `let` only when mutation is truly unavoidable

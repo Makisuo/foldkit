@@ -12,7 +12,7 @@ type Context = Readonly<{
   currentUser: User
 }>
 
-export const update = Update.make(
+export const update = Update.define(
   (model: SettingsModel, message: SettingsMessage, context: Context) =>
     SettingsMessage.match(message, {
       ChangedTheme: ({ theme }) => ({

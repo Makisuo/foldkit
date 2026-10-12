@@ -22,7 +22,7 @@ const WaitBeforeReset = Command.define('WaitBeforeReset', {
   },
 })
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedResetAfterDelay: ({ delayMs }) => ({
       model,

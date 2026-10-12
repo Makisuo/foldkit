@@ -23,7 +23,7 @@ import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&ur
 import { Button, Input } from '@foldkit/ui'
 
 import { Location, featuredLocations } from './locations'
-import { getMap, removeMap, setMap } from './mapHost'
+import { MapRegistry, MapRegistryLayer } from './mapRegistry'
 
 // CONSTANT
 
@@ -98,6 +98,7 @@ type MountMapMessage =
 // COMMAND
 
 const flyToMap = (
+  maps: typeof MapRegistry.Service,
   hostId: string,
   lng: number,
   lat: number,
@@ -105,18 +106,22 @@ const flyToMap = (
 ): Effect.Effect<
   typeof Message.SucceededFlyTo.Type | typeof Message.FailedFlyTo.Type
 > =>
-  Option.match(getMap(hostId), {
-    onNone: () =>
-      Effect.succeed(
-        Message.FailedFlyTo({
-          reason: `Could not find a live map for hostId ${hostId}.`,
+  Effect.gen(function* () {
+    const maybeMap = yield* maps.get(hostId)
+
+    return yield* Option.match(maybeMap, {
+      onNone: () =>
+        Effect.succeed(
+          Message.FailedFlyTo({
+            reason: `Could not find a live map for hostId ${hostId}.`,
+          }),
+        ),
+      onSome: map =>
+        Effect.sync(() => {
+          map.flyTo({ center: [lng, lat], zoom, essential: true })
+          return Message.SucceededFlyTo()
         }),
-      ),
-    onSome: map =>
-      Effect.sync(() => {
-        map.flyTo({ center: [lng, lat], zoom, essential: true })
-        return Message.SucceededFlyTo()
-      }),
+    })
   })
 
 export const FlyTo = Command.define('FlyTo', {
@@ -128,6 +133,8 @@ export const FlyTo = Command.define('FlyTo', {
   },
   messages: [Message.SucceededFlyTo, Message.FailedFlyTo],
   handler: function* () {
+    const maps = yield* MapRegistry
+
     return ({ maybeHostId, lng, lat, zoom }) =>
       Option.match(maybeHostId, {
         onNone: () =>
@@ -136,7 +143,7 @@ export const FlyTo = Command.define('FlyTo', {
               reason: 'FlyTo dispatched before the map mounted.',
             }),
           ),
-        onSome: hostId => flyToMap(hostId, lng, lat, zoom),
+        onSome: hostId => flyToMap(maps, hostId, lng, lat, zoom),
       })
   },
 })
@@ -227,7 +234,7 @@ const findLocation = (
 ): Option.Option<Location> =>
   Array.findFirst(model.locations, ({ id }) => Equal.equals(id, locationId))
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     SucceededMountMap: ({ hostId }) => ({
       model: modifyFields(model, { maybeMapHostId: () => Option.some(hostId) }),
@@ -409,6 +416,8 @@ export const MountMap = Mount.defineStream('MountMap', {
     Message.ClickedMarker,
   ],
   handler: function* () {
+    const maps = yield* MapRegistry
+
     return ({ element, hostId }) =>
       Stream.callback<MountMapMessage>(queue =>
         Effect.gen(function* () {
@@ -441,12 +450,15 @@ export const MountMap = Mount.defineStream('MountMap', {
               })
               return { map, maplibre }
             }),
-            ({ map }) => Effect.sync(() => removeMap(hostId, map)),
+            ({ map }) =>
+              Effect.sync(() => map.remove()).pipe(
+                Effect.ensuring(maps.remove(hostId, map)),
+              ),
           )
           const { map, maplibre } = mapResource
 
           yield* addLocationMarkers(map, maplibre)
-          setMap(hostId, map)
+          yield* maps.set(hostId, map)
 
           yield* listenToMapMovesAndMarkerClicks(map, queue)
 
@@ -474,6 +486,8 @@ export const MountMap = Mount.defineStream('MountMap', {
 
 export const mounts = [MountMap]
 
+// EFFECTS LAYER
+
 export const EffectsLayer = Layer.mergeAll(
   FlyTo.layer,
   Geolocate.layer,
@@ -482,6 +496,8 @@ export const EffectsLayer = Layer.mergeAll(
   UnlockBodyScroll.layer,
   MountMap.layer,
 )
+
+export const AppLayer = Layer.provide(EffectsLayer, MapRegistryLayer)
 
 const boundsFromMap = (map: MapInstance): Bounds => {
   const bounds = map.getBounds()

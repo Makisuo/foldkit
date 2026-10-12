@@ -1,4 +1,4 @@
-const enterNotebooksRoute = Update.makeStep((model: Model) =>
+const enterNotebooksRoute = Update.defineStep((model: Model) =>
   Option.match(AsyncData.revalidateOrLoad(model.notebooks), {
     onNone: () => ({ model }),
     onSome: nextNotebooks => ({

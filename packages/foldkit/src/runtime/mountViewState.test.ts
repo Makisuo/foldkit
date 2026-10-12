@@ -66,7 +66,7 @@ const initialModel = (isEditorShown: boolean): Model => ({
   isEditorShown,
 })
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     CompletedMountEditor: () => ({ model }),
     EditedFromMount: () => ({

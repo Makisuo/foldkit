@@ -20,7 +20,7 @@ Each feature folder owns its Model, Messages, update, view, Commands, Subscripti
 
 In the diagram, `products/service.ts` owns the feature's `ProductCatalogLayer` business service. The feature's `EffectsLayer` export provides it beneath the product handlers. Root `environment.ts` owns concrete HTTP, RPC, and browser provider Layers. Root `storage.ts` defines separate `LocalStorage` and `SessionStorage` service tags and binds them to their platform providers. Applications that do not need those concerns omit the files.
 
-Keep Commands beside the update that returns them. A feature that fetches its own data owns that Command instead of importing it from a root Command collection. Extract `message.ts` when a Command needs to import its result Message constructors without creating a cycle.
+Keep Commands within the feature whose update returns them. Small features can declare them alongside update; extract a feature-local `command.ts` when several definitions or substantial handlers make a separate file easier to navigate. A feature that fetches its own data owns that Command instead of importing it from a root Command collection. Extract `message.ts` when a Command needs to import its result Message constructors without creating a cycle.
 
 A feature that declares Subscriptions owns `subscription.ts`. The parent lifts that record into its own Model and Message types. See [Subscription Organization](/patterns/subscription-organization).
 
@@ -34,7 +34,7 @@ Keep each handler attached to the Command, Subscription, Mount, or ManagedResour
 
 When a feature is split across modules, its `layer.ts` imports the definitions and combines their attached `.layer` recipes under one `EffectsLayer` export. The bundle also includes each child feature's `EffectsLayer`. It may provide business services that the feature owns while leaving concrete HTTP, storage, RPC, and browser providers open for the application root. Import Effect's module as `Layer`; the public bundle has a different name, so no alias is needed.
 
-In a small application, `main.ts` can export an `EffectsLayer` with the handlers it owns, and `entry.ts` can assemble and run the application directly. Add separate `application.ts` and `layer.ts` roots when several features make those responsibilities useful: `application.ts` lifts registrations and exposes application assembly, while `layer.ts` composes root `EffectsLayer`, `ServicesLayer`, `AppLayer`, and any alternate `AppTestLayer`.
+In a small application, `main.ts` can export an `EffectsLayer` under a `// EFFECTS LAYER` section with the handlers it owns, and `entry.ts` can assemble and run the application directly. Add separate `application.ts` and `layer.ts` roots when several features make those responsibilities useful: `application.ts` lifts registrations and exposes application assembly, while `layer.ts` composes root `EffectsLayer`, `ServicesLayer`, `AppLayer`, and any alternate `AppTestLayer`.
 
 ::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}
 

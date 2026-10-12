@@ -1,5 +1,5 @@
 import { Submodel } from 'foldkit'
-import type { Html, HtmlBuilder } from 'foldkit/html'
+import type { HtmlBuilder as FoldkitHtmlBuilder, Html } from 'foldkit/html'
 import type * as Mount from 'foldkit/mount'
 
 import { Popover } from '@foldkit/ui'
@@ -7,13 +7,9 @@ import { Popover } from '@foldkit/ui'
 import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
-type MountRequirements = Mount.RequirementsOf<typeof Popover.mounts>
-
-const defineViewWithComponentMountRequirements = Submodel.defineView<
-  UiModel,
+type HtmlBuilder = FoldkitHtmlBuilder<
   UiMessage,
-  void,
-  MountRequirements
+  Mount.RequirementsOf<typeof Popover.mounts>
 >
 
 const triggerClassName =
@@ -35,9 +31,7 @@ const POPOVER_ANCHOR = {
   padding: 8,
 }
 
-const popoverPanelContent = <AllowedMountRequirements>(
-  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
-): Html => {
+const popoverPanelContent = (h: FoldkitHtmlBuilder<UiMessage>): Html => {
   return h.div(
     [],
     [
@@ -55,7 +49,7 @@ const popoverDemo = (
   popoverModel: Popover.Model,
   toParentMessage: (message: Popover.Message) => UiMessage,
   panelClassNameValue: string,
-  h: HtmlBuilder<UiMessage, MountRequirements>,
+  h: HtmlBuilder,
 ): Html => {
   const popoverView = ({
     button,
@@ -104,7 +98,7 @@ const nestedChildButtonSelector = '#popover-nested-child-demo-button'
 
 const nestedChildPopover = (
   childPopoverModel: Popover.Model,
-  h: HtmlBuilder<UiMessage, MountRequirements>,
+  h: HtmlBuilder,
 ): Html => {
   const childPopoverView = ({
     button,
@@ -159,7 +153,7 @@ const nestedChildPopover = (
 const nestedDemo = (
   parentPopoverModel: Popover.Model,
   childPopoverModel: Popover.Model,
-  h: HtmlBuilder<UiMessage, MountRequirements>,
+  h: HtmlBuilder,
 ): Html => {
   const parentPopoverView = ({
     button,
@@ -216,8 +210,8 @@ const nestedDemo = (
   )
 }
 
-export const view = defineViewWithComponentMountRequirements(
-  (model, h): Html => {
+export const view = Submodel.defineView(
+  (model: UiModel, h: HtmlBuilder): Html => {
     return h.div(
       [],
       [

@@ -1,6 +1,6 @@
 const foldSettingsOutMessage = Settings.OutMessage.match({
   RestoredTheme: ({ theme }) =>
-    Update.makeStep((model: Model) => ({
+    Update.defineStep((model: Model) => ({
       model,
       commands: [ApplyTheme({ theme })],
     })),

@@ -82,11 +82,11 @@ Registering a Mount that the view never renders starts no element lifecycle, lis
 
 ### Mount Requirements in Reusable Views
 
-An inline application view receives a builder whose allowed Mounts are inferred from the registrations. An exported view preserves its required Mounts in its signature. When several helpers share a mounted view path, export one `HtmlBuilder` type from the owning module, derived from its Message type and inferred `mounts` registry. Those helpers use `h: HtmlBuilder`, or `h: Chart.HtmlBuilder` through a module namespace import. A branded child view preserves the same requirements in the fourth type parameter of `Submodel.defineView`:
+An inline application view receives a builder whose allowed Mounts are inferred from the registrations. An exported view preserves its required Mounts in its signature. When several helpers share a mounted view path, export one `HtmlBuilder` type from the owning module, derived from its Message type and inferred `mounts` registry. Those helpers use `h: HtmlBuilder`, or `h: Chart.HtmlBuilder` through a module namespace import. `Submodel.defineView` infers the child Model, Message, and Mount requirements from its annotated Model and builder parameters:
 
 ::Snippet{name="mountSubmodelView" label="Preserving a Submodel view's Mount requirements"}
 
-The parent must include the child's `mounts` in its application registrations before its builder can embed this view with `h.submodel`. The third type parameter is `void` because this view has no `ViewInputs`. A child with inputs uses its `ViewInputs` type there instead.
+The parent must include the child's `mounts` in its application registrations before its builder can embed this view with `h.submodel`. A child with `ViewInputs` annotates them as the second parameter and receives its builder third. The explicit generic form remains available: `Submodel.defineView<Model, Message, ViewInputs, RequiredMounts>`. Use `void` for the third type parameter when the child has no inputs.
 
 The owner derives its builder type from its inferred `mounts` export, and application assembly includes those exported registrations. Missing registrations still fail at the application boundary, and helpers cannot attach Mounts outside their builder's declared set. Keep pure helpers on the framework's `HtmlBuilder<Message>` and pure child views as `Submodel.defineView<Model, Message>`. The returned `Html` type stays the same.
 

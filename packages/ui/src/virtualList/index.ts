@@ -533,7 +533,7 @@ export type ScrollToOptions = Readonly<{
 }>
 
 const buildScrollRequest = (request: typeof ScrollRequest.Type) =>
-  Update.makeStep((model: Model) => {
+  Update.defineStep((model: Model) => {
     const nextVersion = Number.increment(model.pendingScrollVersion)
     return {
       model: modifyFields(model, {
@@ -623,7 +623,7 @@ const measureContainer = (
     Unmeasured: () => false,
     Measured: measurement => measurement.containerWidth !== containerWidth,
   })
-  const recordContainerMeasurement = Update.makeStep((stepModel: Model) => ({
+  const recordContainerMeasurement = Update.defineStep((stepModel: Model) => ({
     model: modifyFields(stepModel, {
       measurement: () =>
         Measurement.Measured({ containerWidth, containerHeight }),
@@ -708,7 +708,7 @@ const applyRowMeasurements = (
 }
 
 /** Processes a VirtualList Message and returns the next Model and optional Commands. */
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ObservedContainerScroll: snapshot => {
       const nextPendingScrollVersion = PendingScroll.match<number>(

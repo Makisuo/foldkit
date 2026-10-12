@@ -71,7 +71,7 @@ export const init = () => {
 
 // UPDATE
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     PressedKey: ({ key }) =>
       Match.value(key).pipe(
@@ -275,6 +275,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     },
   }),
 }))
+
+// EFFECTS LAYER
 
 export const EffectsLayer = Layer.mergeAll(
   GenerateApplePosition.layer,

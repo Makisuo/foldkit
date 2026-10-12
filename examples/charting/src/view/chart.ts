@@ -3,7 +3,7 @@ import { Effect, Option, Queue, Schema, Stream, pipe } from 'effect'
 import { Mount } from 'foldkit'
 import type { HtmlBuilder as FoldkitHtmlBuilder, Html } from 'foldkit/html'
 
-import { removeChart, setChart } from '../chartHost'
+import { ChartRegistry } from '../chartRegistry'
 import type { Telemetry } from '../domain'
 import { selectedDatumLabel } from '../echarts'
 import { Message } from '../message'
@@ -75,7 +75,11 @@ const observeChartResizeAndClickEvents = (
       }),
   )
 
-const mountChart = (element: Element, hostId: string) =>
+const mountChart = (
+  charts: typeof ChartRegistry.Service,
+  element: Element,
+  hostId: string,
+) =>
   Stream.callback<MountChartMessage>(queue =>
     Effect.gen(function* () {
       if (!(element instanceof HTMLElement)) {
@@ -93,9 +97,12 @@ const mountChart = (element: Element, hostId: string) =>
           try: () => echarts.init(element, undefined, { renderer: 'canvas' }),
           catch: toChartMountError,
         }),
-        chart => Effect.sync(() => removeChart(hostId, chart)),
+        chart =>
+          Effect.sync(() => chart.dispose()).pipe(
+            Effect.ensuring(charts.remove(hostId, chart)),
+          ),
       )
-      setChart(hostId, chart)
+      yield* charts.set(hostId, chart)
 
       yield* observeChartResizeAndClickEvents(element, chart, queue)
 
@@ -121,7 +128,9 @@ export const MountChart = Mount.defineStream('MountChart', {
     Message.ClickedChartDatum,
   ],
   handler: function* () {
-    return ({ element, hostId }) => mountChart(element, hostId)
+    const charts = yield* ChartRegistry
+
+    return ({ element, hostId }) => mountChart(charts, element, hostId)
   },
 })
 

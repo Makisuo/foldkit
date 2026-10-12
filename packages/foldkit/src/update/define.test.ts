@@ -12,9 +12,9 @@ import {
   type ReturnWithOutMessage,
   type Step,
   combine,
+  define,
+  defineStep,
   foldChild,
-  make,
-  makeStep,
 } from './update.js'
 
 const Message = defineMessageUnion({
@@ -59,7 +59,7 @@ const loadPreferences = (
   commands: [LoadPreferences()],
 })
 
-const update = make((model: Model, message: Message) =>
+const update = define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedLoadProfile: () => ({
       model,
@@ -71,7 +71,7 @@ const update = make((model: Model, message: Message) =>
   }),
 )
 
-const outwardUpdate = make((model: Model, message: Message) =>
+const outwardUpdate = define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedLoadProfile: () => ({ model, commands: [LoadProfile()] }),
     ClickedLoadPreferences: () => loadPreferences(model),
@@ -83,7 +83,7 @@ const outwardUpdate = make((model: Model, message: Message) =>
   }),
 )
 
-const contextualUpdate = make(
+const contextualUpdate = define(
   (model: Model, message: Message, context: DispatchContext) =>
     Message.match(message, {
       ClickedLoadProfile: () => ({
@@ -101,20 +101,20 @@ const contextualUpdate = make(
     }),
 )
 
-const optionalContextUpdate = make(
+const optionalContextUpdate = define(
   (model: Model, _message: Message, _context?: DispatchContext) => ({ model }),
 )
 
-const modelOnlyUpdate = make((model: Model) => ({ model }))
+const modelOnlyUpdate = define((model: Model) => ({ model }))
 
-const loadProfileStep = makeStep(
+const loadProfileStep = defineStep(
   (model: Model, _context?: DispatchContext) => ({
     model,
     commands: [LoadProfile()],
   }),
 )
 
-const outwardStep = makeStep(
+const outwardStep = defineStep(
   (model: Model, ..._contexts: ReadonlyArray<DispatchContext>) => ({
     model,
     commands: [LoadPreferences()],
@@ -122,14 +122,14 @@ const outwardStep = makeStep(
   }),
 )
 
-const modelOnlyStep = makeStep((model: Model) => ({ model }))
+const modelOnlyStep = defineStep((model: Model) => ({ model }))
 
-const loadPreferencesStep = makeStep((model: Model) => ({
+const loadPreferencesStep = defineStep((model: Model) => ({
   model,
   commands: [LoadPreferences()],
 }))
 
-const restContextUpdate = make(
+const restContextUpdate = define(
   (
     model: Model,
     _message: Message,
@@ -145,7 +145,7 @@ const foldChildUpdate = foldChild({
   toParentOutMessage: (outMessage: OutMessage) => outMessage,
 })
 
-describe('make', () => {
+describe('define', () => {
   it('infers the union of Command handler requirements', () => {
     expectTypeOf(update).toEqualTypeOf<
       (
@@ -206,20 +206,19 @@ describe('make', () => {
 
   it('requires every Message branch to return an Update.Return', () => {
     // @ts-expect-error Every branch must return the next Model.
-    make((model: Model, message: Message) =>
+    define((model: Model, message: Message) =>
       Message.match(message, {
         ClickedLoadProfile: () => ({ model }),
         ClickedLoadPreferences: () => 42,
         CompletedLoadProfile: () => ({ model }),
         CompletedLoadPreferences: () => ({ model }),
-      }),
-    )
+      }))
 
     // @ts-expect-error Context parameters do not relax output validation.
-    make((_model: Model, _message: Message, _context: DispatchContext) => 42)
+    define((_model: Model, _message: Message, _context: DispatchContext) => 42)
 
     // @ts-expect-error A model-only update must still return the next Model.
-    make((_model: Model) => 42)
+    define((_model: Model) => 42)
   })
 
   it('carries an OutMessage and Command requirements through a child fold', () => {
@@ -255,14 +254,16 @@ describe('make', () => {
 
     expect(plainUpdate).toBe(outwardUpdate)
 
-    const parentModel = ParentModel.make({ child: Model.make({ count: 0 }) })
+    const parentModel = ParentModel.make({
+      child: Model.make({ count: 0 }),
+    })
     const result = foldChildUpdate(parentModel, Message.CompletedLoadProfile())
 
     expect(result.outMessage).toEqual(OutMessage.LoadedProfile())
   })
 })
 
-describe('makeStep', () => {
+describe('defineStep', () => {
   it('infers Message, requirements, OutMessage, and context parameters', () => {
     expectTypeOf(loadProfileStep).toEqualTypeOf<
       (
@@ -300,10 +301,10 @@ describe('makeStep', () => {
 
   it('validates the Model return and Command error channel', () => {
     // @ts-expect-error A Step must return its Model type.
-    makeStep((_model: Model) => ({ model: 42 }))
+    defineStep((_model: Model) => ({ model: 42 }))
 
     // @ts-expect-error Update Commands cannot fail in the typed error channel.
-    makeStep((model: Model) => ({
+    defineStep((model: Model) => ({
       model,
       commands: [
         {

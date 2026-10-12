@@ -3,7 +3,7 @@
 // main.ts
 
 const applyRestoredTheme = (theme: Settings.Theme) =>
-  Update.makeStep((stepModel: Model) => ({
+  Update.defineStep((stepModel: Model) => ({
     model: stepModel,
     commands: [ApplyTheme({ theme })],
   }))

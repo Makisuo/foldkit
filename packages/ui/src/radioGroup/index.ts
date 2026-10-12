@@ -122,7 +122,7 @@ export const EffectsLayer = Layer.mergeAll(FocusOption.layer)
  *  Commands, and an optional OutMessage. `Selected` fires when an option is
  *  committed via click or keyboard; the parent stores the new value and passes
  *  it back in as `selectedValue`. */
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     SelectedOption: ({ index, value }) => ({
       model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),

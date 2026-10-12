@@ -17,5 +17,5 @@ const application = Application.make({
 pipe(
   application,
   Application.provide(BrowserKeyValueStore.layerLocalStorage),
-  runnable => Runtime.run(runnable, { flags }),
+  Runtime.run({ flags }),
 )

@@ -130,6 +130,8 @@ export const SaveDraft = Command.define('SaveDraft', {
   },
 })
 
+// EFFECTS LAYER
+
 export const EffectsLayer = Layer.mergeAll(
   NavigateInternal.layer,
   LoadExternal.layer,
@@ -222,7 +224,7 @@ const handleTransition = (model: Model, transition: AppTransition) =>
     saveDraftOnStudioExit(transition),
   ])
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),

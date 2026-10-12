@@ -134,7 +134,7 @@ const foldDragAndDrop = (previousModel: Model) =>
     foldOutMessage: foldDragAndDropOutMessage(previousModel),
   })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     GotDragAndDropMessage: ({ message }) =>
       foldDragAndDrop(model)(model, message),

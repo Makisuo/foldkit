@@ -78,7 +78,7 @@ export const DetermineTickTime = Command.define('DetermineTickTime', {
 
 // UPDATE
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedStart: () => ({
       model,
@@ -151,6 +151,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     },
   ),
 }))
+
+// EFFECTS LAYER
 
 export const EffectsLayer = Layer.mergeAll(
   DetermineStartTime.layer,

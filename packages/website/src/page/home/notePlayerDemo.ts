@@ -226,7 +226,7 @@ const foldNoteDurationRadioGroupOutMessage = (
 ) =>
   RadioGroup.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           noteDuration: () => value,
           messageLog: prependToLog(`Selected(${value})`),
@@ -245,7 +245,7 @@ const foldNoteDurationRadioGroup = Update.foldChild({
   foldOutMessage: foldNoteDurationRadioGroupOutMessage,
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ChangedNoteInput: ({ value }) => {
       const uppercased = String.toUpperCase(value)

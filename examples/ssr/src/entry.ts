@@ -16,6 +16,4 @@ const application = Application.make({
   },
 })
 
-pipe(application, Application.provide(EffectsLayer), runnable =>
-  Runtime.hydrate(runnable),
-)
+pipe(application, Application.provide(EffectsLayer), Runtime.hydrate)

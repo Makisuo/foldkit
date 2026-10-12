@@ -10,7 +10,7 @@ const LoadAllNotes = Command.define('LoadAllNotes', {
   },
 })
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Match.value(message).pipe(
     Match.tagsExhaustive({
       SettledLoadAllNotes: ({ result }) => ({

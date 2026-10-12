@@ -67,13 +67,13 @@ const selectedControl =
     }
   }
 
-const foldChartModeRadioGroupOutMessage = (
-  outMessage: RadioGroup.OutMessage<ChartMode>,
-) =>
-  RadioGroup.OutMessage.match(outMessage, {
-    Selected: ({ value }) =>
-      selectedControl(modifyFields({ chartMode: () => value })),
-  })
+const foldChartModeRadioGroupOutMessage = RadioGroup.OutMessage.match<
+  ReturnType<typeof selectedControl>,
+  RadioGroup.OutMessage<ChartMode>
+>({
+  Selected: ({ value }) =>
+    selectedControl(modifyFields({ chartMode: () => value })),
+})
 
 const foldChartModeRadioGroup = Update.foldChild({
   update: ChartModeRadioGroup.update,
@@ -85,13 +85,13 @@ const foldChartModeRadioGroup = Update.foldChild({
   foldOutMessage: foldChartModeRadioGroupOutMessage,
 })
 
-const foldPeriodRadioGroupOutMessage = (
-  outMessage: RadioGroup.OutMessage<Period>,
-) =>
-  RadioGroup.OutMessage.match(outMessage, {
-    Selected: ({ value }) =>
-      selectedControl(modifyFields({ period: () => value })),
-  })
+const foldPeriodRadioGroupOutMessage = RadioGroup.OutMessage.match<
+  ReturnType<typeof selectedControl>,
+  RadioGroup.OutMessage<Period>
+>({
+  Selected: ({ value }) =>
+    selectedControl(modifyFields({ period: () => value })),
+})
 
 const foldPeriodRadioGroup = Update.foldChild({
   update: PeriodRadioGroup.update,
@@ -102,13 +102,13 @@ const foldPeriodRadioGroup = Update.foldChild({
   foldOutMessage: foldPeriodRadioGroupOutMessage,
 })
 
-const foldPackageRadioGroupOutMessage = (
-  outMessage: RadioGroup.OutMessage<PackageId>,
-) =>
-  RadioGroup.OutMessage.match(outMessage, {
-    Selected: ({ value }) =>
-      selectedControl(modifyFields({ selectedPackageId: () => value })),
-  })
+const foldPackageRadioGroupOutMessage = RadioGroup.OutMessage.match<
+  ReturnType<typeof selectedControl>,
+  RadioGroup.OutMessage<PackageId>
+>({
+  Selected: ({ value }) =>
+    selectedControl(modifyFields({ selectedPackageId: () => value })),
+})
 
 const foldPackageRadioGroup = Update.foldChild({
   update: PackageRadioGroup.update,
@@ -119,7 +119,7 @@ const foldPackageRadioGroup = Update.foldChild({
   foldOutMessage: foldPackageRadioGroupOutMessage,
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     GotChartModeRadioGroupMessage: ({ message }) =>
       foldChartModeRadioGroup(model, message),

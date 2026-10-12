@@ -279,6 +279,8 @@ const LoadExternal = Command.define('LoadExternal', {
   },
 })
 
+// EFFECTS LAYER
+
 export const EffectsLayer = Layer.mergeAll(
   Listbox.EffectsLayer,
   ReplaceFilters.layer,
@@ -292,7 +294,7 @@ const PeriodListbox = Listbox.create<string>()
 const foldDietListboxOutMessage = (outMessage: Listbox.OutMessage<string>) =>
   Listbox.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => {
+      Update.defineStep((model: Model) => {
         const fields = routeToBrowseFields(model.route)
         return {
           model,
@@ -318,7 +320,7 @@ const foldDietListbox = Update.foldChild({
 const foldPeriodListboxOutMessage = (outMessage: Listbox.OutMessage<string>) =>
   Listbox.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => {
+      Update.defineStep((model: Model) => {
         const fields = routeToBrowseFields(model.route)
         return {
           model,
@@ -341,7 +343,7 @@ const foldPeriodListbox = Update.foldChild({
   foldOutMessage: foldPeriodListboxOutMessage,
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),

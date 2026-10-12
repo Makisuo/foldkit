@@ -163,7 +163,7 @@ const prependWarning =
   (warnings: ReadonlyArray<SlowWarning>): ReadonlyArray<SlowWarning> =>
     pipe(warnings, Array.prepend(warning), Array.take(MAX_WARNING_COUNT))
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedRunUpdateWork: () => {
       burnCpu(UPDATE_WORK_MS)
@@ -263,6 +263,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     },
   ),
 }))
+
+// EFFECTS LAYER
 
 export const EffectsLayer = Layer.mergeAll(
   subscriptions.slowWarningReports.layer,

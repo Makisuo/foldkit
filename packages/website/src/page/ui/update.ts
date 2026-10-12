@@ -197,19 +197,19 @@ const maybeDragAndDropDemoKeyboardAnnouncement = (
 
 const foldDialogOutMessage = (outMessage: typeof Dialog.OutMessage.Type) =>
   Dialog.OutMessage.match(outMessage, {
-    Opened: () => Update.makeStep((model: Model) => ({ model })),
-    Closed: () => Update.makeStep((model: Model) => ({ model })),
+    Opened: () => Update.defineStep((model: Model) => ({ model })),
+    Closed: () => Update.defineStep((model: Model) => ({ model })),
   })
 
 const foldMenuOutMessage = (outMessage: Menu.OutMessage<MenuItem>) =>
   Menu.OutMessage.match(outMessage, {
-    Selected: () => Update.makeStep((model: Model) => ({ model })),
+    Selected: () => Update.defineStep((model: Model) => ({ model })),
   })
 
 const foldPopoverOutMessage = (outMessage: typeof Popover.OutMessage.Type) =>
   Popover.OutMessage.match(outMessage, {
-    Opened: () => Update.makeStep((model: Model) => ({ model })),
-    Closed: () => Update.makeStep((model: Model) => ({ model })),
+    Opened: () => Update.defineStep((model: Model) => ({ model })),
+    Closed: () => Update.defineStep((model: Model) => ({ model })),
   })
 
 const foldCalendarBasicDemoOutMessage = (
@@ -217,12 +217,12 @@ const foldCalendarBasicDemoOutMessage = (
 ) =>
   Calendar.OutMessage.match(outMessage, {
     SelectedDate: ({ date }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           maybeCalendarBasicDemoSelectedDate: () => Option.some(date),
         }),
       })),
-    ChangedViewMonth: () => Update.makeStep((model: Model) => ({ model })),
+    ChangedViewMonth: () => Update.defineStep((model: Model) => ({ model })),
   })
 
 const foldCalendarBasicDemo = Update.foldChild({
@@ -239,18 +239,18 @@ const foldDatePickerBasicDemoOutMessage = (
 ) =>
   DatePicker.OutMessage.match(outMessage, {
     SelectedDate: ({ date }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           maybeDatePickerBasicDemoSelectedDate: () => Option.some(date),
         }),
       })),
     ClearedDate: () =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           maybeDatePickerBasicDemoSelectedDate: () => Option.none(),
         }),
       })),
-    ChangedViewMonth: () => Update.makeStep((model: Model) => ({ model })),
+    ChangedViewMonth: () => Update.defineStep((model: Model) => ({ model })),
   })
 
 const foldDatePickerBasicDemo = Update.foldChild({
@@ -266,12 +266,12 @@ const foldDatePickerBasicDemo = Update.foldChild({
 const foldComboboxDemoOutMessage = (outMessage: Combobox.OutMessage<City>) =>
   Combobox.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           maybeComboboxDemoSelectedCity: () => Option.some(value),
         }),
       })),
-    ClearedSelection: () => Update.makeStep((model: Model) => ({ model })),
+    ClearedSelection: () => Update.defineStep((model: Model) => ({ model })),
   })
 
 const foldComboboxDemo = Update.foldChild({
@@ -288,12 +288,12 @@ const foldComboboxPlacementLockDemoOutMessage = (
 ) =>
   Combobox.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           maybeComboboxPlacementLockDemoSelectedCity: () => Option.some(value),
         }),
       })),
-    ClearedSelection: () => Update.makeStep((model: Model) => ({ model })),
+    ClearedSelection: () => Update.defineStep((model: Model) => ({ model })),
   })
 
 const foldComboboxPlacementLockDemo = Update.foldChild({
@@ -313,7 +313,7 @@ const foldComboboxNullableDemoOutMessage = (
 ) =>
   Combobox.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           maybeComboboxNullableDemoSelectedCity:
             maybeComboboxNullableDemoSelectedCity =>
@@ -323,7 +323,7 @@ const foldComboboxNullableDemoOutMessage = (
         }),
       })),
     ClearedSelection: () =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           maybeComboboxNullableDemoSelectedCity: () => Option.none(),
         }),
@@ -347,7 +347,7 @@ const foldComboboxMultiDemoOutMessage = (
 ) =>
   Combobox.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           comboboxMultiDemoSelectedCities: comboboxMultiDemoSelectedCities =>
             Array.contains(comboboxMultiDemoSelectedCities, value)
@@ -358,7 +358,7 @@ const foldComboboxMultiDemoOutMessage = (
               : Array.append(comboboxMultiDemoSelectedCities, value),
         }),
       })),
-    ClearedSelection: () => Update.makeStep((model: Model) => ({ model })),
+    ClearedSelection: () => Update.defineStep((model: Model) => ({ model })),
   })
 
 const foldComboboxMultiDemo = Update.foldChild({
@@ -375,12 +375,12 @@ const foldComboboxSelectOnFocusDemoOutMessage = (
 ) =>
   Combobox.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           maybeComboboxSelectOnFocusDemoSelectedCity: () => Option.some(value),
         }),
       })),
-    ClearedSelection: () => Update.makeStep((model: Model) => ({ model })),
+    ClearedSelection: () => Update.defineStep((model: Model) => ({ model })),
   })
 
 const foldComboboxSelectOnFocusDemo = Update.foldChild({
@@ -481,12 +481,12 @@ const foldOverlayComboboxDemoOutMessage = (
 ) =>
   Combobox.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           maybeOverlayComboboxDemoSelectedCity: () => Option.some(value),
         }),
       })),
-    ClearedSelection: () => Update.makeStep((model: Model) => ({ model })),
+    ClearedSelection: () => Update.defineStep((model: Model) => ({ model })),
   })
 
 const foldOverlayComboboxDemo = Update.foldChild({
@@ -565,7 +565,7 @@ const foldListboxDemoOutMessage = (
 ) =>
   Listbox.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           maybeListboxDemoSelectedItem: () => Option.some(value),
         }),
@@ -586,7 +586,7 @@ const foldListboxMultiDemoOutMessage = (
 ) =>
   Listbox.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           listboxMultiDemoSelectedItems: listboxMultiDemoSelectedItems =>
             Array.contains(listboxMultiDemoSelectedItems, value)
@@ -613,7 +613,7 @@ const foldListboxGroupedDemoOutMessage = (
 ) =>
   Listbox.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           maybeListboxGroupedDemoSelectedItem: () => Option.some(value),
         }),
@@ -704,7 +704,7 @@ const foldSliderRatingDemoOutMessage = (
 ) =>
   Slider.OutMessage.match(outMessage, {
     ChangedValue: ({ value }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, { sliderRatingValue: () => value }),
       })),
   })
@@ -723,7 +723,7 @@ const foldSliderVolumeDemoOutMessage = (
 ) =>
   Slider.OutMessage.match(outMessage, {
     ChangedValue: ({ value }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, { sliderVolumeValue: () => value }),
       })),
   })
@@ -742,7 +742,7 @@ const foldHorizontalTabsDemoOutMessage = (
 ) =>
   Tabs.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, { horizontalTabsDemoTab: () => value }),
       })),
   })
@@ -759,7 +759,7 @@ const foldHorizontalTabsDemo = Update.foldChild({
 const foldVerticalTabsDemoOutMessage = (outMessage: Tabs.OutMessage<DemoTab>) =>
   Tabs.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, { verticalTabsDemoTab: () => value }),
       })),
   })
@@ -775,8 +775,8 @@ const foldVerticalTabsDemo = Update.foldChild({
 
 const foldTooltipOutMessage = (outMessage: typeof Tooltip.OutMessage.Type) =>
   Tooltip.OutMessage.match(outMessage, {
-    Shown: () => Update.makeStep((model: Model) => ({ model })),
-    Hidden: () => Update.makeStep((model: Model) => ({ model })),
+    Shown: () => Update.defineStep((model: Model) => ({ model })),
+    Hidden: () => Update.defineStep((model: Model) => ({ model })),
   })
 
 const foldTooltipDemo = Update.foldChild({
@@ -792,8 +792,8 @@ const foldHoverIntentOutMessage = (
   outMessage: typeof HoverIntent.OutMessage.Type,
 ) =>
   HoverIntent.OutMessage.match(outMessage, {
-    Opened: () => Update.makeStep((model: Model) => ({ model })),
-    Closed: () => Update.makeStep((model: Model) => ({ model })),
+    Opened: () => Update.defineStep((model: Model) => ({ model })),
+    Closed: () => Update.defineStep((model: Model) => ({ model })),
   })
 
 const foldHoverIntentCardDemo = Update.foldChild({
@@ -839,7 +839,7 @@ const foldHoverIntentMenuDemoClose = Update.foldChildStep({
 const foldToastDemoOutMessage = (outMessage: typeof Toast.OutMessage.Type) =>
   Toast.OutMessage.match(outMessage, {
     DismissedToast: ({ payload }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           maybeLastDismissedToastTitle: () => Option.some(payload.title),
         }),
@@ -887,13 +887,13 @@ const foldAnimationDemoOutMessage = (
 ) =>
   Animation.OutMessage.match(outMessage, {
     StartedLeaveAnimating: () =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model,
         commands: [
           liftCommand(Animation.defaultLeaveCommand(model.animationDemo)),
         ],
       })),
-    TransitionedOut: () => Update.makeStep((model: Model) => ({ model })),
+    TransitionedOut: () => Update.defineStep((model: Model) => ({ model })),
   })
 
 const foldAnimationDemo = Update.foldChild({
@@ -926,12 +926,12 @@ const foldFileDropBasicDemoOutMessage = (
 ) =>
   FileDrop.OutMessage.match(outMessage, {
     ReceivedFiles: ({ files }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           fileDropBasicDemoFiles: Array.appendAll(files),
         }),
       })),
-    RejectedNonFiles: () => Update.makeStep((model: Model) => ({ model })),
+    RejectedNonFiles: () => Update.defineStep((model: Model) => ({ model })),
   })
 
 const foldFileDropBasicDemo = Update.foldChild({
@@ -948,7 +948,7 @@ const foldDragAndDropDemoOutMessage = (
 ) =>
   DragAndDrop.OutMessage.match(outMessage, {
     Reordered: ({ itemId, fromContainerId, toContainerId, toIndex }) =>
-      Update.makeStep((model: Model) => {
+      Update.defineStep((model: Model) => {
         const label = findDragAndDropDemoCardLabel(
           model.dragAndDropDemoColumns,
           itemId,
@@ -980,7 +980,7 @@ const foldDragAndDropDemoOutMessage = (
         }
       }),
     Cancelled: () =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           dragAndDropDemoAnnouncement: () =>
             dragAndDropDemoAnnouncementToText(
@@ -1150,7 +1150,7 @@ const foldVerticalRadioGroupDemoOutMessage = (
 ) =>
   RadioGroup.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           verticalRadioGroupDemoValue: () => Option.some(value),
         }),
@@ -1174,7 +1174,7 @@ const foldHorizontalRadioGroupDemoOutMessage = (
 ) =>
   RadioGroup.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           horizontalRadioGroupDemoValue: () => Option.some(value),
         }),
@@ -1193,7 +1193,7 @@ const foldHorizontalRadioGroupDemo = Update.foldChild({
   foldOutMessage: foldHorizontalRadioGroupDemoOutMessage,
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     UpdatedInputDemoValue: ({ value }) => ({
       model: modifyFields(model, { inputDemoValue: () => value }),

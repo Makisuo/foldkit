@@ -32,6 +32,4 @@ const application = Application.make({
   },
 })
 
-pipe(application, Application.provide(EffectsLayer), runnable =>
-  Runtime.run(runnable, { flags }),
-)
+pipe(application, Application.provide(EffectsLayer), Runtime.run({ flags }))

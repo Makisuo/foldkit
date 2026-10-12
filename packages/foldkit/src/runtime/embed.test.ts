@@ -44,7 +44,7 @@ const ReportCountLayer = ReportCount.toLayer(
   ),
 )
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ChangedStep: ({ step }) => ({
       model: modifyFields(model, { step: () => step }),

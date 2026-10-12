@@ -114,7 +114,7 @@ const finishClosing = (model: Model) => {
   }
 }
 
-const scheduleOpen = Update.makeStep((model: Model) => {
+const scheduleOpen = Update.defineStep((model: Model) => {
   const version = Number.increment(model.pendingOpenVersion)
   return {
     model: modifyFields(model, { pendingOpenVersion: () => version }),
@@ -123,7 +123,7 @@ const scheduleOpen = Update.makeStep((model: Model) => {
 })
 
 const scheduleClose = (delay: Duration.Duration) =>
-  Update.makeStep((model: Model) => {
+  Update.defineStep((model: Model) => {
     const version = Number.increment(model.pendingCloseVersion)
     return {
       model: modifyFields(model, { pendingCloseVersion: () => version }),
@@ -231,7 +231,7 @@ export const close = (model: Model) =>
   )
 
 /** Processes a HoverIntent Message and returns the next Model, optional Commands, and an optional OutMessage. */
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     EnteredTrigger: () =>
       entered(modifyFields(model, { isTriggerHovered: () => true })),

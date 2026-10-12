@@ -336,13 +336,13 @@ export const DetectMenuMovementOrAnimationEnd = Command.define(
 
 const foldAnimationOutMessage = Animation.OutMessage.match({
   StartedLeaveAnimating: ({ generation }) =>
-    Update.makeStep((model: Model) => ({
+    Update.defineStep((model: Model) => ({
       model,
       commands: [
         DetectMenuMovementOrAnimationEnd({ id: model.id, generation }),
       ],
     })),
-  TransitionedOut: () => Update.makeStep((model: Model) => ({ model })),
+  TransitionedOut: () => Update.defineStep((model: Model) => ({ model })),
 })
 
 const foldAnimation = Update.foldChild({
@@ -372,7 +372,7 @@ const foldAnimationHide = Update.foldChildStep({
 
 /** Processes a Menu Message and returns the next Model, optional Commands, and
  *  an optional OutMessage. */
-export const update = Update.make((model: Model, message: Message) => {
+export const update = Update.define((model: Model, message: Message) => {
   const maybeLockScroll = OptionExt.when(model.isModal, LockMenuScroll())
 
   const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockMenuScroll())

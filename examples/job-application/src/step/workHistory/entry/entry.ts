@@ -88,26 +88,25 @@ export const mounts = DatePicker.mounts
 
 // UPDATE
 
-const foldStartDateOutMessage = (
-  outMessage: typeof DatePicker.OutMessage.Type,
-) =>
-  DatePicker.OutMessage.match(outMessage, {
-    ChangedViewMonth: () => Update.makeStep((model: Model) => ({ model })),
-    SelectedDate: ({ date }) =>
-      Update.makeStep((model: Model) => ({
-        model: modifyFields(model, {
-          maybeStartDate: () => Option.some(date),
-          endDate: DatePicker.reflectMinDate(Option.some(date)),
-        }),
-      })),
-    ClearedDate: () =>
-      Update.makeStep((model: Model) => ({
-        model: modifyFields(model, {
-          maybeStartDate: () => Option.none(),
-          endDate: DatePicker.reflectMinDate(Option.none()),
-        }),
-      })),
-  })
+const foldStartDateOutMessage = DatePicker.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  ChangedViewMonth: () => model => ({ model }),
+  SelectedDate:
+    ({ date }) =>
+    model => ({
+      model: modifyFields(model, {
+        maybeStartDate: () => Option.some(date),
+        endDate: DatePicker.reflectMinDate(Option.some(date)),
+      }),
+    }),
+  ClearedDate: () => model => ({
+    model: modifyFields(model, {
+      maybeStartDate: () => Option.none(),
+      endDate: DatePicker.reflectMinDate(Option.none()),
+    }),
+  }),
+})
 
 const foldStartDate = Update.foldChild({
   update: DatePicker.update,
@@ -118,24 +117,25 @@ const foldStartDate = Update.foldChild({
   foldOutMessage: foldStartDateOutMessage,
 })
 
-const foldEndDateOutMessage = (outMessage: typeof DatePicker.OutMessage.Type) =>
-  DatePicker.OutMessage.match(outMessage, {
-    ChangedViewMonth: () => Update.makeStep((model: Model) => ({ model })),
-    SelectedDate: ({ date }) =>
-      Update.makeStep((model: Model) => ({
-        model: modifyFields(model, {
-          maybeEndDate: () => Option.some(date),
-          startDate: DatePicker.reflectMaxDate(Option.some(date)),
-        }),
-      })),
-    ClearedDate: () =>
-      Update.makeStep((model: Model) => ({
-        model: modifyFields(model, {
-          maybeEndDate: () => Option.none(),
-          startDate: DatePicker.reflectMaxDate(Option.none()),
-        }),
-      })),
-  })
+const foldEndDateOutMessage = DatePicker.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  ChangedViewMonth: () => model => ({ model }),
+  SelectedDate:
+    ({ date }) =>
+    model => ({
+      model: modifyFields(model, {
+        maybeEndDate: () => Option.some(date),
+        startDate: DatePicker.reflectMaxDate(Option.some(date)),
+      }),
+    }),
+  ClearedDate: () => model => ({
+    model: modifyFields(model, {
+      maybeEndDate: () => Option.none(),
+      startDate: DatePicker.reflectMaxDate(Option.none()),
+    }),
+  }),
+})
 
 const foldEndDate = Update.foldChild({
   update: DatePicker.update,
@@ -146,7 +146,7 @@ const foldEndDate = Update.foldChild({
   foldOutMessage: foldEndDateOutMessage,
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     UpdatedCompany: ({ value }) => ({
       model: modifyFields(model, { company: () => validateCompany(value) }),

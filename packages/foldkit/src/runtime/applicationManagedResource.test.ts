@@ -53,7 +53,7 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
   }),
 }))
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedStartEngine: () => ({
       model: modifyFields(model, { engine: () => EngineState.Booting() }),

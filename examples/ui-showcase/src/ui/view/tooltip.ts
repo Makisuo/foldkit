@@ -1,5 +1,5 @@
 import { Submodel } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import type { HtmlBuilder as FoldkitHtmlBuilder, Html } from 'foldkit/html'
 import type * as Mount from 'foldkit/mount'
 
 import { Tooltip } from '@foldkit/ui'
@@ -8,13 +8,9 @@ import type { AnchorConfig } from '@foldkit/ui/tooltip'
 import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
-type MountRequirements = Mount.RequirementsOf<typeof Tooltip.mounts>
-
-const defineViewWithComponentMountRequirements = Submodel.defineView<
-  UiModel,
+type HtmlBuilder = FoldkitHtmlBuilder<
   UiMessage,
-  void,
-  MountRequirements
+  Mount.RequirementsOf<typeof Tooltip.mounts>
 >
 
 const triggerClassName =
@@ -31,8 +27,8 @@ const TOOLTIP_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-export const view = defineViewWithComponentMountRequirements(
-  (model, h): Html => {
+export const view = Submodel.defineView(
+  (model: UiModel, h: HtmlBuilder): Html => {
     const basicTooltipView = ({
       trigger,
       panel,

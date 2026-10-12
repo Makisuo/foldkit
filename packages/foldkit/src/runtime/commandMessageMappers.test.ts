@@ -44,7 +44,7 @@ type Message = typeof Message.Type
 const Model = Schema.Struct({ label: Schema.String })
 type Model = typeof Model.Type
 
-const update = Update.make((_model: Model, message: Message) =>
+const update = Update.define((_model: Model, message: Message) =>
   Message.match(message, {
     GotChildMessage: ({ message: childMessage }) =>
       Match.value(childMessage).pipe(

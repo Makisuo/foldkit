@@ -119,7 +119,7 @@ export const EffectsLayer = Layer.mergeAll(
   AnchorTooltip.layer,
 )
 
-const computeUpdate = Update.make((model: Model, message: Message) =>
+const computeUpdate = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     EnteredTrigger: () => {
       if (model.isOpen || model.isDismissed) {
@@ -236,7 +236,7 @@ const toVisibilityOutMessage = (
  *  and an optional OutMessage. `Shown`/`Hidden` fire only on `isOpen`
  *  transitions, so consumers don't get spurious events for messages that
  *  only update hover/focus/delay state without changing visibility. */
-export const update = Update.make((model: Model, message: Message) => {
+export const update = Update.define((model: Model, message: Message) => {
   const tooltipUpdate = computeUpdate(model, message)
   const outMessage = toVisibilityOutMessage(
     model.isOpen,

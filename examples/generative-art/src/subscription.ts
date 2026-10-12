@@ -1,5 +1,5 @@
-import { Effect, Option, Queue, Schema, Stream } from 'effect'
-import { Subscription } from 'foldkit'
+import { Effect, Option, Schema, Stream } from 'effect'
+import { Dom, Subscription } from 'foldkit'
 
 import { Slider } from '@foldkit/ui'
 
@@ -32,36 +32,15 @@ const frameSubscription = Subscription.make<Model, Message>()(entry => ({
       handler: function* () {
         return ({ isActive }) =>
           Stream.when(
-            animationFrameStream,
+            Dom.streamFromAnimationFrame().pipe(
+              Stream.map(deltaTimeMs => Message.TickedFrame({ deltaTimeMs })),
+            ),
             Effect.sync(() => isActive),
           )
       },
     },
   ),
 }))
-
-const animationFrameStream = Stream.callback<typeof Message.TickedFrame.Type>(
-  queue =>
-    Effect.acquireRelease(
-      Effect.sync(() => {
-        const state = {
-          frameId: 0,
-          lastTime: performance.now(),
-        }
-
-        const tick = (now: number): void => {
-          const deltaTimeMs = now - state.lastTime
-          state.lastTime = now
-          Queue.offerUnsafe(queue, Message.TickedFrame({ deltaTimeMs }))
-          state.frameId = requestAnimationFrame(tick)
-        }
-
-        state.frameId = requestAnimationFrame(tick)
-        return state
-      }),
-      state => Effect.sync(() => cancelAnimationFrame(state.frameId)),
-    ).pipe(Effect.flatMap(() => Effect.never)),
-)
 
 export const subscriptions = Subscription.aggregate(
   frameSubscription,

@@ -67,7 +67,7 @@ const ReadValueLayer = ReadValue.toLayer(
   ),
 )
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedReadValue: () => ({ model, commands: [ReadValue()] }),
     SucceededReadValue: ({ value }) => ({
@@ -486,7 +486,7 @@ describe('Application Layers', () => {
         }
       }),
     )
-    const update = Update.make(
+    const update = Update.define(
       (model: LifecycleModel, message: LifecycleMessage) =>
         LifecycleMessage.match(message, {
           CompletedChangePhase: ({ phase, value }) => {

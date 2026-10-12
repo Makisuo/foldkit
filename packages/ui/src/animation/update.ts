@@ -58,7 +58,7 @@ export const EffectsLayer = Layer.mergeAll(
  *  but cannot finish one, so direct calls with either Message return a plain
  *  update result. Results from an earlier transition generation leave the Model
  *  unchanged. */
-const updateInferred = Update.make((model: Model, message: Message) =>
+const updateInferred = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     Showed: () => {
       if (model.isShowing) {

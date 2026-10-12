@@ -53,7 +53,7 @@ export const initialChildModel: ChildModel = { status: 'Idle' }
 
 // CHILD UPDATE
 
-export const childUpdate = Update.make(
+export const childUpdate = Update.define(
   (_model: ChildModel, message: ChildMessage) =>
     ChildMessage.match(message, {
       SubmittedForm: () => ({
@@ -123,7 +123,7 @@ const foldChildUpdate = Update.foldChild({
   foldOutMessage: foldChildOutMessage,
 })
 
-export const parentUpdate = Update.make(
+export const parentUpdate = Update.define(
   (parentModel: ParentModel, message: ParentMessage) =>
     ParentMessage.match(message, {
       GotChildMessage: ({ message: childMessage }) =>

@@ -120,7 +120,7 @@ Match the implementation style to the subsystem and the behavior being modeled. 
 
 Don't add inline or block comments to explain code. If code needs explanation, refactor for clarity or use better names. Exceptions:
 
-- Section headers: `// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// VIEW`, `// COMMAND`, and short descriptive headers for sections outside that set (`// SHARED STYLES`, `// TABLE OF CONTENTS`).
+- Section headers: `// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// VIEW`, `// COMMAND`, `// EFFECTS LAYER`, and short descriptive headers for sections outside that set (`// SHARED STYLES`, `// TABLE OF CONTENTS`).
 - TSDoc (`/** ... */`) on all public exports of a published package (`packages/*`). An `export const` in `examples/` is module wiring so `entry.ts` and scene tests can import it, not public API, and takes a `// NOTE:` like any other explanatory comment.
 - `// NOTE:` comments, with a high bar. Only for behavior that would mislead a careful reader (timing dependency, upstream bug workaround, browser quirk). Not for normal patterns, state machine shapes, framework idioms, or what a function does.
 - Sparse teaching comments in a documentation snippet when the snippet has enough wiring that a reader could miss the lines that demonstrate the section's point. Point to the architectural handoff or data flow the reader should notice. Do not narrate every line or use comments to rescue an example whose names and structure are unclear.
@@ -148,7 +148,7 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 
 - `index.ts` is always a barrel; real code lives in a named file. For a module `foo/`, the shape is `foo/foo.ts` for the code and `foo/index.ts` for the barrel. Re-export the intended public names explicitly so adding an internal export does not silently expand the barrel. Use `export *` only when the whole module surface is intentionally public. Nest children as namespaces via `export * as Child from './child'`.
 - Extract Messages to a dedicated `message.ts` when Commands need Message constructors. This breaks the circular dependency between `command.ts` and `main.ts`.
-- Commands are colocated with the update function that returns them. Never centralize all Commands in one file.
+- Commands belong to the same feature as the update function that returns them. Keep small definitions alongside update; use feature-local `command.ts` when separating several definitions or substantial handlers improves navigation. Never centralize all Commands in one file.
 - Keep canonical handlers attached with a generator constructor in `config.handler`. Foldkit applies `Effect.gen`; the generator returns the invocation function or a ManagedResource object with `acquire` and `release` functions. Omit `handler` when an external host owns the implementation, and supply that contract through the original definition's `toLayer` with an Effect constructor. Compose attached `.layer` recipes directly in `EffectsLayer`. Compose a split feature's Layers in `layer.ts` and re-export `EffectsLayer` from its barrel; application entry imports the root `AppLayer`. Import Effect's Layer module as `Layer`.
 - Expose a `boot()` helper alongside `init()` when a submodel applies a boot-time Message. `init()` returns clean state with no boot effects. `boot()` applies the boot Message via `update` and returns the update record.
 

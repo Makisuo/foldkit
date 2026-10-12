@@ -446,7 +446,9 @@ The configuration record passed to `h.submodel`.
 
 `Submodel.defineView<Model, Message, ViewInputs = void, RequiredMounts = never>(fn): SubmodelView<Model, Message, ViewInputs, RequiredMounts>`
 
-Brands a view function with its Message type so `h.submodel` can type-check the embed site without a per-call type argument, and types the builder the runtime passes the view as its last parameter. The `<Model, Message>` parameters are required at the definition site; `ViewInputs` is optional and, when supplied, makes the view take a second `viewInputs` argument before the builder. When the view attaches Mounts or embeds mounted children, supply `Mount.RequirementsOf<typeof mounts>` as the fourth parameter. `h.submodel` checks those requirements against the parent builder. A view with no inputs uses `void` as the third parameter. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views). Also exported as `defineView` from `foldkit/html`.
+Brands a view function with its Message type so `h.submodel` can type-check the embed site without a per-call type argument. Annotated callback parameters let `defineView` infer the Model, Message, and Mount requirements from `(model: Model, h: HtmlBuilder)`. A view with inputs annotates `(model: Model, viewInputs: ViewInputs, h: HtmlBuilder)` instead. The owner builder type carries its Message and registered Mount contracts. `h.submodel` checks those contracts against the parent builder.
+
+The explicit `<Model, Message, ViewInputs, RequiredMounts>` form remains available. `ViewInputs` is optional and, when supplied, makes the view take a second `viewInputs` argument before the builder. A view with no inputs uses `void` as the third parameter. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views). Also exported as `defineView` from `foldkit/html`.
 
 ### Submodel.View {#api-submodel-view}
 

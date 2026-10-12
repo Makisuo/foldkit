@@ -46,7 +46,7 @@ const foldApplicant = Update.foldChildAt({
     Message.GotApplicantMessage({ entryId, message }),
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     GotApplicantMessage: ({ entryId, message }) =>
       foldApplicant(model, entryId, message),

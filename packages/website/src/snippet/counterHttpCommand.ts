@@ -44,7 +44,7 @@ export const fetchCount = (client: HttpClient.HttpClient) =>
 
 export const FetchCountLayer = FetchCount.layer
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedFetchCount: () => ({ model, commands: [FetchCount()] }),
     SucceededFetchCount: ({ count }) => ({

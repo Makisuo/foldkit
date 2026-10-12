@@ -70,16 +70,14 @@ export const mounts = Entry.mounts
 
 // UPDATE
 
-const foldEntryOutMessage =
-  (entryId: string) => (outMessage: typeof Entry.OutMessage.Type) =>
-    Entry.OutMessage.match(outMessage, {
-      Removed: () =>
-        Update.makeStep((model: Model) => ({
-          model: modifyFields(model, {
-            entries: Array.filter(entry => entry.id !== entryId),
-          }),
-        })),
-    })
+const foldEntryOutMessage = (entryId: string) =>
+  Entry.OutMessage.match<Update.Step<Model, Message>>({
+    Removed: () => model => ({
+      model: modifyFields(model, {
+        entries: Array.filter(entry => entry.id !== entryId),
+      }),
+    }),
+  })
 
 const foldEntry = Update.foldChildAt({
   update: Entry.update,
@@ -94,7 +92,7 @@ const foldEntry = Update.foldChildAt({
   foldOutMessage: foldEntryOutMessage,
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedAddEntry: () => ({
       model,

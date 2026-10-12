@@ -316,7 +316,7 @@ Use `h.OnMount(MeasurePanel())` in the view as before. Add `mounts` to `Applicat
 
 ### Views that use Mounts
 
-An inline application view gets its allowed Mounts from `Application.make({ mounts, ... })`. An exported view must preserve the Mount requirements in its builder signature. A plain view changes from `HtmlBuilder<Message>` to `HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>`. A branded Submodel view uses the fourth type parameter:
+An inline application view gets its allowed Mounts from `Application.make({ mounts, ... })`. An exported view must preserve the Mount requirements in its builder signature. A plain view changes from `HtmlBuilder<Message>` to `HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>`. For a branded Submodel view, annotate its Model and owner builder so `Submodel.defineView` infers the contracts:
 
 **Before**
 
@@ -336,6 +336,7 @@ export const view = Submodel.defineView<Model, Message>((model, h) =>
 
 ```ts
 import { Mount, Submodel } from 'foldkit'
+import type { HtmlBuilder as FoldkitHtmlBuilder } from 'foldkit/html'
 
 import { MeasurePanel } from './mount'
 import type { Message } from './message'
@@ -343,16 +344,19 @@ import type { Model } from './model'
 
 export const mounts = [MeasurePanel]
 
-export const view = Submodel.defineView<
-  Model,
+// Share this contract with helpers on the mounted view path.
+export type HtmlBuilder = FoldkitHtmlBuilder<
   Message,
-  void,
-  // Preserve the Mount requirement when a parent embeds this view.
   Mount.RequirementsOf<typeof mounts>
->((model, h) => h.div([h.OnMount(MeasurePanel())], [model.label]))
+>
+
+// Infer the child Message and Mount contracts from the builder parameter.
+export const view = Submodel.defineView((model: Model, h: HtmlBuilder) =>
+  h.div([h.OnMount(MeasurePanel())], [model.label]),
+)
 ```
 
-`void` is the existing default for `ViewInputs`; substitute the child's inputs type when it has one. The parent collects the child's `mounts` with its own and provides the child's `EffectsLayer`. TypeScript checks that the parent builder allows every Mount required by the child view before `h.submodel` can embed it. Views with no Mounts keep their existing signatures, and their `Html` result type is unchanged.
+A child with `ViewInputs` annotates them as its second parameter and receives the builder third. The explicit generic form remains supported, with `void` as the third type parameter when there are no inputs. The parent collects the child's `mounts` with its own and provides the child's `EffectsLayer`. TypeScript checks that the parent builder allows every Mount required by the child view before `h.submodel` can embed it. Views with no Mounts keep their existing signatures, and their `Html` result type is unchanged.
 
 When several helpers share a mounted view path, export one `HtmlBuilder` type from the owning module, derived from its Message type and inferred `mounts` registry. Helpers then use `h: HtmlBuilder`, or `h: Chart.HtmlBuilder` through a module namespace import. Application assembly includes those exported registrations. This preserves the registration check without repeating the Mount contract in every helper signature; pure helpers keep the framework's `HtmlBuilder<Message>`.
 
@@ -571,7 +575,7 @@ The host composes `RequestHostTokenLayer` into `AppLayer`. The same contract app
 
 ### Update requirements
 
-Wrap update with `Update.make` and let the matcher infer its return instead of manually listing the services required by its Commands. For the `StoreDraft` Command above:
+Wrap update with `Update.define` and let the matcher infer its return instead of manually listing the services required by its Commands. For the `StoreDraft` Command above:
 
 **Before**
 
@@ -607,7 +611,7 @@ import { Message } from './message'
 import type { Model } from './model'
 
 // Infer Command requirements from the returned Commands across all branches.
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedSaveDraft: () => ({
       model,
@@ -626,7 +630,7 @@ type CommandRequirements = Update.RequirementsOf<typeof update>
 
 #### Standalone Steps
 
-Use `Update.makeStep` for a standalone Step that returns Commands. With the same imports and definitions:
+Use `Update.defineStep` for a standalone Step that returns Commands. With the same imports and definitions:
 
 **Before**
 
@@ -645,35 +649,47 @@ const storeDraft: Update.Step<
 
 ```ts
 // Standalone Steps infer the same requirements without a manual annotation.
-const storeDraft = Update.makeStep((model: Model) => ({
+const storeDraft = Update.defineStep((model: Model) => ({
   model,
   commands: [StoreDraft({ contents: model.contents })],
 }))
 ```
 
-Annotate the callback's Model parameter, as in `(model: Model) => ...`, and let `Update.makeStep` infer the result Messages, handler requirements, and OutMessage from its return. The helper's type parameter represents the complete Step function, so `Update.makeStep<Model>` does not annotate its Model.
+Annotate the callback's Model parameter, as in `(model: Model) => ...`, and let `Update.defineStep` infer the result Messages, handler requirements, and OutMessage from its return. The helper's type parameter represents the complete Step function, so `Update.defineStep<Model>` does not annotate its Model.
 
 ## Layer composition and lifetimes
 
 ### Composing Layers
 
-Compose attached recipes directly as `Definition.layer` in each owning module's combined `EffectsLayer`, such as `Search.EffectsLayer`. When a recipe needs its own exported or reused binding, name it `FooLayer`; name an external alternative `FooTestLayer`. At the application root, combine root and Submodel implementations in `EffectsLayer`, external providers in `ServicesLayer`, and export `AppLayer` from `Layer.provide(EffectsLayer, ServicesLayer)`. Import Effect's module as `Layer`; the bundle names avoid an alias.
+Keep definitions and handlers within the feature whose update returns them, alongside update or in a feature-local `command.ts`. Use a `// EFFECTS LAYER` section for a combined handler bundle in a sectioned `main.ts`. Compose attached recipes directly as `Definition.layer` in each owning module's combined `EffectsLayer`, such as `Search.EffectsLayer`. When a recipe needs its own exported or reused binding, name it `FooLayer`; name an external alternative `FooTestLayer`. At the application root, combine root and Submodel implementations in `EffectsLayer`, external providers in `ServicesLayer`, and export `AppLayer` from `Layer.provide(EffectsLayer, ServicesLayer)`. Import Effect's module as `Layer`; the bundle names avoid an alias.
 
 Foldkit UI components export their own `EffectsLayer` and, when needed, `mounts`. Compose those exports at the Submodel or application module that owns the component, then carry the resulting effect and registration bundles to the root. `Slider.forRoot(name, getTrackRoot)` and `Toast.make(name, payloadSchema)` return instance-owned Subscription and effect bundles; compose those exports where the instance is created.
 
 ### Requirements and definition identities
 
-`Update.make` infers Command requirements and OutMessages across Message branches while preserving required, optional, and rest context parameters. `Update.RequirementsOf<typeof update>` reads the Command services from an update contract without including lifecycle-only services. `Application.make` and `Application.provide` carry all remaining handler and service requirements until the selected Layers satisfy them.
+#### Inferred requirements
+
+`Update.define` infers Command requirements and OutMessages across Message branches while preserving required, optional, and rest context parameters. `Update.RequirementsOf<typeof update>` reads the Command services from an update contract without including lifecycle-only services. `Application.make` and `Application.provide` carry all remaining handler and service requirements until the selected Layers satisfy them.
+
+#### Registration names
 
 Each handler name belongs to one registered Subscription, Mount, or ManagedResource definition within an application. `Application.make` rejects distinct registered definitions of those types with the same name. Multiple lifted Subscription registrations of the same definition can share its Layer. A ManagedResource retains its handler contract through lifting; each registered resource tag key still has one lifecycle owner.
 
+#### Handler protocols
+
 Handler requirements carry the name and protocol that share an Effect Context key: decoded args and declared result Messages for Commands, decoded dependencies and declared Messages for Subscriptions, element inputs and declared result Messages for Mounts, and decoded acquire params and resource values for ManagedResources. `Application.provide` rejects incompatible same-named contracts supplied directly, combined in a `Layer.mergeAll` bundle, introduced through the Layer's own requirements, or accumulated through sequential provision.
 
+#### Definition identity checks
+
 Distinct definitions with identical names and protocols remain structurally indistinguishable to TypeScript. Foldkit checks the private definition identity before invoking a Command handler, starting a Subscription, executing a Mount, or beginning a ManagedResource lifecycle, and rejects a Layer built from another definition. Build an external alternative with the original definition's `toLayer` so it retains that definition's identity.
+
+#### ManagedResource ownership
 
 Each registered ManagedResource tag key has one lifecycle owner. `Application.make` and `Application.makeElement` reject the same resource key under multiple registration keys, including separately created tags with matching keys. Give independent resource instances distinct tag keys so each accessor resolves its own handle.
 
 ### Startup and cleanup
+
+`Runtime.run(program, { flags })` also has a data-last form, `Runtime.run({ flags })(program)`, so an entry can end its application pipeline with `Runtime.run({ flags })`. Both forms check the Flags value and its required services against the provided application. Flags-free applications can end with `Runtime.run`.
 
 Application Layer construction happens before Flags, init, or the first render. A construction failure therefore stops startup before a Model exists for a crash view. `Runtime.hydrate` validates the server handoff before acquiring the application Layer.
 

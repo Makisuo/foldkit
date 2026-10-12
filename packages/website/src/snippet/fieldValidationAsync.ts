@@ -37,7 +37,7 @@ const CheckEmailAvailable = Command.define('CheckEmailAvailable', {
   },
 })
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ChangedEmail: ({ value }) => {
       const syncResult = validateEmail(value)

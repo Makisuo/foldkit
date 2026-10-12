@@ -13,8 +13,8 @@ import {
   type ReturnWithOutMessage,
   type Step,
   type StepWithOutMessage,
+  define,
   foldChildInit,
-  make,
 } from './public.js'
 
 const ChildModel = Schema.Struct({ value: Schema.Number })
@@ -315,7 +315,7 @@ describe('foldChildInit', () => {
       }),
     ])
 
-    const parentUpdate = make((model: ParentModel, message: ParentMessage) =>
+    const parentUpdate = define((model: ParentModel, message: ParentMessage) =>
       ParentMessage.match(message, {
         StartedChild: () => parentInit,
         GotChildMessage: () => ({ model }),

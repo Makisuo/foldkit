@@ -22,7 +22,7 @@ export const ReportCount = Command.define('ReportCount', {
 export const EffectsLayer = ReportCount.layer
 
 // In update, emitting is just returning the Command:
-const handleAdvance = Update.makeStep((model: Model) => {
+const handleAdvance = Update.defineStep((model: Model) => {
   const count = model.count + model.step
   return {
     model: modifyFields(model, { count: () => count }),

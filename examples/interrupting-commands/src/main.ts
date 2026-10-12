@@ -108,6 +108,8 @@ export const UploadFile = Command.define('UploadFile', {
   },
 })
 
+// EFFECTS LAYER
+
 export const EffectsLayer = UploadFile.layer
 
 export const CancelUploadFile = ({ uploadId }: UploadKey) =>
@@ -124,7 +126,7 @@ const setStatusForId = (uploadId: number, status: UploadStatus) =>
       : upload,
   )
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedStartUpload: () => {
       const fakeFile = fakeFileForUpload(model.uploadId)

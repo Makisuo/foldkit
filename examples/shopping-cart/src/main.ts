@@ -80,6 +80,8 @@ const LoadExternal = Command.define('LoadExternal', {
   },
 })
 
+// EFFECTS LAYER
+
 export const EffectsLayer = Layer.mergeAll(
   NavigateInternal.layer,
   LoadExternal.layer,
@@ -91,15 +93,15 @@ export const EffectsLayer = Layer.mergeAll(
 const foldProductsOutMessage = (outMessage: typeof Products.OutMessage.Type) =>
   Products.OutMessage.match(outMessage, {
     AddedToCart: ({ item }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, { cart: Cart.addItem(item) }),
       })),
     IncrementedQuantity: ({ itemId }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, { cart: Cart.incrementQuantity(itemId) }),
       })),
     DecrementedQuantity: ({ itemId }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, { cart: Cart.decrementQuantity(itemId) }),
       })),
   })
@@ -113,7 +115,7 @@ const foldProducts = Update.foldChild({
   foldOutMessage: foldProductsOutMessage,
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),

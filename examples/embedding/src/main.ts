@@ -64,7 +64,7 @@ const advance = (model: Model) => {
   }
 }
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     Ticked: () => advance(model),
     ClickedAdvance: () => advance(model),
@@ -100,6 +100,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     },
   }),
 }))
+
+// EFFECTS LAYER
 
 export const EffectsLayer = Layer.mergeAll(
   ReportCount.layer,

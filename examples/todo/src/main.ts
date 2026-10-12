@@ -99,7 +99,7 @@ export const init = (flags: Flags) => ({
 
 // UPDATE
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     UpdatedNewTodo: ({ text }) => ({
       model: modifyFields(model, {
@@ -302,6 +302,8 @@ export const SaveTodos = Command.define('SaveTodos', {
       }).pipe(Effect.catch(() => Effect.succeed(Message.FailedSaveTodos())))
   },
 })
+
+// EFFECTS LAYER
 
 export const EffectsLayer = Layer.mergeAll(GenerateTodo.layer, SaveTodos.layer)
 

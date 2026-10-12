@@ -6,7 +6,7 @@ const foldLoginOutMessage = (
 ) =>
   Login.OutMessage.match(outMessage, {
     RequestedMagicLink: ({ email }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model,
         commands: [
           liftCommand(

@@ -34,7 +34,7 @@ export type Commands<Message, R = never> = ReadonlyArray<
  *
  *  Give it a local `UpdateReturn` alias when another matcher or helper in the
  *  module needs the same type. When Commands use handler Layers, wrap the
- *  update with {@link make} to infer their requirements across branches.
+ *  update with {@link define} to infer their requirements across branches.
  *  An explicit `Return<Model, Message>` annotation fixes `R` to `never`. */
 export type Return<Model, Message, R = never> = Readonly<{
   model: Model
@@ -111,7 +111,7 @@ type ValidateUpdate<Update extends AnyUpdate> =
         : never
       : never
 
-type MadeUpdate<Update extends AnyUpdate> = (
+type DefinedUpdate<Update extends AnyUpdate> = (
   ...args: Parameters<Update>
 ) => [OutMessageOf<ReturnType<Update>>] extends [never]
   ? Return<
@@ -138,17 +138,17 @@ type MadeUpdate<Update extends AnyUpdate> = (
  * requirements union:
  *
  * ```ts
- * export const update = Update.make((model: Model, message: Message) =>
+ * export const update = Update.define((model: Model, message: Message) =>
  *   Message.match(message, {
  *     ClickedSave: () => ({ model, commands: [Save()] }),
  *     CompletedSave: () => ({ model }),
  *   }),
  * )
  * ``` */
-export function make<const Update extends AnyUpdate>(
+export function define<const Update extends AnyUpdate>(
   update: Update & ValidateUpdate<Update>,
-): MadeUpdate<Update>
-export function make(update: AnyUpdate): AnyUpdate {
+): DefinedUpdate<Update>
+export function define(update: AnyUpdate): AnyUpdate {
   return update
 }
 
@@ -169,7 +169,7 @@ type ValidateStep<Step extends AnyStep> =
       : never
     : never
 
-type MadeStep<Step extends AnyStep> = (
+type DefinedStep<Step extends AnyStep> = (
   ...args: Parameters<Step>
 ) => [OutMessageOf<ReturnType<Step>>] extends [never]
   ? Return<
@@ -195,17 +195,17 @@ type MadeStep<Step extends AnyStep> = (
  *
  * ```ts
  * const foldSavedDraft = OutMessage.match({
- *   SavedDraft: () => Update.makeStep((model: Model) => ({
+ *   SavedDraft: () => Update.defineStep((model: Model) => ({
  *     model,
  *     commands: [RefreshDraft()],
  *   })),
  * })
  * ```
  */
-export function makeStep<const Step extends AnyStep>(
+export function defineStep<const Step extends AnyStep>(
   step: Step & ValidateStep<Step>,
-): MadeStep<Step>
-export function makeStep(step: AnyStep): AnyStep {
+): DefinedStep<Step>
+export function defineStep(step: AnyStep): AnyStep {
   return step
 }
 

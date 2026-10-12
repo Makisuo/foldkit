@@ -19,7 +19,7 @@ const GenerateApplePosition = Command.define('GenerateApplePosition', {
   },
 })
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     RequestedApple: () => ({ model, commands: [GenerateApplePosition()] }),
     CompletedGenerateApplePosition: ({ position }) => ({

@@ -40,7 +40,7 @@ const FetchPosts = Command.define('FetchPosts', {
 
 // UPDATE
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Match.value(message).pipe(
     Match.tagsExhaustive({
       EnteredPostsRoute: () =>

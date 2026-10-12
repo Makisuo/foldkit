@@ -215,15 +215,15 @@ const appendGeneratedParticle =
     }
   }
 
-const foldFlowStrengthSliderOutMessage = (
-  outMessage: typeof Slider.OutMessage.Type,
-) =>
-  Slider.OutMessage.match(outMessage, {
-    ChangedValue: ({ value }) =>
-      Update.makeStep((model: Model) => ({
-        model: modifyFields(model, { flowStrength: () => value }),
-      })),
-  })
+const foldFlowStrengthSliderOutMessage = Slider.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  ChangedValue:
+    ({ value }) =>
+    model => ({
+      model: modifyFields(model, { flowStrength: () => value }),
+    }),
+})
 
 const foldFlowStrengthSlider = Update.foldChild({
   update: Slider.update,
@@ -234,15 +234,15 @@ const foldFlowStrengthSlider = Update.foldChild({
   foldOutMessage: foldFlowStrengthSliderOutMessage,
 })
 
-const foldNoiseScaleSliderOutMessage = (
-  outMessage: typeof Slider.OutMessage.Type,
-) =>
-  Slider.OutMessage.match(outMessage, {
-    ChangedValue: ({ value }) =>
-      Update.makeStep((model: Model) => ({
-        model: modifyFields(model, { noiseScale: () => value }),
-      })),
-  })
+const foldNoiseScaleSliderOutMessage = Slider.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  ChangedValue:
+    ({ value }) =>
+    model => ({
+      model: modifyFields(model, { noiseScale: () => value }),
+    }),
+})
 
 const foldNoiseScaleSlider = Update.foldChild({
   update: Slider.update,
@@ -253,7 +253,7 @@ const foldNoiseScaleSlider = Update.foldChild({
   foldOutMessage: foldNoiseScaleSliderOutMessage,
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     TickedFrame: ({ deltaTimeMs }) => {
       const deltaSeconds = cappedDeltaSeconds(deltaTimeMs)

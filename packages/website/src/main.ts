@@ -303,7 +303,7 @@ const foldThemeMenuOutMessage = (
 ) =>
   Menu.OutMessage.match(outMessage, {
     Selected: ({ value: preference }) =>
-      Update.makeStep((model: Model) => {
+      Update.defineStep((model: Model) => {
         const resolvedTheme = resolveTheme(preference, model.systemTheme)
 
         return {
@@ -348,8 +348,8 @@ const foldMobileMenuDialogOutMessage = (
   outMessage: typeof Dialog.OutMessage.Type,
 ) =>
   Dialog.OutMessage.match(outMessage, {
-    Opened: () => Update.makeStep((model: Model) => ({ model })),
-    Closed: () => Update.makeStep((model: Model) => ({ model })),
+    Opened: () => Update.defineStep((model: Model) => ({ model })),
+    Closed: () => Update.defineStep((model: Model) => ({ model })),
   })
 
 const readMobileMenuDialog = (model: Model): Option.Option<Dialog.Model> =>
@@ -425,7 +425,7 @@ const toGotHomeMessage = (message: Home.Message): Message =>
 const foldHomeOutMessage = (outMessage: Home.OutMessage) =>
   Home.OutMessage.match(outMessage, {
     SelectedPlaygroundExample: ({ exampleSlug }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model,
         commands: [LoadPlayground({ exampleSlug })],
       })),
@@ -560,7 +560,7 @@ const foldPlayground = Update.foldChild({
   toParentMessage: message => Message.GotPlaygroundMessage({ message }),
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match(request, {

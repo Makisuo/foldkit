@@ -27,7 +27,7 @@ const selectPlaygroundExample = (model: Model, exampleSlug: ExampleSlug) => ({
 const foldDemoTabsOutMessage = (outMessage: Tabs.OutMessage<DemoTab.Tab>) =>
   Tabs.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => selectDemoTab(model, value)),
+      Update.defineStep((model: Model) => selectDemoTab(model, value)),
   })
 
 const foldDemoTabs = Update.foldChild({
@@ -46,7 +46,9 @@ const foldPlaygroundMenuOutMessage = (
     // NOTE: A fresh document load preserves the COEP/COOP headers required by
     // WebContainer. SPA navigation would reuse the current document.
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => selectPlaygroundExample(model, value)),
+      Update.defineStep((model: Model) =>
+        selectPlaygroundExample(model, value),
+      ),
   })
 
 const foldPlaygroundMenu = Update.foldChild({
@@ -74,7 +76,7 @@ const foldNotePlayerDemo = Update.foldChild({
   toParentMessage: message => Message.GotNotePlayerDemoMessage({ message }),
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     GotDemoTabsMessage: ({ message }) => foldDemoTabs(model, message),
     GotPlaygroundMenuMessage: ({ message }) =>

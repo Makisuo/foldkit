@@ -188,7 +188,7 @@ type Model = typeof Model.Type
 
 const h = __htmlBuilder<Message>()
 
-const update = Update.make((_model: Model, message: Message) =>
+const update = Update.define((_model: Model, message: Message) =>
   Message.match(message, {
     ClickedTransition: () => ({ model: { label: 'transitioned' } }),
     ClickedPlain: () => ({ model: { label: 'plain' } }),
@@ -403,7 +403,7 @@ describe('makeElement with viewTransition', () => {
       const element = Application.makeElement({
         Model,
         init: () => ({ model: { label: 'initial' } }),
-        update: Update.make((model: Model, message: Message) =>
+        update: Update.define((model: Model, message: Message) =>
           Message.match(message, {
             ClickedTransition: () => ({
               model: { label: 'transitioned' },
@@ -542,7 +542,7 @@ describe('makeElement with viewTransition', () => {
     const element = Application.makeElement({
       Model,
       init: () => ({ model: { label: 'initial' } }),
-      update: Update.make((model, message) => {
+      update: Update.define((model, message) => {
         if (message._tag === 'Ticked') {
           didProcessTick = true
         }
@@ -941,7 +941,7 @@ describe('makeElement with viewTransition', () => {
     const element = Application.makeElement({
       Model,
       init: () => ({ model: { label: 'initial' } }),
-      update: Update.make((model: Model, message: Message) =>
+      update: Update.define((model: Model, message: Message) =>
         Message.match(message, {
           ClickedTransition: () => ({
             model: { label: 'transitioned' },

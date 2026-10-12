@@ -1,6 +1,10 @@
 import { Match, Option } from 'effect'
 import { Submodel } from 'foldkit'
-import type { ChildAttribute, Html, HtmlBuilder } from 'foldkit/html'
+import type {
+  ChildAttribute,
+  HtmlBuilder as FoldkitHtmlBuilder,
+  Html,
+} from 'foldkit/html'
 import type * as Mount from 'foldkit/mount'
 
 import { Calendar, DatePicker } from '@foldkit/ui'
@@ -10,13 +14,9 @@ import * as Icon from '../../icon'
 import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
-type MountRequirements = Mount.RequirementsOf<typeof DatePicker.mounts>
-
-const defineViewWithComponentMountRequirements = Submodel.defineView<
-  UiModel,
+type HtmlBuilder = FoldkitHtmlBuilder<
   UiMessage,
-  void,
-  MountRequirements
+  Mount.RequirementsOf<typeof DatePicker.mounts>
 >
 
 const triggerClassName =
@@ -65,26 +65,23 @@ const monthYearButtonClassName =
   'flex h-full w-full items-center justify-center rounded-md text-sm text-gray-900 tabular-nums cursor-pointer hover:bg-gray-100 group-data-[today]:ring-1 group-data-[today]:ring-gray-400 group-data-[selected]:bg-accent-600 group-data-[selected]:text-white! group-data-[selected]:hover:bg-accent-600 group-data-[focused]:outline-2 group-data-[focused]:outline-offset-2 group-data-[focused]:outline-accent-500 group-data-[disabled]:cursor-not-allowed group-data-[disabled]:opacity-40'
 // PIECES
 
-const navButton = <AllowedMountRequirements>(
+const navButton = (
   attributes: ReadonlyArray<ChildAttribute>,
   icon: Html,
-  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
+  h: FoldkitHtmlBuilder<UiMessage>,
 ): Html => h.button([...attributes, h.Class(navButtonClassName)], [icon])
 
-const headingButton = <AllowedMountRequirements>(
+const headingButton = (
   heading: Calendar.DaysModeAttributes['heading'],
   attributes: ReadonlyArray<ChildAttribute>,
-  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
+  h: FoldkitHtmlBuilder<UiMessage>,
 ): Html =>
   h.button(
     [h.Id(heading.id), ...attributes, h.Class(headingButtonClassName)],
     [heading.text, Icon.chevronDown('w-3 h-3')],
   )
 
-const weekRow = <AllowedMountRequirements>(
-  week: Calendar.Week,
-  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
-): Html =>
+const weekRow = (week: Calendar.Week, h: FoldkitHtmlBuilder<UiMessage>): Html =>
   h.div(
     [...week.attributes, h.Class(rowClassName)],
     week.cells.map(cell =>
@@ -102,9 +99,9 @@ const weekRow = <AllowedMountRequirements>(
 
 // MODES
 
-const daysView = <AllowedMountRequirements>(
+const daysView = (
   days: Calendar.DaysModeAttributes,
-  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
+  h: FoldkitHtmlBuilder<UiMessage>,
 ): Html =>
   h.div(
     [...days.root, h.Class(calendarWrapperClassName)],
@@ -135,9 +132,9 @@ const daysView = <AllowedMountRequirements>(
     ],
   )
 
-const monthsView = <AllowedMountRequirements>(
+const monthsView = (
   months: Calendar.MonthsModeAttributes,
-  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
+  h: FoldkitHtmlBuilder<UiMessage>,
 ): Html =>
   h.div(
     [...months.root, h.Class(calendarWrapperClassName)],
@@ -163,9 +160,9 @@ const monthsView = <AllowedMountRequirements>(
     ],
   )
 
-const yearsView = <AllowedMountRequirements>(
+const yearsView = (
   years: Calendar.YearsModeAttributes,
-  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
+  h: FoldkitHtmlBuilder<UiMessage>,
 ): Html =>
   h.div(
     [...years.root, h.Class(calendarWrapperClassName)],
@@ -211,11 +208,11 @@ const formatTriggerLabel = (
 ): string =>
   `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`
 
-const triggerContent = <AllowedMountRequirements>(
+const triggerContent = (
   maybeDate: Option.Option<
     Readonly<{ year: number; month: number; day: number }>
   >,
-  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
+  h: FoldkitHtmlBuilder<UiMessage>,
 ): Html => {
   return h.div(
     [h.Class(triggerContentClassName)],
@@ -231,8 +228,8 @@ const triggerContent = <AllowedMountRequirements>(
 
 // VIEW
 
-export const view = defineViewWithComponentMountRequirements(
-  (model, h): Html => {
+export const view = Submodel.defineView(
+  (model: UiModel, h: HtmlBuilder): Html => {
     return h.div(
       [],
       [

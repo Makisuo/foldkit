@@ -1,14 +1,14 @@
-import { Array, Effect, Layer, Match, String } from 'effect'
+import { Array, Clock, Effect, Layer, Match, String } from 'effect'
 import { HttpClient, HttpClientResponse } from 'effect/http'
 import { expect, test } from 'vitest'
 
-import { GitHubApiLayer } from './githubApi'
+import { GitHubApi, GitHubApiLayer } from './githubApi'
 import {
   mockGitHubRepository,
   mockNpmDownloads,
   mockNpmPackument,
 } from './main.fixture'
-import { NpmApiLayer } from './npmApi'
+import { NpmApi, NpmApiLayer } from './npmApi'
 import { fetchRawTelemetry, transformTelemetry } from './telemetry'
 
 test('folds public API responses into a Telemetry value', async () => {
@@ -58,11 +58,14 @@ test('folds public API responses into a Telemetry value', async () => {
   const telemetryLayer = Layer.mergeAll(GitHubApiLayer, NpmApiLayer).pipe(
     Layer.provide(Layer.succeed(HttpClient.HttpClient, mockClient)),
   )
-  const telemetry = await fetchRawTelemetry.pipe(
-    Effect.map(transformTelemetry),
-    Effect.provide(telemetryLayer),
-    Effect.runPromise,
-  )
+  const telemetry = await Effect.gen(function* () {
+    const github = yield* GitHubApi
+    const npm = yield* NpmApi
+    const clock = yield* Clock.Clock
+    const rawTelemetry = yield* fetchRawTelemetry({ github, npm, clock })
+
+    return transformTelemetry(rawTelemetry)
+  }).pipe(Effect.provide(telemetryLayer), Effect.runPromise)
 
   expect(telemetry.repository.stars).toBe(342)
   expect(telemetry.repository.openIssues).toBe(1)

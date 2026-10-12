@@ -3,7 +3,7 @@
 import { Number } from 'effect'
 import { Update } from 'foldkit'
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     UpdatedQuery: ({ query }) => {
       const nextSearchGeneration = Number.increment(model.searchGeneration)

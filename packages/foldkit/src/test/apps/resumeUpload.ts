@@ -69,7 +69,7 @@ export const initialModel: Model = {
 
 // UPDATE
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedChooseResume: () => ({ model, commands: [SelectResume()] }),
     CompletedSelectResume: ({ file }) => ({

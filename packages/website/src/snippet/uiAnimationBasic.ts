@@ -52,7 +52,7 @@ const foldAnimationOutMessage = (
     // element to settle, then dispatches EndedAnimation back into
     // Animation.update. Use it unless you need a custom strategy.
     StartedLeaveAnimating: () =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model,
         commands: [liftCommand(Animation.defaultLeaveCommand(model.animation))],
       })),

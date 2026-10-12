@@ -1,15 +1,7 @@
 import { pipe } from 'effect'
 import { Application, Runtime } from 'foldkit'
 
-import {
-  EffectsLayer,
-  Message,
-  Model,
-  init,
-  mounts,
-  update,
-  view,
-} from './main'
+import { AppLayer, Message, Model, init, mounts, update, view } from './main'
 
 const application = Application.make({
   Model,
@@ -23,4 +15,4 @@ const application = Application.make({
   },
 })
 
-pipe(application, Application.provide(EffectsLayer), Runtime.run)
+pipe(application, Application.provide(AppLayer), Runtime.run)

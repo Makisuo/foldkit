@@ -588,7 +588,7 @@ const markPreviewLoaded = (
     Match.orElse(() => state),
   )
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     BootedPlayground: ({ previewUrl }) => ({
       model: modifyFields(model, {
@@ -905,7 +905,7 @@ const foldPlaygroundFileTabsOutMessage = (
 ) =>
   Tabs.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, { activeFilePath: () => value }),
       })),
   })

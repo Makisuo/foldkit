@@ -44,7 +44,9 @@ const AnchorPanel = Mount.define('AnchorPanel', {
 // onto it. The panel starts at visibility: hidden so it cannot flash at the
 // top left corner before Floating UI resolves its first position; anchorSetup
 // clears that once the panel is placed:
-const view = (h: HtmlBuilder<Message>): Html =>
+const view = (
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof AnchorPanel>>,
+): Html =>
   h.div(
     [],
     [

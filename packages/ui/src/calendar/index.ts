@@ -512,7 +512,7 @@ const applyYearsFocusShift = (model: Model, yearShift: number) => {
 
 /** Processes a Calendar Message and returns the next Model, optional Commands,
  *  and an optional OutMessage. */
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedDay: ({ date }) => {
       if (isDateDisabled(model, date)) {

@@ -87,7 +87,7 @@ const foldRoomMessage = (roomId: string) =>
     toParentMessage: toGotRoomMessage,
   })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match(request, {

@@ -22,7 +22,7 @@ import { AppRoute, urlToAppRoute } from './route'
 const foldLoggedOutOutMessage = (outMessage: LoggedOut.OutMessage) =>
   LoggedOut.OutMessage.match(outMessage, {
     SucceededLogin: ({ session }) =>
-      Update.makeStep((_model: Model) => ({
+      Update.defineStep((_model: Model) => ({
         model: LoggedIn.init(AppRoute.Dashboard(), session),
         commands: [SaveSession({ session }), RedirectToDashboard()],
       })),
@@ -45,7 +45,7 @@ const foldLoggedOut = Update.foldChild({
 const foldLoggedInOutMessage = (outMessage: LoggedIn.OutMessage) =>
   LoggedIn.OutMessage.match(outMessage, {
     RequestedLogout: () =>
-      Update.makeStep((_model: Model) => ({
+      Update.defineStep((_model: Model) => ({
         model: LoggedOut.init(AppRoute.Home()),
         commands: [ClearSession(), RedirectToHome()],
       })),
@@ -65,7 +65,7 @@ const foldLoggedIn = Update.foldChild({
   foldOutMessage: foldLoggedInOutMessage,
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match(request, {

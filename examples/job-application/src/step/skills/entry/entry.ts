@@ -75,15 +75,16 @@ export const EffectsLayer = RadioGroup.EffectsLayer
 
 // UPDATE
 
-const foldProficiencyRadioGroupOutMessage = (
-  outMessage: RadioGroup.OutMessage<ProficiencyLevel.ProficiencyLevel>,
-) =>
-  RadioGroup.OutMessage.match(outMessage, {
-    Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
-        model: modifyFields(model, { proficiency: () => value }),
-      })),
-  })
+const foldProficiencyRadioGroupOutMessage = RadioGroup.OutMessage.match<
+  Update.Step<Model, Message>,
+  RadioGroup.OutMessage<ProficiencyLevel.ProficiencyLevel>
+>({
+  Selected:
+    ({ value }) =>
+    model => ({
+      model: modifyFields(model, { proficiency: () => value }),
+    }),
+})
 
 const foldProficiencyRadioGroup = Update.foldChild({
   update: ProficiencyRadioGroup.update,
@@ -97,7 +98,7 @@ const foldProficiencyRadioGroup = Update.foldChild({
   foldOutMessage: foldProficiencyRadioGroupOutMessage,
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     UpdatedName: ({ value }) => ({
       model: modifyFields(model, { name: () => validateName(value) }),

@@ -71,7 +71,7 @@ Event handlers in the view dispatch Messages. They don't perform actions directl
 
 Define Command identities with `Command.define`, whose config declares `args` (optional), every result Message in `messages`, optional interruption behavior, and `handler`. The handler is a generator constructor; Foldkit applies `Effect.gen` internally. Service lookups in that generator run once while the application Layer is built. The returned invocation function runs afresh for every Command with its current args. Definitions omit `execute`. Compose `Fetch.layer` directly in the owning module's `EffectsLayer`. A constructor with no service lookup still uses `function* ()` and returns the invocation function directly. Convert expected failures to Messages with `Effect.catch(() => Effect.succeed(Message.FailedX(...)))` so update can handle them as facts. Defects may still terminate the Effect and follow the runtime's crash path. Omit `handler` only for a contract whose implementation belongs to an external host; that definition has no `.layer` and the host passes its implementation constructor Effect to `toLayer`.
 
-Always assign definitions to PascalCase constants. Never use `Command.define` inline in a pipe chain. Definitions live where they're produced, colocated with the update function. Create a standalone `<CommandName>Layer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. Let TypeScript infer Command return types. The `messages` array constrains the handler's return type at the type level.
+Always assign definitions to PascalCase constants. Never use `Command.define` inline in a pipe chain. Definitions live in the feature whose update produces them, alongside update or in a feature-local `command.ts`. Create a standalone `<CommandName>Layer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. Let TypeScript infer Command return types. The `messages` array constrains the handler's return type at the type level.
 
 For the canonical shapes, study the live examples directly. They stay synced with the API:
 
@@ -166,20 +166,20 @@ const Message = defineMessageUnion({
 ```ts
 import { Update } from 'foldkit'
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     // ...
   }),
 )
 ```
 
-`Update.make` preserves the handler requirements of Commands returned by every Message branch so `Application.make` can carry them to the entry point. Use the plain function shape only when the update cannot return Commands.
+`Update.define` preserves the handler requirements of Commands returned by every Message branch so `Application.make` can carry them to the entry point. Use the plain function shape only when the update cannot return Commands.
 
 `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is the Submodel counterpart, adding an optional `outMessage` field.
 
 Update, init, boot, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, they return it directly without checking whether it is empty. Never write the literal `commands: []`.
 
-Inside `Update.make`, let the outer helper infer the Command requirement channel through `Message.match(message, handlers)`. An explicit `Message.match<Update.Return<Model, Message>>` fixes that channel to `never` and discards the handler requirements the application must provide. When helpers or other matchers need a reusable return alias and any branch returns Commands, include the relevant requirements. Derive them with `Update.RequirementsOf<typeof update>` when the update contract is available, rather than from `EffectsLayer`, which may also contain lifecycle handlers that update never returns. Do not repeat the alias on the update function when the match already constrains its branches.
+Inside `Update.define`, let the outer helper infer the Command requirement channel through `Message.match(message, handlers)`. An explicit `Message.match<Update.Return<Model, Message>>` fixes that channel to `never` and discards the handler requirements the application must provide. When helpers or other matchers need a reusable return alias and any branch returns Commands, include the relevant requirements. Derive them with `Update.RequirementsOf<typeof update>` when the update contract is available, rather than from `EffectsLayer`, which may also contain lifecycle handlers that update never returns. Do not repeat the alias on the update function when the match already constrains its branches.
 
 Use `Update.Return<Model, Message>` for an update that cannot emit an OutMessage. It prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. A result with no `outMessage` can still be used where `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is expected. The missing field means that update emitted no OutMessage. A hand-written plain-return type must preserve the `outMessage?: never` field.
 
@@ -261,9 +261,7 @@ const application = Application.make({
   view,
 })
 
-pipe(application, Application.provide(AppLayer), application =>
-  Runtime.run(application, { flags }),
-)
+pipe(application, Application.provide(AppLayer), Runtime.run({ flags }))
 ```
 
 Hydrated applications do not provide a browser Flags Effect. `Runtime.hydrate(application)` decodes the exact Schema-encoded Flags payload emitted by the server. `@foldkit/vite-plugin` compiles the shared deployment identity into Foldkit for coordinated client and server builds; separately orchestrated builds pass the same explicit `buildId` override to each artifact. Hydration compares that identity against the id the server stamped on the root before it reads the handoff at all. Missing or invalid server handoff data, and a page from another deployment, are fatal boot errors.
@@ -376,7 +374,7 @@ export const mounts = [MeasurePanel]
 export const EffectsLayer = MeasurePanel.layer
 ```
 
-The view uses `h.OnMount(MeasurePanel())`. Its builder has type `HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>`; a branded Submodel view uses `Submodel.defineView<Model, Message, void, Mount.RequirementsOf<typeof mounts>>`. Replace `void` with `ViewInputs` when the view has inputs. Only views that attach Mounts or embed mounted child views need the extra requirement. Carry `mounts` into `Application.make` and `EffectsLayer` into `AppLayer`. Keep registration arrays inferred, and retain requirements in explicit forwarded attribute annotations with `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>`. A component that renders Mounts exports both from its owning Submodel boundary. Use `Mount.defineStream` when the element supplies an ongoing event Stream; keep listener or observer acquisition and cleanup inside the returned Stream so each element owns its own scope.
+The view uses `h.OnMount(MeasurePanel())`. Its builder has type `HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>`; `Submodel.defineView((model: Model, h: HtmlBuilder) => ...)` infers the same contracts from an owner builder type. A view with inputs annotates them as its second parameter and receives the builder third. The explicit generic form remains supported. Only views that attach Mounts or embed mounted child views need the extra requirement. Carry `mounts` into `Application.make` and `EffectsLayer` into `AppLayer`. Keep registration arrays inferred, and retain requirements in explicit forwarded attribute annotations with `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>`. A component that renders Mounts exports both from its owning Submodel boundary. Use `Mount.defineStream` when the element supplies an ongoing event Stream; keep listener or observer acquisition and cleanup inside the returned Stream so each element owns its own scope.
 
 When several helpers share a mounted view path, export one `HtmlBuilder` type from the owning module, derived from its Message type and inferred `mounts` registry. Helpers then use `h: HtmlBuilder`, or `h: Chart.HtmlBuilder` through a module namespace import. Application assembly includes those exported registrations. Pure helpers retain the framework's `HtmlBuilder<Message>`.
 
@@ -408,7 +406,7 @@ const update = (model: Model, message: Message) =>
 const foldChildOutMessage = (outMessage: Child.OutMessage) =>
   Child.OutMessage.match(outMessage, {
     SucceededCreateRoom: ({ roomId }) =>
-      Update.makeStep((model: ParentModel) => ({
+      Update.defineStep((model: ParentModel) => ({
         model,
         commands: [navigateToRoom(roomId)],
       })),
@@ -422,7 +420,7 @@ const foldChild = Update.foldChild({
   foldOutMessage: foldChildOutMessage,
 })
 
-const update = Update.make((model: ParentModel, message: ParentMessage) =>
+const update = Update.define((model: ParentModel, message: ParentMessage) =>
   ParentMessage.match(message, {
     GotChildMessage: ({ message }) => foldChild(model, message),
   }),

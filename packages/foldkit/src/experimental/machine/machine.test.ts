@@ -321,7 +321,7 @@ const foldConnection = fold({
     modifyFields(model, { connection: () => nextConnection }),
 })
 
-const update = Update.make((model: AppModel, message: ConnectionMessage) =>
+const update = Update.define((model: AppModel, message: ConnectionMessage) =>
   ConnectionMessage.match(message, {
     ClickedConnect: connectionMessage =>
       foldConnection(model, connectionMessage),

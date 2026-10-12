@@ -6,6 +6,4 @@ import { AppLayer } from './layer'
 
 const application = makeApplication(document.getElementById('root'))
 
-pipe(application, Application.provide(AppLayer), runnable =>
-  Runtime.hydrate(runnable),
-)
+pipe(application, Application.provide(AppLayer), Runtime.hydrate)

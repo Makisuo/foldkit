@@ -160,9 +160,7 @@ export const EffectsLayer = Layer.mergeAll(
 
 // UPDATE
 
-export type UpdateRequirements = Update.RequirementsOf<typeof update>
-
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ChangedSearchInput: ({ value }) => ({
       model: modifyFields(model, { searchInput: () => value }),

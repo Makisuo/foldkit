@@ -85,7 +85,7 @@ const ActivateApplicationLayer = ActivateApplication.toLayer(
   Effect.succeed(() => Effect.succeed(Message.ActivatedApplication())),
 )
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ActivatedApplication: () => ({
       model: modifyFields(model, { activation: () => 'Active' }),

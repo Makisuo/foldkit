@@ -58,6 +58,8 @@ const LoadExternal = Command.define('LoadExternal', {
   },
 })
 
+// EFFECTS LAYER
+
 export const EffectsLayer = Layer.mergeAll(
   NavigateInternal.layer,
   LoadExternal.layer,
@@ -65,7 +67,7 @@ export const EffectsLayer = Layer.mergeAll(
 
 // UPDATE
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),

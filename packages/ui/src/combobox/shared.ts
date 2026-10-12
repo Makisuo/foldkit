@@ -366,13 +366,13 @@ export const makeUpdate = <Model extends BaseModel>(
 ) => {
   const foldAnimationOutMessage = Animation.OutMessage.match({
     StartedLeaveAnimating: ({ generation }) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model,
         commands: [
           DetectComboboxMovementOrAnimationEnd({ id: model.id, generation }),
         ],
       })),
-    TransitionedOut: () => Update.makeStep((model: Model) => ({ model })),
+    TransitionedOut: () => Update.defineStep((model: Model) => ({ model })),
   })
 
   const foldAnimation = Update.foldChild({
@@ -400,7 +400,7 @@ export const makeUpdate = <Model extends BaseModel>(
     toParentMessage: message => Message.GotAnimationMessage({ message }),
   })
 
-  const internalUpdate = Update.make((model: Model, message: Message) => {
+  const internalUpdate = Update.define((model: Model, message: Message) => {
     const maybeLockScroll = OptionExt.when(model.isModal, LockComboboxScroll())
     const maybeUnlockScroll = OptionExt.when(
       model.isModal,

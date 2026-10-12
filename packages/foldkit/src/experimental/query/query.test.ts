@@ -574,7 +574,7 @@ describe('Query.lift', () => {
     toParentMessage: message => Message.GotNotesMessage({ message }),
   })
 
-  const update = Update.make((model: Model, message: Message) =>
+  const update = Update.define((model: Model, message: Message) =>
     Message.match(message, {
       GotNotesMessage: ({ message }) => notesChild.fold(model, message),
       ClickedLoad: () => notesChild.revalidateOrLoad(model),

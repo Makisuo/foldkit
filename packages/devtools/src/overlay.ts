@@ -389,7 +389,7 @@ const foldInspectorTabsOutMessage = (
 ) =>
   Tabs.OutMessage.match(outMessage, {
     Selected: ({ value }: Tabs.Selected<InspectorTab>) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, { activeInspectorTab: () => value }),
       })),
   })
@@ -406,7 +406,7 @@ const foldInspectorTabs = Update.foldChild({
 const foldSubmodelFilterOutMessage = (outMessage: Listbox.OutMessage<string>) =>
   Listbox.OutMessage.match(outMessage, {
     Selected: ({ value }: Listbox.Selected<string>) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           maybeSubmodelFilter: () =>
             Option.liftPredicate(value, String.isNonEmpty),
@@ -431,7 +431,7 @@ const foldSubmodelFilter = Update.foldChild({
 const foldScrubberSliderOutMessage = (outMessage: Slider.OutMessage) =>
   Slider.OutMessage.match(outMessage, {
     ChangedValue: ({ value }: typeof Slider.OutMessage.ChangedValue.Type) =>
-      Update.makeStep((model: Model) => ({
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           scrubberValue: () => value,
           maybePendingScrubIndex: () =>
@@ -670,7 +670,7 @@ export const ScrollToTop = Command.define('ScrollToTop', {
 })
 
 const makeUpdate = (mode: DevToolsMode) =>
-  Update.make((model: Model, message: Message) =>
+  Update.define((model: Model, message: Message) =>
     Message.match(message, {
       ClickedToggle: () => {
         const nextIsOpen = !model.isOpen

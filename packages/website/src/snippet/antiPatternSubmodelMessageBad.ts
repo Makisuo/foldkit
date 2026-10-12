@@ -12,7 +12,7 @@ const foldSettings = Update.foldChild({
   toParentMessage: message => Message.GotSettingsMessage({ message }),
 })
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedResetSettings: () =>
       foldSettings(model, SettingsMessage.ChangedTheme({ theme: 'Light' })),

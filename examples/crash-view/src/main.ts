@@ -20,7 +20,7 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
-export const update = Update.make((_model: Model, _message: Message) => {
+export const update = Update.define((_model: Model, _message: Message) => {
   throw new Error('This is a simulated crash!')
 })
 

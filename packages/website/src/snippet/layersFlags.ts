@@ -33,6 +33,4 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-pipe(application, Application.provide(ApiClientLayer), runnable =>
-  Runtime.run(runnable, { flags }),
-)
+pipe(application, Application.provide(ApiClientLayer), Runtime.run({ flags }))

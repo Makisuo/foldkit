@@ -17,7 +17,7 @@ export const OutMessage = defineMessageUnion({
 
 export const init = () => ({ model: Model.make({ theme: 'Light' }) })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     RestoredTheme: ({ theme }) => ({
       model: modifyFields(model, { theme: () => theme }),

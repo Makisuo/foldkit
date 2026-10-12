@@ -173,15 +173,17 @@ export const mounts = [...DatePicker.mounts, ...Listbox.mounts]
 
 // UPDATE
 
-const foldPronounsOutMessage = (outMessage: typeof Listbox.OutMessage.Type) =>
-  Listbox.OutMessage.match(outMessage, {
-    Selected: ({ value }) =>
-      Update.makeStep((model: Model) => ({
-        model: modifyFields(model, {
-          maybeSelectedPronoun: () => Option.some(value),
-        }),
-      })),
-  })
+const foldPronounsOutMessage = Listbox.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Selected:
+    ({ value }) =>
+    model => ({
+      model: modifyFields(model, {
+        maybeSelectedPronoun: () => Option.some(value),
+      }),
+    }),
+})
 
 const foldPronouns = Update.foldChild({
   update: PronounsListbox.update,
@@ -192,22 +194,21 @@ const foldPronouns = Update.foldChild({
   foldOutMessage: foldPronounsOutMessage,
 })
 
-const foldAvailableDateOutMessage = (
-  outMessage: typeof DatePicker.OutMessage.Type,
-) =>
-  DatePicker.OutMessage.match(outMessage, {
-    SelectedDate: ({ date }) =>
-      Update.makeStep((model: Model) => ({
-        model: modifyFields(model, {
-          maybeAvailableDate: () => Option.some(date),
-        }),
-      })),
-    ClearedDate: () =>
-      Update.makeStep((model: Model) => ({
-        model: modifyFields(model, { maybeAvailableDate: () => Option.none() }),
-      })),
-    ChangedViewMonth: () => Update.makeStep((model: Model) => ({ model })),
-  })
+const foldAvailableDateOutMessage = DatePicker.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  SelectedDate:
+    ({ date }) =>
+    model => ({
+      model: modifyFields(model, {
+        maybeAvailableDate: () => Option.some(date),
+      }),
+    }),
+  ClearedDate: () => model => ({
+    model: modifyFields(model, { maybeAvailableDate: () => Option.none() }),
+  }),
+  ChangedViewMonth: () => model => ({ model }),
+})
 
 const foldAvailableDate = Update.foldChild({
   update: DatePicker.update,
@@ -218,7 +219,7 @@ const foldAvailableDate = Update.foldChild({
   foldOutMessage: foldAvailableDateOutMessage,
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     UpdatedFirstName: ({ value }) => ({
       model: modifyFields(model, { firstName: () => validateFirstName(value) }),

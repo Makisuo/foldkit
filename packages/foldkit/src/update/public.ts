@@ -5,8 +5,8 @@ export {
   foldChildInits,
   foldChildStep,
   foldChildAt,
-  make,
-  makeStep,
+  define,
+  defineStep,
   refresh,
   withOutMessage,
 } from './index.js'

@@ -56,7 +56,7 @@ const foldCounter = (id: string) =>
     toParentMessage: message => Message.GotCounterMessage({ id, message }),
   })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedAddRow: () => ({
       model: modifyFields(model, {

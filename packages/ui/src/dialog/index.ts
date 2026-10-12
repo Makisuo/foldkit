@@ -274,7 +274,7 @@ const resetToClosed = (model: Model): Model =>
 const wrapAnimationMessage = (message: Animation.Message): Message =>
   Message.GotAnimationMessage({ message })
 
-const resumeAnimationAfterAcquisition = Update.makeStep((model: Model) =>
+const resumeAnimationAfterAcquisition = Update.defineStep((model: Model) =>
   Match.value(model.animation.transitionState).pipe(
     Match.when('Idle', () => ({ model })),
     Match.when('EnterStart', () => ({
@@ -330,14 +330,14 @@ const resumeAnimationAfterAcquisition = Update.makeStep((model: Model) =>
 const foldStartedLeaveAnimating = (
   liftCommand: Update.FoldContext<Animation.Message, Message>['liftCommand'],
 ) =>
-  Update.makeStep((model: Model) => ({
+  Update.defineStep((model: Model) => ({
     model,
     commands: [
       liftCommand(AnimationUpdate.defaultLeaveCommand(model.animation)),
     ],
   }))
 
-const foldTransitionedOut = Update.makeStep((model: Model) => ({
+const foldTransitionedOut = Update.defineStep((model: Model) => ({
   model,
   commands: [CloseDialog({ id: model.id })],
 }))
@@ -396,7 +396,7 @@ const foldAnimationHide = Update.foldChildStep({
 })
 
 /** Processes a Dialog Message and returns the next Model and optional Commands. */
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     RequestedOpen: () => {
       const wasClosed = !model.isOpen

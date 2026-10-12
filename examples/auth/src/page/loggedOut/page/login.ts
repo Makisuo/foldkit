@@ -110,7 +110,7 @@ export const SimulateAuthRequest = Command.define('SimulateAuthRequest', {
 
 export const EffectsLayer = SimulateAuthRequest.layer
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ChangedEmail: ({ value }) => ({
       model: modifyFields(model, { email: () => validateEmail(value) }),

@@ -13,8 +13,8 @@ import {
   type ReturnWithOutMessage,
   type Step,
   type StepWithOutMessage,
+  define,
   foldChildInits,
-  make,
 } from './public.js'
 
 const SearchModel = Schema.Struct({ query: Schema.String })
@@ -518,7 +518,7 @@ describe('foldChildInits', () => {
       )
     }
 
-    const update = make(
+    const update = define(
       (model: AppModel, message: AppMessage | StartedBoot) => {
         if (message._tag === 'StartedBoot') {
           return appInit

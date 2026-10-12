@@ -1,6 +1,10 @@
 import { Array, Option } from 'effect'
 import { Submodel } from 'foldkit'
-import { type Html, type HtmlBuilder, childAttributes } from 'foldkit/html'
+import {
+  type HtmlBuilder as FoldkitHtmlBuilder,
+  type Html,
+  childAttributes,
+} from 'foldkit/html'
 import type * as Mount from 'foldkit/mount'
 
 import { Listbox } from '@foldkit/ui'
@@ -9,13 +13,9 @@ import * as Icon from '../../icon'
 import { Message as UiMessage } from '../message'
 import type { ListboxItem, UiModel } from '../model'
 
-type MountRequirements = Mount.RequirementsOf<typeof Listbox.mounts>
-
-const defineViewWithComponentMountRequirements = Submodel.defineView<
-  UiModel,
+type HtmlBuilder = FoldkitHtmlBuilder<
   UiMessage,
-  void,
-  MountRequirements
+  Mount.RequirementsOf<typeof Listbox.mounts>
 >
 
 const LISTBOX_ITEMS: ReadonlyArray<ListboxItem> = [
@@ -89,38 +89,30 @@ const LISTBOX_ANCHOR = {
 
 // PIECES
 
-const itemContent = <AllowedMountRequirements>(
-  label: string,
-  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
-): Html =>
+const itemContent = (label: string, h: FoldkitHtmlBuilder<UiMessage>): Html =>
   h.div(
     [h.Class('flex items-center gap-2')],
     [Icon.check(checkIconClassName), h.span([], [label])],
   )
 
-const buttonContent = <AllowedMountRequirements>(
-  label: string,
-  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
-): Html =>
+const buttonContent = (label: string, h: FoldkitHtmlBuilder<UiMessage>): Html =>
   h.div(
     [h.Class(buttonContentClassName)],
     [h.span([], [label]), Icon.chevronDown('w-4 h-4')],
   )
 
-const chromeAttributes = <AllowedMountRequirements>(
-  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
-) => ({
+const chromeAttributes = (h: FoldkitHtmlBuilder<UiMessage>) => ({
   buttonAttributes: childAttributes([h.Class(triggerClassName)]),
   itemsAttributes: childAttributes([h.Class(itemsClassName)]),
   backdropAttributes: childAttributes([h.Class(backdropClassName)]),
   attributes: childAttributes([h.Class(wrapperClassName)]),
 })
 
-const field = <AllowedMountRequirements>(
+const field = (
   buttonId: string,
   label: string,
   listbox: Html,
-  h: HtmlBuilder<UiMessage, AllowedMountRequirements>,
+  h: FoldkitHtmlBuilder<UiMessage>,
 ): Html =>
   h.div(
     [h.Class(fieldClassName)],
@@ -135,7 +127,7 @@ const field = <AllowedMountRequirements>(
 const singleSelectDemo = (
   listboxModel: Listbox.Model,
   maybeSelectedItem: Option.Option<ListboxItem>,
-  h: HtmlBuilder<UiMessage, MountRequirements>,
+  h: HtmlBuilder,
 ): Html => {
   const buttonLabel = Option.getOrElse(
     maybeSelectedItem,
@@ -169,7 +161,7 @@ const singleSelectDemo = (
 const multiSelectDemo = (
   listboxModel: Listbox.Multi.Model,
   selectedItems: ReadonlyArray<ListboxItem>,
-  h: HtmlBuilder<UiMessage, MountRequirements>,
+  h: HtmlBuilder,
 ): Html => {
   const buttonLabel = Array.match(selectedItems, {
     onEmpty: () => 'Select Bluths',
@@ -207,7 +199,7 @@ const multiSelectDemo = (
 const groupedDemo = (
   listboxModel: Listbox.Model,
   maybeSelectedItem: Option.Option<string>,
-  h: HtmlBuilder<UiMessage, MountRequirements>,
+  h: HtmlBuilder,
 ): Html => {
   const buttonLabel = Option.getOrElse(
     maybeSelectedItem,
@@ -248,8 +240,8 @@ const groupedDemo = (
 
 // VIEW
 
-export const view = defineViewWithComponentMountRequirements(
-  (model, h): Html => {
+export const view = Submodel.defineView(
+  (model: UiModel, h: HtmlBuilder): Html => {
     return h.div(
       [],
       [

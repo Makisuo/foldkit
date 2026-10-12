@@ -163,7 +163,7 @@ const EffectsLayer = DelayReset.layer
 
 // UPDATE
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + 1 }),
@@ -260,7 +260,7 @@ type Message = typeof Message.Type
 
 // UPDATE
 
-const playNoteAt = Update.makeStep((model: Model, noteIndex: number) => ({
+const playNoteAt = Update.defineStep((model: Model, noteIndex: number) => ({
   model: modifyFields(model, {
     playbackState: () => PlaybackState.Playing({ currentNoteIndex: noteIndex }),
   }),
@@ -273,7 +273,7 @@ const playNoteAt = Update.makeStep((model: Model, noteIndex: number) => ({
   ],
 }))
 
-const update = Update.make((model: Model, message: Message) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedPlay: () =>
       PlaybackState.match(model.playbackState, {
@@ -378,7 +378,7 @@ const NOTE_PLAYER_PHASE_REGIONS: PhaseRegions = {
   PlayUpdate: [
     { from: '    ClickedPlay: () =>', to: '      }),' },
     {
-      from: 'const playNoteAt = Update.makeStep((model: Model, noteIndex: number) => ({',
+      from: 'const playNoteAt = Update.defineStep((model: Model, noteIndex: number) => ({',
       to: '}))',
     },
   ],
@@ -387,7 +387,7 @@ const NOTE_PLAYER_PHASE_REGIONS: PhaseRegions = {
   NoteUpdate: [
     { from: '    CompletedPlayNote: ({ noteIndex }) => {', to: '    },' },
     {
-      from: 'const playNoteAt = Update.makeStep((model: Model, noteIndex: number) => ({',
+      from: 'const playNoteAt = Update.defineStep((model: Model, noteIndex: number) => ({',
       to: '}))',
     },
   ],

@@ -33,7 +33,7 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
       modelToDependencies: model => ({ searchState: model.searchState }),
       handler: function* () {
         return ({ searchState }) =>
-          Dom.streamFromKeyBindings<Message>({
+          Dom.streamFromKeyBindings({
             bindings: [
               {
                 keys: 'Mod+K',

@@ -155,7 +155,7 @@ const activateTab = (model: Model, tab: Tab) => {
 const foldTabsOutMessage = (outMessage: Tabs.OutMessage<Tab>) =>
   Tabs.OutMessage.match(outMessage, {
     Selected: ({ value }) =>
-      Update.makeStep((model: Model) => activateTab(model, value)),
+      Update.defineStep((model: Model) => activateTab(model, value)),
   })
 
 const foldTabs = Update.foldChild({
@@ -166,7 +166,7 @@ const foldTabs = Update.foldChild({
   foldOutMessage: foldTabsOutMessage,
 })
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     GotTabsMessage: ({ message }) => foldTabs(model, message),
     GotPostsMessage: ({ message }) => posts.fold(model, message),
@@ -229,6 +229,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     },
   ),
 }))
+
+// EFFECTS LAYER
 
 export const EffectsLayer = Layer.mergeAll(
   Tabs.EffectsLayer,

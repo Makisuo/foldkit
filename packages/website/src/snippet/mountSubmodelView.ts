@@ -33,9 +33,6 @@ export type HtmlBuilder = FoldkitHtmlBuilder<Message, MountRequirements>
 const panelView = (model: Model, h: HtmlBuilder): Html =>
   h.div([h.OnMount(MeasurePanel())], [model.label])
 
-export const view = Submodel.defineView<
-  Model,
-  Message,
-  void,
-  MountRequirements
->((model, h) => panelView(model, h))
+export const view = Submodel.defineView((model: Model, h: HtmlBuilder) =>
+  panelView(model, h),
+)

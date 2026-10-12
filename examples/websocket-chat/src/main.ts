@@ -81,7 +81,7 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
-export const update = Update.make((model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedConnect: () => ({
       model: modifyFields(model, {
@@ -380,6 +380,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     },
   ),
 }))
+
+// EFFECTS LAYER
 
 export const EffectsLayer = Layer.mergeAll(
   TimestampSentMessage.layer,

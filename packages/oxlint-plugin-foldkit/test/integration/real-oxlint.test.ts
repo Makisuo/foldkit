@@ -147,9 +147,13 @@ describe('real-oxlint rule fixtures', () => {
 
     expect(diagnostics.map(reportedCalleeLabel).sort()).toEqual(
       [
+        'Application.Message.ClickedFromShadowedParameters',
         'Child.Message.ClickedAliasSave',
         'Child.Message.ClickedBarrelSave',
         'Child.Message.ClickedDirectBarrelSave',
+        'Child.Message.ClickedFromElementCompletion',
+        'Child.Message.ClickedFromRootCompletion',
+        'Child.Message.ClickedFromRootViewHelper',
         'Child.Message.ClickedNestedSave',
         'Child.Message.ClickedNamespaceAliasSave',
         'Child.Message.ClickedImportedParentViewSave',
@@ -176,7 +180,7 @@ describe('real-oxlint rule fixtures', () => {
     )
     expect(
       countDiagnostics('got-prefix-requires-block-payload', 'invalid'),
-    ).toBe(4)
+    ).toBe(7)
     expect(
       countDiagnostics('wrap-child-output-in-got-message', 'invalid'),
     ).toBe(2)

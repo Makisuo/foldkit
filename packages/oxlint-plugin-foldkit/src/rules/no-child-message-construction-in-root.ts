@@ -140,15 +140,10 @@ const sameImportedMessagePath = (
   return sameSegments(aSegments, bSegments)
 }
 
-const htmlBuilderMessagePath = (
+const directHtmlBuilderMessagePath = (
   references: WeakMap<ESTree.Node, Reference>,
-  parameter: unknown,
+  typeAnnotation: unknown,
 ): Option.Option<ImportedMessagePath> => {
-  if (!isTypeAnnotatedIdentifier(parameter)) {
-    return Option.none()
-  }
-
-  const typeAnnotation = parameter.typeAnnotation?.typeAnnotation
   if (!isTypeReference(typeAnnotation)) {
     return Option.none()
   }
@@ -174,6 +169,142 @@ const htmlBuilderMessagePath = (
     )
     const messageType = yield* Option.fromNullishOr(typeArguments.params[0])
     return yield* importedMessagePath(references, messageType)
+  })
+}
+
+const isTypeAliasDeclaration = (
+  node: unknown,
+): node is ESTree.TSTypeAliasDeclaration =>
+  typeof node === 'object' &&
+  node !== null &&
+  'type' in node &&
+  node.type === 'TSTypeAliasDeclaration'
+
+const isIndexedAccessType = (
+  node: unknown,
+): node is ESTree.TSIndexedAccessType =>
+  typeof node === 'object' &&
+  node !== null &&
+  'type' in node &&
+  node.type === 'TSIndexedAccessType'
+
+const isTypeQuery = (node: unknown): node is ESTree.TSTypeQuery =>
+  typeof node === 'object' &&
+  node !== null &&
+  'type' in node &&
+  node.type === 'TSTypeQuery'
+
+const isNumberLiteral = (node: unknown, value: number): boolean =>
+  typeof node === 'object' &&
+  node !== null &&
+  'type' in node &&
+  node.type === 'Literal' &&
+  'value' in node &&
+  node.value === value
+
+const isNumberLiteralType = (node: unknown, value: number): boolean =>
+  typeof node === 'object' &&
+  node !== null &&
+  'type' in node &&
+  node.type === 'TSLiteralType' &&
+  'literal' in node &&
+  isNumberLiteral(node.literal, value)
+
+const parametersArgumentAt = (
+  references: WeakMap<ESTree.Node, Reference>,
+  node: unknown,
+  index: number,
+): Option.Option<ESTree.TSType> => {
+  if (
+    !isIndexedAccessType(node) ||
+    !isNumberLiteralType(node.indexType, index)
+  ) {
+    return Option.none()
+  }
+
+  const parametersType = node.objectType
+  if (!isTypeReference(parametersType)) {
+    return Option.none()
+  }
+
+  return Option.gen(function* () {
+    const path = yield* staticMemberPath(parametersType.typeName)
+    if (
+      path.root.name !== 'Parameters' ||
+      Array.isReadonlyArrayNonEmpty(path.members) ||
+      Option.isSome(resolvedVariable(references, path.root))
+    ) {
+      return yield* Option.none()
+    }
+
+    const typeArguments = yield* Option.fromNullishOr(
+      parametersType.typeArguments,
+    )
+    if (Array.length(typeArguments.params) !== 1) {
+      return yield* Option.none()
+    }
+
+    return yield* Array.head(typeArguments.params)
+  })
+}
+
+const applicationViewDefinitionPath = (
+  references: WeakMap<ESTree.Node, Reference>,
+  builderType: unknown,
+): Option.Option<ImportedMessagePath> =>
+  Option.gen(function* () {
+    const viewParameters = yield* parametersArgumentAt(
+      references,
+      builderType,
+      1,
+    )
+    const view = yield* parametersArgumentAt(references, viewParameters, 0)
+    if (!isTypeQuery(view)) {
+      return yield* Option.none()
+    }
+
+    const path = yield* resolveImportedPathThroughConst(
+      references,
+      view.exprName,
+    )
+    if (!Option.contains(Array.last(path.members), 'view')) {
+      return yield* Option.none()
+    }
+
+    const members = path.members.slice(0, -1)
+    if (Array.isReadonlyArrayEmpty(members)) {
+      return yield* Option.none()
+    }
+
+    return { source: path.source, members }
+  })
+
+const aliasedApplicationViewDefinitionPath = (
+  references: WeakMap<ESTree.Node, Reference>,
+  typeAnnotation: unknown,
+): Option.Option<ImportedMessagePath> => {
+  if (!isTypeReference(typeAnnotation)) {
+    return Option.none()
+  }
+
+  return Option.gen(function* () {
+    const path = yield* staticMemberPath(typeAnnotation.typeName)
+    if (Array.isReadonlyArrayNonEmpty(path.members)) {
+      return yield* Option.none()
+    }
+
+    const variable = yield* resolvedVariable(references, path.root)
+    const definition = yield* Array.findFirst(variable.defs, entry =>
+      isTypeAliasDeclaration(entry.node),
+    )
+    if (!isTypeAliasDeclaration(definition.node)) {
+      return yield* Option.none()
+    }
+
+    return yield* applicationViewDefinitionPath(
+      references,
+      definition.node.typeAnnotation,
+    )
   })
 }
 
@@ -331,23 +462,81 @@ const definitionOperationOwnsMessage = (
     )
   })
 
-const isOwnedByEnclosingBlockOperation = (
+const annotatedBuilderOwnsMessage = (
+  references: WeakMap<ESTree.Node, Reference>,
+  parameter: unknown,
+  messagePath: ImportedMessagePath,
+): boolean => {
+  if (!isTypeAnnotatedIdentifier(parameter)) {
+    return false
+  }
+
+  const typeAnnotation = parameter.typeAnnotation?.typeAnnotation
+  const directMessagePath = directHtmlBuilderMessagePath(
+    references,
+    typeAnnotation,
+  )
+  if (
+    Option.exists(directMessagePath, builderMessagePath =>
+      sameImportedMessagePath(builderMessagePath, messagePath),
+    )
+  ) {
+    return true
+  }
+
+  const directDefinitionPath = applicationViewDefinitionPath(
+    references,
+    typeAnnotation,
+  )
+  const definitionPath = Option.isSome(directDefinitionPath)
+    ? directDefinitionPath
+    : aliasedApplicationViewDefinitionPath(references, typeAnnotation)
+
+  return Option.exists(definitionPath, path =>
+    importedDefinitionOwnsMessage(path, messagePath),
+  )
+}
+
+const completionOwnsMessage = (
+  references: WeakMap<ESTree.Node, Reference>,
+  completion: ESTree.CallExpression,
+  messagePath: ImportedMessagePath,
+): boolean =>
+  Option.exists(
+    resolveImportedPathThroughConst(references, completion.callee),
+    path => {
+      const operation = Option.getOrUndefined(Array.last(path.members))
+      if (operation !== 'make' && operation !== 'makeElement') {
+        return false
+      }
+
+      const members = path.members.slice(0, -1)
+      return (
+        Array.isReadonlyArrayNonEmpty(members) &&
+        importedDefinitionOwnsMessage(
+          { source: path.source, members },
+          messagePath,
+        )
+      )
+    },
+  )
+
+const isOwnedByEnclosingOperation = (
   node: ESTree.Node,
   references: WeakMap<ESTree.Node, Reference>,
   messagePath: ImportedMessagePath,
 ): boolean => {
-  const ownsMessage = (ancestor: ESTree.Node | null | undefined): boolean => {
+  const ownsMessage = (
+    ancestor: ESTree.Node | null | undefined,
+    descendant: ESTree.Node,
+  ): boolean => {
     if (ancestor === null || ancestor === undefined) {
       return false
     }
 
     if (isFunction(ancestor)) {
       const ownsAnnotatedBuilder = ancestor.params.some(parameter =>
-        Option.exists(
-          htmlBuilderMessagePath(references, parameter),
-          builderMessagePath =>
-            sameImportedMessagePath(builderMessagePath, messagePath),
-        ),
+        annotatedBuilderOwnsMessage(references, parameter, messagePath),
       )
       if (ownsAnnotatedBuilder) {
         return true
@@ -358,10 +547,18 @@ const isOwnedByEnclosingBlockOperation = (
       }
     }
 
-    return ownsMessage(ancestor.parent)
+    if (
+      isCallExpression(ancestor) &&
+      ancestor.arguments.some(argument => argument === descendant) &&
+      completionOwnsMessage(references, ancestor, messagePath)
+    ) {
+      return true
+    }
+
+    return ownsMessage(ancestor.parent, ancestor)
   }
 
-  return ownsMessage(node.parent)
+  return ownsMessage(node.parent, node)
 }
 
 const hasComputedMember = (node: unknown): boolean =>
@@ -547,7 +744,7 @@ export const noChildMessageConstructionInRoot = Rule.define({
               if (
                 references !== undefined &&
                 messagePath !== undefined &&
-                isOwnedByEnclosingBlockOperation(node, references, messagePath)
+                isOwnedByEnclosingOperation(node, references, messagePath)
               ) {
                 return Effect.void
               }

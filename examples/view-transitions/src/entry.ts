@@ -2,9 +2,9 @@ import { Runtime } from 'foldkit'
 
 import {
   Application,
+  Message,
   implementation,
   viewTransition,
-  Message,
 } from './application'
 
 const application = Application.make({

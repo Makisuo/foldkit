@@ -14,8 +14,8 @@ import {
 } from 'effect'
 import { Route } from 'foldkit'
 import {
-  define as defineApplication,
   type HtmlBuilderOf,
+  define as defineApplication,
 } from 'foldkit/application'
 import { Html, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'

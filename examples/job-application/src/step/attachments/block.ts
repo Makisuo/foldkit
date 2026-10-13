@@ -1,5 +1,5 @@
 import { Array, Option, Schema } from 'effect'
-import { File, Block, Update } from 'foldkit'
+import { Block, File, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 

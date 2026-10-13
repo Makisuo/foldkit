@@ -2,8 +2,8 @@ import { Array, Option, pipe } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import {
-  attachments,
   Application,
+  attachments,
   coverLetter,
   education,
   personalInfo,

@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Duration, Effect, Option, Schema, String, pipe } from 'effect'
-import { FieldValidation, Block } from 'foldkit'
+import { Block, FieldValidation } from 'foldkit'
 import {
   Field,
   Invalid,

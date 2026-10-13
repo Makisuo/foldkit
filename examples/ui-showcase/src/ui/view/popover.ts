@@ -2,7 +2,7 @@ import type { Block } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
 import { Popover } from '@foldkit/ui'
-import { buttonId, type RenderInfo } from '@foldkit/ui/popover'
+import { type RenderInfo, buttonId } from '@foldkit/ui/popover'
 
 import {
   popoverAnimatedDemo,

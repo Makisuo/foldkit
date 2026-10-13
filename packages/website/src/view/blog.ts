@@ -7,10 +7,10 @@ import {
 } from 'foldkit/html'
 
 import {
+  type ViewRequirements,
   snippetCopy as snippetCopyBinding,
   snippetDisclosure as snippetDisclosureBinding,
   uiPages as uiPagesBinding,
-  type ViewRequirements,
 } from '../children'
 import { Shared } from '../component'
 import { Docs } from '../layout'

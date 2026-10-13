@@ -3,8 +3,8 @@ import { Array, Effect, Layer, Match, Option, Schema, pipe } from 'effect'
 import { Block } from 'foldkit'
 import { Calendar, Route, Update } from 'foldkit'
 import {
-  define as defineApplication,
   type HtmlBuilderOf,
+  define as defineApplication,
 } from 'foldkit/application'
 import { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'

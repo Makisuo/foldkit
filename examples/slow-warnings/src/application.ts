@@ -10,8 +10,8 @@ import {
 } from 'effect'
 import { Dom, Runtime } from 'foldkit'
 import {
-  define as defineApplication,
   type HtmlBuilderOf,
+  define as defineApplication,
 } from 'foldkit/application'
 import { type Html, createLazy } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -82,6 +82,9 @@ const slowWarningTarget: Dom.TypedEventTarget<{
   [SLOW_WARNING_EVENT]: CustomEvent<SlowWarningReport>
 }> = new EventTarget()
 
+// NOTE: This diagnostic demo deliberately times synchronous update, view,
+// and Subscription dependency work.
+// oxlint-disable foldkit/no-impure-call-at-decision-time
 const burnCpu = (durationMs: number): number => {
   const stopAt = performance.now() + durationMs
   let checksum = 0
@@ -92,6 +95,7 @@ const burnCpu = (durationMs: number): number => {
 
   return checksum
 }
+// oxlint-enable foldkit/no-impure-call-at-decision-time
 
 const messageToTag = ({ _tag }: Message): string => _tag
 

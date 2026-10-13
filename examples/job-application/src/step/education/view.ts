@@ -4,7 +4,7 @@ import { type Html, createKeyedLazy } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
-import { education, entries, Message } from './block'
+import { Message, education, entries } from './block'
 import * as Entry from './entry'
 
 const lazyEntry = createKeyedLazy()

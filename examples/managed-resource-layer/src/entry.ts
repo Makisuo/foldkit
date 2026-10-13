@@ -1,7 +1,7 @@
 import { Runtime } from 'foldkit'
 import { provide } from 'foldkit/application'
 
-import { Application, implementation, Message } from './application'
+import { Application, Message, implementation } from './application'
 import { ApplicationLayer } from './services'
 
 const application = Application.make({

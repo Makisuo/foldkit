@@ -1,8 +1,8 @@
 import { clsx } from 'clsx'
 import { Effect, Layer, Option, Schema } from 'effect'
 import {
-  define as defineApplication,
   type HtmlBuilderOf,
+  define as defineApplication,
 } from 'foldkit/application'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'

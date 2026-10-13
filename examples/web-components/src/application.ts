@@ -2,8 +2,8 @@ import { clsx } from 'clsx'
 import { Schema } from 'effect'
 import { CustomElement } from 'foldkit'
 import {
-  define as defineApplication,
   type HtmlBuilderOf,
+  define as defineApplication,
 } from 'foldkit/application'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'

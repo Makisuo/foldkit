@@ -1,6 +1,6 @@
 import { Runtime } from 'foldkit'
 
-import { Application, implementation, handleSlow, Message } from './application'
+import { Application, Message, handleSlow, implementation } from './application'
 
 const application = Application.make({
   ...implementation,

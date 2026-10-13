@@ -1,5 +1,5 @@
 import { Array, Crypto, Effect, Schema } from 'effect'
-import { Calendar, Block, type Update } from 'foldkit'
+import { Block, Calendar, type Update } from 'foldkit'
 import { type CalendarDate } from 'foldkit/calendar'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'

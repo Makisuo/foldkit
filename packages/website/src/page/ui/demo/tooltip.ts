@@ -1,5 +1,5 @@
 import { Tooltip } from '@foldkit/ui'
-import { triggerId, type AnchorConfig } from '@foldkit/ui/tooltip'
+import { type AnchorConfig, triggerId } from '@foldkit/ui/tooltip'
 
 import { tooltipDemo } from '../update'
 import type { ViewBuilder } from '../viewBuilder'

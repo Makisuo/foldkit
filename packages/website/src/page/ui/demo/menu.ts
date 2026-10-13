@@ -2,10 +2,10 @@ import { Match } from 'effect'
 import { Html, childAttributes, inertHtml as ih } from 'foldkit/html'
 
 import { Menu } from '@foldkit/ui'
-import { buttonId, type AnchorConfig } from '@foldkit/ui/menu'
+import { type AnchorConfig, buttonId } from '@foldkit/ui/menu'
 
 import { Icon } from '../../../icon'
-import { menuBasicDemo, menuAnimatedDemo } from '../update'
+import { menuAnimatedDemo, menuBasicDemo } from '../update'
 import type { ViewBuilder } from '../viewBuilder'
 
 // DEMO CONTENT

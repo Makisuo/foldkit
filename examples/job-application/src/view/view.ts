@@ -5,8 +5,8 @@ import type { ChildAttribute, Html } from 'foldkit/html'
 import { Button } from '@foldkit/ui'
 
 import {
-  attachments,
   Application,
+  attachments,
   coverLetter,
   education,
   personalInfo,
@@ -22,16 +22,16 @@ import {
   isComplete as isEducationComplete,
 } from '../step/education'
 import {
-  hasErrors as personalInfoHasErrors,
   isComplete as isPersonalInfoComplete,
+  hasErrors as personalInfoHasErrors,
 } from '../step/personalInfo'
 import {
-  hasErrors as skillsHaveErrors,
   isComplete as areSkillsComplete,
+  hasErrors as skillsHaveErrors,
 } from '../step/skills'
 import {
-  hasErrors as workHistoryHasErrors,
   isComplete as isWorkHistoryComplete,
+  hasErrors as workHistoryHasErrors,
 } from '../step/workHistory'
 import { preview } from './preview'
 import { review } from './review'

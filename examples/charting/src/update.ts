@@ -8,9 +8,9 @@ import { Message } from './message'
 import { Model, TelemetryAsyncData } from './model'
 import {
   CHART_MODE_RADIO_GROUP_ID,
+  ChartModeRadioGroup,
   PACKAGE_RADIO_GROUP_ID,
   PERIOD_RADIO_GROUP_ID,
-  ChartModeRadioGroup,
   PackageRadioGroup,
   PeriodRadioGroup,
 } from './radioGroups'

@@ -2,8 +2,8 @@ import { Button } from '@foldkit/ui'
 
 import { DatePicker, Field } from '../../../view'
 import {
-  endDatePicker,
   Message,
+  endDatePicker,
   startDatePicker,
   workHistoryEntry,
 } from './block'

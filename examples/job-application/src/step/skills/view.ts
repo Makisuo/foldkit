@@ -1,6 +1,6 @@
 import { Button } from '@foldkit/ui'
 
-import { entries, Message, skills } from './block'
+import { Message, entries, skills } from './block'
 
 export const view = skills.view((model, h) =>
   h.div(

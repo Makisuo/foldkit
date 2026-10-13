@@ -13,8 +13,8 @@ import {
 } from 'effect'
 import { AsyncData } from 'foldkit'
 import {
-  define as defineApplication,
   type HtmlBuilderOf,
+  define as defineApplication,
 } from 'foldkit/application'
 import { Query } from 'foldkit/experimental'
 import { Html } from 'foldkit/html'

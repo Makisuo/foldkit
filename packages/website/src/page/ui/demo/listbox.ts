@@ -2,11 +2,11 @@ import { Array, Option } from 'effect'
 import { childAttributes } from 'foldkit/html'
 
 import { Listbox } from '@foldkit/ui'
-import { buttonId, type AnchorConfig } from '@foldkit/ui/listbox'
+import { type AnchorConfig, buttonId } from '@foldkit/ui/listbox'
 
 import { Icon } from '../../../icon'
 import type { ListboxItem } from '../model'
-import { listboxDemo, listboxMultiDemo, listboxGroupedDemo } from '../update'
+import { listboxDemo, listboxGroupedDemo, listboxMultiDemo } from '../update'
 import type { ViewBuilder } from '../viewBuilder'
 
 // DEMO CONTENT

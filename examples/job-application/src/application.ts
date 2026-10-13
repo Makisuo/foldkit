@@ -2,10 +2,10 @@ import { Crypto, Effect, Schema } from 'effect'
 import { Calendar } from 'foldkit'
 
 import {
+  Application,
   attachments,
   coverLetter,
   education,
-  Application,
   personalInfo,
   skills,
   stepMenu,

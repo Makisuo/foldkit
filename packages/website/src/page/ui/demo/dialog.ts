@@ -7,12 +7,12 @@ import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 import { Message } from '../message'
 import type { City } from '../model'
 import {
-  overlayComboboxDemo,
-  dialogDemo,
-  overlayDialogDemo as overlayDialogDemoBinding,
-  nestedDialogParentDemo,
-  nestedDialogChildDemo,
   dialogAnimatedDemo as dialogAnimatedDemoBinding,
+  dialogDemo,
+  nestedDialogChildDemo,
+  nestedDialogParentDemo,
+  overlayComboboxDemo,
+  overlayDialogDemo as overlayDialogDemoBinding,
 } from '../update'
 import type { ViewBuilder } from '../viewBuilder'
 import { comboboxViewInputs } from './combobox'

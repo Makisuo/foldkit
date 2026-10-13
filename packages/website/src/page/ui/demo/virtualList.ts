@@ -6,9 +6,9 @@ import { VirtualList } from '@foldkit/ui'
 import { Message } from '../message'
 import type { VirtualListChatMessage } from '../model'
 import {
+  virtualListChatDemo as virtualListChatDemoBinding,
   virtualListDemo,
   virtualListVariableDemo as virtualListVariableDemoBinding,
-  virtualListChatDemo as virtualListChatDemoBinding,
 } from '../update'
 import type { ViewBuilder } from '../viewBuilder'
 

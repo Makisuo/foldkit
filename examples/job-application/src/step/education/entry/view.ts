@@ -6,7 +6,7 @@ import type { Html } from 'foldkit/html'
 import { Button } from '@foldkit/ui'
 
 import { Field, Icon } from '../../../view'
-import { educationEntry, graduationYearListbox, Message } from './block'
+import { Message, educationEntry, graduationYearListbox } from './block'
 
 const GRADUATION_YEAR_WINDOW_SIZE = 30
 const GRADUATION_YEAR_FORWARD_OFFSET = 6

@@ -3,10 +3,10 @@ import { provide } from 'foldkit/application'
 
 import {
   Application,
-  implementation,
   Flags,
-  flags,
   Message,
+  flags,
+  implementation,
 } from './application'
 import { ApplicationLayer } from './services'
 

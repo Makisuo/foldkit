@@ -2,8 +2,8 @@ import { Array, Effect, Match, Option, Schema, String } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
 import { AsyncData } from 'foldkit'
 import {
-  define as defineApplication,
   type HtmlBuilderOf,
+  define as defineApplication,
 } from 'foldkit/application'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'

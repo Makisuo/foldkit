@@ -8,8 +8,8 @@ import { DatePicker as UiDatePicker } from '@foldkit/ui'
 import { PronounOption } from '../../domain'
 import { DatePicker, Field, Icon } from '../../view'
 import {
-  availableDatePicker,
   Message,
+  availableDatePicker,
   personalInfo,
   pronounsListbox,
 } from './block'

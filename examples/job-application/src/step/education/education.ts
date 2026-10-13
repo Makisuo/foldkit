@@ -1,6 +1,6 @@
 import { modifyFields } from 'foldkit/struct'
 
-import { education, EffectsLayer, entries, init, update } from './block'
+import { EffectsLayer, education, entries, init, update } from './block'
 import { view } from './view'
 
 export const block = education.assemble({

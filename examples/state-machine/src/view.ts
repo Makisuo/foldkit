@@ -15,8 +15,8 @@ import {
   type Model,
   Promo,
   checkoutMachine,
-  editionRadioGroup,
   editionName,
+  editionRadioGroup,
   isReviewReady,
   promoToMaybeDiscount,
 } from './stateMachine'

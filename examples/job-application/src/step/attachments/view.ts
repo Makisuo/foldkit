@@ -5,7 +5,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
-import { additionalFilesDrop, attachments, Message, resumeDrop } from './block'
+import { Message, additionalFilesDrop, attachments, resumeDrop } from './block'
 
 const BYTES_PER_KB = 1024
 const BYTES_PER_MB = BYTES_PER_KB * BYTES_PER_KB

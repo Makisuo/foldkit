@@ -1,5 +1,5 @@
 import { init } from './init'
-import { update, ui } from './update'
+import { ui, update } from './update'
 
 export const block = ui.assemble({
   init,

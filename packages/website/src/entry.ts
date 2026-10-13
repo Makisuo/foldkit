@@ -3,13 +3,13 @@ import { provide } from 'foldkit/application'
 
 import {
   Application,
+  EffectsLayer,
   Flags,
   Message,
-  EffectsLayer,
   init,
+  subscriptions,
   update,
   view,
-  subscriptions,
 } from './application'
 import { ApplicationLayer } from './services'
 

@@ -58,9 +58,9 @@ import {
 import { LocalStorage, SessionStorage } from './storage'
 import {
   ApplyTheme,
-  resolveTheme,
   SaveThemePreference,
   THEME_STORAGE_KEY,
+  resolveTheme,
 } from './theme'
 
 export type { Message } from './message'

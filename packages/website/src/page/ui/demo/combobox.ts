@@ -4,9 +4,9 @@ import { childAttributes, inertHtml as ih } from 'foldkit/html'
 
 import { Combobox } from '@foldkit/ui'
 import {
-  inputId,
   type AnchorConfig,
   type ViewInputs as ComboboxViewInputs,
+  inputId,
 } from '@foldkit/ui/combobox'
 
 import { Icon } from '../../../icon'
@@ -14,10 +14,10 @@ import { CityCombobox, CityMultiCombobox } from '../combobox'
 import type { City } from '../model'
 import {
   comboboxDemo,
-  comboboxNullableDemo,
-  comboboxSelectOnFocusDemo,
-  comboboxPlacementLockDemo,
   comboboxMultiDemo,
+  comboboxNullableDemo,
+  comboboxPlacementLockDemo,
+  comboboxSelectOnFocusDemo,
 } from '../update'
 import type { ViewBuilder } from '../viewBuilder'
 

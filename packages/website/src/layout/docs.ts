@@ -9,13 +9,13 @@ import {
 } from 'foldkit/html'
 
 import {
+  type ViewRequirements,
   apiReference,
   comingFromReact,
   coreBlockPage,
   exampleDetail,
   snippetCopy as snippetCopyBinding,
   snippetDisclosure as snippetDisclosureBinding,
-  type ViewRequirements,
   uiPages,
 } from '../children'
 import { type CodeBlock, Shared } from '../component'

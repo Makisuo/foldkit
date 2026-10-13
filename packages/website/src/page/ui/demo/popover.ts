@@ -1,7 +1,7 @@
 import { type Html, inertHtml as ih } from 'foldkit/html'
 
 import { Popover } from '@foldkit/ui'
-import { buttonId, type AnchorConfig } from '@foldkit/ui/popover'
+import { type AnchorConfig, buttonId } from '@foldkit/ui/popover'
 
 import {
   popoverAnimatedDemo,

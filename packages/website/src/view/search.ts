@@ -1,7 +1,7 @@
 import { clsx } from 'clsx'
 import { Html, type HtmlBuilder } from 'foldkit/html'
 
-import { search, type ViewRequirements } from '../children'
+import { type ViewRequirements, search } from '../children'
 import { Icon } from '../icon'
 import { Message } from '../message'
 import { type Model } from '../model'

@@ -2,11 +2,11 @@ import { Match, Option } from 'effect'
 import { type HtmlBuilder } from 'foldkit/html'
 
 import {
+  type ViewRequirements,
   home,
   playground,
   snippetCopy,
   snippetDisclosure,
-  type ViewRequirements,
 } from '../children'
 import { Application } from '../children'
 import { Shared } from '../component'

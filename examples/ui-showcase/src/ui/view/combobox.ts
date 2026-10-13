@@ -4,9 +4,9 @@ import type { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 
 import {
-  inputId,
   type AnchorConfig,
   type ViewInputs as ComboboxViewInputs,
+  inputId,
 } from '@foldkit/ui/combobox'
 
 import * as Icon from '../../icon'

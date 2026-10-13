@@ -1,9 +1,9 @@
 import type { Html } from 'foldkit/html'
 
 import {
-  triggerId,
   type AnchorConfig,
   type RenderInfo,
+  triggerId,
 } from '@foldkit/ui/tooltip'
 
 import { tooltipBasicDemo, tooltipNoDelayDemo, ui } from '../update'

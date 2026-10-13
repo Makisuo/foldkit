@@ -12,7 +12,7 @@ import {
   String,
   pipe,
 } from 'effect'
-import { FieldValidation, Block, Update } from 'foldkit'
+import { Block, FieldValidation, Update } from 'foldkit'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'

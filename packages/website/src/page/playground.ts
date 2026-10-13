@@ -15,7 +15,7 @@ import {
   String,
   pipe,
 } from 'effect'
-import { type ManagedResource, type Mount, Block, Update } from 'foldkit'
+import { Block, type ManagedResource, type Mount, Update } from 'foldkit'
 import { Html, inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'

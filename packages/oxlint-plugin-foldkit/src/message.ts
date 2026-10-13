@@ -1,9 +1,11 @@
-import { Option } from 'effect'
-import { type ESTree, type Reference } from 'effect-oxlint'
+import { Array, Option } from 'effect'
+import { type ESTree, type Reference, type Variable } from 'effect-oxlint'
 
 import {
+  blockBindingMethod,
   isCallExpression,
   isIdentifier,
+  isMemberExpression,
   isObjectExpression,
   isStringLiteral,
   isVariableDeclarator,
@@ -154,6 +156,89 @@ const isLocalQueryMessageReference = (
     )
   })
 
+const enclosingMemberCall = (
+  node: ESTree.Node,
+): Option.Option<ESTree.CallExpression> => {
+  const parent = node.parent
+  if (parent === null) {
+    return Option.none()
+  }
+
+  if (isMemberExpression(parent) && parent.object === node) {
+    return enclosingMemberCall(parent)
+  }
+
+  return isCallExpression(parent) && parent.callee === node
+    ? Option.some(parent)
+    : Option.none()
+}
+
+const isFoldkitUiFactoryCall = (
+  node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference>,
+): boolean =>
+  Option.exists(resolveImportedPath(references, node.callee), path => {
+    return (
+      Option.contains(Array.last(path.members), 'create') &&
+      (path.source === '@foldkit/ui' || path.source.startsWith('@foldkit/ui/'))
+    )
+  })
+
+const hasBlockBindingUse = (
+  variable: Variable,
+  references: WeakMap<ESTree.Node, Reference>,
+): boolean =>
+  variable.references.some(reference =>
+    Option.exists(enclosingMemberCall(reference.identifier), call =>
+      Option.isSome(blockBindingMethod(call, references)),
+    ),
+  )
+
+const isCompletedBlockFactoryVariable = (
+  variable: Variable,
+  references: WeakMap<ESTree.Node, Reference>,
+): boolean =>
+  variable.defs.some(definition => {
+    if (
+      definition.type !== 'Variable' ||
+      !isVariableDeclarator(definition.node) ||
+      !isCallExpression(definition.node.init)
+    ) {
+      return false
+    }
+
+    return (
+      isFoldkitUiFactoryCall(definition.node.init, references) ||
+      hasBlockBindingUse(variable, references)
+    )
+  })
+
+const isLocalCompletedBlockMessageReference = (
+  node: unknown,
+  references: WeakMap<ESTree.Node, Reference>,
+): boolean =>
+  Option.exists(staticMemberPath(node), memberPath => {
+    const isMessagePath = Array.match(memberPath.members, {
+      onEmpty: () => false,
+      onNonEmpty: ([first, ...rest]) =>
+        (first === 'Message' && Array.isArrayEmpty(rest)) ||
+        (first === 'block' &&
+          Array.match(rest, {
+            onEmpty: () => false,
+            onNonEmpty: ([second, ...remaining]) =>
+              second === 'Message' && Array.isArrayEmpty(remaining),
+          })),
+    })
+    if (!isMessagePath) {
+      return false
+    }
+
+    return Option.exists(
+      resolvedVariable(references, memberPath.root),
+      variable => isCompletedBlockFactoryVariable(variable, references),
+    )
+  })
+
 const containsMessageReference = (
   node: unknown,
   references: WeakMap<ESTree.Node, Reference>,
@@ -164,7 +249,10 @@ const containsMessageReference = (
   }
 
   visited.add(node)
-  if (isLocalQueryMessageReference(node, references)) {
+  if (
+    isLocalQueryMessageReference(node, references) ||
+    isLocalCompletedBlockMessageReference(node, references)
+  ) {
     return true
   }
 

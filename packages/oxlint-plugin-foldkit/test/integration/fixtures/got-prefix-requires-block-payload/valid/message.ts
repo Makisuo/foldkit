@@ -1,6 +1,7 @@
 import { Effect, Schema } from 'effect'
 import { Query } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
+import { RadioGroup, Tabs } from '@foldkit/ui'
 
 import * as Child from './child'
 
@@ -11,6 +12,20 @@ const postsQuery = Query.define({
   handler: function* () { return [] },
 })
 
+const FrameworkTabs = Tabs.create()
+const DirectionRadioGroup = RadioGroup.create<'Left' | 'Right'>()
+
+const CustomFactory = {
+  create: () => ({ block: Child }),
+}
+const CustomChild = CustomFactory.create()
+
+CustomChild.block.connection({
+  Model,
+  field: 'child',
+  parentMessage: ParentMessage.GotCustomChildMessage,
+})
+
 const Message = defineMessageUnion({
   ReceivedWeather: { temperature: Schema.Number, },
   GotChildMessage: {
@@ -18,4 +33,7 @@ const Message = defineMessageUnion({
   message: Child.Message,
   },
   GotPostsMessage: { message: postsQuery.Message },
+  GotFrameworkTabsMessage: { message: FrameworkTabs.Message },
+  GotDirectionRadioGroupMessage: { message: DirectionRadioGroup.Message },
+  GotCustomChildMessage: { message: CustomChild.block.Message },
 })

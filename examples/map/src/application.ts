@@ -11,8 +11,8 @@ import {
   String,
 } from 'effect'
 import {
-  define as defineApplication,
   type HtmlBuilderOf,
+  define as defineApplication,
 } from 'foldkit/application'
 import * as Dom from 'foldkit/dom'
 import type { Html } from 'foldkit/html'

@@ -1,8 +1,8 @@
 import { Array, Effect, Layer, Option, Schema, String } from 'effect'
 import { Runtime } from 'foldkit'
 import {
-  define as defineApplication,
   type HtmlBuilderOf,
+  define as defineApplication,
 } from 'foldkit/application'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'

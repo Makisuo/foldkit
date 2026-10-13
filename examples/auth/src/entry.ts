@@ -1,7 +1,7 @@
 import { Runtime } from 'foldkit'
 import { provide } from 'foldkit/application'
 
-import { Application, implementation, Flags, flags } from './application'
+import { Application, Flags, flags, implementation } from './application'
 import { Message } from './message'
 import { ApplicationLayer } from './services'
 

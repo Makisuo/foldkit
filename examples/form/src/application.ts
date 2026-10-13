@@ -2,8 +2,8 @@ import clsx from 'clsx'
 import { Array, Duration, Effect, Layer, Random, Schema } from 'effect'
 import { FieldValidation } from 'foldkit'
 import {
-  define as defineApplication,
   type HtmlBuilderOf,
+  define as defineApplication,
 } from 'foldkit/application'
 import {
   Field,

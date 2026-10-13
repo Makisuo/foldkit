@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import { Runtime } from 'foldkit'
 
-import { Application, implementation, crashView, Message } from './application'
+import { Application, Message, crashView, implementation } from './application'
 
 const application = Application.make({
   ...implementation,

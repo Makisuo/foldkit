@@ -2,10 +2,10 @@ import { Runtime } from 'foldkit'
 
 import {
   Application,
-  implementation,
   Flags,
-  flags,
   Message,
+  flags,
+  implementation,
 } from './application'
 
 const application = Application.make({

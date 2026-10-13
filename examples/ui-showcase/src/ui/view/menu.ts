@@ -2,7 +2,7 @@ import { Match } from 'effect'
 import type { Block } from 'foldkit'
 import { type Html, childAttributes } from 'foldkit/html'
 
-import { buttonId, type GroupHeading } from '@foldkit/ui/menu'
+import { type GroupHeading, buttonId } from '@foldkit/ui/menu'
 
 import * as Icon from '../../icon'
 import type { MenuItem } from '../menu'

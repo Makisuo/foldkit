@@ -9,7 +9,7 @@ import {
 import { Menu } from '@foldkit/ui'
 import type { AnchorConfig as MenuAnchorConfig } from '@foldkit/ui/menu'
 
-import { themeMenu, type ViewRequirements } from '../children'
+import { type ViewRequirements, themeMenu } from '../children'
 import { Icon } from '../icon'
 import { Message, type ThemePreference } from '../message'
 

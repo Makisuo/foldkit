@@ -24,8 +24,9 @@ export class Clock extends Context.Service<
   Readonly<{ now: Effect.Effect<number> }>
 >()('DeclarationTestsClock') {}
 
-const ChildOwner = Block.define('DeclarationTestsChild')
+const DeclarationTestsChild = Block.define('DeclarationTestsChild')
 
+// eslint-disable-next-line foldkit/block-name-matches-variable
 const SingleColonOwner = Block.define('DeclarationTests:SingleColon')
 export const SingleColonBlock = SingleColonOwner.define({
   Model: Schema.Struct({ value: Schema.Number }),
@@ -45,7 +46,7 @@ export type ChildMessage = typeof ChildMessage.Type
 const handlerConstruction: Effect.Effect<void, 'HandlerUnavailable'> =
   Effect.void
 
-export const ReadCount = ChildOwner.command('ReadCount', {
+export const ReadCount = DeclarationTestsChild.command('ReadCount', {
   messages: [ChildMessage.CompletedRead],
   handler: function* () {
     const clock = yield* Clock
@@ -56,7 +57,7 @@ export const ReadCount = ChildOwner.command('ReadCount', {
   },
 })
 
-export const Measure = ChildOwner.mount('Measure', {
+export const Measure = DeclarationTestsChild.mount('Measure', {
   messages: [ChildMessage.CompletedMeasure],
   handler: function* () {
     return ({ element }) =>
@@ -68,7 +69,7 @@ export const Measure = ChildOwner.mount('Measure', {
   },
 })
 
-const childBase = ChildOwner.define({
+const childBase = DeclarationTestsChild.define({
   Model: ChildModel,
   Message: ChildMessage,
 })
@@ -121,11 +122,11 @@ export const DirectMessage = defineMessageUnion({
 })
 export type DirectMessage = typeof DirectMessage.Type
 
-const DirectBase = Block.define('DeclarationTestsDirect', {
+const DeclarationTestsDirect = Block.define('DeclarationTestsDirect', {
   Model: DirectModel,
   Message: DirectMessage,
 })
-const directComposition = DirectBase.register({})
+const directComposition = DeclarationTestsDirect.register({})
 
 export const ReadDirectValue = directComposition.command('ReadDirectValue', {
   messages: [DirectMessage.CompletedReadDirectValue],
@@ -181,6 +182,7 @@ export const ParentModel = Schema.Struct({ child: ChildModel })
 export type ParentModel = typeof ParentModel.Type
 
 export const ParentMessage = defineMessageUnion({
+  // eslint-disable-next-line foldkit/got-prefix-requires-block-payload
   GotChildMessage: { message: ChildMessage },
   RequestedRefresh: {},
 })
@@ -268,7 +270,7 @@ export type ParentAssertions = [
   ParentErrorIsExact,
 ]
 
-const ChoiceOwner = Block.define('DeclarationTestsChoice')
+const DeclarationTestsChoice = Block.define('DeclarationTestsChoice')
 
 const makeChoice = <const Values extends ReadonlyArray<string>>(
   Value: Schema.Literals<Values>,
@@ -277,7 +279,11 @@ const makeChoice = <const Values extends ReadonlyArray<string>>(
   const Model = Schema.Struct({ value: Value })
   const Message = Schema.TaggedStruct('SelectedValue', { value: Value })
   const OutMessage = Schema.TaggedStruct('SelectedValue', { value: Value })
-  const definition = ChoiceOwner.define({ Model, Message, OutMessage })
+  const definition = DeclarationTestsChoice.define({
+    Model,
+    Message,
+    OutMessage,
+  })
   const finish = definition.step((_model, value: Value) => ({
     model: Model.make({ value }),
     outMessage: OutMessage.make({ value }),

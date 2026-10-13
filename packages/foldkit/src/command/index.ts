@@ -666,6 +666,7 @@ export function define(name: string, config: DefineConfig): unknown {
     Object.defineProperty(definition, 'toLayer', { value: handler.toLayer })
     if (Predicate.isNotUndefined(config.handler)) {
       Object.defineProperty(definition, 'layer', {
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
         value: handler.toLayer(Effect.gen(config.handler) as never),
       })
     }

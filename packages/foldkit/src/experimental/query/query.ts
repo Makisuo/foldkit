@@ -345,6 +345,7 @@ export function defineQuery<
       ValidateConstructionRequirements<BuildR>,
   ) =>
     Fetch.toLayer<HandlerR, BuildE, BuildR>(
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       Effect.map(
         build,
         execute =>

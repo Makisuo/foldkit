@@ -3,7 +3,7 @@ import { expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { defineView, block as blockImpl } from '../html/block.js'
+import { block as blockImpl, defineView } from '../html/block.js'
 import { beginRender, createBoundaryRegistry } from '../html/boundary.js'
 import { type ChildAttribute, childAttributes } from '../html/childAttribute.js'
 import {

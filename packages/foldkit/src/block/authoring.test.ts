@@ -28,7 +28,7 @@ import type {
   OperationRequirementsOfBlock,
   RequirementsOfBlock,
 } from './requirements.js'
-import { qualifyLayer, type Scoped } from './scope.js'
+import { type Scoped, qualifyLayer } from './scope.js'
 
 const HomeOwner = define('AuthoringHome')
 
@@ -1514,6 +1514,7 @@ describe('Block authoring', () => {
     expect(selectedChildBuilds).toBe(0)
     expect(selected.children).toBe(block.children)
 
+    // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
     await Effect.runPromise(Effect.scoped(Layer.build(selected.EffectsLayer)))
 
     expect(defaultParentBuilds).toBe(0)
@@ -1555,6 +1556,7 @@ describe('Block authoring', () => {
       EffectsLayer: Layer.empty,
     })
 
+    // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
     await Effect.runPromise(Effect.scoped(Layer.build(parent.EffectsLayer)))
 
     expect(defaultBuilds).toBe(1)
@@ -1855,6 +1857,7 @@ describe('Block authoring', () => {
       EffectsLayer: Layer.empty,
     })
 
+    // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
     await Effect.runPromise(Effect.scoped(Layer.build(parent.EffectsLayer)))
 
     expect(firstBuilds).toBe(1)
@@ -1890,6 +1893,7 @@ describe('Block authoring', () => {
       EffectsLayer: Layer.empty,
     })
 
+    // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
     await Effect.runPromise(Effect.scoped(Layer.build(parent.EffectsLayer)))
 
     expect(builds).toBe(1)

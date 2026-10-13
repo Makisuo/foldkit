@@ -20,8 +20,8 @@ import type {
 import { qualifyLayer } from '../block/scope.js'
 import type { Document } from '../html/index.js'
 import type {
-  ManagedResources,
   ServicesOf as ManagedResourceServicesOf,
+  ManagedResources,
 } from '../managedResource/index.js'
 import {
   type LayeredMountDefinition,
@@ -1409,8 +1409,11 @@ export function make<
 >
 export function make(composition: AnyComposition, config: any): any {
   const { block, options } = completeRoot(composition, config)
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const lowered = lowerBlock(block as never)
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const application = __makeFromConfig({ ...options, ...lowered } as never)
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   return installBlock(application, block as never)
 }
 
@@ -1503,10 +1506,13 @@ export function makeElement<
 >
 export function makeElement(composition: AnyComposition, config: any): any {
   const { block, options } = completeRoot(composition, config)
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const element = __makeElementFromConfig({
     ...options,
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     ...lowerBlock(block as never),
   } as never)
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   return installBlock(element, block as never)
 }
 
@@ -1536,6 +1542,7 @@ const completeRoot = (
   }
 
   return {
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     block: complete(composition, implementation) as AnyBlock,
     options,
   }
@@ -1564,6 +1571,7 @@ const installBlock = (program: any, block: AnyBlock): any => {
         qualifyLayer(block.owner.id, layer),
       ),
   })
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   return provide(program, block.EffectsLayer as Layer.Layer<any, any, any>)
 }
 

@@ -307,6 +307,7 @@ const bindWithDroppingForward = () =>
     toParentMessage,
     outMessage: {
       fold: foldChildOutMessage,
+      // eslint-disable-next-line foldkit/no-empty-to-parent-out-message
       forward: () => undefined,
     },
   })
@@ -330,6 +331,7 @@ const bindWithUnknownForward = () =>
     read: (model: ParentModel) => model.maybeChild,
     write: writeChild,
     toParentMessage,
+    // eslint-disable-next-line foldkit/no-empty-to-parent-out-message
     outMessage: { forward: (): unknown => undefined },
   })
 void bindWithUnknownForward

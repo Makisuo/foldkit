@@ -14,10 +14,10 @@ import type { Command } from '../command/index.js'
 import {
   type AnyAuthoredView,
   type AnyBlockView,
+  type BlockView,
   type Document,
   type DocumentView,
   type HtmlBuilder,
-  type BlockView,
   defineView as defineHtmlView,
 } from '../html/index.js'
 import * as ManagedResource from '../managedResource/index.js'
@@ -40,8 +40,8 @@ import { normalizeConnectionConfig } from './directConnection.js'
 import {
   type DefinitionIdentity,
   identityOf,
-  registerDefinition,
   registerBlockHostIdentities,
+  registerDefinition,
 } from './identity.js'
 import { type BindEach, bindEach as bindEachBlock } from './keyedBinding.js'
 import type { Owner } from './owner.js'
@@ -1670,6 +1670,78 @@ type ManagedStepsImplementation<
 > &
   Readonly<{ steps: Steps }>
 
+type AssemblyDefinition<
+  OwnerValue extends Owner<string>,
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  OutMessageSchema extends AnySchema | undefined,
+  Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+  Children extends ReadonlyArray<AnyBinding>,
+> = Definition<
+  OwnerValue,
+  ModelSchema,
+  MessageSchema,
+  OutMessageSchema,
+  Mounts,
+  Children
+>
+
+type AssemblyCompositionForValidation<
+  OwnerValue extends Owner<string>,
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  OutMessageSchema extends AnySchema | undefined,
+  Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+  Children extends ReadonlyArray<AnyBinding>,
+  ImplementationValue,
+> = ImplementationForValidation<
+  OwnerValue,
+  ModelSchema,
+  MessageSchema,
+  OutMessageSchema,
+  Mounts,
+  Children,
+  CheckedImplementationValue<ImplementationValue>
+>
+
+type ValidateAssemblyComposition<
+  OwnerValue extends Owner<string>,
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  OutMessageSchema extends AnySchema | undefined,
+  Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+  Children extends ReadonlyArray<AnyBinding>,
+  ImplementationValue,
+> = ValidateImplementationComposition<
+  AssemblyDefinition<
+    OwnerValue,
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    Mounts,
+    Children
+  >,
+  AssemblyCompositionForValidation<
+    OwnerValue,
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    Mounts,
+    Children,
+    ImplementationValue
+  >
+>
+
+type PublicAssemblyImplementation<
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  ImplementationValue,
+> = PublicImplementationValue<
+  ModelSchema['Type'],
+  MessageSchema['Type'],
+  CheckedImplementationValue<ImplementationValue>
+>
+
 /**
  * Completes an owned Block definition with its implementation channels.
  */
@@ -1695,26 +1767,14 @@ export interface AssembleBlock<
       hostHandlers?: never
       EffectsLayer: EffectsLayer &
         NoInfer<
-          ValidateImplementationComposition<
-            Definition<
-              OwnerValue,
-              ModelSchema,
-              MessageSchema,
-              OutMessageSchema,
-              Mounts,
-              Children
-            >,
-            ImplementationForValidation<
-              OwnerValue,
-              ModelSchema,
-              MessageSchema,
-              OutMessageSchema,
-              Mounts,
-              Children,
-              CheckedImplementationValue<
-                BasicImplementation<Init, UpdateFunction, EffectsLayer>
-              >
-            >
+          ValidateAssemblyComposition<
+            OwnerValue,
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema,
+            Mounts,
+            Children,
+            BasicImplementation<Init, UpdateFunction, EffectsLayer>
           >
         >
     }> &
@@ -1728,12 +1788,10 @@ export interface AssembleBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicImplementationValue<
-      ModelSchema['Type'],
-      MessageSchema['Type'],
-      CheckedImplementationValue<
-        BasicImplementation<Init, UpdateFunction, EffectsLayer>
-      >
+    PublicAssemblyImplementation<
+      ModelSchema,
+      MessageSchema,
+      BasicImplementation<Init, UpdateFunction, EffectsLayer>
     >
   >
   <
@@ -1763,26 +1821,14 @@ export interface AssembleBlock<
       hostHandlers?: never
       EffectsLayer: EffectsLayer &
         NoInfer<
-          ValidateImplementationComposition<
-            Definition<
-              OwnerValue,
-              ModelSchema,
-              MessageSchema,
-              OutMessageSchema,
-              Mounts,
-              Children
-            >,
-            ImplementationForValidation<
-              OwnerValue,
-              ModelSchema,
-              MessageSchema,
-              OutMessageSchema,
-              Mounts,
-              Children,
-              CheckedImplementationValue<
-                ViewImplementation<Init, UpdateFunction, View, EffectsLayer>
-              >
-            >
+          ValidateAssemblyComposition<
+            OwnerValue,
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema,
+            Mounts,
+            Children,
+            ViewImplementation<Init, UpdateFunction, View, EffectsLayer>
           >
         >
     }> &
@@ -1806,12 +1852,10 @@ export interface AssembleBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicImplementationValue<
-      ModelSchema['Type'],
-      MessageSchema['Type'],
-      CheckedImplementationValue<
-        ViewImplementation<Init, UpdateFunction, View, EffectsLayer>
-      >
+    PublicAssemblyImplementation<
+      ModelSchema,
+      MessageSchema,
+      ViewImplementation<Init, UpdateFunction, View, EffectsLayer>
     >
   >
   <
@@ -1848,31 +1892,19 @@ export interface AssembleBlock<
       hostHandlers?: never
       EffectsLayer: EffectsLayer &
         NoInfer<
-          ValidateImplementationComposition<
-            Definition<
-              OwnerValue,
-              ModelSchema,
-              MessageSchema,
-              OutMessageSchema,
-              Mounts,
-              Children
-            >,
-            ImplementationForValidation<
-              OwnerValue,
-              ModelSchema,
-              MessageSchema,
-              OutMessageSchema,
-              Mounts,
-              Children,
-              CheckedImplementationValue<
-                ViewSubscriptionsImplementation<
-                  Init,
-                  UpdateFunction,
-                  View,
-                  Subscriptions,
-                  EffectsLayer
-                >
-              >
+          ValidateAssemblyComposition<
+            OwnerValue,
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema,
+            Mounts,
+            Children,
+            ViewSubscriptionsImplementation<
+              Init,
+              UpdateFunction,
+              View,
+              Subscriptions,
+              EffectsLayer
             >
           >
         >
@@ -1897,17 +1929,15 @@ export interface AssembleBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicImplementationValue<
-      ModelSchema['Type'],
-      MessageSchema['Type'],
-      CheckedImplementationValue<
-        ViewSubscriptionsImplementation<
-          Init,
-          UpdateFunction,
-          View,
-          Subscriptions,
-          EffectsLayer
-        >
+    PublicAssemblyImplementation<
+      ModelSchema,
+      MessageSchema,
+      ViewSubscriptionsImplementation<
+        Init,
+        UpdateFunction,
+        View,
+        Subscriptions,
+        EffectsLayer
       >
     >
   >
@@ -1945,32 +1975,20 @@ export interface AssembleBlock<
         subscriptions: Subscriptions
         EffectsLayer: EffectsLayer &
           NoInfer<
-            ValidateImplementationComposition<
-              Definition<
-                OwnerValue,
-                ModelSchema,
-                MessageSchema,
-                OutMessageSchema,
-                Mounts,
-                Children
-              >,
-              ImplementationForValidation<
-                OwnerValue,
-                ModelSchema,
-                MessageSchema,
-                OutMessageSchema,
-                Mounts,
-                Children,
-                CheckedImplementationValue<
-                  ViewSubscriptionImplementation<
-                    Init,
-                    UpdateFunction,
-                    View,
-                    Subscriptions,
-                    EffectsLayer,
-                    AdditionalImplementation
-                  >
-                >
+            ValidateAssemblyComposition<
+              OwnerValue,
+              ModelSchema,
+              MessageSchema,
+              OutMessageSchema,
+              Mounts,
+              Children,
+              ViewSubscriptionImplementation<
+                Init,
+                UpdateFunction,
+                View,
+                Subscriptions,
+                EffectsLayer,
+                AdditionalImplementation
               >
             >
           >
@@ -1995,18 +2013,16 @@ export interface AssembleBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicImplementationValue<
-      ModelSchema['Type'],
-      MessageSchema['Type'],
-      CheckedImplementationValue<
-        ViewSubscriptionImplementation<
-          Init,
-          UpdateFunction,
-          View,
-          Subscriptions,
-          EffectsLayer,
-          AdditionalImplementation
-        >
+    PublicAssemblyImplementation<
+      ModelSchema,
+      MessageSchema,
+      ViewSubscriptionImplementation<
+        Init,
+        UpdateFunction,
+        View,
+        Subscriptions,
+        EffectsLayer,
+        AdditionalImplementation
       >
     >
   >
@@ -2034,26 +2050,14 @@ export interface AssembleBlock<
         MessageSchema['Type'],
         DefinitionViewMountRequirements<Mounts, Children>
       > &
-      ValidateImplementationComposition<
-        Definition<
-          OwnerValue,
-          ModelSchema,
-          MessageSchema,
-          OutMessageSchema,
-          Mounts,
-          Children
-        >,
-        ImplementationForValidation<
-          OwnerValue,
-          ModelSchema,
-          MessageSchema,
-          OutMessageSchema,
-          Mounts,
-          Children,
-          CheckedImplementationValue<
-            DefaultEffectsImplementation<ImplementationValue>
-          >
-        >
+      ValidateAssemblyComposition<
+        OwnerValue,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        Mounts,
+        Children,
+        DefaultEffectsImplementation<ImplementationValue>
       >,
   ): CompletedBlock<
     OwnerValue,
@@ -2062,12 +2066,10 @@ export interface AssembleBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicImplementationValue<
-      ModelSchema['Type'],
-      MessageSchema['Type'],
-      CheckedImplementationValue<
-        DefaultEffectsImplementation<ImplementationValue>
-      >
+    PublicAssemblyImplementation<
+      ModelSchema,
+      MessageSchema,
+      DefaultEffectsImplementation<ImplementationValue>
     >
   >
   <
@@ -2110,24 +2112,14 @@ export interface AssembleBlock<
         MessageSchema['Type'],
         DefinitionViewMountRequirements<Mounts, Children>
       > &
-      ValidateImplementationComposition<
-        Definition<
-          OwnerValue,
-          ModelSchema,
-          MessageSchema,
-          OutMessageSchema,
-          Mounts,
-          Children
-        >,
-        ImplementationForValidation<
-          OwnerValue,
-          ModelSchema,
-          MessageSchema,
-          OutMessageSchema,
-          Mounts,
-          Children,
-          CheckedImplementationValue<ImplementationValue>
-        >
+      ValidateAssemblyComposition<
+        OwnerValue,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        Mounts,
+        Children,
+        ImplementationValue
       >,
   ): CompletedBlock<
     OwnerValue,
@@ -2136,10 +2128,10 @@ export interface AssembleBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicImplementationValue<
-      ModelSchema['Type'],
-      MessageSchema['Type'],
-      CheckedImplementationValue<ImplementationValue>
+    PublicAssemblyImplementation<
+      ModelSchema,
+      MessageSchema,
+      ImplementationValue
     >
   >
   <
@@ -2176,32 +2168,20 @@ export interface AssembleBlock<
       steps: Steps
       EffectsLayer: EffectsLayer &
         NoInfer<
-          ValidateImplementationComposition<
-            Definition<
-              OwnerValue,
-              ModelSchema,
-              MessageSchema,
-              OutMessageSchema,
-              Mounts,
-              Children
-            >,
-            ImplementationForValidation<
-              OwnerValue,
-              ModelSchema,
-              MessageSchema,
-              OutMessageSchema,
-              Mounts,
-              Children,
-              CheckedImplementationValue<
-                ManagedStepsImplementation<
-                  Init,
-                  UpdateFunction,
-                  View,
-                  ManagedResources,
-                  Steps,
-                  EffectsLayer
-                >
-              >
+          ValidateAssemblyComposition<
+            OwnerValue,
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema,
+            Mounts,
+            Children,
+            ManagedStepsImplementation<
+              Init,
+              UpdateFunction,
+              View,
+              ManagedResources,
+              Steps,
+              EffectsLayer
             >
           >
         >
@@ -2226,18 +2206,16 @@ export interface AssembleBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicImplementationValue<
-      ModelSchema['Type'],
-      MessageSchema['Type'],
-      CheckedImplementationValue<
-        ManagedStepsImplementation<
-          Init,
-          UpdateFunction,
-          View,
-          ManagedResources,
-          Steps,
-          EffectsLayer
-        >
+    PublicAssemblyImplementation<
+      ModelSchema,
+      MessageSchema,
+      ManagedStepsImplementation<
+        Init,
+        UpdateFunction,
+        View,
+        ManagedResources,
+        Steps,
+        EffectsLayer
       >
     >
   >
@@ -2272,31 +2250,19 @@ export interface AssembleBlock<
       managedResources: ManagedResources
       EffectsLayer: EffectsLayer &
         NoInfer<
-          ValidateImplementationComposition<
-            Definition<
-              OwnerValue,
-              ModelSchema,
-              MessageSchema,
-              OutMessageSchema,
-              Mounts,
-              Children
-            >,
-            ImplementationForValidation<
-              OwnerValue,
-              ModelSchema,
-              MessageSchema,
-              OutMessageSchema,
-              Mounts,
-              Children,
-              CheckedImplementationValue<
-                ManagedImplementation<
-                  Init,
-                  UpdateFunction,
-                  View,
-                  ManagedResources,
-                  EffectsLayer
-                >
-              >
+          ValidateAssemblyComposition<
+            OwnerValue,
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema,
+            Mounts,
+            Children,
+            ManagedImplementation<
+              Init,
+              UpdateFunction,
+              View,
+              ManagedResources,
+              EffectsLayer
             >
           >
         >
@@ -2321,17 +2287,15 @@ export interface AssembleBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicImplementationValue<
-      ModelSchema['Type'],
-      MessageSchema['Type'],
-      CheckedImplementationValue<
-        ManagedImplementation<
-          Init,
-          UpdateFunction,
-          View,
-          ManagedResources,
-          EffectsLayer
-        >
+    PublicAssemblyImplementation<
+      ModelSchema,
+      MessageSchema,
+      ManagedImplementation<
+        Init,
+        UpdateFunction,
+        View,
+        ManagedResources,
+        EffectsLayer
       >
     >
   >
@@ -2369,32 +2333,20 @@ export interface AssembleBlock<
       managedResources: ManagedResources
       EffectsLayer: EffectsLayer &
         NoInfer<
-          ValidateImplementationComposition<
-            Definition<
-              OwnerValue,
-              ModelSchema,
-              MessageSchema,
-              OutMessageSchema,
-              Mounts,
-              Children
-            >,
-            ImplementationForValidation<
-              OwnerValue,
-              ModelSchema,
-              MessageSchema,
-              OutMessageSchema,
-              Mounts,
-              Children,
-              CheckedImplementationValue<
-                ManagedSubscriptionImplementation<
-                  Init,
-                  UpdateFunction,
-                  View,
-                  Subscriptions,
-                  ManagedResources,
-                  EffectsLayer
-                >
-              >
+          ValidateAssemblyComposition<
+            OwnerValue,
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema,
+            Mounts,
+            Children,
+            ManagedSubscriptionImplementation<
+              Init,
+              UpdateFunction,
+              View,
+              Subscriptions,
+              ManagedResources,
+              EffectsLayer
             >
           >
         >
@@ -2419,18 +2371,16 @@ export interface AssembleBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicImplementationValue<
-      ModelSchema['Type'],
-      MessageSchema['Type'],
-      CheckedImplementationValue<
-        ManagedSubscriptionImplementation<
-          Init,
-          UpdateFunction,
-          View,
-          Subscriptions,
-          ManagedResources,
-          EffectsLayer
-        >
+    PublicAssemblyImplementation<
+      ModelSchema,
+      MessageSchema,
+      ManagedSubscriptionImplementation<
+        Init,
+        UpdateFunction,
+        View,
+        Subscriptions,
+        ManagedResources,
+        EffectsLayer
       >
     >
   >
@@ -2465,31 +2415,19 @@ export interface AssembleBlock<
       steps: Steps
       EffectsLayer: EffectsLayer &
         NoInfer<
-          ValidateImplementationComposition<
-            Definition<
-              OwnerValue,
-              ModelSchema,
-              MessageSchema,
-              OutMessageSchema,
-              Mounts,
-              Children
-            >,
-            ImplementationForValidation<
-              OwnerValue,
-              ModelSchema,
-              MessageSchema,
-              OutMessageSchema,
-              Mounts,
-              Children,
-              CheckedImplementationValue<
-                ViewStepsImplementation<
-                  Init,
-                  UpdateFunction,
-                  View,
-                  Steps,
-                  EffectsLayer
-                >
-              >
+          ValidateAssemblyComposition<
+            OwnerValue,
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema,
+            Mounts,
+            Children,
+            ViewStepsImplementation<
+              Init,
+              UpdateFunction,
+              View,
+              Steps,
+              EffectsLayer
             >
           >
         >
@@ -2514,12 +2452,10 @@ export interface AssembleBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicImplementationValue<
-      ModelSchema['Type'],
-      MessageSchema['Type'],
-      CheckedImplementationValue<
-        ViewStepsImplementation<Init, UpdateFunction, View, Steps, EffectsLayer>
-      >
+    PublicAssemblyImplementation<
+      ModelSchema,
+      MessageSchema,
+      ViewStepsImplementation<Init, UpdateFunction, View, Steps, EffectsLayer>
     >
   >
 }
@@ -2882,26 +2818,36 @@ const makeDefineStep = <Model, Message, OutMessage>(): DefineStep<
 const makeDefineSubscriptions = <Id extends string, Model, Message>(
   owner: Owner<Id>,
 ): DefineSubscriptions<Id, Model, Message> =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   ((build: AnyFunction) =>
     Subscription.make<Model, Message>()(entry => {
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       const ownedEntry = ((
         name: string,
         fieldsOrConfig: unknown,
         maybeConfig?: unknown,
       ) => {
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
         const qualifiedName = makeOwnedName(owner.id, name as never)
         const definition =
           maybeConfig === undefined
-            ? entry(qualifiedName, fieldsOrConfig as never)
+            ? entry(
+                qualifiedName,
+                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                fieldsOrConfig as never,
+              )
             : entry(
                 qualifiedName,
+                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
                 fieldsOrConfig as never,
+                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
                 maybeConfig as never,
               )
         registerDefinition(owner, definition, name)
         return definition
       }) as never
 
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       return build(ownedEntry) as never
     })) as never
 
@@ -2911,14 +2857,17 @@ const makeDefineManagedResources =
   ): DefineManagedResources<Id, Model, Message> =>
   build =>
     ManagedResource.make<Model, Message>()(entry => {
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       const ownedEntry = ((
         name: string,
         schema: Schema.Schema<any>,
         config: unknown,
       ) => {
         const definition = entry(
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
           makeOwnedName(owner.id, name as never),
           schema,
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
           config as never,
         )
         registerDefinition(owner, definition, name)
@@ -3084,6 +3033,7 @@ export const makeDefinition = (
     }
 
     function keyedConnection(bindingConfig: unknown): AnyBinding {
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       return bindEachBlock(block, bindingConfig as never)
     }
 

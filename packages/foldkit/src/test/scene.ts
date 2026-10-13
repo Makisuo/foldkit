@@ -8,8 +8,8 @@ import {
   Option,
   Predicate,
   Schema,
-  String,
   type Stream,
+  String,
   pipe,
 } from 'effect'
 import { dual } from 'effect/Function'

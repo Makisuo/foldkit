@@ -472,7 +472,7 @@ export const make =
         if (Predicate.isUndefined(config.handler)) {
           return entry
         } else {
-          // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
+          // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context, typescript/consistent-type-assertions
           const layer = handler.toLayer(Effect.gen(config.handler) as never)
           // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
           const implemented = { ...entry, layer }
@@ -501,7 +501,7 @@ export const make =
       if (Predicate.isUndefined(configuredHandler)) {
         return entry
       } else {
-        // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
+        // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context, typescript/consistent-type-assertions
         const layer = handler.toLayer(Effect.gen(configuredHandler) as never)
         // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
         const implemented = { ...entry, layer }

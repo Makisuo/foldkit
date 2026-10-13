@@ -16,8 +16,8 @@ import {
   makeBaseDefinition,
 } from './definition.js'
 import { registerDefinition } from './identity.js'
-import { makeOwner, type Owner } from './owner.js'
-import { assertBlockId, makeOwnedName, type OwnedName } from './ownerName.js'
+import { type Owner, makeOwner } from './owner.js'
+import { type OwnedName, assertBlockId, makeOwnedName } from './ownerName.js'
 import type { ValidateConstructionRequirements } from './scope.js'
 
 type LocalName<Name extends string> = Name extends ''
@@ -568,32 +568,46 @@ export function makeAuthoringContext(id: string): Named<any, any> {
   const owner = makeOwner(id)
   const define: DefineBlock<Owner<string, boolean>> = (config: any) =>
     makeBaseDefinition(owner, config)
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const command = ((name: string, config: unknown) => {
     const definition = Command.define(
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       makeOwnedName(id, name as never),
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       config as never,
     )
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     registerDefinition(owner, definition as object, name)
     return definition
   }) as never
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const mount = ((name: string, config: unknown) => {
     const definition = Mount.define(
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       makeOwnedName(id, name as never),
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       config as never,
     )
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     registerDefinition(owner, definition as object, name)
     return definition
   }) as never
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const mountStream = ((name: string, config: unknown) => {
     const definition = Mount.defineStream(
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       makeOwnedName(id, name as never),
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       config as never,
     )
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     registerDefinition(owner, definition as object, name)
     return definition
   }) as never
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const resource = (<Value>() =>
     (name: string) =>
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       ManagedResource.tag<Value>()(makeOwnedName(id, name as never))) as never
 
   return Object.assign(owner, {

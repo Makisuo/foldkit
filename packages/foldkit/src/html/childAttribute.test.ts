@@ -9,8 +9,8 @@ import { h as snabbdomH } from '../snabbdom/index.js'
 import {
   type AnyBlockView,
   type BlockConfig,
-  defineView,
   block as blockImpl,
+  defineView,
 } from './block.js'
 import {
   type BoundaryRegistry,

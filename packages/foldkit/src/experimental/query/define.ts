@@ -236,12 +236,14 @@ export function define<
 ): unknown {
   if (isKeyedQueryConfig(config)) {
     if (Predicate.isNotUndefined(config.handler)) {
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       return defineKeyedQuery(config, Effect.gen(config.handler) as never)
     } else {
       return defineKeyedQuery(config)
     }
   } else {
     if (Predicate.isNotUndefined(config.handler)) {
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       return defineQuery(config, Effect.gen(config.handler) as never)
     } else {
       return defineQuery(config)

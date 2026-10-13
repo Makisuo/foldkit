@@ -6,10 +6,10 @@ import {
   Function,
   Layer,
   Option,
+  Schedule,
   Schema,
   Stream,
   String,
-  Schedule,
 } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 

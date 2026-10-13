@@ -504,7 +504,7 @@ export const make =
       if (Predicate.isUndefined(configuredHandler)) {
         return resource
       } else {
-        // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
+        // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context, typescript/consistent-type-assertions
         const layer = handler.toLayer(Effect.gen(configuredHandler) as never)
         // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
         const implemented = { ...resource, layer }

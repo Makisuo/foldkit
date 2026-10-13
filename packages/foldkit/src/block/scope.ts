@@ -9,13 +9,13 @@ import type { Handler as SubscriptionHandler } from '../subscription/handler.js'
 import {
   type DefinitionIdentity,
   type NamedIdentity,
-  definitionsOf,
   copyIdentity,
+  definitionsOf,
   isHandlerKey,
   isResourceKey,
-  ownerOfInvocation,
-  ownerOfIdentityToken,
   ownerOf,
+  ownerOfIdentityToken,
+  ownerOfInvocation,
 } from './identity.js'
 import {
   CommandInstancesTypeId,
@@ -435,6 +435,7 @@ export function qualifyCommand(
     ...(typeof Reflect.get(command, 'interruptsKey') === 'string'
       ? { interruptsKey: `${segment}/${Reflect.get(command, 'interruptsKey')}` }
       : {}),
+    // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
     effect: qualifyEffect(segment, command.effect, frame),
   }
 }

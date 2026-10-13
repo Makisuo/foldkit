@@ -224,12 +224,14 @@ export function define(
       OutMessage?: AnySchema
     }>,
   ) => {
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const base = authoring.define(contracts as never)
     const register = (
       graph: Readonly<{
         mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
         children?: ReadonlyArray<AnyBinding>
       }>,
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     ) => ({ ...base.register(graph as never), ...primitives })
 
     return { ...base, ...primitives, register }

@@ -13,8 +13,8 @@ import {
 } from 'effect'
 
 import {
-  InvocationIdentityTypeId,
   type DefinitionIdentity,
+  InvocationIdentityTypeId,
   InvocationNameTypeId,
   type ViewScope,
   ViewScopeTypeId,
@@ -23,8 +23,8 @@ import {
   ownerOfInvocation,
 } from '../block/identity.js'
 import {
-  CurrentInstance,
   type ActiveInstance,
+  CurrentInstance,
 } from '../block/instanceContext.js'
 import {
   restoreUncontrolledContent,

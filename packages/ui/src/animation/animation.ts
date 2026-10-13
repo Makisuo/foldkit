@@ -10,10 +10,10 @@ import {
   init,
 } from './schema.js'
 import {
+  Animation,
   EffectsLayer,
   WaitForAnimationSettled,
   WaitForPaint,
-  Animation,
   defaultLeaveCommand,
   finish,
   hide,

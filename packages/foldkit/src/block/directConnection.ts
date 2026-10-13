@@ -196,6 +196,7 @@ export const normalizeConnectionConfig = (config: unknown): unknown => {
     placement: policy['placement'] ?? field,
     read: (model: object) => Option.some(Reflect.get(model, field)),
     write: (model: object, nextChild: unknown) =>
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       modifyFields(model as Record<string, unknown>, {
         [field]: () => nextChild,
       }),

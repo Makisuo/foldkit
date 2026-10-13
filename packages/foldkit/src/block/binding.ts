@@ -1144,7 +1144,9 @@ const bindRuntime = <
         key: `${placement}/${entry.resource.key}`,
         _tag: Context.Service(qualifyKey(placement, entry.resource._tag.key)),
       },
+      // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
       acquire: (params: any) => qualifyEffect(placement, entry.acquire(params)),
+      // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
       release: (value: any) => qualifyEffect(placement, entry.release(value)),
     }
     copyIdentity(entry, scoped)
@@ -1178,6 +1180,7 @@ const bindRuntime = <
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const boundSteps = makeBoundSteps(steps, runtimeConfig, frame)
 
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const binding = {
     placement,
     init: (...args: ReadonlyArray<any>) => {
@@ -1199,10 +1202,13 @@ const bindRuntime = <
     subscriptions,
     managedResources,
     mounts: block.mounts,
+    // oxlint-disable effecttsgo/any-unknown-in-error-context
     EffectsLayer: qualifyLayer(
       placement,
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       block.EffectsLayer as Layer.Layer<any, any, any>,
     ),
+    // oxlint-enable effecttsgo/any-unknown-in-error-context
     embedView,
     ...boundSteps,
   } as unknown as Binding<

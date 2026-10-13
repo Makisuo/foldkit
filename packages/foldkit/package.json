@@ -169,6 +169,8 @@
     "clean": "rimraf dist *.tsbuildinfo",
     "build": "pnpm run clean && tsc -b tsconfig.build.json",
     "check:emitted-declarations": "node scripts/check-emitted-declarations.ts",
+    "check:block-type-performance": "node scripts/check-block-type-performance.ts",
+    "update:block-type-performance": "node scripts/check-block-type-performance.ts --update",
     "watch": "tsc -b tsconfig.build.json --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --coverage"

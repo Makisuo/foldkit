@@ -8,12 +8,12 @@ import * as Update from 'foldkit/update'
 import {
   Child,
   ChildMessage,
+  type ChildModel,
   Measure,
   ParentMessage,
   ParentModel,
   RefinedChoice,
   child,
-  type ChildModel,
 } from './accepted.js'
 
 const InvalidApplication = defineApplication({
@@ -65,6 +65,7 @@ InvalidApplication.makeElement({
 })
 
 const WiderMessage = defineMessageUnion({
+  // eslint-disable-next-line foldkit/got-prefix-requires-block-payload
   GotChildMessage: { message: ChildMessage },
   RequestedRefresh: {},
   RequestedExtraWork: {},
@@ -104,6 +105,7 @@ InvalidApplication.makeElement({
   view: invalidElementView,
 })
 
+// oxlint-disable-next-line effecttsgo/floating-effect
 Server.renderToString(
   InvalidApplication,
   // @ts-expect-error Server rendering requires a page-owning Document view.
@@ -119,11 +121,11 @@ Block.define('Invalid::TypedBlock', {
   Message: ParentMessage,
 })
 
-const ConstructorOwner = Block.define('DeclarationTestsConstructor')
+const DeclarationTestsConstructor = Block.define('DeclarationTestsConstructor')
 const ConstructorMessage = defineMessageUnion({ CompletedWork: {} })
 const ForeignPrimitiveMessage = defineMessageUnion({ ForeignCompleted: {} })
 
-const TypedPrimitiveOwner = Block.define(
+const DeclarationTestsTypedPrimitiveOwner = Block.define(
   'DeclarationTestsTypedPrimitiveOwner',
   {
     Model: ParentModel,
@@ -131,15 +133,15 @@ const TypedPrimitiveOwner = Block.define(
   },
 )
 
-TypedPrimitiveOwner.command('ForeignCommand', {
+DeclarationTestsTypedPrimitiveOwner.command('ForeignCommand', {
   // @ts-expect-error A typed Block Command must produce its owner's Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-TypedPrimitiveOwner.mount('ForeignMount', {
+DeclarationTestsTypedPrimitiveOwner.mount('ForeignMount', {
   // @ts-expect-error A typed Block Mount must produce its owner's Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-TypedPrimitiveOwner.mountStream('ForeignMountStream', {
+DeclarationTestsTypedPrimitiveOwner.mountStream('ForeignMountStream', {
   // @ts-expect-error A typed Block stream Mount must produce its owner's Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
@@ -163,15 +165,15 @@ TypedPrimitiveApplication.mountStream('ForeignApplicationMountStream', {
 })
 
 // @ts-expect-error Owned primitive names cannot contain a scoped identity separator.
-ConstructorOwner.command('Invalid::Work', {
+DeclarationTestsConstructor.command('Invalid::Work', {
   messages: [ConstructorMessage.CompletedWork],
 })
 
-const HostWork = ConstructorOwner.command('HostWork', {
+const HostWork = DeclarationTestsConstructor.command('HostWork', {
   messages: [ConstructorMessage.CompletedWork],
 })
 
-ConstructorOwner.command('InvalidConstructedWork', {
+DeclarationTestsConstructor.command('InvalidConstructedWork', {
   messages: [ConstructorMessage.CompletedWork],
   // @ts-expect-error Foldkit handlers are unavailable while another handler is constructed.
   handler: function* () {
@@ -186,9 +188,11 @@ Child.replaceEffectsLayer(Layer.empty)
 
 const ForeignParentMessage = defineMessageUnion({ ReceivedChildMessage: {} })
 const ExtraParentMessage = defineMessageUnion({
+  // eslint-disable-next-line foldkit/got-prefix-requires-block-payload
   GotChildMessage: { message: ChildMessage, requestId: Schema.String },
 })
 const WrongChildParentMessage = defineMessageUnion({
+  // eslint-disable-next-line foldkit/got-prefix-requires-block-payload
   GotChildMessage: { message: Schema.String },
 })
 

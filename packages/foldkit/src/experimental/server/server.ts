@@ -1485,16 +1485,20 @@ export function renderToString(
   options?: RenderOptions & Readonly<{ url?: string; flags?: unknown }>,
 ): Effect.Effect<RenderedApplication, RenderError> {
   const { Flags, routing, ...implementation } = config
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const block = complete(composition, implementation as never)
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const { init, view } = lowerBlock(block as never)
 
   return __renderFromConfig(
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     {
       ...(Flags === undefined ? {} : { Flags }),
       ...(routing === undefined ? {} : { routing }),
       init,
       view,
     } as never,
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     options as never,
   )
 }

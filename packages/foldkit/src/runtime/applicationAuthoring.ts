@@ -3,13 +3,13 @@ import type { Schema } from 'effect'
 import type { AnyBinding, RequirementsOfBindings } from '../block/binding.js'
 import { define as defineBlock } from '../block/define.js'
 import {
+  type Definition as BlockDefinition,
   type CompletedForValidation,
   type DefineManagedResources,
   type DefineStep,
   type DefineSubscriptions,
   type DefineUpdate,
   type DefineView,
-  type Definition as BlockDefinition,
   type ValidateChildBindings,
   makeDefinition,
 } from '../block/definition.js'
@@ -314,8 +314,10 @@ const makeComposition = (
     step: definition.step,
     subscriptions: definition.subscriptions,
     managedResources: definition.managedResources,
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     make: (config: any) => completion.make(composition as never, config),
     makeElement: (config: any) =>
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       completion.makeElement(composition as never, config),
   }
   definitions.set(composition, definition)
@@ -343,6 +345,7 @@ export const complete = <
   composition: CompositionValue,
   implementation: Implementation,
 ): CompletedComposition<CompositionValue, Implementation> =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   definitionOf(composition).assemble(implementation as never)
 
 /** @internal Creates the public staged application definition function. */
@@ -363,6 +366,7 @@ export const makeDefine =
         children?: ReadonlyArray<AnyBinding>
       }>,
     ) => {
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       const definition = base.register(graph as never)
       return makeComposition(definition, primitives, completion)
     }
@@ -374,5 +378,6 @@ export const makeDefine =
     }
     definitions.set(definition, base)
 
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     return definition as never
   }

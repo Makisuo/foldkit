@@ -72,6 +72,7 @@ describe('test operation source identity', () => {
     const initial: BaseInternal<typeof Model.Type, typeof Message.Type> = {
       model: { value: 0 },
       message: undefined,
+      // eslint-disable-next-line foldkit/no-empty-commands-array
       commands: [],
       outMessage: undefined,
       updateFn: update,

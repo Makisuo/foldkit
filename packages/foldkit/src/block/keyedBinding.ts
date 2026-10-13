@@ -9,10 +9,11 @@ import type {
 } from '../html/block.js'
 import * as Update from '../update/index.js'
 import type {
+  AnyBinding,
   BindableBlock,
   Binding,
-  BindingReturn,
   BindingRequirement,
+  BindingReturn,
   ValidateEmbeddedViewMounts,
 } from './binding.js'
 import { assertValidBindingStepNames } from './binding.js'
@@ -404,16 +405,92 @@ export type BindEach<BlockValue extends BindableBlock> =
         never
       >
 
+type AnyUpdateReturn = Readonly<{
+  model: any
+  commands?: ReadonlyArray<Command<any, never, any>> | undefined
+  outMessage?: any
+}>
+
+type AnyProducer = (model: any, ...args: ReadonlyArray<any>) => AnyUpdateReturn
+
+type RuntimeKeyedFoldContext = Readonly<{
+  modelBeforeUpdate: any
+  liftCommand: (command: Command<any, any, any>) => Command<any, any, any>
+  liftCommands: (
+    commands: ReadonlyArray<Command<any, any, any>>,
+  ) => ReadonlyArray<Command<any, any, any>>
+}>
+
+type RuntimeKeyedOutMessagePolicy = Readonly<{
+  fold?: (
+    key: InstanceKey,
+    outMessage: any,
+    context: RuntimeKeyedFoldContext,
+  ) => (model: any) => AnyUpdateReturn
+  forward?: (key: InstanceKey, outMessage: any) => any | undefined
+}>
+
+type RuntimeKeyedSubscriptionWhen =
+  | ((model: any, key: InstanceKey) => boolean)
+  | Readonly<
+      globalThis.Record<
+        string,
+        ((model: any, key: InstanceKey) => boolean) | undefined
+      >
+    >
+
+type RuntimeKeyedBindingConfig = Readonly<{
+  placement?: string
+  readAll: (model: any) => ReadonlyArray<any>
+  key: (item: any) => InstanceKey
+  read: (item: any) => any
+  writeAt: (model: any, key: InstanceKey, nextChildModel: any) => any
+  toParentMessage: (key: InstanceKey, message: any) => any
+  subscriptions?: Readonly<{ when?: RuntimeKeyedSubscriptionWhen }>
+  outMessage?: RuntimeKeyedOutMessagePolicy
+}>
+
+type RuntimeKeyedOperation = Readonly<{
+  key: InstanceKey
+  args: ReadonlyArray<any>
+}>
+
+type RuntimeKeyedChildFold = Readonly<{
+  update: (childModel: any, operation: RuntimeKeyedOperation) => AnyUpdateReturn
+  readAt: (model: any, key: InstanceKey) => Option.Option<any>
+  writeAt: RuntimeKeyedBindingConfig['writeAt']
+  toParentMessage: RuntimeKeyedBindingConfig['toParentMessage']
+  foldOutMessage?: (
+    key: InstanceKey,
+    context: Update.FoldContext<any, any>,
+  ) => (outMessage: any) => (model: any) => AnyUpdateReturn
+  toParentOutMessage?: (
+    key: InstanceKey,
+  ) => (outMessage: any) => any | undefined
+}>
+
+type RuntimeKeyedFold = (
+  model: any,
+  key: InstanceKey,
+  operation: RuntimeKeyedOperation,
+) => AnyUpdateReturn
+
+type RuntimeBoundKeyedFold = (
+  model: any,
+  key: InstanceKey,
+  ...args: ReadonlyArray<any>
+) => AnyUpdateReturn
+
 /** @internal Implements collection folding and embedding without constructing Layers. */
-export const bindEach = <BlockValue extends BindableBlock>(
-  block: BlockValue,
-  config: any,
-): any => {
+export const bindEach = (
+  block: BindableBlock,
+  config: RuntimeKeyedBindingConfig,
+): AnyBinding => {
   const placement = config.placement ?? block.owner.id
   assertSegment(placement)
   assertValidBindingStepNames(block.steps)
   const allowedIdentities = hostIdentitiesOf(block)
-  const readAt = (model: any, key: InstanceKey) =>
+  const readAt = (model: any, key: InstanceKey): Option.Option<any> =>
     Option.map(
       Array.findFirst(
         config.readAll(model),
@@ -422,16 +499,16 @@ export const bindEach = <BlockValue extends BindableBlock>(
       config.read,
     )
   const scopeReturn = (
-    output: any,
+    output: AnyUpdateReturn,
     key: InstanceKey,
     isInitialization = false,
-  ) =>
+  ): AnyUpdateReturn =>
     output.commands === undefined
       ? output
       : Update.withOutMessage(
           {
             model: output.model,
-            commands: output.commands.map((command: Command<any, any, any>) =>
+            commands: output.commands.map(command =>
               qualifyCommand(
                 placement,
                 command,
@@ -451,7 +528,7 @@ export const bindEach = <BlockValue extends BindableBlock>(
     key: InstanceKey,
     context: Update.FoldContext<any, any>,
     modelBeforeUpdate: any,
-  ) => ({
+  ): RuntimeKeyedFoldContext => ({
     modelBeforeUpdate,
     liftCommand: (command: Command<any, any, any>) =>
       context.liftCommand(
@@ -476,48 +553,51 @@ export const bindEach = <BlockValue extends BindableBlock>(
         ),
       ),
   })
-  const makeFold = (producer: (...args: ReadonlyArray<any>) => any) => {
-    return (model: any, key: InstanceKey, ...args: ReadonlyArray<any>) => {
+  const toChildFoldAt = (
+    producer: AnyProducer,
+    modelBeforeUpdate: any,
+  ): RuntimeKeyedChildFold => ({
+    update: (childModel, operation) =>
+      scopeReturn(
+        withOperationGraph(block.children, () =>
+          producer(childModel, ...operation.args),
+        ),
+        operation.key,
+      ),
+    readAt,
+    writeAt: config.writeAt,
+    toParentMessage: config.toParentMessage,
+    ...(config.outMessage?.fold === undefined
+      ? {}
+      : {
+          foldOutMessage:
+            (key: InstanceKey, context: Update.FoldContext<any, any>) =>
+            (outMessage: any) =>
+              config.outMessage!.fold!(
+                key,
+                outMessage,
+                liftContext(key, context, modelBeforeUpdate),
+              ),
+        }),
+    ...(config.outMessage?.forward === undefined
+      ? {}
+      : {
+          toParentOutMessage: (key: InstanceKey) => (outMessage: any) =>
+            config.outMessage!.forward!(key, outMessage),
+        }),
+  })
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const makeChildFoldAt = Update.foldChildAt as unknown as (
+    childFold: RuntimeKeyedChildFold,
+  ) => RuntimeKeyedFold
+  const makeFold = (producer: AnyProducer): RuntimeBoundKeyedFold => {
+    return (model, key, ...args) => {
       assertRegisteredBinding(binding, placement)
 
-      const fold = Update.foldChildAt({
-        update: (
-          model: any,
-          input: Readonly<{ key: InstanceKey; args: ReadonlyArray<any> }>,
-        ) =>
-          scopeReturn(
-            withOperationGraph(block.children, () =>
-              producer(model, ...input.args),
-            ),
-            input.key,
-          ),
-        readAt,
-        writeAt: config.writeAt,
-        toParentMessage: config.toParentMessage,
-        ...(config.outMessage?.fold === undefined
-          ? {}
-          : {
-              foldOutMessage:
-                (key: InstanceKey, context: Update.FoldContext<any, any>) =>
-                (outMessage: any) =>
-                  config.outMessage.fold(
-                    key,
-                    outMessage,
-                    liftContext(key, context, model),
-                  ),
-            }),
-        ...(config.outMessage?.forward === undefined
-          ? {}
-          : {
-              toParentOutMessage: (key: InstanceKey) => (outMessage: any) =>
-                config.outMessage.forward(key, outMessage),
-            }),
-      } as never) as unknown as (
-        model: any,
-        key: InstanceKey,
-        input: any,
-      ) => any
-      return fold(model, key, { key, args })
+      return makeChildFoldAt(toChildFoldAt(producer, model))(model, key, {
+        key,
+        args,
+      })
     }
   }
   const fold = makeFold(block.update)
@@ -527,6 +607,13 @@ export const bindEach = <BlockValue extends BindableBlock>(
       (model: any) =>
         foldStep(model, key, ...args)
   })
+  const requireKey = (key: InstanceKey | undefined): InstanceKey => {
+    if (key === undefined) {
+      throw new Error('[foldkit] Keyed Block bindings require an instance key.')
+    }
+
+    return key
+  }
   const binding = {
     placement,
     init: (key: InstanceKey, ...args: ReadonlyArray<any>) => {
@@ -548,15 +635,25 @@ export const bindEach = <BlockValue extends BindableBlock>(
     subscriptions: {},
     managedResources: {},
     mounts: block.mounts,
+    // oxlint-disable effecttsgo/any-unknown-in-error-context
     EffectsLayer: qualifyLayer(
       placement,
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       block.EffectsLayer as Layer.Layer<any, any, any>,
     ),
-    embedView: (config_: any) => {
-      const { key, ...embedConfig } = config_
-      return {
-        ...embedConfig,
-        view: embedConfig.view ?? defaultViewOf(block),
+    // oxlint-enable effecttsgo/any-unknown-in-error-context
+    embedView: <View extends AnyBlockView>(
+      embedConfig: Omit<
+        BoundBlockFields<View, any>,
+        'toParentMessage' | 'view'
+      > &
+        Readonly<{ key: InstanceKey; view?: View }>,
+    ): BoundBlockConfig<View, any> => {
+      const { key, ...fields } = embedConfig
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      const boundConfig = {
+        ...fields,
+        view: fields.view ?? defaultViewOf(block),
         toParentMessage: (message: any) => config.toParentMessage(key, message),
         [ViewScopeTypeId]: {
           placement,
@@ -564,7 +661,8 @@ export const bindEach = <BlockValue extends BindableBlock>(
           key,
           identity: { owner: block.owner, children: block.children },
         },
-      }
+      } as unknown as BoundBlockConfig<View, any>
+      return boundConfig
     },
     ...steps,
   }
@@ -575,13 +673,17 @@ export const bindEach = <BlockValue extends BindableBlock>(
         key: config.key(item),
         model: config.read(item),
       })),
-    toParentMessage: config.toParentMessage,
+    toParentMessage: (key, message) =>
+      config.toParentMessage(requireKey(key), message),
     subscriptionWhen: (model, key, name) => {
+      const instanceKey = requireKey(key)
       const when = config.subscriptions?.when
-      return typeof when === 'function'
-        ? when(model, key)
-        : (when?.[name]?.(model, key) ?? true)
+      if (typeof when === 'function') {
+        return when(model, instanceKey)
+      }
+      return when?.[name]?.(model, instanceKey) ?? true
     },
   })
-  return binding
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return binding as unknown as AnyBinding
 }

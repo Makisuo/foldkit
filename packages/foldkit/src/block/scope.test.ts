@@ -62,6 +62,7 @@ const execute = <Services, Error, Message>(
     Effect.scoped(
       Effect.gen(function* () {
         const context = yield* Layer.build(layer)
+        // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
         return yield* Effect.provideContext(command.effect, context)
       }),
     ),
@@ -203,6 +204,7 @@ describe('Block capability contexts', () => {
     const leftLayer = qualifyLayer(
       'Left',
       selectLayer(
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
         left.Feature as never,
         left.ReadValue.layer.pipe(
           Layer.provide(Layer.succeed(ValueSource, { value: 'left' })),
@@ -212,6 +214,7 @@ describe('Block capability contexts', () => {
     const rightLayer = qualifyLayer(
       'Right',
       selectLayer(
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
         right.Feature as never,
         right.ReadValue.layer.pipe(
           Layer.provide(Layer.succeed(ValueSource, { value: 'right' })),
@@ -260,6 +263,7 @@ describe('Block capability contexts', () => {
           )
       },
     })
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const selected = selectLayer(Feature as never, ReadValue.layer)
     const layer = Layer.merge(
       qualifyLayer('Left', selected),
@@ -335,6 +339,7 @@ describe('Block capability contexts', () => {
     const Feature = define('ConstructionScope')
     const Value = Feature.resource<string>()('Value')
     const layer = selectLayer(
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       Feature as never,
       Layer.effect(
         ValueSource,

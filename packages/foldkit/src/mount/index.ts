@@ -688,7 +688,8 @@ export function define<
   const registration: MountRegistration = { name }
   const layer = Predicate.isUndefined(config.handler)
     ? undefined
-    : handler.toLayer(Effect.gen(config.handler) as never)
+    : // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context, typescript/consistent-type-assertions
+      handler.toLayer(Effect.gen(config.handler) as never)
   const makeEffect = (input: ExecuteRuntimeInput & Record<string, unknown>) =>
     handler.execute(input)
 
@@ -946,7 +947,8 @@ export function defineStream<
   const registration: MountRegistration = { name }
   const layer = Predicate.isUndefined(config.handler)
     ? undefined
-    : handler.toLayer(Effect.gen(config.handler) as never)
+    : // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context, typescript/consistent-type-assertions
+      handler.toLayer(Effect.gen(config.handler) as never)
   const makeStream = (input: ExecuteRuntimeInput & Record<string, unknown>) =>
     handler.execute(input)
 

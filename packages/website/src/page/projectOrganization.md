@@ -50,7 +50,7 @@ The root definition receives top-level feature connections under `children`, so 
 
 `LocalStorageLayer` and `SessionStorageLayer` implement distinct application service tags, so both stores can coexist without changing the platform `KeyValueStore` identity inside either provider. `ApplicationLayer` provides production Services; `ApplicationTestLayer` provides deterministic alternatives beneath the same handler graph carried by the root Application definition.
 
-The entry imports the root definition and implementation with `ApplicationLayer`. It completes the definition with `.make`, supplies the Layer with standalone `provide`, and starts the result. The DOM container, routing callbacks, DevTools configuration, and startup Flags remain visible in `entry.ts`; `application.ts` stays portable for tests and server rendering.
+The entry imports the root definition and implementation with `ApplicationLayer`. It completes the definition with `.make`, calls `application.provide(ApplicationLayer)`, and starts the result. The DOM container, routing callbacks, DevTools configuration, and startup Flags remain visible in `entry.ts`; `application.ts` stays portable for tests and server rendering.
 
 ::Snippet{name="applicationEntryPoint" label="Browser application entry point"}
 

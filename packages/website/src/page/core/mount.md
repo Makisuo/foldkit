@@ -132,7 +132,7 @@ Calling the Definition with an args record creates the MountAction passed to `On
 
 #### What Belongs in Args
 
-Args are only per-instance inputs. Module constants stay in lexical scope, and Model-owned handles come from ManagedResources. Put an app-wide service requirement in the handler constructor so `provide` can supply it once and execution tests can substitute the external provider while retaining the real Mount implementation.
+Args are only per-instance inputs. Module constants stay in lexical scope, and Model-owned handles come from ManagedResources. Put an app-wide service requirement in the handler constructor so the completed program's `provide` method can supply it once and execution tests can substitute the external provider while retaining the real Mount implementation.
 
 :::Info{label="Args surface in DevTools and tests"}
 DevTools shows the args beside the Mount name. Scene tests can target one instance by passing the same args record to `Mount.expectHas` or `Mount.resolve`. See [Scene](/testing/scene) for the Definition and instance matcher contract.

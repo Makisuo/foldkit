@@ -255,10 +255,9 @@ describe('Mount view-state awareness', () => {
       devTools: { show: 'Always', keyframeInterval: 1 },
     })
     const runtimeFiber = Effect.runFork(
-      Application.provide(
-        runtime,
-        Layer.mergeAll(TestMessagesLayer, MountEditorLayer),
-      ).start(),
+      runtime
+        .provide(Layer.mergeAll(TestMessagesLayer, MountEditorLayer))
+        .start(),
     )
 
     try {
@@ -366,7 +365,7 @@ describe('Mount view-state awareness', () => {
       devTools: { show: 'Always', keyframeInterval: 1 },
     })
     const runtimeFiber = Effect.runFork(
-      Application.provide(runtime, MountEditorLayer).start(),
+      runtime.provide(MountEditorLayer).start(),
     )
 
     try {
@@ -481,10 +480,9 @@ describe('Mount view-state awareness', () => {
       devTools: { show: 'Always', keyframeInterval: 1 },
     })
     const runtimeFiber = Effect.runFork(
-      Application.provide(
-        runtime,
-        Layer.mergeAll(TestMessagesLayer, MountChildEditorLayer),
-      ).start(),
+      runtime
+        .provide(Layer.mergeAll(TestMessagesLayer, MountChildEditorLayer))
+        .start(),
     )
 
     try {
@@ -604,10 +602,9 @@ describe('Mount view-state awareness', () => {
       devTools: false,
     })
     const runtimeFiber = Effect.runFork(
-      Application.provide(
-        runtime,
-        Layer.mergeAll(TestMessagesLayer, MountChildEditorLayer),
-      ).start(),
+      runtime
+        .provide(Layer.mergeAll(TestMessagesLayer, MountChildEditorLayer))
+        .start(),
     )
 
     try {
@@ -695,7 +692,7 @@ describe('Mount view-state awareness', () => {
       devTools: { show: 'Always', keyframeInterval: 1 },
     })
     const runtimeFiber = Effect.runFork(
-      Application.provide(runtime, MountEditorLayer).start(),
+      runtime.provide(MountEditorLayer).start(),
     )
 
     try {
@@ -808,10 +805,9 @@ describe('Mount view-state awareness', () => {
       devTools: { show: 'Always', keyframeInterval: 1 },
     })
     const runtimeFiber = Effect.runFork(
-      Application.provide(
-        runtime,
-        Layer.mergeAll(TestMessagesLayer, MountEditorLayer),
-      ).start(),
+      runtime
+        .provide(Layer.mergeAll(TestMessagesLayer, MountEditorLayer))
+        .start(),
     )
 
     try {
@@ -949,10 +945,9 @@ describe('Mount view-state awareness', () => {
       devTools: { show: 'Always', keyframeInterval: 1 },
     })
     const runtimeFiber = Effect.runFork(
-      Application.provide(
-        runtime,
-        Layer.mergeAll(TestMessagesLayer, MountEditorLayer),
-      ).start(),
+      runtime
+        .provide(Layer.mergeAll(TestMessagesLayer, MountEditorLayer))
+        .start(),
     )
 
     try {
@@ -1102,10 +1097,9 @@ describe('Mount view-state awareness', () => {
       devTools: { show: 'Always', keyframeInterval: 1 },
     })
     const runtimeFiber = Effect.runFork(
-      Application.provide(
-        runtime,
-        Layer.mergeAll(TestMessagesLayer, MountEditorLayer),
-      ).start(),
+      runtime
+        .provide(Layer.mergeAll(TestMessagesLayer, MountEditorLayer))
+        .start(),
     )
 
     try {
@@ -1228,7 +1222,7 @@ describe('Mount view-state awareness', () => {
       devTools: { show: 'Always', keyframeInterval: 1 },
     })
     const runtimeFiber = Effect.runFork(
-      Application.provide(runtime, TestMessagesLayer).start(),
+      runtime.provide(TestMessagesLayer).start(),
     )
 
     try {
@@ -1389,7 +1383,7 @@ describe('Mount view-state awareness', () => {
       devTools: { show: 'Always', keyframeInterval: 1 },
     })
     const runtimeFiber = Effect.runFork(
-      Application.provide(runtime, ObserveViewStateLayer).start(),
+      runtime.provide(ObserveViewStateLayer).start(),
     )
 
     try {
@@ -1565,7 +1559,7 @@ describe('Mount view-state awareness', () => {
       devTools: { show: 'Always', keyframeInterval: 1 },
     })
     const runtimeFiber = Effect.runFork(
-      Application.provide(runtime, ObserveViewStateLayer).start(),
+      runtime.provide(ObserveViewStateLayer).start(),
     )
 
     try {
@@ -1705,7 +1699,7 @@ describe('Mount view-state awareness', () => {
       devTools: { show: 'Always', keyframeInterval: 1 },
     })
     const runtimeFiber = Effect.runFork(
-      Application.provide(runtime, MountChildEditorLayer).start(),
+      runtime.provide(MountChildEditorLayer).start(),
     )
 
     try {
@@ -2218,7 +2212,7 @@ describe('Mount view-state awareness', () => {
         devTools: { show: 'Always', keyframeInterval: 1 },
       })
       const runtimeFiber = Effect.runFork(
-        Application.provide(runtime, TestMessagesLayer).start(),
+        runtime.provide(TestMessagesLayer).start(),
       )
 
       try {
@@ -2353,10 +2347,9 @@ describe('Mount view-state awareness', () => {
       devTools: { show: 'Always', keyframeInterval: 1, maxEntries: 20 },
     })
     const runtimeFiber = Effect.runFork(
-      Application.provide(
-        runtime,
-        Layer.mergeAll(TestMessagesLayer, ObserveViewStateLayer),
-      ).start(),
+      runtime
+        .provide(Layer.mergeAll(TestMessagesLayer, ObserveViewStateLayer))
+        .start(),
     )
 
     try {
@@ -2445,7 +2438,7 @@ describe('Mount view-state awareness', () => {
       devTools: false,
     })
     const runtimeFiber = Effect.runFork(
-      Application.provide(runtime, MountEditorLayer).start(),
+      runtime.provide(MountEditorLayer).start(),
     )
 
     try {

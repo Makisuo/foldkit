@@ -22,7 +22,7 @@ import {
 } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 import { Block, Update } from 'foldkit'
-import { define as defineApplication, provide } from 'foldkit/application'
+import { define as defineApplication } from 'foldkit/application'
 import {
   type CommandRecord,
   DEVTOOLS_HOST_ID,
@@ -3022,7 +3022,7 @@ export const createOverlay = (
       devTools: false,
       freezeModel: false,
     })
-    const overlay = provide(application, ServicesLayer)
+    const overlay = application.provide(ServicesLayer)
 
     yield* Effect.forkScoped(overlay.start())
   })

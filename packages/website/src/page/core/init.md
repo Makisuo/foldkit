@@ -36,7 +36,7 @@ The entry chooses the container and passes the Flags Effect to `Runtime.run`. Th
 
 ::Snippet{name="counterEntryWithFlags" label="Flags wiring"}
 
-The Flags Effect leaves `KeyValueStore` in its requirements, and the application root supplies the browser provider through `provide`. A whole-application test can provide a deterministic store at the same boundary. The runtime builds the Layer once and shares it with Flags, Commands, and Subscriptions that require the same service. See [Layers](/core/layers) for the full setup.
+The Flags Effect leaves `KeyValueStore` in its requirements, and the completed application supplies the browser provider through `application.provide(ApplicationLayer)`. A whole-application test can supply a deterministic store through the same method. The runtime builds the Layer once and shares it with Flags, Commands, and Subscriptions that require the same service. See [Layers](/core/layers) for the full setup.
 
 ### Server Rendering and Hydration
 

@@ -4,7 +4,6 @@ import {
 } from './application.js'
 import { makeDefine } from './applicationAuthoring.js'
 
-export { provide } from './application.js'
 export type { Application, Element } from './application.js'
 export type {
   Composition,

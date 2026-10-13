@@ -250,10 +250,10 @@ export const SavedBoardJsonString = Schema.fromJsonString(
 
 `toCodecJson` turns the domain value into canonical JSON, then `fromJsonString` stringifies it. Leave it out and a field like `Schema.Option` writes Effect's runtime shape (`{_id:"Option",_tag:"None"}`) to storage. The next boot fails to decode it, the Flags `Effect.catch` falls back to the empty value, and the user's saved data looks gone. For a Schema that is already JSON-native, `toCodecJson` changes nothing on the wire, so composing it every time costs nothing.
 
-Import `define as defineApplication` and `provide` from `foldkit/application`. Declare the root Model and Message through a typed PascalCase `Application`, register the root graph, declare the `Flags` Schema in the registered composition's `make` config, then pass the Effect to `Runtime.run`:
+Import `define as defineApplication` from `foldkit/application`. Declare the root Model and Message through a typed PascalCase `Application`, register the root graph, declare the `Flags` Schema in the registered composition's `make` config, then pass the Effect to `Runtime.run`:
 
 ```ts
-import { define as defineApplication, provide } from 'foldkit/application'
+import { define as defineApplication } from 'foldkit/application'
 
 const Application = defineApplication({ Model, Message }).register({ children })
 
@@ -265,7 +265,7 @@ const application = Application.make({
   Flags,
 })
 
-Runtime.run(provide(application, ApplicationLayer), { flags })
+Runtime.run(application.provide(ApplicationLayer), { flags })
 ```
 
 Hydrated applications do not provide a browser Flags Effect. `Runtime.hydrate(application)` decodes the exact Schema-encoded Flags payload emitted by the server. `@foldkit/vite-plugin` compiles the shared deployment identity into Foldkit for coordinated client and server builds; separately orchestrated builds pass the same explicit `buildId` override to each artifact. Hydration compares that identity against the id the server stamped on the root before it reads the handoff at all. Missing or invalid server handoff data, and a page from another deployment, are fatal boot errors.
@@ -276,7 +276,7 @@ An Element owns its Flags Effect because no separate runtime call seeds it. Put 
 
 ## Layers
 
-Commands, Subscriptions, Mounts, and ManagedResources contribute handler recipes to their completed Block. Child connections qualify those recipes by placement, and the registered application composition carries the complete handler graph into its `make` or `makeElement` method. Standalone `provide` supplies the ordinary Services those recipes still require. The assembly config has no `resources` field. Every application Layer is built once for each runtime start and released when that runtime stops.
+Commands, Subscriptions, Mounts, and ManagedResources contribute handler recipes to their completed Block. Child connections qualify those recipes by placement, and the registered application composition carries the complete handler graph into its `make` or `makeElement` method. The completed `application` or `element` supplies the ordinary Services those recipes still require through its `provide` method. That method returns a new passive program; the assembly config has no `resources` field. Every application Layer is built once for each runtime start and released when that runtime stops.
 
 Each handler requirement carries its primitive, locally declared name, and exact protocol. Connection composition derives the application identity from the owner and placement path, so reusable children can keep stable local names without coordinating full parent paths. Composition rejects incompatible contracts before Runtime start. Prefer `Command.HandlerOf<typeof Definition>`, `Subscription.HandlerOf<typeof subscriptions.entry>`, `Mount.RequirementsOf<typeof Definition>`, and `ManagedResource.HandlerOf<typeof managedResources.entry>` only when an explicit local annotation is useful; normal definitions, owned views, and update functions infer them.
 
@@ -293,8 +293,6 @@ Pass this local recipe to the feature's `assemble`; its `register({ children, mo
 
 ```ts
 import { Runtime } from 'foldkit'
-import { provide } from 'foldkit/application'
-
 import { Application, init, update, view, EffectsLayer } from './application'
 import { ApplicationLayer } from './services'
 
@@ -306,12 +304,12 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-Runtime.run(provide(application, ApplicationLayer))
+Runtime.run(application.provide(ApplicationLayer))
 ```
 
 Tests and server entries import the passive definition and implementation pieces without selecting a browser container or starting the Runtime. `ApplicationLayer` supplies the ordinary Services still required by the completed application.
 
-If an owning module's handler Layers need a business service defined by that module, provide it beneath that module's `EffectsLayer`. Leave concrete HTTP, storage, RPC, and browser requirements open for the application root. The root chooses those providers and uses `Layer.provideMerge` when their outputs must remain available to Flags or another application consumer. Keep handler-by-handler imports out of the entry point. `provide` can be chained when one provided Layer leaves requirements for a later Layer, but a composed `ApplicationLayer` keeps ordinary application wiring at module granularity.
+If an owning module's handler Layers need a business service defined by that module, provide it beneath that module's `EffectsLayer`. Leave concrete HTTP, storage, RPC, and browser requirements open for the application root. The root chooses those providers and uses `Layer.provideMerge` when their outputs must remain available to Flags or another application consumer. Keep handler-by-handler imports out of the entry point. Calls such as `application.provide(firstLayer).provide(secondLayer)` can be chained when one Layer leaves requirements for a later Layer, but a composed `ApplicationLayer` keeps ordinary application wiring at module granularity.
 
 Setting `config.handler` creates the definition's `.layer` recipe; it does not build the Layer. The Runtime builds the application Layer once for each start. The handler generator runs once during that build, performs its service lookups, and returns the function used later. Every Command invocation, Subscription scope, Mount element, or ManagedResource acquisition calls that function with fresh input while reusing the captured services. Looking up a service retrieves an instance from the Effect context; it does not construct the provider. Scope finalizers registered while building the Layer run when that runtime stops.
 
@@ -620,7 +618,7 @@ Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, o
 For single-page apps that own the page but don't navigate. init receives only Flags (if any):
 
 ```ts
-import { define as defineApplication, provide } from 'foldkit/application'
+import { define as defineApplication } from 'foldkit/application'
 
 const Application = defineApplication({ Model, Message }).register({})
 
@@ -629,7 +627,7 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-Runtime.run(provide(application, ApplicationLayer))
+Runtime.run(application.provide(ApplicationLayer))
 ```
 
 ### With Routing
@@ -637,7 +635,7 @@ Runtime.run(provide(application, ApplicationLayer))
 For apps with pages, navigation, and URL-driven state. init receives Flags (if any) and the current URL. Add a `routing` config with two Message constructors:
 
 ```ts
-import { define as defineApplication, provide } from 'foldkit/application'
+import { define as defineApplication } from 'foldkit/application'
 
 const Application = defineApplication({ Model, Message }).register({ children })
 
@@ -650,7 +648,7 @@ const application = Application.make({
   },
 })
 
-Runtime.run(provide(application, ApplicationLayer))
+Runtime.run(application.provide(ApplicationLayer))
 ```
 
 ### Scoped to a Node (Embedded Widgets)
@@ -660,27 +658,24 @@ The registered composition's `make` method assumes it owns the page. Its `view` 
 Use the registered composition's `makeElement` method instead. Its `view` returns `Html` directly (no title to discard) and the runtime never touches the document `<head>` or the `<html>` element. Everything else (Model, init, update, Commands, Subscriptions, Flags, crash handling) is identical. Embedded apps don't own the URL bar, so `makeElement` has no `routing` config.
 
 ```ts
-const application = Application.makeElement({
+const element = Application.makeElement({
   ...implementation,
   container: document.getElementById('widget'),
 })
 
-Runtime.run(provide(application, ApplicationLayer))
+Runtime.run(element.provide(ApplicationLayer))
 ```
 
-Element Flags are self-contained in the assembly config. A host factory can turn its initial data into the Flags Effect, then provide the Element's root handler Layer:
+Element Flags are self-contained in the assembly config. A host factory can turn its initial data into the Flags Effect, then provide the Element's root service Layer:
 
 ```ts
 export const makeElement = (container: HTMLElement, flags: Flags) =>
-  provide(
-    Application.makeElement({
-      ...implementation,
-      Flags,
-      flags: Effect.succeed(flags),
-      container,
-    }),
-    ApplicationLayer,
-  )
+  Application.makeElement({
+    ...implementation,
+    Flags,
+    flags: Effect.succeed(flags),
+    container,
+  }).provide(ApplicationLayer)
 ```
 
 When the host application needs to control the embedded app (mount and unmount it, push data in, receive values out), start it with `Runtime.embed(program)` instead of `Runtime.run`. `embed` returns a handle with `dispose` plus one entry per Port declared on the config: the host sends on inbound Ports, subscribes to outbound Ports, and disposes on unmount, never touching the Model. Inbound Ports are consumed by the app as Subscription sources and outbound Ports are written from Commands, so the app itself stays inside the standard architecture. `repos/foldkit/examples/embedding/` shows the full pattern: the widget in `src/application.ts`, the host in `src/host.ts`.

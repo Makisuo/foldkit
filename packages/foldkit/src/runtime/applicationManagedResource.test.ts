@@ -119,8 +119,7 @@ it('provides layered ManagedResource acquire and release with runtime-owned acce
     container,
   })
 
-  const withLifecycle = Application.provide(
-    application,
+  const withLifecycle = application.provide(
     managedResources.engine.toLayer(
       Effect.succeed({
         acquire: () =>
@@ -135,8 +134,7 @@ it('provides layered ManagedResource acquire and release with runtime-owned acce
       }),
     ),
   )
-  const provided = Application.provide(
-    withLifecycle,
+  const provided = withLifecycle.provide(
     ReadEngine.toLayer(
       Effect.succeed(() =>
         Engine.get.pipe(
@@ -200,8 +198,7 @@ it('releases an active Layer-backed ManagedResource when the runtime stops', asy
     managedResources,
     container,
   })
-  const withLifecycle = Application.provide(
-    application,
+  const withLifecycle = application.provide(
     managedResources.engine.toLayer(
       Effect.succeed({
         acquire: () => Effect.succeed(7),
@@ -212,8 +209,7 @@ it('releases an active Layer-backed ManagedResource when the runtime stops', asy
       }),
     ),
   )
-  const provided = Application.provide(
-    withLifecycle,
+  const provided = withLifecycle.provide(
     ReadEngine.toLayer(
       Effect.succeed(() =>
         Engine.get.pipe(

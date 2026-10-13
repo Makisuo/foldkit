@@ -1,8 +1,10 @@
-import { Effect, Layer, Option, Schema } from 'effect'
+import { Context, Effect, Layer, Option, Schema } from 'effect'
 import { define as defineApplication } from 'foldkit/application'
 import * as Block from 'foldkit/block'
+import * as Command from 'foldkit/command'
 import { Server } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
+import * as Runtime from 'foldkit/runtime'
 import * as Update from 'foldkit/update'
 
 import {
@@ -14,6 +16,8 @@ import {
   ParentModel,
   RefinedChoice,
   child,
+  makeProvisionElement,
+  makeProvisionPageAwaitingDependency,
 } from './accepted.js'
 
 const InvalidApplication = defineApplication({
@@ -34,6 +38,68 @@ const invalidDocumentView = InvalidApplication.view((model, h) => ({
   title: 'Invalid application fixture',
   body: h.main([], [globalThis.String(model.child.value)]),
 }))
+
+const provisionPageAwaitingDependency = makeProvisionPageAwaitingDependency(
+  document.createElement('div'),
+)
+
+// @ts-expect-error The first provider carries its still-missing dependency forward.
+Runtime.hydrate(provisionPageAwaitingDependency)
+
+const provisionElement = makeProvisionElement(document.createElement('div'))
+
+// @ts-expect-error Provision preserves Element kind, which cannot be hydrated as a page.
+Runtime.hydrate(provisionElement)
+
+const DeclarationProvisionContract = Command.define(
+  'DeclarationProvisionContract',
+  {
+    args: { value: Schema.String },
+    messages: [ParentMessage.RequestedRefresh],
+    handler: function* () {
+      return () => Effect.succeed(ParentMessage.RequestedRefresh())
+    },
+  },
+)
+
+// eslint-disable-next-line foldkit/command-binding-matches-name
+const ConflictingProvisionContract = Command.define(
+  'DeclarationProvisionContract',
+  {
+    args: { value: Schema.optional(Schema.String) },
+    messages: [ParentMessage.RequestedRefresh],
+    handler: function* () {
+      return () => Effect.succeed(ParentMessage.RequestedRefresh())
+    },
+  },
+)
+
+class ProvisionContractConsumer extends Context.Service<
+  ProvisionContractConsumer,
+  Readonly<{ value: string }>
+>()('DeclarationTestsProvisionContractConsumer') {}
+
+const RequiresConflictingProvisionContract = Layer.effect(
+  ProvisionContractConsumer,
+  Effect.as(ConflictingProvisionContract({ value: 'input' }).effect, {
+    value: 'ready',
+  }),
+)
+
+const provisionContractProgram = InvalidApplication.makeElement({
+  ...invalidApplicationImplementation,
+  container: null,
+  view: invalidElementView,
+})
+const programWithProvisionContract = provisionContractProgram.provide(
+  DeclarationProvisionContract.layer,
+)
+
+// @ts-expect-error A later provider cannot output a conflicting handler contract.
+programWithProvisionContract.provide(ConflictingProvisionContract.layer)
+
+// @ts-expect-error A later provider cannot require a conflicting handler contract.
+programWithProvisionContract.provide(RequiresConflictingProvisionContract)
 
 // @ts-expect-error Page Applications require a Document view.
 InvalidApplication.make({

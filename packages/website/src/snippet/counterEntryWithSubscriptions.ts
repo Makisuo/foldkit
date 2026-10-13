@@ -1,5 +1,4 @@
 import { Runtime } from 'foldkit'
-import { provide } from 'foldkit/application'
 
 import {
   Application,
@@ -20,4 +19,4 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-Runtime.run(provide(application, ApplicationLayer))
+Runtime.run(application.provide(ApplicationLayer))

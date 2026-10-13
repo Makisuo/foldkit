@@ -116,8 +116,8 @@ describe('Application.makeElement', () => {
       ports,
       container,
     })
-    const withHandler = Application.provide(element, SendLayer)
-    const provided = Application.provide(withHandler, DatabaseLayer)
+    const withHandler = element.provide(SendLayer)
+    const provided = withHandler.provide(DatabaseLayer)
     const handle = embed(provided)
 
     try {
@@ -173,8 +173,7 @@ describe('Application.makeElement', () => {
       managedResources,
       container,
     })
-    const provided = Application.provide(
-      element,
+    const provided = element.provide(
       managedResources.token.toLayer(
         Effect.succeed({
           acquire: () => Effect.succeed('token'),
@@ -221,8 +220,7 @@ describe('Application.makeElement', () => {
         ),
       ),
     )
-    const provided = Application.provide(
-      element,
+    const provided = element.provide(
       Layer.mergeAll(
         HostStatusLayer,
         Send.toLayer(
@@ -266,8 +264,7 @@ describe('Application.makeElement', () => {
       mounts: [AnchorPanel],
       container,
     })
-    const provided = Application.provide(
-      element,
+    const provided = element.provide(
       AnchorPanel.toLayer(
         Effect.succeed(() =>
           Effect.succeed(Message.CompletedAnchorPanel({ status: 'anchored' })),
@@ -331,8 +328,7 @@ const checkElementTypes = (): void => {
   // @ts-expect-error The Flags Effect and Command require their services.
   embed(element)
 
-  const withHandler = Application.provide(
-    element,
+  const withHandler = element.provide(
     Send.toLayer(
       Effect.succeed(({ text }) =>
         Effect.succeed(Message.CompletedSend({ status: text })),
@@ -344,8 +340,7 @@ const checkElementTypes = (): void => {
   run(withHandler)
 
   run(
-    Application.provide(
-      withHandler,
+    withHandler.provide(
       Layer.succeed(Database, {
         store: text => text,
       }),
@@ -375,8 +370,7 @@ const checkElementTypes = (): void => {
   embed(subscriptionElement)
 
   embed(
-    Application.provide(
-      subscriptionElement,
+    subscriptionElement.provide(
       subscriptions.status.toLayer(Effect.succeed(() => Stream.empty)),
     ),
   )
@@ -394,8 +388,7 @@ const checkElementTypes = (): void => {
   embed(mountElement)
 
   embed(
-    Application.provide(
-      mountElement,
+    mountElement.provide(
       AnchorPanel.toLayer(
         Effect.succeed(() =>
           Effect.succeed(Message.CompletedAnchorPanel({ status: 'anchored' })),
@@ -427,8 +420,7 @@ const checkElementTypes = (): void => {
   embed(managedElement)
 
   embed(
-    Application.provide(
-      managedElement,
+    managedElement.provide(
       managedResources.token.toLayer(
         Effect.succeed({
           acquire: () => Effect.succeed('token'),

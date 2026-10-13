@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { define } from '../block/define.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
-import { define as defineApplication, provide } from './applicationPublic.js'
+import { define as defineApplication } from './applicationPublic.js'
 import * as ModelPreservationBridge from './modelPreservationBridge.js'
 import { embed, run } from './start.js'
 
@@ -231,7 +231,7 @@ describe('registered Application composition assembly', () => {
       left: { label: 'left' },
       right: { label: 'right' },
     })
-    const runnable = provide(application, ServicesLayer)
+    const runnable = application.provide(ServicesLayer)
     const handle = embed(runnable)
 
     try {
@@ -567,16 +567,15 @@ describe('registered Application composition assembly', () => {
     container.id = 'service-lifetime-root'
     document.body.append(container)
     const handle = embed(
-      provide(
-        serviceComposition.makeElement({
+      serviceComposition
+        .makeElement({
           container,
           init: serviceInit,
           update: serviceUpdate,
           view: serviceView,
           EffectsLayer: Layer.empty,
-        }),
-        SharedValueLayer,
-      ),
+        })
+        .provide(SharedValueLayer),
     )
 
     try {
@@ -790,6 +789,6 @@ const checkAssemblyTypes = (container: HTMLElement) => {
     view: resolvedHostView,
     EffectsLayer: Layer.empty,
   })
-  provide(hostApplication, Layer.succeed(HostDependency, { value: 'provided' }))
+  hostApplication.provide(Layer.succeed(HostDependency, { value: 'provided' }))
 }
 void checkAssemblyTypes

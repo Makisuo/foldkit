@@ -1,5 +1,4 @@
 import { Runtime } from 'foldkit'
-import { provide } from 'foldkit/application'
 
 import { Application, init, update, view } from './application'
 import { Flags, flags } from './flags'
@@ -13,4 +12,4 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-Runtime.run(provide(application, ApplicationLayer), { flags })
+Runtime.run(application.provide(ApplicationLayer), { flags })

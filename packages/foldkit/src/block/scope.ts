@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option, Ref, Stream } from 'effect'
+import { Context, Effect, Layer, Option, Ref, Stream, String } from 'effect'
 
 import type { Command, Handler as CommandHandler } from '../command/index.js'
 import * as Interruptible from '../command/interruptible/interruptible.js'
@@ -20,6 +20,7 @@ import {
 import {
   CommandInstancesTypeId,
   CurrentInstance,
+  type InstanceCursor,
   type InstanceFrame,
   commandInstances,
   enterInstance,
@@ -186,47 +187,126 @@ export const qualifyContext = <Path extends string, Services>(
   )
 }
 
+type LocalContextIndex = Readonly<{
+  ordinaryEntries: ReadonlyMap<string, any>
+  placementEntries: ReadonlyMap<string, ReadonlyMap<string, any>>
+  projectedContexts: Map<string, Context.Context<any>>
+}>
+
+const localContextIndexes = new WeakMap<
+  Context.Context<never>,
+  LocalContextIndex
+>()
+
+const directSeparatorIndexOf = (scopedKey: string): Option.Option<number> => {
+  const findFrom = (fromIndex: number): Option.Option<number> =>
+    Option.flatMap(
+      String.indexOf(separator)(scopedKey.slice(fromIndex)),
+      relativeIndex => {
+        const index = fromIndex + relativeIndex
+        const key = scopedKey.slice(index + separator.length)
+        return isHandlerKey(key) || isResourceKey(key)
+          ? Option.some(index)
+          : findFrom(index + 1)
+      },
+    )
+
+  return findFrom(0)
+}
+
+const makeLocalContextIndex = (
+  context: Context.Context<never>,
+): LocalContextIndex => {
+  const ordinaryEntries = new Map<string, any>()
+  const placementEntries = new Map<string, Map<string, any>>()
+
+  for (const [key, value] of context.mapUnsafe) {
+    if (!key.startsWith(scopedPrefix)) {
+      if (!isHandlerKey(key) && !isResourceKey(key)) {
+        ordinaryEntries.set(key, value)
+      }
+      continue
+    }
+
+    const scopedKey = key.slice(scopedPrefix.length)
+    const maybeDirectIndex = directSeparatorIndexOf(scopedKey)
+    const maybeChildIndex = String.indexOf('/')(scopedKey)
+    const isDirect =
+      Option.isSome(maybeDirectIndex) &&
+      (Option.isNone(maybeChildIndex) ||
+        maybeDirectIndex.value < maybeChildIndex.value)
+    const maybeSegmentEnd = isDirect ? maybeDirectIndex : maybeChildIndex
+    if (Option.isNone(maybeSegmentEnd)) {
+      continue
+    }
+
+    const segmentEnd = maybeSegmentEnd.value
+    if (segmentEnd <= 0) {
+      continue
+    }
+
+    const segment = scopedKey.slice(0, segmentEnd)
+    const projectedKey = isDirect
+      ? scopedKey.slice(segmentEnd + separator.length)
+      : `${scopedPrefix}${scopedKey.slice(segmentEnd + 1)}`
+    const entries = placementEntries.get(segment) ?? new Map<string, any>()
+    entries.set(projectedKey, value)
+    placementEntries.set(segment, entries)
+  }
+
+  return {
+    ordinaryEntries,
+    placementEntries,
+    projectedContexts: new Map(),
+  }
+}
+
 const localContext = (
   segment: string,
   context: Context.Context<never>,
 ): Context.Context<any> => {
-  const entries = new Map(
-    globalThis.Array.from(context.mapUnsafe).filter(
-      ([key]) =>
-        !key.startsWith(scopedPrefix) &&
-        !isHandlerKey(key) &&
-        !isResourceKey(key),
-    ),
-  )
-  const directPrefix = `${scopedPrefix}${segment}${separator}`
-  const childPrefix = `${scopedPrefix}${segment}/`
-  for (const [key, value] of context.mapUnsafe) {
-    if (key.startsWith(directPrefix)) {
-      entries.set(key.slice(directPrefix.length), value)
-    } else if (key.startsWith(childPrefix)) {
-      entries.set(`${scopedPrefix}${key.slice(childPrefix.length)}`, value)
+  const index =
+    localContextIndexes.get(context) ?? makeLocalContextIndex(context)
+  localContextIndexes.set(context, index)
+
+  const cached = index.projectedContexts.get(segment)
+  if (cached !== undefined) {
+    return cached
+  }
+
+  const entries = new Map(index.ordinaryEntries)
+  const placement = index.placementEntries.get(segment)
+  if (placement !== undefined) {
+    for (const [key, value] of placement) {
+      entries.set(key, value)
     }
   }
-  return Context.makeUnsafe(entries)
+
+  const projected = Context.makeUnsafe<any>(entries)
+  index.projectedContexts.set(segment, projected)
+  return projected
 }
 
-/** @internal Supplies a bound view's local capability Context. */
-export const invocationContext = (
+const makeInvocationContext = (
   segment: string,
   context: Context.Context<never>,
-  frame?: InstanceFrame,
-  isHistorical = false,
+  frame: InstanceFrame | undefined,
+  isHistorical: boolean,
+  cursor?: InstanceCursor,
 ): Context.Context<any> => {
+  const projected = localContext(segment, context)
   const local = enterInstance(
-    localContext(segment, context),
+    cursor === undefined
+      ? projected
+      : Context.add(projected, CurrentInstance, cursor),
     frame,
     isHistorical,
   )
-  const cursor = Context.get(local, CurrentInstance)
+  const current = Context.get(local, CurrentInstance)
   const registrySegment =
-    cursor === undefined
+    current === undefined
       ? segment
-      : `${segment}[${cursor.node.key === undefined ? '' : encodeURIComponent(JSON.stringify(cursor.node.key))}]#${cursor.node.generation}`
+      : `${segment}[${current.node.key === undefined ? '' : encodeURIComponent(JSON.stringify(current.node.key))}]#${current.node.generation}`
   const registry = Context.get(context, Interruptible.__CurrentRegistry)
   const scopedRegistry: Interruptible.__Registry = {
     lookup: key => registry.lookup(`${registrySegment}/${key}`),
@@ -244,6 +324,24 @@ export const invocationContext = (
     ).mapUnsafe,
   )
 }
+
+/** @internal Supplies a bound view's local capability Context. */
+export const invocationContext = (
+  segment: string,
+  context: Context.Context<never>,
+  frame?: InstanceFrame,
+  isHistorical = false,
+): Context.Context<any> =>
+  makeInvocationContext(segment, context, frame, isHistorical)
+
+/** @internal Projects a stable parent Context before applying an occurrence cursor. */
+export const invocationContextWithCursor = (
+  segment: string,
+  context: Context.Context<never>,
+  cursor: InstanceCursor,
+  frame?: InstanceFrame,
+): Context.Context<any> =>
+  makeInvocationContext(segment, context, frame, false, cursor)
 
 /** @internal Supplies the current placement's handler and resource aliases. */
 export const qualifyEffect = <Path extends string, A, E, Requirements>(

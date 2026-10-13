@@ -8,7 +8,7 @@ An Effect Layer is a recipe for constructing services and managing their lifetim
 Shared services are the kitchen equipment available all night. Every dish can use the same oven. A Model-driven handle, such as a camera stream, belongs to a [ManagedResource](/core/managed-resources) instead: it exists only while the Model needs it.
 :::
 
-The typed root’s owned `Application.make` method completes the application and carries its unsatisfied Effect requirements. `provide` adds the application Layer before `Runtime.run` starts the program. Command execution, Subscription restart, Mount insertion, and ManagedResource acquisition reuse the handlers and services that Layer built. A hydrating start validates the server handoff before acquiring the Layer.
+The typed root’s owned `Application.make` method completes the application and carries its unsatisfied Effect requirements. `application.provide(layer)` adds the application Layer and returns a new passive program. `Runtime.run` builds that Layer when it starts the program. Command execution, Subscription restart, Mount insertion, and ManagedResource acquisition reuse the handlers and services that Layer built. A hydrating start validates the server handoff before acquiring the Layer.
 
 A Command definition names the operation and its result Messages. Its `config.handler` is a generator constructor that captures any services the implementation needs, then returns the function that handles each invocation. Foldkit applies `Effect.gen` internally. The definition's `.layer` is the recipe application assembly provides. `Layer.provide` composes service Layers beneath that handler Layer. Subscriptions, Mounts, and ManagedResources use the same constructor boundary.
 
@@ -51,7 +51,7 @@ Every handler requirement also carries the definition's complete invocation prot
 
 The expanded types require every protocol argument. Use the derived annotation when a signature needs an explicit requirement. Definitions, update helpers, Block connections, completed handler graphs, and attached Layer recipes carry these requirements automatically.
 
-Owned definitions include the named Block and local operation name in their handler contracts. `definition.assemble` compares the feature's local requirements with the outputs and inputs of its `EffectsLayer`, or with definitions explicitly listed in `hostHandlers`. A host then uses `block.provideHandlers` to satisfy those declared contracts. Parent connections carry the checked handler graph; `provide` is reserved for its remaining ordinary service requirements.
+Owned definitions include the named Block and local operation name in their handler contracts. `definition.assemble` compares the feature's local requirements with the outputs and inputs of its `EffectsLayer`, or with definitions explicitly listed in `hostHandlers`. A host then uses `block.provideHandlers` to satisfy those declared contracts. Parent connections carry the checked handler graph; the completed application or Element's `provide` method supplies its remaining ordinary service requirements.
 
 Definitions created by different named Blocks receive different owned names even when their local names and protocols match. Each definition also retains a private runtime identity, which Foldkit checks when a Command runs, a Subscription starts, a Mount executes, or a ManagedResource lifecycle begins. Create alternate implementations through the original definition's `toLayer` so they keep its identity. Foldkit creates the handler service and its runtime identity from the definition.
 
@@ -152,7 +152,7 @@ Flags remain startup Effects rather than handler definitions. The Flags Effect c
 
 If the service Layer fails to build, startup cannot reach init or the first render. There is no Model for a crash view yet. A service used only by one Flags Effect may be private to that Effect when the application should never select or share it. Shared services stay exposed from the root Layer with `Layer.provideMerge` so Flags and handlers receive the same instance.
 
-`Application.make` carries requirements from init, update, Subscriptions, registered Mounts, and ManagedResources. `Runtime.run` requires those requirements to be supplied. A Flags Effect can use a service produced by `provide`, as shown above.
+`Application.make` carries requirements from init, update, Subscriptions, registered Mounts, and ManagedResources. `Runtime.run` requires those requirements to be supplied. A Flags Effect can use a service produced by a Layer passed to `application.provide(layer)`, as shown above.
 
 ## Layer Naming and Composition
 
@@ -162,7 +162,7 @@ An owned Block passes its local handler bundle to `definition.assemble({ Effects
 
 Do not merge a registered child's bundle a second time. `connection` and `keyedConnection` both contribute the child's recipes, so static, optional, and keyed placements use the same composition rule. Composition checks the exact handler contracts supplied by the graph and reports a missing or conflicting provider before the Runtime starts.
 
-At the root, the typed Application or its registered composition contains the local handlers and registered child graphs. `ServicesLayer` combines concrete HTTP, storage, RPC, and browser providers. `ApplicationLayer` contains those ordinary service providers. The root’s owned `make({ init, update, view, ... })` method installs the handler graph, and `provide(application, ApplicationLayer)` supplies its remaining service requirements. An `ApplicationTestLayer` can provide alternate services to the same handlers.
+At the root, the typed Application or its registered composition contains the local handlers and registered child graphs. `ServicesLayer` combines concrete HTTP, storage, RPC, and browser providers. `ApplicationLayer` contains those ordinary service providers. The root’s owned `make({ init, update, view, ... })` method installs the handler graph, and `application.provide(ApplicationLayer)` supplies its remaining service requirements. An `ApplicationTestLayer` can provide alternate services to the same handlers.
 
 When a feature needs a different local handler implementation, choose it with `block.replaceEffectsLayer(localRecipe)` before connecting the feature. The replacement preserves the selected descendant recipes and remains passive until application startup. Use the original definitions' `toLayer` methods to retain their protocol and runtime identity. See [Selecting a local handler recipe](/core/block#select-a-local-handler-recipe).
 

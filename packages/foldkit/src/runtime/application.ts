@@ -1,6 +1,5 @@
 import {
   Effect,
-  Function,
   Layer,
   Option,
   Predicate,
@@ -393,6 +392,49 @@ type PendingApplication<
   Kind extends 'Application' | 'Element' = 'Application',
 > = Readonly<{
   ports: P
+  /**
+   * Supplies the ordinary services a Layer produces and carries the Layer's
+   * own requirements forward. The application already carries the handler
+   * graph selected during root completion. Combine independent service Layers
+   * with `Layer.mergeAll` before calling this method once. A bundle may produce
+   * services beyond the application's requirements. Those services remain
+   * available to Flags and other runtime effects. A later call supplies the
+   * Layers provided by earlier calls, so provide a dependent Layer before its
+   * dependency.
+   *
+   * Provision also works when the application has no unmet requirements. For
+   * example, only its Flags Effect may need a shared service. Commands and
+   * Subscription restarts reuse the provided services. Keep concrete
+   * environment providers at application assembly so tests can provide
+   * different services to the same handler Layers. Use `Layer.provideMerge`
+   * when the provider must also be available to Flags or other runtime effects.
+   *
+   * A hydrating start validates its server handoff before building Layers.
+   * Layers are built once for each runtime start and released when it stops.
+   * Provided variants of one program share embed activity and disposal
+   * ordering.
+   */
+  provide<const LayerType extends Layer.Layer<never, any, any>>(
+    layer: LayerType &
+      ValidHandlerContracts<
+        | NoInfer<Requirements>
+        | NoInfer<ProvidedServices>
+        | Layer.Success<NoInfer<LayerType>>
+        | Layer.Services<NoInfer<LayerType>>
+      >,
+  ): PublicProgram<
+    P,
+    Flags,
+    ResidualRequirements<
+      Requirements,
+      Layer.Success<LayerType>,
+      Layer.Services<LayerType>,
+      RuntimeServices
+    >,
+    RuntimeServices,
+    ProvidedServices | Layer.Success<LayerType>,
+    Kind
+  >
   [ApplicationTypeId]: Readonly<{
     Flags: (flags: Flags) => Flags
     Requirements: (requirements: Requirements) => Requirements
@@ -424,8 +466,8 @@ type Program<
 /**
  * A page-owning Foldkit application whose Effect requirements are carried in
  * its type. Applications with no requirements can be passed directly to
- * `Runtime.run`. Supply a Layer to an application with requirements through
- * {@link provide} before starting it.
+ * `Runtime.run`. Call `application.provide` with a Layer before starting an
+ * application that has requirements.
  */
 export type Application<
   P extends Ports | undefined = undefined,
@@ -444,9 +486,8 @@ export type Application<
 
 /**
  * A container-scoped Foldkit Element whose remaining ordinary service
- * requirements are carried in its type. Supply ordinary service Layers through
- * {@link provide} before passing the Element to `Runtime.run` or
- * `Runtime.embed`.
+ * requirements are carried in its type. Call `element.provide` with ordinary
+ * service Layers before passing the Element to `Runtime.run` or `Runtime.embed`.
  */
 export type Element<
   P extends Ports | undefined = undefined,
@@ -626,7 +667,7 @@ export function __makeFromConfig(
   }
 
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  return makeApplication(config as any)
+  return bindProvide(makeApplication(config as any))
 }
 
 /**
@@ -709,7 +750,7 @@ export function __makeElementFromConfig(
   }
 
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  return makeRuntimeElement(config as any)
+  return bindProvide(makeRuntimeElement(config as any))
 }
 
 type AnyLayer = Layer.Layer<never, any, any> | Layer.Layer<any, any, any>
@@ -1551,225 +1592,103 @@ const completeRoot = (
 const installBlock = (program: any, block: AnyBlock): any => {
   const internals = runtimeInternals.get(program)!
   const nativeStart = internals.startWithApplicationLayer
-  runtimeInternals.set(program, {
-    ...internals,
-    compositionRoot: block,
-    startWithApplicationLayer: (
+  internals.compositionRoot = block
+  internals.startWithApplicationLayer = (
+    connector,
+    preservedModel,
+    bootMode,
+    flags,
+    buildId,
+    layer,
+  ) =>
+    nativeStart(
       connector,
       preservedModel,
       bootMode,
       flags,
       buildId,
-      layer,
-    ) =>
-      nativeStart(
-        connector,
-        preservedModel,
-        bootMode,
-        flags,
-        buildId,
-        qualifyLayer(block.owner.id, layer),
-      ),
-  })
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  return provide(program, block.EffectsLayer as Layer.Layer<any, any, any>)
+      qualifyLayer(block.owner.id, layer),
+    )
+  return provideProgram(
+    program,
+    // oxlint-disable-next-line typescript/consistent-type-assertions
+    block.EffectsLayer as Layer.Layer<any, any, any>,
+  )
 }
 
-/**
- * Supplies the ordinary services a Layer produces and carries its own
- * requirements forward on the application. The application already carries
- * the handler graph selected during root completion.
- * Combine independent service Layers with `Layer.mergeAll` before calling this
- * once. A bundle may produce services beyond the application's requirements;
- * they remain available to Flags and other runtime effects. With repeated
- * calls, a later Layer supplies the Layers provided earlier, so supply a
- * dependent service Layer before its dependency.
- * Provision also works when the application has no
- * unmet requirements, for example when only its Flags Effect needs a shared
- * service. Layers are built once for each runtime start and released when it
- * stops. Commands and Subscription restarts reuse these services. Keep concrete
- * environment providers at application assembly so tests can provide different
- * services to the same handler Layers. Use `Layer.provideMerge` when the provider
- * must also be available to Flags or other runtime effects.
- * A hydrating start validates its server handoff before building
- * Layers. Provided variants of one program share its embed activity and
- * disposal ordering. Call data-first or pass a Layer alone to use this
- * function in a pipe.
- */
-export const provide: {
-  <const LayerType extends Layer.Layer<never, any, any>>(
-    layer: LayerType &
-      ValidHandlerContracts<
-        Layer.Success<NoInfer<LayerType>> | Layer.Services<NoInfer<LayerType>>
-      >,
-  ): <ApplicationProgram extends Readonly<{ ports: Ports | undefined }>>(
-    application: ApplicationProgram,
-  ) => ApplicationProgram extends PendingApplication<
-    infer P,
-    infer Flags,
-    infer CurrentRequirements,
-    infer RuntimeServices,
-    infer ProvidedServices,
-    infer Kind
-  >
-    ? ValidHandlerContracts<
-        | CurrentRequirements
-        | ProvidedServices
-        | Layer.Success<LayerType>
-        | Layer.Services<LayerType>
-      > extends Readonly<{ 'Conflicting Foldkit handler contracts': string }>
-      ? ValidHandlerContracts<
-          | CurrentRequirements
-          | ProvidedServices
-          | Layer.Success<LayerType>
-          | Layer.Services<LayerType>
-        >
-      : PublicProgram<
-          P,
-          Flags,
-          ResidualRequirements<
-            CurrentRequirements,
-            Layer.Success<LayerType>,
-            Layer.Services<LayerType>,
-            RuntimeServices
-          >,
-          RuntimeServices,
-          ProvidedServices | Layer.Success<LayerType>,
-          Kind
-        >
-    : never
-  <
-    P extends Ports | undefined,
-    Flags,
-    CurrentRequirements,
-    RuntimeServices,
-    ProvidedServices,
-    Kind extends 'Application' | 'Element',
-    const LayerType extends Layer.Layer<never, any, any>,
-  >(
-    application: PendingApplication<
-      P,
-      Flags,
-      CurrentRequirements,
-      RuntimeServices,
-      ProvidedServices,
-      Kind
-    >,
-    layer: LayerType &
-      ValidHandlerContracts<
-        | NoInfer<CurrentRequirements>
-        | NoInfer<ProvidedServices>
-        | Layer.Success<NoInfer<LayerType>>
-        | Layer.Services<NoInfer<LayerType>>
-      >,
-  ): PublicProgram<
-    P,
-    Flags,
-    ResidualRequirements<
-      CurrentRequirements,
-      Layer.Success<LayerType>,
-      Layer.Services<LayerType>,
-      RuntimeServices
-    >,
-    RuntimeServices,
-    ProvidedServices | Layer.Success<LayerType>,
-    Kind
-  >
-} = Function.dual(
-  2,
-  <
-    P extends Ports | undefined,
-    Flags,
-    CurrentRequirements,
-    RuntimeServices,
-    ProvidedServices,
-    Kind extends 'Application' | 'Element',
-    Provided,
-    E,
-    Needed,
-  >(
-    application: PendingApplication<
-      P,
-      Flags,
-      CurrentRequirements,
-      RuntimeServices,
-      ProvidedServices,
-      Kind
-    >,
-    layer: Layer.Layer<Provided, E, Needed>,
-  ): Program<
-    P,
-    Flags,
-    ResidualRequirements<
-      CurrentRequirements,
-      Provided,
-      Needed,
-      RuntimeServices
-    >,
-    RuntimeServices,
-    ProvidedServices | Provided,
-    Kind
-  > => {
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const program = application as unknown as MakeRuntimeReturn<
-      P,
-      Flags,
-      ProvidedServices,
-      Kind
-    >
-    const internals = runtimeInternals.get(program)
+type RuntimeProgram = Readonly<{
+  runtimeId: string
+  start: (preservedModel?: unknown) => Effect.Effect<void>
+  ports: Ports | undefined
+}>
 
-    if (internals === undefined) {
-      throw new Error(
-        '[foldkit] Application.provide expects a program created by Application.make or Application.makeElement.',
-      )
-    }
+type BoundRuntimeProgram = RuntimeProgram &
+  Readonly<{
+    provide: (layer: Layer.Layer<any, any, any>) => unknown
+  }>
 
-    const applicationLayer = internals.applicationLayer
-      ? Layer.provideMerge(internals.applicationLayer, layer)
-      : layer
+const provideProgram = (
+  program: RuntimeProgram,
+  layer: Layer.Layer<any, any, any>,
+): unknown => {
+  const internals = runtimeInternals.get(program)
 
-    const startWith = (
-      maybeConnector: Parameters<typeof internals.startWith>[0],
-      preservedModel?: unknown,
-      bootMode: Parameters<typeof internals.startWith>[2] = 'Fresh',
-      flags?: Parameters<typeof internals.startWith>[3],
-      buildId?: string,
-    ) =>
-      internals.startWithApplicationLayer(
-        maybeConnector,
-        preservedModel,
-        bootMode,
-        flags,
-        buildId,
-        applicationLayer,
-      )
+  if (internals === undefined) {
+    throw new Error(
+      '[foldkit] application.provide expects a program created by Application.make or Application.makeElement.',
+    )
+  }
 
-    const provided = {
-      ...program,
-      start: (preservedModel?: unknown) =>
-        startWith(Option.none(), preservedModel),
-    }
+  const applicationLayer = internals.applicationLayer
+    ? Layer.provideMerge(internals.applicationLayer, layer)
+    : layer
 
-    runtimeInternals.set(provided, {
-      ...internals,
+  const startWith = (
+    maybeConnector: Parameters<typeof internals.startWith>[0],
+    preservedModel?: unknown,
+    bootMode: Parameters<typeof internals.startWith>[2] = 'Fresh',
+    flags?: Parameters<typeof internals.startWith>[3],
+    buildId?: string,
+  ) =>
+    internals.startWithApplicationLayer(
+      maybeConnector,
+      preservedModel,
+      bootMode,
+      flags,
+      buildId,
       applicationLayer,
-      startWith,
-    })
+    )
 
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    return provided as unknown as Program<
-      P,
-      Flags,
-      ResidualRequirements<
-        CurrentRequirements,
-        Provided,
-        Needed,
-        RuntimeServices
-      >,
-      RuntimeServices,
-      ProvidedServices | Provided,
-      Kind
-    >
-  },
-)
+  const provided = {
+    ...program,
+    start: (preservedModel?: unknown) =>
+      startWith(Option.none(), preservedModel),
+  }
+
+  runtimeInternals.set(provided, {
+    ...internals,
+    applicationLayer,
+    startWith,
+  })
+
+  return bindProvide(provided)
+}
+
+const bindProvide = (program: RuntimeProgram): unknown => {
+  const internals = runtimeInternals.get(program)
+
+  if (internals === undefined) {
+    throw new Error(
+      '[foldkit] Application constructors must return a Foldkit Runtime program.',
+    )
+  }
+
+  const application: BoundRuntimeProgram = {
+    ...program,
+    provide: layer => provideProgram(application, layer),
+  }
+
+  runtimeInternals.set(application, internals)
+
+  return application
+}

@@ -1,6 +1,7 @@
-import { Layer } from 'effect'
+import { Effect, Layer } from 'effect'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
+import * as Runtime from 'foldkit/runtime'
 import * as Update from 'foldkit/update'
 
 import {
@@ -12,6 +13,8 @@ import {
   DirectModel,
   Parent,
   ParentModel,
+  ProvisionDependencyLayer,
+  ProvisionExtra,
   ReadCount,
   ReadDirectValue,
   RefinedChoice,
@@ -22,6 +25,9 @@ import {
   directChild,
   makePageProgram,
   makeProgram,
+  makeProvisionElement,
+  makeProvisionPageAwaitingDependency,
+  provisionPorts,
   refreshDirectValue,
   renderPage,
 } from './accepted.js'
@@ -47,6 +53,33 @@ export const refinedSelection = RefinedChoice.OutMessage.make({ value: 'Two' })
 export const program = makeProgram(document.createElement('div'))
 export const pageProgram = makePageProgram(document.createElement('div'))
 export const renderedPage = renderPage()
+
+const provisionPageAwaitingDependency = makeProvisionPageAwaitingDependency(
+  document.createElement('div'),
+)
+const provideDependency = provisionPageAwaitingDependency.provide
+export const provisionPage = provideDependency(ProvisionDependencyLayer)
+export const provisionElement = makeProvisionElement(
+  document.createElement('div'),
+)
+export const provisionElementHandle = Runtime.embed(provisionElement)
+
+Runtime.run(provisionPage, {
+  flags: Effect.map(ProvisionExtra, ({ value }) => ({ initialValue: value })),
+})
+Runtime.hydrate(provisionPage)
+provisionElementHandle.ports.valueChanged.send('updated')
+provisionElementHandle.ports.valueRead.subscribe(value => {
+  const count: number = value
+  void count
+})
+
+type EmittedPagePortsAreExact = Expect<
+  Equal<typeof provisionPage.ports, typeof provisionPorts>
+>
+type EmittedElementPortsAreExact = Expect<
+  Equal<typeof provisionElement.ports, typeof provisionPorts>
+>
 
 type EmittedServicesAreExact = Expect<
   Equal<Layer.Services<typeof ChildEffectsLayer>, Clock>
@@ -90,4 +123,6 @@ export type EmittedAssertions = [
   EmittedProducerRequirementsAreExact,
   EmittedDirectRequirementsAreExact,
   EmittedRefinementIsExact,
+  EmittedPagePortsAreExact,
+  EmittedElementPortsAreExact,
 ]

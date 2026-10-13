@@ -119,10 +119,9 @@ describe('runtime dialog cleanup', () => {
     document.body.append(background, container)
 
     const runtime = Effect.runFork(
-      Application.provide(
-        makeDialogProgram(container),
-        Layer.mergeAll(ShowDialogLayer, ShowNestedDialogsLayer),
-      ).start(),
+      makeDialogProgram(container)
+        .provide(Layer.mergeAll(ShowDialogLayer, ShowNestedDialogsLayer))
+        .start(),
     )
     const disconnectObserver = vi.spyOn(
       MutationObserver.prototype,
@@ -165,10 +164,9 @@ describe('runtime dialog cleanup', () => {
     document.body.append(background, firstContainer)
 
     const firstRuntime = Effect.runFork(
-      Application.provide(
-        makeDialogProgram(firstContainer),
-        Layer.mergeAll(ShowDialogLayer, ShowNestedDialogsLayer),
-      ).start(),
+      makeDialogProgram(firstContainer)
+        .provide(Layer.mergeAll(ShowDialogLayer, ShowNestedDialogsLayer))
+        .start(),
     )
     let secondRuntime: Fiber.Fiber<void, never> | undefined
 
@@ -190,10 +188,9 @@ describe('runtime dialog cleanup', () => {
       secondContainer.id = 'second-dialog-app'
       document.body.appendChild(secondContainer)
       secondRuntime = Effect.runFork(
-        Application.provide(
-          makeDialogProgram(secondContainer),
-          Layer.mergeAll(ShowDialogLayer, ShowNestedDialogsLayer),
-        ).start(),
+        makeDialogProgram(secondContainer)
+          .provide(Layer.mergeAll(ShowDialogLayer, ShowNestedDialogsLayer))
+          .start(),
       )
 
       await vi.waitFor(() => {
@@ -232,10 +229,9 @@ describe('runtime dialog cleanup', () => {
     trigger.focus()
 
     const runtime = Effect.runFork(
-      Application.provide(
-        makeNestedDialogProgram(container),
-        Layer.mergeAll(ShowDialogLayer, ShowNestedDialogsLayer),
-      ).start(),
+      makeNestedDialogProgram(container)
+        .provide(Layer.mergeAll(ShowDialogLayer, ShowNestedDialogsLayer))
+        .start(),
     )
 
     try {

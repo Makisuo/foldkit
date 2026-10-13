@@ -250,7 +250,6 @@ export { EffectsLayer } from './effects'
 
 // entry.ts
 import { Runtime } from 'foldkit'
-import { provide } from 'foldkit/application'
 
 import {
   Application,
@@ -276,10 +275,10 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-Runtime.run(provide(application, ApplicationLayer), { flags })
+Runtime.run(application.provide(ApplicationLayer), { flags })
 ```
 
-Use capitalized `Application` for the typed definition and lowercase `application` for the completed runtime input. Rename root assembly `main.ts` to `application.ts`, root providers `AppLayer` / `AppTestLayer` to `ApplicationLayer` / `ApplicationTestLayer`, and the root Route union `AppRoute` to `ApplicationRoute`. Standard structural exports stay Model, Message, OutMessage, Flags, init, update, and view. The public subpath is `foldkit/application`; import its factory as `defineApplication` and its provision utility as `provide`. Module-level `make` and `makeElement` are replaced by owned methods.
+Use capitalized `Application` for the typed definition and lowercase `application` for the completed runtime input. Rename root assembly `main.ts` to `application.ts`, root providers `AppLayer` / `AppTestLayer` to `ApplicationLayer` / `ApplicationTestLayer`, and the root Route union `AppRoute` to `ApplicationRoute`. Standard structural exports stay Model, Message, OutMessage, Flags, init, update, and view. The public subpath is `foldkit/application`; import its factory as `defineApplication`. Module-level `make` and `makeElement` are replaced by owned methods, and the completed program supplies ordinary Services through `application.provide(ApplicationLayer)` or `element.provide(ApplicationLayer)`.
 
 The entry supplies browser inputs. Definition and completion retain precise requirements without constructing Layers or executing handlers. The Runtime builds the graph when it starts. Registered and graphless definitions have the same completion methods.
 

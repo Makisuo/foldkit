@@ -59,8 +59,7 @@ const makeApplication = (
 describe('Layer-backed Mount runtime', () => {
   it('runs a registered Mount through its application Layer', async () => {
     const application = makeApplication([AnchorPanel])
-    const provided = Application.provide(
-      application,
+    const provided = application.provide(
       AnchorPanel.toLayer(
         Effect.succeed(({ label }) =>
           Effect.succeed(Message.CompletedAnchorPanel({ label })),
@@ -145,8 +144,7 @@ describe('Layer-backed Mount runtime', () => {
       },
       container,
     })
-    const provided = Application.provide(
-      application,
+    const provided = application.provide(
       AnchorPanel.toLayer(
         Effect.succeed(({ label }) =>
           Effect.succeed(Message.CompletedAnchorPanel({ label })),
@@ -237,8 +235,7 @@ describe('Layer-backed Mount runtime', () => {
       mounts: [AnchorPanel],
       container,
     })
-    const provided = Application.provide(
-      application,
+    const provided = application.provide(
       AnchorPanel.toLayer(
         Effect.succeed(({ label }) => {
           executions += 1
@@ -299,7 +296,7 @@ describe('Layer-backed Mount runtime', () => {
           }),
       ),
     )
-    const provided = Application.provide(application, handlerLayer)
+    const provided = application.provide(handlerLayer)
     const fiber = Effect.runFork(__startProgram(provided, undefined, 'Fresh'))
 
     await vi.waitFor(() => {
@@ -323,8 +320,7 @@ const checkApplicationTypes = (): void => {
   run(application)
 
   run(
-    Application.provide(
-      application,
+    application.provide(
       AnchorPanel.toLayer(
         Effect.succeed(({ label }) =>
           Effect.succeed(Message.CompletedAnchorPanel({ label })),

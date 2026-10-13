@@ -57,7 +57,7 @@ In a small starter, `src/application.ts` calls `defineApplication({ Model, Messa
 
 ### Runtime Entry
 
-For the Counter starter, `src/entry.ts` calls the typed root’s owned `Application.make({ ...implementation, container })` method, then starts the resulting program with `Runtime.run`. A starter whose handlers need application Services defines `ApplicationLayer` in `src/services.ts`, then the entry supplies it through `provide`. Importing `application.ts` remains passive; startup happens only in the entry.
+For the Counter starter, `src/entry.ts` calls the typed root’s owned `Application.make({ ...implementation, container })` method, then starts the resulting program with `Runtime.run`. A starter whose handlers need application Services defines `ApplicationLayer` in `src/services.ts`, then the entry calls `application.provide(ApplicationLayer)`. Importing `application.ts` and providing a Layer remain passive; startup happens only when the Runtime starts the program.
 
 ### Project Scripts
 

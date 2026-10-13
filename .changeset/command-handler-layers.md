@@ -475,7 +475,7 @@ Pass `managedResources` and its local `EffectsLayer` to `definition.assemble`; p
 
 ### Application assembly and runtime resources
 
-Remove the `resources` field. Establish the typed `Application` in `application.ts`, then complete it in `entry.ts` with its owned `make` or `makeElement` method. Supply ordinary Services with `provide` before calling the Runtime.
+Remove the `resources` field. Establish the typed `Application` in `application.ts`, then complete it in `entry.ts` with its owned `make` or `makeElement` method. Supply ordinary Services through the completed program's `provide` method before calling the Runtime.
 
 This example uses the storage service needed by `StoreDraft`. The Application collects its local handler recipes and registered children's recipes; `ApplicationLayer` supplies their ordinary Services.
 
@@ -527,7 +527,6 @@ In `entry.ts`:
 
 ```ts
 import { Runtime } from 'foldkit'
-import { provide } from 'foldkit/application'
 
 import { Application, init, update, view, EffectsLayer } from './application'
 import { ApplicationLayer } from './services'
@@ -540,10 +539,10 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-Runtime.run(provide(application, ApplicationLayer))
+Runtime.run(application.provide(ApplicationLayer))
 ```
 
-For an Element, use `Application.makeElement` and pass the provided result to `Runtime.run` or `Runtime.embed`. Preserve existing Flags, Ports, container, and DevTools host configuration. Include local Subscriptions and ManagedResources in completion; registered child connections contribute their lifecycle declarations and handlers automatically.
+For an Element, use `Application.makeElement`, call `element.provide(ApplicationLayer)`, and pass the result to `Runtime.run` or `Runtime.embed`. Preserve existing Flags, Ports, container, and DevTools host configuration. Include local Subscriptions and ManagedResources in completion; registered child connections contribute their lifecycle declarations and handlers automatically.
 
 ### External host implementations
 
@@ -680,7 +679,7 @@ Foldkit UI components expose completed Blocks. Bind each component and register 
 
 #### Inferred requirements
 
-`Update.define` infers Command requirements and OutMessages across Message branches while preserving required, optional, and rest context parameters. `Update.RequirementsOf<typeof update>` reads the Command services from an update contract without including lifecycle-only services. `Application.make` and `provide` carry all remaining handler and service requirements until the selected Layers satisfy them.
+`Update.define` infers Command requirements and OutMessages across Message branches while preserving required, optional, and rest context parameters. `Update.RequirementsOf<typeof update>` reads the Command services from an update contract without including lifecycle-only services. `Application.make` and the completed program's `provide` method carry all remaining handler and service requirements until the selected Layers satisfy them.
 
 #### Registration names
 
@@ -688,7 +687,7 @@ Each handler name belongs to one registered Subscription, Mount, or ManagedResou
 
 #### Handler protocols
 
-Handler requirements carry the name and protocol that share an Effect Context key: decoded args and declared result Messages for Commands, decoded dependencies and declared Messages for Subscriptions, element inputs and declared result Messages for Mounts, and decoded acquire params and resource values for ManagedResources. `provide` rejects incompatible same-named contracts supplied directly, combined in a `Layer.mergeAll` bundle, introduced through the Layer's own requirements, or accumulated through sequential provision.
+Handler requirements carry the name and protocol that share an Effect Context key: decoded args and declared result Messages for Commands, decoded dependencies and declared Messages for Subscriptions, element inputs and declared result Messages for Mounts, and decoded acquire params and resource values for ManagedResources. The completed program's `provide` method rejects incompatible same-named contracts supplied directly, combined in a `Layer.mergeAll` bundle, introduced through the Layer's own requirements, or accumulated through sequential provision.
 
 #### Definition identity checks
 
@@ -700,7 +699,7 @@ Each registered ManagedResource tag key has one lifecycle owner. `Application.ma
 
 ### Startup and cleanup
 
-Call `Runtime.run(provide(application, ApplicationLayer), { flags })`. The Runtime checks the Flags value and its required services against the provided application. Omit the options argument for a Flags-free application.
+Call `Runtime.run(application.provide(ApplicationLayer), { flags })`. The Runtime checks the Flags value and its required services against the provided application. Omit the options argument for a Flags-free application.
 
 Application Layer construction happens before Flags, init, or the first render. A construction failure therefore stops startup before a Model exists for a crash view. `Runtime.hydrate` validates the server handoff before acquiring the application Layer.
 

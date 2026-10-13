@@ -41,7 +41,7 @@ Three pieces connect the work to update:
 
 The typed definition's `update` method infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
 
-`application.ts` exports the typed `Application`, its update/view, and the local handler recipe. `entry.ts` passes those pieces to `Application.make`, provides any remaining Services with standalone `provide`, and starts the Runtime:
+`application.ts` exports the typed `Application`, its update/view, and the local handler recipe. `entry.ts` passes those pieces to `Application.make`, supplies any remaining Services through `application.provide(layer)`, and starts the Runtime:
 
 ::Snippet{name="counterCommandsEntry" label="Starting the counter"}
 
@@ -116,7 +116,7 @@ Supply the HTTP provider at the application root:
 
 ::Snippet{name="commandHttpLayer" label="Providing the HTTP service"}
 
-The completed Block already carries `FetchCountLayer`. Its remaining `HttpClient` requirement reaches the root, where `ApplicationLayer` supplies it. `Application.make` carries that unsatisfied service requirement, `provide` satisfies it, and `Runtime.run` requires a runnable application.
+The completed Block already carries `FetchCountLayer`. Its remaining `HttpClient` requirement reaches the root, where `ApplicationLayer` supplies it. `Application.make` carries that unsatisfied service requirement, `application.provide(ApplicationLayer)` satisfies it, and `Runtime.run` requires a runnable application.
 
 `Http.layer` is Foldkit's Fetch-backed client. The [Http guide](/core/http) explains its browser tracing defaults and customization. Keep the concrete provider at the root so the application and execution tests can select it, and so Commands share the same client.
 
@@ -142,7 +142,7 @@ A handler can own execution bookkeeping, such as a resource pool or worker respo
 
 ### Naming and Composition
 
-Compose `FetchCount.layer` directly in the feature's local `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. Pass a feature's local bundle to `assemble`; registered connections carry its handler recipe to the Application. Root `application.ts` exports the typed `Application` and implementation pieces, `services.ts` exports `ApplicationLayer`, and `entry.ts` calls owned completion and provides the Services. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
+Compose `FetchCount.layer` directly in the feature's local `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. Pass a feature's local bundle to `assemble`; registered connections carry its handler recipe to the Application. Root `application.ts` exports the typed `Application` and implementation pieces, `services.ts` exports `ApplicationLayer`, and `entry.ts` calls owned completion followed by `application.provide(ApplicationLayer)`. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
 
 Command names are local to their named Block. Two features can both declare `FetchCount`; their owners keep the definitions distinct. Names must be unique within one owner, and composition derives readable paths for each binding placement. A Command's handler requirement includes that owned name, its decoded args, and its declared result Messages. `definition.assemble` checks that the feature's `EffectsLayer` supplies each local requirement or that the definition appears in `hostHandlers`.
 

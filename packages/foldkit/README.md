@@ -120,13 +120,13 @@ Runtime.run(application)
 
 A feature follows the same staged flow. Define its contracts with `Block.define('Feature', { Model, Message, OutMessage })`, register its child graph when it has one, and export the completed `block` from `Feature.assemble({ init, update, view })`. The parent imports that feature namespace, creates a connection from `Feature.block.connection(...)`, and registers the connection in its own graph.
 
-Ordinary Effect services stay in a standalone provider. Supply it after the Application is complete:
+Ordinary Effect services stay in `ApplicationLayer`. Supply that Layer after the Application is complete:
 
 ```ts
-import { provide } from 'foldkit/application'
-
-Runtime.run(provide(application, ApplicationLayer))
+Runtime.run(application.provide(ApplicationLayer))
 ```
+
+`application.provide(ApplicationLayer)` returns another passive program. The Runtime builds the Layer only when it starts that program.
 
 Source: [examples/counter](https://github.com/foldkit/foldkit/blob/main/examples/counter/src/application.ts).
 

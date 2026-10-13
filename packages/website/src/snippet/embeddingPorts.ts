@@ -1,6 +1,5 @@
 import { Effect, Schema } from 'effect'
 import { Port } from 'foldkit'
-import { provide } from 'foldkit/application'
 
 import { Application, Flags, init, update, view } from './application'
 import { ApplicationLayer } from './services'
@@ -15,15 +14,12 @@ export const ports = {
 }
 
 export const makeElement = (container: HTMLElement, flags: typeof Flags.Type) =>
-  provide(
-    Application.makeElement({
-      init,
-      update,
-      view,
-      Flags,
-      flags: Effect.succeed(flags),
-      ports,
-      container,
-    }),
-    ApplicationLayer,
-  )
+  Application.makeElement({
+    init,
+    update,
+    view,
+    Flags,
+    flags: Effect.succeed(flags),
+    ports,
+    container,
+  }).provide(ApplicationLayer)

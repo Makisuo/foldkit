@@ -95,7 +95,7 @@ When `isAutoCounting` changes to `true`, the new Stream starts ticking. When it 
 
 ### Completing the Block
 
-Include the record when completing its owning Block. The completed value carries the Subscription registrations and their handler recipes through parent connections to the root. The typed root owns `make`; the entry supplies the implementation and container, provides shared Services when needed, and then starts the program:
+Include the record when completing its owning Block. The completed value carries the Subscription registrations and their handler recipes through parent connections to the root. The typed root owns `make`; the entry supplies the implementation and container, calls `application.provide(layer)` when shared Services remain, and then starts the program:
 
 ::Snippet{name="counterEntryWithSubscriptions" label="Subscription application entry"}
 

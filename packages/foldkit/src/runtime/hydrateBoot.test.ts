@@ -779,8 +779,7 @@ describe('hydrating boot', () => {
       view,
       container: nullContainer(),
     })
-    const provided = Application.provide(
-      application,
+    const provided = application.provide(
       Layer.effect(
         StartupService,
         Effect.sync(() => {
@@ -817,8 +816,7 @@ describe('hydrating boot', () => {
       view,
       container: nullContainer(),
     })
-    const provided = Application.provide(
-      application,
+    const provided = application.provide(
       Layer.effect(
         StartupService,
         Effect.acquireRelease(

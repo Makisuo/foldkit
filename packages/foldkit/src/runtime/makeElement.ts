@@ -94,9 +94,9 @@ export type ElementConfigWithFlags<
     /**
      * Resolves the Flags once at startup, before `init` runs. Define an
      * Element with `Application.makeElement` to supply shared Flags services
-     * through `Application.provide`. The error channel is `never`, so this
-     * Effect handles its own failures with `Effect.catch`, the same contract
-     * a Command's Effect has.
+     * through the completed Element's `provide` method. The error channel is
+     * `never`, so this Effect handles its own failures with `Effect.catch`,
+     * the same contract a Command's Effect has.
      */
     flags: Effect.Effect<Flags, never, NoInfer<Resources>>
     init: (

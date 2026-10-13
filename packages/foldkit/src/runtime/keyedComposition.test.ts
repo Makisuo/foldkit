@@ -21,7 +21,6 @@ import { modifyFields } from '../struct/index.js'
 import {
   type HtmlBuilderOf,
   define as defineApplication,
-  provide,
 } from './applicationPublic.js'
 import * as ModelPreservationBridge from './modelPreservationBridge.js'
 import { embed } from './start.js'
@@ -327,16 +326,15 @@ describe('keyed Block occurrences', () => {
     const container = document.createElement('div')
     container.id = 'memoized-keyed-composition'
     document.body.append(container)
-    const application = provide(
-      root.makeElement({
-        container,
-        init: rootInit,
-        update: rootUpdate,
-        view: rootView,
-        EffectsLayer: Layer.empty,
-      }),
-      Layer.succeed(TestControls, controls),
-    )
+    const element = root.makeElement({
+      container,
+      init: rootInit,
+      update: rootUpdate,
+      view: rootView,
+      EffectsLayer: Layer.empty,
+    })
+    const provideControls = element.provide
+    const application = provideControls(Layer.succeed(TestControls, controls))
     const handle = embed(application)
 
     try {
@@ -425,16 +423,15 @@ describe('keyed Block occurrences', () => {
     const container = document.createElement('div')
     container.id = 'keyed-composition'
     document.body.append(container)
-    const application = provide(
-      root.makeElement({
+    const application = root
+      .makeElement({
         container,
         init: rootInit,
         update: rootUpdate,
         view: rootView,
         EffectsLayer: Layer.empty,
-      }),
-      Layer.succeed(TestControls, controls),
-    )
+      })
+      .provide(Layer.succeed(TestControls, controls))
     const handle = embed(application)
 
     try {
@@ -518,16 +515,15 @@ describe('keyed Block occurrences', () => {
     const container = document.createElement('div')
     container.id = 'keyed-mount-barrier'
     document.body.append(container)
-    const application = provide(
-      root.makeElement({
+    const application = root
+      .makeElement({
         container,
         init: rootInit,
         update: rootUpdate,
         view: rootView,
         EffectsLayer: Layer.empty,
-      }),
-      Layer.succeed(TestControls, controls),
-    )
+      })
+      .provide(Layer.succeed(TestControls, controls))
     const handle = embed(application)
 
     try {

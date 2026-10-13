@@ -429,7 +429,7 @@ describe('makeElement with viewTransition', () => {
         devTools: { show: 'Always' },
       })
       const fiber = Effect.runFork(
-        Application.provide(element, ProbeCommittedDomLayer).start(),
+        element.provide(ProbeCommittedDomLayer).start(),
       )
 
       try {
@@ -554,9 +554,7 @@ describe('makeElement with viewTransition', () => {
       viewTransition: () => true,
       devTools: { show: 'Always' },
     })
-    const fiber = Effect.runFork(
-      Application.provide(element, TestMessagesLayer).start(),
-    )
+    const fiber = Effect.runFork(element.provide(TestMessagesLayer).start())
 
     try {
       await awaitBodyText('initial')
@@ -966,14 +964,15 @@ describe('makeElement with viewTransition', () => {
     })
 
     const fiber = Effect.runFork(
-      Application.provide(
-        element,
-        Layer.mergeAll(
-          ProbePendingCommitLayer,
-          CrashRuntimeLayer,
-          ProbeAfterCrashLayer,
-        ),
-      ).start(),
+      element
+        .provide(
+          Layer.mergeAll(
+            ProbePendingCommitLayer,
+            CrashRuntimeLayer,
+            ProbeAfterCrashLayer,
+          ),
+        )
+        .start(),
     )
 
     try {

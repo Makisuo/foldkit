@@ -1,6 +1,5 @@
 import { Effect, Layer } from 'effect'
 import { Runtime } from 'foldkit'
-import { provide } from 'foldkit/application'
 
 import { implementation, Message, registered } from './blockBindDescriptor'
 import { SettingsStore } from './blockOwnerContract'
@@ -22,4 +21,4 @@ export const ApplicationLayer = Layer.succeed(SettingsStore, {
 
 const application = makeApplication(document.getElementById('root'))
 
-Runtime.run(provide(application, ApplicationLayer))
+Runtime.run(application.provide(ApplicationLayer))

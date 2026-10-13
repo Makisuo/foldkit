@@ -1,5 +1,4 @@
 import { Runtime } from 'foldkit'
-import { provide } from 'foldkit/application'
 
 import { Application, implementation } from './application'
 import { Message } from './message'
@@ -11,4 +10,4 @@ const application = Application.make({
   devTools: { Message },
 })
 
-Runtime.run(provide(application, ApplicationLayer))
+Runtime.run(application.provide(ApplicationLayer))

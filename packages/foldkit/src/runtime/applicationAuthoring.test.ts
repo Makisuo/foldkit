@@ -18,7 +18,7 @@ import type {
   Element as ElementProgram,
   HtmlBuilderOf,
 } from './applicationPublic.js'
-import { define as defineApplication, provide } from './applicationPublic.js'
+import { define as defineApplication } from './applicationPublic.js'
 import * as ModelPreservationBridge from './modelPreservationBridge.js'
 import { embed } from './start.js'
 
@@ -416,8 +416,7 @@ describe('Application authoring', () => {
     > = element
     void pendingElement
 
-    const runnable = provide(
-      element,
+    const runnable = element.provide(
       Layer.succeed(ValueSource, { value: 'provided' }),
     )
     const handle = embed(runnable)

@@ -366,7 +366,7 @@ export interface EntryBuilder<Model, Message> {
  * the model is in a particular state: a camera stream during a video call, a
  * WebSocket connection while on a chat page, or a Web Worker pool during a
  * computation. For services that live for the entire application lifetime,
- * supply a Layer through `Application.provide` instead.
+ * supply a Layer through the completed application's `provide` method instead.
  *
  * `aggregate` and `lift` transform standalone records. Application Blocks
  * use registered `bind` or `bindEach` placements to collect their resources,

@@ -2,7 +2,7 @@
 'foldkit': minor
 ---
 
-Remove `Runtime.makeApplication` and `Runtime.makeElement`, including their `resources` configuration field. Establish the typed `Application` with `defineApplication` from `foldkit/application`. Complete it through its owned `make` or `makeElement` method, then supply application-lifetime Services with the standalone `provide` utility before calling `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed`.
+Remove `Runtime.makeApplication` and `Runtime.makeElement`, including their `resources` configuration field. Establish the typed `Application` with `defineApplication` from `foldkit/application`. Complete it through its owned `make` or `makeElement` method, then supply application-lifetime Services through `application.provide(layer)` or `element.provide(layer)` before calling `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed`.
 
 Owned completion captures Model, Message, and registered children. Pass local init, update, view, lifecycle declarations, and handler recipes to completion. Remaining Service requirements must be satisfied before the program can start.
 

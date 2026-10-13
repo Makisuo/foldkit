@@ -55,6 +55,7 @@ export const update = Application.update((model, message) =>
         ),
         Match.orElse(() => ({ model })),
       ),
+
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
     CompletedNavigateToRoom: () => ({ model }),

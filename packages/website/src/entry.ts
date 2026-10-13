@@ -1,5 +1,4 @@
 import { Runtime } from 'foldkit'
-import { provide } from 'foldkit/application'
 
 import {
   Application,
@@ -34,4 +33,4 @@ const application = Application.make({
   },
 })
 
-Runtime.hydrate(provide(application, ApplicationLayer))
+Runtime.hydrate(application.provide(ApplicationLayer))

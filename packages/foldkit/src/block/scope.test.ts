@@ -321,6 +321,98 @@ describe('Block capability contexts', () => {
     expect(Context.getOption(context, service)).toEqual(Option.none())
   })
 
+  it('projects ordinary Services, local capabilities, and descendant capabilities while isolating siblings', () => {
+    const feature = makeFeature('ProjectedScope')
+    const sibling = makeFeature('SiblingScope')
+    const ResourceScope = define('ProjectedResourceScope')
+    const Value = ResourceScope.resource<string>()('Value')
+    const service = identityOf(feature.ReadValue)!.service
+    const siblingService = identityOf(sibling.ReadValue)!.service
+    const source = { value: 'shared' }
+    const localHandler = {}
+    const childHandler = {}
+    const siblingHandler = {}
+    const localRef = Ref.makeUnsafe(Option.some('local'))
+    const childRef = Ref.makeUnsafe(Option.some('child'))
+    const context = Context.merge(
+      Context.make(ValueSource, source),
+      Context.merge(
+        qualifyContext(
+          'Left:',
+          Context.merge(
+            Context.make(service, localHandler),
+            Context.make(Value._tag, localRef),
+          ),
+        ),
+        Context.merge(
+          qualifyContext(
+            'Left:',
+            qualifyContext(
+              'Child',
+              Context.merge(
+                Context.make(service, childHandler),
+                Context.make(Value._tag, childRef),
+              ),
+            ),
+          ),
+          qualifyContext('Right', Context.make(siblingService, siblingHandler)),
+        ),
+      ),
+    )
+
+    const left = invocationContext('Left:', context)
+    const child = invocationContext('Child', left)
+
+    expect(Context.get(left, ValueSource)).toBe(source)
+    expect(Context.get(left, service)).toBe(localHandler)
+    expect(Context.get(left, Value._tag)).toBe(localRef)
+    expect(Context.get(child, ValueSource)).toBe(source)
+    expect(Context.get(child, service)).toBe(childHandler)
+    expect(Context.get(child, Value._tag)).toBe(childRef)
+    expect(Context.getOption(left, siblingService)).toEqual(Option.none())
+  })
+
+  it('indexes one stable parent Context once across sibling projections', () => {
+    class InstrumentedContextMap extends Map<string, any> {
+      iterationCount = 0
+
+      override [Symbol.iterator](): MapIterator<[string, any]> {
+        this.iterationCount += 1
+        return super[Symbol.iterator]()
+      }
+    }
+
+    const feature = makeFeature('IndexedScope')
+    const service = identityOf(feature.ReadValue)!.service
+    const entries = new InstrumentedContextMap(
+      Context.merge(
+        qualifyContext('Left', Context.make(service, {})),
+        qualifyContext('Right', Context.make(service, {})),
+      ).mapUnsafe,
+    )
+    const context = Context.makeUnsafe<never>(entries)
+
+    invocationContext('Left', context)
+    invocationContext('Right', context)
+
+    expect(entries.iterationCount).toBe(1)
+  })
+
+  it('indexes a fresh Context after an ordinary Service changes', () => {
+    const initialSource = { value: 'initial' }
+    const updatedSource = { value: 'updated' }
+    const initialContext = Context.make(ValueSource, initialSource)
+
+    const initial = invocationContext('Feature', initialContext)
+    const updated = invocationContext(
+      'Feature',
+      Context.add(initialContext, ValueSource, updatedSource),
+    )
+
+    expect(Context.get(initial, ValueSource)).toBe(initialSource)
+    expect(Context.get(updated, ValueSource)).toBe(updatedSource)
+  })
+
   it('rejects a same-shaped Layer from a different definition before invocation', async () => {
     const intended = makeFeature('SharedId')
     const unrelated = makeFeature('SharedId')

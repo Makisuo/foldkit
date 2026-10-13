@@ -21,7 +21,7 @@ import {
   type InstanceKey,
   commandInstances,
 } from '../block/instanceContext.js'
-import { invocationContext } from '../block/scope.js'
+import { invocationContextWithCursor } from '../block/scope.js'
 import * as Subscription from '../subscription/subscription.js'
 import { forkManagedResourceFibers } from './managedResourceFibers.js'
 import type { ManagedResourceRef } from './resourceProvider.js'
@@ -195,16 +195,12 @@ export const makeCompositionRuntime = <Model, Message>({
         modelPubSub: Effect.runSync(PubSub.unbounded<any>({ replay: 1 })),
         toRootMessage,
       }
-      const constructionCursor = Context.add(
+      node.context = invocationContextWithCursor(
+        placement,
         parentContext,
-        CurrentInstance,
         parent === undefined
           ? { node }
           : { node: parent, capturedChildren: [node] },
-      )
-      node.context = invocationContext(
-        placement,
-        constructionCursor,
         binding === undefined
           ? undefined
           : { binding, ...(key === undefined ? {} : { key }) },
@@ -327,12 +323,12 @@ export const makeCompositionRuntime = <Model, Message>({
                   ]),
                 ),
               })
-              const provideAllResources = <A>(
-                effect: Effect.Effect<A, never, any>,
+              const provideAllResources = <A, Requirements>(
+                effect: Effect.Effect<A, never, Requirements>,
               ): Effect.Effect<A> =>
                 Effect.provideContext(
                   effect,
-                  Context.makeUnsafe<any>(node.context.mapUnsafe),
+                  Context.makeUnsafe<Requirements>(node.context.mapUnsafe),
                 )
               const enqueueMessageEffect = (message: any) =>
                 Effect.sync(() => {

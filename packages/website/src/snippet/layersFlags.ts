@@ -1,7 +1,6 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect'
 import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/http'
 import { Http, Runtime } from 'foldkit'
-import { provide } from 'foldkit/application'
 
 import { Application, init, update, view } from './application'
 
@@ -58,4 +57,4 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-Runtime.run(provide(application, ApplicationLayer), { flags })
+Runtime.run(application.provide(ApplicationLayer), { flags })

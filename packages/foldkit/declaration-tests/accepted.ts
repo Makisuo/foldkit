@@ -3,12 +3,12 @@ import {
   type Application as ApplicationProgram,
   type Element as ElementProgram,
   define as defineApplication,
-  provide,
 } from 'foldkit/application'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
 import { Server } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
+import * as Port from 'foldkit/port'
 import * as Update from 'foldkit/update'
 
 type Equal<Left, Right> =
@@ -337,6 +337,41 @@ export type RefinedAssertions = [RefinedValueIsExact, RefinedFoldIsExact]
 
 const ClockLayer = Layer.succeed(Clock, { now: Effect.succeed(1) })
 
+export class ProvisionDependency extends Context.Service<
+  ProvisionDependency,
+  Readonly<{ value: number }>
+>()('DeclarationTestsProvisionDependency') {}
+
+export class ProvisionExtra extends Context.Service<
+  ProvisionExtra,
+  Readonly<{ value: number }>
+>()('DeclarationTestsProvisionExtra') {}
+
+export const ProvisionDependencyLayer = Layer.succeed(ProvisionDependency, {
+  value: 2,
+})
+
+const ClockAndExtraLayer = Layer.merge(
+  Layer.effect(
+    Clock,
+    Effect.map(ProvisionDependency, ({ value }) => ({
+      now: Effect.succeed(value),
+    })),
+  ),
+  Layer.effect(
+    ProvisionExtra,
+    Effect.map(ProvisionDependency, ({ value }) => ({ value: value + 1 })),
+  ),
+)
+
+const ProvisionFlags = Schema.Struct({ initialValue: Schema.Number })
+export type ProvisionFlags = typeof ProvisionFlags.Type
+
+export const provisionPorts = {
+  inbound: { valueChanged: Port.inbound(Schema.String) },
+  outbound: { valueRead: Port.outbound(Schema.Number) },
+}
+
 const Application = defineApplication({
   Model: ParentModel,
   Message: ParentMessage,
@@ -436,25 +471,88 @@ const applicationImplementation = {
   EffectsLayer: Layer.empty,
 }
 
+const makeInferredProvisionPageAwaitingDependency = (
+  container: HTMLElement | null,
+) =>
+  PureApplication.make({
+    Flags: ProvisionFlags,
+    container,
+    init: ({ initialValue }: typeof ProvisionFlags.Type) => ({
+      model: ParentModel.make({
+        child: Child.Model.make({ value: initialValue }),
+      }),
+    }),
+    ports: provisionPorts,
+    update: PureApplication.update(wrappedPureUpdate.fn),
+    view: pureDocumentView,
+  }).provide(ClockAndExtraLayer)
+
+type ProvisionPage = ApplicationProgram<
+  typeof provisionPorts,
+  ProvisionFlags,
+  ProvisionDependency,
+  never,
+  Clock | ProvisionExtra
+>
+
+type ProvisionPageIsExact = Expect<
+  Equal<
+    ReturnType<typeof makeInferredProvisionPageAwaitingDependency>,
+    ProvisionPage
+  >
+>
+
+export const makeProvisionPageAwaitingDependency: (
+  container: HTMLElement | null,
+) => ProvisionPage = makeInferredProvisionPageAwaitingDependency
+
+const makeInferredProvisionElement = (container: HTMLElement | null) =>
+  PureApplication.makeElement({
+    container,
+    init: pureInit,
+    ports: provisionPorts,
+    update: PureApplication.update(wrappedPureUpdate.fn),
+    view: pureElementView,
+  })
+    .provide(ClockAndExtraLayer)
+    .provide(ProvisionDependencyLayer)
+
+type ProvisionElement = ElementProgram<
+  typeof provisionPorts,
+  never,
+  never,
+  Clock | ProvisionExtra | ProvisionDependency
+>
+
+type ProvisionElementIsExact = Expect<
+  Equal<ReturnType<typeof makeInferredProvisionElement>, ProvisionElement>
+>
+
+export const makeProvisionElement: (
+  container: HTMLElement | null,
+) => ProvisionElement = makeInferredProvisionElement
+
+type ProvisionAssertions = [ProvisionPageIsExact, ProvisionElementIsExact]
+const provisionAssertions: ProvisionAssertions = [true, true]
+void provisionAssertions
+
 export const makeProgram = (container: HTMLElement) =>
-  provide(
-    applicationComposition.makeElement({
+  applicationComposition
+    .makeElement({
       ...applicationImplementation,
       container,
       view: applicationElementView,
-    }),
-    ClockLayer,
-  )
+    })
+    .provide(ClockLayer)
 
 export const makePageProgram = (container: HTMLElement | null) =>
-  provide(
-    applicationComposition.make({
+  applicationComposition
+    .make({
       ...applicationImplementation,
       container,
       view: applicationDocumentView,
-    }),
-    ClockLayer,
-  )
+    })
+    .provide(ClockLayer)
 
 export const renderPage = () =>
   Server.renderToString(

@@ -192,7 +192,7 @@ describe('slow warnings', () => {
       },
     })
 
-    const provided = Application.provide(element, MeasureCountDependenciesLayer)
+    const provided = element.provide(MeasureCountDependenciesLayer)
     const fiber = Effect.runFork(provided.start())
 
     try {
@@ -251,7 +251,7 @@ describe('slow warnings', () => {
       },
     })
 
-    const provided = Application.provide(element, MeasureCountDependenciesLayer)
+    const provided = element.provide(MeasureCountDependenciesLayer)
     const fiber = Effect.runFork(provided.start())
 
     try {
@@ -290,7 +290,7 @@ describe('slow warnings', () => {
       },
     })
 
-    const provided = Application.provide(element, MeasureCountDependenciesLayer)
+    const provided = element.provide(MeasureCountDependenciesLayer)
     const fiber = Effect.runFork(provided.start())
 
     try {

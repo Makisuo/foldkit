@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema, pipe } from 'effect'
+import { Context, Effect, Layer, Schema } from 'effect'
 import { expectTypeOf, it } from 'vitest'
 
 import type { Scoped } from '../block/scope.js'
@@ -159,16 +159,9 @@ const checkAssemblyTypes = (): void => {
   })
 
   const independentLayers = Layer.mergeAll(Send.layer, CacheLayer)
-  Application.provide(application, Layer.empty)
-  pipe(application, Application.provide(Layer.empty))
-  run(Application.provide(application, independentLayers))
-  pipe(application, Application.provide(independentLayers), run)
-  pipe(
-    application,
-    Application.provide(Send.layer),
-    Application.provide(CacheLayer),
-    run,
-  )
+  application.provide(Layer.empty)
+  run(application.provide(independentLayers))
+  run(application.provide(Send.layer).provide(CacheLayer))
 
   const conflictingLayers = Layer.mergeAll(
     Send.layer,
@@ -176,24 +169,15 @@ const checkAssemblyTypes = (): void => {
   )
 
   // @ts-expect-error Two contracts cannot occupy the same Command Context key.
-  Application.provide(application, conflictingLayers)
-
-  // @ts-expect-error A conflicting Layer bundle cannot enter an application pipe.
-  Application.provide(conflictingLayers)
+  application.provide(conflictingLayers)
 
   // @ts-expect-error The provider conflicts with the required Command contract.
-  Application.provide(application, SendWithOptionalText.layer)
+  application.provide(SendWithOptionalText.layer)
 
-  // @ts-expect-error Conflicting data-last provision cannot produce a runnable app.
-  pipe(application, Application.provide(SendWithOptionalText.layer), run)
-
-  const provided = Application.provide(application, Send.layer)
+  const provided = application.provide(Send.layer)
 
   // @ts-expect-error Subsequent providers cannot overwrite a different contract.
-  Application.provide(provided, SendWithOptionalText.layer)
-
-  // @ts-expect-error A pipeline retains contracts supplied by earlier providers.
-  pipe(provided, Application.provide(SendWithOptionalText.layer), run)
+  provided.provide(SendWithOptionalText.layer)
 
   const requiresOtherContract = Layer.effect(
     Cache,
@@ -209,7 +193,7 @@ const checkAssemblyTypes = (): void => {
   )
 
   // @ts-expect-error Layer dependencies also cannot use a conflicting handler contract.
-  Application.provide(application, outputAndInputConflict)
+  application.provide(outputAndInputConflict)
 }
 
 void checkAssemblyTypes

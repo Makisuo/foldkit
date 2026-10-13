@@ -110,9 +110,7 @@ describe('command message mappers', () => {
       container,
     })
 
-    const fiber = Effect.runFork(
-      Application.provide(element, DoChildWorkLayer).start(),
-    )
+    const fiber = Effect.runFork(element.provide(DoChildWorkLayer).start())
 
     try {
       // DoChildWork resolves to CompletedDoChildWork (child Message).
@@ -206,10 +204,9 @@ describe('command message mappers', () => {
     })
 
     const fiber = Effect.runFork(
-      Application.provide(
-        element,
-        Layer.mergeAll(DoChildWorkLayer, ChooseDestinationLayer),
-      ).start(),
+      element
+        .provide(Layer.mergeAll(DoChildWorkLayer, ChooseDestinationLayer))
+        .start(),
     )
 
     try {
@@ -281,10 +278,9 @@ describe('command message mappers', () => {
       devTools: { show: 'Always' },
     })
     const fiber = Effect.runFork(
-      Application.provide(
-        element,
-        Layer.mergeAll(DoChildWorkLayer, WaitForChildLayer),
-      ).start(),
+      element
+        .provide(Layer.mergeAll(DoChildWorkLayer, WaitForChildLayer))
+        .start(),
     )
 
     try {

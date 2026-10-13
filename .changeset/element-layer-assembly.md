@@ -2,7 +2,7 @@
 'foldkit': minor
 ---
 
-Add owned `Application.makeElement` for container-scoped applications. It captures the typed definition's Model, Message, and registered children. Completion infers requirements from Flags, init and update Commands, Subscriptions, Mounts, and ManagedResources. The standalone `provide` utility satisfies ordinary Service requirements before `Runtime.run` or `Runtime.embed` starts the Element.
+Add owned `Application.makeElement` for container-scoped applications. It captures the typed definition's Model, Message, and registered children. Completion infers requirements from Flags, init and update Commands, Subscriptions, Mounts, and ManagedResources. The completed Element's `provide` method satisfies ordinary Service requirements before `Runtime.run` or `Runtime.embed` starts it.
 
 **Before**
 
@@ -28,7 +28,6 @@ const handle = Runtime.embed(element)
 
 ```ts
 import { Runtime } from 'foldkit'
-import { provide } from 'foldkit/application'
 import { Application, init, update, view, ports } from './application'
 import { ApplicationLayer } from './services'
 
@@ -40,7 +39,7 @@ const element = Application.makeElement({
   container,
 })
 
-const handle = Runtime.embed(provide(element, ApplicationLayer))
+const handle = Runtime.embed(element.provide(ApplicationLayer))
 ```
 
 Preserve existing Flags and other host configuration. Include local lifecycle declarations and `EffectsLayer` in completion when present. Registered children contribute their declarations and handler recipes automatically.

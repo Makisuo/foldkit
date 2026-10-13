@@ -1,13 +1,12 @@
-import { Option } from 'effect'
-import type { HtmlBuilder } from 'foldkit/html'
+import { Option, Schema } from 'effect'
+import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Scene from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
-import * as Update from 'foldkit/update'
 
 import { describe, it } from '@effect/vitest'
 
-import type { Model as RadioGroupModel, ViewInputs } from './index.js'
+import type { ViewInputs } from './index.js'
 import {
   FocusOption,
   Message as RadioGroupMessage,
@@ -26,10 +25,13 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-type Model = Readonly<{
-  radioGroup: RadioGroupModel
-  maybeSelectedValue: Option.Option<string>
-}>
+const Model = Schema.Struct({
+  radioGroup: TestRadioGroup.Model,
+  maybeSelectedValue: Schema.Option(Schema.String),
+})
+type Model = typeof Model.Type
+
+const RadioGroupScene = Block.define('RadioGroupScene', { Model, Message })
 
 const modelWith = (maybeSelectedValue: Option.Option<string>): Model => ({
   radioGroup: init({ id: RADIO_ID }),
@@ -51,18 +53,18 @@ const foldRadioGroupOutMessage = RadioGroupOutMessage.match<
     }),
 })
 
-const foldRadioGroup = Update.foldChild({
-  update: TestRadioGroup.update,
-  read: (model: Model) => Option.some(model.radioGroup),
-  write: (model, nextRadioGroup) =>
-    modifyFields(model, { radioGroup: () => nextRadioGroup }),
-  toParentMessage: message => Message.GotRadioGroupMessage({ message }),
-  foldOutMessage: foldRadioGroupOutMessage,
+const radioGroup = TestRadioGroup.connection({
+  Model,
+  field: 'radioGroup',
+  parentMessage: Message.GotRadioGroupMessage,
+  outMessage: { fold: foldRadioGroupOutMessage },
 })
 
-const update = Update.define((model: Model, message: Message) =>
+const registered = RadioGroupScene.register({ children: [radioGroup] })
+
+const update = RadioGroupScene.update((model, message) =>
   Message.match(message, {
-    GotRadioGroupMessage: ({ message }) => foldRadioGroup(model, message),
+    GotRadioGroupMessage: ({ message }) => radioGroup.fold(model, message),
   }),
 )
 
@@ -71,13 +73,11 @@ type Overrides = Omit<
   'options' | 'selectedValue' | 'ariaLabel' | 'toView'
 >
 
-const testView =
-  (overrides: Overrides = {}) =>
-  (model: Model, h: HtmlBuilder<Message>) =>
-    h.submodel({
+const rootView = registered.view.withInputs<Overrides>((model, overrides, h) =>
+  h.block(
+    radioGroup.embedView({
       slotId: RADIO_ID,
       model: model.radioGroup,
-      view: TestRadioGroup.view,
       viewInputs: {
         options,
         selectedValue: model.maybeSelectedValue,
@@ -94,8 +94,11 @@ const testView =
             ),
           ),
       },
-      toParentMessage: message => Message.GotRadioGroupMessage({ message }),
-    })
+    }),
+  ),
+)
+
+const testView = Scene.withViewInputs(rootView, {})
 
 const resolveFocusOption = Scene.Command.resolve(
   FocusOption,

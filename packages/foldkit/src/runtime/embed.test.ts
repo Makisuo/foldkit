@@ -165,7 +165,7 @@ const makeWidget = (
   > = [],
 ) =>
   Application.provide(
-    Application.makeElement({
+    Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { count: 0, step: 1 }, commands: initCommands }),
       update,
@@ -334,7 +334,7 @@ describe('embed', () => {
 
     const handle = embed(
       Application.provide(
-        Application.makeElement({
+        Application.__makeElementFromConfig({
           Model,
           Flags,
           flags: Effect.succeed({ initialCount: 41 }),
@@ -366,7 +366,7 @@ describe('embed', () => {
 
     const handle = embed(
       Application.provide(
-        Application.makeElement({
+        Application.__makeElementFromConfig({
           Model,
           Flags,
           flags: Effect.sync((): { initialCount: number } => {
@@ -487,7 +487,7 @@ describe('embed', () => {
   it('works with a makeApplication program', async () => {
     const handle = embed(
       Application.provide(
-        Application.make({
+        Application.__makeFromConfig({
           Model,
           init: () => ({ model: { count: 0, step: 1 } }),
           update,

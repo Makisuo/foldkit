@@ -5,27 +5,27 @@ import { defineRouteUnion, int, literal, slash } from 'foldkit/route'
 
 // ROUTE
 
-const AppRoute = defineRouteUnion({
+const ApplicationRoute = defineRouteUnion({
   Home: {},
   Person: { personId: Schema.Number },
 })
-type AppRoute = typeof AppRoute.Type
+type ApplicationRoute = typeof ApplicationRoute.Type
 
-const homeRouter = pipe(Route.root, Route.mapTo(AppRoute.Home))
+const homeRouter = pipe(Route.root, Route.mapTo(ApplicationRoute.Home))
 const personRouter = pipe(
   literal('people'),
   slash(int('personId')),
-  Route.mapTo(AppRoute.Person),
+  Route.mapTo(ApplicationRoute.Person),
 )
 
 // CANONICAL
 
 const SITE_URL = 'https://app.example'
 
-const routeToCanonicalUrl = (route: AppRoute): string =>
+const routeToCanonicalUrl = (route: ApplicationRoute): string =>
   String.concat(
     SITE_URL,
-    AppRoute.match(route, {
+    ApplicationRoute.match(route, {
       Home: () => homeRouter(),
       Person: ({ personId }) => personRouter({ personId }),
     }),

@@ -6,14 +6,12 @@
 
 This counter puts the core loop from [Architecture](/core/architecture) into one small application. Its Model holds the count. Its Messages record button clicks. Its update function decides the next count, and its view renders the result.
 
-The example uses two files. `src/main.ts` holds the pure application definitions: Model, Messages, update, init, and view. Larger applications can split those definitions into focused modules. `src/entry.ts` remains the runtime boundary, so tests can import the application without starting it as a side effect. When later sections add effects, `main.ts` also exports an `EffectsLayer` built from the handlers attached to its Commands and Subscriptions, and `entry.ts` provides that bundle before starting the Runtime.
-
-::Snippet{name="counter" label="Counter main.ts"}
+The example uses two files. `src/application.ts` defines the typed `Application` with its Model and Message contracts, then authors init, update, and view through it. `src/entry.ts` selects the browser container, calls `Application.make`, and starts the Runtime. Importing the application pieces in a test does not start the browser application. Larger applications can split substantial logic into focused files.
+::Snippet{name="counter" label="Counter Application"}
 
 ### Runtime Entry
 
-The entry passes those definitions to `Application.make`. `Runtime.run` then starts the application in the selected container.
-
+The entry imports the typed `Application` and its implementation pieces, then calls its owned `make` method. The returned lowercase `application` is passive configuration. `Runtime.run` constructs its Layers and starts the application.
 ::Snippet{name="counterEntry" label="Counter entry.ts"}
 
 ### Where to Go Next

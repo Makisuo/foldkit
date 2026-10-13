@@ -1,6 +1,5 @@
 import { Schema } from 'effect'
-import { Runtime, type Update } from 'foldkit'
-import type { Document, HtmlBuilder } from 'foldkit/html'
+import { define as defineApplication } from 'foldkit/application'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -18,12 +17,14 @@ export const Message = defineMessageUnion({
   ClickedIncrement: {},
   ClickedReset: {},
 })
+
+export const Application = defineApplication({ Model, Message })
 export type Message = typeof Message.Type
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Application.update((model, message) =>
+  Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: count => count - 1 }),
     }),
@@ -31,17 +32,18 @@ export const update = (model: Model, message: Message) =>
       model: modifyFields(model, { count: count => count + 1 }),
     }),
     ClickedReset: () => ({ model: modifyFields(model, { count: () => 0 }) }),
-  })
+  }),
+)
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+export const init = () => ({
   model: { count: 0 },
 })
 
 // VIEW
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+export const view = Application.view((model, h) => ({
   title: `Counter: ${model.count}`,
   body: h.div(
     [
@@ -73,7 +75,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
       ),
     ],
   ),
-})
+}))
 
 // STYLE
 

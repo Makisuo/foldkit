@@ -1,29 +1,30 @@
-import { Document, Html, HtmlBuilder } from 'foldkit/html'
+import { Html, HtmlBuilder } from 'foldkit/html'
 
+import { home, room } from '../children'
+import { Application } from '../children'
 import { Message } from '../message'
 import { Model } from '../model'
-import { AppRoute } from '../route'
-import { home, room } from '../submodels'
+import { ApplicationRoute } from '../route'
 
 const routeTitle = (route: Model['route']): string =>
-  AppRoute.match(route, {
+  ApplicationRoute.match(route, {
     Home: () => 'Typing Game',
     Room: ({ roomId }) => `Room ${roomId} | Typing Game`,
     NotFound: () => 'Not Found | Typing Game',
   })
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const content = AppRoute.match(model.route, {
+export const view = Application.view((model, h) => {
+  const content = ApplicationRoute.match(model.route, {
     Home: () =>
-      h.submodel(
-        home.embed({
+      h.block(
+        home.embedView({
           slotId: 'home',
           model: model.home,
         }),
       ),
     Room: ({ roomId }) =>
-      h.submodel(
-        room.embed({
+      h.block(
+        room.embedView({
           slotId: 'room',
           model: model.room,
           viewInputs: { roomId },
@@ -58,10 +59,10 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
       [h.main([h.Class('flex-1 flex flex-col')], [content]), footerElement],
     ),
   }
-}
+})
 
 const notFound = (
-  { path }: typeof AppRoute.NotFound.Type,
+  { path }: typeof ApplicationRoute.NotFound.Type,
   h: HtmlBuilder<Message>,
 ): Html =>
   h.section(

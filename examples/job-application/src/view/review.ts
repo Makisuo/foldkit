@@ -7,7 +7,11 @@ import { Button } from '@foldkit/ui'
 import { Step } from '../domain'
 import { Message } from '../message'
 import { type Model, Submission } from '../model'
-import { Education, PersonalInfo, Skills, WorkHistory } from '../step'
+import { EducationEntry, WorkHistoryEntry } from '../step'
+import { isComplete as isEducationComplete } from '../step/education'
+import { isComplete as isPersonalInfoComplete } from '../step/personalInfo'
+import { isComplete as isSkillsComplete } from '../step/skills'
+import { isComplete as isWorkHistoryComplete } from '../step/workHistory'
 import { employmentRange, pluralize } from './format'
 
 const reviewSection = (
@@ -63,7 +67,7 @@ const personalInfoSection = (
   )
 
 const workEntryReview = (
-  entry: WorkHistory.Entry.Model,
+  entry: typeof WorkHistoryEntry.Model.Type,
   h: HtmlBuilder<Message>,
 ): Html => {
   const title = entry.company.value
@@ -107,7 +111,7 @@ const workHistorySection = (
     h,
   )
 
-const educationTimeline = (entry: Education.Entry.Model): string => {
+const educationTimeline = (entry: typeof EducationEntry.Model.Type): string => {
   if (entry.isCurrentlyEnrolled) {
     return ' (Currently enrolled)'
   }
@@ -118,7 +122,7 @@ const educationTimeline = (entry: Education.Entry.Model): string => {
 }
 
 const educationEntryReview = (
-  entry: Education.Entry.Model,
+  entry: typeof EducationEntry.Model.Type,
   h: HtmlBuilder<Message>,
 ): Html => {
   const title = entry.fieldOfStudy.value
@@ -361,10 +365,10 @@ export const review = (
   })
 
   const isApplicationComplete =
-    PersonalInfo.isComplete(model.personalInfo) &&
-    WorkHistory.isComplete(model.workHistory) &&
-    Education.isComplete(model.education) &&
-    Skills.isComplete(model.skills)
+    isPersonalInfoComplete(model.personalInfo) &&
+    isWorkHistoryComplete(model.workHistory) &&
+    isEducationComplete(model.education) &&
+    isSkillsComplete(model.skills)
 
   return h.div(
     [h.Class('space-y-4')],

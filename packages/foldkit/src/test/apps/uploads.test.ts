@@ -12,7 +12,7 @@ const boot = (): void => {
   document.body.appendChild(container)
 
   const application = Application.provide(
-    Application.make({
+    Application.__makeFromConfig({
       Model: App.Model,
       init: () => ({ model: App.initialModel }),
       update: App.update,

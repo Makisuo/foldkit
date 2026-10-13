@@ -1,71 +1,82 @@
-import { Effect, Fiber, Schema } from 'effect'
-import { Application } from 'foldkit'
-import type { HtmlBuilder } from 'foldkit/html'
-import type * as Mount from 'foldkit/mount'
+import { Effect, Fiber, Layer, Option, Schema } from 'effect'
+import { define as defineApplication } from 'foldkit/application'
+import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
+import * as Update from 'foldkit/update'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import {
-  EffectsLayer,
-  Message,
-  Model,
-  boot,
-  mounts,
-  update,
-  view,
-} from './index.js'
-
-type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
+import * as Dialog from './index.js'
 
 const dialogId = 'preserved-dialog'
 
-const makeDialogProgram = (container: HTMLElement) =>
-  Application.provide(
-    Application.makeElement({
-      Model,
-      init: () => {
-        const dialogBoot = boot({ id: dialogId })
+const RuntimeMessage = defineMessageUnion({
+  GotDialogMessage: { message: Dialog.Message },
+})
+type RuntimeMessage = typeof RuntimeMessage.Type
+type Model = Dialog.Model
 
-        if (dialogBoot.commands === undefined) {
-          return { model: dialogBoot.model }
-        }
+const Application = defineApplication({
+  Model: Dialog.Model,
+  Message: RuntimeMessage,
+})
 
-        return { model: dialogBoot.model, commands: dialogBoot.commands }
-      },
-      update: (model, message) => {
-        const dialogUpdate = update(model, message)
+const foldDialogOutMessage = Dialog.OutMessage.match<
+  Update.Step<Model, RuntimeMessage>
+>({
+  Opened: () => model => ({ model }),
+  Closed: () => model => ({ model }),
+})
 
-        if (dialogUpdate.commands === undefined) {
-          return { model: dialogUpdate.model }
-        }
+const dialog = Dialog.block.connection({
+  read: (model: Model) => Option.some(model),
+  write: (_model: Model, nextDialog: Dialog.Model) => nextDialog,
+  parentMessage: RuntimeMessage.GotDialogMessage,
+  outMessage: { fold: foldDialogOutMessage },
+})
 
-        return { model: dialogUpdate.model, commands: dialogUpdate.commands }
-      },
-      view: (model: Model, h: TestHtmlBuilder) =>
-        view(
-          model,
-          {
-            toView: ({ dialog, title, panel }) =>
-              h.dialog(
-                [...dialog],
+const registered = Application.register({ children: [dialog] })
+
+const update = Application.update((model, message) =>
+  RuntimeMessage.match(message, {
+    GotDialogMessage: ({ message: dialogMessage }) =>
+      dialog.fold(model, dialogMessage),
+  }),
+)
+
+const view = registered.view((model, h) =>
+  h.block(
+    dialog.embedView({
+      slotId: model.id,
+      model,
+      viewInputs: {
+        toView: ({ dialog, title, panel }) =>
+          h.dialog(
+            [...dialog],
+            [
+              h.div(
+                [...panel],
                 [
-                  h.div(
-                    [...panel],
-                    [
-                      h.h2([...title], ['Preserved Dialog']),
-                      h.button([h.Id('dialog-button')], ['Close']),
-                    ],
-                  ),
+                  h.h2([...title], ['Preserved Dialog']),
+                  h.button([h.Id('dialog-button')], ['Close']),
                 ],
               ),
-          },
-          h,
-        ),
-      mounts,
-      container,
+            ],
+          ),
+      },
     }),
-    EffectsLayer,
-  )
+  ),
+)
+
+const init = () => dialog.open()(dialog.init({ id: dialogId }).model)
+
+const makeDialogProgram = (container: HTMLElement) =>
+  registered.makeElement({
+    container,
+    init,
+    update,
+    view,
+    EffectsLayer: Layer.empty,
+  })
 
 describe('Dialog runtime lifecycle', () => {
   beforeEach(() => {
@@ -91,8 +102,8 @@ describe('Dialog runtime lifecycle', () => {
 
     const program = makeDialogProgram(container)
     const encodedOpenModel = Schema.encodeUnknownSync(
-      Schema.toCodecJson(Model),
-    )(boot({ id: dialogId }).model)
+      Schema.toCodecJson(Dialog.Model),
+    )(Dialog.boot({ id: dialogId }).model)
     const freshRuntime = Effect.runFork(program.start())
     let restoredRuntime: Fiber.Fiber<void, never> | undefined
 
@@ -145,8 +156,8 @@ describe('Dialog runtime lifecycle', () => {
 
     const program = makeDialogProgram(container)
     const encodedEnteringModel = Schema.encodeUnknownSync(
-      Schema.toCodecJson(Model),
-    )(boot({ id: dialogId, isAnimated: true }).model)
+      Schema.toCodecJson(Dialog.Model),
+    )(Dialog.boot({ id: dialogId, isAnimated: true }).model)
     const runtime = Effect.runFork(program.start(encodedEnteringModel))
 
     try {
@@ -179,16 +190,16 @@ describe('Dialog runtime lifecycle', () => {
     trigger.focus()
 
     const program = makeDialogProgram(container)
-    const dialogClose = update(
-      boot({ id: dialogId, isAnimated: true }).model,
-      Message.RequestedClose(),
+    const dialogClose = Dialog.update(
+      Dialog.boot({ id: dialogId, isAnimated: true }).model,
+      Dialog.Message.RequestedClose(),
     )
     const leavingModel = modifyFields(dialogClose.model, {
       animation: animation =>
         modifyFields(animation, { transitionState: () => 'LeaveAnimating' }),
     })
     const encodedLeavingModel = Schema.encodeUnknownSync(
-      Schema.toCodecJson(Model),
+      Schema.toCodecJson(Dialog.Model),
     )(leavingModel)
     const runtime = Effect.runFork(program.start(encodedLeavingModel))
 

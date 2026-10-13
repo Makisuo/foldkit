@@ -1,59 +1,33 @@
 const OutMessage = defineMessageUnion({
   RestoredSearch: { query: Schema.String },
   RestoredEditor: { documentId: Schema.String },
-  RestoredWorkspace: {
-    maybeQuery: Schema.Option(Schema.String),
-    maybeDocumentId: Schema.Option(Schema.String),
+})
+
+const search = Search.block.connection({
+  Model: Model,
+  field: 'search',
+  parentMessage: Message.GotSearchMessage,
+  outMessage: {
+    forward: Search.OutMessage.match({
+      RestoredQuery: ({ query }) => OutMessage.RestoredSearch({ query }),
+    }),
   },
 })
 
-const toParentSearchOutMessage = Search.OutMessage.match({
-  RestoredQuery: ({ query }) => OutMessage.RestoredSearch({ query }),
+const editor = Editor.block.connection({
+  Model: Model,
+  field: 'editor',
+  parentMessage: Message.GotEditorMessage,
+  outMessage: {
+    forward: Editor.OutMessage.match({
+      RestoredDraft: ({ documentId }) =>
+        OutMessage.RestoredEditor({ documentId }),
+    }),
+  },
 })
 
-const toParentEditorOutMessage = Editor.OutMessage.match({
-  RestoredDraft: ({ documentId }) => OutMessage.RestoredEditor({ documentId }),
-})
+const searchInit = search.init()
+const editorInit = editor.init()
+const model = Model.make({ search: searchInit.model, editor: editorInit.model })
 
-return Update.foldChildInits(
-  {
-    search: Search.boot(),
-    editor: Editor.boot(),
-  },
-  {
-    toParentModel: ({ search, editor }) => Model.make({ search, editor }),
-    folds: {
-      search: {
-        toParentMessage: message => Message.GotSearchMessage({ message }),
-        toParentOutMessage: toParentSearchOutMessage,
-      },
-      editor: {
-        toParentMessage: message => Message.GotEditorMessage({ message }),
-        toParentOutMessage: toParentEditorOutMessage,
-      },
-    },
-    resolveOutMessage: ({ search, editor }) =>
-      OutMessage.RestoredWorkspace({
-        maybeQuery: pipe(
-          Option.fromNullishOr(search),
-          Option.map(outMessage =>
-            Match.value(outMessage).pipe(
-              Match.tagsExhaustive({
-                RestoredSearch: ({ query }) => query,
-              }),
-            ),
-          ),
-        ),
-        maybeDocumentId: pipe(
-          Option.fromNullishOr(editor),
-          Option.map(outMessage =>
-            Match.value(outMessage).pipe(
-              Match.tagsExhaustive({
-                RestoredEditor: ({ documentId }) => documentId,
-              }),
-            ),
-          ),
-        ),
-      }),
-  },
-)
+return Update.combine(model, [search.restore(), editor.restore()])

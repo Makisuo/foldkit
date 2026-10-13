@@ -1,25 +1,18 @@
-import { Command, Url } from 'foldkit'
+import { Url } from 'foldkit'
 
-import { Message } from './message'
+import { home, room } from './children'
 import { Model } from './model'
-import { Home, Room } from './page'
-import { AppRoute, urlToAppRoute } from './route'
+import { ApplicationRoute, urlToApplicationRoute } from './route'
 
 export const init = (url: Url.Url) => {
-  const route = urlToAppRoute(url)
+  const route = urlToApplicationRoute(url)
 
-  const homeInit = Home.init()
-  const roomInit = Room.init(route)
+  const homeInit = home.init()
+  const roomInit = room.init(route)
 
-  const commands = AppRoute.match(route, {
-    Home: () =>
-      Command.mapMessages(homeInit.commands, message =>
-        Message.GotHomeMessage({ message }),
-      ),
-    Room: () =>
-      Command.mapMessages(roomInit.commands, message =>
-        Message.GotRoomMessage({ message }),
-      ),
+  const commands = ApplicationRoute.match(route, {
+    Home: () => homeInit.commands ?? [],
+    Room: () => roomInit.commands ?? [],
     NotFound: () => [],
   })
 

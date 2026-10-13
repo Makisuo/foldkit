@@ -1,6 +1,7 @@
 import { Effect, Layer, Number, Schema, type Scope, pipe } from 'effect'
 
 import * as AsyncData from '../../asyncData/index.js'
+import type { ValidateConstructionRequirements } from '../../block/scope.js'
 import * as Command from '../../command/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
@@ -36,7 +37,8 @@ type QueryFetchHandler<Name extends string, A, AI, E, EI> = Command.Handler<
 /** Builds a Query fetch handler Layer from an Effect that constructs a fetch. */
 export interface QueryToLayer<Name extends string, A, AI, E, EI> {
   <R, BuildE = never, BuildR = never>(
-    build: Effect.Effect<() => Effect.Effect<A, E, R>, BuildE, BuildR>,
+    build: Effect.Effect<() => Effect.Effect<A, E, R>, BuildE, BuildR> &
+      ValidateConstructionRequirements<BuildR>,
   ): Layer.Layer<
     QueryFetchHandler<Name, A, AI, E, EI>,
     BuildE,
@@ -101,7 +103,7 @@ export type QueryModel<A, AI, E, EI> = ReturnType<
 >
 
 /**
- * Submodel for fetching and retaining one `AsyncData` value.
+ * Block for fetching and retaining one `AsyncData` value.
  *
  * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
  */
@@ -312,7 +314,8 @@ export function defineQuery<
     () => Effect.Effect<A, E, HandlerRequirements>,
     BuildError,
     BuildRequirements
-  >,
+  > &
+    ValidateConstructionRequirements<BuildRequirements>,
 ): LayeredQuery<Name, A, AI, E, EI> &
   Readonly<{
     layer?: Layer.Layer<
@@ -338,13 +341,14 @@ export function defineQuery<
     BuildE = never,
     BuildR = never,
   >(
-    build: Effect.Effect<() => Effect.Effect<A, E, HandlerR>, BuildE, BuildR>,
+    build: Effect.Effect<() => Effect.Effect<A, E, HandlerR>, BuildE, BuildR> &
+      ValidateConstructionRequirements<BuildR>,
   ) =>
-    Fetch.toLayer(
+    Fetch.toLayer<HandlerR, BuildE, BuildR>(
       Effect.map(
         build,
         execute =>
-          ({ generation }) =>
+          ({ generation }: QueryFetchArgs) =>
             pipe(
               execute(),
               Effect.result,
@@ -352,7 +356,7 @@ export function defineQuery<
                 Message.CompletedFetch({ generation, result }),
               ),
             ),
-      ),
+      ) as never,
     )
 
   const definition = { ...query, Fetch, toLayer }

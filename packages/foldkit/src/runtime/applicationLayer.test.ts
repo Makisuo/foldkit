@@ -109,7 +109,7 @@ describe('Application Layers', () => {
     vi.spyOn(ModelPreservationBridge, 'resolvePreservedModel').mockReturnValue(
       Effect.succeed(undefined),
     )
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'ready' } }),
       update: (model: Model) => ({ model }),
@@ -162,7 +162,7 @@ describe('Application Layers', () => {
       events.push('second acquired')
       return { value: 'second' }
     })
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'ready' } }),
       update: (model: Model) => ({ model }),
@@ -216,7 +216,7 @@ describe('Application Layers', () => {
         return { value: `${value}-derived` }
       }),
     )
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       Flags,
       init: ({ initialLabel }) => ({
@@ -262,7 +262,7 @@ describe('Application Layers', () => {
           }),
       ),
     )
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       Flags,
       init: ({ initialLabel }) => ({
@@ -309,7 +309,7 @@ describe('Application Layers', () => {
           }),
       ),
     )
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'ready' } }),
       update: (model: Model) => ({ model }),
@@ -347,7 +347,7 @@ describe('Application Layers', () => {
           }),
       ),
     )
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       Flags,
       flags: Effect.map(ValueService, ({ value }) => ({
@@ -507,7 +507,7 @@ describe('Application Layers', () => {
           },
         }),
     )
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model: LifecycleModel,
       Flags,
       flags: Effect.map(ValueService, ({ value }) => ({
@@ -580,7 +580,7 @@ describe('Application Layers', () => {
           }),
       ),
     )
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       Flags,
       flags: Effect.gen(function* () {
@@ -620,7 +620,7 @@ describe('Application Layers', () => {
       buildCount += 1
       return { value: `build-${buildCount}` }
     })
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       Flags,
       flags: Effect.gen(function* () {
@@ -657,7 +657,7 @@ describe('Application Layers', () => {
       ValueService,
       Effect.fail(new Error(LAYER_BUILD_ERROR)),
     )
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       Flags,
       flags: Effect.gen(function* () {
@@ -690,7 +690,7 @@ const checkApplicationLayerTypes = (): void => {
   const flagsNeedingService: Effect.Effect<Flags, never, ValueService> =
     Effect.map(ValueService, ({ value }) => ({ initialLabel: value }))
 
-  const flagsOnlyApplication = Application.make({
+  const flagsOnlyApplication = Application.__makeFromConfig({
     Model,
     Flags,
     init: ({ initialLabel }) => ({
@@ -753,7 +753,7 @@ const checkApplicationLayerTypes = (): void => {
       onAcquireError: () => Message.ClickedReadValue(),
     }),
   }))
-  const managedApplication = Application.make({
+  const managedApplication = Application.__makeFromConfig({
     Model,
     Flags,
     init: ({ initialLabel }) => ({
@@ -795,7 +795,7 @@ const checkApplicationLayerTypes = (): void => {
     resources: Layer.empty,
   }
   // @ts-expect-error Application.make rejects removed configuration fields.
-  Application.make(staleResourcesConfig)
+  Application.__makeFromConfig(staleResourcesConfig)
 
   const misspelledSubscriptionsConfig = {
     Model,
@@ -806,9 +806,9 @@ const checkApplicationLayerTypes = (): void => {
     subsriptions: {},
   }
   // @ts-expect-error Application.makeElement rejects unknown configuration fields.
-  Application.makeElement(misspelledSubscriptionsConfig)
+  Application.__makeElementFromConfig(misspelledSubscriptionsConfig)
 
-  Application.make({
+  Application.__makeFromConfig({
     Model,
     init: () => ({ model: Model.make({ label: 'ready' }) }),
     // @ts-expect-error Application.make requires tagged Messages when update accepts a Message.
@@ -817,7 +817,7 @@ const checkApplicationLayerTypes = (): void => {
     container,
   })
 
-  const element = Application.makeElement({
+  const element = Application.__makeElementFromConfig({
     Model,
     Flags,
     flags: flagsNeedingService,

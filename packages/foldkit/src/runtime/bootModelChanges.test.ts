@@ -130,7 +130,7 @@ afterEach(() => {
 describe('boot Model changes', () => {
   it('reaches Subscription and ManagedResource fibers when an OnMount Message changes the Model during the init render', async () => {
     const element = Application.provide(
-      Application.makeElement({
+      Application.__makeElementFromConfig({
         Model,
         init: (): Update.Return<Model, Message> => ({
           model: {

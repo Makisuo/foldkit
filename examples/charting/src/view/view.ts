@@ -1,10 +1,7 @@
-import type { Document } from 'foldkit/html'
-
-import type { Model } from '../model'
-import type * as Chart from './chart'
+import { Application } from '../update'
 import { headerView, telemetryStateView } from './layout'
 
-export const view = (model: Model, h: Chart.HtmlBuilder): Document => ({
+export const view = Application.view((model, h) => ({
   title: 'Foldkit Adoption Observatory',
   body: h.div(
     [h.Class('min-h-screen bg-zinc-50 text-zinc-950')],
@@ -19,4 +16,4 @@ export const view = (model: Model, h: Chart.HtmlBuilder): Document => ({
       ),
     ],
   ),
-})
+}))

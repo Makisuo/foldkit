@@ -1,19 +1,24 @@
 import { Option, Schema } from 'effect'
-import { type Update } from 'foldkit'
-import type * as Mount from 'foldkit/mount'
-import type { View as SubmodelView } from 'foldkit/submodel'
+import type { Html } from 'foldkit/html'
 
 import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewInputs,
+  Listbox,
+  LocalEffectsLayer,
   Message,
   OutMessage,
+  type OutMessageSchema,
   baseInit,
   makeUpdate,
   makeView,
-  type mounts,
+  mounts,
 } from './shared.js'
+
+type RefineOutMessage<Return, OutMessage> = Return extends unknown
+  ? Omit<Return, 'outMessage'> & Readonly<{ outMessage?: OutMessage }>
+  : never
 
 // MODEL
 
@@ -32,38 +37,9 @@ export type InitConfig = BaseInitConfig
 /** Creates an initial multi-select listbox model from a config. Defaults to closed with no active item. */
 export const init = (config: InitConfig): Model => baseInit(config)
 
-// UPDATE
-
-/** Processes a Listbox Message and returns the next Model, optional Commands,
- *  and an optional OutMessage. Selection leaves the multi-select Listbox open
- *  and emits `Selected({ value })` for the parent to fold by toggling
- *  membership. */
-export const update = makeUpdate<Model>('KeepOpen', (model, item) => ({
-  model,
-  outMessage: OutMessage.Selected({ value: item }),
-}))
-
-type UpdateReturn = ReturnType<typeof update>
-
-/** Programmatically opens the Listbox, updating the Model and returning focus
- *  and modal Commands. Use this in domain-event handlers. */
-export const open = (model: Model): UpdateReturn =>
-  update(model, Message.Opened({ maybeActiveItemIndex: Option.none() }))
-
-/** Programmatically closes the listbox. If it is open, returns the closed Model
- *  with focus and modal Commands. If it is already closed, returns the Model
- *  unchanged with no Commands. Use this in domain-event handlers to close the
- *  listbox. */
-export const close = (model: Model): UpdateReturn =>
-  update(model, Message.Closed())
-
-/** Programmatically activates an item in the multi-select listbox. Emits `Selected({ value })`; the parent toggles the value's membership. */
-export const selectItem = (model: Model, item: string): UpdateReturn =>
-  update(model, Message.SelectedItem({ item }))
-
 // VIEW
 
-/** Per-render view inputs passed to the view via `h.submodel`'s `viewInputs` field. */
+/** Per-render view inputs passed to the view through a Listbox connection. */
 export type ViewInputs<Item, Value extends string = string> = BaseViewInputs<
   Item,
   Value
@@ -71,61 +47,99 @@ export type ViewInputs<Item, Value extends string = string> = BaseViewInputs<
 
 const internalView = makeView<Model>({ ariaMultiSelectable: true })
 
-type BundleUpdateReturn<Value extends string> = Update.ReturnWithOutMessage<
-  Model,
-  Message,
-  OutMessage<Value>,
-  Update.RequirementsOf<typeof update>
->
-
-/** The `view`, `update`, and programmatic helpers that
- *  `Listbox.Multi.create` returns, bound to one `Item` and `Value` pair.
- *  Name it to annotate a value that holds a created bundle, such as a
- *  field on a config object or a function parameter that takes the bundle
- *  rather than calling `create` itself. */
-export type Bundle<
-  Item = string,
-  Value extends string = Item extends string ? Item : string,
-> = Readonly<{
-  view: SubmodelView<
+const makeBlock = <Item, Value extends string>() => {
+  const RefinedOutMessage =
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    OutMessage as unknown as OutMessageSchema<Value>
+  const multi = Listbox.define({
     Model,
     Message,
-    ViewInputs<Item, Value>,
-    Mount.RequirementsOf<typeof mounts>
+    OutMessage: RefinedOutMessage,
+  })
+  const itemUpdate = makeUpdate(Model, 'KeepOpen', (model, item) => ({
+    model,
+    outMessage: OutMessage.Selected({ value: item }),
+  }))
+  type RefinedOutMessage = OutMessage<Value>
+  type RefinedReturn = RefineOutMessage<
+    ReturnType<typeof itemUpdate.update>,
+    RefinedOutMessage
   >
-  update: (model: Model, message: Message) => BundleUpdateReturn<Value>
-  selectItem: (model: Model, item: Value) => BundleUpdateReturn<Value>
-  open: (model: Model) => BundleUpdateReturn<Value>
-  close: (model: Model) => BundleUpdateReturn<Value>
-}>
 
-/** Pairs the multi-select listbox's `view` and `update` (and programmatic
- *  helpers) behind a single Item-typed entry point. Same shape as
- *  `Listbox.create`. Two type params support object-typed items via
- *  `itemToValue`: `Value` defaults to `Item` when `Item extends string`,
- *  else `string`. */
+  const castReturn = (result: ReturnType<typeof itemUpdate.update>) =>
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    result as unknown as RefinedReturn
+  const registered = multi.register({
+    mounts,
+    children: [itemUpdate.animation],
+  })
+  const update = multi.update((model, message) =>
+    castReturn(itemUpdate.update(model, message)),
+  )
+  const refinedView =
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    internalView<Item, Value>() as unknown as (
+      model: Model,
+      viewInputs: ViewInputs<Item, Value>,
+      h: Parameters<ReturnType<typeof internalView<unknown, string>>>[2],
+    ) => Html
+  const view = registered.view.withInputs<ViewInputs<Item, Value>>(
+    (model, viewInputs, h) => refinedView(model, viewInputs, h),
+  )
+  const open = multi.step(model =>
+    update(model, Message.Opened({ maybeActiveItemIndex: Option.none() })),
+  )
+  const close = multi.step(model => update(model, Message.Closed()))
+  const selectItem = multi.step((model, item: Value) =>
+    update(model, Message.SelectedItem({ item })),
+  )
+  const steps = { open, close, selectItem }
+  return registered.assemble({
+    init: (config: InitConfig) => ({ model: init(config) }),
+    update,
+    view,
+    steps,
+    EffectsLayer: LocalEffectsLayer,
+  })
+}
+
+/** A completed multi-select Listbox Block refined to one Item and Value pair. */
+export type Completed<
+  Item = string,
+  Value extends string = Item extends string ? Item : string,
+> = ReturnType<typeof makeBlock<Item, Value>>
+
+/** Creates a complete multi-select Listbox Block refined to one Item and
+ * Value pair. `Value` defaults to `Item` for string items and to `string` for
+ * object items. */
 export const create = <
   Item = string,
   Value extends string = Item extends string ? Item : string,
->(): Bundle<Item, Value> => {
-  type UpdateReturn = Update.ReturnWithOutMessage<
-    Model,
-    Message,
-    OutMessage<Value>,
-    Update.RequirementsOf<typeof update>
-  >
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const typedUpdate = update as (model: Model, message: Message) => UpdateReturn
-  return {
-    view: internalView<Item, Value>(),
-    update: typedUpdate,
-    selectItem: (model, item) =>
-      typedUpdate(model, Message.SelectedItem({ item })),
-    open: model =>
-      typedUpdate(
-        model,
-        Message.Opened({ maybeActiveItemIndex: Option.none() }),
-      ),
-    close: model => typedUpdate(model, Message.Closed()),
-  }
-}
+>(): Completed<Item, Value> => makeBlock<Item, Value>()
+
+/** Complete default multi-select Listbox Block definition. */
+export const block = makeBlock<string, string>()
+
+// UPDATE
+
+/** Processes a Listbox Message and returns the next Model, optional Commands,
+ *  and an optional OutMessage. Selection leaves the multi-select Listbox open
+ *  and emits `Selected({ value })` for the parent to fold by toggling
+ *  membership. */
+export const update = block.update
+
+type UpdateReturn = ReturnType<typeof update>
+
+/** Programmatically opens the Listbox, updating the Model and returning focus
+ *  and modal Commands. Use this in domain-event handlers. */
+export const open = (model: Model): UpdateReturn => block.steps.open(model)
+
+/** Programmatically closes the listbox. If it is open, returns the closed Model
+ *  with focus and modal Commands. If it is already closed, returns the Model
+ *  unchanged with no Commands. Use this in domain-event handlers to close the
+ *  listbox. */
+export const close = (model: Model): UpdateReturn => block.steps.close(model)
+
+/** Programmatically activates an item in the multi-select listbox. Emits `Selected({ value })`; the parent toggles the value's membership. */
+export const selectItem = (model: Model, item: string): UpdateReturn =>
+  block.steps.selectItem(model, item)

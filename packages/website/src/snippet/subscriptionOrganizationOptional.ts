@@ -1,5 +1,4 @@
 import { Option } from 'effect'
-import { Subscription } from 'foldkit'
 
 import { Message } from './message'
 import type { Model } from './model'
@@ -8,12 +7,8 @@ import * as SignedIn from './signedIn'
 const readSignedIn = (model: Model) =>
   Option.liftPredicate(model, model => model._tag === 'SignedIn')
 
-const signedInSubscriptions = Subscription.lift(SignedIn.subscriptions)<
-  Model,
-  Message
->({
+export const signedIn = SignedIn.block.connection({
   read: readSignedIn,
-  toParentMessage: message => Message.GotSignedInMessage({ message }),
+  write: (model, nextSignedIn) => nextSignedIn,
+  parentMessage: Message.GotSignedInMessage,
 })
-
-export const subscriptions = Subscription.aggregate(signedInSubscriptions)

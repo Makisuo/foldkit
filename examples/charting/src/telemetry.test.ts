@@ -2,12 +2,12 @@ import { Array, Clock, Effect, Layer, Match, String } from 'effect'
 import { HttpClient, HttpClientResponse } from 'effect/http'
 import { expect, test } from 'vitest'
 
-import { GitHubApi, GitHubApiLayer } from './githubApi'
 import {
   mockGitHubRepository,
   mockNpmDownloads,
   mockNpmPackument,
-} from './main.fixture'
+} from './application.fixture'
+import { GitHubApi, GitHubApiLayer } from './githubApi'
 import { NpmApi, NpmApiLayer } from './npmApi'
 import { fetchRawTelemetry, transformTelemetry } from './telemetry'
 

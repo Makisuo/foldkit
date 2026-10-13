@@ -4,8 +4,15 @@ import { modifyFields } from 'foldkit/struct'
 import { expect, test } from 'vitest'
 
 import { Tabs } from '@foldkit/ui'
+import { FocusTab } from '@foldkit/ui/tabs'
 
-import { Message, postQuery, postsQuery, statsQuery, update } from './main'
+import {
+  Message,
+  postQuery,
+  postsQuery,
+  statsQuery,
+  update,
+} from './application'
 import {
   FETCHED_AT,
   failedFirstPostModel,
@@ -17,7 +24,7 @@ import {
   loadedStatsModel,
   loadingStatsModel,
   refreshingStatsModel,
-} from './main.fixture'
+} from './application.fixture'
 
 const FIRST_REQUEST_GENERATION = 1
 const SECOND_REQUEST_GENERATION = 2
@@ -36,7 +43,7 @@ const selectedStatsTab = Message.GotTabsMessage({
 })
 
 const resolveFocusTab = Command.resolve(
-  Tabs.FocusTab,
+  FocusTab,
   Tabs.Message.CompletedFocusTab(),
 )
 

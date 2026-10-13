@@ -1,16 +1,16 @@
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Menu, Tabs } from '@foldkit/ui'
-
 import { ExampleSlug } from '../example/meta'
 import * as AsyncCounterDemo from './asyncCounterDemo'
+import { DemoTabs } from './demoTab'
 import * as NotePlayerDemo from './notePlayerDemo'
+import { PlaygroundMenu } from './playgroundMenu'
 
 // MESSAGE
 
 export const Message = defineMessageUnion({
-  GotDemoTabsMessage: { message: Tabs.Message },
-  GotPlaygroundMenuMessage: { message: Menu.Message },
+  GotDemoTabsMessage: { message: DemoTabs.Message },
+  GotPlaygroundMenuMessage: { message: PlaygroundMenu.Message },
   GotAsyncCounterDemoMessage: { message: AsyncCounterDemo.Message },
   GotNotePlayerDemoMessage: { message: NotePlayerDemo.Message },
 })

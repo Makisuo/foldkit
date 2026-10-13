@@ -1,13 +1,12 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Option, Schema } from 'effect'
-import { Update } from 'foldkit'
-import type { HtmlBuilder } from 'foldkit/html'
+import { Schema } from 'effect'
+import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { HoverIntent } from '@foldkit/ui'
+import type { RenderInfo as HoverIntentRenderInfo } from '@foldkit/ui/hoverIntent'
 
 // Add a field to your Model:
 const Model = Schema.Struct({
@@ -17,12 +16,17 @@ const Model = Schema.Struct({
 type Model = typeof Model.Type
 
 // Initialize it. This behavior primitive owns no DOM id:
-const init = () => ({
-  model: {
-    hoverIntent: HoverIntent.init({ openDelay: 200, closeDelay: 300 }),
-    // ...your other fields
-  },
-})
+const init = () => {
+  const hoverIntentInit = hoverIntent.init({ openDelay: 200, closeDelay: 300 })
+
+  return {
+    model: {
+      hoverIntent: hoverIntentInit.model,
+      // ...your other fields
+    },
+    commands: hoverIntentInit.commands,
+  }
+}
 
 // Embed child Messages in your parent Message:
 const Message = defineMessageUnion({
@@ -37,28 +41,36 @@ const foldHoverIntentOutMessage = HoverIntent.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const foldHoverIntent = Update.foldChild({
-  update: HoverIntent.update,
-  read: model => Option.some(model.hoverIntent),
-  write: (model, nextHoverIntent) =>
-    modifyFields(model, { hoverIntent: () => nextHoverIntent }),
-  toParentMessage: message => Message.GotHoverIntentMessage({ message }),
-  foldOutMessage: foldHoverIntentOutMessage,
+const hoverIntent = HoverIntent.block.connection({
+  Model,
+  field: 'hoverIntent',
+  parentMessage: Message.GotHoverIntentMessage,
+  outMessage: { fold: foldHoverIntentOutMessage },
 })
 
-GotHoverIntentMessage: ({ message }) => foldHoverIntent(model, message)
+const HoverIntentExample = Block.define('HoverIntentExample', {
+  Model,
+  Message,
+})
+const registered = HoverIntentExample.register({ children: [hoverIntent] })
+
+const update = HoverIntentExample.update((model, message) =>
+  Message.match(message, {
+    GotHoverIntentMessage: ({ message }) => hoverIntent.fold(model, message),
+  }),
+)
 
 // Spread each attribute bundle onto the element it names. HoverIntent owns the
 // interaction; this view owns the markup, semantics, positioning, and styles.
 const triggerId = 'more-information-trigger'
 const panelId = 'more-information-panel'
 
-const view = (h: HtmlBuilder<Message>) => {
+const view = registered.view((model, h) => {
   const hoverIntentView = ({
     trigger,
     panel,
     isVisible,
-  }: HoverIntent.RenderInfo) =>
+  }: HoverIntentRenderInfo) =>
     h.div(
       [],
       [
@@ -83,14 +95,14 @@ const view = (h: HtmlBuilder<Message>) => {
       ],
     )
 
-  return h.submodel({
-    slotId: 'more-information',
-    model: model.hoverIntent,
-    view: HoverIntent.view,
-    viewInputs: {
-      focusTriggerSelector: `#${triggerId}`,
-      toView: hoverIntentView,
-    },
-    toParentMessage: message => Message.GotHoverIntentMessage({ message }),
-  })
-}
+  return h.block(
+    hoverIntent.embedView({
+      slotId: 'more-information',
+      model: model.hoverIntent,
+      viewInputs: {
+        focusTriggerSelector: `#${triggerId}`,
+        toView: hoverIntentView,
+      },
+    }),
+  )
+})

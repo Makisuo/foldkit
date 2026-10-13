@@ -15,8 +15,8 @@ import {
   String,
   pipe,
 } from 'effect'
-import { Command, ManagedResource, Mount, Submodel, Update } from 'foldkit'
-import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
+import { type ManagedResource, type Mount, Block, Update } from 'foldkit'
+import { Html, inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -60,6 +60,7 @@ export const Model = Schema.Struct({
   // and on each successful write schedule, so transient errors don't
   // linger after recovery.
   lastWriteError: Schema.Option(Schema.String),
+  maybeIsSupported: Schema.Option(Schema.Boolean),
 })
 export type Model = typeof Model.Type
 
@@ -80,9 +81,33 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
+const Playground = Block.define('Playground', {
+  Model,
+  Message,
+})
+
+const PlaygroundFileTabs = Tabs.create()
+
+const foldPlaygroundFileTabsOutMessage = Tabs.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Selected:
+    ({ value }) =>
+    model => ({
+      model: modifyFields(model, { activeFilePath: () => value }),
+    }),
+})
+
+const fileTabs = PlaygroundFileTabs.connection({
+  Model,
+  field: 'fileTabs',
+  parentMessage: Message.GotFileTabsMessage,
+  outMessage: { fold: foldPlaygroundFileTabsOutMessage },
+})
+
 // INIT
 
-const PREFERRED_INITIAL_FILES: ReadonlyArray<string> = ['src/main.ts']
+const PREFERRED_INITIAL_FILES: ReadonlyArray<string> = ['src/application.ts']
 
 const maybeFilesForSlug = (
   slug: string,
@@ -113,22 +138,30 @@ const initialActiveFile = (files: Readonly<Record<string, string>>): string =>
 
 const FILE_TABS_ID = 'playground-files'
 
-export const init = (slug: string): Model => {
+export const init = (
+  slug: string,
+  maybeIsSupported: Option.Option<boolean> = Option.none(),
+) => {
   const files = Option.getOrElse(maybeFilesForSlug(slug), () => ({}))
+  const fileTabsInit = fileTabs.init({ id: FILE_TABS_ID })
   return {
-    slug,
-    state: PlaygroundState.Booting(),
-    files,
-    fileTabs: Tabs.init({ id: FILE_TABS_ID }),
-    activeFilePath: initialActiveFile(files),
-    dirtyPaths: [],
-    lastWriteError: Option.none(),
+    model: Model.make({
+      slug,
+      state: PlaygroundState.Booting(),
+      files,
+      fileTabs: fileTabsInit.model,
+      activeFilePath: initialActiveFile(files),
+      dirtyPaths: [],
+      lastWriteError: Option.none(),
+      maybeIsSupported,
+    }),
+    commands: fileTabsInit.commands,
   }
 }
 
 // MANAGED RESOURCE
 
-const WebContainerPlayground = ManagedResource.tag<PlaygroundWebContainer>()(
+const WebContainerPlayground = Playground.resource<PlaygroundWebContainer>()(
   'WebContainerPlayground',
 )
 
@@ -137,43 +170,6 @@ export type WebContainerPlaygroundService = ManagedResource.ServiceOf<
 >
 
 const PlaygroundParams = Schema.Struct({ slug: Schema.String })
-
-export const managedResources = ManagedResource.make<Model, Message>()(
-  entry => ({
-    webContainerPlayground: entry(
-      'ManageWebContainerPlayground',
-      Schema.Option(PlaygroundParams),
-      {
-        resource: WebContainerPlayground,
-        modelToMaybeRequirements: ({ slug, state }) =>
-          state._tag === 'Failed' || state._tag === 'Idle'
-            ? Option.none()
-            : pipe(
-                slug,
-                Option.liftPredicate(() => Record.has(filesBySlug, slug)),
-                Option.map(() => ({ slug })),
-              ),
-        onAcquired: ({ previewUrl }) =>
-          Message.BootedPlayground({ previewUrl }),
-        onReleased: () => Message.ReleasedPlayground(),
-        onAcquireError: error =>
-          Message.FailedBootPlayground({ reason: reasonFromError(error) }),
-        handler: function* () {
-          return {
-            acquire: ({ slug }) =>
-              Effect.gen(function* () {
-                const fileEntry = yield* Effect.fromOption(
-                  Record.get(filesBySlug, slug),
-                )
-                return yield* acquirePlaygroundWebContainer(fileEntry.files)
-              }),
-            release: () => Effect.void,
-          }
-        },
-      },
-    ),
-  }),
-)
 
 // MOUNT
 
@@ -300,7 +296,7 @@ const registerPlaygroundModels = (
   files: Readonly<Record<string, string>>,
 ): void => {
   // NOTE: Pre-create Monaco models for every example file so relative imports
-  // between them resolve. Without this, opening `src/main.ts` and
+  // between them resolve. Without this, opening `src/application.ts` and
   // `import './icon'` would fail since Monaco's TS service only sees the files
   // it has models for.
   //
@@ -429,7 +425,7 @@ const streamPlaygroundEditorMessages = (
     ),
   )
 
-export const MountPlaygroundEditor = Mount.defineStream(
+export const MountPlaygroundEditor = Playground.mountStream(
   'MountPlaygroundEditor',
   {
     args: {
@@ -457,7 +453,7 @@ export const MountPlaygroundEditor = Mount.defineStream(
 
 // COMMAND
 
-// NOTE: Vite's HMR for a content file (`src/main.ts`) doesn't reliably
+// NOTE: Vite's HMR for a content file (`src/application.ts`) doesn't reliably
 // invalidate Tailwind's CSS module in the WebContainer. After writing the
 // content file, we write `src/styles.css` back to itself so Vite emits a
 // CSS HMR update; that re-runs the Tailwind plugin against the latest
@@ -466,7 +462,7 @@ const STYLES_CSS_PATH = 'src/styles.css'
 
 const WRITE_DEBOUNCE_MILLIS = 250
 
-export const WaitForPlaygroundServerFailure = Command.define(
+export const WaitForPlaygroundServerFailure = Playground.command(
   'WaitForPlaygroundServerFailure',
   {
     messages: [Message.CompletedWaitForPlaygroundServerFailure],
@@ -488,7 +484,7 @@ export const WaitForPlaygroundServerFailure = Command.define(
   },
 )
 
-export const SchedulePlaygroundFileWrite = Command.define(
+export const SchedulePlaygroundFileWrite = Playground.command(
   'SchedulePlaygroundFileWrite',
   {
     args: { path: Schema.String, content: Schema.String },
@@ -540,10 +536,50 @@ export const SchedulePlaygroundFileWrite = Command.define(
   },
 )
 
-export const mounts = [MountPlaygroundEditor]
+const playground = Playground.register({
+  mounts: [MountPlaygroundEditor],
+  children: [fileTabs],
+})
+
+type ViewBuilder = Block.HtmlBuilderOf<typeof playground>
+
+export const managedResources = Playground.managedResources(entry => ({
+  webContainerPlayground: entry(
+    'ManageWebContainerPlayground',
+    Schema.Option(PlaygroundParams),
+    {
+      resource: WebContainerPlayground,
+      modelToMaybeRequirements: ({ slug, state, maybeIsSupported }) =>
+        state._tag === 'Failed' ||
+        state._tag === 'Idle' ||
+        !Option.contains(maybeIsSupported, true)
+          ? Option.none()
+          : pipe(
+              slug,
+              Option.liftPredicate(() => Record.has(filesBySlug, slug)),
+              Option.map(() => ({ slug })),
+            ),
+      onAcquired: ({ previewUrl }) => Message.BootedPlayground({ previewUrl }),
+      onReleased: () => Message.ReleasedPlayground(),
+      onAcquireError: error =>
+        Message.FailedBootPlayground({ reason: reasonFromError(error) }),
+      handler: function* () {
+        return {
+          acquire: ({ slug }) =>
+            Effect.gen(function* () {
+              const fileEntry = yield* Effect.fromOption(
+                Record.get(filesBySlug, slug),
+              )
+              return yield* acquirePlaygroundWebContainer(fileEntry.files)
+            }),
+          release: () => Effect.void,
+        }
+      },
+    },
+  ),
+}))
 
 export const EffectsLayer = Layer.mergeAll(
-  Tabs.EffectsLayer,
   managedResources.webContainerPlayground.layer,
   MountPlaygroundEditor.layer,
   WaitForPlaygroundServerFailure.layer,
@@ -588,7 +624,7 @@ const markPreviewLoaded = (
     Match.orElse(() => state),
   )
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = Playground.update((model, message) =>
   Message.match(message, {
     BootedPlayground: ({ previewUrl }) => ({
       model: modifyFields(model, {
@@ -618,7 +654,7 @@ export const update = Update.define((model: Model, message: Message) =>
       }),
     }),
     GotFileTabsMessage: ({ message: tabsMessage }) =>
-      foldPlaygroundFileTabs(model, tabsMessage),
+      fileTabs.fold(model, tabsMessage),
     EditedPlaygroundFile: ({ path, content }) => {
       const isBooted = model.state._tag === 'Booted'
       const nextModel = modifyFields(model, {
@@ -657,6 +693,12 @@ export const update = Update.define((model: Model, message: Message) =>
     SucceededMountPlaygroundEditor: () => ({ model }),
   }),
 )
+
+export const informSupport = Playground.step((model, isSupported: boolean) => ({
+  model: modifyFields(model, {
+    maybeIsSupported: () => Option.some(isSupported),
+  }),
+}))
 
 // VIEW
 
@@ -782,7 +824,7 @@ const editorPanelContent = (
   path: string,
   content: string,
   files: Readonly<Record<string, string>>,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
+  h: ViewBuilder,
 ): Html =>
   h.div(
     [h.Class('flex-1 min-w-0 min-h-0 flex flex-col bg-[#1e1e1e] text-sm')],
@@ -796,10 +838,7 @@ const editorPanelContent = (
     ],
   )
 
-const previewPaneView = (
-  state: PlaygroundState,
-  h: HtmlBuilder<Message>,
-): Html =>
+const previewPaneView = (state: PlaygroundState, h: ViewBuilder): Html =>
   h.div(
     [
       h.Class(
@@ -883,10 +922,7 @@ const tooNarrowMessageView = (): Html =>
     ],
   )
 
-const responsiveEditorView = (
-  model: Model,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
-): Html =>
+const responsiveEditorView = (model: Model, h: ViewBuilder): Html =>
   h.div(
     [h.Class('flex-1 min-h-0 flex flex-col')],
     [
@@ -898,31 +934,7 @@ const responsiveEditorView = (
     ],
   )
 
-const PlaygroundFileTabs = Tabs.create<string>()
-
-const foldPlaygroundFileTabsOutMessage = Tabs.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { activeFilePath: () => value }),
-    }),
-})
-
-const foldPlaygroundFileTabs = Update.foldChild({
-  update: PlaygroundFileTabs.update,
-  read: (model: Model) => Option.some(model.fileTabs),
-  write: (model, nextFileTabs) =>
-    modifyFields(model, { fileTabs: () => nextFileTabs }),
-  toParentMessage: message => Message.GotFileTabsMessage({ message }),
-  foldOutMessage: foldPlaygroundFileTabsOutMessage,
-})
-
-const editorLayoutView = (
-  model: Model,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
-): Html => {
+const editorLayoutView = (model: Model, h: ViewBuilder): Html => {
   const paths = sortedPaths(model.files)
   return h.div(
     [h.Class('flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden')],
@@ -931,63 +943,63 @@ const editorLayoutView = (
       h.div(
         [h.Class('flex-1 min-h-0 min-w-0 flex max-playground-wide:flex-col')],
         [
-          h.submodel({
-            slotId: model.fileTabs.id,
-            model: model.fileTabs,
-            view: PlaygroundFileTabs.view,
-            viewInputs: {
-              tabs: paths,
-              selectedValue: model.activeFilePath,
-              ariaLabel: 'Playground files',
-              orientation: 'Vertical',
-              toView: ({ tablist, tabs, activeIndex }) =>
-                h.div(
-                  [
-                    h.Class(
-                      'shrink-0 min-h-0 flex w-[1056px] max-playground-wide:w-full max-playground-wide:h-1/2',
-                    ),
-                  ],
-                  [
-                    h.div(
-                      [
-                        ...tablist,
-                        h.Class(
-                          'w-56 shrink-0 overflow-y-auto border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 py-3 text-sm flex flex-col',
-                        ),
-                      ],
-                      tabs.map(tab =>
-                        h.button(
-                          [...tab.tab, h.Class(fileTabButtonClassName)],
-                          [h.span([], [tab.value])],
+          h.block(
+            fileTabs.embedView({
+              slotId: model.fileTabs.id,
+              model: model.fileTabs,
+              viewInputs: {
+                tabs: paths,
+                selectedValue: model.activeFilePath,
+                ariaLabel: 'Playground files',
+                orientation: 'Vertical',
+                toView: ({ tablist, tabs, activeIndex }) =>
+                  h.div(
+                    [
+                      h.Class(
+                        'shrink-0 min-h-0 flex w-[1056px] max-playground-wide:w-full max-playground-wide:h-1/2',
+                      ),
+                    ],
+                    [
+                      h.div(
+                        [
+                          ...tablist,
+                          h.Class(
+                            'w-56 shrink-0 overflow-y-auto border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 py-3 text-sm flex flex-col',
+                          ),
+                        ],
+                        tabs.map(tab =>
+                          h.button(
+                            [...tab.tab, h.Class(fileTabButtonClassName)],
+                            [h.span([], [tab.value])],
+                          ),
                         ),
                       ),
-                    ),
-                    ...tabs
-                      .filter(tab => tab.index === activeIndex)
-                      .map(tab =>
-                        h.div(
-                          [
-                            ...tab.panel,
-                            h.Class('flex-1 min-w-0 min-h-0 flex flex-col'),
-                          ],
-                          [
-                            editorPanelContent(
-                              tab.value,
-                              pipe(
-                                Record.get(model.files, tab.value),
-                                Option.getOrElse(() => ''),
+                      ...tabs
+                        .filter(tab => tab.index === activeIndex)
+                        .map(tab =>
+                          h.div(
+                            [
+                              ...tab.panel,
+                              h.Class('flex-1 min-w-0 min-h-0 flex flex-col'),
+                            ],
+                            [
+                              editorPanelContent(
+                                tab.value,
+                                pipe(
+                                  Record.get(model.files, tab.value),
+                                  Option.getOrElse(() => ''),
+                                ),
+                                model.files,
+                                h,
                               ),
-                              model.files,
-                              h,
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                  ],
-                ),
-            },
-            toParentMessage: message => Message.GotFileTabsMessage({ message }),
-          }),
+                    ],
+                  ),
+              },
+            }),
+          ),
           previewPaneView(model.state, h),
         ],
       ),
@@ -999,73 +1011,79 @@ type ViewInputs = Readonly<{
   maybeIsPlaygroundSupported: Option.Option<boolean>
 }>
 
-export const view = Submodel.defineView<
-  Model,
-  Message,
-  ViewInputs,
-  Mount.RequirementsOf<typeof mounts>
->((model, { maybeIsPlaygroundSupported }, h): Html => {
-  const maybeMeta = findBySlug(model.slug)
-  const maybeFiles = Option.fromNullishOr(filesBySlug[model.slug])
+export const view = playground.view.withInputs<ViewInputs>(
+  (model, { maybeIsPlaygroundSupported }, h) => {
+    const maybeMeta = findBySlug(model.slug)
+    const maybeFiles = Option.fromNullishOr(filesBySlug[model.slug])
 
-  const content = Match.value({
-    maybeIsPlaygroundSupported,
-    maybeMeta,
-    maybeFiles,
-  }).pipe(
-    Match.when(
-      ({ maybeMeta }) => isUnavailableExample(maybeMeta),
-      () =>
-        messageView(
-          'Playground unavailable',
-          'This example is paused while we update and verify LiveStore compatibility with Effect 4 stable.',
-          maybeMeta,
-        ),
-    ),
-    Match.when(
-      ({ maybeIsPlaygroundSupported }) =>
-        Option.isNone(maybeIsPlaygroundSupported),
-      () =>
-        messageView(
-          'Playground availability',
-          'The Playground needs SharedArrayBuffer on an isolated page and a compatible embedded preview. If the editor does not open, you can still see the example on its detail page.',
-          maybeMeta,
-        ),
-    ),
-    Match.when(
-      ({ maybeIsPlaygroundSupported }) =>
-        Option.contains(maybeIsPlaygroundSupported, false),
-      () =>
-        messageView(
-          'Playground cannot run here',
-          'The Playground needs SharedArrayBuffer on a cross-origin isolated page and a working embedded preview. This browser session did not provide that combination. You can still see the example running on its detail page.',
-          maybeMeta,
-        ),
-    ),
-    Match.orElse(() =>
-      Option.match(Option.all([maybeMeta, maybeFiles]), {
-        onNone: () =>
+    const content = Match.value({
+      maybeIsPlaygroundSupported,
+      maybeMeta,
+      maybeFiles,
+    }).pipe(
+      Match.when(
+        ({ maybeMeta }) => isUnavailableExample(maybeMeta),
+        () =>
           messageView(
-            'Playground coming soon',
-            'This example is not yet available in the embedded playground. Open its example detail page to see it running.',
+            'Playground unavailable',
+            'This example is paused while we update and verify LiveStore compatibility with Effect 4 stable.',
             maybeMeta,
           ),
-        onSome: () => responsiveEditorView(model, h),
-      }),
-    ),
-  )
-
-  return h.div(
-    [h.Class('flex flex-col h-screen')],
-    [
-      h.main(
-        [
-          h.Id('main-content'),
-          h.Class('flex-1 flex flex-col min-h-0'),
-          h.AriaLabel('Playground'),
-        ],
-        [content],
       ),
-    ],
-  )
+      Match.when(
+        ({ maybeIsPlaygroundSupported }) =>
+          Option.isNone(maybeIsPlaygroundSupported),
+        () =>
+          messageView(
+            'Playground availability',
+            'The Playground needs SharedArrayBuffer on an isolated page and a compatible embedded preview. If the editor does not open, you can still see the example on its detail page.',
+            maybeMeta,
+          ),
+      ),
+      Match.when(
+        ({ maybeIsPlaygroundSupported }) =>
+          Option.contains(maybeIsPlaygroundSupported, false),
+        () =>
+          messageView(
+            'Playground cannot run here',
+            'The Playground needs SharedArrayBuffer on a cross-origin isolated page and a working embedded preview. This browser session did not provide that combination. You can still see the example running on its detail page.',
+            maybeMeta,
+          ),
+      ),
+      Match.orElse(() =>
+        Option.match(Option.all([maybeMeta, maybeFiles]), {
+          onNone: () =>
+            messageView(
+              'Playground coming soon',
+              'This example is not yet available in the embedded playground. Open its example detail page to see it running.',
+              maybeMeta,
+            ),
+          onSome: () => responsiveEditorView(model, h),
+        }),
+      ),
+    )
+
+    return h.div(
+      [h.Class('flex flex-col h-screen')],
+      [
+        h.main(
+          [
+            h.Id('main-content'),
+            h.Class('flex-1 flex flex-col min-h-0'),
+            h.AriaLabel('Playground'),
+          ],
+          [content],
+        ),
+      ],
+    )
+  },
+)
+
+export const block = playground.assemble({
+  init,
+  update,
+  view,
+  managedResources,
+  EffectsLayer,
+  steps: { informSupport },
 })

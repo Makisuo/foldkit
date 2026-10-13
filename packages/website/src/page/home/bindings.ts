@@ -1,25 +1,58 @@
-import { Option } from 'effect'
+import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import * as AsyncCounterDemo from './asyncCounterDemo'
-import { Message } from './message'
-import { type Model } from './model'
+import * as DemoTab from './demoTab'
+import { Message, OutMessage } from './message'
+import { Model } from './model'
 import * as NotePlayerDemo from './notePlayerDemo'
+import { PlaygroundMenu } from './playgroundMenu'
 
-export const asyncCounterDemo = AsyncCounterDemo.bind({
-  placement: 'asyncCounterDemo',
-  read: (model: Model) => Option.some(model.asyncCounterDemo),
-  write: (model, nextAsyncCounterDemo) =>
-    modifyFields(model, { asyncCounterDemo: () => nextAsyncCounterDemo }),
-  toParentMessage: (message): Message =>
-    Message.GotAsyncCounterDemoMessage({ message }),
+const foldDemoTabsOutMessage = DemoTab.DemoTabs.OutMessage.match<
+  Update.Step<Model, Message>,
+  typeof DemoTab.DemoTabs.OutMessage.Type
+>({
+  Selected:
+    ({ value }) =>
+    model => ({
+      model: modifyFields(model, { activeDemoTab: () => value }),
+    }),
 })
 
-export const notePlayerDemo = NotePlayerDemo.bind({
-  placement: 'notePlayerDemo',
-  read: (model: Model) => Option.some(model.notePlayerDemo),
-  write: (model, nextNotePlayerDemo) =>
-    modifyFields(model, { notePlayerDemo: () => nextNotePlayerDemo }),
-  toParentMessage: (message): Message =>
-    Message.GotNotePlayerDemoMessage({ message }),
+export const demoTabs = DemoTab.DemoTabs.connection({
+  Model,
+  field: 'demoTabs',
+  parentMessage: Message.GotDemoTabsMessage,
+  outMessage: { fold: foldDemoTabsOutMessage },
+})
+
+const foldPlaygroundMenuOutMessage = PlaygroundMenu.OutMessage.match<
+  Update.StepWithOutMessage<Model, Message, OutMessage>,
+  typeof PlaygroundMenu.OutMessage.Type
+>({
+  Selected:
+    ({ value }) =>
+    model => ({
+      model,
+      outMessage: OutMessage.SelectedPlaygroundExample({ exampleSlug: value }),
+    }),
+})
+
+export const playgroundMenu = PlaygroundMenu.connection({
+  Model,
+  field: 'playgroundMenu',
+  parentMessage: Message.GotPlaygroundMenuMessage,
+  outMessage: { fold: foldPlaygroundMenuOutMessage },
+})
+
+export const asyncCounterDemo = AsyncCounterDemo.block.connection({
+  Model,
+  field: 'asyncCounterDemo',
+  parentMessage: Message.GotAsyncCounterDemoMessage,
+})
+
+export const notePlayerDemo = NotePlayerDemo.block.connection({
+  Model,
+  field: 'notePlayerDemo',
+  parentMessage: Message.GotNotePlayerDemoMessage,
 })

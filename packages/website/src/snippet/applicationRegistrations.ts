@@ -1,47 +1,22 @@
-import { Application, ManagedResource, Subscription } from 'foldkit'
+import { define as defineApplication } from 'foldkit/application'
 
-import { init } from './init'
 import { Message } from './message'
 import { Model } from './model'
-import { Home, Products } from './page'
-import { update } from './update'
-import { view } from './view'
+import * as Home from './page/home'
+import * as Products from './page/products'
 
-const homeSubscriptions = Subscription.lift(Home.subscriptions)<Model, Message>(
-  {
-    read: model => model.maybeHome,
-    toParentMessage: message => Message.GotHomeMessage({ message }),
-  },
-)
-
-export const subscriptions = Subscription.aggregate(
-  homeSubscriptions,
-  Subscription.lift(Products.subscriptions)<Model, Message>({
-    read: model => model.maybeProducts,
-    toParentMessage: message => Message.GotProductsMessage({ message }),
-  }),
-)
-
-export const managedResources = ManagedResource.lift(Products.managedResources)<
+const home = Home.block.connection({
   Model,
-  Message
->({
-  read: model => model.maybeProducts,
-  toParentMessage: message => Message.GotProductsMessage({ message }),
+  field: 'home',
+  parentMessage: Message.GotHomeMessage,
 })
 
-export const makeApplication = (container: HTMLElement | null) =>
-  Application.make({
-    Model,
-    init,
-    update,
-    view,
-    subscriptions,
-    managedResources,
-    mounts: Products.mounts,
-    container,
-    routing: {
-      onUrlRequest: request => Message.ClickedLink({ request }),
-      onUrlChange: url => Message.ChangedUrl({ url }),
-    },
-  })
+const products = Products.block.connection({
+  Model,
+  field: 'products',
+  parentMessage: Message.GotProductsMessage,
+})
+
+export const Application = defineApplication({ Model, Message }).register({
+  children: [home, products],
+})

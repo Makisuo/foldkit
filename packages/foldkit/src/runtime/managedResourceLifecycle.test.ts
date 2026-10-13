@@ -1,4 +1,13 @@
-import { Context, Effect, Exit, Fiber, Layer, Option, Schema } from 'effect'
+import {
+  Context,
+  Effect,
+  Exit,
+  Fiber,
+  Layer,
+  Option,
+  Schema,
+  Stream,
+} from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
@@ -7,6 +16,7 @@ import * as ManagedResource from '../managedResource/index.js'
 import { make } from '../managedResource/managedResource.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
+import * as Subscription from '../subscription/subscription.js'
 import * as Update from '../update/index.js'
 import * as Application from './application.js'
 
@@ -220,6 +230,28 @@ const EngineLayer = managedResources.engine.toLayer(
   }),
 )
 
+const cleanupSubscriptions = Subscription.make<Model, Message>()(entry => ({
+  engine: entry('ObserveEngineCleanup', {
+    messages: [],
+    handler: function* () {
+      return () =>
+        Stream.never.pipe(
+          Stream.ensuring(
+            Engine.get.pipe(
+              Effect.orDie,
+              Effect.tap(({ id }) =>
+                Effect.sync(() => {
+                  log.push(`subscription-finalize:${id}`)
+                }),
+              ),
+              Effect.asVoid,
+            ),
+          ),
+        )
+    },
+  }),
+}))
+
 const h = __htmlBuilder<Message>()
 
 const view = (model: Model) =>
@@ -267,7 +299,7 @@ const startEngineApp = (
   initialId: string,
   resources: typeof managedResources = managedResources,
 ) =>
-  Application.makeElement({
+  Application.__makeElementFromConfig({
     Model,
     init: () => ({
       model: {
@@ -302,6 +334,46 @@ const clickButton = (label: string): void => {
 }
 
 describe('managed resource lifecycle with a Layer-built resource', () => {
+  it('keeps the resource available while Subscription finalizers run', async () => {
+    const element = Application.__makeElementFromConfig({
+      Model,
+      init: () => ({
+        model: {
+          requested: Option.some('a'),
+          status: 'idle',
+          readValue: 'none',
+        },
+      }),
+      update,
+      view,
+      crash,
+      container,
+      managedResources,
+      subscriptions: cleanupSubscriptions,
+    })
+    const fiber = Effect.runFork(
+      Application.provide(
+        element,
+        Layer.mergeAll(
+          ReadEngineLayer,
+          EngineLayer,
+          cleanupSubscriptions.engine.layer,
+        ),
+      ).start(),
+    )
+
+    try {
+      await awaitBodyText('status:acquired')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+
+    expect(log).toContain('subscription-finalize:a')
+    expect(log.indexOf('subscription-finalize:a')).toBeLessThan(
+      log.indexOf('release'),
+    )
+  })
+
   it('acquires and exposes the bare service value via the resource ref', async () => {
     const element = startEngineApp('a')
     const fiber = Effect.runFork(

@@ -13,10 +13,10 @@ import {
 import { describe, test } from 'vitest'
 
 import { Tabs } from '@foldkit/ui'
+import { FocusTab } from '@foldkit/ui/tabs'
 
+import { init, update, view } from '../../application'
 import { Deployment } from '../../deployment'
-import { init, update, view } from '../../main'
-import { Message } from '../../message'
 import * as SnippetDisclosure from '../../snippetDisclosure'
 import { type ExampleSources } from './sources'
 
@@ -24,15 +24,15 @@ const longCode = pipe(
   Array.makeBy(16, index => `const value${index} = ${index}`),
   Array.join('\n'),
 )
-const mainCode = `const main = true\n${longCode}`
+const applicationCode = `const application = true\n${longCode}`
 const serverCode = `const entryServer = true\n${longCode}`
 
 const sources: ExampleSources = {
   files: [
     {
-      path: 'src/main.ts',
-      highlightedHtml: `<pre><code>${mainCode}</code></pre>`,
-      rawCode: mainCode,
+      path: 'src/application.ts',
+      highlightedHtml: `<pre><code>${applicationCode}</code></pre>`,
+      rawCode: applicationCode,
     },
     {
       path: 'src/entry.server.ts',
@@ -61,24 +61,22 @@ describe('example detail', () => {
       given(init(flags, url).model),
       Mount.resolve(
         SnippetDisclosure.MeasureSnippetHeight({
-          snippetId: 'example-ssr-source-src/main.ts',
+          snippetId: 'example-ssr-source-src/application.ts',
         }),
-        Message.GotSnippetDisclosureMessage({
-          message: SnippetDisclosure.Message.CompletedMeasureSnippetHeight({
-            snippetId: 'example-ssr-source-src/main.ts',
-            snippetSize: SnippetDisclosure.SnippetSize.Overflows(),
-          }),
+        SnippetDisclosure.Message.CompletedMeasureSnippetHeight({
+          snippetId: 'example-ssr-source-src/application.ts',
+          snippetSize: SnippetDisclosure.SnippetSize.Overflows(),
         }),
       ),
       click(
         within(
-          role('tabpanel', { name: /main\.ts$/ }),
+          role('tabpanel', { name: /application\.ts$/ }),
           role('button', { name: 'Show code' }),
         ),
       ),
       expect(
         within(
-          role('tabpanel', { name: /main\.ts$/ }),
+          role('tabpanel', { name: /application\.ts$/ }),
           role('button', { name: 'Hide code' }),
         ),
       ).toExist(),
@@ -87,7 +85,7 @@ describe('example detail', () => {
         'aria-selected',
         'true',
       ),
-      Command.resolve(Tabs.FocusTab, Tabs.Message.CompletedFocusTab()),
+      Command.resolve(FocusTab, Tabs.Message.CompletedFocusTab()),
       expect(
         within(
           role('tabpanel', { name: /entry\.server\.ts$/ }),

@@ -1,5 +1,11 @@
 import { Array, Context, Effect, Fiber, Option, Schema } from 'effect'
 
+import {
+  type DefinitionIdentity,
+  InvocationIdentityTypeId,
+  InvocationNameTypeId,
+  registerIdentity,
+} from '../../block/identity.js'
 import { defineTaggedUnion } from '../../schema/index.js'
 import { CommandDefinitionTypeId, brandAsDefinition } from '../brand.js'
 
@@ -222,15 +228,21 @@ export interface DefinitionWithArgsNameKeyed<
 export const __makeInterruptDefinitionNoArgs = (
   name: string,
   key: string,
+  identity?: DefinitionIdentity,
 ): unknown => {
   const interruptName = `${name}.Interrupt`
   const definition = (toMessage: (outcome: Outcome) => unknown) => ({
     name: interruptName,
     interruptsKey: key,
     effect: makeInterruptEffect(key, toMessage),
+    [InvocationIdentityTypeId]: identity,
+    [InvocationNameTypeId]: interruptName,
     messageMappers: [],
   })
   brandAsDefinition(definition, interruptName)
+  if (identity !== undefined) {
+    registerIdentity(definition, identity)
+  }
   return definition
 }
 
@@ -239,6 +251,7 @@ export const __makeInterruptDefinitionNoArgs = (
 export const __makeInterruptDefinitionWithArgs = (
   name: string,
   toFullKey: (keyArgs: any) => string,
+  identity?: DefinitionIdentity,
 ): unknown => {
   const interruptName = `${name}.Interrupt`
   const definition = (
@@ -251,9 +264,14 @@ export const __makeInterruptDefinitionWithArgs = (
       args: keyArgs,
       interruptsKey: key,
       effect: makeInterruptEffect(key, toMessage),
+      [InvocationIdentityTypeId]: identity,
+      [InvocationNameTypeId]: interruptName,
       messageMappers: [],
     }
   }
   brandAsDefinition(definition, interruptName)
+  if (identity !== undefined) {
+    registerIdentity(definition, identity)
+  }
   return definition
 }

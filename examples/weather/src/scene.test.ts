@@ -13,8 +13,14 @@ import {
 } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { FetchWeather, Message, WeatherAsyncData, update, view } from './main'
-import { weatherData, weatherModel } from './main.fixture'
+import {
+  FetchWeather,
+  Message,
+  WeatherAsyncData,
+  update,
+  view,
+} from './application'
+import { weatherData, weatherModel } from './application.fixture'
 
 describe('view', () => {
   test('initial view shows empty form with Get Weather button', () => {

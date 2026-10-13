@@ -3,8 +3,8 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Button, Textarea } from '@foldkit/ui'
 
+import { Message } from '../application'
 import { Cart } from '../domain'
-import { Message } from '../main'
 import { cartRouter, productsRouter } from '../route'
 
 // VIEW

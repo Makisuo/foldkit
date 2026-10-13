@@ -12,13 +12,7 @@ import {
   String,
   pipe,
 } from 'effect'
-import {
-  Command,
-  FieldValidation,
-  ManagedResource,
-  Submodel,
-  Update,
-} from 'foldkit'
+import { FieldValidation, Block, Update } from 'foldkit'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
@@ -29,8 +23,6 @@ import { Button, Input, RadioGroup } from '@foldkit/ui'
 
 import { Icon } from '../../icon'
 import * as DemoView from '../demoView'
-
-const owner = Submodel.owner('Website/Home/NotePlayerDemo')
 
 // CONSTANTS
 
@@ -115,7 +107,7 @@ type AudioState = typeof AudioState.Type
 
 export const Model = Schema.Struct({
   noteInput: FieldValidation.Field(Schema.String),
-  noteDurationRadioGroup: RadioGroup.Model,
+  noteDurationRadioGroup: NoteDurationRadioGroup.Model,
   noteDuration: NoteDuration,
   playbackState: PlaybackState,
   highlightPhase: NoteHighlightPhase,
@@ -129,7 +121,7 @@ export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ChangedNoteInput: { value: Schema.String },
-  GotNoteDurationMessage: { message: RadioGroup.Message },
+  GotNoteDurationMessage: { message: NoteDurationRadioGroup.Message },
   ClickedPlay: {},
   ClickedPause: {},
   ClickedStop: {},
@@ -140,6 +132,11 @@ export const Message = defineMessageUnion({
   ReleasedAudioContext: {},
 })
 export type Message = typeof Message.Type
+
+const NotePlayerDemo = Block.define('NotePlayerDemo', {
+  Model,
+  Message,
+})
 
 // FIELD VALIDATION
 
@@ -157,26 +154,29 @@ const parseNotes = (value: string) =>
       })
     }),
   )
-const contract = owner.define({ Model, Message })
-
 // INIT
 
 const INITIAL_NOTE_SEQUENCE = 'CDEFGABC'
 
-export const init = () => ({
-  model: Model.make({
-    noteInput: validateNoteInput(INITIAL_NOTE_SEQUENCE),
-    noteDurationRadioGroup: RadioGroup.init({
-      id: NOTE_DURATION_RADIO_GROUP_ID,
+export const init = () => {
+  const noteDurationRadioGroupInit = noteDurationRadioGroup.init({
+    id: NOTE_DURATION_RADIO_GROUP_ID,
+  })
+
+  return {
+    model: Model.make({
+      noteInput: validateNoteInput(INITIAL_NOTE_SEQUENCE),
+      noteDurationRadioGroup: noteDurationRadioGroupInit.model,
+      noteDuration: 'Medium',
+      playbackState: PlaybackState.Idle(),
+      highlightPhase: 'Idle',
+      generation: 0,
+      messageLog: [],
+      audio: AudioState.Acquiring(),
     }),
-    noteDuration: 'Medium',
-    playbackState: PlaybackState.Idle(),
-    highlightPhase: 'Idle',
-    generation: 0,
-    messageLog: [],
-    audio: AudioState.Acquiring(),
-  }),
-})
+    commands: noteDurationRadioGroupInit.commands,
+  }
+}
 
 // UPDATE
 
@@ -185,8 +185,8 @@ const prependToLog =
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     Array.take([entry, ...messageLog], MAX_LOG_ENTRIES)
 
-const DelayAdvanceNotePlayerPhase = Command.define(
-  owner.name('DelayAdvanceNotePlayerPhase'),
+const DelayAdvanceNotePlayerPhase = NotePlayerDemo.command(
+  'DelayAdvanceNotePlayerPhase',
   {
     args: { generation: Schema.Number },
     messages: [Message.CompletedDelayAdvanceNotePlayerPhase],
@@ -225,32 +225,37 @@ const enterNoteCommandPhase = (
   ],
 })
 
-const foldNoteDurationRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>,
-  RadioGroup.OutMessage<NoteDuration>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        noteDuration: () => value,
-        messageLog: prependToLog(`Selected(${value})`),
+const foldNoteDurationRadioGroupOutMessage =
+  NoteDurationRadioGroup.OutMessage.match<
+    Update.Step<Model, Message>,
+    typeof NoteDurationRadioGroup.OutMessage.Type
+  >({
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, {
+          noteDuration: () => value,
+          messageLog: prependToLog(`Selected(${value})`),
+        }),
       }),
-    }),
+  })
+
+const noteDurationRadioGroup = NoteDurationRadioGroup.connection({
+  Model,
+  field: 'noteDurationRadioGroup',
+  parentMessage: Message.GotNoteDurationMessage,
+  outMessage: { fold: foldNoteDurationRadioGroupOutMessage },
 })
 
-const foldNoteDurationRadioGroup = Update.foldChild({
-  update: NoteDurationRadioGroup.update,
-  read: (model: Model) => Option.some(model.noteDurationRadioGroup),
-  write: (model, nextNoteDurationRadioGroup) =>
-    modifyFields(model, {
-      noteDurationRadioGroup: () => nextNoteDurationRadioGroup,
-    }),
-  toParentMessage: message => Message.GotNoteDurationMessage({ message }),
-  foldOutMessage: foldNoteDurationRadioGroupOutMessage,
+type ViewRequirements = Block.RequirementsOfConnections<
+  readonly [typeof noteDurationRadioGroup]
+>
+
+const notePlayerDemo = NotePlayerDemo.register({
+  children: [noteDurationRadioGroup],
 })
 
-export const update = contract.defineUpdate((model, message) =>
+export const update = NotePlayerDemo.update((model, message) =>
   Message.match(message, {
     ChangedNoteInput: ({ value }) => {
       const uppercased = String.toUpperCase(value)
@@ -268,7 +273,7 @@ export const update = contract.defineUpdate((model, message) =>
     },
 
     GotNoteDurationMessage: ({ message }) =>
-      foldNoteDurationRadioGroup(model, message),
+      noteDurationRadioGroup.fold(model, message),
 
     ClickedPlay: () =>
       PlaybackState.match(model.playbackState, {
@@ -462,43 +467,34 @@ export const update = contract.defineUpdate((model, message) =>
 
 // MANAGED RESOURCE
 
-const AudioContextResource = ManagedResource.tag<AudioContext>()(
-  owner.name('AudioContext'),
-)
+const AudioContextResource =
+  NotePlayerDemo.resource<AudioContext>()('AudioContext')
 
-export const managedResources = ManagedResource.make<Model, Message>()(
-  entry => ({
-    audioContext: entry(
-      owner.name('ManageAudioContext'),
-      Schema.Option(Schema.Null),
-      {
-        resource: AudioContextResource,
-        modelToMaybeRequirements: () => Option.some(null),
-        onAcquired: () => Message.SucceededAcquireAudioContext(),
-        onReleased: () => Message.ReleasedAudioContext(),
-        onAcquireError: () => Message.FailedAcquireAudioContext(),
-        handler: function* () {
-          return {
-            acquire: () =>
-              Effect.try({
-                try: () => new AudioContext(),
-                catch: () =>
-                  new Error(
-                    'The Web Audio API is unavailable in this browser.',
-                  ),
-              }),
-            release: audioContext =>
-              Effect.promise(() => audioContext.close().catch(() => undefined)),
-          }
-        },
-      },
-    ),
+export const managedResources = NotePlayerDemo.managedResources(entry => ({
+  audioContext: entry('ManageAudioContext', Schema.Option(Schema.Null), {
+    resource: AudioContextResource,
+    modelToMaybeRequirements: () => Option.some(null),
+    onAcquired: () => Message.SucceededAcquireAudioContext(),
+    onReleased: () => Message.ReleasedAudioContext(),
+    onAcquireError: () => Message.FailedAcquireAudioContext(),
+    handler: function* () {
+      return {
+        acquire: () =>
+          Effect.try({
+            try: () => new AudioContext(),
+            catch: () =>
+              new Error('The Web Audio API is unavailable in this browser.'),
+          }),
+        release: audioContext =>
+          Effect.promise(() => audioContext.close().catch(() => undefined)),
+      }
+    },
   }),
-)
+}))
 
 // COMMAND
 
-const PlayNote = Command.define(owner.name('PlayNote'), {
+const PlayNote = NotePlayerDemo.command('PlayNote', {
   args: { note: Note, duration: NoteDuration, noteIndex: Schema.Number },
   messages: [Message.CompletedPlayNote],
   handler: function* () {
@@ -562,7 +558,6 @@ const PlayNote = Command.define(owner.name('PlayNote'), {
 })
 
 export const EffectsLayer = Layer.mergeAll(
-  RadioGroup.EffectsLayer,
   DelayAdvanceNotePlayerPhase.layer,
   PlayNote.layer,
   managedResources.audioContext.layer,
@@ -590,7 +585,7 @@ const durationButtonClass = (
       !isSelected && isDisabled,
   })
 
-export const view = contract.defineView((model, h): Html =>
+export const view = notePlayerDemo.view((model, h) =>
   DemoView.shell(
     DemoView.codePanel(
       'note-demo-code-panel',
@@ -602,7 +597,10 @@ export const view = contract.defineView((model, h): Html =>
   ),
 )
 
-const appPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+const appPanel = (
+  model: Model,
+  h: HtmlBuilder<Message, ViewRequirements>,
+): Html => {
   const isPlaying = model.playbackState._tag === 'Playing'
   const isPaused = model.playbackState._tag === 'Paused'
   const isInputLocked = isPlaying || isPaused
@@ -643,7 +641,7 @@ const appPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
 const noteInputView = (
   model: Model,
   isInputLocked: boolean,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, ViewRequirements>,
 ): Html =>
   Input.view(
     {
@@ -715,7 +713,7 @@ const noteDurations: ReadonlyArray<NoteDuration> = ['Short', 'Medium', 'Long']
 const durationSelectorView = (
   model: Model,
   isInputLocked: boolean,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, ViewRequirements>,
 ): Html =>
   h.div(
     [h.Class('flex flex-col gap-1.5')],
@@ -724,46 +722,49 @@ const durationSelectorView = (
         [h.Class('text-xs text-gray-600 dark:text-gray-400')],
         ['Note Length'],
       ),
-      h.submodel({
-        slotId: model.noteDurationRadioGroup.id,
-        model: model.noteDurationRadioGroup,
-        view: NoteDurationRadioGroup.view,
-        viewInputs: {
-          selectedValue: Option.some(model.noteDuration),
-          options: noteDurations,
-          ariaLabel: 'Note length',
-          orientation: 'Horizontal',
-          isDisabled: isInputLocked,
-          toView: ({ group, options }) =>
-            h.div(
-              [
-                ...group,
-                h.Class(
-                  'flex rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden',
-                ),
-              ],
-              options.map(option =>
-                h.div(
-                  [
-                    ...option.option,
-                    h.Class(
-                      durationButtonClass(option.isSelected, option.isDisabled),
-                    ),
-                  ],
-                  [option.value],
+      h.block(
+        noteDurationRadioGroup.embedView({
+          slotId: model.noteDurationRadioGroup.id,
+          model: model.noteDurationRadioGroup,
+          viewInputs: {
+            selectedValue: Option.some(model.noteDuration),
+            options: noteDurations,
+            ariaLabel: 'Note length',
+            orientation: 'Horizontal',
+            isDisabled: isInputLocked,
+            toView: ({ group, options }) =>
+              h.div(
+                [
+                  ...group,
+                  h.Class(
+                    'flex rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden',
+                  ),
+                ],
+                options.map(option =>
+                  h.div(
+                    [
+                      ...option.option,
+                      h.Class(
+                        durationButtonClass(
+                          option.isSelected,
+                          option.isDisabled,
+                        ),
+                      ),
+                    ],
+                    [option.value],
+                  ),
                 ),
               ),
-            ),
-        },
-        toParentMessage: message => Message.GotNoteDurationMessage({ message }),
-      }),
+          },
+        }),
+      ),
     ],
   )
 
 const playbackControlView = (
   model: Model,
   canPlay: boolean,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, ViewRequirements>,
 ): Html => {
   const isPlaying = model.playbackState._tag === 'Playing'
   const isActive = isPlaying || model.playbackState._tag === 'Paused'
@@ -992,13 +993,10 @@ const phaseIndicatorView = (model: Model): Html =>
     [],
   )
 
-const descriptor = contract.compose({
+export const block = notePlayerDemo.assemble({
   init,
   update,
   view,
   managedResources,
   EffectsLayer,
 })
-
-export const bind = descriptor.bind
-export const withEffectsLayer = descriptor.withEffectsLayer

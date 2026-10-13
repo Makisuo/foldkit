@@ -6,16 +6,17 @@ import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { Dialog } from '@foldkit/ui'
+import { CloseDialog, boot as bootDialog } from '@foldkit/ui/dialog'
 
-import { AppRoute, Message, type Model, update } from './main'
-import { uiInit } from './ui/init'
+import { ApplicationRoute, Message, type Model, update } from './application'
+import { init } from './ui/init'
 
 const today = Calendar.make(2026, 4, 16)
-const uiInit_ = uiInit(today)
+const init_ = init(today)
 
 const initialModel: Model = {
-  route: AppRoute.Home(),
-  uiModel: uiInit_.model,
+  route: ApplicationRoute.Home(),
+  uiModel: init_.model,
 }
 
 const urlOrThrow = (raw: string) =>
@@ -101,7 +102,7 @@ describe('update', () => {
       const modelWithOpenMenu: Model = modifyFields(initialModel, {
         uiModel: modifyFields({
           mobileMenuDialog: () =>
-            Dialog.boot({
+            bootDialog({
               id: 'mobile-menu',
             }).model,
         }),
@@ -113,10 +114,7 @@ describe('update', () => {
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
         ),
-        Command.resolve(
-          Dialog.CloseDialog,
-          Dialog.Message.CompletedCloseDialog(),
-        ),
+        Command.resolve(CloseDialog, Dialog.Message.CompletedCloseDialog()),
         model(model => {
           expect(model.uiModel.mobileMenuDialog.isOpen).toBe(false)
         }),

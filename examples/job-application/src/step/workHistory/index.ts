@@ -4,11 +4,10 @@ export {
   init,
   update,
   GenerateWorkHistoryEntryId,
-  EffectsLayer,
-  mounts,
   hasErrors,
   isComplete,
   revealErrors,
-} from './workHistory'
+} from './block'
 export * as Entry from './entry'
 export { view } from './view'
+export { block } from './workHistory'

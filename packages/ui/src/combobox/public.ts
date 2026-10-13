@@ -1,4 +1,4 @@
-export { init, create, Model } from './single.js'
+export { init, create, Model, block } from './single.js'
 
 export { inputId } from './shared.js'
 
@@ -29,7 +29,6 @@ export {
   ScrollItemIntoView,
   ClickItem,
   DetectMovementOrAnimationEnd,
-  EffectsLayer,
   mounts,
   type Opened,
   type Closed,
@@ -51,7 +50,7 @@ export type {
   BaseViewInputsCommon,
 } from './shared.js'
 
-export type { Bundle, InitConfig, ViewInputs } from './single.js'
+export type { Completed, InitConfig, ViewInputs } from './single.js'
 
 export type { AnchorConfig } from '../anchor/index.js'
 

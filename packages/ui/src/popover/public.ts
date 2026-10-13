@@ -1,8 +1,6 @@
 export {
   init,
   update,
-  open,
-  close,
   view,
   buttonId,
   arrowId,
@@ -22,7 +20,7 @@ export {
   FocusPopoverPanel,
   FocusPopoverButton,
   DetectPopoverMovementOrAnimationEnd,
-  EffectsLayer,
+  block,
   mounts,
   type BlurredPanel,
   type PressedPointerOnButton,

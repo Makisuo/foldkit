@@ -4,10 +4,9 @@ export {
   init,
   update,
   ValidateEmailAsync,
-  EffectsLayer,
-  mounts,
   hasErrors,
   isComplete,
   revealErrors,
-} from './personalInfo'
+} from './block'
 export { view } from './view'
+export { block } from './personalInfo'

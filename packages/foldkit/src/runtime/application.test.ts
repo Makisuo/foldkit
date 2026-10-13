@@ -93,7 +93,7 @@ afterEach(() => {
 })
 
 const makeTestApplication = () =>
-  Application.make({
+  Application.__makeFromConfig({
     Model,
     init: () => ({ model: { status: 'ready' } }),
     update,
@@ -126,7 +126,7 @@ describe('Application', () => {
     }))
 
     expect(() =>
-      Application.make({
+      Application.__makeFromConfig({
         Model,
         init: () => ({ model: { status: 'ready' } }),
         update: updateWithoutRequirements,
@@ -157,7 +157,7 @@ describe('Application', () => {
     }
 
     expect(() =>
-      Application.make({
+      Application.__makeFromConfig({
         Model,
         init: () => ({ model: { status: 'ready' } }),
         update: updateWithoutRequirements,
@@ -192,7 +192,7 @@ describe('Application', () => {
     }))
 
     expect(() =>
-      Application.make({
+      Application.__makeFromConfig({
         Model,
         init: () => ({ model: { status: 'ready' } }),
         update: updateWithoutRequirements,
@@ -279,7 +279,7 @@ describe('Application', () => {
         },
       ),
     }))
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       init: () => ({ model: { status: 'ready' } }),
       update: (model: Model, message: Message) =>
@@ -316,7 +316,7 @@ describe('Application', () => {
   })
 
   it('preserves Flags and routing through Layer provision', async () => {
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       Flags,
       init: (flags, url) => ({
@@ -363,7 +363,7 @@ describe('Application', () => {
 })
 
 const checkApplicationTypes = (): void => {
-  const applicationWithoutRequirements = Application.make({
+  const applicationWithoutRequirements = Application.__makeFromConfig({
     Model,
     init: () => ({ model: { status: 'ready' } }),
     update: updateWithoutRequirements,
@@ -422,7 +422,7 @@ const checkApplicationTypes = (): void => {
   run(Application.provide(application, combinedLayer))
   pipe(application, Application.provide(combinedLayer), run)
 
-  const applicationWithTwoHandlers = Application.make({
+  const applicationWithTwoHandlers = Application.__makeFromConfig({
     Model,
     init: () => ({ model: { status: 'ready' } }),
     update: (model: Model, message: Message) =>
@@ -452,7 +452,7 @@ const checkApplicationTypes = (): void => {
   run(withOneHandler)
   run(Application.provide(withOneHandler, otherLayer))
 
-  const applicationWithInitCommand = Application.make({
+  const applicationWithInitCommand = Application.__makeFromConfig({
     Model,
     init: () => ({
       model: { status: 'starting' },
@@ -516,7 +516,7 @@ const checkApplicationTypes = (): void => {
       ),
     ),
   )
-  const applicationWithSubscription = Application.make({
+  const applicationWithSubscription = Application.__makeFromConfig({
     Model,
     init: () => ({ model: { status: 'ready' } }),
     update: updateWithoutRequirements,
@@ -549,7 +549,7 @@ const checkApplicationTypes = (): void => {
       },
     ),
   }))
-  const applicationWithLayeredSubscription = Application.make({
+  const applicationWithLayeredSubscription = Application.__makeFromConfig({
     Model,
     init: () => ({ model: { status: 'ready' } }),
     update: updateWithoutRequirements,
@@ -572,7 +572,7 @@ const checkApplicationTypes = (): void => {
     ),
   )
 
-  const routingApplication = Application.make({
+  const routingApplication = Application.__makeFromConfig({
     Model,
     init: url => ({
       model: { status: url.pathname },
@@ -603,7 +603,7 @@ const checkApplicationTypes = (): void => {
     ),
   )
 
-  const flagsApplication = Application.make({
+  const flagsApplication = Application.__makeFromConfig({
     Model,
     Flags,
     init: flags => ({
@@ -656,7 +656,7 @@ const checkApplicationTypes = (): void => {
       ),
     }),
   )
-  const routingFlagsApplication = Application.make({
+  const routingFlagsApplication = Application.__makeFromConfig({
     Model,
     Flags,
     init: (flags, url) => ({
@@ -703,7 +703,7 @@ const checkApplicationTypes = (): void => {
     { flags: Effect.succeed({ initialStatus: 'configured' }) },
   )
 
-  Application.make({
+  Application.__makeFromConfig({
     Model,
     init: () => ({ model: { status: 'ready' } }),
     // @ts-expect-error update must return an Update.Return.
@@ -715,7 +715,7 @@ const checkApplicationTypes = (): void => {
     container,
   })
 
-  Application.make({
+  Application.__makeFromConfig({
     Model,
     // @ts-expect-error init must return an Update.Return.
     init: () => 42,
@@ -727,7 +727,7 @@ const checkApplicationTypes = (): void => {
     container,
   })
 
-  Application.make({
+  Application.__makeFromConfig({
     Model,
     // @ts-expect-error Application init cannot emit an OutMessage.
     init: () => ({ model: { status: 'ready' }, outMessage: 'invalid' }),

@@ -5,11 +5,11 @@ import { expect } from 'vitest'
 import { describe, it } from '@effect/vitest'
 
 import {
-  EffectsLayer,
   FocusItem,
   Message,
   OutMessage,
   ResolveKeyboardMove,
+  block,
   ghostStyle,
   init,
   isDragging,
@@ -507,7 +507,7 @@ describe('DragAndDrop', () => {
           Effect.sync(() => {
             received.push(message)
           }),
-        ).pipe(Effect.provide(EffectsLayer)),
+        ).pipe(Effect.provide(block.EffectsLayer)),
       )
 
       await waitForNextTurn()

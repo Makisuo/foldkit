@@ -96,3 +96,19 @@ describe('command-binding-matches-name', () => {
     expect(result).toHaveLength(0)
   })
 })
+
+it('checks Command bindings declared by a named Block', () => {
+  const result = Testing.runRule(
+    commandBindingMatchesName,
+    'VariableDeclarator',
+    variableDeclarator(
+      'SaveUser',
+      Testing.callOfMember('User', 'command', [
+        Testing.strLiteral('FetchUser'),
+        Testing.id('config'),
+      ]),
+    ),
+  )
+
+  expect(result).toHaveLength(1)
+})

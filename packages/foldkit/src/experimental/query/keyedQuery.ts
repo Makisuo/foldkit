@@ -16,6 +16,7 @@ import {
 } from 'effect'
 
 import * as AsyncData from '../../asyncData/index.js'
+import type { ValidateConstructionRequirements } from '../../block/scope.js'
 import * as Command from '../../command/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
@@ -131,7 +132,8 @@ export interface KeyedQueryToLayer<
       (args: KeyedArgs<Fields>) => Effect.Effect<A, E, R>,
       BuildE,
       BuildR
-    >,
+    > &
+      ValidateConstructionRequirements<BuildR>,
   ): Layer.Layer<
     KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>,
     BuildE,
@@ -228,7 +230,7 @@ export type KeyedQueryModel<
 > = ReturnType<typeof makeKeyedQueryModel<A, AI, E, EI, Fields>>
 
 /**
- * Submodel for fetching and retaining `AsyncData` values by argument key.
+ * Block for fetching and retaining `AsyncData` values by argument key.
  *
  * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
  */
@@ -508,7 +510,8 @@ export function defineKeyedQuery<
     (args: KeyedArgs<Fields>) => Effect.Effect<A, E, HandlerRequirements>,
     BuildError,
     BuildRequirements
-  >,
+  > &
+    ValidateConstructionRequirements<BuildRequirements>,
 ): LayeredKeyedQuery<Name, A, AI, E, EI, Fields> &
   Readonly<{
     layer?: Layer.Layer<
@@ -551,19 +554,20 @@ export function defineKeyedQuery<
       (args: KeyedArgs<Fields>) => Effect.Effect<A, E, HandlerR>,
       BuildE,
       BuildR
-    >,
+    > &
+      ValidateConstructionRequirements<BuildR>,
   ) =>
-    Fetch.toLayer(
+    Fetch.toLayer<HandlerR, BuildE, BuildR>(
       Effect.map(
         build,
         execute =>
-          ({ args, generation }) =>
+          ({ args, generation }: KeyedQueryFetchArgs<Fields>) =>
             pipe(
               execute(args),
               Effect.result,
               Effect.map(result => completedFetch(args, generation, result)),
             ),
-      ),
+      ) as never,
     )
 
   const definition = { ...query, Fetch, toLayer }

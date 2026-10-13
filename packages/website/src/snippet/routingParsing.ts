@@ -10,16 +10,19 @@ const routeParser = Route.oneOf(
 )
 
 // Create a parser with a fallback for unmatched URLs
-const urlToAppRoute = Route.parseUrlWithFallback(routeParser, AppRoute.NotFound)
+const urlToApplicationRoute = Route.parseUrlWithFallback(
+  routeParser,
+  ApplicationRoute.NotFound,
+)
 
 // In your init function, parse the initial URL:
 const init: Runtime.RoutingApplicationInit<Model, Message> = (url: Url) => {
-  return { model: { route: urlToAppRoute(url) } }
+  return { model: { route: urlToApplicationRoute(url) } }
 }
 
 // In your update function, handle URL changes:
 ChangedUrl: ({ url }) => ({
   model: modifyFields(model, {
-    route: () => urlToAppRoute(url),
+    route: () => urlToApplicationRoute(url),
   }),
 })

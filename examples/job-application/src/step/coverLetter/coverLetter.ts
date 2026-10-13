@@ -1,7 +1,6 @@
 import clsx from 'clsx'
 import { Schema } from 'effect'
-import { Submodel, Update } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -22,6 +21,8 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
+const CoverLetter = Block.define('CoverLetter', { Model, Message })
+
 // INIT
 
 export const init = (): Model => ({
@@ -30,7 +31,7 @@ export const init = (): Model => ({
 
 // UPDATE
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = CoverLetter.update((model, message) =>
   Message.match(message, {
     UpdatedContent: ({ value }) => ({
       model: modifyFields(model, { content: () => value }),
@@ -43,7 +44,7 @@ export const update = Update.define((model: Model, message: Message) =>
 const MAX_COVER_LETTER_LENGTH = 2000
 const WARNING_THRESHOLD_CHARS = 200
 
-export const view = Submodel.defineView<Model, Message>((model, h): Html => {
+export const view = CoverLetter.view((model, h) => {
   const remaining = MAX_COVER_LETTER_LENGTH - model.content.length
   const isOverLimit = remaining < 0
   const isWarning = !isOverLimit && remaining <= WARNING_THRESHOLD_CHARS
@@ -100,4 +101,10 @@ export const view = Submodel.defineView<Model, Message>((model, h): Html => {
     },
     h,
   )
+})
+
+export const block = CoverLetter.assemble({
+  init: () => ({ model: init() }),
+  update,
+  view,
 })

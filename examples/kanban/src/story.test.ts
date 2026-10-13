@@ -4,6 +4,7 @@ import { generateKeyBetween } from 'fractional-indexing'
 import { describe, expect, test } from 'vitest'
 
 import { DragAndDrop } from '@foldkit/ui'
+import { FocusItem } from '@foldkit/ui/dragAndDrop'
 
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import { Column } from './domain'
@@ -261,7 +262,7 @@ describe('update', () => {
           }),
         ),
         Command.resolve(
-          DragAndDrop.FocusItem({ itemId: firstCardId }),
+          FocusItem({ itemId: firstCardId }),
           DragAndDrop.Message.CompletedFocusItem(),
         ),
         message(
@@ -269,10 +270,7 @@ describe('update', () => {
             message: DragAndDrop.Message.ConfirmedKeyboardDrop(),
           }),
         ),
-        Command.resolve(
-          DragAndDrop.FocusItem,
-          DragAndDrop.Message.CompletedFocusItem(),
-        ),
+        Command.resolve(FocusItem, DragAndDrop.Message.CompletedFocusItem()),
         Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
         model(model => {
           const todoColumn = model.columns.find(column => column.id === 'todo')
@@ -305,7 +303,7 @@ describe('update', () => {
           }),
         ),
         Command.resolve(
-          DragAndDrop.FocusItem({ itemId: cardId }),
+          FocusItem({ itemId: cardId }),
           DragAndDrop.Message.CompletedFocusItem(),
         ),
         message(
@@ -313,10 +311,7 @@ describe('update', () => {
             message: DragAndDrop.Message.ConfirmedKeyboardDrop(),
           }),
         ),
-        Command.resolve(
-          DragAndDrop.FocusItem,
-          DragAndDrop.Message.CompletedFocusItem(),
-        ),
+        Command.resolve(FocusItem, DragAndDrop.Message.CompletedFocusItem()),
         Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
         model(model => {
           const todoCards = model.columns
@@ -349,10 +344,7 @@ describe('update', () => {
             message: DragAndDrop.Message.CancelledDrag(),
           }),
         ),
-        Command.resolve(
-          DragAndDrop.FocusItem,
-          DragAndDrop.Message.CompletedFocusItem(),
-        ),
+        Command.resolve(FocusItem, DragAndDrop.Message.CompletedFocusItem()),
         model(model => {
           expect(model.columns).toStrictEqual(emptyModel.columns)
         }),

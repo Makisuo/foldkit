@@ -31,6 +31,7 @@ import {
   TRAIL_LENGTH,
   TWO_PI,
 } from './constant'
+import { Application as Authoring } from './definition'
 import { Message } from './message'
 import { Model, Particle, Point } from './model'
 import { fractalNoise } from './noise'
@@ -225,13 +226,11 @@ const foldFlowStrengthSliderOutMessage = Slider.OutMessage.match<
     }),
 })
 
-const foldFlowStrengthSlider = Update.foldChild({
-  update: Slider.update,
-  read: (model: Model) => Option.some(model.flowStrengthSlider),
-  write: (model, nextFlowStrengthSlider) =>
-    modifyFields(model, { flowStrengthSlider: () => nextFlowStrengthSlider }),
-  toParentMessage: message => Message.GotFlowStrengthSliderMessage({ message }),
-  foldOutMessage: foldFlowStrengthSliderOutMessage,
+export const flowStrengthSlider = Slider.block.connection({
+  Model: Model,
+  field: 'flowStrengthSlider',
+  parentMessage: Message.GotFlowStrengthSliderMessage,
+  outMessage: { fold: foldFlowStrengthSliderOutMessage },
 })
 
 const foldNoiseScaleSliderOutMessage = Slider.OutMessage.match<
@@ -244,16 +243,18 @@ const foldNoiseScaleSliderOutMessage = Slider.OutMessage.match<
     }),
 })
 
-const foldNoiseScaleSlider = Update.foldChild({
-  update: Slider.update,
-  read: (model: Model) => Option.some(model.noiseScaleSlider),
-  write: (model, nextNoiseScaleSlider) =>
-    modifyFields(model, { noiseScaleSlider: () => nextNoiseScaleSlider }),
-  toParentMessage: message => Message.GotNoiseScaleSliderMessage({ message }),
-  foldOutMessage: foldNoiseScaleSliderOutMessage,
+export const noiseScaleSlider = Slider.block.connection({
+  Model: Model,
+  field: 'noiseScaleSlider',
+  parentMessage: Message.GotNoiseScaleSliderMessage,
+  outMessage: { fold: foldNoiseScaleSliderOutMessage },
 })
 
-export const update = Update.define((model: Model, message: Message) =>
+export const Application = Authoring.register({
+  children: [flowStrengthSlider, noiseScaleSlider],
+})
+
+export const update = Application.update((model, message) =>
   Message.match(message, {
     TickedFrame: ({ deltaTimeMs }) => {
       const deltaSeconds = cappedDeltaSeconds(deltaTimeMs)
@@ -309,9 +310,9 @@ export const update = Update.define((model: Model, message: Message) =>
     }),
 
     GotFlowStrengthSliderMessage: ({ message }) =>
-      foldFlowStrengthSlider(model, message),
+      flowStrengthSlider.fold(model, message),
 
     GotNoiseScaleSliderMessage: ({ message }) =>
-      foldNoiseScaleSlider(model, message),
+      noiseScaleSlider.fold(model, message),
   }),
 )

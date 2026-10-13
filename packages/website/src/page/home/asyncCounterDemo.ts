@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Duration, Effect, Match, Number, Schema, pipe } from 'effect'
-import { Command, Submodel, Update } from 'foldkit'
+import { Block, Update } from 'foldkit'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -9,8 +9,6 @@ import demoCodeHtml from 'virtual:counter-demo-code'
 import { Button } from '@foldkit/ui'
 
 import * as DemoView from '../demoView'
-
-const owner = Submodel.owner('Website/Home/AsyncCounterDemo')
 
 // CONSTANTS
 
@@ -64,7 +62,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-const contract = owner.define({ Model, Message })
+const AsyncCounterDemo = Block.define('AsyncCounterDemo', { Model, Message })
 
 // INIT
 
@@ -81,8 +79,8 @@ export const init = () => ({
 
 // UPDATE
 
-export const DelayAdvanceAsyncCounterPhase = Command.define(
-  owner.name('DelayAdvanceAsyncCounterPhase'),
+export const DelayAdvanceAsyncCounterPhase = AsyncCounterDemo.command(
+  'DelayAdvanceAsyncCounterPhase',
   {
     args: { generation: Schema.Number, duration: Schema.DurationFromMillis },
     messages: [Message.CompletedDelayAdvanceAsyncCounterPhase],
@@ -106,7 +104,7 @@ const prependToLog =
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     pipe([entry, ...messageLog], Array.take(MAX_LOG_ENTRIES))
 
-export const update = contract.defineUpdate((model, message) =>
+export const update = AsyncCounterDemo.update((model, message) =>
   Message.match(message, {
     ClickedDemoIncrement: () => {
       const nextModel = modifyFields(model, {
@@ -332,7 +330,7 @@ const phaseColorClass = (phase: AnimationPhase): string =>
     Match.exhaustive,
   )
 
-export const view = contract.defineView((model, h): Html =>
+export const view = AsyncCounterDemo.view((model, h) =>
   DemoView.shell(
     DemoView.codePanel(
       'demo-code-panel',
@@ -558,7 +556,9 @@ const progressBarView = (model: Model, isCommand: boolean): Html =>
     ],
   )
 
-const descriptor = contract.compose({ init, update, view, EffectsLayer })
-
-export const bind = descriptor.bind
-export const withEffectsLayer = descriptor.withEffectsLayer
+export const block = AsyncCounterDemo.assemble({
+  init,
+  update,
+  view,
+  EffectsLayer,
+})

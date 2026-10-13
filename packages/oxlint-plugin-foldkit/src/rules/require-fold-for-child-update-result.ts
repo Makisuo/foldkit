@@ -22,6 +22,8 @@ import {
   resolvedVariable,
   staticMemberPath,
   staticPropertyName,
+  staticStringValue,
+  blockBindingMethod,
 } from '../guards.ts'
 
 type ChildReturnOrigin = Readonly<{
@@ -69,6 +71,10 @@ const isFoldCall = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
+  if (Option.isSome(blockBindingMethod(node, references))) {
+    return true
+  }
+
   const isFoldPath = (path: ReadonlyArray<string>): boolean =>
     sameNames(path, ['Update', 'foldChild']) ||
     sameNames(path, ['Update', 'foldChildAt']) ||
@@ -300,7 +306,33 @@ const foldChildFieldsByNamespace = (
       return
     }
 
-    let namespace: string | undefined
+    const bindingMethod = blockBindingMethod(node, references)
+    let namespace = Option.getOrUndefined(
+      Option.flatMap(bindingMethod, () =>
+        Option.map(staticMemberPath(node.callee), path => path.root.name),
+      ),
+    )
+
+    if (Option.contains(bindingMethod, 'connection')) {
+      const hasModel = configuration.properties.some(
+        property =>
+          isObjectProperty(property) &&
+          Option.contains(staticPropertyName(property), 'Model'),
+      )
+      const field = Array.findFirst(configuration.properties, property =>
+        isObjectProperty(property) &&
+        Option.contains(staticPropertyName(property), 'field')
+          ? staticStringValue(property.value)
+          : Option.none(),
+      )
+      if (namespace !== undefined && hasModel && Option.isSome(field)) {
+        const fieldNames = fieldsByNamespace.get(namespace) ?? new Set<string>()
+        fieldNames.add(field.value)
+        fieldsByNamespace.set(namespace, fieldNames)
+        return
+      }
+    }
+
     let readFields: ReadonlySet<string> | undefined
     let writeFields: ReadonlySet<string> | undefined
     for (const property of configuration.properties) {
@@ -317,9 +349,13 @@ const foldChildFieldsByNamespace = (
           }),
         )
       } else if (
-        Option.exists(
-          staticPropertyName(property),
-          propertyName => propertyName === 'read' || propertyName === 'readAt',
+        Option.exists(staticPropertyName(property), propertyName =>
+          Option.match(bindingMethod, {
+            onNone: () => propertyName === 'read' || propertyName === 'readAt',
+            onSome: method =>
+              propertyName ===
+              (method === 'keyedConnection' ? 'readAll' : 'read'),
+          }),
         )
       ) {
         const callback = callbackValue(property.value, callbacks)
@@ -470,7 +506,7 @@ const manualChildResultMessage = (
   helperLabel: string,
   resultName: string,
 ): string =>
-  `The parent writes \`${resultName}.model\` into \`${childFieldName}\` after calling \`${helperLabel}\`. A child Return can include Commands or an OutMessage that this copy ignores. Use Update.foldChild, Update.foldChildAt, or Update.foldChildStep.`
+  `The parent writes \`${resultName}.model\` into \`${childFieldName}\` after calling \`${helperLabel}\`. A child Return can include Commands or an OutMessage that this copy ignores. Apply the child operation through the registered binding's fold or api.`
 
 /** Flags a parent that copies a namespaced child helper or update Return's Model
  *  into the matching modifyFields field. It requires a matching

@@ -1,10 +1,10 @@
 import { Array, Option, pipe } from 'effect'
 
-import { AppRoute } from '../../route'
+import { ApplicationRoute } from '../../route'
 import { FetchRoom, LoadSession } from './command'
 import { Model, RoomAsyncData } from './model'
 
-export const init = (route: AppRoute) => {
+export const init = (route: ApplicationRoute) => {
   const commands = pipe(
     route,
     Option.liftPredicate(route => route._tag === 'Room'),

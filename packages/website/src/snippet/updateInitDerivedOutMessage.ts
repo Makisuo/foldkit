@@ -2,39 +2,26 @@ const OutMessage = defineMessageUnion({
   SelectedEndDate: { date: Schema.String },
   CompletedRange: { startDate: Schema.String, endDate: Schema.String },
 })
-type OutMessage = typeof OutMessage.Type
 
-const foldEndDateOutMessage = DatePicker.OutMessage.match<
-  Update.StepWithOutMessage<Model, Message, OutMessage>
->({
-  SelectedDate:
-    ({ date }) =>
-    model => {
-      const nextModel = modifyFields(model, {
-        maybeEndDate: () => Option.some(date),
-      })
-
-      return Option.match(nextModel.maybeStartDate, {
-        onNone: () => ({ model: nextModel }),
-        onSome: startDate => ({
-          model: nextModel,
-          outMessage: OutMessage.CompletedRange({ startDate, endDate: date }),
-        }),
-      })
-    },
-})
-
-const init = (maybeStartDate: Option.Option<string>) =>
-  Update.foldChildInit(DatePicker.boot(), {
-    toParentModel: endDatePicker =>
-      Model.make({
-        endDatePicker,
-        maybeStartDate,
-        maybeEndDate: Option.none(),
-      }),
-    toParentMessage: message => Message.GotEndDateMessage({ message }),
-    foldOutMessage: foldEndDateOutMessage,
-    toParentOutMessage: DatePicker.OutMessage.match<OutMessage>({
+const endDatePicker = DatePicker.block.connection({
+  Model: Model,
+  field: 'endDatePicker',
+  parentMessage: Message.GotEndDateMessage,
+  outMessage: {
+    fold: foldEndDateOutMessage,
+    forward: DatePicker.OutMessage.match({
       SelectedDate: ({ date }) => OutMessage.SelectedEndDate({ date }),
     }),
+  },
+})
+
+const init = (maybeStartDate: Option.Option<string>) => {
+  const datePickerInit = endDatePicker.init()
+  const model = Model.make({
+    endDatePicker: datePickerInit.model,
+    maybeStartDate,
+    maybeEndDate: Option.none(),
   })
+
+  return endDatePicker.restore()(model)
+}

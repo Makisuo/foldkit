@@ -1,9 +1,15 @@
-import { pipe } from 'effect'
-import { Application, Runtime } from 'foldkit'
+import { Runtime } from 'foldkit'
+import { provide } from 'foldkit/application'
 
-import { makeApplication } from './application'
-import { AppLayer } from './layer'
+import { Application, init, update, view, EffectsLayer } from './application'
+import { ApplicationLayer } from './services'
 
-const application = makeApplication(document.getElementById('root'))
+const application = Application.make({
+  init,
+  update,
+  view,
+  EffectsLayer,
+  container: document.getElementById('root'),
+})
 
-pipe(application, Application.provide(AppLayer), Runtime.run)
+Runtime.run(provide(application, ApplicationLayer))

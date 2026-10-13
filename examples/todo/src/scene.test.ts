@@ -21,7 +21,7 @@ import {
   SaveTodos,
   update,
   view,
-} from './main'
+} from './application'
 
 const emptyModel: Model = {
   todos: [],

@@ -1,7 +1,8 @@
 import { Array, Effect, Option, Record, Schema, pipe } from 'effect'
-import { AsyncData, Command, Update } from 'foldkit'
+import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { ApiReference } from './block'
 import {
   ParsedApiReference,
   SIGNATURE_COLLAPSE_THRESHOLD,
@@ -9,14 +10,9 @@ import {
   signaturesLength,
 } from './domain'
 import { Message } from './message'
-import {
-  type ApiData,
-  ApiDataAsyncData,
-  type Disclosures,
-  type Model,
-} from './model'
+import { type ApiData, ApiDataAsyncData, type Disclosures } from './model'
 
-const LoadApiData = Command.define('LoadApiData', {
+const LoadApiData = ApiReference.command('LoadApiData', {
   messages: [Message.SucceededLoadApiData, Message.FailedLoadApiData],
   handler: function* () {
     return () =>
@@ -75,7 +71,7 @@ const disclosuresForApiData = (apiData: ApiData): Disclosures =>
     Record.fromEntries,
   )
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = ApiReference.update((model, message) =>
   Message.match(message, {
     RequestedApiData: () =>
       Option.match(AsyncData.loadIfMissing(model.apiData), {
@@ -107,5 +103,6 @@ export const update = Update.define((model: Model, message: Message) =>
   }),
 )
 
-export const informRouteChanged = (model: Model) =>
-  update(model, Message.RequestedApiData())
+export const informRouteChanged = ApiReference.step(model =>
+  update(model, Message.RequestedApiData()),
+)

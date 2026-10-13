@@ -3,11 +3,13 @@ import { Server } from 'foldkit/experimental'
 
 export const renderDocument = Server.renderDocument
 
-import { Flags, init, view } from './main'
+import { Application, Flags, implementation } from './application'
 
 export const renderPage = (): Promise<Server.EntryResult> =>
   Effect.runPromise(
-    Server.renderToString({ Flags, init, view }, { flags: { start: 0 } }).pipe(
-      Effect.map(Server.Rendered),
-    ),
+    Server.renderToString(
+      Application,
+      { ...implementation, Flags },
+      { flags: { start: 0 } },
+    ).pipe(Effect.map(Server.Rendered)),
   )

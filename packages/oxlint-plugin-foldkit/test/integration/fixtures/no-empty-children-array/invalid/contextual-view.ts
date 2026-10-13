@@ -1,5 +1,12 @@
-import { Submodel } from 'foldkit'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
 
-export const view = Submodel.defineView<Model, Message>((_model, h) =>
+const Model = Schema.Struct({})
+const Message = defineMessageUnion({ Rendered: {} })
+const ContextualView = Block.define('ContextualView')
+const feature = ContextualView.define({ Model, Message })
+
+export const view = feature.view((_model, h) =>
   h.div([], []),
 )

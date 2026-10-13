@@ -3,11 +3,13 @@ import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { DragAndDrop } from '@foldkit/ui'
+import { maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
+import { Application as Authoring } from './definition'
 import { Column } from './domain'
 import { Message } from './message'
-import type { Model } from './model'
+import { Model } from './model'
 
 const findCardTitle = (
   columns: ReadonlyArray<Column.Column>,
@@ -38,7 +40,7 @@ const findColumnName = (
 
 const announceKeyboardDrag = (
   model: Model,
-  nextDragAndDrop: DragAndDrop.Model,
+  nextDragAndDrop: typeof DragAndDrop.Model.Type,
 ): string =>
   Match.value(nextDragAndDrop.dragState).pipe(
     Match.withReturnType<string>(),
@@ -73,7 +75,7 @@ const announceKeyboardDrag = (
 
 const screenReaderTextForDrop = (
   model: Model,
-  outMessage: DragAndDrop.OutMessage,
+  outMessage: typeof DragAndDrop.OutMessage.Type,
 ): string =>
   DragAndDrop.OutMessage.match<string>(outMessage, {
     Reordered: ({ itemId, toContainerId, toIndex }) => {
@@ -82,7 +84,7 @@ const screenReaderTextForDrop = (
       return `Dropped ${title} in position ${toIndex + 1} of ${columnName}.`
     },
     Cancelled: () =>
-      Option.match(DragAndDrop.maybeDraggedItemId(model.dragAndDrop), {
+      Option.match(maybeDraggedItemId(model.dragAndDrop), {
         onNone: () => 'Drag cancelled.',
         onSome: id => {
           const title = findCardTitle(model.columns, id)
@@ -94,7 +96,7 @@ const screenReaderTextForDrop = (
 const foldDragAndDropOutMessage = (previousModel: Model) =>
   DragAndDrop.OutMessage.match({
     Reordered: outMessage =>
-      Update.defineStep((model: Model) => {
+      Authoring.step(model => {
         const { itemId, fromContainerId, toContainerId, toIndex } = outMessage
         const nextColumns = Column.reorder(
           model.columns,
@@ -113,7 +115,7 @@ const foldDragAndDropOutMessage = (previousModel: Model) =>
         }
       }),
     Cancelled: outMessage =>
-      Update.defineStep((model: Model) => ({
+      Authoring.step(model => ({
         model: modifyFields(model, {
           announcement: () =>
             screenReaderTextForDrop(previousModel, outMessage),
@@ -121,23 +123,35 @@ const foldDragAndDropOutMessage = (previousModel: Model) =>
       })),
   })
 
-const foldDragAndDrop = (previousModel: Model) =>
-  Update.foldChild({
-    update: DragAndDrop.update,
-    read: (model: Model) => Option.some(model.dragAndDrop),
-    write: (model, nextDragAndDrop) =>
-      modifyFields(model, {
-        dragAndDrop: () => nextDragAndDrop,
-        announcement: () => announceKeyboardDrag(model, nextDragAndDrop),
-      }),
-    toParentMessage: message => Message.GotDragAndDropMessage({ message }),
-    foldOutMessage: foldDragAndDropOutMessage(previousModel),
-  })
+const dragAndDropOutMessagePolicy = {
+  fold: (
+    outMessage: typeof DragAndDrop.OutMessage.Type,
+    context: Update.FoldContext<
+      typeof DragAndDrop.Message.Type,
+      Message,
+      Model
+    >,
+  ) => foldDragAndDropOutMessage(context.modelBeforeUpdate)(outMessage),
+}
 
-export const update = Update.define((model: Model, message: Message) =>
+export const dragAndDrop = DragAndDrop.block.connection({
+  read: (model: Model) => Option.some(model.dragAndDrop),
+  write: (model, nextDragAndDrop) =>
+    modifyFields(model, {
+      dragAndDrop: () => nextDragAndDrop,
+      announcement: () => announceKeyboardDrag(model, nextDragAndDrop),
+    }),
+  parentMessage: Message.GotDragAndDropMessage,
+  outMessage: dragAndDropOutMessagePolicy,
+})
+
+export const Application = Authoring.register({
+  children: [dragAndDrop],
+})
+
+export const update = Application.update((model, message) =>
   Message.match(message, {
-    GotDragAndDropMessage: ({ message }) =>
-      foldDragAndDrop(model)(model, message),
+    GotDragAndDropMessage: ({ message }) => dragAndDrop.fold(model, message),
 
     ClickedAddCard: ({ columnId }) => ({
       model: modifyFields(model, {

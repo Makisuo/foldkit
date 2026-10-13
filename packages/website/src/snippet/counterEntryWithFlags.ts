@@ -1,12 +1,11 @@
-import { pipe } from 'effect'
-import { Application, Runtime } from 'foldkit'
+import { Runtime } from 'foldkit'
+import { provide } from 'foldkit/application'
 
-import { BrowserKeyValueStore } from '@effect/platform-browser'
-
-import { Flags, Model, flags, init, update, view } from './main'
+import { Application, init, update, view } from './application'
+import { Flags, flags } from './flags'
+import { ApplicationLayer } from './services'
 
 const application = Application.make({
-  Model,
   init,
   update,
   view,
@@ -14,8 +13,4 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-pipe(
-  application,
-  Application.provide(BrowserKeyValueStore.layerLocalStorage),
-  Runtime.run({ flags }),
-)
+Runtime.run(provide(application, ApplicationLayer), { flags })

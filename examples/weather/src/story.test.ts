@@ -1,8 +1,8 @@
 import { Command, given, message, model, story } from 'foldkit/story'
 import { expect, test } from 'vitest'
 
-import { FetchWeather, Message, update } from './main'
-import { weatherData, weatherModel } from './main.fixture'
+import { FetchWeather, Message, update } from './application'
+import { weatherData, weatherModel } from './application.fixture'
 
 test('submitting the weather form fetches weather and shows result', () => {
   story(

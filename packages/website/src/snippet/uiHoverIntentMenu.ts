@@ -1,13 +1,12 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Option, Schema } from 'effect'
-import { Update } from 'foldkit'
-import type { HtmlBuilder } from 'foldkit/html'
+import { Schema } from 'effect'
+import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { HoverIntent } from '@foldkit/ui'
+import type { RenderInfo as HoverIntentRenderInfo } from '@foldkit/ui/hoverIntent'
 
 const Model = Schema.Struct({
   hoverMenu: HoverIntent.Model,
@@ -15,12 +14,17 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const init = () => ({
-  model: {
-    hoverMenu: HoverIntent.init(),
-    // ...your other fields
-  },
-})
+const init = () => {
+  const hoverMenuInit = hoverMenu.init()
+
+  return {
+    model: {
+      hoverMenu: hoverMenuInit.model,
+      // ...your other fields
+    },
+    commands: hoverMenuInit.commands,
+  }
+}
 
 const Message = defineMessageUnion({
   GotHoverMenuMessage: { message: HoverIntent.Message },
@@ -35,44 +39,38 @@ const foldHoverMenuOutMessage = HoverIntent.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const readHoverMenu = (model: Model) => Option.some(model.hoverMenu)
-const writeHoverMenu = (
-  model: Model,
-  nextHoverMenu: HoverIntent.Model,
-): Model => modifyFields(model, { hoverMenu: () => nextHoverMenu })
-const toGotHoverMenuMessage = (message: HoverIntent.Message): Message =>
-  Message.GotHoverMenuMessage({ message })
-
-const foldHoverMenu = Update.foldChild({
-  update: HoverIntent.update,
-  read: readHoverMenu,
-  write: writeHoverMenu,
-  toParentMessage: toGotHoverMenuMessage,
-  foldOutMessage: foldHoverMenuOutMessage,
+const hoverMenu = HoverIntent.block.connection({
+  Model,
+  field: 'hoverMenu',
+  parentMessage: Message.GotHoverMenuMessage,
+  outMessage: { fold: foldHoverMenuOutMessage },
 })
+
+const HoverMenu = Block.define('HoverMenu', {
+  Model,
+  Message,
+})
+const registered = HoverMenu.register({ children: [hoverMenu] })
 
 // Close the menu immediately when any item is clicked.
-const foldHoverMenuClose = Update.foldChildStep({
-  update: HoverIntent.close,
-  read: readHoverMenu,
-  write: writeHoverMenu,
-  toParentMessage: toGotHoverMenuMessage,
-  foldOutMessage: foldHoverMenuOutMessage,
-})
 
 // In the corresponding Message.match handlers:
-GotHoverMenuMessage: ({ message }) => foldHoverMenu(model, message)
-ClickedHoverMenuItem: () => foldHoverMenuClose(model)
+const update = HoverMenu.update((model, message) =>
+  Message.match(message, {
+    GotHoverMenuMessage: ({ message }) => hoverMenu.fold(model, message),
+    ClickedHoverMenuItem: () => hoverMenu.close()(model),
+  }),
+)
 
 const triggerId = 'actions-trigger'
 const panelId = 'actions-panel'
 
-const view = (h: HtmlBuilder<Message>) => {
+const view = registered.view((model, h) => {
   const hoverMenuView = ({
     trigger,
     panel,
     isVisible,
-  }: HoverIntent.RenderInfo) =>
+  }: HoverIntentRenderInfo) =>
     h.div(
       [h.Class('relative')],
       [
@@ -119,14 +117,14 @@ const view = (h: HtmlBuilder<Message>) => {
       ],
     )
 
-  return h.submodel({
-    slotId: 'hover-menu',
-    model: model.hoverMenu,
-    view: HoverIntent.view,
-    viewInputs: {
-      focusTriggerSelector: `#${triggerId}`,
-      toView: hoverMenuView,
-    },
-    toParentMessage: toGotHoverMenuMessage,
-  })
-}
+  return h.block(
+    hoverMenu.embedView({
+      slotId: 'hover-menu',
+      model: model.hoverMenu,
+      viewInputs: {
+        focusTriggerSelector: `#${triggerId}`,
+        toView: hoverMenuView,
+      },
+    }),
+  )
+})

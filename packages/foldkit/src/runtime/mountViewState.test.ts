@@ -241,7 +241,7 @@ describe('Mount view-state awareness', () => {
       return Effect.void
     })
 
-    const runtime = Application.makeElement({
+    const runtime = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: initialModel(true) }),
       update: (model: Model, message: Message) => {
@@ -353,7 +353,7 @@ describe('Mount view-state awareness', () => {
       return Effect.void
     })
 
-    const runtime = Application.makeElement({
+    const runtime = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: initialModel(true) }),
       update: (model: Model, message: Message) => {
@@ -394,7 +394,7 @@ describe('Mount view-state awareness', () => {
     }
   })
 
-  it('keeps a live Mount bound to the Submodel wrapper from its acquisition render', async () => {
+  it('keeps a live Mount bound to the Block wrapper from its acquisition render', async () => {
     const subscriptionMessages = await Effect.runPromise(
       PubSub.unbounded<Message>(),
     )
@@ -447,7 +447,7 @@ describe('Mount view-state awareness', () => {
       return Effect.void
     })
 
-    const runtime = Application.makeElement({
+    const runtime = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: initialModel(true) }),
       update: (model, message) => {
@@ -462,7 +462,7 @@ describe('Mount view-state awareness', () => {
             h.button([h.OnClick(Message.HidEditor())], ['hide']),
             ...(model.isEditorShown
               ? [
-                  h.submodel({
+                  h.block({
                     slotId: 'editor',
                     model: {},
                     view: childView,
@@ -529,7 +529,7 @@ describe('Mount view-state awareness', () => {
     }
   })
 
-  it('uses the latest live Submodel wrapper when a surviving Mount emits', async () => {
+  it('uses the latest live Block wrapper when a surviving Mount emits', async () => {
     const subscriptionMessages = await Effect.runPromise(
       PubSub.unbounded<Message>(),
     )
@@ -577,7 +577,7 @@ describe('Mount view-state awareness', () => {
       ]),
     )
 
-    const runtime = Application.makeElement({
+    const runtime = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: initialModel(true) }),
       update: (model, message) => {
@@ -589,7 +589,7 @@ describe('Mount view-state awareness', () => {
           [],
           [
             h.span([], [`ticks:${model.tickCount}`]),
-            h.submodel({
+            h.block({
               slotId: 'editor',
               model: {},
               view: childView,
@@ -682,7 +682,7 @@ describe('Mount view-state awareness', () => {
       return Effect.void
     })
 
-    const runtime = Application.makeElement({
+    const runtime = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: initialModel(true) }),
       update: (model: Model, message: Message) => {
@@ -794,7 +794,7 @@ describe('Mount view-state awareness', () => {
       return Effect.void
     })
 
-    const runtime = Application.makeElement({
+    const runtime = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: initialModel(false) }),
       update: (model, message) => {
@@ -938,7 +938,7 @@ describe('Mount view-state awareness', () => {
       return Effect.void
     })
 
-    const runtime = Application.makeElement({
+    const runtime = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: initialModel(false) }),
       update,
@@ -1082,7 +1082,7 @@ describe('Mount view-state awareness', () => {
       return Effect.void
     })
 
-    const runtime = Application.makeElement({
+    const runtime = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: initialModel(true) }),
       update: (model, message) => {
@@ -1215,7 +1215,7 @@ describe('Mount view-state awareness', () => {
       return Effect.void
     })
 
-    const runtime = Application.makeElement({
+    const runtime = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: initialModel(false) }),
       update: (model, message) => {
@@ -1283,7 +1283,7 @@ describe('Mount view-state awareness', () => {
       return Effect.void
     })
 
-    const runtime = Application.makeElement({
+    const runtime = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: initialModel(false) }),
       update: (model: Model, message: Message) => {
@@ -1367,7 +1367,7 @@ describe('Mount view-state awareness', () => {
       return Effect.void
     })
 
-    const runtime = Application.makeElement({
+    const runtime = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: initialModel(false) }),
       update: (model: Model, message: Message) => {
@@ -1455,7 +1455,7 @@ describe('Mount view-state awareness', () => {
       return Effect.void
     })
 
-    const runtime = Application.makeElement({
+    const runtime = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: initialModel(false) }),
       update: (model: Model, message: Message) => {
@@ -1546,7 +1546,7 @@ describe('Mount view-state awareness', () => {
       return Effect.void
     })
 
-    const runtime = Application.make({
+    const runtime = Application.__makeFromConfig({
       Model,
       init: () => ({ model: initialModel(false) }),
       update,
@@ -1631,7 +1631,7 @@ describe('Mount view-state awareness', () => {
     }
   })
 
-  it('restores a cached lazy Submodel when resume reinserts its subtree', async () => {
+  it('restores a cached lazy Block when resume reinserts its subtree', async () => {
     const processedMessages: globalThis.Array<Message> = []
     let renderCount = 0
     const MountChildEditor = Mount.define('MountChildEditor', {
@@ -1660,7 +1660,7 @@ describe('Mount view-state awareness', () => {
     const lazyChild = createLazy()
     const renderChild = (): Html => {
       renderCount += 1
-      const child = h.submodel({
+      const child = h.block({
         slotId: 'lazy-child',
         model: {},
         view: childView,
@@ -1685,7 +1685,7 @@ describe('Mount view-state awareness', () => {
       return Effect.void
     })
 
-    const runtime = Application.makeElement({
+    const runtime = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: initialModel(false) }),
       update: (model: Model, message: Message) => {
@@ -1781,7 +1781,7 @@ describe('Mount view-state awareness', () => {
         return Effect.void
       })
 
-      const runtime = Application.makeElement({
+      const runtime = Application.__makeElementFromConfig({
         Model,
         init: () => ({ model: initialModel(false) }),
         update,
@@ -1995,7 +1995,7 @@ describe('Mount view-state awareness', () => {
         return Effect.void
       })
 
-      const runtime = Application.makeElement({
+      const runtime = Application.__makeElementFromConfig({
         Model: LifecycleModel,
         init: () => ({ model: initialLifecycleModel }),
         update: updateLifecycle,
@@ -2207,7 +2207,7 @@ describe('Mount view-state awareness', () => {
         )
       }
 
-      const runtime = Application.makeElement({
+      const runtime = Application.__makeElementFromConfig({
         Model,
         init: () => ({ model: initialModel(false) }),
         update,
@@ -2338,7 +2338,7 @@ describe('Mount view-state awareness', () => {
       return Effect.void
     })
 
-    const runtime = Application.makeElement({
+    const runtime = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: initialModel(false) }),
       update: (model: Model, message: Message) => {
@@ -2435,7 +2435,7 @@ describe('Mount view-state awareness', () => {
       ),
     )
 
-    const runtime = Application.makeElement({
+    const runtime = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: initialModel(true) }),
       update,

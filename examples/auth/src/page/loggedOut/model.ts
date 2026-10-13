@@ -17,5 +17,5 @@ export type Model = typeof Model.Type
 export const init = (route: LoggedOutRoute): Model =>
   Model({
     route,
-    loginModel: Login.initModel(),
+    loginModel: Login.block.init().model,
   })

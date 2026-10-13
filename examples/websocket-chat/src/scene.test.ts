@@ -26,7 +26,7 @@ import {
   subscriptions,
   update,
   view,
-} from './main'
+} from './application'
 
 const idleModel = Model.make({
   connection: ConnectionState.Disconnected(),

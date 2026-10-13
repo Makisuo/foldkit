@@ -1,33 +1,15 @@
-import { Layer, pipe } from 'effect'
-import { Application, Runtime } from 'foldkit'
+import { Runtime } from 'foldkit'
+import { provide } from 'foldkit/application'
 
-import { BrowserCrypto } from '@effect/platform-browser'
-
-import {
-  EffectsLayer,
-  Flags,
-  Message,
-  Model,
-  flags,
-  init,
-  mounts,
-  update,
-  view,
-} from './main'
-
-const AppLayer = EffectsLayer.pipe(Layer.provideMerge(BrowserCrypto.layer))
+import { Application, implementation, Flags, flags } from './application'
+import { Message } from './message'
+import { ApplicationLayer } from './services'
 
 const application = Application.make({
-  Model,
+  ...implementation,
   Flags,
-  init,
-  update,
-  view,
-  mounts,
   container: document.getElementById('root'),
-  devTools: {
-    Message,
-  },
+  devTools: { Message },
 })
 
-pipe(application, Application.provide(AppLayer), Runtime.run({ flags }))
+Runtime.run(provide(application, ApplicationLayer), { flags })

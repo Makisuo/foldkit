@@ -1,10 +1,9 @@
 import { Record } from 'effect'
-import { Update } from 'foldkit'
 
+import { ComingFromReact } from './block'
 import { Message } from './message'
-import type { Model } from './model'
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = ComingFromReact.update((model, message) =>
   Message.match(message, {
     ToggledFaq: ({ id, isOpen }) => ({ model: Record.set(model, id, isOpen) }),
   }),

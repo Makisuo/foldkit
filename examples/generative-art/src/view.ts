@@ -1,8 +1,9 @@
 import { Array, Option, pipe } from 'effect'
 import { Canvas } from 'foldkit'
-import { Document, Html, HtmlBuilder } from 'foldkit/html'
+import { Html, HtmlBuilder } from 'foldkit/html'
 
-import { Button, Slider } from '@foldkit/ui'
+import { Button } from '@foldkit/ui'
+import type { ViewInputs as SliderViewInputs } from '@foldkit/ui/slider'
 
 import {
   BACKGROUND_COLOR_TOP,
@@ -27,6 +28,11 @@ import {
 } from './constant'
 import { Message } from './message'
 import type { Model, Particle, Point } from './model'
+import { Application, flowStrengthSlider, noiseScaleSlider } from './update'
+
+type GenerativeArtHtmlBuilder = Parameters<
+  Parameters<typeof Application.view>[0]
+>[1]
 
 const fadeAlpha = (particle: Particle): number => {
   const remainingMs = particle.lifespanMs - particle.ageMs
@@ -287,51 +293,44 @@ const playPauseLabel = (isRunning: boolean): string =>
 
 const slider = (
   label: string,
-  sliderModel: Slider.Model,
   value: number,
-  toParentMessage: (message: Slider.Message) => Message,
+  render: (viewInputs: SliderViewInputs) => Html,
   h: HtmlBuilder<Message>,
 ): Html =>
-  h.submodel({
-    slotId: sliderModel.id,
-    model: sliderModel,
-    view: Slider.view,
-    viewInputs: {
-      value,
-      formatValue: value => value.toFixed(2),
-      toView: attributes =>
-        h.div(
-          [h.Class(sliderRowClass)],
-          [
-            h.div(
-              [h.Class(sliderHeaderClass)],
-              [
-                h.label(
-                  [...attributes.label, h.Class(sliderLabelClass)],
-                  [label],
-                ),
-                h.span([h.Class(sliderValueClass)], [value.toFixed(2)]),
-              ],
-            ),
-            h.div(
-              [...attributes.root, h.Class(sliderRootClass)],
-              [
-                h.div(
-                  [...attributes.track, h.Class(sliderTrackClass)],
-                  [
-                    h.div([
-                      ...attributes.filledTrack,
-                      h.Class(sliderFilledTrackClass),
-                    ]),
-                  ],
-                ),
-                h.div([...attributes.thumb, h.Class(sliderThumbClass)]),
-              ],
-            ),
-          ],
-        ),
-    },
-    toParentMessage,
+  render({
+    value,
+    formatValue: value => value.toFixed(2),
+    toView: attributes =>
+      h.div(
+        [h.Class(sliderRowClass)],
+        [
+          h.div(
+            [h.Class(sliderHeaderClass)],
+            [
+              h.label(
+                [...attributes.label, h.Class(sliderLabelClass)],
+                [label],
+              ),
+              h.span([h.Class(sliderValueClass)], [value.toFixed(2)]),
+            ],
+          ),
+          h.div(
+            [...attributes.root, h.Class(sliderRootClass)],
+            [
+              h.div(
+                [...attributes.track, h.Class(sliderTrackClass)],
+                [
+                  h.div([
+                    ...attributes.filledTrack,
+                    h.Class(sliderFilledTrackClass),
+                  ]),
+                ],
+              ),
+              h.div([...attributes.thumb, h.Class(sliderThumbClass)]),
+            ],
+          ),
+        ],
+      ),
   })
 
 const controlButton = (
@@ -348,7 +347,7 @@ const controlButton = (
     h,
   )
 
-const controlsView = (model: Model, h: HtmlBuilder<Message>): Html =>
+const controlsView = (model: Model, h: GenerativeArtHtmlBuilder): Html =>
   h.div(
     [
       h.Class(
@@ -384,16 +383,28 @@ const controlsView = (model: Model, h: HtmlBuilder<Message>): Html =>
       ),
       slider(
         'Turbulence',
-        model.flowStrengthSlider,
         model.flowStrength,
-        message => Message.GotFlowStrengthSliderMessage({ message }),
+        viewInputs =>
+          h.block(
+            flowStrengthSlider.embedView({
+              slotId: model.flowStrengthSlider.id,
+              model: model.flowStrengthSlider,
+              viewInputs,
+            }),
+          ),
         h,
       ),
       slider(
         'Noise scale',
-        model.noiseScaleSlider,
         model.noiseScale,
-        message => Message.GotNoiseScaleSliderMessage({ message }),
+        viewInputs =>
+          h.block(
+            noiseScaleSlider.embedView({
+              slotId: model.noiseScaleSlider.id,
+              model: model.noiseScaleSlider,
+              viewInputs,
+            }),
+          ),
         h,
       ),
     ],
@@ -420,7 +431,7 @@ const headerView = (h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+export const view = Application.view((model, h) => ({
   title: `Prism Field · ${model.particles.length} particles`,
   body: h.div(
     [
@@ -448,4 +459,4 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
       controlsView(model, h),
     ],
   ),
-})
+}))

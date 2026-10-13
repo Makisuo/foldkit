@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Match, Option, String } from 'effect'
-import { AsyncData, type Mount } from 'foldkit'
+import { AsyncData } from 'foldkit'
 import {
   Html,
   type HtmlBuilder,
@@ -8,8 +8,16 @@ import {
   inertHtml as ih,
 } from 'foldkit/html'
 
-import { Dialog, Menu } from '@foldkit/ui'
-
+import {
+  apiReference,
+  comingFromReact,
+  coreBlockPage,
+  exampleDetail,
+  snippetCopy as snippetCopyBinding,
+  snippetDisclosure as snippetDisclosureBinding,
+  type ViewRequirements,
+  uiPages,
+} from '../children'
 import { type CodeBlock, Shared } from '../component'
 import { pageNeighbors } from '../docsNav'
 import { Icon } from '../icon'
@@ -31,7 +39,6 @@ import {
   Core,
   EffectAtomComparison,
   ElmComparison,
-  Example,
   Examples,
   FieldValidation,
   GetStarted,
@@ -52,7 +59,7 @@ import {
   WhyFoldkit,
 } from '../page'
 import * as Prose from '../prose'
-import { AppRoute, type DocsRoute, homeRouter } from '../route'
+import { ApplicationRoute, type DocsRoute, homeRouter } from '../route'
 import * as SnippetCopy from '../snippetCopy'
 import * as SnippetDisclosure from '../snippetDisclosure'
 import { type TableOfContentsEntry } from '../tableOfContentsEntry'
@@ -64,13 +71,7 @@ import {
   ThemeSelector,
 } from '../view'
 
-type MountRequirements = Mount.RequirementsOf<
-  | typeof Dialog.mounts
-  | typeof Menu.mounts
-  | typeof Ui.mounts
-  | typeof Example.mounts
-  | typeof SnippetDisclosure.mounts
->
+type MountRequirements = ViewRequirements
 
 const PagefindBody = ih.DataAttribute('pagefind-body', '')
 const PagefindIgnore = ih.DataAttribute('pagefind-ignore', '')
@@ -80,7 +81,7 @@ const LlmIgnore = ih.DataAttribute('llm-ignore', '')
 
 export const headerView = (
   model: Model,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Menu.mounts>>,
+  h: HtmlBuilder<Message, MountRequirements>,
 ) =>
   h.header(
     [
@@ -203,7 +204,7 @@ export const footerView = (
               'Built with ',
               h.a(
                 [
-                  h.Href(`${Link.websiteSource}/src/main.ts`),
+                  h.Href(`${Link.websiteSource}/src/application.ts`),
                   h.Class('link-accent'),
                 ],
                 ['Foldkit'],
@@ -328,7 +329,10 @@ export const searchWeight = (tag: string): string =>
 
 // CONTENT WIDTH
 
-const isWideContentRoute = AppRoute.isAnyOf(['Examples', 'ExampleDetail'])
+const isWideContentRoute = ApplicationRoute.isAnyOf([
+  'Examples',
+  'ExampleDetail',
+])
 
 // CONTENT ROUTING
 
@@ -350,32 +354,26 @@ const withoutTableOfContents = (content: Html): DocsPageView => ({
   tableOfContents: Option.none(),
 })
 
-const toApiReferenceMessage = (message: ApiReference.Message): Message =>
-  Message.GotApiReferenceMessage({ message })
-
-const toUiPageMessage = (message: Ui.Message): Message =>
-  Message.GotUiPageMessage({ message })
-
 const renderApiReference = (
-  apiReference: ApiReference.Model,
+  apiReferenceModel: typeof ApiReference.Model.Type,
   module: ApiReference.ApiModule,
   highlights: ApiReference.ApiData['highlights'],
   h: HtmlBuilder<Message, MountRequirements>,
 ): Html =>
-  h.submodel({
-    slotId: `api-reference-${module.name}`,
-    model: apiReference,
-    view: ApiReference.view,
-    viewInputs: {
-      module,
-      highlights,
-      renderHeadingLink: Prose.renderHeadingLink(
-        hash => Message.ClickedCopyLink({ hash }),
-        h,
-      ),
-    },
-    toParentMessage: toApiReferenceMessage,
-  })
+  h.block(
+    apiReference.embedView({
+      slotId: `api-reference-${module.name}`,
+      model: apiReferenceModel,
+      viewInputs: {
+        module,
+        highlights,
+        renderHeadingLink: Prose.renderHeadingLink(
+          hash => Message.ClickedCopyLink({ hash }),
+          h,
+        ),
+      },
+    }),
+  )
 
 type DocPageView = (
   renderCopyButton: CodeBlock.RenderCopyButton,
@@ -391,19 +389,14 @@ const renderDocContent = (
   snippetDisclosure: SnippetDisclosure.Model,
   h: HtmlBuilder<Message, MountRequirements>,
 ): Html => {
-  const renderCopyButton = SnippetCopy.renderer(
-    snippetCopy,
-    message => Message.GotSnippetCopyMessage({ message }),
-    h,
+  const renderCopyButton = SnippetCopy.renderer(snippetCopy, config =>
+    h.block(snippetCopyBinding.embedView(config)),
   )
 
   return pageView(
     renderCopyButton,
-    SnippetDisclosure.renderer(
-      snippetDisclosure,
-      message => Message.GotSnippetDisclosureMessage({ message }),
-      renderCopyButton,
-      h,
+    SnippetDisclosure.renderer(snippetDisclosure, renderCopyButton, config =>
+      h.block(snippetDisclosureBinding.embedView(config)),
     ),
     Prose.renderHeadingLink(hash => Message.ClickedCopyLink({ hash }), h),
   )
@@ -444,16 +437,13 @@ export const view = (
   docsRoute: DocsRoute,
   h: HtmlBuilder<Message, MountRequirements>,
 ) => {
-  const renderCopyButton = SnippetCopy.renderer(
-    model.snippetCopy,
-    message => Message.GotSnippetCopyMessage({ message }),
-    h,
+  const renderCopyButton = SnippetCopy.renderer(model.snippetCopy, config =>
+    h.block(snippetCopyBinding.embedView(config)),
   )
   const renderSnippet = SnippetDisclosure.renderer(
     model.snippetDisclosure,
-    message => Message.GotSnippetDisclosureMessage({ message }),
     renderCopyButton,
-    h,
+    config => h.block(snippetDisclosureBinding.embedView(config)),
   )
   const renderHeadingLink = Prose.renderHeadingLink(
     hash => Message.ClickedCopyLink({ hash }),
@@ -487,14 +477,17 @@ export const view = (
         ),
       ComingFromReact: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'coming-from-react',
-            model: model.comingFromReact,
-            view: ComingFromReact.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: message =>
-              Message.GotComingFromReactMessage({ message }),
-          }),
+          h.block(
+            comingFromReact.embedView({
+              slotId: 'coming-from-react',
+              model: model.comingFromReact,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           ComingFromReact.tableOfContents,
         ),
       ComingFromTanStackQuery: () =>
@@ -555,18 +548,17 @@ export const view = (
         ),
       ExampleDetail: ({ exampleSlug }) =>
         withoutTableOfContents(
-          h.submodel({
-            slotId: `example-detail-${exampleSlug}`,
-            model: model.exampleDetail,
-            view: Example.ExampleDetail.view,
-            viewInputs: {
-              slug: exampleSlug,
-              isNarrowViewport: model.isNarrowViewport,
-              renderSnippet,
-            },
-            toParentMessage: message =>
-              Message.GotExampleDetailMessage({ message }),
-          }),
+          h.block(
+            exampleDetail.embedView({
+              slotId: `example-detail-${exampleSlug}`,
+              model: model.exampleDetail,
+              viewInputs: {
+                slug: exampleSlug,
+                isNarrowViewport: model.isNarrowViewport,
+                renderSnippet,
+              },
+            }),
+          ),
         ),
       BestPracticesSideEffects: () =>
         withTableOfContents(
@@ -766,17 +758,20 @@ export const view = (
           lazyProseContent(Core.PreserveScroll.view, [h]),
           Core.PreserveScroll.tableOfContents,
         ),
-      CoreSubmodel: () =>
+      CoreBlock: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'core-submodel-page',
-            model: model.coreSubmodelPage,
-            view: Core.SubmodelPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: message =>
-              Message.GotCoreSubmodelPageMessage({ message }),
-          }),
-          Core.SubmodelPage.tableOfContents,
+          h.block(
+            coreBlockPage.embedView({
+              slotId: 'core-block-page',
+              model: model.coreBlockPage,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
+          Core.BlockPage.tableOfContents,
         ),
       CoreMachine: () =>
         withTableOfContents(
@@ -793,10 +788,10 @@ export const view = (
           lazyDocsContent(Patterns.AntiPatterns.view, docContentArgs),
           Patterns.AntiPatterns.tableOfContents,
         ),
-      PatternsInformingSubmodels: () =>
+      PatternsInformingBlocks: () =>
         withTableOfContents(
-          lazyDocsContent(Patterns.InformingSubmodels.view, docContentArgs),
-          Patterns.InformingSubmodels.tableOfContents,
+          lazyDocsContent(Patterns.InformingBlocks.view, docContentArgs),
+          Patterns.InformingBlocks.tableOfContents,
         ),
       PatternsSubscriptionOrganization: () =>
         withTableOfContents(
@@ -821,10 +816,10 @@ export const view = (
           lazyDocsContent(Ui.OverviewPage.view, docContentArgs),
           Ui.OverviewPage.tableOfContents,
         ),
-      UiSelectionSubmodels: () =>
+      UiSelectionBlocks: () =>
         withTableOfContents(
-          lazyDocsContent(Ui.SelectionSubmodelsPage.view, docContentArgs),
-          Ui.SelectionSubmodelsPage.tableOfContents,
+          lazyDocsContent(Ui.SelectionBlocksPage.view, docContentArgs),
+          Ui.SelectionBlocksPage.tableOfContents,
         ),
       UiAnchor: () =>
         withTableOfContents(
@@ -833,315 +828,451 @@ export const view = (
         ),
       UiHoverIntent: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-HoverIntent',
-            model: model.uiPages,
-            view: Ui.HoverIntentPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-HoverIntent',
+              model: model.uiPages,
+              view: Ui.HoverIntentPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.HoverIntentPage.tableOfContents,
         ),
       UiButton: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Button',
-            model: model.uiPages,
-            view: Ui.ButtonPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Button',
+              model: model.uiPages,
+              view: Ui.ButtonPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.ButtonPage.tableOfContents,
         ),
       UiTabs: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Tabs',
-            model: model.uiPages,
-            view: Ui.TabsPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Tabs',
+              model: model.uiPages,
+              view: Ui.TabsPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.TabsPage.tableOfContents,
         ),
       UiNav: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Nav',
-            model: model.uiPages,
-            view: Ui.NavPage.view,
-            viewInputs: {
-              renderCopyButton,
-              renderSnippet,
-              renderHeadingLink,
-              url: model.url,
-            },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Nav',
+              model: model.uiPages,
+              view: Ui.NavPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+                url: model.url,
+              },
+            }),
+          ),
           Ui.NavPage.tableOfContents,
         ),
       UiDisclosure: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Disclosure',
-            model: model.uiPages,
-            view: Ui.DisclosurePage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Disclosure',
+              model: model.uiPages,
+              view: Ui.DisclosurePage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.DisclosurePage.tableOfContents,
         ),
       UiDialog: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Dialog',
-            model: model.uiPages,
-            view: Ui.DialogPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Dialog',
+              model: model.uiPages,
+              view: Ui.DialogPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.DialogPage.tableOfContents,
         ),
       UiMenu: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Menu',
-            model: model.uiPages,
-            view: Ui.MenuPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Menu',
+              model: model.uiPages,
+              view: Ui.MenuPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.MenuPage.tableOfContents,
         ),
       UiPopover: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Popover',
-            model: model.uiPages,
-            view: Ui.PopoverPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Popover',
+              model: model.uiPages,
+              view: Ui.PopoverPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.PopoverPage.tableOfContents,
         ),
       UiTooltip: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Tooltip',
-            model: model.uiPages,
-            view: Ui.TooltipPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Tooltip',
+              model: model.uiPages,
+              view: Ui.TooltipPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.TooltipPage.tableOfContents,
         ),
       UiToast: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Toast',
-            model: model.uiPages,
-            view: Ui.ToastPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Toast',
+              model: model.uiPages,
+              view: Ui.ToastPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.ToastPage.tableOfContents,
         ),
       UiListbox: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Listbox',
-            model: model.uiPages,
-            view: Ui.ListboxPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Listbox',
+              model: model.uiPages,
+              view: Ui.ListboxPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.ListboxPage.tableOfContents,
         ),
       UiRadioGroup: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-RadioGroup',
-            model: model.uiPages,
-            view: Ui.RadioGroupPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-RadioGroup',
+              model: model.uiPages,
+              view: Ui.RadioGroupPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.RadioGroupPage.tableOfContents,
         ),
       UiSlider: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Slider',
-            model: model.uiPages,
-            view: Ui.SliderPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Slider',
+              model: model.uiPages,
+              view: Ui.SliderPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.SliderPage.tableOfContents,
         ),
       UiMeter: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Meter',
-            model: model.uiPages,
-            view: Ui.MeterPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Meter',
+              model: model.uiPages,
+              view: Ui.MeterPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.MeterPage.tableOfContents,
         ),
       UiProgress: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Progress',
-            model: model.uiPages,
-            view: Ui.ProgressPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Progress',
+              model: model.uiPages,
+              view: Ui.ProgressPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.ProgressPage.tableOfContents,
         ),
       UiSwitch: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Switch',
-            model: model.uiPages,
-            view: Ui.SwitchPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Switch',
+              model: model.uiPages,
+              view: Ui.SwitchPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.SwitchPage.tableOfContents,
         ),
       UiCalendar: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Calendar',
-            model: model.uiPages,
-            view: Ui.CalendarPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Calendar',
+              model: model.uiPages,
+              view: Ui.CalendarPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.CalendarPage.tableOfContents,
         ),
       UiDatePicker: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-DatePicker',
-            model: model.uiPages,
-            view: Ui.DatePickerPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-DatePicker',
+              model: model.uiPages,
+              view: Ui.DatePickerPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.DatePickerPage.tableOfContents,
         ),
       UiCheckbox: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Checkbox',
-            model: model.uiPages,
-            view: Ui.CheckboxPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Checkbox',
+              model: model.uiPages,
+              view: Ui.CheckboxPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.CheckboxPage.tableOfContents,
         ),
       UiCombobox: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Combobox',
-            model: model.uiPages,
-            view: Ui.ComboboxPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Combobox',
+              model: model.uiPages,
+              view: Ui.ComboboxPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.ComboboxPage.tableOfContents,
         ),
       UiInput: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Input',
-            model: model.uiPages,
-            view: Ui.InputPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Input',
+              model: model.uiPages,
+              view: Ui.InputPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.InputPage.tableOfContents,
         ),
       UiTextarea: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Textarea',
-            model: model.uiPages,
-            view: Ui.TextareaPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Textarea',
+              model: model.uiPages,
+              view: Ui.TextareaPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.TextareaPage.tableOfContents,
         ),
       UiFieldset: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Fieldset',
-            model: model.uiPages,
-            view: Ui.FieldsetPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Fieldset',
+              model: model.uiPages,
+              view: Ui.FieldsetPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.FieldsetPage.tableOfContents,
         ),
       UiSelect: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Select',
-            model: model.uiPages,
-            view: Ui.SelectPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Select',
+              model: model.uiPages,
+              view: Ui.SelectPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.SelectPage.tableOfContents,
         ),
       UiDragAndDrop: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-DragAndDrop',
-            model: model.uiPages,
-            view: Ui.DragAndDropPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-DragAndDrop',
+              model: model.uiPages,
+              view: Ui.DragAndDropPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.DragAndDropPage.tableOfContents,
         ),
       UiFileDrop: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-FileDrop',
-            model: model.uiPages,
-            view: Ui.FileDropPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-FileDrop',
+              model: model.uiPages,
+              view: Ui.FileDropPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.FileDropPage.tableOfContents,
         ),
       UiAnimation: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-Animation',
-            model: model.uiPages,
-            view: Ui.AnimationPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-Animation',
+              model: model.uiPages,
+              view: Ui.AnimationPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.AnimationPage.tableOfContents,
         ),
       UiVirtualList: () =>
         withTableOfContents(
-          h.submodel({
-            slotId: 'ui-VirtualList',
-            model: model.uiPages,
-            view: Ui.VirtualListPage.view,
-            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-            toParentMessage: toUiPageMessage,
-          }),
+          h.block(
+            uiPages.embedView({
+              slotId: 'ui-VirtualList',
+              model: model.uiPages,
+              view: Ui.VirtualListPage.view,
+              viewInputs: {
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
           Ui.VirtualListPage.tableOfContents,
         ),
       AiOverview: () =>

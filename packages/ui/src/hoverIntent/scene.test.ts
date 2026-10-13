@@ -1,30 +1,54 @@
-import type { HtmlBuilder } from 'foldkit/html'
+import { Option } from 'effect'
+import { Block } from 'foldkit'
 import * as Scene from 'foldkit/scene'
+import * as Update from 'foldkit/update'
 
 import { describe, it } from '@effect/vitest'
 
-import type { Model } from './index.js'
-import { Message, init, update, view } from './index.js'
+import { Message, Model, OutMessage, block, init } from './index.js'
 
-const sceneView = (model: Model, h: HtmlBuilder<Message>) =>
-  h.submodel({
-    slotId: 'hover-intent',
-    model,
-    view,
-    viewInputs: {
-      toView: ({ trigger, panel, isVisible }) =>
-        h.div(
-          [],
-          [
-            h.button([h.Id('trigger'), ...trigger], ['Preview']),
-            ...(isVisible
-              ? [h.div([h.Id('panel'), ...panel], ['Content'])]
-              : []),
-          ],
-        ),
-    },
-    toParentMessage: message => message,
-  })
+const HoverIntentScene = Block.define('HoverIntentScene', { Model, Message })
+
+const foldHoverIntentOutMessage = OutMessage.match<Update.Step<Model, Message>>(
+  {
+    Opened: () => model => ({ model }),
+    Closed: () => model => ({ model }),
+  },
+)
+
+const hoverIntent = block.connection({
+  read: (model: Model) => Option.some(model),
+  write: (_model: Model, nextHoverIntent: Model) => nextHoverIntent,
+  toParentMessage: (message: Message): Message => message,
+  outMessage: { fold: foldHoverIntentOutMessage },
+})
+
+const registered = HoverIntentScene.register({ children: [hoverIntent] })
+
+const update = HoverIntentScene.update((model, message) =>
+  hoverIntent.fold(model, message),
+)
+
+const sceneView = registered.view((model, h) =>
+  h.block(
+    hoverIntent.embedView({
+      slotId: 'hover-intent',
+      model,
+      viewInputs: {
+        toView: ({ trigger, panel, isVisible }) =>
+          h.div(
+            [],
+            [
+              h.button([h.Id('trigger'), ...trigger], ['Preview']),
+              ...(isVisible
+                ? [h.div([h.Id('panel'), ...panel], ['Content'])]
+                : []),
+            ],
+          ),
+      },
+    }),
+  ),
+)
 
 const trigger = Scene.selector('#trigger')
 const panel = Scene.selector('#panel')

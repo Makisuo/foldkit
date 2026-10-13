@@ -1,4 +1,4 @@
-// src/main.ts
+// src/init.ts
 
 export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
   model: {
@@ -18,15 +18,18 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
   },
 })
 
-// src/entry.ts (imports Model, Flags, flags, init, update, view, subscriptions from ./main)
+// src/entry.ts
+
+import { Runtime } from 'foldkit'
+
+import { Application, update, view, Flags } from './application'
+import { flags } from './flags'
 
 const application = Application.make({
-  Model,
-  Flags,
   init,
   update,
   view,
-  subscriptions,
+  Flags,
   container: document.getElementById('root'),
 })
 

@@ -3,5 +3,5 @@ import raw from './informingSubmodels.md'
 
 export const { view, tableOfContents } = docPage(
   raw,
-  'patterns/informing-submodels',
+  'patterns/informing-blocks',
 )

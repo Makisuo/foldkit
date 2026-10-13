@@ -1,23 +1,21 @@
 import { Match, Option } from 'effect'
-import { Submodel } from 'foldkit'
-import type {
-  ChildAttribute,
-  HtmlBuilder as FoldkitHtmlBuilder,
-  Html,
-} from 'foldkit/html'
-import type * as Mount from 'foldkit/mount'
+import type { Block } from 'foldkit'
+import type { ChildAttribute, Html } from 'foldkit/html'
 
-import { Calendar, DatePicker } from '@foldkit/ui'
+import type {
+  CalendarAttributes,
+  DaysModeAttributes,
+  MonthsModeAttributes,
+  Week,
+  YearsModeAttributes,
+} from '@foldkit/ui/calendar'
+import { triggerId } from '@foldkit/ui/datePicker'
 import type { AnchorConfig } from '@foldkit/ui/popover'
 
 import * as Icon from '../../icon'
-import { Message as UiMessage } from '../message'
-import type { UiModel } from '../model'
+import { datePickerBasicDemo, ui } from '../update'
 
-type HtmlBuilder = FoldkitHtmlBuilder<
-  UiMessage,
-  Mount.RequirementsOf<typeof DatePicker.mounts>
->
+type HtmlBuilder = Block.HtmlBuilderOf<typeof ui>
 
 const triggerClassName =
   'inline-flex items-center justify-between gap-2 min-w-48 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -68,20 +66,20 @@ const monthYearButtonClassName =
 const navButton = (
   attributes: ReadonlyArray<ChildAttribute>,
   icon: Html,
-  h: FoldkitHtmlBuilder<UiMessage>,
+  h: HtmlBuilder,
 ): Html => h.button([...attributes, h.Class(navButtonClassName)], [icon])
 
 const headingButton = (
-  heading: Calendar.DaysModeAttributes['heading'],
+  heading: DaysModeAttributes['heading'],
   attributes: ReadonlyArray<ChildAttribute>,
-  h: FoldkitHtmlBuilder<UiMessage>,
+  h: HtmlBuilder,
 ): Html =>
   h.button(
     [h.Id(heading.id), ...attributes, h.Class(headingButtonClassName)],
     [heading.text, Icon.chevronDown('w-3 h-3')],
   )
 
-const weekRow = (week: Calendar.Week, h: FoldkitHtmlBuilder<UiMessage>): Html =>
+const weekRow = (week: Week, h: HtmlBuilder): Html =>
   h.div(
     [...week.attributes, h.Class(rowClassName)],
     week.cells.map(cell =>
@@ -99,10 +97,7 @@ const weekRow = (week: Calendar.Week, h: FoldkitHtmlBuilder<UiMessage>): Html =>
 
 // MODES
 
-const daysView = (
-  days: Calendar.DaysModeAttributes,
-  h: FoldkitHtmlBuilder<UiMessage>,
-): Html =>
+const daysView = (days: DaysModeAttributes, h: HtmlBuilder): Html =>
   h.div(
     [...days.root, h.Class(calendarWrapperClassName)],
     [
@@ -132,10 +127,7 @@ const daysView = (
     ],
   )
 
-const monthsView = (
-  months: Calendar.MonthsModeAttributes,
-  h: FoldkitHtmlBuilder<UiMessage>,
-): Html =>
+const monthsView = (months: MonthsModeAttributes, h: HtmlBuilder): Html =>
   h.div(
     [...months.root, h.Class(calendarWrapperClassName)],
     [
@@ -160,10 +152,7 @@ const monthsView = (
     ],
   )
 
-const yearsView = (
-  years: Calendar.YearsModeAttributes,
-  h: FoldkitHtmlBuilder<UiMessage>,
-): Html =>
+const yearsView = (years: YearsModeAttributes, h: HtmlBuilder): Html =>
   h.div(
     [...years.root, h.Class(calendarWrapperClassName)],
     [
@@ -212,7 +201,7 @@ const triggerContent = (
   maybeDate: Option.Option<
     Readonly<{ year: number; month: number; day: number }>
   >,
-  h: FoldkitHtmlBuilder<UiMessage>,
+  h: HtmlBuilder,
 ): Html => {
   return h.div(
     [h.Class(triggerContentClassName)],
@@ -228,26 +217,22 @@ const triggerContent = (
 
 // VIEW
 
-export const view = Submodel.defineView(
-  (model: UiModel, h: HtmlBuilder): Html => {
-    return h.div(
-      [],
-      [
-        h.h2(
-          [h.Class('text-2xl font-bold text-gray-900 mb-6')],
-          ['Date Picker'],
-        ),
-        h.label(
-          [
-            h.For(DatePicker.triggerId(model.datePickerBasicDemo.id)),
-            h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
-          ],
-          ['Due date'],
-        ),
-        h.submodel({
+export const view = ui.view((model, h) => {
+  return h.div(
+    [],
+    [
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Date Picker']),
+      h.label(
+        [
+          h.For(triggerId(model.datePickerBasicDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['Due date'],
+      ),
+      h.block(
+        datePickerBasicDemo.embedView({
           slotId: model.datePickerBasicDemo.id,
           model: model.datePickerBasicDemo,
-          view: DatePicker.view,
           viewInputs: {
             anchor: DATE_PICKER_ANCHOR,
             maybeSelectedDate: model.maybeDatePickerBasicDemoSelectedDate,
@@ -256,7 +241,7 @@ export const view = Submodel.defineView(
             panelClassName,
             backdropClassName,
             className: wrapperClassName,
-            toCalendarView: Match.type<Calendar.CalendarAttributes>().pipe(
+            toCalendarView: Match.type<CalendarAttributes>().pipe(
               Match.tagsExhaustive({
                 Days: days => daysView(days, h),
                 Months: months => monthsView(months, h),
@@ -264,10 +249,8 @@ export const view = Submodel.defineView(
               }),
             ),
           },
-          toParentMessage: message =>
-            UiMessage.GotDatePickerBasicDemoMessage({ message }),
         }),
-      ],
-    )
-  },
-)
+      ),
+    ],
+  )
+})

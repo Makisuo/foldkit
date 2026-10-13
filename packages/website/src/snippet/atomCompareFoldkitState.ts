@@ -1,5 +1,5 @@
 import { Array, Schema } from 'effect'
-import { type Update } from 'foldkit'
+import { define as defineApplication } from 'foldkit/application'
 import { defineMessageUnion } from 'foldkit/message'
 
 // MODEL
@@ -21,10 +21,12 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+const Application = defineApplication({ Model, Message })
+
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Application.update((model, message) =>
+  Message.match(message, {
     AddedTodo: () => ({
       model: modifyFields(model, { todos: Array.append(emptyTodo()) }),
     }),
@@ -34,4 +36,5 @@ export const update = (model: Model, message: Message) =>
     SelectedFilter: ({ filter }) => ({
       model: modifyFields(model, { filter: () => filter }),
     }),
-  })
+  }),
+)

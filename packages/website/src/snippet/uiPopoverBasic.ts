@@ -1,31 +1,33 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Option, Schema } from 'effect'
-import { Update } from 'foldkit'
-import type { HtmlBuilder } from 'foldkit/html'
+import { Schema } from 'effect'
+import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import type * as Mount from 'foldkit/mount'
-import { modifyFields } from 'foldkit/struct'
 
 import { Popover } from '@foldkit/ui'
+import type { RenderInfo as PopoverRenderInfo } from '@foldkit/ui/popover'
+import { buttonId as PopoverButtonId } from '@foldkit/ui/popover'
 
-type MountRequirements = Mount.RequirementsOf<typeof Popover.mounts>
-
-// Add a field to your Model for the Popover Submodel:
+// Add a field to your Model for the Popover Block:
 const Model = Schema.Struct({
   popover: Popover.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize the Popover Submodel with a unique id:
-const init = () => ({
-  model: {
-    popover: Popover.init({ id: 'info' }),
-    // ...your other fields
-  },
-})
+// In your init function, initialize the Popover Block with a unique id:
+const init = () => {
+  const popoverInit = popover.init({ id: 'info' })
+
+  return {
+    model: {
+      popover: popoverInit.model,
+      // ...your other fields
+    },
+    commands: popoverInit.commands,
+  }
+}
 
 // Embed the Popover Message in your parent Message:
 const Message = defineMessageUnion({
@@ -51,28 +53,36 @@ const foldPopoverOutMessage = Popover.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-// Update.foldChild wires the child into the parent: it runs Popover.update,
-// writes the next Popover Model back, maps the Submodel's Commands into your
-// Message type, and hands any OutMessage to foldOutMessage.
-const foldPopover = Update.foldChild({
-  update: Popover.update,
-  read: (model: Model) => Option.some(model.popover),
-  write: (model, nextPopover) =>
-    modifyFields(model, { popover: () => nextPopover }),
-  toParentMessage: message => Message.GotPopoverMessage({ message }),
-  foldOutMessage: foldPopoverOutMessage,
+// The binding wires the completed child Block into the parent: it runs Popover.update,
+// writes the next Popover Model back, maps the Block's Commands into your
+// Message type, and hands any OutMessage to the OutMessage fold.
+const popover = Popover.block.connection({
+  Model,
+  field: 'popover',
+  parentMessage: Message.GotPopoverMessage,
+  outMessage: { fold: foldPopoverOutMessage },
 })
 
-// In the corresponding Message.match handler, call the fold:
-GotPopoverMessage: ({ message }) => foldPopover(model, message)
+const PopoverExample = Block.define('PopoverExample', {
+  Model,
+  Message,
+})
+const registered = PopoverExample.register({ children: [popover] })
 
-// Inside your view function, embed the popover via h.submodel. Give the
+// In the corresponding Message.match handler, call the fold:
+const update = PopoverExample.update((model, message) =>
+  Message.match(message, {
+    GotPopoverMessage: ({ message }) => popover.fold(model, message),
+  }),
+)
+
+// Inside your view function, embed the popover via h.block. Give the
 // trigger an accessible name: target the trigger id with
-// `Popover.buttonId('info')` from a native `<label for>`, and pass
+// `buttonId('info')` from `@foldkit/ui/popover` from a native `<label for>`, and pass
 // `ariaLabelledBy` so the trigger is named by the label. The attribute is
 // only emitted when provided, so the trigger never carries a dangling
 // `aria-labelledby`.
-const view = (h: HtmlBuilder<Message, MountRequirements>) => {
+const view = registered.view((model, h) => {
   const labelId = 'info-label'
 
   const popoverView = ({
@@ -80,14 +90,11 @@ const view = (h: HtmlBuilder<Message, MountRequirements>) => {
     panel,
     backdrop,
     isVisible,
-  }: Popover.RenderInfo) =>
+  }: PopoverRenderInfo) =>
     h.div(
       [h.Class('relative inline-block')],
       [
-        h.label(
-          [h.Id(labelId), h.For(Popover.buttonId('info'))],
-          ['Solutions'],
-        ),
+        h.label([h.Id(labelId), h.For(PopoverButtonId('info'))], ['Solutions']),
         h.button(
           [...button, h.Class('rounded-lg border px-3 py-2 cursor-pointer')],
           [h.span([], ['Solutions'])],
@@ -112,15 +119,15 @@ const view = (h: HtmlBuilder<Message, MountRequirements>) => {
       ],
     )
 
-  return h.submodel({
-    slotId: 'info',
-    model: model.popover,
-    view: Popover.view,
-    viewInputs: {
-      ariaLabelledBy: labelId,
-      anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-      toView: popoverView,
-    },
-    toParentMessage: message => Message.GotPopoverMessage({ message }),
-  })
-}
+  return h.block(
+    popover.embedView({
+      slotId: 'info',
+      model: model.popover,
+      viewInputs: {
+        ariaLabelledBy: labelId,
+        anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+        toView: popoverView,
+      },
+    }),
+  )
+})

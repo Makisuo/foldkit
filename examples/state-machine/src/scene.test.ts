@@ -12,12 +12,13 @@ import {
 import { describe, test } from 'vitest'
 
 import { RadioGroup } from '@foldkit/ui'
+import { FocusOption } from '@foldkit/ui/radioGroup'
 
-import { Message, PlaceOrder, initialModel, update } from './main'
+import { Message, PlaceOrder, initialModel, update } from './application'
 import { view } from './view'
 
 const resolveFocusOption = Command.resolve(
-  RadioGroup.FocusOption,
+  FocusOption,
   RadioGroup.Message.CompletedFocusOption(),
 )
 

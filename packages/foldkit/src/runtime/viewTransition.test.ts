@@ -241,7 +241,7 @@ describe('makeElement with viewTransition', () => {
       return Effect.void
     })
 
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -303,7 +303,7 @@ describe('makeElement with viewTransition', () => {
       return Effect.void
     })
 
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -400,7 +400,7 @@ describe('makeElement with viewTransition', () => {
         return Effect.void
       })
 
-      const element = Application.makeElement({
+      const element = Application.__makeElementFromConfig({
         Model,
         init: () => ({ model: { label: 'initial' } }),
         update: Update.define((model: Model, message: Message) =>
@@ -539,7 +539,7 @@ describe('makeElement with viewTransition', () => {
       return Effect.void
     })
 
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update: Update.define((model, message) => {
@@ -598,7 +598,7 @@ describe('makeElement with viewTransition', () => {
       },
     })
 
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -663,7 +663,7 @@ describe('makeElement with viewTransition', () => {
       },
     })
 
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -719,7 +719,7 @@ describe('makeElement with viewTransition', () => {
       },
     })
 
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -781,7 +781,7 @@ describe('makeElement with viewTransition', () => {
       removeEventListener: () => {},
     }))
 
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -830,7 +830,7 @@ describe('makeElement with viewTransition', () => {
       },
     })
 
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -938,7 +938,7 @@ describe('makeElement with viewTransition', () => {
       ),
     )
 
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update: Update.define((model: Model, message: Message) =>
@@ -1009,7 +1009,7 @@ describe('makeElement with viewTransition', () => {
       },
     })
 
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -1057,7 +1057,7 @@ describe('makeElement with viewTransition', () => {
       },
     })
 
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -1113,7 +1113,7 @@ describe('makeElement with viewTransition', () => {
       },
     })
 
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,

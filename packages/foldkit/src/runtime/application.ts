@@ -9,15 +9,45 @@ import {
   Stream,
 } from 'effect'
 
-import type { ServicesOf as ManagedResourceServicesOf } from '../managedResource/index.js'
+import type { AnyBlock, DefinedUpdateSource } from '../block/definition.js'
+import { lowerBlock } from '../block/lowering.js'
+import type {
+  RequirementsOfBlock,
+  RuntimeServicesOfBlock,
+  ValidateImplementationComposition,
+  ValidateRootHandlerAssembly,
+} from '../block/requirements.js'
+import { qualifyLayer } from '../block/scope.js'
+import type { Document } from '../html/index.js'
+import type {
+  ManagedResources,
+  ServicesOf as ManagedResourceServicesOf,
+} from '../managedResource/index.js'
 import {
   type LayeredMountDefinition,
   type MountAction,
-  MountRegistrationTypeId,
   type PreciseMountRegistry,
 } from '../mount/index.js'
 import type { Ports } from '../port/index.js'
-import type { Return as UpdateReturn } from '../update/index.js'
+import type { Subscriptions } from '../subscription/subscription.js'
+import type {
+  Commands as UpdateCommands,
+  Return as UpdateReturn,
+} from '../update/index.js'
+import type { Url } from '../url/index.js'
+import type { VNode } from '../vdom.js'
+import {
+  type AnyComposition,
+  type CompletedComposition,
+  type DefinitionOf,
+  type MessageSchemaOf,
+  type ModelSchemaOf,
+  type MountRequirementsOf,
+  complete,
+} from './applicationAuthoring.js'
+import type { RoutingConfig } from './browserListeners.js'
+import type { CrashConfig, ElementCrashConfig } from './crashUI.js'
+import type { DevToolsConfig } from './devToolsConfig.js'
 import type { ValidHandlerContracts } from './handlerContracts.js'
 import type {
   ApplicationConfig,
@@ -29,6 +59,8 @@ import { makeApplication } from './makeApplication.js'
 import type { ElementConfig, ElementConfigWithFlags } from './makeElement.js'
 import { makeElement as makeRuntimeElement } from './makeElement.js'
 import { type MakeRuntimeReturn, runtimeInternals } from './runtime.js'
+import type { SlowConfig } from './slowPhase.js'
+import type { ViewTransitionConfig } from './viewTransition.js'
 
 declare const ApplicationTypeId: unique symbol
 
@@ -177,7 +209,7 @@ type ReturnRequirements<Return> =
     : never
 
 type FunctionReturn<Fn> = Fn extends (
-  ...args: ReadonlyArray<any>
+  ...args: ReadonlyArray<never>
 ) => infer Return
   ? Return
   : never
@@ -352,25 +384,6 @@ const assertDistinctManagedResourceKeys = (
   }
 }
 
-const assertDistinctMountNames = (
-  mounts: ReadonlyArray<LayeredMountDefinition>,
-): void => {
-  const definitions = new Map<string, object>()
-
-  for (const mount of mounts) {
-    const previous = definitions.get(mount.name)
-    const registration = mount[MountRegistrationTypeId]
-
-    if (previous && previous !== registration) {
-      throw new Error(
-        `[foldkit] Mount handlers have the same name "${mount.name}" but different definitions. Give each definition a distinct name.`,
-      )
-    }
-
-    definitions.set(mount.name, registration)
-  }
-}
-
 type PendingApplication<
   P extends Ports | undefined,
   Flags,
@@ -430,9 +443,10 @@ export type Application<
 >
 
 /**
- * A container-scoped Foldkit Element whose Effect requirements are carried
- * in its type. Supply its handler Layers through {@link provide} before
- * passing it to `Runtime.run` or `Runtime.embed`.
+ * A container-scoped Foldkit Element whose remaining ordinary service
+ * requirements are carried in its type. Supply ordinary service Layers through
+ * {@link provide} before passing the Element to `Runtime.run` or
+ * `Runtime.embed`.
  */
 export type Element<
   P extends Ports | undefined = undefined,
@@ -441,12 +455,23 @@ export type Element<
   ProvidedServices = never,
 > = Program<P, void, Requirements, RuntimeServices, ProvidedServices, 'Element'>
 
+type PublicProgram<
+  P extends Ports | undefined,
+  Flags,
+  Requirements,
+  RuntimeServices,
+  ProvidedServices,
+  Kind extends 'Application' | 'Element',
+> = Kind extends 'Application'
+  ? Application<P, Flags, Requirements, RuntimeServices, ProvidedServices>
+  : Element<P, Requirements, RuntimeServices, ProvidedServices>
+
 /**
  * Defines a page-owning Foldkit application and preserves the services its
  * init and update Commands, Subscriptions, registered Mounts, and
  * ManagedResources require.
  */
-export function make<
+export function __makeFromConfig<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
@@ -487,7 +512,7 @@ export function make<
   ManagedResourceRuntimeServices<Config>
 >
 
-export function make<
+export function __makeFromConfig<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
@@ -519,7 +544,7 @@ export function make<
   ManagedResourceRuntimeServices<Config>
 >
 
-export function make<
+export function __makeFromConfig<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
@@ -555,7 +580,7 @@ export function make<
   ManagedResourceRuntimeServices<Config>
 >
 
-export function make<
+export function __makeFromConfig<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
@@ -584,7 +609,7 @@ export function make<
   ManagedResourceRuntimeServices<Config>
 >
 
-export function make(
+export function __makeFromConfig(
   config:
     | InferredRoutingApplicationConfigWithFlags<any, any, any>
     | InferredRoutingApplicationConfig<any, any>
@@ -600,10 +625,6 @@ export function make(
     assertDistinctHandlerNames('ManagedResource', config.managedResources)
   }
 
-  if (config.mounts) {
-    assertDistinctMountNames(config.mounts)
-  }
-
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   return makeApplication(config as any)
 }
@@ -614,7 +635,7 @@ export function make(
  * and ManagedResources. Its view returns `Html` and does not manage page
  * metadata.
  */
-export function makeElement<
+export function __makeElementFromConfig<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
@@ -649,7 +670,7 @@ export function makeElement<
   ManagedResourceRuntimeServices<Config>
 >
 
-export function makeElement<
+export function __makeElementFromConfig<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Mounts extends ReadonlyArray<LayeredMountDefinition> = readonly [],
@@ -673,7 +694,7 @@ export function makeElement<
   ManagedResourceRuntimeServices<Config>
 >
 
-export function makeElement(
+export function __makeElementFromConfig(
   config:
     | InferredElementConfigWithFlags<any, any, any>
     | InferredElementConfig<any, any>,
@@ -687,21 +708,874 @@ export function makeElement(
     assertDistinctHandlerNames('ManagedResource', config.managedResources)
   }
 
-  if (config.mounts) {
-    assertDistinctMountNames(config.mounts)
-  }
-
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   return makeRuntimeElement(config as any)
 }
 
+type AnyLayer = Layer.Layer<never, any, any> | Layer.Layer<any, any, any>
+
+type CompositionModel<CompositionValue extends AnyComposition> =
+  ModelSchemaOf<CompositionValue>['Type']
+
+type CompositionMessage<CompositionValue extends AnyComposition> =
+  MessageSchemaOf<CompositionValue>['Type']
+
+type CompositionOwner<CompositionValue extends AnyComposition> =
+  DefinitionOf<CompositionValue>['owner']
+
+type CompositionMountRequirements<CompositionValue extends AnyComposition> =
+  MountRequirementsOf<CompositionValue>
+
+type RootReturn<Model, Message> = Readonly<{
+  model: Model
+  commands?: UpdateCommands<Message, any> | undefined
+  outMessage?: unknown | undefined
+}>
+
+type RootLifecycleConfig<CompositionValue extends AnyComposition> = Readonly<{
+  subscriptions?: Subscriptions<
+    CompositionModel<CompositionValue>,
+    CompositionMessage<CompositionValue>,
+    any
+  >
+  managedResources?: ManagedResources<
+    CompositionModel<CompositionValue>,
+    CompositionMessage<CompositionValue>,
+    any
+  >
+}>
+
+type AnyRootFunction = (...args: ReadonlyArray<never>) => unknown
+
+type AnyRootConfig = Readonly<{
+  init: AnyRootFunction
+  update: AnyRootFunction
+  view: AnyRootFunction
+}>
+
+type RootUpdateInput<
+  UpdateFunction extends AnyRootFunction,
+  Source,
+> = UpdateFunction & Partial<DefinedUpdateSource<Source>>
+
+type PreciseRootUpdate<
+  UpdateFunction extends AnyRootFunction,
+  Source,
+> = unknown extends Source
+  ? UpdateFunction
+  : Source extends readonly [
+        infer Model,
+        infer Message,
+        infer Context extends ReadonlyArray<unknown>,
+        infer Output,
+      ]
+    ? (model: Model, message: Message, ...context: Context) => Output
+    : never
+
+type ValidateRootConfigChannels<
+  CompositionValue extends AnyComposition,
+  Config extends AnyRootConfig,
+> =
+  FunctionReturn<Config['init']> extends RootReturn<
+    CompositionModel<CompositionValue>,
+    CompositionMessage<CompositionValue>
+  >
+    ? FunctionReturn<Config['update']> extends RootReturn<
+        CompositionModel<CompositionValue>,
+        CompositionMessage<CompositionValue>
+      >
+      ? AcceptsExactly<
+          Config['update'],
+          readonly [
+            CompositionModel<CompositionValue>,
+            CompositionMessage<CompositionValue>,
+          ]
+        > extends never
+        ? Readonly<{
+            'Application update must accept exactly its Model and Message': Config['update']
+          }>
+        : unknown
+      : Readonly<{
+          'Application update must return its Model and Messages': FunctionReturn<
+            Config['update']
+          >
+        }>
+    : Readonly<{
+        'Application init must return its Model and Messages': FunctionReturn<
+          Config['init']
+        >
+      }>
+
+type RequiredConfigField<Config, Key extends keyof Config> = Readonly<{
+  [Field in Key]: Config[Field]
+}>
+
+type OptionalConfigField<
+  Config,
+  Key extends PropertyKey,
+> = Key extends keyof Config
+  ? Readonly<{ [Field in Key]: Config[Field] }>
+  : unknown
+
+type ConfigEffectsLayer<Config> =
+  Config extends Readonly<{ EffectsLayer: infer EffectsLayer extends AnyLayer }>
+    ? EffectsLayer
+    : typeof Layer.empty
+
+type RootImplementation<Config extends AnyRootConfig> = RequiredConfigField<
+  Config,
+  'init' | 'update' | 'view'
+> &
+  OptionalConfigField<Config, 'subscriptions'> &
+  OptionalConfigField<Config, 'managedResources'> &
+  Readonly<{ EffectsLayer: ConfigEffectsLayer<Config> }>
+
+type CompletedRoot<
+  CompositionValue extends AnyComposition,
+  Config extends AnyRootConfig,
+> = CompletedComposition<CompositionValue, RootImplementation<Config>>
+
+type RootFlagsRequirements<Config> = undefined extends Config
+  ? never
+  : Config extends Effect.Effect<any, any, infer Requirements>
+    ? Requirements
+    : never
+
+type ProducedOutMessage<Output> = Output extends unknown
+  ? 'outMessage' extends keyof Output
+    ? Output extends Readonly<{ outMessage?: infer OutMessage }>
+      ? Exclude<OutMessage, undefined>
+      : never
+    : never
+  : never
+
+type EmitsNoOutMessage<Producer extends AnyRootFunction> = [
+  ProducedOutMessage<FunctionReturn<Producer>>,
+] extends [never]
+  ? unknown
+  : never
+
+type AcceptsExactly<
+  Producer extends AnyRootFunction,
+  Args extends ReadonlyArray<unknown>,
+> = Producer extends (...args: Args) => any
+  ? ((...args: Args) => unknown) extends (
+      ...args: Parameters<Producer>
+    ) => unknown
+    ? unknown
+    : never
+  : never
+
+type RootViewKind = 'Document' | 'Element'
+
+type ValidateRootView<
+  CompositionValue extends AnyComposition,
+  View extends AnyRootFunction,
+  Kind extends RootViewKind,
+> =
+  View extends Readonly<{
+    __blockDefinitionView: Readonly<{
+      owner: (value: infer ViewOwner) => unknown
+      model: (value: infer ViewModel) => unknown
+      message: (value: infer ViewMessage) => unknown
+      mountRequirements: () => infer ViewMountRequirements
+    }>
+  }>
+    ? [ViewOwner, CompositionOwner<CompositionValue>] extends [
+        CompositionOwner<CompositionValue>,
+        ViewOwner,
+      ]
+      ? [ViewModel, CompositionModel<CompositionValue>] extends [
+          CompositionModel<CompositionValue>,
+          ViewModel,
+        ]
+        ? [ViewMessage, CompositionMessage<CompositionValue>] extends [
+            CompositionMessage<CompositionValue>,
+            ViewMessage,
+          ]
+          ? [
+              Exclude<
+                ViewMountRequirements,
+                CompositionMountRequirements<CompositionValue>
+              >,
+            ] extends [never]
+            ? Parameters<View> extends readonly [unknown, unknown]
+              ? Kind extends 'Document'
+                ? FunctionReturn<View> extends Document
+                  ? unknown
+                  : Readonly<{
+                      'Application.make requires a Document view': View
+                    }>
+                : FunctionReturn<View> extends VNode | null
+                  ? unknown
+                  : Readonly<{
+                      'Application.makeElement requires an Element view': View
+                    }>
+              : Readonly<{
+                  'Application root view must not require view inputs': View
+                }>
+            : Readonly<{
+                'Application view requires Mounts absent from its composition': Exclude<
+                  ViewMountRequirements,
+                  CompositionMountRequirements<CompositionValue>
+                >
+              }>
+          : Readonly<{
+              'Application view must use its composition Message': ViewMessage
+            }>
+        : Readonly<{
+            'Application view must use its composition Model': ViewModel
+          }>
+      : Readonly<{
+          'Application view must be authored by its definition': ViewOwner
+        }>
+    : Readonly<{
+        'Application view must be authored by its definition': View
+      }>
+
+/** @internal Checks shared browser and server root recipes. */
+export type ValidateRoot<
+  CompositionValue extends AnyComposition,
+  Config extends AnyRootConfig,
+  InitArgs extends ReadonlyArray<unknown>,
+  Kind extends RootViewKind,
+> = ValidateImplementationComposition<
+  DefinitionOf<CompositionValue>,
+  CompletedRoot<CompositionValue, Config>
+> &
+  ValidateRootHandlerAssembly<CompletedRoot<CompositionValue, Config>> &
+  ValidateRootConfigChannels<CompositionValue, Config> &
+  ValidateRootView<CompositionValue, Config['view'], Kind> &
+  (EmitsNoOutMessage<Config['update']> extends never
+    ? Readonly<{
+        'Application update must return no OutMessage': CompositionMessage<CompositionValue>
+      }>
+    : AcceptsExactly<Config['init'], InitArgs> extends never
+      ? Readonly<{
+          'Application init must accept its Flags and routing inputs': InitArgs
+        }>
+      : EmitsNoOutMessage<Config['init']> extends never
+        ? Readonly<{
+            'Application init must return no OutMessage': InitArgs
+          }>
+        : unknown)
+
+type RootRequirements<
+  CompositionValue extends AnyComposition,
+  Config extends AnyRootConfig,
+> = RequirementsOfBlock<CompletedRoot<CompositionValue, Config>>
+
+type RootRuntimeServices<
+  CompositionValue extends AnyComposition,
+  Config extends AnyRootConfig,
+> = RuntimeServicesOfBlock<CompletedRoot<CompositionValue, Config>>
+
+type RootProvidedServices<
+  CompositionValue extends AnyComposition,
+  Config extends AnyRootConfig,
+> = Layer.Success<CompletedRoot<CompositionValue, Config>['EffectsLayer']>
+
+type RootFlags<FlagsSchema> = undefined extends FlagsSchema
+  ? void
+  : FlagsSchema extends Schema.Codec<any, any, never, never>
+    ? FlagsSchema['Type']
+    : never
+
+type OptionalRootField<Key extends PropertyKey, Value> = undefined extends Value
+  ? unknown
+  : Readonly<{ [Field in Key]: Value }>
+
+type RootEffectsLayer<EffectsLayerValue> = undefined extends EffectsLayerValue
+  ? typeof Layer.empty
+  : Exclude<EffectsLayerValue, undefined> extends infer LayerValue extends
+        AnyLayer
+    ? LayerValue
+    : never
+
+type PreciseRootImplementation<
+  Init extends AnyRootFunction,
+  UpdateFunction extends AnyRootFunction,
+  View extends AnyRootFunction,
+  SubscriptionsValue,
+  ManagedResourcesValue,
+  EffectsLayerValue,
+> = Readonly<{
+  init: Init
+  update: UpdateFunction
+  view: View
+  EffectsLayer: RootEffectsLayer<EffectsLayerValue>
+}> &
+  OptionalRootField<'subscriptions', SubscriptionsValue> &
+  OptionalRootField<'managedResources', ManagedResourcesValue>
+
+type RootSubscriptions<CompositionValue extends AnyComposition> = NonNullable<
+  RootLifecycleConfig<CompositionValue>['subscriptions']
+>
+
+type RootManagedResources<CompositionValue extends AnyComposition> =
+  NonNullable<RootLifecycleConfig<CompositionValue>['managedResources']>
+
+type PageRootInput<
+  CompositionValue extends AnyComposition,
+  Init extends AnyRootFunction,
+  UpdateFunction extends AnyRootFunction,
+  View extends AnyRootFunction,
+  SubscriptionsValue,
+  ManagedResourcesValue,
+  EffectsLayerValue,
+  FlagsSchema,
+  PortsValue,
+> = Readonly<{
+  init: Init
+  update: UpdateFunction
+  view: View
+  subscriptions?: SubscriptionsValue
+  managedResources?: ManagedResourcesValue
+  EffectsLayer?: EffectsLayerValue
+  Flags?: FlagsSchema
+  routing?: RoutingConfig<CompositionMessage<CompositionValue>>
+  container: HTMLElement | null
+  ports?: PortsValue
+  crash?: CrashConfig<
+    CompositionModel<CompositionValue>,
+    CompositionMessage<CompositionValue>
+  >
+  slow?: SlowConfig<
+    CompositionModel<CompositionValue>,
+    CompositionMessage<CompositionValue>
+  >
+  viewTransition?: ViewTransitionConfig<
+    CompositionModel<CompositionValue>,
+    CompositionMessage<CompositionValue>
+  >
+  freezeModel?: boolean
+  preserveScroll?: boolean
+  devTools?: DevToolsConfig
+}>
+
+type ElementRootInput<
+  CompositionValue extends AnyComposition,
+  Init extends AnyRootFunction,
+  UpdateFunction extends AnyRootFunction,
+  View extends AnyRootFunction,
+  SubscriptionsValue,
+  ManagedResourcesValue,
+  EffectsLayerValue,
+  FlagsSchema,
+  FlagsEffect,
+  PortsValue,
+> = Readonly<{
+  init: Init
+  update: UpdateFunction
+  view: View
+  subscriptions?: SubscriptionsValue
+  managedResources?: ManagedResourcesValue
+  EffectsLayer?: EffectsLayerValue
+  Flags?: FlagsSchema
+  flags?: FlagsEffect
+  container: HTMLElement | null
+  ports?: PortsValue
+  crash?: ElementCrashConfig<
+    CompositionModel<CompositionValue>,
+    CompositionMessage<CompositionValue>
+  >
+  slow?: SlowConfig<
+    CompositionModel<CompositionValue>,
+    CompositionMessage<CompositionValue>
+  >
+  viewTransition?: ViewTransitionConfig<
+    CompositionModel<CompositionValue>,
+    CompositionMessage<CompositionValue>
+  >
+  freezeModel?: boolean
+  devTools?: DevToolsConfig
+}>
+
+type ValidateElementFlags<FlagsSchema, FlagsEffect> =
+  undefined extends FlagsSchema
+    ? undefined extends FlagsEffect
+      ? unknown
+      : Readonly<{
+          'Application.makeElement requires matching Flags and flags': FlagsEffect
+        }>
+    : FlagsSchema extends Schema.Codec<any, any, never, never>
+      ? undefined extends FlagsEffect
+        ? Readonly<{
+            'Application.makeElement requires matching Flags and flags': FlagsSchema
+          }>
+        : FlagsEffect extends Effect.Effect<FlagsSchema['Type'], never, any>
+          ? unknown
+          : Readonly<{
+              'Application.makeElement requires matching Flags and flags': FlagsEffect
+            }>
+      : never
+
+type PageRootModeFields<
+  CompositionValue extends AnyComposition,
+  Init extends AnyRootFunction,
+  FlagsSchema,
+> = undefined extends FlagsSchema
+  ? Parameters<Init> extends readonly []
+    ? Readonly<{ Flags?: never; routing?: never }>
+    : Parameters<Init> extends readonly [Url]
+      ? Readonly<{
+          Flags?: never
+          routing: RoutingConfig<CompositionMessage<CompositionValue>>
+        }>
+      : never
+  : FlagsSchema extends Schema.Codec<any, any, never, never>
+    ? Parameters<Init> extends readonly [FlagsSchema['Type']]
+      ? Readonly<{ Flags: FlagsSchema; routing?: never }>
+      : Parameters<Init> extends readonly [FlagsSchema['Type'], Url]
+        ? Readonly<{
+            Flags: FlagsSchema
+            routing: RoutingConfig<CompositionMessage<CompositionValue>>
+          }>
+        : never
+    : never
+
+type ElementRootModeFields<
+  Init extends AnyRootFunction,
+  FlagsSchema,
+  FlagsEffect,
+> = undefined extends FlagsSchema
+  ? Parameters<Init> extends readonly []
+    ? Readonly<{ Flags?: never; flags?: never }>
+    : never
+  : FlagsSchema extends Schema.Codec<any, any, never, never>
+    ? Parameters<Init> extends readonly [FlagsSchema['Type']]
+      ? Readonly<{ Flags: FlagsSchema; flags: FlagsEffect }>
+      : never
+    : never
+
+type RootPorts<PortsValue> = undefined extends PortsValue
+  ? undefined
+  : Exclude<PortsValue, undefined>
+
+/** @internal Completes one exact application definition as a page. */
+export interface Make<CompositionValue extends AnyComposition> {
+  <
+    const Init extends AnyRootFunction,
+    const UpdateFunction extends AnyRootFunction,
+    const View extends AnyRootFunction,
+    const SubscriptionsValue extends
+      | RootSubscriptions<CompositionValue>
+      | undefined,
+    const ManagedResourcesValue extends
+      | RootManagedResources<CompositionValue>
+      | undefined,
+    const EffectsLayerValue extends AnyLayer | undefined,
+    const FlagsSchema extends Schema.Codec<any, any, never, never> | undefined,
+    const PortsValue extends Ports | undefined,
+    const UpdateSource = unknown,
+  >(
+    config: PageRootInput<
+      CompositionValue,
+      Init,
+      RootUpdateInput<UpdateFunction, UpdateSource>,
+      View,
+      SubscriptionsValue,
+      ManagedResourcesValue,
+      EffectsLayerValue,
+      FlagsSchema,
+      PortsValue
+    > &
+      NoInfer<PageRootModeFields<CompositionValue, Init, FlagsSchema>> &
+      NoInfer<
+        ValidateRoot<
+          CompositionValue,
+          PreciseRootImplementation<
+            Init,
+            PreciseRootUpdate<UpdateFunction, UpdateSource>,
+            View,
+            SubscriptionsValue,
+            ManagedResourcesValue,
+            EffectsLayerValue
+          >,
+          Parameters<Init>,
+          'Document'
+        >
+      >,
+  ): Application<
+    RootPorts<PortsValue>,
+    RootFlags<FlagsSchema>,
+    RootRequirements<
+      CompositionValue,
+      PreciseRootImplementation<
+        Init,
+        PreciseRootUpdate<UpdateFunction, UpdateSource>,
+        View,
+        SubscriptionsValue,
+        ManagedResourcesValue,
+        EffectsLayerValue
+      >
+    >,
+    RootRuntimeServices<
+      CompositionValue,
+      PreciseRootImplementation<
+        Init,
+        PreciseRootUpdate<UpdateFunction, UpdateSource>,
+        View,
+        SubscriptionsValue,
+        ManagedResourcesValue,
+        EffectsLayerValue
+      >
+    >,
+    RootProvidedServices<
+      CompositionValue,
+      PreciseRootImplementation<
+        Init,
+        PreciseRootUpdate<UpdateFunction, UpdateSource>,
+        View,
+        SubscriptionsValue,
+        ManagedResourcesValue,
+        EffectsLayerValue
+      >
+    >
+  >
+}
+
+/** @internal Completes one exact application definition as an Element. */
+export interface MakeElement<CompositionValue extends AnyComposition> {
+  <
+    const Init extends AnyRootFunction,
+    const UpdateFunction extends AnyRootFunction,
+    const View extends AnyRootFunction,
+    const SubscriptionsValue extends
+      | RootSubscriptions<CompositionValue>
+      | undefined,
+    const ManagedResourcesValue extends
+      | RootManagedResources<CompositionValue>
+      | undefined,
+    const EffectsLayerValue extends AnyLayer | undefined,
+    const FlagsSchema extends Schema.Codec<any, any, never, never> | undefined,
+    const FlagsEffect extends Effect.Effect<any, never, any> | undefined,
+    const PortsValue extends Ports | undefined,
+    const UpdateSource = unknown,
+  >(
+    config: ElementRootInput<
+      CompositionValue,
+      Init,
+      RootUpdateInput<UpdateFunction, UpdateSource>,
+      View,
+      SubscriptionsValue,
+      ManagedResourcesValue,
+      EffectsLayerValue,
+      FlagsSchema,
+      FlagsEffect,
+      PortsValue
+    > &
+      NoInfer<ElementRootModeFields<Init, FlagsSchema, FlagsEffect>> &
+      NoInfer<ValidateElementFlags<FlagsSchema, FlagsEffect>> &
+      NoInfer<
+        ValidateRoot<
+          CompositionValue,
+          PreciseRootImplementation<
+            Init,
+            PreciseRootUpdate<UpdateFunction, UpdateSource>,
+            View,
+            SubscriptionsValue,
+            ManagedResourcesValue,
+            EffectsLayerValue
+          >,
+          Parameters<Init>,
+          'Element'
+        >
+      >,
+  ): Element<
+    RootPorts<PortsValue>,
+    | RootRequirements<
+        CompositionValue,
+        PreciseRootImplementation<
+          Init,
+          PreciseRootUpdate<UpdateFunction, UpdateSource>,
+          View,
+          SubscriptionsValue,
+          ManagedResourcesValue,
+          EffectsLayerValue
+        >
+      >
+    | RootFlagsRequirements<FlagsEffect>,
+    RootRuntimeServices<
+      CompositionValue,
+      PreciseRootImplementation<
+        Init,
+        PreciseRootUpdate<UpdateFunction, UpdateSource>,
+        View,
+        SubscriptionsValue,
+        ManagedResourcesValue,
+        EffectsLayerValue
+      >
+    >,
+    RootProvidedServices<
+      CompositionValue,
+      PreciseRootImplementation<
+        Init,
+        PreciseRootUpdate<UpdateFunction, UpdateSource>,
+        View,
+        SubscriptionsValue,
+        ManagedResourcesValue,
+        EffectsLayerValue
+      >
+    >
+  >
+}
+
 /**
- * Supplies the services a Layer produces and carries its own requirements
- * forward on the application. Combine independent feature Layers with
- * `Layer.mergeAll` before calling this once. A bundle may produce services
- * beyond the application's requirements; they remain available to Flags and
- * other runtime effects. With repeated calls, a later Layer supplies the
- * Layers provided earlier: supply handler Layers before their dependencies.
+ * Completes a page-owning application composition and binds it to its browser
+ * host. Its handler recipe is included automatically; shared Service
+ * requirements remain in the application's Effect requirements until
+ * provided.
+ */
+export function make<
+  const CompositionValue extends AnyComposition,
+  const Init extends AnyRootFunction,
+  const UpdateFunction extends AnyRootFunction,
+  const View extends AnyRootFunction,
+  const SubscriptionsValue extends
+    | RootSubscriptions<CompositionValue>
+    | undefined,
+  const ManagedResourcesValue extends
+    | RootManagedResources<CompositionValue>
+    | undefined,
+  const EffectsLayerValue extends AnyLayer | undefined,
+  const FlagsSchema extends Schema.Codec<any, any, never, never> | undefined,
+  const PortsValue extends Ports | undefined,
+>(
+  composition: CompositionValue,
+  config: PageRootInput<
+    CompositionValue,
+    Init,
+    UpdateFunction,
+    View,
+    SubscriptionsValue,
+    ManagedResourcesValue,
+    EffectsLayerValue,
+    FlagsSchema,
+    PortsValue
+  > &
+    NoInfer<PageRootModeFields<CompositionValue, Init, FlagsSchema>> &
+    NoInfer<
+      ValidateRoot<
+        CompositionValue,
+        PreciseRootImplementation<
+          Init,
+          UpdateFunction,
+          View,
+          SubscriptionsValue,
+          ManagedResourcesValue,
+          EffectsLayerValue
+        >,
+        Parameters<Init>,
+        'Document'
+      >
+    >,
+): Application<
+  RootPorts<PortsValue>,
+  RootFlags<FlagsSchema>,
+  RootRequirements<
+    CompositionValue,
+    PreciseRootImplementation<
+      Init,
+      UpdateFunction,
+      View,
+      SubscriptionsValue,
+      ManagedResourcesValue,
+      EffectsLayerValue
+    >
+  >,
+  RootRuntimeServices<
+    CompositionValue,
+    PreciseRootImplementation<
+      Init,
+      UpdateFunction,
+      View,
+      SubscriptionsValue,
+      ManagedResourcesValue,
+      EffectsLayerValue
+    >
+  >,
+  RootProvidedServices<
+    CompositionValue,
+    PreciseRootImplementation<
+      Init,
+      UpdateFunction,
+      View,
+      SubscriptionsValue,
+      ManagedResourcesValue,
+      EffectsLayerValue
+    >
+  >
+>
+export function make(composition: AnyComposition, config: any): any {
+  const { block, options } = completeRoot(composition, config)
+  const lowered = lowerBlock(block as never)
+  const application = __makeFromConfig({ ...options, ...lowered } as never)
+  return installBlock(application, block as never)
+}
+
+/**
+ * Completes an embedded application composition whose view returns Html. The
+ * runtime includes its handler recipe and lifecycle registrations.
+ */
+export function makeElement<
+  const CompositionValue extends AnyComposition,
+  const Init extends AnyRootFunction,
+  const UpdateFunction extends AnyRootFunction,
+  const View extends AnyRootFunction,
+  const SubscriptionsValue extends
+    | RootSubscriptions<CompositionValue>
+    | undefined,
+  const ManagedResourcesValue extends
+    | RootManagedResources<CompositionValue>
+    | undefined,
+  const EffectsLayerValue extends AnyLayer | undefined,
+  const FlagsSchema extends Schema.Codec<any, any, never, never> | undefined,
+  const FlagsEffect extends Effect.Effect<any, never, any> | undefined,
+  const PortsValue extends Ports | undefined,
+>(
+  composition: CompositionValue,
+  config: ElementRootInput<
+    CompositionValue,
+    Init,
+    UpdateFunction,
+    View,
+    SubscriptionsValue,
+    ManagedResourcesValue,
+    EffectsLayerValue,
+    FlagsSchema,
+    FlagsEffect,
+    PortsValue
+  > &
+    NoInfer<ElementRootModeFields<Init, FlagsSchema, FlagsEffect>> &
+    NoInfer<ValidateElementFlags<FlagsSchema, FlagsEffect>> &
+    NoInfer<
+      ValidateRoot<
+        CompositionValue,
+        PreciseRootImplementation<
+          Init,
+          UpdateFunction,
+          View,
+          SubscriptionsValue,
+          ManagedResourcesValue,
+          EffectsLayerValue
+        >,
+        Parameters<Init>,
+        'Element'
+      >
+    >,
+): Element<
+  RootPorts<PortsValue>,
+  | RootRequirements<
+      CompositionValue,
+      PreciseRootImplementation<
+        Init,
+        UpdateFunction,
+        View,
+        SubscriptionsValue,
+        ManagedResourcesValue,
+        EffectsLayerValue
+      >
+    >
+  | RootFlagsRequirements<FlagsEffect>,
+  RootRuntimeServices<
+    CompositionValue,
+    PreciseRootImplementation<
+      Init,
+      UpdateFunction,
+      View,
+      SubscriptionsValue,
+      ManagedResourcesValue,
+      EffectsLayerValue
+    >
+  >,
+  RootProvidedServices<
+    CompositionValue,
+    PreciseRootImplementation<
+      Init,
+      UpdateFunction,
+      View,
+      SubscriptionsValue,
+      ManagedResourcesValue,
+      EffectsLayerValue
+    >
+  >
+>
+export function makeElement(composition: AnyComposition, config: any): any {
+  const { block, options } = completeRoot(composition, config)
+  const element = __makeElementFromConfig({
+    ...options,
+    ...lowerBlock(block as never),
+  } as never)
+  return installBlock(element, block as never)
+}
+
+const completeRoot = (
+  composition: AnyComposition,
+  config: any,
+): Readonly<{
+  block: AnyBlock
+  options: globalThis.Record<string, unknown>
+}> => {
+  const {
+    init,
+    update,
+    view,
+    subscriptions,
+    managedResources,
+    EffectsLayer = Layer.empty,
+    ...options
+  } = config
+  const implementation = {
+    init,
+    update,
+    view,
+    ...(subscriptions === undefined ? {} : { subscriptions }),
+    ...(managedResources === undefined ? {} : { managedResources }),
+    EffectsLayer,
+  }
+
+  return {
+    block: complete(composition, implementation) as AnyBlock,
+    options,
+  }
+}
+
+const installBlock = (program: any, block: AnyBlock): any => {
+  const internals = runtimeInternals.get(program)!
+  const nativeStart = internals.startWithApplicationLayer
+  runtimeInternals.set(program, {
+    ...internals,
+    compositionRoot: block,
+    startWithApplicationLayer: (
+      connector,
+      preservedModel,
+      bootMode,
+      flags,
+      buildId,
+      layer,
+    ) =>
+      nativeStart(
+        connector,
+        preservedModel,
+        bootMode,
+        flags,
+        buildId,
+        qualifyLayer(block.owner.id, layer),
+      ),
+  })
+  return provide(program, block.EffectsLayer as Layer.Layer<any, any, any>)
+}
+
+/**
+ * Supplies the ordinary services a Layer produces and carries its own
+ * requirements forward on the application. The application already carries
+ * the handler graph selected during root completion.
+ * Combine independent service Layers with `Layer.mergeAll` before calling this
+ * once. A bundle may produce services beyond the application's requirements;
+ * they remain available to Flags and other runtime effects. With repeated
+ * calls, a later Layer supplies the Layers provided earlier, so supply a
+ * dependent service Layer before its dependency.
  * Provision also works when the application has no
  * unmet requirements, for example when only its Flags Effect needs a shared
  * service. Layers are built once for each runtime start and released when it
@@ -742,7 +1616,7 @@ export const provide: {
           | Layer.Success<LayerType>
           | Layer.Services<LayerType>
         >
-      : Program<
+      : PublicProgram<
           P,
           Flags,
           ResidualRequirements<
@@ -780,7 +1654,7 @@ export const provide: {
         | Layer.Success<NoInfer<LayerType>>
         | Layer.Services<NoInfer<LayerType>>
       >,
-  ): Program<
+  ): PublicProgram<
     P,
     Flags,
     ResidualRequirements<

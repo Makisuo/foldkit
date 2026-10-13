@@ -3,9 +3,6 @@
 export const Theme = Schema.Literals(['Light', 'Dark'])
 export type Theme = typeof Theme.Type
 
-const BootArgs = Schema.Struct({ theme: Theme })
-type BootArgs = typeof BootArgs.Type
-
 export const Message = defineMessageUnion({
   RestoredTheme: { theme: Theme },
   CompletedRefreshAvailableThemes: {},
@@ -17,7 +14,7 @@ export const OutMessage = defineMessageUnion({
 
 export const init = () => ({ model: Model.make({ theme: 'Light' }) })
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = settings.update((model, message) =>
   Message.match(message, {
     RestoredTheme: ({ theme }) => ({
       model: modifyFields(model, { theme: () => theme }),
@@ -28,5 +25,13 @@ export const update = Update.define((model: Model, message: Message) =>
   }),
 )
 
-export const boot = ({ theme }: BootArgs) =>
-  update(init().model, Message.RestoredTheme({ theme }))
+export const restore = settings.step((model, theme: Theme) =>
+  update(model, Message.RestoredTheme({ theme })),
+)
+
+export const block = settings.assemble({
+  init,
+  update,
+  steps: { restore },
+  EffectsLayer,
+})

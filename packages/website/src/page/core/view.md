@@ -59,7 +59,7 @@ The runtime can only synchronize these fields after the first render. Served HTM
 
 The application must decide its canonical URL. Foldkit does not derive `canonical` from the address bar on the client or from `Request.url` during server rendering. Only the application knows which values identify a page. For example: `?page=2` may identify a separate page, while `?utm_source=newsletter` usually does not. Derive the canonical from the typed route in the Model, just as the view derives `title` from the Model.
 
-::Snippet{name="documentCanonical" label="Derive a canonical URL from an AppRoute"}
+::Snippet{name="documentCanonical" label="Derive a canonical URL from an ApplicationRoute"}
 
 #### Restoring Served Metadata
 
@@ -85,9 +85,9 @@ Every view receives `h`, an `HtmlBuilder` typed to the application's Message uni
 
 ::Snippet{name="htmlHelpers" label="HTML helpers"}
 
-The Message type follows the builder. If `h.OnClick` receives a Message outside the application union, TypeScript rejects it. The root runtime supplies its builder, and `Submodel.defineView` supplies one for each child view.
+The Message type follows the builder. If `h.OnClick` receives a Message outside the application union, TypeScript rejects it. The root Runtime supplies its builder, and each Block definition's `view` supplies one for its child view.
 
-The builder also carries the Mount definitions the view may render. `Application.make` infers them from its `mounts` registrations. An exported mounted view preserves them in the optional second parameter, `HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>`. Ordinary views keep `HtmlBuilder<Message>`. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
+The builder also carries the Mount definitions the view may render. A Block definition infers them from its local Mounts and registered children, and `Application.make` installs the root definition's complete registry. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
 
 #### Element Builder Arity
 
@@ -95,7 +95,7 @@ Element builders that accept children take attributes first and optional childre
 
 #### Builder Ownership
 
-Application code cannot construct a builder. It only enters through a view parameter, which keeps its Message type aligned with the boundary that dispatches its handlers. Extracted view helpers take the builder as their last parameter. A helper that attaches a Mount or embeds a mounted child must retain the required Mounts as the second type parameter, such as `HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>`. Pure helpers can keep `HtmlBuilder<Message>`. A helper that forwards attributes or a view callback can introduce an `AllowedMountRequirements` generic to preserve the caller's capability. Introduce a `ParentMessage` generic when the helper accepts any parent Message universe.
+Application code cannot construct a builder. It only enters through a view parameter, which keeps its Message and registered Mount capabilities aligned with the boundary that dispatches its handlers. Extracted view helpers take the owning definition's inferred builder as their last parameter. Pure helpers can keep `HtmlBuilder<Message>`. A helper that forwards attributes or a view callback can introduce an `AllowedMountRequirements` generic to preserve the caller's capability. Introduce a `ParentMessage` generic when the helper accepts any parent Message universe.
 
 ### Inert HTML
 

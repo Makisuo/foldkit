@@ -1,9 +1,7 @@
-import { Update } from 'foldkit'
-
+import { LoggedIn } from './block'
 import { Message, OutMessage } from './message'
-import { Model } from './model'
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = LoggedIn.update((model, message) =>
   Message.match(message, {
     ClickedLogout: () => ({
       model,

@@ -17,11 +17,12 @@ import {
   Stream,
   String,
   SubscriptionRef,
+  Tuple,
   pipe,
 } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import { Application, type Mount, Update } from 'foldkit'
-import * as Command from 'foldkit/command'
+import { Block, Update } from 'foldkit'
+import { define as defineApplication, provide } from 'foldkit/application'
 import {
   type CommandRecord,
   DEVTOOLS_HOST_ID,
@@ -30,7 +31,7 @@ import {
   INIT_INDEX,
   type MountRecord,
   type StoreState,
-  extractSubmodelInfo,
+  extractBlockInfo,
   isTagged,
   latestEntryIndex,
   toInspectableValue,
@@ -47,7 +48,6 @@ import { defineMessageUnion } from 'foldkit/message'
 import type { DevToolsMode, DevToolsPosition } from 'foldkit/runtime'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
-import * as Subscription from 'foldkit/subscription'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import * as Listbox from '@foldkit/ui/listbox'
@@ -58,14 +58,14 @@ import * as Tabs from '@foldkit/ui/tabs'
 import * as OptionExt from './internal/optionExtensions.js'
 import { overlayStyles } from './overlay-styles.js'
 
-const SubmodelFilterListbox = Listbox.create<string>()
+const BlockFilterListbox = Listbox.create<string>()
 
 // MODEL
 
 const DisplayCommand = Schema.Struct({
   name: Schema.String,
   args: Schema.Option(Schema.Record(Schema.String, Schema.Unknown)),
-  maybeSubmodelPath: Schema.Option(Schema.Array(Schema.String)),
+  maybeBlockPath: Schema.Option(Schema.Array(Schema.String)),
 })
 
 const DisplayMount = Schema.Struct({
@@ -75,7 +75,7 @@ const DisplayMount = Schema.Struct({
 
 const DisplayEntry = Schema.Struct({
   tag: Schema.String,
-  submodelPath: Schema.Array(Schema.String),
+  blockPath: Schema.Array(Schema.String),
   maybeLeafTag: Schema.Option(Schema.String),
   commands: Schema.Array(DisplayCommand),
   mountStarts: Schema.Array(DisplayMount),
@@ -90,7 +90,7 @@ const CopyState = defineTaggedUnion({
 })
 
 const INSPECTOR_TABS_ID = 'dt-inspector'
-const SUBMODEL_FILTER_ID = 'dt-submodel-filter'
+const BLOCK_FILTER_ID = 'dt-block-filter'
 const FLATTEN_SWITCH_ID = 'dt-flatten-switch'
 const SCRUBBER_SLIDER_ID = 'dt-scrubber'
 
@@ -116,8 +116,18 @@ const UnknownByReference = Schema.Unknown.pipe(
 
 const Screen = Schema.Literals(['Messages', 'Settings'])
 type Screen = typeof Screen.Type
+const Position = Schema.Literals([
+  'BottomRight',
+  'BottomLeft',
+  'TopRight',
+  'TopLeft',
+])
+const Mode = Schema.Literals(['TimeTravel', 'Inspect'])
 
 const Model = Schema.Struct({
+  position: Position,
+  mode: Mode,
+  maybeBanner: Schema.Option(Schema.String),
   isOpen: Schema.Boolean,
   isMobile: Schema.Boolean,
   screen: Screen,
@@ -132,10 +142,10 @@ const Model = Schema.Struct({
   isFollowingTop: Schema.Boolean,
   maybeInspectedModel: Schema.Option(UnknownByReference),
   maybeInspectedMessage: Schema.Option(UnknownByReference),
-  submodelTags: Schema.Array(Schema.String),
-  maybeSubmodelFilter: Schema.Option(Schema.String),
+  blockTags: Schema.Array(Schema.String),
+  maybeBlockFilter: Schema.Option(Schema.String),
   isFlattened: Schema.Boolean,
-  submodelFilterListbox: Listbox.Model,
+  blockFilterListbox: Listbox.Model,
   expandedPaths: Schema.HashSet(Schema.String),
   changedPaths: Schema.HashSet(Schema.String),
   affectedPaths: Schema.HashSet(Schema.String),
@@ -158,6 +168,9 @@ const Model = Schema.Struct({
 type Model = typeof Model.Type
 
 const Flags = Schema.Struct({
+  position: Position,
+  mode: Mode,
+  maybeBanner: Schema.Option(Schema.String),
   isOpen: Schema.Boolean,
   isMobile: Schema.Boolean,
   isFlattened: Schema.Boolean,
@@ -220,7 +233,7 @@ const Message = defineMessageUnion({
     isPaused: Schema.Boolean,
     pausedAtIndex: Schema.Number,
   },
-  GotSubmodelFilterMessage: { message: Listbox.Message },
+  GotBlockFilterMessage: { message: Listbox.Message },
   GotScrubberSliderMessage: {
     message: Schema.suspend((): typeof Slider.Message => Slider.Message),
   },
@@ -270,28 +283,28 @@ const sliderValueToHostIndex = (
 
 const SCROLL_FOLLOW_THRESHOLD_PX = 8
 
-const computeSubmodelTags = (
+const computeBlockTags = (
   entries: ReadonlyArray<typeof DisplayEntry.Type>,
 ): ReadonlyArray<string> =>
   pipe(
     entries,
-    Array.flatMap(({ submodelPath }) => submodelPath),
+    Array.flatMap(({ blockPath }) => blockPath),
     Array.dedupe,
     Array.sort(Order.String),
   )
 
-const submodelSegmentLabel = (tag: string): string =>
+const blockSegmentLabel = (tag: string): string =>
   pipe(tag, String.replace(/^Got/, ''), String.replace(/Message$/, ''))
 
-const formatSubmodelPath = (submodelPath: ReadonlyArray<string>): string =>
-  pipe(submodelPath, Array.map(submodelSegmentLabel), Array.join(' › '))
+const formatBlockPath = (blockPath: ReadonlyArray<string>): string =>
+  pipe(blockPath, Array.map(blockSegmentLabel), Array.join(' › '))
 
 const toDisplayCommand = (
   command: CommandRecord,
 ): typeof DisplayCommand.Type => ({
   name: command.name,
   args: Option.fromNullishOr(command.args),
-  maybeSubmodelPath: command.maybeSubmodelPath,
+  maybeBlockPath: command.maybeBlockPath,
 })
 
 const toDisplayMount = (mount: MountRecord): typeof DisplayMount.Type => ({
@@ -301,13 +314,13 @@ const toDisplayMount = (mount: MountRecord): typeof DisplayMount.Type => ({
 
 const toDisplayEntries = ({ entries }: StoreState) =>
   Array.map(entries, entry => {
-    const { submodelPath, maybeLeafTag } = extractSubmodelInfo(
+    const { blockPath, maybeLeafTag } = extractBlockInfo(
       entry.tag,
       entry.message,
     )
     return {
       tag: entry.tag,
-      submodelPath,
+      blockPath,
       maybeLeafTag,
       commands: Array.map(entry.commands, toDisplayCommand),
       mountStarts: Array.map(entry.mountStarts, toDisplayMount),
@@ -395,16 +408,14 @@ const foldInspectorTabsOutMessage = Tabs.OutMessage.match<
     }),
 })
 
-const foldInspectorTabs = Update.foldChild({
-  update: InspectorTabs.update,
-  read: (model: Model) => Option.some(model.inspectorTabs),
-  write: (model, nextInspectorTabs) =>
-    modifyFields(model, { inspectorTabs: () => nextInspectorTabs }),
-  toParentMessage: message => Message.GotInspectorTabsMessage({ message }),
-  foldOutMessage: foldInspectorTabsOutMessage,
+const inspectorTabs = InspectorTabs.connection({
+  Model,
+  field: 'inspectorTabs',
+  parentMessage: Message.GotInspectorTabsMessage,
+  outMessage: { fold: foldInspectorTabsOutMessage },
 })
 
-const foldSubmodelFilterOutMessage = Listbox.OutMessage.match<
+const foldBlockFilterOutMessage = Listbox.OutMessage.match<
   Update.Step<Model, Message>,
   Listbox.OutMessage<string>
 >({
@@ -412,21 +423,16 @@ const foldSubmodelFilterOutMessage = Listbox.OutMessage.match<
     ({ value }) =>
     model => ({
       model: modifyFields(model, {
-        maybeSubmodelFilter: () =>
-          Option.liftPredicate(value, String.isNonEmpty),
+        maybeBlockFilter: () => Option.liftPredicate(value, String.isNonEmpty),
       }),
     }),
 })
 
-const foldSubmodelFilter = Update.foldChild({
-  update: SubmodelFilterListbox.update,
-  read: (model: Model) => Option.some(model.submodelFilterListbox),
-  write: (model, nextSubmodelFilterListbox) =>
-    modifyFields(model, {
-      submodelFilterListbox: () => nextSubmodelFilterListbox,
-    }),
-  toParentMessage: message => Message.GotSubmodelFilterMessage({ message }),
-  foldOutMessage: foldSubmodelFilterOutMessage,
+const blockFilterListbox = BlockFilterListbox.connection({
+  Model,
+  field: 'blockFilterListbox',
+  parentMessage: Message.GotBlockFilterMessage,
+  outMessage: { fold: foldBlockFilterOutMessage },
 })
 
 // NOTE: Pointer Messages update the thumb immediately, but jumping to and
@@ -446,13 +452,40 @@ const foldScrubberSliderOutMessage = Slider.OutMessage.match<
     }),
 })
 
-const foldScrubberSlider = Update.foldChild({
-  update: Slider.update,
-  read: (model: Model) => Option.some(model.scrubberSlider),
-  write: (model, nextScrubberSlider) =>
-    modifyFields(model, { scrubberSlider: () => nextScrubberSlider }),
-  toParentMessage: message => Message.GotScrubberSliderMessage({ message }),
-  foldOutMessage: foldScrubberSliderOutMessage,
+type DevToolsScrubber = typeof scrubberSlider
+
+const makeBindings = (scrubberSlider: DevToolsScrubber) => {
+  const scrubber = scrubberSlider.connection({
+    Model,
+    field: 'scrubberSlider',
+    parentMessage: Message.GotScrubberSliderMessage,
+    outMessage: { fold: foldScrubberSliderOutMessage },
+  })
+
+  return {
+    inspectorTabs,
+    blockFilterListbox,
+    scrubber,
+    children: Tuple.make(inspectorTabs, blockFilterListbox, scrubber),
+  }
+}
+
+const getDevToolsShadowRoot = (): ShadowRoot => {
+  const shadow = document.getElementById(DEVTOOLS_HOST_ID)?.shadowRoot
+  if (shadow === null || shadow === undefined) {
+    throw new Error('Expected the DevTools shadow root to exist')
+  }
+  return shadow
+}
+
+const scrubberSlider = Slider.forRoot(getDevToolsShadowRoot)
+const bindings = makeBindings(scrubberSlider)
+type OverlayBindings = typeof bindings
+type ViewRequirements = Block.RequirementsOfConnections<
+  OverlayBindings['children']
+>
+const Application = defineApplication({ Model, Message }).register({
+  children: bindings.children,
 })
 
 class StoreService extends Context.Service<StoreService, DevToolsStore>()(
@@ -464,14 +497,59 @@ class ShadowRootService extends Context.Service<
   ShadowRoot
 >()('foldkit/DevToolsShadowRoot') {}
 
-export const LockScroll = Command.define('LockScroll', {
+const subscriptions = Application.subscriptions(entry => ({
+  scrubFrameTicks: entry(
+    'ScrubFrameTicks',
+    { isActive: Schema.Boolean },
+    {
+      messages: [Message.TickedScrubFrame],
+      modelToDependencies: model => ({
+        isActive: Option.isSome(model.maybePendingScrubIndex),
+      }),
+      handler: function* () {
+        return ({ isActive }) =>
+          isActive
+            ? Dom.animationFrameTicks.pipe(
+                Stream.map(() => Message.TickedScrubFrame()),
+              )
+            : Stream.empty
+      },
+    },
+  ),
+  storeUpdates: entry('StoreUpdates', {
+    messages: [Message.ReceivedStoreUpdate],
+    handler: function* () {
+      const store = yield* StoreService
+
+      return () =>
+        SubscriptionRef.changes(store.stateRef).pipe(
+          Stream.map(state =>
+            Message.ReceivedStoreUpdate(toDisplayState(state)),
+          ),
+        )
+    },
+  }),
+  mobileBreakpointChanges: entry('MobileBreakpointChanges', {
+    messages: [Message.ObservedMobileBreakpoint],
+    handler: function* () {
+      return () =>
+        Dom.streamFromMediaQuery({
+          query: MOBILE_BREAKPOINT_QUERY,
+          mapMatches: isMobile =>
+            Message.ObservedMobileBreakpoint({ isMobile }),
+        })
+    },
+  }),
+}))
+
+export const LockScroll = Application.command('LockScroll', {
   messages: [Message.CompletedLockScroll],
   handler: function* () {
     return () => lockScroll.pipe(Effect.as(Message.CompletedLockScroll()))
   },
 })
 
-export const UnlockScroll = Command.define('UnlockScroll', {
+export const UnlockScroll = Application.command('UnlockScroll', {
   messages: [Message.CompletedUnlockScroll],
   handler: function* () {
     return () => unlockScroll.pipe(Effect.as(Message.CompletedUnlockScroll()))
@@ -507,27 +585,30 @@ const readPersistedState = Effect.gen(function* () {
   return yield* Schema.decodeEffect(DevToolsPersistedStateJson)(json)
 }).pipe(Effect.catch(() => Effect.succeed(DEFAULT_PERSISTED_STATE)))
 
-export const PersistDevToolsState = Command.define('PersistDevToolsState', {
-  args: { isOpen: Schema.Boolean, isFlattened: Schema.Boolean },
-  messages: [Message.CompletedPersistDevToolsState],
-  handler: function* () {
-    const store = yield* KeyValueStore.KeyValueStore
+export const PersistDevToolsState = Application.command(
+  'PersistDevToolsState',
+  {
+    args: { isOpen: Schema.Boolean, isFlattened: Schema.Boolean },
+    messages: [Message.CompletedPersistDevToolsState],
+    handler: function* () {
+      const store = yield* KeyValueStore.KeyValueStore
 
-    return ({ isOpen, isFlattened }) =>
-      Effect.gen(function* () {
-        const json = yield* Schema.encodeEffect(DevToolsPersistedStateJson)({
-          isOpen,
-          isFlattened,
-        })
-        yield* store.set(DEVTOOLS_STORAGE_KEY, json)
-        return Message.CompletedPersistDevToolsState()
-      }).pipe(
-        Effect.catch(() =>
-          Effect.succeed(Message.CompletedPersistDevToolsState()),
-        ),
-      )
+      return ({ isOpen, isFlattened }) =>
+        Effect.gen(function* () {
+          const json = yield* Schema.encodeEffect(DevToolsPersistedStateJson)({
+            isOpen,
+            isFlattened,
+          })
+          yield* store.set(DEVTOOLS_STORAGE_KEY, json)
+          return Message.CompletedPersistDevToolsState()
+        }).pipe(
+          Effect.catch(() =>
+            Effect.succeed(Message.CompletedPersistDevToolsState()),
+          ),
+        )
+    },
   },
-})
+)
 
 const buildInspectionFromModel = (
   store: DevToolsStore,
@@ -552,7 +633,7 @@ const buildInspectionEffect = (store: DevToolsStore, index: number) =>
 // returns the model it resolved so the inspector reuses that single
 // resolution. Inspect-only navigation (no host pause) still uses
 // `InspectState`, which resolves once on its own.
-export const JumpToAndInspect = Command.define('JumpToAndInspect', {
+export const JumpToAndInspect = Application.command('JumpToAndInspect', {
   args: { index: Schema.Number },
   messages: [Message.ReceivedInspectedState],
   handler: function* () {
@@ -566,7 +647,7 @@ export const JumpToAndInspect = Command.define('JumpToAndInspect', {
   },
 })
 
-export const InspectState = Command.define('InspectState', {
+export const InspectState = Application.command('InspectState', {
   args: { index: Schema.Number },
   messages: [Message.ReceivedInspectedState],
   handler: function* () {
@@ -576,7 +657,7 @@ export const InspectState = Command.define('InspectState', {
   },
 })
 
-export const InspectLatest = Command.define('InspectLatest', {
+export const InspectLatest = Application.command('InspectLatest', {
   messages: [Message.ReceivedInspectedState],
   handler: function* () {
     const store = yield* StoreService
@@ -589,7 +670,7 @@ export const InspectLatest = Command.define('InspectLatest', {
   },
 })
 
-export const Resume = Command.define('Resume', {
+export const Resume = Application.command('Resume', {
   messages: [Message.CompletedResume],
   handler: function* () {
     const store = yield* StoreService
@@ -598,7 +679,7 @@ export const Resume = Command.define('Resume', {
   },
 })
 
-export const Clear = Command.define('Clear', {
+export const Clear = Application.command('Clear', {
   messages: [Message.CompletedClear],
   handler: function* () {
     const store = yield* StoreService
@@ -607,40 +688,46 @@ export const Clear = Command.define('Clear', {
   },
 })
 
-export const CopyPayloadToClipboard = Command.define('CopyPayloadToClipboard', {
-  args: {
-    targetId: Schema.String,
-    requestId: Schema.Number,
-    payload: Schema.Unknown,
-  },
-  messages: [
-    Message.SucceededCopyPayloadToClipboard,
-    Message.FailedCopyPayloadToClipboard,
-  ],
-  handler: function* () {
-    return ({ targetId, requestId, payload }) =>
-      Effect.gen(function* () {
-        const text = yield* serializePayload(payload)
-        yield* Effect.tryPromise({
-          try: () => navigator.clipboard.writeText(text),
-          catch: () => new Error('Failed to copy payload to clipboard'),
-        })
-        return Message.SucceededCopyPayloadToClipboard({ targetId, requestId })
-      }).pipe(
-        Effect.catch(() =>
-          Effect.succeed(
-            Message.FailedCopyPayloadToClipboard({ targetId, requestId }),
+export const CopyPayloadToClipboard = Application.command(
+  'CopyPayloadToClipboard',
+  {
+    args: {
+      targetId: Schema.String,
+      requestId: Schema.Number,
+      payload: Schema.Unknown,
+    },
+    messages: [
+      Message.SucceededCopyPayloadToClipboard,
+      Message.FailedCopyPayloadToClipboard,
+    ],
+    handler: function* () {
+      return ({ targetId, requestId, payload }) =>
+        Effect.gen(function* () {
+          const text = yield* serializePayload(payload)
+          yield* Effect.tryPromise({
+            try: () => navigator.clipboard.writeText(text),
+            catch: () => new Error('Failed to copy payload to clipboard'),
+          })
+          return Message.SucceededCopyPayloadToClipboard({
+            targetId,
+            requestId,
+          })
+        }).pipe(
+          Effect.catch(() =>
+            Effect.succeed(
+              Message.FailedCopyPayloadToClipboard({ targetId, requestId }),
+            ),
           ),
-        ),
-      )
+        )
+    },
   },
-})
+)
 /** Provides the DevTools clipboard Command handler. */
 export const CopyPayloadToClipboardLayer = CopyPayloadToClipboard.layer
 
 const COPY_INDICATOR_DURATION = '1 second'
 
-export const WaitBeforeHidingCopyIndicator = Command.define(
+export const WaitBeforeHidingCopyIndicator = Application.command(
   'WaitBeforeHidingCopyIndicator',
   {
     args: { targetId: Schema.String, requestId: Schema.Number },
@@ -659,7 +746,7 @@ export const WaitBeforeHidingCopyIndicator = Command.define(
   },
 )
 
-export const ScrollToTop = Command.define('ScrollToTop', {
+export const ScrollToTop = Application.command('ScrollToTop', {
   messages: [Message.CompletedScrollToTop],
   handler: function* () {
     const shadow = yield* ShadowRootService
@@ -675,7 +762,76 @@ export const ScrollToTop = Command.define('ScrollToTop', {
   },
 })
 
-const makeUpdate = (mode: DevToolsMode) =>
+const EffectsLayer = Layer.mergeAll(
+  LockScroll.layer,
+  UnlockScroll.layer,
+  PersistDevToolsState.layer,
+  JumpToAndInspect.layer,
+  InspectState.layer,
+  InspectLatest.layer,
+  Resume.layer,
+  Clear.layer,
+  CopyPayloadToClipboardLayer,
+  WaitBeforeHidingCopyIndicator.layer,
+  ScrollToTop.layer,
+  subscriptions.scrubFrameTicks.layer,
+  subscriptions.storeUpdates.layer,
+  subscriptions.mobileBreakpointChanges.layer,
+)
+
+const init = (flags: typeof Flags.Type) => {
+  const { isFlattened, ...displayFlags } = flags
+  const sliderMax = flags.entries.length
+  const initialSliderValue = flags.isPaused
+    ? hostIndexToSliderValue(flags.pausedAtIndex, flags.startIndex)
+    : sliderMax
+  const blockFilterListboxInit = bindings.blockFilterListbox.init({
+    id: BLOCK_FILTER_ID,
+  })
+  const inspectorTabsInit = bindings.inspectorTabs.init({
+    id: INSPECTOR_TABS_ID,
+  })
+  const scrubberInit = bindings.scrubber.init({
+    id: SCRUBBER_SLIDER_ID,
+    min: 0,
+    max: sliderMax,
+    step: 1,
+  })
+
+  return {
+    model: Model.make({
+      screen: 'Messages',
+      ...displayFlags,
+      isFlattened,
+      selectedIndex: INIT_INDEX,
+      isFollowingLatest: true,
+      isFollowingTop: true,
+      blockTags: computeBlockTags(flags.entries),
+      maybeBlockFilter: Option.none(),
+      blockFilterListbox: blockFilterListboxInit.model,
+      maybeInspectedModel: Option.none(),
+      maybeInspectedMessage: Option.none(),
+      expandedPaths: HashSet.empty(),
+      changedPaths: HashSet.empty(),
+      affectedPaths: HashSet.empty(),
+      copyStates: HashMap.empty(),
+      nextCopyRequestId: 0,
+      maybePendingScrubIndex: Option.none(),
+      inspectorTabs: inspectorTabsInit.model,
+      activeInspectorTab: 'Model',
+      scrubberSlider: scrubberInit.model,
+      scrubberValue: Slider.snapAndClamp(initialSliderValue, 0, sliderMax, 1),
+    }),
+    commands: [
+      ...(blockFilterListboxInit.commands ?? []),
+      ...(inspectorTabsInit.commands ?? []),
+      ...(scrubberInit.commands ?? []),
+      ...Option.toArray(maybeLockScroll(flags.isOpen, flags.isMobile)),
+    ],
+  }
+}
+
+const makeUpdate = (bindings: OverlayBindings) =>
   Update.define((model: Model, message: Message) =>
     Message.match(message, {
       ClickedToggle: () => {
@@ -721,7 +877,7 @@ const makeUpdate = (mode: DevToolsMode) =>
         }
       },
       ClickedRow: ({ index }) =>
-        Match.value(mode).pipe(
+        Match.value(model.mode).pipe(
           Match.when('TimeTravel', () => ({
             model,
             commands: [JumpToAndInspect({ index })],
@@ -749,7 +905,7 @@ const makeUpdate = (mode: DevToolsMode) =>
           selectedIndex: () => INIT_INDEX,
           isFollowingLatest: () => true,
           isFollowingTop: () => true,
-          maybeSubmodelFilter: () => Option.none(),
+          maybeBlockFilter: () => Option.none(),
           expandedPaths: () => HashSet.empty<string>(),
           changedPaths: () => HashSet.empty<string>(),
           affectedPaths: () => HashSet.empty<string>(),
@@ -801,7 +957,7 @@ const makeUpdate = (mode: DevToolsMode) =>
         }),
       }),
       GotInspectorTabsMessage: ({ message: tabsMessage }) =>
-        foldInspectorTabs(model, tabsMessage),
+        bindings.inspectorTabs.fold(model, tabsMessage),
       ToggledTreeNode: ({ path }) => ({
         model: modifyFields(model, {
           expandedPaths: paths =>
@@ -834,13 +990,13 @@ const makeUpdate = (mode: DevToolsMode) =>
         isPaused,
         pausedAtIndex,
       }) => {
-        const shouldFollowSelection = Match.value(mode).pipe(
+        const shouldFollowSelection = Match.value(model.mode).pipe(
           Match.when('TimeTravel', () => !isPaused),
           Match.when('Inspect', () => model.isFollowingLatest),
           Match.exhaustive,
         )
 
-        const shouldFollowScroll = Match.value(mode).pipe(
+        const shouldFollowScroll = Match.value(model.mode).pipe(
           Match.when('TimeTravel', () => !isPaused && model.isFollowingTop),
           Match.when('Inspect', () => model.isFollowingTop),
           Match.exhaustive,
@@ -851,10 +1007,10 @@ const makeUpdate = (mode: DevToolsMode) =>
           onNonEmpty: () => startIndex + entries.length - 1,
         })
 
-        const nextSubmodelTags = computeSubmodelTags(entries)
+        const nextBlockTags = computeBlockTags(entries)
         const isFilterStale = Option.exists(
-          model.maybeSubmodelFilter,
-          filterTag => !Array.contains(nextSubmodelTags, filterTag),
+          model.maybeBlockFilter,
+          filterTag => !Array.contains(nextBlockTags, filterTag),
         )
 
         const sliderMax = entries.length
@@ -870,8 +1026,8 @@ const makeUpdate = (mode: DevToolsMode) =>
             startIndex: () => startIndex,
             isPaused: () => isPaused,
             pausedAtIndex: () => pausedAtIndex,
-            submodelTags: () => nextSubmodelTags,
-            maybeSubmodelFilter: current =>
+            blockTags: () => nextBlockTags,
+            maybeBlockFilter: current =>
               isFilterStale ? Option.none() : current,
             selectedIndex: current =>
               shouldFollowSelection ? latestIndex : current,
@@ -893,11 +1049,11 @@ const makeUpdate = (mode: DevToolsMode) =>
           ],
         }
       },
-      GotSubmodelFilterMessage: ({ message: listboxMessage }) =>
-        foldSubmodelFilter(model, listboxMessage),
+      GotBlockFilterMessage: ({ message: listboxMessage }) =>
+        bindings.blockFilterListbox.fold(model, listboxMessage),
 
       GotScrubberSliderMessage: ({ message: sliderMessage }) =>
-        foldScrubberSlider(model, sliderMessage),
+        bindings.scrubber.fold(model, sliderMessage),
       TickedScrubFrame: () =>
         Option.match(model.maybePendingScrubIndex, {
           onNone: () => ({ model }),
@@ -954,53 +1110,6 @@ const makeUpdate = (mode: DevToolsMode) =>
     }),
   )
 
-// SUBSCRIPTION
-
-const overlaySubscriptions = Subscription.make<Model, Message>()(entry => ({
-  scrubFrameTicks: entry(
-    'ScrubFrameTicks',
-    { isActive: Schema.Boolean },
-    {
-      messages: [Message.TickedScrubFrame],
-      modelToDependencies: model => ({
-        isActive: Option.isSome(model.maybePendingScrubIndex),
-      }),
-      handler: function* () {
-        return ({ isActive }) =>
-          isActive
-            ? Dom.animationFrameTicks.pipe(
-                Stream.map(() => Message.TickedScrubFrame()),
-              )
-            : Stream.empty
-      },
-    },
-  ),
-  storeUpdates: entry('StoreUpdates', {
-    messages: [Message.ReceivedStoreUpdate],
-    handler: function* () {
-      const store = yield* StoreService
-
-      return () =>
-        SubscriptionRef.changes(store.stateRef).pipe(
-          Stream.map(state =>
-            Message.ReceivedStoreUpdate(toDisplayState(state)),
-          ),
-        )
-    },
-  }),
-  mobileBreakpointChanges: entry('MobileBreakpointChanges', {
-    messages: [Message.ObservedMobileBreakpoint],
-    handler: function* () {
-      return () =>
-        Dom.streamFromMediaQuery({
-          query: MOBILE_BREAKPOINT_QUERY,
-          mapMatches: isMobile =>
-            Message.ObservedMobileBreakpoint({ isMobile }),
-        })
-    },
-  }),
-}))
-
 // VIEW
 
 const indexClass = 'text-2xs text-dt-muted font-mono min-w-5'
@@ -1033,32 +1142,44 @@ const PANEL_POSITION_CLASS: Record<DevToolsPosition, string> = {
 // every memo on every render. Hoisting only the lazy slots out does not help;
 // the closures themselves have to be reference-stable.
 //
-// Safe despite the "thread `h`, never store it" rule because the overlay owns
-// its own root frame and the builder is the runtime's process-wide singleton,
-// so the captured object is the one every later render would hand back.
+// Safe despite the "thread `h`, never store it" rule because each cached view
+// is keyed by the ShadowRoot that owns its root frame, and the builder is the
+// runtime's process-wide singleton.
 const makeView = (
-  position: DevToolsPosition,
-  mode: DevToolsMode,
-  shadow: ShadowRoot,
-  maybeBanner: Option.Option<string>,
-): ((
-  model: Model,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Listbox.mounts>>,
-) => Html) => {
-  let viewWithBuilder: ((model: Model) => Html) | undefined
+  bindings: OverlayBindings,
+): ((model: Model, h: HtmlBuilder<Message, ViewRequirements>) => Html) => {
+  const views = new WeakMap<ShadowRoot, (model: Model) => Html>()
 
   return (model, h) => {
-    viewWithBuilder ??= buildOverlayView(position, mode, shadow, maybeBanner, h)
-    return viewWithBuilder(model)
+    const shadow = getDevToolsShadowRoot()
+    const existingView = views.get(shadow)
+    if (existingView !== undefined) {
+      return existingView(model)
+    }
+
+    const view = buildOverlayView(
+      model.position,
+      model.mode,
+      shadow,
+      model.maybeBanner,
+      bindings,
+      h,
+    )
+    views.set(shadow, view)
+    return view(model)
   }
 }
+
+const update = Application.update(makeUpdate(bindings))
+const view = Application.view(makeView(bindings))
 
 const buildOverlayView = (
   position: DevToolsPosition,
   mode: DevToolsMode,
   shadow: ShadowRoot,
   maybeBanner: Option.Option<string>,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Listbox.mounts>>,
+  bindings: OverlayBindings,
+  h: HtmlBuilder<Message, ViewRequirements>,
 ): ((model: Model) => Html) => {
   const lazyTreeNode = createKeyedLazy()
   const lazyMessageRow = createKeyedLazy()
@@ -1553,12 +1674,12 @@ const buildOverlayView = (
 
   const unwrapIfFiltered = (
     message: unknown,
-    maybeSubmodelFilter: Option.Option<string>,
+    maybeBlockFilter: Option.Option<string>,
   ): unknown => {
-    if (Option.isNone(maybeSubmodelFilter)) {
+    if (Option.isNone(maybeBlockFilter)) {
       return message
     }
-    const { value: filterTag } = maybeSubmodelFilter
+    const { value: filterTag } = maybeBlockFilter
 
     let current = message
     let matched = false
@@ -1582,7 +1703,7 @@ const buildOverlayView = (
 
   const messageTabContent = (
     maybeInspectedMessage: Option.Option<unknown>,
-    maybeSubmodelFilter: Option.Option<string>,
+    maybeBlockFilter: Option.Option<string>,
     isFlattened: boolean,
     expandedPaths: HashSet.HashSet<string>,
     timestamp: string,
@@ -1594,7 +1715,7 @@ const buildOverlayView = (
       onSome: rawMessage => {
         const message = isFlattened
           ? unwrapToLeaf(rawMessage)
-          : unwrapIfFiltered(rawMessage, maybeSubmodelFilter)
+          : unwrapIfFiltered(rawMessage, maybeBlockFilter)
 
         return h.div(
           [h.Class('flex flex-col flex-1 min-h-0 min-w-0')],
@@ -1609,7 +1730,7 @@ const buildOverlayView = (
                 h.span([], [timestamp]),
                 copyPayloadButtonView(
                   message,
-                  `Message:${selectedIndex}:${isFlattened}:${Option.getOrElse(maybeSubmodelFilter, () => 'All')}`,
+                  `Message:${selectedIndex}:${isFlattened}:${Option.getOrElse(maybeBlockFilter, () => 'All')}`,
                   copyStates,
                   'Message payload',
                 ),
@@ -1720,7 +1841,7 @@ const buildOverlayView = (
                 h.div(
                   [h.Class('flex flex-col flex-1 min-w-0')],
                   [
-                    ...Option.match(command.maybeSubmodelPath, {
+                    ...Option.match(command.maybeBlockPath, {
                       onNone: () => [
                         h.div(
                           [h.Class('text-2xs text-dt-muted font-mono')],
@@ -1733,17 +1854,17 @@ const buildOverlayView = (
                           ],
                         ),
                       ],
-                      onSome: submodelPath =>
-                        Array.match(submodelPath, {
+                      onSome: blockPath =>
+                        Array.match(blockPath, {
                           onEmpty: () => [],
-                          onNonEmpty: submodelPath => [
+                          onNonEmpty: blockPath => [
                             h.div(
                               [
                                 h.Class(
                                   'text-2xs text-dt-muted font-mono truncate',
                                 ),
                               ],
-                              [formatSubmodelPath(submodelPath)],
+                              [formatBlockPath(blockPath)],
                             ),
                           ],
                         }),
@@ -1933,7 +2054,7 @@ const buildOverlayView = (
       Match.when('Message', () =>
         lazyTabContent('Message', messageTabContent, [
           model.maybeInspectedMessage,
-          model.maybeSubmodelFilter,
+          model.maybeBlockFilter,
           model.isFlattened,
           model.expandedPaths,
           inspectedTimestamp(model),
@@ -1971,67 +2092,66 @@ const buildOverlayView = (
         ),
       ],
       [
-        h.submodel({
-          slotId: model.inspectorTabs.id,
-          model: model.inspectorTabs,
-          view: InspectorTabs.view,
-          viewInputs: {
-            tabs: INSPECTOR_TABS,
-            selectedValue: model.activeInspectorTab,
-            ariaLabel: 'Inspector tabs',
-            panelMount: 'All',
-            toView: ({ tablist, tabs, activeIndex }) =>
-              h.div(
-                [h.Class('flex flex-col flex-1 min-h-0')],
-                [
-                  h.div(
-                    [...tablist, h.Class('flex border-b shrink-0')],
-                    tabs.map(tab =>
-                      h.button(
-                        [
-                          ...tab.tab,
-                          h.Class(
-                            clsx(
-                              'dt-tab-button cursor-pointer text-base font-mono px-3 py-1',
-                              tab.isActive
-                                ? 'text-dt dt-tab-active'
-                                : 'text-dt-muted',
+        h.block(
+          bindings.inspectorTabs.embedView({
+            slotId: model.inspectorTabs.id,
+            model: model.inspectorTabs,
+            viewInputs: {
+              tabs: INSPECTOR_TABS,
+              selectedValue: model.activeInspectorTab,
+              ariaLabel: 'Inspector tabs',
+              panelMount: 'All',
+              toView: ({ tablist, tabs, activeIndex }) =>
+                h.div(
+                  [h.Class('flex flex-col flex-1 min-h-0')],
+                  [
+                    h.div(
+                      [...tablist, h.Class('flex border-b shrink-0')],
+                      tabs.map(tab =>
+                        h.button(
+                          [
+                            ...tab.tab,
+                            h.Class(
+                              clsx(
+                                'dt-tab-button cursor-pointer text-base font-mono px-3 py-1',
+                                tab.isActive
+                                  ? 'text-dt dt-tab-active'
+                                  : 'text-dt-muted',
+                              ),
                             ),
-                          ),
-                        ],
-                        [h.span([], [tab.value])],
+                          ],
+                          [h.span([], [tab.value])],
+                        ),
                       ),
                     ),
-                  ),
-                  ...tabs.map(tab =>
-                    h.div(
-                      [
-                        ...tab.panel,
-                        h.Class('flex flex-col flex-1 min-h-0 min-w-0'),
-                        h.Hidden(tab.index !== activeIndex),
-                        ...(tab.index === activeIndex
-                          ? []
-                          : [h.Style({ display: 'none' })]),
-                      ],
-                      [
-                        Option.match(model.maybeInspectedModel, {
-                          onNone: () => emptyInspectorView,
-                          onSome: inspectedModel =>
-                            inspectorTabContent(
-                              model,
-                              tab.value,
-                              inspectedModel,
-                            ),
-                        }),
-                      ],
+                    ...tabs.map(tab =>
+                      h.div(
+                        [
+                          ...tab.panel,
+                          h.Class('flex flex-col flex-1 min-h-0 min-w-0'),
+                          h.Hidden(tab.index !== activeIndex),
+                          ...(tab.index === activeIndex
+                            ? []
+                            : [h.Style({ display: 'none' })]),
+                        ],
+                        [
+                          Option.match(model.maybeInspectedModel, {
+                            onNone: () => emptyInspectorView,
+                            onSome: inspectedModel =>
+                              inspectorTabContent(
+                                model,
+                                tab.value,
+                                inspectedModel,
+                              ),
+                          }),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-          },
-          toParentMessage: message =>
-            Message.GotInspectorTabsMessage({ message }),
-        }),
+                  ],
+                ),
+            },
+          }),
+        ),
       ],
     )
 
@@ -2120,7 +2240,7 @@ const buildOverlayView = (
   )
 
   const filterItemLabel = (item: string): string =>
-    String.isNonEmpty(item) ? submodelSegmentLabel(item) : 'All Messages'
+    String.isNonEmpty(item) ? blockSegmentLabel(item) : 'All Messages'
 
   const ARROW_UP = 'M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18'
 
@@ -2152,60 +2272,60 @@ const buildOverlayView = (
       ],
     )
 
-  const submodelFilterView = (model: Model): Html => {
-    const buttonLabel = Option.match(model.maybeSubmodelFilter, {
+  const blockFilterView = (model: Model): Html => {
+    const buttonLabel = Option.match(model.maybeBlockFilter, {
       onNone: () => 'All Messages',
-      onSome: submodelSegmentLabel,
+      onSome: blockSegmentLabel,
     })
 
-    return h.submodel({
-      slotId: 'submodel-filter',
-      model: model.submodelFilterListbox,
-      view: SubmodelFilterListbox.view,
-      viewInputs: {
-        items: [ALL_MESSAGES_VALUE, ...model.submodelTags],
-        maybeSelectedValue: Option.orElseSome(
-          model.maybeSubmodelFilter,
-          () => ALL_MESSAGES_VALUE,
-        ),
-        itemToConfig: item => ({
-          className: 'dt-filter-item',
-          content: h.div(
-            [h.Class('flex items-center gap-2')],
-            [checkIconView, h.span([], [filterItemLabel(item)])],
+    return h.block(
+      bindings.blockFilterListbox.embedView({
+        slotId: 'block-filter',
+        model: model.blockFilterListbox,
+        viewInputs: {
+          items: [ALL_MESSAGES_VALUE, ...model.blockTags],
+          maybeSelectedValue: Option.orElseSome(
+            model.maybeBlockFilter,
+            () => ALL_MESSAGES_VALUE,
           ),
-        }),
-        buttonContent: h.span(
-          [h.Class('flex flex-1 items-center justify-between')],
-          [
-            h.span([], [buttonLabel]),
-            h.svg(
-              [
-                h.AriaHidden(true),
-                h.Class('json-arrow shrink-0'),
-                h.Xmlns('http://www.w3.org/2000/svg'),
-                h.Fill('none'),
-                h.ViewBox('0 0 24 24'),
-                h.StrokeWidth('2'),
-                h.Stroke('currentColor'),
-              ],
-              [
-                h.path([
-                  h.D(CHEVRON_DOWN),
-                  h.StrokeLinecap('round'),
-                  h.StrokeLinejoin('round'),
-                ]),
-              ],
+          itemToConfig: item => ({
+            className: 'dt-filter-item',
+            content: h.div(
+              [h.Class('flex items-center gap-2')],
+              [checkIconView, h.span([], [filterItemLabel(item)])],
             ),
-          ],
-        ),
-        buttonClassName: 'dt-filter-button',
-        itemsClassName: 'dt-filter-items',
-        className: 'dt-filter-wrapper',
-        backdropClassName: 'dt-filter-backdrop',
-      },
-      toParentMessage: message => Message.GotSubmodelFilterMessage({ message }),
-    })
+          }),
+          buttonContent: h.span(
+            [h.Class('flex flex-1 items-center justify-between')],
+            [
+              h.span([], [buttonLabel]),
+              h.svg(
+                [
+                  h.AriaHidden(true),
+                  h.Class('json-arrow shrink-0'),
+                  h.Xmlns('http://www.w3.org/2000/svg'),
+                  h.Fill('none'),
+                  h.ViewBox('0 0 24 24'),
+                  h.StrokeWidth('2'),
+                  h.Stroke('currentColor'),
+                ],
+                [
+                  h.path([
+                    h.D(CHEVRON_DOWN),
+                    h.StrokeLinecap('round'),
+                    h.StrokeLinejoin('round'),
+                  ]),
+                ],
+              ),
+            ],
+          ),
+          buttonClassName: 'dt-filter-button',
+          itemsClassName: 'dt-filter-items',
+          className: 'dt-filter-wrapper',
+          backdropClassName: 'dt-filter-backdrop',
+        },
+      }),
+    )
   }
 
   // SETTINGS
@@ -2444,10 +2564,10 @@ const buildOverlayView = (
           onNone: () => entry.tag,
           onSome: filterTag =>
             pipe(
-              entry.submodelPath,
+              entry.blockPath,
               Array.findFirstIndex(pathTag => pathTag === filterTag),
               Option.flatMap(filterIndex =>
-                Array.get(entry.submodelPath, Number.increment(filterIndex)),
+                Array.get(entry.blockPath, Number.increment(filterIndex)),
               ),
               Option.orElse(() => entry.maybeLeafTag),
               Option.getOrElse(() => entry.tag),
@@ -2469,7 +2589,7 @@ const buildOverlayView = (
       })),
       isFiltered
         ? Array.filter(({ entry }) =>
-            Array.contains(entry.submodelPath, maybeFilterTag.value),
+            Array.contains(entry.blockPath, maybeFilterTag.value),
           )
         : Function.identity,
     )
@@ -2523,7 +2643,7 @@ const buildOverlayView = (
       selectedIndex,
       model.isPaused,
       model.pausedAtIndex,
-      model.maybeSubmodelFilter,
+      model.maybeBlockFilter,
       model.isFlattened,
     ])
   }
@@ -2537,54 +2657,54 @@ const buildOverlayView = (
   }
 
   const scrubberView = (model: Model): Html =>
-    h.submodel({
-      slotId: model.scrubberSlider.id,
-      model: model.scrubberSlider,
-      view: Slider.view,
-      viewInputs: {
-        value: model.scrubberValue,
-        ariaLabel: 'Session scrubber',
-        getTrackRoot: () => shadow,
-        formatValue: value =>
-          value === 0 ? 'init' : `Message ${globalThis.String(value)}`,
-        toView: attributes =>
-          h.div(
-            [h.Class('flex items-center gap-3 flex-1 min-w-0')],
-            [
-              h.div(
-                [
-                  ...attributes.root,
-                  h.Class('dt-scrubber-control flex-1 flex items-center'),
-                ],
-                [
-                  h.div(
-                    [...attributes.track, h.Class('dt-scrubber-track')],
-                    [
-                      h.div([
-                        ...attributes.filledTrack,
-                        h.Class('dt-scrubber-fill'),
-                      ]),
-                      h.div([
-                        ...attributes.thumb,
-                        h.Class('dt-scrubber-thumb'),
-                      ]),
-                    ],
-                  ),
-                ],
-              ),
-              h.span(
-                [
-                  h.Class(
-                    'dt-scrubber-position text-2xs text-dt-muted font-mono shrink-0 tabular-nums',
-                  ),
-                ],
-                [scrubberPositionLabel(model)],
-              ),
-            ],
-          ),
-      },
-      toParentMessage: message => Message.GotScrubberSliderMessage({ message }),
-    })
+    h.block(
+      bindings.scrubber.embedView({
+        slotId: model.scrubberSlider.id,
+        model: model.scrubberSlider,
+        viewInputs: {
+          value: model.scrubberValue,
+          ariaLabel: 'Session scrubber',
+          getTrackRoot: () => shadow,
+          formatValue: value =>
+            value === 0 ? 'init' : `Message ${globalThis.String(value)}`,
+          toView: attributes =>
+            h.div(
+              [h.Class('flex items-center gap-3 flex-1 min-w-0')],
+              [
+                h.div(
+                  [
+                    ...attributes.root,
+                    h.Class('dt-scrubber-control flex-1 flex items-center'),
+                  ],
+                  [
+                    h.div(
+                      [...attributes.track, h.Class('dt-scrubber-track')],
+                      [
+                        h.div([
+                          ...attributes.filledTrack,
+                          h.Class('dt-scrubber-fill'),
+                        ]),
+                        h.div([
+                          ...attributes.thumb,
+                          h.Class('dt-scrubber-thumb'),
+                        ]),
+                      ],
+                    ),
+                  ],
+                ),
+                h.span(
+                  [
+                    h.Class(
+                      'dt-scrubber-position text-2xs text-dt-muted font-mono shrink-0 tabular-nums',
+                    ),
+                  ],
+                  [scrubberPositionLabel(model)],
+                ),
+              ],
+            ),
+        },
+      }),
+    )
 
   // FOOTER
 
@@ -2675,9 +2795,9 @@ const buildOverlayView = (
   // PANEL
 
   const messagesScreenView = (model: Model): Html => {
-    const maybeSubmodelFilterView = OptionExt.when(
-      Array.isReadonlyArrayNonEmpty(model.submodelTags),
-      submodelFilterView(model),
+    const maybeBlockFilterView = OptionExt.when(
+      Array.isReadonlyArrayNonEmpty(model.blockTags),
+      blockFilterView(model),
     )
     const maybeScrollToTopPillView = OptionExt.when(
       !model.isFollowingTop,
@@ -2690,7 +2810,7 @@ const buildOverlayView = (
         h.div(
           [h.Class('flex flex-col min-h-0 dt-message-pane')],
           [
-            ...Option.toArray(maybeSubmodelFilterView),
+            ...Option.toArray(maybeBlockFilterView),
             ...Option.toArray(maybeScrollToTopPillView),
             messageListView(model),
           ],
@@ -2867,48 +2987,11 @@ export const createOverlay = (
     )
     container.id = '__foldkit_devtools_overlay__'
 
-    const scrubberSlider = Slider.forRoot('DevToolsScrubber', () => shadow)
-
-    const scrubberSubscriptions = Subscription.lift({
-      scrubberPointer: scrubberSlider.subscriptions.dragPointer,
-      scrubberEscape: scrubberSlider.subscriptions.dragEscape,
-    })<Model, Message>({
-      read: model => Option.some(model.scrubberSlider),
-      toParentMessage: message => Message.GotScrubberSliderMessage({ message }),
-    })
-
-    const subscriptions = Subscription.aggregate(
-      overlaySubscriptions,
-      scrubberSubscriptions,
-    )
-
-    const EffectsLayer = Layer.mergeAll(
-      LockScroll.layer,
-      UnlockScroll.layer,
-      PersistDevToolsState.layer,
-      JumpToAndInspect.layer,
-      InspectState.layer,
-      InspectLatest.layer,
-      Resume.layer,
-      Clear.layer,
-      CopyPayloadToClipboardLayer,
-      WaitBeforeHidingCopyIndicator.layer,
-      ScrollToTop.layer,
-      overlaySubscriptions.scrubFrameTicks.layer,
-      overlaySubscriptions.storeUpdates.layer,
-      overlaySubscriptions.mobileBreakpointChanges.layer,
-      Listbox.EffectsLayer,
-      Tabs.EffectsLayer,
-      scrubberSlider.EffectsLayer,
-    )
-
     const ServicesLayer = Layer.mergeAll(
       Layer.succeed(StoreService, store),
       Layer.succeed(ShadowRootService, shadow),
       BrowserKeyValueStore.layerLocalStorage,
     )
-
-    const AppLayer = EffectsLayer.pipe(Layer.provideMerge(ServicesLayer))
 
     const flags = Effect.gen(function* () {
       const store = yield* StoreService
@@ -2917,6 +3000,9 @@ export const createOverlay = (
       const { isOpen, isFlattened } = yield* readPersistedState
 
       return {
+        position,
+        mode,
+        maybeBanner,
         isOpen,
         isMobile: window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches,
         isFlattened,
@@ -2924,67 +3010,19 @@ export const createOverlay = (
       }
     })
 
-    const init = (flags: typeof Flags.Type) => {
-      const { isFlattened, ...displayFlags } = flags
-      const sliderMax = flags.entries.length
-      const initialSliderValue = flags.isPaused
-        ? hostIndexToSliderValue(flags.pausedAtIndex, flags.startIndex)
-        : sliderMax
-
-      return {
-        model: Model.make({
-          screen: 'Messages',
-          ...displayFlags,
-          isFlattened,
-          selectedIndex: INIT_INDEX,
-          isFollowingLatest: true,
-          isFollowingTop: true,
-          submodelTags: computeSubmodelTags(flags.entries),
-          maybeSubmodelFilter: Option.none(),
-          submodelFilterListbox: Listbox.init({
-            id: SUBMODEL_FILTER_ID,
-          }),
-          maybeInspectedModel: Option.none(),
-          maybeInspectedMessage: Option.none(),
-          expandedPaths: HashSet.empty(),
-          changedPaths: HashSet.empty(),
-          affectedPaths: HashSet.empty(),
-          copyStates: HashMap.empty(),
-          nextCopyRequestId: 0,
-          maybePendingScrubIndex: Option.none(),
-          inspectorTabs: Tabs.init({ id: INSPECTOR_TABS_ID }),
-          activeInspectorTab: 'Model',
-          scrubberSlider: Slider.init({
-            id: SCRUBBER_SLIDER_ID,
-            min: 0,
-            max: sliderMax,
-            step: 1,
-          }),
-          scrubberValue: Slider.snapAndClamp(
-            initialSliderValue,
-            0,
-            sliderMax,
-            1,
-          ),
-        }),
-        commands: Option.toArray(maybeLockScroll(flags.isOpen, flags.isMobile)),
-      }
-    }
-
-    const pendingOverlay = Application.makeElement({
-      Model,
+    const application = Application.makeElement({
+      init,
+      update,
+      view,
+      subscriptions,
+      EffectsLayer,
       Flags,
       flags,
-      init,
-      update: makeUpdate(mode),
-      view: makeView(position, mode, shadow, maybeBanner),
       container,
-      subscriptions,
-      mounts: Listbox.mounts,
       devTools: false,
       freezeModel: false,
     })
-    const overlay = Application.provide(pendingOverlay, AppLayer)
+    const overlay = provide(application, ServicesLayer)
 
     yield* Effect.forkScoped(overlay.start())
   })

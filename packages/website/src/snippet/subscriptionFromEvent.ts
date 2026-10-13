@@ -1,5 +1,5 @@
 import { Effect, Schema, Stream } from 'effect'
-import { Dom, Subscription } from 'foldkit'
+import { Dom, Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 // MESSAGE
@@ -18,7 +18,9 @@ type Model = typeof Model.Type
 
 // SUBSCRIPTION
 
-const subscriptions = Subscription.make<Model, Message>()(entry => ({
+const Shortcuts = Block.define('Shortcuts', { Model, Message })
+
+const subscriptions = Shortcuts.subscriptions(entry => ({
   shortcutKeyPresses: entry(
     'ShortcutKeyPresses',
     { isListening: Schema.Boolean },

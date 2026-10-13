@@ -12,6 +12,12 @@ import {
 } from 'effect'
 
 import {
+  InvocationIdentityTypeId,
+  InvocationNameTypeId,
+  registerIdentity,
+} from '../block/identity.js'
+import type { ValidateConstructionRequirements } from '../block/scope.js'
+import {
   type AnyHandler,
   type Handler,
   type ToEffectLayer,
@@ -26,6 +32,10 @@ export type {
   ToEffectLayer,
   ToStreamLayer,
 } from './handler.js'
+
+type ValidateHandlerConstruction<
+  Yielded extends Effect.Effect<unknown, unknown, unknown>,
+> = ValidateConstructionRequirements<Effect.Services<Yielded>>
 
 /** Effect service tag that observes Mount lifecycle events. The runtime
  *  provides an implementation that buffers events for DevTools history;
@@ -423,8 +433,8 @@ const wrapEffectAsStream =
  * `viewStateChanges` Stream alongside the declared args, and returns an
  * `Effect<Message>` that runs once when the element mounts.
  * Register the Definition in
- * `Application.make({ mounts: [...] })` so the application carries its handler
- * requirement. The Layer lives for the application; each element controls
+ * the owning definition's `register({ mounts: [...] })` call so completion
+ * carries its handler requirement. The Layer lives for the application; each element controls
  * its own Mount acquisition and release.
  *
  * Omit `handler` to declare a host contract. A host contract has no
@@ -566,7 +576,7 @@ export function define<
     args: Fields & NoInfer<ReservedExecuteFields>
     messages: Messages
     execute?: never
-    handler: () => Generator<
+    handler: (() => Generator<
       Yielded,
       (
         input: ExecuteRuntimeInput & Schema.Struct.Type<NoInfer<Fields>>,
@@ -576,7 +586,8 @@ export function define<
         HandlerRequirements
       >,
       unknown
-    >
+    >) &
+      ValidateHandlerConstruction<Yielded>
   }>,
 ): LayeredMountDefinitionWithArgs<
   Name,
@@ -606,7 +617,7 @@ export function define<
     args?: never
     messages: Messages
     execute?: never
-    handler: () => Generator<
+    handler: (() => Generator<
       Yielded,
       (
         input: ExecuteRuntimeInput,
@@ -616,7 +627,8 @@ export function define<
         HandlerRequirements
       >,
       unknown
-    >
+    >) &
+      ValidateHandlerConstruction<Yielded>
   }>,
 ): LayeredMountDefinitionNoArgs<Name, Schema.Schema.Type<Messages[number]>> &
   Readonly<{
@@ -676,7 +688,7 @@ export function define<
   const registration: MountRegistration = { name }
   const layer = Predicate.isUndefined(config.handler)
     ? undefined
-    : handler.toLayer(Effect.gen(config.handler))
+    : handler.toLayer(Effect.gen(config.handler) as never)
   const makeEffect = (input: ExecuteRuntimeInput & Record<string, unknown>) =>
     handler.execute(input)
 
@@ -685,22 +697,30 @@ export function define<
       name,
       args,
       [MountRegistrationTypeId]: registration,
+      [InvocationIdentityTypeId]: handler.identity,
+      [InvocationNameTypeId]: name,
       f: wrapEffectAsStream((element, viewStateChanges) =>
         makeEffect({ ...args, element, viewStateChanges }),
       ),
     })
     brandAsDefinition(definition, name)
+    registerIdentity(definition, handler.identity)
+    registerIdentity(registration, handler.identity)
     attachHandler(definition, registration, handler.toLayer, layer)
     return definition
   } else {
     const definition = () => ({
       name,
       [MountRegistrationTypeId]: registration,
+      [InvocationIdentityTypeId]: handler.identity,
+      [InvocationNameTypeId]: name,
       f: wrapEffectAsStream((element, viewStateChanges) =>
         makeEffect({ element, viewStateChanges }),
       ),
     })
     brandAsDefinition(definition, name)
+    registerIdentity(definition, handler.identity)
+    registerIdentity(registration, handler.identity)
     attachHandler(definition, registration, handler.toLayer, layer)
     return definition
   }
@@ -713,7 +733,8 @@ export function define<
  * constructs a Stream handler. Foldkit applies `Effect.gen` to the generator.
  * The Definition's `layer` provides that handler
  * to the application, and the Definition must be registered in
- * `Application.make({ mounts: [...] })`. The returned handler receives the
+ * the owning definition's `register({ mounts: [...] })` call. The returned
+ * handler receives the
  * live `Element` as `element` and the runtime's
  * `viewStateChanges` Stream alongside the declared args, and returns a
  * `Stream<Message>` whose lifetime is bound to the element's lifetime: each
@@ -807,7 +828,7 @@ export function defineStream<
     args: Fields & NoInfer<ReservedExecuteFields>
     messages: Messages
     execute?: never
-    handler: () => Generator<
+    handler: (() => Generator<
       Yielded,
       (
         input: ExecuteRuntimeInput & Schema.Struct.Type<NoInfer<Fields>>,
@@ -817,7 +838,8 @@ export function defineStream<
         HandlerRequirements
       >,
       unknown
-    >
+    >) &
+      ValidateHandlerConstruction<Yielded>
   }>,
 ): LayeredStreamMountDefinitionWithArgs<
   Name,
@@ -847,7 +869,7 @@ export function defineStream<
     args?: never
     messages: Messages
     execute?: never
-    handler: () => Generator<
+    handler: (() => Generator<
       Yielded,
       (
         input: ExecuteRuntimeInput,
@@ -857,7 +879,8 @@ export function defineStream<
         HandlerRequirements
       >,
       unknown
-    >
+    >) &
+      ValidateHandlerConstruction<Yielded>
   }>,
 ): LayeredStreamMountDefinitionNoArgs<
   Name,
@@ -923,7 +946,7 @@ export function defineStream<
   const registration: MountRegistration = { name }
   const layer = Predicate.isUndefined(config.handler)
     ? undefined
-    : handler.toLayer(Effect.gen(config.handler))
+    : handler.toLayer(Effect.gen(config.handler) as never)
   const makeStream = (input: ExecuteRuntimeInput & Record<string, unknown>) =>
     handler.execute(input)
 
@@ -932,6 +955,8 @@ export function defineStream<
       name,
       args,
       [MountRegistrationTypeId]: registration,
+      [InvocationIdentityTypeId]: handler.identity,
+      [InvocationNameTypeId]: name,
       f: (element: Element, viewStateChanges: Stream.Stream<ViewState>) =>
         makeStream({
           ...args,
@@ -940,12 +965,16 @@ export function defineStream<
         }),
     })
     brandAsDefinition(definition, name)
+    registerIdentity(definition, handler.identity)
+    registerIdentity(registration, handler.identity)
     attachHandler(definition, registration, handler.toLayer, layer)
     return definition
   } else {
     const definition = () => ({
       name,
       [MountRegistrationTypeId]: registration,
+      [InvocationIdentityTypeId]: handler.identity,
+      [InvocationNameTypeId]: name,
       f: (element: Element, viewStateChanges: Stream.Stream<ViewState>) =>
         makeStream({
           element,
@@ -953,13 +982,15 @@ export function defineStream<
         }),
     })
     brandAsDefinition(definition, name)
+    registerIdentity(definition, handler.identity)
+    registerIdentity(registration, handler.identity)
     attachHandler(definition, registration, handler.toLayer, layer)
     return definition
   }
 }
 
 /** Lifts a `MountAction` from one Message universe to another by mapping its
- *  dispatched Messages through a transform. Used by Submodel components to
+ *  dispatched Messages through a transform. Used by Block components to
  *  emit lifecycle action results into the parent's Message union via the
  *  consumer-supplied `toParentMessage` lift. Preserves `name` and `args`. */
 export const mapMessage: {

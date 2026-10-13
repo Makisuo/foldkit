@@ -4,10 +4,10 @@ export {
   init,
   update,
   GenerateSkillsEntryId,
-  EffectsLayer,
   hasErrors,
   isComplete,
   revealErrors,
-} from './skills'
+} from './block'
 export * as Entry from './entry'
 export { view } from './view'
+export { block } from './skills'

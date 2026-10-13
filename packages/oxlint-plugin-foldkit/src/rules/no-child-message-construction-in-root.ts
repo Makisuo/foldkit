@@ -14,18 +14,21 @@ import {
   isCallExpression,
   isIdentifier,
   isMemberExpression,
+  isObjectExpression,
+  isObjectProperty,
   isVariableDeclaration,
   isVariableDeclarator,
   resolveFoldkitApiPath,
   resolveImportedPath,
   resolvedVariable,
   staticMemberPath,
+  staticPropertyName,
 } from '../guards.ts'
 
 const pascalIdentifierPattern = /^[A-Z][A-Za-z0-9]*$/
 
 const childMessageConstructionMessage = (calleeLabel: string): string =>
-  `Do not construct the child Message \`${calleeLabel}(...)\` from a parent. Expose a child update capability that applies this fact, then invoke it with Update.foldChild, Update.foldChildAt, or Update.foldChildStep. Child-owned views, Commands, and Subscriptions may construct their own Messages.`
+  `Do not construct the child Message \`${calleeLabel}(...)\` from a parent. Pass a received child Message to \`child.fold(model, message)\`. For parent-driven behavior, expose a named Step in the child Block's \`steps\` record and call the projected operation, such as \`child.clearSelection()(model)\`. Child-owned views, Steps, Commands, and Subscriptions may construct their own Messages.`
 
 type ImportedMessagePath = Pick<ImportedPath, 'source' | 'members'>
 
@@ -174,38 +177,161 @@ const htmlBuilderMessagePath = (
   })
 }
 
-const defineViewMessagePath = (
+type DefinitionOperation = Readonly<{
+  importedDefinitionPath: ImportedMessagePath | undefined
+  members: ReadonlyArray<string>
+  operation: 'step' | 'view'
+  root: ESTree.IdentifierReference
+}>
+
+const definitionOperationName = (
+  method: string,
+  maybePreviousMethod: Option.Option<string>,
+): 'step' | 'view' | undefined => {
+  if (method === 'withInputs' && Option.contains(maybePreviousMethod, 'view')) {
+    return 'view'
+  }
+  if (method === 'view' || method === 'step') {
+    return method
+  }
+  return undefined
+}
+
+const definitionOperation = (
   references: WeakMap<ESTree.Node, Reference>,
   functionNode: ESTree.ArrowFunctionExpression | ESTree.Function,
-): Option.Option<ImportedMessagePath> => {
+): Option.Option<DefinitionOperation> => {
   const parent = functionNode.parent
   if (!isCallExpression(parent) || !parent.arguments.includes(functionNode)) {
     return Option.none()
   }
 
-  const isDefineView = Option.exists(
-    resolveFoldkitApiPath(references, parent.callee),
-    path => {
-      const [namespace, helperName, extraMember] = path
-      return (
-        namespace === 'Submodel' &&
-        helperName === 'defineView' &&
-        extraMember === undefined
-      )
-    },
-  )
-  if (!isDefineView) {
+  return Option.gen(function* () {
+    const calleePath = yield* staticMemberPath(parent.callee)
+    const method = yield* Array.last(calleePath.members)
+    const maybePreviousMethod = Array.get(
+      calleePath.members,
+      Array.length(calleePath.members) - 2,
+    )
+    const isViewWithInputs =
+      method === 'withInputs' && Option.contains(maybePreviousMethod, 'view')
+    const operation = definitionOperationName(method, maybePreviousMethod)
+    if (operation === undefined) {
+      return yield* Option.none()
+    }
+
+    const suffixLength = isViewWithInputs ? 2 : 1
+    const members = calleePath.members.slice(0, -suffixLength)
+    const importedDefinitionPath = Option.map(
+      resolveImportedPath(references, parent.callee),
+      path => ({
+        source: path.source,
+        members: path.members.slice(0, -suffixLength),
+      }),
+    )
+
+    return {
+      importedDefinitionPath: Option.getOrUndefined(importedDefinitionPath),
+      members,
+      operation,
+      root: calleePath.root,
+    }
+  })
+}
+
+const localDefinitionMessagePath = (
+  references: WeakMap<ESTree.Node, Reference>,
+  operation: DefinitionOperation,
+): Option.Option<ImportedMessagePath> => {
+  if (Array.isReadonlyArrayNonEmpty(operation.members)) {
     return Option.none()
   }
 
   return Option.gen(function* () {
-    const typeArguments = yield* Option.fromNullishOr(parent.typeArguments)
-    const messageType = yield* Option.fromNullishOr(typeArguments.params[1])
-    return yield* importedMessagePath(references, messageType)
+    const variable = yield* resolvedVariable(references, operation.root)
+    const definition = yield* Array.findFirst(
+      variable.defs,
+      entry =>
+        entry.type === 'Variable' &&
+        isVariableDeclarator(entry.node) &&
+        isCallExpression(entry.node.init),
+    )
+    if (
+      definition.type !== 'Variable' ||
+      !isVariableDeclarator(definition.node) ||
+      !isCallExpression(definition.node.init)
+    ) {
+      return yield* Option.none()
+    }
+
+    const defineCall = definition.node.init
+    const definePath = yield* staticMemberPath(defineCall.callee)
+    if (!Option.contains(Array.last(definePath.members), 'define')) {
+      return yield* Option.none()
+    }
+
+    const [config] = defineCall.arguments
+    if (!isObjectExpression(config)) {
+      return yield* Option.none()
+    }
+    const message = yield* Array.findFirst(
+      config.properties,
+      property =>
+        isObjectProperty(property) &&
+        Option.contains(staticPropertyName(property), 'Message'),
+    )
+    if (!isObjectProperty(message)) {
+      return yield* Option.none()
+    }
+
+    const imported = yield* resolveImportedPath(references, message.value)
+    return { source: imported.source, members: imported.members }
   })
 }
 
-const isOwnedByEnclosingView = (
+const importedDefinitionOwnsMessage = (
+  definitionPath: ImportedMessagePath,
+  messagePath: ImportedMessagePath,
+): boolean => {
+  if (definitionPath.source !== messagePath.source) {
+    return false
+  }
+
+  if (
+    sameSegments(messagePath.members, [...definitionPath.members, 'Message'])
+  ) {
+    return true
+  }
+
+  return sameSegments(messagePath.members, ['Message'])
+}
+
+const definitionOperationOwnsMessage = (
+  references: WeakMap<ESTree.Node, Reference>,
+  functionNode: ESTree.ArrowFunctionExpression | ESTree.Function,
+  messagePath: ImportedMessagePath,
+): boolean =>
+  Option.exists(definitionOperation(references, functionNode), operation => {
+    const ownsLocalMessage = Option.exists(
+      localDefinitionMessagePath(references, operation),
+      definitionMessagePath =>
+        sameImportedMessagePath(definitionMessagePath, messagePath),
+    )
+    if (ownsLocalMessage) {
+      return true
+    }
+
+    return (
+      operation.operation === 'view' &&
+      operation.importedDefinitionPath !== undefined &&
+      importedDefinitionOwnsMessage(
+        operation.importedDefinitionPath,
+        messagePath,
+      )
+    )
+  })
+
+const isOwnedByEnclosingBlockOperation = (
   node: ESTree.Node,
   references: WeakMap<ESTree.Node, Reference>,
   messagePath: ImportedMessagePath,
@@ -227,12 +353,7 @@ const isOwnedByEnclosingView = (
         return true
       }
 
-      const ownsDefinedView = Option.exists(
-        defineViewMessagePath(references, ancestor),
-        viewMessagePath =>
-          sameImportedMessagePath(viewMessagePath, messagePath),
-      )
-      if (ownsDefinedView) {
+      if (definitionOperationOwnsMessage(references, ancestor, messagePath)) {
         return true
       }
     }
@@ -398,7 +519,7 @@ const childMessageConstruction = (
 }
 
 /**
- * Flags construction of a child Submodel Message variant from outside the
+ * Flags construction of a child Block Message variant from outside the
  * child, such as Chat.Message.ClickedOpen(...) or an immutable local alias.
  */
 export const noChildMessageConstructionInRoot = Rule.define({
@@ -406,7 +527,7 @@ export const noChildMessageConstructionInRoot = Rule.define({
   meta: Rule.meta({
     type: 'suggestion',
     description:
-      'Drive child Submodels through child-owned update capabilities instead of constructing their Messages from a parent.',
+      'Drive child Blocks through child-owned update capabilities instead of constructing their Messages from a parent.',
   }),
   create: function* () {
     const ctx = yield* RuleContext
@@ -426,7 +547,7 @@ export const noChildMessageConstructionInRoot = Rule.define({
               if (
                 references !== undefined &&
                 messagePath !== undefined &&
-                isOwnedByEnclosingView(node, references, messagePath)
+                isOwnedByEnclosingBlockOperation(node, references, messagePath)
               ) {
                 return Effect.void
               }

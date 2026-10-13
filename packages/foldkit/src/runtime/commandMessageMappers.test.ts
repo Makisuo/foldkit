@@ -96,7 +96,7 @@ const requireDevToolsStore = (
 
 describe('command message mappers', () => {
   it('dispatches a mapped Command result in the parent Message space', async () => {
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({
         model: { label: 'start' },
@@ -175,7 +175,7 @@ describe('command message mappers', () => {
     })
 
     const dynamicH = __htmlBuilder<RootMessage>()
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model: DynamicModel,
       init: () => ({
         model: { label: 'start' },
@@ -226,7 +226,7 @@ describe('command message mappers', () => {
         Array.head,
         Option.getOrThrow,
       )
-      expect(pendingCommand.maybeSubmodelPath).toEqual(Option.none())
+      expect(pendingCommand.maybeBlockPath).toEqual(Option.none())
       expect(middleMapperCalls).toBe(0)
       expect(rootMapperCalls).toBe(0)
 
@@ -239,7 +239,7 @@ describe('command message mappers', () => {
           SubscriptionRef.get(store.stateRef),
         )
         const command = pipe(state.initCommands, Array.head, Option.getOrThrow)
-        expect(command.maybeSubmodelPath).toEqual(
+        expect(command.maybeBlockPath).toEqual(
           Option.some(['GotPanelMessage', 'GotViewerMessage']),
         )
       })
@@ -266,7 +266,7 @@ describe('command message mappers', () => {
       return Effect.void
     })
 
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({
         model: { label: 'start' },
@@ -305,7 +305,7 @@ describe('command message mappers', () => {
         Array.head,
         Option.getOrThrow,
       )
-      expect(pendingCommand.maybeSubmodelPath).toEqual(Option.none())
+      expect(pendingCommand.maybeBlockPath).toEqual(Option.none())
       expect(mapperCalls).toBe(0)
 
       await Effect.runPromise(Fiber.interrupt(fiber))
@@ -318,7 +318,7 @@ describe('command message mappers', () => {
         Array.head,
         Option.getOrThrow,
       )
-      expect(interruptedCommand.maybeSubmodelPath).toEqual(Option.none())
+      expect(interruptedCommand.maybeBlockPath).toEqual(Option.none())
       expect(mapperCalls).toBe(0)
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))

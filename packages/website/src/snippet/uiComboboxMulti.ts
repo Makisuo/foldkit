@@ -1,10 +1,11 @@
-import { Array, Layer, Option, Schema } from 'effect'
-import { Submodel, Update } from 'foldkit'
+import { Array, Schema } from 'effect'
+import { Block, Update } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 import { Combobox } from '@foldkit/ui'
+import { inputId as MultiComboboxInputId } from '@foldkit/ui/combobox'
 
 const City = Schema.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
 type City = typeof City.Type
@@ -20,7 +21,7 @@ type Model = typeof Model.Type
 const init = () => ({
   model: Model.make({
     selectedCities: [],
-    comboboxMulti: CitiesCombobox.init({ id: 'cities-multi' }).model,
+    comboboxMulti: combobox.init({ id: 'cities-multi' }).model,
   }),
 })
 
@@ -46,21 +47,18 @@ const foldComboboxMultiOutMessage = CitiesCombobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const combobox = CitiesCombobox.bind({
-  placement: 'cities-multi',
-  read: (model: Model) => Option.some(model.comboboxMulti),
-  write: (model, nextComboboxMulti) =>
-    modifyFields(model, { comboboxMulti: () => nextComboboxMulti }),
-  toParentMessage: message => Message.GotComboboxMultiMessage({ message }),
+const combobox = CitiesCombobox.connection({
+  Model,
+  field: 'comboboxMulti',
+  parentMessage: Message.GotComboboxMultiMessage,
   outMessage: { fold: foldComboboxMultiOutMessage },
 })
 
-const owner = Submodel.owner('Acme/CitiesPicker')
-
 // Registering the binding collects its lifecycle and handler graph.
-const contract = owner.define({ Model, Message, children: [combobox] })
+const CitiesPicker = Block.define('CitiesPicker', { Model, Message })
+const registered = CitiesPicker.register({ children: [combobox] })
 
-const update = contract.defineUpdate((model, message) =>
+const update = CitiesPicker.update((model, message) =>
   Message.match(message, {
     GotComboboxMultiMessage: ({ message }) => combobox.fold(model, message),
   }),
@@ -73,7 +71,7 @@ const cities: ReadonlyArray<City> = [
   'Wellington',
 ]
 
-const view = contract.defineView((model, h) => {
+const view = registered.view((model, h) => {
   const filteredCities =
     model.comboboxMulti.inputValue === ''
       ? cities
@@ -89,11 +87,11 @@ const view = contract.defineView((model, h) => {
     [h.Class('flex flex-col gap-1.5')],
     [
       h.label(
-        [h.Id(labelId), h.For(Combobox.Multi.inputId('cities-multi'))],
+        [h.Id(labelId), h.For(MultiComboboxInputId('cities-multi'))],
         ['Cities'],
       ),
-      h.submodel(
-        combobox.embed({
+      h.block(
+        combobox.embedView({
           slotId: 'cities-multi',
           model: model.comboboxMulti,
           viewInputs: {
@@ -129,16 +127,10 @@ const view = contract.defineView((model, h) => {
   )
 })
 
-const descriptor = contract.compose({
+export const block = registered.assemble({
   init,
   update,
   view,
-  EffectsLayer: Layer.empty,
 })
 
 export { Model, Message, init }
-export const bind = descriptor.bind
-export const EffectsLayer = descriptor.EffectsLayer
-export const subscriptions = descriptor.subscriptions
-export const managedResources = descriptor.managedResources
-export const mounts = descriptor.mounts

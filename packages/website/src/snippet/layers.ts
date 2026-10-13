@@ -1,6 +1,7 @@
 import { Context, Effect, Layer, Schema } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
-import { Command, Http } from 'foldkit'
+import { Http } from 'foldkit'
+import { define as defineApplication } from 'foldkit/application'
 import { defineMessageUnion } from 'foldkit/message'
 
 const User = Schema.Struct({ id: Schema.String, name: Schema.String })
@@ -11,6 +12,9 @@ const Message = defineMessageUnion({
   FailedLoadUser: { error: Schema.String },
 })
 
+const Model = Schema.Struct({ maybeUser: Schema.Option(User) })
+const Application = defineApplication({ Model, Message })
+
 type ApiClient = Readonly<{
   getUser: (userId: string) => Effect.Effect<User, unknown>
 }>
@@ -19,7 +23,7 @@ class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(
   'ApiClientService',
 ) {}
 
-const LoadUser = Command.define('LoadUser', {
+const LoadUser = Application.command('LoadUser', {
   args: { userId: Schema.String },
   messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
   handler: function* () {
@@ -59,5 +63,5 @@ export const EffectsLayer = LoadUser.layer
 export const ServicesLayer = Layer.provide(ApiLayer, Http.layer)
 const ServicesTestLayer = ApiTestLayer
 
-export const AppLayer = Layer.provide(EffectsLayer, ServicesLayer)
-export const AppTestLayer = Layer.provide(EffectsLayer, ServicesTestLayer)
+export const ApplicationLayer = ServicesLayer
+export const ApplicationTestLayer = ServicesTestLayer

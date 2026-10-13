@@ -1,5 +1,5 @@
 import { Duration, Effect, Schema, Stream } from 'effect'
-import { Subscription } from 'foldkit'
+import { define as defineApplication } from 'foldkit/application'
 import { defineMessageUnion } from 'foldkit/message'
 
 // MESSAGE
@@ -19,9 +19,11 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
+export const Application = defineApplication({ Model, Message })
+
 // SUBSCRIPTION
 
-export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+export const subscriptions = Application.subscriptions(entry => ({
   gameClockTicks: entry(
     'GameClockTicks',
     { isAutoCounting: Schema.Boolean },

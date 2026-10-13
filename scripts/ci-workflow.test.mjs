@@ -25,7 +25,7 @@ test('required workflows check main and integration pull requests and merge grou
   for (const requiredWorkflow of [workflow, examplesWorkflow]) {
     assert.match(
       requiredWorkflow,
-      /on:\n\s+pull_request:\n\s+branches:\n\s+- main\n\s+- codex\/layers-and-submodels\n\s+merge_group:\n\s+types:\n\s+- checks_requested/,
+      /on:\n\s+pull_request:\n\s+branches:\n\s+- main\n\s+- codex\/layers-and-blocks\n\s+merge_group:\n\s+types:\n\s+- checks_requested/,
     )
     assert.doesNotMatch(requiredWorkflow, /^\s+push:/m)
     assert.match(

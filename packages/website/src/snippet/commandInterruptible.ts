@@ -1,9 +1,11 @@
 import { Effect } from 'effect'
-import { Command, Update } from 'foldkit'
+import { Block, Command } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import type { Model } from './main'
+import { Model } from './application'
+
+const Application = defineApplication({ Model, Message })
 
 export const Message = defineMessageUnion({
   ClickedResetAfterDelay: {},
@@ -15,7 +17,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const WaitBeforeReset = Command.define('WaitBeforeReset', {
+export const WaitBeforeReset = Application.command('WaitBeforeReset', {
   messages: [Message.CompletedWaitBeforeReset],
   interrupt: true,
   handler: function* () {
@@ -28,7 +30,7 @@ export const WaitBeforeReset = Command.define('WaitBeforeReset', {
 
 export const EffectsLayer = WaitBeforeReset.layer
 
-const update = Update.define((model: Model, message: Message) =>
+const update = Application.update((model, message) =>
   Message.match(message, {
     ClickedResetAfterDelay: () => ({
       model,

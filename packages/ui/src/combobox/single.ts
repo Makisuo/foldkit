@@ -1,28 +1,17 @@
 import { Option, Schema } from 'effect'
-import type * as Command from 'foldkit/command'
-import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
-import * as Submodel from 'foldkit/submodel'
-import type * as Update from 'foldkit/update'
 
-import type * as Animation from '../animation/public.js'
 import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewInputsCommon,
-  type ClickItem,
-  type DetectMovementOrAnimationEnd,
-  EffectsLayer,
-  type FocusInput,
-  type InertOthers,
-  type LockScroll,
+  Combobox,
+  type ItemSchema,
+  LocalEffectsLayer,
   Message,
   type MessageSchema,
   OutMessage,
   type OutMessageSchema,
-  type RestoreInert,
-  type ScrollItemIntoView,
-  type UnlockScroll,
   baseInit,
   closedBaseModel,
   makeMessage,
@@ -41,6 +30,8 @@ export const Model = Schema.Struct({
 
 export type Model = typeof Model.Type
 
+const combobox = Combobox.define({ Model, Message, OutMessage })
+
 // INIT
 
 /** Configuration for creating a single-select combobox model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). */
@@ -55,7 +46,7 @@ export const init = (config: InitConfig): Model => baseInit(config)
  *  and an optional OutMessage. Selection closes the Combobox and emits
  *  `Selected({ value })` for the parent to store. A nullable Combobox also
  *  emits `ClearedSelection` when it closes with an empty input. */
-export const update = makeUpdate<Model, string>(Message, 'CloseWithFocus', {
+const defaultUpdate = makeUpdate(Model, Message, 'CloseWithFocus', {
   handleClose: (model, restingInputValue, isClearable) => {
     if (isClearable && model.nullable && model.inputValue === '') {
       return {
@@ -88,6 +79,8 @@ export const update = makeUpdate<Model, string>(Message, 'CloseWithFocus', {
   }),
 })
 
+export const update = combobox.update(defaultUpdate.update)
+
 type UpdateReturn = ReturnType<typeof update>
 
 /** Programmatically opens the Combobox, updating the Model and returning
@@ -103,7 +96,7 @@ export const close = (model: Model, restingInputValue: string): UpdateReturn =>
   update(model, Message.Closed({ restingInputValue, isClearable: true }))
 
 /** Programmatically selects an item in the single-select combobox, closing
- *  the combobox and emitting `Selected({ value })`. The Submodel treats the
+ *  the combobox and emitting `Selected({ value })`. The Block treats the
  *  select as fresh (`wasSelected: false`), so the input rests on
  *  `displayText`; what the selection becomes is the parent's fold to decide,
  *  and a parent that toggles on its own state will still deselect an
@@ -117,7 +110,7 @@ export const selectItem = (
 
 // VIEW
 
-/** Per-render view inputs passed to the view via `h.submodel`'s `viewInputs` field. */
+/** Per-render view inputs passed to the view via `h.block`'s `viewInputs` field. */
 export type ViewInputs<Item extends string> = BaseViewInputsCommon<Item> &
   Readonly<{
     /** The selection the parent owns, passed in fresh on every render.
@@ -127,148 +120,56 @@ export type ViewInputs<Item extends string> = BaseViewInputsCommon<Item> &
     maybeSelectedValue: Option.Option<Item>
   }>
 
-const SingleOwner = Submodel.owner('Foldkit/Combobox/Single')
-
-/** A complete single-select Combobox descriptor refined to one Item Schema. */
-export type Bundle<Item extends string = string> = Submodel.Descriptor<
-  Submodel.Owner<'Foldkit/Combobox/Single'>,
-  typeof Model,
-  MessageSchema<Item>,
-  OutMessageSchema<Item>,
-  typeof mounts,
-  readonly [],
-  Readonly<{
-    view: Submodel.View<
-      Model,
-      Message<Item>,
-      ViewInputs<Item>,
-      Mount.RequirementsOf<typeof mounts>
-    >
-    init: (config: InitConfig) => Readonly<{ model: Model }>
-    update: (
-      model: Model,
-      message: Message<Item>,
-    ) => Update.ReturnWithOutMessage<
-      Model,
-      Message<Item>,
-      OutMessage<Item>,
-      | Command.HandlerOf<typeof LockScroll>
-      | Command.HandlerOf<typeof UnlockScroll>
-      | Command.HandlerOf<typeof InertOthers>
-      | Command.HandlerOf<typeof RestoreInert>
-      | Command.HandlerOf<typeof FocusInput>
-      | Command.HandlerOf<typeof ScrollItemIntoView>
-      | Command.HandlerOf<typeof ClickItem>
-      | Command.HandlerOf<typeof DetectMovementOrAnimationEnd>
-      | Update.RequirementsOf<typeof Animation.update>
-    >
-    steps: Readonly<{
-      open: (
-        model: Model,
-      ) => Update.ReturnWithOutMessage<
-        Model,
-        Message<Item>,
-        OutMessage<Item>,
-        | Command.HandlerOf<typeof LockScroll>
-        | Command.HandlerOf<typeof UnlockScroll>
-        | Command.HandlerOf<typeof InertOthers>
-        | Command.HandlerOf<typeof RestoreInert>
-        | Command.HandlerOf<typeof FocusInput>
-        | Command.HandlerOf<typeof ScrollItemIntoView>
-        | Command.HandlerOf<typeof ClickItem>
-        | Command.HandlerOf<typeof DetectMovementOrAnimationEnd>
-        | Update.RequirementsOf<typeof Animation.update>
-      >
-      close: (
-        model: Model,
-        restingInputValue: string,
-      ) => Update.ReturnWithOutMessage<
-        Model,
-        Message<Item>,
-        OutMessage<Item>,
-        | Command.HandlerOf<typeof LockScroll>
-        | Command.HandlerOf<typeof UnlockScroll>
-        | Command.HandlerOf<typeof InertOthers>
-        | Command.HandlerOf<typeof RestoreInert>
-        | Command.HandlerOf<typeof FocusInput>
-        | Command.HandlerOf<typeof ScrollItemIntoView>
-        | Command.HandlerOf<typeof ClickItem>
-        | Command.HandlerOf<typeof DetectMovementOrAnimationEnd>
-        | Update.RequirementsOf<typeof Animation.update>
-      >
-      selectItem: (
-        model: Model,
-        item: Item,
-        displayText: string,
-      ) => Update.ReturnWithOutMessage<
-        Model,
-        Message<Item>,
-        OutMessage<Item>,
-        | Command.HandlerOf<typeof LockScroll>
-        | Command.HandlerOf<typeof UnlockScroll>
-        | Command.HandlerOf<typeof InertOthers>
-        | Command.HandlerOf<typeof RestoreInert>
-        | Command.HandlerOf<typeof FocusInput>
-        | Command.HandlerOf<typeof ScrollItemIntoView>
-        | Command.HandlerOf<typeof ClickItem>
-        | Command.HandlerOf<typeof DetectMovementOrAnimationEnd>
-        | Update.RequirementsOf<typeof Animation.update>
-      >
-    }>
-    EffectsLayer: typeof EffectsLayer
-  }>
->
-
-const makeDescriptor = <Item extends string>(
-  Item: Schema.Schema<Item>,
-): Bundle<Item> => {
-  const ItemMessage = makeMessage(Item)
-  const ItemOutMessage = makeOutMessage(Item)
-  const definition = SingleOwner.define({
+const makeBlock = <Item extends string>(Item: ItemSchema<Item>) => {
+  const ItemMessage: MessageSchema<Item> = makeMessage(Item)
+  const ItemOutMessage: OutMessageSchema<Item> = makeOutMessage(Item)
+  const single = Combobox.define({
     Model,
     Message: ItemMessage,
     OutMessage: ItemOutMessage,
-    mounts,
   })
-  const update = definition.defineUpdate(
-    makeUpdate<Model, Item>(ItemMessage, 'CloseWithFocus', {
-      handleClose: (model, restingInputValue, isClearable) => {
-        if (isClearable && model.nullable && model.inputValue === '') {
-          return {
-            model: modifyFields(closedBaseModel(model), {
-              inputValue: () => '',
-            }),
-            outMessage: ItemOutMessage.ClearedSelection(),
-          }
-        }
-
+  const itemUpdate = makeUpdate(Model, ItemMessage, 'CloseWithFocus', {
+    handleClose: (model, restingInputValue, isClearable) => {
+      if (isClearable && model.nullable && model.inputValue === '') {
         return {
           model: modifyFields(closedBaseModel(model), {
-            inputValue: () => restingInputValue,
+            inputValue: () => '',
           }),
+          outMessage: ItemOutMessage.ClearedSelection(),
         }
-      },
-      handleSelectedItem: (model, item, displayText, wasSelected) => {
-        const nullableDeselect = model.nullable && wasSelected
+      }
 
-        return {
-          model: modifyFields(closedBaseModel(model), {
-            inputValue: () => (nullableDeselect ? '' : displayText),
-          }),
-          outMessage: ItemOutMessage.Selected({ value: item }),
-        }
-      },
-      handleImmediateActivation: (model, item) => ({
-        model,
+      return {
+        model: modifyFields(closedBaseModel(model), {
+          inputValue: () => restingInputValue,
+        }),
+      }
+    },
+    handleSelectedItem: (model, item, displayText, wasSelected) => {
+      const nullableDeselect = model.nullable && wasSelected
+
+      return {
+        model: modifyFields(closedBaseModel(model), {
+          inputValue: () => (nullableDeselect ? '' : displayText),
+        }),
         outMessage: ItemOutMessage.Selected({ value: item }),
-      }),
+      }
+    },
+    handleImmediateActivation: (model, item) => ({
+      model,
+      outMessage: ItemOutMessage.Selected({ value: item }),
     }),
-  )
+  })
+  const registered = single.register({
+    mounts,
+    children: [itemUpdate.animation],
+  })
+  const update = single.update(itemUpdate.update)
   const render = makeView<Model, Item>(
     { ariaMultiSelectable: false },
     ItemMessage,
   )
-  const view = definition.defineView.withInputs<ViewInputs<Item>>(
+  const view = registered.view.withInputs<ViewInputs<Item>>(
     (model, { maybeSelectedValue, ...baseInputs }, h) =>
       render(
         model,
@@ -279,43 +180,47 @@ const makeDescriptor = <Item extends string>(
         h,
       ),
   )
-  const open = definition.defineStep((model: Model) =>
+  const open = single.step(model =>
     update(model, ItemMessage.Opened({ maybeActiveItemIndex: Option.none() })),
   )
-  const close = definition.defineStep(
-    (model: Model, restingInputValue: string) =>
-      update(
-        model,
-        ItemMessage.Closed({ restingInputValue, isClearable: true }),
-      ),
+  const close = single.step((model, restingInputValue: string) =>
+    update(model, ItemMessage.Closed({ restingInputValue, isClearable: true })),
   )
-  const selectItem = definition.defineStep(
-    (model: Model, item: Item, displayText: string) =>
-      update(
-        model,
-        ItemMessage.SelectedItem({
-          item,
-          displayText,
-          wasSelected: false,
-        }),
-      ),
+  const selectItem = single.step((model, item: Item, displayText: string) =>
+    update(
+      model,
+      ItemMessage.SelectedItem({
+        item,
+        displayText,
+        wasSelected: false,
+      }),
+    ),
   )
 
-  return definition.compose({
+  const steps = { open, close, selectItem }
+  return registered.assemble({
     view,
     init: (config: InitConfig) => ({ model: init(config) }),
     update,
-    steps: { open, close, selectItem },
-    EffectsLayer,
+    steps,
+    EffectsLayer: LocalEffectsLayer,
   })
 }
 
-/** Creates a checked single-select Combobox descriptor. Pass an Item Schema to
+/** A completed single-select Combobox Block refined to one Item Schema. */
+export type Completed<Item extends string = string> = ReturnType<
+  typeof makeBlock<Item>
+>
+
+/** Creates a checked single-select Combobox Block. Pass an Item Schema to
  * retain its exact Message and OutMessage payloads. */
-export function create(): Bundle<string>
+export function create(): Completed<string>
 export function create<Item extends string>(
-  Item: Schema.Schema<Item>,
-): Bundle<Item>
-export function create(Item: Schema.Schema<string> = Schema.String) {
-  return makeDescriptor(Item)
+  Item: ItemSchema<Item>,
+): Completed<Item>
+export function create(Item: ItemSchema<string> = Schema.String) {
+  return makeBlock(Item)
 }
+
+/** Complete default single-select Combobox Block definition. */
+export const block = makeBlock(Schema.String)

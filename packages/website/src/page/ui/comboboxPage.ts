@@ -1,15 +1,9 @@
-import { type Mount, Submodel } from 'foldkit'
-import type { Html } from 'foldkit/html'
-
-import { Combobox as UiCombobox } from '@foldkit/ui'
-
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import raw from './comboboxPage.md'
 import * as Combobox from './demo/combobox'
-import type { Message } from './message'
-import type { Model } from './model'
+import { ui } from './update'
 
 const { tableOfContents, view: renderPage } = slotDocPage<
   | 'single-select'
@@ -27,52 +21,48 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = Submodel.defineView<
-  Model,
-  Message,
-  ViewInputs,
-  Mount.RequirementsOf<typeof UiCombobox.mounts>
->((model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
-  renderPage({
-    demos: {
-      'single-select': demoContainer(
-        ...Combobox.view(
-          model.comboboxDemo,
-          model.maybeComboboxDemoSelectedCity,
-          h,
+export const view = ui.view.withInputs<ViewInputs>(
+  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h) =>
+    renderPage({
+      demos: {
+        'single-select': demoContainer(
+          ...Combobox.view(
+            model.comboboxDemo,
+            model.maybeComboboxDemoSelectedCity,
+            h,
+          ),
         ),
-      ),
-      nullable: demoContainer(
-        ...Combobox.nullableDemo(
-          model.comboboxNullableDemo,
-          model.maybeComboboxNullableDemoSelectedCity,
-          h,
+        nullable: demoContainer(
+          ...Combobox.nullableDemo(
+            model.comboboxNullableDemo,
+            model.maybeComboboxNullableDemoSelectedCity,
+            h,
+          ),
         ),
-      ),
-      'select-on-focus': demoContainer(
-        ...Combobox.selectOnFocusDemo(
-          model.comboboxSelectOnFocusDemo,
-          model.maybeComboboxSelectOnFocusDemoSelectedCity,
-          h,
+        'select-on-focus': demoContainer(
+          ...Combobox.selectOnFocusDemo(
+            model.comboboxSelectOnFocusDemo,
+            model.maybeComboboxSelectOnFocusDemoSelectedCity,
+            h,
+          ),
         ),
-      ),
-      'locked-placement': demoContainer(
-        ...Combobox.placementLockDemo(
-          model.comboboxPlacementLockDemo,
-          model.maybeComboboxPlacementLockDemoSelectedCity,
-          h,
+        'locked-placement': demoContainer(
+          ...Combobox.placementLockDemo(
+            model.comboboxPlacementLockDemo,
+            model.maybeComboboxPlacementLockDemoSelectedCity,
+            h,
+          ),
         ),
-      ),
-      multi: demoContainer(
-        ...Combobox.multiDemo(
-          model.comboboxMultiDemo,
-          model.comboboxMultiDemoSelectedCities,
-          h,
+        multi: demoContainer(
+          ...Combobox.multiDemo(
+            model.comboboxMultiDemo,
+            model.comboboxMultiDemoSelectedCities,
+            h,
+          ),
         ),
-      ),
-    },
-    renderCopyButton,
-    renderSnippet,
-    renderHeadingLink,
-  }),
+      },
+      renderCopyButton,
+      renderSnippet,
+      renderHeadingLink,
+    }),
 )

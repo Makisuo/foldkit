@@ -171,7 +171,7 @@ describe('slow warnings', () => {
   it('reports measured phases with tagged contexts', async () => {
     const contexts: Array<SlowContext<Model, Message>> = []
 
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { count: 0 } }),
       update,
@@ -232,7 +232,7 @@ describe('slow warnings', () => {
   it('reports only phases selected by measuredPhases', async () => {
     const contexts: Array<SlowContext<Model, Message>> = []
 
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { count: 0 } }),
       update,
@@ -271,7 +271,7 @@ describe('slow warnings', () => {
   it('reports update work when update returns the same Model reference', async () => {
     const contexts: Array<SlowContext<Model, Message>> = []
 
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { count: 0 } }),
       update,

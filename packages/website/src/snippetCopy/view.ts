@@ -1,10 +1,9 @@
 import { clsx } from 'clsx'
 import { HashSet } from 'effect'
-import { Submodel } from 'foldkit'
 
 import { Icon } from '../icon'
+import { SnippetCopy } from './block'
 import { Message } from './message'
-import { type Model } from './model'
 
 export type ViewInputs = Readonly<{
   snippetId: string
@@ -14,7 +13,7 @@ export type ViewInputs = Readonly<{
   variant: 'Header' | 'Overlay'
 }>
 
-export const view = Submodel.defineView<Model, Message, ViewInputs>(
+export const view = SnippetCopy.view.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const isCopied = HashSet.has(model.copiedSnippetIds, viewInputs.snippetId)
 

@@ -4,6 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
+import { CloseDialog, ShowDialog, boot as bootDialog } from '@foldkit/ui/dialog'
 
 import { ExportPng, SaveCanvas } from './command'
 import { createEmptyGrid } from './grid'
@@ -303,7 +304,7 @@ describe('grid size', () => {
       update,
       given(paintedModel),
       message(Message.SelectedGridSize({ size: 8 })),
-      Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
       model(model => {
         expect(model.maybePendingGridSize).toEqual(Option.some(8))
         expect(model.gridSizeConfirmDialog.isOpen).toBe(true)
@@ -316,7 +317,7 @@ describe('grid size', () => {
     const modelWithPending: Model = modifyFields(emptyModel, {
       maybePendingGridSize: () => Option.some(8),
       gridSizeConfirmDialog: () =>
-        Dialog.boot({
+        bootDialog({
           id: 'grid-size-confirm-dialog',
         }).model,
       undoStack: () => [createEmptyGrid(4)],
@@ -326,10 +327,7 @@ describe('grid size', () => {
       update,
       given(modelWithPending),
       message(Message.ConfirmedGridSizeChange()),
-      Command.resolve(
-        Dialog.CloseDialog,
-        Dialog.Message.CompletedCloseDialog(),
-      ),
+      Command.resolve(CloseDialog, Dialog.Message.CompletedCloseDialog()),
       Command.resolve(SaveCanvas, Message.CompletedSaveCanvas()),
       model(model => {
         expect(model.gridSize).toBe(8)
@@ -450,7 +448,7 @@ describe('export failure', () => {
       message(
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
       model(model => {
         expect(model.maybeExportError).toEqual(
           Option.some('Canvas 2D context not available'),
@@ -467,16 +465,13 @@ describe('export failure', () => {
       message(
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
       message(
         Message.GotErrorDialogMessage({
           message: Dialog.Message.RequestedClose(),
         }),
       ),
-      Command.resolve(
-        Dialog.CloseDialog,
-        Dialog.Message.CompletedCloseDialog(),
-      ),
+      Command.resolve(CloseDialog, Dialog.Message.CompletedCloseDialog()),
       model(model => {
         expect(model.maybeExportError).toEqual(Option.none())
         expect(model.errorDialog.isOpen).toBe(false)

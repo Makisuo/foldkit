@@ -1,5 +1,6 @@
 import { Effect, Match, Option, Schema, pipe } from 'effect'
-import { AsyncData, Command, Update } from 'foldkit'
+import { AsyncData } from 'foldkit'
+import { define as defineApplication } from 'foldkit/application'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -24,9 +25,11 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+const Application = defineApplication({ Model, Message })
+
 // COMMAND
 
-const FetchPosts = Command.define('FetchPosts', {
+const FetchPosts = Application.command('FetchPosts', {
   messages: [Message.CompletedFetchPosts],
   handler: function* () {
     return () =>
@@ -40,7 +43,7 @@ const FetchPosts = Command.define('FetchPosts', {
 
 // UPDATE
 
-const update = Update.define((model: Model, message: Message) =>
+const update = Application.update((model, message) =>
   Match.value(message).pipe(
     Match.tagsExhaustive({
       EnteredPostsRoute: () =>

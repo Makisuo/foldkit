@@ -1,23 +1,21 @@
-import { Option } from 'effect'
-import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { Message } from './message'
+import { Model } from './model'
 import * as Settings from './settings'
 
-const foldSettingsTheme = Update.foldChild({
-  update: Settings.setTheme,
-  read: model => Option.some(model.settings),
-  write: (model, nextSettings) =>
-    modifyFields(model, { settings: () => nextSettings }),
-  toParentMessage: message => Message.GotSettingsMessage({ message }),
+const settings = Settings.block.connection({
+  Model: Model,
+  field: 'settings',
+  parentMessage: Message.GotSettingsMessage,
 })
 
 // ❌ Bad: copying the child Model drops any Commands or OutMessage.
-const badReset = model => {
+const badReset = (model: Model) => {
   const settingsReset = Settings.setTheme(model.settings, 'Light')
 
   return { model: modifyFields(model, { settings: () => settingsReset.model }) }
 }
 
-// ✅ Good: the fold preserves the complete child update result.
-const goodReset = model => foldSettingsTheme(model, 'Light')
+// ✅ Good: the projected Step preserves the complete child result.
+const goodReset = (model: Model) => settings.setTheme('Light')(model)

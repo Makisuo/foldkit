@@ -1,0 +1,68 @@
+import { Effect, Layer, Option, Schema } from 'effect'
+import { KeyValueStore } from 'effect/persistence'
+
+import { DragAndDrop } from '@foldkit/ui'
+
+import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
+import { DEFAULT_COLUMNS, STORAGE_KEY } from './constant'
+import { Message } from './message'
+import { Model, SavedBoard, SavedBoardJsonString } from './model'
+import { Application, update } from './update'
+import { view } from './view'
+
+const EffectsLayer = Layer.mergeAll(
+  GenerateCardId.layer,
+  SaveBoard.layer,
+  FocusAddCardInput.layer,
+)
+
+// FLAGS
+
+export const Flags = Schema.Struct({
+  maybeSavedBoard: Schema.Option(SavedBoard),
+})
+export type Flags = typeof Flags.Type
+
+export const flags = Effect.gen(function* () {
+  const store = yield* KeyValueStore.KeyValueStore
+  const json = yield* Effect.fromOption(
+    Option.fromNullishOr(yield* store.get(STORAGE_KEY)),
+  )
+  const decoded = yield* Schema.decodeEffect(SavedBoardJsonString)(json)
+
+  return Flags.make({ maybeSavedBoard: Option.some(decoded) })
+}).pipe(
+  Effect.catch(() =>
+    Effect.succeed(Flags.make({ maybeSavedBoard: Option.none() })),
+  ),
+)
+
+// INIT
+
+export const init = (flags: Flags) => {
+  const columns = Option.match(flags.maybeSavedBoard, {
+    onNone: () => DEFAULT_COLUMNS,
+    onSome: ({ columns }) => columns,
+  })
+
+  return {
+    model: {
+      columns,
+      dragAndDrop: DragAndDrop.init({ id: 'kanban' }),
+      maybeNewCardColumnId: Option.none(),
+      newCardTitle: '',
+      announcement: '',
+    },
+  }
+}
+
+export const implementation = {
+  init,
+  update,
+  view,
+  EffectsLayer,
+}
+
+export { Message, Model, update, view }
+
+export { Application }

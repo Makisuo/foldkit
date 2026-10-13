@@ -12,11 +12,11 @@ The [weather example](/example-apps/weather) connects form input, Command args, 
 
 ## Anatomy of a Command
 
-The counter's update function has only changed the count so far. Add a button that resets it after one second. Put this application code in `main.ts`:
+The counter's update function has only changed the count so far. Add a button that resets it after one second. Put this application code in `application.ts`:
 
 ### Definition Fields
 
-`Command.define` gives the work a name and a result contract. This example keeps the definition and its handler together:
+`Application.command` gives the work a name within the Application and declares its result contract. This example keeps the definition and its handler together:
 
 ::Snippet{name="counterCommands" label="Counter with a delayed reset"}
 
@@ -35,15 +35,15 @@ Constructors prepare execution machinery. Application state and workflow decisio
 
 Three pieces connect the work to update:
 
-- `Command.define` names `WaitBeforeReset`, declares the Messages it can produce, and stores its handler constructor in `config.handler`. The returned handler waits one second, then produces `CompletedWaitBeforeReset`.
+- `Application.command` names `WaitBeforeReset`, declares the Messages it can produce, and stores its handler constructor in `config.handler`. The returned handler waits one second, then produces `CompletedWaitBeforeReset`.
 - `WaitBeforeReset.layer` is the Layer recipe for that handler.
 - `WaitBeforeReset()` creates the Command value that update returns. Creating that value does not start the timer.
 
-`Update.define` infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
+The typed definition's `update` method infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
 
-The entry point supplies the handler Layer and starts the application:
+`application.ts` exports the typed `Application`, its update/view, and the local handler recipe. `entry.ts` passes those pieces to `Application.make`, provides any remaining Services with standalone `provide`, and starts the Runtime:
 
-::Snippet{name="counterCommandsEntry" label="Providing the counter's handler"}
+::Snippet{name="counterCommandsEntry" label="Starting the counter"}
 
 When the user clicks **Reset after one second**, the loop is:
 
@@ -53,7 +53,7 @@ When the user clicks **Reset after one second**, the loop is:
 4. The Runtime dispatches `CompletedWaitBeforeReset`.
 5. Update receives that Message and sets `count` to zero.
 
-The Runtime builds the Layer once when the application starts. Later Command executions reuse its handler; each execution starts its own timer.
+The Runtime builds the Block's handler Layer once when the application starts. Later Command executions reuse its handler; each execution starts its own timer.
 
 ### Command and Result Names
 
@@ -99,7 +99,7 @@ A Command handler must convert its expected failures into declared result Messag
 
 ## Handler Layers
 
-Separating the Command definition from its handler lets update declare work without choosing how that work is implemented. Update imports `FetchCount`; application assembly supplies its attached handler and the HTTP service it needs. A feature can expose its Commands to a parent while keeping its implementations in one `EffectsLayer`.
+Separating the Command definition from its handler lets update declare work without choosing how that work is implemented. Update imports `FetchCount`; the completed Block carries its attached handler, while application assembly supplies the HTTP service that handler needs. A feature can expose its Commands to a parent while keeping its implementations in one `EffectsLayer`.
 
 The two Layers serve different purposes:
 
@@ -108,15 +108,15 @@ The two Layers serve different purposes:
 | `FetchCountLayer` | The application's request, decoding, and result Message logic |
 | `Http.layer`      | The browser HTTP client used by that logic                    |
 
-This tutorial names the individual provider `FetchCountLayer` because both root composition and the direct execution test reuse it. In ordinary feature assembly, compose `FetchCount.layer` directly in `EffectsLayer`. For an execution test, keep that real handler and provide a deterministic HTTP client beneath it. The request and result handling then run as they do in the application.
+This tutorial names the individual provider `FetchCountLayer` because the direct execution test reuses it. In ordinary feature assembly, compose `FetchCount.layer` directly in the local `EffectsLayer`. For an execution test, keep that real handler and provide a deterministic HTTP client beneath it. The request and result handling then run as they do in the application.
 
 ### Providing the HTTP Client
 
-Compose the HTTP provider beneath the handler at the application root:
+Supply the HTTP provider at the application root:
 
 ::Snippet{name="commandHttpLayer" label="Providing the HTTP service"}
 
-The entry point provides `AppLayer` to the application, as it provided the counter's `EffectsLayer` earlier. `Application.make` carries the unsatisfied requirements, `Application.provide` satisfies them, and `Runtime.run` requires a runnable application.
+The completed Block already carries `FetchCountLayer`. Its remaining `HttpClient` requirement reaches the root, where `ApplicationLayer` supplies it. `Application.make` carries that unsatisfied service requirement, `provide` satisfies it, and `Runtime.run` requires a runnable application.
 
 `Http.layer` is Foldkit's Fetch-backed client. The [Http guide](/core/http) explains its browser tracing defaults and customization. Keep the concrete provider at the root so the application and execution tests can select it, and so Commands share the same client.
 
@@ -142,17 +142,17 @@ A handler can own execution bookkeeping, such as a resource pool or worker respo
 
 ### Naming and Composition
 
-Compose `FetchCount.layer` directly in the feature's `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. A feature's `layer.ts` imports its definitions and exposes the bundle through its namespace, such as `Search.EffectsLayer`. The root combines feature effect handlers in `EffectsLayer`, shared providers in `ServicesLayer`, and both in `AppLayer`. The entry point imports `AppLayer`. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
+Compose `FetchCount.layer` directly in the feature's local `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. Pass a feature's local bundle to `assemble`; registered connections carry its handler recipe to the Application. Root `application.ts` exports the typed `Application` and implementation pieces, `services.ts` exports `ApplicationLayer`, and `entry.ts` calls owned completion and provides the Services. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
 
-Give each Layer-backed Command definition a distinct name within an application. Its handler requirement includes that name, its decoded args, and its declared result Messages. `Application.provide` rejects a same-named provider with a different args or result contract. The check applies when providing one Layer, a bundle built with `Layer.mergeAll`, or several Layers through sequential `Application.provide` calls.
+Command names are local to their named Block. Two features can both declare `FetchCount`; their owners keep the definitions distinct. Names must be unique within one owner, and composition derives readable paths for each binding placement. A Command's handler requirement includes that owned name, its decoded args, and its declared result Messages. `definition.assemble` checks that the feature's `EffectsLayer` supplies each local requirement or that the definition appears in `hostHandlers`.
 
 Derive an explicit handler requirement from its owning definition. `Command.HandlerOf` keeps the annotation aligned with the definition's args Schema and declared result Messages:
 
 ::Snippet{name="handlerRequirementAnnotation" label="Deriving a Command handler requirement"}
 
-`Update.define` normally infers the requirement, so most application code needs no annotation. The explicit expanded form is `Command.Handler<Name, Args, DeclaredMessage>`.
+`definition.update` normally infers the requirement, so most application code needs no annotation. The explicit expanded form is `Command.Handler<Name, Args, DeclaredMessage>`.
 
-Two distinct definitions with identical names and protocols have the same structural requirement type. Foldkit checks the definition identity before invoking the supplied handler and rejects a Layer belonging to the other definition. Build an external implementation or test alternative with the original definition's `toLayer` so it retains that definition's identity.
+Definitions created by different named Blocks receive different owned names even when their local names and protocols match. Each definition also retains a private runtime identity. Build an external implementation or test alternative with the original definition's `toLayer` so it keeps that identity.
 
 ### Testing the Handler Through Its Services
 
@@ -194,7 +194,7 @@ Use `interrupt: { keyFields, toKey }` when concurrent invocations need separate 
 
 Do not key an upload by its file name. Two rows may upload the same file and still need independent cancellation.
 
-Foldkit prefixes every derived key with the Command name. Keep interruptible Command names unique across the application, or two definitions with the same name can cancel each other's work. For a reusable Submodel with several active instances, include its `instanceId` in the key. A single-instance Submodel needs no extra field.
+Foldkit prefixes every derived key with the owned Command name, and composition adds the binding placement. Local names must already be unique within their named Block, and separate static placements do not collide. Items in one `keyedConnection` collection share a placement, so include the item's stable identity in the key when those items need independent cancellation. A single-instance Block needs no extra field.
 
 ### Dispatching an Interrupt
 

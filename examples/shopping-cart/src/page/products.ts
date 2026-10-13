@@ -1,5 +1,5 @@
 import { Array, Effect, Option, Schema } from 'effect'
-import { Command, Submodel, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { replaceUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
@@ -43,16 +43,17 @@ export type AddedToCart = typeof OutMessage.AddedToCart.Type
 export type IncrementedQuantity = typeof OutMessage.IncrementedQuantity.Type
 export type DecrementedQuantity = typeof OutMessage.DecrementedQuantity.Type
 
+const Products = Block.define('Products', { Model, Message, OutMessage })
+
 // INIT
 
-export const init = (products: ReadonlyArray<Item.Item>): Model => ({
-  products,
-  searchText: '',
+export const init = (products: ReadonlyArray<Item.Item>) => ({
+  model: Model.make({ products, searchText: '' }),
 })
 
 // COMMAND
 
-export const ReplaceSearchUrl = Command.define('ReplaceSearchUrl', {
+export const ReplaceSearchUrl = Products.command('ReplaceSearchUrl', {
   args: { url: Schema.String },
   messages: [Message.CompletedReplaceSearchUrl],
   handler: function* () {
@@ -61,11 +62,9 @@ export const ReplaceSearchUrl = Command.define('ReplaceSearchUrl', {
   },
 })
 
-export const EffectsLayer = ReplaceSearchUrl.layer
-
 // UPDATE
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = Products.update((model, message) =>
   Message.match(message, {
     CompletedReplaceSearchUrl: () => ({ model }),
 
@@ -106,7 +105,7 @@ export type ViewInputs = Readonly<{
   cart: Cart.Cart
 }>
 
-export const view = Submodel.defineView<Model, Message, ViewInputs>(
+export const view = Products.view.withInputs<ViewInputs>(
   (model, { cart }, h) => {
     const filteredProducts = model.searchText
       ? model.products.filter(product =>
@@ -263,3 +262,10 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
     )
   },
 )
+
+export const block = Products.assemble({
+  init,
+  update,
+  view,
+  EffectsLayer: ReplaceSearchUrl.layer,
+})

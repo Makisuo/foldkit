@@ -1,6 +1,7 @@
 import { Context, Effect, Layer, Schema, pipe } from 'effect'
 import { expectTypeOf, it } from 'vitest'
 
+import type { Scoped } from '../block/scope.js'
 import * as Command from '../command/index.js'
 import type { Handler as ManagedResourceHandler } from '../managedResource/handler.js'
 import { defineMessageUnion } from '../message/index.js'
@@ -38,6 +39,60 @@ class Cache extends Context.Service<Cache, Readonly<{ value: string }>>()(
 ) {}
 
 const CacheLayer = Layer.succeed(Cache, { value: 'cached' })
+
+type ScaleKey =
+  | '01'
+  | '02'
+  | '03'
+  | '04'
+  | '05'
+  | '06'
+  | '07'
+  | '08'
+  | '09'
+  | '10'
+  | '11'
+  | '12'
+  | '13'
+  | '14'
+  | '15'
+  | '16'
+  | '17'
+  | '18'
+  | '19'
+  | '20'
+  | '21'
+  | '22'
+  | '23'
+  | '24'
+  | '25'
+  | '26'
+  | '27'
+  | '28'
+  | '29'
+  | '30'
+  | '31'
+  | '32'
+
+type ScaledHandlerContracts = {
+  readonly [Key in ScaleKey]:
+    | Scoped<
+        `child-${Key}`,
+        Command.Handler<'Load', Readonly<{ id: Key }>, Message>
+      >
+    | Scoped<
+        `child-${Key}`,
+        SubscriptionHandler<'Observe', Readonly<{ id: Key }>, Message>
+      >
+    | Scoped<
+        `child-${Key}`,
+        MountHandler<'Attach', Readonly<{ id: Key }>, Message>
+      >
+    | Scoped<
+        `child-${Key}`,
+        ManagedResourceHandler<'Open', Readonly<{ id: Key }>, Key>
+      >
+}[ScaleKey]
 
 it('groups exact handler contracts by primitive and name', () => {
   expectTypeOf<
@@ -84,12 +139,15 @@ it('groups exact handler contracts by primitive and name', () => {
       | ManagedResourceHandler<'Read', number, string>
     >
   >().toEqualTypeOf<unknown>()
+  expectTypeOf<
+    ValidHandlerContracts<ScaledHandlerContracts>
+  >().toEqualTypeOf<unknown>()
 })
 
 const checkAssemblyTypes = (): void => {
   const Model = Schema.Struct({ text: Schema.String })
 
-  const application = Application.make({
+  const application = Application.__makeFromConfig({
     Model,
     init: () => ({
       model: Model.make({ text: '' }),

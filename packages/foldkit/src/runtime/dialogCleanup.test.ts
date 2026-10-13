@@ -66,7 +66,7 @@ const ShowNestedDialogsLayer = ShowNestedDialogs.toLayer(
 )
 
 const makeDialogProgram = (container: HTMLElement) =>
-  Application.makeElement({
+  Application.__makeElementFromConfig({
     Model,
     init: () => ({ model: Model.make({}), commands: [ShowDialog()] }),
     update: (model: Model, message: Message) =>
@@ -82,7 +82,7 @@ const makeDialogProgram = (container: HTMLElement) =>
   })
 
 const makeNestedDialogProgram = (container: HTMLElement) =>
-  Application.makeElement({
+  Application.__makeElementFromConfig({
     Model,
     init: () => ({ model: Model.make({}), commands: [ShowNestedDialogs()] }),
     update: (model: Model, message: Message) =>

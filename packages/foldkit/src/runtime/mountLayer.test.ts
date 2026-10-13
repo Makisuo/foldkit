@@ -41,7 +41,7 @@ afterEach(() => {
 const makeApplication = (
   mounts: readonly [typeof AnchorPanel, ...ReadonlyArray<typeof AnchorPanel>],
 ) =>
-  Application.make({
+  Application.__makeFromConfig({
     Model,
     init: () => ({ model: { status: 'ready' } }),
     update,
@@ -80,7 +80,7 @@ describe('Layer-backed Mount runtime', () => {
 
   it('crashes before patching an unregistered Layer-backed Mount', async () => {
     let reportedError: Error | undefined
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       init: () => ({ model: { status: 'ready' } }),
       update,
@@ -126,7 +126,7 @@ describe('Layer-backed Mount runtime', () => {
       messages: [Message.CompletedAnchorPanel],
     })
     let reportedError: Error | undefined
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       init: () => ({ model: { status: 'ready' } }),
       update,
@@ -172,7 +172,7 @@ describe('Layer-backed Mount runtime', () => {
 
   it('checks a Layer-backed Mount revealed by a later Model state', async () => {
     let reportedError: Error | undefined
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       init: () => ({ model: { status: 'ready' } }),
       update,
@@ -226,7 +226,7 @@ describe('Layer-backed Mount runtime', () => {
 
   it('allows a registered Mount Definition that the view does not render', async () => {
     let executions = 0
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       init: () => ({ model: { status: 'ready' } }),
       update,
@@ -258,15 +258,13 @@ describe('Layer-backed Mount runtime', () => {
     }
   })
 
-  it('rejects distinct registered definitions with the same name', () => {
+  it('does not globally reject distinct registered definitions with the same name', () => {
     const otherAnchorPanel = Mount.define('AnchorPanel', {
       args: { label: Schema.String },
       messages: [Message.CompletedAnchorPanel],
     })
 
-    expect(() => makeApplication([AnchorPanel, otherAnchorPanel])).toThrow(
-      'same name "AnchorPanel" but different definitions',
-    )
+    expect(() => makeApplication([AnchorPanel, otherAnchorPanel])).not.toThrow()
   })
 
   it('allows repeated registration of one definition', () => {

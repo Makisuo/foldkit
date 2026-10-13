@@ -9,3 +9,4 @@ export {
   update,
 } from './update'
 export { type ViewInputs, view } from './view'
+export { block } from './snippetCopy'

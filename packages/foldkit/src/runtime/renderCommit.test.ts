@@ -177,7 +177,7 @@ describe('Render.afterCommit inside a View Transition', () => {
   const startElement = () =>
     Effect.runFork(
       Application.provide(
-        Application.makeElement({
+        Application.__makeElementFromConfig({
           Model,
           init: () => ({ model: { label: 'initial' } }),
           update,
@@ -288,7 +288,7 @@ describe('Render.afterCommit inside a View Transition', () => {
   it('resumes a waiter on a plain render with no transition configured', async () => {
     const fiber = Effect.runFork(
       Application.provide(
-        Application.makeElement({
+        Application.__makeElementFromConfig({
           Model,
           init: () => ({ model: { label: 'initial' } }),
           update,
@@ -347,7 +347,7 @@ describe('a frame that abandons its render', () => {
 
     const fiber = Effect.runFork(
       Application.provide(
-        Application.makeElement({
+        Application.__makeElementFromConfig({
           Model,
           init: () => ({ model: { label: 'initial' } }),
           update,
@@ -396,7 +396,7 @@ describe('a frame that abandons its render', () => {
   it('does not patch a frame scheduled before the runtime was disposed', async () => {
     const fiber = Effect.runFork(
       Application.provide(
-        Application.makeElement({
+        Application.__makeElementFromConfig({
           Model,
           init: () => ({ model: { label: 'initial' } }),
           update,

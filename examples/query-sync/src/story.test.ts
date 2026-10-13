@@ -5,19 +5,20 @@ import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { Listbox } from '@foldkit/ui'
+import { FocusListboxButton, FocusListboxItems } from '@foldkit/ui/listbox'
 
 import {
-  AppRoute,
+  ApplicationRoute,
   Message,
   type Model,
   ReplaceFilters,
   Sorting,
   browseRouter,
   update,
-} from './main'
+} from './application'
 
 const browseModel: Model = {
-  route: AppRoute.Browse({
+  route: ApplicationRoute.Browse({
     search: Option.none(),
     sorting: Sorting.Unsorted(),
     diet: Option.none(),
@@ -106,7 +107,7 @@ describe('update', () => {
         given(
           modifyFields(browseModel, {
             route: () =>
-              AppRoute.Browse({
+              ApplicationRoute.Browse({
                 search: Option.some('foo'),
                 sorting: Sorting.Unsorted(),
                 diet: Option.none(),
@@ -146,7 +147,7 @@ describe('update', () => {
           }),
         ),
         Command.resolve(
-          Listbox.FocusListboxItems,
+          FocusListboxItems,
           Listbox.Message.CompletedFocusListboxItems(),
         ),
         message(
@@ -155,7 +156,7 @@ describe('update', () => {
           }),
         ),
         Command.resolve(
-          Listbox.FocusListboxButton,
+          FocusListboxButton,
           Listbox.Message.CompletedFocusListboxButton(),
         ),
         Command.expectHas(ReplaceFilters),

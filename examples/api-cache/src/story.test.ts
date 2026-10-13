@@ -4,6 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 import { expect, test } from 'vitest'
 
 import { Tabs } from '@foldkit/ui'
+import { FocusTab } from '@foldkit/ui/tabs'
 
 import {
   FetchPostDetail,
@@ -15,7 +16,7 @@ import {
   PostsData,
   StatsData,
   update,
-} from './main'
+} from './application'
 import {
   FETCHED_AT,
   firstPostDetail,
@@ -23,7 +24,7 @@ import {
   fixtureStats,
   loadedPostsModel,
   loadedStatsModel,
-} from './main.fixture'
+} from './application.fixture'
 
 const postDetailTag = (model: Model, postId: string): string =>
   HashMap.get(model.postDetailById, postId).pipe(
@@ -40,7 +41,7 @@ const selectedStatsTab = Message.GotTabsMessage({
 })
 
 const resolveFocusTab = Command.resolve(
-  Tabs.FocusTab,
+  FocusTab,
   Tabs.Message.CompletedFocusTab(),
 )
 

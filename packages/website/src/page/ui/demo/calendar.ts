@@ -1,9 +1,6 @@
-import type { HtmlBuilder } from 'foldkit/html'
-
-import { Calendar } from '@foldkit/ui'
-
-import { Message } from '../message'
 import type { Model } from '../model'
+import { calendarBasicDemo } from '../update'
+import type { ViewBuilder } from '../viewBuilder'
 import { calendarView } from './calendarView'
 
 // DEMO CONTENT
@@ -13,18 +10,17 @@ const containerClassName =
 
 // VIEW
 
-export const basicDemo = (model: Model, h: HtmlBuilder<Message>) => {
+export const basicDemo = (model: Model, h: ViewBuilder) => {
   return [
-    h.submodel({
-      slotId: model.calendarBasicDemo.id,
-      model: model.calendarBasicDemo,
-      view: Calendar.view,
-      viewInputs: {
-        maybeSelectedDate: model.maybeCalendarBasicDemoSelectedDate,
-        toView: calendarView(containerClassName, h),
-      },
-      toParentMessage: message =>
-        Message.GotCalendarBasicDemoMessage({ message }),
-    }),
+    h.block(
+      calendarBasicDemo.embedView({
+        slotId: model.calendarBasicDemo.id,
+        model: model.calendarBasicDemo,
+        viewInputs: {
+          maybeSelectedDate: model.maybeCalendarBasicDemoSelectedDate,
+          toView: calendarView(containerClassName, h),
+        },
+      }),
+    ),
   ]
 }

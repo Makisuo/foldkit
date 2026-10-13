@@ -3,14 +3,14 @@ import { Calendar } from 'foldkit'
 import { Server } from 'foldkit/experimental'
 import { fromString as urlFromString } from 'foldkit/url'
 
+import { Application, Flags, implementation } from './application'
 import { deployment } from './deployment'
-import { Flags, init, view } from './main'
 import { ApiReference, Example } from './page'
-import { urlToAppRoute } from './route'
+import { urlToApplicationRoute } from './route'
 
 type SourcesBySlug = Readonly<globalThis.Record<string, Example.ExampleSources>>
 
-const baseFlags: Effect.Effect<typeof Flags.Type> = Effect.gen(function* () {
+const baseFlags = Effect.gen(function* () {
   const currentYear = yield* DateTime.now.pipe(
     Effect.map(DateTime.getPartUtc('year')),
   )
@@ -67,7 +67,7 @@ const flagsForRequest = (
     onNone: () => {
       throw new Error(`Cannot render the invalid URL "${request.url}".`)
     },
-    onSome: urlToAppRoute,
+    onSome: urlToApplicationRoute,
   })
 
   return Flags.make({
@@ -133,7 +133,8 @@ export const renderPage = (request: Request): Promise<Server.EntryResult> =>
     )
     return Effect.runPromise(
       Server.renderToString(
-        { Flags, routing: {}, init, view },
+        Application,
+        { ...implementation, Flags, routing: {} },
         {
           url: request.url,
           flags: requestFlags,

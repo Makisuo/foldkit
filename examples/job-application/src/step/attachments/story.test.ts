@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest'
 
 import { FileDrop } from '@foldkit/ui'
 
-import { Message, init, update } from './attachments'
+import { Message, init, update } from './block'
 
 describe('attachments', () => {
   test('a dropped resume is stored as maybeResume', () => {

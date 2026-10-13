@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { Submodel, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -10,7 +10,7 @@ import { Button } from '@foldkit/ui'
 export const Model = Schema.Struct({ count: Schema.Number })
 export type Model = typeof Model.Type
 
-export const init: Model = { count: 0 }
+export const init = () => ({ model: Model.make({ count: 0 }) })
 
 // MESSAGE
 
@@ -23,7 +23,9 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
-export const update = Update.define((model: Model, message: Message) =>
+const Counter = Block.define('Counter', { Model, Message })
+
+export const update = Counter.update((model, message) =>
   Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: count => count - 1 }),
@@ -36,7 +38,7 @@ export const update = Update.define((model: Model, message: Message) =>
 
 // VIEW
 
-export const view = Submodel.defineView<Model, Message>((model, h) =>
+export const view = Counter.view((model, h) =>
   h.div(
     [
       h.Class(
@@ -70,3 +72,9 @@ export const view = Submodel.defineView<Model, Message>((model, h) =>
 
 const buttonStyle =
   'h-9 w-9 rounded bg-gray-900 text-white text-lg leading-none hover:bg-gray-700 transition cursor-pointer'
+
+export const block = Counter.assemble({
+  init,
+  update,
+  view,
+})

@@ -1,7 +1,5 @@
 import { Option } from 'effect'
 import { Scene, Story } from 'foldkit'
-import type { HtmlBuilder } from 'foldkit/html'
-import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
@@ -24,15 +22,27 @@ import {
   ScrollListboxItemIntoView,
   UnlockListboxScroll,
   buttonId,
-  mounts,
+  makeView,
 } from './shared.js'
-import { create, init, update } from './single.js'
+import { init, update } from './single.js'
 import type { Model, ViewInputs } from './single.js'
 
-const TestListbox = create<string>()
-const view = TestListbox.view
+const render = makeView<Model>({ ariaMultiSelectable: false })<string, string>()
+const view = (
+  model: Model,
+  { maybeSelectedValue, ...baseInputs }: ViewInputs<string>,
+  h: Parameters<typeof render>[2],
+) =>
+  render(
+    model,
+    {
+      ...baseInputs,
+      selectedValues: Option.toArray(maybeSelectedValue),
+    },
+    h,
+  )
 
-type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
+type TestHtmlBuilder = Parameters<typeof view>[2]
 
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorListbox,
@@ -43,10 +53,8 @@ const acknowledgeBackdrop = Scene.Mount.resolve(
   Message.CompletedPortalListboxBackdrop(),
 )
 
-const animationEndMessage = (generation: number) =>
-  Message.GotAnimationMessage({
-    message: Animation.Message.EndedAnimation({ generation }),
-  })
+const completedDetectListboxMovementOrAnimationEnd = (generation: number) =>
+  Message.CompletedDetectListboxMovementOrAnimationEnd({ generation })
 
 const STALE_CLEAR_SEARCH_VERSION = 9999
 
@@ -1030,7 +1038,10 @@ describe('Listbox', () => {
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [DetectListboxMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectListboxMovementOrAnimationEnd,
+                completedDetectListboxMovementOrAnimationEnd(2),
+              ],
             ),
           )
         })
@@ -1049,7 +1060,10 @@ describe('Listbox', () => {
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [DetectListboxMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectListboxMovementOrAnimationEnd,
+                completedDetectListboxMovementOrAnimationEnd(2),
+              ],
             ),
           )
         })
@@ -1069,7 +1083,10 @@ describe('Listbox', () => {
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [DetectListboxMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectListboxMovementOrAnimationEnd,
+                completedDetectListboxMovementOrAnimationEnd(2),
+              ],
             ),
           )
         })
@@ -1094,7 +1111,10 @@ describe('Listbox', () => {
             ),
             Story.Command.resolveAll(
               [FocusListboxButton, Message.CompletedFocusListboxButton()],
-              [DetectListboxMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectListboxMovementOrAnimationEnd,
+                completedDetectListboxMovementOrAnimationEnd(2),
+              ],
             ),
           )
         })
@@ -1110,7 +1130,10 @@ describe('Listbox', () => {
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [DetectListboxMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectListboxMovementOrAnimationEnd,
+                completedDetectListboxMovementOrAnimationEnd(2),
+              ],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -1172,11 +1195,11 @@ describe('Listbox', () => {
           )
         })
 
-        it('ignores GotAnimationMessage with EndedAnimation when Idle', () => {
+        it('ignores CompletedDetectListboxMovementOrAnimationEnd when Idle', () => {
           Story.story(
             update,
             givenOpen,
-            Story.message(animationEndMessage(0)),
+            Story.message(completedDetectListboxMovementOrAnimationEnd(0)),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.animation.transitionState).toBe('Idle')
@@ -1216,7 +1239,10 @@ describe('Listbox', () => {
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [DetectListboxMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectListboxMovementOrAnimationEnd,
+                completedDetectListboxMovementOrAnimationEnd(2),
+              ],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -1258,7 +1284,10 @@ describe('Listbox', () => {
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [DetectListboxMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectListboxMovementOrAnimationEnd,
+                completedDetectListboxMovementOrAnimationEnd(2),
+              ],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -2219,7 +2248,9 @@ describe('Listbox', () => {
         { id: '3', name: 'Charlie' },
       ]
 
-      const PersonListbox = create<Person>()
+      const renderPersonListbox = makeView<Model>({
+        ariaMultiSelectable: false,
+      })<Person, string>()
 
       const personSceneView =
         (
@@ -2228,19 +2259,25 @@ describe('Listbox', () => {
             'items' | 'itemToValue' | 'itemToConfig' | 'buttonContent'
           > = {},
         ) =>
-        (model: Model, h: TestHtmlBuilder) =>
-          PersonListbox.view(
+        (model: Model, h: TestHtmlBuilder) => {
+          const { maybeSelectedValue, ...baseInputs } = {
+            maybeSelectedValue: Option.none<string>(),
+            ...overrides,
+          }
+
+          return renderPersonListbox(
             model,
             {
               items: people,
               itemToValue: person => person.id,
               itemToConfig: () => ({ content: null }),
               buttonContent: null,
-              maybeSelectedValue: Option.none(),
-              ...overrides,
+              ...baseInputs,
+              selectedValues: Option.toArray(maybeSelectedValue),
             },
             h,
           )
+        }
 
       it('items have click handlers with object items', () => {
         Scene.scene(

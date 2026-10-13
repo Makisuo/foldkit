@@ -1,7 +1,12 @@
-export { UiModel as Model } from './model'
+export { Model } from './model'
 export { Message } from './message'
-export { uiInit as init } from './init'
-export { uiUpdate as update, closeMobileMenu, openMobileMenu } from './update'
-export { subscriptions } from './subscriptions'
-export { EffectsLayer, mounts } from './layer'
+export { init } from './init'
+export {
+  update,
+  closeMobileMenu,
+  mobileMenuDialog,
+  openMobileMenu,
+  ui,
+} from './update'
+export { block } from './block'
 export * as View from './view'

@@ -8,7 +8,7 @@ import {
   String,
   pipe,
 } from 'effect'
-import { Command, Submodel, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { pushUrl } from 'foldkit/navigation'
@@ -18,7 +18,7 @@ import { modifyFields } from 'foldkit/struct'
 import { Button, Input } from '@foldkit/ui'
 
 import {
-  AppRoute,
+  ApplicationRoute,
   type PeopleRoute,
   peopleRouter,
   personRouter,
@@ -100,7 +100,7 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   ChangedSearchInput: { value: Schema.String },
   SubmittedSearch: {},
-  ChangedRoute: { route: AppRoute.People },
+  ChangedRoute: { route: ApplicationRoute.People },
   CompletedFetchPeople: {
     query: Schema.String,
     people: Schema.Array(Person),
@@ -109,6 +109,8 @@ export const Message = defineMessageUnion({
 })
 
 export type Message = typeof Message.Type
+
+const People = Block.define('People', { Model, Message })
 
 // INIT
 
@@ -126,7 +128,7 @@ export const init = (route: PeopleRoute) => {
 
 // COMMAND
 
-export const PushSearchUrl = Command.define('PushSearchUrl', {
+export const PushSearchUrl = People.command('PushSearchUrl', {
   args: { searchText: Schema.Option(Schema.String) },
   messages: [Message.CompletedPushSearchUrl],
   handler: function* () {
@@ -137,7 +139,7 @@ export const PushSearchUrl = Command.define('PushSearchUrl', {
   },
 })
 
-export const FetchPeople = Command.define('FetchPeople', {
+export const FetchPeople = People.command('FetchPeople', {
   args: { searchText: Schema.String },
   messages: [Message.CompletedFetchPeople],
   handler: function* () {
@@ -160,7 +162,7 @@ export const EffectsLayer = Layer.mergeAll(
 
 // UPDATE
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = People.update((model, message) =>
   Message.match(message, {
     ChangedSearchInput: ({ value }) => ({
       model: modifyFields(model, { searchInput: () => value }),
@@ -202,9 +204,10 @@ export const update = Update.define((model: Model, message: Message) =>
  *  route; it derives its own state (the search input and history) from the new
  *  route and returns the refetch Command. The parent calls this from its
  *  `ChangedUrl` handler. Contrast a `reflect*` setter, which writes a field the
- *  Submodel owns from an external value, with no derivation and no Command. */
-export const informRouteChanged = (model: Model, route: PeopleRoute) =>
-  update(model, Message.ChangedRoute({ route }))
+ *  Block owns from an external value, with no derivation and no Command. */
+export const informRouteChanged = People.step((model, route: PeopleRoute) =>
+  update(model, Message.ChangedRoute({ route })),
+)
 
 // VIEW
 
@@ -263,7 +266,7 @@ const personListItemView = (person: Person, h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-export const view = Submodel.defineView<Model, Message>((model, h): Html =>
+export const view = People.view((model, h) =>
   h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [
@@ -344,3 +347,11 @@ export const view = Submodel.defineView<Model, Message>((model, h): Html =>
     ],
   ),
 )
+
+export const block = People.assemble({
+  init,
+  update,
+  view,
+  EffectsLayer,
+  steps: { informRouteChanged },
+})

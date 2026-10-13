@@ -1,7 +1,13 @@
-import { Function, Option } from 'effect'
+import { Effect, Function, Option } from 'effect'
 import { Runtime } from 'foldkit'
 
-import { makeElement } from './main'
+import {
+  Application,
+  Flags,
+  Message,
+  implementation,
+  ports,
+} from './application'
 
 const INITIAL_COUNT = 10
 
@@ -63,7 +69,15 @@ export const startHost = (): void => {
   const hostCountDisplay = getElement('host-count')
   const widgetSlot = getElement('widget-slot')
 
-  const element = makeElement(widgetSlot, { initialCount: INITIAL_COUNT })
+  const flags: Flags = { initialCount: INITIAL_COUNT }
+  const element = Application.makeElement({
+    ...implementation,
+    Flags,
+    flags: Effect.succeed(flags),
+    ports,
+    container: widgetSlot,
+    devTools: { Message },
+  })
 
   type WidgetHandle = Runtime.EmbedHandle<typeof element.ports>
 

@@ -1,7 +1,7 @@
 import { Deferred, Effect, Layer, Stream } from 'effect'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-import { Message, MountMap } from './main'
+import { Message, MountMap } from './application'
 import { MapRegistryLayer } from './mapRegistry'
 
 const maplibre = vi.hoisted(() => {

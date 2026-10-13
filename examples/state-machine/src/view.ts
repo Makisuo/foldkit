@@ -1,23 +1,29 @@
 import { clsx } from 'clsx'
 import { Array, Match, Option, pipe } from 'effect'
-import { Document, Html, HtmlBuilder } from 'foldkit/html'
+import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Button, Checkbox, Input, RadioGroup } from '@foldkit/ui'
+import type { OptionInfo } from '@foldkit/ui/radioGroup'
 
 import * as Icon from './icon'
 import {
+  Application,
   CheckoutState,
   Discount,
   EDITIONS,
-  EditionRadioGroup,
   Message,
   type Model,
   Promo,
   checkoutMachine,
+  editionRadioGroup,
   editionName,
   isReviewReady,
   promoToMaybeDiscount,
-} from './main'
+} from './stateMachine'
+
+type StateMachineHtmlBuilder = Parameters<
+  Parameters<typeof Application.view>[0]
+>[1]
 
 // VIEW
 
@@ -336,7 +342,7 @@ const progressView = (
 }
 
 const editionOptionView = (
-  option: RadioGroup.OptionInfo,
+  option: OptionInfo,
   h: HtmlBuilder<Message>,
 ): Html => {
   const selectionBadgeClassName =
@@ -423,8 +429,8 @@ const cancelCheckoutButton = (h: HtmlBuilder<Message>): Html =>
 
 const cartView = (
   state: typeof CheckoutState.Cart.Type,
-  editionRadioGroup: RadioGroup.Model,
-  h: HtmlBuilder<Message>,
+  editionRadioGroupModel: typeof RadioGroup.Model.Type,
+  h: StateMachineHtmlBuilder,
 ): Html => {
   const continueLabel = state.isShippingRequired
     ? 'Continue to delivery'
@@ -474,25 +480,26 @@ const cartView = (
             [h.Class('mb-3 text-sm font-bold text-stone-900')],
             ['Choose an edition'],
           ),
-          h.submodel({
-            slotId: editionRadioGroup.id,
-            model: editionRadioGroup,
-            view: EditionRadioGroup.view,
-            viewInputs: {
-              selectedValue: Option.some(editionName(state.isShippingRequired)),
-              options: EDITIONS,
-              ariaLabel: 'Choose an edition',
-              orientation: 'Horizontal',
-              hasOptionDescription: () => true,
-              toView: ({ group, options }) =>
-                h.div(
-                  [...group, h.Class('grid gap-3 sm:grid-cols-2')],
-                  Array.map(options, option => editionOptionView(option, h)),
+          h.block(
+            editionRadioGroup.embedView({
+              slotId: editionRadioGroupModel.id,
+              model: editionRadioGroupModel,
+              viewInputs: {
+                selectedValue: Option.some(
+                  editionName(state.isShippingRequired),
                 ),
-            },
-            toParentMessage: message =>
-              Message.GotEditionRadioGroupMessage({ message }),
-          }),
+                options: EDITIONS,
+                ariaLabel: 'Choose an edition',
+                orientation: 'Horizontal',
+                hasOptionDescription: () => true,
+                toView: ({ group, options }) =>
+                  h.div(
+                    [...group, h.Class('grid gap-3 sm:grid-cols-2')],
+                    Array.map(options, option => editionOptionView(option, h)),
+                  ),
+              },
+            }),
+          ),
         ],
       ),
       h.div(
@@ -1281,8 +1288,8 @@ const cancelledView = (h: HtmlBuilder<Message>): Html =>
 
 const checkoutContentView = (
   state: typeof CheckoutState.Type,
-  editionRadioGroup: RadioGroup.Model,
-  h: HtmlBuilder<Message>,
+  editionRadioGroup: typeof RadioGroup.Model.Type,
+  h: StateMachineHtmlBuilder,
 ): Html =>
   CheckoutState.match(state, {
     Cart: cartState => cartView(cartState, editionRadioGroup, h),
@@ -1296,8 +1303,8 @@ const checkoutContentView = (
 
 const checkoutPanelView = (
   state: typeof CheckoutState.Type,
-  editionRadioGroup: RadioGroup.Model,
-  h: HtmlBuilder<Message>,
+  editionRadioGroup: typeof RadioGroup.Model.Type,
+  h: StateMachineHtmlBuilder,
 ): Html =>
   h.section(
     [
@@ -1618,7 +1625,7 @@ const analysisView = (model: Model, h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+export const view = Application.view((model, h) => ({
   title: `${stateTitle(model.checkout)} | Signal Press`,
   body: h.div(
     [h.Class('min-h-screen bg-stone-100 text-stone-900')],
@@ -1660,4 +1667,4 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
       ),
     ],
   ),
-})
+}))

@@ -3,13 +3,8 @@ import { Calendar } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
+import { GenerateWorkHistoryEntryId, Message, init, update } from './block'
 import * as Entry from './entry'
-import {
-  GenerateWorkHistoryEntryId,
-  Message,
-  init,
-  update,
-} from './workHistory'
 
 const today = Calendar.make(2026, 4, 16)
 const givenInitial = given(init(today, 'work-history-entry-1'))

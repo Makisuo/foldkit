@@ -227,7 +227,7 @@ test('a host parity fixture change selects only its focused gate', () => {
 })
 
 test('a typing game change stays out of the website scope', () => {
-  const scopes = planCiForFile('packages/typing-game/client/src/main.ts')
+  const scopes = planCiForFile('packages/typing-game/client/src/app.ts')
 
   assert.equal(scopes['typing_game'], 'true')
   assert.equal(scopes['website'], 'false')

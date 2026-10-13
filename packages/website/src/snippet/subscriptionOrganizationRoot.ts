@@ -1,51 +1,10 @@
-// subscription.ts
-import { Effect, Layer, Option, Schema, Stream } from 'effect'
-import { Dom, Subscription } from 'foldkit'
-
+import { Application, init, update, view } from './application'
 import { Message } from './message'
-import type { Model } from './model'
-import * as Settings from './settings'
 
-const settingsSubscriptions = Subscription.lift(Settings.subscriptions)<
-  Model,
-  Message
->({
-  read: model => Option.some(model.settings),
-  toParentMessage: message => Message.GotSettingsMessage({ message }),
+export const application = Application.make({
+  init,
+  update,
+  view,
+  container: document.getElementById('root'),
+  devTools: { Message },
 })
-
-const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
-  systemThemeChanges: entry(
-    'SystemThemeChanges',
-    { isSystemPreference: Schema.Boolean },
-    {
-      messages: [Message.ChangedSystemTheme],
-      modelToDependencies: model => ({
-        isSystemPreference: model.themePreference === 'System',
-      }),
-      handler: function* () {
-        return ({ isSystemPreference }) =>
-          Stream.when(
-            Dom.streamFromMediaQuery({
-              query: '(prefers-color-scheme: dark)',
-              mapMatches: isDark =>
-                Message.ChangedSystemTheme({
-                  theme: isDark ? 'Dark' : 'Light',
-                }),
-            }),
-            Effect.sync(() => isSystemPreference),
-          )
-      },
-    },
-  ),
-}))
-
-export const subscriptions = Subscription.aggregate(
-  settingsSubscriptions,
-  localSubscriptions,
-)
-
-export const EffectsLayer = Layer.mergeAll(
-  Settings.EffectsLayer,
-  localSubscriptions.systemThemeChanges.layer,
-)

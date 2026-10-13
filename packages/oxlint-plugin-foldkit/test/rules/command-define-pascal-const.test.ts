@@ -54,7 +54,7 @@ const declaredNamedDefine = (
     type: 'CallExpression',
     callee: {
       type: 'MemberExpression',
-      object: Testing.memberExpr('Submodel', 'owner'),
+      object: Testing.memberExpr('Block', 'owner'),
       property: Testing.id('name'),
       computed: false,
     },

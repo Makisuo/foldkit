@@ -1,13 +1,9 @@
-import { Submodel } from 'foldkit'
-import type { Html } from 'foldkit/html'
-
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import * as Disclosure from './demo/disclosure'
 import raw from './disclosurePage.md'
-import type { Message } from './message'
-import type { Model } from './model'
+import { ui } from './update'
 
 const { tableOfContents, view: renderPage } = slotDocPage<
   'basic' | 'collapsedPreview'
@@ -21,8 +17,8 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
+export const view = ui.view.withInputs<ViewInputs>(
+  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h) =>
     renderPage({
       demos: {
         basic: demoContainer(

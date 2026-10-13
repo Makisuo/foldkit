@@ -1,14 +1,13 @@
 import { Option } from 'effect'
-import { Scene, Story } from 'foldkit'
-import type { HtmlBuilder } from 'foldkit/html'
-import type * as Mount from 'foldkit/mount'
+import { Block, Scene, Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
+import type * as Update from 'foldkit/update'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import * as Animation from '../animation/index.js'
-import type { Model, ViewInputs } from './index.js'
+import type { ViewInputs } from './index.js'
 import {
   AnchorMenu,
   ClickMenuItem,
@@ -19,42 +18,55 @@ import {
   InertMenuOthers,
   LockMenuScroll,
   Message,
+  Model,
   OutMessage,
   PortalMenuBackdrop,
   RestoreMenuInert,
   ScrollMenuItemIntoView,
   UnlockMenuScroll,
+  block,
   buttonId,
-  create,
   groupContiguous,
   init,
-  mounts,
   resolveTypeaheadMatch,
   update,
 } from './index.js'
 
-const TestMenu = create<string>()
+const MenuStory = Block.define('MenuStory', { Model, Message })
 
-type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
+const foldMenuOutMessage = OutMessage.match<Update.Step<Model, Message>>({
+  Selected: () => model => ({ model }),
+})
 
-const sceneView =
-  (
-    overrides: Pick<
-      Partial<ViewInputs<string>>,
-      'ariaLabel' | 'ariaLabelledBy'
-    > = {},
-  ) =>
-  (model: Model, h: TestHtmlBuilder) =>
-    TestMenu.view(
-      model,
-      {
-        items: ['Edit', 'Duplicate', 'Delete'],
-        itemToConfig: item => ({ content: h.span([], [item]) }),
-        buttonContent: h.span([], ['Actions']),
-        ...overrides,
-      },
-      h,
-    )
+const menu = block.connection({
+  read: (model: Model) => Option.some(model),
+  write: (_model: Model, nextMenu: Model) => nextMenu,
+  toParentMessage: (message: Message): Message => message,
+  outMessage: { fold: foldMenuOutMessage },
+})
+
+const registered = MenuStory.register({ children: [menu] })
+
+const sceneView = (
+  overrides: Pick<
+    Partial<ViewInputs<string>>,
+    'ariaLabel' | 'ariaLabelledBy'
+  > = {},
+) =>
+  registered.view((model, h) =>
+    h.block(
+      menu.embedView({
+        slotId: 'menu',
+        model,
+        viewInputs: {
+          items: ['Edit', 'Duplicate', 'Delete'],
+          itemToConfig: item => ({ content: h.span([], [item]) }),
+          buttonContent: h.span([], ['Actions']),
+          ...overrides,
+        },
+      }),
+    ),
+  )
 
 const button = Scene.selector('#test-button')
 
@@ -63,10 +75,8 @@ const acknowledgeFocusItems = Story.Command.resolve(
   Message.CompletedFocusMenuItems(),
 )
 
-const animationEndMessage = (generation: number) =>
-  Message.GotAnimationMessage({
-    message: Animation.Message.EndedAnimation({ generation }),
-  })
+const completedDetectMenuMovementOrAnimationEnd = (generation: number) =>
+  Message.CompletedDetectMenuMovementOrAnimationEnd({ generation })
 
 const STALE_CLEAR_SEARCH_VERSION = 9999
 
@@ -1197,7 +1207,10 @@ describe('Menu', () => {
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [DetectMenuMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectMenuMovementOrAnimationEnd,
+                completedDetectMenuMovementOrAnimationEnd(2),
+              ],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -1219,7 +1232,10 @@ describe('Menu', () => {
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [DetectMenuMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectMenuMovementOrAnimationEnd,
+                completedDetectMenuMovementOrAnimationEnd(2),
+              ],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -1242,7 +1258,10 @@ describe('Menu', () => {
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [DetectMenuMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectMenuMovementOrAnimationEnd,
+                completedDetectMenuMovementOrAnimationEnd(2),
+              ],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -1267,7 +1286,10 @@ describe('Menu', () => {
             ),
             Story.Command.resolveAll(
               [FocusMenuButton, Message.CompletedFocusMenuButton()],
-              [DetectMenuMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectMenuMovementOrAnimationEnd,
+                completedDetectMenuMovementOrAnimationEnd(2),
+              ],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -1286,7 +1308,10 @@ describe('Menu', () => {
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [DetectMenuMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectMenuMovementOrAnimationEnd,
+                completedDetectMenuMovementOrAnimationEnd(2),
+              ],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -1345,11 +1370,11 @@ describe('Menu', () => {
           )
         })
 
-        it('ignores EndedAnimation when Idle', () => {
+        it('ignores CompletedDetectMenuMovementOrAnimationEnd when Idle', () => {
           Story.story(
             update,
             givenOpen,
-            Story.message(animationEndMessage(0)),
+            Story.message(completedDetectMenuMovementOrAnimationEnd(0)),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.animation.transitionState).toBe('Idle')
@@ -1387,7 +1412,10 @@ describe('Menu', () => {
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [DetectMenuMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectMenuMovementOrAnimationEnd,
+                completedDetectMenuMovementOrAnimationEnd(2),
+              ],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -1427,7 +1455,10 @@ describe('Menu', () => {
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [DetectMenuMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectMenuMovementOrAnimationEnd,
+                completedDetectMenuMovementOrAnimationEnd(2),
+              ],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')

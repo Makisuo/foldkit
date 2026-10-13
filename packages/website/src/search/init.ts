@@ -1,18 +1,16 @@
-import { Update } from 'foldkit'
+import { dialog } from './bindings'
+import { Model, SearchState } from './model'
 
-import { Dialog } from '@foldkit/ui'
+export const init = () => {
+  const dialogInit = dialog.init({ id: 'search-dialog' })
 
-import type { Message } from './message'
-import type { Model } from './model'
-import { SearchState } from './model'
-
-export type InitReturn = Update.Return<Model, Message>
-
-export const init = (): InitReturn => ({
-  model: {
-    dialog: Dialog.init({ id: 'search-dialog' }),
-    query: '',
-    searchState: SearchState.Idle(),
-    activeResultIndex: -1,
-  },
-})
+  return {
+    model: Model.make({
+      dialog: dialogInit.model,
+      query: '',
+      searchState: SearchState.Idle(),
+      activeResultIndex: -1,
+    }),
+    commands: dialogInit.commands,
+  }
+}

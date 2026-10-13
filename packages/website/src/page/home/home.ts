@@ -1,8 +1,6 @@
 import { Match, Option } from 'effect'
-import { type Mount } from 'foldkit'
 import {
   Html,
-  type HtmlBuilder,
   childAttributes,
   createLazy,
   inertHtml as ih,
@@ -20,14 +18,18 @@ import {
   findBySlug,
 } from '../example'
 import * as AsyncCounterDemo from './asyncCounterDemo'
-import { asyncCounterDemo, notePlayerDemo } from './bindings'
+import {
+  asyncCounterDemo,
+  demoTabs,
+  notePlayerDemo,
+  playgroundMenu,
+} from './bindings'
+import { type ViewBuilder, home } from './block'
 import { contentView } from './content'
-import { contract } from './definition'
 import * as DemoTab from './demoTab'
-import { Message } from './message'
+import { init } from './init'
 import * as NotePlayerDemo from './notePlayerDemo'
-
-const PlaygroundMenu = Menu.create<ExampleSlug>()
+import { update } from './update'
 
 // DEMO TABS
 
@@ -39,10 +41,10 @@ const demoTabPanelClassName =
 
 const renderAsyncCounterDemo = (
   asyncCounterDemoModel: AsyncCounterDemo.Model,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html =>
-  h.submodel(
-    asyncCounterDemo.embed({
+  h.block(
+    asyncCounterDemo.embedView({
       slotId: 'async-counter-demo',
       model: asyncCounterDemoModel,
     }),
@@ -50,10 +52,10 @@ const renderAsyncCounterDemo = (
 
 const renderNotePlayerDemo = (
   notePlayerDemoModel: NotePlayerDemo.Model,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html =>
-  h.submodel(
-    notePlayerDemo.embed({
+  h.block(
+    notePlayerDemo.embedView({
       slotId: 'note-player-demo',
       model: notePlayerDemoModel,
     }),
@@ -113,54 +115,54 @@ const playgroundItemContent = (meta: ExampleMeta): Html =>
   )
 
 const playgroundMenuView = (
-  menuModel: Menu.Model,
+  menuModel: typeof Menu.Model.Type,
   slugs: ReadonlyArray<ExampleSlug>,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Menu.mounts>>,
+  h: ViewBuilder,
 ): Html =>
-  h.submodel({
-    slotId: menuModel.id,
-    model: menuModel,
-    view: PlaygroundMenu.view,
-    viewInputs: {
-      anchor: PLAYGROUND_MENU_ANCHOR,
-      items: slugs,
-      itemToConfig: slug => ({
-        className: playgroundItemClassName,
-        content: Option.match(findBySlug(slug), {
-          onNone: () => h.span([], [slug]),
-          onSome: playgroundItemContent,
+  h.block(
+    playgroundMenu.embedView({
+      slotId: menuModel.id,
+      model: menuModel,
+      viewInputs: {
+        anchor: PLAYGROUND_MENU_ANCHOR,
+        items: slugs,
+        itemToConfig: slug => ({
+          className: playgroundItemClassName,
+          content: Option.match(findBySlug(slug), {
+            onNone: () => h.span([], [slug]),
+            onSome: playgroundItemContent,
+          }),
         }),
-      }),
-      isItemDisabled: () => false,
-      itemGroupKey: () => 'examples',
-      groupToHeading: () => ({
-        className:
-          'px-4 pt-3 pb-2 text-xs text-gray-600 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800 leading-snug',
-        content: h.span(
-          [],
-          [
-            'Run an example ',
-            h.span(
-              [h.Class('text-gray-700 dark:text-gray-200 font-medium')],
-              ['live in your browser'],
-            ),
-            '. No install.',
-          ],
+        isItemDisabled: () => false,
+        itemGroupKey: () => 'examples',
+        groupToHeading: () => ({
+          className:
+            'px-4 pt-3 pb-2 text-xs text-gray-600 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800 leading-snug',
+          content: h.span(
+            [],
+            [
+              'Run an example ',
+              h.span(
+                [h.Class('text-gray-700 dark:text-gray-200 font-medium')],
+                ['live in your browser'],
+              ),
+              '. No install.',
+            ],
+          ),
+        }),
+        buttonContent: h.span(
+          [h.Class('inline-flex items-center gap-2')],
+          [Icon.bolt('w-5 h-5'), 'Launch Playground'],
         ),
-      }),
-      buttonContent: h.span(
-        [h.Class('inline-flex items-center gap-2')],
-        [Icon.bolt('w-5 h-5'), 'Launch Playground'],
-      ),
-      buttonAttributes: childAttributes([h.Class(playgroundButtonClassName)]),
-      itemsAttributes: childAttributes([h.Class(playgroundItemsClassName)]),
-      backdropAttributes: childAttributes([
-        h.Class(playgroundBackdropClassName),
-      ]),
-      attributes: childAttributes([h.Class('relative inline-block')]),
-    },
-    toParentMessage: message => Message.GotPlaygroundMenuMessage({ message }),
-  })
+        buttonAttributes: childAttributes([h.Class(playgroundButtonClassName)]),
+        itemsAttributes: childAttributes([h.Class(playgroundItemsClassName)]),
+        backdropAttributes: childAttributes([
+          h.Class(playgroundBackdropClassName),
+        ]),
+        attributes: childAttributes([h.Class('relative inline-block')]),
+      },
+    }),
+  )
 
 type ViewInputs = Readonly<{
   renderCopyButton: CodeBlock.RenderCopyButton
@@ -173,42 +175,41 @@ type ViewInputs = Readonly<{
 
 // VIEW
 
-export const view = contract.defineView.withInputs<ViewInputs>(
-  (model, viewInputs, h) => {
-    const asyncCounterDemoView = lazyAsyncCounterDemo(renderAsyncCounterDemo, [
-      model.asyncCounterDemo,
-      h,
-    ])
+export const view = home.view.withInputs<ViewInputs>((model, viewInputs, h) => {
+  const asyncCounterDemoView = lazyAsyncCounterDemo(renderAsyncCounterDemo, [
+    model.asyncCounterDemo,
+    h,
+  ])
 
-    const notePlayerDemoView = lazyNotePlayerDemo(renderNotePlayerDemo, [
-      model.notePlayerDemo,
-      h,
-    ])
+  const notePlayerDemoView = lazyNotePlayerDemo(renderNotePlayerDemo, [
+    model.notePlayerDemo,
+    h,
+  ])
 
-    const playgroundMenu = playgroundMenuView(
-      model.playgroundMenu,
-      examples.map(example => example.slug),
-      h,
+  const playgroundMenu = playgroundMenuView(
+    model.playgroundMenu,
+    examples.map(example => example.slug),
+    h,
+  )
+
+  const buttonLabelFor = (tab: DemoTab.Tab): string =>
+    Match.value(tab).pipe(
+      Match.when('Architecture', () => 'Async Counter'),
+      Match.when('Note Player', () => 'Note Player'),
+      Match.exhaustive,
     )
 
-    const buttonLabelFor = (tab: DemoTab.Tab): string =>
-      Match.value(tab).pipe(
-        Match.when('Architecture', () => 'Async Counter'),
-        Match.when('Note Player', () => 'Note Player'),
-        Match.exhaustive,
-      )
+  const panelFor = (tab: DemoTab.Tab) =>
+    Match.value(tab).pipe(
+      Match.when('Architecture', () => asyncCounterDemoView),
+      Match.when('Note Player', () => notePlayerDemoView),
+      Match.exhaustive,
+    )
 
-    const panelFor = (tab: DemoTab.Tab) =>
-      Match.value(tab).pipe(
-        Match.when('Architecture', () => asyncCounterDemoView),
-        Match.when('Note Player', () => notePlayerDemoView),
-        Match.exhaustive,
-      )
-
-    const demoTabsView = h.submodel({
+  const demoTabsView = h.block(
+    demoTabs.embedView({
       slotId: model.demoTabs.id,
       model: model.demoTabs,
-      view: DemoTab.DemoTabs.view,
       viewInputs: {
         tabs: DemoTab.all,
         selectedValue: model.activeDemoTab,
@@ -238,21 +239,26 @@ export const view = contract.defineView.withInputs<ViewInputs>(
             ],
           ),
       },
-      toParentMessage: message => Message.GotDemoTabsMessage({ message }),
-    })
+    }),
+  )
 
-    const content = contentView(
-      viewInputs.renderCopyButton,
-      viewInputs.renderSnippet,
-      demoTabsView,
-      Shared.emailSignupContent,
-      playgroundMenu,
-      viewInputs.maybeGitHubStarCount,
-      viewInputs.resolvedTheme,
-      viewInputs.isBrowserEnvironmentLoaded,
-      h,
-    )
+  const content = contentView(
+    viewInputs.renderCopyButton,
+    viewInputs.renderSnippet,
+    demoTabsView,
+    Shared.emailSignupContent,
+    playgroundMenu,
+    viewInputs.maybeGitHubStarCount,
+    viewInputs.resolvedTheme,
+    viewInputs.isBrowserEnvironmentLoaded,
+    h,
+  )
 
-    return content
-  },
-)
+  return content
+})
+
+export const block = home.assemble({
+  init,
+  update,
+  view,
+})

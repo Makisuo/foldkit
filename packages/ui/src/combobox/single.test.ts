@@ -1,7 +1,6 @@
 import { Array, Effect, Option, Schema } from 'effect'
 import { Scene, Story, Update } from 'foldkit'
-import { type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
-import type * as Mount from 'foldkit/mount'
+import { inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
 import { expect, expectTypeOf } from 'vitest'
 
@@ -13,7 +12,6 @@ import {
   AttachPreventBlur,
   ClickItem,
   DetectMovementOrAnimationEnd,
-  EffectsLayer,
   FocusInput,
   InertOthers,
   LockScroll,
@@ -24,13 +22,27 @@ import {
   ScrollItemIntoView,
   UnlockScroll,
   inputId,
+  makeView,
   mounts,
 } from './shared.js'
 import { create, init, update } from './single.js'
 import type { Model, ViewInputs } from './single.js'
 
 const TestCombobox = create()
-const view = TestCombobox.view
+const render = makeView<Model, string>({ ariaMultiSelectable: false }, Message)
+const view = (
+  model: Model,
+  { maybeSelectedValue, ...baseInputs }: ViewInputs<string>,
+  h: Parameters<typeof render>[2],
+) =>
+  render(
+    model,
+    {
+      ...baseInputs,
+      selectedValues: Option.toArray(maybeSelectedValue),
+    },
+    h,
+  )
 
 const Fruit = Schema.Literals(['Apple', 'Pear'])
 type Fruit = typeof Fruit.Type
@@ -38,10 +50,11 @@ type Fruit = typeof Fruit.Type
 const FruitCombobox = create(Fruit)
 const OtherFruitCombobox = create(Schema.Literals(['Orange']))
 
-type FruitParentModel = Readonly<{
-  combobox: Model
-  maybeSelectedFruit: Option.Option<Fruit>
-}>
+const FruitParentModel = Schema.Struct({
+  combobox: FruitCombobox.Model,
+  maybeSelectedFruit: Schema.Option(Fruit),
+})
+type FruitParentModel = typeof FruitParentModel.Type
 
 type FruitMessage = typeof FruitCombobox.Message.Type
 
@@ -58,16 +71,14 @@ const foldFruitComboboxOutMessage = FruitCombobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const fruitCombobox = FruitCombobox.bind({
-  placement: 'fruit',
-  read: (model: FruitParentModel) => Option.some(model.combobox),
-  write: (model, nextCombobox) =>
-    modifyFields(model, { combobox: () => nextCombobox }),
+const fruitCombobox = FruitCombobox.connection({
+  Model: FruitParentModel,
+  field: 'combobox',
   toParentMessage: message => message,
   outMessage: { fold: foldFruitComboboxOutMessage },
 })
 
-type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
+type TestHtmlBuilder = Parameters<typeof view>[2]
 
 const acknowledgeAnchor = Scene.Mount.resolve(Anchor, Message.CompletedAnchor())
 const acknowledgeBackdrop = Scene.Mount.resolve(
@@ -79,10 +90,8 @@ const acknowledgePreventBlur = Scene.Mount.resolve(
   Message.CompletedAttachPreventBlur(),
 )
 
-const animationEndMessage = (generation: number) =>
-  Message.GotAnimationMessage({
-    message: Animation.Message.EndedAnimation({ generation }),
-  })
+const completedDetectMovementOrAnimationEnd = (generation: number) =>
+  Message.CompletedDetectMovementOrAnimationEnd({ generation })
 
 const STALE_ANIMATION_GENERATION = -1
 
@@ -114,7 +123,7 @@ const givenOpenAnimated = Story.steps(
 )
 
 describe('Combobox', () => {
-  describe('descriptor', () => {
+  describe('completed Block', () => {
     it('preserves refined Message and OutMessage payloads with shared definitions', () => {
       expectTypeOf<typeof FruitCombobox.Message.Type>().toEqualTypeOf<
         Message<Fruit>
@@ -122,22 +131,36 @@ describe('Combobox', () => {
       expectTypeOf<typeof FruitCombobox.OutMessage.Type>().toEqualTypeOf<
         OutMessage<Fruit>
       >()
+      FruitCombobox.Message.SelectedItem({
+        item: 'Apple',
+        displayText: 'Apple',
+        wasSelected: false,
+      })
+      FruitCombobox.OutMessage.Selected({ value: 'Apple' })
+      FruitCombobox.Message.SelectedItem({
+        // @ts-expect-error The completed factory preserves the refined Message constructor.
+        item: 'Banana',
+        displayText: 'Banana',
+        wasSelected: false,
+      })
+      // @ts-expect-error The completed factory preserves the refined OutMessage constructor.
+      FruitCombobox.OutMessage.Selected({ value: 'Banana' })
       expectTypeOf<
         Update.RequirementsOf<typeof FruitCombobox.update>
       >().toEqualTypeOf<Update.RequirementsOf<typeof update>>()
       expect(FruitCombobox.owner).toBe(OtherFruitCombobox.owner)
-      expect(FruitCombobox.EffectsLayer).toBe(EffectsLayer)
+      expect(FruitCombobox.owner).toBe(TestCombobox.owner)
       expect(FruitCombobox.mounts).toEqual(mounts)
     })
 
-    it('binds registered Steps and embeds the canonical refined view', () => {
+    it('connects registered Steps and embeds the canonical refined view', () => {
       const parent: FruitParentModel = {
         combobox: init({ id: 'fruit' }),
         maybeSelectedFruit: Option.none(),
       }
-      const selected = fruitCombobox.steps.selectItem('Apple', 'Apple')(parent)
-      const closed = fruitCombobox.steps.close('')(selected.model)
-      const embedded = fruitCombobox.embed({
+      const selected = fruitCombobox.selectItem('Apple', 'Apple')(parent)
+      const closed = fruitCombobox.close('')(selected.model)
+      const embedded = fruitCombobox.embedView({
         slotId: 'fruit-primary',
         model: closed.model.combobox,
         viewInputs: {
@@ -149,11 +172,16 @@ describe('Combobox', () => {
           maybeSelectedValue: closed.model.maybeSelectedFruit,
         },
       })
+      const repeatedEmbedded = fruitCombobox.embedView({
+        slotId: 'fruit-secondary',
+        model: closed.model.combobox,
+        viewInputs: embedded.viewInputs,
+      })
 
       expect(selected.model.maybeSelectedFruit).toStrictEqual(
         Option.some('Apple'),
       )
-      expect(embedded.view).toBe(FruitCombobox.view)
+      expect(embedded.view).toBe(repeatedEmbedded.view)
       expect(embedded.slotId).toBe('fruit-primary')
     })
   })
@@ -968,7 +996,10 @@ describe('Combobox', () => {
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectMovementOrAnimationEnd,
+                completedDetectMovementOrAnimationEnd(2),
+              ],
             ),
           )
         })
@@ -992,7 +1023,10 @@ describe('Combobox', () => {
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectMovementOrAnimationEnd,
+                completedDetectMovementOrAnimationEnd(2),
+              ],
             ),
           )
         })
@@ -1018,7 +1052,10 @@ describe('Combobox', () => {
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectMovementOrAnimationEnd,
+                completedDetectMovementOrAnimationEnd(2),
+              ],
             ),
           )
         })
@@ -1045,7 +1082,10 @@ describe('Combobox', () => {
             ),
             Story.Command.resolveAll(
               [FocusInput, Message.CompletedFocusInput()],
-              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectMovementOrAnimationEnd,
+                completedDetectMovementOrAnimationEnd(2),
+              ],
             ),
           )
         })
@@ -1063,7 +1103,10 @@ describe('Combobox', () => {
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectMovementOrAnimationEnd,
+                completedDetectMovementOrAnimationEnd(2),
+              ],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -1120,11 +1163,11 @@ describe('Combobox', () => {
           )
         })
 
-        it('ignores GotAnimationMessage with EndedAnimation when Idle', () => {
+        it('ignores CompletedDetectMovementOrAnimationEnd when Idle', () => {
           Story.story(
             update,
             givenOpen,
-            Story.message(animationEndMessage(0)),
+            Story.message(completedDetectMovementOrAnimationEnd(0)),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.animation.transitionState).toBe('Idle')
@@ -1169,7 +1212,10 @@ describe('Combobox', () => {
                 Animation.WaitForPaint,
                 Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
+              [
+                DetectMovementOrAnimationEnd,
+                completedDetectMovementOrAnimationEnd(2),
+              ],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -1762,12 +1808,12 @@ describe('Combobox', () => {
 
       try {
         await Effect.runPromise(
-          LockScroll().effect.pipe(Effect.provide(EffectsLayer)),
+          LockScroll().effect.pipe(Effect.provide(TestCombobox.EffectsLayer)),
         )
         expect(document.documentElement.style.overflow).toBe('hidden')
         await Effect.runPromise(
           InertOthers({ id: 'modal-empty' }).effect.pipe(
-            Effect.provide(EffectsLayer),
+            Effect.provide(TestCombobox.EffectsLayer),
           ),
         )
 
@@ -1783,7 +1829,7 @@ describe('Combobox', () => {
         await Effect.runPromise(
           Effect.all(
             Array.map(close.commands ?? [], command => command.effect),
-          ).pipe(Effect.provide(EffectsLayer)),
+          ).pipe(Effect.provide(TestCombobox.EffectsLayer)),
         )
 
         expect(close.model.isOpen).toBe(false)
@@ -1793,11 +1839,11 @@ describe('Combobox', () => {
       } finally {
         await Effect.runPromise(
           RestoreInert({ id: 'modal-empty' }).effect.pipe(
-            Effect.provide(EffectsLayer),
+            Effect.provide(TestCombobox.EffectsLayer),
           ),
         )
         await Effect.runPromise(
-          UnlockScroll().effect.pipe(Effect.provide(EffectsLayer)),
+          UnlockScroll().effect.pipe(Effect.provide(TestCombobox.EffectsLayer)),
         )
         background.remove()
         inputWrapper.remove()

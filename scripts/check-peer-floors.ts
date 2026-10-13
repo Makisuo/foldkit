@@ -42,8 +42,8 @@ const FLOORS = [
     packageDir: 'packages/devtools-mcp',
     packageName: '@foldkit/devtools-mcp',
     dependency: 'foldkit',
-    minimum: '0.165.0',
-    safePackageVersion: '0.24.0',
+    minimum: '0.169.0',
+    safePackageVersion: '0.25.0',
   },
   {
     packageDir: 'packages/markdown',

@@ -1,62 +1,40 @@
 src/
-+-- entry.ts               Runtime bootstrap
-+-- application.ts         Root registrations + application assembly
-+-- layer.ts               EffectsLayer, ServicesLayer, and AppLayer
-+-- init.ts                App-level init
-+-- model.ts               App-level state
-+-- message.ts             App-level messages
-+-- command.ts             App-level Commands
-+-- environment.ts         Concrete HTTP, RPC, and browser provider Layers
-+-- storage.ts             Distinct LocalStorage and SessionStorage service tags
-+-- route.ts               Route definitions
-+-- update.ts              App-level update
-+-- view.ts                App-level view
-+-- story.test.ts          Story tests for the app-level update
-+-- scene.test.ts          Scene tests for flows that cross pages
++-- entry.ts              Browser startup, container, inputs, Runtime.run
++-- application.ts        Typed Application, composition, implementation
++-- services.ts           Shared providers, ApplicationLayer
++-- model.ts
++-- message.ts
++-- update.ts
++-- view.ts
++-- story.test.ts
++-- scene.test.ts
 |
 +-- page/
-|   +-- index.ts           Re-exports all pages
+|   +-- index.ts          Exports Home and Products namespaces
 |   +-- home/
-|   |   +-- index.ts       Re-exports Home module
-|   |   +-- owner.ts       Early Home identity for effect names
-|   |   +-- definition.ts  Home Schemas, Mounts, and static children
-|   |   +-- submodel.ts    Private descriptor and public projections
-|   |   +-- layer.ts       Local Home handler recipes
-|   |   +-- init.ts        Home init
-|   |   +-- model.ts       Home state
-|   |   +-- message.ts     Home events
-|   |   +-- command.ts     Home Commands
-|   |   +-- subscription.ts Home Subscriptions
-|   |   +-- update.ts      Home update
-|   |   +-- view.ts        Home view
-|   |   +-- story.test.ts  Story tests for the Home update
-|   |   +-- scene.test.ts  Scene tests for the Home view
+|   |   +-- index.ts      Explicit public barrel
+|   |   +-- block.ts      Block.define for split implementation files
+|   |   +-- home.ts       Completed Block and small EffectsLayer bundle
+|   |   +-- model.ts
+|   |   +-- message.ts
+|   |   +-- update.ts
+|   |   +-- view.ts
+|   |   +-- story.test.ts
+|   |   +-- scene.test.ts
 |   +-- products/
 |       +-- index.ts
-|       +-- owner.ts
-|       +-- definition.ts
-|       +-- submodel.ts
-|       +-- layer.ts
-|       +-- init.ts
-|       +-- model.ts
-|       +-- message.ts
-|       +-- command.ts
-|       +-- service.ts     ProductCatalog business service + Layer
+|       +-- block.ts
+|       +-- products.ts
+|       +-- children.ts   Substantial binding policies
+|       +-- layer.ts      Substantial or reused handler composition
+|       +-- service.ts    ProductCatalog business service and Layer
 |       +-- subscription.ts
 |       +-- mount.ts
 |       +-- managedResource.ts
 |       +-- update.ts
 |       +-- view.ts
-|       +-- story.test.ts
-|       +-- scene.test.ts
-|       +-- reviews/
-|           +-- index.ts
-|           +-- owner.ts
-|           +-- definition.ts
-|           +-- submodel.ts
-|           +-- layer.ts
 |
 +-- domain/
-    +-- index.ts           Re-exports domain modules
-    +-- cart.ts            Cart type + operations
-    +-- item.ts            Item type + operations
+    +-- index.ts          Re-exports domain modules
+    +-- cart.ts           Cart Schema and pure operations
+    +-- item.ts           Item Schema and pure operations

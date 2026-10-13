@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Duration, Effect, Option, Schema, String, pipe } from 'effect'
-import { Command, FieldValidation, Submodel, Update } from 'foldkit'
+import { FieldValidation, Block } from 'foldkit'
 import {
   Field,
   Invalid,
@@ -55,6 +55,8 @@ export const OutMessage = defineMessageUnion({
 
 export type OutMessage = typeof OutMessage.Type
 
+const Login = Block.define('Login', { Model, Message, OutMessage })
+
 // VALIDATION
 
 const emailRules = makeRules({
@@ -77,7 +79,7 @@ const isFormValid = (model: Model): boolean =>
 
 // UPDATE
 
-export const SimulateAuthRequest = Command.define('SimulateAuthRequest', {
+export const SimulateAuthRequest = Login.command('SimulateAuthRequest', {
   args: { email: Schema.String, password: Schema.String },
   messages: [
     Message.SucceededSimulateAuthRequest,
@@ -110,7 +112,7 @@ export const SimulateAuthRequest = Command.define('SimulateAuthRequest', {
 
 export const EffectsLayer = SimulateAuthRequest.layer
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = Login.update((model, message) =>
   Message.match(message, {
     ChangedEmail: ({ value }) => ({
       model: modifyFields(model, { email: () => validateEmail(value) }),
@@ -236,7 +238,7 @@ const fieldView = (
   )
 }
 
-export const view = Submodel.defineView<Model, Message>((model, h) => {
+export const view = Login.view((model, h) => {
   const canSubmit = isFormValid(model) && !model.isSubmitting
 
   return h.div(
@@ -320,4 +322,11 @@ export const view = Submodel.defineView<Model, Message>((model, h) => {
       ),
     ],
   )
+})
+
+export const block = Login.assemble({
+  init: () => ({ model: initModel() }),
+  update,
+  view,
+  EffectsLayer,
 })

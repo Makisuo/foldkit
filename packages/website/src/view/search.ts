@@ -1,7 +1,7 @@
 import { clsx } from 'clsx'
-import type { Mount } from 'foldkit'
 import { Html, type HtmlBuilder } from 'foldkit/html'
 
+import { search, type ViewRequirements } from '../children'
 import { Icon } from '../icon'
 import { Message } from '../message'
 import { type Model } from '../model'
@@ -16,14 +16,8 @@ const onClickOpenSearch = (h: HtmlBuilder<Message>) =>
 
 export const dialogView = (
   model: Model,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Search.mounts>>,
-): Html =>
-  h.submodel({
-    slotId: 'search',
-    model: model.search,
-    view: Search.view,
-    toParentMessage: message => Message.GotSearchMessage({ message }),
-  })
+  h: HtmlBuilder<Message, ViewRequirements>,
+): Html => h.block(search.embedView({ slotId: 'search', model: model.search }))
 
 export const triggerView = (className: string, h: HtmlBuilder<Message>): Html =>
   h.button(

@@ -1,4 +1,4 @@
-import { Effect, Layer } from 'effect'
+import { Effect } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
@@ -7,7 +7,7 @@ import { Message, SaveDocument } from './commandHostContract'
 
 const DOCUMENT_STORAGE_KEY = 'editor-document'
 
-export const EffectsLayer = SaveDocument.toLayer(
+export const SaveDocumentLayer = SaveDocument.toLayer(
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
 
@@ -27,4 +27,4 @@ export const EffectsLayer = SaveDocument.toLayer(
 
 const ServicesLayer = BrowserKeyValueStore.layerLocalStorage
 
-export const AppLayer = Layer.provide(EffectsLayer, ServicesLayer)
+export const ApplicationLayer = ServicesLayer

@@ -1,11 +1,10 @@
 import { clsx } from 'clsx'
 import { Array, Match, Option, String, pipe } from 'effect'
-import { type Mount, Submodel } from 'foldkit'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 
-import { Dialog } from '@foldkit/ui'
-
 import { Icon } from '../icon'
+import { dialog } from './bindings'
+import { search } from './block'
 import { Message, type SearchResult } from './message'
 import type { Model } from './model'
 import { SearchState, resultsFromState } from './model'
@@ -237,64 +236,59 @@ const keyboardWarmupInput: Html = ih.input([
   ih.Class('fixed top-0 left-0 w-px h-px opacity-0 pointer-events-none -z-10'),
 ])
 
-export const view = Submodel.defineView<
-  Model,
-  Message,
-  void,
-  Mount.RequirementsOf<typeof Dialog.mounts>
->((model, h): Html =>
+export const view = search.view((model, h) =>
   h.div(
     [],
     [
       keyboardWarmupInput,
-      h.submodel({
-        slotId: model.dialog.id,
-        model: model.dialog,
-        view: Dialog.view,
-        viewInputs: {
-          toView: ({ dialog, backdrop, panel, title, isVisible }) =>
-            h.dialog(
-              [...dialog],
-              isVisible
-                ? [
-                    h.div([
-                      ...backdrop,
-                      h.Class(
-                        'fixed inset-0 z-[59] bg-black/50 dark:bg-black/70',
-                      ),
-                    ]),
-                    h.div(
-                      [
-                        ...panel,
+      h.block(
+        dialog.embedView({
+          slotId: model.dialog.id,
+          model: model.dialog,
+          viewInputs: {
+            toView: ({ dialog, backdrop, panel, title, isVisible }) =>
+              h.dialog(
+                [...dialog],
+                isVisible
+                  ? [
+                      h.div([
+                        ...backdrop,
                         h.Class(
-                          'fixed inset-0 z-[60] overflow-y-auto px-4 sm:px-6 pointer-events-none [&>*]:pointer-events-auto',
+                          'fixed inset-0 z-[59] bg-black/50 dark:bg-black/70',
                         ),
-                      ],
-                      [
-                        h.div(
-                          [
-                            h.Class(
-                              'w-full max-w-xl mx-auto mt-[15vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl dark:shadow-black/50 border border-gray-200 dark:border-gray-700 overflow-hidden',
-                            ),
-                          ],
-                          [
-                            h.span(
-                              [...title, h.Class('sr-only')],
-                              ['Search documentation'],
-                            ),
-                            searchInputView(model, h),
-                            resultsListView(model, h),
-                            resultCountAnnouncement(model),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ]
-                : [],
-            ),
-        },
-        toParentMessage: message => Message.GotSearchDialogMessage({ message }),
-      }),
+                      ]),
+                      h.div(
+                        [
+                          ...panel,
+                          h.Class(
+                            'fixed inset-0 z-[60] overflow-y-auto px-4 sm:px-6 pointer-events-none [&>*]:pointer-events-auto',
+                          ),
+                        ],
+                        [
+                          h.div(
+                            [
+                              h.Class(
+                                'w-full max-w-xl mx-auto mt-[15vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl dark:shadow-black/50 border border-gray-200 dark:border-gray-700 overflow-hidden',
+                              ),
+                            ],
+                            [
+                              h.span(
+                                [...title, h.Class('sr-only')],
+                                ['Search documentation'],
+                              ),
+                              searchInputView(model, h),
+                              resultsListView(model, h),
+                              resultCountAnnouncement(model),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ]
+                  : [],
+              ),
+          },
+        }),
+      ),
     ],
   ),
 )

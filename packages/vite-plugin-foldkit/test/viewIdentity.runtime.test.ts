@@ -1,10 +1,9 @@
 // @vitest-environment happy-dom
-import { Effect, Fiber, Schema } from 'effect'
-import { type Update } from 'foldkit'
+import { Effect, Fiber, Layer, Schema } from 'effect'
+import { define as defineApplication } from 'foldkit/application'
 import { brandViewResult } from 'foldkit/brand'
 import { type Html, inertHtml } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { makeElement } from 'foldkit/runtime'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { transformViewIdentity } from '../src/viewIdentity.ts'
@@ -18,17 +17,20 @@ const Message = defineMessageUnion({
 
 type Message = typeof Message.Type
 
-const init = (): Update.Return<Model, Message> => ({
-  model: { mode: 'Viewing' },
+const Application = defineApplication({ Model, Message })
+
+const init = () => ({
+  model: Model.make({ mode: 'Viewing' }),
 })
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const update = Application.update((model, message) =>
+  Message.match(message, {
     ClickedToggle: () => {
       const nextMode = model.mode === 'Viewing' ? 'Editing' : 'Viewing'
-      return { model: { mode: nextMode } }
+      return { model: Model.make({ mode: nextMode }) }
     },
-  })
+  }),
+)
 
 const FIXTURE_MODULE_ID = '/app/src/View.js'
 const FIXTURE_ROOT = '/app'
@@ -172,11 +174,11 @@ const withRunningApp = async (
   view: View,
   run: () => Promise<void>,
 ): Promise<void> => {
-  const element = makeElement({
-    Model,
+  const element = Application.makeElement({
     init,
     update,
-    view,
+    view: Application.view(model => view(model)),
+    EffectsLayer: Layer.empty,
     container,
   })
   const fiber = Effect.runFork(element.start())

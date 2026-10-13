@@ -2,22 +2,22 @@
 
 ## Overview
 
-A small Foldkit app can start in two files. `src/main.ts` holds the pure definitions: Model, Messages, update, init, and view. `src/entry.ts` assembles and starts the runtime. Larger apps can move assembly to `src/application.ts` and handler Layer composition to `src/layer.ts`, leaving `entry.ts` with one provision step. Keeping runtime side effects in `entry.ts` leaves the definitions directly importable from tests.
+A small Foldkit application can start in two files. `src/application.ts` exports the typed `Application`, Model and Message contracts, and implementation pieces. `src/entry.ts` chooses browser inputs, calls owned `Application.make` or `makeElement`, and starts the Runtime. Shared Service providers live in `services.ts` as `ApplicationLayer`. Importing application pieces in a test does not start the Runtime.
 
 The Runtime API makes two independent choices:
 
 - `Application.make` or `Application.makeElement` decides what the app owns. An application owns the page; an Element owns only its container.
 - `Runtime.run` or `Runtime.embed` decides who owns the runtime lifetime. `run` starts it for the page lifetime; `embed` returns a handle the host disposes.
 
-Commands, Subscriptions, Mounts, and ManagedResources leave their handler requirements on the program returned by `Application.make` or `Application.makeElement`. Call `Application.provide` until the application requirements are satisfied, then pass the runnable program to `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` as appropriate. Provision can be chained because a handler Layer may itself need services from a later Layer. The assembly config has no `resources` field; runtime-wide services are supplied through `Application.provide`.
+The defined Application carries the handler requirements for its Commands, Subscriptions, Mounts, and ManagedResources into `Application.make` or `Application.makeElement`. Call `provide` until their remaining service requirements are satisfied, then pass the runnable program to `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` as appropriate. The assembly config has no `resources` field; runtime-wide services are supplied through `provide`.
 
-For a larger application, combine independent feature Layers with Effect's `Layer.mergeAll` and call `Application.provide` once. Each feature exports `EffectsLayer` for its Commands, Subscriptions, Mounts, ManagedResources, and child features. A feature may provide business services it owns while leaving HTTP, storage, RPC, and browser requirements open. The application root combines feature implementations in `EffectsLayer`, external providers in `ServicesLayer`, and composes them into `AppLayer`. Use `Layer.provideMerge` when a provider must also remain available to Flags or another application consumer. The entry imports `AppLayer` once. [Project Organization](/patterns/project-organization#composing-handler-layers) shows the complete file structure.
+For a larger application, each completed child Block is bound and registered in its parent's `children`. This carries the handler and lifecycle graph to the Application without root-level handler lists. A feature may provide business services it owns while leaving HTTP, storage, RPC, and browser requirements open. The application root combines those external providers in `ApplicationLayer`; `Application.make({ init, update, view, ... })` already has the handlers. [Project Organization](/patterns/project-organization#composing-handler-layers) shows the complete file structure.
 
-The example below imports a `makeApplication(container)` factory so the entry chooses the DOM container and tests can import the assembly module's registrations without constructing the application. `Application.make` reads browser, hydration, and routing state during construction. Use the factory whenever tests or server tooling import the registration module, or when the entry chooses the container. A static `application` export is acceptable only when every importer is browser-side and runs after the intended container exists.
+Create the typed definition with `define as defineApplication` from `foldkit/application`. Its completion methods capture the Model, Message, and registered graph; callers supply implementation pieces and host inputs. The returned lowercase `application` carries its unsatisfied requirements. Standalone `provide`, imported from the same subpath, supplies the ordinary Services it needs.
 
-`Application.provide` adds the supplied Layer recipe to the program. The Runtime builds that application Layer once for each start and releases its Scope when that start stops. Command lookup, Subscription restarts, Mount insertions, and ManagedResource reacquisitions reuse the resulting application-scoped handlers and providers.
+`provide` adds the supplied Layer recipe to the program. The Runtime builds that application Layer once for each start and releases its Scope when that start stops. Command lookup, Subscription restarts, Mount insertions, and ManagedResource reacquisitions reuse the resulting application-scoped handlers and providers.
 
-::Snippet{name="runLayers" label="Providing handler Layers"}
+::Snippet{name="runLayers" label="Providing application services"}
 
 ## Application.make {#make-application}
 
@@ -45,7 +45,7 @@ The view returns a `Document` rather than bare HTML. A `Document` contains the b
 
 `Application.make` assumes it owns the page. That is correct for an app that owns its tab, but not for a widget on a page controlled by another application, where document updates would overwrite the host page metadata.
 
-Use `Application.makeElement` to scope a Foldkit app to its container. Its view returns `Html` directly, and the runtime never touches the document `<head>` or the `<html>` element. The same Model, init, update, Command, Subscription, ManagedResource, and crash-handling architecture remains available. Element-scoped apps do not own the URL bar, so `Application.makeElement` has no `routing` config. Provide its required handler Layers with `Application.provide` before starting it.
+Use `Application.makeElement` to scope a Foldkit app to its container. Its root view returns `Html` directly, and the runtime never touches the document `<head>` or the `<html>` element. The same Model, init, update, Command, Subscription, ManagedResource, and crash-handling architecture remains available. Element-scoped apps do not own the URL bar, so `Application.makeElement` has no `routing` config. Provide its remaining service requirements with `provide` before starting it.
 
 ### Flags
 
@@ -63,6 +63,6 @@ Flags still resolve before init, but their wiring follows the ownership boundary
 
 The returned handle is the whole boundary. The host never reads the Model or dispatches Messages directly. Disposing the handle stops the runtime and its lifecycle work, removes the rendered DOM, and restores the empty container so it can be embedded again.
 
-Values produced from one program by `Application.provide` share its container lifetime. Dispose the active handle before embedding another provided variant; Foldkit finishes the previous teardown before starting the next variant.
+Values produced from one program by `provide` share its container lifetime. Dispose the active handle before embedding another provided variant; Foldkit finishes the previous teardown before starting the next variant.
 
 The [Embedding](/core/embedding) guide has the full walkthrough.

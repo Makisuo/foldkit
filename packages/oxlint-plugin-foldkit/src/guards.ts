@@ -278,6 +278,7 @@ export const resolveImportedPath = (
   })
 
 const foldkitNamespaceBySource: Readonly<Record<string, string>> = {
+  'foldkit/application': 'Application',
   'foldkit/command': 'Command',
   'foldkit/experimental': 'Experimental',
   'foldkit/experimental/query': 'Query',
@@ -290,7 +291,7 @@ const foldkitNamespaceBySource: Readonly<Record<string, string>> = {
   'foldkit/runtime': 'Runtime',
   'foldkit/schema': 'Schema',
   'foldkit/struct': 'Struct',
-  'foldkit/submodel': 'Submodel',
+  'foldkit/block': 'Block',
   'foldkit/subscription': 'Subscription',
   'foldkit/update': 'Update',
 }
@@ -327,7 +328,7 @@ const isFunctionWithParameters = (
     node.type === 'FunctionDeclaration' ||
     node.type === 'FunctionExpression')
 
-const isFoldkitDefineViewCallback = (
+const isFoldkitDefinitionViewCallback = (
   references: WeakMap<ESTree.Node, Reference>,
   functionNode: ESTree.ArrowFunctionExpression | ESTree.Function,
 ): boolean => {
@@ -336,18 +337,7 @@ const isFoldkitDefineViewCallback = (
     return false
   }
 
-  return Option.exists(
-    resolveFoldkitApiPath(references, parent.callee),
-    path => {
-      const [namespace, helperName, extraMember] = path
-
-      return (
-        namespace === 'Submodel' &&
-        helperName === 'defineView' &&
-        extraMember === undefined
-      )
-    },
-  )
+  return isOwnedDefinitionCall(parent, 'view', references)
 }
 
 const hasHtmlBuilderTypeAnnotation = (
@@ -401,7 +391,7 @@ const isHtmlBuilderParameter = (
         Option.exists(
           Array.last(definition.node.params),
           parameter => parameter === definition.name,
-        ) && isFoldkitDefineViewCallback(references, definition.node)
+        ) && isFoldkitDefinitionViewCallback(references, definition.node)
       )
     }),
   )
@@ -505,3 +495,189 @@ export const firstCommandNameArgument = (
   const [name] = first.arguments
   return isStringLiteral(name) ? name : undefined
 }
+
+const bindingConfigHasProperties = (
+  node: ESTree.CallExpression,
+  names: ReadonlyArray<string>,
+): boolean => {
+  const [config] = node.arguments
+  if (!isObjectExpression(config)) {
+    return false
+  }
+
+  const properties = new Set(
+    config.properties.flatMap(property =>
+      isObjectProperty(property)
+        ? Option.match(staticPropertyName(property), {
+            onNone: () => [],
+            onSome: name => [name],
+          })
+        : [],
+    ),
+  )
+  return names.every(name => properties.has(name))
+}
+
+/** Recognizes a completed Block's binding method from its configuration. */
+export const blockBindingMethod = (
+  node: ESTree.CallExpression,
+  references?: WeakMap<ESTree.Node, Reference>,
+): Option.Option<'connection' | 'keyedConnection'> =>
+  Option.flatMap(staticMemberPath(node.callee), path => {
+    const method = Array.last(path.members)
+    if (Option.isNone(method)) {
+      return Option.none()
+    }
+
+    const hasBlockReceiver = (() => {
+      if (!/^[A-Z]/.test(path.root.name)) {
+        return false
+      }
+      if (references === undefined) {
+        return true
+      }
+
+      return Option.exists(resolvedVariable(references, path.root), variable =>
+        variable.defs.some(definition => {
+          if (definition.type === 'ImportBinding') {
+            return (
+              definition.parent?.type === 'ImportDeclaration' &&
+              (definition.parent.source.value.startsWith('.') ||
+                definition.parent.source.value.startsWith('@/') ||
+                definition.parent.source.value.startsWith('~/') ||
+                definition.parent.source.value.startsWith('@foldkit/'))
+            )
+          }
+          if (
+            definition.type !== 'Variable' ||
+            !isVariableDeclarator(definition.node) ||
+            !isCallExpression(definition.node.init)
+          ) {
+            return false
+          }
+
+          return Option.exists(
+            staticMemberPath(definition.node.init.callee),
+            initPath =>
+              Option.exists(
+                Array.last(initPath.members),
+                member =>
+                  member === 'assemble' ||
+                  member === 'create' ||
+                  member === 'make',
+              ),
+          )
+        }),
+      )
+    })()
+    if (!hasBlockReceiver) {
+      return Option.none()
+    }
+
+    const hasParentMessageMapping =
+      bindingConfigHasProperties(node, ['parentMessage']) ||
+      bindingConfigHasProperties(node, ['toParentMessage'])
+
+    if (
+      method.value === 'connection' &&
+      hasParentMessageMapping &&
+      (bindingConfigHasProperties(node, ['read', 'write']) ||
+        bindingConfigHasProperties(node, ['Model', 'field']))
+    ) {
+      return Option.some('connection')
+    }
+
+    if (
+      method.value === 'keyedConnection' &&
+      bindingConfigHasProperties(node, [
+        'readAll',
+        'key',
+        'read',
+        'writeAt',
+        'toParentMessage',
+      ])
+    ) {
+      return Option.some('keyedConnection')
+    }
+
+    return Option.none()
+  })
+
+/** Recognizes a definition method on a Block, Application, or imported feature owner. */
+export const isOwnedDefinitionCall = (
+  node: ESTree.CallExpression,
+  method: string,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean =>
+  Option.exists(staticMemberPath(node.callee), path => {
+    if (!Option.contains(Array.last(path.members), method)) {
+      return false
+    }
+
+    if (references === undefined) {
+      return true
+    }
+
+    const importedOwner = resolveImportedPath(references, path.root)
+    if (Option.isSome(importedOwner)) {
+      const { source } = importedOwner.value
+      return (
+        source.startsWith('.') ||
+        source.startsWith('@/') ||
+        source.startsWith('~/')
+      )
+    }
+
+    const isOwnedVariable = (
+      variable: Variable,
+      visited: ReadonlySet<Variable> = new Set(),
+    ): boolean => {
+      if (visited.has(variable)) {
+        return false
+      }
+
+      return variable.defs.some(definition => {
+        if (
+          definition.type !== 'Variable' ||
+          !isVariableDeclarator(definition.node) ||
+          !isCallExpression(definition.node.init)
+        ) {
+          return false
+        }
+
+        if (
+          Option.exists(
+            resolveFoldkitApiPath(references, definition.node.init.callee),
+            apiPath => {
+              const resolvedPath = Array.join(apiPath, '.')
+
+              return (
+                resolvedPath === 'Block.define' ||
+                resolvedPath === 'Application.define'
+              )
+            },
+          )
+        ) {
+          return true
+        }
+
+        return Option.exists(
+          staticMemberPath(definition.node.init.callee),
+          definePath =>
+            Option.exists(Array.last(definePath.members), methodName =>
+              Array.contains(['define', 'register'], methodName),
+            ) &&
+            Option.exists(
+              resolvedVariable(references, definePath.root),
+              ownerVariable =>
+                isOwnedVariable(ownerVariable, new Set([...visited, variable])),
+            ),
+        )
+      })
+    }
+
+    return Option.exists(
+      resolvedVariable(references, path.root),
+      isOwnedVariable,
+    )
+  })

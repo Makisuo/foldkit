@@ -5,14 +5,16 @@ import * as Url from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { Dialog, Menu } from '@foldkit/ui'
+import { ShowDialog } from '@foldkit/ui/dialog'
 
-import { Deployment } from './deployment'
 import {
   ScrollSidebarActiveLinkIntoView,
   ScrollToTop,
   init,
   update,
-} from './main'
+} from './application'
+import { LoadPlayground, home } from './children'
+import { Deployment } from './deployment'
 import { Message } from './message'
 import { type Model } from './model'
 import { Home } from './page'
@@ -20,7 +22,6 @@ import * as NotePlayerDemo from './page/home/notePlayerDemo'
 import * as Search from './search'
 import * as SnippetCopy from './snippetCopy'
 import * as SnippetDisclosure from './snippetDisclosure'
-import { LoadPlayground, home } from './submodels'
 
 const parseUrl = (value: string): Url.Url =>
   pipe(Url.fromString(value), Option.getOrThrow)
@@ -60,7 +61,7 @@ const expectHomeAbsent = (model: Model): void => {
   ).toBe(true)
 }
 
-const expectDefaultHome = (home: Home.Model): void => {
+const expectDefaultHome = (home: typeof Home.Model.Type): void => {
   expect(home.activeDemoTab).toBe('Architecture')
   expect(home.asyncCounterDemo.count).toBe(0)
   expect(home.notePlayerDemo.noteInput.value).toBe('CDEFGABC')
@@ -90,7 +91,7 @@ describe('application', () => {
     )
   })
 
-  test('leaving Home removes the Home Submodel', () => {
+  test('leaving Home removes the Home Block', () => {
     story(
       update,
       given(initAt(homeUrl)),
@@ -186,7 +187,7 @@ describe('application', () => {
       model(model => {
         expect(model.search.dialog.isOpen).toBe(true)
       }),
-      Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
       Command.resolve(
         Search.FocusSearchInput,
         Search.Message.CompletedFocusSearchInput(),
@@ -194,7 +195,7 @@ describe('application', () => {
     )
   })
 
-  test('the parent delegates snippet copying to the child Submodel', () => {
+  test('the parent delegates snippet copying to the child Block', () => {
     const snippetId = 'root-story-snippet'
 
     story(

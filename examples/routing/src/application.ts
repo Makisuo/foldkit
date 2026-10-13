@@ -1,0 +1,631 @@
+import { Array, Effect, Layer, Match, Option, Schema } from 'effect'
+import { Dom, Update } from 'foldkit'
+import {
+  define as defineApplication,
+  type HtmlBuilderOf,
+} from 'foldkit/application'
+import { Html } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
+import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
+import { modifyFields } from 'foldkit/struct'
+import { Url, toString as urlToString } from 'foldkit/url'
+
+import {
+  File,
+  FileTreeEntry,
+  fileTree,
+  findEntry,
+  formatFileSize,
+} from './fileTree'
+import { People, findPerson } from './page'
+import {
+  ApplicationRoute,
+  filesIndexRouter,
+  filesRouter,
+  homeRouter,
+  nestedRouter,
+  peopleRouter,
+  urlToApplicationRoute,
+} from './route'
+
+export { ApplicationRoute } from './route'
+
+// MODEL
+
+export const Model = Schema.Struct({
+  route: ApplicationRoute,
+  peoplePage: People.Model,
+})
+
+export type Model = typeof Model.Type
+
+// MESSAGE
+
+const NavigationShortcut = Schema.Literals(['GH', 'GP', 'GF', 'GN'])
+type NavigationShortcut = typeof NavigationShortcut.Type
+
+export const Message = defineMessageUnion({
+  CompletedNavigateInternal: {},
+  CompletedLoadExternal: {},
+  ClickedLink: { request: UrlRequest },
+  ChangedUrl: { url: Url },
+  EnteredNavigationShortcut: { shortcut: NavigationShortcut },
+  GotPeopleMessage: { message: People.Message },
+})
+
+export type Message = typeof Message.Type
+
+const peoplePage = People.block.connection({
+  Model: Model,
+  field: 'peoplePage',
+  parentMessage: Message.GotPeopleMessage,
+})
+
+export const Application = defineApplication({ Model, Message }).register({
+  children: [peoplePage],
+})
+
+// INIT
+
+export const init = (url: Url) => {
+  const route = urlToApplicationRoute(url)
+
+  const initialPeopleRoute = Match.value(route).pipe(
+    Match.tag('People', peopleRoute => peopleRoute),
+    Match.orElse(() => ApplicationRoute.People({ searchText: Option.none() })),
+  )
+
+  const peopleInit = peoplePage.init(initialPeopleRoute)
+
+  return {
+    model: Model.make({ route, peoplePage: peopleInit.model }),
+    commands: peopleInit.commands,
+  }
+}
+
+// COMMAND
+
+export const NavigateInternal = Application.command('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
+  },
+})
+
+const LoadExternal = Application.command('LoadExternal', {
+  args: { href: Schema.String },
+  messages: [Message.CompletedLoadExternal],
+  handler: function* () {
+    return ({ href }) =>
+      load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
+  },
+})
+
+// UPDATE
+
+const navigationUrlByShortcut: Readonly<
+  Record<NavigationShortcut, () => string>
+> = {
+  GH: homeRouter,
+  GP: () => peopleRouter({ searchText: Option.none() }),
+  GF: filesIndexRouter,
+  GN: nestedRouter,
+}
+
+const setRoute = (nextRoute: ApplicationRoute) => (model: Model) => ({
+  model: modifyFields(model, { route: () => nextRoute }),
+})
+
+export const update = Application.update((model, message) =>
+  Message.match(message, {
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
+
+    ClickedLink: ({ request }) =>
+      UrlRequest.match(request, {
+        Internal: ({ url }) => ({
+          model,
+          commands: [NavigateInternal({ url: urlToString(url) })],
+        }),
+        External: ({ href }) => ({
+          model,
+          commands: [LoadExternal({ href })],
+        }),
+      }),
+
+    ChangedUrl: ({ url }) => {
+      const nextRoute = urlToApplicationRoute(url)
+
+      const routeSteps = Match.value(nextRoute).pipe(
+        Match.tag('People', peopleRoute => [
+          peoplePage.informRouteChanged(peopleRoute),
+        ]),
+        Match.orElse(() => []),
+      )
+
+      return Update.combine(model, [setRoute(nextRoute), ...routeSteps])
+    },
+
+    EnteredNavigationShortcut: ({ shortcut }) => {
+      const url = navigationUrlByShortcut[shortcut]()
+
+      return { model, commands: [NavigateInternal({ url })] }
+    },
+
+    GotPeopleMessage: ({ message }) => peoplePage.fold(model, message),
+  }),
+)
+
+// SUBSCRIPTION
+
+export const subscriptions = Application.subscriptions(entry => ({
+  navigationShortcutPresses: entry('NavigationShortcutPresses', {
+    messages: [Message.EnteredNavigationShortcut],
+    handler: function* () {
+      return () =>
+        Dom.streamFromKeyBindings({
+          bindings: [
+            {
+              keys: ['G', 'H'],
+              mapEvent: () =>
+                Message.EnteredNavigationShortcut({ shortcut: 'GH' }),
+            },
+            {
+              keys: ['G', 'P'],
+              mapEvent: () =>
+                Message.EnteredNavigationShortcut({ shortcut: 'GP' }),
+            },
+            {
+              keys: ['G', 'F'],
+              mapEvent: () =>
+                Message.EnteredNavigationShortcut({ shortcut: 'GF' }),
+            },
+            {
+              keys: ['G', 'N'],
+              mapEvent: () =>
+                Message.EnteredNavigationShortcut({ shortcut: 'GN' }),
+            },
+          ],
+        })
+    },
+  }),
+}))
+
+// EFFECTS LAYER
+
+export const EffectsLayer = Layer.mergeAll(
+  NavigateInternal.layer,
+  LoadExternal.layer,
+  subscriptions.navigationShortcutPresses.layer,
+)
+
+// VIEW
+
+type ViewBuilder = HtmlBuilderOf<typeof Application>
+
+const navigationView = (
+  currentRoute: ApplicationRoute,
+  h: ViewBuilder,
+): Html => {
+  const navLinkClassName = (isActive: boolean) =>
+    `hover:bg-blue-600 font-medium px-3 py-1 rounded transition ${isActive ? 'bg-blue-700 bg-opacity-50' : ''}`
+
+  return h.nav(
+    [h.Class('bg-blue-500 text-white p-4 mb-6')],
+    [
+      h.ul(
+        [h.Class('max-w-4xl mx-auto flex gap-6 list-none')],
+        [
+          h.li(
+            [],
+            [
+              h.a(
+                [
+                  h.Href(homeRouter()),
+                  h.Class(navLinkClassName(currentRoute._tag === 'Home')),
+                ],
+                ['Home'],
+              ),
+            ],
+          ),
+          h.li(
+            [],
+            [
+              h.a(
+                [
+                  h.Href(peopleRouter({ searchText: Option.none() })),
+                  h.Class(
+                    navLinkClassName(
+                      currentRoute._tag === 'People' ||
+                        currentRoute._tag === 'Person',
+                    ),
+                  ),
+                ],
+                ['People'],
+              ),
+            ],
+          ),
+          h.li(
+            [],
+            [
+              h.a(
+                [
+                  h.Href(filesIndexRouter()),
+                  h.Class(
+                    navLinkClassName(
+                      currentRoute._tag === 'FilesIndex' ||
+                        currentRoute._tag === 'Files',
+                    ),
+                  ),
+                ],
+                ['Files'],
+              ),
+            ],
+          ),
+          h.li(
+            [],
+            [
+              h.a(
+                [
+                  h.Href(nestedRouter()),
+                  h.Class(navLinkClassName(currentRoute._tag === 'Nested')),
+                ],
+                ['Nested'],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  )
+}
+
+const homeView = (h: ViewBuilder): Html =>
+  h.div(
+    [h.Class('max-w-4xl mx-auto px-4')],
+    [
+      h.h1(
+        [h.Class('text-4xl font-bold text-gray-800 mb-6')],
+        ['Welcome Home'],
+      ),
+      h.p(
+        [h.Class('text-lg text-gray-600 mb-4')],
+        [
+          'This is a routing example built with foldkit. Navigate using the links above to see different routes in action.',
+        ],
+      ),
+      h.p([h.Class('text-gray-600')]),
+    ],
+  )
+
+const nestedView = (h: ViewBuilder): Html =>
+  h.div(
+    [h.Class('max-w-4xl mx-auto px-4')],
+    [
+      h.h1(
+        [h.Class('text-4xl font-bold text-gray-800 mb-6')],
+        ['Very Nested Route!'],
+      ),
+      h.p(
+        [h.Class('text-lg text-gray-600')],
+        ['You found the deeply nested route at /nested/route/is/very/nested'],
+      ),
+    ],
+  )
+
+const personView = (personId: number, h: ViewBuilder): Html => {
+  const person = findPerson(personId)
+
+  return Option.match(person, {
+    onNone: () =>
+      h.div(
+        [h.Class('max-w-4xl mx-auto px-4')],
+        [
+          h.h2(
+            [h.Class('text-4xl font-bold text-red-600 mb-6')],
+            ['Person Not Found'],
+          ),
+          h.p(
+            [h.Class('text-lg text-gray-600 mb-4')],
+            [`No person found with ID: ${personId}`],
+          ),
+          h.a(
+            [
+              h.Href(peopleRouter({ searchText: Option.none() })),
+              h.Class('text-blue-500 hover:underline'),
+            ],
+            ['← Back to People'],
+          ),
+        ],
+      ),
+
+    onSome: person =>
+      h.div(
+        [h.Class('max-w-4xl mx-auto px-4')],
+        [
+          h.a(
+            [
+              h.Href(peopleRouter({ searchText: Option.none() })),
+              h.Class('text-blue-500 hover:underline mb-4 inline-block'),
+            ],
+            ['← Back to People'],
+          ),
+
+          h.article(
+            [],
+            [
+              h.h2(
+                [h.Class('text-4xl font-bold text-gray-800 mb-6')],
+                [person.name],
+              ),
+
+              h.div(
+                [h.Class('bg-gray-50 border border-gray-200 rounded-lg p-6')],
+                [
+                  h.div(
+                    [h.Class('grid grid-cols-2 gap-4')],
+                    [
+                      h.div(
+                        [],
+                        [
+                          h.h2(
+                            [
+                              h.Class(
+                                'text-sm font-medium text-gray-500 uppercase tracking-wide',
+                              ),
+                            ],
+                            ['ID'],
+                          ),
+                          h.p(
+                            [h.Class('text-lg text-gray-900 mt-1')],
+                            [String(person.id)],
+                          ),
+                        ],
+                      ),
+                      h.div(
+                        [],
+                        [
+                          h.h2(
+                            [
+                              h.Class(
+                                'text-sm font-medium text-gray-500 uppercase tracking-wide',
+                              ),
+                            ],
+                            ['Role'],
+                          ),
+                          h.p(
+                            [h.Class('text-lg text-gray-900 mt-1')],
+                            [person.role],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+  })
+}
+
+const entryCountLabel = (count: number): string =>
+  count === 1 ? '1 item' : `${count} items`
+
+const entryListView = (
+  parentPath: ReadonlyArray<string>,
+  entries: ReadonlyArray<FileTreeEntry>,
+  h: ViewBuilder,
+): Html =>
+  h.ul(
+    [h.Class('divide-y divide-gray-200 border border-gray-200 rounded-lg')],
+    Array.map(entries, entry =>
+      h.keyed('li')(
+        entry.name,
+        [h.Class('flex items-center justify-between px-4 py-3')],
+        [
+          h.a(
+            [
+              h.Href(
+                filesRouter({ path: Array.append(parentPath, entry.name) }),
+              ),
+              h.Class('text-blue-500 hover:underline'),
+            ],
+            [entry.name],
+          ),
+          Match.value(entry).pipe(
+            Match.tagsExhaustive({
+              File: file =>
+                h.span(
+                  [h.Class('text-sm text-gray-500')],
+                  [formatFileSize(file.sizeInBytes)],
+                ),
+              Directory: directory =>
+                h.span(
+                  [h.Class('text-sm text-gray-500')],
+                  [entryCountLabel(directory.entries.length)],
+                ),
+            }),
+          ),
+        ],
+      ),
+    ),
+  )
+
+const breadcrumbView = (
+  path: Array.NonEmptyReadonlyArray<string>,
+  h: ViewBuilder,
+): Html => {
+  const lastSegmentIndex = path.length - 1
+
+  return h.nav(
+    [
+      h.AriaLabel('Breadcrumb'),
+      h.Class('flex flex-wrap items-center gap-2 mb-6 text-sm'),
+    ],
+    [
+      h.a(
+        [h.Href(filesIndexRouter()), h.Class('text-blue-500 hover:underline')],
+        ['Files'],
+      ),
+      ...Array.map(path, (segment, index) => {
+        const crumbPath = Array.append(Array.take(path, index), segment)
+        const isCurrentSegment = index === lastSegmentIndex
+
+        return h.keyed('span')(
+          Array.join(crumbPath, '/'),
+          [h.Class('flex items-center gap-2')],
+          [
+            h.span([h.Class('text-gray-400')], ['/']),
+            isCurrentSegment
+              ? h.span([h.Class('font-medium text-gray-800')], [segment])
+              : h.a(
+                  [
+                    h.Href(filesRouter({ path: crumbPath })),
+                    h.Class('text-blue-500 hover:underline'),
+                  ],
+                  [segment],
+                ),
+          ],
+        )
+      }),
+    ],
+  )
+}
+
+const fileDetailView = (file: File, h: ViewBuilder): Html =>
+  h.div(
+    [h.Class('bg-gray-50 border border-gray-200 rounded-lg p-6')],
+    [
+      h.h2([h.Class('text-2xl font-bold text-gray-800 mb-2')], [file.name]),
+      h.p([h.Class('text-gray-600')], [formatFileSize(file.sizeInBytes)]),
+    ],
+  )
+
+const missingEntryView = (
+  path: Array.NonEmptyReadonlyArray<string>,
+  h: ViewBuilder,
+): Html =>
+  h.div(
+    [],
+    [
+      h.h2([h.Class('text-4xl font-bold text-red-600 mb-6')], ['Nothing Here']),
+      h.p(
+        [h.Class('text-lg text-gray-600 mb-4')],
+        [`No file or directory at "${Array.join(path, '/')}".`],
+      ),
+      h.a(
+        [h.Href(filesIndexRouter()), h.Class('text-blue-500 hover:underline')],
+        ['← Back to Files'],
+      ),
+    ],
+  )
+
+const filesIndexView = (h: ViewBuilder): Html =>
+  h.div(
+    [h.Class('max-w-4xl mx-auto px-4')],
+    [
+      h.h1([h.Class('text-4xl font-bold text-gray-800 mb-6')], ['Files']),
+      h.p(
+        [h.Class('text-lg text-gray-600 mb-6')],
+        [
+          'Every path under /files parses into a single route that captures the remaining segments with rest.',
+        ],
+      ),
+      entryListView([], fileTree, h),
+    ],
+  )
+
+const filesView = (
+  path: Array.NonEmptyReadonlyArray<string>,
+  h: ViewBuilder,
+): Html => {
+  const maybeEntry = findEntry(path)
+
+  const content = Option.match(maybeEntry, {
+    onNone: () => missingEntryView(path, h),
+    onSome: entry =>
+      Match.value(entry).pipe(
+        Match.tagsExhaustive({
+          File: file => fileDetailView(file, h),
+          Directory: directory => entryListView(path, directory.entries, h),
+        }),
+      ),
+  })
+
+  return h.div(
+    [h.Class('max-w-4xl mx-auto px-4')],
+    [breadcrumbView(path, h), content],
+  )
+}
+
+const notFoundView = (path: string, h: ViewBuilder): Html =>
+  h.div(
+    [h.Class('max-w-4xl mx-auto px-4')],
+    [
+      h.h1(
+        [h.Class('text-4xl font-bold text-red-600 mb-6')],
+        ['404 - Page Not Found'],
+      ),
+      h.p(
+        [h.Class('text-lg text-gray-600 mb-4')],
+        [`The path "${path}" was not found.`],
+      ),
+      h.a(
+        [h.Href(homeRouter()), h.Class('text-blue-500 hover:underline')],
+        ['← Go Home'],
+      ),
+    ],
+  )
+
+const routeTitle = (route: Model['route']): string =>
+  Match.value(route).pipe(
+    Match.tag('Home', () => 'Routing'),
+    Match.tag('Person', ({ personId }) => `Person ${personId} | Routing`),
+    Match.tag('FilesIndex', () => 'Files | Routing'),
+    Match.tag(
+      'Files',
+      ({ path }) => `${Array.lastNonEmpty(path)} | Files | Routing`,
+    ),
+    Match.orElse(({ _tag }) => `${_tag} | Routing`),
+  )
+
+export const view = Application.view((model, h) => {
+  const routeContent = ApplicationRoute.match(model.route, {
+    Home: () => homeView(h),
+    Nested: () => nestedView(h),
+    People: () =>
+      h.block(
+        peoplePage.embedView({
+          slotId: 'people',
+          model: model.peoplePage,
+        }),
+      ),
+    Person: ({ personId }) => personView(personId, h),
+    FilesIndex: () => filesIndexView(h),
+    Files: ({ path }) => filesView(path, h),
+    NotFound: ({ path }) => notFoundView(path, h),
+  })
+
+  return {
+    title: routeTitle(model.route),
+    body: h.div(
+      [h.Class('min-h-screen bg-gray-100')],
+      [
+        h.header([], [navigationView(model.route, h)]),
+        h.main([h.Class('py-8')], [routeContent]),
+      ],
+    ),
+  }
+})
+
+export const implementation = {
+  init,
+  update,
+  view,
+  subscriptions,
+  EffectsLayer,
+}

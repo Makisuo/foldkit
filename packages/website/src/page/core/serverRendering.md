@@ -56,13 +56,13 @@ For SSG, the build script takes the host's place. It writes the response to a fi
 
 A server entry connects the application to its host. It exports a `renderPage` function that accepts a Web `Request` and returns a `Promise<EntryResult>`:
 
-::Snippet{name="serverRenderingServerEntry" label="Server entry"}
+::Snippet{name="serverRenderingBlockServerEntry" label="Server entry"}
 
 The outer `Promise` keeps `renderPage` callable from Vite, build scripts, serverless functions, and the emitted `fetch` handler. Those hosts do not need to provide the application's Effect requirements. The entry uses Effect internally; the host sees only the `Promise`.
 
 ### Entry file placement
 
-The entry is application code. Keep it in `src/` (`src/entry.server.ts` in the examples), not in the host's directory. It imports the application's `init`, `view`, and `Flags`, so the server build must compile it with those application imports.
+The entry is application code. Keep it in `src/` (`src/entry.server.ts` in the examples), not in the host's directory. It imports the application's typed `Application`, shared implementation, and, when declared, `Flags`, so the server build must compile those application imports.
 
 An SSR build also requires `ssr.clientEntry` next to `ssr.serverEntry`, such as `'/src/entry.ts'`. The client entry names the browser script the generated document loads. Import the application's stylesheets from that script so Vite includes them in the browser build.
 
@@ -88,9 +88,9 @@ A delivery host runs the built `fetch` handler. It does not import the applicati
 
 #### Application config on the server
 
-`renderToString` accepts the server-relevant subset of an `Application.make` config. That subset contains `init` and `view`, plus `Flags` and `routing` when the application declares them. A full application config satisfies the subset, so an entry can pass it unchanged.
+`renderToString` takes three arguments: the typed `Application` or its registered composition, the shared implementation record, and render options. Include `Flags` and `routing` in the implementation record when the application declares them. Pass the same Application value whose owned `make` method builds the browser program.
 
-The `container`, `update`, `subscriptions`, and `managedResources` fields do not participate in server rendering. The server runs the view once over the Model returned by `init`. There is no DOM to attach to and no Message to dispatch.
+`container` is not a server rendering input. `renderToString` privately completes the checked Application composition, runs its `init`, and runs its view once over the resulting Model. It does not start update, Commands, Subscriptions, ManagedResources, Mount handlers, or the handler graph. There is no DOM to attach to and no Message to dispatch.
 
 #### Request URL
 
@@ -281,7 +281,7 @@ Flags create the same risk. A payload belongs to the deployment that rendered it
 
 #### Generated and explicit build ids
 
-`@foldkit/vite-plugin` generates one opaque id when a Vite app build coordinates the client and server artifacts. It compiles that id into Foldkit in both artifacts, so `Runtime.hydrate(application)` and `Server.renderToString(config, options)` use it without application forwarding.
+`@foldkit/vite-plugin` generates one opaque id when a Vite app build coordinates the client and server artifacts. It compiles that id into Foldkit in both artifacts, so `Runtime.hydrate(application)` and `Server.renderToString(Application, config, options)` use it without application forwarding.
 
 Set an explicit override only when the artifacts build in separate jobs, or when the id should name a deployment in another system. Use the plugin's `buildId` option or the `FOLDKIT_BUILD_ID` environment variable, and give every job the same value:
 

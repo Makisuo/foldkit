@@ -1,5 +1,4 @@
 import { Effect, Random } from 'effect'
-import { Command, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { GRID_SIZE } from './constants'
@@ -7,7 +6,7 @@ import { Message } from './message'
 import type { Model } from './model'
 
 // ✅ Run random work in a Command
-const GenerateApplePosition = Command.define('GenerateApplePosition', {
+const GenerateApplePosition = Application.command('GenerateApplePosition', {
   messages: [Message.CompletedGenerateApplePosition],
   handler: function* () {
     return () =>
@@ -19,7 +18,7 @@ const GenerateApplePosition = Command.define('GenerateApplePosition', {
   },
 })
 
-const update = Update.define((model: Model, message: Message) =>
+const update = Application.update((model, message) =>
   Message.match(message, {
     RequestedApple: () => ({ model, commands: [GenerateApplePosition()] }),
     CompletedGenerateApplePosition: ({ position }) => ({

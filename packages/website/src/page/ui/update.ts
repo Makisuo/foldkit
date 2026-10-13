@@ -1,46 +1,42 @@
 import { Array, Match, Number, Option, Schema, pipe } from 'effect'
-import { Update } from 'foldkit'
+import { Block, Update } from 'foldkit'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
 import {
   Animation,
   Calendar,
-  Combobox,
   DatePicker,
   Dialog,
   DragAndDrop,
   FileDrop,
   HoverIntent,
-  Listbox,
-  Menu,
   Popover,
-  RadioGroup,
   Slider,
-  Tabs,
   Tooltip,
   VirtualList,
 } from '@foldkit/ui'
+import { defaultLeaveCommand } from '@foldkit/ui/animation'
+import { DragState } from '@foldkit/ui/dragAndDrop'
 
 import { CityCombobox, CityMultiCombobox } from './combobox'
 import { CharacterListbox, ItemListbox, ItemMultiListbox } from './demo/listbox'
-import { DemoMenu, type MenuItem } from './demo/menu'
+import { DemoMenu } from './demo/menu'
 import { PlanRadioGroup } from './demo/radioGroup'
 import { DemoTabs } from './demo/tabs'
 import { Toast } from './demo/toastModule'
-import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './demo/virtualList'
+import {
+  type Activity,
+  ROW_COUNT as VIRTUAL_LIST_ROW_COUNT,
+} from './demo/virtualList'
 import { Message } from './message'
-import { VirtualListChatStartProximity } from './model'
-import type { Model } from './model'
-import type {
-  City,
-  DemoCard,
-  DemoColumn,
-  DemoTab,
-  ListboxItem,
-  Plan,
-  VirtualListChatMessage,
-} from './model'
+import { Model, VirtualListChatStartProximity } from './model'
+import type { DemoCard, DemoColumn, VirtualListChatMessage } from './model'
+
+export const Ui = Block.define('Ui', {
+  Model,
+  Message,
+})
 
 // REORDER
 
@@ -137,15 +133,13 @@ const dragAndDropDemoAnnouncementToText = DragAndDropDemoAnnouncement.match({
 
 const maybeDragAndDropDemoKeyboardAnnouncement = (
   model: Model,
-  nextDragAndDrop: DragAndDrop.Model,
+  nextDragAndDrop: typeof DragAndDrop.Model.Type,
 ): Option.Option<DragAndDropDemoAnnouncement> =>
-  DragAndDrop.DragState.matchOrElse<Option.Option<DragAndDropDemoAnnouncement>>(
+  DragState.matchOrElse<Option.Option<DragAndDropDemoAnnouncement>>(
     nextDragAndDrop.dragState,
     {
       KeyboardDragging: nextState =>
-        DragAndDrop.DragState.matchOrElse<
-          Option.Option<DragAndDropDemoAnnouncement>
-        >(
+        DragState.matchOrElse<Option.Option<DragAndDropDemoAnnouncement>>(
           model.dragAndDropDemo.dragState,
           {
             Idle: () =>
@@ -202,9 +196,9 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const foldMenuOutMessage = Menu.OutMessage.match<
+const foldMenuOutMessage = DemoMenu.OutMessage.match<
   Update.Step<Model, Message>,
-  Menu.OutMessage<MenuItem>
+  typeof DemoMenu.OutMessage.Type
 >({
   Selected: () => model => ({ model }),
 })
@@ -229,13 +223,11 @@ const foldCalendarBasicDemoOutMessage = Calendar.OutMessage.match<
   ChangedViewMonth: () => model => ({ model }),
 })
 
-const foldCalendarBasicDemo = Update.foldChild({
-  update: Calendar.update,
-  read: (model: Model) => Option.some(model.calendarBasicDemo),
-  write: (model, nextCalendarBasicDemo) =>
-    modifyFields(model, { calendarBasicDemo: () => nextCalendarBasicDemo }),
-  toParentMessage: message => Message.GotCalendarBasicDemoMessage({ message }),
-  foldOutMessage: foldCalendarBasicDemoOutMessage,
+export const calendarBasicDemo = Calendar.block.connection({
+  Model,
+  field: 'calendarBasicDemo',
+  parentMessage: Message.GotCalendarBasicDemoMessage,
+  outMessage: { fold: foldCalendarBasicDemoOutMessage },
 })
 
 const foldDatePickerBasicDemoOutMessage = DatePicker.OutMessage.match<
@@ -256,19 +248,16 @@ const foldDatePickerBasicDemoOutMessage = DatePicker.OutMessage.match<
   ChangedViewMonth: () => model => ({ model }),
 })
 
-const foldDatePickerBasicDemo = Update.foldChild({
-  update: DatePicker.update,
-  read: (model: Model) => Option.some(model.datePickerBasicDemo),
-  write: (model, nextDatePickerBasicDemo) =>
-    modifyFields(model, { datePickerBasicDemo: () => nextDatePickerBasicDemo }),
-  toParentMessage: message =>
-    Message.GotDatePickerBasicDemoMessage({ message }),
-  foldOutMessage: foldDatePickerBasicDemoOutMessage,
+export const datePickerBasicDemo = DatePicker.block.connection({
+  Model,
+  field: 'datePickerBasicDemo',
+  parentMessage: Message.GotDatePickerBasicDemoMessage,
+  outMessage: { fold: foldDatePickerBasicDemoOutMessage },
 })
 
-const foldComboboxDemoOutMessage = Combobox.OutMessage.match<
+const foldComboboxDemoOutMessage = CityCombobox.OutMessage.match<
   Update.Step<Model, Message>,
-  Combobox.OutMessage<City>
+  typeof CityCombobox.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -280,18 +269,16 @@ const foldComboboxDemoOutMessage = Combobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const foldComboboxDemo = Update.foldChild({
-  update: CityCombobox.update,
-  read: (model: Model) => Option.some(model.comboboxDemo),
-  write: (model, nextComboboxDemo) =>
-    modifyFields(model, { comboboxDemo: () => nextComboboxDemo }),
-  toParentMessage: message => Message.GotComboboxDemoMessage({ message }),
-  foldOutMessage: foldComboboxDemoOutMessage,
+export const comboboxDemo = CityCombobox.connection({
+  Model,
+  field: 'comboboxDemo',
+  parentMessage: Message.GotComboboxDemoMessage,
+  outMessage: { fold: foldComboboxDemoOutMessage },
 })
 
-const foldComboboxPlacementLockDemoOutMessage = Combobox.OutMessage.match<
+const foldComboboxPlacementLockDemoOutMessage = CityCombobox.OutMessage.match<
   Update.Step<Model, Message>,
-  Combobox.OutMessage<City>
+  typeof CityCombobox.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -303,21 +290,16 @@ const foldComboboxPlacementLockDemoOutMessage = Combobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const foldComboboxPlacementLockDemo = Update.foldChild({
-  update: CityCombobox.update,
-  read: (model: Model) => Option.some(model.comboboxPlacementLockDemo),
-  write: (model, nextComboboxPlacementLockDemo) =>
-    modifyFields(model, {
-      comboboxPlacementLockDemo: () => nextComboboxPlacementLockDemo,
-    }),
-  toParentMessage: message =>
-    Message.GotComboboxPlacementLockDemoMessage({ message }),
-  foldOutMessage: foldComboboxPlacementLockDemoOutMessage,
+export const comboboxPlacementLockDemo = CityCombobox.connection({
+  Model,
+  field: 'comboboxPlacementLockDemo',
+  parentMessage: Message.GotComboboxPlacementLockDemoMessage,
+  outMessage: { fold: foldComboboxPlacementLockDemoOutMessage },
 })
 
-const foldComboboxNullableDemoOutMessage = Combobox.OutMessage.match<
+const foldComboboxNullableDemoOutMessage = CityCombobox.OutMessage.match<
   Update.Step<Model, Message>,
-  Combobox.OutMessage<City>
+  typeof CityCombobox.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -337,21 +319,16 @@ const foldComboboxNullableDemoOutMessage = Combobox.OutMessage.match<
   }),
 })
 
-const foldComboboxNullableDemo = Update.foldChild({
-  update: CityCombobox.update,
-  read: (model: Model) => Option.some(model.comboboxNullableDemo),
-  write: (model, nextComboboxNullableDemo) =>
-    modifyFields(model, {
-      comboboxNullableDemo: () => nextComboboxNullableDemo,
-    }),
-  toParentMessage: message =>
-    Message.GotComboboxNullableDemoMessage({ message }),
-  foldOutMessage: foldComboboxNullableDemoOutMessage,
+export const comboboxNullableDemo = CityCombobox.connection({
+  Model,
+  field: 'comboboxNullableDemo',
+  parentMessage: Message.GotComboboxNullableDemoMessage,
+  outMessage: { fold: foldComboboxNullableDemoOutMessage },
 })
 
-const foldComboboxMultiDemoOutMessage = Combobox.OutMessage.match<
+const foldComboboxMultiDemoOutMessage = CityMultiCombobox.OutMessage.match<
   Update.Step<Model, Message>,
-  Combobox.OutMessage<City>
+  typeof CityMultiCombobox.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -369,18 +346,16 @@ const foldComboboxMultiDemoOutMessage = Combobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const foldComboboxMultiDemo = Update.foldChild({
-  update: CityMultiCombobox.update,
-  read: (model: Model) => Option.some(model.comboboxMultiDemo),
-  write: (model, nextComboboxMultiDemo) =>
-    modifyFields(model, { comboboxMultiDemo: () => nextComboboxMultiDemo }),
-  toParentMessage: message => Message.GotComboboxMultiDemoMessage({ message }),
-  foldOutMessage: foldComboboxMultiDemoOutMessage,
+export const comboboxMultiDemo = CityMultiCombobox.connection({
+  Model,
+  field: 'comboboxMultiDemo',
+  parentMessage: Message.GotComboboxMultiDemoMessage,
+  outMessage: { fold: foldComboboxMultiDemoOutMessage },
 })
 
-const foldComboboxSelectOnFocusDemoOutMessage = Combobox.OutMessage.match<
+const foldComboboxSelectOnFocusDemoOutMessage = CityCombobox.OutMessage.match<
   Update.Step<Model, Message>,
-  Combobox.OutMessage<City>
+  typeof CityCombobox.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -392,102 +367,82 @@ const foldComboboxSelectOnFocusDemoOutMessage = Combobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const foldComboboxSelectOnFocusDemo = Update.foldChild({
-  update: CityCombobox.update,
-  read: (model: Model) => Option.some(model.comboboxSelectOnFocusDemo),
-  write: (model, nextComboboxSelectOnFocusDemo) =>
-    modifyFields(model, {
-      comboboxSelectOnFocusDemo: () => nextComboboxSelectOnFocusDemo,
-    }),
-  toParentMessage: message =>
-    Message.GotComboboxSelectOnFocusDemoMessage({ message }),
-  foldOutMessage: foldComboboxSelectOnFocusDemoOutMessage,
+export const comboboxSelectOnFocusDemo = CityCombobox.connection({
+  Model,
+  field: 'comboboxSelectOnFocusDemo',
+  parentMessage: Message.GotComboboxSelectOnFocusDemoMessage,
+  outMessage: { fold: foldComboboxSelectOnFocusDemoOutMessage },
 })
 
-const readDialogDemo = (model: Model): Option.Option<Dialog.Model> =>
-  Option.some(model.dialogDemo)
+const readDialogDemo = (
+  model: Model,
+): Option.Option<typeof Dialog.Model.Type> => Option.some(model.dialogDemo)
 
-const writeDialogDemo = (model: Model, nextDialogDemo: Dialog.Model): Model =>
-  modifyFields(model, { dialogDemo: () => nextDialogDemo })
+const writeDialogDemo = (
+  model: Model,
+  nextDialogDemo: typeof Dialog.Model.Type,
+): Model => modifyFields(model, { dialogDemo: () => nextDialogDemo })
 
-const toGotDialogDemoMessage = (message: Dialog.Message): Message =>
+const toGotDialogDemoMessage = (message: typeof Dialog.Message.Type): Message =>
   Message.GotDialogDemoMessage({ message })
 
-const foldDialogDemo = Update.foldChild({
-  update: Dialog.update,
+export const dialogDemo = Dialog.block.connection({
+  placement: 'dialog-demo',
   read: readDialogDemo,
   write: writeDialogDemo,
   toParentMessage: toGotDialogDemoMessage,
-  foldOutMessage: foldDialogOutMessage,
+  outMessage: { fold: foldDialogOutMessage },
 })
 
-const foldDialogDemoOpen = Update.foldChildStep({
-  update: Dialog.open,
-  read: readDialogDemo,
-  write: writeDialogDemo,
-  toParentMessage: toGotDialogDemoMessage,
-  foldOutMessage: foldDialogOutMessage,
-})
-
-const readDialogAnimatedDemo = (model: Model): Option.Option<Dialog.Model> =>
+const readDialogAnimatedDemo = (
+  model: Model,
+): Option.Option<typeof Dialog.Model.Type> =>
   Option.some(model.dialogAnimatedDemo)
 
 const writeDialogAnimatedDemo = (
   model: Model,
-  nextDialogAnimatedDemo: Dialog.Model,
+  nextDialogAnimatedDemo: typeof Dialog.Model.Type,
 ): Model =>
   modifyFields(model, { dialogAnimatedDemo: () => nextDialogAnimatedDemo })
 
-const toGotDialogAnimatedDemoMessage = (message: Dialog.Message): Message =>
-  Message.GotDialogAnimatedDemoMessage({ message })
+const toGotDialogAnimatedDemoMessage = (
+  message: typeof Dialog.Message.Type,
+): Message => Message.GotDialogAnimatedDemoMessage({ message })
 
-const foldDialogAnimatedDemo = Update.foldChild({
-  update: Dialog.update,
+export const dialogAnimatedDemo = Dialog.block.connection({
+  placement: 'dialog-animated-demo',
   read: readDialogAnimatedDemo,
   write: writeDialogAnimatedDemo,
   toParentMessage: toGotDialogAnimatedDemoMessage,
-  foldOutMessage: foldDialogOutMessage,
+  outMessage: { fold: foldDialogOutMessage },
 })
 
-const foldDialogAnimatedDemoOpen = Update.foldChildStep({
-  update: Dialog.open,
-  read: readDialogAnimatedDemo,
-  write: writeDialogAnimatedDemo,
-  toParentMessage: toGotDialogAnimatedDemoMessage,
-  foldOutMessage: foldDialogOutMessage,
-})
-
-const readOverlayDialogDemo = (model: Model): Option.Option<Dialog.Model> =>
+const readOverlayDialogDemo = (
+  model: Model,
+): Option.Option<typeof Dialog.Model.Type> =>
   Option.some(model.overlayDialogDemo)
 
 const writeOverlayDialogDemo = (
   model: Model,
-  nextOverlayDialogDemo: Dialog.Model,
+  nextOverlayDialogDemo: typeof Dialog.Model.Type,
 ): Model =>
   modifyFields(model, { overlayDialogDemo: () => nextOverlayDialogDemo })
 
-const toGotOverlayDialogDemoMessage = (message: Dialog.Message): Message =>
-  Message.GotOverlayDialogDemoMessage({ message })
+const toGotOverlayDialogDemoMessage = (
+  message: typeof Dialog.Message.Type,
+): Message => Message.GotOverlayDialogDemoMessage({ message })
 
-const foldOverlayDialogDemo = Update.foldChild({
-  update: Dialog.update,
+export const overlayDialogDemo = Dialog.block.connection({
+  placement: 'overlay-dialog-demo',
   read: readOverlayDialogDemo,
   write: writeOverlayDialogDemo,
   toParentMessage: toGotOverlayDialogDemoMessage,
-  foldOutMessage: foldDialogOutMessage,
+  outMessage: { fold: foldDialogOutMessage },
 })
 
-const foldOverlayDialogDemoOpen = Update.foldChildStep({
-  update: Dialog.open,
-  read: readOverlayDialogDemo,
-  write: writeOverlayDialogDemo,
-  toParentMessage: toGotOverlayDialogDemoMessage,
-  foldOutMessage: foldDialogOutMessage,
-})
-
-const foldOverlayComboboxDemoOutMessage = Combobox.OutMessage.match<
+const foldOverlayComboboxDemoOutMessage = CityCombobox.OutMessage.match<
   Update.Step<Model, Message>,
-  Combobox.OutMessage<City>
+  typeof CityCombobox.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -499,80 +454,66 @@ const foldOverlayComboboxDemoOutMessage = Combobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const foldOverlayComboboxDemo = Update.foldChild({
-  update: CityCombobox.update,
-  read: (model: Model) => Option.some(model.overlayComboboxDemo),
-  write: (model, nextOverlayComboboxDemo) =>
-    modifyFields(model, { overlayComboboxDemo: () => nextOverlayComboboxDemo }),
-  toParentMessage: message =>
-    Message.GotOverlayComboboxDemoMessage({ message }),
-  foldOutMessage: foldOverlayComboboxDemoOutMessage,
+export const overlayComboboxDemo = CityCombobox.connection({
+  Model,
+  field: 'overlayComboboxDemo',
+  parentMessage: Message.GotOverlayComboboxDemoMessage,
+  outMessage: { fold: foldOverlayComboboxDemoOutMessage },
 })
 
 const readNestedDialogParentDemo = (
   model: Model,
-): Option.Option<Dialog.Model> => Option.some(model.nestedDialogParentDemo)
+): Option.Option<typeof Dialog.Model.Type> =>
+  Option.some(model.nestedDialogParentDemo)
 
 const writeNestedDialogParentDemo = (
   model: Model,
-  nextNestedDialogParentDemo: Dialog.Model,
+  nextNestedDialogParentDemo: typeof Dialog.Model.Type,
 ): Model =>
   modifyFields(model, {
     nestedDialogParentDemo: () => nextNestedDialogParentDemo,
   })
 
-const toGotNestedDialogParentDemoMessage = (message: Dialog.Message): Message =>
-  Message.GotNestedDialogParentDemoMessage({ message })
+const toGotNestedDialogParentDemoMessage = (
+  message: typeof Dialog.Message.Type,
+): Message => Message.GotNestedDialogParentDemoMessage({ message })
 
-const foldNestedDialogParentDemo = Update.foldChild({
-  update: Dialog.update,
+export const nestedDialogParentDemo = Dialog.block.connection({
+  placement: 'nested-dialog-parent-demo',
   read: readNestedDialogParentDemo,
   write: writeNestedDialogParentDemo,
   toParentMessage: toGotNestedDialogParentDemoMessage,
-  foldOutMessage: foldDialogOutMessage,
+  outMessage: { fold: foldDialogOutMessage },
 })
 
-const foldNestedDialogParentDemoOpen = Update.foldChildStep({
-  update: Dialog.open,
-  read: readNestedDialogParentDemo,
-  write: writeNestedDialogParentDemo,
-  toParentMessage: toGotNestedDialogParentDemoMessage,
-  foldOutMessage: foldDialogOutMessage,
-})
-
-const readNestedDialogChildDemo = (model: Model): Option.Option<Dialog.Model> =>
+const readNestedDialogChildDemo = (
+  model: Model,
+): Option.Option<typeof Dialog.Model.Type> =>
   Option.some(model.nestedDialogChildDemo)
 
 const writeNestedDialogChildDemo = (
   model: Model,
-  nextNestedDialogChildDemo: Dialog.Model,
+  nextNestedDialogChildDemo: typeof Dialog.Model.Type,
 ): Model =>
   modifyFields(model, {
     nestedDialogChildDemo: () => nextNestedDialogChildDemo,
   })
 
-const toGotNestedDialogChildDemoMessage = (message: Dialog.Message): Message =>
-  Message.GotNestedDialogChildDemoMessage({ message })
+const toGotNestedDialogChildDemoMessage = (
+  message: typeof Dialog.Message.Type,
+): Message => Message.GotNestedDialogChildDemoMessage({ message })
 
-const foldNestedDialogChildDemo = Update.foldChild({
-  update: Dialog.update,
+export const nestedDialogChildDemo = Dialog.block.connection({
+  placement: 'nested-dialog-child-demo',
   read: readNestedDialogChildDemo,
   write: writeNestedDialogChildDemo,
   toParentMessage: toGotNestedDialogChildDemoMessage,
-  foldOutMessage: foldDialogOutMessage,
+  outMessage: { fold: foldDialogOutMessage },
 })
 
-const foldNestedDialogChildDemoOpen = Update.foldChildStep({
-  update: Dialog.open,
-  read: readNestedDialogChildDemo,
-  write: writeNestedDialogChildDemo,
-  toParentMessage: toGotNestedDialogChildDemoMessage,
-  foldOutMessage: foldDialogOutMessage,
-})
-
-const foldListboxDemoOutMessage = Listbox.OutMessage.match<
+const foldListboxDemoOutMessage = ItemListbox.OutMessage.match<
   Update.Step<Model, Message>,
-  Listbox.OutMessage<ListboxItem>
+  typeof ItemListbox.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -583,18 +524,16 @@ const foldListboxDemoOutMessage = Listbox.OutMessage.match<
     }),
 })
 
-const foldListboxDemo = Update.foldChild({
-  update: ItemListbox.update,
-  read: (model: Model) => Option.some(model.listboxDemo),
-  write: (model, nextListboxDemo) =>
-    modifyFields(model, { listboxDemo: () => nextListboxDemo }),
-  toParentMessage: message => Message.GotListboxDemoMessage({ message }),
-  foldOutMessage: foldListboxDemoOutMessage,
+export const listboxDemo = ItemListbox.connection({
+  Model,
+  field: 'listboxDemo',
+  parentMessage: Message.GotListboxDemoMessage,
+  outMessage: { fold: foldListboxDemoOutMessage },
 })
 
-const foldListboxMultiDemoOutMessage = Listbox.OutMessage.match<
+const foldListboxMultiDemoOutMessage = ItemMultiListbox.OutMessage.match<
   Update.Step<Model, Message>,
-  Listbox.OutMessage<ListboxItem>
+  typeof ItemMultiListbox.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -611,17 +550,16 @@ const foldListboxMultiDemoOutMessage = Listbox.OutMessage.match<
     }),
 })
 
-const foldListboxMultiDemo = Update.foldChild({
-  update: ItemMultiListbox.update,
-  read: (model: Model) => Option.some(model.listboxMultiDemo),
-  write: (model, nextListboxMultiDemo) =>
-    modifyFields(model, { listboxMultiDemo: () => nextListboxMultiDemo }),
-  toParentMessage: message => Message.GotListboxMultiDemoMessage({ message }),
-  foldOutMessage: foldListboxMultiDemoOutMessage,
+export const listboxMultiDemo = ItemMultiListbox.connection({
+  Model,
+  field: 'listboxMultiDemo',
+  parentMessage: Message.GotListboxMultiDemoMessage,
+  outMessage: { fold: foldListboxMultiDemoOutMessage },
 })
 
-const foldListboxGroupedDemoOutMessage = Listbox.OutMessage.match<
-  Update.Step<Model, Message>
+const foldListboxGroupedDemoOutMessage = CharacterListbox.OutMessage.match<
+  Update.Step<Model, Message>,
+  typeof CharacterListbox.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -632,83 +570,60 @@ const foldListboxGroupedDemoOutMessage = Listbox.OutMessage.match<
     }),
 })
 
-const foldListboxGroupedDemo = Update.foldChild({
-  update: CharacterListbox.update,
-  read: (model: Model) => Option.some(model.listboxGroupedDemo),
-  write: (model, nextListboxGroupedDemo) =>
-    modifyFields(model, { listboxGroupedDemo: () => nextListboxGroupedDemo }),
-  toParentMessage: message => Message.GotListboxGroupedDemoMessage({ message }),
-  foldOutMessage: foldListboxGroupedDemoOutMessage,
+export const listboxGroupedDemo = CharacterListbox.connection({
+  Model,
+  field: 'listboxGroupedDemo',
+  parentMessage: Message.GotListboxGroupedDemoMessage,
+  outMessage: { fold: foldListboxGroupedDemoOutMessage },
 })
 
-const foldMenuBasicDemo = Update.foldChild({
-  update: DemoMenu.update,
-  read: (model: Model) => Option.some(model.menuBasicDemo),
-  write: (model, nextMenuBasicDemo) =>
-    modifyFields(model, { menuBasicDemo: () => nextMenuBasicDemo }),
-  toParentMessage: message => Message.GotMenuBasicDemoMessage({ message }),
-  foldOutMessage: foldMenuOutMessage,
+export const menuBasicDemo = DemoMenu.connection({
+  Model,
+  field: 'menuBasicDemo',
+  parentMessage: Message.GotMenuBasicDemoMessage,
+  outMessage: { fold: foldMenuOutMessage },
 })
 
-const foldMenuAnimatedDemo = Update.foldChild({
-  update: DemoMenu.update,
-  read: (model: Model) => Option.some(model.menuAnimatedDemo),
-  write: (model, nextMenuAnimatedDemo) =>
-    modifyFields(model, { menuAnimatedDemo: () => nextMenuAnimatedDemo }),
-  toParentMessage: message => Message.GotMenuAnimatedDemoMessage({ message }),
-  foldOutMessage: foldMenuOutMessage,
+export const menuAnimatedDemo = DemoMenu.connection({
+  Model,
+  field: 'menuAnimatedDemo',
+  parentMessage: Message.GotMenuAnimatedDemoMessage,
+  outMessage: { fold: foldMenuOutMessage },
 })
 
-const foldPopoverBasicDemo = Update.foldChild({
-  update: Popover.update,
-  read: (model: Model) => Option.some(model.popoverBasicDemo),
-  write: (model, nextPopoverBasicDemo) =>
-    modifyFields(model, { popoverBasicDemo: () => nextPopoverBasicDemo }),
-  toParentMessage: message => Message.GotPopoverBasicDemoMessage({ message }),
-  foldOutMessage: foldPopoverOutMessage,
+export const popoverBasicDemo = Popover.block.connection({
+  Model,
+  field: 'popoverBasicDemo',
+  parentMessage: Message.GotPopoverBasicDemoMessage,
+  outMessage: { fold: foldPopoverOutMessage },
 })
 
-const foldPopoverAnimatedDemo = Update.foldChild({
-  update: Popover.update,
-  read: (model: Model) => Option.some(model.popoverAnimatedDemo),
-  write: (model, nextPopoverAnimatedDemo) =>
-    modifyFields(model, { popoverAnimatedDemo: () => nextPopoverAnimatedDemo }),
-  toParentMessage: message =>
-    Message.GotPopoverAnimatedDemoMessage({ message }),
-  foldOutMessage: foldPopoverOutMessage,
+export const popoverAnimatedDemo = Popover.block.connection({
+  Model,
+  field: 'popoverAnimatedDemo',
+  parentMessage: Message.GotPopoverAnimatedDemoMessage,
+  outMessage: { fold: foldPopoverOutMessage },
 })
 
-const foldPopoverArrowDemo = Update.foldChild({
-  update: Popover.update,
-  read: (model: Model) => Option.some(model.popoverArrowDemo),
-  write: (model, nextPopoverArrowDemo) =>
-    modifyFields(model, { popoverArrowDemo: () => nextPopoverArrowDemo }),
-  toParentMessage: message => Message.GotPopoverArrowDemoMessage({ message }),
-  foldOutMessage: foldPopoverOutMessage,
+export const popoverArrowDemo = Popover.block.connection({
+  Model,
+  field: 'popoverArrowDemo',
+  parentMessage: Message.GotPopoverArrowDemoMessage,
+  outMessage: { fold: foldPopoverOutMessage },
 })
 
-const foldPopoverNestedParentDemo = Update.foldChild({
-  update: Popover.update,
-  read: (model: Model) => Option.some(model.popoverNestedParentDemo),
-  write: (model, nextPopoverNestedParentDemo) =>
-    modifyFields(model, {
-      popoverNestedParentDemo: () => nextPopoverNestedParentDemo,
-    }),
-  toParentMessage: message =>
-    Message.GotPopoverNestedParentDemoMessage({ message }),
-  foldOutMessage: foldPopoverOutMessage,
+export const popoverNestedParentDemo = Popover.block.connection({
+  Model,
+  field: 'popoverNestedParentDemo',
+  parentMessage: Message.GotPopoverNestedParentDemoMessage,
+  outMessage: { fold: foldPopoverOutMessage },
 })
 
-const foldPopoverNestedChildDemo = Update.foldChild({
-  update: Popover.update,
-  read: (model: Model) => Option.some(model.popoverNestedChildDemo),
-  write: (model, nextPopoverNestedChildDemo) =>
-    modifyFields(model, {
-      popoverNestedChildDemo: () => nextPopoverNestedChildDemo,
-    }),
-  toParentMessage: message =>
-    Message.GotPopoverNestedChildDemoMessage({ message }),
-  foldOutMessage: foldPopoverOutMessage,
+export const popoverNestedChildDemo = Popover.block.connection({
+  Model,
+  field: 'popoverNestedChildDemo',
+  parentMessage: Message.GotPopoverNestedChildDemoMessage,
+  outMessage: { fold: foldPopoverOutMessage },
 })
 
 const foldSliderRatingDemoOutMessage = Slider.OutMessage.match<
@@ -721,13 +636,11 @@ const foldSliderRatingDemoOutMessage = Slider.OutMessage.match<
     }),
 })
 
-const foldSliderRatingDemo = Update.foldChild({
-  update: Slider.update,
-  read: (model: Model) => Option.some(model.sliderRatingDemo),
-  write: (model, nextSliderRatingDemo) =>
-    modifyFields(model, { sliderRatingDemo: () => nextSliderRatingDemo }),
-  toParentMessage: message => Message.GotSliderRatingDemoMessage({ message }),
-  foldOutMessage: foldSliderRatingDemoOutMessage,
+export const sliderRatingDemo = Slider.block.connection({
+  Model,
+  field: 'sliderRatingDemo',
+  parentMessage: Message.GotSliderRatingDemoMessage,
+  outMessage: { fold: foldSliderRatingDemoOutMessage },
 })
 
 const foldSliderVolumeDemoOutMessage = Slider.OutMessage.match<
@@ -740,18 +653,16 @@ const foldSliderVolumeDemoOutMessage = Slider.OutMessage.match<
     }),
 })
 
-const foldSliderVolumeDemo = Update.foldChild({
-  update: Slider.update,
-  read: (model: Model) => Option.some(model.sliderVolumeDemo),
-  write: (model, nextSliderVolumeDemo) =>
-    modifyFields(model, { sliderVolumeDemo: () => nextSliderVolumeDemo }),
-  toParentMessage: message => Message.GotSliderVolumeDemoMessage({ message }),
-  foldOutMessage: foldSliderVolumeDemoOutMessage,
+export const sliderVolumeDemo = Slider.block.connection({
+  Model,
+  field: 'sliderVolumeDemo',
+  parentMessage: Message.GotSliderVolumeDemoMessage,
+  outMessage: { fold: foldSliderVolumeDemoOutMessage },
 })
 
-const foldHorizontalTabsDemoOutMessage = Tabs.OutMessage.match<
+const foldHorizontalTabsDemoOutMessage = DemoTabs.OutMessage.match<
   Update.Step<Model, Message>,
-  Tabs.OutMessage<DemoTab>
+  typeof DemoTabs.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -760,18 +671,16 @@ const foldHorizontalTabsDemoOutMessage = Tabs.OutMessage.match<
     }),
 })
 
-const foldHorizontalTabsDemo = Update.foldChild({
-  update: DemoTabs.update,
-  read: (model: Model) => Option.some(model.horizontalTabsDemo),
-  write: (model, nextHorizontalTabsDemo) =>
-    modifyFields(model, { horizontalTabsDemo: () => nextHorizontalTabsDemo }),
-  toParentMessage: message => Message.GotHorizontalTabsDemoMessage({ message }),
-  foldOutMessage: foldHorizontalTabsDemoOutMessage,
+export const horizontalTabsDemo = DemoTabs.connection({
+  Model,
+  field: 'horizontalTabsDemo',
+  parentMessage: Message.GotHorizontalTabsDemoMessage,
+  outMessage: { fold: foldHorizontalTabsDemoOutMessage },
 })
 
-const foldVerticalTabsDemoOutMessage = Tabs.OutMessage.match<
+const foldVerticalTabsDemoOutMessage = DemoTabs.OutMessage.match<
   Update.Step<Model, Message>,
-  Tabs.OutMessage<DemoTab>
+  typeof DemoTabs.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -780,13 +689,11 @@ const foldVerticalTabsDemoOutMessage = Tabs.OutMessage.match<
     }),
 })
 
-const foldVerticalTabsDemo = Update.foldChild({
-  update: DemoTabs.update,
-  read: (model: Model) => Option.some(model.verticalTabsDemo),
-  write: (model, nextVerticalTabsDemo) =>
-    modifyFields(model, { verticalTabsDemo: () => nextVerticalTabsDemo }),
-  toParentMessage: message => Message.GotVerticalTabsDemoMessage({ message }),
-  foldOutMessage: foldVerticalTabsDemoOutMessage,
+export const verticalTabsDemo = DemoTabs.connection({
+  Model,
+  field: 'verticalTabsDemo',
+  parentMessage: Message.GotVerticalTabsDemoMessage,
+  outMessage: { fold: foldVerticalTabsDemoOutMessage },
 })
 
 const foldTooltipOutMessage = Tooltip.OutMessage.match<
@@ -796,13 +703,11 @@ const foldTooltipOutMessage = Tooltip.OutMessage.match<
   Hidden: () => model => ({ model }),
 })
 
-const foldTooltipDemo = Update.foldChild({
-  update: Tooltip.update,
-  read: (model: Model) => Option.some(model.tooltipDemo),
-  write: (model, nextTooltipDemo) =>
-    modifyFields(model, { tooltipDemo: () => nextTooltipDemo }),
-  toParentMessage: message => Message.GotTooltipDemoMessage({ message }),
-  foldOutMessage: foldTooltipOutMessage,
+export const tooltipDemo = Tooltip.block.connection({
+  Model,
+  field: 'tooltipDemo',
+  parentMessage: Message.GotTooltipDemoMessage,
+  outMessage: { fold: foldTooltipOutMessage },
 })
 
 const foldHoverIntentOutMessage = HoverIntent.OutMessage.match<
@@ -812,44 +717,34 @@ const foldHoverIntentOutMessage = HoverIntent.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const foldHoverIntentCardDemo = Update.foldChild({
-  update: HoverIntent.update,
-  read: (model: Model) => Option.some(model.hoverIntentCardDemo),
-  write: (model, nextHoverIntentCardDemo) =>
-    modifyFields(model, { hoverIntentCardDemo: () => nextHoverIntentCardDemo }),
-  toParentMessage: message =>
-    Message.GotHoverIntentCardDemoMessage({ message }),
-  foldOutMessage: foldHoverIntentOutMessage,
+export const hoverIntentCardDemo = HoverIntent.block.connection({
+  Model,
+  field: 'hoverIntentCardDemo',
+  parentMessage: Message.GotHoverIntentCardDemoMessage,
+  outMessage: { fold: foldHoverIntentOutMessage },
 })
 
 const readHoverIntentMenuDemo = (
   model: Model,
-): Option.Option<HoverIntent.Model> => Option.some(model.hoverIntentMenuDemo)
+): Option.Option<typeof HoverIntent.Model.Type> =>
+  Option.some(model.hoverIntentMenuDemo)
 
 const writeHoverIntentMenuDemo = (
   model: Model,
-  nextHoverIntentMenuDemo: HoverIntent.Model,
+  nextHoverIntentMenuDemo: typeof HoverIntent.Model.Type,
 ): Model =>
   modifyFields(model, { hoverIntentMenuDemo: () => nextHoverIntentMenuDemo })
 
 const toGotHoverIntentMenuDemoMessage = (
-  message: HoverIntent.Message,
+  message: typeof HoverIntent.Message.Type,
 ): Message => Message.GotHoverIntentMenuDemoMessage({ message })
 
-const foldHoverIntentMenuDemo = Update.foldChild({
-  update: HoverIntent.update,
+export const hoverIntentMenuDemo = HoverIntent.block.connection({
+  placement: 'hover-intent-menu-demo',
   read: readHoverIntentMenuDemo,
   write: writeHoverIntentMenuDemo,
   toParentMessage: toGotHoverIntentMenuDemoMessage,
-  foldOutMessage: foldHoverIntentOutMessage,
-})
-
-const foldHoverIntentMenuDemoClose = Update.foldChildStep({
-  update: HoverIntent.close,
-  read: readHoverIntentMenuDemo,
-  write: writeHoverIntentMenuDemo,
-  toParentMessage: toGotHoverIntentMenuDemoMessage,
-  foldOutMessage: foldHoverIntentOutMessage,
+  outMessage: { fold: foldHoverIntentOutMessage },
 })
 
 const foldToastDemoOutMessage = Toast.OutMessage.match<
@@ -875,68 +770,32 @@ const writeToastDemo = (
 const toGotToastDemoMessage = (message: typeof Toast.Message.Type): Message =>
   Message.GotToastDemoMessage({ message })
 
-const foldToastDemo = Update.foldChild({
-  update: Toast.update,
+export const toastDemo = Toast.connection({
+  placement: 'toast-demo',
   read: readToastDemo,
   write: writeToastDemo,
   toParentMessage: toGotToastDemoMessage,
-  foldOutMessage: foldToastDemoOutMessage,
-})
-
-const foldToastDemoShow = Update.foldChild({
-  update: Toast.show,
-  read: readToastDemo,
-  write: writeToastDemo,
-  toParentMessage: toGotToastDemoMessage,
-  foldOutMessage: foldToastDemoOutMessage,
-})
-
-const foldToastDemoDismissAll = Update.foldChildStep({
-  update: Toast.dismissAll,
-  read: readToastDemo,
-  write: writeToastDemo,
-  toParentMessage: toGotToastDemoMessage,
-  foldOutMessage: foldToastDemoOutMessage,
+  outMessage: { fold: foldToastDemoOutMessage },
 })
 
 const foldAnimationDemoOutMessage = (
-  outMessage: Animation.OutMessage,
-  { liftCommand }: Update.FoldContext<Animation.Message, Message>,
+  outMessage: typeof Animation.OutMessage.Type,
+  { liftCommand }: Update.FoldContext<typeof Animation.Message.Type, Message>,
 ) =>
   Animation.OutMessage.match(outMessage, {
     StartedLeaveAnimating: () =>
-      Update.defineStep((model: Model) => ({
+      Ui.step(model => ({
         model,
-        commands: [
-          liftCommand(Animation.defaultLeaveCommand(model.animationDemo)),
-        ],
+        commands: [liftCommand(defaultLeaveCommand(model.animationDemo))],
       })),
-    TransitionedOut: () => Update.defineStep((model: Model) => ({ model })),
+    TransitionedOut: () => Ui.step(model => ({ model })),
   })
 
-const foldAnimationDemo = Update.foldChild({
-  update: Animation.update,
-  read: (model: Model) => Option.some(model.animationDemo),
-  write: (model, nextAnimationDemo) =>
-    modifyFields(model, { animationDemo: () => nextAnimationDemo }),
-  toParentMessage: message => Message.GotAnimationDemoMessage({ message }),
-  foldOutMessage: foldAnimationDemoOutMessage,
-})
-
-const foldAnimationDemoShow = Update.foldChildStep({
-  update: Animation.show,
-  read: (model: Model) => Option.some(model.animationDemo),
-  write: (model, nextAnimationDemo) =>
-    modifyFields(model, { animationDemo: () => nextAnimationDemo }),
-  toParentMessage: message => Message.GotAnimationDemoMessage({ message }),
-})
-
-const foldAnimationDemoHide = Update.foldChildStep({
-  update: Animation.hide,
-  read: (model: Model) => Option.some(model.animationDemo),
-  write: (model, nextAnimationDemo) =>
-    modifyFields(model, { animationDemo: () => nextAnimationDemo }),
-  toParentMessage: message => Message.GotAnimationDemoMessage({ message }),
+export const animationDemo = Animation.block.connection({
+  Model,
+  field: 'animationDemo',
+  parentMessage: Message.GotAnimationDemoMessage,
+  outMessage: { fold: foldAnimationDemoOutMessage },
 })
 
 const foldFileDropBasicDemoOutMessage = FileDrop.OutMessage.match<
@@ -952,13 +811,11 @@ const foldFileDropBasicDemoOutMessage = FileDrop.OutMessage.match<
   RejectedNonFiles: () => model => ({ model }),
 })
 
-const foldFileDropBasicDemo = Update.foldChild({
-  update: FileDrop.update,
-  read: (model: Model) => Option.some(model.fileDropBasicDemo),
-  write: (model, nextFileDropBasicDemo) =>
-    modifyFields(model, { fileDropBasicDemo: () => nextFileDropBasicDemo }),
-  toParentMessage: message => Message.GotFileDropBasicDemoMessage({ message }),
-  foldOutMessage: foldFileDropBasicDemoOutMessage,
+export const fileDropBasicDemo = FileDrop.block.connection({
+  Model,
+  field: 'fileDropBasicDemo',
+  parentMessage: Message.GotFileDropBasicDemoMessage,
+  outMessage: { fold: foldFileDropBasicDemoOutMessage },
 })
 
 const foldDragAndDropDemoOutMessage = DragAndDrop.OutMessage.match<
@@ -1007,8 +864,8 @@ const foldDragAndDropDemoOutMessage = DragAndDrop.OutMessage.match<
   }),
 })
 
-const foldDragAndDropDemo = Update.foldChild({
-  update: DragAndDrop.update,
+export const dragAndDropDemo = DragAndDrop.block.connection({
+  placement: 'drag-and-drop-demo',
   read: (model: Model) => Option.some(model.dragAndDropDemo),
   write: (model, nextDragAndDropDemo) =>
     modifyFields(model, {
@@ -1022,80 +879,29 @@ const foldDragAndDropDemo = Update.foldChild({
           },
         ),
     }),
-  toParentMessage: message => Message.GotDragAndDropDemoMessage({ message }),
-  foldOutMessage: foldDragAndDropDemoOutMessage,
+  parentMessage: Message.GotDragAndDropDemoMessage,
+  outMessage: { fold: foldDragAndDropDemoOutMessage },
 })
 
-const foldVirtualListDemo = Update.foldChild({
-  update: VirtualList.update,
-  read: (model: Model) => Option.some(model.virtualListDemo),
-  write: (model, nextVirtualListDemo) =>
-    modifyFields(model, { virtualListDemo: () => nextVirtualListDemo }),
-  toParentMessage: message => Message.GotVirtualListDemoMessage({ message }),
+const ActivityVirtualList = VirtualList.create<Activity>()
+const ChatVirtualList = VirtualList.create<VirtualListChatMessage>()
+
+export const virtualListDemo = ActivityVirtualList.connection({
+  Model,
+  field: 'virtualListDemo',
+  parentMessage: Message.GotVirtualListDemoMessage,
 })
 
-const foldVirtualListDemoScrollToIndex = Update.foldChild({
-  update: VirtualList.scrollToIndex,
-  read: (model: Model) => Option.some(model.virtualListDemo),
-  write: (model, nextVirtualListDemo) =>
-    modifyFields(model, { virtualListDemo: () => nextVirtualListDemo }),
-  toParentMessage: message => Message.GotVirtualListDemoMessage({ message }),
+export const virtualListVariableDemo = ActivityVirtualList.connection({
+  Model,
+  field: 'virtualListVariableDemo',
+  parentMessage: Message.GotVirtualListVariableDemoMessage,
 })
 
-const foldVirtualListVariableDemo = Update.foldChild({
-  update: VirtualList.update,
-  read: (model: Model) => Option.some(model.virtualListVariableDemo),
-  write: (model, nextVirtualListVariableDemo) =>
-    modifyFields(model, {
-      virtualListVariableDemo: () => nextVirtualListVariableDemo,
-    }),
-  toParentMessage: message =>
-    Message.GotVirtualListVariableDemoMessage({ message }),
-})
-
-const foldVirtualListVariableDemoScrollToIndex = Update.foldChild({
-  update: VirtualList.scrollToIndex,
-  read: (model: Model) => Option.some(model.virtualListVariableDemo),
-  write: (model, nextVirtualListVariableDemo) =>
-    modifyFields(model, {
-      virtualListVariableDemo: () => nextVirtualListVariableDemo,
-    }),
-  toParentMessage: message =>
-    Message.GotVirtualListVariableDemoMessage({ message }),
-})
-
-const foldVirtualListChatDemo = Update.foldChild({
-  update: VirtualList.update,
-  read: (model: Model) => Option.some(model.virtualListChatDemo),
-  write: (model, nextVirtualListChatDemo) =>
-    modifyFields(model, {
-      virtualListChatDemo: () => nextVirtualListChatDemo,
-    }),
-  toParentMessage: message =>
-    Message.GotVirtualListChatDemoMessage({ message }),
-})
-
-const foldVirtualListChatItemsChanged = Update.foldChild({
-  update: VirtualList.informItemsChanged,
-  read: (model: Model) => Option.some(model.virtualListChatDemo),
-  write: (model, nextVirtualListChatDemo) =>
-    modifyFields(model, {
-      virtualListChatDemo: () => nextVirtualListChatDemo,
-    }),
-  toParentMessage: message =>
-    Message.GotVirtualListChatDemoMessage({ message }),
-})
-
-const foldVirtualListChatScrollToKey = Update.foldChild({
-  update: (virtualListModel: VirtualList.Model, key: string) =>
-    VirtualList.scrollToKey(virtualListModel, key, { alignment: 'Center' }),
-  read: (model: Model) => Option.some(model.virtualListChatDemo),
-  write: (model, nextVirtualListChatDemo) =>
-    modifyFields(model, {
-      virtualListChatDemo: () => nextVirtualListChatDemo,
-    }),
-  toParentMessage: message =>
-    Message.GotVirtualListChatDemoMessage({ message }),
+export const virtualListChatDemo = ChatVirtualList.connection({
+  Model,
+  field: 'virtualListChatDemo',
+  parentMessage: Message.GotVirtualListChatDemoMessage,
 })
 
 const VIRTUAL_LIST_CHAT_START_THRESHOLD_PX = 48
@@ -1110,10 +916,9 @@ const updateVirtualListChatMessages = (
     virtualListChatMessages: () => nextMessages,
     virtualListChatNextId: () => nextId,
   })
-  return foldVirtualListChatItemsChanged(
-    nextModel,
+  return virtualListChatDemo.informItemsChanged(
     Array.map(nextMessages, message => globalThis.String(message.id)),
-  )
+  )(nextModel)
 }
 
 const prependVirtualListChatMessages = (model: Model) => {
@@ -1162,9 +967,9 @@ const prependVirtualListChatMessagesOnStartThresholdEntry =
 
 // UPDATE
 
-const foldVerticalRadioGroupDemoOutMessage = RadioGroup.OutMessage.match<
+const foldVerticalRadioGroupDemoOutMessage = PlanRadioGroup.OutMessage.match<
   Update.Step<Model, Message>,
-  RadioGroup.OutMessage<Plan>
+  typeof PlanRadioGroup.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -1175,21 +980,16 @@ const foldVerticalRadioGroupDemoOutMessage = RadioGroup.OutMessage.match<
     }),
 })
 
-const foldVerticalRadioGroupDemo = Update.foldChild({
-  update: PlanRadioGroup.update,
-  read: (model: Model) => Option.some(model.verticalRadioGroupDemo),
-  write: (model, nextVerticalRadioGroupDemo) =>
-    modifyFields(model, {
-      verticalRadioGroupDemo: () => nextVerticalRadioGroupDemo,
-    }),
-  toParentMessage: message =>
-    Message.GotVerticalRadioGroupDemoMessage({ message }),
-  foldOutMessage: foldVerticalRadioGroupDemoOutMessage,
+export const verticalRadioGroupDemo = PlanRadioGroup.connection({
+  Model,
+  field: 'verticalRadioGroupDemo',
+  parentMessage: Message.GotVerticalRadioGroupDemoMessage,
+  outMessage: { fold: foldVerticalRadioGroupDemoOutMessage },
 })
 
-const foldHorizontalRadioGroupDemoOutMessage = RadioGroup.OutMessage.match<
+const foldHorizontalRadioGroupDemoOutMessage = PlanRadioGroup.OutMessage.match<
   Update.Step<Model, Message>,
-  RadioGroup.OutMessage<Plan>
+  typeof PlanRadioGroup.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -1200,19 +1000,58 @@ const foldHorizontalRadioGroupDemoOutMessage = RadioGroup.OutMessage.match<
     }),
 })
 
-const foldHorizontalRadioGroupDemo = Update.foldChild({
-  update: PlanRadioGroup.update,
-  read: (model: Model) => Option.some(model.horizontalRadioGroupDemo),
-  write: (model, nextHorizontalRadioGroupDemo) =>
-    modifyFields(model, {
-      horizontalRadioGroupDemo: () => nextHorizontalRadioGroupDemo,
-    }),
-  toParentMessage: message =>
-    Message.GotHorizontalRadioGroupDemoMessage({ message }),
-  foldOutMessage: foldHorizontalRadioGroupDemoOutMessage,
+export const horizontalRadioGroupDemo = PlanRadioGroup.connection({
+  Model,
+  field: 'horizontalRadioGroupDemo',
+  parentMessage: Message.GotHorizontalRadioGroupDemoMessage,
+  outMessage: { fold: foldHorizontalRadioGroupDemoOutMessage },
 })
 
-export const update = Update.define((model: Model, message: Message) =>
+export const ui = Ui.register({
+  children: [
+    animationDemo,
+    calendarBasicDemo,
+    comboboxDemo,
+    comboboxMultiDemo,
+    comboboxNullableDemo,
+    comboboxPlacementLockDemo,
+    comboboxSelectOnFocusDemo,
+    datePickerBasicDemo,
+    dialogAnimatedDemo,
+    dialogDemo,
+    dragAndDropDemo,
+    fileDropBasicDemo,
+    horizontalRadioGroupDemo,
+    horizontalTabsDemo,
+    hoverIntentCardDemo,
+    hoverIntentMenuDemo,
+    listboxDemo,
+    listboxGroupedDemo,
+    listboxMultiDemo,
+    menuAnimatedDemo,
+    menuBasicDemo,
+    nestedDialogChildDemo,
+    nestedDialogParentDemo,
+    overlayComboboxDemo,
+    overlayDialogDemo,
+    popoverAnimatedDemo,
+    popoverArrowDemo,
+    popoverBasicDemo,
+    popoverNestedChildDemo,
+    popoverNestedParentDemo,
+    sliderRatingDemo,
+    sliderVolumeDemo,
+    toastDemo,
+    tooltipDemo,
+    verticalRadioGroupDemo,
+    verticalTabsDemo,
+    virtualListChatDemo,
+    virtualListDemo,
+    virtualListVariableDemo,
+  ],
+})
+
+export const update = Ui.update((model, message) =>
   Message.match(message, {
     UpdatedInputDemoValue: ({ value }) => ({
       model: modifyFields(model, { inputDemoValue: () => value }),
@@ -1247,10 +1086,10 @@ export const update = Update.define((model: Model, message: Message) =>
     }),
 
     GotCalendarBasicDemoMessage: ({ message }) =>
-      foldCalendarBasicDemo(model, message),
+      calendarBasicDemo.fold(model, message),
 
     GotDatePickerBasicDemoMessage: ({ message }) =>
-      foldDatePickerBasicDemo(model, message),
+      datePickerBasicDemo.fold(model, message),
 
     ToggledCheckboxBasicDemo: ({ isChecked }) => ({
       model: modifyFields(model, {
@@ -1277,46 +1116,46 @@ export const update = Update.define((model: Model, message: Message) =>
       }),
     }),
 
-    GotComboboxDemoMessage: ({ message }) => foldComboboxDemo(model, message),
+    GotComboboxDemoMessage: ({ message }) => comboboxDemo.fold(model, message),
 
     GotComboboxPlacementLockDemoMessage: ({ message }) =>
-      foldComboboxPlacementLockDemo(model, message),
+      comboboxPlacementLockDemo.fold(model, message),
 
     GotComboboxNullableDemoMessage: ({ message }) =>
-      foldComboboxNullableDemo(model, message),
+      comboboxNullableDemo.fold(model, message),
 
     GotComboboxMultiDemoMessage: ({ message }) =>
-      foldComboboxMultiDemo(model, message),
+      comboboxMultiDemo.fold(model, message),
 
     GotComboboxSelectOnFocusDemoMessage: ({ message }) =>
-      foldComboboxSelectOnFocusDemo(model, message),
+      comboboxSelectOnFocusDemo.fold(model, message),
 
-    GotDialogDemoMessage: ({ message }) => foldDialogDemo(model, message),
+    GotDialogDemoMessage: ({ message }) => dialogDemo.fold(model, message),
 
     GotDialogAnimatedDemoMessage: ({ message }) =>
-      foldDialogAnimatedDemo(model, message),
+      dialogAnimatedDemo.fold(model, message),
 
     GotOverlayDialogDemoMessage: ({ message }) =>
-      foldOverlayDialogDemo(model, message),
+      overlayDialogDemo.fold(model, message),
 
     GotOverlayComboboxDemoMessage: ({ message }) =>
-      foldOverlayComboboxDemo(model, message),
+      overlayComboboxDemo.fold(model, message),
 
     GotNestedDialogParentDemoMessage: ({ message }) =>
-      foldNestedDialogParentDemo(model, message),
+      nestedDialogParentDemo.fold(model, message),
 
     GotNestedDialogChildDemoMessage: ({ message }) =>
-      foldNestedDialogChildDemo(model, message),
+      nestedDialogChildDemo.fold(model, message),
 
-    ClickedDeleteProject: () => foldNestedDialogChildDemoOpen(model),
+    ClickedDeleteProject: () => nestedDialogChildDemo.open()(model),
 
-    ClickedOpenDialog: () => foldDialogDemoOpen(model),
+    ClickedOpenDialog: () => dialogDemo.open()(model),
 
-    ClickedOpenAnimatedDialog: () => foldDialogAnimatedDemoOpen(model),
+    ClickedOpenAnimatedDialog: () => dialogAnimatedDemo.open()(model),
 
-    ClickedEditFilters: () => foldOverlayDialogDemoOpen(model),
+    ClickedEditFilters: () => overlayDialogDemo.open()(model),
 
-    ClickedOpenProjectSettings: () => foldNestedDialogParentDemoOpen(model),
+    ClickedOpenProjectSettings: () => nestedDialogParentDemo.open()(model),
 
     ToggledDisclosureDemo: ({ isOpen }) => ({
       model: modifyFields(model, { isDisclosureDemoOpen: () => isOpen }),
@@ -1328,116 +1167,118 @@ export const update = Update.define((model: Model, message: Message) =>
       }),
     }),
 
-    GotListboxDemoMessage: ({ message }) => foldListboxDemo(model, message),
+    GotListboxDemoMessage: ({ message }) => listboxDemo.fold(model, message),
 
     GotListboxMultiDemoMessage: ({ message }) =>
-      foldListboxMultiDemo(model, message),
+      listboxMultiDemo.fold(model, message),
 
     GotListboxGroupedDemoMessage: ({ message }) =>
-      foldListboxGroupedDemo(model, message),
+      listboxGroupedDemo.fold(model, message),
 
-    GotMenuBasicDemoMessage: ({ message }) => foldMenuBasicDemo(model, message),
+    GotMenuBasicDemoMessage: ({ message }) =>
+      menuBasicDemo.fold(model, message),
 
     GotMenuAnimatedDemoMessage: ({ message }) =>
-      foldMenuAnimatedDemo(model, message),
+      menuAnimatedDemo.fold(model, message),
 
     GotPopoverBasicDemoMessage: ({ message }) =>
-      foldPopoverBasicDemo(model, message),
+      popoverBasicDemo.fold(model, message),
 
     GotPopoverAnimatedDemoMessage: ({ message }) =>
-      foldPopoverAnimatedDemo(model, message),
+      popoverAnimatedDemo.fold(model, message),
 
     GotPopoverArrowDemoMessage: ({ message }) =>
-      foldPopoverArrowDemo(model, message),
+      popoverArrowDemo.fold(model, message),
 
     GotPopoverNestedParentDemoMessage: ({ message }) =>
-      foldPopoverNestedParentDemo(model, message),
+      popoverNestedParentDemo.fold(model, message),
 
     GotPopoverNestedChildDemoMessage: ({ message }) =>
-      foldPopoverNestedChildDemo(model, message),
+      popoverNestedChildDemo.fold(model, message),
 
     GotVerticalRadioGroupDemoMessage: ({ message }) =>
-      foldVerticalRadioGroupDemo(model, message),
+      verticalRadioGroupDemo.fold(model, message),
 
     GotHorizontalRadioGroupDemoMessage: ({ message }) =>
-      foldHorizontalRadioGroupDemo(model, message),
+      horizontalRadioGroupDemo.fold(model, message),
 
     GotSliderRatingDemoMessage: ({ message }) =>
-      foldSliderRatingDemo(model, message),
+      sliderRatingDemo.fold(model, message),
 
     GotSliderVolumeDemoMessage: ({ message }) =>
-      foldSliderVolumeDemo(model, message),
+      sliderVolumeDemo.fold(model, message),
 
     ToggledSwitchDemo: ({ isChecked }) => ({
       model: modifyFields(model, { isSwitchDemoChecked: () => isChecked }),
     }),
 
     GotHorizontalTabsDemoMessage: ({ message }) =>
-      foldHorizontalTabsDemo(model, message),
+      horizontalTabsDemo.fold(model, message),
 
     GotVerticalTabsDemoMessage: ({ message }) =>
-      foldVerticalTabsDemo(model, message),
+      verticalTabsDemo.fold(model, message),
 
-    GotTooltipDemoMessage: ({ message }) => foldTooltipDemo(model, message),
+    GotTooltipDemoMessage: ({ message }) => tooltipDemo.fold(model, message),
 
     GotHoverIntentCardDemoMessage: ({ message }) =>
-      foldHoverIntentCardDemo(model, message),
+      hoverIntentCardDemo.fold(model, message),
 
     GotHoverIntentMenuDemoMessage: ({ message }) =>
-      foldHoverIntentMenuDemo(model, message),
+      hoverIntentMenuDemo.fold(model, message),
 
-    ClickedHoverIntentMenuItem: () => foldHoverIntentMenuDemoClose(model),
+    ClickedHoverIntentMenuItem: () => hoverIntentMenuDemo.close()(model),
 
-    GotToastDemoMessage: ({ message }) => foldToastDemo(model, message),
+    GotToastDemoMessage: ({ message }) => toastDemo.fold(model, message),
 
     ClickedShowInfoToast: () =>
-      foldToastDemoShow(model, {
+      toastDemo.show({
         variant: 'Info',
         payload: {
           title: 'Preferences updated',
           maybeDescription: Option.some('Your changes are saved.'),
         },
-      }),
+      })(model),
 
     ClickedShowSuccessToast: () =>
-      foldToastDemoShow(model, {
+      toastDemo.show({
         variant: 'Success',
         payload: {
           title: 'Uploaded',
           maybeDescription: Option.some('kit-manual.pdf is now available.'),
         },
-      }),
+      })(model),
 
     ClickedShowErrorToast: () =>
-      foldToastDemoShow(model, {
+      toastDemo.show({
         variant: 'Error',
         payload: {
           title: 'Save failed',
           maybeDescription: Option.some('Check your connection and try again.'),
         },
-      }),
+      })(model),
 
     ClickedShowStickyToast: () =>
-      foldToastDemoShow(model, {
+      toastDemo.show({
         variant: 'Info',
         payload: {
           title: 'Action required',
           maybeDescription: Option.some('Stays visible until dismissed.'),
         },
         sticky: true,
-      }),
+      })(model),
 
-    ClickedDismissAllToasts: () => foldToastDemoDismissAll(model),
+    ClickedDismissAllToasts: () => toastDemo.dismissAll()(model),
 
-    GotAnimationDemoMessage: ({ message }) => foldAnimationDemo(model, message),
+    GotAnimationDemoMessage: ({ message }) =>
+      animationDemo.fold(model, message),
 
     ClickedToggleAnimationDemo: () =>
       model.animationDemo.isShowing
-        ? foldAnimationDemoHide(model)
-        : foldAnimationDemoShow(model),
+        ? animationDemo.hide()(model)
+        : animationDemo.show()(model),
 
     GotFileDropBasicDemoMessage: ({ message }) =>
-      foldFileDropBasicDemo(model, message),
+      fileDropBasicDemo.fold(model, message),
 
     ClickedRemoveFileDropDemoFile: ({ fileIndex }) => ({
       model: modifyFields(model, {
@@ -1447,41 +1288,39 @@ export const update = Update.define((model: Model, message: Message) =>
     }),
 
     GotDragAndDropDemoMessage: ({ message }) =>
-      foldDragAndDropDemo(model, message),
+      dragAndDropDemo.fold(model, message),
 
     GotVirtualListDemoMessage: ({ message }) =>
-      foldVirtualListDemo(model, message),
+      virtualListDemo.fold(model, message),
 
     ClickedVirtualListScrollToMiddle: () =>
-      foldVirtualListDemoScrollToIndex(
+      virtualListDemo.scrollToIndex(Math.floor(VIRTUAL_LIST_ROW_COUNT / 2))(
         model,
-        Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
       ),
 
     GotVirtualListVariableDemoMessage: ({ message }) =>
-      foldVirtualListVariableDemo(model, message),
+      virtualListVariableDemo.fold(model, message),
 
     ClickedVirtualListVariableScrollToMiddle: () =>
-      foldVirtualListVariableDemoScrollToIndex(
-        model,
+      virtualListVariableDemo.scrollToIndex(
         Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
-      ),
+      )(model),
 
     GotVirtualListChatDemoMessage: ({ message }) =>
       Match.value(message).pipe(
         Match.tag('ObservedContainerScroll', ({ scrollTop }) =>
           Update.combine(model, [
-            foldVirtualListChatDemo(message),
+            stepModel => virtualListChatDemo.fold(stepModel, message),
             prependVirtualListChatMessagesOnStartThresholdEntry(scrollTop),
           ]),
         ),
-        Match.orElse(() => foldVirtualListChatDemo(model, message)),
+        Match.orElse(() => virtualListChatDemo.fold(model, message)),
       ),
 
     ClickedVirtualListChatPrepend: () => prependVirtualListChatMessages(model),
 
     ClickedVirtualListChatScrollToMessage: () =>
-      foldVirtualListChatScrollToKey(model, '7'),
+      virtualListChatDemo.scrollToKey('7', { alignment: 'Center' })(model),
 
     ClickedVirtualListChatAppend: () => {
       const nextId = model.virtualListChatNextId

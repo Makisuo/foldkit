@@ -11,8 +11,8 @@ import {
   Message,
   UnlockBodyScroll,
   update,
-} from './main'
-import { eiffelTower, initialModel, mountedModel } from './main.fixture'
+} from './application'
+import { eiffelTower, initialModel, mountedModel } from './application.fixture'
 
 test('mounting the map records the host id in the Model', () => {
   story(

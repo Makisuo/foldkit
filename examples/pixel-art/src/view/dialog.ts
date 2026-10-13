@@ -1,10 +1,17 @@
 import { Option } from 'effect'
-import type { Mount } from 'foldkit'
-import type { Html, HtmlBuilder } from 'foldkit/html'
+import type { HtmlBuilderOf } from 'foldkit/application'
+import type { Html } from 'foldkit/html'
 
 import { Button, Dialog } from '@foldkit/ui'
 
 import { Message } from '../message'
+import {
+  Application,
+  errorDialog as errorDialogBinding,
+  gridSizeConfirmDialog as gridSizeConfirmDialogBinding,
+} from '../update'
+
+type HtmlBuilder = HtmlBuilderOf<typeof Application>
 
 const dialogClassName =
   'bg-transparent p-0 open:flex items-center justify-center'
@@ -15,141 +22,148 @@ const panelClassName =
 export const errorDialogView = (
   errorDialog: typeof Dialog.Model.Type,
   maybeExportError: Option.Option<string>,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Dialog.mounts>>,
+  h: HtmlBuilder,
 ): Html =>
-  h.submodel({
-    slotId: errorDialog.id,
-    model: errorDialog,
-    view: Dialog.view,
-    viewInputs: {
-      hasDescription: true,
-      toView: ({
-        dialog,
-        backdrop,
-        panel,
-        closeButton,
-        title,
-        description,
-        isVisible,
-      }) =>
-        h.dialog(
-          [...dialog, h.Class(dialogClassName)],
-          isVisible
-            ? [
-                h.div([...backdrop, h.Class(backdropClassName)]),
-                h.div(
-                  [...panel, h.Class(panelClassName)],
-                  Option.match(maybeExportError, {
-                    onNone: () => [],
-                    onSome: error => [
-                      h.h2(
-                        [
-                          ...title,
-                          h.Class('text-lg font-semibold text-red-400 mb-2'),
-                        ],
-                        ['Export Failed'],
-                      ),
-                      h.p(
-                        [...description, h.Class('text-sm text-gray-400 mb-4')],
-                        [error],
-                      ),
-                      h.button(
-                        [
-                          ...closeButton,
-                          h.Class(
-                            'w-full px-4 py-2 bg-gray-800 text-gray-200 rounded hover:bg-gray-700 transition motion-reduce:transition-none cursor-pointer',
-                          ),
-                        ],
-                        ['Dismiss'],
-                      ),
-                    ],
-                  }),
-                ),
-              ]
-            : [],
-        ),
-    },
-    toParentMessage: message => Message.GotErrorDialogMessage({ message }),
-  })
+  h.block(
+    errorDialogBinding.embedView({
+      slotId: errorDialog.id,
+      model: errorDialog,
+      viewInputs: {
+        hasDescription: true,
+        toView: ({
+          dialog,
+          backdrop,
+          panel,
+          closeButton,
+          title,
+          description,
+          isVisible,
+        }) =>
+          h.dialog(
+            [...dialog, h.Class(dialogClassName)],
+            isVisible
+              ? [
+                  h.div([...backdrop, h.Class(backdropClassName)]),
+                  h.div(
+                    [...panel, h.Class(panelClassName)],
+                    Option.match(maybeExportError, {
+                      onNone: () => [],
+                      onSome: error => [
+                        h.h2(
+                          [
+                            ...title,
+                            h.Class('text-lg font-semibold text-red-400 mb-2'),
+                          ],
+                          ['Export Failed'],
+                        ),
+                        h.p(
+                          [
+                            ...description,
+                            h.Class('text-sm text-gray-400 mb-4'),
+                          ],
+                          [error],
+                        ),
+                        h.button(
+                          [
+                            ...closeButton,
+                            h.Class(
+                              'w-full px-4 py-2 bg-gray-800 text-gray-200 rounded hover:bg-gray-700 transition motion-reduce:transition-none cursor-pointer',
+                            ),
+                          ],
+                          ['Dismiss'],
+                        ),
+                      ],
+                    }),
+                  ),
+                ]
+              : [],
+          ),
+      },
+    }),
+  )
 
 export const gridSizeConfirmDialogView = (
   gridSizeConfirmDialog: typeof Dialog.Model.Type,
   maybePendingGridSize: Option.Option<number>,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Dialog.mounts>>,
+  h: HtmlBuilder,
 ): Html =>
-  h.submodel({
-    slotId: gridSizeConfirmDialog.id,
-    model: gridSizeConfirmDialog,
-    view: Dialog.view,
-    viewInputs: {
-      hasDescription: true,
-      toView: ({
-        dialog,
-        backdrop,
-        panel,
-        closeButton,
-        title,
-        description,
-        isVisible,
-      }) =>
-        h.dialog(
-          [...dialog, h.Class(dialogClassName)],
-          isVisible
-            ? [
-                h.div([...backdrop, h.Class(backdropClassName)]),
-                h.div(
-                  [...panel, h.Class(panelClassName)],
-                  Option.match(maybePendingGridSize, {
-                    onNone: () => [],
-                    onSome: pendingSize => [
-                      h.h2(
-                        [
-                          ...title,
-                          h.Class('text-lg font-semibold text-gray-100 mb-2'),
-                        ],
-                        [`Change to ${pendingSize}×${pendingSize}?`],
-                      ),
-                      h.p(
-                        [...description, h.Class('text-sm text-gray-400 mb-5')],
-                        ['This will clear your canvas and reset undo history.'],
-                      ),
-                      h.div(
-                        [h.Class('flex gap-3')],
-                        [
-                          h.button(
-                            [
-                              ...closeButton,
-                              h.Class(
-                                'flex-1 px-4 py-2 bg-gray-800 text-gray-200 rounded hover:bg-gray-700 transition motion-reduce:transition-none cursor-pointer',
-                              ),
-                            ],
-                            ['Cancel'],
-                          ),
-                          Button.view(
-                            {
-                              onClick: Message.ConfirmedGridSizeChange(),
-                              toView: attributes =>
-                                h.button(
-                                  [
-                                    ...attributes.button,
-                                    h.Class(
-                                      'flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-500 transition motion-reduce:transition-none cursor-pointer',
-                                    ),
-                                  ],
-                                  ['Clear and Resize'],
+  h.block(
+    gridSizeConfirmDialogBinding.embedView({
+      slotId: gridSizeConfirmDialog.id,
+      model: gridSizeConfirmDialog,
+      viewInputs: {
+        hasDescription: true,
+        toView: ({
+          dialog,
+          backdrop,
+          panel,
+          closeButton,
+          title,
+          description,
+          isVisible,
+        }) =>
+          h.dialog(
+            [...dialog, h.Class(dialogClassName)],
+            isVisible
+              ? [
+                  h.div([...backdrop, h.Class(backdropClassName)]),
+                  h.div(
+                    [...panel, h.Class(panelClassName)],
+                    Option.match(maybePendingGridSize, {
+                      onNone: () => [],
+                      onSome: pendingSize => [
+                        h.h2(
+                          [
+                            ...title,
+                            h.Class('text-lg font-semibold text-gray-100 mb-2'),
+                          ],
+                          [`Change to ${pendingSize}×${pendingSize}?`],
+                        ),
+                        h.p(
+                          [
+                            ...description,
+                            h.Class('text-sm text-gray-400 mb-5'),
+                          ],
+                          [
+                            'This will clear your canvas and reset undo history.',
+                          ],
+                        ),
+                        h.div(
+                          [h.Class('flex gap-3')],
+                          [
+                            h.button(
+                              [
+                                ...closeButton,
+                                h.Class(
+                                  'flex-1 px-4 py-2 bg-gray-800 text-gray-200 rounded hover:bg-gray-700 transition motion-reduce:transition-none cursor-pointer',
                                 ),
-                            },
-                            h,
-                          ),
-                        ],
-                      ),
-                    ],
-                  }),
-                ),
-              ]
-            : [],
-        ),
-    },
-    toParentMessage: message =>
-      Message.GotGridSizeConfirmDialogMessage({ message }),
-  })
+                              ],
+                              ['Cancel'],
+                            ),
+                            Button.view(
+                              {
+                                onClick: Message.ConfirmedGridSizeChange(),
+                                toView: attributes =>
+                                  h.button(
+                                    [
+                                      ...attributes.button,
+                                      h.Class(
+                                        'flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-500 transition motion-reduce:transition-none cursor-pointer',
+                                      ),
+                                    ],
+                                    ['Clear and Resize'],
+                                  ),
+                              },
+                              h,
+                            ),
+                          ],
+                        ),
+                      ],
+                    }),
+                  ),
+                ]
+              : [],
+          ),
+      },
+    }),
+  )

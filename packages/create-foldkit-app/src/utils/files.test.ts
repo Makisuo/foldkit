@@ -67,9 +67,9 @@ describe('rendering templates', () => {
     expect(listTemplateFiles('rendering/ssg')).toEqual([
       'README.md',
       'package.json',
+      'src/application.ts',
       'src/entry.server.ts',
       'src/entry.ts',
-      'src/main.ts',
       'src/route.ts',
       'src/scene.test.ts',
       'src/vite-env.d.ts',
@@ -92,7 +92,10 @@ describe('rendering templates', () => {
     expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
       'Runtime.hydrate',
     )
-    expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
+    expect(readTemplateFile('rendering/ssg/src/application.ts')).toContain(
+      'Application.make({',
+    )
+    expect(readTemplateFile('rendering/ssg/src/entry.ts')).not.toContain(
       'Application.make({',
     )
   })
@@ -102,10 +105,10 @@ describe('rendering templates', () => {
       'README.md',
       'package.json',
       'scripts/serve.ts',
+      'src/application.ts',
       'src/cookie.ts',
       'src/entry.server.ts',
       'src/entry.ts',
-      'src/main.ts',
       'src/scene.test.ts',
       'src/vite-env.d.ts',
       'tsconfig.json',
@@ -124,6 +127,12 @@ describe('rendering templates', () => {
     )
     expect(readTemplateFile('rendering/ssr/src/entry.ts')).toContain(
       'Runtime.hydrate',
+    )
+    expect(readTemplateFile('rendering/ssr/src/application.ts')).toContain(
+      'Application.make({',
+    )
+    expect(readTemplateFile('rendering/ssr/src/entry.ts')).not.toContain(
+      'Application.make({',
     )
   })
 

@@ -103,6 +103,9 @@ jobs:
       - name: Build reusable packages
         run: pnpm build:packages && pnpm --filter @typing-game/shared build
 
+      - name: Check emitted Foldkit declarations
+        run: pnpm check:emitted-declarations
+
       - name: Lint
         run: pnpm lint:ci
 

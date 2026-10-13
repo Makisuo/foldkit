@@ -10,7 +10,7 @@ import {
   type Model,
   SaveTodos,
   update,
-} from './main'
+} from './application'
 
 const emptyModel: Model = {
   todos: [],

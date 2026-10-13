@@ -10,7 +10,7 @@ import {
   UploadFile,
   initialModel,
   update,
-} from './main'
+} from './application'
 
 const firstFile = Array.headNonEmpty(FAKE_FILES)
 const secondFile = Option.getOrThrow(Array.get(FAKE_FILES, 1))

@@ -1,15 +1,14 @@
 import { Cause, Effect, Option, Schema, Stream } from 'effect'
-import { Subscription } from 'foldkit'
 
 import { capturedKeyDownStream } from '../../keyboard'
 import { RoomsClient } from '../../rpc'
+import { Room } from './block'
 import { Message } from './message'
-import { Model, capturesKeyboard } from './model'
-import { owner } from './owner'
+import { capturesKeyboard } from './model'
 
-export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+export const subscriptions = Room.subscriptions(entry => ({
   roomUpdates: entry(
-    owner.name('RoomUpdates'),
+    'RoomUpdates',
     {
       maybeRoomStream: Schema.Option(
         Schema.Struct({ roomId: Schema.String, playerId: Schema.String }),
@@ -51,7 +50,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 
   roomKeyPresses: entry(
-    owner.name('RoomKeyPresses'),
+    'RoomKeyPresses',
     { shouldCaptureKeyboard: Schema.Boolean },
     {
       messages: [Message.PressedKey],

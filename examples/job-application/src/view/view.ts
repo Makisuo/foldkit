@@ -1,54 +1,54 @@
 import clsx from 'clsx'
 import { Array, Equal, HashSet, Match, Option, pipe } from 'effect'
-import type { Mount } from 'foldkit'
-import type {
-  ChildAttribute,
-  Document,
-  HtmlBuilder as FoldkitHtmlBuilder,
-  Html,
-} from 'foldkit/html'
+import type { ChildAttribute, Html } from 'foldkit/html'
 
-import { Button, Menu, Tabs } from '@foldkit/ui'
+import { Button } from '@foldkit/ui'
 
+import {
+  attachments,
+  Application,
+  coverLetter,
+  education,
+  personalInfo,
+  skills,
+  stepTabs,
+  workHistory,
+} from '../children'
 import { Step } from '../domain'
 import { Message } from '../message'
 import { type Model } from '../model'
 import {
-  Attachments,
-  CoverLetter,
-  Education,
-  PersonalInfo,
-  Skills,
-  WorkHistory,
-} from '../step'
+  hasErrors as educationHasErrors,
+  isComplete as isEducationComplete,
+} from '../step/education'
+import {
+  hasErrors as personalInfoHasErrors,
+  isComplete as isPersonalInfoComplete,
+} from '../step/personalInfo'
+import {
+  hasErrors as skillsHaveErrors,
+  isComplete as areSkillsComplete,
+} from '../step/skills'
+import {
+  hasErrors as workHistoryHasErrors,
+  isComplete as isWorkHistoryComplete,
+} from '../step/workHistory'
 import { preview } from './preview'
 import { review } from './review'
 import { stepMenu, stepTabButton } from './stepNav'
 
-const StepTabs = Tabs.create<Step.Step>()
-
-export const mounts = [
-  ...Menu.mounts,
-  ...PersonalInfo.mounts,
-  ...WorkHistory.mounts,
-  ...Education.mounts,
-]
-
-export type HtmlBuilder = FoldkitHtmlBuilder<
-  Message,
-  Mount.RequirementsOf<typeof mounts>
->
+export type HtmlBuilder = Parameters<Parameters<typeof Application.view>[0]>[1]
 
 const stepHasErrors =
   (model: Model) =>
   (step: Step.Step): boolean =>
     Match.value(step).pipe(
       Match.when('PersonalInfo', () =>
-        PersonalInfo.hasErrors(model.personalInfo),
+        personalInfoHasErrors(model.personalInfo),
       ),
-      Match.when('WorkHistory', () => WorkHistory.hasErrors(model.workHistory)),
-      Match.when('Education', () => Education.hasErrors(model.education)),
-      Match.when('Skills', () => Skills.hasErrors(model.skills)),
+      Match.when('WorkHistory', () => workHistoryHasErrors(model.workHistory)),
+      Match.when('Education', () => educationHasErrors(model.education)),
+      Match.when('Skills', () => skillsHaveErrors(model.skills)),
       Match.orElse(() => false),
     )
 
@@ -57,13 +57,11 @@ const stepIsComplete =
   (step: Step.Step): boolean =>
     Match.value(step).pipe(
       Match.when('PersonalInfo', () =>
-        PersonalInfo.isComplete(model.personalInfo),
+        isPersonalInfoComplete(model.personalInfo),
       ),
-      Match.when('WorkHistory', () =>
-        WorkHistory.isComplete(model.workHistory),
-      ),
-      Match.when('Education', () => Education.isComplete(model.education)),
-      Match.when('Skills', () => Skills.isComplete(model.skills)),
+      Match.when('WorkHistory', () => isWorkHistoryComplete(model.workHistory)),
+      Match.when('Education', () => isEducationComplete(model.education)),
+      Match.when('Skills', () => areSkillsComplete(model.skills)),
       Match.orElse(() => true),
     )
 
@@ -83,52 +81,52 @@ const stepContent = (
 ): Html =>
   Match.value(model.currentStep).pipe(
     Match.when('PersonalInfo', () =>
-      h.submodel({
-        slotId: 'personal-info',
-        model: model.personalInfo,
-        view: PersonalInfo.view,
-        toParentMessage: message => Message.GotPersonalInfoMessage({ message }),
-      }),
+      h.block(
+        personalInfo.embedView({
+          slotId: 'personal-info',
+          model: model.personalInfo,
+        }),
+      ),
     ),
     Match.when('WorkHistory', () =>
-      h.submodel({
-        slotId: 'work-history',
-        model: model.workHistory,
-        view: WorkHistory.view,
-        toParentMessage: message => Message.GotWorkHistoryMessage({ message }),
-      }),
+      h.block(
+        workHistory.embedView({
+          slotId: 'work-history',
+          model: model.workHistory,
+        }),
+      ),
     ),
     Match.when('Education', () =>
-      h.submodel({
-        slotId: 'education',
-        model: model.education,
-        view: Education.view,
-        toParentMessage: message => Message.GotEducationMessage({ message }),
-      }),
+      h.block(
+        education.embedView({
+          slotId: 'education',
+          model: model.education,
+        }),
+      ),
     ),
     Match.when('Skills', () =>
-      h.submodel({
-        slotId: 'skills',
-        model: model.skills,
-        view: Skills.view,
-        toParentMessage: message => Message.GotSkillsMessage({ message }),
-      }),
+      h.block(
+        skills.embedView({
+          slotId: 'skills',
+          model: model.skills,
+        }),
+      ),
     ),
     Match.when('CoverLetter', () =>
-      h.submodel({
-        slotId: 'cover-letter',
-        model: model.coverLetter,
-        view: CoverLetter.view,
-        toParentMessage: message => Message.GotCoverLetterMessage({ message }),
-      }),
+      h.block(
+        coverLetter.embedView({
+          slotId: 'cover-letter',
+          model: model.coverLetter,
+        }),
+      ),
     ),
     Match.when('Attachments', () =>
-      h.submodel({
-        slotId: 'attachments',
-        model: model.attachments,
-        view: Attachments.view,
-        toParentMessage: message => Message.GotAttachmentsMessage({ message }),
-      }),
+      h.block(
+        attachments.embedView({
+          slotId: 'attachments',
+          model: model.attachments,
+        }),
+      ),
     ),
     Match.when('Review', () => review(model, attentionSteps, h)),
     Match.exhaustive,
@@ -140,10 +138,7 @@ const isFirstStep = (model: Model): boolean =>
 const isLastStep = (model: Model): boolean =>
   pipe(Step.all, Array.last, Option.exists(Equal.equals(model.currentStep)))
 
-const navigationButtons = (
-  model: Model,
-  h: FoldkitHtmlBuilder<Message>,
-): Html =>
+const navigationButtons = (model: Model, h: HtmlBuilder): Html =>
   h.div(
     [h.Class('flex justify-between pt-6 mt-8 border-t border-gray-200')],
     [
@@ -190,7 +185,7 @@ const navigationButtons = (
     ],
   )
 
-const pageHeader = (h: FoldkitHtmlBuilder<Message>): Html =>
+const pageHeader = (h: HtmlBuilder): Html =>
   h.div(
     [h.Class('mb-6')],
     [
@@ -232,60 +227,59 @@ const stepTabsLayout = (
   attentionStepSet: HashSet.HashSet<Step.Step>,
   h: HtmlBuilder,
 ): Html =>
-  h.submodel({
-    slotId: model.stepTabs.id,
-    model: model.stepTabs,
-    view: StepTabs.view,
-    viewInputs: {
-      tabs: Step.all,
-      selectedValue: model.currentStep,
-      ariaLabel: 'Application steps',
-      orientation: 'Vertical',
-      toView: ({ tablist, tabs, activeIndex }) =>
-        h.div(
-          [h.Class('lg:flex lg:gap-8')],
-          [
-            h.div(
-              [h.Class('hidden w-60 shrink-0 lg:block')],
-              [
-                h.div(
-                  [h.Class('sticky top-8')],
-                  [
-                    h.div(
-                      [...tablist, h.Class('space-y-0.5')],
-                      Array.map(tabs, tab =>
-                        stepTabButton(
-                          tab,
-                          model.currentStep,
-                          attentionStepSet,
-                          h,
+  h.block(
+    stepTabs.embedView({
+      slotId: model.stepTabs.id,
+      model: model.stepTabs,
+      viewInputs: {
+        tabs: Step.all,
+        selectedValue: model.currentStep,
+        ariaLabel: 'Application steps',
+        orientation: 'Vertical',
+        toView: ({ tablist, tabs, activeIndex }) =>
+          h.div(
+            [h.Class('lg:flex lg:gap-8')],
+            [
+              h.div(
+                [h.Class('hidden w-60 shrink-0 lg:block')],
+                [
+                  h.div(
+                    [h.Class('sticky top-8')],
+                    [
+                      h.div(
+                        [...tablist, h.Class('space-y-0.5')],
+                        Array.map(tabs, tab =>
+                          stepTabButton(
+                            tab,
+                            model.currentStep,
+                            attentionStepSet,
+                            h,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            ...pipe(
-              tabs,
-              Array.filter(tab => tab.index === activeIndex),
-              Array.map(tab =>
-                stepContentPanel(model, attentionSteps, tab.panel, h),
+                    ],
+                  ),
+                ],
               ),
-            ),
-            desktopPreviewSidebar(model, h),
-            mobilePreviewToggle(model, h),
-            ...(model.isPreviewVisible ? [mobilePreviewOverlay(model, h)] : []),
-          ],
-        ),
-    },
-    toParentMessage: message => Message.GotStepTabsMessage({ message }),
-  })
+              ...pipe(
+                tabs,
+                Array.filter(tab => tab.index === activeIndex),
+                Array.map(tab =>
+                  stepContentPanel(model, attentionSteps, tab.panel, h),
+                ),
+              ),
+              desktopPreviewSidebar(model, h),
+              mobilePreviewToggle(model, h),
+              ...(model.isPreviewVisible
+                ? [mobilePreviewOverlay(model, h)]
+                : []),
+            ],
+          ),
+      },
+    }),
+  )
 
-const desktopPreviewSidebar = (
-  model: Model,
-  h: FoldkitHtmlBuilder<Message>,
-): Html =>
+const desktopPreviewSidebar = (model: Model, h: HtmlBuilder): Html =>
   h.div(
     [h.Class('hidden w-80 shrink-0 xl:block')],
     [
@@ -314,10 +308,7 @@ const desktopPreviewSidebar = (
     ],
   )
 
-const mobilePreviewToggle = (
-  model: Model,
-  h: FoldkitHtmlBuilder<Message>,
-): Html =>
+const mobilePreviewToggle = (model: Model, h: HtmlBuilder): Html =>
   h.div(
     [h.Class('fixed top-4 right-4 xl:hidden')],
     [
@@ -345,10 +336,7 @@ const mobilePreviewToggle = (
     ],
   )
 
-const mobilePreviewOverlay = (
-  model: Model,
-  h: FoldkitHtmlBuilder<Message>,
-): Html =>
+const mobilePreviewOverlay = (model: Model, h: HtmlBuilder): Html =>
   h.div(
     [
       h.Class(
@@ -358,7 +346,7 @@ const mobilePreviewOverlay = (
     [preview(model)],
   )
 
-export const view = (model: Model, h: HtmlBuilder): Document => {
+export const view = Application.view((model, h) => {
   const attentionSteps = stepsNeedingAttention(model)
   const attentionStepSet = HashSet.fromIterable(attentionSteps)
   const body = h.div(
@@ -370,14 +358,7 @@ export const view = (model: Model, h: HtmlBuilder): Document => {
           pageHeader(h),
           h.div(
             [h.Class('mb-6 lg:hidden')],
-            [
-              stepMenu(
-                model,
-                attentionStepSet,
-                message => Message.GotStepMenuMessage({ message }),
-                h,
-              ),
-            ],
+            [stepMenu(model, attentionStepSet, h)],
           ),
           stepTabsLayout(model, attentionSteps, attentionStepSet, h),
         ],
@@ -386,4 +367,4 @@ export const view = (model: Model, h: HtmlBuilder): Document => {
   )
 
   return { title: 'Job Application', body }
-}
+})

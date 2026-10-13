@@ -24,22 +24,30 @@ Define the boundary with a Flags Schema. For a fresh client boot, also define an
 
 ### Fresh Client Boot
 
-Pass the Schema to `Application.make` as `Flags`, then pass the Effect to `Runtime.run`. The runtime resolves the Effect before calling `init`. If the configuration omits the Schema, `init` takes no Flags argument and the compiler rejects mismatched wiring.
+In the entry, pass the Schema to the typed root’s owned `Application.make` method as `Flags`. The Counter Application uses the `init` above.
+
+::Snippet{name="counterApplicationWithFlags" label="Application configuration with Flags"}
+
+Root `services.ts` supplies the store implementation:
+
+::Snippet{name="counterFlagsServices" label="Browser storage provider"}
+
+The entry chooses the container and passes the Flags Effect to `Runtime.run`. The runtime resolves the Effect before calling `init`. If the configuration omits the Schema, `init` takes no Flags argument and the compiler rejects mismatched wiring.
 
 ::Snippet{name="counterEntryWithFlags" label="Flags wiring"}
 
-The Flags Effect leaves `KeyValueStore` in its requirements, and the application root supplies the browser provider through `Application.provide`. A whole-application test can provide a deterministic store at the same boundary. The runtime builds the Layer once and shares it with Flags, Commands, and Subscriptions that require the same service. See [Layers](/core/layers) for the full setup.
+The Flags Effect leaves `KeyValueStore` in its requirements, and the application root supplies the browser provider through `provide`. A whole-application test can provide a deterministic store at the same boundary. The runtime builds the Layer once and shares it with Flags, Commands, and Subscriptions that require the same service. See [Layers](/core/layers) for the full setup.
 
 ### Server Rendering and Hydration
 
 #### Server-Supplied Flags
 
-Server rendering provides Flags from the request or build instead of running a client Flags Effect. `renderToString` uses that value to call `init`, encodes it through the Schema, and embeds the result in the HTML. `Runtime.hydrate` decodes the same value and calls the same `init`, so the client reconstructs the Model that produced the server HTML.
+Server rendering provides Flags from the request or build instead of running a client Flags Effect. `Server.renderToString(Application, { ...implementation, Flags }, { flags })` uses that value to call `init`, encodes it through the Schema, and embeds the result in the HTML. `Runtime.hydrate` decodes the same value and calls the same `init`, so the client reconstructs the Model that produced the server HTML.
 
 #### Handoff Validation
 
 A hydrating entry does not provide a client Flags Effect. Missing or invalid handoff data fails startup instead of silently booting a different Model. The [Server Rendering](/core/server-rendering#flags-and-what-only-the-browser-knows) guide explains which data is safe and reproducible across that boundary.
 
-#### Submodel Decomposition
+#### Block Decomposition
 
-Once one Model, Message union, and update function become too large to reason about as a unit, decompose the state machine into [Submodels](/core/submodel). Each child owns its own Model, Messages, update, and Commands behind an explicit parent boundary.
+Once one Model, Message union, and update function become too large to reason about as a unit, decompose the state machine into [Blocks](/core/block). Each child owns its own Model, Messages, update, and Commands behind an explicit parent boundary.

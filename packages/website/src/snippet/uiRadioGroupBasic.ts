@@ -2,46 +2,48 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Option, Schema } from 'effect'
-import { Update } from 'foldkit'
-import type { HtmlBuilder } from 'foldkit/html'
+import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 import { RadioGroup } from '@foldkit/ui'
+import type { RenderInfo as RadioGroupRenderInfo } from '@foldkit/ui/radioGroup'
 
 const Plan = Schema.Literals(['Startup', 'Business', 'Enterprise'])
 type Plan = typeof Plan.Type
 
-// Add fields to your Model for the RadioGroup Submodel and the selected
-// value. The Submodel keeps private keyboard-focus state; the parent owns
+const PlanRadioGroup = RadioGroup.create<Plan>()
+
+// Add fields to your Model for the RadioGroup Block and the selected
+// value. The Block keeps private keyboard-focus state; the parent owns
 // the selection and passes it back in as selectedValue.
 const Model = Schema.Struct({
-  planRadioGroup: RadioGroup.Model,
+  planRadioGroup: PlanRadioGroup.Model,
   maybePlan: Schema.Option(Plan),
   // ...your other fields
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize the RadioGroup Submodel with a unique
+// In your init function, initialize the RadioGroup Block with a unique
 // id and start with nothing selected:
-const init = () => ({
-  model: {
-    planRadioGroup: RadioGroup.init({ id: 'plan' }),
-    maybePlan: Option.none(),
-    // ...your other fields
-  },
-})
+const init = () => {
+  const radioGroupInit = planRadioGroup.init({ id: 'plan' })
+
+  return {
+    model: {
+      planRadioGroup: radioGroupInit.model,
+      maybePlan: Option.none(),
+      // ...your other fields
+    },
+    commands: radioGroupInit.commands,
+  }
+}
 
 // Embed the RadioGroup Message in your parent Message:
 const Message = defineMessageUnion({
-  GotPlanRadioGroupMessage: { message: RadioGroup.Message },
+  GotPlanRadioGroupMessage: { message: PlanRadioGroup.Message },
 })
 type Message = typeof Message.Type // ...united with your others
-
-// Declare a typed RadioGroup factory once at module scope. The Value
-// generic types option.value in toView so the consumer can switch on it
-// without casting:
-const PlanRadioGroup = RadioGroup.create<Plan>()
 
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 
@@ -55,9 +57,8 @@ const descriptions: Record<Plan, string> = {
 // arm carries the chosen value (typed as `Plan`) and its index, and returns
 // an Update.Step. This arm is also where the parent updates its own state or
 // dispatches Commands, for example to persist the choice or price the order.
-const foldPlanRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>,
-  RadioGroup.OutMessage<Plan>
+const foldPlanRadioGroupOutMessage = PlanRadioGroup.OutMessage.match<
+  Update.Step<Model, Message>
 >({
   Selected:
     ({ value }) =>
@@ -66,25 +67,34 @@ const foldPlanRadioGroupOutMessage = RadioGroup.OutMessage.match<
     }),
 })
 
-// Update.foldChild wires the child into the parent: it runs the child update,
+// The binding wires the completed child Block into the parent: it runs the child update,
 // writes the child Model back, maps the child's Commands into your Message
-// type, and hands any OutMessage to foldOutMessage.
-const foldPlanRadioGroup = Update.foldChild({
-  update: PlanRadioGroup.update,
-  read: (model: Model) => Option.some(model.planRadioGroup),
-  write: (model, nextPlanRadioGroup) =>
-    modifyFields(model, { planRadioGroup: () => nextPlanRadioGroup }),
-  toParentMessage: message => Message.GotPlanRadioGroupMessage({ message }),
-  foldOutMessage: foldPlanRadioGroupOutMessage,
+// type, and hands any OutMessage to the OutMessage fold.
+const planRadioGroup = PlanRadioGroup.connection({
+  Model,
+  field: 'planRadioGroup',
+  parentMessage: Message.GotPlanRadioGroupMessage,
+  outMessage: { fold: foldPlanRadioGroupOutMessage },
 })
 
-// In the corresponding Message.match handler, call the fold:
-GotPlanRadioGroupMessage: ({ message }) => foldPlanRadioGroup(model, message)
+const PlanPicker = Block.define('PlanPicker', {
+  Model,
+  Message,
+})
+const registered = PlanPicker.register({ children: [planRadioGroup] })
 
-// Inside your view function, embed the radio group via h.submodel and pass
+// In the corresponding Message.match handler, call the fold:
+const update = PlanPicker.update((model, message) =>
+  Message.match(message, {
+    GotPlanRadioGroupMessage: ({ message }) =>
+      planRadioGroup.fold(model, message),
+  }),
+)
+
+// Inside your view function, embed the radio group via h.block and pass
 // the parent-owned selection as selectedValue:
-const view = (model: Model, h: HtmlBuilder<Message>) => {
-  const radioGroupView = ({ group, options }: RadioGroup.RenderInfo<Plan>) =>
+const view = registered.view((model, h) => {
+  const radioGroupView = ({ group, options }: RadioGroupRenderInfo<Plan>) =>
     h.div(
       [...group, h.Class('flex flex-col gap-3')],
       options.map(option => {
@@ -107,17 +117,17 @@ const view = (model: Model, h: HtmlBuilder<Message>) => {
       }),
     )
 
-  return h.submodel({
-    slotId: model.planRadioGroup.id,
-    model: model.planRadioGroup,
-    view: PlanRadioGroup.view,
-    viewInputs: {
-      options: plans,
-      selectedValue: model.maybePlan,
-      ariaLabel: 'Server plan',
-      hasOptionDescription: () => true,
-      toView: radioGroupView,
-    },
-    toParentMessage: message => Message.GotPlanRadioGroupMessage({ message }),
-  })
-}
+  return h.block(
+    planRadioGroup.embedView({
+      slotId: model.planRadioGroup.id,
+      model: model.planRadioGroup,
+      viewInputs: {
+        options: plans,
+        selectedValue: model.maybePlan,
+        ariaLabel: 'Server plan',
+        hasOptionDescription: () => true,
+        toView: radioGroupView,
+      },
+    }),
+  )
+})

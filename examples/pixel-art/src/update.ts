@@ -2,10 +2,20 @@ import { Array, Match, Option } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
+import { Dialog } from '@foldkit/ui'
 
 import { ExportPng, saveCanvas } from './command'
+import {
+  GRID_SIZE_RADIO_GROUP_ID,
+  GridSizeRadioGroup,
+  PALETTE_RADIO_GROUP_ID,
+  PaletteRadioGroup,
+  TOOL_RADIO_GROUP_ID,
+  ThemeListbox,
+  ToolRadioGroup,
+} from './components'
 import { DEFAULT_COLOR_INDEX } from './constant'
+import { Application as Authoring } from './definition'
 import {
   createEmptyGrid,
   erasePixels,
@@ -17,18 +27,12 @@ import {
 } from './grid'
 import { Message } from './message'
 import {
-  type Model,
+  Model,
   type PaletteIndex,
   type Tool,
   paletteIndexFromValue,
 } from './model'
 import { PALETTE_THEMES } from './palette'
-import {
-  GridSizeRadioGroup,
-  PaletteRadioGroup,
-  ThemeListbox,
-  ToolRadioGroup,
-} from './view/toolbar'
 
 const applyEraser = (model: Model, x: number, y: number) => {
   const positions = getMirroredPositions(x, y, model.gridSize, model.mirrorMode)
@@ -56,27 +60,16 @@ const foldErrorDialogOutMessage = Dialog.OutMessage.match<
   }),
 })
 
-const foldErrorDialog = Update.foldChild({
-  update: Dialog.update,
-  read: (model: Model) => Option.some(model.errorDialog),
-  write: (model, nextErrorDialog) =>
-    modifyFields(model, { errorDialog: () => nextErrorDialog }),
-  toParentMessage: message => Message.GotErrorDialogMessage({ message }),
-  foldOutMessage: foldErrorDialogOutMessage,
+export const errorDialog = Dialog.block.connection({
+  Model: Model,
+  field: 'errorDialog',
+  parentMessage: Message.GotErrorDialogMessage,
+  outMessage: { fold: foldErrorDialogOutMessage },
 })
 
-const foldErrorDialogOpen = Update.foldChildStep({
-  update: Dialog.open,
-  read: (model: Model) => Option.some(model.errorDialog),
-  write: (model, nextErrorDialog) =>
-    modifyFields(model, { errorDialog: () => nextErrorDialog }),
-  toParentMessage: message => Message.GotErrorDialogMessage({ message }),
-  foldOutMessage: foldErrorDialogOutMessage,
-})
-
-const foldThemeListboxOutMessage = Listbox.OutMessage.match({
+const foldThemeListboxOutMessage = ThemeListbox.OutMessage.match({
   Selected: ({ value }) =>
-    Update.defineStep((model: Model) => {
+    Authoring.step(model => {
       const themeIndex = Number(value)
       const maybeNextTheme = Array.get(PALETTE_THEMES, themeIndex)
       if (Option.isNone(maybeNextTheme)) {
@@ -90,13 +83,11 @@ const foldThemeListboxOutMessage = Listbox.OutMessage.match({
     }),
 })
 
-const foldThemeListbox = Update.foldChild({
-  update: ThemeListbox.update,
-  read: (model: Model) => Option.some(model.themeListbox),
-  write: (model, nextThemeListbox) =>
-    modifyFields(model, { themeListbox: () => nextThemeListbox }),
-  toParentMessage: message => Message.GotThemeListboxMessage({ message }),
-  foldOutMessage: foldThemeListboxOutMessage,
+export const themeListbox = ThemeListbox.connection({
+  Model: Model,
+  field: 'themeListbox',
+  parentMessage: Message.GotThemeListboxMessage,
+  outMessage: { fold: foldThemeListboxOutMessage },
 })
 
 const foldGridSizeConfirmDialogOutMessage = Dialog.OutMessage.match<
@@ -110,40 +101,11 @@ const foldGridSizeConfirmDialogOutMessage = Dialog.OutMessage.match<
   }),
 })
 
-const foldGridSizeConfirmDialog = Update.foldChild({
-  update: Dialog.update,
-  read: (model: Model) => Option.some(model.gridSizeConfirmDialog),
-  write: (model, nextGridSizeConfirmDialog) =>
-    modifyFields(model, {
-      gridSizeConfirmDialog: () => nextGridSizeConfirmDialog,
-    }),
-  toParentMessage: message =>
-    Message.GotGridSizeConfirmDialogMessage({ message }),
-  foldOutMessage: foldGridSizeConfirmDialogOutMessage,
-})
-
-const foldGridSizeConfirmDialogOpen = Update.foldChildStep({
-  update: Dialog.open,
-  read: (model: Model) => Option.some(model.gridSizeConfirmDialog),
-  write: (model, nextGridSizeConfirmDialog) =>
-    modifyFields(model, {
-      gridSizeConfirmDialog: () => nextGridSizeConfirmDialog,
-    }),
-  toParentMessage: message =>
-    Message.GotGridSizeConfirmDialogMessage({ message }),
-  foldOutMessage: foldGridSizeConfirmDialogOutMessage,
-})
-
-const foldGridSizeConfirmDialogClose = Update.foldChildStep({
-  update: Dialog.close,
-  read: (model: Model) => Option.some(model.gridSizeConfirmDialog),
-  write: (model, nextGridSizeConfirmDialog) =>
-    modifyFields(model, {
-      gridSizeConfirmDialog: () => nextGridSizeConfirmDialog,
-    }),
-  toParentMessage: message =>
-    Message.GotGridSizeConfirmDialogMessage({ message }),
-  foldOutMessage: foldGridSizeConfirmDialogOutMessage,
+export const gridSizeConfirmDialog = Dialog.block.connection({
+  Model: Model,
+  field: 'gridSizeConfirmDialog',
+  parentMessage: Message.GotGridSizeConfirmDialogMessage,
+  outMessage: { fold: foldGridSizeConfirmDialogOutMessage },
 })
 
 const selectTool = (model: Model, tool: Tool) => ({
@@ -157,9 +119,9 @@ const selectColor = (model: Model, colorIndex: PaletteIndex) => {
   return { model: nextModel, commands: [saveCanvas(nextModel)] }
 }
 
-const foldToolRadioGroupOutMessage = RadioGroup.OutMessage.match<
+const foldToolRadioGroupOutMessage = ToolRadioGroup.OutMessage.match<
   (model: Model) => ReturnType<typeof selectTool>,
-  RadioGroup.OutMessage<Tool>
+  typeof ToolRadioGroup.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -167,16 +129,15 @@ const foldToolRadioGroupOutMessage = RadioGroup.OutMessage.match<
       selectTool(model, value),
 })
 
-const foldToolRadioGroup = Update.foldChild({
-  update: ToolRadioGroup.update,
-  read: (model: Model) => Option.some(model.toolRadioGroup),
-  write: (model, nextToolRadioGroup) =>
-    modifyFields(model, { toolRadioGroup: () => nextToolRadioGroup }),
-  toParentMessage: message => Message.GotToolRadioGroupMessage({ message }),
-  foldOutMessage: foldToolRadioGroupOutMessage,
+export const toolRadioGroup = ToolRadioGroup.connection({
+  placement: TOOL_RADIO_GROUP_ID,
+  Model: Model,
+  field: 'toolRadioGroup',
+  parentMessage: Message.GotToolRadioGroupMessage,
+  outMessage: { fold: foldToolRadioGroupOutMessage },
 })
 
-const foldGridSizeRadioGroupOutMessage = RadioGroup.OutMessage.match<
+const foldGridSizeRadioGroupOutMessage = GridSizeRadioGroup.OutMessage.match<
   (model: Model) => ReturnType<typeof requestGridSizeChange>
 >({
   Selected:
@@ -185,16 +146,15 @@ const foldGridSizeRadioGroupOutMessage = RadioGroup.OutMessage.match<
       requestGridSizeChange(model, Number(value)),
 })
 
-const foldGridSizeRadioGroup = Update.foldChild({
-  update: GridSizeRadioGroup.update,
-  read: (model: Model) => Option.some(model.gridSizeRadioGroup),
-  write: (model, nextGridSizeRadioGroup) =>
-    modifyFields(model, { gridSizeRadioGroup: () => nextGridSizeRadioGroup }),
-  toParentMessage: message => Message.GotGridSizeRadioGroupMessage({ message }),
-  foldOutMessage: foldGridSizeRadioGroupOutMessage,
+export const gridSizeRadioGroup = GridSizeRadioGroup.connection({
+  placement: GRID_SIZE_RADIO_GROUP_ID,
+  Model: Model,
+  field: 'gridSizeRadioGroup',
+  parentMessage: Message.GotGridSizeRadioGroupMessage,
+  outMessage: { fold: foldGridSizeRadioGroupOutMessage },
 })
 
-const foldPaletteRadioGroupOutMessage = RadioGroup.OutMessage.match<
+const foldPaletteRadioGroupOutMessage = PaletteRadioGroup.OutMessage.match<
   (model: Model) => ReturnType<typeof selectColor>
 >({
   Selected:
@@ -206,16 +166,26 @@ const foldPaletteRadioGroupOutMessage = RadioGroup.OutMessage.match<
       ),
 })
 
-const foldPaletteRadioGroup = Update.foldChild({
-  update: PaletteRadioGroup.update,
-  read: (model: Model) => Option.some(model.paletteRadioGroup),
-  write: (model, nextPaletteRadioGroup) =>
-    modifyFields(model, { paletteRadioGroup: () => nextPaletteRadioGroup }),
-  toParentMessage: message => Message.GotPaletteRadioGroupMessage({ message }),
-  foldOutMessage: foldPaletteRadioGroupOutMessage,
+export const paletteRadioGroup = PaletteRadioGroup.connection({
+  placement: PALETTE_RADIO_GROUP_ID,
+  Model: Model,
+  field: 'paletteRadioGroup',
+  parentMessage: Message.GotPaletteRadioGroupMessage,
+  outMessage: { fold: foldPaletteRadioGroupOutMessage },
 })
 
-export const update = Update.define((model: Model, message: Message) =>
+export const Application = Authoring.register({
+  children: [
+    errorDialog,
+    themeListbox,
+    gridSizeConfirmDialog,
+    toolRadioGroup,
+    gridSizeRadioGroup,
+    paletteRadioGroup,
+  ],
+})
+
+export const update = Application.update((model, message) =>
   Message.match(message, {
     PressedCell: ({ x, y }) =>
       Match.value(model.tool).pipe(
@@ -289,13 +259,13 @@ export const update = Update.define((model: Model, message: Message) =>
     SelectedGridSize: ({ size }) => requestGridSizeChange(model, size),
 
     GotToolRadioGroupMessage: ({ message }) =>
-      foldToolRadioGroup(model, message),
+      toolRadioGroup.fold(model, message),
 
     GotGridSizeRadioGroupMessage: ({ message }) =>
-      foldGridSizeRadioGroup(model, message),
+      gridSizeRadioGroup.fold(model, message),
 
     GotPaletteRadioGroupMessage: ({ message }) =>
-      foldPaletteRadioGroup(model, message),
+      paletteRadioGroup.fold(model, message),
 
     ToggledMirrorHorizontal: () => {
       const nextMirrorMode = Match.value(model.mirrorMode).pipe(
@@ -425,12 +395,12 @@ export const update = Update.define((model: Model, message: Message) =>
             maybeExportError: () => Option.some(error),
           }),
         }),
-        foldErrorDialogOpen,
+        errorDialog.open(),
       ]),
 
-    GotErrorDialogMessage: ({ message }) => foldErrorDialog(model, message),
+    GotErrorDialogMessage: ({ message }) => errorDialog.fold(model, message),
 
-    GotThemeListboxMessage: ({ message }) => foldThemeListbox(model, message),
+    GotThemeListboxMessage: ({ message }) => themeListbox.fold(model, message),
 
     ConfirmedGridSizeChange: () =>
       Option.match(model.maybePendingGridSize, {
@@ -438,7 +408,7 @@ export const update = Update.define((model: Model, message: Message) =>
         onSome: pendingSize =>
           Update.combine(model, [
             stepModel => applyGridSizeChange(stepModel, pendingSize),
-            foldGridSizeConfirmDialogClose,
+            gridSizeConfirmDialog.close(),
             stepModel => ({
               model: stepModel,
               commands: [saveCanvas(stepModel)],
@@ -447,7 +417,7 @@ export const update = Update.define((model: Model, message: Message) =>
       }),
 
     GotGridSizeConfirmDialogMessage: ({ message }) =>
-      foldGridSizeConfirmDialog(model, message),
+      gridSizeConfirmDialog.fold(model, message),
   }),
 )
 
@@ -477,6 +447,6 @@ const requestGridSizeChange = (model: Model, size: number) => {
         maybePendingGridSize: () => Option.some(size),
       }),
     }),
-    foldGridSizeConfirmDialogOpen,
+    gridSizeConfirmDialog.open(),
   ])
 }

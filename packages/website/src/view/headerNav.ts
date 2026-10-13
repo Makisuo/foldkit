@@ -5,7 +5,7 @@ import { Nav } from '@foldkit/ui'
 
 import { type Message } from '../message'
 import {
-  type AppRoute,
+  type ApplicationRoute,
   blogRouter,
   coreArchitectureRouter,
   isBlogRoute,
@@ -17,7 +17,10 @@ type HeaderSection = typeof HeaderSection.Type
 
 const headerSections: ReadonlyArray<HeaderSection> = HeaderSection.literals
 
-const isSectionCurrent = (route: AppRoute, section: HeaderSection): boolean =>
+const isSectionCurrent = (
+  route: ApplicationRoute,
+  section: HeaderSection,
+): boolean =>
   Match.value(section).pipe(
     Match.when('Docs', () => isDocsSectionRoute(route)),
     Match.when('Blog', () => isBlogRoute(route)),
@@ -35,7 +38,7 @@ const linkClassName =
   'text-sm font-normal text-gray-700 dark:text-gray-300 transition hover:text-gray-900 dark:hover:text-gray-200 data-[current]:font-medium data-[current]:text-accent-700 data-[current]:dark:text-accent-400 data-[current]:hover:text-accent-700 data-[current]:dark:hover:text-accent-400'
 
 export const view = (
-  route: AppRoute,
+  route: ApplicationRoute,
   className: string,
   h: HtmlBuilder<Message>,
 ): Html =>

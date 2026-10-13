@@ -1,17 +1,12 @@
 import { Match } from 'effect'
-import type { Mount } from 'foldkit'
-import {
-  Html,
-  type HtmlBuilder,
-  childAttributes,
-  inertHtml as ih,
-} from 'foldkit/html'
+import { Html, childAttributes, inertHtml as ih } from 'foldkit/html'
 
 import { Menu } from '@foldkit/ui'
-import type { AnchorConfig } from '@foldkit/ui/menu'
+import { buttonId, type AnchorConfig } from '@foldkit/ui/menu'
 
 import { Icon } from '../../../icon'
-import { Message } from '../message'
+import { menuBasicDemo, menuAnimatedDemo } from '../update'
+import type { ViewBuilder } from '../viewBuilder'
 
 // DEMO CONTENT
 
@@ -104,30 +99,29 @@ const menuViewConfig = (itemsClassName: string) => {
 }
 
 export const basicDemo = (
-  menuModel: Menu.Model,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Menu.mounts>>,
+  menuModel: typeof Menu.Model.Type,
+  h: ViewBuilder,
 ) => {
   return [
     h.div(
       [h.Class('demo-field')],
       [
         h.label(
-          [h.For(Menu.buttonId(menuModel.id)), h.Class('demo-label')],
+          [h.For(buttonId(menuModel.id)), h.Class('demo-label')],
           ['Row actions'],
         ),
         h.div(
           [h.Class('relative')],
           [
-            h.submodel({
-              slotId: menuModel.id,
-              model: menuModel,
-              view: DemoMenu.view,
-              viewInputs: {
-                ...menuViewConfig(basicItemsClassName),
-              },
-              toParentMessage: message =>
-                Message.GotMenuBasicDemoMessage({ message }),
-            }),
+            h.block(
+              menuBasicDemo.embedView({
+                slotId: menuModel.id,
+                model: menuModel,
+                viewInputs: {
+                  ...menuViewConfig(basicItemsClassName),
+                },
+              }),
+            ),
           ],
         ),
       ],
@@ -136,30 +130,29 @@ export const basicDemo = (
 }
 
 export const animatedDemo = (
-  menuModel: Menu.Model,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Menu.mounts>>,
+  menuModel: typeof Menu.Model.Type,
+  h: ViewBuilder,
 ) => {
   return [
     h.div(
       [h.Class('demo-field')],
       [
         h.label(
-          [h.For(Menu.buttonId(menuModel.id)), h.Class('demo-label')],
+          [h.For(buttonId(menuModel.id)), h.Class('demo-label')],
           ['Row actions'],
         ),
         h.div(
           [h.Class('relative')],
           [
-            h.submodel({
-              slotId: menuModel.id,
-              model: menuModel,
-              view: DemoMenu.view,
-              viewInputs: {
-                ...menuViewConfig(animatedItemsClassName),
-              },
-              toParentMessage: message =>
-                Message.GotMenuAnimatedDemoMessage({ message }),
-            }),
+            h.block(
+              menuAnimatedDemo.embedView({
+                slotId: menuModel.id,
+                model: menuModel,
+                viewInputs: {
+                  ...menuViewConfig(animatedItemsClassName),
+                },
+              }),
+            ),
           ],
         ),
       ],

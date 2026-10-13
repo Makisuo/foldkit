@@ -1,12 +1,12 @@
 import { Effect, Schema } from 'effect'
-import { Command, Dom } from 'foldkit'
+import { Dom } from 'foldkit'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../constant'
 import { RoomsClient } from '../../rpc'
+import { Home } from './block'
 import { Message } from './message'
-import { owner } from './owner'
 
-export const CreateRoom = Command.define(owner.name('CreateRoom'), {
+export const CreateRoom = Home.command('CreateRoom', {
   args: { username: Schema.String },
   messages: [Message.SucceededCreateRoom, Message.FailedCreateRoom],
   handler: function* () {
@@ -24,7 +24,7 @@ export const CreateRoom = Command.define(owner.name('CreateRoom'), {
   },
 })
 
-export const JoinRoomFromHome = Command.define(owner.name('JoinRoomFromHome'), {
+export const JoinRoomFromHome = Home.command('JoinRoomFromHome', {
   args: { username: Schema.String, roomId: Schema.String },
   messages: [Message.SucceededJoinRoomFromHome, Message.FailedJoinRoomFromHome],
   handler: function* () {
@@ -44,21 +44,18 @@ export const JoinRoomFromHome = Command.define(owner.name('JoinRoomFromHome'), {
   },
 })
 
-export const FocusUsernameInput = Command.define(
-  owner.name('FocusUsernameInput'),
-  {
-    messages: [Message.CompletedFocusUsernameInput],
-    handler: function* () {
-      return () =>
-        Dom.focus(`#${USERNAME_INPUT_ID}`).pipe(
-          Effect.ignore,
-          Effect.as(Message.CompletedFocusUsernameInput()),
-        )
-    },
+export const FocusUsernameInput = Home.command('FocusUsernameInput', {
+  messages: [Message.CompletedFocusUsernameInput],
+  handler: function* () {
+    return () =>
+      Dom.focus(`#${USERNAME_INPUT_ID}`).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedFocusUsernameInput()),
+      )
   },
-)
+})
 
-export const FocusRoomIdInput = Command.define(owner.name('FocusRoomIdInput'), {
+export const FocusRoomIdInput = Home.command('FocusRoomIdInput', {
   messages: [Message.CompletedFocusRoomIdInput],
   handler: function* () {
     return () =>

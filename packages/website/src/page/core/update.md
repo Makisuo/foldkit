@@ -36,7 +36,7 @@ Return Commands beside the next Model from the Message branch that requests the 
 
 `ClickedIncrement` changes the count and asks the runtime to persist it. `CompletedPersistCount` records that the Command finished, but it has no more work to request, so that branch omits `commands`.
 
-`Update.define` defines an update and infers the handler services required by the Commands across all of its branches. It leaves the function's runtime behavior unchanged. Wrap any update that can return Commands.
+`definition.update` authors a Block's update and infers the handler services required by the Commands across all of its branches. It leaves the function's runtime behavior unchanged.
 
 `Update.defineStep` does the same inference for a standalone Step producer. Annotate its Model parameter and let the helper infer the returned Command requirements and OutMessage. A pure OutMessage fold can use `OutMessage.match<Update.Step<Model, Message>>` directly; the matcher types its Model parameter without a Step helper. Callers can then compose that Step with pure Steps through `Update.combine` without naming a service union by hand.
 
@@ -80,9 +80,9 @@ This error often points to update results being composed by hand. When both oper
 
 ::Snippet{name="updateCombineOpenDialog" label="Composing Update Steps"}
 
-#### Child Folds and Multiple Steps
+#### Child Bindings and Multiple Steps
 
-Use `Update.foldChildInit` to keep a child `init` or `boot` result, its lifted Commands, and any OutMessage together. Use `Update.foldChild` for a child update that receives input, or `Update.foldChildStep` for a child helper that receives only its Model.
+A registered child binding projects `init`, `fold`, and every named public Step. These operations preserve the child's Message mapping, Command requirements, OutMessage policy, and origin scope. Call `binding.fold(model, message)` for the primary update and `binding.name(...args)` when composing a public entry point.
 
 #### Combining Steps
 
@@ -98,65 +98,53 @@ Do not wrap one Step in `Update.combine`; call that operation directly.
 
 ### Combining Child Initialization Results {#combining-independent-results}
 
-Use `Update.foldChildInits` to initialize several Submodels inside one parent. It constructs the parent Model once, then handles each child's OutMessage against that complete Model.
+Initialize each child through its registered binding. Each result already carries parent Messages and qualified Command origins, so parent init can assemble their Models and concrete Command collections directly.
 
-For example, a Workspace Submodel contains Search and Editor Submodels. The Search Submodel's boot result can report a prepared document, and the Editor Submodel's can report an opened document. The Workspace Submodel handles both locally:
+For example, a Workspace Block contains Search and Editor Blocks. The Search Block's boot result can report a prepared document, and the Editor Block's can report an opened document. The Workspace Block handles both locally:
 
-::Snippet{name="updateIndependentInits" label="Initializing Search and Editor Submodels"}
+::Snippet{name="updateIndependentInits" label="Initializing Search and Editor Blocks"}
 
 #### Parent Construction and Fold Order
 
-`toParentModel` receives the Search and Editor Models. It also supplies the initial values for the Workspace Submodel's own fields. `Model.make` gives those fields their declared types, including the value type inside `Option.none()`.
+`Model.make` assembles the Search and Editor Models with the Workspace Block's own fields. The binding results retain each child's optional Commands; combine them only where parent init needs one concrete collection.
 
-#### Fold Order
+#### Step Order
 
-The `folds` record determines the order of the OutMessage handlers. Use descriptive string keys such as `search` and `editor`, written in the order the handlers should run. Both records must name the same children.
-
-In this example, the Search fold sets `maybeSelectedDocumentId`. The Editor fold receives that updated Model and sets `maybeOpenedDocumentId`, keeping the selection. Foldkit does not construct the parent again or overwrite either child Model between folds. If a child emits no OutMessage, its handler is skipped.
+The Step array determines the order of Model transitions. In this example, the Search restoration runs first. The Editor restoration receives that updated Model, so it preserves the selected document. Each child's binding applies its OutMessage policy as part of the Step.
 
 #### Command Execution
 
-The `folds` record order applies to the Model changes made by the folds. Commands run independently; a later child's Commands do not wait for an earlier child's Commands to finish.
+The Step order applies to Model changes. Commands run independently; a later child's Commands do not wait for an earlier child's Commands to finish.
 
 ### Initializing Children with OutMessages
 
 #### Combining Child Facts
 
-A parent can combine information from several children into one OutMessage. For example, App contains a Workspace Submodel, which contains Search and Editor Submodels. The Search Submodel's boot function reports `RestoredQuery` when it restores a saved query; the Editor Submodel's reports `RestoredDraft` when it restores a saved draft. App should show one restoration notice that includes both results.
+A parent can translate facts from several children into its own OutMessage. For example, Application contains a Workspace Block, which contains Search and Editor Blocks. Their public restoration Steps report `RestoredQuery` and `RestoredDraft` after the complete Workspace Model exists.
 
 #### Translating Child Facts
 
-The Workspace Submodel uses `toParentOutMessage` adapters to translate each child's OutMessage into its own OutMessage type. The Workspace Submodel is the parent of the Search and Editor Submodels, and a child of App. It also uses these adapters when an individual child restores state during a later update.
+Each child binding uses `outMessage.forward` to translate selected facts into Workspace OutMessages. The same policy applies whether a restoration Step runs during startup or in a later update:
 
-During initialization, `resolveOutMessage` combines the two translated OutMessages into `RestoredWorkspace` for App. It receives them under the `search` and `editor` keys. Both restored values are preserved:
+::Snippet{name="updateInitOutMessages" label="Forwarding child restoration OutMessages"}
 
-::Snippet{name="updateInitOutMessages" label="Combining child restoration OutMessages"}
+#### Several Child Facts
 
-#### Missing Child OutMessages
-
-In the Search and Editor example, if only the Search Submodel reports a restoration, the final OutMessage has `Some(query)` and `None` for the document. If only the Editor Submodel reports one, it has `None` for the query and `Some(documentId)`. If neither reports one, `resolveOutMessage` is not called and the result has no `outMessage`.
-
-The current Model can tell App what query and document are present. It cannot necessarily tell App whether they were restored during this boot. The resolver keeps that information from the OutMessages without adding temporary bookkeeping to the Model.
-
-#### Resolver Contract
-
-`resolveOutMessage` is required whenever an entry can produce a parent OutMessage. It runs after all local folds and also receives the final parent Model as its second argument. Return a combined OutMessage when both results matter. Choosing one and dropping the other needs an application-specific reason. Returning `undefined` emits no OutMessage.
+`Update.combine` returns at most one parent OutMessage. When several Steps emit one, the later result wins. Run restorations as separate updates when every fact must reach the next parent, or derive one combined parent fact after the Steps from the final Model.
 
 #### Deriving from the Final Model
 
-When the final Model contains everything needed for the parent's OutMessage, handle the children locally and attach that OutMessage afterward with [`Update.withOutMessage`](#returning-an-outmessage). That also lets initialization report completion when none of the children emitted an OutMessage.
+When the final Model contains everything needed for the parent's OutMessage, attach that OutMessage afterward with [`Update.withOutMessage`](#returning-an-outmessage).
 
 ### Deriving an OutMessage in a Local Fold
 
-A local fold can report a more complete result than the child's original OutMessage. For example, an end-date picker reports `SelectedDate`. A date-range Submodel forwards `SelectedEndDate` while the start date is absent. Once both dates are known, its local fold reports `CompletedRange` instead:
+A local fold can report a more complete result than the child's original OutMessage. For example, an end-date picker reports `SelectedDate`. A date-range Block forwards `SelectedEndDate` while the start date is absent. Once both dates are known, its local fold reports `CompletedRange` instead:
 
 ::Snippet{name="updateInitDerivedOutMessage" label="Deriving a completed range OutMessage"}
 
 #### Replacement Rule
 
-When the local fold returns `CompletedRange`, Foldkit uses it and skips `toParentOutMessage` for that child. When the fold returns no OutMessage, `toParentOutMessage` supplies `SelectedEndDate`. A child that emits nothing triggers neither handler.
-
-`foldChild`, `foldChildStep`, `foldChildInit`, and each entry in `foldChildInits` follow this rule. In `foldChildInits`, the resulting OutMessage is passed to `resolveOutMessage` alongside those from the other entries; it does not replace another child's OutMessage.
+When `outMessage.fold` returns `CompletedRange`, Foldkit uses it and skips `outMessage.forward` for that dispatch. When the fold returns no OutMessage, `outMessage.forward` supplies `SelectedEndDate`. A child that emits nothing triggers neither handler.
 
 ## Preventing Lost OutMessages
 

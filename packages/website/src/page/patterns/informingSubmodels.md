@@ -1,23 +1,23 @@
-# Informing Submodels
+# Informing Blocks
 
 ## Parent-Owned Changes {#overview}
 
 ### Preserve Child Ownership
 
-A Submodel sometimes needs to react to a change it does not own. The URL may change, a server may push new data, or a sibling field may establish a new constraint. The parent observes that change, but the child still owns the state transition it causes.
+A Block sometimes needs to react to a change it does not own. The URL may change, a server may push new data, or a sibling field may establish a new constraint. The parent observes that change, but the child still owns the state transition it causes.
 
-Export an `inform*` helper from the child. The helper runs an internal child Message through update and returns the next child Model and Commands. The parent folds that helper with `Update.foldChild`, so it never imports or constructs the internal Message.
+Expose an `inform*` Step from the completed child Block. The helper runs an internal child Message through update and returns the next child Model and Commands. The parent calls the projected `binding.inform*(...)`, so it never imports or constructs the internal Message.
 
 ### Choose Inform or Reflect
 
-Use `inform*` when the child must derive a transition or return Commands. Use a silent [`reflect*` helper](/core/submodel#reflecting-external-state) when the child only needs to conform one of its values to an external source.
+Use `inform*` when the child must derive a transition or return Commands. Use a silent [`reflect*` helper](/core/block#reflecting-external-state) when the child only needs to conform one of its values to an external source.
 
 ### Routing Example
 
-The example below uses routing. A People Submodel owns its search input, results, and recent searches. The root owns the Route. When the URL resolves to a People Route, the root calls `People.informRouteChanged`.
+The example below uses routing. A People Block owns its search input, results, and recent searches. The root owns the Route. When the URL resolves to a People Route, the root calls `people.informRouteChanged` through its registered binding.
 
 :::Info{label="Prerequisite"}
-This page builds on the [Submodels](/core/submodel) pattern. Read that first if the `Got*Message` wrapping convention is unfamiliar.
+This page builds on the [Blocks](/core/block) pattern. Read that first if the `Got*Message` wrapping convention is unfamiliar.
 :::
 
 ## The Child
@@ -30,24 +30,24 @@ Update copies the route query into the input, records it in recent searches, and
 
 ### Expose a Public Helper
 
-`informRouteChanged` is the public entry point. It calls `update(model, ChangedRoute({ route }))`, keeping the Message constructor private.
+`informRouteChanged` is a typed public operation authored with `people.step`. It calls `update(model, ChangedRoute({ route }))`, keeping the Message constructor private, and the completed Block registers it under `steps`.
 
-::Snippet{name="informingSubmodelsChild" label="Child informRouteChanged helper"}
+::Snippet{name="informingBlocksChild" label="Child informRouteChanged helper"}
 
 :::Warning{label="Not an OutMessage"}
-`ChangedRoute` moves from parent to child through an `inform*` helper. An [OutMessage](/core/submodel#surfacing-facts) moves a fact from child to parent.
+`ChangedRoute` moves from parent to child through an `inform*` helper. An [OutMessage](/core/block#surfacing-facts) moves a fact from child to parent.
 :::
 
 ## The Parent
 
 ### Define the Parent Folds
 
-The root defines one fold for regular People Messages and another for `informRouteChanged`. Both folds use the same `read`, `write`, and `toParentMessage` boundary. The `ChangedUrl` handler stores the next Route, then composes the relevant child step with `Update.combine`.
+The People binding supplies one `read`, `write`, and `toParentMessage` boundary. Its `fold` handles regular People Messages, while `people.informRouteChanged` projects the public operation through the same boundary. The `ChangedUrl` handler stores the next Route, then composes the relevant child Step with `Update.combine`.
 
-::Snippet{name="informingSubmodelsParent" label="Parent route fold"}
+::Snippet{name="informingBlocksParent" label="Parent route fold"}
 
-:::Info{label="Multiple Submodels"}
-When several page Submodels react to routing, match the next Route and return the `informRouteChanged` step for the page that owns that Route.
+:::Info{label="Multiple Blocks"}
+When several page Blocks react to routing, match the next Route and return the `informRouteChanged` step for the page that owns that Route.
 :::
 
 ### Handle Cold Loads Separately

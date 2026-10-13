@@ -1,6 +1,7 @@
 import { Effect, Schema, pipe } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
-import { AsyncData, Command, Update } from 'foldkit'
+import { AsyncData } from 'foldkit'
+import { define as defineApplication } from 'foldkit/application'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -30,9 +31,11 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+const Application = defineApplication({ Model, Message })
+
 // COMMAND
 
-const Search = Command.define('Search', {
+const Search = Application.command('Search', {
   args: { query: Schema.String },
   messages: [Message.SettledSearch],
   handler: function* () {
@@ -58,7 +61,7 @@ const Search = Command.define('Search', {
 
 // UPDATE
 
-const update = Update.define((model: Model, message: Message) =>
+const update = Application.update((model, message) =>
   Message.match(message, {
     UpdatedQuery: ({ query }) => ({
       model: modifyFields(model, {

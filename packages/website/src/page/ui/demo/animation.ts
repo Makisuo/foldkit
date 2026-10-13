@@ -1,8 +1,8 @@
-import type { HtmlBuilder } from 'foldkit/html'
-
 import { Animation } from '@foldkit/ui'
 
 import { Message } from '../message'
+import { animationDemo } from '../update'
+import type { ViewBuilder } from '../viewBuilder'
 
 // DEMO CONTENT
 
@@ -14,8 +14,8 @@ const contentClassName =
 // VIEW
 
 export const view = (
-  animationModel: Animation.Model,
-  h: HtmlBuilder<Message>,
+  animationModel: typeof Animation.Model.Type,
+  h: ViewBuilder,
 ) => [
   h.div(
     [h.Class('flex flex-col items-center')],
@@ -27,23 +27,22 @@ export const view = (
         ],
         [animationModel.isShowing ? 'Hide Content' : 'Show Content'],
       ),
-      h.submodel({
-        slotId: animationModel.id,
-        model: animationModel,
-        view: Animation.view,
-        viewInputs: {
-          className: contentClassName,
-          animateSize: true,
-          content: h.p(
-            [h.Class('text-accent-800 dark:text-accent-200')],
-            [
-              'This content fades in and out using CSS transitions coordinated by the Animation component. The data attributes (data-closed, data-enter, data-leave, data-transition) drive the animation via Tailwind selectors.',
-            ],
-          ),
-        },
-        toParentMessage: message =>
-          Message.GotAnimationDemoMessage({ message }),
-      }),
+      h.block(
+        animationDemo.embedView({
+          slotId: animationModel.id,
+          model: animationModel,
+          viewInputs: {
+            className: contentClassName,
+            animateSize: true,
+            content: h.p(
+              [h.Class('text-accent-800 dark:text-accent-200')],
+              [
+                'This content fades in and out using CSS transitions coordinated by the Animation component. The data attributes (data-closed, data-enter, data-leave, data-transition) drive the animation via Tailwind selectors.',
+              ],
+            ),
+          },
+        }),
+      ),
     ],
   ),
 ]

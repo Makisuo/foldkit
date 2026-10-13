@@ -1,37 +1,33 @@
-import { Application } from 'foldkit'
+import { Layer } from 'effect'
 
-import { Flags, Model, view } from './main'
-import { Message } from './message'
-import {
+import { LoadPlayground } from './children'
+import * as Lifecycle from './lifecycle'
+import * as Root from './root'
+import * as Subscriptions from './subscription'
+
+export { Application } from './children'
+export { Message } from './message'
+export {
+  Flags,
+  ScrollSidebarActiveLinkIntoView,
+  ScrollToTop,
   init,
-  managedResources,
-  mounts,
-  subscriptions,
   update,
-} from './submodel'
+  view,
+} from './root'
 
-export { managedResources, subscriptions } from './submodel'
+export const EffectsLayer = Layer.mergeAll(
+  Root.EffectsLayer,
+  LoadPlayground.layer,
+  Subscriptions.EffectsLayer,
+)
 
-export const makeApplication = (container: HTMLElement | null) =>
-  Application.make({
-    Model,
-    Flags,
-    init,
-    update,
-    view,
-    subscriptions,
-    managedResources,
-    mounts,
-    container,
-    routing: {
-      onUrlRequest: request => Message.ClickedLink({ request }),
-      onUrlChange: url => Message.ChangedUrl({ url }),
-    },
-    devTools: {
-      show: 'Always',
-      mode: { development: 'TimeTravel', production: 'Inspect' },
-      banner:
-        'Welcome to Foldkit DevTools. This site runs on Foldkit. Select a recorded Message to inspect its payload, Model changes, returned Commands, and Mount activity. Browse earlier states in the timeline. In development, you can pause and resume the view, and AI agents can inspect the history through MCP.',
-      Message,
-    },
-  })
+export const subscriptions = Lifecycle.subscriptions
+
+export const implementation = {
+  init: Root.init,
+  update: Root.update,
+  view: Root.view,
+  subscriptions,
+  EffectsLayer,
+}

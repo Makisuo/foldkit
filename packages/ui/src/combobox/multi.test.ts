@@ -1,6 +1,5 @@
 import { Option, Schema } from 'effect'
-import { type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
-import type * as Mount from 'foldkit/mount'
+import { inertHtml as ih } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
@@ -15,7 +14,6 @@ import type { Model, ViewInputs } from './multi.js'
 import {
   Anchor,
   AttachPreventBlur,
-  EffectsLayer,
   FocusInput,
   InertOthers,
   LockScroll,
@@ -26,18 +24,19 @@ import {
   ScrollItemIntoView,
   UnlockScroll,
   inputId,
+  makeView,
   mounts,
 } from './shared.js'
 
 const TestCombobox = create()
-const view = TestCombobox.view
+const view = makeView<Model, string>({ ariaMultiSelectable: true }, Message)
 
 const Fruit = Schema.Literals(['Apple', 'Pear'])
 type Fruit = typeof Fruit.Type
 
 const FruitCombobox = create(Fruit)
 
-type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
+type TestHtmlBuilder = Parameters<typeof view>[2]
 
 const acknowledgeAnchor = Scene.Mount.resolve(Anchor, Message.CompletedAnchor())
 const acknowledgeBackdrop = Scene.Mount.resolve(
@@ -57,7 +56,7 @@ const givenOpenMulti = Story.steps(
 )
 
 describe('Combobox.Multi', () => {
-  describe('descriptor', () => {
+  describe('completed Block', () => {
     it('preserves refined payloads and registered Steps', () => {
       expectTypeOf<typeof FruitCombobox.Message.Type>().toEqualTypeOf<
         Message<Fruit>
@@ -65,10 +64,24 @@ describe('Combobox.Multi', () => {
       expectTypeOf<typeof FruitCombobox.OutMessage.Type>().toEqualTypeOf<
         OutMessage<Fruit>
       >()
+      FruitCombobox.Message.SelectedItem({
+        item: 'Apple',
+        displayText: 'Apple',
+        wasSelected: false,
+      })
+      FruitCombobox.OutMessage.Selected({ value: 'Apple' })
+      FruitCombobox.Message.SelectedItem({
+        // @ts-expect-error The completed factory preserves the refined Message constructor.
+        item: 'Banana',
+        displayText: 'Banana',
+        wasSelected: false,
+      })
+      // @ts-expect-error The completed factory preserves the refined OutMessage constructor.
+      FruitCombobox.OutMessage.Selected({ value: 'Banana' })
       expectTypeOf<
         Update.RequirementsOf<typeof FruitCombobox.update>
       >().toEqualTypeOf<Update.RequirementsOf<typeof update>>()
-      expect(FruitCombobox.EffectsLayer).toBe(EffectsLayer)
+      expect(FruitCombobox.owner).toBe(TestCombobox.owner)
       expect(FruitCombobox.mounts).toEqual(mounts)
 
       const selected = FruitCombobox.steps.selectItem(

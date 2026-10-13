@@ -4,11 +4,10 @@ export {
   init,
   update,
   GenerateEducationEntryId,
-  EffectsLayer,
-  mounts,
   hasErrors,
   isComplete,
   revealErrors,
-} from './education'
+} from './block'
 export * as Entry from './entry'
 export { view } from './view'
+export { block } from './education'

@@ -5,13 +5,13 @@ import { Url } from 'foldkit/url'
 
 // Entry-only Commands ask about the transition, not the route alone...
 const commandsForTransition = (
-  transition: Transition.Transition<AppRoute>,
+  transition: Transition.Transition<ApplicationRoute>,
 ): ReadonlyArray<Command.Command<Message>> =>
   Transition.isEntering(transition, 'People') ? [FetchPeopleFilters()] : []
 
 // ...init builds the cold load transition, which counts as an entry...
 const init: Runtime.RoutingApplicationInit<Model, Message> = (url: Url) => {
-  const route = urlToAppRoute(url)
+  const route = urlToApplicationRoute(url)
   return {
     model: { route },
     commands: commandsForTransition(Transition.coldLoad(route)),
@@ -20,7 +20,7 @@ const init: Runtime.RoutingApplicationInit<Model, Message> = (url: Url) => {
 
 // ...and the ChangedUrl handler transitions from the route the Model holds:
 ChangedUrl: ({ url }) => {
-  const nextRoute = urlToAppRoute(url)
+  const nextRoute = urlToApplicationRoute(url)
   return {
     model: modifyFields(model, { route: () => nextRoute }),
     commands: commandsForTransition(Transition.make(model.route, nextRoute)),

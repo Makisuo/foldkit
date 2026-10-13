@@ -1,11 +1,5 @@
 export { init } from './init'
-export {
-  withEffectsLayer,
-  bind,
-  EffectsLayer,
-  mounts,
-  managedResources,
-} from './submodel'
+export { block } from './home'
 export { Message, OutMessage } from './message'
 export { Model } from './model'
 export { update } from './update'

@@ -1,20 +1,9 @@
-import {
-  Array,
-  Effect,
-  Fiber,
-  Layer,
-  Option,
-  Predicate,
-  Schema,
-  Stream,
-} from 'effect'
+import { Array, Effect, Fiber, Option, Predicate, Schema, Stream } from 'effect'
 import { Scene, Story } from 'foldkit'
 import { DEVTOOLS_HOST_ID } from 'foldkit/devtools-host'
 import * as Dom from 'foldkit/dom'
-import type { ChildAttribute, HtmlBuilder } from 'foldkit/html'
+import type { ChildAttribute } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import type * as Mount from 'foldkit/mount'
-import type * as Runtime from 'foldkit/runtime'
 import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 import { expect } from 'vitest'
@@ -25,27 +14,26 @@ import * as Animation from '../animation/index.js'
 import {
   AcquireResources,
   CloseDialog,
-  EffectsLayer,
   Message,
   Model,
   OutMessage,
   ReleaseDialogResources,
   type RenderInfo,
   ShowDialog,
+  block,
   boot,
   descriptionId,
   init,
   initialFocusMarkerAttribute,
   initialFocusMarkerSelector,
-  mounts,
   titleId,
   update,
   view,
 } from './index.js'
 
-type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
+type TestHtmlBuilder = Parameters<typeof view>[2]
 
-const provideEffects = Effect.provide(EffectsLayer)
+const provideEffects = Effect.provide(block.EffectsLayer)
 
 const acknowledgeAcquireResources = Scene.Mount.resolve(
   AcquireResources,
@@ -83,12 +71,7 @@ const foldDialogOutMessage = OutMessage.match<
   }),
 })
 
-const parentInit: Runtime.ApplicationInit<
-  ParentModel,
-  ParentMessage,
-  void,
-  Layer.Success<typeof EffectsLayer>
-> = () =>
+const parentInit = () =>
   Update.foldChildInit(boot({ id: 'initial-dialog' }), {
     toParentModel: dialog => ({ dialog, dialogEvents: [] }),
     toParentMessage: toGotDialogMessage,
@@ -274,7 +257,7 @@ describe('Dialog', () => {
         dialogBoot.commands?.map(({ name, args }) => ({ name, args })),
       ).toStrictEqual([
         {
-          name: 'ShowDialog',
+          name: 'Dialog/ShowDialog',
           args: {
             id: 'test',
             focusSelector: initialFocusMarkerSelector,
@@ -293,7 +276,7 @@ describe('Dialog', () => {
         parentBoot.commands?.map(({ name, args }) => ({ name, args })),
       ).toStrictEqual([
         {
-          name: 'ShowDialog',
+          name: 'Dialog/ShowDialog',
           args: {
             id: 'initial-dialog',
             focusSelector: initialFocusMarkerSelector,

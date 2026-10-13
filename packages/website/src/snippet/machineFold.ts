@@ -1,5 +1,5 @@
 import { Match, Option, Schema } from 'effect'
-import { Update } from 'foldkit'
+import { define as defineApplication } from 'foldkit/application'
 import { Machine } from 'foldkit/experimental'
 import { modifyFields } from 'foldkit/struct'
 
@@ -10,6 +10,8 @@ export const Model = Schema.Struct({
   isHelpOpen: Schema.Boolean,
 })
 export type Model = typeof Model.Type
+
+const Application = defineApplication({ Model, Message })
 
 export const initialModel = Model.make({
   checkout: checkoutMachine.initial,
@@ -23,7 +25,7 @@ export const foldCheckout = Machine.fold({
     modifyFields(model, { checkout: () => nextCheckout }),
 })
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = Application.update((model, message) =>
   Match.value(message).pipe(
     Match.tag('ToggledHelp', ({ isOpen }) => ({
       model: modifyFields(model, { isHelpOpen: () => isOpen }),

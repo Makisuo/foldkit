@@ -41,7 +41,7 @@ The exact files depend on the rendering mode and starter example. The small brow
 
 The Counter starter begins with these files:
 
-- `src/main.ts`: pure application definitions
+- `src/application.ts`: the typed Application and its implementation pieces
 - `src/entry.ts`: runtime bootstrap referenced by `index.html`
 - `src/styles.css`: Tailwind CSS entry point
 - `index.html`: HTML entry point
@@ -53,11 +53,11 @@ The Counter starter begins with these files:
 - `AGENTS.md`: your instructions for AI coding assistants working on the project
 - `FOLDKIT.md`: Foldkit's own conventions for those assistants, [replaced from the current template when you upgrade Foldkit](/ai/overview)
 
-In a small starter, `src/main.ts` holds the Model, Messages, update, init, and view. When it owns Commands, Subscriptions, Mounts, or ManagedResources, it also exports their attached handler recipes as `EffectsLayer`. Larger examples move those definitions and feature bundles into focused modules as the application grows.
+In a small starter, `src/application.ts` calls `defineApplication({ Model, Message })`, exports the typed `Application`, and authors init, update, and view through it. When the root owns Commands, Subscriptions, Mounts, or ManagedResources, their definitions and handler recipes stay at that Application boundary. Larger examples move those pieces into focused files and register child connections as the application grows.
 
 ### Runtime Entry
 
-For the Counter starter, `src/entry.ts` imports the application definitions and starts the runtime with `Application.make` and `Runtime.run`. A starter whose attached handlers need no additional providers supplies its root `EffectsLayer` through `Application.provide`. When the root also composes a `ServicesLayer`, it supplies the resulting `AppLayer`. Other starters may compose the application from several modules or start a different host, but they keep runtime startup separate from the definitions. That separation lets tests import the application without starting a runtime as a side effect.
+For the Counter starter, `src/entry.ts` calls the typed root’s owned `Application.make({ ...implementation, container })` method, then starts the resulting program with `Runtime.run`. A starter whose handlers need application Services defines `ApplicationLayer` in `src/services.ts`, then the entry supplies it through `provide`. Importing `application.ts` remains passive; startup happens only in the entry.
 
 ### Project Scripts
 

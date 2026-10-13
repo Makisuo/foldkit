@@ -2,13 +2,15 @@
 'foldkit': minor
 ---
 
-Add `Application.makeElement` for container-scoped apps whose effect requirements are supplied with `Application.provide`. It infers requirements from the configured Flags Effect, init and update Commands, Subscriptions, registered Mounts, and ManagedResources. A fully provided Element can be passed to `Runtime.run` or `Runtime.embed`, and its Layers share one runtime lifetime with Ports and the Element's Model-driven effects.
-
-Move the application's shared service Layer from `resources` into `Application.provide`, composing it with the feature's handler Layer. This example assumes the existing `ServicesLayer` supplies those services and the feature's `EffectsLayer` supplies the migrated handlers.
+Add owned `Application.makeElement` for container-scoped applications. It captures the typed definition's Model, Message, and registered children. Completion infers requirements from Flags, init and update Commands, Subscriptions, Mounts, and ManagedResources. The standalone `provide` utility satisfies ordinary Service requirements before `Runtime.run` or `Runtime.embed` starts the Element.
 
 **Before**
 
 ```ts
+import { Runtime } from 'foldkit'
+import { Model, init, update, view } from './main'
+import { ServicesLayer } from './resources'
+
 const element = Runtime.makeElement({
   Model,
   init,
@@ -25,26 +27,22 @@ const handle = Runtime.embed(element)
 **After**
 
 ```ts
-// Shared services satisfy the feature's handler constructors.
-const AppLayer = Layer.provide(EffectsLayer, ServicesLayer)
+import { Runtime } from 'foldkit'
+import { provide } from 'foldkit/application'
+import { Application, init, update, view, ports } from './application'
+import { ApplicationLayer } from './services'
 
-const element = pipe(
-  Application.makeElement({
-    Model,
-    init,
-    update,
-    view,
-    ports,
-    container,
-  }),
-  // Supply handlers and services outside the Element configuration.
-  Application.provide(AppLayer),
-)
+const element = Application.makeElement({
+  init,
+  update,
+  view,
+  ports,
+  container,
+})
 
-// Embedding starts the runtime and builds this Element's Layer graph.
-const handle = Runtime.embed(element)
+const handle = Runtime.embed(provide(element, ApplicationLayer))
 ```
 
-Import `Application` from `foldkit` and `Layer` and `pipe` from `effect`. Preserve the Element's Flags and other existing configuration, and include its rendered Mount definitions in `mounts`.
+Preserve existing Flags and other host configuration. Include local lifecycle declarations and `EffectsLayer` in completion when present. Registered children contribute their declarations and handler recipes automatically.
 
 Provided variants of one Element share its embed activity and disposal ordering. Only one variant can be embedded at a time, and embedding after disposal waits for the previous runtime's cleanup.

@@ -79,7 +79,7 @@ Story tests the state machine. It does not run the Effect inside a Command.
 
 ### Test Command Effects
 
-To test a Command's work, execute its Effect with the feature's real handler Layer and a deterministic service Layer. For example, `Weather.EffectsLayer` supplies the real `FetchWeather` handler, while a test HTTP client controls its responses. The test checks request construction, response parsing, and the resulting Message:
+To test a Command's work, execute its Effect with the feature's real handler Layer and a deterministic service Layer. For example, `FetchWeather.layer` supplies its real handler, while a test HTTP client controls the responses. The test checks request construction, response parsing, and the resulting Message:
 
 ::Snippet{name="testingCommandEffect" label="Command Effect test"}
 

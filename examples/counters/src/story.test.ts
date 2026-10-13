@@ -1,8 +1,8 @@
 import { given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
+import { Message, type Model, update } from './application'
 import { Message as CounterMessage } from './counter'
-import { Message, type Model, update } from './main'
 
 const initialModel: Model = {
   rows: [

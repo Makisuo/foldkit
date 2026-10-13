@@ -8,7 +8,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { AsyncData, Command, Mount, Submodel, Update } from 'foldkit'
+import { AsyncData, Block, type Mount } from 'foldkit'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
 
@@ -24,6 +24,7 @@ import {
   playgroundRouter,
 } from '../../route'
 import type { TableOfContentsEntry } from '../../tableOfContentsEntry'
+import { sourceFileTabs } from './binding'
 import { Message } from './message'
 import { type ExampleMeta, findBySlug } from './meta'
 import { CurrentSourcesAsyncData, Model } from './model'
@@ -36,12 +37,17 @@ import {
 export { Message } from './message'
 export { CurrentSourcesAsyncData, Model } from './model'
 
+const ExampleDetail = Block.define('ExampleDetail', {
+  Model,
+  Message,
+})
+
 // COMMAND
 
 /** Loads the source files for the example identified by `slug`, producing the
  *  loaded sources on success or a failure Message when the fetch does not
  *  complete. */
-export const LoadExampleSources = Command.define('LoadExampleSources', {
+export const LoadExampleSources = ExampleDetail.command('LoadExampleSources', {
   args: { slug: Schema.String },
   messages: [
     Message.SucceededLoadExampleSources,
@@ -110,35 +116,50 @@ const observeExampleUrlMessages = (element: Element) => {
   )
 }
 
-const ObserveExampleUrlMessages = Mount.defineStream(
+const ObserveExampleUrlMessages = ExampleDetail.mountStream(
   'ObserveExampleUrlMessages',
   {
     messages: [Message.ChangedExampleUrl],
     handler: function* () {
-      return ({ element }) => observeExampleUrlMessages(element)
+      return ({ element }: { element: Element }) =>
+        observeExampleUrlMessages(element)
     },
   },
 )
 
 export const mounts = [ObserveExampleUrlMessages]
+const children = [sourceFileTabs] as const
+
+type ViewRequirements =
+  | Mount.RequirementsOf<typeof mounts>
+  | Block.RequirementsOfConnections<typeof children>
+
+const exampleDetail = ExampleDetail.register({
+  mounts,
+  children,
+})
 
 export const EffectsLayer = Layer.mergeAll(
-  Tabs.EffectsLayer,
   LoadExampleSources.layer,
   ObserveExampleUrlMessages.layer,
 )
 
 // INIT
 
-export const init = () => ({
-  model: Model.make({
-    sourceFileTabs: Tabs.init({ id: 'source-file-tabs' }),
-    maybeActiveSourceFilePath: Option.none(),
-    maybeExampleUrl: Option.none(),
-    isLivePreviewOpen: true,
-    currentSources: CurrentSourcesAsyncData.Idle(),
-  }),
-})
+export const init = () => {
+  const sourceFileTabsInit = sourceFileTabs.init({ id: 'source-file-tabs' })
+
+  return {
+    model: Model.make({
+      sourceFileTabs: sourceFileTabsInit.model,
+      maybeActiveSourceFilePath: Option.none(),
+      maybeExampleUrl: Option.none(),
+      isLivePreviewOpen: true,
+      currentSources: CurrentSourcesAsyncData.Idle(),
+    }),
+    commands: sourceFileTabsInit.commands ?? [],
+  }
+}
 
 const isSourceAvailable = (slug: string): boolean =>
   Option.match(findBySlug(slug), {
@@ -146,33 +167,35 @@ const isSourceAvailable = (slug: string): boolean =>
     onSome: meta => meta.livePreview !== 'Unavailable',
   })
 
-export const boot = (
-  maybeInitialSlug: Option.Option<string>,
-  maybeExampleSources: Option.Option<
-    typeof ExampleSources.Type
-  > = Option.none(),
-) => {
-  const init_ = init()
-  return Option.match(maybeExampleSources, {
-    onNone: () =>
-      Option.match(maybeInitialSlug, {
-        onNone: () => init_,
-        onSome: slug =>
-          isSourceAvailable(slug)
-            ? update(init_.model, Message.RequestedExampleSources({ slug }))
-            : init_,
-      }),
-    onSome: sources =>
-      update(init_.model, Message.SucceededLoadExampleSources({ sources })),
-  })
-}
+export const boot = ExampleDetail.step(
+  (
+    model,
+    maybeInitialSlug: Option.Option<string>,
+    maybeExampleSources: Option.Option<
+      typeof ExampleSources.Type
+    > = Option.none(),
+  ) => {
+    return Option.match(maybeExampleSources, {
+      onNone: () =>
+        Option.match(maybeInitialSlug, {
+          onNone: () => ({ model }),
+          onSome: slug =>
+            isSourceAvailable(slug)
+              ? update(model, Message.RequestedExampleSources({ slug }))
+              : { model },
+        }),
+      onSome: sources =>
+        update(model, Message.SucceededLoadExampleSources({ sources })),
+    })
+  },
+)
 
 // UPDATE
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = ExampleDetail.update((model, message) =>
   Message.match(message, {
     GotSourceFileTabsMessage: ({ message }) =>
-      foldSourceFileTabs(model, message),
+      sourceFileTabs.fold(model, message),
     ChangedExampleUrl: ({ url }) => ({
       model: modifyFields(model, { maybeExampleUrl: () => Option.some(url) }),
     }),
@@ -180,15 +203,24 @@ export const update = Update.define((model: Model, message: Message) =>
       model: modifyFields(model, { isLivePreviewOpen: () => isOpen }),
     }),
 
-    RequestedExampleSources: ({ slug }) => ({
-      model: modifyFields(model, {
-        sourceFileTabs: () => Tabs.init({ id: 'source-file-tabs' }),
-        maybeActiveSourceFilePath: () => Option.none(),
-        maybeExampleUrl: () => Option.none(),
-        currentSources: () => CurrentSourcesAsyncData.Loading(),
-      }),
-      commands: [LoadExampleSources({ slug })],
-    }),
+    RequestedExampleSources: ({ slug }) => {
+      const sourceFileTabsInit = sourceFileTabs.init({
+        id: 'source-file-tabs',
+      })
+
+      return {
+        model: modifyFields(model, {
+          sourceFileTabs: () => sourceFileTabsInit.model,
+          maybeActiveSourceFilePath: () => Option.none(),
+          maybeExampleUrl: () => Option.none(),
+          currentSources: () => CurrentSourcesAsyncData.Loading(),
+        }),
+        commands: [
+          ...(sourceFileTabsInit.commands ?? []),
+          LoadExampleSources({ slug }),
+        ],
+      }
+    },
 
     SucceededLoadExampleSources: ({ sources }) => ({
       model: modifyFields(model, {
@@ -211,17 +243,22 @@ export const update = Update.define((model: Model, message: Message) =>
   }),
 )
 
-export const informRouteChanged = (model: Model, slug: string) =>
-  isSourceAvailable(slug)
-    ? update(model, Message.RequestedExampleSources({ slug }))
-    : {
-        model: modifyFields(model, {
-          sourceFileTabs: () => Tabs.init({ id: 'source-file-tabs' }),
-          maybeActiveSourceFilePath: () => Option.none(),
-          maybeExampleUrl: () => Option.none(),
-          currentSources: () => CurrentSourcesAsyncData.Idle(),
-        }),
-      }
+export const informRouteChanged = ExampleDetail.step((model, slug: string) => {
+  if (isSourceAvailable(slug)) {
+    return update(model, Message.RequestedExampleSources({ slug }))
+  }
+
+  const sourceFileTabsInit = sourceFileTabs.init({ id: 'source-file-tabs' })
+  return {
+    model: modifyFields(model, {
+      sourceFileTabs: () => sourceFileTabsInit.model,
+      maybeActiveSourceFilePath: () => Option.none(),
+      maybeExampleUrl: () => Option.none(),
+      currentSources: () => CurrentSourcesAsyncData.Idle(),
+    }),
+    commands: sourceFileTabsInit.commands ?? [],
+  }
+})
 
 // VIEW
 
@@ -376,7 +413,7 @@ const livePreviewDisclosureView = (
   meta: ExampleMeta,
   slug: string,
   maybeExampleUrl: Option.Option<string>,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
+  h: HtmlBuilder<Message, ViewRequirements>,
 ): Html =>
   Disclosure.view(
     {
@@ -444,29 +481,6 @@ const livePreviewDisclosureView = (
     h,
   )
 
-const SourceFileTabs = Tabs.create()
-
-const foldSourceFileTabsOutMessage = Tabs.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeActiveSourceFilePath: () => Option.some(value),
-      }),
-    }),
-})
-
-const foldSourceFileTabs = Update.foldChild({
-  update: SourceFileTabs.update,
-  read: (model: Model) => Option.some(model.sourceFileTabs),
-  write: (model, nextSourceFileTabs) =>
-    modifyFields(model, { sourceFileTabs: () => nextSourceFileTabs }),
-  toParentMessage: message => Message.GotSourceFileTabsMessage({ message }),
-  foldOutMessage: foldSourceFileTabsOutMessage,
-})
-
 const TAB_BUTTON_BASE =
   'px-3 py-2 lg:py-1.5 whitespace-nowrap lg:whitespace-normal lg:w-full lg:text-left text-xs font-mono transition cursor-pointer'
 
@@ -481,88 +495,88 @@ const TAB_BUTTON_INACTIVE =
 const sourceCodeView = (
   exampleSlug: string,
   files: ReadonlyArray<ExampleSourceFile>,
-  tabsModel: Tabs.Model,
+  tabsModel: typeof Tabs.Model.Type,
   activeSourceFilePath: string,
   isNarrowViewport: boolean,
   renderSnippet: CodeBlock.RenderSnippet,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, ViewRequirements>,
 ): Html => {
   const filePaths = Array.map(files, file => file.path)
 
-  return h.submodel({
-    slotId: tabsModel.id,
-    model: tabsModel,
-    view: SourceFileTabs.view,
-    viewInputs: {
-      tabs: filePaths,
-      selectedValue: activeSourceFilePath,
-      ariaLabel: 'Source files',
-      orientation: isNarrowViewport ? 'Horizontal' : 'Vertical',
-      toView: ({ tablist, tabs, activeIndex }) =>
-        h.div(
-          [
-            h.Class(
-              'flex flex-col lg:flex-row overflow-hidden max-h-[80vh] border border-gray-200 dark:border-gray-700/50',
-            ),
-          ],
-          [
-            h.div(
-              [
-                ...tablist,
-                h.Class(
-                  'flex flex-shrink-0 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto lg:w-44 lg:flex-col border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700/50 bg-gray-200 dark:bg-gray-800/50 divide-x lg:divide-x-0 lg:divide-y divide-gray-200 dark:divide-gray-700/50',
-                ),
-              ],
-              tabs.map(tab =>
-                h.button(
-                  [
-                    ...tab.tab,
-                    h.Class(
-                      tab.isActive ? TAB_BUTTON_ACTIVE : TAB_BUTTON_INACTIVE,
-                    ),
-                  ],
-                  [h.span([], [tab.value.replaceAll('/', '/​')])],
+  return h.block(
+    sourceFileTabs.embedView({
+      slotId: tabsModel.id,
+      model: tabsModel,
+      viewInputs: {
+        tabs: filePaths,
+        selectedValue: activeSourceFilePath,
+        ariaLabel: 'Source files',
+        orientation: isNarrowViewport ? 'Horizontal' : 'Vertical',
+        toView: ({ tablist, tabs, activeIndex }) =>
+          h.div(
+            [
+              h.Class(
+                'flex flex-col lg:flex-row overflow-hidden max-h-[80vh] border border-gray-200 dark:border-gray-700/50',
+              ),
+            ],
+            [
+              h.div(
+                [
+                  ...tablist,
+                  h.Class(
+                    'flex flex-shrink-0 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto lg:w-44 lg:flex-col border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700/50 bg-gray-200 dark:bg-gray-800/50 divide-x lg:divide-x-0 lg:divide-y divide-gray-200 dark:divide-gray-700/50',
+                  ),
+                ],
+                tabs.map(tab =>
+                  h.button(
+                    [
+                      ...tab.tab,
+                      h.Class(
+                        tab.isActive ? TAB_BUTTON_ACTIVE : TAB_BUTTON_INACTIVE,
+                      ),
+                    ],
+                    [h.span([], [tab.value.replaceAll('/', '/​')])],
+                  ),
                 ),
               ),
-            ),
-            ...tabs
-              .filter(tab => tab.index === activeIndex)
-              .map(tab => {
-                const maybeFile = Array.findFirst(
-                  files,
-                  file => file.path === tab.value,
-                )
-                return h.div(
-                  [...tab.panel, h.Class('code-embed-panel')],
-                  [
-                    Option.match(maybeFile, {
-                      onNone: () => h.empty,
-                      onSome: file =>
-                        h.div(
-                          [h.Class('code-embed-scroll')],
-                          [
-                            renderSnippet({
-                              id: `example-${exampleSlug}-source-${file.path}`,
-                              disclosureGroupId: `example-${exampleSlug}-source`,
-                              content: h.div([
-                                h.Class('code-embed'),
-                                h.InnerHTML(file.highlightedHtml),
-                              ]),
-                              rawCode: file.rawCode,
-                              copyAriaLabel: `Copy ${file.path} to clipboard`,
-                              className: 'mt-0',
-                            }),
-                          ],
-                        ),
-                    }),
-                  ],
-                )
-              }),
-          ],
-        ),
-    },
-    toParentMessage: message => Message.GotSourceFileTabsMessage({ message }),
-  })
+              ...tabs
+                .filter(tab => tab.index === activeIndex)
+                .map(tab => {
+                  const maybeFile = Array.findFirst(
+                    files,
+                    file => file.path === tab.value,
+                  )
+                  return h.div(
+                    [...tab.panel, h.Class('code-embed-panel')],
+                    [
+                      Option.match(maybeFile, {
+                        onNone: () => h.empty,
+                        onSome: file =>
+                          h.div(
+                            [h.Class('code-embed-scroll')],
+                            [
+                              renderSnippet({
+                                id: `example-${exampleSlug}-source-${file.path}`,
+                                disclosureGroupId: `example-${exampleSlug}-source`,
+                                content: h.div([
+                                  h.Class('code-embed'),
+                                  h.InnerHTML(file.highlightedHtml),
+                                ]),
+                                rawCode: file.rawCode,
+                                copyAriaLabel: `Copy ${file.path} to clipboard`,
+                                className: 'mt-0',
+                              }),
+                            ],
+                          ),
+                      }),
+                    ],
+                  )
+                }),
+            ],
+          ),
+      },
+    }),
+  )
 }
 
 const skeletonFileRowClasses: ReadonlyArray<string> = [
@@ -640,7 +654,7 @@ const availableExampleContentView = (
   slug: string,
   isNarrowViewport: boolean,
   renderSnippet: CodeBlock.RenderSnippet,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
+  h: HtmlBuilder<Message, ViewRequirements>,
 ): ReadonlyArray<Html> => [
   meta.livePreview === 'PlaygroundOnly'
     ? playgroundOnlyNotice(meta)
@@ -691,40 +705,44 @@ type ViewInputs = Readonly<{
 
 /**
  * Renders one example app: its header, the live preview, and the source files
- * behind a Tabs Submodel.
+ * behind a Tabs Block.
  *
- * The page is dispatched through `h.submodel`, so it takes the snippet renderer
+ * The page is dispatched through `h.block`, so it takes the snippet renderer
  * from its parent rather than building the interactive boundaries itself. The
  * renderer runs in the parent's boundary, so its Messages are wrapped for the
  * parent instead of being rejected by this page's `toParentMessage`.
  */
-export const view = Submodel.defineView<
-  Model,
-  Message,
-  ViewInputs,
-  Mount.RequirementsOf<typeof mounts>
->((model, { slug, isNarrowViewport, renderSnippet }, h): Html =>
-  Option.match(findBySlug(slug), {
-    onNone: () => h.div([], ['Example not found']),
-    onSome: meta =>
-      h.keyed('div')(
-        slug,
-        [],
-        [
-          headerView(meta),
-          ...(meta.livePreview === 'Unavailable'
-            ? [pausedExampleNotice(meta)]
-            : availableExampleContentView(
-                model,
-                meta,
-                slug,
-                isNarrowViewport,
-                renderSnippet,
-                h,
-              )),
-        ],
-      ),
-  }),
+export const view = exampleDetail.view.withInputs<ViewInputs>(
+  (model, { slug, isNarrowViewport, renderSnippet }, h) =>
+    Option.match(findBySlug(slug), {
+      onNone: () => h.div([], ['Example not found']),
+      onSome: meta =>
+        h.keyed('div')(
+          slug,
+          [],
+          [
+            headerView(meta),
+            ...(meta.livePreview === 'Unavailable'
+              ? [pausedExampleNotice(meta)]
+              : availableExampleContentView(
+                  model,
+                  meta,
+                  slug,
+                  isNarrowViewport,
+                  renderSnippet,
+                  h,
+                )),
+          ],
+        ),
+    }),
 )
+
+export const block = exampleDetail.assemble({
+  init,
+  update,
+  view,
+  steps: { boot, informRouteChanged },
+  EffectsLayer,
+})
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = []

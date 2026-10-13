@@ -1,19 +1,13 @@
-import { pipe } from 'effect'
-import { Application, Runtime } from 'foldkit'
+import { Runtime } from 'foldkit'
 
-import { EffectsLayer, Flags, Message, Model, init, update, view } from './main'
+import { Application, Flags, implementation, Message } from './application'
 import './styles.css'
 
 const application = Application.make({
-  Model,
+  ...implementation,
   Flags,
-  init,
-  update,
-  view,
   container: document.getElementById('root'),
-  devTools: {
-    Message,
-  },
+  devTools: { Message },
 })
 
-pipe(application, Application.provide(EffectsLayer), Runtime.hydrate)
+Runtime.hydrate(application)

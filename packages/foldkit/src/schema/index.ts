@@ -510,8 +510,8 @@ const defineUnion = <CasesByTag extends Record<string, Schema.Struct.Fields>>(
  * `match`. Use Effect `Match` when only some tags need handling or several tags
  * share one handler.
  *
- * Declare a Submodel's OutMessages in their own `defineMessageUnion`. Messages
- * are facts the Submodel handles; OutMessages are facts it reports to its
+ * Declare a Block's OutMessages in their own `defineMessageUnion`. Messages
+ * are facts the Block handles; OutMessages are facts it reports to its
  * parent. Keep the two unions separate even when two variants carry the same
  * fields.
  *
@@ -586,16 +586,16 @@ export function defineTaggedUnion<
  * Declares every application Route in one object. Each key is a tag, and its
  * value lists the fields parsed from the URL.
  *
- * The result is both a Schema and the `AppRoute` namespace. Each variant is a
- * callable Schema, so `AppRoute.Person` works with `mapTo` and
- * `parseUrlWithFallback`, while `AppRoute.Person({ personId: 42 })` constructs
- * a value.
+ * The result is both a Schema and the `ApplicationRoute` namespace. Each
+ * variant is a callable Schema, so `ApplicationRoute.Person` works with
+ * `mapTo` and `parseUrlWithFallback`, while
+ * `ApplicationRoute.Person({ personId: 42 })` constructs a value.
  *
  * Use `match` to handle every Route, `matchOrElse` to handle selected Routes
  * with a fallback, `guards` or `isAnyOf` to check selected tags, and `subset`
  * when another Schema accepts only some Routes. A subset includes only the
- * tags named in the call. Adding a Route to `AppRoute` does not change an
- * existing subset.
+ * tags named in the call. Adding a Route to `ApplicationRoute` does not change
+ * an existing subset.
  *
  * Routers remain separate. A Route is the parsed value; a Router describes the
  * URL that produces it.
@@ -606,23 +606,23 @@ export function defineTaggedUnion<
  *
  * @example
  * ```typescript
- * export const AppRoute = defineRouteUnion({
+ * export const ApplicationRoute = defineRouteUnion({
  *   Home: {},
  *   Person: { personId: Schema.Number },
  *   NotFound: { path: Schema.String },
  * })
- * export type AppRoute = typeof AppRoute.Type
+ * export type ApplicationRoute = typeof ApplicationRoute.Type
  *
- * export const homeRouter = pipe(root, mapTo(AppRoute.Home))
+ * export const homeRouter = pipe(root, mapTo(ApplicationRoute.Home))
  * export const personRouter = pipe(
  *   literal('people'),
  *   slash(int('personId')),
- *   mapTo(AppRoute.Person),
+ *   mapTo(ApplicationRoute.Person),
  * )
  *
- * export const urlToAppRoute = parseUrlWithFallback(
+ * export const urlToApplicationRoute = parseUrlWithFallback(
  *   oneOf(personRouter, homeRouter),
- *   AppRoute.NotFound,
+ *   ApplicationRoute.NotFound,
  * )
  * ```
  */

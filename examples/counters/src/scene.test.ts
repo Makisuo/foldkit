@@ -12,7 +12,7 @@ import {
 } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { type Model, update, view } from './main'
+import { type Model, update, view } from './application'
 
 const initialModel: Model = {
   rows: [
@@ -33,7 +33,7 @@ describe('view', () => {
     )
   })
 
-  test('clicking + on a Counter dispatches through h.submodel back to the right row', () => {
+  test('clicking + on a Counter dispatches through h.block back to the right row', () => {
     scene(
       { update, view },
       given(initialModel),
@@ -44,7 +44,7 @@ describe('view', () => {
     )
   })
 
-  test('clicking - on a Counter dispatches through h.submodel and decrements', () => {
+  test('clicking - on a Counter dispatches through h.block and decrements', () => {
     scene(
       { update, view },
       given({

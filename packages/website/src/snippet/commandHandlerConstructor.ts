@@ -1,10 +1,11 @@
-import { Effect } from 'effect'
 import { HttpClient } from 'effect/http'
-import { Command } from 'foldkit'
+import { define as defineApplication } from 'foldkit/application'
 
-import { Message, fetchCount } from './counterHttpCommand'
+import { Model, Message, fetchCount } from './counterHttpCommand'
 
-export const FetchCount = Command.define('FetchCount', {
+const Application = defineApplication({ Model, Message })
+
+export const FetchCount = Application.command('FetchCount', {
   messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
   handler: function* () {
     const client = yield* HttpClient.HttpClient

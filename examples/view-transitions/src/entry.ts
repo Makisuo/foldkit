@@ -1,30 +1,21 @@
-import { pipe } from 'effect'
-import { Application, Runtime } from 'foldkit'
+import { Runtime } from 'foldkit'
 
 import {
-  EffectsLayer,
-  Message,
-  Model,
-  init,
-  update,
-  view,
+  Application,
+  implementation,
   viewTransition,
-} from './main'
+  Message,
+} from './application'
 
 const application = Application.make({
-  Model,
-  init,
-  update,
-  view,
+  ...implementation,
   container: document.getElementById('root'),
   routing: {
     onUrlRequest: request => Message.ClickedLink({ request }),
     onUrlChange: url => Message.ChangedUrl({ url }),
   },
   viewTransition,
-  devTools: {
-    Message,
-  },
+  devTools: { Message },
 })
 
-pipe(application, Application.provide(EffectsLayer), Runtime.run)
+Runtime.run(application)

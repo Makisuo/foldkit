@@ -1,16 +1,18 @@
-import { Submodel } from 'foldkit'
-import type { HtmlBuilder as FoldkitHtmlBuilder, Html } from 'foldkit/html'
-import type * as Mount from 'foldkit/mount'
+import type { Block } from 'foldkit'
+import type { Html } from 'foldkit/html'
 
 import { Popover } from '@foldkit/ui'
+import { buttonId, type RenderInfo } from '@foldkit/ui/popover'
 
-import { Message as UiMessage } from '../message'
-import type { UiModel } from '../model'
+import {
+  popoverAnimatedDemo,
+  popoverBasicDemo,
+  popoverNestedChildDemo,
+  popoverNestedParentDemo,
+  ui,
+} from '../update'
 
-type HtmlBuilder = FoldkitHtmlBuilder<
-  UiMessage,
-  Mount.RequirementsOf<typeof Popover.mounts>
->
+type HtmlBuilder = Block.HtmlBuilderOf<typeof ui>
 
 const triggerClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -31,7 +33,7 @@ const POPOVER_ANCHOR = {
   padding: 8,
 }
 
-const popoverPanelContent = (h: FoldkitHtmlBuilder<UiMessage>): Html => {
+const popoverPanelContent = (h: HtmlBuilder): Html => {
   return h.div(
     [],
     [
@@ -44,19 +46,12 @@ const popoverPanelContent = (h: FoldkitHtmlBuilder<UiMessage>): Html => {
   )
 }
 
-const popoverDemo = (
-  id: string,
-  popoverModel: Popover.Model,
-  toParentMessage: (message: Popover.Message) => UiMessage,
-  panelClassNameValue: string,
-  h: HtmlBuilder,
-): Html => {
-  const popoverView = ({
-    button,
-    panel,
-    backdrop,
-    isVisible,
-  }: Popover.RenderInfo): Html =>
+const makePopoverView =
+  (
+    panelClassNameValue: string,
+    h: HtmlBuilder,
+  ): ((renderInfo: RenderInfo) => Html) =>
+  ({ button, panel, backdrop, isVisible }) =>
     h.div(
       [h.Class(wrapperClassName)],
       [
@@ -76,18 +71,6 @@ const popoverDemo = (
       ],
     )
 
-  return h.submodel({
-    slotId: id,
-    model: popoverModel,
-    view: Popover.view,
-    viewInputs: {
-      anchor: POPOVER_ANCHOR,
-      toView: popoverView,
-    },
-    toParentMessage,
-  })
-}
-
 const NESTED_POPOVER_ANCHOR = {
   placement: 'right-start' as const,
   gap: 8,
@@ -97,7 +80,7 @@ const NESTED_POPOVER_ANCHOR = {
 const nestedChildButtonSelector = '#popover-nested-child-demo-button'
 
 const nestedChildPopover = (
-  childPopoverModel: Popover.Model,
+  childPopoverModel: typeof Popover.Model.Type,
   h: HtmlBuilder,
 ): Html => {
   const childPopoverView = ({
@@ -105,7 +88,7 @@ const nestedChildPopover = (
     panel,
     backdrop,
     isVisible,
-  }: Popover.RenderInfo): Html =>
+  }: RenderInfo): Html =>
     h.div(
       [h.Class(wrapperClassName)],
       [
@@ -136,23 +119,22 @@ const nestedChildPopover = (
       ],
     )
 
-  return h.submodel({
-    slotId: childPopoverModel.id,
-    model: childPopoverModel,
-    view: Popover.view,
-    viewInputs: {
-      ariaLabel: 'Advanced settings',
-      anchor: NESTED_POPOVER_ANCHOR,
-      toView: childPopoverView,
-    },
-    toParentMessage: message =>
-      UiMessage.GotPopoverNestedChildDemoMessage({ message }),
-  })
+  return h.block(
+    popoverNestedChildDemo.embedView({
+      slotId: childPopoverModel.id,
+      model: childPopoverModel,
+      viewInputs: {
+        ariaLabel: 'Advanced settings',
+        anchor: NESTED_POPOVER_ANCHOR,
+        toView: childPopoverView,
+      },
+    }),
+  )
 }
 
 const nestedDemo = (
-  parentPopoverModel: Popover.Model,
-  childPopoverModel: Popover.Model,
+  parentPopoverModel: typeof Popover.Model.Type,
+  childPopoverModel: typeof Popover.Model.Type,
   h: HtmlBuilder,
 ): Html => {
   const parentPopoverView = ({
@@ -160,7 +142,7 @@ const nestedDemo = (
     panel,
     backdrop,
     isVisible,
-  }: Popover.RenderInfo): Html =>
+  }: RenderInfo): Html =>
     h.div(
       [h.Class(wrapperClassName)],
       [
@@ -194,94 +176,97 @@ const nestedDemo = (
   return h.div(
     [h.Class('relative')],
     [
-      h.submodel({
-        slotId: parentPopoverModel.id,
-        model: parentPopoverModel,
-        view: Popover.view,
-        viewInputs: {
-          anchor: POPOVER_ANCHOR,
-          focusSelector: nestedChildButtonSelector,
-          toView: parentPopoverView,
-        },
-        toParentMessage: message =>
-          UiMessage.GotPopoverNestedParentDemoMessage({ message }),
-      }),
+      h.block(
+        popoverNestedParentDemo.embedView({
+          slotId: parentPopoverModel.id,
+          model: parentPopoverModel,
+          viewInputs: {
+            anchor: POPOVER_ANCHOR,
+            focusSelector: nestedChildButtonSelector,
+            toView: parentPopoverView,
+          },
+        }),
+      ),
     ],
   )
 }
 
-export const view = Submodel.defineView(
-  (model: UiModel, h: HtmlBuilder): Html => {
-    return h.div(
-      [],
-      [
-        h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Popover']),
+export const view = ui.view((model, h) => {
+  return h.div(
+    [],
+    [
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Popover']),
 
-        h.h3(
-          [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-          ['Basic'],
-        ),
-        h.label(
-          [
-            h.For(Popover.buttonId(model.popoverBasicDemo.id)),
-            h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
-          ],
-          ['Product menu'],
-        ),
-        h.div(
-          [h.Class('relative')],
-          [
-            popoverDemo(
-              model.popoverBasicDemo.id,
-              model.popoverBasicDemo,
-              message => UiMessage.GotPopoverBasicDemoMessage({ message }),
-              basicPanelClassName,
-              h,
-            ),
-          ],
-        ),
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+        ['Basic'],
+      ),
+      h.label(
+        [
+          h.For(buttonId(model.popoverBasicDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['Product menu'],
+      ),
+      h.div(
+        [h.Class('relative')],
+        [
+          h.block(
+            popoverBasicDemo.embedView({
+              slotId: model.popoverBasicDemo.id,
+              model: model.popoverBasicDemo,
+              viewInputs: {
+                anchor: POPOVER_ANCHOR,
+                toView: makePopoverView(basicPanelClassName, h),
+              },
+            }),
+          ),
+        ],
+      ),
 
-        h.h3(
-          [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-          ['Animated'],
-        ),
-        h.label(
-          [
-            h.For(Popover.buttonId(model.popoverAnimatedDemo.id)),
-            h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
-          ],
-          ['Product menu'],
-        ),
-        h.div(
-          [h.Class('relative')],
-          [
-            popoverDemo(
-              model.popoverAnimatedDemo.id,
-              model.popoverAnimatedDemo,
-              message => UiMessage.GotPopoverAnimatedDemoMessage({ message }),
-              animatedPanelClassName,
-              h,
-            ),
-          ],
-        ),
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+        ['Animated'],
+      ),
+      h.label(
+        [
+          h.For(buttonId(model.popoverAnimatedDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['Product menu'],
+      ),
+      h.div(
+        [h.Class('relative')],
+        [
+          h.block(
+            popoverAnimatedDemo.embedView({
+              slotId: model.popoverAnimatedDemo.id,
+              model: model.popoverAnimatedDemo,
+              viewInputs: {
+                anchor: POPOVER_ANCHOR,
+                toView: makePopoverView(animatedPanelClassName, h),
+              },
+            }),
+          ),
+        ],
+      ),
 
-        h.h3(
-          [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-          ['Nested'],
-        ),
-        h.label(
-          [
-            h.For(Popover.buttonId(model.popoverNestedParentDemo.id)),
-            h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
-          ],
-          ['Account'],
-        ),
-        nestedDemo(
-          model.popoverNestedParentDemo,
-          model.popoverNestedChildDemo,
-          h,
-        ),
-      ],
-    )
-  },
-)
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+        ['Nested'],
+      ),
+      h.label(
+        [
+          h.For(buttonId(model.popoverNestedParentDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['Account'],
+      ),
+      nestedDemo(
+        model.popoverNestedParentDemo,
+        model.popoverNestedChildDemo,
+        h,
+      ),
+    ],
+  )
+})

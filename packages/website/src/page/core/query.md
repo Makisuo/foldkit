@@ -14,7 +14,7 @@ To see how Query is used in a complete Foldkit application, visit [API Cache Que
 
 Fetching data in a Foldkit application usually takes the same pieces: an [AsyncData](/core/async-data) value in the Model, a Command that performs the request, a Message carrying the result, and update branches that begin and settle the request. That explicit loop is useful when a request belongs to a larger workflow. It becomes repetitive when the application only needs to retain a resource and refresh it later.
 
-Think of Query as that standard request loop packaged around an `AsyncData` value. Query is a viewless Submodel: it owns the `AsyncData` state, fetch Command, completion Message, update logic, and protection against late responses. The parent stores the Query Model, delegates its Messages, and reads the retained `AsyncData` value for rendering.
+Think of Query as that standard request loop packaged around an `AsyncData` value. Query is a viewless Block: it owns the `AsyncData` state, fetch Command, completion Message, update logic, and protection against late responses. The parent stores the Query Model, delegates its Messages, and reads the retained `AsyncData` value for rendering.
 
 ### Query and KeyedQuery
 
@@ -48,7 +48,7 @@ With no `args`, `Query.define` returns a Query that retains one value. In this d
 
 Choose Query names so their generated Fetch Command names are distinct from all other Command definitions in the application. For example, `name: 'Posts'` generates `FetchPosts` and must not share that handler name with a separately declared `FetchPosts` Command. TypeScript rejects a same-named provider with an incompatible handler protocol. Definitions with identical names and protocols remain structurally indistinguishable to TypeScript, so Foldkit checks their private identity before the generated Fetch handler runs. Create alternate implementations with the original Query's `toLayer`.
 
-Add the resulting Layer to the owning feature's `EffectsLayer` export and pass the root `AppLayer` to `Application.provide` at the entry point. Loading operations carry `FetchPosts` as a handler requirement, so an application that starts this Query cannot run without a Layer for it. The handler generator can capture stable services while the application Layer is built; those services are available when the fetch Command executes later.
+Add the resulting Layer to the owning feature's local `EffectsLayer` and pass that bundle to `definition.assemble`. Parent bindings carry the handler graph to the root; the entry supplies service providers through `ApplicationLayer`. Loading operations carry `FetchPosts` as a handler requirement, so an application that starts this Query cannot run without its Layer. The handler generator can capture stable services while the application Layer is built; those services are available when the fetch Command executes later.
 
 Omit `handler` when an external host supplies the fetch implementation. That definition has no `.layer`; the host constructs its provider with `toLayer`, which accepts the implementation Effect constructor. The method also constructs an alternative to an attached handler. Ordinary execution tests keep `.layer` and replace the services required by its handler.
 
@@ -76,7 +76,7 @@ The `parentField` form tells `lift` which field contains an always-present Query
 
 #### Optional and Nested Queries
 
-Use the full lens form of `lift` when the Query is nested or exists only in some parent variants. Supply `read`, `write`, and `toParentMessage`, following the same contract as [`Update.foldChild`](/core/submodel#fold-child). When `read` returns `None`, the fold and lifted operations return the parent Model unchanged and no Commands.
+Use the full lens form of `lift` when the Query is nested or exists only in some parent variants. Supply `read`, `write`, and `toParentMessage`, following the same lens contract as a [child binding](/core/block#embedding). When `read` returns `None`, the lifted operations return the parent Model unchanged and no Commands.
 
 #### Starting a Load
 
@@ -88,7 +88,7 @@ Use `read` to access the Query's retained `AsyncData` value:
 
 ::Snippet{name="queryReadAndRender" label="Reading and rendering Query data"}
 
-The parent passes the Query Model to a child-owned accessor; it does not inspect the Query Model's fields. `read` returns an ordinary `AsyncData`, and the parent decides how to render it with `AsyncData.match`, `matchData`, `getData`, `getError`, or another Async Data helper. A viewless Submodel preserves the state and update boundary without creating an `h.submodel` view boundary.
+The parent passes the Query Model to a child-owned accessor; it does not inspect the Query Model's fields. `read` returns an ordinary `AsyncData`, and the parent decides how to render it with `AsyncData.match`, `matchData`, `getData`, `getError`, or another Async Data helper. A viewless Block preserves the state and update boundary without creating an `h.block` view boundary.
 
 ## Load and Refresh Query Data
 

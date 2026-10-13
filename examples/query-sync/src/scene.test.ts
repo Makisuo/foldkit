@@ -5,10 +5,16 @@ import { describe, test } from 'vitest'
 
 import { Listbox } from '@foldkit/ui'
 
-import { AppRoute, type Model, Sorting, update, view } from './main'
+import {
+  ApplicationRoute,
+  type Model,
+  Sorting,
+  update,
+  view,
+} from './application'
 
 const browseModel: Model = {
-  route: AppRoute.Browse({
+  route: ApplicationRoute.Browse({
     search: Option.none(),
     sorting: Sorting.Unsorted(),
     diet: Option.none(),
@@ -42,7 +48,7 @@ describe('view', () => {
       given(
         modifyFields(browseModel, {
           route: () =>
-            AppRoute.Browse({
+            ApplicationRoute.Browse({
               search: Option.some('Tyranno'),
               sorting: Sorting.Unsorted(),
               diet: Option.none(),
@@ -60,7 +66,7 @@ describe('view', () => {
       given(
         modifyFields(browseModel, {
           route: () =>
-            AppRoute.Browse({
+            ApplicationRoute.Browse({
               search: Option.some('zzzNoMatch'),
               sorting: Sorting.Unsorted(),
               diet: Option.none(),
@@ -77,7 +83,7 @@ describe('view', () => {
       { update, view },
       given(
         modifyFields(browseModel, {
-          route: () => AppRoute.NotFound({ path: '/oops' }),
+          route: () => ApplicationRoute.NotFound({ path: '/oops' }),
         }),
       ),
       expect(role('heading', { name: '404 — Page Not Found' })).toExist(),

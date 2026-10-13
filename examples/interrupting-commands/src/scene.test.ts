@@ -11,7 +11,7 @@ import {
   initialModel,
   update,
   view,
-} from './main'
+} from './application'
 
 const firstFile = Array.headNonEmpty(FAKE_FILES)
 

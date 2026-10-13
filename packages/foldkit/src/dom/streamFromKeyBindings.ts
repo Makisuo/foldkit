@@ -879,8 +879,9 @@ const keyBindingStream = <Message>(
 
 /**
  * Build a Stream that maps declarative key bindings to values. The output is
- * inferred from each binding's `mapEvent` callback; `Subscription.make`
- * checks that the final Stream emits the application's Message type.
+ * inferred from each binding's `mapEvent` callback; the owning definition's
+ * A Block definition's `subscriptions` method checks that the final Stream emits the application's
+ * Message type.
  *
  * A string describes one key press. Modifiers are joined with `+`:
  * `'Mod+K'`, `'Control+Shift+P'`, or `'Alt+ArrowDown'`. The supported modifiers
@@ -914,14 +915,17 @@ const keyBindingStream = <Message>(
  * dependency change opens a new Stream scope and resets any sequence in
  * progress. If a parent owns a condition for a lifted child, declare the table
  * at that parent or put bindings with different parent-owned lifetimes in
- * separate child entries so `Subscription.lift` can gate them individually.
+ * separate child entries so each registered child's binding subscriptions can
+ * apply its own `when` gate individually.
  * If the meaning of a key depends on the Model, dispatch a factual key Message
  * and decide what it means in update instead of reading the Model from
  * `mapEvent`.
  *
  * @example
  * ```typescript
- * const subscriptions = Subscription.make<Model, Message>()(entry => ({
+ * const App = Block.define('App')
+ * const app = App.define({ Model, Message })
+ * const subscriptions = app.subscriptions(entry => ({
  *   keyBindings: entry(
  *     'KeyBindings',
  *     { isPaletteOpen: Schema.Boolean },

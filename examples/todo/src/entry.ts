@@ -1,33 +1,20 @@
-import { Layer, pipe } from 'effect'
-import { Application, Runtime } from 'foldkit'
-
-import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { Runtime } from 'foldkit'
+import { provide } from 'foldkit/application'
 
 import {
-  EffectsLayer,
+  Application,
+  implementation,
   Flags,
-  Message,
-  Model,
   flags,
-  init,
-  update,
-  view,
-} from './main'
-
-const AppLayer = EffectsLayer.pipe(
-  Layer.provideMerge(BrowserKeyValueStore.layerLocalStorage),
-)
+  Message,
+} from './application'
+import { ApplicationLayer } from './services'
 
 const application = Application.make({
-  Model,
+  ...implementation,
   Flags,
-  init,
-  update,
-  view,
   container: document.getElementById('root'),
-  devTools: {
-    Message,
-  },
+  devTools: { Message },
 })
 
-pipe(application, Application.provide(AppLayer), Runtime.run({ flags }))
+Runtime.run(provide(application, ApplicationLayer), { flags })

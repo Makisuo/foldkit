@@ -1,7 +1,7 @@
-import { Option, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
+import { Block } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 
@@ -24,10 +24,10 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-type DialogHtmlBuilder = HtmlBuilder<
+const DisabledButtonTest = Block.define('DisabledButtonTest', {
+  Model,
   Message,
-  Mount.RequirementsOf<typeof Dialog.mounts>
->
+})
 
 // INIT
 
@@ -45,23 +45,23 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const foldDialog = Update.foldChild({
-  update: Dialog.update,
-  read: (model: Model) => Option.some(model.dialog),
-  write: (model, nextDialog) =>
-    modifyFields(model, { dialog: () => nextDialog }),
-  toParentMessage: message => Message.GotDialogMessage({ message }),
-  foldOutMessage: foldDialogOutMessage,
+const dialog = Dialog.block.connection({
+  Model,
+  field: 'dialog',
+  parentMessage: Message.GotDialogMessage,
+  outMessage: { fold: foldDialogOutMessage },
 })
 
-export const update = Update.define((model: Model, message: Message) =>
+const registered = DisabledButtonTest.register({ children: [dialog] })
+
+export const update = DisabledButtonTest.update((model, message) =>
   Message.match(message, {
     ClickedToggle: () => ({
       model: modifyFields(model, { isEnabled: isEnabled => !isEnabled }),
     }),
     ClickedSubmit: () => ({ model }),
     GotDialogMessage: ({ message: dialogMessage }) =>
-      foldDialog(model, dialogMessage),
+      dialog.fold(model, dialogMessage),
   }),
 )
 
@@ -93,29 +93,36 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
 }
 
 /** View with submit button inside a dialog's panel. */
-export const viewWithDialog = (model: Model, h: DialogHtmlBuilder): Html => {
+export const viewWithDialog = registered.view((model, h) => {
   return h.div(
     [],
     [
       h.button([h.OnClick(Message.ClickedToggle())], ['Toggle']),
-      h.submodel({
-        slotId: model.dialog.id,
-        model: model.dialog,
-        view: Dialog.view,
-        viewInputs: {
-          toView: ({ dialog, backdrop, panel, isVisible }) =>
-            h.dialog(
-              [...dialog],
-              isVisible
-                ? [
-                    h.div([...backdrop]),
-                    h.div([...panel], [submitButton(model.isEnabled, h)]),
-                  ]
-                : [],
-            ),
-        },
-        toParentMessage: message => Message.GotDialogMessage({ message }),
-      }),
+      h.block(
+        dialog.embedView({
+          slotId: model.dialog.id,
+          model: model.dialog,
+          viewInputs: {
+            toView: ({ dialog, backdrop, panel, isVisible }) =>
+              h.dialog(
+                [...dialog],
+                isVisible
+                  ? [
+                      h.div([...backdrop]),
+                      h.div([...panel], [submitButton(model.isEnabled, h)]),
+                    ]
+                  : [],
+              ),
+          },
+        }),
+      ),
     ],
   )
-}
+})
+
+export const block = registered.assemble({
+  init: () => ({ model: initialModel }),
+  update,
+  view: viewWithDialog,
+  EffectsLayer: Layer.empty,
+})

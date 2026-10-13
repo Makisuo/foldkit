@@ -1,15 +1,14 @@
 import { Effect, Match, Schema } from 'effect'
-import { Command, Url } from 'foldkit'
+import { Url } from 'foldkit'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 
-import { contract } from './definition'
+import { home, room } from './children'
+import { Application } from './definition'
 import { Message } from './message'
-import { owner } from './owner'
-import { urlToAppRoute } from './route'
-import { home, room } from './submodels'
+import { urlToApplicationRoute } from './route'
 
-export const NavigateInternal = Command.define(owner.name('NavigateInternal'), {
+export const NavigateInternal = Application.command('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -18,7 +17,7 @@ export const NavigateInternal = Command.define(owner.name('NavigateInternal'), {
   },
 })
 
-export const LoadExternal = Command.define(owner.name('LoadExternal'), {
+export const LoadExternal = Application.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -27,7 +26,7 @@ export const LoadExternal = Command.define(owner.name('LoadExternal'), {
   },
 })
 
-export const update = contract.defineUpdate((model, message) =>
+export const update = Application.update((model, message) =>
   Message.match(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match(request, {
@@ -43,7 +42,7 @@ export const update = contract.defineUpdate((model, message) =>
 
     ChangedUrl: ({ url }) => ({
       model: modifyFields(model, {
-        route: () => urlToAppRoute(url),
+        route: () => urlToApplicationRoute(url),
       }),
     }),
 

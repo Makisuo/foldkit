@@ -11,6 +11,7 @@ import {
 import {
   firstCommandNameArgument,
   indexReferences,
+  isOwnedDefinitionCall,
   isCallExpression,
   isIdentifier,
   isVariableDeclarator,
@@ -21,6 +22,10 @@ const isCommandDefineCall = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
+  if (isOwnedDefinitionCall(node, 'command', references)) {
+    return true
+  }
+
   if (references === undefined) {
     return AST.isCallOf(node, 'Command', 'define')
   }

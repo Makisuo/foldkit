@@ -11,7 +11,7 @@ import {
   TimestampReceivedMessage,
   TimestampSentMessage,
   update,
-} from './main'
+} from './application'
 
 const idleModel: Model = {
   connection: ConnectionState.Disconnected(),

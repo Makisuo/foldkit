@@ -1,33 +1,17 @@
-import { Effect, Layer, Schema } from 'effect'
-import { HttpClient } from 'effect/http'
-import { Command, Http } from 'foldkit'
+import { Http, Runtime } from 'foldkit'
+import { provide } from 'foldkit/application'
 
+import { Application, init, update, view } from './application'
 import { Message } from './message'
 
-const FetchWeather = Command.define('FetchWeather', {
-  args: { city: Schema.String },
-  messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
-  handler: function* () {
-    const client = yield* HttpClient.HttpClient
+export const ApplicationLayer = Http.layer
 
-    return ({ city }) =>
-      Effect.gen(function* () {
-        const response = yield* client.get(`https://api.weather.com/${city}`)
-        const data = yield* Schema.decodeUnknownEffect(WeatherResponse)(
-          yield* response.json,
-        )
-        return Message.SucceededFetchWeather({ weather: data })
-      }).pipe(
-        Effect.catch(() =>
-          Effect.succeed(
-            Message.FailedFetchWeather({ error: 'Request failed' }),
-          ),
-        ),
-      )
-  },
+const application = Application.make({
+  init,
+  update,
+  view,
+  container: document.getElementById('root'),
+  devTools: { Message },
 })
 
-export const EffectsLayer = FetchWeather.layer
-export const ServicesLayer = Http.layer
-
-export const AppLayer = Layer.provide(EffectsLayer, ServicesLayer)
+Runtime.run(provide(application, ApplicationLayer))

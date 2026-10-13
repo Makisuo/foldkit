@@ -1,6 +1,9 @@
 import { Effect, Option, Predicate, Schema, type Scope, Stream } from 'effect'
 
-import { Document, type HtmlBuilder } from '../html/index.js'
+import {
+  Document,
+  type NativeHtmlBuilder as HtmlBuilder,
+} from '../html/index.js'
 import type {
   ServicesOf as ManagedResourceServicesOf,
   ManagedResources,
@@ -301,7 +304,7 @@ type ReturnRequirements<Return> =
     : never
 
 type FunctionReturn<Fn> = Fn extends (
-  ...args: ReadonlyArray<any>
+  ...args: ReadonlyArray<never>
 ) => infer Return
   ? Return
   : never

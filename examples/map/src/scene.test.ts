@@ -24,8 +24,8 @@ import {
   UnlockBodyScroll,
   update,
   view,
-} from './main'
-import { initialModel, mountedModel } from './main.fixture'
+} from './application'
+import { initialModel, mountedModel } from './application.fixture'
 
 const acknowledgeMapMount = Mount.resolve(
   MountMap,

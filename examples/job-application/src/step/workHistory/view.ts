@@ -1,17 +1,8 @@
-import { type Mount, Submodel } from 'foldkit'
-import type { Html } from 'foldkit/html'
-
 import { Button } from '@foldkit/ui'
 
-import * as Entry from './entry'
-import { Message, type Model, mounts } from './workHistory'
+import { entries, Message, workHistory } from './block'
 
-export const view = Submodel.defineView<
-  Model,
-  Message,
-  void,
-  Mount.RequirementsOf<typeof mounts>
->((model, h): Html =>
+export const view = workHistory.view((model, h) =>
   h.div(
     [h.Class('space-y-6')],
     [
@@ -22,16 +13,13 @@ export const view = Submodel.defineView<
       h.div(
         [h.Class('divide-y divide-gray-200')],
         model.entries.map(entry =>
-          h.submodel({
-            slotId: entry.id,
-            model: entry,
-            view: Entry.view,
-            toParentMessage: message =>
-              Message.GotEntryMessage({
-                entryId: entry.id,
-                message,
-              }),
-          }),
+          h.block(
+            entries.embedView({
+              key: entry.id,
+              slotId: entry.id,
+              model: entry,
+            }),
+          ),
         ),
       ),
       Button.view(

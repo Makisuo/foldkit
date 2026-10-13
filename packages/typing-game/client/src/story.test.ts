@@ -8,9 +8,11 @@ import { Message } from './message'
 import { Model } from './model'
 import { Home, Room } from './page'
 import { Message as HomeMessage } from './page/home/message'
+import { HomeStep } from './page/home/model'
 import { StartGame } from './page/room/command'
 import { Message as RoomMessage } from './page/room/message'
-import { AppRoute } from './route'
+import { RoomAsyncData } from './page/room/model'
+import { ApplicationRoute } from './route'
 import { update } from './update'
 
 const alice = { id: 'p1', username: 'alice' }
@@ -26,16 +28,16 @@ const waitingRoom: Shared.Room = {
   usedGameTexts: [],
 }
 
-const selectActionHome: Home.Model.Model = {
-  homeStep: Home.Model.HomeStep.SelectAction({
+const selectActionHome: typeof Home.Model.Type = {
+  homeStep: HomeStep.SelectAction({
     username: 'alice',
     selectedAction: 'CreateRoom',
   }),
   formError: Option.none(),
 }
 
-const joinedRoom: Room.Model.Model = {
-  roomAsyncData: Room.Model.RoomAsyncData.Success({ data: waitingRoom }),
+const joinedRoom: typeof Room.Model.Type = {
+  roomAsyncData: RoomAsyncData.Success({ data: waitingRoom }),
   maybeSession: Option.some({ roomId: 'r1', player: alice }),
   userGameText: '',
   charsTyped: 0,
@@ -46,14 +48,14 @@ const joinedRoom: Room.Model.Model = {
 
 const givenHomeRoute = () =>
   given<Model>({
-    route: AppRoute.Home(),
+    route: ApplicationRoute.Home(),
     home: selectActionHome,
     room: joinedRoom,
   })
 
 const givenRoomRoute = () =>
   given<Model>({
-    route: AppRoute.Room({ roomId: 'r1' }),
+    route: ApplicationRoute.Room({ roomId: 'r1' }),
     home: selectActionHome,
     room: joinedRoom,
   })

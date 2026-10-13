@@ -1,3 +1,5 @@
+import { define as defineApplication } from 'foldkit/application'
+
 const Model = Schema.Struct({
   posts: postsQuery.Model,
 })
@@ -8,6 +10,8 @@ const Message = defineMessageUnion({
   ClickedRefreshPosts: {},
 })
 type Message = typeof Message.Type
+
+const Application = defineApplication({ Model, Message })
 
 // Lift the Query's operations into the parent Model and Message types.
 const posts = postsQuery.lift<Model, Message>({
@@ -22,7 +26,7 @@ const init = () => {
   return posts.loadIfMissing(model)
 }
 
-const update = Update.define((model: Model, message: Message) =>
+const update = Application.update((model, message) =>
   Message.match(message, {
     // Run Query's update, then write its Model back into the parent.
     GotPostsMessage: ({ message }) => posts.fold(model, message),

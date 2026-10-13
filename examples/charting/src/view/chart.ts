@@ -1,13 +1,15 @@
 import * as echarts from 'echarts/core'
 import { Effect, Option, Queue, Schema, Stream, pipe } from 'effect'
-import { Mount } from 'foldkit'
+import type { HtmlBuilderOf } from 'foldkit/application'
 import type { HtmlBuilder as FoldkitHtmlBuilder, Html } from 'foldkit/html'
 
 import { ChartRegistry } from '../chartRegistry'
+import { Application as Authoring } from '../definition'
 import type { Telemetry } from '../domain'
 import { selectedDatumLabel } from '../echarts'
 import { Message } from '../message'
 import type { Model } from '../model'
+import type { Application } from '../update'
 import { formatInteger } from './format'
 
 export const CHART_HOST_ID = 'charting-chart'
@@ -120,7 +122,7 @@ const mountChart = (
     ),
   )
 
-export const MountChart = Mount.defineStream('MountChart', {
+export const MountChart = Authoring.mountStream('MountChart', {
   args: { hostId: Schema.String },
   messages: [
     Message.SucceededMountChart,
@@ -134,12 +136,7 @@ export const MountChart = Mount.defineStream('MountChart', {
   },
 })
 
-export const mounts = [MountChart]
-
-export type HtmlBuilder = FoldkitHtmlBuilder<
-  Message,
-  Mount.RequirementsOf<typeof mounts>
->
+export type HtmlBuilder = HtmlBuilderOf<typeof Application>
 
 export const chartPanelView = (
   model: Model,

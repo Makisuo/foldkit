@@ -1,26 +1,14 @@
-import { pipe } from 'effect'
-import { Application, Runtime } from 'foldkit'
+import { Runtime } from 'foldkit'
+import { provide } from 'foldkit/application'
 
-import { registerEcharts } from './echarts'
-import { init } from './init'
-import { AppLayer, mounts } from './layer'
+import { Application, implementation } from './application'
 import { Message } from './message'
-import { Model } from './model'
-import { update } from './update'
-import { view } from './view'
-
-registerEcharts()
+import { ApplicationLayer } from './services'
 
 const application = Application.make({
-  Model,
-  init,
-  update,
-  view,
-  mounts,
+  ...implementation,
   container: document.getElementById('root'),
-  devTools: {
-    Message,
-  },
+  devTools: { Message },
 })
 
-pipe(application, Application.provide(AppLayer), Runtime.run)
+Runtime.run(provide(application, ApplicationLayer))

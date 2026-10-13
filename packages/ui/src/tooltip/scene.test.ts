@@ -1,40 +1,56 @@
-import type { HtmlBuilder } from 'foldkit/html'
-import type * as Mount from 'foldkit/mount'
+import { Option } from 'effect'
+import { Block } from 'foldkit'
 import * as Scene from 'foldkit/scene'
+import * as Update from 'foldkit/update'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import type { Model } from './index.js'
 import {
   AnchorTooltip,
   Message,
+  Model,
+  OutMessage,
+  block,
   init,
-  mounts,
   triggerId,
-  update,
-  view,
 } from './index.js'
 
-type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
+const TooltipScene = Block.define('TooltipScene', { Model, Message })
+
+const foldTooltipOutMessage = OutMessage.match<Update.Step<Model, Message>>({
+  Shown: () => model => ({ model }),
+  Hidden: () => model => ({ model }),
+})
+
+const tooltip = block.connection({
+  read: (model: Model) => Option.some(model),
+  write: (_model: Model, nextTooltip: Model) => nextTooltip,
+  toParentMessage: (message: Message): Message => message,
+  outMessage: { fold: foldTooltipOutMessage },
+})
+
+const registered = TooltipScene.register({ children: [tooltip] })
+
+const update = TooltipScene.update((model, message) =>
+  tooltip.fold(model, message),
+)
 
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorTooltip,
   Message.CompletedAnchorTooltip(),
 )
 
-const sceneView =
-  (
-    overrides: {
-      isDisabled?: boolean
-      ariaLabel?: string
-      ariaLabelledBy?: string
-    } = {},
-  ) =>
-  (model: Model, h: TestHtmlBuilder) =>
-    h.submodel({
+type ViewInputs = Readonly<{
+  isDisabled?: boolean
+  ariaLabel?: string
+  ariaLabelledBy?: string
+}>
+
+const rootView = registered.view.withInputs<ViewInputs>((model, overrides, h) =>
+  h.block(
+    tooltip.embedView({
       slotId: 'test',
-      view,
       model,
       viewInputs: {
         anchor: { placement: 'top' },
@@ -45,8 +61,11 @@ const sceneView =
             [h.button([...trigger]), ...(isVisible ? [h.div([...panel])] : [])],
           ),
       },
-      toParentMessage: message => message,
-    })
+    }),
+  ),
+)
+
+const sceneView = Scene.withViewInputs(rootView, {})
 
 const trigger = Scene.selector('#test-trigger')
 const panel = Scene.selector('#test-panel')

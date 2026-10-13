@@ -189,7 +189,7 @@ const containsMessageReference = (
   )
 }
 
-export const hasSubmodelMessagePayload = (
+export const hasBlockMessagePayload = (
   fields: ESTree.ObjectExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {

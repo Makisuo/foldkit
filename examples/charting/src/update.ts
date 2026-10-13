@@ -1,18 +1,20 @@
 import { Array, Option, Result, pipe } from 'effect'
-import { AsyncData, Update } from 'foldkit'
+import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { RadioGroup } from '@foldkit/ui'
-
 import { FetchTelemetry, SyncChart } from './command'
-import type { ChartMode, PackageId, Period } from './domain'
+import { Application as Authoring } from './definition'
 import { Message } from './message'
-import { type Model, TelemetryAsyncData } from './model'
+import { Model, TelemetryAsyncData } from './model'
 import {
+  CHART_MODE_RADIO_GROUP_ID,
+  PACKAGE_RADIO_GROUP_ID,
+  PERIOD_RADIO_GROUP_ID,
   ChartModeRadioGroup,
   PackageRadioGroup,
   PeriodRadioGroup,
 } from './radioGroups'
+import { MountChart } from './view/chart'
 
 const syncChart = (args: {
   maybeChartHostId: Model['maybeChartHostId']
@@ -67,68 +69,69 @@ const selectedControl =
     }
   }
 
-const foldChartModeRadioGroupOutMessage = RadioGroup.OutMessage.match<
+const foldChartModeRadioGroupOutMessage = ChartModeRadioGroup.OutMessage.match<
   ReturnType<typeof selectedControl>,
-  RadioGroup.OutMessage<ChartMode>
+  typeof ChartModeRadioGroup.OutMessage.Type
 >({
   Selected: ({ value }) =>
     selectedControl(modifyFields({ chartMode: () => value })),
 })
 
-const foldChartModeRadioGroup = Update.foldChild({
-  update: ChartModeRadioGroup.update,
-  read: (model: Model) => Option.some(model.chartModeRadioGroup),
-  write: (model, nextChartModeRadioGroup) =>
-    modifyFields(model, { chartModeRadioGroup: () => nextChartModeRadioGroup }),
-  toParentMessage: message =>
-    Message.GotChartModeRadioGroupMessage({ message }),
-  foldOutMessage: foldChartModeRadioGroupOutMessage,
+export const chartModeRadioGroup = ChartModeRadioGroup.connection({
+  placement: CHART_MODE_RADIO_GROUP_ID,
+  Model: Model,
+  field: 'chartModeRadioGroup',
+  parentMessage: Message.GotChartModeRadioGroupMessage,
+  outMessage: { fold: foldChartModeRadioGroupOutMessage },
 })
 
-const foldPeriodRadioGroupOutMessage = RadioGroup.OutMessage.match<
+const foldPeriodRadioGroupOutMessage = PeriodRadioGroup.OutMessage.match<
   ReturnType<typeof selectedControl>,
-  RadioGroup.OutMessage<Period>
+  typeof PeriodRadioGroup.OutMessage.Type
 >({
   Selected: ({ value }) =>
     selectedControl(modifyFields({ period: () => value })),
 })
 
-const foldPeriodRadioGroup = Update.foldChild({
-  update: PeriodRadioGroup.update,
-  read: (model: Model) => Option.some(model.periodRadioGroup),
-  write: (model, nextPeriodRadioGroup) =>
-    modifyFields(model, { periodRadioGroup: () => nextPeriodRadioGroup }),
-  toParentMessage: message => Message.GotPeriodRadioGroupMessage({ message }),
-  foldOutMessage: foldPeriodRadioGroupOutMessage,
+export const periodRadioGroup = PeriodRadioGroup.connection({
+  placement: PERIOD_RADIO_GROUP_ID,
+  Model: Model,
+  field: 'periodRadioGroup',
+  parentMessage: Message.GotPeriodRadioGroupMessage,
+  outMessage: { fold: foldPeriodRadioGroupOutMessage },
 })
 
-const foldPackageRadioGroupOutMessage = RadioGroup.OutMessage.match<
+const foldPackageRadioGroupOutMessage = PackageRadioGroup.OutMessage.match<
   ReturnType<typeof selectedControl>,
-  RadioGroup.OutMessage<PackageId>
+  typeof PackageRadioGroup.OutMessage.Type
 >({
   Selected: ({ value }) =>
     selectedControl(modifyFields({ selectedPackageId: () => value })),
 })
 
-const foldPackageRadioGroup = Update.foldChild({
-  update: PackageRadioGroup.update,
-  read: (model: Model) => Option.some(model.packageRadioGroup),
-  write: (model, nextPackageRadioGroup) =>
-    modifyFields(model, { packageRadioGroup: () => nextPackageRadioGroup }),
-  toParentMessage: message => Message.GotPackageRadioGroupMessage({ message }),
-  foldOutMessage: foldPackageRadioGroupOutMessage,
+export const packageRadioGroup = PackageRadioGroup.connection({
+  placement: PACKAGE_RADIO_GROUP_ID,
+  Model: Model,
+  field: 'packageRadioGroup',
+  parentMessage: Message.GotPackageRadioGroupMessage,
+  outMessage: { fold: foldPackageRadioGroupOutMessage },
 })
 
-export const update = Update.define((model: Model, message: Message) =>
+export const Application = Authoring.register({
+  mounts: [MountChart],
+  children: [chartModeRadioGroup, periodRadioGroup, packageRadioGroup],
+})
+
+export const update = Application.update((model, message) =>
   Message.match(message, {
     GotChartModeRadioGroupMessage: ({ message }) =>
-      foldChartModeRadioGroup(model, message),
+      chartModeRadioGroup.fold(model, message),
 
     GotPeriodRadioGroupMessage: ({ message }) =>
-      foldPeriodRadioGroup(model, message),
+      periodRadioGroup.fold(model, message),
 
     GotPackageRadioGroupMessage: ({ message }) =>
-      foldPackageRadioGroup(model, message),
+      packageRadioGroup.fold(model, message),
 
     ClickedRefresh: () => refetchTelemetry(model),
 

@@ -20,13 +20,13 @@ import {
   VirtualList,
 } from '@foldkit/ui'
 
-import type { Message as UiMessage } from './message'
-import type { UiModel } from './model'
+import type { Message } from './message'
+import type { Model } from './model'
 import { Toast } from './toast'
 
-type InitReturn = Update.Return<UiModel, UiMessage>
+type InitReturn = Update.Return<Model, Message>
 
-export const uiInit = (today: Calendar.CalendarDate): InitReturn => ({
+export const init = (today: Calendar.CalendarDate): InitReturn => ({
   model: {
     mobileMenuDialog: Dialog.init({ id: 'mobile-menu' }),
     buttonClickCount: 0,
@@ -170,7 +170,7 @@ export const uiInit = (today: Calendar.CalendarDate): InitReturn => ({
     toastDemo: Toast.init({
       id: 'toast-demo',
       swipeToDismiss: {},
-    }),
+    }).model,
     tooltipBasicDemo: Tooltip.init({ id: 'tooltip-basic-demo' }),
     tooltipNoDelayDemo: Tooltip.init({
       id: 'tooltip-no-delay-demo',

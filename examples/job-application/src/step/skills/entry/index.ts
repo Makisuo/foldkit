@@ -3,10 +3,10 @@ export {
   Message,
   OutMessage,
   init,
-  EffectsLayer,
   update,
   hasErrors,
   isComplete,
   revealErrors,
-} from './entry'
+} from './block'
 export { view } from './view'
+export { block } from './entry'

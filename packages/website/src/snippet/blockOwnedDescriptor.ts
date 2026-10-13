@@ -1,0 +1,46 @@
+import { Schema } from 'effect'
+import { modifyFields } from 'foldkit/struct'
+
+import {
+  Message,
+  Model,
+  OutMessage,
+  SaveTheme,
+  Settings,
+  Theme,
+} from './blockOwnerContract'
+
+const CurrentUser = Schema.Struct({ accountId: Schema.String })
+export type CurrentUser = typeof CurrentUser.Type
+
+const update = Settings.update((model, message, currentUser: CurrentUser) =>
+  Message.match(message, {
+    ChangedTheme: ({ theme }) => ({
+      model: modifyFields(model, { theme: () => theme }),
+      commands: [SaveTheme({ theme })],
+      outMessage: OutMessage.ChangedTheme({
+        accountId: currentUser.accountId,
+        theme,
+      }),
+    }),
+    CompletedSaveTheme: () => ({ model }),
+    FailedSaveTheme: () => ({ model }),
+  }),
+)
+
+const reset = Settings.step(model => ({
+  model: modifyFields(model, { theme: () => 'System' }),
+}))
+
+const view = Settings.view((model, h) => h.p([], [`Theme: ${model.theme}`]))
+
+// settings.ts
+export const block = Settings.assemble({
+  init: () => ({ model: Model.make({ theme: 'System' }) }),
+  update,
+  view,
+  steps: { reset },
+  EffectsLayer: SaveTheme.layer,
+})
+
+export { Message, Model, OutMessage, Theme }

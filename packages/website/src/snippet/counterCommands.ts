@@ -1,6 +1,5 @@
 import { Effect, Number, Schema } from 'effect'
-import { Command, Update } from 'foldkit'
-import type { Document, HtmlBuilder } from 'foldkit/html'
+import { define as defineApplication } from 'foldkit/application'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -16,11 +15,13 @@ export const Message = defineMessageUnion({
   ClickedResetAfterDelay: {},
   CompletedWaitBeforeReset: {},
 })
+
+export const Application = defineApplication({ Model, Message })
 export type Message = typeof Message.Type
 
 // COMMAND
 
-export const WaitBeforeReset = Command.define('WaitBeforeReset', {
+export const WaitBeforeReset = Application.command('WaitBeforeReset', {
   messages: [Message.CompletedWaitBeforeReset],
   handler: function* () {
     return () =>
@@ -40,7 +41,7 @@ export const init = () => ({
 
 // UPDATE
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = Application.update((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: Number.increment }),
@@ -57,7 +58,7 @@ export const update = Update.define((model: Model, message: Message) =>
 
 // VIEW
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+export const view = Application.view((model, h) => ({
   title: `Counter: ${model.count}`,
   body: h.main(
     [],
@@ -70,4 +71,4 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
       ),
     ],
   ),
-})
+}))

@@ -1,7 +1,7 @@
 // ❌ Bad: visibleItems can stop matching items and query.
 
 import { Schema } from 'effect'
-import type { Update } from 'foldkit'
+import { define as defineApplication } from 'foldkit/application'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -19,9 +19,12 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const Application = defineApplication({ Model, Message })
+
+const update = Application.update((model, message) =>
+  Message.match(message, {
     UpdatedQuery: ({ query }) => ({
       model: modifyFields(model, { query: () => query }),
     }),
-  })
+  }),
+)

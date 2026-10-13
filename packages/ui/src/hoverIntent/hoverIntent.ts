@@ -1,9 +1,7 @@
 import { Duration, Effect, Layer, Match, Number, Option, Schema } from 'effect'
-import * as Command from 'foldkit/command'
+import * as Block from 'foldkit/block'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
-import { defineView } from 'foldkit/submodel'
-import * as Update from 'foldkit/update'
 
 import { Message, OutMessage } from './message.js'
 
@@ -25,6 +23,8 @@ export const Model = Schema.Struct({
   pendingCloseVersion: Schema.Number,
 })
 export type Model = typeof Model.Type
+
+const HoverIntent = Block.define('HoverIntent', { Model, Message, OutMessage })
 
 const DEFAULT_OPEN_DELAY = Duration.millis(200)
 const DEFAULT_CLOSE_DELAY = Duration.millis(300)
@@ -57,7 +57,7 @@ export const init = (config: InitConfig = {}): Model => ({
 // COMMAND
 
 /** Waits before opening, then emits the version that scheduled the wait. */
-export const WaitBeforeOpening = Command.define('WaitBeforeOpening', {
+export const WaitBeforeOpening = HoverIntent.command('WaitBeforeOpening', {
   args: { delay: Schema.DurationFromMillis, version: Schema.Number },
   messages: [Message.CompletedWaitBeforeOpening],
   handler: function* () {
@@ -69,7 +69,7 @@ export const WaitBeforeOpening = Command.define('WaitBeforeOpening', {
 })
 
 /** Waits before closing, then emits the version that scheduled the wait. */
-export const WaitBeforeClosing = Command.define('WaitBeforeClosing', {
+export const WaitBeforeClosing = HoverIntent.command('WaitBeforeClosing', {
   args: { delay: Schema.DurationFromMillis, version: Schema.Number },
   messages: [Message.CompletedWaitBeforeClosing],
   handler: function* () {
@@ -114,7 +114,7 @@ const finishClosing = (model: Model) => {
   }
 }
 
-const scheduleOpen = Update.defineStep((model: Model) => {
+const scheduleOpen = HoverIntent.step(model => {
   const version = Number.increment(model.pendingOpenVersion)
   return {
     model: modifyFields(model, { pendingOpenVersion: () => version }),
@@ -123,7 +123,7 @@ const scheduleOpen = Update.defineStep((model: Model) => {
 })
 
 const scheduleClose = (delay: Duration.Duration) =>
-  Update.defineStep((model: Model) => {
+  HoverIntent.step(model => {
     const version = Number.increment(model.pendingCloseVersion)
     return {
       model: modifyFields(model, { pendingCloseVersion: () => version }),
@@ -221,17 +221,18 @@ const dismiss = (model: Model, isTriggerFocused: boolean) => {
 
 /** Programmatically closes HoverIntent immediately, invalidating pending
  *  transitions and suppressing reopening until the trigger disengages. */
-export const close = (model: Model) =>
+const close = HoverIntent.step(model =>
   dismiss(
     model,
     Option.exists(
       model.maybeFocusLocation,
       focusLocation => focusLocation === 'Trigger',
     ),
-  )
+  ),
+)
 
 /** Processes a HoverIntent Message and returns the next Model, optional Commands, and an optional OutMessage. */
-export const update = Update.define((model: Model, message: Message) =>
+export const update = HoverIntent.update((model, message) =>
   Message.match(message, {
     EnteredTrigger: () =>
       entered(modifyFields(model, { isTriggerHovered: () => true })),
@@ -291,7 +292,7 @@ export type RenderInfo = Readonly<{
   isVisible: boolean
 }>
 
-/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field. */
+/** Per-render view inputs passed to `view` via `h.block`'s `viewInputs` field. */
 export type ViewInputs = Readonly<{
   /** Selector for the trigger to focus before Escape removes panel content. If it does not resolve to a focusable element, HoverIntent leaves fallback focus behavior to the browser. */
   focusTriggerSelector?: string
@@ -299,8 +300,8 @@ export type ViewInputs = Readonly<{
 }>
 
 /** Renders headless HoverIntent event bundles. It owns no markup, ARIA semantics, positioning, or styling. */
-export const view = defineView<Model, Message, ViewInputs>(
-  (model, { focusTriggerSelector, toView }, h): Html => {
+export const view = HoverIntent.view.withInputs<ViewInputs>(
+  (model, { focusTriggerSelector, toView }, h) => {
     const toPressedEscape =
       (source: 'Trigger' | 'Panel') =>
       (key: string): Option.Option<typeof Message.PressedEscape.Type> =>
@@ -345,3 +346,12 @@ export const view = defineView<Model, Message, ViewInputs>(
     })
   },
 )
+
+/** Complete HoverIntent Block definition for connecting to a parent. */
+export const block = HoverIntent.assemble({
+  init: (config?: InitConfig) => ({ model: init(config) }),
+  update,
+  view,
+  steps: { close },
+  EffectsLayer,
+})

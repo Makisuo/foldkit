@@ -1,6 +1,6 @@
 import { Duration, Effect, Schema, Stream } from 'effect'
-import { Subscription, type Update } from 'foldkit'
-import type { Document, HtmlBuilder } from 'foldkit/html'
+import { Block } from 'foldkit'
+import type { Document } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -23,9 +23,11 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
+const Counter = Block.define('Counter', { Model, Message })
+
 // SUBSCRIPTION
 
-const subscriptions = Subscription.make<Model, Message>()(entry => ({
+const subscriptions = Counter.subscriptions(entry => ({
   gameClockTicks: entry(
     'GameClockTicks',
     { isAutoCounting: Schema.Boolean },
@@ -50,8 +52,8 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
 
 // UPDATE
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const update = Counter.update((model, message) =>
+  Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + 1 }),
     }),
@@ -63,11 +65,12 @@ const update = (model: Model, message: Message) =>
     Ticked: () => ({
       model: modifyFields(model, { count: count => count + 1 }),
     }),
-  })
+  }),
+)
 
 // VIEW
 
-const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+const view = Counter.view((model, h): Document => ({
   title: `Count: ${model.count}`,
   body: h.div(
     [],
@@ -80,4 +83,4 @@ const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
       ),
     ],
   ),
-})
+}))

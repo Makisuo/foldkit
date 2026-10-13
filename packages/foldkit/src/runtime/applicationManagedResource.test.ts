@@ -92,7 +92,7 @@ it('provides layered ManagedResource acquire and release with runtime-owned acce
   let acquireCount = 0
   let releaseCount = 0
 
-  const application = Application.make({
+  const application = Application.__makeFromConfig({
     Model,
     init: () => ({
       model: Model.make({
@@ -175,7 +175,7 @@ it('provides layered ManagedResource acquire and release with runtime-owned acce
 it('releases an active Layer-backed ManagedResource when the runtime stops', async () => {
   let releaseCount = 0
 
-  const application = Application.make({
+  const application = Application.__makeFromConfig({
     Model,
     init: () => ({
       model: Model.make({
@@ -260,7 +260,7 @@ it('rejects registering the same ManagedResource entry under two keys', () => {
   }
 
   expect(() =>
-    Application.make({
+    Application.__makeFromConfig({
       Model,
       init: () => ({
         model: Model.make({
@@ -304,7 +304,7 @@ it('rejects different ManagedResource handlers for the same tag', () => {
   }))
 
   expect(() =>
-    Application.makeElement({
+    Application.__makeElementFromConfig({
       Model,
       init: () => ({
         model: Model.make({
@@ -343,7 +343,7 @@ it('rejects separately created ManagedResource tags with the same key', () => {
   }))
 
   expect(() =>
-    Application.make({
+    Application.__makeFromConfig({
       Model,
       init: () => ({
         model: Model.make({
@@ -396,7 +396,7 @@ it('allows lifted handlers for distinct ManagedResource tags', () => {
   })
 
   expect(() =>
-    Application.make({
+    Application.__makeFromConfig({
       Model,
       init: () => ({
         model: Model.make({

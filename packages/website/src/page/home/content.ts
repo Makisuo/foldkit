@@ -16,7 +16,7 @@ import {
   coreLayersRouter,
   coreManagedResourcesRouter,
   coreServerRenderingRouter,
-  coreSubmodelRouter,
+  coreBlockRouter,
   effectAtomComparisonRouter,
   exampleDetailRouter,
   examplesRouter,
@@ -301,12 +301,12 @@ const poweredBySection = (): Html =>
               ),
             ],
             [
-              'Each feature bundles its effect handlers in an ',
+              'Each completed Block carries its effect handlers through the application. At the root, provide the ',
               ih.a(
                 [ih.Href(coreLayersRouter()), ih.Class('link-accent')],
-                ['Effect Layer'],
+                ['Effect services'],
               ),
-              '. At the application root, compose those bundles with the services they need. Tests can provide controlled services while running the same handlers.',
+              ' they require. TypeScript checks the assembly before startup, and tests can provide controlled services while running the same handlers.',
             ],
           ),
         ],
@@ -534,13 +534,13 @@ const includedSection = (): Html =>
               ),
               includedFeature(
                 Icon.squareStack('w-6 h-6'),
-                'Submodels',
+                'Blocks',
                 [
-                  'A Submodel embeds its own Model, Messages, update, and view in a larger program. It sends domain facts to its parent as typed OutMessages. Every stateful Foldkit UI component is a Submodel.',
+                  'A Block embeds its own Model, Messages, update, and view in a larger program. It sends domain facts to its parent as typed OutMessages. Every stateful Foldkit UI component is a Block.',
                 ],
                 {
-                  href: coreSubmodelRouter(),
-                  label: 'Explore Submodels',
+                  href: coreBlockRouter(),
+                  label: 'Explore Blocks',
                 },
               ),
               includedFeature(

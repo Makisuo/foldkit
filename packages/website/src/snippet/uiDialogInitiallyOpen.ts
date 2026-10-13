@@ -1,5 +1,3 @@
-return Update.foldChildInit(Dialog.boot({ id: 'confirm' }), {
-  toParentModel: dialog => ({ dialog }),
-  toParentMessage: toGotDialogMessage,
-  foldOutMessage: foldDialogOutMessage,
-})
+const dialogInit = dialog.init({ id: 'confirm' })
+
+return Update.combine({ dialog: dialogInit.model }, [dialog.open()])

@@ -17,6 +17,7 @@ import {
   parseFragment,
 } from 'parse5'
 
+import { lowerBlock } from '../../block/lowering.js'
 import {
   HYDRATION_BUILD_ATTRIBUTE,
   buildIdOrInjected,
@@ -48,6 +49,11 @@ import {
 } from '../../hydrationMarkers.js'
 import type { AnyMountHandler } from '../../mount/index.js'
 import { hasTrustedInnerHtml } from '../../propertyProvenance.js'
+import type { ValidateRoot } from '../../runtime/application.js'
+import {
+  type AnyComposition,
+  complete,
+} from '../../runtime/applicationAuthoring.js'
 import type { VNode } from '../../snabbdom/vnode.js'
 import { tagNameFromSelector } from '../../tagName.js'
 import type { Return as UpdateReturn } from '../../update/index.js'
@@ -1097,48 +1103,113 @@ export type RenderError =
 
 type InitReturn<Model, Message> = UpdateReturn<Model, Message, any>
 
-/** Server-side subset of a routing `makeApplication` config with Flags. The
+/** Server-side subset of a routing Application config with Flags. The
  *  full application config is structurally assignable; `container`, `update`,
  *  and `subscriptions` play no part in a server render.
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
-export type RoutingApplicationConfigWithFlags<Model, Message, Flags> =
-  Readonly<{
-    Flags: Schema.Codec<Flags, any, never, never>
-    routing: unknown
-    init: (flags: Flags, url: Url) => InitReturn<Model, Message>
-    view: (model: Model, h: HtmlBuilder<Message, AnyMountHandler>) => Document
-  }>
+type NativeRoutingApplicationConfigWithFlags<Model, Message, Flags> = Readonly<{
+  Flags: Schema.Codec<Flags, any, never, never>
+  routing: unknown
+  init: (flags: Flags, url: Url) => InitReturn<Model, Message>
+  view: (model: Model, h: HtmlBuilder<Message, AnyMountHandler>) => Document
+}>
 
-/** Server-side subset of a routing `makeApplication` config without Flags.
+/** Server-side subset of a routing Application config without Flags.
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
-export type RoutingApplicationConfig<Model, Message> = Readonly<{
+type NativeRoutingApplicationConfig<Model, Message> = Readonly<{
   routing: unknown
   init: (url: Url) => InitReturn<Model, Message>
   view: (model: Model, h: HtmlBuilder<Message, AnyMountHandler>) => Document
 }>
 
-/** Server-side subset of a non-routing `makeApplication` config with Flags.
+/** Server-side subset of a non-routing Application config with Flags.
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
-export type ApplicationConfigWithFlags<Model, Message, Flags> = Readonly<{
+type NativeApplicationConfigWithFlags<Model, Message, Flags> = Readonly<{
   Flags: Schema.Codec<Flags, any, never, never>
   init: (flags: Flags) => InitReturn<Model, Message>
   view: (model: Model, h: HtmlBuilder<Message, AnyMountHandler>) => Document
 }>
 
-/** Server-side subset of a non-routing `makeApplication` config.
+/** Server-side subset of a non-routing Application config.
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
-export type ApplicationConfig<Model, Message> = Readonly<{
+type NativeApplicationConfig<Model, Message> = Readonly<{
   init: () => InitReturn<Model, Message>
   view: (model: Model, h: HtmlBuilder<Message, AnyMountHandler>) => Document
 }>
+
+type ServerImplementation = Readonly<{
+  init: (...args: ReadonlyArray<any>) => any
+  update: (...args: ReadonlyArray<any>) => any
+  view: (...args: ReadonlyArray<any>) => any
+}>
+
+type ServerConfigKeys = Readonly<{
+  init: unknown
+  update: unknown
+  view: unknown
+  EffectsLayer?: unknown
+  subscriptions?: unknown
+  managedResources?: unknown
+  Flags?: unknown
+  routing?: unknown
+}>
+
+type ExactServerConfig<Config> = Readonly<{
+  [Key in Exclude<keyof Config, keyof ServerConfigKeys>]: never
+}>
+
+/** A checked server Application config with routing and Flags. */
+export type RoutingApplicationConfigWithFlags<
+  CompositionValue extends AnyComposition,
+  Config extends ServerImplementation,
+  Flags,
+> = Config &
+  Readonly<{
+    Flags: Schema.Codec<Flags, any, never, never>
+    routing: unknown
+  }> &
+  NoInfer<
+    ValidateRoot<CompositionValue, Config, readonly [Flags, Url], 'Document'>
+  > &
+  ExactServerConfig<Config>
+
+/** A checked server Application config with routing and no Flags. */
+export type RoutingApplicationConfig<
+  CompositionValue extends AnyComposition,
+  Config extends ServerImplementation,
+> = Config &
+  Readonly<{ routing: unknown; Flags?: never }> &
+  NoInfer<ValidateRoot<CompositionValue, Config, readonly [Url], 'Document'>> &
+  ExactServerConfig<Config>
+
+/** A checked server Application config with Flags and no routing. */
+export type ApplicationConfigWithFlags<
+  CompositionValue extends AnyComposition,
+  Config extends ServerImplementation,
+  Flags,
+> = Config &
+  Readonly<{ Flags: Schema.Codec<Flags, any, never, never>; routing?: never }> &
+  NoInfer<
+    ValidateRoot<CompositionValue, Config, readonly [Flags], 'Document'>
+  > &
+  ExactServerConfig<Config>
+
+/** A checked server Application config with no routing or Flags. */
+export type ApplicationConfig<
+  CompositionValue extends AnyComposition,
+  Config extends ServerImplementation,
+> = Config &
+  Readonly<{ Flags?: never; routing?: never }> &
+  NoInfer<ValidateRoot<CompositionValue, Config, readonly [], 'Document'>> &
+  ExactServerConfig<Config>
 
 // Shared by both render shapes. `runtimeId` names the application in the root
 // stamp and Flags payload; it defaults to `'app'` and must be non-empty. It
@@ -1332,7 +1403,7 @@ const validateHydrationRoot = (
 }
 
 /**
- * Renders a `makeApplication`-shaped config to an HTML string on the server.
+ * Renders an Application implementation to an HTML string on the server.
  *
  * Resolves `init` for the request (with the given Flags and URL when the
  * config declares them), runs the pure `view` under a no-op dispatch frame,
@@ -1361,31 +1432,91 @@ const validateHydrationRoot = (
  *
  * @example
  * ```typescript
- * const renderedApplication = yield* Server.renderToString(config, {
- *   url: request.url,
- *   flags: { theme },
- * })
+ * const renderedApplication = yield* Server.renderToString(
+ *   Application,
+ *   { ...implementation, Flags, routing: {} },
+ *   { url: request.url, flags: { theme } },
+ * )
  * ```
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
-export function renderToString<Model, Message, Flags>(
-  config: RoutingApplicationConfigWithFlags<Model, Message, Flags>,
-  options: RenderUrlFlagsOptions<Flags>,
+export function renderToString<
+  const CompositionValue extends AnyComposition,
+  const Config extends ServerImplementation,
+  Flags,
+>(
+  composition: CompositionValue,
+  config: RoutingApplicationConfigWithFlags<CompositionValue, Config, Flags>,
+  options: RenderUrlFlagsOptions<NoInfer<Flags>>,
 ): Effect.Effect<RenderedApplication, RenderError>
-export function renderToString<Model, Message>(
-  config: RoutingApplicationConfig<Model, Message>,
+export function renderToString<
+  const CompositionValue extends AnyComposition,
+  const Config extends ServerImplementation,
+>(
+  composition: CompositionValue,
+  config: RoutingApplicationConfig<CompositionValue, Config>,
   options: RenderUrlOptions,
 ): Effect.Effect<RenderedApplication, RenderError>
-export function renderToString<Model, Message, Flags>(
-  config: ApplicationConfigWithFlags<Model, Message, Flags>,
-  options: RenderFlagsOptions<Flags>,
+export function renderToString<
+  const CompositionValue extends AnyComposition,
+  const Config extends ServerImplementation,
+  Flags,
+>(
+  composition: CompositionValue,
+  config: ApplicationConfigWithFlags<CompositionValue, Config, Flags>,
+  options: RenderFlagsOptions<NoInfer<Flags>>,
 ): Effect.Effect<RenderedApplication, RenderError>
-export function renderToString<Model, Message>(
-  config: ApplicationConfig<Model, Message>,
+export function renderToString<
+  const CompositionValue extends AnyComposition,
+  const Config extends ServerImplementation,
+>(
+  composition: CompositionValue,
+  config: ApplicationConfig<CompositionValue, Config>,
   options?: RenderOptions,
 ): Effect.Effect<RenderedApplication, RenderError>
 export function renderToString(
+  composition: AnyComposition,
+  config: ServerImplementation &
+    Readonly<{
+      Flags?: Schema.Codec<any, any, never, never>
+      routing?: unknown
+    }>,
+  options?: RenderOptions & Readonly<{ url?: string; flags?: unknown }>,
+): Effect.Effect<RenderedApplication, RenderError> {
+  const { Flags, routing, ...implementation } = config
+  const block = complete(composition, implementation as never)
+  const { init, view } = lowerBlock(block as never)
+
+  return __renderFromConfig(
+    {
+      ...(Flags === undefined ? {} : { Flags }),
+      ...(routing === undefined ? {} : { routing }),
+      init,
+      view,
+    } as never,
+    options as never,
+  )
+}
+
+/** @internal Renders pure init/view fixtures without constructing a runtime. */
+export function __renderFromConfig<Model, Message, Flags>(
+  config: NativeRoutingApplicationConfigWithFlags<Model, Message, Flags>,
+  options: RenderUrlFlagsOptions<Flags>,
+): Effect.Effect<RenderedApplication, RenderError>
+export function __renderFromConfig<Model, Message>(
+  config: NativeRoutingApplicationConfig<Model, Message>,
+  options: RenderUrlOptions,
+): Effect.Effect<RenderedApplication, RenderError>
+export function __renderFromConfig<Model, Message, Flags>(
+  config: NativeApplicationConfigWithFlags<Model, Message, Flags>,
+  options: RenderFlagsOptions<Flags>,
+): Effect.Effect<RenderedApplication, RenderError>
+export function __renderFromConfig<Model, Message>(
+  config: NativeApplicationConfig<Model, Message>,
+  options?: RenderOptions,
+): Effect.Effect<RenderedApplication, RenderError>
+export function __renderFromConfig(
   config: Readonly<{
     Flags?: Schema.Codec<unknown, any, never, never>
     routing?: unknown

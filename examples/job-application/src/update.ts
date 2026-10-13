@@ -1,30 +1,43 @@
 import { Array, Option, pipe } from 'effect'
-import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { Menu, Tabs } from '@foldkit/ui'
-
+import {
+  attachments,
+  Application,
+  coverLetter,
+  education,
+  personalInfo,
+  skills,
+  stepMenu,
+  stepTabs,
+  workHistory,
+} from './children'
 import { SubmitApplication } from './command'
 import { Step } from './domain'
 import { Message } from './message'
 import { type Model, Submission } from './model'
 import {
-  Attachments,
-  CoverLetter,
-  Education,
-  PersonalInfo,
-  Skills,
-  WorkHistory,
-} from './step'
-
-const StepMenu = Menu.create<Step.Step>()
-const StepTabs = Tabs.create<Step.Step>()
+  isComplete as isEducationComplete,
+  revealErrors as revealEducationErrors,
+} from './step/education'
+import {
+  isComplete as isPersonalInfoComplete,
+  revealErrors as revealPersonalInfoErrors,
+} from './step/personalInfo'
+import {
+  isComplete as isSkillsComplete,
+  revealErrors as revealSkillsErrors,
+} from './step/skills'
+import {
+  isComplete as isWorkHistoryComplete,
+  revealErrors as revealWorkHistoryErrors,
+} from './step/workHistory'
 
 const isApplicationComplete = (model: Model): boolean =>
-  PersonalInfo.isComplete(model.personalInfo) &&
-  WorkHistory.isComplete(model.workHistory) &&
-  Education.isComplete(model.education) &&
-  Skills.isComplete(model.skills)
+  isPersonalInfoComplete(model.personalInfo) &&
+  isWorkHistoryComplete(model.workHistory) &&
+  isEducationComplete(model.education) &&
+  isSkillsComplete(model.skills)
 
 const toNextStep = (current: Step.Step): Step.Step =>
   pipe(
@@ -40,111 +53,23 @@ const toPreviousStep = (current: Step.Step): Step.Step =>
     Option.getOrElse(() => current),
   )
 
-const foldPersonalInfo = Update.foldChild({
-  update: PersonalInfo.update,
-  read: (model: Model) => Option.some(model.personalInfo),
-  write: (model, nextPersonalInfo) =>
-    modifyFields(model, { personalInfo: () => nextPersonalInfo }),
-  toParentMessage: message => Message.GotPersonalInfoMessage({ message }),
-})
-
-const foldWorkHistory = Update.foldChild({
-  update: WorkHistory.update,
-  read: (model: Model) => Option.some(model.workHistory),
-  write: (model, nextWorkHistory) =>
-    modifyFields(model, { workHistory: () => nextWorkHistory }),
-  toParentMessage: message => Message.GotWorkHistoryMessage({ message }),
-})
-
-const foldEducation = Update.foldChild({
-  update: Education.update,
-  read: (model: Model) => Option.some(model.education),
-  write: (model, nextEducation) =>
-    modifyFields(model, { education: () => nextEducation }),
-  toParentMessage: message => Message.GotEducationMessage({ message }),
-})
-
-const foldSkills = Update.foldChild({
-  update: Skills.update,
-  read: (model: Model) => Option.some(model.skills),
-  write: (model, nextSkills) =>
-    modifyFields(model, { skills: () => nextSkills }),
-  toParentMessage: message => Message.GotSkillsMessage({ message }),
-})
-
-const foldCoverLetter = Update.foldChild({
-  update: CoverLetter.update,
-  read: (model: Model) => Option.some(model.coverLetter),
-  write: (model, nextCoverLetter) =>
-    modifyFields(model, { coverLetter: () => nextCoverLetter }),
-  toParentMessage: message => Message.GotCoverLetterMessage({ message }),
-})
-
-const foldAttachments = Update.foldChild({
-  update: Attachments.update,
-  read: (model: Model) => Option.some(model.attachments),
-  write: (model, nextAttachments) =>
-    modifyFields(model, { attachments: () => nextAttachments }),
-  toParentMessage: message => Message.GotAttachmentsMessage({ message }),
-})
-
-const foldStepMenuOutMessage = Menu.OutMessage.match<
-  Update.Step<Model, Message>,
-  Menu.OutMessage<Step.Step>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { currentStep: () => value }),
-    }),
-})
-
-const foldStepMenu = Update.foldChild({
-  update: StepMenu.update,
-  read: (model: Model) => Option.some(model.stepMenu),
-  write: (model, nextStepMenu) =>
-    modifyFields(model, { stepMenu: () => nextStepMenu }),
-  toParentMessage: message => Message.GotStepMenuMessage({ message }),
-  foldOutMessage: foldStepMenuOutMessage,
-})
-
-const foldStepTabsOutMessage = Tabs.OutMessage.match<
-  Update.Step<Model, Message>,
-  Tabs.OutMessage<Step.Step>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { currentStep: () => value }),
-    }),
-})
-
-const foldStepTabs = Update.foldChild({
-  update: StepTabs.update,
-  read: (model: Model) => Option.some(model.stepTabs),
-  write: (model, nextStepTabs) =>
-    modifyFields(model, { stepTabs: () => nextStepTabs }),
-  toParentMessage: message => Message.GotStepTabsMessage({ message }),
-  foldOutMessage: foldStepTabsOutMessage,
-})
-
-export const update = Update.define((model: Model, message: Message) =>
+export const update = Application.update((model, message) =>
   Message.match(message, {
-    GotPersonalInfoMessage: ({ message }) => foldPersonalInfo(model, message),
+    GotPersonalInfoMessage: ({ message }) => personalInfo.fold(model, message),
 
-    GotWorkHistoryMessage: ({ message }) => foldWorkHistory(model, message),
+    GotWorkHistoryMessage: ({ message }) => workHistory.fold(model, message),
 
-    GotEducationMessage: ({ message }) => foldEducation(model, message),
+    GotEducationMessage: ({ message }) => education.fold(model, message),
 
-    GotSkillsMessage: ({ message }) => foldSkills(model, message),
+    GotSkillsMessage: ({ message }) => skills.fold(model, message),
 
-    GotCoverLetterMessage: ({ message }) => foldCoverLetter(model, message),
+    GotCoverLetterMessage: ({ message }) => coverLetter.fold(model, message),
 
-    GotAttachmentsMessage: ({ message }) => foldAttachments(model, message),
+    GotAttachmentsMessage: ({ message }) => attachments.fold(model, message),
 
-    GotStepMenuMessage: ({ message }) => foldStepMenu(model, message),
+    GotStepMenuMessage: ({ message }) => stepMenu.fold(model, message),
 
-    GotStepTabsMessage: ({ message }) => foldStepTabs(model, message),
+    GotStepTabsMessage: ({ message }) => stepTabs.fold(model, message),
 
     ClickedNext: () => ({
       model: modifyFields(model, { currentStep: toNextStep }),
@@ -160,10 +85,10 @@ export const update = Update.define((model: Model, message: Message) =>
 
     ClickedSubmit: () => {
       const revealedModel = modifyFields(model, {
-        personalInfo: PersonalInfo.revealErrors,
-        workHistory: WorkHistory.revealErrors,
-        education: Education.revealErrors,
-        skills: Skills.revealErrors,
+        personalInfo: revealPersonalInfoErrors,
+        workHistory: revealWorkHistoryErrors,
+        education: revealEducationErrors,
+        skills: revealSkillsErrors,
         isSubmitAttempted: () => true,
       })
       if (isApplicationComplete(revealedModel)) {

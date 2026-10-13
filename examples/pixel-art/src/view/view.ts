@@ -1,25 +1,23 @@
 import clsx from 'clsx'
 import { Array, Option, pipe } from 'effect'
-import type { Mount } from 'foldkit'
-import {
-  type Document,
-  type Html,
-  type HtmlBuilder,
-  createLazy,
-} from 'foldkit/html'
+import type { HtmlBuilderOf } from 'foldkit/application'
+import { type Html, createLazy } from 'foldkit/html'
 
-import { Button, Dialog, Listbox } from '@foldkit/ui'
+import { Button } from '@foldkit/ui'
 
 import { isGridEmpty } from '../grid'
 import { Message } from '../message'
 import type { Model } from '../model'
 import { currentPaletteTheme } from '../palette'
+import { Application } from '../update'
 import { canvasView } from './canvas'
 import { errorDialogView, gridSizeConfirmDialogView } from './dialog'
 import { historyPanelView } from './history'
 import { toolPanelView } from './toolbar'
 
-const downloadIcon = (className: string, h: HtmlBuilder<Message>): Html =>
+type HtmlBuilder = HtmlBuilderOf<typeof Application>
+
+const downloadIcon = (className: string, h: HtmlBuilder): Html =>
   h.svg(
     [
       h.AriaHidden(true),
@@ -50,13 +48,7 @@ const lazyHistoryPanel = createLazy()
 const lazyErrorDialog = createLazy()
 const lazyGridSizeConfirmDialog = createLazy()
 
-export const view = (
-  model: Model,
-  h: HtmlBuilder<
-    Message,
-    Mount.RequirementsOf<typeof Dialog.mounts | typeof Listbox.mounts>
-  >,
-): Document => ({
+export const view = Application.view((model, h) => ({
   title: 'Pixel Art',
   body: h.div(
     [h.Class('min-h-screen bg-gray-900 text-gray-100 flex flex-col')],
@@ -75,9 +67,9 @@ export const view = (
       ]),
     ],
   ),
-})
+}))
 
-const headerView = (h: HtmlBuilder<Message>): Html =>
+const headerView = (h: HtmlBuilder): Html =>
   h.div(
     [
       h.Class(
@@ -147,10 +139,7 @@ const headerView = (h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-const contentView = (
-  model: Model,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Listbox.mounts>>,
-): Html => {
+const contentView = (model: Model, h: HtmlBuilder): Html => {
   const theme = currentPaletteTheme(model)
 
   return h.div(

@@ -1,5 +1,6 @@
 import { Effect, Layer, Predicate, type Schema, type Scope } from 'effect'
 
+import type { ValidateConstructionRequirements } from '../../block/scope.js'
 import type { HandlerOf } from '../../command/handler.js'
 import {
   type KeyedQueryConfig,
@@ -108,7 +109,7 @@ const isKeyedQueryConfig = <
 > => Predicate.hasProperty(config, 'args')
 
 /**
- * Defines a Submodel that fetches data and retains it in the application
+ * Defines a Block that fetches data and retains it in the application
  * Model. Add `args` to define a {@link KeyedQuery}; omit them to define a
  * {@link Query}.
  *
@@ -143,13 +144,14 @@ export function define<
   config: KeyedQueryConfig<Name, A, AI, E, EI, Fields> &
     Readonly<{
       /** Constructs the canonical fetch handler when the Query Layer is built. */
-      handler: () => Generator<
+      handler: (() => Generator<
         Yielded,
         (
           args: Schema.Struct.Type<NoInfer<Fields>>,
         ) => Effect.Effect<NoInfer<A>, NoInfer<E>, HandlerRequirements>,
         unknown
-      >
+      >) &
+        ValidateConstructionRequirements<Effect.Services<Yielded>>
     }>,
 ): LayeredKeyedQuery<Name, A, AI, E, EI, Fields> &
   Readonly<{
@@ -177,11 +179,12 @@ export function define<
       args?: never
       toKey?: never
       /** Constructs the canonical fetch handler when the Query Layer is built. */
-      handler: () => Generator<
+      handler: (() => Generator<
         Yielded,
         () => Effect.Effect<NoInfer<A>, NoInfer<E>, HandlerRequirements>,
         unknown
-      >
+      >) &
+        ValidateConstructionRequirements<Effect.Services<Yielded>>
     }>,
 ): LayeredQuery<Name, A, AI, E, EI> &
   Readonly<{
@@ -233,13 +236,13 @@ export function define<
 ): unknown {
   if (isKeyedQueryConfig(config)) {
     if (Predicate.isNotUndefined(config.handler)) {
-      return defineKeyedQuery(config, Effect.gen(config.handler))
+      return defineKeyedQuery(config, Effect.gen(config.handler) as never)
     } else {
       return defineKeyedQuery(config)
     }
   } else {
     if (Predicate.isNotUndefined(config.handler)) {
-      return defineQuery(config, Effect.gen(config.handler))
+      return defineQuery(config, Effect.gen(config.handler) as never)
     } else {
       return defineQuery(config)
     }

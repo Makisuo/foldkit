@@ -1,7 +1,7 @@
 import type { Document, HtmlBuilder } from 'foldkit/html'
 
 const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const routeContent = AppRoute.match(model.route, {
+  const routeContent = ApplicationRoute.match(model.route, {
     Products: () => productsView(model, h),
     Cart: () => cartView(model, h),
     Checkout: () => checkoutView(model, h),

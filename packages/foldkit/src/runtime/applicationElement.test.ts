@@ -101,7 +101,7 @@ describe('Application.makeElement', () => {
           }),
       ),
     )
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       Flags,
       flags: Effect.map(Database, database => ({
@@ -156,7 +156,7 @@ describe('Application.makeElement', () => {
         onAcquireError: () => Message.ChangedStatus({ status: 'failed' }),
       }),
     }))
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       Flags,
       flags: Token.get.pipe(
@@ -204,7 +204,7 @@ describe('Application.makeElement', () => {
         ],
       }),
     }))
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: Model.make({ status: 'ready' }) }),
       update,
@@ -250,7 +250,7 @@ describe('Application.makeElement', () => {
   })
 
   it('runs a registered Mount through its provided Layer', async () => {
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: Model.make({ status: 'ready' }) }),
       update: (model: Model, message: Message) =>
@@ -285,13 +285,13 @@ describe('Application.makeElement', () => {
     }
   })
 
-  it('rejects distinct registered Mount definitions with the same name', () => {
+  it('does not globally reject distinct registered Mount definitions with the same name', () => {
     const otherAnchorPanel = Mount.define('AnchorPanel', {
       messages: [Message.CompletedAnchorPanel],
     })
 
     expect(() =>
-      Application.makeElement({
+      Application.__makeElementFromConfig({
         Model,
         init: () => ({ model: Model.make({ status: 'ready' }) }),
         update: (model: Model) => ({ model }),
@@ -299,12 +299,12 @@ describe('Application.makeElement', () => {
         mounts: [AnchorPanel, otherAnchorPanel],
         container,
       }),
-    ).toThrow('same name "AnchorPanel" but different definitions')
+    ).not.toThrow()
   })
 })
 
 const checkElementTypes = (): void => {
-  Application.makeElement({
+  Application.__makeElementFromConfig({
     Model,
     // @ts-expect-error A configured Flags Effect requires its Schema.
     flags: Effect.succeed({ initialStatus: 'configured' }),
@@ -314,7 +314,7 @@ const checkElementTypes = (): void => {
     container,
   })
 
-  const element = Application.makeElement({
+  const element = Application.__makeElementFromConfig({
     Model,
     Flags,
     flags: Effect.map(Database, database => ({
@@ -362,7 +362,7 @@ const checkElementTypes = (): void => {
       },
     ),
   }))
-  const subscriptionElement = Application.makeElement({
+  const subscriptionElement = Application.__makeElementFromConfig({
     Model,
     init: () => ({ model: Model.make({ status: 'ready' }) }),
     update: (model: Model) => ({ model }),
@@ -381,7 +381,7 @@ const checkElementTypes = (): void => {
     ),
   )
 
-  const mountElement = Application.makeElement({
+  const mountElement = Application.__makeElementFromConfig({
     Model,
     init: () => ({ model: Model.make({ status: 'ready' }) }),
     update: (model: Model) => ({ model }),
@@ -414,7 +414,7 @@ const checkElementTypes = (): void => {
       onAcquireError: () => Message.ChangedStatus({ status: 'failed' }),
     }),
   }))
-  const managedElement = Application.makeElement({
+  const managedElement = Application.__makeElementFromConfig({
     Model,
     init: () => ({ model: Model.make({ status: 'ready' }) }),
     update: (model: Model) => ({ model }),

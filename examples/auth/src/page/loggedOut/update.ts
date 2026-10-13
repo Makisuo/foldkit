@@ -1,24 +1,8 @@
-import { Option } from 'effect'
-import { Update } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
+import { LoggedOut, login } from './block'
+import { Message } from './message'
 
-import { Message, OutMessage } from './message'
-import { Model } from './model'
-import * as Login from './page/login'
-
-const foldLogin = Update.foldChild({
-  update: Login.update,
-  read: (model: Model) => Option.some(model.loginModel),
-  write: (model, nextLoginModel) =>
-    modifyFields(model, { loginModel: () => nextLoginModel }),
-  toParentMessage: message => Message.GotLoginMessage({ message }),
-  toParentOutMessage: Login.OutMessage.match<OutMessage>({
-    SucceededLogin: ({ session }) => OutMessage.SucceededLogin({ session }),
-  }),
-})
-
-export const update = Update.define((model: Model, message: Message) =>
+export const update = LoggedOut.update((model, message) =>
   Message.match(message, {
-    GotLoginMessage: ({ message }) => foldLogin(model, message),
+    GotLoginMessage: ({ message }) => login.fold(model, message),
   }),
 )

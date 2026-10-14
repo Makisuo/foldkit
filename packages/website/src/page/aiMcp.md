@@ -58,7 +58,7 @@ If automatic discovery is unavailable, set a fixed `devToolsMcpPort` in `vite.co
 
 #### Enable Message Dispatch
 
-To let an agent dispatch Messages, pass the application's `Message` Schema to `Application.make`:
+To let an agent dispatch Messages, pass the application's `Message` Schema to `ApplicationComposition.make`:
 
 ::Snippet{name="aiMcpApplicationConfig" label="Application configuration"}
 

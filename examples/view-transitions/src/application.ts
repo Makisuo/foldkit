@@ -39,6 +39,8 @@ export type Message = typeof Message.Type
 
 export const ApplicationDefinition = defineApplication({ Model, Message })
 
+export const ApplicationComposition = ApplicationDefinition.toComposition()
+
 type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
 export const init = (url: Url) => ({
@@ -68,7 +70,7 @@ export const EffectsLayer = Layer.mergeAll(
   LoadExternal.layer,
 )
 
-export const update = ApplicationDefinition.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
@@ -303,7 +305,7 @@ const routeTitle = (route: ApplicationRoute): string =>
     NotFound: () => 'Page Not Found | View Transitions',
   })
 
-export const view = ApplicationDefinition.view((model, h) => {
+export const view = ApplicationComposition.view((model, h) => {
   const routeContent = ApplicationRoute.match(model.route, {
     Gallery: () => galleryView(model.filterText, h),
     Artwork: ({ artworkId }) => artworkDetailView(artworkId, h),

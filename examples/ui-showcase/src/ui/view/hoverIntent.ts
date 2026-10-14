@@ -2,7 +2,7 @@ import type { Html } from 'foldkit/html'
 
 import type { RenderInfo } from '@foldkit/ui/hoverIntent'
 
-import { RegisteredUiDefinition, hoverIntentDemo } from '../update'
+import { UiComposition, hoverIntentDemo } from '../childBindings'
 
 const triggerClassName =
   'inline-flex cursor-pointer items-center rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600'
@@ -13,7 +13,7 @@ const panelClassName =
 const TRIGGER_ID = 'hover-intent-showcase-trigger'
 const PANEL_ID = 'hover-intent-showcase-panel'
 
-export const view = RegisteredUiDefinition.view((model, h) => {
+export const view = UiComposition.view((model, h) => {
   const hoverIntentView = ({ trigger, panel, isVisible }: RenderInfo): Html =>
     h.div(
       [h.Class('relative inline-block')],

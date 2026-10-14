@@ -4,7 +4,7 @@
 
 A non-interactive floating label anchored to a trigger. Tooltips appear on hover after a short delay, or immediately on keyboard focus. They hide on pointer-leave, blur, or Escape. Use tooltips for short hints about a control. Because they rely on hover and keyboard focus, don’t use them for content that must be reachable on touch; for that, or for rich or interactive content, use `Popover` instead.
 
-Connect `Tooltip.block` in the parent. The positioning engine is shared with `Popover` and `Menu`. Pass `anchor` to control placement and spacing.
+Bind `Tooltip.block` in the parent. The positioning engine is shared with `Popover` and `Menu`. Pass `anchor` to control placement and spacing.
 
 :::Info{label="See it in an app"}
 Check out how Tooltip is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/tooltip.ts).
@@ -59,7 +59,7 @@ Configuration object passed to `Tooltip.init()`.
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the Tooltip connection's `embedView` method. The connection supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass the child Model as `model` and these fields as `viewInputs` to the Tooltip Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name             | Type                           | Default | Description                                                                                                                                                                                                                             |
 | ---------------- | ------------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -91,7 +91,7 @@ Use `reflectShowDelay` when parent-owned configuration changes the Tooltip's del
 
 Messages emitted to the parent through the optional `outMessage` field. They fire only on visibility transitions, so consumers don’t see spurious events for Messages that only update internal hover/focus/delay state.
 
-| Name     | Type | Default | Description                                                                                                                                                                                                    |
-| -------- | ---- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Shown`  | `{}` | —       | Emitted once the tooltip transitions to visible (isOpen becomes true). Handle it in the connection's `outMessage.fold` policy. Useful for analytics, instrumentation, or coordinating with other transient UI. |
-| `Hidden` | `{}` | —       | Emitted once the tooltip transitions to hidden (isOpen becomes false).                                                                                                                                         |
+| Name     | Type | Default | Description                                                                                                                                                                                                 |
+| -------- | ---- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Shown`  | `{}` | —       | Emitted once the tooltip transitions to visible (isOpen becomes true). Handle it in the Binding's `outMessage.fold` policy. Useful for analytics, instrumentation, or coordinating with other transient UI. |
+| `Hidden` | `{}` | —       | Emitted once the tooltip transitions to hidden (isOpen becomes false).                                                                                                                                      |

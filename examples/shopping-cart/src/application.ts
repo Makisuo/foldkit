@@ -103,18 +103,17 @@ const foldProductsOutMessage = Products.OutMessage.match<
     }),
 })
 
-export const productsPage = Products.block.connection({
-  Model: Model,
+export const productsPage = ApplicationDefinition.bindChild(Products.block, {
   field: 'productsPage',
   parentMessage: Message.GotProductsMessage,
   outMessage: { fold: foldProductsOutMessage },
 })
 
-export const Application = ApplicationDefinition.register({
+export const ApplicationComposition = ApplicationDefinition.toComposition({
   children: [productsPage],
 })
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
@@ -180,7 +179,7 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-type HtmlBuilder = HtmlBuilderOf<typeof Application>
+type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 const navigationView = (
   currentRoute: ApplicationRoute,
@@ -281,7 +280,7 @@ const routeTitle = (route: Model['route']): string =>
     Match.orElse(({ _tag }) => `${_tag} | Shopping Cart`),
   )
 
-export const view = Application.view((model, h) => {
+export const view = ApplicationComposition.view((model, h) => {
   const routeContent = ApplicationRoute.match(model.route, {
     Products: () => productsView(model, h),
     Cart: () => cartView(model, h),

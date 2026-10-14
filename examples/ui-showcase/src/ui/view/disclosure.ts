@@ -1,14 +1,11 @@
 import clsx from 'clsx'
-import type { Block } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
 import { Disclosure } from '@foldkit/ui'
 
 import * as Icon from '../../icon'
+import { UiComposition } from '../childBindings'
 import { Message } from '../message'
-import { RegisteredUiDefinition } from '../update'
-
-type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
 
 const DISCLOSURE_BASIC_DEMO_ID = 'disclosure-basic-demo'
 const DISCLOSURE_ANIMATED_DEMO_ID = 'disclosure-animated-demo'
@@ -18,25 +15,25 @@ const COLLAPSED_PREVIEW_HEIGHT = '6rem'
 const PANEL_TEXT =
   'Foldkit is an Elm-inspired UI framework powered by Effect. It brings the Model-View-Update architecture to TypeScript with Schema-typed state, explicit side effects via commands, and composable headless UI components.'
 
-const chevron = (isOpen: boolean, h: HtmlBuilder): Html => {
+const chevron = UiComposition.render.withInput<boolean>()((isOpen, h) => {
   return h.span(
     [h.Class(clsx('text-gray-600', { 'rotate-180': isOpen }))],
     [Icon.chevronDown('w-4 h-4')],
   )
-}
+})
 
-const buttonContent = (isOpen: boolean, h: HtmlBuilder): Html => {
+const buttonContent = UiComposition.render.withInput<boolean>()((isOpen, h) => {
   return h.div(
     [h.Class('flex items-center justify-between w-full')],
     [h.span([], ['What is Foldkit?']), chevron(isOpen, h)],
   )
-}
+})
 
-const panelText = (h: HtmlBuilder): Html => {
+const panelText = UiComposition.render.builder(h => {
   return h.p([h.Class('text-gray-800')], [PANEL_TEXT])
-}
+})
 
-const collapsedPreviewPanel = (h: HtmlBuilder): Html =>
+const collapsedPreviewPanel = UiComposition.render.builder(h =>
   h.div(
     [h.Class('space-y-3 text-base leading-6 text-gray-800')],
     [
@@ -59,16 +56,17 @@ const collapsedPreviewPanel = (h: HtmlBuilder): Html =>
         ],
       ),
     ],
-  )
+  ),
+)
 
-const subheading = (text: string, h: HtmlBuilder): Html => {
+const subheading = UiComposition.render.withInput<string>()((text, h) => {
   return h.h3(
     [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
     [text],
   )
-}
+})
 
-export const view = RegisteredUiDefinition.view((model, h) => {
+export const view = UiComposition.view((model, h) => {
   const basicDisclosureView = (
     attributes: Disclosure.DisclosureAttributes<Message>,
   ): Html =>

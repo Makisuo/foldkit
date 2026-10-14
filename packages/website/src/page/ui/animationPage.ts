@@ -3,7 +3,7 @@ import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import raw from './animationPage.md'
 import * as Animation from './demo/animation'
-import { RegisteredUiDefinition } from './update'
+import { UiComposition } from './update'
 
 const { tableOfContents, view: renderPage } = slotDocPage<'animation'>(
   raw,
@@ -18,7 +18,7 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = RegisteredUiDefinition.view.withInputs<ViewInputs>(
+export const view = UiComposition.view.withInputs<ViewInputs>(
   (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h) =>
     renderPage({
       demos: {

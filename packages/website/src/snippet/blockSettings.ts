@@ -37,7 +37,7 @@ const view = SettingsDefinition.view((model, h) =>
   h.p([], [`Theme: ${model.theme}`]),
 )
 
-export const block = SettingsDefinition.toBlock({
+export const block = SettingsDefinition.toComposition().toBlock({
   init: () => ({ model: Model.make({ theme: 'System' }) }),
   update,
   view,

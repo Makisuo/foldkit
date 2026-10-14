@@ -1,14 +1,14 @@
 import { Runtime } from 'foldkit'
 
 import {
-  ApplicationDefinition,
+  ApplicationComposition,
   init,
   update,
   view,
   EffectsLayer,
 } from './application'
 
-const application = ApplicationDefinition.make({
+const application = ApplicationComposition.make({
   init,
   update,
   view,

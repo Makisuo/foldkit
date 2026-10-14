@@ -1,9 +1,8 @@
 import { Array, Number, Option, Result } from 'effect'
-import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { Slider } from '@foldkit/ui'
-
+import { ApplicationComposition } from './application'
+import { flowStrengthSlider, noiseScaleSlider } from './childBindings'
 import { GenerateAmbientParticle, GenerateBurstParticle } from './command'
 import {
   BURST_BOOST_DURATION_MS,
@@ -31,7 +30,6 @@ import {
   TRAIL_LENGTH,
   TWO_PI,
 } from './constant'
-import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 import { Model, Particle, Point } from './model'
 import { fractalNoise } from './noise'
@@ -216,45 +214,7 @@ const appendGeneratedParticle =
     }
   }
 
-const foldFlowStrengthSliderOutMessage = Slider.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ChangedValue:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { flowStrength: () => value }),
-    }),
-})
-
-export const flowStrengthSlider = Slider.block.connection({
-  Model: Model,
-  field: 'flowStrengthSlider',
-  parentMessage: Message.GotFlowStrengthSliderMessage,
-  outMessage: { fold: foldFlowStrengthSliderOutMessage },
-})
-
-const foldNoiseScaleSliderOutMessage = Slider.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ChangedValue:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { noiseScale: () => value }),
-    }),
-})
-
-export const noiseScaleSlider = Slider.block.connection({
-  Model: Model,
-  field: 'noiseScaleSlider',
-  parentMessage: Message.GotNoiseScaleSliderMessage,
-  outMessage: { fold: foldNoiseScaleSliderOutMessage },
-})
-
-export const Application = ApplicationDefinition.register({
-  children: [flowStrengthSlider, noiseScaleSlider],
-})
-
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     TickedFrame: ({ deltaTimeMs }) => {
       const deltaSeconds = cappedDeltaSeconds(deltaTimeMs)

@@ -1,16 +1,16 @@
 import { Block } from 'foldkit'
 
+import { ApplicationDefinition } from './application'
 import { Message } from './message'
 import { Model } from './model'
 import { Room } from './page'
 
-const room = Room.block.connection({
-  Model,
+const room = ApplicationDefinition.bindChild(Room.block, {
   field: 'room',
   parentMessage: Message.GotRoomMessage,
 })
 
-const roomInspection = Block.inspectConnection(room)
+const roomInspection = Block.inspectBinding(room)
 
 export const roomSubscriptions = roomInspection.subscriptions
 export const roomManagedResources = roomInspection.managedResources

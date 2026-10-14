@@ -375,8 +375,14 @@ export const DetectListboxMovementOrAnimationEnd = ListboxDefinition.command(
   },
 )
 
-export const makeUpdate = (
-  ModelSchema: typeof BaseModel,
+export const makeUpdate = <
+  ParentOutMessageSchema extends Schema.Top | undefined,
+>(
+  bindChild: Block.BindChild<
+    typeof BaseModel,
+    typeof Message,
+    ParentOutMessageSchema
+  >,
   selectionBehavior: 'CloseWithFocus' | 'KeepOpen',
   handleSelectedItem: (
     model: BaseModel,
@@ -407,8 +413,7 @@ export const makeUpdate = (
     TransitionedOut: () => ignoreTransitionedOut,
   })
 
-  const animation = Animation.block.connection({
-    Model: ModelSchema,
+  const animation = bindChild(Animation.block, {
     field: 'animation',
     parentMessage: Message.GotAnimationMessage,
     outMessage: { fold: foldAnimationOutMessage },
@@ -721,7 +726,7 @@ export const mounts = [AnchorListbox, PortalListboxBackdrop]
 type MountRequirements = Mount.RequirementsOf<typeof mounts>
 
 /** Provides Listbox's local Command and Mount handlers. */
-export const LocalEffectsLayer = Layer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
   LockListboxScroll.layer,
   UnlockListboxScroll.layer,
   InertListboxOthers.layer,

@@ -9,26 +9,26 @@ export type {
   ViewMountRequirementsOf,
 } from '../html/block.js'
 export type {
-  AnyBinding as AnyConnection,
-  Bind as Connect,
-  Binding as Connection,
-  BindingConfig as ConnectionConfig,
-  ConnectionInspection,
-  InspectionOfConnection,
-  BindingRequirement as ConnectionRequirement,
-  BindingReturn as ConnectionReturn,
-  BlockOfBinding as BlockOfConnection,
+  AnyBinding,
+  Binding,
+  BindingConfig,
+  BindingInspection,
+  InspectionOfBinding,
+  BindingRequirement,
+  BindingReturn,
+  BlockOfBinding,
   OutMessagePolicy,
-  RequirementOfBinding as RequirementOfConnection,
-  RequirementsOfBindings as RequirementsOfConnections,
+  RequirementOfBinding,
+  RequirementsOfBindings,
   ValidateEmbeddedViewMounts,
 } from './binding.js'
-export { inspectConnection } from './binding.js'
+export { inspectBinding } from './binding.js'
+export type { BindChild } from './bindChild.js'
 export { LocalMountsTypeId } from './definition.js'
 export type {
   AnyBlock,
   Base,
-  Register,
+  ToComposition,
   Composition,
   Completed,
   CompletedBlock,
@@ -55,7 +55,7 @@ export { define } from './define.js'
 export type {
   Authoring,
   AuthoringDefinition,
-  AuthoringRegister,
+  AuthoringToComposition,
   DefineContracts,
   Primitives,
 } from './define.js'
@@ -66,12 +66,12 @@ export type {
   DefineResource,
 } from './named.js'
 export type {
-  BindEach as ConnectEach,
-  KeyedBinding as KeyedConnection,
-  KeyedBindingConfig as KeyedConnectionConfig,
+  KeyedBinding,
+  KeyedBindingConfig,
   KeyedOutMessagePolicy,
 } from './keyedBinding.js'
 export type { Owner } from './owner.js'
+export type { DefineRender, RenderOutput } from './render.js'
 export type { Qualify, Scoped } from './scope.js'
 export type { ValidateConcreteComposition } from './requirements.js'
 export type { Reflect, Reflect2 } from './block.js'

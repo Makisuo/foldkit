@@ -73,7 +73,7 @@ const childManagedResources = child.managedResources(entry => ({
     },
   }),
 }))
-const childBlock = child.toBlock({
+const childBlock = child.toComposition().toBlock({
   init: (id: number) => ({ model: { id } }),
   update: child.update(model => ({ model })),
   subscriptions,
@@ -94,30 +94,30 @@ type RootModel = typeof RootModel.Type
 const RootMessage = defineMessageUnion({
   GotChildMessage: { message: ChildMessage },
 })
-const optionalChild = childBlock.connection({
+const rootBase = Root.define({
+  Model: RootModel,
+  Message: RootMessage,
+})
+const optionalChild = rootBase.bindChild(childBlock, {
   read: (model: RootModel) => model.maybeChild,
   write: (model, nextChild) =>
     modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
   parentMessage: RootMessage.GotChildMessage,
   subscriptions: { when: model => model.subscriptionState === 'Active' },
 })
-const entries = childBlock.keyedConnection({
+const entries = rootBase.bindChild(childBlock, {
   placement: 'Entries',
   readAll: (model: RootModel) => model.entries,
   key: entry => entry.id,
   read: entry => entry,
-  writeAt: (model, key, nextChild) =>
+  writeAt: (model, key: number, nextChild) =>
     modifyFields(model, {
       entries: entries =>
         entries.map(entry => (entry.id === key ? nextChild : entry)),
     }),
   toParentMessage: (_key, message) => RootMessage.GotChildMessage({ message }),
 })
-const rootBase = Root.define({
-  Model: RootModel,
-  Message: RootMessage,
-})
-const root = rootBase.register({ children: [optionalChild, entries] })
+const root = rootBase.toComposition({ children: [optionalChild, entries] })
 const rootManagedResources = rootBase.managedResources(entry => ({
   value: entry('Value', Schema.Option(Schema.Null), {
     resource: RootValue,
@@ -157,23 +157,26 @@ type NestedParentModel = typeof NestedParentModel.Type
 const NestedParentMessage = defineMessageUnion({
   GotChildMessage: { id: Schema.Number, message: ChildMessage },
 })
-const nestedEntries = childBlock.keyedConnection({
+const nestedParentBase = NestedParent.define({
+  Model: NestedParentModel,
+  Message: NestedParentMessage,
+})
+const nestedEntries = nestedParentBase.bindChild(childBlock, {
+  placement: 'entries',
   readAll: (model: NestedParentModel) => model.entries,
-  key: entry => entry.id,
+  key: (entry): number => entry.id,
   read: entry => entry,
   writeAt: (model, key, nextChild) =>
     modifyFields(model, {
       entries: entries =>
         entries.map(entry => (entry.id === key ? nextChild : entry)),
     }),
-  toParentMessage: (id, message) =>
+  toParentMessage: (id: number, message) =>
     NestedParentMessage.GotChildMessage({ id, message }),
 })
-const nestedParentBase = NestedParent.define({
-  Model: NestedParentModel,
-  Message: NestedParentMessage,
+const nestedParent = nestedParentBase.toComposition({
+  children: [nestedEntries],
 })
-const nestedParent = nestedParentBase.register({ children: [nestedEntries] })
 const nestedParentBlock = nestedParent.toBlock({
   init: (id: number, entries: ReadonlyArray<typeof ChildModel.Type>) => ({
     model: { id, entries },
@@ -194,23 +197,24 @@ type NestedRootModel = typeof NestedRootModel.Type
 const NestedRootMessage = defineMessageUnion({
   GotParentMessage: { id: Schema.Number, message: NestedParentMessage },
 })
-const nestedParents = nestedParentBlock.keyedConnection({
-  readAll: (model: NestedRootModel) => model.parents,
-  key: parent => parent.id,
-  read: parent => parent,
-  writeAt: (model, key, nextParent) =>
-    modifyFields(model, {
-      parents: parents =>
-        parents.map(parent => (parent.id === key ? nextParent : parent)),
-    }),
-  toParentMessage: (id, message) =>
-    NestedRootMessage.GotParentMessage({ id, message }),
-})
 const nestedRootBase = NestedRoot.define({
   Model: NestedRootModel,
   Message: NestedRootMessage,
 })
-const nestedRoot = nestedRootBase.register({ children: [nestedParents] })
+const nestedParents = nestedRootBase.bindChild(nestedParentBlock, {
+  placement: 'parents',
+  readAll: (model: NestedRootModel) => model.parents,
+  key: (parent): number => parent.id,
+  read: parent => parent,
+  writeAt: (model, key: number, nextParent) =>
+    modifyFields(model, {
+      parents: parents =>
+        parents.map(parent => (parent.id === key ? nextParent : parent)),
+    }),
+  toParentMessage: (id: number, message) =>
+    NestedRootMessage.GotParentMessage({ id, message }),
+})
+const nestedRoot = nestedRootBase.toComposition({ children: [nestedParents] })
 const nestedInitialModel = NestedRootModel.make({
   parents: [{ id: 1, entries: [{ id: 10 }] }],
 })

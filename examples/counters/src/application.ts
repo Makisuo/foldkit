@@ -34,7 +34,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const counters = Counter.block.keyedConnection({
+export const ApplicationDefinition = defineApplication({ Model, Message })
+
+const counters = ApplicationDefinition.bindChild(Counter.block, {
   readAll: (model: Model) => model.rows,
   key: row => row.id,
   read: row => row.counter,
@@ -54,13 +56,11 @@ const counters = Counter.block.keyedConnection({
   ): Message => Message.GotCounterMessage({ id, message }),
 })
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
-
-export const Application = ApplicationDefinition.register({
+export const ApplicationComposition = ApplicationDefinition.toComposition({
   children: [counters],
 })
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedAddRow: () => ({
       model: modifyFields(model, {
@@ -91,7 +91,7 @@ export const init = () => ({
   },
 })
 
-type ViewBuilder = HtmlBuilderOf<typeof Application>
+type ViewBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 const rowView = (row: Row, h: ViewBuilder): Html =>
   h.keyed('div')(
@@ -129,7 +129,7 @@ const rowView = (row: Row, h: ViewBuilder): Html =>
     ],
   )
 
-export const view = Application.view((model, h) => ({
+export const view = ApplicationComposition.view((model, h) => ({
   title: `Counters (${model.rows.length})`,
   body: h.div(
     [

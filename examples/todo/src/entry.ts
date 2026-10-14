@@ -1,18 +1,15 @@
 import { Runtime } from 'foldkit'
 
-import {
-  ApplicationDefinition,
-  EffectsLayer,
-  Flags,
-  Message,
-  flags,
-  init,
-  update,
-  view,
-} from './application'
-import { ApplicationLayer } from './services'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
 
-const application = ApplicationDefinition.make({
+import { ApplicationComposition, EffectsLayer } from './application'
+import { flags } from './flags'
+import { Message } from './message'
+import { Flags } from './model'
+import { init, update } from './update'
+import { view } from './view'
+
+const application = ApplicationComposition.make({
   init,
   update,
   view,
@@ -22,4 +19,6 @@ const application = ApplicationDefinition.make({
   devTools: { Message },
 })
 
-Runtime.run(application.provide(ApplicationLayer), { flags })
+Runtime.run(application.provide(BrowserKeyValueStore.layerLocalStorage), {
+  flags,
+})

@@ -1,3 +1,4 @@
+import { define as defineApplication } from 'foldkit/application'
 import { Effect, Schema } from 'effect'
 import { Query } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
@@ -20,11 +21,9 @@ const CustomFactory = {
 }
 const CustomChild = CustomFactory.create()
 
-CustomChild.block.connection({
-  Model,
-  field: 'child',
-  parentMessage: ParentMessage.GotCustomChildMessage,
-})
+const ApplicationDefinition = defineApplication({ Model, Message })
+ApplicationDefinition.bindChild(CustomChild.block, {field: 'child',
+parentMessage: ParentMessage.GotCustomChildMessage})
 
 const Message = defineMessageUnion({
   ReceivedWeather: { temperature: Schema.Number, },

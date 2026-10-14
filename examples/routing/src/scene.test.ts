@@ -2,8 +2,11 @@ import { Array, Option, String } from 'effect'
 import { expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { ApplicationRoute, Model, update, view } from './application'
+import { Model } from './model'
 import { People, SearchResults, searchPeople } from './page'
+import { ApplicationRoute } from './route'
+import { update } from './update'
+import { view } from './view'
 
 const peoplePageWith = (searchInput: string) =>
   People.Model.make({

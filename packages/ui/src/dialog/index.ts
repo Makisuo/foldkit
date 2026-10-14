@@ -30,4 +30,4 @@ export {
   type ViewInputs,
   view,
   block,
-} from './dialog.js'
+} from './block.js'

@@ -4,10 +4,12 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Applicant } from './applicant'
 import { Message } from './message'
-import type { Model } from './model'
+import { Model } from './model'
 
-export const applicants = Applicant.block.keyedConnection({
-  readAll: (model: Model) => model.applicants,
+const ApplicationDefinition = defineApplication({ Model, Message })
+
+export const applicants = ApplicationDefinition.bindChild(Applicant.block, {
+  readAll: model => model.applicants,
   key: applicant => applicant.id,
   read: applicant => applicant.entry,
   writeAt: (model, applicantId, nextEntry) =>
@@ -22,17 +24,18 @@ export const applicants = Applicant.block.keyedConnection({
     Message.GotApplicantMessage({ applicantId, message }),
 })
 
-const ApplicationDefinition = defineApplication({ Model, Message })
-const Application = ApplicationDefinition.register({ children: [applicants] })
+const ApplicationComposition = ApplicationDefinition.toComposition({
+  children: [applicants],
+})
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     GotApplicantMessage: ({ applicantId, message }) =>
       applicants.fold(model, applicantId, message),
   }),
 )
 
-export const view = Application.view((model, h) =>
+export const view = ApplicationComposition.view((model, h) =>
   h.ul(
     [h.Class('flex flex-col gap-4')],
     Array.map(model.applicants, applicant =>

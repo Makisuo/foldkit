@@ -9,16 +9,16 @@ import { PronounOption } from '../../domain'
 import { DatePicker, Field, Icon } from '../../view'
 import {
   Message,
-  RegisteredPersonalInfoDefinition,
+  PersonalInfoComposition,
   availableDatePicker,
   pronounsListbox,
 } from './definition'
 
 type PersonalInfoHtmlBuilder = Parameters<
-  Parameters<typeof RegisteredPersonalInfoDefinition.view>[0]
+  Parameters<typeof PersonalInfoComposition.view>[0]
 >[1]
 
-export const view = RegisteredPersonalInfoDefinition.view((model, h) => {
+export const view = PersonalInfoComposition.view((model, h) => {
   const {
     firstName,
     lastName,

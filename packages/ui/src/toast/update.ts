@@ -299,7 +299,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         ),
     })
 
-  const entryAnimation = Animation.block.keyedConnection({
+  const entryAnimation = ToastDefinition.bindChild(Animation.block, {
     readAll: (model: Model) => model.entries,
     key: (entry: Entry) => entry.id,
     read: (entry: Entry) => entry.animation,
@@ -316,7 +316,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     outMessage: { fold: foldEntryAnimationOutMessage },
   })
 
-  const RegisteredToastDefinition = ToastDefinition.register({
+  const ToastComposition = ToastDefinition.toComposition({
     children: [entryAnimation],
   })
 
@@ -732,7 +732,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   )
 
   return {
-    RegisteredToastDefinition,
+    ToastComposition,
     entryAnimation,
     Entry: EntrySchema,
     Model: ModelSchema,

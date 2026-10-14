@@ -16,7 +16,9 @@ const foldSettingsOutMessage = Settings.OutMessage.match<
     }),
 })
 
-export const settings = Settings.block.connection({
+const ApplicationDefinition = defineApplication({ Model, Message })
+
+export const settings = ApplicationDefinition.bindChild(Settings.block, {
   read: (model: Model) => model.maybeSettings,
   write: (model, nextSettings) =>
     modifyFields(model, {
@@ -26,8 +28,7 @@ export const settings = Settings.block.connection({
   outMessage: { fold: foldSettingsOutMessage },
 })
 
-const ApplicationDefinition = defineApplication({ Model, Message })
-export const Application = ApplicationDefinition.register({
+export const ApplicationComposition = ApplicationDefinition.toComposition({
   children: [settings],
 })
 
@@ -44,14 +45,14 @@ export const init = () => {
   }
 }
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     GotSettingsMessage: ({ message }) =>
       settings.fold(model, message, model.currentUser),
   }),
 )
 
-export const view = Application.view((model, h) => ({
+export const view = ApplicationComposition.view((model, h) => ({
   title: 'Profile',
   body: Option.match(model.maybeSettings, {
     onNone: () => h.empty,

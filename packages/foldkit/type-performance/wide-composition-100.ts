@@ -58,7 +58,7 @@ const runLeaf = TypePerformanceWideLeafDefinition.step(model => ({
   model,
   commands: [RunLeaf()],
 }))
-const Leaf = TypePerformanceWideLeafDefinition.toBlock({
+const Leaf = TypePerformanceWideLeafDefinition.toComposition().toBlock({
   init: () => ({ model: LeafModel.make({ value: 0 }) }),
   update: TypePerformanceWideLeafDefinition.update((model, message) =>
     LeafMessage.match(message, {
@@ -178,810 +178,612 @@ const ApplicationMessage = defineMessageUnion({
 })
 // oxlint-enable foldkit/got-prefix-requires-block-payload
 
-const leaf001 = Leaf.connection({
+const ApplicationDefinition = defineApplication({
+  Model: ApplicationModel,
+  Message: ApplicationMessage,
+})
+
+const leaf001 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf001',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf001Message,
 })
 
-const leaf002 = Leaf.connection({
+const leaf002 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf002',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf002Message,
 })
 
-const leaf003 = Leaf.connection({
+const leaf003 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf003',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf003Message,
 })
 
-const leaf004 = Leaf.connection({
+const leaf004 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf004',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf004Message,
 })
 
-const leaf005 = Leaf.connection({
+const leaf005 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf005',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf005Message,
 })
 
-const leaf006 = Leaf.connection({
+const leaf006 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf006',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf006Message,
 })
 
-const leaf007 = Leaf.connection({
+const leaf007 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf007',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf007Message,
 })
 
-const leaf008 = Leaf.connection({
+const leaf008 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf008',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf008Message,
 })
 
-const leaf009 = Leaf.connection({
+const leaf009 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf009',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf009Message,
 })
 
-const leaf010 = Leaf.connection({
+const leaf010 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf010',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf010Message,
 })
 
-const leaf011 = Leaf.connection({
+const leaf011 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf011',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf011Message,
 })
 
-const leaf012 = Leaf.connection({
+const leaf012 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf012',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf012Message,
 })
 
-const leaf013 = Leaf.connection({
+const leaf013 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf013',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf013Message,
 })
 
-const leaf014 = Leaf.connection({
+const leaf014 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf014',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf014Message,
 })
 
-const leaf015 = Leaf.connection({
+const leaf015 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf015',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf015Message,
 })
 
-const leaf016 = Leaf.connection({
+const leaf016 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf016',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf016Message,
 })
 
-const leaf017 = Leaf.connection({
+const leaf017 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf017',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf017Message,
 })
 
-const leaf018 = Leaf.connection({
+const leaf018 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf018',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf018Message,
 })
 
-const leaf019 = Leaf.connection({
+const leaf019 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf019',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf019Message,
 })
 
-const leaf020 = Leaf.connection({
+const leaf020 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf020',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf020Message,
 })
 
-const leaf021 = Leaf.connection({
+const leaf021 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf021',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf021Message,
 })
 
-const leaf022 = Leaf.connection({
+const leaf022 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf022',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf022Message,
 })
 
-const leaf023 = Leaf.connection({
+const leaf023 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf023',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf023Message,
 })
 
-const leaf024 = Leaf.connection({
+const leaf024 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf024',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf024Message,
 })
 
-const leaf025 = Leaf.connection({
+const leaf025 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf025',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf025Message,
 })
 
-const leaf026 = Leaf.connection({
+const leaf026 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf026',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf026Message,
 })
 
-const leaf027 = Leaf.connection({
+const leaf027 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf027',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf027Message,
 })
 
-const leaf028 = Leaf.connection({
+const leaf028 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf028',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf028Message,
 })
 
-const leaf029 = Leaf.connection({
+const leaf029 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf029',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf029Message,
 })
 
-const leaf030 = Leaf.connection({
+const leaf030 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf030',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf030Message,
 })
 
-const leaf031 = Leaf.connection({
+const leaf031 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf031',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf031Message,
 })
 
-const leaf032 = Leaf.connection({
+const leaf032 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf032',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf032Message,
 })
 
-const leaf033 = Leaf.connection({
+const leaf033 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf033',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf033Message,
 })
 
-const leaf034 = Leaf.connection({
+const leaf034 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf034',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf034Message,
 })
 
-const leaf035 = Leaf.connection({
+const leaf035 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf035',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf035Message,
 })
 
-const leaf036 = Leaf.connection({
+const leaf036 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf036',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf036Message,
 })
 
-const leaf037 = Leaf.connection({
+const leaf037 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf037',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf037Message,
 })
 
-const leaf038 = Leaf.connection({
+const leaf038 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf038',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf038Message,
 })
 
-const leaf039 = Leaf.connection({
+const leaf039 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf039',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf039Message,
 })
 
-const leaf040 = Leaf.connection({
+const leaf040 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf040',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf040Message,
 })
 
-const leaf041 = Leaf.connection({
+const leaf041 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf041',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf041Message,
 })
 
-const leaf042 = Leaf.connection({
+const leaf042 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf042',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf042Message,
 })
 
-const leaf043 = Leaf.connection({
+const leaf043 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf043',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf043Message,
 })
 
-const leaf044 = Leaf.connection({
+const leaf044 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf044',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf044Message,
 })
 
-const leaf045 = Leaf.connection({
+const leaf045 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf045',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf045Message,
 })
 
-const leaf046 = Leaf.connection({
+const leaf046 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf046',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf046Message,
 })
 
-const leaf047 = Leaf.connection({
+const leaf047 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf047',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf047Message,
 })
 
-const leaf048 = Leaf.connection({
+const leaf048 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf048',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf048Message,
 })
 
-const leaf049 = Leaf.connection({
+const leaf049 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf049',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf049Message,
 })
 
-const leaf050 = Leaf.connection({
+const leaf050 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf050',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf050Message,
 })
 
-const leaf051 = Leaf.connection({
+const leaf051 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf051',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf051Message,
 })
 
-const leaf052 = Leaf.connection({
+const leaf052 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf052',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf052Message,
 })
 
-const leaf053 = Leaf.connection({
+const leaf053 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf053',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf053Message,
 })
 
-const leaf054 = Leaf.connection({
+const leaf054 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf054',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf054Message,
 })
 
-const leaf055 = Leaf.connection({
+const leaf055 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf055',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf055Message,
 })
 
-const leaf056 = Leaf.connection({
+const leaf056 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf056',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf056Message,
 })
 
-const leaf057 = Leaf.connection({
+const leaf057 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf057',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf057Message,
 })
 
-const leaf058 = Leaf.connection({
+const leaf058 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf058',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf058Message,
 })
 
-const leaf059 = Leaf.connection({
+const leaf059 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf059',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf059Message,
 })
 
-const leaf060 = Leaf.connection({
+const leaf060 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf060',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf060Message,
 })
 
-const leaf061 = Leaf.connection({
+const leaf061 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf061',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf061Message,
 })
 
-const leaf062 = Leaf.connection({
+const leaf062 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf062',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf062Message,
 })
 
-const leaf063 = Leaf.connection({
+const leaf063 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf063',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf063Message,
 })
 
-const leaf064 = Leaf.connection({
+const leaf064 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf064',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf064Message,
 })
 
-const leaf065 = Leaf.connection({
+const leaf065 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf065',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf065Message,
 })
 
-const leaf066 = Leaf.connection({
+const leaf066 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf066',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf066Message,
 })
 
-const leaf067 = Leaf.connection({
+const leaf067 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf067',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf067Message,
 })
 
-const leaf068 = Leaf.connection({
+const leaf068 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf068',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf068Message,
 })
 
-const leaf069 = Leaf.connection({
+const leaf069 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf069',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf069Message,
 })
 
-const leaf070 = Leaf.connection({
+const leaf070 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf070',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf070Message,
 })
 
-const leaf071 = Leaf.connection({
+const leaf071 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf071',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf071Message,
 })
 
-const leaf072 = Leaf.connection({
+const leaf072 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf072',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf072Message,
 })
 
-const leaf073 = Leaf.connection({
+const leaf073 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf073',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf073Message,
 })
 
-const leaf074 = Leaf.connection({
+const leaf074 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf074',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf074Message,
 })
 
-const leaf075 = Leaf.connection({
+const leaf075 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf075',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf075Message,
 })
 
-const leaf076 = Leaf.connection({
+const leaf076 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf076',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf076Message,
 })
 
-const leaf077 = Leaf.connection({
+const leaf077 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf077',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf077Message,
 })
 
-const leaf078 = Leaf.connection({
+const leaf078 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf078',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf078Message,
 })
 
-const leaf079 = Leaf.connection({
+const leaf079 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf079',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf079Message,
 })
 
-const leaf080 = Leaf.connection({
+const leaf080 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf080',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf080Message,
 })
 
-const leaf081 = Leaf.connection({
+const leaf081 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf081',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf081Message,
 })
 
-const leaf082 = Leaf.connection({
+const leaf082 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf082',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf082Message,
 })
 
-const leaf083 = Leaf.connection({
+const leaf083 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf083',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf083Message,
 })
 
-const leaf084 = Leaf.connection({
+const leaf084 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf084',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf084Message,
 })
 
-const leaf085 = Leaf.connection({
+const leaf085 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf085',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf085Message,
 })
 
-const leaf086 = Leaf.connection({
+const leaf086 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf086',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf086Message,
 })
 
-const leaf087 = Leaf.connection({
+const leaf087 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf087',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf087Message,
 })
 
-const leaf088 = Leaf.connection({
+const leaf088 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf088',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf088Message,
 })
 
-const leaf089 = Leaf.connection({
+const leaf089 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf089',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf089Message,
 })
 
-const leaf090 = Leaf.connection({
+const leaf090 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf090',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf090Message,
 })
 
-const leaf091 = Leaf.connection({
+const leaf091 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf091',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf091Message,
 })
 
-const leaf092 = Leaf.connection({
+const leaf092 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf092',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf092Message,
 })
 
-const leaf093 = Leaf.connection({
+const leaf093 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf093',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf093Message,
 })
 
-const leaf094 = Leaf.connection({
+const leaf094 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf094',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf094Message,
 })
 
-const leaf095 = Leaf.connection({
+const leaf095 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf095',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf095Message,
 })
 
-const leaf096 = Leaf.connection({
+const leaf096 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf096',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf096Message,
 })
 
-const leaf097 = Leaf.connection({
+const leaf097 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf097',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf097Message,
 })
 
-const leaf098 = Leaf.connection({
+const leaf098 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf098',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf098Message,
 })
 
-const leaf099 = Leaf.connection({
+const leaf099 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf099',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf099Message,
 })
 
-const leaf100 = Leaf.connection({
+const leaf100 = ApplicationDefinition.bindChild(Leaf, {
+  field: 'leaf',
   placement: 'leaf100',
-  read: (model: ApplicationModel) => Option.some(model.leaf),
-  write: (_model: ApplicationModel, nextLeaf: LeafModel) =>
-    ApplicationModel.make({ leaf: nextLeaf }),
   parentMessage: ApplicationMessage.GotLeaf100Message,
 })
 
-const Application = defineApplication({
-  Model: ApplicationModel,
-  Message: ApplicationMessage,
-}).register({
+const Application = ApplicationDefinition.toComposition({
   children: [
     leaf001,
     leaf002,

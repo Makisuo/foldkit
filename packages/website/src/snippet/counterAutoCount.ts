@@ -17,7 +17,9 @@ type Model = typeof Model.Type
 
 export const ApplicationDefinition = defineApplication({ Model, Message })
 
-export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
+export const ApplicationComposition = ApplicationDefinition.toComposition()
+
+export const subscriptions = ApplicationComposition.subscriptions(entry => ({
   gameClockTicks: entry(
     'GameClockTicks',
     { isAutoCounting: Schema.Boolean },

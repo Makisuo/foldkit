@@ -6,6 +6,6 @@ import { primaryComposer, secondaryComposer } from './placements'
 
 export const ChatDefinition = Block.define('Chat', { Model, Message })
 
-export const RegisteredChatDefinition = ChatDefinition.register({
+export const ChatComposition = ChatDefinition.toComposition({
   children: [primaryComposer, secondaryComposer],
 })

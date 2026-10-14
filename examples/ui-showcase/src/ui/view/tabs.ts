@@ -1,17 +1,14 @@
 import { Array, Match } from 'effect'
-import type { Block } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
 import type { RenderInfo } from '@foldkit/ui/tabs'
 
-import type { DemoTab } from '../model'
 import {
-  RegisteredUiDefinition,
+  UiComposition,
   horizontalTabsDemo,
   verticalTabsDemo,
-} from '../update'
-
-type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
+} from '../childBindings'
+import type { DemoTab } from '../model'
 
 const demoTabs: ReadonlyArray<DemoTab> = ['Foldkit', 'React', 'Elm']
 
@@ -27,7 +24,7 @@ const verticalButtonClassName =
 const verticalPanelClassName =
   'flex-1 p-6 bg-white rounded-r-lg rounded-bl-lg border border-gray-200'
 
-const foldkitPanel = (h: HtmlBuilder): Html => {
+const foldkitPanel = UiComposition.render.builder(h => {
   return h.div(
     [],
     [
@@ -46,9 +43,9 @@ const foldkitPanel = (h: HtmlBuilder): Html => {
       ),
     ],
   )
-}
+})
 
-const reactPanel = (h: HtmlBuilder): Html => {
+const reactPanel = UiComposition.render.builder(h => {
   return h.div(
     [],
     [
@@ -67,9 +64,9 @@ const reactPanel = (h: HtmlBuilder): Html => {
       ),
     ],
   )
-}
+})
 
-const elmPanel = (h: HtmlBuilder): Html => {
+const elmPanel = UiComposition.render.builder(h => {
   return h.div(
     [],
     [
@@ -88,17 +85,18 @@ const elmPanel = (h: HtmlBuilder): Html => {
       ),
     ],
   )
-}
+})
 
-const panelFor = (tab: DemoTab, h: HtmlBuilder): Html =>
+const panelFor = UiComposition.render.withInput<DemoTab>()((tab, h) =>
   Match.value(tab).pipe(
     Match.when('Foldkit', () => foldkitPanel(h)),
     Match.when('React', () => reactPanel(h)),
     Match.when('Elm', () => elmPanel(h)),
     Match.exhaustive,
-  )
+  ),
+)
 
-export const view = RegisteredUiDefinition.view((model, h) => {
+export const view = UiComposition.view((model, h) => {
   const horizontalTabsView = ({
     tablist,
     tabs,

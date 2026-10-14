@@ -19,7 +19,7 @@ const reset = ResetCounter.step(model => ({
   model: modifyFields(model, { count: () => 0 }),
   outMessage: CounterOutMessage.Reset(),
 }))
-const block = ResetCounter.toBlock({
+const block = ResetCounter.toComposition().toBlock({
   init: (count: number) => ({ model: CounterModel.make({ count }) }),
   update: ResetCounter.update((model, _message) => reset(model)),
   expose: { reset },
@@ -37,6 +37,10 @@ const Message = defineMessageUnion({
   GotCounterMessage: { message: CounterMessage },
 })
 type Message = typeof Message.Type
+const ParentDefinition = define('BindingContextParent', {
+  Model,
+  Message,
+})
 
 const foldCounterOutMessage = (
   outMessage: typeof CounterOutMessage.Type,
@@ -51,8 +55,8 @@ const foldCounterOutMessage = (
       }),
     }),
   })
-const boundCounter = block.connection({
-  read: (model: Model) => Option.some(model.counter),
+const boundCounter = ParentDefinition.bindChild(block, {
+  read: model => Option.some(model.counter),
   write: (model: Model, nextCounter: typeof CounterModel.Type) =>
     modifyFields(model, { counter: () => nextCounter }),
   parentMessage: Message.GotCounterMessage,
@@ -101,7 +105,7 @@ const keyedBaseConfig = {
   toParentMessage: (_id: number, message: typeof CounterMessage.Type) =>
     Message.GotCounterMessage({ message }),
 }
-const entries = block.keyedConnection({
+const entries = ParentDefinition.bindChild(block, {
   ...keyedBaseConfig,
   outMessage: keyedPolicy,
 })
@@ -133,24 +137,31 @@ const record = SequencedCounter.step(model => ({
 const multiply = SequencedCounter.step((model, factor: number) => ({
   model: modifyFields(model, { count: count => count * factor }),
 }))
-const sequencedCounterBlock = SequencedCounter.toBlock({
+const sequencedCounterBlock = SequencedCounter.toComposition().toBlock({
   init: (count: number) => ({ model: { count } }),
   update: SequencedCounter.update(model => ({ model })),
   expose: { add, record, multiply },
   EffectsLayer: Layer.empty,
   hostHandlers: [RecordCount],
 })
-type SequencedParentModel = Readonly<{
-  child: typeof SequencedCounterModel.Type
-}>
+const SequencedParentModel = Schema.Struct({ child: SequencedCounterModel })
+type SequencedParentModel = typeof SequencedParentModel.Type
 const SequencedParentMessage = defineMessageUnion({
   GotSequencedCounterMessage: { message: SequencedCounterMessage },
 })
-const sequencedCounterBinding = sequencedCounterBlock.connection({
-  read: (model: SequencedParentModel) => Option.some(model.child),
-  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
-  parentMessage: SequencedParentMessage.GotSequencedCounterMessage,
+const SequencedParentDefinition = define('SequencedCounterParent', {
+  Model: SequencedParentModel,
+  Message: SequencedParentMessage,
 })
+const sequencedCounterBinding = SequencedParentDefinition.bindChild(
+  sequencedCounterBlock,
+  {
+    read: model => Option.some(model.child),
+    write: (model, nextChild) =>
+      modifyFields(model, { child: () => nextChild }),
+    parentMessage: SequencedParentMessage.GotSequencedCounterMessage,
+  },
+)
 
 type CommandMessageOf<Output> =
   Output extends Readonly<{
@@ -211,10 +222,10 @@ if (false) {
   entries.reset()
 
   // @ts-expect-error A keyed child with OutMessages requires an explicit policy.
-  block.keyedConnection(keyedBaseConfig)
+  ParentDefinition.bindChild(block, keyedBaseConfig)
 
   // @ts-expect-error The policy key and parent Message must match the binding.
-  block.keyedConnection({
+  ParentDefinition.bindChild(block, {
     ...keyedBaseConfig,
     outMessage: {
       fold:
@@ -232,19 +243,19 @@ if (false) {
   })
 
   // @ts-expect-error Forwarding must return a concrete parent OutMessage.
-  block.keyedConnection({
+  ParentDefinition.bindChild(block, {
     ...keyedBaseConfig,
     outMessage: { forward: () => undefined },
   })
 
   // @ts-expect-error An unknown forwarding contract erases the parent OutMessage.
-  block.keyedConnection({
+  ParentDefinition.bindChild(block, {
     ...keyedBaseConfig,
     outMessage: { forward: (): unknown => undefined },
   })
 
   // @ts-expect-error An any forwarding contract erases the parent OutMessage.
-  block.keyedConnection({
+  ParentDefinition.bindChild(block, {
     ...keyedBaseConfig,
     // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
     outMessage: { forward: (): any => undefined },

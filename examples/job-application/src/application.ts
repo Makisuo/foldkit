@@ -1,7 +1,6 @@
 import { Crypto, Effect, Schema } from 'effect'
 import { Calendar } from 'foldkit'
 
-import { SubmitApplication } from './command'
 import {
   attachments,
   coverLetter,
@@ -11,7 +10,9 @@ import {
   stepMenu,
   stepTabs,
   workHistory,
-} from './connection'
+} from './childBindings'
+import { SubmitApplication } from './command'
+import { ApplicationDefinition } from './definition'
 import { Model, Submission } from './model'
 
 export const Flags = Schema.Struct({
@@ -82,3 +83,16 @@ export const init = ({
 }
 
 export const EffectsLayer = SubmitApplication.layer
+
+export const ApplicationComposition = ApplicationDefinition.toComposition({
+  children: [
+    personalInfo,
+    workHistory,
+    education,
+    skills,
+    coverLetter,
+    attachments,
+    stepMenu,
+    stepTabs,
+  ],
+})

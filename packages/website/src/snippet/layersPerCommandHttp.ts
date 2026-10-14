@@ -1,7 +1,7 @@
 import { Http, Runtime } from 'foldkit'
 
 import {
-  ApplicationDefinition,
+  ApplicationComposition,
   FetchCountLayer,
   Message,
   update,
@@ -10,7 +10,7 @@ import { init, view } from './counterHttpCompletion'
 
 export const ApplicationLayer = Http.layer
 
-const application = ApplicationDefinition.make({
+const application = ApplicationComposition.make({
   init,
   update,
   view,

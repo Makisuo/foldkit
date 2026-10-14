@@ -6,24 +6,24 @@ import { type Html, childAttributes } from 'foldkit/html'
 import { Button, Listbox, RadioGroup, Switch } from '@foldkit/ui'
 import type { AnchorConfig } from '@foldkit/ui/listbox'
 
-import { EMPTY_COLOR, GRID_SIZE_STRINGS } from '../constant'
-import { Message } from '../message'
-import { type MirrorMode, type PaletteIndex, type Tool } from '../model'
-import { PALETTE_THEMES, type PaletteTheme } from '../palette'
+import { ApplicationComposition } from '../application'
 import {
-  Application,
   gridSizeRadioGroup as gridSizeRadioGroupBinding,
   paletteRadioGroup as paletteRadioGroupBinding,
   themeListbox as themeListboxBinding,
   toolRadioGroup as toolRadioGroupBinding,
-} from '../update'
+} from '../childBindings'
+import { EMPTY_COLOR, GRID_SIZE_STRINGS } from '../constant'
+import { Message } from '../message'
+import { type MirrorMode, type PaletteIndex, type Tool } from '../model'
+import { PALETTE_THEMES, type PaletteTheme } from '../palette'
 
 const TOOLS: ReadonlyArray<Tool> = ['Brush', 'Fill', 'Eraser']
 
 export const MIRROR_HORIZONTAL_SWITCH_ID = 'mirror-horizontal'
 export const MIRROR_VERTICAL_SWITCH_ID = 'mirror-vertical'
 
-type HtmlBuilder = HtmlBuilderOf<typeof Application>
+type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 const TOOL_SHORTCUTS: Record<Tool, string> = {
   Brush: 'B',

@@ -1,13 +1,17 @@
 import { Runtime } from 'foldkit'
 
+import { BrowserKeyValueStore } from '@effect/platform-browser'
+
 import { EffectsLayer, Flags, flags, init } from './application'
+import { ApplicationComposition } from './application'
 import { Message } from './message'
-import { ApplicationLayer } from './services'
 import { subscriptions } from './subscription'
-import { Application, update } from './update'
+import { update } from './update'
 import { view } from './view'
 
-const application = Application.make({
+export const ApplicationLayer = BrowserKeyValueStore.layerLocalStorage
+
+const application = ApplicationComposition.make({
   init,
   update,
   view,

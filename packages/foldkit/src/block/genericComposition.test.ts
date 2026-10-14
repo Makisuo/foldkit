@@ -23,7 +23,7 @@ const makeGenericComplete = <const Id extends string>(id: Id) => {
   })
   const definition = Feature.define({ Model, Message })
 
-  return definition.toBlock({
+  return definition.toComposition().toBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: definition.update((model, message) =>
       Message.match(message, {
@@ -45,7 +45,7 @@ const makeGenericMissing = <const Id extends string>(id: Id) => {
   })
   const definition = Feature.define({ Model, Message })
 
-  return definition.toBlock({
+  return definition.toComposition().toBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: definition.update((model, message) =>
       Message.match(message, {
@@ -61,7 +61,11 @@ const makeGenericMissing = <const Id extends string>(id: Id) => {
 const complete = makeGenericComplete('GenericComplete')
 type CompleteModel = typeof complete.Model.Type
 
-const completeBinding = complete.connection({
+const CompleteParentDefinition = define('GenericCompleteParent', {
+  Model: complete.Model,
+  Message: complete.Message,
+})
+const completeBinding = CompleteParentDefinition.bindChild(complete, {
   read: (model: CompleteModel) => Option.some(model),
   write: (_model: CompleteModel, nextModel: CompleteModel) => nextModel,
   toParentMessage: (message: Message) => message,
@@ -74,22 +78,16 @@ it('keeps a complete generic Block connectable after literal instantiation', () 
 if (false) {
   const missing = makeGenericMissing('GenericMissing')
   type MissingModel = typeof missing.Model.Type
-
-  missing.connection({
-    // @ts-expect-error Concrete static connections validate deferred generic handler coverage.
-    read: (model: MissingModel) => Option.some(model),
-    // @ts-expect-error Concrete static connections validate deferred generic handler coverage.
-    write: (_model: MissingModel, nextModel: MissingModel) => nextModel,
-    toParentMessage: (message: Message) => message,
+  const MissingParentDefinition = define('GenericMissingParent', {
+    Model: missing.Model,
+    Message: missing.Message,
   })
 
-  // @ts-expect-error Concrete keyed connections validate deferred generic handler coverage.
-  missing.keyedConnection({
-    readAll: (model: MissingModel) => [model],
-    key: () => 'only',
-    read: model => model,
-    writeAt: (_model, _key, nextModel) => nextModel,
-    toParentMessage: (_key, message: Message) => message,
+  // @ts-expect-error Concrete Bindings validate deferred generic handler coverage.
+  MissingParentDefinition.bindChild(missing, {
+    read: (model: MissingModel) => Option.some(model),
+    write: (_model: MissingModel, nextModel: MissingModel) => nextModel,
+    toParentMessage: (message: Message) => message,
   })
 
   const checkRoot = (container: HTMLElement) => {

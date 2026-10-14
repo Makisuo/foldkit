@@ -2,8 +2,11 @@ import { Calendar } from 'foldkit'
 import { click, expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { ApplicationRoute, type Model, update, view } from './application'
+import { type Model } from './model'
+import { ApplicationRoute } from './route'
 import { init as initUi } from './ui/init'
+import { update } from './update'
+import { view } from './view'
 
 const today = Calendar.make(2026, 4, 16)
 const uiInit = initUi(today)

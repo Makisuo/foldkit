@@ -1,4 +1,4 @@
-// ✅ Good: initialize through the connection, then invoke the public restoration
+// ✅ Good: initialize through the Binding, then invoke the public restoration
 // Step after the complete parent Model exists.
 
 const init = (username: string, savedTheme: Settings.Theme) => {

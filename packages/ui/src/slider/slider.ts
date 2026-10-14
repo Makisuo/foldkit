@@ -837,18 +837,20 @@ export const subscriptions = defineSubscriptionsForRoot(
   () => document,
 )
 
-const LocalEffectsLayer = Layer.mergeAll(
+const EffectsLayer = Layer.mergeAll(
   subscriptions.dragPointer.layer,
   subscriptions.dragEscape.layer,
 )
 
 /** Complete Slider Block definition. */
-export const block = SliderDefinition.toBlock({
+const SliderComposition = SliderDefinition.toComposition()
+
+export const block = SliderComposition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),
   update,
   view,
   subscriptions,
-  EffectsLayer: LocalEffectsLayer,
+  EffectsLayer,
 })
 
 /**
@@ -871,7 +873,9 @@ export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
     subscriptions.dragPointer.layer,
     subscriptions.dragEscape.layer,
   )
-  return SliderDefinition.toBlock({
+  const SliderComposition = SliderDefinition.toComposition()
+
+  return SliderComposition.toBlock({
     init: (config: InitConfig) => ({ model: init(config) }),
     update: rootUpdate,
     view: rootView,

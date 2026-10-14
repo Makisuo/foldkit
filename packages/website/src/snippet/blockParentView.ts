@@ -1,8 +1,8 @@
 // view.ts (parent)
-import { Application } from './application'
-import { settings } from './connection'
+import { ApplicationComposition } from './application'
+import { settings } from './childBindings'
 
-export const view = Application.view((model, h) => ({
+export const view = ApplicationComposition.view((model, h) => ({
   title: 'My App',
   body: h.div(
     [h.Class('min-h-screen bg-gray-50')],

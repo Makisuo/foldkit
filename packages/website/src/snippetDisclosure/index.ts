@@ -1,4 +1,4 @@
-export { block } from './snippetDisclosure'
+export { block } from './block'
 export { Model, SnippetSize } from './model'
 export { Message } from './message'
 export { renderer } from './renderer'

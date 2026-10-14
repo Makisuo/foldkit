@@ -1,18 +1,14 @@
+import { Socket } from 'effect/socket'
 import { Runtime } from 'foldkit'
 
-import {
-  ApplicationDefinition,
-  EffectsLayer,
-  Message,
-  init,
-  managedResources,
-  subscriptions,
-  update,
-  view,
-} from './application'
-import { ApplicationLayer } from './services'
+import { ApplicationComposition, EffectsLayer } from './application'
+import { managedResources } from './managedResource'
+import { Message } from './message'
+import { subscriptions } from './subscription'
+import { init, update } from './update'
+import { view } from './view'
 
-const application = ApplicationDefinition.make({
+const application = ApplicationComposition.make({
   init,
   update,
   view,
@@ -23,4 +19,4 @@ const application = ApplicationDefinition.make({
   devTools: { Message },
 })
 
-Runtime.run(application.provide(ApplicationLayer))
+Runtime.run(application.provide(Socket.layerWebSocketConstructorGlobal))

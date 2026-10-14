@@ -45,18 +45,18 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const dialog = Dialog.block.connection({
+const DialogExampleDefinition = Block.define('DialogExample', {
   Model,
+  Message,
+})
+
+const dialog = DialogExampleDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const DialogExampleDefinition = Block.define('DialogExample', {
-  Model,
-  Message,
-})
-const RegisteredDialogExampleDefinition = DialogExampleDefinition.register({
+const DialogExampleComposition = DialogExampleDefinition.toComposition({
   children: [dialog],
 })
 
@@ -69,7 +69,7 @@ const update = DialogExampleDefinition.update((model, message) =>
 
 // In your view, open from a trigger with the fact, and dismiss from a Cancel
 // button by spreading the `closeButton` bundle, no parent message needed:
-const view = RegisteredDialogExampleDefinition.view((model, h) => {
+const view = DialogExampleComposition.view((model, h) => {
   const dialogView = ({
     dialog,
     backdrop,

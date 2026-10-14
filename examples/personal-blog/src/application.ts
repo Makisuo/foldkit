@@ -35,19 +35,18 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const counter = Counter.block.connection({
-  Model: Model,
+export const ApplicationDefinition = defineApplication({ Model, Message })
+
+const counter = ApplicationDefinition.bindChild(Counter.block, {
   field: 'counter',
   parentMessage: Message.GotCounterMessage,
 })
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
-
-export const Application = ApplicationDefinition.register({
+export const ApplicationComposition = ApplicationDefinition.toComposition({
   children: [counter],
 })
 
-type HtmlBuilder = HtmlBuilderOf<typeof Application>
+type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 export const init = (url: Url) => ({
   model: {
@@ -56,7 +55,7 @@ export const init = (url: Url) => ({
   },
 })
 
-const NavigateInternal = Application.command('NavigateInternal', {
+const NavigateInternal = ApplicationComposition.command('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -65,7 +64,7 @@ const NavigateInternal = Application.command('NavigateInternal', {
   },
 })
 
-const LoadExternal = Application.command('LoadExternal', {
+const LoadExternal = ApplicationComposition.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -79,7 +78,7 @@ export const EffectsLayer = Layer.mergeAll(
   LoadExternal.layer,
 )
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match(request, {
@@ -333,7 +332,7 @@ const routeTitle = (route: Route.ApplicationRoute): string =>
     NotFound: () => 'Not Found | Devin Jameson',
   })
 
-export const view = Application.view((model, h) => {
+export const view = ApplicationComposition.view((model, h) => {
   const routeContent = Route.ApplicationRoute.match(model.route, {
     Home: () => homeView(model, h),
     Posts: () => postsView(h),

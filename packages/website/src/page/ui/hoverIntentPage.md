@@ -4,7 +4,7 @@
 
 HoverIntent keeps a related panel open while the pointer or focus moves between it and a trigger. Pointer entry and departure use configurable delays. Focus opens the panel immediately; if focus is the last thing keeping it open, moving focus away closes it without the pointer grace period. Escape also closes immediately and prevents reopening until the pointer and focus have both left.
 
-HoverIntent is headless. Connect `HoverIntent.block` in the parent. It does not render elements, position the panel, assign ARIA roles, or choose styles. Use it when those choices belong to the component you are building. For example, a Hover Card can pair HoverIntent with [Anchor](/ui/anchor), while a hover menu can keep its items available as the pointer moves from the trigger into the panel.
+HoverIntent is headless. Bind `HoverIntent.block` in the parent. It does not render elements, position the panel, assign ARIA roles, or choose styles. Use it when those choices belong to the component you are building. For example, a Hover Card can pair HoverIntent with [Anchor](/ui/anchor), while a hover menu can keep its items available as the pointer moves from the trigger into the panel.
 
 ## Examples
 
@@ -75,7 +75,7 @@ Builds headless trigger and panel event bundles, then calls `ViewInputs.toView`.
 
 ### ViewInputs {#view-inputs}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the HoverIntent connection's `embedView` method. The connection supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass the child Model as `model` and these fields as `viewInputs` to the HoverIntent Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name                   | Type                           | Description                                                                    |
 | ---------------------- | ------------------------------ | ------------------------------------------------------------------------------ |

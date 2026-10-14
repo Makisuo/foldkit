@@ -2,16 +2,11 @@ import { Array, Option, pipe } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
-import {
-  CheckoutState,
-  Message,
-  type Model,
-  PlaceOrder,
-  Promo,
-  TRANSITION_LOG_LIMIT,
-  initialModel,
-  update,
-} from './application'
+import { PlaceOrder } from './command'
+import { Message } from './message'
+import { CheckoutState, type Model, Promo } from './model'
+import { TRANSITION_LOG_LIMIT, initialModel } from './transition'
+import { update } from './update'
 
 const maybeLatestTransitionSummary = (model: Model): Option.Option<string> =>
   pipe(

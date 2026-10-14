@@ -61,7 +61,7 @@ export const view = CounterDefinition.view((model, h) =>
   ),
 )
 
-export const block = CounterDefinition.toBlock({
+export const block = CounterDefinition.toComposition().toBlock({
   init,
   update,
   view,

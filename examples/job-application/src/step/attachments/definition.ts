@@ -43,9 +43,13 @@ const foldResumeDropOutMessage = FileDrop.OutMessage.match<
   RejectedNonFiles: () => model => ({ model }),
 })
 
-export const resumeDrop = FileDrop.block.connection({
+const AttachmentsDefinition = Block.define('Attachments', {
+  Model,
+  Message,
+})
+
+export const resumeDrop = AttachmentsDefinition.bindChild(FileDrop.block, {
   placement: 'attachments-resume',
-  Model: Model,
   field: 'resumeDrop',
   parentMessage: Message.GotResumeDropMessage,
   outMessage: { fold: foldResumeDropOutMessage },
@@ -64,20 +68,17 @@ const foldAdditionalFilesDropOutMessage = FileDrop.OutMessage.match<
   RejectedNonFiles: () => model => ({ model }),
 })
 
-export const additionalFilesDrop = FileDrop.block.connection({
-  placement: 'attachments-additional',
-  Model: Model,
-  field: 'additionalFilesDrop',
-  parentMessage: Message.GotAdditionalFilesDropMessage,
-  outMessage: { fold: foldAdditionalFilesDropOutMessage },
-})
+export const additionalFilesDrop = AttachmentsDefinition.bindChild(
+  FileDrop.block,
+  {
+    placement: 'attachments-additional',
+    field: 'additionalFilesDrop',
+    parentMessage: Message.GotAdditionalFilesDropMessage,
+    outMessage: { fold: foldAdditionalFilesDropOutMessage },
+  },
+)
 
-const AttachmentsDefinition = Block.define('Attachments', {
-  Model,
-  Message,
-})
-
-export const RegisteredAttachmentsDefinition = AttachmentsDefinition.register({
+export const AttachmentsComposition = AttachmentsDefinition.toComposition({
   children: [resumeDrop, additionalFilesDrop],
 })
 

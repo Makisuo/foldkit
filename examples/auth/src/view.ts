@@ -1,7 +1,7 @@
 import { Match } from 'effect'
 
-import { Application } from './application'
-import { loggedIn, loggedOut } from './connection'
+import { ApplicationComposition } from './application'
+import { loggedIn, loggedOut } from './childBindings'
 import { Model } from './model'
 
 const title = (model: Model): string =>
@@ -10,7 +10,7 @@ const title = (model: Model): string =>
     Match.orElse(({ _tag }) => `${_tag} | Auth`),
   )
 
-export const view = Application.view((model, h) => ({
+export const view = ApplicationComposition.view((model, h) => ({
   title: title(model),
   body: h.div(
     [h.Class('min-h-screen bg-gray-100')],

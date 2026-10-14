@@ -14,18 +14,13 @@ import {
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import {
-  FlyTo,
-  Geolocate,
-  GeolocateState,
-  LockBodyScroll,
-  Message,
-  MountMap,
-  UnlockBodyScroll,
-  update,
-  view,
-} from './application'
-import { initialModel, mountedModel } from './application.fixture'
+import { FlyTo, Geolocate, LockBodyScroll, UnlockBodyScroll } from './command'
+import { Message } from './message'
+import { GeolocateState } from './model'
+import { initialModel, mountedModel } from './model.fixture'
+import { MountMap } from './mount'
+import { update } from './update'
+import { view } from './view'
 
 const acknowledgeMapMount = Mount.resolve(
   MountMap,

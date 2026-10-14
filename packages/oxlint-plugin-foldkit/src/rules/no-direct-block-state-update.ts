@@ -21,10 +21,11 @@ import {
   staticMemberPath,
   staticStringValue,
   blockBindingMethod,
+  blockBindingConfiguration,
 } from '../guards.ts'
 
 const directBlockStateUpdateMessage = (fieldName: string): string =>
-  `Do not update the Block field \`${fieldName}\` directly from its parent. Expose a child-owned update capability, then call it through the registered connection.`
+  `Do not update the Block field \`${fieldName}\` directly from its parent. Expose a child-owned update capability, then call it through the registered Binding.`
 
 const isNode = (value: unknown): value is ESTree.Node =>
   typeof value === 'object' &&
@@ -260,7 +261,7 @@ const foldKind = (
 ): FoldKind | undefined => {
   const bindingMethod = blockBindingMethod(node, references)
   if (Option.isSome(bindingMethod)) {
-    return bindingMethod.value === 'keyedConnection' ? 'Keyed' : 'Fold'
+    return bindingMethod.value === 'Keyed' ? 'Keyed' : 'Fold'
   }
 
   const foldKindForName = (helperName: string): FoldKind | undefined => {
@@ -425,13 +426,13 @@ const foldDefinitions = (
         continue
       }
 
-      const [configuration] = declarator.init.arguments
+      const configuration = blockBindingConfiguration(declarator.init)
       if (!isObjectExpression(configuration)) {
         continue
       }
 
       const directField =
-        kind === 'Fold' && propertyValue(configuration, 'Model') !== undefined
+        kind === 'Fold' && propertyValue(configuration, 'field') !== undefined
           ? Option.getOrUndefined(
               staticStringValue(propertyValue(configuration, 'field')),
             )
@@ -511,9 +512,11 @@ const foldDefinitionFor = (
   if (
     Option.isSome(maybePath) &&
     maybePath.value.members.length > 0 &&
-    !maybePath.value.members.some(
-      member => member === 'fold' || member === 'step' || member === 'api',
-    )
+    (maybePath.value.members.length !== 1 ||
+      maybePath.value.members.some(
+        member =>
+          member === 'init' || member === 'embedView' || member === 'placement',
+      ))
   ) {
     return undefined
   }

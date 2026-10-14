@@ -7,4 +7,4 @@ export {
   isComplete,
   revealErrors,
 } from './definition'
-export { block } from './entry'
+export { block } from './block'

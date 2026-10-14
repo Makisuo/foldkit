@@ -3,16 +3,11 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { expect, test } from 'vitest'
 
-import {
-  FlyTo,
-  Geolocate,
-  GeolocateState,
-  LockBodyScroll,
-  Message,
-  UnlockBodyScroll,
-  update,
-} from './application'
-import { eiffelTower, initialModel, mountedModel } from './application.fixture'
+import { FlyTo, Geolocate, LockBodyScroll, UnlockBodyScroll } from './command'
+import { Message } from './message'
+import { GeolocateState } from './model'
+import { eiffelTower, initialModel, mountedModel } from './model.fixture'
+import { update } from './update'
 
 test('mounting the map records the host id in the Model', () => {
   story(

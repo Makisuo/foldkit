@@ -3,35 +3,35 @@ import { define as defineApplication } from 'foldkit/application'
 
 import { Dialog, Menu } from '@foldkit/ui'
 
-import { init } from './init'
 import { Message } from './message'
 import { Model } from './model'
 
-const dialog = Dialog.block.connection({
-  Model,
+const ApplicationDefinition = defineApplication({ Model, Message })
+
+const dialog = ApplicationDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const menu = Menu.block.connection({
-  Model,
+const menu = ApplicationDefinition.bindChild(Menu.block, {
   field: 'menu',
   parentMessage: Message.GotMenuMessage,
   outMessage: { fold: foldMenuOutMessage },
 })
 
-const ApplicationDefinition = defineApplication({ Model, Message })
-const Application = ApplicationDefinition.register({ children: [dialog, menu] })
+export const ApplicationComposition = ApplicationDefinition.toComposition({
+  children: [dialog, menu],
+})
 
-const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     GotDialogMessage: ({ message }) => dialog.fold(model, message),
     GotMenuMessage: ({ message }) => menu.fold(model, message),
   }),
 )
 
-const view = Application.view((model, h) => ({
+export const view = ApplicationComposition.view((model, h) => ({
   title: 'Account',
   body: h.main(
     [],
@@ -54,20 +54,19 @@ const view = Application.view((model, h) => ({
   ),
 }))
 
-export const makeApplication = (container: HTMLElement | null) =>
-  Application.make({
-    init,
-    update,
-    view,
-    container,
-    devTools: { Message },
-  })
-
 // entry.ts
 import { Runtime } from 'foldkit'
 
-import { makeApplication } from './application'
+import { ApplicationComposition, update, view } from './application'
+import { init } from './init'
+import { Message } from './message'
 
-const application = makeApplication(document.getElementById('root'))
+const application = ApplicationComposition.make({
+  init,
+  update,
+  view,
+  container: document.getElementById('root'),
+  devTools: { Message },
+})
 
 Runtime.run(application)

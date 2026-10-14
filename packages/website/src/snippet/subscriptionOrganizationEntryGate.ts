@@ -1,9 +1,9 @@
+import { ApplicationDefinition } from './application'
 import { Message } from './message'
 import { Model } from './model'
 import * as Room from './room'
 
-export const room = Room.block.connection({
-  Model: Model,
+export const room = ApplicationDefinition.bindChild(Room.block, {
   field: 'room',
   parentMessage: Message.GotRoomMessage,
   subscriptions: {

@@ -4,7 +4,10 @@ import { Products } from './page'
 // Access a feature namespace
 Products.Model
 Products.Message
-Products.block.connection
+ApplicationDefinition.bindChild(Products.block, {
+  field: 'products',
+  parentMessage: Message.GotProductsMessage,
+})
 Products.OutMessage.match
 
 // Access domain modules

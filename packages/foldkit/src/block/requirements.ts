@@ -11,10 +11,10 @@ import type * as Update from '../update/index.js'
 import type {
   BlockOfBinding,
   HandlerRequirementsOfBinding,
-  InspectionOfConnection,
+  InspectionOfBinding,
   IsKeyedBinding,
   RequirementsOfBindings,
-  ValidateConnectionOperationNames,
+  ValidateBindingOperationNames,
 } from './binding.js'
 import type { LocalMountsTypeId } from './definition.js'
 import type { IsConcreteOwner } from './owner.js'
@@ -381,14 +381,14 @@ type BindingOwnOperationRequirements<Binding> =
       : never)
   | ProducerRequirements<BindingOperationFactories<Binding>>
   | SubscriptionRequirements<
-      InspectionOfConnection<Binding> extends Readonly<{
+      InspectionOfBinding<Binding> extends Readonly<{
         subscriptions: infer Subscriptions
       }>
         ? Subscriptions
         : never
     >
   | ManagedResourceLifecycleRequirements<
-      InspectionOfConnection<Binding> extends Readonly<{
+      InspectionOfBinding<Binding> extends Readonly<{
         managedResources: infer ManagedResources
       }>
         ? ManagedResources
@@ -550,7 +550,7 @@ type ValidateUnexpectedHostHandlers<Block> = [
 
 type ValidateBlockOperationNames<Block> =
   Block extends Readonly<{ expose: infer Operations }>
-    ? ValidateConnectionOperationNames<Operations>
+    ? ValidateBindingOperationNames<Operations>
     : unknown
 
 type LocalOperationRegistrationEvidence<Block> =

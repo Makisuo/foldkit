@@ -308,19 +308,19 @@ Keeps a Got wrapper payload to the child Message plus routing keys: message, id,
 
 ### foldkit/no-child-message-construction-in-root {#no-child-message-construction-in-root}
 
-Rejects constructing a child Message variant from a parent, including through a local `const` alias of the child constructor or namespace. Expose a child-owned named Step that applies the internal fact, select it in the completed Block's `expose` record, then call the direct connection method, such as `people.clearSelection()`. Forward received child Messages through `people.fold(model, message)` instead. Child-owned authoring helpers may construct that child's Messages. Schema/type references remain valid for parent wrapper Messages, and tests may construct Messages to exercise updates. The rule cannot infer the origin of an arbitrary prebuilt Message value. See [Informing Blocks](/patterns/informing-blocks) for the complete pattern.
+Rejects constructing a child Message variant from a parent, including through a local `const` alias of the child constructor or namespace. Expose a child-owned named Step that applies the internal fact, select it in the completed Block's `expose` record, then call the direct Binding method, such as `people.clearSelection()`. Forward received child Messages through `people.fold(model, message)` instead. Child-owned authoring helpers may construct that child's Messages. Schema/type references remain valid for parent wrapper Messages, and tests may construct Messages to exercise updates. The rule cannot infer the origin of an arbitrary prebuilt Message value. See [Informing Blocks](/patterns/informing-blocks) for the complete pattern.
 
 ::Snippet{name="lintNoChildMessageConstructionInRoot" label="Rule: foldkit/no-child-message-construction-in-root"}
 
 ### foldkit/no-direct-block-state-update {#no-direct-block-state-update}
 
-Flags a parent update that uses nested `modifyFields` to change a known Block field directly. The child update does not run, so validation, Commands, and OutMessages can be skipped. The rule establishes ownership from a module-scope child connection whose `read` and `write` point to the same field, then checks the parent Model passed through that connection. It leaves an unrelated Model with the same field name, connection `write` callbacks, and child-owned silent `reflect*` helpers alone.
+Flags a parent update that uses nested `modifyFields` to change a known Block field directly. The child update does not run, so validation, Commands, and OutMessages can be skipped. The rule establishes ownership from a module-scope child Binding whose `read` and `write` point to the same field, then checks the parent Model passed through that Binding. It leaves an unrelated Model with the same field name, Binding `write` callbacks, and child-owned silent `reflect*` helpers alone.
 
 ::Snippet{name="lintNoDirectBlockStateUpdate" label="Rule: foldkit/no-direct-block-state-update"}
 
 ### foldkit/require-fold-for-child-update-result {#require-fold-for-child-update-result}
 
-Flags a parent that copies only `.model` from a child helper or update result into its own Model instead of using the connection's projected Step. This can silently discard Commands or an OutMessage. The rule uses an in-file connection whose `read` and `write` establish the child module and field, then follows a local result from that child's helper into the matching `modifyFields` field. The field need not be named after the module: `Products.update(model.productsPage)` is one example. It leaves unrelated helpers, initial Model assembly, connection `write` callbacks, and child-owned silent `reflect*` helpers alone. It does not infer direct helper imports or parent assembly outside `modifyFields`.
+Flags a parent that copies only `.model` from a child helper or update result into its own Model instead of using the Binding's projected Step. This can silently discard Commands or an OutMessage. The rule uses an in-file Binding whose `read` and `write` establish the child module and field, then follows a local result from that child's helper into the matching `modifyFields` field. The field need not be named after the module: `Products.update(model.productsPage)` is one example. It leaves unrelated helpers, initial Model assembly, Binding `write` callbacks, and child-owned silent `reflect*` helpers alone. It does not infer direct helper imports or parent assembly outside `modifyFields`.
 
 ::Snippet{name="lintRequireFoldForChildUpdateResult" label="Rule: foldkit/require-fold-for-child-update-result"}
 

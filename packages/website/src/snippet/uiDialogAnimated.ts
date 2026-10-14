@@ -43,19 +43,19 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const dialog = Dialog.block.connection({
+const AnimatedDialogExampleDefinition = Block.define('AnimatedDialogExample', {
   Model,
+  Message,
+})
+
+const dialog = AnimatedDialogExampleDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const AnimatedDialogExampleDefinition = Block.define('AnimatedDialogExample', {
-  Model,
-  Message,
-})
-const RegisteredAnimatedDialogExampleDefinition =
-  AnimatedDialogExampleDefinition.register({
+const AnimatedDialogExampleComposition =
+  AnimatedDialogExampleDefinition.toComposition({
     children: [dialog],
   })
 
@@ -67,7 +67,7 @@ const update = AnimatedDialogExampleDefinition.update((model, message) =>
 
 // Inside your view function, use data-[closed] for enter/leave transitions and
 // spread the `closeButton` bundle onto your dismiss buttons:
-const view = RegisteredAnimatedDialogExampleDefinition.view((model, h) => {
+const view = AnimatedDialogExampleComposition.view((model, h) => {
   const dialogView = ({
     dialog,
     backdrop,

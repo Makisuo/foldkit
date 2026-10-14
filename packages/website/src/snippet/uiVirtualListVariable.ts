@@ -25,7 +25,7 @@ const init = () => {
 // math walk the items via a prefix-sum to find the visible window. Tests
 // with 10k items at 60Hz scroll well within budget; larger lists may need
 // a prefix-sum cache if you can profile the regression:
-const view = RegisteredActivityListExampleDefinition.view((model, h) =>
+const view = ActivityListExampleComposition.view((model, h) =>
   h.block(
     activityList.embedView({
       slotId: 'activity-list',

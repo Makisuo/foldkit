@@ -1,8 +1,7 @@
 // page/products/index.ts
-export { block } from './products'
-export { subscriptions } from './subscription'
-export { managedResources } from './managedResource'
-export { mounts } from './mount'
+export { block } from './block'
+export { Model } from './model'
+export { Message, OutMessage } from './message'
 
 // page/index.ts
 export * as Home from './home'

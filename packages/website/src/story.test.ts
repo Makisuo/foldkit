@@ -7,7 +7,7 @@ import { describe, expect, test } from 'vitest'
 import { Dialog, Menu } from '@foldkit/ui'
 import { ShowDialog } from '@foldkit/ui/dialog'
 
-import { LoadPlayground, home } from './connection'
+import { LoadPlayground, home } from './childBindings'
 import { Deployment } from './deployment'
 import { Message } from './message'
 import { type Model } from './model'
@@ -48,7 +48,7 @@ const expectHomePresent = (model: Model): void => {
   expect(Option.isSome(model.maybeHome)).toBe(true)
   expect(
     Option.isSome(
-      Block.inspectConnection(home).managedResources[
+      Block.inspectBinding(home).managedResources[
         'notePlayerDemo/audioContext'
       ].modelToMaybeRequirements(model),
     ),
@@ -59,7 +59,7 @@ const expectHomeAbsent = (model: Model): void => {
   expect(Option.isNone(model.maybeHome)).toBe(true)
   expect(
     Option.isNone(
-      Block.inspectConnection(home).managedResources[
+      Block.inspectBinding(home).managedResources[
         'notePlayerDemo/audioContext'
       ].modelToMaybeRequirements(model),
     ),

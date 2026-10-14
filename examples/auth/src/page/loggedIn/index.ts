@@ -1,3 +1,3 @@
 export { Model, init } from './model'
 export { Message, OutMessage } from './message'
-export { block } from './loggedIn'
+export { block } from './block'

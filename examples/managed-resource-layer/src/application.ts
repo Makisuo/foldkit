@@ -78,6 +78,8 @@ export type Message = typeof Message.Type
 
 export const ApplicationDefinition = defineApplication({ Model, Message })
 
+export const ApplicationComposition = ApplicationDefinition.toComposition()
+
 type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
 const Engine = ApplicationDefinition.resource<ComputeEngine>()('ComputeEngine')
@@ -99,7 +101,7 @@ export const Compute = ApplicationDefinition.command('Compute', {
   },
 })
 
-export const update = ApplicationDefinition.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedStartEngine: () => ({
       model: modifyFields(model, { engine: () => EngineState.Booting() }),
@@ -275,7 +277,7 @@ const squareResultView = (
 
 const isEngineReady = (engine: EngineState): boolean => engine._tag === 'Ready'
 
-export const view = ApplicationDefinition.view((model, h) => {
+export const view = ApplicationComposition.view((model, h) => {
   const isComputeDisabled = !isEngineReady(model.engine)
 
   return {

@@ -31,7 +31,9 @@ export type Message = typeof Message.Type
 
 export const ApplicationDefinition = defineApplication({ Model, Message })
 
-export const update = ApplicationDefinition.update((model, message) =>
+export const ApplicationComposition = ApplicationDefinition.toComposition()
+
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedDecrement: () => {
       const nextCount = model.count - 1
@@ -77,7 +79,7 @@ export const init = (flags: Flags) => ({
   },
 })
 
-export const view = ApplicationDefinition.view((model, h) => ({
+export const view = ApplicationComposition.view((model, h) => ({
   title: `Count ${model.count}`,
   body: h.div(
     [

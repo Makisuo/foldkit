@@ -4,6 +4,11 @@ import type { Html } from 'foldkit/html'
 import { HtmlBuilder } from 'foldkit/html'
 
 import {
+  chartModeRadioGroup,
+  packageRadioGroup,
+  periodRadioGroup,
+} from '../childBindings'
+import {
   type Telemetry,
   chartModes,
   findPackageSnapshot,
@@ -16,11 +21,6 @@ import {
 } from '../domain'
 import { Message } from '../message'
 import { type Model } from '../model'
-import {
-  chartModeRadioGroup,
-  packageRadioGroup,
-  periodRadioGroup,
-} from '../update'
 import type * as Chart from './chart'
 import { formatCompact, formatFetchedAt, formatInteger } from './format'
 

@@ -23,14 +23,14 @@ const foldTooltipOutMessage = OutMessage.match<Update.Step<Model, Message>>({
   Hidden: () => model => ({ model }),
 })
 
-const tooltip = block.connection({
+const tooltip = TooltipSceneDefinition.bindChild(block, {
   read: (model: Model) => Option.some(model),
   write: (_model: Model, nextTooltip: Model) => nextTooltip,
   toParentMessage: (message: Message): Message => message,
   outMessage: { fold: foldTooltipOutMessage },
 })
 
-const RegisteredTooltipSceneDefinition = TooltipSceneDefinition.register({
+const TooltipSceneComposition = TooltipSceneDefinition.toComposition({
   children: [tooltip],
 })
 
@@ -49,7 +49,7 @@ type ViewInputs = Readonly<{
   ariaLabelledBy?: string
 }>
 
-const rootView = RegisteredTooltipSceneDefinition.view.withInputs<ViewInputs>(
+const rootView = TooltipSceneComposition.view.withInputs<ViewInputs>(
   (model, overrides, h) =>
     h.block(
       tooltip.embedView({

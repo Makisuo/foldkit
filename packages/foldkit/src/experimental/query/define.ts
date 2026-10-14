@@ -1,14 +1,15 @@
-import { Effect, Layer, Predicate, type Schema, type Scope } from 'effect'
+import { Effect, Predicate, type Schema } from 'effect'
 
 import type { ValidateConstructionRequirements } from '../../block/scope.js'
-import type { HandlerOf } from '../../command/handler.js'
 import {
+  type CanonicalKeyedQuery,
   type KeyedQueryConfig,
   type LayeredKeyedQuery,
   type SyncFields,
   defineKeyedQuery,
 } from './keyedQuery.js'
 import { type LayeredQuery, type QueryConfig, defineQuery } from './query.js'
+import type { CanonicalQuery } from './query.js'
 
 type UnkeyedDefinitionFields<
   A,
@@ -114,8 +115,8 @@ const isKeyedQueryConfig = <
  * {@link Query}.
  *
  * Set `handler` to a generator function that constructs the fetch function.
- * The Query's `layer` supplies that implementation when included in the
- * application Layer. The constructor runs during application startup; the
+ * The Query Block includes that implementation in its Effects Layer. The
+ * constructor runs during application startup; the
  * returned fetch runs for each Query operation. A KeyedQuery fetch receives
  * the declared args, while an unkeyed fetch receives no arguments. Tests can
  * provide different services to the same Layer to exercise the application's
@@ -153,14 +154,17 @@ export function define<
       >) &
         ValidateConstructionRequirements<Effect.Services<Yielded>>
     }>,
-): LayeredKeyedQuery<Name, A, AI, E, EI, Fields> &
-  Readonly<{
-    layer: Layer.Layer<
-      HandlerOf<LayeredKeyedQuery<Name, A, AI, E, EI, Fields>['Fetch']>,
-      Effect.Error<Yielded>,
-      Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
-    >
-  }>
+): CanonicalKeyedQuery<
+  Name,
+  A,
+  AI,
+  E,
+  EI,
+  Fields,
+  HandlerRequirements,
+  Effect.Error<Yielded>,
+  Effect.Services<Yielded>
+>
 export function define<
   Name extends string,
   A,
@@ -186,14 +190,16 @@ export function define<
       >) &
         ValidateConstructionRequirements<Effect.Services<Yielded>>
     }>,
-): LayeredQuery<Name, A, AI, E, EI> &
-  Readonly<{
-    layer: Layer.Layer<
-      HandlerOf<LayeredQuery<Name, A, AI, E, EI>['Fetch']>,
-      Effect.Error<Yielded>,
-      Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
-    >
-  }>
+): CanonicalQuery<
+  Name,
+  A,
+  AI,
+  E,
+  EI,
+  HandlerRequirements,
+  Effect.Error<Yielded>,
+  Effect.Services<Yielded>
+>
 export function define<
   Name extends string,
   A,

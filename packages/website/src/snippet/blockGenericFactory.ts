@@ -58,7 +58,7 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
       ),
   )
 
-  return RefinedPickerDefinition.toBlock({
+  return RefinedPickerDefinition.toComposition().toBlock({
     init: () => ({ model: Model.make({ selected: Option.none() }) }),
     update,
     view,
@@ -79,8 +79,12 @@ const ParentMessage = defineMessageUnion({
   GotPickerMessage: { message: FruitPicker.Message },
 })
 
-const picker = FruitPicker.connection({
+const FruitSelectionDefinition = Block.define('FruitSelection', {
   Model: ParentModel,
+  Message: ParentMessage,
+})
+
+const picker = FruitSelectionDefinition.bindChild(FruitPicker, {
   field: 'picker',
   parentMessage: ParentMessage.GotPickerMessage,
   outMessage: {
@@ -100,15 +104,11 @@ const picker = FruitPicker.connection({
 
 export const selectApple = picker.select('Apple')
 
-const FruitSelectionDefinition = Block.define('FruitSelection', {
-  Model: ParentModel,
-  Message: ParentMessage,
-})
-const RegisteredFruitSelectionDefinition = FruitSelectionDefinition.register({
+const FruitSelectionComposition = FruitSelectionDefinition.toComposition({
   children: [picker],
 })
 
-export const pickerView = RegisteredFruitSelectionDefinition.view((model, h) =>
+export const pickerView = FruitSelectionComposition.view((model, h) =>
   h.block(
     picker.embedView({
       slotId: 'fruit-picker',

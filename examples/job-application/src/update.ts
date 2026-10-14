@@ -1,9 +1,8 @@
 import { Array, Option, pipe } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { SubmitApplication } from './command'
+import { ApplicationComposition } from './application'
 import {
-  Application,
   attachments,
   coverLetter,
   education,
@@ -12,32 +11,21 @@ import {
   stepMenu,
   stepTabs,
   workHistory,
-} from './connection'
+} from './childBindings'
+import { SubmitApplication } from './command'
 import { Step } from './domain'
 import { Message } from './message'
 import { type Model, Submission } from './model'
-import {
-  isComplete as isEducationComplete,
-  revealErrors as revealEducationErrors,
-} from './step/education'
-import {
-  isComplete as isPersonalInfoComplete,
-  revealErrors as revealPersonalInfoErrors,
-} from './step/personalInfo'
-import {
-  isComplete as isSkillsComplete,
-  revealErrors as revealSkillsErrors,
-} from './step/skills'
-import {
-  isComplete as isWorkHistoryComplete,
-  revealErrors as revealWorkHistoryErrors,
-} from './step/workHistory'
+import * as Education from './step/education'
+import * as PersonalInfo from './step/personalInfo'
+import * as Skills from './step/skills'
+import * as WorkHistory from './step/workHistory'
 
 const isApplicationComplete = (model: Model): boolean =>
-  isPersonalInfoComplete(model.personalInfo) &&
-  isWorkHistoryComplete(model.workHistory) &&
-  isEducationComplete(model.education) &&
-  isSkillsComplete(model.skills)
+  PersonalInfo.isComplete(model.personalInfo) &&
+  WorkHistory.isComplete(model.workHistory) &&
+  Education.isComplete(model.education) &&
+  Skills.isComplete(model.skills)
 
 const toNextStep = (current: Step.Step): Step.Step =>
   pipe(
@@ -53,7 +41,7 @@ const toPreviousStep = (current: Step.Step): Step.Step =>
     Option.getOrElse(() => current),
   )
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     GotPersonalInfoMessage: ({ message }) => personalInfo.fold(model, message),
 
@@ -85,10 +73,10 @@ export const update = Application.update((model, message) =>
 
     ClickedSubmit: () => {
       const revealedModel = modifyFields(model, {
-        personalInfo: revealPersonalInfoErrors,
-        workHistory: revealWorkHistoryErrors,
-        education: revealEducationErrors,
-        skills: revealSkillsErrors,
+        personalInfo: PersonalInfo.revealErrors,
+        workHistory: WorkHistory.revealErrors,
+        education: Education.revealErrors,
+        skills: Skills.revealErrors,
         isSubmitAttempted: () => true,
       })
       if (isApplicationComplete(revealedModel)) {

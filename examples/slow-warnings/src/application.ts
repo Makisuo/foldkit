@@ -72,6 +72,8 @@ export type Message = typeof Message.Type
 
 export const ApplicationDefinition = defineApplication({ Model, Message })
 
+export const ApplicationComposition = ApplicationDefinition.toComposition()
+
 type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
 const slowWarningTarget: Dom.TypedEventTarget<{
@@ -169,7 +171,7 @@ const prependWarning =
   (warnings: ReadonlyArray<SlowWarning>): ReadonlyArray<SlowWarning> =>
     pipe(warnings, Array.prepend(warning), Array.take(MAX_WARNING_COUNT))
 
-export const update = ApplicationDefinition.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedRunUpdateWork: () => {
       burnCpu(UPDATE_WORK_MS)
@@ -485,7 +487,7 @@ const patchSurfaceView = (model: Model, h: ViewBuilder): Html =>
     ],
   )
 
-export const view = ApplicationDefinition.view((model, h) => {
+export const view = ApplicationComposition.view((model, h) => {
   burnCpuDuringView(model.activeWorkload)
 
   return {

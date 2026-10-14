@@ -366,7 +366,7 @@ Never mutate the model directly. **Never use spread syntax for updates.** `modif
 
 Update, init, boot, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, return it directly without checking whether it is empty. Never write the literal `commands: []`.
 
-Initialize a child through its connection so Message mapping, origin scope, and Commands stay attached:
+Initialize a child through its Binding so Message mapping, origin scope, and Commands stay attached:
 
 ```ts
 const homeInit = home.init()
@@ -388,11 +388,11 @@ expect(formSubmit.commands ?? []).toHaveLength(1)
 
 When the operation name collides with the function, use a trailing underscore such as `init_`. Do not destructure or rename `model`, `commands`, or `outMessage` from update-like results. Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. Name a child fold's `write` parameter after the next child Model, such as `nextSettings`. Pass optional Commands directly to APIs that accept them, including `Command.mapMessages`. Use `result.commands ?? []` only when the next operation requires a concrete array for spreading, concatenating, execution, or an assertion.
 
-Author an ordinary Block through `const ChildDefinition = Block.define('Child', { Model, Message, OutMessage? })`. Use one-argument `Block.define('Child')` followed by `.define(...)` only when a generic factory shares effect definitions across several specialized contracts. Register the graph with `ChildDefinition.register({ children, mounts })`, and complete it through `ChildDefinition.toBlock(...)`. Export the completed value as `block`, and export `* as Child` from the parent barrel. Parent code imports that namespace, creates `Child.block.connection(...)` or `keyedConnection(...)`, and registers the connection under `children`. Call `connection.fold` for the primary child update and `connection.name(...)` for named parent entry points selected under `expose`. The completed Block aggregates child registrations and handler Layers; the connection supplies the canonical view and Message wrapper through `connection.embedView`.
+Author an ordinary Block through `const ChildDefinition = Block.define('Child', { Model, Message, OutMessage? })`. Use one-argument `Block.define('Child')` followed by `.define(...)` only when a generic factory shares effect definitions across several specialized contracts. Create `ChildComposition = ChildDefinition.toComposition({ children?, mounts? })`, and complete it through `ChildComposition.toBlock(...)`. Export the completed value as `block`, and export `* as Child` from the parent barrel. Parent code imports that namespace, creates a Binding with `ParentDefinition.bindChild(Child.block, config)`, and includes it under `children` in `ParentDefinition.toComposition(...)`. Call `binding.fold` for the primary child update and `binding.name(...)` for named parent entry points selected under `expose`. The completed Block aggregates child registrations and handler Layers; the Binding supplies the canonical view and Message wrapper through `binding.embedView`.
 
-Select an alternate whole local handler bundle through `block.replaceEffectsLayer(localRecipe)` before creating a connection. The selected Block keeps its child recipes. Ordinary application tests usually retain its handlers and replace their service providers instead.
+Select an alternate whole local handler bundle through `block.replaceEffectsLayer(localRecipe)` before binding the child. The selected Block keeps its child recipes. Ordinary application tests usually retain its handlers and replace their service providers instead.
 
-For a required child stored in an exact `Schema.Struct` field, use `Child.block.connection({ Model, field, parentMessage })`; the field is the default placement. Use explicit `read` and `write` for optional, tagged, or custom storage, and `toParentMessage` only when a static standard `Got*` constructor does not describe the mapping. The connection projects `init`, `fold`, named operations, lifecycle registrations, handler Layers, and `embedView`, so the parent declares the relationship once. Initialize through `connection.init`, delegate child Messages through `connection.fold`, and invoke public entry points through `connection.name(...)`.
+For a required child stored in an exact `Schema.Struct` field, use `ParentDefinition.bindChild(Child.block, { field, parentMessage })`; the field is the default placement. Use explicit `read` and `write` for optional, tagged, or custom storage, and `toParentMessage` only when a static standard `Got*` constructor does not describe the mapping. A keyed Binding additionally declares `readAll`, `key`, and `writeAt`. The Binding projects `init`, `fold`, named operations, and `embedView`, so the parent declares the relationship once. Initialize through `binding.init`, delegate child Messages through `binding.fold`, and invoke public entry points through `binding.name(...)`.
 
 Use `Update.combine` when a later Step should receive the Model produced by an earlier Step. It takes two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly. Name an inline Step parameter `stepModel` when combining several; it receives the Model from the preceding Step.
 
@@ -410,7 +410,7 @@ the matcher's second generic. When a branch returns a Command-producing
 `FeatureDefinition.step`, preserve its inferred Command requirements instead of
 constraining the matcher to a requirement-free `Update.Step`.
 
-When a connection handles an OutMessage locally, put the exhaustive matcher in `outMessage.fold`. Add `outMessage.forward` only for variants that continue upward. A derived parent OutMessage takes precedence over direct forwarding for that dispatch.
+When a Binding handles an OutMessage locally, put the exhaustive matcher in `outMessage.fold`. Add `outMessage.forward` only for variants that continue upward. A derived parent OutMessage takes precedence over direct forwarding for that dispatch.
 
 ## Schema Constructors
 

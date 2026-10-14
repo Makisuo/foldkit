@@ -7,15 +7,11 @@ import { describe, expect, test } from 'vitest'
 import { Listbox } from '@foldkit/ui'
 import { FocusListboxButton, FocusListboxItems } from '@foldkit/ui/listbox'
 
-import {
-  ApplicationRoute,
-  Message,
-  type Model,
-  ReplaceFilters,
-  Sorting,
-  browseRouter,
-  update,
-} from './application'
+import { ReplaceFilters } from './command'
+import { Message } from './message'
+import { type Model } from './model'
+import { ApplicationRoute, Sorting, browseRouter } from './route'
+import { update } from './update'
 
 const browseModel: Model = {
   route: ApplicationRoute.Browse({

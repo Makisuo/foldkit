@@ -5,6 +5,8 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 import { Button } from '@foldkit/ui'
 import type { ViewInputs as SliderViewInputs } from '@foldkit/ui/slider'
 
+import { ApplicationComposition } from './application'
+import { flowStrengthSlider, noiseScaleSlider } from './childBindings'
 import {
   BACKGROUND_COLOR_TOP,
   CANVAS_HEIGHT,
@@ -28,10 +30,9 @@ import {
 } from './constant'
 import { Message } from './message'
 import type { Model, Particle, Point } from './model'
-import { Application, flowStrengthSlider, noiseScaleSlider } from './update'
 
 type GenerativeArtHtmlBuilder = Parameters<
-  Parameters<typeof Application.view>[0]
+  Parameters<typeof ApplicationComposition.view>[0]
 >[1]
 
 const fadeAlpha = (particle: Particle): number => {
@@ -431,7 +432,7 @@ const headerView = (h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-export const view = Application.view((model, h) => ({
+export const view = ApplicationComposition.view((model, h) => ({
   title: `Prism Field · ${model.particles.length} particles`,
   body: h.div(
     [

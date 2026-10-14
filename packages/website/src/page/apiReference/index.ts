@@ -1,4 +1,4 @@
-export { block } from './apiReference'
+export { block } from './block'
 export { Message } from './message'
 export { ApiData, ApiDataAsyncData, Model, sliceApiDataToModule } from './model'
 export type { Disclosures } from './model'

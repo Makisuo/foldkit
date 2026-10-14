@@ -2,7 +2,7 @@ import { Effect } from 'effect'
 import { Server } from 'foldkit/experimental'
 
 import {
-  ApplicationDefinition,
+  ApplicationComposition,
   EffectsLayer,
   Flags,
   init,
@@ -41,7 +41,7 @@ export const renderPage = (request: Request): Promise<Server.EntryResult> =>
       }
 
       const renderedApplication = yield* Server.renderToString(
-        ApplicationDefinition,
+        ApplicationComposition,
         { init, update, view, EffectsLayer, Flags },
         {
           flags: flagsForRequest(request.headers.get('cookie') ?? ''),

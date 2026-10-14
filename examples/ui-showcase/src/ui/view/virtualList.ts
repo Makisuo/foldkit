@@ -2,15 +2,15 @@ import { Array, Match, Option, pipe } from 'effect'
 import type { Block } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { Message } from '../message'
 import {
-  RegisteredUiDefinition,
+  UiComposition,
   virtualListDemo,
   virtualListVariableDemo,
-} from '../update'
+} from '../childBindings'
+import { Message } from '../message'
 import { type Activity, ROW_COUNT } from '../virtualList'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof UiComposition>
 
 const actorNames = [
   'Sarah Chen',
@@ -202,7 +202,7 @@ const variableArtifactClassName =
 
 const subsectionHeadingClassName = 'text-lg font-semibold text-gray-900 mt-2'
 
-const shortRow = (row: Activity, h: HtmlBuilder): Html => {
+const shortRow = UiComposition.render.withInput<Activity>()((row, h) => {
   return h.div(
     [h.Class(rowClassName)],
     [
@@ -220,7 +220,7 @@ const shortRow = (row: Activity, h: HtmlBuilder): Html => {
       h.div([h.Class(timeAgoClassName)], [row.timeAgo]),
     ],
   )
-}
+})
 
 const tallRow = (row: Activity, summary: Summary, h: HtmlBuilder): Html => {
   return h.div(
@@ -250,7 +250,7 @@ const tallRow = (row: Activity, summary: Summary, h: HtmlBuilder): Html => {
   )
 }
 
-export const view = RegisteredUiDefinition.view((model, h) => {
+export const view = UiComposition.view((model, h) => {
   return h.div(
     [],
     [

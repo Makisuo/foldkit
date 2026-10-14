@@ -37,7 +37,7 @@ export const informRouteChanged = PeopleDefinition.step(
   (model, route: PeopleRoute) => update(model, Message.ChangedRoute({ route })),
 )
 
-export const block = PeopleDefinition.toBlock({
+export const block = PeopleDefinition.toComposition().toBlock({
   init,
   update,
   expose: { informRouteChanged },

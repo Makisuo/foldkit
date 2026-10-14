@@ -15,12 +15,13 @@ import type {
   BindingEvidence,
   BindingRequirement,
   BindingReturn,
-  ConnectionInspection,
+  BindingInspection,
   HandlerRequirementsOfBinding,
+  ParentBindingContract,
   ValidateEmbeddedViewMounts,
   WithoutBindingEvidence,
 } from './binding.js'
-import { assertValidConnectionOperationNames } from './binding.js'
+import { assertValidBindingOperationNames } from './binding.js'
 import { registerBinding } from './composition.js'
 import { type DefaultViewTypeId, defaultViewOf } from './defaultView.js'
 import { ViewScopeTypeId, hostIdentitiesOf } from './identity.js'
@@ -110,7 +111,8 @@ type ValidateKeyedForward<Forward, ChildOutMessage, Key> = Forward extends (
               : unknown)
   : never
 
-type ValidateKeyedPolicy<
+/** @internal Checks an inferred keyed Binding OutMessage policy. */
+export type ValidateKeyedPolicy<
   Policy,
   ParentModel,
   ChildMessage,
@@ -136,7 +138,8 @@ type ValidateKeyedPolicy<
       ? ValidateKeyedForward<Forward, ChildOutMessage, Key>
       : never
 
-type KeyedBindingBaseConfig<
+/** @internal Shared collection and lifecycle policy for keyed Bindings. */
+export type KeyedBindingBaseConfig<
   BlockValue extends BindableBlock,
   ParentModel,
   ParentMessage,
@@ -287,6 +290,9 @@ export type KeyedBinding<
   Key extends InstanceKey,
   Placement extends string,
   Policy,
+  ContractModel = never,
+  ContractMessage = never,
+  ContractOutMessage = never,
 > = WithoutBindingEvidence<
   Omit<
     Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy>,
@@ -298,7 +304,7 @@ export type KeyedBinding<
     HandlerRequirementsOfBinding<
       Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy>
     >,
-    ConnectionInspection<
+    BindingInspection<
       Readonly<Record<never, never>>,
       Readonly<Record<never, never>>,
       BlockValue['mounts'],
@@ -355,7 +361,10 @@ export type KeyedBinding<
     Key,
     Placement,
     Policy
-  >
+  > &
+  ([ContractModel] extends [never]
+    ? unknown
+    : ParentBindingContract<ContractModel, ContractMessage, ContractOutMessage>)
 
 /** Binds all occurrences of one Block through a single collection declaration. */
 export type BindEach<BlockValue extends BindableBlock> =
@@ -508,7 +517,7 @@ export const bindEach = <const BlockValue extends BindableBlock>(
 ): AnyBinding => {
   const placement = config.placement ?? block.owner.id
   assertSegment(placement)
-  assertValidConnectionOperationNames(block.expose)
+  assertValidBindingOperationNames(block.expose)
   const allowedIdentities = hostIdentitiesOf(block)
   const readAt = (model: any, key: InstanceKey): Option.Option<any> =>
     Option.map(

@@ -1,7 +1,9 @@
 src/
 +-- entry.ts              Browser startup, container, inputs, Runtime.run
-+-- application.ts        ApplicationDefinition and registered Application
-+-- services.ts           Shared providers, ApplicationLayer
++-- application.ts        ApplicationDefinition, Bindings, and ApplicationComposition
++-- layer.ts              Substantial shared provider composition
++-- environment.ts        Concrete HTTP, RPC, and browser providers
++-- storage.ts            LocalStorage and SessionStorage implementations
 +-- model.ts
 +-- message.ts
 +-- update.ts
@@ -14,7 +16,7 @@ src/
 |   +-- home/
 |   |   +-- index.ts      Explicit public barrel
 |   |   +-- definition.ts Definition for split implementation files
-|   |   +-- home.ts       Completed Block and small EffectsLayer bundle
+|   |   +-- block.ts      Completed Block and small EffectsLayer bundle
 |   |   +-- model.ts
 |   |   +-- message.ts
 |   |   +-- update.ts
@@ -24,10 +26,10 @@ src/
 |   +-- products/
 |       +-- index.ts
 |       +-- definition.ts
-|       +-- products.ts
-|       +-- connection.ts Substantial connection policies
+|       +-- block.ts
+|       +-- childBindings.ts Substantial parent-owned child integration
 |       +-- layer.ts      Substantial or reused handler composition
-|       +-- service.ts    ProductCatalog business service and Layer
+|       +-- catalog.ts    ProductCatalog business service and Layer
 |       +-- subscription.ts
 |       +-- mount.ts
 |       +-- managedResource.ts

@@ -3,14 +3,14 @@ import { Button } from '@foldkit/ui'
 import { DatePicker, Field } from '../../../view'
 import {
   Message,
-  RegisteredWorkHistoryEntryDefinition,
+  WorkHistoryEntryComposition,
   endDatePicker,
   startDatePicker,
 } from './definition'
 
 const ANCHOR = { placement: 'bottom-start' as const, gap: 4, padding: 8 }
 
-export const view = RegisteredWorkHistoryEntryDefinition.view((model, h) => {
+export const view = WorkHistoryEntryComposition.view((model, h) => {
   const showEndDate = !model.isCurrentlyEmployed
 
   const startDatePickerView = h.div(

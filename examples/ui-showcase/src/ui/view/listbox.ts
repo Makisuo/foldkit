@@ -6,16 +6,16 @@ import { Listbox } from '@foldkit/ui'
 import { buttonId } from '@foldkit/ui/listbox'
 
 import * as Icon from '../../icon'
-import type { Character } from '../listbox'
-import type { ListboxItem } from '../model'
 import {
-  RegisteredUiDefinition,
+  UiComposition,
   listboxDemo,
   listboxGroupedDemo,
   listboxMultiDemo,
-} from '../update'
+} from '../childBindings'
+import type { Character } from '../listbox'
+import type { ListboxItem } from '../model'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof UiComposition>
 
 const LISTBOX_ITEMS: ReadonlyArray<ListboxItem> = [
   'Michael Bluth',
@@ -79,17 +79,19 @@ const LISTBOX_ANCHOR = {
 
 // PIECES
 
-const itemContent = (label: string, h: HtmlBuilder): Html =>
+const itemContent = UiComposition.render.withInput<string>()((label, h) =>
   h.div(
     [h.Class('flex items-center gap-2')],
     [Icon.check(checkIconClassName), h.span([], [label])],
-  )
+  ),
+)
 
-const buttonContent = (label: string, h: HtmlBuilder): Html =>
+const buttonContent = UiComposition.render.withInput<string>()((label, h) =>
   h.div(
     [h.Class(buttonContentClassName)],
     [h.span([], [label]), Icon.chevronDown('w-4 h-4')],
-  )
+  ),
+)
 
 const chromeAttributes = (h: HtmlBuilder) => ({
   buttonAttributes: childAttributes([h.Class(triggerClassName)]),
@@ -226,7 +228,7 @@ const groupedDemo = (
   )
 }
 
-export const view = RegisteredUiDefinition.view((model, h) => {
+export const view = UiComposition.view((model, h) => {
   return h.div(
     [],
     [

@@ -39,18 +39,18 @@ const foldHoverMenuOutMessage = HoverIntent.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const hoverMenu = HoverIntent.block.connection({
+const HoverMenuDefinition = Block.define('HoverMenu', {
   Model,
+  Message,
+})
+
+const hoverMenu = HoverMenuDefinition.bindChild(HoverIntent.block, {
   field: 'hoverMenu',
   parentMessage: Message.GotHoverMenuMessage,
   outMessage: { fold: foldHoverMenuOutMessage },
 })
 
-const HoverMenuDefinition = Block.define('HoverMenu', {
-  Model,
-  Message,
-})
-const RegisteredHoverMenuDefinition = HoverMenuDefinition.register({
+const HoverMenuComposition = HoverMenuDefinition.toComposition({
   children: [hoverMenu],
 })
 
@@ -67,7 +67,7 @@ const update = HoverMenuDefinition.update((model, message) =>
 const triggerId = 'actions-trigger'
 const panelId = 'actions-panel'
 
-const view = RegisteredHoverMenuDefinition.view((model, h) => {
+const view = HoverMenuComposition.view((model, h) => {
   const hoverMenuView = ({
     trigger,
     panel,

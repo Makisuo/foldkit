@@ -20,7 +20,7 @@ Calendar owns navigation state, including the visible month, active grid, and ke
 
 ## Wire Calendar into a Parent
 
-Connect `Calendar.block` in the parent. Initialize it through the connection’s `init`, store its Model in your parent Model, and delegate its Messages with the connection’s `fold`. Render it through `h.block(calendar.embedView(...))`.
+Bind `Calendar.block` in the parent. Initialize it through the Binding’s `init`, store its Model in your parent Model, and delegate its Messages with the Binding’s `fold`. Render it through `h.block(calendar.embedView(...))`.
 
 Pass the parent-owned selection into `viewInputs.maybeSelectedDate` on every render. When Calendar emits `SelectedDate`, fold that OutMessage into the parent's selected-date field. `Calendar.update` returns `Update.ReturnWithOutMessage<Model, Message, OutMessage>`, so the same fold can handle `ChangedViewMonth` when your application needs month-scoped data.
 
@@ -30,7 +30,7 @@ See the complete Calendar integration in the [UI Showcase](https://github.com/fo
 
 ## Try It {#examples}
 
-This Calendar highlights today and lets the parent store a selected date. Click a day, or tab into the grid and navigate with the keyboard. The snippet shows the parent Model, the Calendar connection, OutMessage handling, and all three view modes.
+This Calendar highlights today and lets the parent store a selected date. Click a day, or tab into the grid and navigate with the keyboard. The snippet shows the parent Model, the Calendar Binding, OutMessage handling, and all three view modes.
 
 ::Demo{name="basic"}
 
@@ -135,7 +135,7 @@ Store the Calendar Model as a field in the parent Model. It contains interaction
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the Calendar connection's `embedView` method. The connection supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass the child Model as `model` and these fields as `viewInputs` to the Calendar Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name                       | Type                                             | Default                    | Description                                                                                                    |
 | -------------------------- | ------------------------------------------------ | -------------------------- | -------------------------------------------------------------------------------------------------------------- |
@@ -197,7 +197,7 @@ Month cells expose `isSelected`, `isFocused`, `isCurrentMonth`, and `isDisabled`
 
 ### OutMessage {#out-message}
 
-Calendar returns an optional OutMessage in the `outMessage` field. Match on its tag in the connection’s `outMessage.fold` policy.
+Calendar returns an optional OutMessage in the `outMessage` field. Match on its tag in the Binding’s `outMessage.fold` policy.
 
 | Name               | Payload                           | Emitted when                                                                                                                                                                       |
 | ------------------ | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

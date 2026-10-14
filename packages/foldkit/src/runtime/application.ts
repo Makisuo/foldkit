@@ -41,7 +41,7 @@ import {
   type DefinitionOf,
   type MessageSchemaOf,
   type ModelSchemaOf,
-  type MountRequirementsOf,
+  type ViewRequirementsOf,
   complete,
 } from './applicationAuthoring.js'
 import type { RoutingConfig } from './browserListeners.js'
@@ -764,8 +764,8 @@ type CompositionMessage<CompositionValue extends AnyComposition> =
 type CompositionOwner<CompositionValue extends AnyComposition> =
   DefinitionOf<CompositionValue>['owner']
 
-type CompositionMountRequirements<CompositionValue extends AnyComposition> =
-  MountRequirementsOf<CompositionValue>
+type CompositionViewRequirements<CompositionValue extends AnyComposition> =
+  ViewRequirementsOf<CompositionValue>
 
 type RootReturn<Model, Message> = Readonly<{
   model: Model
@@ -919,7 +919,7 @@ type ValidateRootView<
       owner: (value: infer ViewOwner) => unknown
       model: (value: infer ViewModel) => unknown
       message: (value: infer ViewMessage) => unknown
-      mountRequirements: () => infer ViewMountRequirements
+      mountRequirements: () => infer ViewRequirements
     }>
   }>
     ? [ViewOwner, CompositionOwner<CompositionValue>] extends [
@@ -936,8 +936,8 @@ type ValidateRootView<
           ]
           ? [
               Exclude<
-                ViewMountRequirements,
-                CompositionMountRequirements<CompositionValue>
+                ViewRequirements,
+                CompositionViewRequirements<CompositionValue>
               >,
             ] extends [never]
             ? Parameters<View> extends readonly [unknown, unknown]
@@ -957,8 +957,8 @@ type ValidateRootView<
                 }>
             : Readonly<{
                 'Application view requires Mounts absent from its composition': Exclude<
-                  ViewMountRequirements,
-                  CompositionMountRequirements<CompositionValue>
+                  ViewRequirements,
+                  CompositionViewRequirements<CompositionValue>
                 >
               }>
           : Readonly<{

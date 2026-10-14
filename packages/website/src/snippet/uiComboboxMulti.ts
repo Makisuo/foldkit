@@ -47,16 +47,17 @@ const foldComboboxMultiOutMessage = CitiesCombobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const combobox = CitiesCombobox.connection({
-  Model,
+const CitiesPickerDefinition = Block.define('CitiesPicker', { Model, Message })
+
+const combobox = CitiesPickerDefinition.bindChild(CitiesCombobox, {
   field: 'comboboxMulti',
   parentMessage: Message.GotComboboxMultiMessage,
   outMessage: { fold: foldComboboxMultiOutMessage },
 })
 
-// Registering the connection collects its lifecycle and handler graph.
-const CitiesPickerDefinition = Block.define('CitiesPicker', { Model, Message })
-const RegisteredCitiesPickerDefinition = CitiesPickerDefinition.register({
+// Including the Binding collects its lifecycle and handler graph.
+
+const CitiesPickerComposition = CitiesPickerDefinition.toComposition({
   children: [combobox],
 })
 
@@ -73,7 +74,7 @@ const cities: ReadonlyArray<City> = [
   'Wellington',
 ]
 
-const view = RegisteredCitiesPickerDefinition.view((model, h) => {
+const view = CitiesPickerComposition.view((model, h) => {
   const filteredCities =
     model.comboboxMulti.inputValue === ''
       ? cities
@@ -129,7 +130,7 @@ const view = RegisteredCitiesPickerDefinition.view((model, h) => {
   )
 })
 
-export const block = RegisteredCitiesPickerDefinition.toBlock({
+export const block = CitiesPickerComposition.toBlock({
   init,
   update,
   view,

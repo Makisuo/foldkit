@@ -24,11 +24,11 @@ const TrackPointer = PanelDefinition.mountStream('TrackPointer', {
   },
 })
 
-const RegisteredPanelDefinition = PanelDefinition.register({
+const PanelComposition = PanelDefinition.toComposition({
   mounts: [TrackPointer],
 })
 
-const view = RegisteredPanelDefinition.view((_model, h) =>
+const view = PanelComposition.view((_model, h) =>
   h.div([h.Class('h-48'), h.OnMount(TrackPointer())]),
 )
 

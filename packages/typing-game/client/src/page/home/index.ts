@@ -1,3 +1,3 @@
-export { block } from './home'
+export { block } from './block'
 export { Model } from './model'
 export { Message, OutMessage } from './message'

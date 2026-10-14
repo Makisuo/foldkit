@@ -5,14 +5,14 @@ import { Popover } from '@foldkit/ui'
 import { type RenderInfo, buttonId } from '@foldkit/ui/popover'
 
 import {
-  RegisteredUiDefinition,
+  UiComposition,
   popoverAnimatedDemo,
   popoverBasicDemo,
   popoverNestedChildDemo,
   popoverNestedParentDemo,
-} from '../update'
+} from '../childBindings'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof UiComposition>
 
 const triggerClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -33,7 +33,7 @@ const POPOVER_ANCHOR = {
   padding: 8,
 }
 
-const popoverPanelContent = (h: HtmlBuilder): Html => {
+const popoverPanelContent = UiComposition.render.builder(h => {
   return h.div(
     [],
     [
@@ -44,7 +44,7 @@ const popoverPanelContent = (h: HtmlBuilder): Html => {
       ),
     ],
   )
-}
+})
 
 const makePopoverView =
   (
@@ -79,10 +79,9 @@ const NESTED_POPOVER_ANCHOR = {
 
 const nestedChildButtonSelector = '#popover-nested-child-demo-button'
 
-const nestedChildPopover = (
-  childPopoverModel: typeof Popover.Model.Type,
-  h: HtmlBuilder,
-): Html => {
+const nestedChildPopover = UiComposition.render.withInput<
+  typeof Popover.Model.Type
+>()((childPopoverModel, h) => {
   const childPopoverView = ({
     button,
     panel,
@@ -130,7 +129,7 @@ const nestedChildPopover = (
       },
     }),
   )
-}
+})
 
 const nestedDemo = (
   parentPopoverModel: typeof Popover.Model.Type,
@@ -191,7 +190,7 @@ const nestedDemo = (
   )
 }
 
-export const view = RegisteredUiDefinition.view((model, h) => {
+export const view = UiComposition.view((model, h) => {
   return h.div(
     [],
     [

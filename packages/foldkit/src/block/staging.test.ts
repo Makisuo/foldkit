@@ -39,8 +39,8 @@ const childBase = ChildOwner.define({
   Model: ChildModel,
   Message: ChildMessage,
 })
-const observeComposition = childBase.register({ mounts: [Observe] })
-const measureComposition = childBase.register({ mounts: [Measure] })
+const observeComposition = childBase.toComposition({ mounts: [Observe] })
+const measureComposition = childBase.toComposition({ mounts: [Measure] })
 
 const defaultView = observeComposition.view.withInputs<
   Readonly<{ label: string }>
@@ -61,15 +61,18 @@ const ParentMessage = defineMessageUnion({
   GotChildMessage: { message: ChildMessage },
 })
 type ParentMessage = typeof ParentMessage.Type
-
-const directChild = Child.connection({
+const ParentDefinition = define('StagedParent', {
   Model: ParentModel,
+  Message: ParentMessage,
+})
+
+const directChild = ParentDefinition.bindChild(Child, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
 })
 
-const explicitChild = Child.connection({
-  read: (model: ParentModel) => Option.some(model.child),
+const explicitChild = ParentDefinition.bindChild(Child, {
+  read: model => Option.some(model.child),
   write: (_model, child) => ParentModel.make({ child }),
   parentMessage: ParentMessage.GotChildMessage,
 })
@@ -102,7 +105,7 @@ if (false) {
     ]),
   )
 
-  childBase.toBlock({
+  childBase.toComposition().toBlock({
     init: Child.init,
     update: Child.update,
     // @ts-expect-error A graphless Base cannot complete a Mount-capable view.
@@ -110,8 +113,8 @@ if (false) {
     EffectsLayer: Observe.layer,
   })
 
-  // @ts-expect-error A registered composition cannot register another graph.
-  observeComposition.register({ mounts: [Measure] })
+  // @ts-expect-error A Composition cannot establish another graph.
+  observeComposition.toComposition({ mounts: [Measure] })
 
   directChild.embedView({
     slotId: 'missing-default-inputs',
@@ -125,16 +128,16 @@ if (false) {
     Model: ForeignModel,
     Message: ParentMessage,
   })
-  // @ts-expect-error A registered child must use the composition's parent Model.
-  foreignModelBase.register({ children: [directChild] })
+  // @ts-expect-error A child Binding must use the Composition's parent Model.
+  foreignModelBase.toComposition({ children: [directChild] })
 
   const ForeignMessage = defineMessageUnion({ ReceivedForeign: {} })
   const foreignMessageBase = define('StagedForeignMessageParent').define({
     Model: ParentModel,
     Message: ForeignMessage,
   })
-  // @ts-expect-error A registered child must use the composition's parent Message.
-  foreignMessageBase.register({ children: [directChild] })
+  // @ts-expect-error A child Binding must use the Composition's parent Message.
+  foreignMessageBase.toComposition({ children: [directChild] })
 }
 
 it('creates independent immutable graphs from one typed Base', () => {
@@ -161,7 +164,7 @@ it('preserves completed view capabilities and default ViewInputs', () => {
   >()
 })
 
-it('matches required-field and explicit connection behavior', () => {
+it('matches required-field and explicit Binding behavior', () => {
   const directUpdate = directChild.fold(
     initialParent,
     ChildMessage.CompletedObserve(),

@@ -20,7 +20,7 @@ import {
   update,
   view,
 } from './application'
-import { weatherData, weatherModel } from './application.fixture'
+import { weatherData, weatherModel } from './model.fixture'
 
 describe('view', () => {
   test('initial view shows empty form with Get Weather button', () => {

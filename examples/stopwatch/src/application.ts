@@ -41,6 +41,8 @@ export type Message = typeof Message.Type
 
 export const ApplicationDefinition = defineApplication({ Model, Message })
 
+export const ApplicationComposition = ApplicationDefinition.toComposition()
+
 type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
 export const DetermineStartTime = ApplicationDefinition.command(
@@ -83,7 +85,7 @@ export const DetermineTickTime = ApplicationDefinition.command(
   },
 )
 
-export const update = ApplicationDefinition.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedStart: () => ({
       model,
@@ -180,7 +182,7 @@ const formatTime = (ms: number): string => {
 
 const floorAndPad = flow(Math.floor, v => v.toString(), String.padStart(2, '0'))
 
-export const view = ApplicationDefinition.view((model, h) => ({
+export const view = ApplicationComposition.view((model, h) => ({
   title: `Stopwatch ${formatTime(model.elapsedMs)}`,
   body: h.div(
     [h.Class('min-h-screen bg-gray-200 flex items-center justify-center')],

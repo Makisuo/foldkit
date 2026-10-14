@@ -61,7 +61,7 @@ Commands, browser events, Mounts, Subscriptions, and ManagedResources never muta
 
 ## Application Assembly
 
-Layers supply the handlers for Commands, Subscriptions, Mounts, and ManagedResources, along with shared services such as an `RpcClient` or an analytics client. Each feature combines its handler recipes in a local `EffectsLayer` and completes its Block with that bundle. Parent connections carry the graph to the root; the root `ApplicationLayer` supplies its remaining Services.
+Layers supply the handlers for Commands, Subscriptions, Mounts, and ManagedResources, along with shared services such as an `RpcClient` or an analytics client. Each feature combines its handler recipes in a local `EffectsLayer` and completes its Block with that bundle. Parent Bindings carry the graph to the root; the root `ApplicationLayer` supplies its remaining Services.
 
 An update that returns a Command requires that named operation's handler. The handler Layer requires the services its implementation uses. Adding another service to the implementation changes the Layer's requirements without changing update's handler requirement. TypeScript checks that application assembly supplies the remaining requirements before the Runtime can start. [Handler and service requirements](/core/layers#handler-and-service-requirements) shows how this differs from carrying implementation dependencies through update.
 

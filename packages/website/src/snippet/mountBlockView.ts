@@ -21,17 +21,17 @@ const MeasurePanel = PanelDefinition.mount('MeasurePanel', {
   },
 })
 
-const RegisteredPanelDefinition = PanelDefinition.register({
+const PanelComposition = PanelDefinition.toComposition({
   mounts: [MeasurePanel],
 })
 
 const init = () => ({ model: Model.make({ label: 'Panel' }) })
-const update = RegisteredPanelDefinition.update(model => ({ model }))
-const view = RegisteredPanelDefinition.view((model, h) =>
+const update = PanelComposition.update(model => ({ model }))
+const view = PanelComposition.view((model, h) =>
   h.div([h.OnMount(MeasurePanel())], [model.label]),
 )
 
-export const block = RegisteredPanelDefinition.toBlock({
+export const block = PanelComposition.toBlock({
   init,
   update,
   view,

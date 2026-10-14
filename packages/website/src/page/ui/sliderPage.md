@@ -28,9 +28,9 @@ Pass `orientation: 'Vertical'` to map pointer movement along the Y axis, with `m
 
 ## Subscriptions
 
-Pointer drag needs document-level `pointermove` / `pointerup` tracking because the cursor can leave the slider element. Slider owns that tracking and an Escape-key Subscription that cancels an in-progress drag. Connect `Slider.block` and register the connection in the owning definition's `children`; composition carries both Subscriptions into the application.
+Pointer drag needs document-level `pointermove` / `pointerup` tracking because the cursor can leave the slider element. Slider owns that tracking and an Escape-key Subscription that cancels an in-progress drag. Bind `Slider.block` and include the Binding in the owning definition's `children`; composition carries both Subscriptions into the application.
 
-The default `Slider` uses `document` to resolve its drag target. For a Slider inside a Shadow DOM, call `Slider.forRoot(getTrackRoot)` and connect the completed Block returned by that factory. Registering the connection in the owner's `children` carries the named instance's Subscriptions and handler recipes automatically. Pass the same `getTrackRoot` resolver in the connected view's `viewInputs` so track presses and click-to-jump resolve the track inside that Shadow DOM too. The returned `subscriptions` registry remains available for focused Scene tests.
+The default `Slider` uses `document` to resolve its drag target. For a Slider inside a Shadow DOM, call `Slider.forRoot(getTrackRoot)` and bind the completed Block returned by that factory. Including the Binding in the owner's `children` carries the named instance's Subscriptions and handler recipes automatically. Pass the same `getTrackRoot` resolver in the bound view's `viewInputs` so track presses and click-to-jump resolve the track inside that Shadow DOM too. The returned `subscriptions` registry remains available for focused Scene tests.
 
 ## Styling
 
@@ -105,7 +105,7 @@ Configuration object passed to `Slider.init()`.
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the Slider connection's `embedView` method. The connection supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass the child Model as `model` and these fields as `viewInputs` to the Slider Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name             | Type                                          | Default        | Description                                                                                                                                                                                                                            |
 | ---------------- | --------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -137,8 +137,8 @@ Attribute groups provided to the `toView` callback.
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Parents handle the OutMessage in the connection’s `outMessage.fold` policy.
+Messages emitted to the parent through the optional `outMessage` field. Parents handle the OutMessage in the Binding’s `outMessage.fold` policy.
 
-| Name           | Type                | Default | Description                                                                                                                                                                                                                            |
-| -------------- | ------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ChangedValue` | `{ value: number }` | —       | Emitted whenever the Slider value changes via drag, click-to-jump, or keyboard navigation. Handle it in the connection's `outMessage.fold` policy to react, for example: persist the value, validate, or trigger a downstream Command. |
+| Name           | Type                | Default | Description                                                                                                                                                                                                                         |
+| -------------- | ------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ChangedValue` | `{ value: number }` | —       | Emitted whenever the Slider value changes via drag, click-to-jump, or keyboard navigation. Handle it in the Binding's `outMessage.fold` policy to react, for example: persist the value, validate, or trigger a downstream Command. |

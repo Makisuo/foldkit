@@ -26,6 +26,7 @@ import {
   UnlockMenuScroll,
   block,
   buttonId,
+  create,
   groupContiguous,
   init,
   resolveTypeaheadMatch,
@@ -38,15 +39,37 @@ const foldMenuOutMessage = OutMessage.match<Update.Step<Model, Message>>({
   Selected: () => model => ({ model }),
 })
 
-const menu = block.connection({
+const menu = MenuStoryDefinition.bindChild(block, {
   read: (model: Model) => Option.some(model),
   write: (_model: Model, nextMenu: Model) => nextMenu,
   toParentMessage: (message: Message): Message => message,
   outMessage: { fold: foldMenuOutMessage },
 })
 
-const RegisteredMenuStoryDefinition = MenuStoryDefinition.register({
+const MenuStoryComposition = MenuStoryDefinition.toComposition({
   children: [menu],
+})
+
+const RefinedMenu = create<'Edit' | 'Duplicate' | 'Delete'>()
+
+const RefinedMenuStoryDefinition = Block.define('RefinedMenuStory', {
+  Model,
+  Message,
+})
+
+const refinedMenu = RefinedMenuStoryDefinition.bindChild(RefinedMenu, {
+  read: (model: Model) => Option.some(model),
+  write: (_model: Model, nextMenu: Model) => nextMenu,
+  toParentMessage: (message: Message): Message => message,
+  outMessage: {
+    fold: RefinedMenu.OutMessage.match<Update.Step<Model, Message>>({
+      Selected: () => model => ({ model }),
+    }),
+  },
+})
+
+const RefinedMenuStoryComposition = RefinedMenuStoryDefinition.toComposition({
+  children: [refinedMenu],
 })
 
 const sceneView = (
@@ -55,7 +78,7 @@ const sceneView = (
     'ariaLabel' | 'ariaLabelledBy'
   > = {},
 ) =>
-  RegisteredMenuStoryDefinition.view((model, h) =>
+  MenuStoryComposition.view((model, h) =>
     h.block(
       menu.embedView({
         slotId: 'menu',
@@ -69,6 +92,20 @@ const sceneView = (
       }),
     ),
   )
+
+const refinedMenuSceneView = RefinedMenuStoryComposition.view((model, h) =>
+  h.block(
+    refinedMenu.embedView({
+      slotId: 'refined-menu',
+      model,
+      viewInputs: {
+        items: ['Edit', 'Duplicate', 'Delete'],
+        itemToConfig: item => ({ content: h.span([], [item]) }),
+        buttonContent: h.span([], ['Actions']),
+      },
+    }),
+  ),
+)
 
 const button = Scene.selector('#test-button')
 
@@ -121,6 +158,14 @@ const givenOpenAnimated = Story.steps(
 
 describe('Menu', () => {
   describe('view', () => {
+    it('renders a factory-refined Menu with its own child bindings', () => {
+      Scene.scene(
+        { update, view: refinedMenuSceneView },
+        Scene.given(init({ id: 'test' })),
+        Scene.expect(button).toExist(),
+      )
+    })
+
     it('only points at the items panel while it is rendered', () => {
       Scene.scene(
         { update, view: sceneView() },

@@ -1,5 +1,5 @@
 import { Array, Effect, Option, Schema } from 'effect'
-import { Scene, Story, Update } from 'foldkit'
+import { Block, Scene, Story, Update } from 'foldkit'
 import { inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
 import { expect, expectTypeOf } from 'vitest'
@@ -58,6 +58,11 @@ type FruitParentModel = typeof FruitParentModel.Type
 
 type FruitMessage = typeof FruitCombobox.Message.Type
 
+const FruitComboboxTestDefinition = Block.define('FruitComboboxTest', {
+  Model: FruitParentModel,
+  Message: FruitCombobox.Message,
+})
+
 const foldFruitComboboxOutMessage = FruitCombobox.OutMessage.match<
   Update.Step<FruitParentModel, FruitMessage>
 >({
@@ -71,8 +76,7 @@ const foldFruitComboboxOutMessage = FruitCombobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const fruitCombobox = FruitCombobox.connection({
-  Model: FruitParentModel,
+const fruitCombobox = FruitComboboxTestDefinition.bindChild(FruitCombobox, {
   field: 'combobox',
   toParentMessage: message => message,
   outMessage: { fold: foldFruitComboboxOutMessage },

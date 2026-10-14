@@ -1,4 +1,4 @@
-// page/settings.ts
+// page/settings/view.ts
 import { SettingsDefinition } from './definition'
 import { Message } from './message'
 

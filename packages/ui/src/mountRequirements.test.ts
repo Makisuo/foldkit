@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import type * as Block from 'foldkit/block'
+import * as Block from 'foldkit/block'
 import type { ChildAttribute } from 'foldkit/html'
 import type * as Mount from 'foldkit/mount'
 import type * as Update from 'foldkit/update'
@@ -27,7 +27,7 @@ type RequirementsOfView<View> =
 
 type RequirementsOfBlock<CompletedBlock extends Block.AnyBlock> =
   | Mount.RequirementsOf<CompletedBlock[typeof Block.LocalMountsTypeId]>
-  | Block.RequirementsOfConnections<CompletedBlock['children']>
+  | Block.RequirementsOfBindings<CompletedBlock['children']>
 
 const foldComboboxOutMessage = Combobox.OutMessage.match<
   Update.Step<Combobox.Model, Combobox.Message>
@@ -36,7 +36,15 @@ const foldComboboxOutMessage = Combobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const combobox = Combobox.block.connection({
+const ComboboxMountRequirementsDefinition = Block.define(
+  'ComboboxMountRequirements',
+  {
+    Model: Combobox.Model,
+    Message: Combobox.Message,
+  },
+)
+
+const combobox = ComboboxMountRequirementsDefinition.bindChild(Combobox.block, {
   read: (model: Combobox.Model) => Option.some(model),
   write: (_model: Combobox.Model, nextCombobox: Combobox.Model) => nextCombobox,
   toParentMessage: (message: Combobox.Message): Combobox.Message => message,
@@ -62,7 +70,15 @@ const foldListboxOutMessage = Listbox.OutMessage.match<
   Selected: () => model => ({ model }),
 })
 
-const listbox = Listbox.block.connection({
+const ListboxMountRequirementsDefinition = Block.define(
+  'ListboxMountRequirements',
+  {
+    Model: Listbox.Model,
+    Message: Listbox.Message,
+  },
+)
+
+const listbox = ListboxMountRequirementsDefinition.bindChild(Listbox.block, {
   read: (model: Listbox.Model) => Option.some(model),
   write: (_model: Listbox.Model, nextListbox: Listbox.Model) => nextListbox,
   toParentMessage: (message: Listbox.Message): Listbox.Message => message,
@@ -87,7 +103,12 @@ const foldMenuOutMessage = Menu.OutMessage.match<
   Selected: () => model => ({ model }),
 })
 
-const menu = Menu.block.connection({
+const MenuMountRequirementsDefinition = Block.define('MenuMountRequirements', {
+  Model: Menu.Model,
+  Message: Menu.Message,
+})
+
+const menu = MenuMountRequirementsDefinition.bindChild(Menu.block, {
   read: (model: Menu.Model) => Option.some(model),
   write: (_model: Menu.Model, nextMenu: Menu.Model) => nextMenu,
   toParentMessage: (message: Menu.Message): Menu.Message => message,
@@ -124,20 +145,20 @@ it('carries each mounted component registry through its view type', () => {
   >()
   expectTypeOf<
     RequirementsOfView<typeof embeddedCombobox.view>
-  >().toEqualTypeOf<Block.RequirementOfConnection<typeof combobox>>()
+  >().toEqualTypeOf<Block.RequirementOfBinding<typeof combobox>>()
   expectTypeOf<
     Mount.RequirementsOf<
       (typeof Combobox.block)[typeof Block.LocalMountsTypeId]
     >
   >().toEqualTypeOf<Mount.RequirementsOf<typeof Combobox.mounts>>()
   expectTypeOf<RequirementsOfView<typeof embeddedListbox.view>>().toEqualTypeOf<
-    Block.RequirementOfConnection<typeof listbox>
+    Block.RequirementOfBinding<typeof listbox>
   >()
   expectTypeOf<
     Mount.RequirementsOf<(typeof Listbox.block)[typeof Block.LocalMountsTypeId]>
   >().toEqualTypeOf<Mount.RequirementsOf<typeof Listbox.mounts>>()
   expectTypeOf<RequirementsOfView<typeof embeddedMenu.view>>().toEqualTypeOf<
-    Block.RequirementOfConnection<typeof menu>
+    Block.RequirementOfBinding<typeof menu>
   >()
   expectTypeOf<
     Mount.RequirementsOf<(typeof Menu.block)[typeof Block.LocalMountsTypeId]>

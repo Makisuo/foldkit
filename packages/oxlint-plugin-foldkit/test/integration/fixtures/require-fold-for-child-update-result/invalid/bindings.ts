@@ -1,3 +1,4 @@
+import { define as defineApplication } from 'foldkit/application'
 import { Option, Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -15,25 +16,19 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({
   GotSettingsMessage: { message: BoundSettings.Message },
 })
-export const settings = BoundSettings.Settings.connection({
-  read: (model: Model) => Option.some(model.settings),
-  write: (model, nextSettings) =>
+const ApplicationDefinition = defineApplication({ Model, Message })
+export const settings = ApplicationDefinition.bindChild(BoundSettings.Settings, {read: (model: Model) => Option.some(model.settings),
+write: (model, nextSettings) =>
     modifyFields(model, { settings: () => nextSettings }),
-  toParentMessage: message => Message.GotSettingsMessage({ message }),
-})
-export const directSettings = DirectBoundSettings.Settings.connection({
-  Model,
-  field: 'directSettings',
-  parentMessage: Message.GotSettingsMessage,
-})
-export const keyedSettings = KeyedBoundSettings.Settings.keyedConnection({
-  readAll: (model: Model) => [model.keyedSettings],
-  key: () => 'settings',
-  read: settings => settings,
-  writeAt: (model, _key, nextSettings) =>
+toParentMessage: message => Message.GotSettingsMessage({ message })})
+export const directSettings = ApplicationDefinition.bindChild(DirectBoundSettings.Settings, {field: 'directSettings',
+parentMessage: Message.GotSettingsMessage})
+export const keyedSettings = ApplicationDefinition.bindChild(KeyedBoundSettings.Settings, {readAll: (model: Model) => [model.keyedSettings],
+key: () => 'settings',
+read: settings => settings,
+writeAt: (model, _key, nextSettings) =>
     modifyFields(model, { keyedSettings: () => nextSettings }),
-  toParentMessage: (_key, message) => Message.GotSettingsMessage({ message }),
-})
+toParentMessage: (_key, message) => Message.GotSettingsMessage({ message })})
 export const updateBinding = (model: Model) => {
   const settingsTheme = BoundSettings.setTheme(model.settings, 'Light')
   return { model: modifyFields(model, { settings: () => settingsTheme.model }) }

@@ -2,8 +2,8 @@ import type { Html } from 'foldkit/html'
 
 import { Meter } from '@foldkit/ui'
 
+import { UiComposition } from '../childBindings'
 import type { Message } from '../message'
-import { RegisteredUiDefinition } from '../update'
 
 const rowClassName = 'flex flex-col gap-2 w-full max-w-sm'
 const headerClassName = 'flex items-center justify-between text-sm'
@@ -12,7 +12,7 @@ const valueClassName = 'tabular-nums text-gray-600'
 const trackClassName = 'h-3 w-full overflow-hidden rounded-full bg-gray-200'
 const fillClassName = 'h-full rounded-full bg-emerald-600'
 
-export const view = RegisteredUiDefinition.view((_model, h) => {
+export const view = UiComposition.view((_model, h) => {
   const healthMeterView = ({
     meter,
     label,

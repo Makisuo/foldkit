@@ -15,7 +15,7 @@ export const setTheme = settings.step((model, theme: string) => ({
 const update = settings.update((model, message) =>
   Message.match(message, { ChangedTheme: ({ theme }) => setTheme(model, theme) }),
 )
-export const Settings = settings.toBlock({
+export const Settings = settings.toComposition().toBlock({
   init: () => ({ model: Model.make({ theme: 'System' }) }),
   update,
   expose: { setTheme },

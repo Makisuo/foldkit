@@ -4,7 +4,7 @@
 
 An anchored floating panel with natural Tab navigation. Unlike Dialog (which is modal and traps focus) or Menu (which uses aria-activedescendant for item navigation), Popover holds arbitrary content and uses the disclosure ARIA pattern. Focus flows naturally through the panel content.
 
-Connect `Popover.block` in the parent. For programmatic control in a parent update, call the connection’s `open()` and `close()` operations. Both return parent Steps, so they can run directly or inside `Update.combine`.
+Bind `Popover.block` in the parent. For programmatic control in a parent update, call the Binding’s `open()` and `close()` operations. Both return parent Steps, so they can run directly or inside `Update.combine`.
 
 :::Info{label="See it in an app"}
 Check out how Popover is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/popover.ts).
@@ -128,7 +128,7 @@ Configuration object passed to `Popover.init()`.
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the Popover connection's `embedView` method. The connection supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass the child Model as `model` and these fields as `viewInputs` to the Popover Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name             | Type                           | Default | Description                                                                                                                                                                                                                             |
 | ---------------- | ------------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -154,9 +154,9 @@ Payload delivered to the `toView` callback each render.
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the connection’s `outMessage.fold` policy.
+Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s `outMessage.fold` policy.
 
-| Name     | Type | Default | Description                                                                                                                                                         |
-| -------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Opened` | `{}` | —       | Emitted once the popover has transitioned to open. Fires after `update` has processed `RequestedOpen` and `isOpen` reflects the new state.                          |
-| `Closed` | `{}` | —       | Emitted once the popover has transitioned to closed. Calling the connected `popover.close()` operation on an already-closed Model is a no-op that does not re-emit. |
+| Name     | Type | Default | Description                                                                                                                                                     |
+| -------- | ---- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Opened` | `{}` | —       | Emitted once the popover has transitioned to open. Fires after `update` has processed `RequestedOpen` and `isOpen` reflects the new state.                      |
+| `Closed` | `{}` | —       | Emitted once the popover has transitioned to closed. Calling the bound `popover.close()` operation on an already-closed Model is a no-op that does not re-emit. |

@@ -39,7 +39,7 @@ npx create-foldkit-app@latest
 
 ## Counter
 
-A complete Foldkit program. State lives in a single Model, events become Messages, and a pure function handles every transition. `application.ts` exports the typed `ApplicationDefinition` and its implementation. `entry.ts` supplies the browser container and boots the Runtime, so importing the application from a test has no startup side effect.
+A complete Foldkit program. State lives in a single Model, events become Messages, and a pure function handles every transition. `application.ts` exports `ApplicationDefinition`, `ApplicationComposition`, and its implementation. `entry.ts` supplies the browser container and boots the Runtime, so importing the application from a test has no startup side effect.
 
 ```ts
 // src/application.ts
@@ -60,7 +60,9 @@ export type Message = typeof Message.Type
 
 export const ApplicationDefinition = defineApplication({ Model, Message })
 
-export const update = ApplicationDefinition.update((model, message) =>
+export const ApplicationComposition = ApplicationDefinition.toComposition()
+
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: count => count - 1 }),
@@ -76,7 +78,7 @@ export const init = () => ({
   model: Model.make({ count: 0 }),
 })
 
-export const view = ApplicationDefinition.view((model, h) => ({
+export const view = ApplicationComposition.view((model, h) => ({
   title: `Counter: ${model.count}`,
   body: h.div(
     [],
@@ -94,9 +96,9 @@ export const view = ApplicationDefinition.view((model, h) => ({
 // src/entry.ts
 import { Runtime } from 'foldkit'
 
-import { ApplicationDefinition, init, update, view } from './application'
+import { ApplicationComposition, init, update, view } from './application'
 
-const application = ApplicationDefinition.make({
+const application = ApplicationComposition.make({
   init,
   update,
   view,
@@ -106,11 +108,11 @@ const application = ApplicationDefinition.make({
 Runtime.run(application)
 ```
 
-`defineApplication` creates helpers owned by this root, including `ApplicationDefinition.command`, `ApplicationDefinition.update`, and `ApplicationDefinition.view`. Applications with child Blocks or local Mounts call `ApplicationDefinition.register({ children, mounts })` and export that registered value as `Application`. Root-owned handler recipes can be passed to the selected authoring value's `make` as `EffectsLayer`.
+`defineApplication` creates helpers owned by this root, including `ApplicationDefinition.command`, `ApplicationDefinition.update`, and `ApplicationComposition.view`. Every application establishes its child and Mount graph with `ApplicationDefinition.toComposition({ children, mounts })`, using `ApplicationDefinition.toComposition()` for an empty graph. Root-owned handler recipes can be passed to the Composition's `make` as `EffectsLayer`.
 
-A feature follows the same staged flow. Define its contracts as `FeatureDefinition` with `Block.define('Feature', { Model, Message, OutMessage })`, author its behavior through that definition, register its child graph when it has one, and export the completed `block` from `FeatureDefinition.toBlock({ init, update, view })`. The parent imports the `Feature` namespace, creates a connection from `Feature.block.connection(...)`, and registers the connection in its own graph.
+A feature follows the same staged flow. Define its contracts as `FeatureDefinition` with `Block.define('Feature', { Model, Message, OutMessage })`, author its behavior through that Definition, and establish the graph with `FeatureDefinition.toComposition({ children, mounts })`. Use `FeatureDefinition.toComposition()` for an empty graph, then export the completed Block from `FeatureComposition.toBlock({ init, update, view })`. A parent imports the `Feature` namespace, creates a Binding with `ParentDefinition.bindChild(Feature.block, config)`, and includes that Binding in its Composition's child graph.
 
-Ordinary Effect services stay in `ApplicationLayer`. Keep a small provider composition in `entry.ts`, and extract `services.ts` only when it is substantial or reused. Supply that Layer after the Application is complete:
+Ordinary Effect services stay in `ApplicationLayer`. Keep a small provider composition in `entry.ts`, and extract `layer.ts` only when it is substantial or reused. Supply that Layer after the Application is complete:
 
 ```ts
 Runtime.run(application.provide(ApplicationLayer))
@@ -129,7 +131,7 @@ Routing, server rendering, UI components, composition, and browser lifecycles al
 - **Subscriptions**: External event streams declared as a function of the Model.
 - **Managed Resources**: Model-driven lifecycle for WebSockets, AudioContext, and other long-lived handles.
 - **Mount**: The seam where view code hands a real DOM element to a third-party library that owns its own DOM.
-- **Blocks**: A self-contained Model, update, and view connected to a parent through registered child connections.
+- **Blocks**: A self-contained Model, update, and view connected to a parent through parent-owned child Bindings.
 - **OutMessage**: A typed channel for a child Block to emit domain events up to its parent.
 - **Embedding**: Run a Foldkit program inside a host app through Schema-typed Ports with `Runtime.embed`.
 - **UI Components**: Accessible, keyboard-friendly primitives in the `@foldkit/ui` package.

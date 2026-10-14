@@ -6,6 +6,7 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  writeFileSync,
 } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -48,13 +49,13 @@ const assertBuiltEntry = (path: string): void => {
   }
 }
 
-const assertConnectionCompletions = async (): Promise<void> => {
+const assertBindingCompletions = async (): Promise<void> => {
   const acceptedFixture = join(fixtureRoot, 'accepted.ts')
   const acceptedConfig = join(fixtureRoot, 'tsconfig.accepted.json')
   const marker = 'child.refresh()(model)'
   const source = readFileSync(acceptedFixture, 'utf8')
   const markerPosition = Option.getOrElse(String.indexOf(marker)(source), () =>
-    fail(`Could not find the connection completion marker ${marker}.`),
+    fail(`Could not find the Binding completion marker ${marker}.`),
   )
 
   const api = new API({ cwd: packageRoot })
@@ -88,7 +89,7 @@ const assertConnectionCompletions = async (): Promise<void> => {
 
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {
       fail(
-        `Expected connection completions ${JSON.stringify(expected)}, received ${JSON.stringify(actual)}.`,
+        `Expected Binding completions ${JSON.stringify(expected)}, received ${JSON.stringify(actual)}.`,
       )
     }
   } finally {
@@ -140,10 +141,106 @@ const main = async (): Promise<void> => {
       join(outputDirectory, 'tsconfig.json'),
     ])
 
-    await assertConnectionCompletions()
+    const focusedOutputDirectory = join(outputDirectory, 'focused')
+    runCompiler('Emitting the focused Block declarations', [
+      '-p',
+      join(fixtureRoot, 'tsconfig.focused.accepted.json'),
+      '--outDir',
+      focusedOutputDirectory,
+    ])
+
+    runCompiler('Checking focused rejected Block wiring', [
+      '-p',
+      join(fixtureRoot, 'tsconfig.focused.rejected.json'),
+    ])
+
+    const focusedFixtureDirectory = join(
+      focusedOutputDirectory,
+      'declaration-tests',
+    )
+    copyFileSync(
+      join(fixtureRoot, 'parent-owned-binding.consume.ts'),
+      join(focusedFixtureDirectory, 'parent-owned-binding.consume.ts'),
+    )
+    copyFileSync(
+      join(fixtureRoot, 'query-block.consume.ts'),
+      join(focusedFixtureDirectory, 'query-block.consume.ts'),
+    )
+    const focusedConsumerConfig = join(focusedOutputDirectory, 'tsconfig.json')
+    writeFileSync(
+      focusedConsumerConfig,
+      JSON.stringify({
+        compilerOptions: {
+          strict: true,
+          skipLibCheck: false,
+          module: 'NodeNext',
+          moduleResolution: 'NodeNext',
+          target: 'ES2022',
+          lib: ['ESNext', 'DOM'],
+          types: [],
+          noEmit: true,
+          exactOptionalPropertyTypes: true,
+          noUncheckedIndexedAccess: true,
+        },
+        include: ['declaration-tests/*.consume.ts'],
+      }),
+    )
+
+    runCompiler('Consuming the focused emitted Block declarations', [
+      '-p',
+      focusedConsumerConfig,
+    ])
+
+    const renderOutputDirectory = join(outputDirectory, 'render')
+    runCompiler('Emitting the owned render declarations', [
+      '-p',
+      join(fixtureRoot, 'tsconfig.render.accepted.json'),
+      '--outDir',
+      renderOutputDirectory,
+    ])
+
+    runCompiler('Checking rejected owned render wiring', [
+      '-p',
+      join(fixtureRoot, 'tsconfig.render.rejected.json'),
+    ])
+
+    const renderFixtureDirectory = join(
+      renderOutputDirectory,
+      'declaration-tests',
+    )
+    copyFileSync(
+      join(fixtureRoot, 'owned-render.consume.ts'),
+      join(renderFixtureDirectory, 'owned-render.consume.ts'),
+    )
+    const renderConsumerConfig = join(renderOutputDirectory, 'tsconfig.json')
+    writeFileSync(
+      renderConsumerConfig,
+      JSON.stringify({
+        compilerOptions: {
+          strict: true,
+          skipLibCheck: false,
+          module: 'NodeNext',
+          moduleResolution: 'NodeNext',
+          target: 'ES2022',
+          lib: ['ESNext', 'DOM'],
+          types: [],
+          noEmit: true,
+          exactOptionalPropertyTypes: true,
+          noUncheckedIndexedAccess: true,
+        },
+        include: ['declaration-tests/owned-render.consume.ts'],
+      }),
+    )
+
+    runCompiler('Consuming the emitted owned render declarations', [
+      '-p',
+      renderConsumerConfig,
+    ])
+
+    await assertBindingCompletions()
 
     process.stdout.write(
-      `[emitted-declarations] ${version}; accepted, rejected, downstream, and native completion checks passed.\n`,
+      `[emitted-declarations] ${version}; accepted, rejected, focused Binding and Query, owned render, downstream, and native completion checks passed.\n`,
     )
   } finally {
     rmSync(outputDirectory, { recursive: true, force: true })

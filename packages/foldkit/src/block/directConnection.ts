@@ -64,7 +64,7 @@ type DirectConfig<
   MessageMapping<BlockValue, ToParentMessage> &
   ValidateConcreteComposition<BlockValue>
 
-/** @internal Required-field shorthand for a checked static connection. */
+/** @internal Required-field shorthand for a checked static Binding. */
 export type DirectConnection<BlockValue extends BindableBlock> =
   BlockValue extends Readonly<{
     OutMessage: Readonly<{ Type: infer ChildOutMessage }>
@@ -133,13 +133,13 @@ export type DirectConnection<BlockValue extends BindableBlock> =
 const normalizeParentMessage = (
   config: Record<string, unknown>,
 ): Record<string, unknown> => {
-  if (!('parentMessage' in config)) {
+  if (!Object.hasOwn(config, 'parentMessage')) {
     return config
   }
 
-  if ('toParentMessage' in config) {
+  if (Object.hasOwn(config, 'toParentMessage')) {
     throw new Error(
-      '[foldkit] A connection must supply exactly one parent Message mapping.',
+      '[foldkit] A Binding must supply exactly one parent Message mapping.',
     )
   }
 
@@ -147,7 +147,7 @@ const normalizeParentMessage = (
 
   if (!Predicate.isFunction(parentMessage)) {
     throw new Error(
-      '[foldkit] A parentMessage connection must supply a Message constructor.',
+      '[foldkit] A parentMessage Binding must supply a Message constructor.',
     )
   }
 
@@ -165,7 +165,7 @@ export const normalizeConnectionConfig = (config: unknown): unknown => {
 
   const mapped = normalizeParentMessage(config)
 
-  if (!('Model' in mapped) || !('field' in mapped)) {
+  if (!Object.hasOwn(mapped, 'Model') || !Object.hasOwn(mapped, 'field')) {
     return mapped
   }
 
@@ -181,13 +181,13 @@ export const normalizeConnectionConfig = (config: unknown): unknown => {
     !Object.hasOwn(fields, field)
   ) {
     throw new Error(
-      '[foldkit] A direct connection must select a declared Struct Model field.',
+      '[foldkit] A direct Binding must select a declared Struct Model field.',
     )
   }
 
-  if ('read' in policy || 'write' in policy) {
+  if (Object.hasOwn(policy, 'read') || Object.hasOwn(policy, 'write')) {
     throw new Error(
-      '[foldkit] A direct connection cannot also supply readers or writers.',
+      '[foldkit] A direct Binding cannot also supply readers or writers.',
     )
   }
 

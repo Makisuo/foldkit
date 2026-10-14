@@ -4,7 +4,7 @@
 
 A file drop zone that accepts files via both drag-and-drop and a hidden `<input type="file">`. FileDrop is headless. The component owns drag state and file-arrival events; your `toView` callback owns the visual.
 
-`FileDrop.block` is the completed Block to connect in the parent. Initialize it through the connection, delegate Messages with `connection.fold`, and render with `h.block(connection.embedView(...))`. The update function returns `Update.ReturnWithOutMessage<Model, Message, OutMessage>`. `ReceivedFiles` fires when files arrive with a guaranteed non-empty list. `RejectedNonFiles` fires when a drop or change event produced no files, for example when someone drags non-file data. Match both in the connection’s `outMessage.fold` policy.
+`FileDrop.block` is the completed Block to connect in the parent. Initialize it through the Binding, delegate Messages with `Binding.fold`, and render with `h.block(Binding.embedView(...))`. The update function returns `Update.ReturnWithOutMessage<Model, Message, OutMessage>`. `ReceivedFiles` fires when files arrive with a guaranteed non-empty list. `RejectedNonFiles` fires when a drop or change event produced no files, for example when someone drags non-file data. Match both in the Binding’s `outMessage.fold` policy.
 
 :::Info{label="See it in an app"}
 Check out how FileDrop is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/fileDrop.ts).
@@ -43,7 +43,7 @@ Configuration object passed to `FileDrop.init()`.
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the FileDrop connection's `embedView` method. The connection supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass the child Model as `model` and these fields as `viewInputs` to the FileDrop Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name         | Type                                       | Default | Description                                                                                                                                                                                                      |
 | ------------ | ------------------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -63,9 +63,9 @@ Attribute groups provided to the `toView` callback.
 
 ### OutMessage {#out-message}
 
-The optional `outMessage` field of the update record. Handle it in the connection’s `outMessage.fold` policy to process arriving files.
+The optional `outMessage` field of the update record. Handle it in the Binding’s `outMessage.fold` policy to process arriving files.
 
-| Name               | Type                                     | Default | Description                                                                                                                                                                                                                                 |
-| ------------------ | ---------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ReceivedFiles`    | `{ files: NonEmptyReadonlyArray<File> }` | —       | Emitted when the user drops files on the zone or selects them via the hidden input. The files list is guaranteed non-empty. Handle it in the connection's `outMessage.fold` policy to process the files (validate, upload, store in Model). |
-| `RejectedNonFiles` | `{}`                                     | —       | Emitted when a drop or input-change event fires without any files, typically a drag of non-file data (text, URLs, images from another page). Consumers can ignore this or surface a hint to the user.                                       |
+| Name               | Type                                     | Default | Description                                                                                                                                                                                                                              |
+| ------------------ | ---------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ReceivedFiles`    | `{ files: NonEmptyReadonlyArray<File> }` | —       | Emitted when the user drops files on the zone or selects them via the hidden input. The files list is guaranteed non-empty. Handle it in the Binding's `outMessage.fold` policy to process the files (validate, upload, store in Model). |
+| `RejectedNonFiles` | `{}`                                     | —       | Emitted when a drop or input-change event fires without any files, typically a drag of non-file data (text, URLs, images from another page). Consumers can ignore this or surface a hint to the user.                                    |

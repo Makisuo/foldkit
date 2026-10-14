@@ -32,18 +32,18 @@ const foldTabsOutMessage = OutMessage.match<Update.Step<Model, Message>>({
   Selected: () => model => ({ model }),
 })
 
-const tabs = block.connection({
+const tabs = TabsSceneDefinition.bindChild(block, {
   read: (model: Model) => Option.some(model),
   write: (_model: Model, nextTabs: Model) => nextTabs,
   toParentMessage: (message: Message): Message => message,
   outMessage: { fold: foldTabsOutMessage },
 })
 
-const RegisteredTabsSceneDefinition = TabsSceneDefinition.register({
+const TabsSceneComposition = TabsSceneDefinition.toComposition({
   children: [tabs],
 })
 
-const sceneView = RegisteredTabsSceneDefinition.view((model, h) =>
+const sceneView = TabsSceneComposition.view((model, h) =>
   h.block(
     tabs.embedView({
       slotId: 'tabs',
@@ -75,7 +75,7 @@ const sceneView = RegisteredTabsSceneDefinition.view((model, h) =>
   ),
 )
 
-const allPanelsView = RegisteredTabsSceneDefinition.view((model, h) =>
+const allPanelsView = TabsSceneComposition.view((model, h) =>
   h.block(
     tabs.embedView({
       slotId: 'tabs',

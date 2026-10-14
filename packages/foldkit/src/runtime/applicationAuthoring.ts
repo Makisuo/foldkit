@@ -1,8 +1,9 @@
 import type { Schema } from 'effect'
 
+import type { BindChild } from '../block/bindChild.js'
 import type {
   AnyBinding,
-  InspectionOfConnection,
+  InspectionOfBinding,
   RequirementsOfBindings,
 } from '../block/binding.js'
 import { define as defineBlock } from '../block/define.js'
@@ -24,6 +25,7 @@ import {
   type DefineResource,
 } from '../block/named.js'
 import type { Owner } from '../block/owner.js'
+import type { DefineRender } from '../block/render.js'
 import type { HtmlBuilder } from '../html/index.js'
 import type * as Mount from '../mount/index.js'
 import type { Make, MakeElement } from './application.js'
@@ -133,7 +135,7 @@ export type MountsOf<CompositionValue> =
     ? readonly [
         ...Mounts,
         ...ReadonlyArray<
-          InspectionOfConnection<
+          InspectionOfBinding<
             ChildrenOf<CompositionValue>[number]
           >['mounts'][number]
         >,
@@ -152,7 +154,7 @@ export type ChildrenOf<CompositionValue> =
     : never
 
 /** @internal Reads the Mount requirements available to the root view. */
-export type MountRequirementsOf<CompositionValue> =
+export type ViewRequirementsOf<CompositionValue> =
   EvidenceOf<CompositionValue> extends CompositionEvidence<
     AnySchema,
     AnySchema,
@@ -177,11 +179,15 @@ export type Composition<
   Message: MessageSchema
   mounts: readonly [
     ...Mounts,
-    ...ReadonlyArray<
-      InspectionOfConnection<Children[number]>['mounts'][number]
-    >,
+    ...ReadonlyArray<InspectionOfBinding<Children[number]>['mounts'][number]>,
   ]
   children: Children
+  bindChild: BindChild<ModelSchema, MessageSchema>
+  render: DefineRender<
+    ModelSchema['Type'],
+    MessageSchema['Type'],
+    Mount.RequirementsOf<Mounts> | RequirementsOfBindings<Children>
+  >
   view: DefineView<
     RootOwner,
     ModelSchema['Type'],
@@ -199,19 +205,19 @@ export type Composition<
   CompletionHelpers<ModelSchema, MessageSchema, Mounts, Children>
 
 /**
- * The builder supplied by an application definition or registered
- * composition. Use it when an extracted root view helper renders registered
+ * The builder supplied by an application Definition or Composition. Use it
+ * when an extracted root view helper renders registered
  * children or local Mounts.
  */
 export type HtmlBuilderOf<ApplicationValue> =
   ApplicationValue extends AnyComposition
     ? HtmlBuilder<
         MessageSchemaOf<ApplicationValue>['Type'],
-        MountRequirementsOf<ApplicationValue>
+        ViewRequirementsOf<ApplicationValue>
       >
     : ApplicationValue extends Readonly<{
           Message: Readonly<{ Type: infer Message }>
-          register: (...args: ReadonlyArray<any>) => unknown
+          toComposition: (...args: ReadonlyArray<any>) => unknown
         }>
       ? HtmlBuilder<Message, never>
       : never
@@ -243,11 +249,12 @@ export type DefinitionOf<CompositionValue> =
 export type CompletedComposition<CompositionValue, Implementation> =
   CompletedForValidation<DefinitionOf<CompositionValue>, Implementation>
 
-/** Registers the child and Mount graph with an application authoring namespace. */
-export interface Register<
+/** Establishes the child and Mount graph for an application Definition. */
+export interface ToComposition<
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
 > {
+  (): Composition<ModelSchema, MessageSchema, readonly [], readonly []>
   <
     const Mounts extends ReadonlyArray<Mount.LayeredMountDefinition> =
       readonly [],
@@ -273,10 +280,16 @@ export interface Register<
 export type Definition<
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
-> = Composition<ModelSchema, MessageSchema, readonly [], readonly []> &
-  Readonly<{
-    register: Register<ModelSchema, MessageSchema>
-  }>
+> = Readonly<{
+  Model: ModelSchema
+  Message: MessageSchema
+  mounts: readonly []
+  children: readonly []
+  bindChild: BindChild<ModelSchema, MessageSchema>
+  view: DefineView<RootOwner, ModelSchema['Type'], MessageSchema['Type'], never>
+  toComposition: ToComposition<ModelSchema, MessageSchema>
+}> &
+  AuthoringHelpers<ModelSchema, MessageSchema>
 
 /** Defines the root Model, Message, and primitive authoring namespace. */
 export interface Define {
@@ -313,6 +326,8 @@ const makeComposition = (
     Message: definition.Message,
     mounts: definition.mounts,
     children: definition.children,
+    bindChild: definition.bindChild,
+    render: definition.render,
     view: definition.view,
     command: primitives.command,
     mount: primitives.mount,
@@ -339,7 +354,7 @@ export const definitionOf = (
   const definition = definitions.get(composition)
   if (definition === undefined) {
     throw new Error(
-      '[foldkit] Application definition must come from defineApplication(...) or its register(...) result.',
+      '[foldkit] Application composition must come from defineApplication(...).toComposition(...).',
     )
   }
   return definition
@@ -368,23 +383,34 @@ export const makeDefine =
       resource: base.resource,
     }
 
-    const register = (
+    const toComposition = (
       graph: Readonly<{
         mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
         children?: ReadonlyArray<AnyBinding>
-      }>,
+      }> = {},
     ) => {
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      const definition = base.register(graph as never)
+      const definition = base.toComposition(graph as never)
       return makeComposition(definition, primitives, completion)
     }
 
-    const composition = makeComposition(base, primitives, completion)
     const definition = {
-      ...composition,
-      register,
+      Model: base.Model,
+      Message: base.Message,
+      mounts: base.mounts,
+      children: base.children,
+      bindChild: base.bindChild,
+      view: base.view,
+      command: primitives.command,
+      mount: primitives.mount,
+      mountStream: primitives.mountStream,
+      resource: primitives.resource,
+      update: base.update,
+      step: base.step,
+      subscriptions: base.subscriptions,
+      managedResources: base.managedResources,
+      toComposition,
     }
-    definitions.set(definition, base)
 
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     return definition as never

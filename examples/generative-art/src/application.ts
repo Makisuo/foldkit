@@ -3,6 +3,7 @@ import { Array, Layer, Option } from 'effect'
 import { Slider } from '@foldkit/ui'
 import { snapAndClamp } from '@foldkit/ui/slider'
 
+import { flowStrengthSlider, noiseScaleSlider } from './childBindings'
 import { GenerateAmbientParticle, GenerateBurstParticle } from './command'
 import {
   FLOW_STRENGTH_MAX,
@@ -15,6 +16,7 @@ import {
   NOISE_SCALE_MIN_DIVISOR,
   NOISE_SCALE_STEP,
 } from './constant'
+import { ApplicationDefinition } from './definition'
 import { subscriptions } from './subscription'
 
 export const EffectsLayer = Layer.mergeAll(
@@ -58,4 +60,8 @@ export const init = () => ({
   commands: Array.makeBy(INITIAL_PARTICLE_COUNT, () =>
     GenerateAmbientParticle(),
   ),
+})
+
+export const ApplicationComposition = ApplicationDefinition.toComposition({
+  children: [flowStrengthSlider, noiseScaleSlider],
 })

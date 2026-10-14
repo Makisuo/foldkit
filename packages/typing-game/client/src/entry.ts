@@ -3,7 +3,12 @@ import { Runtime } from 'foldkit'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 
-import { Application, EffectsLayer, init, update } from './application'
+import {
+  ApplicationComposition,
+  EffectsLayer,
+  init,
+  update,
+} from './application'
 import { Message } from './message'
 import { RoomsClientLayer } from './rpc'
 import { view } from './view'
@@ -13,7 +18,7 @@ const ApplicationLayer = Layer.mergeAll(
   BrowserKeyValueStore.layerSessionStorage,
 )
 
-const application = Application.make({
+const application = ApplicationComposition.make({
   init,
   update,
   view,

@@ -86,9 +86,10 @@ describe('rendering templates', () => {
     const ssgViteConfig = readTemplateFile('rendering/ssg/vite.config.ts')
     expect(ssgViteConfig).toContain("serverEntry: '/src/entry.server.ts'")
     expect(ssgViteConfig).toContain('build: { prerender: true }')
-    expect(readTemplateFile('rendering/ssg/src/entry.server.ts')).toContain(
-      'export const prerenderPaths',
-    )
+    const ssgServerEntry = readTemplateFile('rendering/ssg/src/entry.server.ts')
+    expect(ssgServerEntry).toContain('export const prerenderPaths')
+    expect(ssgServerEntry).toContain('ApplicationComposition,')
+    expect(ssgServerEntry).not.toContain('ApplicationDefinition,')
     expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
       'Runtime.hydrate',
     )
@@ -96,10 +97,10 @@ describe('rendering templates', () => {
       'ApplicationDefinition = defineApplication({ Model, Message })',
     )
     expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
-      'ApplicationDefinition.make({',
+      'ApplicationComposition.make({',
     )
-    expect(readTemplateFile('rendering/ssg/src/application.ts')).not.toContain(
-      'Application = ApplicationDefinition',
+    expect(readTemplateFile('rendering/ssg/src/application.ts')).toContain(
+      'ApplicationComposition = ApplicationDefinition.toComposition()',
     )
     expect(readTemplateFile('rendering/ssg/src/entry.ts')).not.toContain(
       '...implementation',
@@ -128,9 +129,10 @@ describe('rendering templates', () => {
     const ssrViteConfig = readTemplateFile('rendering/ssr/vite.config.ts')
     expect(ssrViteConfig).toContain("serverEntry: '/src/entry.server.ts'")
     expect(ssrViteConfig).toContain('build: true')
-    expect(readTemplateFile('rendering/ssr/src/entry.server.ts')).toContain(
-      'flags: flagsForRequest(',
-    )
+    const ssrServerEntry = readTemplateFile('rendering/ssr/src/entry.server.ts')
+    expect(ssrServerEntry).toContain('flags: flagsForRequest(')
+    expect(ssrServerEntry).toContain('ApplicationComposition,')
+    expect(ssrServerEntry).not.toContain('ApplicationDefinition,')
     expect(readTemplateFile('rendering/ssr/src/entry.ts')).toContain(
       'Runtime.hydrate',
     )
@@ -138,10 +140,10 @@ describe('rendering templates', () => {
       'ApplicationDefinition = defineApplication({ Model, Message })',
     )
     expect(readTemplateFile('rendering/ssr/src/entry.ts')).toContain(
-      'ApplicationDefinition.make({',
+      'ApplicationComposition.make({',
     )
-    expect(readTemplateFile('rendering/ssr/src/application.ts')).not.toContain(
-      'Application = ApplicationDefinition',
+    expect(readTemplateFile('rendering/ssr/src/application.ts')).toContain(
+      'ApplicationComposition = ApplicationDefinition.toComposition()',
     )
     expect(readTemplateFile('rendering/ssr/src/entry.ts')).not.toContain(
       '...implementation',

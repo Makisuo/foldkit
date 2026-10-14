@@ -13,24 +13,27 @@ type Message = typeof Message.Type
 
 const ApplicationDefinition = defineApplication({ Model, Message })
 
-// Lift the Query's operations into the parent Model and Message types.
-const posts = postsQuery.lift<Model, Message>({
-  parentField: 'posts',
-  toParentMessage: message => Message.GotPostsMessage({ message }),
+const posts = ApplicationDefinition.bindChild(postsQuery, {
+  field: 'posts',
+  parentMessage: Message.GotPostsMessage,
+})
+
+const ApplicationComposition = ApplicationDefinition.toComposition({
+  children: [posts],
 })
 
 const init = () => {
-  const model = Model.make({ posts: postsQuery.init() })
+  const model = Model.make({ posts: posts.init().model })
 
   // Return the Loading Model state and the first FetchPosts Command.
-  return posts.loadIfMissing(model)
+  return posts.loadIfMissing()(model)
 }
 
-const update = ApplicationDefinition.update((model, message) =>
+const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     // Run Query's update, then write its Model back into the parent.
     GotPostsMessage: ({ message }) => posts.fold(model, message),
     // Return the transition and Command for either missing or retained data.
-    ClickedRefreshPosts: () => posts.revalidateOrLoad(model),
+    ClickedRefreshPosts: () => posts.revalidateOrLoad()(model),
   }),
 )

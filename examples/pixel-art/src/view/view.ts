@@ -5,17 +5,17 @@ import { type Html, createLazy } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
+import { ApplicationComposition } from '../application'
 import { isGridEmpty } from '../grid'
 import { Message } from '../message'
 import type { Model } from '../model'
 import { currentPaletteTheme } from '../palette'
-import { Application } from '../update'
 import { canvasView } from './canvas'
 import { errorDialogView, gridSizeConfirmDialogView } from './dialog'
 import { historyPanelView } from './history'
 import { toolPanelView } from './toolbar'
 
-type HtmlBuilder = HtmlBuilderOf<typeof Application>
+type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 const downloadIcon = (className: string, h: HtmlBuilder): Html =>
   h.svg(
@@ -48,7 +48,7 @@ const lazyHistoryPanel = createLazy()
 const lazyErrorDialog = createLazy()
 const lazyGridSizeConfirmDialog = createLazy()
 
-export const view = Application.view((model, h) => ({
+export const view = ApplicationComposition.view((model, h) => ({
   title: 'Pixel Art',
   body: h.div(
     [h.Class('min-h-screen bg-gray-900 text-gray-100 flex flex-col')],

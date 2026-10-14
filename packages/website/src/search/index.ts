@@ -1,4 +1,4 @@
-export { block } from './search'
+export { block } from './block'
 export { Model, SearchState, resultsFromState } from './model'
 export { Message } from './message'
 export { PagefindLayer, PagefindService } from './pagefind'

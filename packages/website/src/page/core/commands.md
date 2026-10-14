@@ -41,7 +41,7 @@ Three pieces connect the work to update:
 
 The typed definition's `update` method infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
 
-`application.ts` exports the typed `ApplicationDefinition`, its update/view, and the local handler recipe. `entry.ts` passes those pieces to `ApplicationDefinition.make`, supplies any remaining Services through `application.provide(layer)`, and starts the Runtime:
+`application.ts` exports the typed `ApplicationDefinition`, its graphless `ApplicationComposition`, its update/view, and the local handler recipe. `entry.ts` passes those pieces to `ApplicationComposition.make`, supplies any remaining Services through `application.provide(layer)`, and starts the Runtime:
 
 ::Snippet{name="counterCommandsEntry" label="Starting the counter"}
 
@@ -116,7 +116,7 @@ Supply the HTTP provider at the application root:
 
 ::Snippet{name="commandHttpLayer" label="Providing the HTTP service"}
 
-The graphless root passes `FetchCountLayer` to `ApplicationDefinition.make` as its local `EffectsLayer`. Its remaining `HttpClient` requirement reaches the entry, where `ApplicationLayer` supplies `Http.layer`. `application.provide(ApplicationLayer)` satisfies that ordinary Service requirement, and `Runtime.run` requires a runnable application.
+The graphless root passes `FetchCountLayer` to `ApplicationComposition.make` as its local `EffectsLayer`. Its remaining `HttpClient` requirement reaches the entry, where `ApplicationLayer` supplies `Http.layer`. `application.provide(ApplicationLayer)` satisfies that ordinary Service requirement, and `Runtime.run` requires a runnable application.
 
 `Http.layer` is Foldkit's Fetch-backed client. The [Http guide](/core/http) explains its browser tracing defaults and customization. Keep the concrete provider at the root so the application and execution tests can select it, and so Commands share the same client.
 
@@ -142,9 +142,9 @@ A handler can own execution bookkeeping, such as a resource pool or worker respo
 
 ### Naming and Composition
 
-Compose `FetchCount.layer` directly in the feature's local `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` composition. Pass a feature's local bundle to `toBlock`; registered connections carry its handler recipe to the Application. Root `application.ts` exports `ApplicationDefinition` and exports `Application` only for a registered graph. The entry imports implementation pieces from their real owners, lists them explicitly in the selected authoring value's `make`, and then calls `application.provide(ApplicationLayer)`. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
+Compose `FetchCount.layer` directly in the feature's local `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` composition. Pass a feature's local bundle to `toBlock`; child Bindings carry its handler recipe to the Application Composition. Root `application.ts` exports `ApplicationDefinition` and `ApplicationComposition`. The entry imports implementation pieces from their real owners, lists them explicitly in `ApplicationComposition.make`, and then calls `application.provide(ApplicationLayer)`. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
 
-Command names are local to their named Block. Two features can both declare `FetchCount`; their owners keep the definitions distinct. Names must be unique within one owner, and composition derives readable paths for each connection placement. A Command's handler requirement includes that owned name, its decoded args, and its declared result Messages. `FeatureDefinition.toBlock` checks that the feature's `EffectsLayer` supplies each local requirement or that the definition appears in `hostHandlers`.
+Command names are local to their named Block. Two features can both declare `FetchCount`; their owners keep the definitions distinct. Names must be unique within one owner, and composition derives readable paths for each Binding placement. A Command's handler requirement includes that owned name, its decoded args, and its declared result Messages. `FeatureComposition.toBlock` checks that the feature's `EffectsLayer` supplies each local requirement or that the definition appears in `hostHandlers`.
 
 Derive an explicit handler requirement from its owning definition. `Command.HandlerOf` keeps the annotation aligned with the definition's args Schema and declared result Messages:
 
@@ -194,7 +194,7 @@ Use `interrupt: { keyFields, toKey }` when concurrent invocations need separate 
 
 Do not key an upload by its file name. Two rows may upload the same file and still need independent cancellation.
 
-Foldkit prefixes every derived key with the owned Command name, and composition adds the connection placement. Local names must already be unique within their named Block, and separate static placements do not collide. Items in one `keyedConnection` collection share a placement, so include the item's stable identity in the key when those items need independent cancellation. A single-instance Block needs no extra field.
+Foldkit prefixes every derived key with the owned Command name, and composition adds the Binding placement. Local names must already be unique within their named Block, and separate static placements do not collide. Items in one keyed Binding share a placement, so include the item's stable identity in the key when those items need independent cancellation. A single-instance Block needs no extra field.
 
 ### Dispatching an Interrupt
 

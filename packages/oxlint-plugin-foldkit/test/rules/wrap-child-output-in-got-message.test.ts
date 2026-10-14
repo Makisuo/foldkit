@@ -249,11 +249,12 @@ it('checks the Message wrapper in a completed Block binding', () => {
   const node = callWithCallee(
     {
       type: 'MemberExpression',
-      object: Testing.id('Chat'),
-      property: Testing.id('connection'),
+      object: Testing.id('ApplicationDefinition'),
+      property: Testing.id('bindChild'),
       computed: false,
     },
     [
+      Testing.id('Chat'),
       liftConfig(
         Testing.arrowFn(
           memberConstructorCall('Msg', 'ReceivedChatEvent'),
@@ -275,13 +276,13 @@ const directConnectionCall = (constructorName: string) =>
   callWithCallee(
     {
       type: 'MemberExpression',
-      object: Testing.id('Chat'),
-      property: Testing.id('connection'),
+      object: Testing.id('ApplicationDefinition'),
+      property: Testing.id('bindChild'),
       computed: false,
     },
     [
+      Testing.id('Chat'),
       Testing.objectExpr([
-        { key: 'Model', value: Testing.id('Model') },
         { key: 'field', value: { type: 'Literal', value: 'chat' } },
         {
           key: 'parentMessage',

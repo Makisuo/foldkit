@@ -56,14 +56,13 @@ const foldRadioGroupOutMessage = RadioGroupOutMessage.match<
     }),
 })
 
-const radioGroup = TestRadioGroup.connection({
-  Model,
+const radioGroup = RadioGroupSceneDefinition.bindChild(TestRadioGroup, {
   field: 'radioGroup',
   parentMessage: Message.GotRadioGroupMessage,
   outMessage: { fold: foldRadioGroupOutMessage },
 })
 
-const RegisteredRadioGroupSceneDefinition = RadioGroupSceneDefinition.register({
+const RadioGroupSceneComposition = RadioGroupSceneDefinition.toComposition({
   children: [radioGroup],
 })
 
@@ -78,7 +77,7 @@ type Overrides = Omit<
   'options' | 'selectedValue' | 'ariaLabel' | 'toView'
 >
 
-const rootView = RegisteredRadioGroupSceneDefinition.view.withInputs<Overrides>(
+const rootView = RadioGroupSceneComposition.view.withInputs<Overrides>(
   (model, overrides, h) =>
     h.block(
       radioGroup.embedView({

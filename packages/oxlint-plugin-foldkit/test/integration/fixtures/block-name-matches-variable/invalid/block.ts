@@ -1,3 +1,4 @@
+import { ImportedDefinition as EarlierDefinition } from '../valid/definition'
 import { Block, Block as AliasedBlock } from 'foldkit'
 import * as Foldkit from 'foldkit'
 import { define as aliasedDefine, define } from 'foldkit/block'
@@ -12,7 +13,7 @@ const WrongAliasedSubpathDefine = aliasedDefine('AliasedSubpathDefine')
 const WrongRegistered = BlockModule.define('Registered', {
   Model,
   Message,
-}).register({})
+}).toComposition({})
 const WrongIdentityFirst = Block.define('IdentityFirst').define({
   Model,
   Message,
@@ -21,7 +22,7 @@ const WrongApplication = defineApplication({ Model, Message })
 const WrongRegisteredApplication = defineApplication({
   Model,
   Message,
-}).register({})
+}).toComposition({})
 
 void WrongRoot
 void WrongAliasedRoot
@@ -32,3 +33,9 @@ void WrongRegistered
 void WrongIdentityFirst
 void WrongApplication
 void WrongRegisteredApplication
+
+const SeparateDefinition = Block.define('Separate', { Model, Message })
+const WrongSeparateComposition = SeparateDefinition.toComposition()
+const WrongImportedComposition = EarlierDefinition.toComposition()
+void WrongSeparateComposition
+void WrongImportedComposition

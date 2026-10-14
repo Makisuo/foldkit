@@ -2,9 +2,9 @@
 
 ## Overview
 
-Animation coordinates CSS enter and leave phases with a state machine and data attributes. Connect `Animation.block` in the parent. Its connection projects the child-owned `show`, `hide`, and `toggle` operations into parent Steps; Animation applies its internal `Showed` or `Hid` fact, records each lifecycle phase in its Model, and exposes the resulting Commands through the fold. The transitions stay visible in DevTools and can be tested through update without waiting for a browser animation.
+Animation coordinates CSS enter and leave phases with a state machine and data attributes. Bind `Animation.block` in the parent. Its Binding projects the child-owned `show`, `hide`, and `toggle` operations into parent Steps; Animation applies its internal `Showed` or `Hid` fact, records each lifecycle phase in its Model, and exposes the resulting Commands through the fold. The transitions stay visible in DevTools and can be tested through update without waiting for a browser animation.
 
-Animation uses the [OutMessage](/core/block#surfacing-facts) pattern. The connection’s `outMessage.fold` policy handles `StartedLeaveAnimating` by providing a Command that detects settlement, then handles `TransitionedOut` when post-animation cleanup can begin. Dialog, Menu, Popover, Listbox, and Combobox use the same Block internally when `isAnimated` is true.
+Animation uses the [OutMessage](/core/block#surfacing-facts) pattern. The Binding’s `outMessage.fold` policy handles `StartedLeaveAnimating` by providing a Command that detects settlement, then handles `TransitionedOut` when post-animation cleanup can begin. Dialog, Menu, Popover, Listbox, and Combobox use the same Block internally when `isAnimated` is true.
 
 ## Lifecycle Coordination {#why}
 
@@ -32,7 +32,7 @@ Check out how Animation is wired up in a [real Foldkit app](https://github.com/f
 
 ## Examples
 
-Call the connection’s `show()` operation to start the enter animation and `hide()` to start the leave animation. Style with Tailwind data-attribute selectors like `data-[closed]:opacity-0`.
+Call the Binding’s `show()` operation to start the enter animation and `hide()` to start the leave animation. Style with Tailwind data-attribute selectors like `data-[closed]:opacity-0`.
 
 ::Demo{name="animation"}
 
@@ -113,7 +113,7 @@ The `animateSize` option uses CSS grid (`grid-template-rows: 0fr` → `1fr`) for
 
 ### toggle
 
-Call the connected `animation.toggle()` operation to start the enter or leave lifecycle according to the child Model's `isShowing` value. It returns a parent Step that reads and writes the child Model through the connection.
+Call the bound `animation.toggle()` operation to start the enter or leave lifecycle according to the child Model's `isShowing` value. It returns a parent Step that reads and writes the child Model through the Binding.
 
 ### InitConfig {#init-config}
 
@@ -126,15 +126,15 @@ Configuration object passed to `Animation.init()`.
 
 ### show and hide
 
-Call the connected `animation.show()` and `animation.hide()` operations from the parent. They return parent Steps that preserve the next Animation Model and any Commands; do not construct `Animation.Message.Showed()` or `Animation.Message.Hid()` from the parent.
+Call the bound `animation.show()` and `animation.hide()` operations from the parent. They return parent Steps that preserve the next Animation Model and any Commands; do not construct `Animation.Message.Showed()` or `Animation.Message.Hid()` from the parent.
 
 ### finish
 
-Call the connection-projected `animation.finish(generation)` operation when a parent observes that the current animation has ended. It returns a parent Step and preserves the Animation's generation check: a result from an older transition does not finish a newer one. A parent-owned Command reports its own completion Message; the parent handles that result by invoking this operation.
+Call the Binding-projected `animation.finish(generation)` operation when a parent observes that the current animation has ended. It returns a parent Step and preserves the Animation's generation check: a result from an older transition does not finish a newer one. A parent-owned Command reports its own completion Message; the parent handles that result by invoking this operation.
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the Animation connection's `embedView` method. The connection supplies the canonical view, Message wrapper, and composition scope. Use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass the child Model as `model` and these fields as `viewInputs` to the Animation Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name          | Type                            | Default | Description                                                                                                                                        |
 | ------------- | ------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -146,7 +146,7 @@ Pass the child Model as `model` and these fields as `viewInputs` to the Animatio
 
 ### OutMessage
 
-Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the connection’s `outMessage.fold` policy.
+Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s `outMessage.fold` policy.
 
 | Name                    | Type         | Default | Description                                                                                                                                                                                                                                                                                                                                  |
 | ----------------------- | ------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

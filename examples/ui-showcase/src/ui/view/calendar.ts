@@ -11,9 +11,9 @@ import type {
 } from '@foldkit/ui/calendar'
 
 import * as Icon from '../../icon'
-import { RegisteredUiDefinition, calendarBasicDemo } from '../update'
+import { UiComposition, calendarBasicDemo } from '../childBindings'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof UiComposition>
 
 const containerClassName =
   'inline-flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm select-none min-w-[304px] min-h-[324px]'
@@ -64,7 +64,7 @@ const headingButton = (
     [heading.text, Icon.chevronDown('w-3 h-3')],
   )
 
-const weekRow = (week: Week, h: HtmlBuilder): Html =>
+const weekRow = UiComposition.render.withInput<Week>()((week, h) =>
   h.div(
     [...week.attributes, h.Class(rowClassName)],
     week.cells.map(cell =>
@@ -78,98 +78,105 @@ const weekRow = (week: Week, h: HtmlBuilder): Html =>
         ],
       ),
     ),
-  )
+  ),
+)
 
 // MODES
 
-const daysView = (days: DaysModeAttributes, h: HtmlBuilder): Html =>
-  h.div(
-    [...days.root, h.Class(containerClassName)],
-    [
-      h.div(
-        [h.Class(headerClassName)],
-        [
-          navButton(days.previousMonthButton, Icon.chevronLeft('w-5 h-5'), h),
-          headingButton(days.heading, days.headingButton, h),
-          navButton(days.nextMonthButton, Icon.chevronRight('w-5 h-5'), h),
-        ],
-      ),
-      h.div(
-        [...days.grid, h.Class(gridClassName)],
-        [
-          h.div(
-            [...days.headerRow, h.Class(rowClassName)],
-            days.columnHeaders.map(header =>
-              h.div(
-                [...header.attributes, h.Class(columnHeaderClassName)],
-                [header.name],
+const daysView = UiComposition.render.withInput<DaysModeAttributes>()(
+  (days, h) =>
+    h.div(
+      [...days.root, h.Class(containerClassName)],
+      [
+        h.div(
+          [h.Class(headerClassName)],
+          [
+            navButton(days.previousMonthButton, Icon.chevronLeft('w-5 h-5'), h),
+            headingButton(days.heading, days.headingButton, h),
+            navButton(days.nextMonthButton, Icon.chevronRight('w-5 h-5'), h),
+          ],
+        ),
+        h.div(
+          [...days.grid, h.Class(gridClassName)],
+          [
+            h.div(
+              [...days.headerRow, h.Class(rowClassName)],
+              days.columnHeaders.map(header =>
+                h.div(
+                  [...header.attributes, h.Class(columnHeaderClassName)],
+                  [header.name],
+                ),
               ),
             ),
-          ),
-          ...days.weeks.map(week => weekRow(week, h)),
-        ],
-      ),
-    ],
-  )
+            ...days.weeks.map(week => weekRow(week, h)),
+          ],
+        ),
+      ],
+    ),
+)
 
-const monthsView = (months: MonthsModeAttributes, h: HtmlBuilder): Html =>
-  h.div(
-    [...months.root, h.Class(containerClassName)],
-    [
-      h.div(
-        [h.Class(`${headerClassName} justify-center`)],
-        [headingButton(months.heading, months.headingButton, h)],
-      ),
-      h.div(
-        [...months.grid, h.Class(monthYearGridClassName)],
-        months.cells.map(cell =>
-          h.div(
-            [...cell.cellAttributes, h.Class(cellClassName)],
-            [
-              h.button(
-                [...cell.buttonAttributes, h.Class(monthYearButtonClassName)],
-                [cell.shortLabel],
-              ),
-            ],
+const monthsView = UiComposition.render.withInput<MonthsModeAttributes>()(
+  (months, h) =>
+    h.div(
+      [...months.root, h.Class(containerClassName)],
+      [
+        h.div(
+          [h.Class(`${headerClassName} justify-center`)],
+          [headingButton(months.heading, months.headingButton, h)],
+        ),
+        h.div(
+          [...months.grid, h.Class(monthYearGridClassName)],
+          months.cells.map(cell =>
+            h.div(
+              [...cell.cellAttributes, h.Class(cellClassName)],
+              [
+                h.button(
+                  [...cell.buttonAttributes, h.Class(monthYearButtonClassName)],
+                  [cell.shortLabel],
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    ],
-  )
+      ],
+    ),
+)
 
-const yearsView = (years: YearsModeAttributes, h: HtmlBuilder): Html =>
-  h.div(
-    [...years.root, h.Class(containerClassName)],
-    [
-      h.div(
-        [h.Class(headerClassName)],
-        [
-          navButton(years.previousPageButton, Icon.chevronLeft('w-5 h-5'), h),
-          h.h2(
-            [h.Id(years.heading.id), h.Class(headingTextClassName)],
-            [years.heading.text],
-          ),
-          navButton(years.nextPageButton, Icon.chevronRight('w-5 h-5'), h),
-        ],
-      ),
-      h.div(
-        [...years.grid, h.Class(monthYearGridClassName)],
-        years.cells.map(cell =>
-          h.div(
-            [...cell.cellAttributes, h.Class(cellClassName)],
-            [
-              h.button(
-                [...cell.buttonAttributes, h.Class(monthYearButtonClassName)],
-                [cell.label],
-              ),
-            ],
+const yearsView = UiComposition.render.withInput<YearsModeAttributes>()(
+  (years, h) =>
+    h.div(
+      [...years.root, h.Class(containerClassName)],
+      [
+        h.div(
+          [h.Class(headerClassName)],
+          [
+            navButton(years.previousPageButton, Icon.chevronLeft('w-5 h-5'), h),
+            h.h2(
+              [h.Id(years.heading.id), h.Class(headingTextClassName)],
+              [years.heading.text],
+            ),
+            navButton(years.nextPageButton, Icon.chevronRight('w-5 h-5'), h),
+          ],
+        ),
+        h.div(
+          [...years.grid, h.Class(monthYearGridClassName)],
+          years.cells.map(cell =>
+            h.div(
+              [...cell.cellAttributes, h.Class(cellClassName)],
+              [
+                h.button(
+                  [...cell.buttonAttributes, h.Class(monthYearButtonClassName)],
+                  [cell.label],
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    ],
-  )
+      ],
+    ),
+)
 
-export const view = RegisteredUiDefinition.view((model, h) => {
+export const view = UiComposition.view((model, h) => {
   const calendarView = Match.type<CalendarAttributes>().pipe(
     Match.tagsExhaustive({
       Days: days => daysView(days, h),

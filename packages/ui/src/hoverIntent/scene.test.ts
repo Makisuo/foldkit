@@ -19,21 +19,22 @@ const foldHoverIntentOutMessage = OutMessage.match<Update.Step<Model, Message>>(
   },
 )
 
-const hoverIntent = block.connection({
+const hoverIntent = HoverIntentSceneDefinition.bindChild(block, {
   read: (model: Model) => Option.some(model),
   write: (_model: Model, nextHoverIntent: Model) => nextHoverIntent,
   toParentMessage: (message: Message): Message => message,
   outMessage: { fold: foldHoverIntentOutMessage },
 })
 
-const RegisteredHoverIntentSceneDefinition =
-  HoverIntentSceneDefinition.register({ children: [hoverIntent] })
+const HoverIntentSceneComposition = HoverIntentSceneDefinition.toComposition({
+  children: [hoverIntent],
+})
 
 const update = HoverIntentSceneDefinition.update((model, message) =>
   hoverIntent.fold(model, message),
 )
 
-const sceneView = RegisteredHoverIntentSceneDefinition.view((model, h) =>
+const sceneView = HoverIntentSceneComposition.view((model, h) =>
   h.block(
     hoverIntent.embedView({
       slotId: 'hover-intent',

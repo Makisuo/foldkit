@@ -14,11 +14,11 @@ import {
   sortable,
 } from '@foldkit/ui/dragAndDrop'
 
+import { UiComposition } from '../childBindings'
 import { Message } from '../message'
 import type { DemoCard, DemoColumn } from '../model'
-import { RegisteredUiDefinition } from '../update'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof UiComposition>
 
 const cardClassName =
   'rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 cursor-grab active:cursor-grabbing select-none transition-opacity'
@@ -79,11 +79,11 @@ const cardView = (
   )
 }
 
-const dropPlaceholder = (h: HtmlBuilder): Html => {
+const dropPlaceholder = UiComposition.render.builder(h => {
   return h.keyed('div')('drop-placeholder', [
     h.Class('rounded-lg border-2 border-dashed border-accent-400/50 h-9'),
   ])
-}
+})
 
 const renderColumn = (
   column: DemoColumn,
@@ -210,7 +210,7 @@ const ghostView = (
   )
 }
 
-export const view = RegisteredUiDefinition.view((model, h) => {
+export const view = UiComposition.view((model, h) => {
   return h.div(
     [],
     [

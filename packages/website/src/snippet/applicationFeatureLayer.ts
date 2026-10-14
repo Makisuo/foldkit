@@ -1,9 +1,9 @@
 import { Layer } from 'effect'
 
+import { ProductCatalogLayer } from './catalog'
 import { LoadProducts } from './command'
 import { managedResources } from './managedResource'
 import { MeasureProductGrid } from './mount'
-import { ProductCatalogLayer } from './service'
 import { subscriptions } from './subscription'
 
 export const EffectsLayer = Layer.provide(

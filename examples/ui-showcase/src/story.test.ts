@@ -8,8 +8,11 @@ import { describe, expect, test } from 'vitest'
 import { Dialog } from '@foldkit/ui'
 import { CloseDialog, boot as bootDialog } from '@foldkit/ui/dialog'
 
-import { ApplicationRoute, Message, type Model, update } from './application'
+import { Message } from './message'
+import { type Model } from './model'
+import { ApplicationRoute } from './route'
 import { init } from './ui/init'
+import { update } from './update'
 
 const today = Calendar.make(2026, 4, 16)
 const init_ = init(today)

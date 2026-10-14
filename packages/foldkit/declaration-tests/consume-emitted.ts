@@ -1,6 +1,8 @@
 import { Effect, Layer } from 'effect'
+import type { HtmlBuilderOf as ApplicationHtmlBuilderOf } from 'foldkit/application'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
+import type { Html } from 'foldkit/html'
 import * as Runtime from 'foldkit/runtime'
 import * as Update from 'foldkit/update'
 
@@ -16,6 +18,8 @@ import {
   DirectModel,
   Measure,
   Parent,
+  ParentComposition,
+  ParentMessage,
   ParentModel,
   ProvisionDependencyLayer,
   ProvisionExtra,
@@ -29,11 +33,19 @@ import {
   childInspection,
   contextualRefreshChild,
   directChild,
+  applicationBuilderRender,
+  applicationInputRender,
+  applicationModelRender,
+  ApplicationComposition,
   makePageProgram,
   makeProgram,
   makeProvisionElement,
   makeProvisionPageAwaitingDependency,
   provisionPorts,
+  parentArrayRender,
+  parentBuilderRender,
+  parentInputRender,
+  parentModelRender,
   refreshDirectValue,
   renderPage,
 } from './accepted.js'
@@ -45,6 +57,12 @@ type Equal<Left, Right> =
     ? true
     : false
 type Expect<Value extends true> = Value
+type CommandMessageOfReturn<Value> =
+  Value extends Readonly<{
+    commands?: Update.Commands<infer Message, any> | undefined
+  }>
+    ? Message
+    : never
 
 const childModel = ChildModel.make({ value: 1 })
 const directModel = DirectModel.make({ value: 1 })
@@ -102,10 +120,22 @@ type EmittedBoundRequirementsAreExact = Expect<
 type EmittedBoundEvidenceIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<ReturnType<typeof child.refresh>>>,
-    Block.ConnectionRequirement<'child', typeof Child>
+    Block.BindingRequirement<'child', typeof Child>
   >
 >
-type EmittedConnectionStringKeysAreExact = Expect<
+type EmittedAccessorMappedMessageIsExact = Expect<
+  Equal<
+    CommandMessageOfReturn<ReturnType<typeof child.fold>>,
+    ReturnType<typeof ParentMessage.GotChildMessage>
+  >
+>
+type EmittedDirectMappedMessageIsExact = Expect<
+  Equal<
+    CommandMessageOfReturn<ReturnType<typeof directChild.fold>>,
+    ReturnType<typeof ParentMessage.GotChildMessage>
+  >
+>
+type EmittedBindingStringKeysAreExact = Expect<
   Equal<
     Extract<keyof typeof child, string>,
     'placement' | 'init' | 'fold' | 'embedView' | 'refresh'
@@ -155,13 +185,65 @@ type EmittedCompletedChoiceInputIsExact = Expect<
 type EmittedCompletedChildMountsAreExact = Expect<
   Equal<CompletedChild['mounts'][number], typeof Measure>
 >
+type EmittedParentModelRenderParametersAreExact = Expect<
+  Equal<
+    Parameters<typeof parentModelRender>,
+    [model: ParentModel, h: Block.HtmlBuilderOf<typeof ParentComposition>]
+  >
+>
+type EmittedParentBuilderRenderParametersAreExact = Expect<
+  Equal<
+    Parameters<typeof parentBuilderRender>,
+    [h: Block.HtmlBuilderOf<typeof ParentComposition>]
+  >
+>
+type EmittedParentInputRenderParametersAreExact = Expect<
+  Equal<
+    Parameters<typeof parentInputRender>,
+    [
+      input: typeof ChildModel.Type,
+      h: Block.HtmlBuilderOf<typeof ParentComposition>,
+    ]
+  >
+>
+type EmittedParentArrayRenderOutputIsHtmlArray = Expect<
+  ReturnType<typeof parentArrayRender> extends ReadonlyArray<Html>
+    ? true
+    : false
+>
+type EmittedApplicationModelRenderParametersAreExact = Expect<
+  Equal<
+    Parameters<typeof applicationModelRender>,
+    [
+      model: ParentModel,
+      h: ApplicationHtmlBuilderOf<typeof ApplicationComposition>,
+    ]
+  >
+>
+type EmittedApplicationBuilderRenderParametersAreExact = Expect<
+  Equal<
+    Parameters<typeof applicationBuilderRender>,
+    [h: ApplicationHtmlBuilderOf<typeof ApplicationComposition>]
+  >
+>
+type EmittedApplicationInputRenderParametersAreExact = Expect<
+  Equal<
+    Parameters<typeof applicationInputRender>,
+    [
+      input: typeof ChildModel.Type,
+      h: ApplicationHtmlBuilderOf<typeof ApplicationComposition>,
+    ]
+  >
+>
 
 export type EmittedAssertions = [
   EmittedServicesAreExact,
   EmittedErrorIsExact,
   EmittedBoundRequirementsAreExact,
   EmittedBoundEvidenceIsExact,
-  EmittedConnectionStringKeysAreExact,
+  EmittedAccessorMappedMessageIsExact,
+  EmittedDirectMappedMessageIsExact,
+  EmittedBindingStringKeysAreExact,
   EmittedInspectionServicesAreExact,
   EmittedInspectionErrorIsExact,
   EmittedInspectionMountsAreExact,
@@ -174,6 +256,13 @@ export type EmittedAssertions = [
   EmittedCompletedChoiceIsExact,
   EmittedCompletedChoiceInputIsExact,
   EmittedCompletedChildMountsAreExact,
+  EmittedParentModelRenderParametersAreExact,
+  EmittedParentBuilderRenderParametersAreExact,
+  EmittedParentInputRenderParametersAreExact,
+  EmittedParentArrayRenderOutputIsHtmlArray,
+  EmittedApplicationModelRenderParametersAreExact,
+  EmittedApplicationBuilderRenderParametersAreExact,
+  EmittedApplicationInputRenderParametersAreExact,
   EmittedPagePortsAreExact,
   EmittedElementPortsAreExact,
 ]

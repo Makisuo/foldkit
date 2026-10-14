@@ -18,4 +18,4 @@ export {
   type ViewInputs,
   view,
   block,
-} from './datePicker.js'
+} from './block.js'

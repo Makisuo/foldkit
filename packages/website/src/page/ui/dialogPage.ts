@@ -3,7 +3,7 @@ import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import * as Dialog from './demo/dialog'
 import raw from './dialogPage.md'
-import { RegisteredUiDefinition } from './update'
+import { UiComposition } from './update'
 
 const { tableOfContents, view: renderPage } = slotDocPage<
   'dialog' | 'animated' | 'overlay' | 'nested'
@@ -17,7 +17,7 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = RegisteredUiDefinition.view.withInputs<ViewInputs>(
+export const view = UiComposition.view.withInputs<ViewInputs>(
   (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h) =>
     renderPage({
       demos: {

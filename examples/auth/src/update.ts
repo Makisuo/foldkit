@@ -3,7 +3,8 @@ import { UrlRequest } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
-import { Application } from './application'
+import { ApplicationComposition } from './application'
+import { loggedIn, loggedOut } from './childBindings'
 import {
   LoadExternal,
   LogError,
@@ -11,11 +12,10 @@ import {
   RedirectToDashboard,
   RedirectToLogin,
 } from './command'
-import { loggedIn, loggedOut } from './connection'
 import { Message } from './message'
 import { urlToApplicationRoute } from './route'
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match(request, {

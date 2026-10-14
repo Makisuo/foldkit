@@ -10,17 +10,17 @@ import {
 } from '@foldkit/ui/combobox'
 
 import * as Icon from '../../icon'
-import type { City } from '../model'
 import {
-  RegisteredUiDefinition,
+  UiComposition,
   comboboxDemo,
   comboboxMultiDemo,
   comboboxNullableDemo,
   comboboxPlacementLockDemo,
   comboboxSelectOnFocusDemo,
-} from '../update'
+} from '../childBindings'
+import type { City } from '../model'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof UiComposition>
 
 const CITIES: ReadonlyArray<City> = [
   'Johannesburg',
@@ -116,7 +116,7 @@ export const comboboxInputs = (
   }
 }
 
-export const view = RegisteredUiDefinition.view((model, h) => {
+export const view = UiComposition.view((model, h) => {
   return h.div(
     [],
     [

@@ -11,6 +11,7 @@ import {
 import {
   indexReferences,
   blockBindingMethod,
+  blockBindingConfiguration,
   isCallExpression,
   isIdentifier,
   isMemberExpression,
@@ -143,9 +144,9 @@ const subscriptionLiftMapperArrow = (
     : Option.none()
 
   return pipe(
-    isBinding ? Option.some('Block.connection') : maybeLift,
+    isBinding ? Option.some('Definition.bindChild') : maybeLift,
     Option.flatMap(() => {
-      const [configArgument] = node.arguments
+      const configArgument = blockBindingConfiguration(node)
       if (!isObjectExpression(configArgument)) {
         return Option.none()
       }
@@ -176,7 +177,7 @@ const bindingParentMessageReference = (
     return Option.none()
   }
 
-  const [configArgument] = node.arguments
+  const configArgument = blockBindingConfiguration(node)
   if (!isObjectExpression(configArgument)) {
     return Option.none()
   }

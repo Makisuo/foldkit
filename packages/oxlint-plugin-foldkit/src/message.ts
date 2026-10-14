@@ -156,7 +156,7 @@ const isLocalQueryMessageReference = (
     )
   })
 
-const enclosingMemberCall = (
+const enclosingBlockArgument = (
   node: ESTree.Node,
 ): Option.Option<ESTree.CallExpression> => {
   const parent = node.parent
@@ -165,10 +165,11 @@ const enclosingMemberCall = (
   }
 
   if (isMemberExpression(parent) && parent.object === node) {
-    return enclosingMemberCall(parent)
+    return enclosingBlockArgument(parent)
   }
 
-  return isCallExpression(parent) && parent.callee === node
+  return isCallExpression(parent) &&
+    Option.contains(Array.head(parent.arguments), node)
     ? Option.some(parent)
     : Option.none()
 }
@@ -189,7 +190,7 @@ const hasBlockBindingUse = (
   references: WeakMap<ESTree.Node, Reference>,
 ): boolean =>
   variable.references.some(reference =>
-    Option.exists(enclosingMemberCall(reference.identifier), call =>
+    Option.exists(enclosingBlockArgument(reference.identifier), call =>
       Option.isSome(blockBindingMethod(call, references)),
     ),
   )

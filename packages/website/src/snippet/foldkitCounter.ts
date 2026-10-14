@@ -15,7 +15,9 @@ type Message = typeof Message.Type
 
 const ApplicationDefinition = defineApplication({ Model, Message })
 
-const update = ApplicationDefinition.update((model, message) =>
+const ApplicationComposition = ApplicationDefinition.toComposition()
+
+const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + 1 }),
@@ -23,7 +25,7 @@ const update = ApplicationDefinition.update((model, message) =>
   }),
 )
 
-const view = ApplicationDefinition.view((model, h) => ({
+const view = ApplicationComposition.view((model, h) => ({
   title: `Count: ${model.count}`,
   body: h.div(
     [],

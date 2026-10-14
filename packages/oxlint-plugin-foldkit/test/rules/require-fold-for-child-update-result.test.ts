@@ -433,11 +433,12 @@ it('detects copied child results using completed Block binding evidence', () => 
     type: 'CallExpression',
     callee: {
       type: 'MemberExpression',
-      object: Testing.id('Settings'),
-      property: Testing.id('connection'),
+      object: Testing.id('ApplicationDefinition'),
+      property: Testing.id('bindChild'),
       computed: false,
     },
     arguments: [
+      Testing.id('Settings'),
       objectExpression([
         property('read', readChild('settings')),
         property('write', writeChild('settings')),
@@ -456,10 +457,10 @@ it('detects copied child results using completed Block binding evidence', () => 
   expect(result).toHaveLength(1)
 })
 
-it('detects copied child results using direct field connection shorthand', () => {
-  const binding = Testing.callOfMember('Settings', 'connection', [
+it('detects copied child results using direct field Binding shorthand', () => {
+  const binding = Testing.callOfMember('ApplicationDefinition', 'bindChild', [
+    Testing.id('Settings'),
     objectExpression([
-      property('Model', Testing.id('Model')),
       property('field', Testing.strLiteral('settings')),
       property(
         'parentMessage',
@@ -478,7 +479,7 @@ it('detects copied child results using direct field connection shorthand', () =>
   expect(result).toHaveLength(1)
 })
 
-it('detects copied child results using keyedConnection evidence', () => {
+it('detects copied child results using keyed Binding evidence', () => {
   const readAll = Testing.arrowFn(
     {
       type: 'ArrayExpression',
@@ -486,7 +487,8 @@ it('detects copied child results using keyedConnection evidence', () => {
     },
     [Testing.id('model')],
   )
-  const binding = Testing.callOfMember('Settings', 'keyedConnection', [
+  const binding = Testing.callOfMember('ApplicationDefinition', 'bindChild', [
+    Testing.id('Settings'),
     objectExpression([
       property('readAll', readAll),
       property(

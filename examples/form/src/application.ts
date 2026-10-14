@@ -63,6 +63,8 @@ export type Message = typeof Message.Type
 
 export const ApplicationDefinition = defineApplication({ Model, Message })
 
+export const ApplicationComposition = ApplicationDefinition.toComposition()
+
 export const initialModel: Model = {
   name: NotValidated({ value: '' }),
   email: NotValidated({ value: '' }),
@@ -121,7 +123,7 @@ const isFormValid = (model: Model): boolean =>
     [model.email, emailRules],
   ])
 
-export const update = ApplicationDefinition.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     UpdatedName: ({ value }) => ({
       model: modifyFields(model, {
@@ -368,7 +370,7 @@ const textareaFieldView = (
     h,
   )
 
-export const view = ApplicationDefinition.view((model, h) => {
+export const view = ApplicationComposition.view((model, h) => {
   const canSubmit = isFormValid(model) && model.submission._tag !== 'Submitting'
 
   const body = h.div(

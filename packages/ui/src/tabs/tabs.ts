@@ -9,7 +9,6 @@ import {
   pipe,
 } from 'effect'
 import { type Update } from 'foldkit'
-import * as Block from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { type MessageUnion, defineMessageUnion } from 'foldkit/message'
@@ -17,8 +16,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { idSelector } from '../internal/selectors.js'
 import { keyToIndex } from '../keyboard.js'
-
-const TabsDefinition = Block.define('Tabs')
+import { TabsDefinition as SharedTabsDefinition } from './definition.js'
 
 export { wrapIndex, findFirstEnabledIndex, keyToIndex } from '../keyboard.js'
 
@@ -120,6 +118,12 @@ const tabId = (id: string, index: number): string => `${id}-tab-${index}`
 
 const tabPanelId = (id: string, index: number): string => `${id}-panel-${index}`
 
+const TabsDefinition = SharedTabsDefinition.define({
+  Model,
+  Message,
+  OutMessage,
+})
+
 /** Moves focus to the tab at the given index. */
 export const FocusTab = TabsDefinition.command('FocusTab', {
   args: { id: Schema.String, index: Schema.Number },
@@ -136,17 +140,11 @@ export const FocusTab = TabsDefinition.command('FocusTab', {
 /** Effect providers used by the Tabs component. */
 export const EffectsLayer = Layer.mergeAll(FocusTab.layer)
 
-const TypedTabsDefinition = TabsDefinition.define({
-  Model,
-  Message,
-  OutMessage,
-})
-
 /** Processes a Tabs Message and returns the next Model, optional Commands, and
  *  an optional OutMessage. `Selected` fires when a tab is committed via click
  *  or keyboard; the parent stores the new value and passes it back in as
  *  `selectedValue`. */
-export const update = TypedTabsDefinition.update((model, message) =>
+export const update = TabsDefinition.update((model, message) =>
   Message.match(message, {
     SelectedTab: ({ index, value }) => ({
       model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),
@@ -222,7 +220,9 @@ export type ViewInputs<Value extends string = string> = Readonly<{
   panelMount?: PanelMount
 }>
 
-const internalView = TypedTabsDefinition.view.withInputs<ViewInputs>(
+const TabsComposition = TabsDefinition.toComposition()
+
+const internalView = TabsComposition.view.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const { id, activationMode, maybeFocusedIndex } = model
     const {
@@ -383,7 +383,7 @@ const internalView = TypedTabsDefinition.view.withInputs<ViewInputs>(
 )
 
 /** Complete Tabs Block definition. */
-export const block = TypedTabsDefinition.toBlock({
+export const block = TabsComposition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),
   update,
   view: internalView,
@@ -404,12 +404,12 @@ const makeBlock = <Value extends string>() => {
   const RefinedOutMessage =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     OutMessage as unknown as OutMessageSchema<Value>
-  const ValueTabsDefinition = TabsDefinition.define({
+  const TabsDefinition = SharedTabsDefinition.define({
     Model,
     Message,
     OutMessage: RefinedOutMessage,
   })
-  const refinedUpdate = ValueTabsDefinition.update((model, message) =>
+  const refinedUpdate = TabsDefinition.update((model, message) =>
     castReturn(update(model, message)),
   )
   const refinedView =
@@ -419,10 +419,11 @@ const makeBlock = <Value extends string>() => {
       viewInputs: ViewInputs<Value>,
       h: Parameters<typeof internalView>[2],
     ) => Html
-  const view = ValueTabsDefinition.view.withInputs<ViewInputs<Value>>(
+  const TabsComposition = TabsDefinition.toComposition()
+  const view = TabsComposition.view.withInputs<ViewInputs<Value>>(
     (model, viewInputs, h) => refinedView(model, viewInputs, h),
   )
-  return ValueTabsDefinition.toBlock({
+  return TabsComposition.toBlock({
     init: (config: InitConfig) => ({ model: init(config) }),
     update: refinedUpdate,
     view,

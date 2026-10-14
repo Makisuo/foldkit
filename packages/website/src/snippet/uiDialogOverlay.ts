@@ -74,25 +74,24 @@ const foldComboboxOutMessage = CityCombobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const dialog = Dialog.block.connection({
+const FilterDialogDefinition = Block.define('FilterDialog', {
   Model,
+  Message,
+})
+
+const dialog = FilterDialogDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const combobox = CityCombobox.connection({
-  Model,
+const combobox = FilterDialogDefinition.bindChild(CityCombobox, {
   field: 'combobox',
   parentMessage: Message.GotComboboxMessage,
   outMessage: { fold: foldComboboxOutMessage },
 })
 
-const FilterDialogDefinition = Block.define('FilterDialog', {
-  Model,
-  Message,
-})
-const RegisteredFilterDialogDefinition = FilterDialogDefinition.register({
+const FilterDialogComposition = FilterDialogDefinition.toComposition({
   children: [dialog, combobox],
 })
 
@@ -108,7 +107,7 @@ const update = FilterDialogDefinition.update((model, message) =>
 // Give the panel `relative` so it paints above the Dialog backdrop, and the
 // Combobox wrapper `relative` so the input stays above the Combobox backdrop,
 // which goes directly before that wrapper.
-const view = RegisteredFilterDialogDefinition.view((model, h) => {
+const view = FilterDialogComposition.view((model, h) => {
   const dialogView = ({
     dialog,
     backdrop,

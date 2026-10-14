@@ -2,6 +2,7 @@ import { Effect, Layer, Match, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 import { Url } from 'foldkit/url'
 
+import { loggedIn, loggedOut } from './childBindings'
 import {
   ClearSession,
   LoadExternal,
@@ -12,13 +13,12 @@ import {
   RedirectToLogin,
   SaveSession,
 } from './command'
-import { loggedIn, loggedOut } from './connection'
 import { SESSION_STORAGE_KEY } from './constant'
 import { ApplicationDefinition } from './definition'
 import { Session, SessionJsonString } from './domain/session'
 import { ApplicationRoute, urlToApplicationRoute } from './route'
 
-export const Application = ApplicationDefinition.register({
+export const ApplicationComposition = ApplicationDefinition.toComposition({
   children: [loggedOut, loggedIn],
 })
 

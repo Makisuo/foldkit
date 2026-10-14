@@ -99,7 +99,7 @@ const itemBase = Item.define({
   Model: ItemModel,
   Message: ItemMessage,
 })
-const item = itemBase.register({ mounts: [ObserveValue] })
+const item = itemBase.toComposition({ mounts: [ObserveValue] })
 const subscriptions = itemBase.subscriptions(entry => ({
   activePulse: entry(
     'ActivePulse',
@@ -202,21 +202,23 @@ const RootMessage = defineMessageUnion({
   ClickedAddReplacement: {},
   ClickedRestoreFirst: {},
 })
-const entries = itemBlock.keyedConnection({
-  readAll: (model: typeof RootModel.Type) => model.entries,
-  key: entry => entry.id,
-  read: entry => entry,
-  writeAt: (model, id, nextItem) =>
-    modifyFields(model, {
-      entries: Array.map(entry => (entry.id === id ? nextItem : entry)),
-    }),
-  toParentMessage: (id, message) => RootMessage.GotItemMessage({ id, message }),
-})
 const rootBase = defineApplication({
   Model: RootModel,
   Message: RootMessage,
 })
-const root = rootBase.register({ children: [entries] })
+const entries = rootBase.bindChild(itemBlock, {
+  placement: 'entries',
+  readAll: (model: typeof RootModel.Type) => model.entries,
+  key: entry => entry.id,
+  read: entry => entry,
+  writeAt: (model, id: number, nextItem) =>
+    modifyFields(model, {
+      entries: Array.map(entry => (entry.id === id ? nextItem : entry)),
+    }),
+  toParentMessage: (id: number, message) =>
+    RootMessage.GotItemMessage({ id, message }),
+})
+const root = rootBase.toComposition({ children: [entries] })
 const firstEntry = entries.init(1, 1, 'old').model
 const rootInit = () => ({
   model: {

@@ -2,16 +2,19 @@
 '@foldkit/ui': minor
 ---
 
-Expose each stateful Foldkit UI component as a completed Block. Connect components at the Block that owns them and register those connections under `children`. Composition then carries their handler Layers, Mounts, Subscriptions, and ManagedResources to the application root.
+Expose each stateful Foldkit UI component as a completed Block. The owning parent creates Bindings with `bindChild` and includes them under its Composition's `children`. Composition carries handler Layers, Mounts, Subscriptions, and ManagedResources to the application root.
 
 Before:
 
 ```ts
+import { Menu } from '@foldkit/ui'
 import { Submodel } from 'foldkit'
-import { Menu, Tabs } from '@foldkit/ui'
+
+import { Message } from './message'
+import { Model } from './model'
+import { menuViewInputs } from './viewInputs'
 
 const AppMenu = Menu.create<string>()
-const AppTabs = Tabs.create<Tab>()
 
 export const mounts = Menu.mounts
 
@@ -32,33 +35,33 @@ After:
 import { Menu, Tabs } from '@foldkit/ui'
 import { Block } from 'foldkit'
 
-import { Model, type Tab } from './model'
-import { Message } from './message'
 import { foldMenuOutMessage, foldTabsOutMessage } from './outMessage'
+import { Message } from './message'
+import { Model, type Tab } from './model'
 import { menuViewInputs } from './viewInputs'
 
 const AppMenu = Menu.create()
 const AppTabs = Tabs.create<Tab>()
 
-const menu = AppMenu.connection({
-  Model,
+const PanelDefinition = Block.define('Panel', { Model, Message })
+
+const menu = PanelDefinition.bindChild(AppMenu, {
   field: 'menu',
   parentMessage: Message.GotMenuMessage,
   outMessage: { fold: foldMenuOutMessage },
 })
 
-const tabs = AppTabs.connection({
-  Model,
+const tabs = PanelDefinition.bindChild(AppTabs, {
   field: 'tabs',
   parentMessage: Message.GotTabsMessage,
   outMessage: { fold: foldTabsOutMessage },
 })
 
-const PanelDefinition = Block.define('Panel', { Model, Message }).register({
+const PanelComposition = PanelDefinition.toComposition({
   children: [menu, tabs],
 })
 
-export const view = PanelDefinition.view((model, h) =>
+export const view = PanelComposition.view((model, h) =>
   h.block(
     menu.embedView({
       slotId: model.menu.id,
@@ -69,43 +72,48 @@ export const view = PanelDefinition.view((model, h) =>
 )
 ```
 
-Do not export or compose a package-wide UI handler bundle. Register only the components the owner actually embeds. A connection makes the parent-child relationship explicit once and gives update `connection.fold` for received child Messages and direct named operations such as `connection.open()` for parent-driven changes, while view uses `connection.embedView`.
+Register only the components the owner embeds. A Binding makes the parent-child relationship explicit once: update uses `binding.fold` for received child Messages and direct exposed operations such as `binding.open()` for parent-driven changes, while view uses `binding.embedView`.
 
-Factories live on the component namespace: `Combobox.create`, `Combobox.Multi.create`, `Listbox.create`, `Listbox.Multi.create`, `Menu.create`, `Tabs.create`, `RadioGroup.create`, `VirtualList.create`, and `Toast.make`. Factory instances retain stable local names; connection placement and keys distinguish occurrences. Toast no longer needs a caller-supplied effect name. Schema-taking factories such as `Combobox.create(City)` preserve decoded Item payloads. Type-only factories such as `Tabs.create<Tab>()` preserve the selected value type. Import ViewInputs and domain helpers from component subpaths; the completed value itself carries its Model, Message, and declared OutMessage matcher.
+Factories live on the component namespace: `Combobox.create`, `Combobox.Multi.create`, `Listbox.create`, `Listbox.Multi.create`, `Menu.create`, `Tabs.create`, `RadioGroup.create`, `VirtualList.create`, and `Toast.make`. Factory instances retain stable local names; Binding placement and keys distinguish occurrences. Schema-taking factories such as `Combobox.create(City)` preserve decoded Item payloads. Type-only factories such as `Tabs.create<Tab>()` preserve selected value types. Import ViewInputs and domain helpers from component subpaths; the completed value carries its Model, Message, and declared OutMessage matcher.
 
 ```ts
 import { Toast } from '@foldkit/ui'
 import { Schema } from 'effect'
+import { define as defineApplication } from 'foldkit/application'
 
-import { Model } from './model'
-import { Message } from './message'
 import { foldToastOutMessage } from './outMessage'
+import { Message } from './message'
+import { Model } from './model'
 
 const ToastPayload = Schema.Struct({ message: Schema.String })
 const AppToast = Toast.make(ToastPayload)
 
-const toast = AppToast.connection({
-  Model,
+const ApplicationDefinition = defineApplication({ Model, Message })
+
+const toast = ApplicationDefinition.bindChild(AppToast, {
   field: 'toast',
   parentMessage: Message.GotToastMessage,
   outMessage: { fold: foldToastOutMessage },
 })
 ```
 
-The connection contributes Toast's swipe Subscription and handler recipe automatically. Scene swipe events continue to use `Subscription.emit` with the registration reached through the completed Block.
+The Binding contributes Toast's swipe Subscription and handler recipe automatically. Scene swipe events continue to use `Subscription.emit` with the registration carried by the completed Block.
 
-For dynamic keyed component collections, use `block.keyedConnection` instead of manually lifting each lifecycle registry. Every rendered occurrence needs a stable string or number key.
+For dynamic keyed component collections, use the keyed `bindChild` shape. Every rendered occurrence needs a stable string or finite number key.
 
 ```ts
 import { Dialog } from '@foldkit/ui'
+import { define as defineApplication } from 'foldkit/application'
 
-import { Model } from './model'
-import { Message } from './message'
 import { replaceDialog } from './dialog'
 import { foldDialogOutMessage } from './outMessage'
+import { Message } from './message'
+import { Model } from './model'
 
-const dialogs = Dialog.block.keyedConnection({
-  readAll: (model: Model) => model.dialogs,
+const ApplicationDefinition = defineApplication({ Model, Message })
+
+const dialogs = ApplicationDefinition.bindChild(Dialog.block, {
+  readAll: model => model.dialogs,
   key: dialog => dialog.id,
   read: dialog => dialog.model,
   writeAt: (model, dialogId, nextDialog) =>
@@ -116,4 +124,4 @@ const dialogs = Dialog.block.keyedConnection({
 })
 ```
 
-Stateless render helpers such as Button, Input, Textarea, Select, Fieldset, Checkbox, Switch, Disclosure, and Nav remain direct view functions. They do not need connections because they own no Model or lifecycle graph.
+Stateless render helpers such as Button, Input, Textarea, Select, Fieldset, Checkbox, Switch, Disclosure, and Nav remain direct view functions. They own no Model or lifecycle graph and need no Binding.

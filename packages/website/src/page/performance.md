@@ -25,7 +25,7 @@ The cost model above puts the cost of a Message on your `update` logic. What the
 
 ### Child Folds and Model Updates
 
-- `connection.fold` adds a function call and an arity check over the wiring you would otherwise write by hand. Inside, it reads the child Model, runs its update, writes the result back, maps its Commands through `toParentMessage`, and applies the connection's OutMessage policy.
+- `binding.fold` adds a function call and an arity check over the wiring you would otherwise write by hand. Inside, it reads the child Model, runs its update, writes the result back, maps its Commands through `toParentMessage`, and applies the Binding's OutMessage policy.
 - `modifyFields` is Effect’s `Struct.evolve` at runtime; the wrapper adds key checking at the type level only. It walks the struct’s own enumerable keys once and applies a transform only where you provided one, copying everything else by reference. The cost is proportional to the Model’s top-level field count, the same as an object spread, and that reference preservation is what lets [createLazy](/core/view-memoization) hit its `===` check.
 
 ### Exhaustive Message Matching

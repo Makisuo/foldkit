@@ -29,7 +29,7 @@ export const restore = SettingsDefinition.step((model, theme: Theme) =>
   update(model, Message.RestoredTheme({ theme })),
 )
 
-export const block = SettingsDefinition.toBlock({
+export const block = SettingsDefinition.toComposition().toBlock({
   init,
   update,
   expose: { restore },

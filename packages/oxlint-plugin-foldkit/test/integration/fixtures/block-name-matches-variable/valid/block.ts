@@ -1,3 +1,4 @@
+import { ImportedDefinition } from './definition'
 import { Block, Block as AliasedBlock } from 'foldkit'
 import * as Foldkit from 'foldkit'
 import { define as aliasedDefine, define } from 'foldkit/block'
@@ -14,19 +15,19 @@ const NamespaceRootDefinition = Foldkit.Block.define('NamespaceRoot')
 const SubpathDefineDefinition = define('SubpathDefine')
 const AliasedSubpathDefineDefinition = aliasedDefine('AliasedSubpathDefine')
 const SubpathNamespaceDefinition = BlockModule.define('SubpathNamespace')
-const RegisteredDefinition = Block.define('Registered', {
+const RegisteredComposition = Block.define('Registered', {
   Model,
   Message,
-}).register({})
+}).toComposition({})
 const IdentityFirstDefinition = Block.define('IdentityFirst').define({
   Model,
   Message,
 })
-const RegisteredIdentityFirstDefinition = Block.define(
+const IdentityFirstComposition = Block.define(
   'IdentityFirst',
-).define({ Model, Message }).register({})
+).define({ Model, Message }).toComposition({})
 const ApplicationDefinition = defineApplication({ Model, Message })
-const Application = defineApplication({ Model, Message }).register({})
+const ApplicationComposition = defineApplication({ Model, Message }).toComposition({})
 const DynamicBlock = AliasedBlock.define(blockName)
 const ImportedAlias = ImportedFeature
 
@@ -47,12 +48,18 @@ void NamespaceRootDefinition
 void SubpathDefineDefinition
 void AliasedSubpathDefineDefinition
 void SubpathNamespaceDefinition
-void RegisteredDefinition
+void RegisteredComposition
 void IdentityFirstDefinition
-void RegisteredIdentityFirstDefinition
+void IdentityFirstComposition
 void ApplicationDefinition
-void Application
+void ApplicationComposition
 void DynamicBlock
 void ImportedAlias
 void Unrelated
 void useShadowedBlock
+
+const SeparateDefinition = Block.define('Separate', { Model, Message })
+const SeparateComposition = SeparateDefinition.toComposition()
+const ImportedComposition = ImportedDefinition.toComposition()
+void SeparateComposition
+void ImportedComposition

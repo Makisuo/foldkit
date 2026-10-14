@@ -119,7 +119,7 @@ End anchoring never uses `flex-direction: column-reverse`; visual, DOM, keyboard
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the VirtualList connection's `embedView` method. The connection supplies the canonical view, Message wrapper, and composition scope. Keep callback fields at the top level, and use `childAttributes` for handler-bearing `containerAttributes`; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass the child Model as `model` and these fields as `viewInputs` to the VirtualList Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep callback fields at the top level, and use `childAttributes` for handler-bearing `containerAttributes`; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name                         | Type                                    | Default   | Description                                                                 |
 | ---------------------------- | --------------------------------------- | --------- | --------------------------------------------------------------------------- |

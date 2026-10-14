@@ -94,8 +94,7 @@ const foldPlaygroundFileTabsOutMessage = Tabs.OutMessage.match<
     }),
 })
 
-const fileTabs = PlaygroundFileTabs.connection({
-  Model,
+const fileTabs = PlaygroundDefinition.bindChild(PlaygroundFileTabs, {
   field: 'fileTabs',
   parentMessage: Message.GotFileTabsMessage,
   outMessage: { fold: foldPlaygroundFileTabsOutMessage },
@@ -527,12 +526,12 @@ export const SchedulePlaygroundFileWrite = PlaygroundDefinition.command(
   },
 )
 
-const RegisteredPlaygroundDefinition = PlaygroundDefinition.register({
+const PlaygroundComposition = PlaygroundDefinition.toComposition({
   mounts: [MountPlaygroundEditor],
   children: [fileTabs],
 })
 
-type ViewBuilder = Block.HtmlBuilderOf<typeof RegisteredPlaygroundDefinition>
+type ViewBuilder = Block.HtmlBuilderOf<typeof PlaygroundComposition>
 
 export const managedResources = PlaygroundDefinition.managedResources(
   entry => ({
@@ -1003,7 +1002,7 @@ type ViewInputs = Readonly<{
   maybeIsPlaygroundSupported: Option.Option<boolean>
 }>
 
-export const view = RegisteredPlaygroundDefinition.view.withInputs<ViewInputs>(
+export const view = PlaygroundComposition.view.withInputs<ViewInputs>(
   (model, { maybeIsPlaygroundSupported }, h) => {
     const maybeMeta = findBySlug(model.slug)
     const maybeFiles = Option.fromNullishOr(filesBySlug[model.slug])
@@ -1071,7 +1070,7 @@ export const view = RegisteredPlaygroundDefinition.view.withInputs<ViewInputs>(
   },
 )
 
-export const block = RegisteredPlaygroundDefinition.toBlock({
+export const block = PlaygroundComposition.toBlock({
   init,
   update,
   view,

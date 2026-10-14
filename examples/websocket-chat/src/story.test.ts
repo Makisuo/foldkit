@@ -4,14 +4,13 @@ import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import {
-  ConnectionState,
-  Message,
-  type Model,
   SendMessage,
   TimestampReceivedMessage,
   TimestampSentMessage,
-  update,
-} from './application'
+} from './command'
+import { Message } from './message'
+import { ConnectionState, type Model } from './model'
+import { update } from './update'
 
 const idleModel: Model = {
   connection: ConnectionState.Disconnected(),

@@ -51,7 +51,7 @@ const TrackPointer = Search.mountStream('TrackPointer', {
     }
   },
 })
-const search = Search.register({})
+const search = Search.toComposition({})
 const update = search.update((model, message) =>
   Message.match(message, {
     RequestedSave: ({ value }) => ({
@@ -97,12 +97,12 @@ const Shared = Early.command('Shared', {
 })
 const first = Early.define({ Model, Message })
 const second = Early.define({ Model, Message })
-const firstBlock = first.toBlock({
+const firstBlock = first.toComposition().toBlock({
   init: () => ({ model: Model.make({ value: '' }) }),
   update: first.update(model => ({ model, commands: [Shared()] })),
   EffectsLayer: Shared.layer,
 })
-const secondBlock = second.toBlock({
+const secondBlock = second.toComposition().toBlock({
   init: () => ({ model: Model.make({ value: '' }) }),
   update: second.update(model => ({ model, commands: [Shared()] })),
   EffectsLayer: Shared.layer,
@@ -111,7 +111,7 @@ it('shares one owner across specialized contracts', () => {
   expect(firstBlock.owner).toBe(secondBlock.owner)
 })
 
-it('preserves typed and primitive helpers after registration', () => {
+it('preserves typed and primitive helpers after composition', () => {
   expect(search.command).toBe(Search.command)
   expect(search.mount).toBe(Search.mount)
   expect(search.mountStream).toBe(Search.mountStream)
@@ -145,7 +145,7 @@ if (false) {
     messages: [ForeignMessage.ForeignCompleted],
   })
   search.command('RegisteredForeignCommand', {
-    // @ts-expect-error Registration preserves the typed primitive Message boundary.
+    // @ts-expect-error Composition preserves the typed primitive Message boundary.
     messages: [ForeignMessage.ForeignCompleted],
   })
 
@@ -163,7 +163,7 @@ if (false) {
   // @ts-expect-error Typed helpers retain the declared Message payload.
   update(Model.make({ value: '' }), Message.RequestedSave({ value: 1 }))
   // @ts-expect-error Missing local handler remains rejected.
-  first.toBlock({
+  first.toComposition().toBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: first.update(model => ({ model, commands: [Shared()] })),
   })
@@ -171,7 +171,7 @@ if (false) {
   const ForeignShared = Foreign.command('Shared', {
     messages: [Message.CompletedSave],
   })
-  Foreign.toBlock({
+  Foreign.toComposition().toBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: Foreign.update(model => ({ model, commands: [ForeignShared()] })),
     // @ts-expect-error A different owner cannot provide the local handler.

@@ -30,6 +30,8 @@ export type Message = typeof Message.Type
 
 export const ApplicationDefinition = defineApplication({ Model, Message })
 
+export const ApplicationComposition = ApplicationDefinition.toComposition()
+
 type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
 const DEFAULT_CONTENT = 'https://foldkit.dev'
@@ -44,7 +46,7 @@ export const init = () => ({
   },
 })
 
-export const update = ApplicationDefinition.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     UpdatedContent: ({ value }) => ({
       model: modifyFields(model, { content: () => value }),
@@ -83,7 +85,7 @@ const qrCode = CustomElement.define({
   events: {},
 })
 
-export const view = ApplicationDefinition.view((model, h) => ({
+export const view = ApplicationComposition.view((model, h) => ({
   title: 'Foldkit QR Designer',
   body: h.div(
     [

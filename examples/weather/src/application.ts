@@ -41,9 +41,11 @@ export type Message = typeof Message.Type
 
 export const ApplicationDefinition = defineApplication({ Model, Message })
 
+export const ApplicationComposition = ApplicationDefinition.toComposition()
+
 type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
-export const update = ApplicationDefinition.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     UpdatedZipCodeInput: ({ value }) => ({
       model: modifyFields(model, {
@@ -219,7 +221,7 @@ export const FetchWeather = ApplicationDefinition.command('FetchWeather', {
 
 export const EffectsLayer = FetchWeather.layer
 
-export const view = ApplicationDefinition.view((model, h) => ({
+export const view = ApplicationComposition.view((model, h) => ({
   title: 'Weather',
   body: h.div(
     [

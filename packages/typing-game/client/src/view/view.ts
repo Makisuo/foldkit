@@ -1,6 +1,6 @@
 import { Html, HtmlBuilder } from 'foldkit/html'
 
-import { Application, home, room } from '../application'
+import { ApplicationComposition, home, room } from '../application'
 import { Message } from '../message'
 import { Model } from '../model'
 import { ApplicationRoute } from '../route'
@@ -12,7 +12,7 @@ const routeTitle = (route: Model['route']): string =>
     NotFound: () => 'Not Found | Typing Game',
   })
 
-export const view = Application.view((model, h) => {
+export const view = ApplicationComposition.view((model, h) => {
   const content = ApplicationRoute.match(model.route, {
     Home: () =>
       h.block(

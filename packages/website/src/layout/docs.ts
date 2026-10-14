@@ -8,7 +8,6 @@ import {
   inertHtml as ih,
 } from 'foldkit/html'
 
-import { type CodeBlock, Shared } from '../component'
 import {
   type ViewRequirements,
   apiReference,
@@ -18,7 +17,8 @@ import {
   snippetCopy as snippetCopyBinding,
   snippetDisclosure as snippetDisclosureBinding,
   uiPages,
-} from '../connection'
+} from '../childBindings'
+import { type CodeBlock, Shared } from '../component'
 import { pageNeighbors } from '../docsNav'
 import { Icon } from '../icon'
 import { Link } from '../link'

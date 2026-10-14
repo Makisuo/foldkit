@@ -16,7 +16,9 @@ const ObserveLeaf = MountCapabilityLeaf.mount('ObserveLeaf', {
     return () => Effect.succeed(LeafMessage.CompletedObserveLeaf())
   },
 })
-const leafRegistered = MountCapabilityLeaf.register({ mounts: [ObserveLeaf] })
+const leafRegistered = MountCapabilityLeaf.toComposition({
+  mounts: [ObserveLeaf],
+})
 const leafView = leafRegistered.view((model, h) =>
   h.div([h.OnMount(ObserveLeaf())], [globalThis.String(model.count)]),
 )
@@ -35,12 +37,13 @@ const MountCapabilityMiddle = define('MountCapabilityMiddle', {
   Model: MiddleModel,
   Message: MiddleMessage,
 })
-const leaf = leafBlock.connection({
-  Model: MiddleModel,
+const leaf = MountCapabilityMiddle.bindChild(leafBlock, {
   field: 'leaf',
   parentMessage: MiddleMessage.GotLeafMessage,
 })
-const middleRegistered = MountCapabilityMiddle.register({ children: [leaf] })
+const middleRegistered = MountCapabilityMiddle.toComposition({
+  children: [leaf],
+})
 const middleView = middleRegistered.view((model, h) =>
   h.block(
     leaf.embedView({
@@ -69,12 +72,11 @@ const MountCapabilityRoot = define('MountCapabilityRoot', {
   Model: RootModel,
   Message: RootMessage,
 })
-const middle = middleBlock.connection({
-  Model: RootModel,
+const middle = MountCapabilityRoot.bindChild(middleBlock, {
   field: 'middle',
   parentMessage: RootMessage.GotMiddleMessage,
 })
-const rootRegistered = MountCapabilityRoot.register({ children: [middle] })
+const rootRegistered = MountCapabilityRoot.toComposition({ children: [middle] })
 const rootView = rootRegistered.view((model, h) =>
   h.block(
     middle.embedView({

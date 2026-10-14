@@ -42,18 +42,18 @@ const init = () => {
   }
 }
 
-const messageList = MessageList.connection({
-  Model,
-  field: 'messageList',
-  parentMessage: Message.GotMessageListMessage,
-})
-
 const MessageListExampleDefinition = Block.define('MessageListExample', {
   Model,
   Message,
 })
-const RegisteredMessageListExampleDefinition =
-  MessageListExampleDefinition.register({
+
+const messageList = MessageListExampleDefinition.bindChild(MessageList, {
+  field: 'messageList',
+  parentMessage: Message.GotMessageListMessage,
+})
+
+const MessageListExampleComposition =
+  MessageListExampleDefinition.toComposition({
     children: [messageList],
   })
 
@@ -72,7 +72,7 @@ const update = MessageListExampleDefinition.update((model, message) =>
   }),
 )
 
-const view = RegisteredMessageListExampleDefinition.view((model, h) =>
+const view = MessageListExampleComposition.view((model, h) =>
   h.block(
     messageList.embedView({
       slotId: 'message-list',

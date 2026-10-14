@@ -20,4 +20,4 @@ export {
   maybeDraggedItemId,
   maybeDropTarget,
   block,
-} from './dragAndDrop.js'
+} from './block.js'

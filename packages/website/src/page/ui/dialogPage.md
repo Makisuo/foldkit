@@ -2,7 +2,7 @@
 
 ## Overview
 
-A modal dialog backed by the native `<dialog>` element, opened with `show()` and a high z-index. Connect `Dialog.block` in the parent. The framework manages focus trapping, Escape handling, scroll locking, and backdrop rendering. For non-modal floating content, use Popover instead.
+A modal dialog backed by the native `<dialog>` element, opened with `show()` and a high z-index. Bind `Dialog.block` in the parent. The framework manages focus trapping, Escape handling, scroll locking, and backdrop rendering. For non-modal floating content, use Popover instead.
 
 :::Info{label="See it in an app"}
 Check out how Dialog is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/dialog.ts).
@@ -12,7 +12,7 @@ Check out how Dialog is wired up in a [real Foldkit app](https://github.com/fold
 
 ### Basic
 
-Open the Dialog from a trigger by dispatching your own Message. Call the connection’s `open()` and `close()` operations. Spread the `closeButton` bundle onto a Cancel button to dismiss it. Spread `...title` onto a heading element so the Dialog is labeled for screen readers.
+Open the Dialog from a trigger by dispatching your own Message. Call the Binding’s `open()` and `close()` operations. Spread the `closeButton` bundle onto a Cancel button to dismiss it. Spread `...title` onto a heading element so the Dialog is labeled for screen readers.
 
 ::Demo{name="dialog"}
 
@@ -58,7 +58,7 @@ When `isAnimated` is true, enter/leave animations flow through the [Animation](/
 
 ## Starting with an Open Dialog
 
-When a Dialog should be open at application startup, call the connection’s `init` so the parent receives the Dialog Model and lifted Commands, then apply `dialog.open()` after the parent Model exists. The open operation emits `Opened` through the connection’s OutMessage policy.
+When a Dialog should be open at application startup, call the Binding’s `init` so the parent receives the Dialog Model and lifted Commands, then apply `dialog.open()` after the parent Model exists. The open operation emits `Opened` through the Binding’s OutMessage policy.
 
 ::Snippet{name="uiDialogInitiallyOpen" label="Starting with an open Dialog"}
 
@@ -103,7 +103,7 @@ Configuration object passed to `Dialog.init()`.
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the Dialog connection's `embedView` method. The connection supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass the child Model as `model` and these fields as `viewInputs` to the Dialog Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name             | Type                           | Default | Description                                                                                                                                                                                                                                         |
 | ---------------- | ------------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -127,9 +127,9 @@ Payload delivered to the `toView` callback each render.
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Match on the OutMessage in the connection’s `outMessage.fold` policy.
+Messages emitted to the parent through the optional `outMessage` field. Match on the OutMessage in the Binding’s `outMessage.fold` policy.
 
-| Name     | Type | Default | Description                                                                                                                                                                                                                           |
-| -------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Opened` | `{}` | —       | Emitted once the dialog has transitioned to open. Fires after `update` has processed `RequestedOpen` and `isOpen` reflects the new state.                                                                                             |
-| `Closed` | `{}` | —       | Emitted once the dialog has transitioned to closed. Calling the connected `dialog.close()` operation on an already-closed Model is a no-op that does not re-emit, as is calling close while a leave animation is already in progress. |
+| Name     | Type | Default | Description                                                                                                                                                                                                                       |
+| -------- | ---- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Opened` | `{}` | —       | Emitted once the dialog has transitioned to open. Fires after `update` has processed `RequestedOpen` and `isOpen` reflects the new state.                                                                                         |
+| `Closed` | `{}` | —       | Emitted once the dialog has transitioned to closed. Calling the bound `dialog.close()` operation on an already-closed Model is a no-op that does not re-emit, as is calling close while a leave animation is already in progress. |

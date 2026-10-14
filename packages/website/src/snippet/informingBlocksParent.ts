@@ -20,14 +20,14 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const people = People.block.connection({
-  Model,
+export const ApplicationDefinition = defineApplication({ Model, Message })
+
+export const people = ApplicationDefinition.bindChild(People.block, {
   field: 'people',
   parentMessage: Message.GotPeopleMessage,
 })
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
-export const Application = ApplicationDefinition.register({
+export const ApplicationComposition = ApplicationDefinition.toComposition({
   children: [people],
 })
 
@@ -35,7 +35,7 @@ const setRoute =
   (nextRoute: ApplicationRoute): Update.Step<Model, Message> =>
   model => ({ model: modifyFields(model, { route: () => nextRoute }) })
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ChangedUrl: ({ url }) => {
       const nextRoute = urlToApplicationRoute(url)

@@ -29,8 +29,7 @@ import {
   keyToIndex,
 } from '../keyboard.js'
 import { resolveTypeaheadMatch } from '../typeahead.js'
-
-const MenuDefinition = Block.define('Menu')
+import { MenuDefinition as SharedMenuDefinition } from './definition.js'
 
 // MODEL
 
@@ -163,7 +162,7 @@ export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
 export type ReleasedPointerOnItems = typeof Message.ReleasedPointerOnItems.Type
 
-const TypedMenuDefinition = MenuDefinition.define({
+const MenuDefinition = SharedMenuDefinition.define({
   Model,
   Message,
   OutMessage,
@@ -224,7 +223,7 @@ const itemSelector = (id: string, index: number): string =>
   idSelector(`${id}-item-${index}`)
 
 /** Prevents page scrolling while the menu is open. */
-export const LockMenuScroll = MenuDefinition.command('LockMenuScroll', {
+export const LockMenuScroll = SharedMenuDefinition.command('LockMenuScroll', {
   messages: [Message.CompletedLockMenuScroll],
   handler: function* () {
     return () =>
@@ -232,15 +231,18 @@ export const LockMenuScroll = MenuDefinition.command('LockMenuScroll', {
   },
 })
 /** Re-enables page scrolling after the menu closes. */
-export const UnlockMenuScroll = MenuDefinition.command('UnlockMenuScroll', {
-  messages: [Message.CompletedUnlockMenuScroll],
-  handler: function* () {
-    return () =>
-      Dom.unlockScroll.pipe(Effect.as(Message.CompletedUnlockMenuScroll()))
+export const UnlockMenuScroll = SharedMenuDefinition.command(
+  'UnlockMenuScroll',
+  {
+    messages: [Message.CompletedUnlockMenuScroll],
+    handler: function* () {
+      return () =>
+        Dom.unlockScroll.pipe(Effect.as(Message.CompletedUnlockMenuScroll()))
+    },
   },
-})
+)
 /** Marks all elements outside the menu as inert for modal behavior. */
-export const InertMenuOthers = MenuDefinition.command('InertMenuOthers', {
+export const InertMenuOthers = SharedMenuDefinition.command('InertMenuOthers', {
   args: { id: Schema.String },
   messages: [Message.CompletedInertMenuOthers],
   handler: function* () {
@@ -251,16 +253,21 @@ export const InertMenuOthers = MenuDefinition.command('InertMenuOthers', {
   },
 })
 /** Removes the inert attribute from elements outside the Menu. */
-export const RestoreMenuInert = MenuDefinition.command('RestoreMenuInert', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedRestoreMenuInert],
-  handler: function* () {
-    return ({ id }) =>
-      Dom.restoreInert(id).pipe(Effect.as(Message.CompletedRestoreMenuInert()))
+export const RestoreMenuInert = SharedMenuDefinition.command(
+  'RestoreMenuInert',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedRestoreMenuInert],
+    handler: function* () {
+      return ({ id }) =>
+        Dom.restoreInert(id).pipe(
+          Effect.as(Message.CompletedRestoreMenuInert()),
+        )
+    },
   },
-})
+)
 /** Moves focus to the menu items container after opening. */
-export const FocusMenuItems = MenuDefinition.command('FocusMenuItems', {
+export const FocusMenuItems = SharedMenuDefinition.command('FocusMenuItems', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusMenuItems],
   handler: function* () {
@@ -272,7 +279,7 @@ export const FocusMenuItems = MenuDefinition.command('FocusMenuItems', {
   },
 })
 /** Moves focus back to the menu button after closing. */
-export const FocusMenuButton = MenuDefinition.command('FocusMenuButton', {
+export const FocusMenuButton = SharedMenuDefinition.command('FocusMenuButton', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusMenuButton],
   handler: function* () {
@@ -284,7 +291,7 @@ export const FocusMenuButton = MenuDefinition.command('FocusMenuButton', {
   },
 })
 /** Scrolls the active menu item into view after keyboard navigation. */
-export const ScrollMenuItemIntoView = MenuDefinition.command(
+export const ScrollMenuItemIntoView = SharedMenuDefinition.command(
   'ScrollMenuItemIntoView',
   {
     args: { id: Schema.String, index: Schema.Number },
@@ -299,7 +306,7 @@ export const ScrollMenuItemIntoView = MenuDefinition.command(
   },
 )
 /** Programmatically clicks the active menu item's DOM element. */
-export const ClickMenuItem = MenuDefinition.command('ClickMenuItem', {
+export const ClickMenuItem = SharedMenuDefinition.command('ClickMenuItem', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedClickMenuItem],
   handler: function* () {
@@ -311,7 +318,7 @@ export const ClickMenuItem = MenuDefinition.command('ClickMenuItem', {
   },
 })
 /** Waits for the typeahead search debounce period before clearing the query. */
-export const DelayClearMenuSearch = MenuDefinition.command(
+export const DelayClearMenuSearch = SharedMenuDefinition.command(
   'DelayClearMenuSearch',
   {
     args: { version: Schema.Number },
@@ -325,7 +332,7 @@ export const DelayClearMenuSearch = MenuDefinition.command(
   },
 )
 /** Detects whether the menu button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation block that leave is complete. */
-export const DetectMenuMovementOrAnimationEnd = MenuDefinition.command(
+export const DetectMenuMovementOrAnimationEnd = SharedMenuDefinition.command(
   'DetectMenuMovementOrAnimationEnd',
   {
     args: { id: Schema.String, generation: Schema.Number },
@@ -349,7 +356,7 @@ export const DetectMenuMovementOrAnimationEnd = MenuDefinition.command(
 )
 
 const detectMenuMovementOrAnimationEnd = (generation: number) =>
-  TypedMenuDefinition.step(model => ({
+  MenuDefinition.step(model => ({
     model,
     commands: [DetectMenuMovementOrAnimationEnd({ id: model.id, generation })],
   }))
@@ -362,17 +369,16 @@ const foldAnimationOutMessage =
   Animation.OutMessage.match<AnimationOutMessageStep>({
     StartedLeaveAnimating: ({ generation }) =>
       detectMenuMovementOrAnimationEnd(generation),
-    TransitionedOut: () => TypedMenuDefinition.step(model => ({ model })),
+    TransitionedOut: () => MenuDefinition.step(model => ({ model })),
   })
 
-const animation = Animation.block.connection({
-  Model,
+const animation = MenuDefinition.bindChild(Animation.block, {
   field: 'animation',
   parentMessage: Message.GotAnimationMessage,
   outMessage: { fold: foldAnimationOutMessage },
 })
 
-const internalUpdate = TypedMenuDefinition.update((model, message) => {
+const internalUpdate = MenuDefinition.update((model, message) => {
   const maybeLockScroll = OptionExt.when(model.isModal, LockMenuScroll())
 
   const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockMenuScroll())
@@ -663,7 +669,7 @@ const internalUpdate = TypedMenuDefinition.update((model, message) => {
  *  Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu())`.
  */
-export const AnchorMenu = MenuDefinition.mount('AnchorMenu', {
+export const AnchorMenu = SharedMenuDefinition.mount('AnchorMenu', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorMenu],
   handler: function* () {
@@ -687,35 +693,38 @@ export const AnchorMenu = MenuDefinition.mount('AnchorMenu', {
 /** The backdrop-portaling Mount this Menu renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalMenuBackdrop, Message.CompletedPortalMenuBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalMenuBackdrop = MenuDefinition.mount('PortalMenuBackdrop', {
-  messages: [Message.CompletedPortalMenuBackdrop],
-  handler: function* () {
-    return ({ element }) =>
-      Effect.gen(function* () {
-        yield* Effect.acquireRelease(
-          Effect.sync(() => portalBackdrop(element)),
-          cleanup => Effect.sync(cleanup),
-        )
-        return Message.CompletedPortalMenuBackdrop()
-      })
+export const PortalMenuBackdrop = SharedMenuDefinition.mount(
+  'PortalMenuBackdrop',
+  {
+    messages: [Message.CompletedPortalMenuBackdrop],
+    handler: function* () {
+      return ({ element }) =>
+        Effect.gen(function* () {
+          yield* Effect.acquireRelease(
+            Effect.sync(() => portalBackdrop(element)),
+            cleanup => Effect.sync(cleanup),
+          )
+          return Message.CompletedPortalMenuBackdrop()
+        })
+    },
   },
-})
+)
 
 /** Mount definitions rendered by Menu. */
 export const mounts = [AnchorMenu, PortalMenuBackdrop]
 
 type MountRequirements = Mount.RequirementsOf<typeof mounts>
 
-const RegisteredMenuDefinition = TypedMenuDefinition.register({
+const MenuComposition = MenuDefinition.toComposition({
   mounts,
   children: [animation],
 })
 
 /** Processes a Menu Message and returns the next Model, optional Commands, and
  *  an optional OutMessage. */
-export const update = TypedMenuDefinition.update(internalUpdate)
+export const update = MenuDefinition.update(internalUpdate)
 
-const LocalEffectsLayer = Layer.mergeAll(
+const EffectsLayer = Layer.mergeAll(
   LockMenuScroll.layer,
   UnlockMenuScroll.layer,
   InertMenuOthers.layer,
@@ -732,7 +741,7 @@ const LocalEffectsLayer = Layer.mergeAll(
 
 /** Programmatically opens the Menu, updating the Model and returning focus and
  *  modal Commands. Use this in domain-event handlers. */
-export const open = TypedMenuDefinition.step(model =>
+export const open = MenuDefinition.step(model =>
   update(model, Message.Opened({ maybeActiveItemIndex: Option.none() })),
 )
 
@@ -740,13 +749,13 @@ export const open = TypedMenuDefinition.step(model =>
  *  with focus and modal Commands. If it is already closed, returns the Model
  *  unchanged with no Commands. Use this in domain-event handlers to close the
  *  Menu. */
-export const close = TypedMenuDefinition.step(model =>
+export const close = MenuDefinition.step(model =>
   update(model, Message.Closed()),
 )
 
 /** Programmatically selects a Menu item, closing the Menu and returning focus
  *  Commands plus a `Selected` OutMessage. Use this in domain-event handlers. */
-export const selectItem = TypedMenuDefinition.step(
+export const selectItem = MenuDefinition.step(
   (model, item: string, index: number) =>
     update(model, Message.SelectedItem({ index, item })),
 )
@@ -821,55 +830,57 @@ const internalView = <Item extends string>() =>
 
 type MenuInputs = ViewInputs<string>
 
-const menuViewImpl = RegisteredMenuDefinition.view.withInputs<MenuInputs>(
-  (model, viewInputs, h) => {
-    const {
-      id,
-      isOpen,
-      animation: { transitionState },
-      maybeActiveItemIndex,
-      searchQuery,
-      maybeLastButtonPointerType,
-    } = model
+const menuViewImpl = (
+  model: Model,
+  viewInputs: MenuInputs,
+  h: Block.HtmlBuilderOf<typeof MenuComposition>,
+) => {
+  const {
+    id,
+    isOpen,
+    animation: { transitionState },
+    maybeActiveItemIndex,
+    searchQuery,
+    maybeLastButtonPointerType,
+  } = model
 
-    const {
-      items,
-      itemToConfig,
-      isItemDisabled,
-      itemToSearchText = (item: string) => item,
-      isButtonDisabled,
-      buttonContent,
-      buttonClassName,
-      buttonAttributes = [],
-      itemsClassName,
-      itemsAttributes = [],
-      itemsScrollClassName,
-      itemsScrollAttributes = [],
-      backdropClassName,
-      backdropAttributes = [],
-      className,
-      attributes = [],
-      itemGroupKey,
-      groupToHeading,
-      groupClassName,
-      groupAttributes = [],
-      separatorClassName,
-      separatorAttributes = [],
-      anchor = {},
-      ariaLabel,
-      ariaLabelledBy,
-    } = viewInputs
+  const {
+    items,
+    itemToConfig,
+    isItemDisabled,
+    itemToSearchText = (item: string) => item,
+    isButtonDisabled,
+    buttonContent,
+    buttonClassName,
+    buttonAttributes = [],
+    itemsClassName,
+    itemsAttributes = [],
+    itemsScrollClassName,
+    itemsScrollAttributes = [],
+    backdropClassName,
+    backdropAttributes = [],
+    className,
+    attributes = [],
+    itemGroupKey,
+    groupToHeading,
+    groupClassName,
+    groupAttributes = [],
+    separatorClassName,
+    separatorAttributes = [],
+    anchor = {},
+    ariaLabel,
+    ariaLabelledBy,
+  } = viewInputs
 
-    const dispatchSelectedItem = (item: string, index: number) =>
-      Message.SelectedItem({ index, item })
+  const dispatchSelectedItem = (item: string, index: number) =>
+    Message.SelectedItem({ index, item })
 
-    const isLeaving =
-      transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
-    const isVisible = isOpen || isLeaving
+  const isLeaving =
+    transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
+  const isVisible = isOpen || isLeaving
 
-    const animationAttributes: ReadonlyArray<
-      ReturnType<typeof h.DataAttribute>
-    > = Match.value(transitionState).pipe(
+  const animationAttributes: ReadonlyArray<ReturnType<typeof h.DataAttribute>> =
+    Match.value(transitionState).pipe(
       Match.when('EnterStart', () => [
         h.DataAttribute('closed', ''),
         h.DataAttribute('enter', ''),
@@ -891,387 +902,383 @@ const menuViewImpl = RegisteredMenuDefinition.view.withInputs<MenuInputs>(
       Match.orElse(() => []),
     )
 
-    const isDisabled = (index: number): boolean =>
-      Predicate.isNotUndefined(isItemDisabled) &&
-      pipe(
-        items,
-        Array.get(index),
-        Option.exists(item => isItemDisabled(item, index)),
-      )
-
-    const firstEnabledIndex = findFirstEnabledIndex(
-      items.length,
-      0,
-      isDisabled,
-    )(0, 1)
-
-    const lastEnabledIndex = findFirstEnabledIndex(
-      items.length,
-      0,
-      isDisabled,
-    )(items.length - 1, -1)
-
-    const handleButtonKeyDown = (key: string): Option.Option<Message> => {
-      if (isOpen) {
-        return handleItemsKeyDown(key)
-      }
-
-      return Match.value(key).pipe(
-        Match.whenOr('Enter', ' ', 'ArrowDown', () =>
-          Option.some(
-            Message.Opened({
-              maybeActiveItemIndex: Option.some(firstEnabledIndex),
-            }),
-          ),
-        ),
-        Match.when('ArrowUp', () =>
-          Option.some(
-            Message.Opened({
-              maybeActiveItemIndex: Option.some(lastEnabledIndex),
-            }),
-          ),
-        ),
-        Match.orElse(() => Option.none()),
-      )
-    }
-
-    const handleButtonPointerDown = (
-      pointerType: string,
-      button: number,
-      screenX: number,
-      screenY: number,
-      timeStamp: number,
-    ): Option.Option<Message> =>
-      Option.some(
-        Message.PressedPointerOnButton({
-          pointerType,
-          button,
-          screenX,
-          screenY,
-          timeStamp,
-        }),
-      )
-
-    const handleButtonClick = (): Message => {
-      const isMouse = Option.exists(
-        maybeLastButtonPointerType,
-        type => type === 'mouse',
-      )
-
-      if (isMouse) {
-        return Message.IgnoredMouseClick()
-      } else if (isOpen) {
-        return Message.Closed()
-      } else {
-        return Message.Opened({ maybeActiveItemIndex: Option.none() })
-      }
-    }
-
-    const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
-      OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
-
-    const resolveActiveIndex = keyToIndex(
-      'ArrowDown',
-      'ArrowUp',
-      items.length,
-      Option.getOrElse(maybeActiveItemIndex, () => 0),
-      isDisabled,
+  const isDisabled = (index: number): boolean =>
+    Predicate.isNotUndefined(isItemDisabled) &&
+    pipe(
+      items,
+      Array.get(index),
+      Option.exists(item => isItemDisabled(item, index)),
     )
 
-    const searchForKey = (key: string): Option.Option<Message> => {
-      const nextQuery = searchQuery + key
-      const maybeTargetIndex = resolveTypeaheadMatch(
-        items,
-        nextQuery,
-        maybeActiveItemIndex,
-        isDisabled,
-        itemToSearchText,
-        String.isNonEmpty(searchQuery),
-      )
-      return Option.some(Message.Searched({ key, maybeTargetIndex }))
+  const firstEnabledIndex = findFirstEnabledIndex(
+    items.length,
+    0,
+    isDisabled,
+  )(0, 1)
+
+  const lastEnabledIndex = findFirstEnabledIndex(
+    items.length,
+    0,
+    isDisabled,
+  )(items.length - 1, -1)
+
+  const handleButtonKeyDown = (key: string): Option.Option<Message> => {
+    if (isOpen) {
+      return handleItemsKeyDown(key)
     }
 
-    const handleItemsKeyDown = (key: string): Option.Option<Message> =>
-      Match.value(key).pipe(
-        Match.when('Escape', () => Option.some(Message.Closed())),
-        Match.when('Enter', () =>
-          Option.map(maybeActiveItemIndex, index =>
-            Message.RequestedItemClick({ index }),
-          ),
-        ),
-        Match.when(' ', () =>
-          String.isNonEmpty(searchQuery)
-            ? searchForKey(' ')
-            : Option.map(maybeActiveItemIndex, index =>
-                Message.RequestedItemClick({ index }),
-              ),
-        ),
-        Match.whenOr(
-          'ArrowDown',
-          'ArrowUp',
-          'Home',
-          'End',
-          'PageUp',
-          'PageDown',
-          () =>
-            Option.some(
-              Message.ActivatedItem({
-                index: resolveActiveIndex(key),
-                activationTrigger: 'Keyboard',
-              }),
-            ),
-        ),
-        Match.when(isPrintableKey, () => searchForKey(key)),
-        Match.orElse(() => Option.none()),
-      )
-
-    const handleItemsPointerUp = (
-      screenX: number,
-      screenY: number,
-      pointerType: string,
-      timeStamp: number,
-    ): Option.Option<Message> =>
-      OptionExt.when(
-        pointerType === 'mouse',
-        Message.ReleasedPointerOnItems({ screenX, screenY, timeStamp }),
-      )
-
-    const resolveButtonLabel = () => {
-      if (Predicate.isNotUndefined(ariaLabel)) {
-        return [h.AriaLabel(ariaLabel)]
-      } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
-        return [h.AriaLabelledBy(ariaLabelledBy)]
-      } else {
-        return []
-      }
-    }
-
-    const buttonLabelAttributes = resolveButtonLabel()
-
-    const resolvedButtonAttributes = [
-      h.Id(`${id}-button`),
-      h.Type('button'),
-      h.AriaHasPopup('menu'),
-      h.AriaExpanded(isVisible),
-      ...(isVisible ? [h.AriaControls(`${id}-items`)] : []),
-      ...buttonLabelAttributes,
-      ...(isButtonDisabled
-        ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
-        : [
-            h.OnPointerDown(handleButtonPointerDown),
-            h.OnKeyDownPreventDefault(handleButtonKeyDown),
-            h.OnKeyUpPreventDefault(handleSpaceKeyUp),
-            h.OnClick(handleButtonClick()),
-          ]),
-      ...(isVisible
-        ? [
-            h.DataAttribute('open', ''),
-            h.Style({ position: 'relative', zIndex: '1' }),
-          ]
-        : []),
-      ...(buttonClassName ? [h.Class(buttonClassName)] : []),
-      ...buttonAttributes,
-    ]
-
-    const maybeActiveDescendant = Option.match(maybeActiveItemIndex, {
-      onNone: () => [],
-      onSome: index => [h.AriaActiveDescendant(itemId(id, index))],
-    })
-
-    const anchorAttributes = [
-      h.Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
-      h.OnMount(AnchorMenu({ buttonId: `${id}-button`, anchor })),
-    ]
-
-    const itemsContainerAttributes = [
-      h.Id(`${id}-items`),
-      h.Role('menu'),
-      h.AriaLabelledBy(`${id}-button`),
-      ...maybeActiveDescendant,
-      h.Tabindex(-1),
-      ...anchorAttributes,
-      ...animationAttributes,
-      ...(isLeaving
-        ? []
-        : [
-            h.OnKeyDownPreventDefault(handleItemsKeyDown),
-            h.OnKeyUpPreventDefault(handleSpaceKeyUp),
-            h.OnPointerUp(handleItemsPointerUp),
-            h.OnBlur(Message.BlurredItems()),
-          ]),
-      ...(itemsClassName ? [h.Class(itemsClassName)] : []),
-      ...itemsAttributes,
-    ]
-
-    const menuItems = Array.map(items, (item, index) => {
-      const isActiveItem = Option.exists(
-        maybeActiveItemIndex,
-        activeIndex => activeIndex === index,
-      )
-      const isDisabledItem = isDisabled(index)
-      const itemConfig = itemToConfig(item, {
-        isActive: isActiveItem,
-        isDisabled: isDisabledItem,
-      })
-
-      const isInteractive = !isDisabledItem && !isLeaving
-
-      return h.keyed('div')(
-        itemId(id, index),
-        [
-          h.Id(itemId(id, index)),
-          h.Role('menuitem'),
-          ...(isActiveItem ? [h.DataAttribute('active', '')] : []),
-          ...(isDisabledItem
-            ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
-            : []),
-          ...(isInteractive
-            ? [
-                h.OnClick(dispatchSelectedItem(item, index)),
-                ...(isActiveItem
-                  ? []
-                  : [
-                      h.OnPointerMove((screenX, screenY, pointerType) =>
-                        OptionExt.when(
-                          pointerType !== 'touch',
-                          Message.MovedPointerOverItem({
-                            index,
-                            screenX,
-                            screenY,
-                          }),
-                        ),
-                      ),
-                    ]),
-                h.OnPointerLeave(pointerType =>
-                  OptionExt.when(
-                    pointerType !== 'touch',
-                    Message.DeactivatedItem(),
-                  ),
-                ),
-              ]
-            : []),
-          ...(itemConfig.className ? [h.Class(itemConfig.className)] : []),
-        ],
-        [itemConfig.content],
-      )
-    })
-
-    const renderGroupedItems = (): ReadonlyArray<Html> => {
-      if (!itemGroupKey) {
-        return menuItems
-      }
-
-      const segments = groupContiguous(menuItems, (_, index) =>
-        Array.get(items, index).pipe(
-          Option.match({
-            onNone: () => '',
-            onSome: item => itemGroupKey(item, index),
+    return Match.value(key).pipe(
+      Match.whenOr('Enter', ' ', 'ArrowDown', () =>
+        Option.some(
+          Message.Opened({
+            maybeActiveItemIndex: Option.some(firstEnabledIndex),
           }),
         ),
-      )
+      ),
+      Match.when('ArrowUp', () =>
+        Option.some(
+          Message.Opened({
+            maybeActiveItemIndex: Option.some(lastEnabledIndex),
+          }),
+        ),
+      ),
+      Match.orElse(() => Option.none()),
+    )
+  }
 
-      return Array.flatMap(segments, (segment, segmentIndex) => {
-        const maybeHeading = Option.fromNullishOr(
-          groupToHeading && groupToHeading(segment.key),
-        )
+  const handleButtonPointerDown = (
+    pointerType: string,
+    button: number,
+    screenX: number,
+    screenY: number,
+    timeStamp: number,
+  ): Option.Option<Message> =>
+    Option.some(
+      Message.PressedPointerOnButton({
+        pointerType,
+        button,
+        screenX,
+        screenY,
+        timeStamp,
+      }),
+    )
 
-        const headingId = `${id}-heading-${segment.key}`
+  const handleButtonClick = (): Message => {
+    const isMouse = Option.exists(
+      maybeLastButtonPointerType,
+      type => type === 'mouse',
+    )
 
-        const headingElement = Option.match(maybeHeading, {
-          onNone: () => [],
-          onSome: heading => [
-            h.keyed('div')(
-              headingId,
-              [
-                h.Id(headingId),
-                h.Role('presentation'),
-                ...(heading.className ? [h.Class(heading.className)] : []),
-              ],
-              [heading.content],
+    if (isMouse) {
+      return Message.IgnoredMouseClick()
+    } else if (isOpen) {
+      return Message.Closed()
+    } else {
+      return Message.Opened({ maybeActiveItemIndex: Option.none() })
+    }
+  }
+
+  const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
+    OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
+
+  const resolveActiveIndex = keyToIndex(
+    'ArrowDown',
+    'ArrowUp',
+    items.length,
+    Option.getOrElse(maybeActiveItemIndex, () => 0),
+    isDisabled,
+  )
+
+  const searchForKey = (key: string): Option.Option<Message> => {
+    const nextQuery = searchQuery + key
+    const maybeTargetIndex = resolveTypeaheadMatch(
+      items,
+      nextQuery,
+      maybeActiveItemIndex,
+      isDisabled,
+      itemToSearchText,
+      String.isNonEmpty(searchQuery),
+    )
+    return Option.some(Message.Searched({ key, maybeTargetIndex }))
+  }
+
+  const handleItemsKeyDown = (key: string): Option.Option<Message> =>
+    Match.value(key).pipe(
+      Match.when('Escape', () => Option.some(Message.Closed())),
+      Match.when('Enter', () =>
+        Option.map(maybeActiveItemIndex, index =>
+          Message.RequestedItemClick({ index }),
+        ),
+      ),
+      Match.when(' ', () =>
+        String.isNonEmpty(searchQuery)
+          ? searchForKey(' ')
+          : Option.map(maybeActiveItemIndex, index =>
+              Message.RequestedItemClick({ index }),
             ),
-          ],
-        })
+      ),
+      Match.whenOr(
+        'ArrowDown',
+        'ArrowUp',
+        'Home',
+        'End',
+        'PageUp',
+        'PageDown',
+        () =>
+          Option.some(
+            Message.ActivatedItem({
+              index: resolveActiveIndex(key),
+              activationTrigger: 'Keyboard',
+            }),
+          ),
+      ),
+      Match.when(isPrintableKey, () => searchForKey(key)),
+      Match.orElse(() => Option.none()),
+    )
 
-        const groupContent = [...headingElement, ...segment.items]
+  const handleItemsPointerUp = (
+    screenX: number,
+    screenY: number,
+    pointerType: string,
+    timeStamp: number,
+  ): Option.Option<Message> =>
+    OptionExt.when(
+      pointerType === 'mouse',
+      Message.ReleasedPointerOnItems({ screenX, screenY, timeStamp }),
+    )
 
-        const groupElement = h.keyed('div')(
-          `${id}-group-${segment.key}`,
-          [
-            h.Role('group'),
-            ...(Option.isSome(maybeHeading)
-              ? [h.AriaLabelledBy(headingId)]
-              : []),
-            ...(groupClassName ? [h.Class(groupClassName)] : []),
-            ...groupAttributes,
-          ],
-          groupContent,
-        )
+  const resolveButtonLabel = () => {
+    if (Predicate.isNotUndefined(ariaLabel)) {
+      return [h.AriaLabel(ariaLabel)]
+    } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
+      return [h.AriaLabelledBy(ariaLabelledBy)]
+    } else {
+      return []
+    }
+  }
 
-        const separator =
-          segmentIndex > 0 &&
-          (separatorClassName ||
-            Array.isReadonlyArrayNonEmpty(separatorAttributes))
-            ? [
-                h.keyed('div')(`${id}-separator-${segmentIndex}`, [
-                  h.Role('separator'),
-                  ...(separatorClassName ? [h.Class(separatorClassName)] : []),
-                  ...separatorAttributes,
-                ]),
-              ]
-            : []
+  const buttonLabelAttributes = resolveButtonLabel()
 
-        return [...separator, groupElement]
-      })
+  const resolvedButtonAttributes = [
+    h.Id(`${id}-button`),
+    h.Type('button'),
+    h.AriaHasPopup('menu'),
+    h.AriaExpanded(isVisible),
+    ...(isVisible ? [h.AriaControls(`${id}-items`)] : []),
+    ...buttonLabelAttributes,
+    ...(isButtonDisabled
+      ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
+      : [
+          h.OnPointerDown(handleButtonPointerDown),
+          h.OnKeyDownPreventDefault(handleButtonKeyDown),
+          h.OnKeyUpPreventDefault(handleSpaceKeyUp),
+          h.OnClick(handleButtonClick()),
+        ]),
+    ...(isVisible
+      ? [
+          h.DataAttribute('open', ''),
+          h.Style({ position: 'relative', zIndex: '1' }),
+        ]
+      : []),
+    ...(buttonClassName ? [h.Class(buttonClassName)] : []),
+    ...buttonAttributes,
+  ]
+
+  const maybeActiveDescendant = Option.match(maybeActiveItemIndex, {
+    onNone: () => [],
+    onSome: index => [h.AriaActiveDescendant(itemId(id, index))],
+  })
+
+  const anchorAttributes = [
+    h.Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
+    h.OnMount(AnchorMenu({ buttonId: `${id}-button`, anchor })),
+  ]
+
+  const itemsContainerAttributes = [
+    h.Id(`${id}-items`),
+    h.Role('menu'),
+    h.AriaLabelledBy(`${id}-button`),
+    ...maybeActiveDescendant,
+    h.Tabindex(-1),
+    ...anchorAttributes,
+    ...animationAttributes,
+    ...(isLeaving
+      ? []
+      : [
+          h.OnKeyDownPreventDefault(handleItemsKeyDown),
+          h.OnKeyUpPreventDefault(handleSpaceKeyUp),
+          h.OnPointerUp(handleItemsPointerUp),
+          h.OnBlur(Message.BlurredItems()),
+        ]),
+    ...(itemsClassName ? [h.Class(itemsClassName)] : []),
+    ...itemsAttributes,
+  ]
+
+  const menuItems = Array.map(items, (item, index) => {
+    const isActiveItem = Option.exists(
+      maybeActiveItemIndex,
+      activeIndex => activeIndex === index,
+    )
+    const isDisabledItem = isDisabled(index)
+    const itemConfig = itemToConfig(item, {
+      isActive: isActiveItem,
+      isDisabled: isDisabledItem,
+    })
+
+    const isInteractive = !isDisabledItem && !isLeaving
+
+    return h.keyed('div')(
+      itemId(id, index),
+      [
+        h.Id(itemId(id, index)),
+        h.Role('menuitem'),
+        ...(isActiveItem ? [h.DataAttribute('active', '')] : []),
+        ...(isDisabledItem
+          ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
+          : []),
+        ...(isInteractive
+          ? [
+              h.OnClick(dispatchSelectedItem(item, index)),
+              ...(isActiveItem
+                ? []
+                : [
+                    h.OnPointerMove((screenX, screenY, pointerType) =>
+                      OptionExt.when(
+                        pointerType !== 'touch',
+                        Message.MovedPointerOverItem({
+                          index,
+                          screenX,
+                          screenY,
+                        }),
+                      ),
+                    ),
+                  ]),
+              h.OnPointerLeave(pointerType =>
+                OptionExt.when(
+                  pointerType !== 'touch',
+                  Message.DeactivatedItem(),
+                ),
+              ),
+            ]
+          : []),
+        ...(itemConfig.className ? [h.Class(itemConfig.className)] : []),
+      ],
+      [itemConfig.content],
+    )
+  })
+
+  const renderGroupedItems = (): ReadonlyArray<Html> => {
+    if (!itemGroupKey) {
+      return menuItems
     }
 
-    const backdrop = h.keyed('div')(`${id}-backdrop`, [
-      h.OnMount(PortalMenuBackdrop()),
-      ...(isLeaving ? [] : [h.OnClick(Message.Closed())]),
-      ...(backdropClassName ? [h.Class(backdropClassName)] : []),
-      ...backdropAttributes,
-    ])
-
-    const renderedItems = renderGroupedItems()
-
-    const scrollableItems =
-      itemsScrollClassName ||
-      Array.isReadonlyArrayNonEmpty(itemsScrollAttributes)
-        ? [
-            h.div(
-              [
-                ...(itemsScrollClassName
-                  ? [h.Class(itemsScrollClassName)]
-                  : []),
-                ...itemsScrollAttributes,
-              ],
-              renderedItems,
-            ),
-          ]
-        : renderedItems
-
-    const visibleContent = [
-      backdrop,
-      h.keyed('div')(
-        `${id}-items-container`,
-        itemsContainerAttributes,
-        scrollableItems,
+    const segments = groupContiguous(menuItems, (_, index) =>
+      Array.get(items, index).pipe(
+        Option.match({
+          onNone: () => '',
+          onSome: item => itemGroupKey(item, index),
+        }),
       ),
-    ]
+    )
 
-    const wrapperAttributes = [
-      ...(className ? [h.Class(className)] : []),
-      ...attributes,
-      ...(isVisible ? [h.DataAttribute('open', '')] : []),
-    ]
+    return Array.flatMap(segments, (segment, segmentIndex) => {
+      const maybeHeading = Option.fromNullishOr(
+        groupToHeading && groupToHeading(segment.key),
+      )
 
-    return h.div(wrapperAttributes, [
-      h.keyed('button')(`${id}-button`, resolvedButtonAttributes, [
-        buttonContent,
-      ]),
-      ...(isVisible ? visibleContent : []),
-    ])
-  },
-)
+      const headingId = `${id}-heading-${segment.key}`
+
+      const headingElement = Option.match(maybeHeading, {
+        onNone: () => [],
+        onSome: heading => [
+          h.keyed('div')(
+            headingId,
+            [
+              h.Id(headingId),
+              h.Role('presentation'),
+              ...(heading.className ? [h.Class(heading.className)] : []),
+            ],
+            [heading.content],
+          ),
+        ],
+      })
+
+      const groupContent = [...headingElement, ...segment.items]
+
+      const groupElement = h.keyed('div')(
+        `${id}-group-${segment.key}`,
+        [
+          h.Role('group'),
+          ...(Option.isSome(maybeHeading) ? [h.AriaLabelledBy(headingId)] : []),
+          ...(groupClassName ? [h.Class(groupClassName)] : []),
+          ...groupAttributes,
+        ],
+        groupContent,
+      )
+
+      const separator =
+        segmentIndex > 0 &&
+        (separatorClassName ||
+          Array.isReadonlyArrayNonEmpty(separatorAttributes))
+          ? [
+              h.keyed('div')(`${id}-separator-${segmentIndex}`, [
+                h.Role('separator'),
+                ...(separatorClassName ? [h.Class(separatorClassName)] : []),
+                ...separatorAttributes,
+              ]),
+            ]
+          : []
+
+      return [...separator, groupElement]
+    })
+  }
+
+  const backdrop = h.keyed('div')(`${id}-backdrop`, [
+    h.OnMount(PortalMenuBackdrop()),
+    ...(isLeaving ? [] : [h.OnClick(Message.Closed())]),
+    ...(backdropClassName ? [h.Class(backdropClassName)] : []),
+    ...backdropAttributes,
+  ])
+
+  const renderedItems = renderGroupedItems()
+
+  const scrollableItems =
+    itemsScrollClassName || Array.isReadonlyArrayNonEmpty(itemsScrollAttributes)
+      ? [
+          h.div(
+            [
+              ...(itemsScrollClassName ? [h.Class(itemsScrollClassName)] : []),
+              ...itemsScrollAttributes,
+            ],
+            renderedItems,
+          ),
+        ]
+      : renderedItems
+
+  const visibleContent = [
+    backdrop,
+    h.keyed('div')(
+      `${id}-items-container`,
+      itemsContainerAttributes,
+      scrollableItems,
+    ),
+  ]
+
+  const wrapperAttributes = [
+    ...(className ? [h.Class(className)] : []),
+    ...attributes,
+    ...(isVisible ? [h.DataAttribute('open', '')] : []),
+  ]
+
+  return h.div(wrapperAttributes, [
+    h.keyed('button')(`${id}-button`, resolvedButtonAttributes, [
+      buttonContent,
+    ]),
+    ...(isVisible ? visibleContent : []),
+  ])
+}
+
+const view = MenuComposition.view.withInputs<MenuInputs>(menuViewImpl)
 
 const expose = { open, close, selectItem }
 
@@ -1280,12 +1287,12 @@ type RefineOutMessage<Return, OutMessage> = Return extends unknown
   : never
 
 /** Complete default Menu Block definition. */
-export const block = RegisteredMenuDefinition.toBlock({
+export const block = MenuComposition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),
   update,
-  view: menuViewImpl,
+  view,
   expose,
-  EffectsLayer: LocalEffectsLayer,
+  EffectsLayer,
 })
 
 const makeBlock = <Item extends string>() => {
@@ -1300,17 +1307,22 @@ const makeBlock = <Item extends string>() => {
   const RefinedOutMessage =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     OutMessage as unknown as OutMessageSchema<Item>
-  const ItemMenuDefinition = MenuDefinition.define({
+  const MenuDefinition = SharedMenuDefinition.define({
     Model,
     Message,
     OutMessage: RefinedOutMessage,
   })
-  const refinedUpdate = ItemMenuDefinition.update((model, message) =>
+  const refinedUpdate = MenuDefinition.update((model, message) =>
     castReturn(update(model, message)),
   )
-  const RegisteredItemMenuDefinition = ItemMenuDefinition.register({
+  const itemAnimation = MenuDefinition.bindChild(Animation.block, {
+    field: 'animation',
+    parentMessage: Message.GotAnimationMessage,
+    outMessage: { fold: foldAnimationOutMessage },
+  })
+  const MenuComposition = MenuDefinition.toComposition({
     mounts,
-    children: [animation],
+    children: [itemAnimation],
   })
   const refinedView =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -1319,28 +1331,27 @@ const makeBlock = <Item extends string>() => {
       viewInputs: ViewInputs<Item>,
       h: Parameters<typeof menuViewImpl>[2],
     ) => Html
-  const view = RegisteredItemMenuDefinition.view.withInputs<ViewInputs<Item>>(
+  const view = MenuComposition.view.withInputs<ViewInputs<Item>>(
     (model, viewInputs, h) => refinedView(model, viewInputs, h),
   )
-  const open = ItemMenuDefinition.step(model =>
+  const open = MenuDefinition.step(model =>
     refinedUpdate(
       model,
       Message.Opened({ maybeActiveItemIndex: Option.none() }),
     ),
   )
-  const close = ItemMenuDefinition.step(model =>
+  const close = MenuDefinition.step(model =>
     refinedUpdate(model, Message.Closed()),
   )
-  const selectItem = ItemMenuDefinition.step(
-    (model, item: Item, index: number) =>
-      refinedUpdate(model, Message.SelectedItem({ index, item })),
+  const selectItem = MenuDefinition.step((model, item: Item, index: number) =>
+    refinedUpdate(model, Message.SelectedItem({ index, item })),
   )
-  return RegisteredItemMenuDefinition.toBlock({
+  return MenuComposition.toBlock({
     init: (config: InitConfig) => ({ model: init(config) }),
     update: refinedUpdate,
     view,
     expose: { open, close, selectItem },
-    EffectsLayer: LocalEffectsLayer,
+    EffectsLayer,
   })
 }
 

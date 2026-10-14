@@ -1,16 +1,15 @@
 import { Runtime } from 'foldkit'
 
-import { Application } from './application'
+import { ApplicationComposition } from './application'
 import { Flags, flags } from './flags'
 import { init } from './init'
-import { EffectsLayer } from './layer'
+import { ApplicationLayer, EffectsLayer } from './layer'
 import { Message } from './message'
-import { ApplicationLayer } from './services'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const application = Application.make({
+const application = ApplicationComposition.make({
   init,
   update,
   view,

@@ -1,10 +1,10 @@
+import { ApplicationDefinition } from './application'
 import { Message } from './message'
 import { Model } from './model'
 import * as Settings from './settings'
 
 // ❌ Bad: this forwarder can never forward an OutMessage.
-const badSettings = Settings.block.connection({
-  Model: Model,
+const badSettings = ApplicationDefinition.bindChild(Settings.block, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
   outMessage: {
@@ -14,8 +14,7 @@ const badSettings = Settings.block.connection({
 })
 
 // ✅ Good: omit `forward` when every child OutMessage stops here.
-const settings = Settings.block.connection({
-  Model: Model,
+const settings = ApplicationDefinition.bindChild(Settings.block, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
   outMessage: { fold: foldSettingsOutMessage },

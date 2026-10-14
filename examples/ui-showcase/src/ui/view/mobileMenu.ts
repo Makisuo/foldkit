@@ -3,16 +3,16 @@ import { type Html } from 'foldkit/html'
 
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
-import { RegisteredUiDefinition, mobileMenuDialog } from '../update'
+import { UiComposition, mobileMenuDialog } from '../childBindings'
 
 export type ViewInputs = Readonly<{
   renderContent: (
     closeButton: DialogRenderInfo['closeButton'],
-    h: Block.HtmlBuilderOf<typeof RegisteredUiDefinition>,
+    h: Block.HtmlBuilderOf<typeof UiComposition>,
   ) => Html
 }>
 
-export const view = RegisteredUiDefinition.view.withInputs<ViewInputs>(
+export const view = UiComposition.view.withInputs<ViewInputs>(
   (model, { renderContent }, h) => {
     const mobileMenuDialogContent = ({
       dialog,

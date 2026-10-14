@@ -5,13 +5,10 @@ import { describe, test } from 'vitest'
 
 import { Listbox } from '@foldkit/ui'
 
-import {
-  ApplicationRoute,
-  type Model,
-  Sorting,
-  update,
-  view,
-} from './application'
+import { type Model } from './model'
+import { ApplicationRoute, Sorting } from './route'
+import { update } from './update'
+import { view } from './view'
 
 const browseModel: Model = {
   route: ApplicationRoute.Browse({

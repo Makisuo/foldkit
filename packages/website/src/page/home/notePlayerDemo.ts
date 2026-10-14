@@ -232,18 +232,20 @@ const foldNoteDurationRadioGroupOutMessage =
       }),
   })
 
-const noteDurationRadioGroup = NoteDurationRadioGroup.connection({
-  Model,
-  field: 'noteDurationRadioGroup',
-  parentMessage: Message.GotNoteDurationMessage,
-  outMessage: { fold: foldNoteDurationRadioGroupOutMessage },
-})
+const noteDurationRadioGroup = NotePlayerDemoDefinition.bindChild(
+  NoteDurationRadioGroup,
+  {
+    field: 'noteDurationRadioGroup',
+    parentMessage: Message.GotNoteDurationMessage,
+    outMessage: { fold: foldNoteDurationRadioGroupOutMessage },
+  },
+)
 
-type ViewRequirements = Block.RequirementsOfConnections<
+type ViewRequirements = Block.RequirementsOfBindings<
   readonly [typeof noteDurationRadioGroup]
 >
 
-const RegisteredNotePlayerDemoDefinition = NotePlayerDemoDefinition.register({
+const NotePlayerDemoComposition = NotePlayerDemoDefinition.toComposition({
   children: [noteDurationRadioGroup],
 })
 
@@ -575,7 +577,7 @@ const durationButtonClass = (
       !isSelected && isDisabled,
   })
 
-export const view = RegisteredNotePlayerDemoDefinition.view((model, h) =>
+export const view = NotePlayerDemoComposition.view((model, h) =>
   DemoView.shell(
     DemoView.codePanel(
       'note-demo-code-panel',
@@ -983,7 +985,7 @@ const phaseIndicatorView = (model: Model): Html =>
     [],
   )
 
-export const block = RegisteredNotePlayerDemoDefinition.toBlock({
+export const block = NotePlayerDemoComposition.toBlock({
   init,
   update,
   view,

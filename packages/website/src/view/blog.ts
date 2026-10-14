@@ -6,13 +6,13 @@ import {
   inertHtml as ih,
 } from 'foldkit/html'
 
-import { Shared } from '../component'
 import {
   type ViewRequirements,
   snippetCopy as snippetCopyBinding,
   snippetDisclosure as snippetDisclosureBinding,
   uiPages as uiPagesBinding,
-} from '../connection'
+} from '../childBindings'
+import { Shared } from '../component'
 import { Docs } from '../layout'
 import { docPage } from '../markdown'
 import { Message } from '../message'

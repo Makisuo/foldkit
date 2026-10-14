@@ -2,8 +2,8 @@ import type { Html } from 'foldkit/html'
 
 import { Textarea } from '@foldkit/ui'
 
+import { UiComposition } from '../childBindings'
 import { Message } from '../message'
-import { RegisteredUiDefinition } from '../update'
 
 const textareaClassName =
   'block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 transition-colors placeholder:text-gray-400 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'
@@ -12,7 +12,7 @@ const labelClassName = 'block text-sm font-medium text-gray-700'
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-export const view = RegisteredUiDefinition.view((model, h) => {
+export const view = UiComposition.view((model, h) => {
   const basicTextareaView = (
     attributes: Textarea.TextareaAttributes<Message>,
   ): Html =>

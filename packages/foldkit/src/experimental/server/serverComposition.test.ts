@@ -49,7 +49,7 @@ const childBase = Child.define({
   Model: ChildModel,
   Message: ChildMessage,
 })
-const child = childBase.register({ mounts: [Observe] })
+const child = childBase.toComposition({ mounts: [Observe] })
 const childImplementation = {
   init: (title: string) => ({ model: { title }, commands: [Prepare()] }),
   update: childBase.update(model => ({ model })),
@@ -66,16 +66,16 @@ const RootModel = Schema.Struct({ title: Schema.String })
 const RootMessage = defineMessageUnion({
   GotChildMessage: { message: ChildMessage },
 })
-const childBinding = childBlock.connection({
-  read: (model: typeof RootModel.Type) => Option.some(model),
-  write: (_model, nextChild) => nextChild,
-  parentMessage: RootMessage.GotChildMessage,
-})
 const RootApplication = defineApplication({
   Model: RootModel,
   Message: RootMessage,
 })
-const RegisteredApplication = RootApplication.register({
+const childBinding = RootApplication.bindChild(childBlock, {
+  read: model => Option.some(model),
+  write: (_model, nextChild) => nextChild,
+  parentMessage: RootMessage.GotChildMessage,
+})
+const RegisteredApplication = RootApplication.toComposition({
   children: [childBinding],
 })
 const rootImplementation = {
@@ -98,6 +98,7 @@ const FlagsApplication = defineApplication({
   Model: RootModel,
   Message: RootMessage,
 })
+const FlagsComposition = FlagsApplication.toComposition()
 const flagsImplementation = {
   init: (flags: ServerFlags) => ({ model: { title: flags.title } }),
   update: FlagsApplication.update(model => ({ model })),
@@ -112,6 +113,7 @@ const RoutingApplication = defineApplication({
   Model: RootModel,
   Message: RootMessage,
 })
+const RoutingComposition = RoutingApplication.toComposition()
 const routingImplementation = {
   init: (url: Url) => ({ model: { title: url.pathname } }),
   update: RoutingApplication.update(model => ({ model })),
@@ -126,6 +128,7 @@ const RoutingFlagsApplication = defineApplication({
   Model: RootModel,
   Message: RootMessage,
 })
+const RoutingFlagsComposition = RoutingFlagsApplication.toComposition()
 const routingFlagsImplementation = {
   init: (flags: ServerFlags, url: Url) => ({
     model: { title: `${flags.title}${url.pathname}` },
@@ -142,6 +145,7 @@ const DataApplication = defineApplication({
   Model: RootModel,
   Message: RootMessage,
 })
+const DataComposition = DataApplication.toComposition()
 const dataImplementation = {
   init: () => ({ model: { title: 'data' } }),
   update: DataApplication.update(model => ({ model })),
@@ -152,6 +156,7 @@ const HtmlApplication = defineApplication({
   Model: RootModel,
   Message: RootMessage,
 })
+const HtmlComposition = HtmlApplication.toComposition()
 const htmlImplementation = {
   init: () => ({ model: { title: 'html' } }),
   update: HtmlApplication.update(model => ({ model })),
@@ -166,17 +171,17 @@ const verifyServerBlockContracts = (): void => {
     isHydratable: false,
   })
   const flagsRender = renderToString(
-    FlagsApplication,
+    FlagsComposition,
     { ...flagsImplementation, Flags: ServerFlags },
     { flags: { title: 'flags' }, isHydratable: false },
   )
   const routingRender = renderToString(
-    RoutingApplication,
+    RoutingComposition,
     { ...routingImplementation, routing: {} },
     { url: 'https://foldkit.dev/docs', isHydratable: false },
   )
   const routingFlagsRender = renderToString(
-    RoutingFlagsApplication,
+    RoutingFlagsComposition,
     {
       ...routingFlagsImplementation,
       Flags: ServerFlags,
@@ -190,7 +195,7 @@ const verifyServerBlockContracts = (): void => {
   )
 
   const invalidDataRender = renderToString(
-    DataApplication,
+    DataComposition,
     // @ts-expect-error A server implementation must supply a page-owning Document view.
     dataImplementation,
     {
@@ -199,7 +204,7 @@ const verifyServerBlockContracts = (): void => {
   )
 
   const invalidHtmlRender = renderToString(
-    HtmlApplication,
+    HtmlComposition,
     // @ts-expect-error An embeddable HTML view cannot own the rendered Document.
     htmlImplementation,
     {
@@ -208,14 +213,14 @@ const verifyServerBlockContracts = (): void => {
   )
 
   const invalidFlagsValueRender = renderToString(
-    FlagsApplication,
+    FlagsComposition,
     // @ts-expect-error Render Flags must match the config's Flags Schema.
     { ...flagsImplementation, Flags: ServerFlags },
     { flags: { title: 1 }, isHydratable: false },
   )
 
   const invalidFlagsSchemaRender = renderToString(
-    FlagsApplication,
+    FlagsComposition,
     // @ts-expect-error The Flags Schema must match the root's init input.
     { ...flagsImplementation, Flags: OtherFlags },
     { flags: { count: 1 }, isHydratable: false },
@@ -247,7 +252,7 @@ describe('Application definition server rendering', () => {
   it('renders a graphless definition created by the public define function', async () => {
     const rendered = await Effect.runPromise(
       renderToString(
-        FlagsApplication,
+        FlagsComposition,
         { ...flagsImplementation, Flags: ServerFlags },
         { flags: { title: 'Graphless root' }, isHydratable: false },
       ),

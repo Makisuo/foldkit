@@ -64,11 +64,11 @@ Portal-to-body is a small example. When an overlay enters the DOM, its Mount mov
 
 ### Handler Layers
 
-A Mount starts when its element enters the DOM and stops when that element leaves. Register its definition in the owning Block's `mounts`, include its handler recipe in the local `EffectsLayer`, and complete that definition with `toBlock`. Registration declares a Mount the view may render; a conditional Mount need not appear in every render.
+A Mount starts when its element enters the DOM and stops when that element leaves. Include its definition in the owning Composition's `mounts`, include its handler recipe in the local `EffectsLayer`, and complete that Composition with `toBlock`. Composition declares a Mount the view may render; a conditional Mount need not appear in every render.
 
 ::Snippet{name="mountHandlerLayers" label="Registering a Mount handler Layer"}
 
-`FeatureDefinition.view` derives the view builder's allowed Mounts from its registry. TypeScript rejects a view that requires an unregistered Mount, and the completed Block carries the matching handler graph to the root. Foldkit also checks each rendered definition before patching the DOM. Use the same definition in the view, registration, and Layer composition. Distinct Mount definitions within one Block need distinct local names; composition derives their application paths. The handler Layer lives for the application lifetime, while each Mount acquisition and cleanup follows its element.
+`FeatureComposition.view` derives the view builder's allowed Mounts from its Composition. TypeScript rejects a view that requires a Mount absent from that Composition, and the completed Block carries the matching handler graph to the root. Foldkit also checks each rendered definition before patching the DOM. Use the same definition in the view, Composition, and Layer assembly. Distinct Mount definitions within one Block need distinct local names; composition derives their application paths. The handler Layer lives for the application lifetime, while each Mount acquisition and cleanup follows its element.
 
 The Runtime runs the attached handler generator once while building the application Layer and obtains the element handler. Return it directly from the generator when construction has no dependencies. The constructor must not capture a DOM element or Mount args; Foldkit supplies those when each element is mounted. Each element receives its own Mount scope. Removing and reinserting an element reruns the real handler without rebuilding its provider.
 
@@ -80,19 +80,19 @@ Name the Mount for the imperative work attached to the element, using a verb-fir
 
 Registering a Mount that the view never renders starts no element lifecycle, listeners, or DOM work. Its provided handler constructor still runs during application startup.
 
-For an owned Block, create `NameDefinition = Block.define('Name', { Model, Message })`, create Mounts through that typed authoring value, and list them in `RegisteredNameDefinition = NameDefinition.register({ mounts })`. Author the canonical view with `RegisteredNameDefinition.view`, then pass the local handler recipes to `RegisteredNameDefinition.toBlock({ EffectsLayer })`. A parent that registers the child's connection receives its Mount registrations and handler graph together. The typed or registered Application installs the root graph through its owned `make({ init, update, view, ... })` method.
+For an owned Block, create `NameDefinition = Block.define('Name', { Model, Message })`, create Mounts through that typed authoring value, and list them in `NameComposition = NameDefinition.toComposition({ mounts })`. Author the canonical view with `NameComposition.view`, then pass the local handler recipes to `NameComposition.toBlock({ EffectsLayer })`. A parent that includes the child Binding receives its Mount registrations and handler graph together. `ApplicationComposition` installs the root graph through its owned `make({ init, update, view, ... })` method.
 
-Use `block.keyedConnection` for a dynamically keyed collection. Each active key gets independent Mount ownership, and the parent registers the keyed connection once under `children`.
+Use `ParentDefinition.bindChild` with `readAll` and `key` for a dynamically keyed collection. Each active key gets independent Mount ownership, and the parent includes the keyed Binding once under `children`.
 
 ### Mount Requirements in Reusable Views
 
-An owned view receives a builder whose allowed Mounts are inferred from its Block definition. When several helpers share a mounted or child embedding path, derive one builder type with `Block.HtmlBuilderOf<typeof RegisteredNameDefinition>` and use it throughout the feature. `RegisteredNameDefinition.view` derives the builder from the Model, Message, local Mounts, and registered child connections:
+An owned view receives a builder whose allowed Mounts are inferred from its Composition. When several deliberately reusable helpers share a mounted or child embedding path, derive one builder type with `Block.HtmlBuilderOf<typeof NameComposition>` and use it throughout the feature. `NameComposition.view` derives the builder from the Model, Message, local Mounts, and child Bindings:
 
 ::Snippet{name="mountBlockView" label="Preserving a Block view's Mount requirements"}
 
-The parent must register the child's connection under `children` before its builder can embed that child view. An owned child with `ViewInputs` uses `FeatureDefinition.view.withInputs<ViewInputs>` and receives its builder third.
+The parent must include the child Binding under `children` before its builder can embed that child view. An owned child with `ViewInputs` uses `FeatureComposition.view.withInputs<ViewInputs>` and receives its builder third.
 
-The definition derives its builder type from the complete Mount registry, and application assembly includes those registrations. Missing registrations fail at the composition boundary, and helpers cannot attach Mounts outside their builder's declared set. Keep pure helpers on the framework's `HtmlBuilder<Message>`. The returned `Html` type stays the same.
+The Composition derives its builder type from the complete Mount collection, and application assembly includes those definitions. Missing Mounts fail at the composition boundary, and helpers cannot attach Mounts outside their builder's declared set. Keep pure helpers on the framework's `HtmlBuilder<Message>`. The returned `Html` type stays the same.
 
 Let TypeScript infer `mounts` arrays and composed spreads. Widening the array to `ReadonlyArray<Mount.LayeredMountDefinition>` discards the contracts required for registration checking, so application assembly rejects it. Forwarded attribute arrays preserve the same evidence: use `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>` when an explicit annotation is necessary. `childAttributes` infers those requirements from its input, and `CustomElement.withMessage(h)` retains the builder's allowed Mounts.
 

@@ -28,7 +28,7 @@ const childDefinition = ChildOwner.define({ Model: ChildModel, Message })
 const reset = childDefinition.step((_model: ChildModel) => ({
   model: ChildModel.make({ count: 0 }),
 }))
-const Child = childDefinition.toBlock({
+const Child = childDefinition.toComposition().toBlock({
   view: childDefinition.view((_model, h) => h.div([])),
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
   update: childDefinition.update(model => ({
@@ -38,7 +38,11 @@ const Child = childDefinition.toBlock({
   EffectsLayer: Layer.empty,
 })
 
-const omittedChild = Child.connection({
+const omittedParentDefinition = define('OperationGraphOmittedParent').define({
+  Model: ParentModel,
+  Message,
+})
+const omittedChild = omittedParentDefinition.bindChild(Child, {
   placement: 'omitted-child',
   read: (model: ParentModel) => Option.some(model.primary),
   write: (model, nextChild) =>
@@ -46,11 +50,7 @@ const omittedChild = Child.connection({
   toParentMessage: (message: Message) => message,
 })
 
-const omittedParentDefinition = define('OperationGraphOmittedParent').define({
-  Model: ParentModel,
-  Message,
-})
-const OmittedParent = omittedParentDefinition.toBlock({
+const OmittedParent = omittedParentDefinition.toComposition().toBlock({
   view: omittedParentDefinition.view((_model, h) => h.div([])),
   init: () => ({
     model: modifyFields(initialModel, {
@@ -74,7 +74,11 @@ const readWrongPlacement = vi.fn((child: ChildModel) => child)
 const writeWrongPlacement = vi.fn((model: ParentModel, nextChild: ChildModel) =>
   modifyFields(model, { primary: () => nextChild }),
 )
-const registeredPlacement = Child.keyedConnection({
+const exactParentBase = define('OperationGraphExactParent').define({
+  Model: ParentModel,
+  Message,
+})
+const registeredPlacement = exactParentBase.bindChild(Child, {
   placement: 'same-placement',
   readAll: (model: ParentModel) => [model.primary],
   key: () => 'only',
@@ -83,7 +87,7 @@ const registeredPlacement = Child.keyedConnection({
     modifyFields(model, { primary: () => nextChild }),
   toParentMessage: (_key, message: Message) => message,
 })
-const wrongPlacement = Child.keyedConnection({
+const wrongPlacement = exactParentBase.bindChild(Child, {
   placement: 'same-placement',
   readAll: readAllWrongPlacement,
   key: () => 'only',
@@ -92,11 +96,7 @@ const wrongPlacement = Child.keyedConnection({
   toParentMessage: (_key, message: Message) => message,
 })
 
-const exactParentBase = define('OperationGraphExactParent').define({
-  Model: ParentModel,
-  Message,
-})
-const exactParentDefinition = exactParentBase.register({
+const exactParentDefinition = exactParentBase.toComposition({
   children: [registeredPlacement],
 })
 const ExactParent = exactParentDefinition.toBlock({
@@ -127,7 +127,7 @@ const policyDefinition = PolicyOwner.define({
   Message,
   OutMessage: PolicyOutMessage,
 })
-const PolicyChild = policyDefinition.toBlock({
+const PolicyChild = policyDefinition.toComposition().toBlock({
   view: policyDefinition.view((_model, h) => h.div([])),
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
   update: (model: ChildModel) => ({
@@ -137,14 +137,18 @@ const PolicyChild = policyDefinition.toBlock({
   EffectsLayer: Layer.empty,
 })
 
-const siblingChild = Child.connection({
+const policyParentBase = define('OperationGraphPolicyParent').define({
+  Model: ParentModel,
+  Message,
+})
+const siblingChild = policyParentBase.bindChild(Child, {
   placement: 'sibling-child',
   read: (model: ParentModel) => Option.some(model.sibling),
   write: (model, nextChild) =>
     modifyFields(model, { sibling: () => nextChild }),
   toParentMessage: (message: Message) => message,
 })
-const policyChild = PolicyChild.connection({
+const policyChild = policyParentBase.bindChild(PolicyChild, {
   placement: 'policy-child',
   read: (model: ParentModel) => Option.some(model.primary),
   write: (model, nextChild) =>
@@ -155,11 +159,7 @@ const policyChild = PolicyChild.connection({
   },
 })
 
-const policyParentBase = define('OperationGraphPolicyParent').define({
-  Model: ParentModel,
-  Message,
-})
-const policyParentDefinition = policyParentBase.register({
+const policyParentDefinition = policyParentBase.toComposition({
   children: [policyChild, siblingChild],
 })
 const PolicyParent = policyParentDefinition.toBlock({

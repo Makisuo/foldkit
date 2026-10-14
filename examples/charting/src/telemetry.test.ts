@@ -2,14 +2,14 @@ import { Array, Clock, Effect, Layer, Match, String } from 'effect'
 import { HttpClient, HttpClientResponse } from 'effect/http'
 import { expect, test } from 'vitest'
 
+import { GitHubApi, GitHubApiLayer } from './githubApi'
+import { NpmApi, NpmApiLayer } from './npmApi'
+import { fetchRawTelemetry, transformTelemetry } from './telemetry'
 import {
   mockGitHubRepository,
   mockNpmDownloads,
   mockNpmPackument,
-} from './application.fixture'
-import { GitHubApi, GitHubApiLayer } from './githubApi'
-import { NpmApi, NpmApiLayer } from './npmApi'
-import { fetchRawTelemetry, transformTelemetry } from './telemetry'
+} from './telemetry.fixture'
 
 test('folds public API responses into a Telemetry value', async () => {
   const mockClient = HttpClient.make(request =>

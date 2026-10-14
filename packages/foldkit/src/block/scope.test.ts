@@ -2,7 +2,7 @@ import { Context, Effect, Layer, Option, Ref, Schema, Scope } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
-import { inspectConnection } from './binding.js'
+import { inspectBinding } from './binding.js'
 import { define } from './define.js'
 import { identityOf } from './identity.js'
 import {
@@ -23,6 +23,12 @@ class ValueSource extends Context.Service<
   Readonly<{ value: string }>
 >()('ScopeTest/ValueSource') {}
 
+const ScopeParentModel = Schema.Struct({})
+const ScopeParentDefinition = define('ScopeTestParent', {
+  Model: ScopeParentModel,
+  Message,
+})
+
 const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
   const Feature = define(id)
   const ReadValue = Feature.command('ReadValue', {
@@ -40,16 +46,16 @@ const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
     model,
     commands: [ReadValue()],
   }))
-  const block = feature.toBlock({
+  const block = feature.toComposition().toBlock({
     init: () => ({ model: {} }),
     update,
     EffectsLayer: ReadValue.layer,
   })
   const bind = (placement: string) =>
-    block.connection({
+    ScopeParentDefinition.bindChild(block, {
       placement,
-      read: (model: Readonly<{ child: {} }>) => Option.some(model.child),
-      write: (_model, nextChild) => ({ child: nextChild }),
+      read: model => Option.some(model),
+      write: (_model, nextChild) => nextChild,
       toParentMessage: message => message,
     })
   return { Feature, ReadValue, block, bind }
@@ -81,8 +87,8 @@ describe('Block capability contexts', () => {
     const leftCommand = left.fold(model, Message.RequestedValue()).commands!
     const rightCommand = right.fold(model, Message.RequestedValue()).commands!
     const layer = Layer.merge(
-      inspectConnection(left).EffectsLayer,
-      inspectConnection(right).EffectsLayer,
+      inspectBinding(left).EffectsLayer,
+      inspectBinding(right).EffectsLayer,
     ).pipe(Layer.provide(Layer.succeed(ValueSource, { value: 'shared' })))
 
     const results = await Effect.runPromise(
@@ -110,33 +116,31 @@ describe('Block capability contexts', () => {
 
   it('isolates captures when the same raw handler recipe is selected with different providers', async () => {
     const feature = makeFeature('SelectedScope')
-    const left = feature.block
-      .replaceEffectsLayer(
-        feature.ReadValue.layer.pipe(
-          Layer.provide(Layer.succeed(ValueSource, { value: 'left' })),
-        ),
-      )
-      .connection({
-        placement: 'Left',
-        read: (model: {}) => Option.some(model),
-        write: (_model, nextChild) => nextChild,
-        toParentMessage: message => message,
-      })
-    const right = feature.block
-      .replaceEffectsLayer(
-        feature.ReadValue.layer.pipe(
-          Layer.provide(Layer.succeed(ValueSource, { value: 'right' })),
-        ),
-      )
-      .connection({
-        placement: 'Right',
-        read: (model: {}) => Option.some(model),
-        write: (_model, nextChild) => nextChild,
-        toParentMessage: message => message,
-      })
+    const leftBlock = feature.block.replaceEffectsLayer(
+      feature.ReadValue.layer.pipe(
+        Layer.provide(Layer.succeed(ValueSource, { value: 'left' })),
+      ),
+    )
+    const left = ScopeParentDefinition.bindChild(leftBlock, {
+      placement: 'Left',
+      read: model => Option.some(model),
+      write: (_model, nextChild) => nextChild,
+      toParentMessage: message => message,
+    })
+    const rightBlock = feature.block.replaceEffectsLayer(
+      feature.ReadValue.layer.pipe(
+        Layer.provide(Layer.succeed(ValueSource, { value: 'right' })),
+      ),
+    )
+    const right = ScopeParentDefinition.bindChild(rightBlock, {
+      placement: 'Right',
+      read: model => Option.some(model),
+      write: (_model, nextChild) => nextChild,
+      toParentMessage: message => message,
+    })
     const layer = Layer.merge(
-      inspectConnection(left).EffectsLayer,
-      inspectConnection(right).EffectsLayer,
+      inspectBinding(left).EffectsLayer,
+      inspectBinding(right).EffectsLayer,
     )
     const commands = [
       ...(left.fold({}, Message.RequestedValue()).commands ?? []),
@@ -170,18 +174,17 @@ describe('Block capability contexts', () => {
     const ambient = feature.ReadValue.layer.pipe(
       Layer.provide(Layer.succeed(ValueSource, { value: 'ambient' })),
     )
-    const selected = feature.block
-      .replaceEffectsLayer(
-        feature.ReadValue.layer.pipe(
-          Layer.provide(Layer.succeed(ValueSource, { value: 'selected' })),
-        ),
-      )
-      .connection({
-        placement: 'Selected',
-        read: (model: {}) => Option.some(model),
-        write: (_model, nextChild) => nextChild,
-        toParentMessage: message => message,
-      })
+    const selectedBlock = feature.block.replaceEffectsLayer(
+      feature.ReadValue.layer.pipe(
+        Layer.provide(Layer.succeed(ValueSource, { value: 'selected' })),
+      ),
+    )
+    const selected = ScopeParentDefinition.bindChild(selectedBlock, {
+      placement: 'Selected',
+      read: model => Option.some(model),
+      write: (_model, nextChild) => nextChild,
+      toParentMessage: message => message,
+    })
     const commands = selected.fold({}, Message.RequestedValue()).commands ?? []
     const result = await Effect.runPromise(
       Effect.scoped(
@@ -190,7 +193,7 @@ describe('Block capability contexts', () => {
           const memoMap = Layer.makeMemoMapUnsafe()
           yield* Layer.buildWithMemoMap(ambient, memoMap, scope)
           const context = yield* Layer.buildWithMemoMap(
-            inspectConnection(selected).EffectsLayer,
+            inspectBinding(selected).EffectsLayer,
             memoMap,
             scope,
           )

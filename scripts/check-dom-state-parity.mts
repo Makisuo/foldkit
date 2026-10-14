@@ -15,10 +15,11 @@ import {
   reflectedAttributeName,
 } from '../packages/foldkit/dist/domReflection.js'
 
-const Application = defineApplication({
+const ApplicationDefinition = defineApplication({
   Model: Schema.Null,
   Message: Schema.Never,
 })
+const ApplicationComposition = ApplicationDefinition.toComposition()
 const makeParityImplementation = (
   view: (
     model: null,
@@ -26,8 +27,8 @@ const makeParityImplementation = (
   ) => Readonly<{ title: string; body: Html }>,
 ) => ({
   init: () => ({ model: null }),
-  update: Application.update(model => ({ model })),
-  view: Application.view(view),
+  update: ApplicationComposition.update(model => ({ model })),
+  view: ApplicationComposition.view(view),
   EffectsLayer: Layer.empty,
 })
 
@@ -861,7 +862,7 @@ const renderCase = async (parityCase: ParityCase): Promise<RenderedCase> => {
   let captured: CapturedData = {}
   const rendered = await Effect.runPromise(
     Server.renderToString(
-      Application,
+      ApplicationComposition,
       makeParityImplementation((_model: null, h: HtmlBuilder<never>) => {
         const element = parityCase.build(h)
         captured = element?.data ?? {}
@@ -1113,7 +1114,7 @@ const runSerializeRefusals = async (): Promise<void> => {
     const outcome = await Effect.runPromise(
       Effect.result(
         Server.renderToString(
-          Application,
+          ApplicationComposition,
           makeParityImplementation((_model: null, h: HtmlBuilder<never>) => ({
             title: 'dom state parity',
             body: h.div([], [refusal.build(h)]),
@@ -1141,7 +1142,7 @@ const main = async (): Promise<void> => {
   let builder: HtmlBuilder<never> | undefined
   await Effect.runPromise(
     Server.renderToString(
-      Application,
+      ApplicationComposition,
       makeParityImplementation((_model: null, h: HtmlBuilder<never>) => {
         builder = h
         return { title: 'dom state parity', body: h.div([], ['x']) }

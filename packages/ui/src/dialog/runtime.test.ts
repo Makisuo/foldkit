@@ -27,14 +27,14 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const dialog = Dialog.block.connection({
+const dialog = ApplicationDefinition.bindChild(Dialog.block, {
   read: (model: Model) => Option.some(model),
   write: (_model: Model, nextDialog: Dialog.Model) => nextDialog,
   parentMessage: RuntimeMessage.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const RegisteredApplicationDefinition = ApplicationDefinition.register({
+const ApplicationComposition = ApplicationDefinition.toComposition({
   children: [dialog],
 })
 
@@ -45,7 +45,7 @@ const update = ApplicationDefinition.update((model, message) =>
   }),
 )
 
-const view = RegisteredApplicationDefinition.view((model, h) =>
+const view = ApplicationComposition.view((model, h) =>
   h.block(
     dialog.embedView({
       slotId: model.id,
@@ -72,7 +72,7 @@ const view = RegisteredApplicationDefinition.view((model, h) =>
 const init = () => dialog.open()(dialog.init({ id: dialogId }).model)
 
 const makeDialogProgram = (container: HTMLElement) =>
-  RegisteredApplicationDefinition.makeElement({
+  ApplicationComposition.makeElement({
     container,
     init,
     update,

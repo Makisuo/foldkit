@@ -22,11 +22,11 @@ const MeasurePanel = PanelDefinition.mount('MeasurePanel', {
   },
 })
 
-const RegisteredPanelDefinition = PanelDefinition.register({
+const PanelComposition = PanelDefinition.toComposition({
   mounts: [MeasurePanel],
 })
 
-const update = RegisteredPanelDefinition.update((model, message) =>
+const update = PanelComposition.update((model, message) =>
   Message.match(message, {
     CompletedMeasurePanel: ({ height }) => ({
       model: modifyFields(model, {
@@ -36,7 +36,7 @@ const update = RegisteredPanelDefinition.update((model, message) =>
   }),
 )
 
-const view = RegisteredPanelDefinition.view((model, h) => ({
+const view = PanelComposition.view((model, h) => ({
   title: 'Measured panel',
   body: h.div(
     [h.OnMount(MeasurePanel())],
@@ -49,7 +49,7 @@ const view = RegisteredPanelDefinition.view((model, h) => ({
   ),
 }))
 
-export const block = RegisteredPanelDefinition.toBlock({
+export const block = PanelComposition.toBlock({
   init: () => ({ model: Model.make({ panelHeight: Option.none() }) }),
   update,
   view,

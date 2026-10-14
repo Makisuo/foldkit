@@ -1284,7 +1284,7 @@ export const ObserveVirtualList = VirtualListDefinition.mountStream(
 /** Mount Definitions rendered by VirtualList views. */
 export const mounts = [ObserveVirtualList]
 
-const RegisteredVirtualListDefinition = VirtualListDefinition.register({
+const VirtualListComposition = VirtualListDefinition.toComposition({
   mounts,
 })
 
@@ -1351,10 +1351,10 @@ export const view = <Item>() =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   viewImpl as unknown as ViewForItem<Item>
 
-type InternalInputs = ViewInputs<unknown>
+type InternalVirtualListViewInputs = ViewInputs<unknown>
 
 const viewImpl =
-  RegisteredVirtualListDefinition.view.withInputs<InternalInputs>(
+  VirtualListComposition.view.withInputs<InternalVirtualListViewInputs>(
     (model, viewInputs, h) => {
       const {
         items,
@@ -1495,7 +1495,7 @@ const expose = {
 }
 
 /** Complete VirtualList Block definition using an unknown item type. */
-export const block = RegisteredVirtualListDefinition.toBlock({
+export const block = VirtualListComposition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),
   update,
   view: viewImpl,
@@ -1507,7 +1507,7 @@ export const block = RegisteredVirtualListDefinition.toBlock({
 export const create = <Item>() => {
   const refinedView = view<Item>()
 
-  return RegisteredVirtualListDefinition.toBlock({
+  return VirtualListComposition.toBlock({
     init: (config: InitConfig) => ({ model: init(config) }),
     update,
     view: refinedView,

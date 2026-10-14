@@ -8,4 +8,4 @@ export {
   revealErrors,
 } from './definition'
 export type { ViewInputs } from './view'
-export { block } from './entry'
+export { block } from './block'

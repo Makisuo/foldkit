@@ -3,13 +3,13 @@ import { Effect, Option, Queue, Schema, Stream, pipe } from 'effect'
 import type { HtmlBuilderOf } from 'foldkit/application'
 import type { HtmlBuilder as FoldkitHtmlBuilder, Html } from 'foldkit/html'
 
+import type { ApplicationComposition } from '../application'
 import { ChartRegistry } from '../chartRegistry'
 import { ApplicationDefinition } from '../definition'
 import type { Telemetry } from '../domain'
 import { selectedDatumLabel } from '../echarts'
 import { Message } from '../message'
 import type { Model } from '../model'
-import type { Application } from '../update'
 import { formatInteger } from './format'
 
 export const CHART_HOST_ID = 'charting-chart'
@@ -136,7 +136,7 @@ export const MountChart = ApplicationDefinition.mountStream('MountChart', {
   },
 })
 
-export type HtmlBuilder = HtmlBuilderOf<typeof Application>
+export type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 export const chartPanelView = (
   model: Model,

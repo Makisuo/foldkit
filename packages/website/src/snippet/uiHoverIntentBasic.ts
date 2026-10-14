@@ -41,19 +41,19 @@ const foldHoverIntentOutMessage = HoverIntent.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const hoverIntent = HoverIntent.block.connection({
+const HoverIntentExampleDefinition = Block.define('HoverIntentExample', {
   Model,
+  Message,
+})
+
+const hoverIntent = HoverIntentExampleDefinition.bindChild(HoverIntent.block, {
   field: 'hoverIntent',
   parentMessage: Message.GotHoverIntentMessage,
   outMessage: { fold: foldHoverIntentOutMessage },
 })
 
-const HoverIntentExampleDefinition = Block.define('HoverIntentExample', {
-  Model,
-  Message,
-})
-const RegisteredHoverIntentExampleDefinition =
-  HoverIntentExampleDefinition.register({
+const HoverIntentExampleComposition =
+  HoverIntentExampleDefinition.toComposition({
     children: [hoverIntent],
   })
 
@@ -68,7 +68,7 @@ const update = HoverIntentExampleDefinition.update((model, message) =>
 const triggerId = 'more-information-trigger'
 const panelId = 'more-information-panel'
 
-const view = RegisteredHoverIntentExampleDefinition.view((model, h) => {
+const view = HoverIntentExampleComposition.view((model, h) => {
   const hoverIntentView = ({
     trigger,
     panel,

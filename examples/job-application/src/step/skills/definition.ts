@@ -69,7 +69,7 @@ const foldEntryOutMessage = (
     }),
   })
 
-export const entries = Entry.block.keyedConnection({
+export const entries = SkillsDefinition.bindChild(Entry.block, {
   readAll: (model: Model) => model.entries,
   key: (entry: typeof Entry.Model.Type) => entry.id,
   read: entry => entry,
@@ -82,7 +82,7 @@ export const entries = Entry.block.keyedConnection({
   outMessage: { fold: foldEntryOutMessage },
 })
 
-export const RegisteredSkillsDefinition = SkillsDefinition.register({
+export const SkillsComposition = SkillsDefinition.toComposition({
   children: [entries],
 })
 

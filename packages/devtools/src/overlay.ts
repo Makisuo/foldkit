@@ -397,6 +397,8 @@ const taggedPayload = (
 
 // UPDATE
 
+const ApplicationDefinition = defineApplication({ Model, Message })
+
 const foldInspectorTabsOutMessage = Tabs.OutMessage.match<
   Update.Step<Model, Message>,
   Tabs.OutMessage<InspectorTab>
@@ -408,8 +410,7 @@ const foldInspectorTabsOutMessage = Tabs.OutMessage.match<
     }),
 })
 
-const inspectorTabs = InspectorTabs.connection({
-  Model,
+const inspectorTabs = ApplicationDefinition.bindChild(InspectorTabs, {
   field: 'inspectorTabs',
   parentMessage: Message.GotInspectorTabsMessage,
   outMessage: { fold: foldInspectorTabsOutMessage },
@@ -428,8 +429,7 @@ const foldBlockFilterOutMessage = Listbox.OutMessage.match<
     }),
 })
 
-const blockFilterListbox = BlockFilterListbox.connection({
-  Model,
+const blockFilterListbox = ApplicationDefinition.bindChild(BlockFilterListbox, {
   field: 'blockFilterListbox',
   parentMessage: Message.GotBlockFilterMessage,
   outMessage: { fold: foldBlockFilterOutMessage },
@@ -455,8 +455,7 @@ const foldScrubberSliderOutMessage = Slider.OutMessage.match<
 type DevToolsScrubber = typeof scrubberSlider
 
 const makeBindings = (scrubberSlider: DevToolsScrubber) => {
-  const scrubber = scrubberSlider.connection({
-    Model,
+  const scrubber = ApplicationDefinition.bindChild(scrubberSlider, {
     field: 'scrubberSlider',
     parentMessage: Message.GotScrubberSliderMessage,
     outMessage: { fold: foldScrubberSliderOutMessage },
@@ -481,10 +480,10 @@ const getDevToolsShadowRoot = (): ShadowRoot => {
 const scrubberSlider = Slider.forRoot(getDevToolsShadowRoot)
 const bindings = makeBindings(scrubberSlider)
 type OverlayBindings = typeof bindings
-type ViewRequirements = Block.RequirementsOfConnections<
+type ViewRequirements = Block.RequirementsOfBindings<
   OverlayBindings['children']
 >
-const Application = defineApplication({ Model, Message }).register({
+const ApplicationComposition = ApplicationDefinition.toComposition({
   children: bindings.children,
 })
 
@@ -497,7 +496,7 @@ class ShadowRootService extends Context.Service<
   ShadowRoot
 >()('foldkit/DevToolsShadowRoot') {}
 
-const subscriptions = Application.subscriptions(entry => ({
+const subscriptions = ApplicationComposition.subscriptions(entry => ({
   scrubFrameTicks: entry(
     'ScrubFrameTicks',
     { isActive: Schema.Boolean },
@@ -542,14 +541,14 @@ const subscriptions = Application.subscriptions(entry => ({
   }),
 }))
 
-export const LockScroll = Application.command('LockScroll', {
+export const LockScroll = ApplicationComposition.command('LockScroll', {
   messages: [Message.CompletedLockScroll],
   handler: function* () {
     return () => lockScroll.pipe(Effect.as(Message.CompletedLockScroll()))
   },
 })
 
-export const UnlockScroll = Application.command('UnlockScroll', {
+export const UnlockScroll = ApplicationComposition.command('UnlockScroll', {
   messages: [Message.CompletedUnlockScroll],
   handler: function* () {
     return () => unlockScroll.pipe(Effect.as(Message.CompletedUnlockScroll()))
@@ -585,7 +584,7 @@ const readPersistedState = Effect.gen(function* () {
   return yield* Schema.decodeEffect(DevToolsPersistedStateJson)(json)
 }).pipe(Effect.catch(() => Effect.succeed(DEFAULT_PERSISTED_STATE)))
 
-export const PersistDevToolsState = Application.command(
+export const PersistDevToolsState = ApplicationComposition.command(
   'PersistDevToolsState',
   {
     args: { isOpen: Schema.Boolean, isFlattened: Schema.Boolean },
@@ -633,21 +632,24 @@ const buildInspectionEffect = (store: DevToolsStore, index: number) =>
 // returns the model it resolved so the inspector reuses that single
 // resolution. Inspect-only navigation (no host pause) still uses
 // `InspectState`, which resolves once on its own.
-export const JumpToAndInspect = Application.command('JumpToAndInspect', {
-  args: { index: Schema.Number },
-  messages: [Message.ReceivedInspectedState],
-  handler: function* () {
-    const store = yield* StoreService
+export const JumpToAndInspect = ApplicationComposition.command(
+  'JumpToAndInspect',
+  {
+    args: { index: Schema.Number },
+    messages: [Message.ReceivedInspectedState],
+    handler: function* () {
+      const store = yield* StoreService
 
-    return ({ index }) =>
-      Effect.gen(function* () {
-        const model = yield* store.jumpTo(index)
-        return yield* buildInspectionFromModel(store, index, model)
-      })
+      return ({ index }) =>
+        Effect.gen(function* () {
+          const model = yield* store.jumpTo(index)
+          return yield* buildInspectionFromModel(store, index, model)
+        })
+    },
   },
-})
+)
 
-export const InspectState = Application.command('InspectState', {
+export const InspectState = ApplicationComposition.command('InspectState', {
   args: { index: Schema.Number },
   messages: [Message.ReceivedInspectedState],
   handler: function* () {
@@ -657,7 +659,7 @@ export const InspectState = Application.command('InspectState', {
   },
 })
 
-export const InspectLatest = Application.command('InspectLatest', {
+export const InspectLatest = ApplicationComposition.command('InspectLatest', {
   messages: [Message.ReceivedInspectedState],
   handler: function* () {
     const store = yield* StoreService
@@ -670,7 +672,7 @@ export const InspectLatest = Application.command('InspectLatest', {
   },
 })
 
-export const Resume = Application.command('Resume', {
+export const Resume = ApplicationComposition.command('Resume', {
   messages: [Message.CompletedResume],
   handler: function* () {
     const store = yield* StoreService
@@ -679,7 +681,7 @@ export const Resume = Application.command('Resume', {
   },
 })
 
-export const Clear = Application.command('Clear', {
+export const Clear = ApplicationComposition.command('Clear', {
   messages: [Message.CompletedClear],
   handler: function* () {
     const store = yield* StoreService
@@ -688,7 +690,7 @@ export const Clear = Application.command('Clear', {
   },
 })
 
-export const CopyPayloadToClipboard = Application.command(
+export const CopyPayloadToClipboard = ApplicationComposition.command(
   'CopyPayloadToClipboard',
   {
     args: {
@@ -727,7 +729,7 @@ export const CopyPayloadToClipboardLayer = CopyPayloadToClipboard.layer
 
 const COPY_INDICATOR_DURATION = '1 second'
 
-export const WaitBeforeHidingCopyIndicator = Application.command(
+export const WaitBeforeHidingCopyIndicator = ApplicationComposition.command(
   'WaitBeforeHidingCopyIndicator',
   {
     args: { targetId: Schema.String, requestId: Schema.Number },
@@ -746,7 +748,7 @@ export const WaitBeforeHidingCopyIndicator = Application.command(
   },
 )
 
-export const ScrollToTop = Application.command('ScrollToTop', {
+export const ScrollToTop = ApplicationComposition.command('ScrollToTop', {
   messages: [Message.CompletedScrollToTop],
   handler: function* () {
     const shadow = yield* ShadowRootService
@@ -1170,8 +1172,8 @@ const makeView = (
   }
 }
 
-const update = Application.update(makeUpdate(bindings))
-const view = Application.view(makeView(bindings))
+const update = ApplicationComposition.update(makeUpdate(bindings))
+const view = ApplicationComposition.view(makeView(bindings))
 
 const buildOverlayView = (
   position: DevToolsPosition,
@@ -3010,7 +3012,7 @@ export const createOverlay = (
       }
     })
 
-    const application = Application.makeElement({
+    const application = ApplicationComposition.makeElement({
       init,
       update,
       view,

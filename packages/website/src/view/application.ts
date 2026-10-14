@@ -1,18 +1,15 @@
 import { Match, Option } from 'effect'
-import { type HtmlBuilder } from 'foldkit/html'
 
-import { Application } from '../application'
-import { Shared } from '../component'
+import { ApplicationComposition } from '../application'
 import {
-  type ViewRequirements,
   home,
   playground,
   snippetCopy,
   snippetDisclosure,
-} from '../connection'
+} from '../childBindings'
+import { Shared } from '../component'
 import { Deployment } from '../deployment'
 import { Docs, Marketing } from '../layout'
-import { Message } from '../message'
 import { type Model } from '../model'
 import { Home, Newsletter } from '../page'
 import { routeToCanonicalUrl } from '../route'
@@ -21,50 +18,48 @@ import * as SnippetCopy from '../snippetCopy'
 import * as SnippetDisclosure from '../snippetDisclosure'
 import * as Blog from './blog'
 
-type MountRequirements = ViewRequirements
+type HomeViewInput = Readonly<{
+  model: Model
+  homeModel: typeof Home.Model.Type
+}>
 
-const homeView = (
-  model: Model,
-  homeModel: typeof Home.Model.Type,
-  h: HtmlBuilder<Message, MountRequirements>,
-) => {
-  const renderCopyButton = SnippetCopy.renderer(model.snippetCopy, config =>
-    h.block(snippetCopy.embedView(config)),
-  )
-  const content = h.block(
-    home.embedView({
-      slotId: 'home',
-      model: homeModel,
-      viewInputs: {
-        renderCopyButton,
-        renderSnippet: SnippetDisclosure.renderer(
-          model.snippetDisclosure,
+const homeView = ApplicationComposition.render.withInput<HomeViewInput>()(
+  ({ model, homeModel }, h) => {
+    const renderCopyButton = SnippetCopy.renderer(model.snippetCopy, config =>
+      h.block(snippetCopy.embedView(config)),
+    )
+    const content = h.block(
+      home.embedView({
+        slotId: 'home',
+        model: homeModel,
+        viewInputs: {
           renderCopyButton,
-          config => h.block(snippetDisclosure.embedView(config)),
-        ),
-        isNarrowViewport: model.isNarrowViewport,
-        maybeGitHubStarCount: model.maybeGitHubStarCount,
-        resolvedTheme: model.resolvedTheme,
-        isBrowserEnvironmentLoaded: Option.isSome(model.maybeThemePreference),
+          renderSnippet: SnippetDisclosure.renderer(
+            model.snippetDisclosure,
+            renderCopyButton,
+            config => h.block(snippetDisclosure.embedView(config)),
+          ),
+          isNarrowViewport: model.isNarrowViewport,
+          maybeGitHubStarCount: model.maybeGitHubStarCount,
+          resolvedTheme: model.resolvedTheme,
+          isBrowserEnvironmentLoaded: Option.isSome(model.maybeThemePreference),
+        },
+      }),
+    )
+
+    return Marketing.view(
+      model,
+      {
+        content,
+        mainClassName: 'flex-1 pt-[var(--header-height)]',
+        isPagefindBody: true,
       },
-    }),
-  )
+      h,
+    )
+  },
+)
 
-  return Marketing.view(
-    model,
-    {
-      content,
-      mainClassName: 'flex-1 pt-[var(--header-height)]',
-      isPagefindBody: true,
-    },
-    h,
-  )
-}
-
-const newsletterView = (
-  model: Model,
-  h: HtmlBuilder<Message, MountRequirements>,
-) =>
+const newsletterView = ApplicationComposition.render((model, h) =>
   Marketing.view(
     model,
     {
@@ -74,14 +69,15 @@ const newsletterView = (
       isPagefindBody: false,
     },
     h,
-  )
+  ),
+)
 
-export const view = Application.view((model, h) => {
+export const view = ApplicationComposition.view((model, h) => {
   const body = Match.value(model.route).pipe(
     Match.tag('Home', () =>
       Option.match(model.maybeHome, {
         onNone: () => h.empty,
-        onSome: homeModel => homeView(model, homeModel, h),
+        onSome: homeModel => homeView({ model, homeModel }, h),
       }),
     ),
     Match.tag('Newsletter', () => newsletterView(model, h)),

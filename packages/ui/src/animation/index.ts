@@ -19,4 +19,4 @@ export {
   type ViewInputs,
   view,
   block,
-} from './animation.js'
+} from './block.js'

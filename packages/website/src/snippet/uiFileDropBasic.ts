@@ -56,21 +56,21 @@ const foldFileDropOutMessage = FileDrop.OutMessage.match<
   RejectedNonFiles: () => model => ({ model }),
 })
 
-// The connection wires the completed child Block into the parent: it runs FileDrop.update,
+// The Binding wires the completed child Block into the parent: it runs FileDrop.update,
 // writes the next FileDrop Model back, maps the Block's Commands into your
 // Message type, and hands any OutMessage to the OutMessage fold.
-const fileDrop = FileDrop.block.connection({
+const FileDropExampleDefinition = Block.define('FileDropExample', {
   Model,
+  Message,
+})
+
+const fileDrop = FileDropExampleDefinition.bindChild(FileDrop.block, {
   field: 'uploader',
   parentMessage: Message.GotFileDropMessage,
   outMessage: { fold: foldFileDropOutMessage },
 })
 
-const FileDropExampleDefinition = Block.define('FileDropExample', {
-  Model,
-  Message,
-})
-const RegisteredFileDropExampleDefinition = FileDropExampleDefinition.register({
+const FileDropExampleComposition = FileDropExampleDefinition.toComposition({
   children: [fileDrop],
 })
 
@@ -84,7 +84,7 @@ const update = FileDropExampleDefinition.update((model, message) =>
 // Spread `root` onto a <label> so clicking opens the picker, and spread
 // `input` onto a hidden <input type="file"> nested inside. Style the
 // drag-over state via `data-drag-over`.
-const view = RegisteredFileDropExampleDefinition.view((model, h) => {
+const view = FileDropExampleComposition.view((model, h) => {
   const fileDropView = (attributes: FileDropFileDropAttributes) =>
     h.label(
       [

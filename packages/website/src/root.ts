@@ -18,7 +18,6 @@ import { githubStarCount } from 'virtual:landing-data'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
 
-import { DARK_COLOR_SCHEME_QUERY } from './colorScheme'
 import {
   apiReference,
   comingFromReact,
@@ -32,7 +31,8 @@ import {
   snippetDisclosure,
   themeMenu,
   uiPages,
-} from './connection'
+} from './childBindings'
+import { DARK_COLOR_SCHEME_QUERY } from './colorScheme'
 import { ApplicationDefinition } from './definition'
 import { Deployment, isTelemetryEnabled } from './deployment'
 import {

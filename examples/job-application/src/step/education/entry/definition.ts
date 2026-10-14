@@ -88,23 +88,26 @@ const foldGraduationYearListboxOutMessage =
       }),
   })
 
-export const graduationYearListbox = GraduationYearListbox.connection({
-  Model: Model,
-  field: 'graduationYearListbox',
-  parentMessage: Message.GotGraduationYearListboxMessage,
-  outMessage: { fold: foldGraduationYearListboxOutMessage },
-})
-
 const EducationEntryDefinition = Block.define('EducationEntry', {
   Model,
   Message,
   OutMessage,
 })
 
-export const RegisteredEducationEntryDefinition =
-  EducationEntryDefinition.register({
+export const graduationYearListbox = EducationEntryDefinition.bindChild(
+  GraduationYearListbox,
+  {
+    field: 'graduationYearListbox',
+    parentMessage: Message.GotGraduationYearListboxMessage,
+    outMessage: { fold: foldGraduationYearListboxOutMessage },
+  },
+)
+
+export const EducationEntryComposition = EducationEntryDefinition.toComposition(
+  {
     children: [graduationYearListbox],
-  })
+  },
+)
 
 export const update = EducationEntryDefinition.update((model, message) =>
   Message.match(message, {

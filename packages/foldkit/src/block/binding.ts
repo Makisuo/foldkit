@@ -74,11 +74,12 @@ type AnyUpdateReturn = Readonly<{
 
 type AnyProducer = (model: any, ...args: ReadonlyArray<any>) => AnyUpdateReturn
 
-/** @internal Carries connection evidence without adding string members. */
+/** @internal Carries Binding evidence without adding string members. */
 declare const ConnectionEvidenceTypeId: unique symbol
+declare const ParentBindingContractTypeId: unique symbol
 
-/** Lifecycle registrations and Layer metadata retained by a connection. */
-export type ConnectionInspection<
+/** Lifecycle registrations and Layer metadata retained by a Binding. */
+export type BindingInspection<
   Subscriptions,
   ManagedResources,
   Mounts,
@@ -90,7 +91,7 @@ export type ConnectionInspection<
   EffectsLayer: EffectsLayer
 }>
 
-/** @internal Exact connection evidence used by composition validation. */
+/** @internal Exact Binding evidence used by composition validation. */
 export type ConnectionEvidence<
   BlockValue,
   HandlerRequirements,
@@ -118,9 +119,38 @@ export type BindingEvidence<
   >
 }>
 
-/** The metadata returned by {@link inspectConnection}. */
-export type InspectionOfConnection<Connection> =
-  Connection extends Readonly<{
+/** @internal Retains the established parent contracts on parent-owned Bindings. */
+export type ParentBindingContract<
+  ParentModel,
+  ParentMessage,
+  ParentOutMessage,
+> = Readonly<{
+  [ParentBindingContractTypeId]: Readonly<{
+    model: ParentModel
+    message: ParentMessage
+    outMessage: ParentOutMessage
+  }>
+}>
+
+type OptionalParentBindingContract<
+  ParentModel,
+  ParentMessage,
+  ParentOutMessage,
+> = [ParentModel] extends [never]
+  ? unknown
+  : ParentBindingContract<ParentModel, ParentMessage, ParentOutMessage>
+
+/** @internal Recovers the established parent contracts from a Binding. */
+export type ParentContractOfBinding<BindingValue> =
+  BindingValue extends Readonly<{
+    [ParentBindingContractTypeId]: infer Contract
+  }>
+    ? Contract
+    : never
+
+/** The metadata returned by {@link inspectBinding}. */
+export type InspectionOfBinding<BindingValue> =
+  BindingValue extends Readonly<{
     [ConnectionEvidenceTypeId]: Readonly<{ inspection: infer Inspection }>
   }>
     ? Inspection
@@ -128,13 +158,13 @@ export type InspectionOfConnection<Connection> =
 
 type ReservedBindingMember = 'placement' | 'init' | 'fold' | 'embedView'
 
-/** @internal Rejects exposed operation names that overwrite connection members. */
-export type ValidateConnectionOperationNames<Operations> = [
+/** @internal Rejects exposed operation names that overwrite Binding members. */
+export type ValidateBindingOperationNames<Operations> = [
   Extract<keyof Operations, ReservedBindingMember>,
 ] extends [never]
   ? unknown
   : Readonly<{
-      'Block exposed operation names must not collide with connection members': Extract<
+      'Block exposed operation names must not collide with Binding members': Extract<
         keyof Operations,
         ReservedBindingMember
       >
@@ -148,22 +178,22 @@ const reservedBindingMembers = new Set<string>([
 ])
 
 /** @internal Guards JavaScript callers and erased Block values at runtime. */
-export const assertValidConnectionOperationNames = (
+export const assertValidBindingOperationNames = (
   operations: Readonly<Record<string, unknown>>,
 ): void => {
   for (const name of Object.keys(operations)) {
     if (reservedBindingMembers.has(name)) {
       throw new Error(
-        `[foldkit] Block exposed operation name "${name}" collides with a connection member.`,
+        `[foldkit] Block exposed operation name "${name}" collides with a Binding member.`,
       )
     }
   }
 }
 
 /**
- * Structural portion of a complete block needed to create a binding. It
- * deliberately omits the block's own `connection` method, avoiding a recursive
- * constraint while preserving every channel collected by parents.
+ * Structural portion of a complete Block accepted by `Definition.bindChild`.
+ * It preserves every channel collected by parents without introducing a
+ * recursive complete Block constraint.
  */
 export type BindableBlock = Readonly<{
   owner: Owner<any>
@@ -266,7 +296,7 @@ type ValidateForwardPolicy<Policy> =
             : unknown
     : unknown
 
-/** @internal Checks an inferred connection OutMessage policy. */
+/** @internal Checks an inferred Binding OutMessage policy. */
 export type ValidateStaticPolicy<
   Policy,
   ParentModel,
@@ -290,7 +320,7 @@ type SubscriptionWhen<BlockValue extends BindableBlock, ParentModel> =
       >
     >
 
-/** @internal Shared placement and lifecycle policy for connection forms. */
+/** @internal Shared placement and lifecycle policy for Binding forms. */
 export type BindingBaseConfig<
   BlockValue extends BindableBlock,
   ParentModel,
@@ -585,11 +615,14 @@ export type Binding<
   ParentMessage,
   Placement extends string,
   Policy,
+  ContractModel = never,
+  ContractMessage = never,
+  ContractOutMessage = never,
 > = Readonly<{
   [ConnectionEvidenceTypeId]: ConnectionEvidence<
     BlockValue,
     Qualify<Placement, HandlerEvidenceOfBlock<BlockValue>>,
-    ConnectionInspection<
+    BindingInspection<
       {
         readonly [
           Key in keyof BlockValue['subscriptions']
@@ -779,10 +812,15 @@ export type Binding<
     ParentMessage,
     Placement,
     Policy
+  > &
+  OptionalParentBindingContract<
+    ContractModel,
+    ContractMessage,
+    ContractOutMessage
   >
 
-/** The `Home.block.connection({...})` method of a complete Block. Parent
- * types are inferred from the placement accessors and Message lift. */
+/** The parent-owned Binding constructor for a complete child Block. Parent
+ * types come from the owning Definition. */
 /** @internal Exactly one static parent Message adapter or wrapper constructor. */
 export type MessageMapping<BlockValue extends BindableBlock, Mapper> =
   | Readonly<{
@@ -863,7 +901,7 @@ type AccessorBind<BlockValue extends BindableBlock> =
         never
       >
 
-/** Creates a static connection using explicit accessors or a required Struct field. */
+/** Creates a static Binding using explicit accessors or a required Struct field. */
 export type Bind<BlockValue extends BindableBlock> = AccessorBind<BlockValue> &
   DirectConnection<BlockValue>
 
@@ -873,7 +911,7 @@ export type AnyBinding = Readonly<{
   [ConnectionEvidenceTypeId]: ConnectionEvidence<
     BindableBlock,
     unknown,
-    ConnectionInspection<any, any, any, any>,
+    BindingInspection<any, any, any, any>,
     boolean
   >
   placement: string
@@ -910,7 +948,7 @@ export type BindingRequirement<
 export type BindingBlockEvidence<
   BlockValue,
   HandlerRequirements = never,
-  Inspection = ConnectionInspection<
+  Inspection = BindingInspection<
     Readonly<Record<never, never>>,
     Readonly<Record<never, never>>,
     readonly [],
@@ -939,7 +977,7 @@ export type HandlerRequirementsOfBinding<BindingValue> =
     ? HandlerRequirements
     : unknown
 
-/** @internal Reports whether a connection owns a keyed collection. */
+/** @internal Reports whether a Binding owns a keyed collection. */
 export type IsKeyedBinding<BindingValue> =
   BindingValue extends Readonly<{
     [ConnectionEvidenceTypeId]: Readonly<{ isKeyed: infer IsKeyed }>
@@ -947,7 +985,7 @@ export type IsKeyedBinding<BindingValue> =
     ? IsKeyed
     : false
 
-/** @internal Removes private evidence before another connection form replaces it. */
+/** @internal Removes private evidence before another Binding form replaces it. */
 export type WithoutBindingEvidence<BindingValue> = Omit<
   BindingValue,
   typeof ConnectionEvidenceTypeId
@@ -973,19 +1011,19 @@ export const blockOf = (binding: AnyBinding): BindableBlock => {
   const block = runtimeBindingOf(binding).block
   if (block === undefined) {
     throw new Error(
-      "[foldkit] Block binding metadata is unavailable. Create bindings through a completed Block's connection method.",
+      '[foldkit] Block Binding metadata is unavailable. Create Bindings through the parent Definition.bindChild method.',
     )
   }
 
   return block
 }
 
-/** Returns a connection's lifecycle registrations and Layer metadata. */
-export const inspectConnection = <Connection extends AnyBinding>(
-  connection: Connection,
-): InspectionOfConnection<Connection> =>
+/** Returns a Binding's lifecycle registrations and Layer metadata. */
+export const inspectBinding = <BindingValue extends AnyBinding>(
+  binding: BindingValue,
+): InspectionOfBinding<BindingValue> =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  runtimeBindingOf(connection).inspection as InspectionOfConnection<Connection>
+  runtimeBindingOf(binding).inspection as InspectionOfBinding<BindingValue>
 
 type RuntimeOutMessagePolicy = Readonly<{
   fold?: AnyFunction
@@ -1125,11 +1163,15 @@ const makeBoundOperations = (
   config: RuntimeBindingConfig,
   frame: InstanceFrame,
 ): Readonly<Record<string, AnyFunction>> => {
-  assertValidConnectionOperationNames(operations)
-  const boundOperations: Record<string, AnyFunction> = {}
+  assertValidBindingOperationNames(operations)
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const boundOperations = Object.create(null) as Record<string, AnyFunction>
 
   for (const [name, operation] of Object.entries(operations)) {
-    boundOperations[name] = makeBoundOperation(operation, config, frame)
+    Object.defineProperty(boundOperations, name, {
+      value: makeBoundOperation(operation, config, frame),
+      enumerable: true,
+    })
   }
 
   return boundOperations
@@ -1379,10 +1421,7 @@ type ChildRecordFunction<
   Key extends 'subscriptions' | 'managedResources',
 > = Child extends unknown
   ? (
-      entries: Namespaced<
-        Child['placement'],
-        InspectionOfConnection<Child>[Key]
-      >,
+      entries: Namespaced<Child['placement'], InspectionOfBinding<Child>[Key]>,
     ) => void
   : never
 
@@ -1398,18 +1437,18 @@ type MergeRecords<
     : {}
 
 type ChildMount<Children extends ReadonlyArray<AnyBinding>> =
-  InspectionOfConnection<Children[number]>['mounts'][number]
+  InspectionOfBinding<Children[number]>['mounts'][number]
 
 type LayerSuccess<Children extends ReadonlyArray<AnyBinding>> = Layer.Success<
-  InspectionOfConnection<Children[number]>['EffectsLayer']
+  InspectionOfBinding<Children[number]>['EffectsLayer']
 >
 
 type LayerError<Children extends ReadonlyArray<AnyBinding>> = Layer.Error<
-  InspectionOfConnection<Children[number]>['EffectsLayer']
+  InspectionOfBinding<Children[number]>['EffectsLayer']
 >
 
 type LayerServices<Children extends ReadonlyArray<AnyBinding>> = Layer.Services<
-  InspectionOfConnection<Children[number]>['EffectsLayer']
+  InspectionOfBinding<Children[number]>['EffectsLayer']
 >
 
 /** The lifecycle registrations and handler recipe contributed by a block's
@@ -1433,7 +1472,7 @@ const mergeChildRecords = (
   const entries: Record<string, unknown> = {}
 
   for (const child of children) {
-    const inspection = inspectConnection(child)
+    const inspection = inspectBinding(child)
     const childEntries =
       inspection[kind === 'Subscription' ? 'subscriptions' : 'managedResources']
 
@@ -1476,7 +1515,7 @@ export const aggregateChildren = <
       )
     }
     seenPlacements.add(child.placement)
-    const inspection = inspectConnection(child)
+    const inspection = inspectBinding(child)
 
     for (const mount of inspection.mounts) {
       if (!seenMounts.has(mount)) {

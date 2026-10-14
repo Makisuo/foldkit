@@ -42,8 +42,7 @@ const LoadExternal = ApplicationDefinition.command('LoadExternal', {
   },
 })
 
-export const room = Room.block.connection({
-  Model,
+export const room = ApplicationDefinition.bindChild(Room.block, {
   field: 'room',
   parentMessage: Message.GotRoomMessage,
   subscriptions: {
@@ -67,8 +66,7 @@ const foldHomeOutMessage = Home.OutMessage.match({
   JoinedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
 })
 
-export const home = Home.block.connection({
-  Model,
+export const home = ApplicationDefinition.bindChild(Home.block, {
   field: 'home',
   parentMessage: Message.GotHomeMessage,
   subscriptions: {
@@ -77,7 +75,7 @@ export const home = Home.block.connection({
   outMessage: { fold: foldHomeOutMessage },
 })
 
-export const Application = ApplicationDefinition.register({
+export const ApplicationComposition = ApplicationDefinition.toComposition({
   children: [home, room],
 })
 
@@ -99,7 +97,7 @@ export const init = (url: Url.Url) => {
   return { model, commands }
 }
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match(request, {

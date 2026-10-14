@@ -75,20 +75,22 @@ const foldProficiencyRadioGroupOutMessage =
       }),
   })
 
-export const proficiencyRadioGroup = ProficiencyRadioGroup.connection({
-  Model: Model,
-  field: 'proficiencyRadioGroup',
-  parentMessage: Message.GotProficiencyRadioGroupMessage,
-  outMessage: { fold: foldProficiencyRadioGroupOutMessage },
-})
-
 const SkillsEntryDefinition = Block.define('SkillsEntry', {
   Model,
   Message,
   OutMessage,
 })
 
-export const RegisteredSkillsEntryDefinition = SkillsEntryDefinition.register({
+export const proficiencyRadioGroup = SkillsEntryDefinition.bindChild(
+  ProficiencyRadioGroup,
+  {
+    field: 'proficiencyRadioGroup',
+    parentMessage: Message.GotProficiencyRadioGroupMessage,
+    outMessage: { fold: foldProficiencyRadioGroupOutMessage },
+  },
+)
+
+export const SkillsEntryComposition = SkillsEntryDefinition.toComposition({
   children: [proficiencyRadioGroup],
 })
 

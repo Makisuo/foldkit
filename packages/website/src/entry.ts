@@ -1,13 +1,21 @@
+import { Layer } from 'effect'
 import { Runtime } from 'foldkit'
 
-import { Application, EffectsLayer } from './application'
+import { ApplicationComposition, EffectsLayer } from './application'
 import { subscriptions } from './lifecycle'
 import { Message } from './message'
 import { Flags, init, update } from './root'
-import { ApplicationLayer } from './services'
+import { PagefindLayer } from './search'
+import { LocalStorageLayer, SessionStorageLayer } from './storage'
 import { view } from './view/application'
 
-const application = Application.make({
+const ApplicationLayer = Layer.mergeAll(
+  LocalStorageLayer,
+  SessionStorageLayer,
+  PagefindLayer,
+)
+
+const application = ApplicationComposition.make({
   init,
   update,
   view,

@@ -54,25 +54,24 @@ const foldPopoverOutMessage = Popover.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const accountPopover = Popover.block.connection({
+const AccountMenuDefinition = Block.define('AccountMenu', {
   Model,
+  Message,
+})
+
+const accountPopover = AccountMenuDefinition.bindChild(Popover.block, {
   field: 'accountPopover',
   parentMessage: Message.GotAccountPopoverMessage,
   outMessage: { fold: foldPopoverOutMessage },
 })
 
-const accountDetailsPopover = Popover.block.connection({
-  Model,
+const accountDetailsPopover = AccountMenuDefinition.bindChild(Popover.block, {
   field: 'accountDetailsPopover',
   parentMessage: Message.GotAccountDetailsPopoverMessage,
   outMessage: { fold: foldPopoverOutMessage },
 })
 
-const AccountMenuDefinition = Block.define('AccountMenu', {
-  Model,
-  Message,
-})
-const RegisteredAccountMenuDefinition = AccountMenuDefinition.register({
+const AccountMenuComposition = AccountMenuDefinition.toComposition({
   children: [accountPopover, accountDetailsPopover],
 })
 
@@ -88,7 +87,7 @@ const update = AccountMenuDefinition.update((model, message) =>
 // Inside your view function, render the child Popover inside the parent
 // panel. `focusSelector` points at the child trigger, which Popover derives
 // from the child id as `${id}-button`.
-const view = RegisteredAccountMenuDefinition.view((model, h) => {
+const view = AccountMenuComposition.view((model, h) => {
   const accountDetailsPopoverView = ({
     button,
     panel,

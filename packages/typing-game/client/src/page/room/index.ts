@@ -1,3 +1,3 @@
-export { block } from './room'
+export { block } from './block'
 export { Model } from './model'
 export { Message } from './message'

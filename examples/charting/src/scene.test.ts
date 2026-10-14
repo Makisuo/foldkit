@@ -15,14 +15,10 @@ import { describe, test } from 'vitest'
 import { RadioGroup } from '@foldkit/ui'
 import { FocusOption } from '@foldkit/ui/radioGroup'
 
-import {
-  loadingModel,
-  readyModel,
-  sampleTelemetry,
-} from './application.fixture'
 import { SyncChart } from './command'
 import { Message } from './message'
 import { TelemetryAsyncData } from './model'
+import { loadingModel, readyModel, sampleTelemetry } from './model.fixture'
 import { update } from './update'
 import { CHART_HOST_ID, MountChart } from './view/chart'
 import { view } from './view/index'

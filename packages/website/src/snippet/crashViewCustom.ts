@@ -1,7 +1,7 @@
 import { Runtime } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
 
-import { Application, init, update, view } from './application'
+import { ApplicationComposition, init, update, view } from './application'
 import type { Message } from './message'
 import type { Model } from './model'
 
@@ -40,7 +40,7 @@ const crashView = (
   ),
 })
 
-const application = Application.make({
+const application = ApplicationComposition.make({
   init,
   update,
   view,

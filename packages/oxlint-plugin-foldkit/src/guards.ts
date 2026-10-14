@@ -500,7 +500,7 @@ const bindingConfigHasProperties = (
   node: ESTree.CallExpression,
   names: ReadonlyArray<string>,
 ): boolean => {
-  const [config] = node.arguments
+  const config = blockBindingConfiguration(node)
   if (!isObjectExpression(config)) {
     return false
   }
@@ -518,139 +518,56 @@ const bindingConfigHasProperties = (
   return names.every(name => properties.has(name))
 }
 
-const isDirectBlockDefinitionStage = (
+/** Returns a parent-owned Binding configuration, or a standalone fold configuration. */
+export const blockBindingConfiguration = (
   node: ESTree.CallExpression,
-  references: WeakMap<ESTree.Node, Reference> | undefined,
-): boolean => {
-  const isBlockDefine =
-    references === undefined
-      ? Option.exists(staticMemberPath(node.callee), path =>
-          Option.exists(
-            Array.last(path.members),
-            member => path.root.name === 'Block' && member === 'define',
-          ),
-        )
-      : Option.exists(resolveFoldkitApiPath(references, node.callee), path =>
-          Array.match(path, {
-            onEmpty: () => false,
-            onNonEmpty: ([namespace, methodName, ...rest]) =>
-              namespace === 'Block' &&
-              methodName === 'define' &&
-              Array.isArrayEmpty(rest),
-          }),
-        )
-  if (isBlockDefine) {
-    return true
-  }
+): ESTree.CallExpression['arguments'][number] | undefined =>
+  Option.getOrUndefined(
+    Array.get(
+      node.arguments,
+      Option.exists(staticMemberPath(node.callee), path =>
+        Option.contains(Array.last(path.members), 'bindChild'),
+      )
+        ? 1
+        : 0,
+    ),
+  )
 
-  if (
-    !isMemberExpression(node.callee) ||
-    !isCallExpression(node.callee.object) ||
-    !Option.exists(staticMemberName(node.callee), member =>
-      Array.contains(['define', 'register'], member),
-    )
-  ) {
-    return false
-  }
-
-  return isDirectBlockDefinitionStage(node.callee.object, references)
-}
-
-const isDirectBlockCompletion = (
-  node: ESTree.CallExpression,
-  references: WeakMap<ESTree.Node, Reference> | undefined,
-): boolean =>
-  isMemberExpression(node.callee) &&
-  isCallExpression(node.callee.object) &&
-  Option.contains(staticMemberName(node.callee), 'toBlock') &&
-  isDirectBlockDefinitionStage(node.callee.object, references)
-
-/** Recognizes a completed Block's binding method from its configuration. */
+/** Recognizes static and keyed parent-owned child Bindings from their configuration. */
 export const blockBindingMethod = (
   node: ESTree.CallExpression,
   references?: WeakMap<ESTree.Node, Reference>,
-): Option.Option<'connection' | 'keyedConnection'> =>
-  Option.flatMap(staticMemberPath(node.callee), path => {
-    const method = Array.last(path.members)
-    if (Option.isNone(method)) {
-      return Option.none()
-    }
-
-    const hasBlockReceiver = (() => {
-      if (!/^[A-Z]/.test(path.root.name)) {
-        return false
-      }
-      if (references === undefined) {
-        return true
-      }
-
-      return Option.exists(resolvedVariable(references, path.root), variable =>
-        variable.defs.some(definition => {
-          if (definition.type === 'ImportBinding') {
-            return (
-              definition.parent?.type === 'ImportDeclaration' &&
-              (definition.parent.source.value.startsWith('.') ||
-                definition.parent.source.value.startsWith('@/') ||
-                definition.parent.source.value.startsWith('~/') ||
-                definition.parent.source.value.startsWith('@foldkit/'))
-            )
-          }
-          if (
-            definition.type !== 'Variable' ||
-            !isVariableDeclarator(definition.node) ||
-            !isCallExpression(definition.node.init)
-          ) {
-            return false
-          }
-
-          return (
-            Option.exists(
-              staticMemberPath(definition.node.init.callee),
-              initPath =>
-                Option.exists(
-                  Array.last(initPath.members),
-                  member =>
-                    member === 'toBlock' ||
-                    member === 'create' ||
-                    member === 'make',
-                ),
-            ) || isDirectBlockCompletion(definition.node.init, references)
-          )
-        }),
-      )
-    })()
-    if (!hasBlockReceiver) {
-      return Option.none()
-    }
-
-    const hasParentMessageMapping =
-      bindingConfigHasProperties(node, ['parentMessage']) ||
-      bindingConfigHasProperties(node, ['toParentMessage'])
-
-    if (
-      method.value === 'connection' &&
-      hasParentMessageMapping &&
-      (bindingConfigHasProperties(node, ['read', 'write']) ||
-        bindingConfigHasProperties(node, ['Model', 'field']))
-    ) {
-      return Option.some('connection')
-    }
-
-    if (
-      method.value === 'keyedConnection' &&
-      bindingConfigHasProperties(node, [
-        'readAll',
-        'key',
-        'read',
-        'writeAt',
-        'toParentMessage',
-      ])
-    ) {
-      return Option.some('keyedConnection')
-    }
-
+): Option.Option<'Static' | 'Keyed'> => {
+  if (!isOwnedDefinitionCall(node, 'bindChild', references)) {
     return Option.none()
-  })
+  }
+
+  if (
+    bindingConfigHasProperties(node, [
+      'readAll',
+      'key',
+      'read',
+      'writeAt',
+      'toParentMessage',
+    ])
+  ) {
+    return Option.some('Keyed')
+  }
+
+  const hasMessageMapping =
+    bindingConfigHasProperties(node, ['parentMessage']) ||
+    bindingConfigHasProperties(node, ['toParentMessage'])
+
+  if (
+    hasMessageMapping &&
+    (bindingConfigHasProperties(node, ['read', 'write']) ||
+      bindingConfigHasProperties(node, ['field']))
+  ) {
+    return Option.some('Static')
+  }
+
+  return Option.none()
+}
 
 /** Recognizes a definition method on a Block, Application, or imported feature owner. */
 export const isOwnedDefinitionCall = (
@@ -685,36 +602,34 @@ export const isOwnedDefinitionCall = (
         return false
       }
 
-      return variable.defs.some(definition => {
-        if (
-          definition.type !== 'Variable' ||
-          !isVariableDeclarator(definition.node) ||
-          !isCallExpression(definition.node.init)
-        ) {
-          return false
-        }
-
+      const isOwnedStage = (call: ESTree.CallExpression): boolean => {
         if (
           Option.exists(
-            resolveFoldkitApiPath(references, definition.node.init.callee),
+            resolveFoldkitApiPath(references, call.callee),
             apiPath => {
-              const resolvedPath = Array.join(apiPath, '.')
-
-              return (
-                resolvedPath === 'Block.define' ||
-                resolvedPath === 'Application.define'
-              )
+              const path = Array.join(apiPath, '.')
+              return path === 'Block.define' || path === 'Application.define'
             },
           )
         ) {
           return true
         }
 
+        if (
+          isMemberExpression(call.callee) &&
+          Option.exists(staticMemberName(call.callee), member =>
+            Array.contains(['define', 'toComposition'], member),
+          ) &&
+          isCallExpression(call.callee.object)
+        ) {
+          return isOwnedStage(call.callee.object)
+        }
+
         return Option.exists(
-          staticMemberPath(definition.node.init.callee),
+          staticMemberPath(call.callee),
           definePath =>
             Option.exists(Array.last(definePath.members), methodName =>
-              Array.contains(['define', 'register'], methodName),
+              Array.contains(['define', 'toComposition'], methodName),
             ) &&
             Option.exists(
               resolvedVariable(references, definePath.root),
@@ -722,7 +637,15 @@ export const isOwnedDefinitionCall = (
                 isOwnedVariable(ownerVariable, new Set([...visited, variable])),
             ),
         )
-      })
+      }
+
+      return variable.defs.some(
+        definition =>
+          definition.type === 'Variable' &&
+          isVariableDeclarator(definition.node) &&
+          isCallExpression(definition.node.init) &&
+          isOwnedStage(definition.node.init),
+      )
     }
 
     return Option.exists(

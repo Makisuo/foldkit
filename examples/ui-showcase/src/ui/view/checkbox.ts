@@ -1,13 +1,9 @@
-import type { Block } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
 import { Checkbox } from '@foldkit/ui'
 
+import { UiComposition } from '../childBindings'
 import { Message } from '../message'
-import type { Model } from '../model'
-import { RegisteredUiDefinition } from '../update'
-
-type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
 
 const CHECKBOX_BASIC_DEMO_ID = 'checkbox-basic-demo'
 const CHECKBOX_ALL_DEMO_ID = 'checkbox-all-demo'
@@ -24,7 +20,7 @@ const labelClassName =
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-export const view = RegisteredUiDefinition.view((model, h) => {
+export const view = UiComposition.view((model, h) => {
   const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
   const basicCheckboxView = (
     attributes: Checkbox.CheckboxAttributes<Message>,
@@ -82,10 +78,7 @@ export const view = RegisteredUiDefinition.view((model, h) => {
   )
 })
 
-const indeterminateDemo = (
-  model: Model,
-  h: HtmlBuilder,
-): ReadonlyArray<Html> => {
+const indeterminateDemo = UiComposition.render((model, h) => {
   const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
   const indeterminateMark = h.span([h.Class('text-white text-xs')], ['—'])
 
@@ -199,4 +192,4 @@ const indeterminateDemo = (
       ],
     ),
   ]
-}
+})

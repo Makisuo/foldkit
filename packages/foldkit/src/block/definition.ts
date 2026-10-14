@@ -25,29 +25,31 @@ import * as Mount from '../mount/index.js'
 import * as Subscription from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
 import type { VNode } from '../vdom.js'
+import { type BindChild, makeBindChild } from './bindChild.js'
 import {
   type AggregatedChildren,
   type AnyBinding,
-  type Bind,
   type BlockOfBinding,
-  type InspectionOfConnection,
+  type InspectionOfBinding,
+  type ParentContractOfBinding,
   type RequirementsOfBindings,
   aggregateChildren,
-  assertValidConnectionOperationNames,
-  bind as bindBlock,
+  assertValidBindingOperationNames,
 } from './binding.js'
-import { descendantOwnersOf } from './composition.js'
+import {
+  assertBindingParentContracts,
+  descendantOwnersOf,
+} from './composition.js'
 import { type DefaultViewTypeId, registerDefaultView } from './defaultView.js'
-import { normalizeConnectionConfig } from './directConnection.js'
 import {
   type DefinitionIdentity,
   identityOf,
   registerBlockHostIdentities,
   registerDefinition,
 } from './identity.js'
-import { type BindEach, bindEach as bindEachBlock } from './keyedBinding.js'
 import type { Owner } from './owner.js'
 import { makeOwnedName } from './ownerName.js'
+import { type DefineRender, makeDefineRender } from './render.js'
 import type {
   HandlerEvidence,
   HandlerOfHostDefinition,
@@ -147,14 +149,14 @@ type ValidViewInputs<ViewInputs> =
         ? never
         : ViewInputs
 
-type ViewWithInputs<Model, Message, ViewInputs, RequiredMountRequirements> = [
+type ViewWithInputs<Model, Message, ViewInputs, RequiredViewRequirements> = [
   ValidViewInputs<ViewInputs>,
 ] extends [never]
   ? never
   : (
       model: Model,
       viewInputs: NoInfer<ValidViewInputs<ViewInputs>>,
-      h: HtmlBuilder<Message, RequiredMountRequirements>,
+      h: HtmlBuilder<Message, RequiredViewRequirements>,
     ) => VNode | null
 
 type OwnedReturn<Model, Message, OutMessage> = Readonly<{
@@ -229,21 +231,21 @@ type OwnedAuthoredView<
   OwnerValue,
   Model,
   Message,
-  RequiredMountRequirements,
+  RequiredViewRequirements,
 > = Readonly<{
   __blockViewOwner: OwnerValue
   __blockDefinitionView: Readonly<{
     owner: (value: OwnerValue) => OwnerValue
     model: (value: Model) => Model
     message: (value: Message) => Message
-    mountRequirements: () => RequiredMountRequirements
+    mountRequirements: () => RequiredViewRequirements
   }>
 }> &
   View
 
 /**
  * Refines an authored generic view's per-render inputs while preserving its
- * definition owner, Model, Message, and Mount contract.
+ * definition owner, Model, Message, and View requirements.
  */
 export type RefineViewInputs<View extends AnyBlockView, ViewInputs> =
   View extends Readonly<{
@@ -251,7 +253,7 @@ export type RefineViewInputs<View extends AnyBlockView, ViewInputs> =
     __blockDefinitionView: Readonly<{
       model: (value: infer Model) => unknown
       message: (value: infer Message) => unknown
-      mountRequirements: () => infer RequiredMountRequirements
+      mountRequirements: () => infer RequiredViewRequirements
     }>
   }>
     ? OwnedAuthoredView<
@@ -259,47 +261,47 @@ export type RefineViewInputs<View extends AnyBlockView, ViewInputs> =
           Model,
           Message,
           ValidViewInputs<ViewInputs>,
-          RequiredMountRequirements
+          RequiredViewRequirements
         >,
         OwnerValue,
         Model,
         Message,
-        RequiredMountRequirements
+        RequiredViewRequirements
       >
     : never
 
 /**
- * Defines a view against one Block's Model, Message, and Mount registry.
+ * Defines a view against one Block's Model, Message, and View requirements.
  */
 export interface DefineView<
   OwnerValue,
   Model,
   Message,
-  RequiredMountRequirements,
+  RequiredViewRequirements,
 > {
   (
     view: (
       model: Model,
-      h: HtmlBuilder<Message, RequiredMountRequirements>,
+      h: HtmlBuilder<Message, RequiredViewRequirements>,
     ) => Document,
   ): OwnedAuthoredView<
-    DocumentView<Model, Message, RequiredMountRequirements>,
+    DocumentView<Model, Message, RequiredViewRequirements>,
     OwnerValue,
     Model,
     Message,
-    RequiredMountRequirements
+    RequiredViewRequirements
   >
   (
     view: (
       model: Model,
-      h: HtmlBuilder<Message, RequiredMountRequirements>,
+      h: HtmlBuilder<Message, RequiredViewRequirements>,
     ) => VNode | null,
   ): OwnedAuthoredView<
-    BlockView<Model, Message, void, RequiredMountRequirements>,
+    BlockView<Model, Message, void, RequiredViewRequirements>,
     OwnerValue,
     Model,
     Message,
-    RequiredMountRequirements
+    RequiredViewRequirements
   >
   readonly withInputs: <ViewInputs = never>(
     view: [ValidViewInputs<ViewInputs>] extends [never]
@@ -307,19 +309,19 @@ export interface DefineView<
       : (
           model: Model,
           viewInputs: NoInfer<ValidViewInputs<ViewInputs>>,
-          h: HtmlBuilder<Message, RequiredMountRequirements>,
+          h: HtmlBuilder<Message, RequiredViewRequirements>,
         ) => VNode | null,
   ) => OwnedAuthoredView<
     BlockView<
       Model,
       Message,
       ValidViewInputs<ViewInputs>,
-      RequiredMountRequirements
+      RequiredViewRequirements
     >,
     OwnerValue,
     Model,
     Message,
-    RequiredMountRequirements
+    RequiredViewRequirements
   >
 }
 
@@ -795,11 +797,16 @@ export interface OwnedManagedResourceEntryBuilder<
   >
 }
 
-type BindingParentModel<Binding> =
-  Binding extends Readonly<{
-    fold: infer Fold extends AnyFunction
-  }>
+type BindingParentModel<Binding> = [ParentContractOfBinding<Binding>] extends [
+  never,
+]
+  ? Binding extends Readonly<{
+      fold: infer Fold extends AnyFunction
+    }>
     ? Parameters<Fold>[0]
+    : never
+  : ParentContractOfBinding<Binding> extends Readonly<{ model: infer Model }>
+    ? Model
     : never
 
 type OperationFactoryOutput<Factory> = Factory extends AnyFunction
@@ -852,18 +859,28 @@ type InvalidChildParentModels<
 type InvalidChildCommandMessages<
   Children extends ReadonlyArray<AnyBinding>,
   ParentMessage,
-> = Exclude<
-  CommandMessageOfReturn<BindingOutputs<Children[number]>>,
-  ParentMessage
->
+> = Children[number] extends infer Binding
+  ? [ParentContractOfBinding<Binding>] extends [never]
+    ? Exclude<CommandMessageOfReturn<BindingOutputs<Binding>>, ParentMessage>
+    : ParentContractOfBinding<Binding> extends Readonly<{
+          message: infer BindingMessage
+        }>
+      ? Exclude<BindingMessage, ParentMessage>
+      : never
+  : never
 
 type InvalidChildOutMessages<
   Children extends ReadonlyArray<AnyBinding>,
   ParentOutMessage,
-> = Exclude<
-  OutMessageOfReturn<BindingOutputs<Children[number]>>,
-  ParentOutMessage
->
+> = Children[number] extends infer Binding
+  ? [ParentContractOfBinding<Binding>] extends [never]
+    ? Exclude<OutMessageOfReturn<BindingOutputs<Binding>>, ParentOutMessage>
+    : ParentContractOfBinding<Binding> extends Readonly<{
+          outMessage: infer BindingOutMessage
+        }>
+      ? Exclude<BindingOutMessage, ParentOutMessage>
+      : never
+  : never
 
 /** @internal Checks a registered graph against its owning Model and Messages. */
 export type ValidateChildBindings<
@@ -905,7 +922,7 @@ type CompleteEffectsLayer<
   LayerInput<EffectsLayer | AggregatedChildren<Children>['EffectsLayer']>
 >
 
-type DefinitionViewMountRequirements<
+type DefinitionViewRequirements<
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
 > = Mount.RequirementsOf<Mounts> | RequirementsOfBindings<Children>
@@ -1175,14 +1192,14 @@ export type DefinitionAuthoredView<
   OwnerValue,
   Model,
   Message,
-  AllowedMountRequirements,
+  AllowedViewRequirements,
 > = AnyAuthoredView &
   Readonly<{
     __blockDefinitionView: Readonly<{
       owner: (value: OwnerValue) => OwnerValue
       model: (value: Model) => Model
       message: (value: Message) => Message
-      mountRequirements: () => AllowedMountRequirements
+      mountRequirements: () => AllowedViewRequirements
     }>
   }>
 
@@ -1197,7 +1214,7 @@ export type DefinitionView<
   OwnerValue,
   ModelSchema['Type'],
   MessageSchema['Type'],
-  DefinitionViewMountRequirements<Mounts, Children>
+  DefinitionViewRequirements<Mounts, Children>
 >
 
 type ValidateViewOwner<View, OwnerValue> =
@@ -1214,20 +1231,20 @@ type ValidateViewOwner<View, OwnerValue> =
 type ValidateViewChannels<
   ViewModel,
   ViewMessage,
-  RequiredMountRequirements,
+  RequiredViewRequirements,
   Model,
   Message,
-  AllowedMountRequirements,
+  AllowedViewRequirements,
 > = [Model] extends [ViewModel]
   ? [ViewMessage] extends [Message]
-    ? [Exclude<RequiredMountRequirements, AllowedMountRequirements>] extends [
+    ? [Exclude<RequiredViewRequirements, AllowedViewRequirements>] extends [
         never,
       ]
       ? unknown
       : Readonly<{
           'Block view requires Mounts absent from its definition': Exclude<
-            RequiredMountRequirements,
-            AllowedMountRequirements
+            RequiredViewRequirements,
+            AllowedViewRequirements
           >
         }>
     : Readonly<{
@@ -1242,7 +1259,7 @@ type ValidateView<
   OwnerValue,
   Model,
   Message,
-  AllowedMountRequirements,
+  AllowedViewRequirements,
 > = 'view' extends keyof ImplementationValue
   ? IsAny<ImplementationValue['view']> extends true
     ? Readonly<{
@@ -1255,7 +1272,7 @@ type ValidateView<
           ViewProperty<ImplementationValue['view'], '__blockMountRequirements'>,
           Model,
           Message,
-          AllowedMountRequirements
+          AllowedViewRequirements
         >
   : unknown
 
@@ -1396,7 +1413,7 @@ interface BlockOperations<
     OwnerValue,
     ModelSchema['Type'],
     MessageSchema['Type'],
-    DefinitionViewMountRequirements<Mounts, Children>
+    DefinitionViewRequirements<Mounts, Children>
   >
   /**
    * Selects a replacement local Layer recipe and retains the selected child
@@ -1460,29 +1477,6 @@ interface BlockOperations<
         Children,
         ProvideHandlerImplementation<ImplementationValue, HandlersLayer>
       >
-
-  readonly connection: Bind<
-    Block<
-      OwnerValue,
-      ModelSchema,
-      MessageSchema,
-      OutMessageSchema,
-      Mounts,
-      Children,
-      ImplementationValue
-    >
-  >
-  readonly keyedConnection: BindEach<
-    Block<
-      OwnerValue,
-      ModelSchema,
-      MessageSchema,
-      OutMessageSchema,
-      Mounts,
-      Children,
-      ImplementationValue
-    >
-  >
 }
 
 /**
@@ -1509,9 +1503,7 @@ export type Block<
   Message: MessageSchema
   mounts: readonly [
     ...Mounts,
-    ...ReadonlyArray<
-      InspectionOfConnection<Children[number]>['mounts'][number]
-    >,
+    ...ReadonlyArray<InspectionOfBinding<Children[number]>['mounts'][number]>,
   ]
   /** @internal Retains the exact Mount definitions owned by this block. */
   [LocalMountsTypeId]: Mounts
@@ -1549,15 +1541,15 @@ export type Block<
   EffectsLayer: Layer.Layer<
     Layer.Success<
       | ImplementationValue['EffectsLayer']
-      | InspectionOfConnection<Children[number]>['EffectsLayer']
+      | InspectionOfBinding<Children[number]>['EffectsLayer']
     >,
     Layer.Error<
       | ImplementationValue['EffectsLayer']
-      | InspectionOfConnection<Children[number]>['EffectsLayer']
+      | InspectionOfBinding<Children[number]>['EffectsLayer']
     >,
     Layer.Services<
       | ImplementationValue['EffectsLayer']
-      | InspectionOfConnection<Children[number]>['EffectsLayer']
+      | InspectionOfBinding<Children[number]>['EffectsLayer']
     >
   >
   /** @internal Retains the selected local Layer before child aggregation. */
@@ -1711,8 +1703,6 @@ export type AnyBlock = Readonly<{
   OutMessage?: AnySchema
   replaceEffectsLayer: AnyFunction
   provideHandlers: AnyFunction
-  connection: AnyFunction
-  keyedConnection: AnyFunction
 }>
 
 type ManagedExposedOperationsImplementation<
@@ -2109,7 +2099,7 @@ export interface ToBlock<
         OwnerValue,
         ModelSchema['Type'],
         MessageSchema['Type'],
-        DefinitionViewMountRequirements<Mounts, Children>
+        DefinitionViewRequirements<Mounts, Children>
       > &
       ValidateToBlockComposition<
         OwnerValue,
@@ -2171,7 +2161,7 @@ export interface ToBlock<
         OwnerValue,
         ModelSchema['Type'],
         MessageSchema['Type'],
-        DefinitionViewMountRequirements<Mounts, Children>
+        DefinitionViewRequirements<Mounts, Children>
       > &
       ValidateToBlockComposition<
         OwnerValue,
@@ -2534,7 +2524,7 @@ export type HtmlBuilderOf<DefinitionValue> =
       ReadonlyArray<Mount.LayeredMountDefinition>
     children: infer Children extends ReadonlyArray<AnyBinding>
   }>
-    ? HtmlBuilder<Message, DefinitionViewMountRequirements<Mounts, Children>>
+    ? HtmlBuilder<Message, DefinitionViewRequirements<Mounts, Children>>
     : never
 
 /**
@@ -2554,9 +2544,7 @@ export type Definition<
   Message: MessageSchema
   mounts: readonly [
     ...Mounts,
-    ...ReadonlyArray<
-      InspectionOfConnection<Children[number]>['mounts'][number]
-    >,
+    ...ReadonlyArray<InspectionOfBinding<Children[number]>['mounts'][number]>,
   ]
   /** @internal Retains the exact Mount definitions owned by this definition. */
   [LocalMountsTypeId]: Mounts
@@ -2565,7 +2553,7 @@ export type Definition<
     OwnerValue,
     ModelSchema['Type'],
     MessageSchema['Type'],
-    DefinitionViewMountRequirements<Mounts, Children>
+    DefinitionViewRequirements<Mounts, Children>
   >
   update: DefineUpdate<
     ModelSchema['Type'],
@@ -2591,13 +2579,12 @@ export type Definition<
     ModelSchema['Type'],
     MessageSchema['Type']
   >
-  toBlock: ToBlock<
+  bindChild: BindChild<ModelSchema, MessageSchema, OutMessageSchema>
+  toComposition: ToComposition<
     OwnerValue,
     ModelSchema,
     MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    Children
+    OutMessageSchema
   >
 }> &
   (OutMessageSchema extends Schema.Codec<any, any, any, any>
@@ -2635,18 +2622,41 @@ export type Composition<
   | 'subscriptions'
   | 'managedResources'
   | 'view'
-  | 'toBlock'
->
+  | 'bindChild'
+> &
+  Readonly<{
+    render: DefineRender<
+      ModelSchema['Type'],
+      MessageSchema['Type'],
+      DefinitionViewRequirements<Mounts, Children>
+    >
+    toBlock: ToBlock<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      Mounts,
+      Children
+    >
+  }>
 
 /**
- * Registers children and Mounts after the Block's typed operations are authored.
+ * Establishes the child and Mount graph after the Block's typed operations are authored.
  */
-export interface Register<
+export interface ToComposition<
   OwnerValue extends Owner<string>,
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
 > {
+  (): Composition<
+    OwnerValue,
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    readonly [],
+    readonly []
+  >
   <
     const Mounts extends ReadonlyArray<Mount.LayeredMountDefinition> =
       readonly [],
@@ -2673,8 +2683,8 @@ export interface Register<
 }
 
 /**
- * Typed authoring helpers established before the optional child and Mount graph.
- * Features with no registered children or Mounts can complete this value directly.
+ * Typed authoring helpers established before the child and Mount graph.
+ * Every Definition proceeds through `toComposition`, including an empty graph.
  */
 export type Base<
   OwnerValue extends Owner<string>,
@@ -2688,10 +2698,7 @@ export type Base<
   OutMessageSchema,
   readonly [],
   readonly []
-> &
-  Readonly<{
-    register: Register<OwnerValue, ModelSchema, MessageSchema, OutMessageSchema>
-  }>
+>
 
 /**
  * Establishes Model, Message and optional OutMessage contracts for Block authoring.
@@ -2725,87 +2732,87 @@ const makeDefineView = <
   OwnerValue extends Owner<any>,
   Model,
   Message,
-  RequiredMountRequirements,
+  RequiredViewRequirements,
 >(
   owner: OwnerValue,
   children: ReadonlyArray<AnyBinding>,
-): DefineView<OwnerValue, Model, Message, RequiredMountRequirements> => {
+): DefineView<OwnerValue, Model, Message, RequiredViewRequirements> => {
   function defineView(
     view: (
       model: Model,
-      h: HtmlBuilder<Message, RequiredMountRequirements>,
+      h: HtmlBuilder<Message, RequiredViewRequirements>,
     ) => Document,
   ): OwnedAuthoredView<
-    DocumentView<Model, Message, RequiredMountRequirements>,
+    DocumentView<Model, Message, RequiredViewRequirements>,
     OwnerValue,
     Model,
     Message,
-    RequiredMountRequirements
+    RequiredViewRequirements
   >
   function defineView(
     view: (
       model: Model,
-      h: HtmlBuilder<Message, RequiredMountRequirements>,
+      h: HtmlBuilder<Message, RequiredViewRequirements>,
     ) => VNode | null,
   ): OwnedAuthoredView<
-    BlockView<Model, Message, void, RequiredMountRequirements>,
+    BlockView<Model, Message, void, RequiredViewRequirements>,
     OwnerValue,
     Model,
     Message,
-    RequiredMountRequirements
+    RequiredViewRequirements
   >
   function defineView(
     view: (
       model: Model,
-      h: HtmlBuilder<Message, RequiredMountRequirements>,
+      h: HtmlBuilder<Message, RequiredViewRequirements>,
     ) => VNode | null | Document,
   ):
     | OwnedAuthoredView<
-        BlockView<Model, Message, void, RequiredMountRequirements>,
+        BlockView<Model, Message, void, RequiredViewRequirements>,
         OwnerValue,
         Model,
         Message,
-        RequiredMountRequirements
+        RequiredViewRequirements
       >
     | OwnedAuthoredView<
-        DocumentView<Model, Message, RequiredMountRequirements>,
+        DocumentView<Model, Message, RequiredViewRequirements>,
         OwnerValue,
         Model,
         Message,
-        RequiredMountRequirements
+        RequiredViewRequirements
       > {
     const ownedView = withViewIdentity(owner, children, view)
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     return defineHtmlView(ownedView as any) as
       | OwnedAuthoredView<
-          BlockView<Model, Message, void, RequiredMountRequirements>,
+          BlockView<Model, Message, void, RequiredViewRequirements>,
           OwnerValue,
           Model,
           Message,
-          RequiredMountRequirements
+          RequiredViewRequirements
         >
       | OwnedAuthoredView<
-          DocumentView<Model, Message, RequiredMountRequirements>,
+          DocumentView<Model, Message, RequiredViewRequirements>,
           OwnerValue,
           Model,
           Message,
-          RequiredMountRequirements
+          RequiredViewRequirements
         >
   }
 
   const withInputs = <ViewInputs = never>(
-    view: ViewWithInputs<Model, Message, ViewInputs, RequiredMountRequirements>,
+    view: ViewWithInputs<Model, Message, ViewInputs, RequiredViewRequirements>,
   ): OwnedAuthoredView<
     BlockView<
       Model,
       Message,
       ValidViewInputs<ViewInputs>,
-      RequiredMountRequirements
+      RequiredViewRequirements
     >,
     OwnerValue,
     Model,
     Message,
-    RequiredMountRequirements
+    RequiredViewRequirements
   > => {
     const ownedView = withViewIdentity(owner, children, view)
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -2814,12 +2821,12 @@ const makeDefineView = <
         Model,
         Message,
         ValidViewInputs<ViewInputs>,
-        RequiredMountRequirements
+        RequiredViewRequirements
       >,
       OwnerValue,
       Model,
       Message,
-      RequiredMountRequirements
+      RequiredViewRequirements
     >
   }
 
@@ -2956,7 +2963,7 @@ const mergeMounts = (
     }
   }
 
-  return mounts
+  return Object.freeze(mounts)
 }
 
 const assertDistinctManagedResourceOwners = (
@@ -3014,19 +3021,38 @@ export const makeDefinition = (
     managedResources: AnyFunction
   }>,
 ): any => {
-  const localMounts = config.mounts ?? []
-  const children = config.children ?? []
+  const localMounts = Object.freeze(globalThis.Array.from(config.mounts ?? []))
+  const children = Object.freeze(globalThis.Array.from(config.children ?? []))
+
+  const parentContract = {
+    ownerToken: owner.token,
+    Model: config.Model,
+    Message: config.Message,
+    OutMessage: config.OutMessage,
+  }
+
+  assertBindingParentContracts(parentContract, owner.id, children)
 
   const childChannels = aggregateChildren(children)
   const mounts = mergeMounts(localMounts, childChannels.mounts)
 
   const defineView = makeDefineView(owner, children)
+  const defineRender = makeDefineRender<
+    typeof config.Model.Type,
+    typeof config.Message.Type,
+    DefinitionViewRequirements<typeof localMounts, typeof children>
+  >()
   const defineUpdate = authoring?.update ?? makeDefineUpdate()
   const defineStep = authoring?.step ?? makeDefineStep()
   const defineSubscriptions =
     authoring?.subscriptions ?? makeDefineSubscriptions(owner)
   const defineManagedResources =
     authoring?.managedResources ?? makeDefineManagedResources(owner)
+  const bindChild = makeBindChild<
+    typeof config.Model,
+    typeof config.Message,
+    typeof config.OutMessage
+  >(parentContract)
 
   function toBlock(
     implementation: {
@@ -3043,7 +3069,7 @@ export const makeDefinition = (
     areHostHandlersProvided = false,
   ): AnyBlock {
     const expose = implementation.expose ?? {}
-    assertValidConnectionOperationNames(expose)
+    assertValidBindingOperationNames(expose)
     const subscriptions = Subscription.aggregate(
       implementation.subscriptions ?? {},
       childChannels.subscriptions,
@@ -3092,16 +3118,6 @@ export const makeDefinition = (
 
     assertDistinctManagedResourceOwners(managedResources)
 
-    function connection(bindingConfig: unknown): AnyBinding {
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      return bindBlock(block, normalizeConnectionConfig(bindingConfig) as never)
-    }
-
-    function keyedConnection(bindingConfig: unknown): AnyBinding {
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      return bindEachBlock(block, bindingConfig as never)
-    }
-
     function replaceEffectsLayer(EffectsLayer: AnyLayer): AnyBlock {
       return toBlock(
         { ...implementation, EffectsLayer },
@@ -3143,8 +3159,6 @@ export const makeDefinition = (
       [LocalEffectsLayerTypeId]: localEffectsLayer,
       replaceEffectsLayer,
       provideHandlers,
-      connection,
-      keyedConnection,
     }
 
     registerDefaultView(block, implementation.view)
@@ -3168,10 +3182,12 @@ export const makeDefinition = (
     [LocalMountsTypeId]: localMounts,
     children,
     view: defineView,
+    render: defineRender,
     update: defineUpdate,
     step: defineStep,
     subscriptions: defineSubscriptions,
     managedResources: defineManagedResources,
+    bindChild,
     toBlock,
   }
 }
@@ -3185,11 +3201,11 @@ export const makeBaseDefinition = (
   }>,
 ): any => {
   const base = makeDefinition(owner, config)
-  const register = (
+  const toComposition = (
     graph: Readonly<{
       mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
       children?: ReadonlyArray<AnyBinding>
-    }>,
+    }> = {},
   ) => {
     const composition = makeDefinition(owner, { ...config, ...graph }, base)
 
@@ -3208,10 +3224,27 @@ export const makeBaseDefinition = (
       subscriptions: base.subscriptions,
       managedResources: base.managedResources,
       view: composition.view,
+      render: composition.render,
+      bindChild: base.bindChild,
       toBlock: composition.toBlock,
     }
   }
 
-  return { ...base, register }
+  return {
+    owner: base.owner,
+    Model: base.Model,
+    Message: base.Message,
+    ...(base.OutMessage === undefined ? {} : { OutMessage: base.OutMessage }),
+    mounts: base.mounts,
+    [LocalMountsTypeId]: base[LocalMountsTypeId],
+    children: base.children,
+    update: base.update,
+    step: base.step,
+    subscriptions: base.subscriptions,
+    managedResources: base.managedResources,
+    view: base.view,
+    bindChild: base.bindChild,
+    toComposition,
+  }
 }
 // oxlint-enable effecttsgo/any-unknown-in-error-context

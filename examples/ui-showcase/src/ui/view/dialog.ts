@@ -5,20 +5,20 @@ import type { Html } from 'foldkit/html'
 import { Combobox, Dialog } from '@foldkit/ui'
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
-import { Message } from '../message'
-import type { City } from '../model'
 import {
-  RegisteredUiDefinition,
+  UiComposition,
   dialogAnimatedDemo,
   dialogDemo,
   nestedDialogChildDemo,
   nestedDialogParentDemo,
   overlayComboboxDemo,
   overlayDialogDemo,
-} from '../update'
+} from '../childBindings'
+import { Message } from '../message'
+import type { City } from '../model'
 import { comboboxInputs } from './combobox'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof UiComposition>
 
 const triggerClassName =
   'px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -211,59 +211,67 @@ const dialogWithPanel = (
       : [],
   )
 
-const basicDemo = (
-  dialogModel: typeof Dialog.Model.Type,
-  h: HtmlBuilder,
-): Html => {
-  const basicDialogView = (render: DialogRenderInfo): Html =>
-    dialogWithPanel(
-      render,
-      backdropClassName,
-      panelClassName,
-      () => [
-        confirmContent(render.closeButton, render.title, render.description, h),
-      ],
-      h,
+const basicDemo = UiComposition.render.withInput<typeof Dialog.Model.Type>()(
+  (dialogModel, h) => {
+    const basicDialogView = (render: DialogRenderInfo): Html =>
+      dialogWithPanel(
+        render,
+        backdropClassName,
+        panelClassName,
+        () => [
+          confirmContent(
+            render.closeButton,
+            render.title,
+            render.description,
+            h,
+          ),
+        ],
+        h,
+      )
+
+    return h.block(
+      dialogDemo.embedView({
+        slotId: dialogModel.id,
+        model: dialogModel,
+        viewInputs: {
+          hasDescription: true,
+          toView: basicDialogView,
+        },
+      }),
     )
+  },
+)
 
-  return h.block(
-    dialogDemo.embedView({
-      slotId: dialogModel.id,
-      model: dialogModel,
-      viewInputs: {
-        hasDescription: true,
-        toView: basicDialogView,
-      },
-    }),
-  )
-}
+const animatedDemo = UiComposition.render.withInput<typeof Dialog.Model.Type>()(
+  (dialogModel, h) => {
+    const animatedDialogView = (render: DialogRenderInfo): Html =>
+      dialogWithPanel(
+        render,
+        animatedBackdropClassName,
+        animatedPanelClassName,
+        () => [
+          confirmContent(
+            render.closeButton,
+            render.title,
+            render.description,
+            h,
+          ),
+        ],
+        h,
+      )
 
-const animatedDemo = (
-  dialogModel: typeof Dialog.Model.Type,
-  h: HtmlBuilder,
-): Html => {
-  const animatedDialogView = (render: DialogRenderInfo): Html =>
-    dialogWithPanel(
-      render,
-      animatedBackdropClassName,
-      animatedPanelClassName,
-      () => [
-        confirmContent(render.closeButton, render.title, render.description, h),
-      ],
-      h,
+    return h.block(
+      dialogAnimatedDemo.embedView({
+        slotId: dialogModel.id,
+        model: dialogModel,
+        viewInputs: {
+          hasDescription: true,
+          toView: animatedDialogView,
+        },
+      }),
     )
-
-  return h.block(
-    dialogAnimatedDemo.embedView({
-      slotId: dialogModel.id,
-      model: dialogModel,
-      viewInputs: {
-        hasDescription: true,
-        toView: animatedDialogView,
-      },
-    }),
-  )
-}
+  },
+)
 
 const overlayDemo = (
   dialogModel: typeof Dialog.Model.Type,
@@ -368,7 +376,7 @@ const nestedDemo = (
   )
 }
 
-export const view = RegisteredUiDefinition.view((model, h) => {
+export const view = UiComposition.view((model, h) => {
   return h.div(
     [],
     [

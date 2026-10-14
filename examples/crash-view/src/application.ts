@@ -17,7 +17,9 @@ export type Message = typeof Message.Type
 
 export const ApplicationDefinition = defineApplication({ Model, Message })
 
-export const update = ApplicationDefinition.update((_model, _message) => {
+export const ApplicationComposition = ApplicationDefinition.toComposition()
+
+export const update = ApplicationComposition.update((_model, _message) => {
   throw new Error('This is a simulated crash!')
 })
 
@@ -25,7 +27,7 @@ export const init = () => ({
   model: null,
 })
 
-export const view = ApplicationDefinition.view((_model, h) => ({
+export const view = ApplicationComposition.view((_model, h) => ({
   title: 'Crash View Example',
   body: h.div(
     [h.Class('min-h-screen bg-white flex items-center justify-center')],

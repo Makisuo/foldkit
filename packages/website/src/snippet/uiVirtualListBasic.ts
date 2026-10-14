@@ -50,18 +50,18 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const activityList = ActivityList.connection({
-  Model,
-  field: 'activityList',
-  parentMessage: Message.GotActivityListMessage,
-})
-
 const ActivityListExampleDefinition = Block.define('ActivityListExample', {
   Model,
   Message,
 })
-const RegisteredActivityListExampleDefinition =
-  ActivityListExampleDefinition.register({
+
+const activityList = ActivityListExampleDefinition.bindChild(ActivityList, {
+  field: 'activityList',
+  parentMessage: Message.GotActivityListMessage,
+})
+
+const ActivityListExampleComposition =
+  ActivityListExampleDefinition.toComposition({
     children: [activityList],
   })
 
@@ -79,7 +79,7 @@ const update = ActivityListExampleDefinition.update((model, message) =>
 // fixed height the container grows to fit its children and never scrolls.
 // The component sets only `overflow: auto` inline; everything else is
 // yours:
-const view = RegisteredActivityListExampleDefinition.view(
+const view = ActivityListExampleComposition.view(
   (model, h) =>
     h.block(
       activityList.embedView({

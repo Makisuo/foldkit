@@ -1,16 +1,13 @@
-import type { Block } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
 import type { RenderInfo } from '@foldkit/ui/radioGroup'
 
-import type { Plan } from '../model'
 import {
-  RegisteredUiDefinition,
+  UiComposition,
   horizontalRadioGroupDemo,
   verticalRadioGroupDemo,
-} from '../update'
-
-type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
+} from '../childBindings'
+import type { Plan } from '../model'
 
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 
@@ -42,7 +39,7 @@ const descriptionClassName = 'text-sm text-gray-600'
 
 const priceClassName = 'text-sm font-semibold text-accent-600'
 
-const checkIcon = (h: HtmlBuilder): Html => {
+const checkIcon = UiComposition.render.builder(h => {
   return h.svg(
     [h.ViewBox('0 0 24 24'), h.Fill('none'), h.Class('size-5 text-accent-600')],
     [
@@ -55,13 +52,13 @@ const checkIcon = (h: HtmlBuilder): Html => {
       ]),
     ],
   )
-}
+})
 
-const checkPlaceholder = (h: HtmlBuilder): Html => {
+const checkPlaceholder = UiComposition.render.builder(h => {
   return h.div([h.Class('size-5')])
-}
+})
 
-export const view = RegisteredUiDefinition.view((model, h) => {
+export const view = UiComposition.view((model, h) => {
   const verticalPlanOptionsView = ({
     group,
     options,

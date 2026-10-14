@@ -73,7 +73,7 @@ const ChildDefinition = DeclarationTestsChildDefinition.define({
   Model: ChildModel,
   Message: ChildMessage,
 })
-const RegisteredChildDefinition = ChildDefinition.register({
+const RegisteredChildDefinition = ChildDefinition.toComposition({
   mounts: [Measure],
 })
 
@@ -145,7 +145,7 @@ const DeclarationTestsDirectDefinition = Block.define(
   },
 )
 const RegisteredDeclarationTestsDirectDefinition =
-  DeclarationTestsDirectDefinition.register({})
+  DeclarationTestsDirectDefinition.toComposition({})
 
 export const ReadDirectValue =
   RegisteredDeclarationTestsDirectDefinition.command('ReadDirectValue', {
@@ -202,6 +202,8 @@ const DeclarationTestsPureDefinition = Block.define('DeclarationTestsPure', {
   Model: DirectModel,
   Message: DirectMessage,
 })
+const DeclarationTestsPureComposition =
+  DeclarationTestsPureDefinition.toComposition()
 const pureImplementation = {
   init: () => ({ model: DirectModel.make({ value: 0 }) }),
   update: DeclarationTestsPureDefinition.update((model, _message) => ({
@@ -210,11 +212,11 @@ const pureImplementation = {
 }
 
 export type CompletedPure = Block.Completed<
-  typeof DeclarationTestsPureDefinition,
+  typeof DeclarationTestsPureComposition,
   typeof pureImplementation
 >
 
-export const Pure = DeclarationTestsPureDefinition.toBlock(pureImplementation)
+export const Pure = DeclarationTestsPureComposition.toBlock(pureImplementation)
 
 type CompletedPureIsExact = Expect<Equal<CompletedPure, typeof Pure>>
 
@@ -230,21 +232,26 @@ export const ParentMessage = defineMessageUnion({
 })
 export type ParentMessage = typeof ParentMessage.Type
 
-export const child = Child.connection({
+const DeclarationTestsParentDefinition = Block.define(
+  'DeclarationTestsParent',
+).define({
+  Model: ParentModel,
+  Message: ParentMessage,
+})
+
+export const child = DeclarationTestsParentDefinition.bindChild(Child, {
   placement: 'child',
-  read: (model: ParentModel) => Option.some(model.child),
-  write: (_model: ParentModel, nextChild: ChildModel) =>
-    ParentModel.make({ child: nextChild }),
+  read: model => Option.some(model.child),
+  write: (_model, nextChild) => ParentModel.make({ child: nextChild }),
   parentMessage: ParentMessage.GotChildMessage,
 })
 
-export const directChild = Child.connection({
-  Model: ParentModel,
+export const directChild = DeclarationTestsParentDefinition.bindChild(Child, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
 })
 
-export const childInspection = Block.inspectConnection(child)
+export const childInspection = Block.inspectBinding(child)
 
 type DirectPlacementIsExact = Expect<
   Equal<typeof directChild.placement, 'child'>
@@ -259,10 +266,10 @@ type BoundRefreshRequirementsAreExact = Expect<
 type BoundRefreshEvidenceIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<ReturnType<typeof child.refresh>>>,
-    Block.ConnectionRequirement<'child', typeof Child>
+    Block.BindingRequirement<'child', typeof Child>
   >
 >
-type ChildConnectionStringKeysAreExact = Expect<
+type ChildBindingStringKeysAreExact = Expect<
   Equal<
     Extract<keyof typeof child, string>,
     'placement' | 'init' | 'fold' | 'embedView' | 'refresh'
@@ -278,18 +285,48 @@ type ChildInspectionMountsAreExact = Expect<
   Equal<(typeof childInspection.mounts)[number], typeof Measure>
 >
 
-const DeclarationTestsParentDefinition = Block.define(
-  'DeclarationTestsParent',
-).define({
-  Model: ParentModel,
-  Message: ParentMessage,
-})
-const RegisteredDeclarationTestsParentDefinition =
-  DeclarationTestsParentDefinition.register({ children: [child] })
-
-const parentView = RegisteredDeclarationTestsParentDefinition.view((model, h) =>
-  h.block(child.embedView({ slotId: 'child', model: model.child })),
+export const ObserveParent = DeclarationTestsParentDefinition.mount(
+  'ObserveParent',
+  {
+    messages: [ParentMessage.RequestedRefresh],
+    handler: function* () {
+      return () => Effect.succeed(ParentMessage.RequestedRefresh())
+    },
+  },
 )
+export const ParentComposition = DeclarationTestsParentDefinition.toComposition(
+  {
+    children: [child],
+    mounts: [ObserveParent],
+  },
+)
+
+const parentView = ParentComposition.view((model, h) =>
+  h.div(
+    [h.OnMount(ObserveParent())],
+    [h.block(child.embedView({ slotId: 'child', model: model.child }))],
+  ),
+)
+
+export const parentModelRender = ParentComposition.render((model, h) =>
+  h.div(
+    [h.OnClick(ParentMessage.RequestedRefresh()), h.OnMount(ObserveParent())],
+    [h.block(child.embedView({ slotId: 'child', model: model.child }))],
+  ),
+)
+
+export const parentBuilderRender = ParentComposition.render.builder(h =>
+  h.div([h.OnMount(ObserveParent())]),
+)
+
+export const parentInputRender =
+  ParentComposition.render.withInput<ChildModel>()((childModel, h) =>
+    h.block(child.embedView({ slotId: 'child-input', model: childModel })),
+  )
+
+export const parentArrayRender = ParentComposition.render.withInput<
+  ReadonlyArray<string>
+>()((labels, h) => labels.map(label => h.span([], [label])))
 
 export const parentUpdate = DeclarationTestsParentDefinition.update(
   (model, message) =>
@@ -312,7 +349,7 @@ export const contextualRefreshChild = DeclarationTestsParentDefinition.step(
   (model, _context?: RefreshContext) => child.refresh()(model),
 )
 
-export const Parent = RegisteredDeclarationTestsParentDefinition.toBlock({
+export const Parent = ParentComposition.toBlock({
   init: () => {
     const childInit = child.init()
 
@@ -324,7 +361,7 @@ export const Parent = RegisteredDeclarationTestsParentDefinition.toBlock({
   update: parentUpdate,
   view: parentView,
   expose: { refreshChild },
-  EffectsLayer: Layer.empty,
+  EffectsLayer: ObserveParent.layer,
 })
 
 type ParentServicesAreExact = Expect<
@@ -337,7 +374,7 @@ type ParentErrorIsExact = Expect<
 export type ParentAssertions = [
   BoundRefreshRequirementsAreExact,
   BoundRefreshEvidenceIsExact,
-  ChildConnectionStringKeysAreExact,
+  ChildBindingStringKeysAreExact,
   ChildInspectionServicesAreExact,
   ChildInspectionErrorIsExact,
   ChildInspectionMountsAreExact,
@@ -375,7 +412,10 @@ const makeChoiceParts = <const Values extends ReadonlyArray<string>>(
     EffectsLayer: Layer.empty,
   }
 
-  return { definition, implementation }
+  return {
+    composition: definition.toComposition(),
+    implementation,
+  }
 }
 
 type ChoiceParts<Values extends ReadonlyArray<string>> = ReturnType<
@@ -384,16 +424,16 @@ type ChoiceParts<Values extends ReadonlyArray<string>> = ReturnType<
 
 export type CompletedChoice<Values extends ReadonlyArray<string>> =
   Block.Completed<
-    ChoiceParts<Values>['definition'],
+    ChoiceParts<Values>['composition'],
     ChoiceParts<Values>['implementation']
   >
 
 const makeChoice = <const Values extends ReadonlyArray<string>>(
   Value: Schema.Literals<Values>,
 ): CompletedChoice<Values> => {
-  const { definition, implementation } = makeChoiceParts(Value)
+  const { composition, implementation } = makeChoiceParts(Value)
 
-  return definition.toBlock(implementation)
+  return composition.toBlock(implementation)
 }
 
 export const RefinedChoice = makeChoice(Schema.Literals(['One', 'Two']))
@@ -408,20 +448,21 @@ type CompletedChoiceIsExact = Expect<
   Equal<CompletedChoice<readonly ['One', 'Two']>, typeof RefinedChoice>
 >
 
-type ChoiceParent = Readonly<{ choice: RefinedChoiceModel }>
+const ChoiceParent = Schema.Struct({ choice: RefinedChoice.Model })
+type ChoiceParent = typeof ChoiceParent.Type
+const ChoiceParentDefinition = Block.define('DeclarationTestsChoiceParent', {
+  Model: ChoiceParent,
+  Message: RefinedChoice.Message,
+  OutMessage: RefinedChoice.OutMessage,
+})
 
-export const refinedChoice = RefinedChoice.connection({
+export const refinedChoice = ChoiceParentDefinition.bindChild(RefinedChoice, {
   placement: 'refined-choice',
-  read: (model: ChoiceParent) => Option.some(model.choice),
-  write: (_model: ChoiceParent, nextChoice: RefinedChoiceModel) => ({
-    choice: nextChoice,
-  }),
-  toParentMessage: (message: RefinedChoiceMessage) => message,
+  read: model => Option.some(model.choice),
+  write: (_model, nextChoice) => ChoiceParent.make({ choice: nextChoice }),
+  toParentMessage: message => message,
   outMessage: {
-    fold: (outMessage: RefinedChoiceOutMessage) => (model: ChoiceParent) => ({
-      model,
-      outMessage,
-    }),
+    fold: outMessage => model => ({ model, outMessage }),
   },
 })
 
@@ -480,6 +521,7 @@ const ApplicationDefinition = defineApplication({
   Message: ParentMessage,
 })
 const PureApplicationDefinition = ApplicationDefinition
+const PureApplicationComposition = PureApplicationDefinition.toComposition()
 const preserveFunction = <Args extends ReadonlyArray<unknown>, ReturnValue>(
   fn: (...args: Args) => ReturnValue,
 ) => ({ fn })
@@ -503,7 +545,7 @@ const pureDocumentView = PureApplicationDefinition.view((_model, h) => ({
   body: h.main([]),
 }))
 const pureElementProgram: ElementProgram<undefined, never, never, never> =
-  PureApplicationDefinition.makeElement({
+  PureApplicationComposition.makeElement({
     container: null,
     init: pureInit,
     update: PureApplicationDefinition.update(wrappedPureUpdate.fn),
@@ -515,7 +557,7 @@ const purePageProgram: ApplicationProgram<
   never,
   never,
   never
-> = PureApplicationDefinition.make({
+> = PureApplicationComposition.make({
   container: null,
   init: pureInit,
   update: PureApplicationDefinition.update(wrappedPureUpdate.fn),
@@ -541,16 +583,37 @@ export const StreamApplicationValue = ApplicationDefinition.mountStream(
     messages: [ParentMessage.RequestedRefresh],
   },
 )
-const Application = ApplicationDefinition.register({
+export const ApplicationComposition = ApplicationDefinition.toComposition({
   children: [directChild],
 })
-const applicationElementView = Application.view((model, h) =>
+const applicationElementView = ApplicationComposition.view((model, h) =>
   h.block(directChild.embedView({ slotId: 'child', model: model.child })),
 )
-const applicationDocumentView = Application.view((model, h) => ({
+const applicationDocumentView = ApplicationComposition.view((model, h) => ({
   title: 'Declaration test',
   body: h.block(directChild.embedView({ slotId: 'child', model: model.child })),
 }))
+export const applicationModelRender = ApplicationComposition.render(
+  (model, h) =>
+    h.block(
+      directChild.embedView({
+        slotId: 'application-child',
+        model: model.child,
+      }),
+    ),
+)
+export const applicationBuilderRender = ApplicationComposition.render.builder(
+  h => h.main([]),
+)
+export const applicationInputRender =
+  ApplicationComposition.render.withInput<ChildModel>()((childModel, h) =>
+    h.block(
+      directChild.embedView({
+        slotId: 'application-input-child',
+        model: childModel,
+      }),
+    ),
+  )
 const applicationUpdate = ApplicationDefinition.update((model, message) =>
   ParentMessage.match(message, {
     GotChildMessage: ({ message }) => directChild.fold(model, message),
@@ -576,7 +639,7 @@ const applicationImplementation = {
 const makeInferredProvisionPageAwaitingDependency = (
   container: HTMLElement | null,
 ) =>
-  PureApplicationDefinition.make({
+  PureApplicationComposition.make({
     Flags: ProvisionFlags,
     container,
     init: ({ initialValue }: typeof ProvisionFlags.Type) => ({
@@ -609,7 +672,7 @@ export const makeProvisionPageAwaitingDependency: (
 ) => ProvisionPage = makeInferredProvisionPageAwaitingDependency
 
 const makeInferredProvisionElement = (container: HTMLElement | null) =>
-  PureApplicationDefinition.makeElement({
+  PureApplicationComposition.makeElement({
     container,
     init: pureInit,
     ports: provisionPorts,
@@ -639,14 +702,14 @@ const provisionAssertions: ProvisionAssertions = [true, true]
 void provisionAssertions
 
 export const makeProgram = (container: HTMLElement) =>
-  Application.makeElement({
+  ApplicationComposition.makeElement({
     ...applicationImplementation,
     container,
     view: applicationElementView,
   }).provide(ClockLayer)
 
 export const makePageProgram = (container: HTMLElement | null) =>
-  Application.make({
+  ApplicationComposition.make({
     ...applicationImplementation,
     container,
     view: applicationDocumentView,
@@ -654,7 +717,7 @@ export const makePageProgram = (container: HTMLElement | null) =>
 
 export const renderPage = () =>
   Server.renderToString(
-    Application,
+    ApplicationComposition,
     { ...applicationImplementation, view: applicationDocumentView },
     { isHydratable: false },
   )

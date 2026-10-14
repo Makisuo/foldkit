@@ -1,8 +1,14 @@
 import { Effect, Schema } from 'effect'
 import { Port } from 'foldkit'
 
-import { Application, Flags, init, update, view } from './application'
-import { ApplicationLayer } from './services'
+import {
+  ApplicationComposition,
+  Flags,
+  init,
+  update,
+  view,
+} from './application'
+import { ApplicationLayer } from './layer'
 
 // Each Port carries a Schema. The host works with the Schema's Encoded
 // side, the app with the decoded Type. Record keys name the ports on the
@@ -14,7 +20,7 @@ export const ports = {
 }
 
 export const makeElement = (container: HTMLElement, flags: typeof Flags.Type) =>
-  Application.makeElement({
+  ApplicationComposition.makeElement({
     init,
     update,
     view,

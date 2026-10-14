@@ -36,7 +36,7 @@ const ReadValue = Child.command('ReadValue', {
   },
 })
 const child = Child.define({ Model: ChildModel, Message: ChildMessage })
-const childBlock = child.toBlock({
+const childBlock = child.toComposition().toBlock({
   init: (label: string) => ({ model: { label }, commands: [ReadValue()] }),
   update: child.update((model, { value }) => ({
     model: modifyFields(model, { label: () => value }),
@@ -50,20 +50,20 @@ const Message = defineMessageUnion({
   GotLeftMessage: { message: ChildMessage },
   GotRightMessage: { message: ChildMessage },
 })
-const left = childBlock.connection({
+const Application = defineApplication({ Model, Message })
+const left = Application.bindChild(childBlock, {
   placement: 'Left',
   read: (model: typeof Model.Type) => Option.some(model.left),
   write: (model, nextLeft) => modifyFields(model, { left: () => nextLeft }),
   parentMessage: Message.GotLeftMessage,
 })
-const right = childBlock.connection({
+const right = Application.bindChild(childBlock, {
   placement: 'Right',
   read: (model: typeof Model.Type) => Option.some(model.right),
   write: (model, nextRight) => modifyFields(model, { right: () => nextRight }),
   parentMessage: Message.GotRightMessage,
 })
-const Application = defineApplication({ Model, Message })
-const composition = Application.register({ children: [left, right] })
+const composition = Application.toComposition({ children: [left, right] })
 const init = () => {
   const leftInit = left.init('left')
   const rightInit = right.init('right')
@@ -105,7 +105,7 @@ const hostChildDefinition = HostChild.define({
   Model: HostChildModel,
   Message: HostChildMessage,
 })
-const unresolvedHostChild = hostChildDefinition.toBlock({
+const unresolvedHostChild = hostChildDefinition.toComposition().toBlock({
   init: () => ({ model: { value: '' }, commands: [ReadHostValue()] }),
   update: hostChildDefinition.update((model, { value }) => ({
     model: modifyFields(model, { value: () => value }),
@@ -130,24 +130,24 @@ const HostParentModel = Schema.Struct({ child: HostChildModel })
 const HostParentMessage = defineMessageUnion({
   GotChildMessage: { message: HostChildMessage },
 })
-const unresolvedHostBinding = unresolvedHostChild.connection({
-  read: (model: typeof HostParentModel.Type) => Option.some(model.child),
-  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
-  parentMessage: HostParentMessage.GotChildMessage,
-})
-const resolvedHostBinding = resolvedHostChild.connection({
-  read: (model: typeof HostParentModel.Type) => Option.some(model.child),
-  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
-  parentMessage: HostParentMessage.GotChildMessage,
-})
 const hostParent = defineApplication({
   Model: HostParentModel,
   Message: HostParentMessage,
 })
-const unresolvedHostComposition = hostParent.register({
+const unresolvedHostBinding = hostParent.bindChild(unresolvedHostChild, {
+  read: (model: typeof HostParentModel.Type) => Option.some(model.child),
+  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
+  parentMessage: HostParentMessage.GotChildMessage,
+})
+const resolvedHostBinding = hostParent.bindChild(resolvedHostChild, {
+  read: (model: typeof HostParentModel.Type) => Option.some(model.child),
+  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
+  parentMessage: HostParentMessage.GotChildMessage,
+})
+const unresolvedHostComposition = hostParent.toComposition({
   children: [unresolvedHostBinding],
 })
-const resolvedHostComposition = hostParent.register({
+const resolvedHostComposition = hostParent.toComposition({
   children: [resolvedHostBinding],
 })
 const unresolvedHostInit = () => ({
@@ -289,7 +289,7 @@ describe('registered Application composition completion', () => {
         },
       }),
     }))
-    const leafBlock = leaf.toBlock({
+    const leafBlock = leaf.toComposition().toBlock({
       init: () => ({ model: { value: 'pending' } }),
       update: leaf.update((model, message) =>
         LeafMessage.match(message, {
@@ -330,16 +330,16 @@ describe('registered Application composition completion', () => {
     const MiddleMessage = defineMessageUnion({
       GotLeafMessage: { message: LeafMessage },
     })
-    const leafBinding = leafBlock.connection({
-      read: (model: typeof MiddleModel.Type) => Option.some(model.leaf),
-      write: (model, nextLeaf) => modifyFields(model, { leaf: () => nextLeaf }),
-      parentMessage: MiddleMessage.GotLeafMessage,
-    })
     const middle = Middle.define({
       Model: MiddleModel,
       Message: MiddleMessage,
     })
-    const middleComposition = middle.register({ children: [leafBinding] })
+    const leafBinding = middle.bindChild(leafBlock, {
+      read: model => Option.some(model.leaf),
+      write: (model, nextLeaf) => modifyFields(model, { leaf: () => nextLeaf }),
+      parentMessage: MiddleMessage.GotLeafMessage,
+    })
+    const middleComposition = middle.toComposition({ children: [leafBinding] })
     const middleBlock = middleComposition.toBlock({
       init: () => ({ model: { leaf: leafBinding.init().model } }),
       update: middle.update((model, { message }) => {
@@ -364,17 +364,17 @@ describe('registered Application composition completion', () => {
     const RootMessage = defineMessageUnion({
       GotMiddleMessage: { message: MiddleMessage },
     })
-    const middleBinding = middleBlock.connection({
-      read: (model: typeof RootModel.Type) => Option.some(model.middle),
-      write: (model, nextMiddle) =>
-        modifyFields(model, { middle: () => nextMiddle }),
-      parentMessage: RootMessage.GotMiddleMessage,
-    })
     const root = defineApplication({
       Model: RootModel,
       Message: RootMessage,
     })
-    const nestedComposition = root.register({ children: [middleBinding] })
+    const middleBinding = root.bindChild(middleBlock, {
+      read: model => Option.some(model.middle),
+      write: (model, nextMiddle) =>
+        modifyFields(model, { middle: () => nextMiddle }),
+      parentMessage: RootMessage.GotMiddleMessage,
+    })
+    const nestedComposition = root.toComposition({ children: [middleBinding] })
     const nestedInit = () => ({
       model: { middle: middleBinding.init().model },
     })
@@ -469,7 +469,7 @@ describe('registered Application composition completion', () => {
       Model: ServiceChildModel,
       Message: ServiceChildMessage,
     })
-    const serviceChildBlock = serviceChild.toBlock({
+    const serviceChildBlock = serviceChild.toComposition().toBlock({
       init: () => ({
         model: { value: 'pending' },
         commands: [ReadSharedValue()],
@@ -490,17 +490,17 @@ describe('registered Application composition completion', () => {
       ClickedRemoveServiceChild: {},
       ClickedAddServiceChild: {},
     })
-    const serviceChildBinding = serviceChildBlock.connection({
-      read: (model: typeof ServiceRootModel.Type) => model.maybeChild,
-      write: (model, nextChild) =>
-        modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
-      parentMessage: ServiceRootMessage.GotServiceChildMessage,
-    })
     const serviceRoot = defineApplication({
       Model: ServiceRootModel,
       Message: ServiceRootMessage,
     })
-    const serviceComposition = serviceRoot.register({
+    const serviceChildBinding = serviceRoot.bindChild(serviceChildBlock, {
+      read: model => model.maybeChild,
+      write: (model, nextChild) =>
+        modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
+      parentMessage: ServiceRootMessage.GotServiceChildMessage,
+    })
+    const serviceComposition = serviceRoot.toComposition({
       children: [serviceChildBinding],
     })
     const serviceInit = () => {
@@ -646,7 +646,7 @@ describe('registered Application composition completion', () => {
       Model: FeatureModel,
       Message: FeatureMessage,
     })
-    const featureComposition = feature.register({ mounts: [ObserveValue] })
+    const featureComposition = feature.toComposition({ mounts: [ObserveValue] })
     const managedResources = feature.managedResources(entry => ({
       value: entry(
         'Value',
@@ -684,24 +684,24 @@ describe('registered Application composition completion', () => {
       GotLeft: { message: FeatureMessage },
       GotRight: { message: FeatureMessage },
     })
-    const left = featureBlock.connection({
+    const root = defineApplication({
+      Model: RootModel,
+      Message: RootMessage,
+    })
+    const left = root.bindChild(featureBlock, {
       placement: 'Left',
       read: (model: typeof RootModel.Type) => Option.some(model.left),
       write: (model, nextLeft) => modifyFields(model, { left: () => nextLeft }),
       toParentMessage: message => RootMessage.GotLeft({ message }),
     })
-    const right = featureBlock.connection({
+    const right = root.bindChild(featureBlock, {
       placement: 'Right',
       read: (model: typeof RootModel.Type) => Option.some(model.right),
       write: (model, nextRight) =>
         modifyFields(model, { right: () => nextRight }),
       toParentMessage: message => RootMessage.GotRight({ message }),
     })
-    const root = defineApplication({
-      Model: RootModel,
-      Message: RootMessage,
-    })
-    const rootComposition = root.register({ children: [left, right] })
+    const rootComposition = root.toComposition({ children: [left, right] })
     const seen: Array<string> = []
     const rootInit = () => ({
       model: {

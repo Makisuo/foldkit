@@ -45,15 +45,14 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const dialog = Dialog.block.connection({
-  Model,
+const dialog = DisabledButtonTestDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const RegisteredDisabledButtonTestDefinition =
-  DisabledButtonTestDefinition.register({ children: [dialog] })
+const DisabledButtonTestComposition =
+  DisabledButtonTestDefinition.toComposition({ children: [dialog] })
 
 export const update = DisabledButtonTestDefinition.update((model, message) =>
   Message.match(message, {
@@ -94,36 +93,34 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
 }
 
 /** View with submit button inside a dialog's panel. */
-export const viewWithDialog = RegisteredDisabledButtonTestDefinition.view(
-  (model, h) => {
-    return h.div(
-      [],
-      [
-        h.button([h.OnClick(Message.ClickedToggle())], ['Toggle']),
-        h.block(
-          dialog.embedView({
-            slotId: model.dialog.id,
-            model: model.dialog,
-            viewInputs: {
-              toView: ({ dialog, backdrop, panel, isVisible }) =>
-                h.dialog(
-                  [...dialog],
-                  isVisible
-                    ? [
-                        h.div([...backdrop]),
-                        h.div([...panel], [submitButton(model.isEnabled, h)]),
-                      ]
-                    : [],
-                ),
-            },
-          }),
-        ),
-      ],
-    )
-  },
-)
+export const viewWithDialog = DisabledButtonTestComposition.view((model, h) => {
+  return h.div(
+    [],
+    [
+      h.button([h.OnClick(Message.ClickedToggle())], ['Toggle']),
+      h.block(
+        dialog.embedView({
+          slotId: model.dialog.id,
+          model: model.dialog,
+          viewInputs: {
+            toView: ({ dialog, backdrop, panel, isVisible }) =>
+              h.dialog(
+                [...dialog],
+                isVisible
+                  ? [
+                      h.div([...backdrop]),
+                      h.div([...panel], [submitButton(model.isEnabled, h)]),
+                    ]
+                  : [],
+              ),
+          },
+        }),
+      ),
+    ],
+  )
+})
 
-export const block = RegisteredDisabledButtonTestDefinition.toBlock({
+export const block = DisabledButtonTestComposition.toBlock({
   init: () => ({ model: initialModel }),
   update,
   view: viewWithDialog,

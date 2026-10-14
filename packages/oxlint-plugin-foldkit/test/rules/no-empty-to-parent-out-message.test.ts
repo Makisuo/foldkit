@@ -345,11 +345,11 @@ it('rejects an empty forward policy on a completed Block binding', () => {
     type: 'CallExpression',
     callee: {
       type: 'MemberExpression',
-      object: Testing.id('Settings'),
-      property: Testing.id('connection'),
+      object: Testing.id('ApplicationDefinition'),
+      property: Testing.id('bindChild'),
       computed: false,
     },
-    arguments: [configuration],
+    arguments: [Testing.id('Settings'), configuration],
   }
 
   Object.assign(forward, { parent: policy })
@@ -381,7 +381,7 @@ it('ignores ordinary Function.bind calls', () => {
     callee: {
       type: 'MemberExpression',
       object: Testing.id('callback'),
-      property: Testing.id('connection'),
+      property: Testing.id('bind'),
       computed: false,
     },
     arguments: [configuration],

@@ -1,11 +1,11 @@
 import { modifyFields } from 'foldkit/struct'
 
+import { ApplicationDefinition } from './application'
 import { Message } from './message'
 import { Model } from './model'
 import * as Settings from './settings'
 
-const settings = Settings.block.connection({
-  Model: Model,
+const settings = ApplicationDefinition.bindChild(Settings.block, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
 })

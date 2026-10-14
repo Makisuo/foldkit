@@ -33,4 +33,4 @@ export {
   type ViewInputs,
   view,
   block,
-} from './calendar.js'
+} from './block.js'

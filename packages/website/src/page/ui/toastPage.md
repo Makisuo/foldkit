@@ -2,9 +2,9 @@
 
 ## Overview
 
-A stack of transient notifications positioned along an edge of the viewport. Each entry has its own enter and leave animation and hover state. Non-sticky entries have independent auto-dismiss timers that pause on hover. Swipe-to-dismiss is opt-in for the container. Keep the container at the app root and add entries with the connection’s `show` operation.
+A stack of transient notifications positioned along an edge of the viewport. Each entry has its own enter and leave animation and hover state. Non-sticky entries have independent auto-dismiss timers that pause on hover. Swipe-to-dismiss is opt-in for the container. Keep the container at the app root and add entries with the Binding’s `show` operation.
 
-Toast is parameterized on a payload Schema that you provide. The component owns entry IDs, variants, animations, optional dismiss timers, hover state, and swipe state. Your payload holds the content rendered by `entryToView`. `Toast.make(PayloadSchema)` returns a completed Block whose Model, programmatic API, view, Subscriptions, and handler recipes are bound to that payload type. Each parent connection supplies its occurrence identity.
+Toast is parameterized on a payload Schema that you provide. The component owns entry IDs, variants, animations, optional dismiss timers, hover state, and swipe state. Your payload holds the content rendered by `entryToView`. `Toast.make(PayloadSchema)` returns a completed Block whose Model, programmatic API, view, Subscriptions, and handler recipes are bound to that payload type. Each parent Binding supplies its occurrence identity.
 
 :::Info{label="See it in an app"}
 Check out how Toast is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/toast.ts).
@@ -28,11 +28,11 @@ Each entry’s enter and leave phases flow through [Animation](/ui/animation). S
 
 ### Enable Swipe to Dismiss
 
-Swipe is pointer-driven and opt-in. Pass `swipeToDismiss` to the Toast connection’s `init`. For example: `{}` enables a rightward swipe with a 40px threshold, `{ threshold: 120 }` requires a longer swipe, and `{ direction: 'Left' }` enables a leftward swipe. Without it, the Toast view attaches no `pointerdown` handler or `touch-action` restriction. Direction is independent of `position`, so configure it explicitly for a left-anchored stack.
+Swipe is pointer-driven and opt-in. Pass `swipeToDismiss` to the Toast Binding’s `init`. For example: `{}` enables a rightward swipe with a 40px threshold, `{ threshold: 120 }` requires a longer swipe, and `{ direction: 'Left' }` enables a leftward swipe. Without it, the Toast view attaches no `pointerdown` handler or `touch-action` restriction. Direction is independent of `position`, so configure it explicitly for a left-anchored stack.
 
 ### Track the Pointer
 
-With swipe enabled, Toast handles `pointerdown` on each entry. Connect the completed Block returned by `Toast.make` and register the connection in the owning definition’s `children`; that one relationship carries the Toast instance’s pointer Subscriptions and handler recipes through application composition. The Subscriptions track `pointermove`, `pointerup`, and `pointercancel` even when the pointer leaves the entry. Without the connection, the parent cannot embed the Toast view. Escape cancels active drags. While dragging, Toast prevents text selection and shows the grabbing cursor. The example above shows the connection.
+With swipe enabled, Toast handles `pointerdown` on each entry. Connect the completed Block returned by `Toast.make` and include the Binding in the owning definition’s `children`; that one relationship carries the Toast instance’s pointer Subscriptions and handler recipes through application composition. The Subscriptions track `pointermove`, `pointerup`, and `pointercancel` even when the pointer leaves the entry. Without the Binding, the parent cannot embed the Toast view. Escape cancels active drags. While dragging, Toast prevents text selection and shows the grabbing cursor. The example above shows the Binding.
 
 ### Preserve Nested Interactions
 
@@ -67,7 +67,7 @@ The container has `role="region"` and `aria-live="polite"`. It stays in the DOM 
 
 ### InitConfig {#init-config}
 
-Configuration object passed to the Toast connection’s `init()`.
+Configuration object passed to the Toast Binding’s `init()`.
 
 | Name              | Type                                                    | Default               | Description                                                                                                                                                                                                                        |
 | ----------------- | ------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -88,7 +88,7 @@ Input shape for `toast.show(input)`.
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the Toast connection's `embedView` method. The connection supplies the canonical view, Message wrapper, and composition scope. Keep `entryToView` at the top level, and spread `handlers.dismiss` unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass the child Model as `model` and these fields as `viewInputs` to the Toast Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `entryToView` at the top level, and spread `handlers.dismiss` unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name                 | Type                                                                                        | Default           | Description                                                                                                                                                                                            |
 | -------------------- | ------------------------------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -100,7 +100,7 @@ Pass the child Model as `model` and these fields as `viewInputs` to the Toast co
 
 ### Programmatic Helpers
 
-Toast operations are public parent Steps. Call the connection’s `show`, `dismiss`, and `dismissAll` operations from the parent.
+Toast operations are public parent Steps. Call the Binding’s `show`, `dismiss`, and `dismissAll` operations from the parent.
 
 | Name         | Type                                | Default | Description                                                                                                                                                                                  |
 | ------------ | ----------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -112,9 +112,9 @@ Toast operations are public parent Steps. Call the connection’s `show`, `dismi
 
 #### Lift Pointer Subscriptions
 
-Each completed Block returned by `Toast.make` can be connected once and registered in the owner’s `children`; composition carries `swipePointer`, `swipeEscape`, and their handler recipes automatically. The source `subscriptions` registry remains available when a Scene test needs to call `Subscription.emit` for one of those entries. The stable factory name keeps separate Toast instances distinct. The [example above](#examples) shows the connection alongside the Toast Model and Message.
+Each completed Block returned by `Toast.make` can be bound once and included in the owner’s `children`; composition carries `swipePointer`, `swipeEscape`, and their handler recipes automatically. The source `subscriptions` registry remains available when a Scene test needs to call `Subscription.emit` for one of those entries. The stable factory name keeps separate Toast instances distinct. The [example above](#examples) shows the Binding alongside the Toast Model and Message.
 
-The registered connection ensures `pointermove` and `pointerup` reach the Toast update after the initial `pointerdown`, even when the pointer leaves the entry.
+The composed Binding ensures `pointermove` and `pointerup` reach the Toast update after the initial `pointerdown`, even when the pointer leaves the entry.
 
 #### Render Toasts Without `Toast.view`
 
@@ -122,8 +122,8 @@ If you render the Toast Model without `Toast.view`, you own the entry markup, ac
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the connection’s `outMessage.fold` policy.
+Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s `outMessage.fold` policy.
 
-| Name             | Type                   | Default | Description                                                                                                                                                                                                                                                                                             |
-| ---------------- | ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DismissedToast` | `{ payload: Payload }` | —       | Emitted when an entry finishes its leave animation and is removed from the Model. It carries the payload from your `Payload` Schema. Handle it in the connection's `outMessage.fold` policy to update domain state or return an analytics Command. It reports removal, not the initial dismiss request. |
+| Name             | Type                   | Default | Description                                                                                                                                                                                                                                                                                          |
+| ---------------- | ---------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DismissedToast` | `{ payload: Payload }` | —       | Emitted when an entry finishes its leave animation and is removed from the Model. It carries the payload from your `Payload` Schema. Handle it in the Binding's `outMessage.fold` policy to update domain state or return an analytics Command. It reports removal, not the initial dismiss request. |

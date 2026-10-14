@@ -22,10 +22,10 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
 
 import { Runtime } from 'foldkit'
 
-import { Application, update, view, Flags } from './application'
+import { ApplicationComposition, update, view, Flags } from './application'
 import { flags } from './flags'
 
-const application = Application.make({
+const application = ApplicationComposition.make({
   init,
   update,
   view,

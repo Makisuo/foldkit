@@ -2,7 +2,7 @@ import { Option } from 'effect'
 import { Runtime } from 'foldkit'
 
 import {
-  ApplicationDefinition,
+  ApplicationComposition,
   Message,
   crashView,
   init,
@@ -10,7 +10,7 @@ import {
   view,
 } from './application'
 
-const application = ApplicationDefinition.make({
+const application = ApplicationComposition.make({
   init,
   update,
   view,

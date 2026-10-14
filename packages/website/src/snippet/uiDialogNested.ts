@@ -50,25 +50,24 @@ const foldConfirmDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const settingsDialog = Dialog.block.connection({
+const ProjectDialogsDefinition = Block.define('ProjectDialogs', {
   Model,
+  Message,
+})
+
+const settingsDialog = ProjectDialogsDefinition.bindChild(Dialog.block, {
   field: 'settingsDialog',
   parentMessage: Message.GotSettingsDialogMessage,
   outMessage: { fold: foldConfirmDialogOutMessage },
 })
 
-const confirmDialog = Dialog.block.connection({
-  Model,
+const confirmDialog = ProjectDialogsDefinition.bindChild(Dialog.block, {
   field: 'confirmDialog',
   parentMessage: Message.GotConfirmDialogMessage,
   outMessage: { fold: foldConfirmDialogOutMessage },
 })
 
-const ProjectDialogsDefinition = Block.define('ProjectDialogs', {
-  Model,
-  Message,
-})
-const RegisteredProjectDialogsDefinition = ProjectDialogsDefinition.register({
+const ProjectDialogsComposition = ProjectDialogsDefinition.toComposition({
   children: [settingsDialog, confirmDialog],
 })
 
@@ -91,7 +90,7 @@ const update = ProjectDialogsDefinition.update((model, message) =>
 // focus in the topmost, and Escape closes the topmost before the one beneath
 // it. Cancel dismisses the confirmation through the `closeButton` bundle.
 // Delete dispatches a fact that runs the work and closes through `dialog.close()`.
-const view = RegisteredProjectDialogsDefinition.view((model, h) => {
+const view = ProjectDialogsComposition.view((model, h) => {
   const confirmDialogView = ({
     dialog,
     backdrop,

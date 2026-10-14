@@ -1,6 +1,6 @@
 export { Model } from './model'
 export { Message } from './message'
-export { block } from './ui'
+export { block } from './block'
 
 export * as OverviewPage from './overviewPage'
 export * as SelectionBlocksPage from './selectionBlocksPage'

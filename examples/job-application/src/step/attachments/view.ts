@@ -6,8 +6,8 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { Button } from '@foldkit/ui'
 
 import {
+  AttachmentsComposition,
   Message,
-  RegisteredAttachmentsDefinition,
   additionalFilesDrop,
   resumeDrop,
 } from './definition'
@@ -120,7 +120,7 @@ const additionalFileView = (
     ],
   )
 
-export const view = RegisteredAttachmentsDefinition.view((model, h) => {
+export const view = AttachmentsComposition.view((model, h) => {
   const { maybeResume, additionalFiles } = model
 
   const resumeSection = h.div(

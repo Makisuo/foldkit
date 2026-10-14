@@ -80,20 +80,18 @@ const foldAnimationOutMessage = (
     TransitionedOut: () => (model: Model) => ({ model }),
   })
 
-// The connection wires the completed child Block into the parent: it runs Animation.update,
+// The Binding wires the completed child Block into the parent: it runs Animation.update,
 // writes the next Animation Model back, maps the Block's Commands into your
 // Message type, and hands any OutMessage to the OutMessage fold.
-const animation = Animation.block.connection({
-  Model,
+const animation = AnimationExampleDefinition.bindChild(Animation.block, {
   field: 'animation',
   parentMessage: Message.GotAnimationMessage,
   outMessage: { fold: foldAnimationOutMessage },
 })
 
-const RegisteredAnimationExampleDefinition =
-  AnimationExampleDefinition.register({
-    children: [animation],
-  })
+const AnimationExampleComposition = AnimationExampleDefinition.toComposition({
+  children: [animation],
+})
 
 // Bound public operations integrate the next child Model and Commands without
 // exposing the internal Showed or Hid Message constructors to the parent.
@@ -113,7 +111,7 @@ const update = AnimationExampleDefinition.update((model, message) =>
 // truth for whether content is currently visible. The Animation view wraps
 // your content. Data attributes drive the CSS transitions or keyframe
 // animations defined in className:
-const view = RegisteredAnimationExampleDefinition.view((model, h) =>
+const view = AnimationExampleComposition.view((model, h) =>
   h.div(
     [],
     [

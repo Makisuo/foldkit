@@ -9,5 +9,5 @@ const clickedSave = Child.Message.ClickedSave
 const badAliasRouting = () => GotChildMessage({ message: clickedSave() })
 
 // ✅ Good
-// The parent invokes the public Step projected by its registered connection.
+// The parent invokes the public Step projected by its child Binding.
 const goodRouting = (model: Model) => child.save()(model)

@@ -173,7 +173,7 @@ describe('real-oxlint rule fixtures', () => {
   })
 
   it('resolves aliased constructors and helpers to their imported APIs', () => {
-    expect(countDiagnostics('block-name-matches-variable', 'invalid')).toBe(9)
+    expect(countDiagnostics('block-name-matches-variable', 'invalid')).toBe(11)
     expect(countDiagnostics('no-hardcoded-route-strings', 'invalid')).toBe(2)
     expect(countDiagnostics('keyed-required-for-mapped-rows', 'invalid')).toBe(
       3,

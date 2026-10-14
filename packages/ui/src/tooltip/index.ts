@@ -24,4 +24,4 @@ export {
   type ViewInputs,
   view,
   block,
-} from './tooltip.js'
+} from './block.js'

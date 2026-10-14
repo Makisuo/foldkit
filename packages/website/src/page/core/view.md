@@ -22,7 +22,7 @@ React functional components can hold local state and run effects through hooks, 
 
 ### Document Fields
 
-An `Application.make` view returns a `Document`, not bare HTML. The Document contains the body to patch into the application container and the document-level state that should track the Model.
+An `ApplicationComposition.make` view returns a `Document`, not bare HTML. The Document contains the body to patch into the application container and the document-level state that should track the Model.
 
 | Field       | Type                       | Required | What the runtime does with it                                                                                                                  |
 | ----------- | -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -37,7 +37,7 @@ Every field is a function of the Model, just like `body`. There is no imperative
 
 ### Document Ownership
 
-An `Application.makeElement` view returns `Html` directly. An embedded app does not own the page, so it cannot declare the title or document metadata. Everything outside this section applies to both kinds of view. See [Runtime](/core/runtime#make-element) for when to use each one.
+An `ApplicationComposition.makeElement` view returns `Html` directly. An embedded app does not own the page, so it cannot declare the title or document metadata. Everything outside this section applies to both kinds of view. See [Runtime](/core/runtime#make-element) for when to use each one.
 
 ### Language and Direction
 
@@ -87,7 +87,7 @@ Every view receives `h`, an `HtmlBuilder` typed to the application's Message uni
 
 The Message type follows the builder. If `h.OnClick` receives a Message outside the application union, TypeScript rejects it. The root Runtime supplies its builder, and each Block definition's `view` supplies one for its child view.
 
-The builder also carries the Mount definitions the view may render. A Block definition infers them from its local Mounts and registered children, and `Application.make` installs the root definition's complete registry. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
+The builder also carries the Mount definitions and child Blocks the view may render. A Composition infers them from its local Mounts and child Bindings, and `ApplicationComposition.make` installs the root Composition's complete registry. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
 
 #### Element Builder Arity
 
@@ -95,7 +95,7 @@ Element builders that accept children take attributes first and optional childre
 
 #### Builder Ownership
 
-Application code cannot construct a builder. It only enters through a view parameter, which keeps its Message and registered Mount capabilities aligned with the boundary that dispatches its handlers. Extracted view helpers take the owning definition's inferred builder as their last parameter. Pure helpers can keep `HtmlBuilder<Message>`. A helper that forwards attributes or a view callback can introduce an `AllowedMountRequirements` generic to preserve the caller's capability. Introduce a `ParentMessage` generic when the helper accepts any parent Message universe.
+Application code cannot construct a builder. It only enters through an owned view or render helper, which keeps its Message and available capabilities aligned with the boundary that dispatches its handlers. Use `Composition.render` for an ordinary helper over the owning Model and `Composition.render.withInput<Input>()` for a helper whose first argument is another domain value. Both infer the builder and can return one `Html` value or an array. Reusable rendering functions that are independent of one owner should keep taking the caller's `HtmlBuilder<Message>`. A helper that forwards attributes or a view callback can introduce an `AllowedMountRequirements` generic to preserve the caller's capability. Introduce a `ParentMessage` generic when the helper accepts any parent Message universe.
 
 ### Inert HTML
 

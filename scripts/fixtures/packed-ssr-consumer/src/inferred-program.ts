@@ -5,26 +5,36 @@ import { defineMessageUnion } from 'foldkit/message'
 
 const Model = Schema.Struct({ count: Schema.Number })
 const Message = defineMessageUnion({ Ticked: {} })
-const Application = defineApplication({ Model, Message })
+const ApplicationDefinition = defineApplication({ Model, Message })
+
+const ApplicationComposition = ApplicationDefinition.toComposition()
 
 const init = () => ({ model: Model.make({ count: 0 }) })
-const update = Application.update(model => ({ model }))
-const elementView = Application.view((model, h) =>
+const update = ApplicationComposition.update(model => ({ model }))
+const elementView = ApplicationComposition.view((model, h) =>
   h.div([], [String(model.count)]),
 )
-const applicationView = Application.view((model, h): Document => ({
+const applicationView = ApplicationComposition.view((model, h): Document => ({
   title: `Count ${model.count}`,
   body: h.div([], [String(model.count)]),
 }))
 
-const implementation = {
-  init,
-  update,
-  EffectsLayer: Layer.empty,
-}
+const EffectsLayer = Layer.empty
 
 export const makeInferredElement = (container: HTMLElement) =>
-  Application.makeElement({ ...implementation, view: elementView, container })
+  ApplicationComposition.makeElement({
+    init,
+    update,
+    EffectsLayer,
+    view: elementView,
+    container,
+  })
 
 export const makeInferredApplication = (container: HTMLElement | null) =>
-  Application.make({ ...implementation, view: applicationView, container })
+  ApplicationComposition.make({
+    init,
+    update,
+    EffectsLayer,
+    view: applicationView,
+    container,
+  })

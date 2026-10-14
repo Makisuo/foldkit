@@ -6,7 +6,7 @@
 
 A Block sometimes needs to react to a change it does not own. The URL may change, a server may push new data, or a sibling field may establish a new constraint. The parent observes that change, but the child still owns the state transition it causes.
 
-Expose an `inform*` Step from the completed child Block. The helper runs an internal child Message through update and returns the next child Model and Commands. The parent may import the child's Message Schema and type for its `Got*Message` wrapper, but it does not construct child Messages to initiate this transition. It calls the projected `connection.inform*(...)` instead.
+Expose an `inform*` Step from the completed child Block. The helper runs an internal child Message through update and returns the next child Model and Commands. The parent may import the child's Message Schema and type for its `Got*Message` wrapper, but it does not construct child Messages to initiate this transition. It calls the projected `binding.inform*(...)` instead.
 
 ### Choose Inform or Reflect
 
@@ -14,7 +14,7 @@ Use `inform*` when the child must derive a transition or return Commands. Use a 
 
 ### Routing Example
 
-The example below uses routing. A People Block owns its search input, results, and recent searches. The root owns the Route. When the URL resolves to a People Route, the root calls `people.informRouteChanged` through its registered connection.
+The example below uses routing. A People Block owns its search input, results, and recent searches. The root owns the Route. When the URL resolves to a People Route, the root calls `people.informRouteChanged` through its Binding.
 
 :::Info{label="Prerequisite"}
 This page builds on the [Blocks](/core/block) pattern. Read that first if the `Got*Message` wrapping convention is unfamiliar.
@@ -46,7 +46,7 @@ Update copies the route query into the input, records it in recent searches, and
 
 ### Define the Parent Folds
 
-The People connection supplies one `read`, `write`, and `toParentMessage` boundary. Its `fold` handles regular People Messages, while `people.informRouteChanged` projects the public operation through the same boundary. The `ChangedUrl` handler matches the next Route and composes the relevant child Step with the pure `setRoute` Step through `Update.combine`. The projected operation retains the child Command requirement for application registration.
+The People Binding supplies one `read`, `write`, and `toParentMessage` boundary. Its `fold` handles regular People Messages, while `people.informRouteChanged` projects the public operation through the same boundary. The `ChangedUrl` handler matches the next Route and composes the relevant child Step with the pure `setRoute` Step through `Update.combine`. The projected operation retains the child Command requirement for application composition.
 
 ::Snippet{name="informingBlocksParent" label="Parent route fold"}
 

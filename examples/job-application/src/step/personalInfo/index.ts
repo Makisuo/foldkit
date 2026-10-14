@@ -6,4 +6,4 @@ export {
   isComplete,
   revealErrors,
 } from './definition'
-export { block } from './personalInfo'
+export { block } from './block'

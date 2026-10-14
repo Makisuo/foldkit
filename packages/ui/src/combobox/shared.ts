@@ -372,8 +372,15 @@ export const DetectMovementOrAnimationEnd = ComboboxDefinition.command(
 )
 
 /** Creates a combobox update function from variant-specific handlers. Shared logic (open, close, activate, transition) is handled internally; only close, selection, and immediate-activation behavior varies by variant. */
-export const makeUpdate = <Item extends string>(
-  ModelSchema: typeof BaseModel,
+export const makeUpdate = <
+  Item extends string,
+  ParentOutMessageSchema extends Schema.Top | undefined,
+>(
+  bindChild: Block.BindChild<
+    typeof BaseModel,
+    ReturnType<typeof makeMessage<Item>>,
+    ParentOutMessageSchema
+  >,
   Message: ReturnType<typeof makeMessage<Item>>,
   selectionBehavior: 'CloseWithFocus' | 'KeepOpen',
   handlers: Readonly<{
@@ -414,8 +421,7 @@ export const makeUpdate = <Item extends string>(
     TransitionedOut: () => ignoreTransitionedOut,
   })
 
-  const animation = Animation.block.connection({
-    Model: ModelSchema,
+  const animation = bindChild(Animation.block, {
     field: 'animation',
     parentMessage: Message.GotAnimationMessage,
     outMessage: { fold: foldAnimationOutMessage },
@@ -846,7 +852,7 @@ export const mounts = [
 type MountRequirements = Mount.RequirementsOf<typeof mounts>
 
 /** Provides Combobox's local Command and Mount handlers. */
-export const LocalEffectsLayer = Layer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
   LockScroll.layer,
   UnlockScroll.layer,
   InertOthers.layer,

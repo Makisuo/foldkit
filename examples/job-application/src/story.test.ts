@@ -8,10 +8,10 @@ import { FileDrop, Menu, Tabs } from '@foldkit/ui'
 import { FocusMenuButton, FocusMenuItems } from '@foldkit/ui/menu'
 import { FocusTab } from '@foldkit/ui/tabs'
 
-import { completeModel, initialModel } from './application.fixture'
 import { SubmitApplication } from './command'
 import { Message } from './message'
 import { Submission } from './model'
+import { completeModel, initialModel } from './model.fixture'
 import {
   Attachments,
   CoverLetter,

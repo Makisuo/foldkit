@@ -26,13 +26,13 @@ The Kind column below identifies each component category.
 
 ## Application Wiring
 
-Some components use Commands, Subscriptions, or Mounts for focus, positioning, animation, and other effects. Connect each stateful component’s completed `.block` value and register the connection in the parent's `children`. The parent definition collects the component's handlers and lifecycle registrations.
+Some components use Commands, Subscriptions, or Mounts for focus, positioning, animation, and other effects. Connect each stateful component’s completed `.block` value and include the Binding in the parent's `children`. The parent definition collects the component's handlers and lifecycle registrations.
 
-The example below shows two component connections registered by one owning Block. Assume its Model, Message, init, named OutMessage folds, and component ViewInputs are defined in the application's other modules. The feature registers its component connections with the typed Application; the final lines show the separate `entry.ts` startup through the root’s owned `make` method. Supply external service providers through the root `ApplicationLayer` as described in [Layers](/core/layers).
+The example below shows two component Bindings included by one owning Block. Assume its Model, Message, init, named OutMessage folds, and component ViewInputs are defined in the application's other modules. The feature includes its component Bindings with the typed Application; the final lines show the separate `entry.ts` startup through the root’s owned `make` method. Supply external service providers through the root `ApplicationLayer` as described in [Layers](/core/layers).
 
 ::Snippet{name="uiEffects" label="Providing Foldkit UI effects"}
 
-Mounted UI views and attribute slots carry their Mount requirements. Author the parent view through its registered definition's `view`; its builder derives the component and Mount capabilities. Extracted helpers that use those capabilities can take `Block.HtmlBuilderOf<typeof RegisteredFeatureDefinition>`. TypeScript checks registration during composition and handler provision before startup. Foldkit also checks each rendered definition before patching the DOM. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views).
+Mounted UI views and attribute slots carry their Mount requirements. Author the parent view through its Composition's `view`; its builder derives the component and Mount capabilities. Extracted reusable helpers that use those capabilities can take `Block.HtmlBuilderOf<typeof FeatureComposition>`. TypeScript checks capabilities during composition and handler provision before startup. Foldkit also checks each rendered definition before patching the DOM. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views).
 
 Component factories with instance-specific behavior return completed Blocks. Connect the result of `Slider.forRoot(getTrackRoot)` or `Toast.make(PayloadSchema)` in the Block that owns the instance.
 

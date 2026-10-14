@@ -12,7 +12,7 @@ What the factory returns is typed [`Completed<Item, Value>` from `@foldkit/ui/li
 
 ### Programmatic Helpers
 
-Programmatic operations are exposed through the connection. Call `listbox.open()` and `listbox.close()`. Call `listbox.selectItem(item)` with the selected item.
+Programmatic operations are exposed through the Binding. Call `listbox.open()` and `listbox.close()`. Call `listbox.selectItem(item)` with the selected item.
 
 :::Info{label="See it in an app"}
 Check out how Listbox is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/listbox.ts).
@@ -128,7 +128,7 @@ Configuration object passed to `Listbox.init()` or `Listbox.Multi.init()`.
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the registered connection's `embedView` method. The connection supplies the canonical view, Message wrapper, and composition scope. Keep callback fields at the top level, and use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries). The same structure is used for `Listbox.Multi.create()` except where noted.
+Pass the child Model as `model` and these fields as `viewInputs` to the composed Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep callback fields at the top level, and use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries). The same structure is used for `Listbox.Multi.create()` except where noted.
 
 | Name                                           | Type                                      | Default | Description                                                                                                                                                                                                                                                                                                                          |
 | ---------------------------------------------- | ----------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -160,8 +160,8 @@ Pass the child Model as `model` and these fields as `viewInputs` to the register
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the connection’s `outMessage.fold` policy. The same shape applies to the completed Block returned by `Listbox.Multi.create()`.
+Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s `outMessage.fold` policy. The same shape applies to the completed Block returned by `Listbox.Multi.create()`.
 
-| Name       | Type               | Default | Description                                                                                                                                                                                                                                                                                                                                                                        |
-| ---------- | ------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Selected` | `{ value: Value }` | —       | Emitted when an item is activated. Carries the neutral fact that the item was activated; the parent owns the selection and decides what it means. Single-select stores the value; multi-select toggles the value in and out of its array. Handle it in the connection's `outMessage.fold` policy to lift the value into the selection you own. A read-only Listbox never emits it. |
+| Name       | Type               | Default | Description                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------- | ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Selected` | `{ value: Value }` | —       | Emitted when an item is activated. Carries the neutral fact that the item was activated; the parent owns the selection and decides what it means. Single-select stores the value; multi-select toggles the value in and out of its array. Handle it in the Binding's `outMessage.fold` policy to lift the value into the selection you own. A read-only Listbox never emits it. |

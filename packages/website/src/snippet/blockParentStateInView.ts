@@ -1,4 +1,4 @@
-import { settings } from './connection'
+import { settings } from './childBindings'
 import { SettingsDefinition } from './definition'
 import type { User } from './user'
 

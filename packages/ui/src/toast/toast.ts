@@ -132,9 +132,10 @@ const LEFT_MOUSE_BUTTON = 0
  *
  *  Consume the completed Block everywhere. Use `Toast.Model` in your app
  *  Model, `Toast.Message` in your parent Message union, `Toast.expose.show`
- *  and `Toast.expose.dismiss` for raw Model operations, and `Toast.connection`
- *  in the parent Block. Exposed operations such as `show` and `dismiss` are
- *  available directly on the connection. The separate exports provide
+ *  and `Toast.expose.dismiss` for raw Model operations, and
+ *  `ParentDefinition.bindChild(Toast, config)` in the parent Block. Exposed
+ *  operations such as `show` and `dismiss` are available directly on the
+ *  binding. The separate exports provide
  *  payload-independent Schemas, constants, and Commands.
  *
  *  @example
@@ -152,7 +153,7 @@ const LEFT_MOUSE_BUTTON = 0
 /** @internal Builds a completed Toast Block and exposes its definitions to package tests. */
 export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const runtime = makeRuntime(payloadSchema)
-  const { RegisteredToastDefinition, entryAnimation, ...toastRuntime } = runtime
+  const { ToastComposition, entryAnimation, ...toastRuntime } = runtime
   type Entry = typeof toastRuntime.Entry.Type
 
   type ToastMessage = typeof toastRuntime.Message.Type
@@ -179,7 +180,7 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
    *  release offset to `100vw` or `-100vw` when leave animation begins.
    *  The offset lives on `translate` rather than `transform` so it composes
    *  with your `transform` animations instead of overriding them. */
-  const view = RegisteredToastDefinition.view.withInputs<ViewInputs>(
+  const view = ToastComposition.view.withInputs<ViewInputs>(
     (model, viewInputs, h) => {
       const { id, entries } = model
       const {
@@ -319,7 +320,7 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     },
   )
 
-  const block = RegisteredToastDefinition.toBlock({
+  const block = ToastComposition.toBlock({
     init: (config: InitConfig) => ({ model: toastRuntime.init(config) }),
     update: toastRuntime.update,
     view,

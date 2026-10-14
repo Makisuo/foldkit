@@ -155,7 +155,7 @@ const buildGraph = (events: Array<LifecycleEvent>) => {
     Model: ChildModel,
     Message: ChildMessage,
   })
-  const childDefinition = childBase.register({ mounts: [ObservePanel] })
+  const childDefinition = childBase.toComposition({ mounts: [ObservePanel] })
   const childView = childDefinition.view((model, h) =>
     h.div([h.OnMount(ObservePanel())], [`child:${model.id}`]),
   )
@@ -188,9 +188,13 @@ const buildGraph = (events: Array<LifecycleEvent>) => {
   })
   type ParentMessage = typeof ParentMessage.Type
 
-  const child = Child.connection({
+  const parentBase = defineApplication({
+    Model: ParentModel,
+    Message: ParentMessage,
+  })
+  const child = parentBase.bindChild(Child, {
     placement: 'child',
-    read: (model: ParentModel) => model.maybeChild,
+    read: model => model.maybeChild,
     write: (model, nextChild) =>
       modifyFields(model, {
         maybeChild: () => Option.some(nextChild),
@@ -198,11 +202,7 @@ const buildGraph = (events: Array<LifecycleEvent>) => {
     parentMessage: ParentMessage.GotChildMessage,
   })
 
-  const parentBase = defineApplication({
-    Model: ParentModel,
-    Message: ParentMessage,
-  })
-  const composition = parentBase.register({ children: [child] })
+  const composition = parentBase.toComposition({ children: [child] })
   const view = composition.view((model, h) =>
     h.div(
       [],

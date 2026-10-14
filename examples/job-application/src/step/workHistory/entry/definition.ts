@@ -95,12 +95,20 @@ const foldStartDateOutMessage = DatePicker.OutMessage.match<
   }),
 })
 
-export const startDatePicker = DatePicker.block.connection({
-  Model: Model,
-  field: 'startDate',
-  parentMessage: Message.GotStartDateMessage,
-  outMessage: { fold: foldStartDateOutMessage },
+const WorkHistoryEntryDefinition = Block.define('WorkHistoryEntry', {
+  Model,
+  Message,
+  OutMessage,
 })
+
+export const startDatePicker = WorkHistoryEntryDefinition.bindChild(
+  DatePicker.block,
+  {
+    field: 'startDate',
+    parentMessage: Message.GotStartDateMessage,
+    outMessage: { fold: foldStartDateOutMessage },
+  },
+)
 
 const foldEndDateOutMessage = DatePicker.OutMessage.match<
   Update.Step<Model, Message>
@@ -122,21 +130,17 @@ const foldEndDateOutMessage = DatePicker.OutMessage.match<
   }),
 })
 
-export const endDatePicker = DatePicker.block.connection({
-  Model: Model,
-  field: 'endDate',
-  parentMessage: Message.GotEndDateMessage,
-  outMessage: { fold: foldEndDateOutMessage },
-})
+export const endDatePicker = WorkHistoryEntryDefinition.bindChild(
+  DatePicker.block,
+  {
+    field: 'endDate',
+    parentMessage: Message.GotEndDateMessage,
+    outMessage: { fold: foldEndDateOutMessage },
+  },
+)
 
-const WorkHistoryEntryDefinition = Block.define('WorkHistoryEntry', {
-  Model,
-  Message,
-  OutMessage,
-})
-
-export const RegisteredWorkHistoryEntryDefinition =
-  WorkHistoryEntryDefinition.register({
+export const WorkHistoryEntryComposition =
+  WorkHistoryEntryDefinition.toComposition({
     children: [startDatePicker, endDatePicker],
   })
 

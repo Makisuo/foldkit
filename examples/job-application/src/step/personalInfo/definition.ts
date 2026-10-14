@@ -168,12 +168,14 @@ const foldPronounsOutMessage = PronounsListbox.OutMessage.match<
     }),
 })
 
-export const pronounsListbox = PronounsListbox.connection({
-  Model: Model,
-  field: 'pronouns',
-  parentMessage: Message.GotPronounsMessage,
-  outMessage: { fold: foldPronounsOutMessage },
-})
+export const pronounsListbox = PersonalInfoDefinition.bindChild(
+  PronounsListbox,
+  {
+    field: 'pronouns',
+    parentMessage: Message.GotPronounsMessage,
+    outMessage: { fold: foldPronounsOutMessage },
+  },
+)
 
 const foldAvailableDateOutMessage = DatePicker.OutMessage.match<
   Update.Step<Model, Message>
@@ -191,18 +193,18 @@ const foldAvailableDateOutMessage = DatePicker.OutMessage.match<
   ChangedViewMonth: () => model => ({ model }),
 })
 
-export const availableDatePicker = DatePicker.block.connection({
-  Model: Model,
-  field: 'availableDate',
-  parentMessage: Message.GotAvailableDateMessage,
-  outMessage: { fold: foldAvailableDateOutMessage },
-})
-
-export const RegisteredPersonalInfoDefinition = PersonalInfoDefinition.register(
+export const availableDatePicker = PersonalInfoDefinition.bindChild(
+  DatePicker.block,
   {
-    children: [pronounsListbox, availableDatePicker],
+    field: 'availableDate',
+    parentMessage: Message.GotAvailableDateMessage,
+    outMessage: { fold: foldAvailableDateOutMessage },
   },
 )
+
+export const PersonalInfoComposition = PersonalInfoDefinition.toComposition({
+  children: [pronounsListbox, availableDatePicker],
+})
 
 export const update = PersonalInfoDefinition.update((model, message) =>
   Message.match(message, {

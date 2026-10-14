@@ -2,8 +2,7 @@
 
 import { Message as SettingsMessage } from './settings/message'
 
-const settings = Settings.block.connection({
-  Model: Model,
+const settings = ParentDefinition.bindChild(Settings.block, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
 })

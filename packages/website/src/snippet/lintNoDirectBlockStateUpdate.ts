@@ -1,11 +1,11 @@
 import { modifyFields } from 'foldkit/struct'
 
+import { ApplicationDefinition } from './application'
 import { Message } from './message'
 import { Model } from './model'
 import * as Settings from './settings'
 
-const settings = Settings.block.connection({
-  Model: Model,
+const settings = ApplicationDefinition.bindChild(Settings.block, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
 })
@@ -17,5 +17,5 @@ const badReset = (model: Model) => ({
   }),
 })
 
-// ✅ Good: the child decides the transition and the connection preserves it.
+// ✅ Good: the child decides the transition and the Binding preserves it.
 const goodReset = (model: Model) => settings.setTheme('Light')(model)

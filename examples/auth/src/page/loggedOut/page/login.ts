@@ -317,7 +317,7 @@ export const view = LoginDefinition.view((model, h) => {
   )
 })
 
-export const block = LoginDefinition.toBlock({
+export const block = LoginDefinition.toComposition().toBlock({
   init: () => ({ model: initModel() }),
   update,
   view,

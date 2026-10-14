@@ -1,3 +1,4 @@
+import { define as defineApplication } from 'foldkit/application'
 import { Layer, Option } from 'effect'
 import { Block, Command as ChildCommand } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
@@ -11,18 +12,17 @@ const InlineChild = Block.define('InlineChild', {
   Model: Child.Model,
   Message: Child.Message,
 })
-  .register({})
+  .toComposition({})
   .toBlock({
     init: Child.init,
     update: Child.update,
     EffectsLayer: Layer.empty,
   })
 
-export const inlineChild = InlineChild.connection({
-  read: (model: Model) => Option.some(model.child),
-  write: (model, child) => modifyFields(model, { child: () => child }),
-  toParentMessage: message => ForwardedChildMessage({ message }),
-})
+const ApplicationDefinition = defineApplication({ Model, Message })
+export const inlineChild = ApplicationDefinition.bindChild(InlineChild, {read: (model: Model) => Option.some(model.child),
+write: (model, child) => modifyFields(model, { child: () => child }),
+toParentMessage: message => ForwardedChildMessage({ message })})
 
 // UPDATE
 

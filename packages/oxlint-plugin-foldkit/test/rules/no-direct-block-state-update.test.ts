@@ -362,7 +362,7 @@ describe('no-direct-block-state-update', () => {
     expect(result[0]?.diagnostic.message).toContain(
       'child-owned update capability',
     )
-    expect(result[0]?.diagnostic.message).toContain('registered connection')
+    expect(result[0]?.diagnostic.message).toContain('registered Binding')
   })
 
   it('flags a direct-field child wired through a data-first keyed fold', () => {
@@ -691,11 +691,12 @@ describe('completed Block bindings', () => {
     type: 'CallExpression',
     callee: {
       type: 'MemberExpression',
-      object: Testing.id('Settings'),
-      property: Testing.id('connection'),
+      object: Testing.id('ApplicationDefinition'),
+      property: Testing.id('bindChild'),
       computed: false,
     },
     arguments: [
+      Testing.id('Settings'),
       objectExpression([
         property('read', readSettings),
         property('write', writeSettings),
@@ -708,13 +709,13 @@ describe('completed Block bindings', () => {
     type: 'CallExpression',
     callee: {
       type: 'MemberExpression',
-      object: Testing.id('Settings'),
-      property: Testing.id('connection'),
+      object: Testing.id('ApplicationDefinition'),
+      property: Testing.id('bindChild'),
       computed: false,
     },
     arguments: [
+      Testing.id('Settings'),
       objectExpression([
-        property('Model', Testing.id('Model')),
         property('field', { type: 'Literal', value: 'settings' }),
         property(
           'parentMessage',
@@ -737,16 +738,14 @@ describe('completed Block bindings', () => {
     expect(result).toHaveLength(1)
   })
 
-  it('tracks binding.step inside Update.combine', () => {
+  it('tracks an exposed operation inside Update.combine', () => {
     const result = runRule([
       settingsBinding,
       Testing.callOfMember('Update', 'combine', [
         Testing.id('model'),
         {
           type: 'ArrayExpression',
-          elements: [
-            Testing.callOfMember('settings', 'step', [Testing.id('message')]),
-          ],
+          elements: [Testing.callOfMember('settings', 'clearSelection', [])],
         },
       ]),
       directSettingsUpdate('model'),
@@ -755,7 +754,7 @@ describe('completed Block bindings', () => {
     expect(result).toHaveLength(1)
   })
 
-  it('tracks a direct field connection through binding.fold', () => {
+  it('tracks a direct field Binding through binding.fold', () => {
     const result = runRule([
       directSettingsBinding,
       Testing.callOfMember('settings', 'fold', [

@@ -9,4 +9,4 @@ export {
   type ViewInputs,
   view,
   block,
-} from './fileDrop.js'
+} from './block.js'

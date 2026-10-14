@@ -5,6 +5,7 @@ import { modifyFields } from 'foldkit/struct'
 import { SaveTheme } from './blockDefinition'
 import { Message, Model } from './blockProfile'
 import * as Settings from './blockSettings'
+import { ApplicationDefinition } from './definition'
 
 const SettingsDemo = Settings.block.replaceEffectsLayer(
   SaveTheme.toLayer(
@@ -22,7 +23,7 @@ const foldSettingsOutMessage = Settings.OutMessage.match<
     }),
 })
 
-export const settings = SettingsDemo.connection({
+export const settings = ApplicationDefinition.bindChild(SettingsDemo, {
   read: (model: Model) => model.maybeSettings,
   write: (model, nextSettings) =>
     modifyFields(model, { maybeSettings: () => Option.some(nextSettings) }),

@@ -5,11 +5,6 @@ import { expect, test } from 'vitest'
 import { RadioGroup } from '@foldkit/ui'
 import { FocusOption } from '@foldkit/ui/radioGroup'
 
-import {
-  loadingModel,
-  readyModel,
-  sampleTelemetry,
-} from './application.fixture'
 import { FetchTelemetry, SyncChart } from './command'
 import {
   type ChartMode,
@@ -19,6 +14,7 @@ import {
 } from './domain'
 import { Message } from './message'
 import { TelemetryAsyncData } from './model'
+import { loadingModel, readyModel, sampleTelemetry } from './model.fixture'
 import { update } from './update'
 
 const selectedChartMode = (chartMode: ChartMode) =>

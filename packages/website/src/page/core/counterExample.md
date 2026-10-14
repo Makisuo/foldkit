@@ -6,7 +6,7 @@
 
 This counter puts the core loop from [Architecture](/core/architecture) into one small application. Its Model holds the count. Its Messages record button clicks. Its update function decides the next count, and its view renders the result.
 
-The example uses two files. `src/application.ts` defines the typed `ApplicationDefinition` with its Model and Message contracts, then authors init, update, and view through it. `src/entry.ts` selects the browser container, calls `ApplicationDefinition.make`, and starts the Runtime. Importing the application pieces in a test does not start the browser application. Larger applications can split substantial logic into focused files.
+The example uses two files. `src/application.ts` defines the typed `ApplicationDefinition` with its Model and Message contracts, then authors init, update, and view through it. `src/entry.ts` selects the browser container, creates a graphless Composition with `ApplicationDefinition.toComposition()`, calls that Composition's `make` method, and starts the Runtime. Importing the application pieces in a test does not start the browser application. Larger applications can split substantial logic into focused files.
 ::Snippet{name="counter" label="Counter Application"}
 
 ### Runtime Entry

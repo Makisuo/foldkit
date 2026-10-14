@@ -5,7 +5,7 @@ import type * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
-import { aggregateChildren, inspectConnection } from './binding.js'
+import { aggregateChildren, inspectBinding } from './binding.js'
 import { define } from './define.js'
 import { normalizeConnectionConfig } from './directConnection.js'
 import { ViewScopeTypeId } from './identity.js'
@@ -66,7 +66,7 @@ const managedResources = Child.managedResources(entry => ({
     },
   }),
 }))
-const registered = Child.register({ mounts: [Observe] })
+const registered = Child.toComposition({ mounts: [Observe] })
 const view = registered.view((model, h) =>
   h.div([h.OnMount(Observe())], [globalThis.String(model.count)]),
 )
@@ -114,6 +114,10 @@ const ParentMessage = defineMessageUnion({
   GotForeignMessage: { message: Schema.String },
 })
 type ParentMessage = typeof ParentMessage.Type
+const ParentDefinition = define('ConnectionShorthandsParent', {
+  Model: ParentModel,
+  Message: ParentMessage,
+})
 const foldChildOutMessage = OutMessage.match<
   Update.Step<ParentModel, ParentMessage>
 >({
@@ -121,38 +125,37 @@ const foldChildOutMessage = OutMessage.match<
     model: modifyFields(model, { requests: requests => requests + 1 }),
   }),
 })
-const primary = block.connection({
-  Model: ParentModel,
+const primary = ParentDefinition.bindChild(block, {
   field: 'primary',
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
-const primaryInspection = inspectConnection(primary)
-const secondary = block.connection({
-  Model: ParentModel,
+const primaryInspection = inspectBinding(primary)
+const secondary = ParentDefinition.bindChild(block, {
   field: 'secondary',
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
-const overridden = block.connection({
-  Model: ParentModel,
+const overridden = ParentDefinition.bindChild(block, {
   field: 'secondary',
   placement: 'alternate',
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
-const accessor = block.connection({
-  read: (model: ParentModel) => Option.some(model.primary),
+const accessor = ParentDefinition.bindChild(block, {
+  read: model => Option.some(model.primary),
   write: (model, nextPrimary) =>
     modifyFields(model, { primary: () => nextPrimary }),
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
-const keyed = block.keyedConnection({
+const entryKey = (entry: typeof Entry.Type): string => entry.id
+const keyed = ParentDefinition.bindChild(block, {
+  placement: 'entries',
   readAll: (model: ParentModel) => model.entries,
-  key: entry => entry.id,
-  read: entry => entry.child,
-  writeAt: (model, id, nextChild) =>
+  key: entryKey,
+  read: (entry: typeof Entry.Type) => entry.child,
+  writeAt: (model: ParentModel, id: string, nextChild: typeof Model.Type) =>
     modifyFields(model, {
       entries: Array.map(entry =>
         entry.id === id
@@ -160,7 +163,7 @@ const keyed = block.keyedConnection({
           : entry,
       ),
     }),
-  toParentMessage: (id, message) =>
+  toParentMessage: (id: string, message: typeof Message.Type) =>
     ParentMessage.GotEntryMessage({ id, message }),
   outMessage: {
     fold: (_key: string, outMessage: typeof OutMessage.Type) =>
@@ -175,31 +178,28 @@ const initial = ParentModel.make({
 })
 
 if (false) {
-  block.connection({
-    Model: ParentModel,
+  // @ts-expect-error A foreign Message payload cannot receive the child union.
+  ParentDefinition.bindChild(block, {
     field: 'primary',
-    // @ts-expect-error A foreign Message payload cannot receive the child union.
     parentMessage: ParentMessage.GotForeignMessage,
     outMessage: { fold: foldChildOutMessage },
   })
-  block.connection({
-    Model: ParentModel,
+  // @ts-expect-error A keyed constructor requires an additional payload field.
+  ParentDefinition.bindChild(block, {
     field: 'primary',
-    // @ts-expect-error A keyed constructor requires an additional payload field.
     parentMessage: ParentMessage.GotEntryMessage,
     outMessage: { fold: foldChildOutMessage },
   })
-  block.connection({
-    Model: ParentModel,
+  // @ts-expect-error Exactly one parent Message mapping may be supplied.
+  ParentDefinition.bindChild(block, {
     field: 'primary',
     toParentMessage: (message: typeof Message.Type) =>
       ParentMessage.GotChildMessage({ message }),
-    // @ts-expect-error Exactly one parent Message mapping may be supplied.
     parentMessage: ParentMessage.GotChildMessage,
     outMessage: { fold: foldChildOutMessage },
   })
-  // @ts-expect-error An accessor connection also requires exactly one mapping.
-  block.connection({
+  // @ts-expect-error An accessor Binding also requires exactly one mapping.
+  ParentDefinition.bindChild(block, {
     read: (model: ParentModel) => Option.some(model.primary),
     write: (model: ParentModel, nextPrimary: typeof Model.Type) =>
       modifyFields(model, { primary: () => nextPrimary }),
@@ -209,13 +209,12 @@ if (false) {
     outMessage: { fold: foldChildOutMessage },
   })
   // @ts-expect-error OutMessage handling remains required for constructor shorthand.
-  block.connection({
-    Model: ParentModel,
+  ParentDefinition.bindChild(block, {
     field: 'primary',
     parentMessage: ParentMessage.GotChildMessage,
   })
-  // @ts-expect-error Keyed connections require their explicit key-aware mapping.
-  block.keyedConnection({
+  // @ts-expect-error Keyed Bindings require their explicit key-aware mapping.
+  ParentDefinition.bindChild(block, {
     readAll: (model: ParentModel) => model.entries,
     key: (entry: typeof Entry.Type) => entry.id,
     read: (entry: typeof Entry.Type) => entry.child,
@@ -233,7 +232,7 @@ it('keeps exact placement literals and child operation arguments', () => {
   expectTypeOf(secondary.placement).toEqualTypeOf<'secondary'>()
   expectTypeOf(overridden.placement).toEqualTypeOf<'alternate'>()
   expectTypeOf(accessor.placement).toEqualTypeOf<'Child'>()
-  expectTypeOf(keyed.placement).toEqualTypeOf<'Child'>()
+  expectTypeOf(keyed.placement).toEqualTypeOf<'entries'>()
   expectTypeOf(
     primary.fold(initial, Message.RequestedRead()).model,
   ).toEqualTypeOf<ParentModel>()
@@ -268,8 +267,8 @@ it('keeps exact placement literals and child operation arguments', () => {
     'embedView',
     'read',
   ])
-  expect(inspectConnection(keyed).subscriptions).toEqual({})
-  expect(inspectConnection(keyed).managedResources).toEqual({})
+  expect(inspectBinding(keyed).subscriptions).toEqual({})
+  expect(inspectBinding(keyed).managedResources).toEqual({})
   expect(Array.head(primaryInspection.mounts)).toEqual(Option.some(Observe))
 })
 
@@ -279,7 +278,7 @@ it('lifts real Command execution through the constructor and preserves OutMessag
   const operation = Option.getOrThrow(
     Array.head(primary.read()(initial).commands!),
   )
-  const services = inspectConnection(primary).EffectsLayer.pipe(
+  const services = inspectBinding(primary).EffectsLayer.pipe(
     Layer.provide(Layer.succeed(ValueSource, { value: 42 })),
   )
   const completed = await Effect.runPromise(
@@ -324,35 +323,31 @@ it('uses one resolved occurrence placement for lifecycle registrations and mount
     model: initial.secondary,
   })
 
-  expect(inspectConnection(primary).subscriptions.ticks.name).toBe(
-    'primary/Ticks',
-  )
-  expect(inspectConnection(secondary).subscriptions.ticks.name).toBe(
+  expect(inspectBinding(primary).subscriptions.ticks.name).toBe('primary/Ticks')
+  expect(inspectBinding(secondary).subscriptions.ticks.name).toBe(
     'secondary/Ticks',
   )
-  expect(inspectConnection(primary).managedResources.session.name).toBe(
+  expect(inspectBinding(primary).managedResources.session.name).toBe(
     'primary/ManageSession',
   )
-  expect(inspectConnection(secondary).managedResources.session.name).toBe(
+  expect(inspectBinding(secondary).managedResources.session.name).toBe(
     'secondary/ManageSession',
   )
-  expect(inspectConnection(primary).managedResources.session.resource.key).toBe(
+  expect(inspectBinding(primary).managedResources.session.resource.key).toBe(
     `primary/${Session.key}`,
   )
   expect(
-    inspectConnection(secondary).managedResources.session.resource._tag.key,
-  ).not.toBe(
-    inspectConnection(primary).managedResources.session.resource._tag.key,
-  )
+    inspectBinding(secondary).managedResources.session.resource._tag.key,
+  ).not.toBe(inspectBinding(primary).managedResources.session.resource._tag.key)
   expect(Reflect.get(primaryEmbed, ViewScopeTypeId).placement).toBe('primary')
   expect(Reflect.get(secondaryEmbed, ViewScopeTypeId).placement).toBe(
     'secondary',
   )
   expect(graph.subscriptions['primary/ticks']).toBe(
-    inspectConnection(primary).subscriptions.ticks,
+    inspectBinding(primary).subscriptions.ticks,
   )
   expect(graph.subscriptions['secondary/ticks']).toBe(
-    inspectConnection(secondary).subscriptions.ticks,
+    inspectBinding(secondary).subscriptions.ticks,
   )
   expect(() => aggregateChildren([primary, primary])).toThrow(
     /duplicate|Two child Blocks/,
@@ -363,7 +358,7 @@ it('uses one resolved occurrence placement for lifecycle registrations and mount
   ).toEqual([Entry.make({ id: 'first', child: Model.make({ count: 9 }) })])
 })
 
-it('rejects ambiguous mappings before building a connection', () => {
+it('rejects ambiguous mappings before building a Binding', () => {
   expect(() =>
     normalizeConnectionConfig({
       Model: ParentModel,

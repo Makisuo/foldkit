@@ -29,4 +29,4 @@ export {
   type ViewInputs,
   view,
   block,
-} from './popover.js'
+} from './block.js'

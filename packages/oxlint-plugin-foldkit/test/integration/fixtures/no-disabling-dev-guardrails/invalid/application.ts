@@ -3,7 +3,7 @@ import { define as defineApplication } from 'foldkit/application'
 import { init, Message, Model, update, view } from './implementation'
 
 const ApplicationDefinition = defineApplication({ Model, Message })
-const Application = ApplicationDefinition.register({})
+const Application = ApplicationDefinition.toComposition({})
 
 export const application = ApplicationDefinition.make({
   init,

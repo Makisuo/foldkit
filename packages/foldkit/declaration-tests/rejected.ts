@@ -45,6 +45,68 @@ const invalidDocumentView = InvalidApplicationDefinition.view((model, h) => ({
   body: h.main([], [globalThis.String(model.child.value)]),
 }))
 
+const DeclarationTestsRenderDefinition = Block.define(
+  'DeclarationTestsRender',
+  {
+    Model: ParentModel,
+    Message: ParentMessage,
+  },
+)
+const ObserveRender = DeclarationTestsRenderDefinition.mount('ObserveRender', {
+  messages: [ParentMessage.RequestedRefresh],
+})
+const RenderComposition = DeclarationTestsRenderDefinition.toComposition()
+const renderOnly = RenderComposition.render((model, h) =>
+  h.main([], [globalThis.String(model.child.value)]),
+)
+
+RenderComposition.render((model, h) =>
+  h.block(
+    // @ts-expect-error An extracted render helper cannot use a child absent from its Composition.
+    child.embedView({ slotId: 'omitted-child', model: model.child }),
+  ),
+)
+
+RenderComposition.render((_model, h) =>
+  h.main([
+    // @ts-expect-error An extracted render helper cannot use a Mount absent from its Composition.
+    h.OnMount(ObserveRender()),
+  ]),
+)
+
+const ForeignRenderMessage = defineMessageUnion({ ClickedForeignRender: {} })
+
+RenderComposition.render((_model, h) =>
+  h.button([
+    // @ts-expect-error An extracted render helper accepts only its Composition's Message.
+    h.OnClick(ForeignRenderMessage.ClickedForeignRender()),
+  ]),
+)
+
+// @ts-expect-error A domain render helper requires a concrete input type.
+RenderComposition.render.withInput()((_input, h) => h.empty)
+
+RenderComposition.toBlock({
+  init: invalidApplicationImplementation.init,
+  update: DeclarationTestsRenderDefinition.update(model => ({ model })),
+  // @ts-expect-error A plain render helper cannot complete a Block as its branded view.
+  view: renderOnly,
+  EffectsLayer: Layer.empty,
+})
+
+const InvalidApplicationComposition =
+  InvalidApplicationDefinition.toComposition()
+const applicationRenderOnly = InvalidApplicationComposition.render((model, h) =>
+  h.main([], [globalThis.String(model.child.value)]),
+)
+
+// @ts-expect-error A plain render helper cannot complete an Application as its branded view.
+InvalidApplicationComposition.makeElement({
+  ...invalidApplicationImplementation,
+  container: null,
+  view: applicationRenderOnly,
+})
+
 const provisionPageAwaitingDependency = makeProvisionPageAwaitingDependency(
   document.createElement('div'),
 )
@@ -92,7 +154,7 @@ const RequiresConflictingProvisionContract = Layer.effect(
   }),
 )
 
-const provisionContractProgram = InvalidApplicationDefinition.makeElement({
+const provisionContractProgram = InvalidApplicationComposition.makeElement({
   ...invalidApplicationImplementation,
   container: null,
   view: invalidElementView,
@@ -108,14 +170,14 @@ programWithProvisionContract.provide(ConflictingProvisionContract.layer)
 programWithProvisionContract.provide(RequiresConflictingProvisionContract)
 
 // @ts-expect-error Page Applications require a Document view.
-InvalidApplicationDefinition.make({
+InvalidApplicationComposition.make({
   ...invalidApplicationImplementation,
   container: null,
   view: invalidElementView,
 })
 
 // @ts-expect-error Element Applications require an HTML view.
-InvalidApplicationDefinition.makeElement({
+InvalidApplicationComposition.makeElement({
   ...invalidApplicationImplementation,
   container: null,
   view: invalidDocumentView,
@@ -129,7 +191,7 @@ const requiredContextUpdate = InvalidApplicationDefinition.update(
 )
 
 // @ts-expect-error Application update cannot require root dispatch context.
-InvalidApplicationDefinition.makeElement({
+InvalidApplicationComposition.makeElement({
   ...invalidApplicationImplementation,
   update: requiredContextUpdate,
   container: null,
@@ -155,7 +217,7 @@ const widerMessageUpdate = WiderMessageApplicationDefinition.update(
 )
 
 // @ts-expect-error Application update must accept exactly the root Message.
-InvalidApplicationDefinition.makeElement({
+InvalidApplicationComposition.makeElement({
   ...invalidApplicationImplementation,
   update: widerMessageUpdate,
   container: null,
@@ -178,7 +240,7 @@ const widerModelUpdate = WiderInputModelApplicationDefinition.update(
 )
 
 // @ts-expect-error Application update must accept exactly the root Model.
-InvalidApplicationDefinition.makeElement({
+InvalidApplicationComposition.makeElement({
   ...invalidApplicationImplementation,
   update: widerModelUpdate,
   container: null,
@@ -187,7 +249,7 @@ InvalidApplicationDefinition.makeElement({
 
 // oxlint-disable-next-line effecttsgo/floating-effect
 Server.renderToString(
-  InvalidApplicationDefinition,
+  InvalidApplicationComposition,
   // @ts-expect-error Server rendering requires a page-owning Document view.
   { ...invalidApplicationImplementation, view: invalidElementView },
   { isHydratable: false },
@@ -288,16 +350,23 @@ const WrongChildParentMessage = defineMessageUnion({
   GotChildMessage: { message: Schema.String },
 })
 
-const foreignChild = Child.connection({
+const ForeignParentDefinition = Block.define('DeclarationTestsForeignParent', {
+  Model: ParentModel,
+  Message: ForeignParentMessage,
+})
+const foreignChild = ForeignParentDefinition.bindChild(Child, {
   placement: 'foreign-child',
-  read: (model: ParentModel) => Option.some(model.child),
-  write: (_model: ParentModel, nextChild: ChildModel) =>
-    ParentModel.make({ child: nextChild }),
+  read: model => Option.some(model.child),
+  write: (_model, nextChild) => ParentModel.make({ child: nextChild }),
   toParentMessage: () => ForeignParentMessage.ReceivedChildMessage(),
 })
 
-Child.connection({
+const BindingParentDefinition = Block.define('DeclarationTestsBindingParent', {
   Model: ParentModel,
+  Message: ParentMessage,
+})
+
+BindingParentDefinition.bindChild(Child, {
   field: 'child',
   // @ts-expect-error A parent Message constructor is exclusive with a custom mapper.
   parentMessage: ParentMessage.GotChildMessage,
@@ -305,28 +374,39 @@ Child.connection({
     ParentMessage.GotChildMessage({ message }),
 })
 
-Child.connection({
-  Model: ParentModel,
+const WrongChildParentDefinition = Block.define(
+  'DeclarationTestsWrongChildParent',
+  { Model: ParentModel, Message: WrongChildParentMessage },
+)
+WrongChildParentDefinition.bindChild(Child, {
   field: 'child',
   // @ts-expect-error A parent Message constructor must accept this Block's Message.
   parentMessage: WrongChildParentMessage.GotChildMessage,
 })
 
-Child.connection({
+const ExtraParentDefinition = Block.define('DeclarationTestsExtraParent', {
   Model: ParentModel,
+  Message: ExtraParentMessage,
+})
+ExtraParentDefinition.bindChild(Child, {
   field: 'child',
   // @ts-expect-error A parent Message constructor cannot require fields beyond the child Message.
   parentMessage: ExtraParentMessage.GotChildMessage,
 })
 
-Child.keyedConnection({
+BindingParentDefinition.bindChild(Child, {
+  // @ts-expect-error Keyed Bindings do not accept the static parentMessage shorthand.
+  placement: 'children',
   readAll: (model: ParentModel) => [model.child],
-  key: () => 'only',
-  read: childModel => childModel,
-  writeAt: (_model, _key, nextChild) => ParentModel.make({ child: nextChild }),
-  toParentMessage: (_key, message) =>
+  key: (): 'only' => 'only',
+  // @ts-expect-error The invalid static mapper prevents keyed overload selection.
+  read: (childModel: ChildModel) => childModel,
+  writeAt: (_model: ParentModel, _key: 'only', nextChild: ChildModel) =>
+    ParentModel.make({ child: nextChild }),
+  // @ts-expect-error The invalid static mapper prevents keyed overload selection.
+  toParentMessage: (_key: 'only', message: ChildMessage) =>
     ParentMessage.GotChildMessage({ message }),
-  // @ts-expect-error Keyed connections require an explicit mapper because it receives the key.
+  // @ts-expect-error Keyed Bindings do not accept the static parentMessage shorthand.
   parentMessage: ParentMessage.GotChildMessage,
 })
 
@@ -337,7 +417,7 @@ const DeclarationTestsInvalidParentDefinition = Block.define(
   Message: ParentMessage,
 })
 // @ts-expect-error Registered child bindings must use the definition's parent Message.
-DeclarationTestsInvalidParentDefinition.register({
+DeclarationTestsInvalidParentDefinition.toComposition({
   children: [foreignChild],
 })
 
@@ -351,7 +431,7 @@ const DeclarationTestsOmittedChildDefinition = Block.define(
 Block.define('DeclarationTestsInvalidDirectContracts', {
   Model: ParentModel,
   Message: ParentMessage,
-  // @ts-expect-error Graph registrations belong to the register stage.
+  // @ts-expect-error Graph registrations belong to the Composition stage.
   children: [child],
 })
 
@@ -363,7 +443,7 @@ const omittedChildUpdate = DeclarationTestsOmittedChildDefinition.update(
     }),
 )
 
-DeclarationTestsOmittedChildDefinition.toBlock({
+DeclarationTestsOmittedChildDefinition.toComposition().toBlock({
   init: () => ({
     model: ParentModel.make({ child: Child.Model.make({ value: 0 }) }),
   }),
@@ -405,15 +485,15 @@ completedRefinedChoice.expose.finish(refinedModel, 'Three')
 const invalidCompletedChild: CompletedChild = Direct
 void invalidCompletedChild
 
-// @ts-expect-error Connection lifecycle metadata is available through Block.inspectConnection.
+// @ts-expect-error Binding lifecycle metadata is available through Block.inspectBinding.
 child.subscriptions
-// @ts-expect-error Connection resource metadata is available through Block.inspectConnection.
+// @ts-expect-error Binding resource metadata is available through Block.inspectBinding.
 child.managedResources
-// @ts-expect-error Connection Mount metadata is available through Block.inspectConnection.
+// @ts-expect-error Binding Mount metadata is available through Block.inspectBinding.
 child.mounts
-// @ts-expect-error Connection Layer metadata is available through Block.inspectConnection.
+// @ts-expect-error Binding Layer metadata is available through Block.inspectBinding.
 child.EffectsLayer
-// @ts-expect-error Internal connection evidence is not a string member.
+// @ts-expect-error Internal Binding evidence is not a string member.
 child.__blockBindingBlock
 // @ts-expect-error Internal handler evidence is not a string member.
 child.__blockHandlerRequirements
@@ -425,7 +505,7 @@ const DeclarationTestsInvalidViewDefinition = Block.define(
   Message: ParentMessage,
 })
 const RegisteredDeclarationTestsInvalidViewDefinition =
-  DeclarationTestsInvalidViewDefinition.register({ children: [child] })
+  DeclarationTestsInvalidViewDefinition.toComposition({ children: [child] })
 
 RegisteredDeclarationTestsInvalidViewDefinition.view((model, h) => {
   const config = child.embedView({ slotId: 'child', model: model.child })

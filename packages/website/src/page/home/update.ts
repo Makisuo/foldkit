@@ -3,7 +3,7 @@ import {
   demoTabs,
   notePlayerDemo,
   playgroundMenu,
-} from './connection'
+} from './childBindings'
 import { HomeDefinition } from './definition'
 import { Message } from './message'
 

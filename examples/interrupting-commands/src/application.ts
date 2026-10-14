@@ -51,6 +51,8 @@ export type Message = typeof Message.Type
 
 export const ApplicationDefinition = defineApplication({ Model, Message })
 
+export const ApplicationComposition = ApplicationDefinition.toComposition()
+
 type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
 export const initialModel: Model = {
@@ -122,7 +124,7 @@ const setStatusForId = (uploadId: number, status: UploadStatus) =>
       : upload,
   )
 
-export const update = ApplicationDefinition.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedStartUpload: () => {
       const fakeFile = fakeFileForUpload(model.uploadId)
@@ -292,7 +294,7 @@ const uploadView = (upload: Upload, h: ViewBuilder): Html =>
     ],
   )
 
-export const view = ApplicationDefinition.view((model, h) => {
+export const view = ApplicationComposition.view((model, h) => {
   const isAnyUploadRunning = Array.some(
     model.uploads,
     upload => upload.status === 'Uploading',

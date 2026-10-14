@@ -73,7 +73,7 @@ Create an `UpdateReturn` alias when another matcher, helper, or exported signatu
 
 Do not destructure or rename `model`, `commands`, or `outMessage` from an update-like result. Bind the whole result to an operation-named value and access its fields through that value. For example, pass `homeInit.commands` directly to `Command.mapMessages` instead of extracting or renaming it. Use `result.commands ?? []` only when the next operation requires a concrete array.
 
-Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. When the result belongs to a child Block, manual unpacking is usually the deeper problem. Use the registered child connection's `init`, `fold`, or named operation so the child Model, mapped Commands, and OutMessage policy remain part of one boundary.
+Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. When the result belongs to a child Block, manual unpacking is usually the deeper problem. Use the child Binding's `init`, `fold`, or named operation so the child Model, mapped Commands, and OutMessage policy remain part of one boundary.
 
 When the OutMessage is already known while constructing a new result, include it directly. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper, and pass a new result literal first. Flag local attachment helpers and conditional object spreads that duplicate it.
 
@@ -91,7 +91,7 @@ OutMessage type as the second matcher generic. A Command-producing branch uses
 `FeatureDefinition.step` and keeps its inferred requirements instead of forcing the
 whole matcher to a requirement-free `Update.Step`.
 
-When several operations update the same Model in sequence, use `Update.combine`. Initialize each child through its registered connection and combine the mapped Commands when assembling the parent Model.
+When several operations update the same Model in sequence, use `Update.combine`. Initialize each child through its registered Binding and combine the mapped Commands when assembling the parent Model.
 
 ### `functions-doing-two-things`
 

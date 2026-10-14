@@ -3,6 +3,14 @@ import { KeyValueStore } from 'effect/persistence'
 
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
+import {
+  errorDialog,
+  gridSizeConfirmDialog,
+  gridSizeRadioGroup,
+  paletteRadioGroup,
+  themeListbox,
+  toolRadioGroup,
+} from './childBindings'
 import { ExportPng, SaveCanvas } from './command'
 import {
   GRID_SIZE_RADIO_GROUP_ID,
@@ -15,6 +23,7 @@ import {
   DEFAULT_PALETTE_THEME_INDEX,
   STORAGE_KEY,
 } from './constant'
+import { ApplicationDefinition } from './definition'
 import { createEmptyGrid } from './grid'
 import { Model, SavedCanvas, SavedCanvasJsonString } from './model'
 import { subscriptions } from './subscription'
@@ -79,4 +88,15 @@ export const init = (flags: Flags) => ({
     gridSizeRadioGroup: RadioGroup.init({ id: GRID_SIZE_RADIO_GROUP_ID }),
     paletteRadioGroup: RadioGroup.init({ id: PALETTE_RADIO_GROUP_ID }),
   }),
+})
+
+export const ApplicationComposition = ApplicationDefinition.toComposition({
+  children: [
+    errorDialog,
+    themeListbox,
+    gridSizeConfirmDialog,
+    toolRadioGroup,
+    gridSizeRadioGroup,
+    paletteRadioGroup,
+  ],
 })

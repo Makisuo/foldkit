@@ -1,4 +1,4 @@
-import { Effect, Option } from 'effect'
+import { Array, Effect, Option } from 'effect'
 import {
   AST,
   Diagnostic,
@@ -16,6 +16,9 @@ import {
   isMemberExpression,
   isVariableDeclarator,
   resolveFoldkitApiPath,
+  resolveImportedPath,
+  resolvedVariable,
+  staticMemberPath,
 } from '../guards.ts'
 
 const isBlockDefineCall = (
@@ -56,54 +59,111 @@ const isApplicationDefineCall = (
   })
 }
 
-type DefinitionCall = Readonly<{
-  call: ESTree.CallExpression
+type DefinitionStage = Readonly<{
   isApplication: boolean
-  isRegistered: boolean
+  isComposition: boolean
+  identity: string | undefined
 }>
 
-const definitionCall = (
+const definitionStage = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
-): DefinitionCall | undefined => {
+  visited: ReadonlySet<ESTree.Node> = new Set(),
+): DefinitionStage | undefined => {
+  if (visited.has(node)) {
+    return undefined
+  }
+
   const isBlock = isBlockDefineCall(node, references)
   const isApplication = isApplicationDefineCall(node, references)
   if (isBlock || isApplication) {
-    return { call: node, isApplication, isRegistered: false }
+    return {
+      isApplication,
+      isComposition: false,
+      identity: firstStringArgument(node)?.value,
+    }
   }
 
   if (
     !isMemberExpression(node.callee) ||
     node.callee.computed ||
-    !isIdentifier(node.callee.property) ||
-    !isCallExpression(node.callee.object)
+    !isIdentifier(node.callee.property)
   ) {
     return undefined
   }
 
   const methodName = node.callee.property.name
-  if (methodName !== 'define' && methodName !== 'register') {
+  if (methodName !== 'define' && methodName !== 'toComposition') {
     return undefined
   }
 
-  const precedingStage = definitionCall(node.callee.object, references)
+  const receiver = node.callee.object
+  const precedingStage = (() => {
+    if (isCallExpression(receiver)) {
+      return definitionStage(receiver, references, new Set([...visited, node]))
+    }
+
+    if (references === undefined) {
+      return undefined
+    }
+
+    const path = staticMemberPath(receiver)
+    if (Option.isNone(path)) {
+      return undefined
+    }
+
+    const variable = resolvedVariable(references, path.value.root)
+    if (Option.isSome(variable)) {
+      for (const definition of variable.value.defs) {
+        if (
+          definition.type === 'Variable' &&
+          isVariableDeclarator(definition.node) &&
+          isCallExpression(definition.node.init)
+        ) {
+          return definitionStage(
+            definition.node.init,
+            references,
+            new Set([...visited, node]),
+          )
+        }
+      }
+    }
+
+    const imported = resolveImportedPath(references, receiver)
+    if (Option.isSome(imported)) {
+      const definitionName = Option.getOrUndefined(
+        Array.last(imported.value.members),
+      )
+      if (definitionName?.endsWith('Definition')) {
+        const identity = definitionName.slice(0, -'Definition'.length)
+        return {
+          identity,
+          isApplication: identity === 'Application',
+          isComposition: false,
+        }
+      }
+    }
+
+    return undefined
+  })()
   if (precedingStage === undefined) {
     return undefined
   }
 
   return {
     ...precedingStage,
-    isRegistered: precedingStage.isRegistered || methodName === 'register',
+    isComposition:
+      precedingStage.isComposition || methodName === 'toComposition',
   }
 }
 
-/** Requires definition bindings to follow the definition stage naming model. */
+/** Requires definition bindings to follow the Definition and Composition stage naming model. */
 export const blockNameMatchesVariable = Rule.define({
   name: 'block-name-matches-variable',
   meta: Rule.meta({
     type: 'suggestion',
     description:
-      'Name Block and Application definition bindings for their authoring stage.',
+      'Name Block and Application bindings for their authoring stage.',
   }),
   create: function* () {
     const ctx = yield* RuleContext
@@ -122,14 +182,14 @@ export const blockNameMatchesVariable = Rule.define({
           return Effect.void
         }
 
-        const definition = definitionCall(init, references)
+        const definition = definitionStage(init, references)
         if (definition === undefined) {
           return Effect.void
         }
 
         if (definition.isApplication) {
-          const expectedName = definition.isRegistered
-            ? 'Application'
+          const expectedName = definition.isComposition
+            ? 'ApplicationComposition'
             : 'ApplicationDefinition'
           if (node.id.name === expectedName) {
             return Effect.void
@@ -143,15 +203,13 @@ export const blockNameMatchesVariable = Rule.define({
           )
         }
 
-        const nameArgument = firstStringArgument(definition.call)
-        if (nameArgument === undefined) {
+        const identity = definition.identity
+        if (identity === undefined) {
           return Effect.void
         }
 
-        const expectedSuffix = `${nameArgument.value}Definition`
-        const isValidName = definition.isRegistered
-          ? node.id.name.endsWith(expectedSuffix)
-          : node.id.name === expectedSuffix
+        const expectedName = `${identity}${definition.isComposition ? 'Composition' : 'Definition'}`
+        const isValidName = node.id.name === expectedName
         if (isValidName) {
           return Effect.void
         }
@@ -159,9 +217,7 @@ export const blockNameMatchesVariable = Rule.define({
         return ctx.report(
           Diagnostic.make({
             node: node.id,
-            message: definition.isRegistered
-              ? `Registered Block definition identifier "${node.id.name}" must end with "${expectedSuffix}".`
-              : `Block definition identifier "${node.id.name}" must be "${expectedSuffix}".`,
+            message: `Block ${definition.isComposition ? 'Composition' : 'Definition'} identifier "${node.id.name}" must be "${expectedName}".`,
           }),
         )
       },

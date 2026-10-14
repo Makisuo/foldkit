@@ -1,14 +1,11 @@
 import { Array, Option, pipe } from 'effect'
-import type { HtmlBuilderOf } from 'foldkit/application'
 
 import { ghostStyle, maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 
+import { ApplicationComposition } from '../application'
 import type { Model } from '../model'
-import { Application } from '../update'
 import { ghostCardView } from './card'
 import { columnView } from './column'
-
-type HtmlBuilder = HtmlBuilderOf<typeof Application>
 
 const findDraggedCard = (model: Model) =>
   pipe(
@@ -23,7 +20,7 @@ const findDraggedCard = (model: Model) =>
     ),
   )
 
-const ghostElement = (model: Model, h: HtmlBuilder) =>
+const ghostElement = ApplicationComposition.render((model, h) =>
   pipe(
     ghostStyle(model.dragAndDrop),
     Option.flatMap(ghostStyle =>
@@ -37,9 +34,10 @@ const ghostElement = (model: Model, h: HtmlBuilder) =>
           [ghostCardView(card, h)],
         ),
     }),
-  )
+  ),
+)
 
-export const view = Application.view((model, h) => ({
+export const view = ApplicationComposition.view((model, h) => ({
   title: 'Kanban Board',
   body: h.div(
     [h.Class('flex flex-col min-h-screen bg-gray-100')],

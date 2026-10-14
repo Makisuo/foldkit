@@ -24,6 +24,7 @@ import {
   staticPropertyName,
   staticStringValue,
   blockBindingMethod,
+  blockBindingConfiguration,
 } from '../guards.ts'
 
 type ChildReturnOrigin = Readonly<{
@@ -301,7 +302,7 @@ const foldChildFieldsByNamespace = (
       return
     }
 
-    const [configuration] = node.arguments
+    const configuration = blockBindingConfiguration(node)
     if (!isObjectExpression(configuration)) {
       return
     }
@@ -309,23 +310,21 @@ const foldChildFieldsByNamespace = (
     const bindingMethod = blockBindingMethod(node, references)
     let namespace = Option.getOrUndefined(
       Option.flatMap(bindingMethod, () =>
-        Option.map(staticMemberPath(node.callee), path => path.root.name),
+        Option.map(
+          Option.flatMap(Array.head(node.arguments), staticMemberPath),
+          path => path.root.name,
+        ),
       ),
     )
 
-    if (Option.contains(bindingMethod, 'connection')) {
-      const hasModel = configuration.properties.some(
-        property =>
-          isObjectProperty(property) &&
-          Option.contains(staticPropertyName(property), 'Model'),
-      )
+    if (Option.contains(bindingMethod, 'Static')) {
       const field = Array.findFirst(configuration.properties, property =>
         isObjectProperty(property) &&
         Option.contains(staticPropertyName(property), 'field')
           ? staticStringValue(property.value)
           : Option.none(),
       )
-      if (namespace !== undefined && hasModel && Option.isSome(field)) {
+      if (namespace !== undefined && Option.isSome(field)) {
         const fieldNames = fieldsByNamespace.get(namespace) ?? new Set<string>()
         fieldNames.add(field.value)
         fieldsByNamespace.set(namespace, fieldNames)
@@ -353,8 +352,7 @@ const foldChildFieldsByNamespace = (
           Option.match(bindingMethod, {
             onNone: () => propertyName === 'read' || propertyName === 'readAt',
             onSome: method =>
-              propertyName ===
-              (method === 'keyedConnection' ? 'readAll' : 'read'),
+              propertyName === (method === 'Keyed' ? 'readAll' : 'read'),
           }),
         )
       ) {

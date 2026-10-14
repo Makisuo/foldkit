@@ -3,7 +3,7 @@ import {
   demoTabs,
   notePlayerDemo,
   playgroundMenu,
-} from './connection'
+} from './childBindings'
 import * as DemoTab from './demoTab'
 import { Model } from './model'
 

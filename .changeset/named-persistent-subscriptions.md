@@ -6,7 +6,7 @@ Subscriptions declare the Message Schemas their Streams can emit. Create them th
 
 The handler name identifies the Layer requirement that application assembly must satisfy. The record key identifies the runtime registration whose Stream Foldkit starts and stops. Several lifted registrations can share one definition and handler Layer while keeping separate Stream scopes. Subscription lifecycle display in DevTools remains follow-up work.
 
-The declared Message Schemas constrain the attached handler and external `toLayer` implementations. An undeclared output is a type error; an empty declaration constrains a silent Subscription to `Stream<never>`. Scene uses the declarations to validate an emitted Message against its registered Subscription source, including Message mappings through parent Block connections. The declarations and handler Layer remain available after completed Block composition.
+The declared Message Schemas constrain the attached handler and external `toLayer` implementations. An undeclared output is a type error; an empty declaration constrains a silent Subscription to `Stream<never>`. Scene uses the declarations to validate an emitted Message against its registered Subscription source, including Message mappings through parent Block Bindings. The declarations and handler Layer remain available after completed Block composition.
 
 Remove uses of `Subscription.persistentEntry`, `Subscription.animationFrameEntry`, and `Port.subscriptionEntry`. Define ordinary named entries instead. Replace `Subscription.persistentEntry(stream)` with `entry(name, { messages, handler: function* () { return () => stream } })`, then provide the entry's `.layer`.
 
@@ -48,8 +48,9 @@ const subscriptions = FeatureDefinition.subscriptions(entry => ({
 }))
 
 const EffectsLayer = subscriptions.animationFrameTicks.layer
+const FeatureComposition = FeatureDefinition.toComposition()
 
-export const block = FeatureDefinition.toBlock({
+export const block = FeatureComposition.toBlock({
   init,
   update,
   view,
@@ -92,8 +93,9 @@ const subscriptions = FeatureDefinition.subscriptions(entry => ({
 }))
 
 const EffectsLayer = subscriptions.hostStep.layer
+const FeatureComposition = FeatureDefinition.toComposition()
 
-export const block = FeatureDefinition.toBlock({
+export const block = FeatureComposition.toBlock({
   init,
   update,
   view,

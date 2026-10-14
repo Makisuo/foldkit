@@ -2,16 +2,13 @@ import { Effect, Layer } from 'effect'
 import { Runtime } from 'foldkit'
 
 import { SettingsStore } from './blockDefinition'
-import { Application, init, Message, update, view } from './blockProfile'
-
-export const makeApplication = (container: HTMLElement | null) =>
-  Application.make({
-    init,
-    update,
-    view,
-    container,
-    devTools: { Message },
-  })
+import {
+  ApplicationComposition,
+  init,
+  Message,
+  update,
+  view,
+} from './blockProfile'
 
 export const ApplicationLayer = Layer.succeed(SettingsStore, {
   saveTheme: theme =>
@@ -21,6 +18,12 @@ export const ApplicationLayer = Layer.succeed(SettingsStore, {
     }),
 })
 
-const application = makeApplication(document.getElementById('root'))
+const application = ApplicationComposition.make({
+  init,
+  update,
+  view,
+  container: document.getElementById('root'),
+  devTools: { Message },
+})
 
 Runtime.run(application.provide(ApplicationLayer))

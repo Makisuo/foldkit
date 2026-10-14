@@ -52,7 +52,7 @@ The factory closes that hole by setting `Item` once. The completed Block’s `vi
 
 ### The Schema Boundary
 
-Combobox builds its Message, OutMessage, view, and update from the supplied Item Schema, so it needs no erased generic cast at the factory boundary. The Schema also lets the parent Block validate the child Message and OutMessage contracts when it registers a connection.
+Combobox builds its Message, OutMessage, view, and update from the supplied Item Schema, so it needs no erased generic cast at the factory boundary. The Schema also lets the parent Definition validate the child Message and OutMessage contracts when it creates a Binding.
 
 ## The Factories {#factories}
 

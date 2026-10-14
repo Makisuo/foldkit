@@ -1,7 +1,14 @@
 import { Effect } from 'effect'
 import { Server } from 'foldkit/experimental'
 
-import { Application, Flags, implementation } from './application'
+import {
+  ApplicationComposition,
+  EffectsLayer,
+  Flags,
+  init,
+  update,
+  view,
+} from './application'
 import { PACKED_CONSUMER_HEAD, PACKED_CONSUMER_PROBE } from './document'
 
 export const renderDocument: Server.DocumentRenderer = (application, assets) =>
@@ -12,8 +19,8 @@ export const renderDocument: Server.DocumentRenderer = (application, assets) =>
 export const renderPage = (): Promise<Server.EntryResult> =>
   Effect.runPromise(
     Server.renderToString(
-      Application,
-      { ...implementation, Flags },
+      ApplicationComposition,
+      { init, update, view, EffectsLayer, Flags },
       { flags: { start: 0 } },
     ).pipe(Effect.map(rendered => Server.Rendered(rendered))),
   )
@@ -23,8 +30,8 @@ export const renderWithEmptyBuildId = (): Promise<string> =>
     Effect.map(
       Effect.flip(
         Server.renderToString(
-          Application,
-          { ...implementation, Flags },
+          ApplicationComposition,
+          { init, update, view, EffectsLayer, Flags },
           { flags: { start: 0 }, buildId: '' },
         ),
       ),

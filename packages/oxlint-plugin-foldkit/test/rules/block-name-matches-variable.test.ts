@@ -52,7 +52,7 @@ describe('block-name-matches-variable', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('checks the outer variable of a registered definition', () => {
+  it('checks the outer variable of a Composition', () => {
     const defineCall = Testing.callOfMember('Block', 'define', [
       Testing.strLiteral('PeopleDirectory'),
     ])
@@ -65,7 +65,7 @@ describe('block-name-matches-variable', () => {
           type: 'MemberExpression',
           computed: false,
           object: defineCall,
-          property: Testing.id('register'),
+          property: Testing.id('toComposition'),
         },
         arguments: [],
       }),
@@ -73,24 +73,24 @@ describe('block-name-matches-variable', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain(
-      '"People" must end with "PeopleDirectoryDefinition"',
+      '"People" must be "PeopleDirectoryComposition"',
     )
   })
 
-  it('allows a graph stage prefix on a registered definition', () => {
+  it('allows a graph stage prefix on a Composition', () => {
     const defineCall = Testing.callOfMember('Block', 'define', [
       Testing.strLiteral('PeopleDirectory'),
     ])
     const result = Testing.runRule(
       blockNameMatchesVariable,
       'VariableDeclarator',
-      variableDeclarator('RegisteredPeopleDirectoryDefinition', {
+      variableDeclarator('PeopleDirectoryComposition', {
         type: 'CallExpression',
         callee: {
           type: 'MemberExpression',
           computed: false,
           object: defineCall,
-          property: Testing.id('register'),
+          property: Testing.id('toComposition'),
         },
         arguments: [],
       }),
@@ -115,7 +115,7 @@ describe('block-name-matches-variable', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('unwraps an identity-first registered definition', () => {
+  it('unwraps an identity-first Composition', () => {
     const identity = Testing.callOfMember('Block', 'define', [
       Testing.strLiteral('PeopleDirectory'),
     ])
@@ -123,15 +123,15 @@ describe('block-name-matches-variable', () => {
       blockNameMatchesVariable,
       'VariableDeclarator',
       variableDeclarator(
-        'RegisteredPeopleDirectoryDefinition',
-        callMethod(callMethod(identity, 'define'), 'register'),
+        'PeopleDirectoryComposition',
+        callMethod(callMethod(identity, 'define'), 'toComposition'),
       ),
     )
 
     expect(result).toHaveLength(0)
   })
 
-  it('requires ApplicationDefinition before registration', () => {
+  it('requires ApplicationDefinition before toComposition', () => {
     const result = Testing.runRule(
       blockNameMatchesVariable,
       'VariableDeclarator',
@@ -147,7 +147,7 @@ describe('block-name-matches-variable', () => {
     )
   })
 
-  it('requires Application after inline registration', () => {
+  it('requires ApplicationComposition after inline toComposition', () => {
     const result = Testing.runRule(
       blockNameMatchesVariable,
       'VariableDeclarator',
@@ -155,14 +155,14 @@ describe('block-name-matches-variable', () => {
         'ApplicationDefinition',
         callMethod(
           Testing.callOfMember('Application', 'define', []),
-          'register',
+          'toComposition',
         ),
       ),
     )
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain(
-      '"ApplicationDefinition" must be "Application"',
+      '"ApplicationDefinition" must be "ApplicationComposition"',
     )
   })
 

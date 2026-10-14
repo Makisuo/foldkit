@@ -4,14 +4,14 @@ import type { Html } from 'foldkit/html'
 
 import { Button, Dialog } from '@foldkit/ui'
 
-import { Message } from '../message'
+import { ApplicationComposition } from '../application'
 import {
-  Application,
   errorDialog as errorDialogBinding,
   gridSizeConfirmDialog as gridSizeConfirmDialogBinding,
-} from '../update'
+} from '../childBindings'
+import { Message } from '../message'
 
-type HtmlBuilder = HtmlBuilderOf<typeof Application>
+type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 const dialogClassName =
   'bg-transparent p-0 open:flex items-center justify-center'

@@ -253,7 +253,7 @@ export const view = ProductsDefinition.view.withInputs<ViewInputs>(
   },
 )
 
-export const block = ProductsDefinition.toBlock({
+export const block = ProductsDefinition.toComposition().toBlock({
   init,
   update,
   view,

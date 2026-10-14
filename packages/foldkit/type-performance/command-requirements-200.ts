@@ -2049,7 +2049,7 @@ const runAll = TypePerformanceWorkerDefinition.step(model => ({
     Run200(),
   ],
 }))
-const Worker = TypePerformanceWorkerDefinition.toBlock({
+const Worker = TypePerformanceWorkerDefinition.toComposition().toBlock({
   init: () => ({ model: WorkerModel.make({ value: 0 }) }),
   update: TypePerformanceWorkerDefinition.update((model, message) =>
     WorkerMessage.match(message, {
@@ -2261,16 +2261,17 @@ const Worker = TypePerformanceWorkerDefinition.toBlock({
     Run200.layer,
   ),
 })
-const worker = Worker.connection({
+const ApplicationDefinition = defineApplication({
+  Model: WorkerModel,
+  Message: WorkerMessage,
+})
+const worker = ApplicationDefinition.bindChild(Worker, {
   placement: 'worker',
   read: (model: WorkerModel) => Option.some(model),
   write: (_model: WorkerModel, nextWorker: WorkerModel) => nextWorker,
   toParentMessage: (message: WorkerMessage) => message,
 })
-const Application = defineApplication({
-  Model: WorkerModel,
-  Message: WorkerMessage,
-}).register({ children: [worker] })
+const Application = ApplicationDefinition.toComposition({ children: [worker] })
 const update = Application.update((model, message) =>
   worker.fold(model, message),
 )

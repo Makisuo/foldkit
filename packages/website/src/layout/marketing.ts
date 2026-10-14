@@ -1,7 +1,7 @@
 import { type Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 
+import { type ViewRequirements } from '../childBindings'
 import { Shared } from '../component'
-import { type ViewRequirements } from '../connection'
 import { Icon } from '../icon'
 import { Link } from '../link'
 import { Message } from '../message'

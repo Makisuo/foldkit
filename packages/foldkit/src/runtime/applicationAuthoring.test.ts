@@ -33,7 +33,7 @@ const ChildMessage = defineMessageUnion({
   UpdatedChildValue: { value: Schema.String },
 })
 const child = Child.define({ Model: ChildModel, Message: ChildMessage })
-const childBlock = child.toBlock({
+const childBlock = child.toComposition().toBlock({
   init: () => ({ model: { value: 'child' } }),
   update: child.update((model, { value }) => ({
     model: modifyFields(model, { value: () => value }),
@@ -77,16 +77,16 @@ const ObserveRoot = Application.mount('ObserveRoot', {
       Effect.succeed(Message.CompletedReadRootValue({ value: 'mounted' }))
   },
 })
-const mountedComposition = Application.register({ mounts: [ObserveRoot] })
+const mountedComposition = Application.toComposition({ mounts: [ObserveRoot] })
 const mountedView = mountedComposition.view((model, h) =>
   h.div([h.OnMount(ObserveRoot())], [model.rootValue]),
 )
-const childBinding = childBlock.connection({
-  read: (model: typeof Model.Type) => Option.some(model.child),
+const childBinding = Application.bindChild(childBlock, {
+  read: model => Option.some(model.child),
   write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
   parentMessage: Message.GotChildMessage,
 })
-const composition = Application.register({ children: [childBinding] })
+const composition = Application.toComposition({ children: [childBinding] })
 const init = () => {
   const childInit = childBinding.init()
 
@@ -129,6 +129,7 @@ const NoMessageApplication = defineApplication({
   Model: NoMessageModel,
   Message: Schema.Never,
 })
+const NoMessageComposition = NoMessageApplication.toComposition()
 const noMessageInit = () => ({ model: null })
 const noMessageUpdate = NoMessageApplication.update(model => ({ model }))
 const noMessageDocumentView = NoMessageApplication.view((_model, h) => ({
@@ -161,11 +162,11 @@ const typecheckRootCompletion = (): void => {
     messages: [ForeignMessage.ForeignCompleted],
   })
   composition.command('RegisteredForeignCommand', {
-    // @ts-expect-error Registration preserves the Application Message boundary.
+    // @ts-expect-error Composition preserves the Application Message boundary.
     messages: [ForeignMessage.ForeignCompleted],
   })
 
-  Application.makeElement({
+  Application.toComposition().makeElement({
     container: null,
     init,
     update,
@@ -189,13 +190,13 @@ const typecheckRootCompletion = (): void => {
   > = application
   void pendingApplication
 
-  NoMessageApplication.make({
+  NoMessageComposition.make({
     container: null,
     init: noMessageInit,
     update: noMessageUpdate,
     view: noMessageDocumentView,
   })
-  NoMessageApplication.makeElement({
+  NoMessageComposition.makeElement({
     container: null,
     init: noMessageInit,
     update: noMessageUpdate,
@@ -221,7 +222,7 @@ const typecheckRootCompletion = (): void => {
   })
 
   // @ts-expect-error the graphless definition has not registered the child used by this view.
-  Application.makeElement({
+  Application.toComposition().makeElement({
     container: null,
     init,
     update,
@@ -230,7 +231,7 @@ const typecheckRootCompletion = (): void => {
   })
 
   // @ts-expect-error the graphless definition has not registered the Mount used by this view.
-  Application.makeElement({
+  Application.toComposition().makeElement({
     container: null,
     init,
     update,
@@ -365,7 +366,7 @@ afterEach(() => {
 })
 
 describe('Application authoring', () => {
-  it('stages primitive authoring before graph registration', () => {
+  it('stages primitive authoring before composition', () => {
     expectTypeOf(Application.Model).toEqualTypeOf(Model)
     expectTypeOf(Application.Message).toEqualTypeOf(Message)
     expect(composition.command).toBe(Application.command)
@@ -381,13 +382,13 @@ describe('Application authoring', () => {
     void Application.bind
     // @ts-expect-error an Application composition does not expose Block completion.
     void composition.toBlock
-    // @ts-expect-error an application graph can only be registered once.
-    void composition.register
+    // @ts-expect-error an application can only be composed once.
+    void composition.toComposition
   })
 
-  it('completes a graphless definition through its owned method', () => {
+  it('completes an empty composition through its owned method', () => {
     expect(() =>
-      NoMessageApplication.makeElement({
+      NoMessageComposition.makeElement({
         container: document.createElement('div'),
         init: noMessageInit,
         update: noMessageUpdate,

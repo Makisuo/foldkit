@@ -80,9 +80,9 @@ This error often points to update results being composed by hand. When both oper
 
 ::Snippet{name="updateCombineOpenDialog" label="Composing Update Steps"}
 
-#### Child Connections and Multiple Steps
+#### Child Bindings and Multiple Steps
 
-A registered child connection projects `init`, `fold`, and every named public Step. These operations preserve the child's Message mapping, Command requirements, OutMessage policy, and origin scope. Call `connection.fold(model, message)` for the primary update and `connection.name(...args)` when composing a public entry point.
+A child Binding projects `init`, `fold`, and every named public Step. These operations preserve the child's Message mapping, Command requirements, OutMessage policy, and origin scope. Call `binding.fold(model, message)` for the primary update and `binding.name(...args)` when composing a public entry point.
 
 #### Combining Steps
 
@@ -98,7 +98,7 @@ Do not wrap one Step in `Update.combine`; call that operation directly.
 
 ### Combining Child Initialization Results {#combining-independent-results}
 
-Initialize each child through its registered connection. Each result already carries parent Messages and qualified Command origins, so parent init can construct their Models and concrete Command collections directly.
+Initialize each child through its Binding. Each result already carries parent Messages and qualified Command origins, so parent init can construct their Models and concrete Command collections directly.
 
 For example, a Workspace Block contains Search and Editor Blocks. The Search Block's boot result can report a prepared document, and the Editor Block's can report an opened document. The Workspace Block handles both locally:
 
@@ -106,11 +106,11 @@ For example, a Workspace Block contains Search and Editor Blocks. The Search Blo
 
 #### Parent Construction and Fold Order
 
-`Model.make` combines the Search and Editor Models with the Workspace Block's own fields. The connection results retain each child's optional Commands; combine them only where parent init needs one concrete collection.
+`Model.make` combines the Search and Editor Models with the Workspace Block's own fields. The Binding results retain each child's optional Commands; combine them only where parent init needs one concrete collection.
 
 #### Step Order
 
-The Step array determines the order of Model transitions. In this example, the Search restoration runs first. The Editor restoration receives that updated Model, so it preserves the selected document. Each child's connection applies its OutMessage policy as part of the Step.
+The Step array determines the order of Model transitions. In this example, the Search restoration runs first. The Editor restoration receives that updated Model, so it preserves the selected document. Each child's Binding applies its OutMessage policy as part of the Step.
 
 #### Command Execution
 
@@ -124,7 +124,7 @@ A parent can translate facts from several children into its own OutMessage. For 
 
 #### Translating Child Facts
 
-Each child connection uses `outMessage.forward` to translate selected facts into Workspace OutMessages. The same policy applies whether a restoration Step runs during startup or in a later update:
+Each child Binding uses `outMessage.forward` to translate selected facts into Workspace OutMessages. The same policy applies whether a restoration Step runs during startup or in a later update:
 
 ::Snippet{name="updateInitOutMessages" label="Forwarding child restoration OutMessages"}
 

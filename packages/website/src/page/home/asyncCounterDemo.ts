@@ -549,7 +549,7 @@ const progressBarView = (model: Model, isCommand: boolean): Html =>
     ],
   )
 
-export const block = AsyncCounterDemoDefinition.toBlock({
+export const block = AsyncCounterDemoDefinition.toComposition().toBlock({
   init,
   update,
   view,

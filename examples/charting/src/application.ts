@@ -1,15 +1,21 @@
 import { Layer } from 'effect'
 
-import { ChartRegistryLayer } from './chartRegistry'
+import {
+  chartModeRadioGroup,
+  packageRadioGroup,
+  periodRadioGroup,
+} from './childBindings'
 import { FetchTelemetry, SyncChart } from './command'
-import { GitHubApiLayer } from './githubApi'
-import { NpmApiLayer } from './npmApi'
-import { MountChart } from './view'
-
-const TelemetryApisLayer = Layer.mergeAll(GitHubApiLayer, NpmApiLayer)
+import { ApplicationDefinition } from './definition'
+import { MountChart } from './view/chart'
 
 export const EffectsLayer = Layer.mergeAll(
-  FetchTelemetry.layer.pipe(Layer.provide(TelemetryApisLayer)),
+  FetchTelemetry.layer,
   SyncChart.layer,
   MountChart.layer,
-).pipe(Layer.provide(ChartRegistryLayer))
+)
+
+export const ApplicationComposition = ApplicationDefinition.toComposition({
+  mounts: [MountChart],
+  children: [chartModeRadioGroup, periodRadioGroup, packageRadioGroup],
+})

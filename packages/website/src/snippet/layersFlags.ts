@@ -2,7 +2,7 @@ import { Context, Effect, Layer, Option, Schema } from 'effect'
 import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/http'
 import { Http, Runtime } from 'foldkit'
 
-import { ApplicationDefinition, init, update, view } from './application'
+import { ApplicationComposition, init, update, view } from './application'
 
 const Session = Schema.Struct({ id: Schema.String })
 type Session = typeof Session.Type
@@ -49,7 +49,7 @@ const flags = Effect.gen(function* () {
   ),
 )
 
-const application = ApplicationDefinition.make({
+const application = ApplicationComposition.make({
   init,
   update,
   view,

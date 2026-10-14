@@ -52,11 +52,12 @@ describe('Subscription startup supervision', () => {
         },
       ),
     }))
-    const application = Application.makeElement({
+    const ApplicationComposition = Application.toComposition()
+    const application = ApplicationComposition.makeElement({
       container,
       init: () => ({ model: { count: 0 } }),
       update: Application.update(model => ({ model })),
-      view: Application.view((_model, h) => h.div([], ['Running'])),
+      view: ApplicationComposition.view((_model, h) => h.div([], ['Running'])),
       subscriptions,
       EffectsLayer: subscriptions.pulses.layer,
       crash: {
@@ -107,7 +108,7 @@ describe('Subscription startup supervision', () => {
         },
       ),
     }))
-    const block = Child.toBlock({
+    const block = Child.toComposition().toBlock({
       init: () => ({ model: { count: 0 } }),
       update: Child.update(model => ({ model })),
       subscriptions,
@@ -118,13 +119,14 @@ describe('Subscription startup supervision', () => {
       ClickedActivateChild: {},
       GotChildMessage: { message: ChildMessage },
     })
-    const child = block.connection({
-      read: (model: typeof Model.Type) => model.maybeChild,
+    const ApplicationDefinition = defineApplication({ Model, Message })
+    const child = ApplicationDefinition.bindChild(block, {
+      read: model => model.maybeChild,
       write: (model, nextChild) =>
         modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
       parentMessage: Message.GotChildMessage,
     })
-    const Application = defineApplication({ Model, Message }).register({
+    const Application = ApplicationDefinition.toComposition({
       children: [child],
     })
     const report = vi.fn()

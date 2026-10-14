@@ -5,11 +5,11 @@ import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewInputs,
-  ListboxDefinition,
-  LocalEffectsLayer,
+  EffectsLayer,
   Message,
   OutMessage,
   type OutMessageSchema,
+  ListboxDefinition as SharedListboxDefinition,
   baseInit,
   makeUpdate,
   makeView,
@@ -51,15 +51,19 @@ const makeBlock = <Item, Value extends string>() => {
   const RefinedOutMessage =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     OutMessage as unknown as OutMessageSchema<Value>
-  const ItemListboxDefinition = ListboxDefinition.define({
+  const ListboxDefinition = SharedListboxDefinition.define({
     Model,
     Message,
     OutMessage: RefinedOutMessage,
   })
-  const itemUpdate = makeUpdate(Model, 'KeepOpen', (model, item) => ({
-    model,
-    outMessage: OutMessage.Selected({ value: item }),
-  }))
+  const itemUpdate = makeUpdate(
+    ListboxDefinition.bindChild,
+    'KeepOpen',
+    (model, item) => ({
+      model,
+      outMessage: OutMessage.Selected({ value: item }),
+    }),
+  )
   type RefinedOutMessage = OutMessage<Value>
   type RefinedReturn = RefineOutMessage<
     ReturnType<typeof itemUpdate.update>,
@@ -69,11 +73,11 @@ const makeBlock = <Item, Value extends string>() => {
   const castReturn = (result: ReturnType<typeof itemUpdate.update>) =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     result as unknown as RefinedReturn
-  const RegisteredItemListboxDefinition = ItemListboxDefinition.register({
+  const ListboxComposition = ListboxDefinition.toComposition({
     mounts,
     children: [itemUpdate.animation],
   })
-  const update = ItemListboxDefinition.update((model, message) =>
+  const update = ListboxDefinition.update((model, message) =>
     castReturn(itemUpdate.update(model, message)),
   )
   const refinedView =
@@ -83,25 +87,23 @@ const makeBlock = <Item, Value extends string>() => {
       viewInputs: ViewInputs<Item, Value>,
       h: Parameters<ReturnType<typeof internalView<unknown, string>>>[2],
     ) => Html
-  const view = RegisteredItemListboxDefinition.view.withInputs<
-    ViewInputs<Item, Value>
-  >((model, viewInputs, h) => refinedView(model, viewInputs, h))
-  const open = ItemListboxDefinition.step(model =>
+  const view = ListboxComposition.view.withInputs<ViewInputs<Item, Value>>(
+    (model, viewInputs, h) => refinedView(model, viewInputs, h),
+  )
+  const open = ListboxDefinition.step(model =>
     update(model, Message.Opened({ maybeActiveItemIndex: Option.none() })),
   )
-  const close = ItemListboxDefinition.step(model =>
-    update(model, Message.Closed()),
-  )
-  const selectItem = ItemListboxDefinition.step((model, item: Value) =>
+  const close = ListboxDefinition.step(model => update(model, Message.Closed()))
+  const selectItem = ListboxDefinition.step((model, item: Value) =>
     update(model, Message.SelectedItem({ item })),
   )
   const expose = { open, close, selectItem }
-  return RegisteredItemListboxDefinition.toBlock({
+  return ListboxComposition.toBlock({
     init: (config: InitConfig) => ({ model: init(config) }),
     update,
     view,
     expose,
-    EffectsLayer: LocalEffectsLayer,
+    EffectsLayer,
   })
 }
 

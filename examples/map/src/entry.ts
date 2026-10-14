@@ -1,16 +1,12 @@
 import { Runtime } from 'foldkit'
 
-import {
-  Application,
-  EffectsLayer,
-  Message,
-  init,
-  update,
-  view,
-} from './application'
-import { ApplicationLayer } from './services'
+import { ApplicationComposition, EffectsLayer } from './application'
+import { MapRegistryLayer } from './mapRegistry'
+import { Message } from './message'
+import { init, update } from './update'
+import { view } from './view'
 
-const application = Application.make({
+const application = ApplicationComposition.make({
   init,
   update,
   view,
@@ -19,4 +15,4 @@ const application = Application.make({
   devTools: { Message },
 })
 
-Runtime.run(application.provide(ApplicationLayer))
+Runtime.run(application.provide(MapRegistryLayer))

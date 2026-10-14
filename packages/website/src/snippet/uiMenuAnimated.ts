@@ -30,9 +30,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-// The registered parent definition and child connection below come from the basic walkthrough.
+// The parent Composition and child Binding below come from the basic walkthrough.
 // Inside your view function, use data-[closed] for enter/leave transitions:
-const view = RegisteredActionMenuExampleDefinition.view((model, h) =>
+const view = ActionMenuExampleComposition.view((model, h) =>
   h.block(
     menu.embedView({
       slotId: 'menu',

@@ -1,11 +1,12 @@
 import clsx from 'clsx'
 import { Array, Equal, HashSet, Match, Option, pipe } from 'effect'
+import type { HtmlBuilderOf } from 'foldkit/application'
 import type { ChildAttribute, Html } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
+import { ApplicationComposition } from '../application'
 import {
-  Application,
   attachments,
   coverLetter,
   education,
@@ -13,42 +14,30 @@ import {
   skills,
   stepTabs,
   workHistory,
-} from '../connection'
+} from '../childBindings'
 import { Step } from '../domain'
 import { Message } from '../message'
 import { type Model } from '../model'
-import {
-  hasErrors as educationHasErrors,
-  isComplete as isEducationComplete,
-} from '../step/education'
-import {
-  isComplete as isPersonalInfoComplete,
-  hasErrors as personalInfoHasErrors,
-} from '../step/personalInfo'
-import {
-  isComplete as areSkillsComplete,
-  hasErrors as skillsHaveErrors,
-} from '../step/skills'
-import {
-  isComplete as isWorkHistoryComplete,
-  hasErrors as workHistoryHasErrors,
-} from '../step/workHistory'
+import * as Education from '../step/education'
+import * as PersonalInfo from '../step/personalInfo'
+import * as Skills from '../step/skills'
+import * as WorkHistory from '../step/workHistory'
 import { preview } from './preview'
 import { review } from './review'
 import { stepMenu, stepTabButton } from './stepNav'
 
-export type HtmlBuilder = Parameters<Parameters<typeof Application.view>[0]>[1]
+export type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 const stepHasErrors =
   (model: Model) =>
   (step: Step.Step): boolean =>
     Match.value(step).pipe(
       Match.when('PersonalInfo', () =>
-        personalInfoHasErrors(model.personalInfo),
+        PersonalInfo.hasErrors(model.personalInfo),
       ),
-      Match.when('WorkHistory', () => workHistoryHasErrors(model.workHistory)),
-      Match.when('Education', () => educationHasErrors(model.education)),
-      Match.when('Skills', () => skillsHaveErrors(model.skills)),
+      Match.when('WorkHistory', () => WorkHistory.hasErrors(model.workHistory)),
+      Match.when('Education', () => Education.hasErrors(model.education)),
+      Match.when('Skills', () => Skills.hasErrors(model.skills)),
       Match.orElse(() => false),
     )
 
@@ -57,11 +46,13 @@ const stepIsComplete =
   (step: Step.Step): boolean =>
     Match.value(step).pipe(
       Match.when('PersonalInfo', () =>
-        isPersonalInfoComplete(model.personalInfo),
+        PersonalInfo.isComplete(model.personalInfo),
       ),
-      Match.when('WorkHistory', () => isWorkHistoryComplete(model.workHistory)),
-      Match.when('Education', () => isEducationComplete(model.education)),
-      Match.when('Skills', () => areSkillsComplete(model.skills)),
+      Match.when('WorkHistory', () =>
+        WorkHistory.isComplete(model.workHistory),
+      ),
+      Match.when('Education', () => Education.isComplete(model.education)),
+      Match.when('Skills', () => Skills.isComplete(model.skills)),
       Match.orElse(() => true),
     )
 
@@ -138,7 +129,7 @@ const isFirstStep = (model: Model): boolean =>
 const isLastStep = (model: Model): boolean =>
   pipe(Step.all, Array.last, Option.exists(Equal.equals(model.currentStep)))
 
-const navigationButtons = (model: Model, h: HtmlBuilder): Html =>
+const navigationButtons = ApplicationComposition.render((model, h) =>
   h.div(
     [h.Class('flex justify-between pt-6 mt-8 border-t border-gray-200')],
     [
@@ -183,9 +174,10 @@ const navigationButtons = (model: Model, h: HtmlBuilder): Html =>
             ),
           ]),
     ],
-  )
+  ),
+)
 
-const pageHeader = (h: HtmlBuilder): Html =>
+const pageHeader = ApplicationComposition.render.builder(h =>
   h.div(
     [h.Class('mb-6')],
     [
@@ -198,7 +190,8 @@ const pageHeader = (h: HtmlBuilder): Html =>
         ['Fill out the form below and watch your resume build in real time.'],
       ),
     ],
-  )
+  ),
+)
 
 const stepContentPanel = (
   model: Model,
@@ -279,7 +272,7 @@ const stepTabsLayout = (
     }),
   )
 
-const desktopPreviewSidebar = (model: Model, h: HtmlBuilder): Html =>
+const desktopPreviewSidebar = ApplicationComposition.render((model, h) =>
   h.div(
     [h.Class('hidden w-80 shrink-0 xl:block')],
     [
@@ -306,9 +299,10 @@ const desktopPreviewSidebar = (model: Model, h: HtmlBuilder): Html =>
         ],
       ),
     ],
-  )
+  ),
+)
 
-const mobilePreviewToggle = (model: Model, h: HtmlBuilder): Html =>
+const mobilePreviewToggle = ApplicationComposition.render((model, h) =>
   h.div(
     [h.Class('fixed top-4 right-4 xl:hidden')],
     [
@@ -334,9 +328,10 @@ const mobilePreviewToggle = (model: Model, h: HtmlBuilder): Html =>
         h,
       ),
     ],
-  )
+  ),
+)
 
-const mobilePreviewOverlay = (model: Model, h: HtmlBuilder): Html =>
+const mobilePreviewOverlay = ApplicationComposition.render((model, h) =>
   h.div(
     [
       h.Class(
@@ -344,9 +339,10 @@ const mobilePreviewOverlay = (model: Model, h: HtmlBuilder): Html =>
       ),
     ],
     [preview(model)],
-  )
+  ),
+)
 
-export const view = Application.view((model, h) => {
+export const view = ApplicationComposition.view((model, h) => {
   const attentionSteps = stepsNeedingAttention(model)
   const attentionStepSet = HashSet.fromIterable(attentionSteps)
   const body = h.div(

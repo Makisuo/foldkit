@@ -5,12 +5,13 @@ import type { Html } from 'foldkit/html'
 
 import type { TabInfo } from '@foldkit/ui/tabs'
 
-import { Application, stepMenu as stepMenuBinding } from '../connection'
+import { ApplicationComposition } from '../application'
+import { stepMenu as stepMenuBinding } from '../childBindings'
 import { Step } from '../domain'
 import { type Model } from '../model'
 import * as Icon from './icon'
 
-type HtmlBuilder = HtmlBuilderOf<typeof Application>
+type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 type StepStatus = 'Current' | 'Completed' | 'Upcoming'
 
@@ -104,28 +105,30 @@ export const stepTabButton = (
   )
 }
 
-const stepMenuTrigger = (currentStep: Step.Step, h: HtmlBuilder): Html =>
-  h.div(
-    [h.Class('flex items-center justify-between w-full gap-3')],
-    [
-      h.div(
-        [h.Class('flex items-center gap-2 min-w-0')],
-        [
-          h.span(
-            [h.Class('text-xs font-medium text-gray-500 shrink-0')],
-            [
-              `Step ${Number.increment(Step.indexOf(currentStep))} of ${Step.all.length}`,
-            ],
-          ),
-          h.span(
-            [h.Class('text-sm font-semibold text-gray-900 truncate')],
-            [Step.show(currentStep)],
-          ),
-        ],
-      ),
-      h.span([h.Class('text-gray-400 shrink-0')], [Icon.chevronDown()]),
-    ],
-  )
+const stepMenuTrigger = ApplicationComposition.render.withInput<Step.Step>()(
+  (currentStep, h) =>
+    h.div(
+      [h.Class('flex items-center justify-between w-full gap-3')],
+      [
+        h.div(
+          [h.Class('flex items-center gap-2 min-w-0')],
+          [
+            h.span(
+              [h.Class('text-xs font-medium text-gray-500 shrink-0')],
+              [
+                `Step ${Number.increment(Step.indexOf(currentStep))} of ${Step.all.length}`,
+              ],
+            ),
+            h.span(
+              [h.Class('text-sm font-semibold text-gray-900 truncate')],
+              [Step.show(currentStep)],
+            ),
+          ],
+        ),
+        h.span([h.Class('text-gray-400 shrink-0')], [Icon.chevronDown()]),
+      ],
+    ),
+)
 
 export const stepMenu = (
   model: Model,

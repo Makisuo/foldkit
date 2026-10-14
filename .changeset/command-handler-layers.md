@@ -13,13 +13,13 @@ The Runtime builds the provided application Layer once for each start. A definit
 
 Handlers and services may own mutable execution bookkeeping, such as worker availability or protocol request IDs. The Model and update own pending work shown to the user, selections, and submission rules. A `Ref` created in the constructor must not become the source of truth for workflow decisions or state read by view.
 
-Commands, Mounts, Subscription entries, ManagedResource entries, and experimental Query definitions may omit `handler` when an external host owns the implementation. Those definitions have no `.layer`; the host supplies its implementation through `toLayer`, which accepts the implementation Effect constructor. An attached `.layer` uses the same construction path and definition identity as `toLayer(constructor)`. A ManagedResource constructor must return both `acquire` and `release` functions. This applies to `config.handler` and constructors supplied to `toLayer`.
+Commands, Mounts, Subscription entries, and ManagedResource entries may omit `handler` when an external host owns the implementation. Those definitions have no `.layer`; the host supplies its implementation through `toLayer`, which accepts the implementation Effect constructor. An attached `.layer` uses the same construction path and definition identity as `toLayer(constructor)`. A ManagedResource constructor must return both `acquire` and `release` functions. This applies to `config.handler` and constructors supplied to `toLayer`.
 
 ## Migration
 
 Each before/after pair shows the affected part of an existing module. Imports from `./message` and `./model` refer to the application's existing Message and Model Schemas. When several definitions belong to one Block or application module, compose their `.layer` recipes in that owner's local `EffectsLayer`.
 
-Completed Blocks collect child connections automatically. Pass only local handler recipes to `FeatureDefinition.toBlock({ EffectsLayer })`, register connections through `FeatureDefinition.register({ children })`, and export the completed `block`. Define locally owned Commands through `FeatureDefinition.command` so the composition path qualifies their protocol names.
+Completed Blocks collect child Bindings automatically. Pass only local handler recipes to `FeatureComposition.toBlock({ EffectsLayer })`, include Bindings through `FeatureDefinition.toComposition({ children })`, and export the completed `block`. Define locally owned Commands through `FeatureDefinition.command` so the composition path qualifies their protocol names.
 
 ### Commands
 
@@ -183,7 +183,7 @@ export const subscriptions = FeatureDefinition.subscriptions(entry => ({
 export const EffectsLayer = subscriptions.gameClockTicks.layer
 ```
 
-The constructor builds once per application start. Changes to `isRunning` restart the Stream scope and call the returned function with fresh dependencies without reconstructing the handler. Pass `subscriptions` and its local `EffectsLayer` to `FeatureDefinition.toBlock`; parent connections carry both to the root.
+The constructor builds once per application start. Changes to `isRunning` restart the Stream scope and call the returned function with fresh dependencies without reconstructing the handler. Pass `subscriptions` and its local `EffectsLayer` to `FeatureComposition.toBlock`; parent Bindings carry both to the root.
 
 The handler name `GameClockTicks` identifies the Layer requirement. The record key `gameClockTicks` identifies this runtime registration and its Stream scope. Several lifted registrations can share one definition and handler Layer while retaining separate registration keys and Stream scopes.
 
@@ -314,7 +314,7 @@ export const mounts = [MeasurePanel]
 export const EffectsLayer = MeasurePanel.layer
 ```
 
-Use `h.OnMount(MeasurePanel())` in the view as before. Register `MeasurePanel` in the owning `FeatureDefinition.register({ mounts })` and include `MeasurePanel.layer` in the local `EffectsLayer` passed to `FeatureDefinition.toBlock`. The Mount reads the rendered panel's actual `getBoundingClientRect().height` after that element enters the DOM and reports it as `CompletedMeasurePanel`. TypeScript rejects unregistered Mounts; Foldkit also checks the exact rendered definition before patching the DOM. A registered Mount that is absent from the rendered tree performs no element work.
+Use `h.OnMount(MeasurePanel())` in the view as before. Include `MeasurePanel` in the owning `FeatureDefinition.toComposition({ mounts })` and include `MeasurePanel.layer` in the local `EffectsLayer` passed to `FeatureComposition.toBlock`. The Mount reads the rendered panel's actual `getBoundingClientRect().height` after that element enters the DOM and reports it as `CompletedMeasurePanel`. TypeScript rejects unregistered Mounts; Foldkit also checks the exact rendered definition before patching the DOM. A registered Mount that is absent from the rendered tree performs no element work.
 
 `FeatureDefinition.mountStream` uses the same `config.handler` generator, returning an element function that produces a Stream. Keep element acquisition and cleanup inside that returned handler so each element owns its own scope.
 
@@ -344,21 +344,21 @@ import { MeasurePanel } from './mount'
 import { Message } from './message'
 import { Model } from './model'
 export const PanelDefinition = Block.define('Panel', { Model, Message })
-export const RegisteredPanelDefinition = PanelDefinition.register({
+export const PanelComposition = PanelDefinition.toComposition({
   mounts: [MeasurePanel],
 })
 
-export const view = RegisteredPanelDefinition.view((model, h) =>
+export const view = PanelComposition.view((model, h) =>
   h.div([h.OnMount(MeasurePanel())], [model.label]),
 )
 
 // Extracted helpers on this mounted view path can use one derived alias.
-export type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredPanelDefinition>
+export type HtmlBuilder = Block.HtmlBuilderOf<typeof PanelComposition>
 ```
 
-A child with `ViewInputs` uses `RegisteredFeatureDefinition.view.withInputs<ViewInputs>` and receives the builder third. A parent connection carries the child's Mounts and handler recipe automatically. TypeScript checks that the parent definition registered the connection before `h.block(connection.embedView(...))` can embed it.
+A child with `ViewInputs` uses its Composition's `view.withInputs<ViewInputs>` and receives the builder third. A parent Binding carries the child's Mounts and handler recipe automatically. TypeScript checks that the parent Composition includes the Binding before `h.block(binding.embedView(...))` can embed it.
 
-When several helpers share a mounted or child embedding path, export `Block.HtmlBuilderOf<typeof RegisteredFeatureDefinition>` as one local `HtmlBuilder` alias. Pure helpers keep `HtmlBuilder<Message>`.
+Ordinary owned helpers use `FeatureComposition.render`, `render.builder`, or `render.withInput<Input>()`. Preserve `Block.HtmlBuilderOf<typeof FeatureComposition>` for a deliberate public helper interface; reusable helpers keep `HtmlBuilder<Message>`.
 
 Let TypeScript infer Mount registration arrays and composed spreads. An annotation such as `ReadonlyArray<Mount.LayeredMountDefinition>` erases the definition contracts and is rejected at application assembly. If forwarded attribute arrays need an explicit type, preserve the requirements as `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>`. `childAttributes` and `CustomElement.withMessage(h)` preserve the requirements automatically.
 
@@ -473,13 +473,13 @@ export const managedResources = CameraDefinition.managedResources(entry => ({
 export const EffectsLayer = managedResources.camera.layer
 ```
 
-Pass `managedResources` and its local `EffectsLayer` to `CameraDefinition.toBlock`; parent connections carry both to the root. Both `acquire` and `release` are required whenever a constructor is supplied. A no-op `release` is appropriate only when scoped acquisition, such as `Layer.build` or `Effect.acquireRelease`, already registered the real cleanup. The handler lives for the application start; camera acquisition and release follow `model.maybeCamera`.
+Pass `managedResources` and its local `EffectsLayer` to `CameraComposition.toBlock`; parent Bindings carry both to the root. Both `acquire` and `release` are required whenever a constructor is supplied. A no-op `release` is appropriate only when scoped acquisition, such as `Layer.build` or `Effect.acquireRelease`, already registered the real cleanup. The handler lives for the application start; camera acquisition and release follow `model.maybeCamera`.
 
 ### Application assembly and runtime resources
 
-Remove the `resources` field. Establish the typed `Application` in `application.ts`, then complete it in `entry.ts` with its owned `make` or `makeElement` method. Supply ordinary Services through the completed program's `provide` method before calling the Runtime.
+Remove the `resources` field. Establish `ApplicationDefinition` and `ApplicationComposition` in `application.ts`, then complete it in `entry.ts` with its owned `make` or `makeElement` method. Supply ordinary Services through the completed program's `provide` method before calling the Runtime.
 
-This example uses the storage service needed by `StoreDraft`. The Application collects its local handler recipes and registered children's recipes; `ApplicationLayer` supplies their ordinary Services.
+This example uses the storage service needed by `StoreDraft`. The Application collects its local handler recipes and the recipes of child Bindings included in its Composition; `ApplicationLayer` supplies their ordinary Services.
 
 **Before**
 
@@ -512,6 +512,7 @@ import { Model } from './model'
 import { Message } from './message'
 
 export const ApplicationDefinition = defineApplication({ Model, Message })
+export const ApplicationComposition = ApplicationDefinition.toComposition()
 ```
 
 In `entry.ts`:
@@ -520,14 +521,14 @@ In `entry.ts`:
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Runtime } from 'foldkit'
 
-import { ApplicationDefinition } from './application'
+import { ApplicationComposition } from './application'
 import { init } from './init'
 import { EffectsLayer, update } from './update'
 import { view } from './view'
 
 const ApplicationLayer = BrowserKeyValueStore.layerLocalStorage
 
-const application = ApplicationDefinition.make({
+const application = ApplicationComposition.make({
   init,
   update,
   view,
@@ -538,7 +539,7 @@ const application = ApplicationDefinition.make({
 Runtime.run(application.provide(ApplicationLayer))
 ```
 
-For an Element, use `ApplicationDefinition.makeElement` or a registered `Application.makeElement`, call `element.provide(ApplicationLayer)`, and pass the result to `Runtime.run` or `Runtime.embed`. Preserve existing Flags, Ports, container, and DevTools host configuration. Include local Subscriptions and ManagedResources in completion; registered child connections contribute their lifecycle declarations and handlers automatically.
+For an Element, use `ApplicationComposition.makeElement`, call `element.provide(ApplicationLayer)`, and pass the result to `Runtime.run` or `Runtime.embed`. Preserve existing Flags, Ports, container, and DevTools host configuration. Include local Subscriptions and ManagedResources in completion; child Bindings included in the Composition contribute their lifecycle declarations and handlers automatically.
 
 ### External host implementations
 
@@ -576,7 +577,7 @@ const RequestHostTokenLayer = RequestHostToken.toLayer(
 )
 ```
 
-List `RequestHostToken` in the feature completion's `hostHandlers`, then let the host call `block.provideHandlers(RequestHostTokenLayer)` before creating a connection or installing that feature. `ApplicationLayer` remains the provider for ordinary Services such as `HostApi`. The same contract applies to a Subscription, Mount, ManagedResource, or experimental Query definition without `handler`: `toLayer` receives the constructor Effect that returns that definition's complete implementation.
+List `RequestHostToken` in the feature completion's `hostHandlers`, then let the host call `block.provideHandlers(RequestHostTokenLayer)` before binding or installing that feature. `ApplicationLayer` remains the provider for ordinary Services such as `HostApi`. The same contract applies to a Subscription, Mount, ManagedResource, or experimental Query definition without `handler`: `toLayer` receives the constructor Effect that returns that definition's complete implementation.
 
 ### Update requirements
 
@@ -670,23 +671,23 @@ A Command-producing fold can infer its requirements through the owning definitio
 
 ### Composing Layers
 
-Keep definitions and handlers within the feature whose update returns them, alongside update or in a feature-local `command.ts`. Compose attached recipes directly as `Definition.layer` in each owning module's local `EffectsLayer`. When a recipe needs its own exported or reused binding, name it `FooLayer`; name an external alternative `FooTestLayer`. Pass the local bundle to `FeatureDefinition.toBlock`; registered child connections contribute their recipes automatically. The typed Application owns root completion and its registration graph. Its `make` method collects the handler recipes, while `ApplicationLayer` supplies ordinary Services. Import Effect's module as `Layer`; the bundle names avoid an alias.
+Keep definitions and handlers within the feature whose update returns them, alongside update or in a feature-local `command.ts`. Compose attached recipes directly as `Definition.layer` in each owning module's local `EffectsLayer`. When a recipe needs its own exported or reused binding, name it `FooLayer`; name an external alternative `FooTestLayer`. Pass the local bundle to `FeatureComposition.toBlock`; child Bindings included in the Composition contribute their recipes automatically. The typed Application Composition owns root completion and its graph. Its `make` method collects the handler recipes, while `ApplicationLayer` supplies ordinary Services. Import Effect's module as `Layer`; the bundle names avoid an alias.
 
-Foldkit UI components expose completed Blocks. Connect each component and register it in the owning definition's `children`; composition carries its Mounts, lifecycle registrations, and handler graph to the root. `Slider.forRoot(getTrackRoot)` and `Toast.make(payloadSchema)` return completed Blocks with refined Model, Message, and operation contracts.
+Foldkit UI components expose completed Blocks. Bind each component through the owning Definition and include it in the Composition's `children`; composition carries its Mounts, lifecycle registrations, and handler graph to the root. `Slider.forRoot(getTrackRoot)` and `Toast.make(payloadSchema)` return completed Blocks with refined Model, Message, and operation contracts.
 
 ### Requirements and definition identities
 
 #### Inferred requirements
 
-`Update.define` infers Command requirements and OutMessages across Message branches while preserving required, optional, and rest context parameters. `Update.RequirementsOf<typeof update>` reads the Command services from an update contract without including lifecycle-only services. `Application.make` and the completed program's `provide` method carry all remaining handler and service requirements until the selected Layers satisfy them.
+`Update.define` infers Command requirements and OutMessages across Message branches while preserving required, optional, and rest context parameters. `Update.RequirementsOf<typeof update>` reads the Command services from an update contract without including lifecycle-only services. `ApplicationComposition.make` checks handler completeness across the Composition. The completed program carries the ordinary Service requirements of those handler recipes and startup Effects until `application.provide(ApplicationLayer)` satisfies them.
 
 #### Registration names
 
-Each handler name belongs to one registered Subscription, Mount, or ManagedResource definition within an application. `Application.make` rejects distinct registered definitions of those types with the same name. Multiple lifted Subscription registrations of the same definition can share its Layer. A ManagedResource retains its handler contract through lifting; each registered resource tag key still has one lifecycle owner.
+Handler names are local to their owning Block. Bindings qualify those identities by placement, so different Blocks and repeated placements can reuse a local name. Sibling Bindings must have distinct resolved placements. Incompatible handler protocols are rejected during assembly, and private definition identity checks reject a provider built from another definition. A ManagedResource retains its handler contract through lifting; each registered resource tag key still has one lifecycle owner.
 
 #### Handler protocols
 
-Handler requirements carry the name and protocol that share an Effect Context key: decoded args and declared result Messages for Commands, decoded dependencies and declared Messages for Subscriptions, element inputs and declared result Messages for Mounts, and decoded acquire params and resource values for ManagedResources. The completed program's `provide` method rejects incompatible same-named contracts supplied directly, combined in a `Layer.mergeAll` bundle, introduced through the Layer's own requirements, or accumulated through sequential provision.
+Handler requirements carry the name and protocol that share an Effect Context key: decoded args and declared result Messages for Commands, decoded dependencies and declared Messages for Subscriptions, element inputs and declared result Messages for Mounts, and decoded acquire params and resource values for ManagedResources. The Block's checked handler assembly rejects incompatible contracts in its local `EffectsLayer` and selected host providers. `provideHandlers` completes explicit host contracts on the original Block. Ordinary Service provision happens after final Application completion.
 
 #### Definition identity checks
 
@@ -694,7 +695,7 @@ Distinct definitions with identical names and protocols remain structurally indi
 
 #### ManagedResource ownership
 
-Each registered ManagedResource tag key has one lifecycle owner. `Application.make` and `Application.makeElement` reject the same resource key under multiple registration keys, including separately created tags with matching keys. Give independent resource instances distinct tag keys so each accessor resolves its own handle.
+Each registered ManagedResource tag key has one lifecycle owner. `ApplicationComposition.make` and `ApplicationComposition.makeElement` reject the same resource key under multiple registration keys, including separately created tags with matching keys. Give independent resource instances distinct tag keys so each accessor resolves its own handle.
 
 ### Startup and cleanup
 

@@ -204,11 +204,11 @@ Manually copying the child Model from a helper result causes a separate problem.
 
 ::Snippet{name="antiPatternBlockResultBad" label="❌ The parent keeps only the child Model" class="mb-4"}
 
-Declare parent-driven transitions under `expose: { operation }` in the completed Block. The parent calls `connection.operation(...)`, which returns a parent Update.Step and preserves the child's full result.
+Declare parent-driven transitions under `expose: { operation }` in the completed Block. The parent calls `binding.operation(...)`, which returns a parent Update.Step and preserves the child's full result.
 
 ::Snippet{name="antiPatternBlockBoundaryGood" label="✅ A public helper preserves the child's update boundary"}
 
-The connection writes the returned child Model into the parent, maps its Commands, and applies the required `outMessage.fold` or `outMessage.forward` policy. The [Block guide](/core/block) explains child Messages and OutMessages. [Informing Blocks](/patterns/informing-blocks) covers parent-owned facts that a child needs to hear about.
+The Binding writes the returned child Model into the parent, maps its Commands, and applies the required `outMessage.fold` or `outMessage.forward` policy. The [Block guide](/core/block) explains child Messages and OutMessages. [Informing Blocks](/patterns/informing-blocks) covers parent-owned facts that a child needs to hear about.
 
 ## Initialize Children Through Their Connections
 
@@ -222,20 +222,20 @@ Copying the child Model from an update result can silently drop its Commands and
 
 ::Snippet{name="antiPatternChildInitBad" label="❌ Manual assembly loses an initialization OutMessage" class="mb-4"}
 
-Initialize through the connection, construct the complete parent Model, then invoke the exposed restoration Step. The connection maps Commands and applies the exhaustive OutMessage policy declared at the composition boundary:
+Initialize through the Binding, construct the complete parent Model, then invoke the exposed restoration Step. The Binding maps Commands and applies the exhaustive OutMessage policy declared at the composition boundary:
 
-::Snippet{name="antiPatternChildInitGood" label="✅ Initialize and restore through the connection"}
+::Snippet{name="antiPatternChildInitGood" label="✅ Initialize and restore through the Binding"}
 
 The restoration Step runs against the completed parent Model. The Runtime starts returned Commands independently, so array order does not sequence their execution or completion. See [Connecting a child](/core/block#embedding) and [Composing Update Steps](/core/update#composing-update-steps).
 
 ### Initialize Several Children
 
-Build one complete parent Model from each connection's `init` result, then run any public restoration Steps with `Update.combine`. Each Step receives the Model produced by the preceding Step, so later operations preserve earlier changes:
+Build one complete parent Model from each Binding's `init` result, then run any public restoration Steps with `Update.combine`. Each Step receives the Model produced by the preceding Step, so later operations preserve earlier changes:
 
-::Snippet{name="updateIndependentInits" label="✅ Initialize independent child connections together"}
+::Snippet{name="updateIndependentInits" label="✅ Initialize independent child Bindings together"}
 
-Each connection declares whether a child OutMessage is handled locally, forwarded upward, or both. If several restoration Steps emit parent OutMessages during one `Update.combine`, the last emitted parent OutMessage wins; split the operations when each fact must be observed independently.
+Each Binding declares whether a child OutMessage is handled locally, forwarded upward, or both. If several restoration Steps emit parent OutMessages during one `Update.combine`, the last emitted parent OutMessage wins; split the operations when each fact must be observed independently.
 
 ## Know What Linting Can Catch {#what-linting-can-catch}
 
-The [Foldkit linter](/tooling/oxlint-plugin) can recognize code shapes such as a module-level `let`, `Date.now()` inside update, a parent constructing a child Message, or a Mount handler that never uses its element. It also flags direct child Model edits and manual child Return copies when an in-file connection establishes the Block boundary. It cannot decide whether two domain states may coexist, whether an async result can become stale, or which part of an application should own a value without that boundary evidence. Those questions still require design review.
+The [Foldkit linter](/tooling/oxlint-plugin) can recognize code shapes such as a module-level `let`, `Date.now()` inside update, a parent constructing a child Message, or a Mount handler that never uses its element. It also flags direct child Model edits and manual child Return copies when an in-file Binding establishes the Block boundary. It cannot decide whether two domain states may coexist, whether an async result can become stale, or which part of an application should own a value without that boundary evidence. Those questions still require design review.

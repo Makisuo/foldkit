@@ -26,4 +26,4 @@ export {
   type ViewInputs,
   view,
   block,
-} from './hoverIntent.js'
+} from './block.js'

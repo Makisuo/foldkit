@@ -3,8 +3,7 @@ const OutMessage = defineMessageUnion({
   CompletedRange: { startDate: Schema.String, endDate: Schema.String },
 })
 
-const endDatePicker = DatePicker.block.connection({
-  Model: Model,
+const endDatePicker = ApplicationDefinition.bindChild(DatePicker.block, {
   field: 'endDatePicker',
   parentMessage: Message.GotEndDateMessage,
   outMessage: {

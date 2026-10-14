@@ -3,7 +3,7 @@ import { Calendar } from 'foldkit'
 import { Server } from 'foldkit/experimental'
 import { fromString as urlFromString } from 'foldkit/url'
 
-import { Application, EffectsLayer } from './application'
+import { ApplicationComposition, EffectsLayer } from './application'
 import { deployment } from './deployment'
 import { subscriptions } from './lifecycle'
 import { ApiReference, Example } from './page'
@@ -136,7 +136,7 @@ export const renderPage = (request: Request): Promise<Server.EntryResult> =>
     )
     return Effect.runPromise(
       Server.renderToString(
-        Application,
+        ApplicationComposition,
         { init, update, view, subscriptions, EffectsLayer, Flags, routing: {} },
         {
           url: request.url,

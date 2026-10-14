@@ -6,13 +6,13 @@ An accessible date picker that wraps `Calendar` in a `Popover`. Consumers provid
 
 ### State Ownership
 
-`DatePicker.block` is a completed Block. Connect it, initialize it through the connection, delegate Messages with `connection.fold`, and render it through `connection.embedView`.
+`DatePicker.block` is a completed Block. Connect it, initialize it through the Binding, delegate Messages with `Binding.fold`, and render it through `Binding.embedView`.
 
-The parent owns the selected date. Store it in the parent Model, pass it to the view as `maybeSelectedDate`, and handle `SelectedDate` and `ClearedDate` in the connection's `outMessage.fold` policy. DatePicker can also emit `ChangedViewMonth` when navigation changes the visible month.
+The parent owns the selected date. Store it in the parent Model, pass it to the view as `maybeSelectedDate`, and handle `SelectedDate` and `ClearedDate` in the Binding's `outMessage.fold` policy. DatePicker can also emit `ChangedViewMonth` when navigation changes the visible month.
 
 ### Programmatic Control
 
-For programmatic control in a parent update, call the connection’s `open()` and `close()` operations. Both can emit an OutMessage that reports whether the DatePicker opened or closed.
+For programmatic control in a parent update, call the Binding’s `open()` and `close()` operations. Both can emit an OutMessage that reports whether the DatePicker opened or closed.
 
 ### Calendar Views
 
@@ -99,7 +99,7 @@ The DatePicker Model. Stored on your parent Model and threaded through `DatePick
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the DatePicker connection's `embedView` method. The connection supplies the canonical view, Message wrapper, and composition scope. Keep `triggerContent` and `toCalendarView` at the top level, and use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass the child Model as `model` and these fields as `viewInputs` to the DatePicker Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `triggerContent` and `toCalendarView` at the top level, and use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name                                                | Type                                             | Default | Description                                                                                                                                                                                                                                                                                     |
 | --------------------------------------------------- | ------------------------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -129,13 +129,13 @@ The discriminated union passed to `toCalendarView`. Pattern-match on `_tag` (`'D
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the connection’s `outMessage.fold` policy.
+Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s `outMessage.fold` policy.
 
-| Name               | Type                              | Default | Description                                                                                                                                                                                             |
-| ------------------ | --------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SelectedDate`     | `{ date: CalendarDate }`          | —       | Emitted when the user commits a date (click / Enter / Space). Handle it in the connection's `outMessage.fold` policy to lift the date into domain state.                                                |
-| `ClearedDate`      | `{}`                              | —       | Emitted when the user clears the selected date (via `Cleared` or the connection’s `clear()`). The popover stays open. Fold it into the parent-owned selected-date field by setting it to Option.none(). |
-| `ChangedViewMonth` | `{ year: number; month: number }` | —       | Emitted when navigation changes the visible month inside the calendar grid.                                                                                                                             |
+| Name               | Type                              | Default | Description                                                                                                                                                                                          |
+| ------------------ | --------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SelectedDate`     | `{ date: CalendarDate }`          | —       | Emitted when the user commits a date (click / Enter / Space). Handle it in the Binding's `outMessage.fold` policy to lift the date into domain state.                                                |
+| `ClearedDate`      | `{}`                              | —       | Emitted when the user clears the selected date (via `Cleared` or the Binding’s `clear()`). The popover stays open. Fold it into the parent-owned selected-date field by setting it to Option.none(). |
+| `ChangedViewMonth` | `{ year: number; month: number }` | —       | Emitted when navigation changes the visible month inside the calendar grid.                                                                                                                          |
 
 ### Programmatic Helpers
 

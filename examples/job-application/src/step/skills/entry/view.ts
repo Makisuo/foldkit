@@ -7,11 +7,11 @@ import { ProficiencyLevel } from '../../../domain'
 import { Field } from '../../../view'
 import {
   Message,
-  RegisteredSkillsEntryDefinition,
+  SkillsEntryComposition,
   proficiencyRadioGroup,
 } from './definition'
 
-export const view = RegisteredSkillsEntryDefinition.view((model, h) => {
+export const view = SkillsEntryComposition.view((model, h) => {
   const nameView = Field.input(
     {
       id: `${model.id}-name`,

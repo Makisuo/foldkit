@@ -4,20 +4,18 @@ import { Message } from './message'
 import { Model } from './model'
 import { Home, Products } from './page'
 
-const home = Home.block.connection({
-  Model,
+export const ApplicationDefinition = defineApplication({ Model, Message })
+
+const home = ApplicationDefinition.bindChild(Home.block, {
   field: 'home',
   parentMessage: Message.GotHomeMessage,
 })
 
-const products = Products.block.connection({
-  Model,
+const products = ApplicationDefinition.bindChild(Products.block, {
   field: 'products',
   parentMessage: Message.GotProductsMessage,
 })
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
-
-export const Application = ApplicationDefinition.register({
+export const ApplicationComposition = ApplicationDefinition.toComposition({
   children: [home, products],
 })

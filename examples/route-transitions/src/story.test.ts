@@ -4,17 +4,11 @@ import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import {
-  ApplicationRoute,
-  LoadCatalog,
-  LoadPainting,
-  Message,
-  Model,
-  PaintingStatus,
-  SaveDraft,
-  init,
-  update,
-} from './application'
+import { LoadCatalog, LoadPainting, SaveDraft } from './command'
+import { Message } from './message'
+import { Model, PaintingStatus } from './model'
+import { ApplicationRoute } from './route'
+import { init, update } from './update'
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(

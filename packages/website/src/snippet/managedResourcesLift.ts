@@ -13,41 +13,35 @@ const SIGNALING_URL = 'wss://example.com/call/signaling'
 const CallDefinition = Block.define('Call', { Model, Message })
 const SignalingSocket = CallDefinition.resource<WebSocket>()('SignalingSocket')
 
-const videoCall = VideoCall.block.connection({
+const videoCall = CallDefinition.bindChild(VideoCall.block, {
   read: (model: Model) => model.videoCall,
   write: (model, nextVideoCall) =>
     modifyFields(model, { videoCall: () => Option.some(nextVideoCall) }),
   parentMessage: Message.GotVideoCallMessage,
 })
 
-const RegisteredCallDefinition = CallDefinition.register({
+const CallComposition = CallDefinition.toComposition({
   children: [videoCall],
 })
 
-export const managedResources = RegisteredCallDefinition.managedResources(
-  entry => ({
-    signalingSocket: entry(
-      'ManageSignalingSocket',
-      Schema.Option(Schema.Null),
-      {
-        resource: SignalingSocket,
-        modelToMaybeRequirements: model => Option.as(model.videoCall, null),
-        onAcquired: () => Message.OpenedSignaling(),
-        onReleased: () => Message.ClosedSignaling(),
-        onAcquireError: error =>
-          Message.FailedSignaling({ error: globalThis.String(error) }),
-        handler: function* () {
-          return {
-            acquire: () => Effect.try(() => new WebSocket(SIGNALING_URL)),
-            release: socket => Effect.sync(() => socket.close()),
-          }
-        },
-      },
-    ),
+export const managedResources = CallComposition.managedResources(entry => ({
+  signalingSocket: entry('ManageSignalingSocket', Schema.Option(Schema.Null), {
+    resource: SignalingSocket,
+    modelToMaybeRequirements: model => Option.as(model.videoCall, null),
+    onAcquired: () => Message.OpenedSignaling(),
+    onReleased: () => Message.ClosedSignaling(),
+    onAcquireError: error =>
+      Message.FailedSignaling({ error: globalThis.String(error) }),
+    handler: function* () {
+      return {
+        acquire: () => Effect.try(() => new WebSocket(SIGNALING_URL)),
+        release: socket => Effect.sync(() => socket.close()),
+      }
+    },
   }),
-)
+}))
 
-export const block = RegisteredCallDefinition.toBlock({
+export const block = CallComposition.toBlock({
   init,
   update,
   managedResources,

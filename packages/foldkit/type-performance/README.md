@@ -3,8 +3,9 @@
 This harness measures deterministic TypeScript diagnostics for completed Block
 composition through Foldkit's published declarations. Each checked-in fixture
 imports public `foldkit` package entry points, completes its Block graph, and
-finishes with `Application.update`, `Application.makeElement`, and
-the completed program’s `.provide(...)` method.
+finishes with `ApplicationDefinition.update`,
+`ApplicationComposition.makeElement`, and the completed program’s
+`.provide(...)` method.
 
 The shared baseline contains the imports and warmup expressions repeated by
 every fixture. Fixture cost is the fixture total minus that baseline for these
@@ -14,8 +15,8 @@ compiler diagnostics:
 - `Symbols` is reported for context because symbol count alone is not a stable
   proxy for type computation.
 
-The deep fixture connects a leaf through eight parent Blocks and then connects
-the result to an Application. The other fixtures cover 100 sibling connections
+The deep fixture binds a leaf through eight parent Blocks and then binds the
+result into an Application. The other fixtures cover 100 sibling Bindings
 with exhaustive Message folds and 200 distinct Command requirements. Every
 fixture carries an ordinary Effect Service through Application completion and
 provides its Layer. Run the check after building `packages/foldkit`:
@@ -38,19 +39,49 @@ Only update budgets after reviewing an intentional type-level change. The
 ordinary check never changes them and fails when either gated metric exceeds
 its stored maximum.
 
-The TypeScript 7.0.2 ceilings include the private connection evidence used by
-`Block.inspectConnection`. Compared with the preceding public metadata shape,
-the reviewed increases are 2.40% instantiations and 0.94% types for deep
-composition, 1.35% and 0.76% for wide composition, and 0.04% and 0.03% for the
-Command fixture. This evidence preserves exact handler requirements,
-registration evidence, Layer services and errors, and Mount definitions through
-emitted declarations while keeping metadata out of ordinary connection
-completions.
+Baseline history for private Binding evidence: the TypeScript 7.0.2 ceilings
+include the evidence used by `Block.inspectBinding`. Compared with the
+preceding public metadata shape, the reviewed increases were 2.40%
+instantiations and 0.94% types for deep composition, 1.35% and 0.76% for wide
+composition, and 0.04% and 0.03% for the Command fixture. This evidence
+preserves exact handler requirements, registration evidence, Layer services and
+errors, and Mount definitions through emitted declarations while keeping
+metadata out of ordinary Binding completions.
 
-The completed Block operations use a named interface boundary so TypeScript 6
-can emit API documentation for generic registered component graphs without
-erasing their Model, Message, OutMessage, Layer, Mount, or connection evidence.
-Compared with the private-evidence ceilings above, this boundary increases deep
-composition by 4.46% instantiations and 2.95% types. The wide and Command
-fixtures decreased slightly, so their ceilings are lowered to the exact final
-measurements.
+Baseline history for the named operations boundary: completed Block operations
+use a named interface so TypeScript 6 can emit API documentation for generic
+registered component graphs without erasing their Model, Message, OutMessage,
+Layer, Mount, or Binding evidence. Compared with the private-evidence ceilings
+above, this boundary increased deep composition by 4.46% instantiations and
+2.95% types. The wide and Command fixtures decreased slightly, so their
+ceilings were lowered to the exact final measurements.
+
+## Parent-owned Binding and mandatory Composition staging
+
+The parent-owned Binding API keeps the fixture widths unchanged: eight nested
+Blocks, 100 sibling Bindings, and 200 distinct Command requirements. The
+mandatory Definition to Composition to completion stages add a fixed type-shape
+cost in the deep and Command fixtures. Exact parent Message evidence prevents
+the 100-child fixture from repeating the complete parent Message union in every
+Binding, so its instantiation count decreases.
+
+| Fixture                    | Baseline instantiations (`11e8ca60e6dd`) | Current instantiations | Baseline types (`11e8ca60e6dd`) | Current types |
+| -------------------------- | ---------------------------------------: | ---------------------: | ------------------------------: | ------------: |
+| `deep-composition-8`       |                                1,126,164 |              1,152,618 |                          49,591 |        55,845 |
+| `wide-composition-100`     |                                3,132,298 |              3,013,262 |                         211,029 |       215,421 |
+| `command-requirements-200` |                                2,616,095 |              2,659,415 |                         382,863 |       389,462 |
+
+Two bounded counterfactuals isolate ordinary Composition helpers from the
+mandatory staging cost. Removing `Composition.render` changed no
+instantiations and removed two types from each fixture. Removing
+`Composition.bindChild` changed neither gated metric. Both helpers remain in
+the public API.
+
+Separate process-cold compiler runs on the same TypeScript 7.0.2 installation
+showed no material wall-time regression after the filesystem cache was warm.
+Baseline `11e8ca60e6dd` versus current check times were 0.429s versus 0.416s for
+deep composition, 1.266s versus 1.294s for wide composition, and 0.948s versus
+0.926s for Command requirements. Peak reported memory changed from 142,236K to
+146,147K, 280,586K to 283,343K, and 293,411K to 296,906K respectively. The
+checked-in ceilings continue to gate deterministic instantiation and type
+counts rather than timing or memory, which vary with host and cache state.

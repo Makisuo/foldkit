@@ -7,4 +7,4 @@ export {
   revealErrors,
 } from './definition'
 export * as Entry from './entry'
-export { block } from './skills'
+export { block } from './block'

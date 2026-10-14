@@ -23,13 +23,22 @@ export type Primitives<Id extends string, Message = unknown> = Readonly<{
 }>
 
 /** Registers graph capabilities while retaining the Block's authoring methods. */
-export interface AuthoringRegister<
+export interface AuthoringToComposition<
   Id extends string,
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
   Concrete extends boolean = true,
 > {
+  (): Composition<
+    Owner<Id, Concrete>,
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    readonly [],
+    readonly []
+  > &
+    Primitives<Id, MessageSchema['Type']>
   <
     const Mounts extends ReadonlyArray<Mount.LayeredMountDefinition> =
       readonly [],
@@ -65,11 +74,11 @@ export type AuthoringDefinition<
   Concrete extends boolean = true,
 > = Omit<
   Base<Owner<Id, Concrete>, ModelSchema, MessageSchema, OutMessageSchema>,
-  'register'
+  'toComposition'
 > &
   Primitives<Id, MessageSchema['Type']> &
   Readonly<{
-    register: AuthoringRegister<
+    toComposition: AuthoringToComposition<
       Id,
       ModelSchema,
       MessageSchema,
@@ -226,15 +235,15 @@ export function define(
   ) => {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const base = authoring.define(contracts as never)
-    const register = (
+    const toComposition = (
       graph: Readonly<{
         mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
         children?: ReadonlyArray<AnyBinding>
-      }>,
+      }> = {},
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    ) => ({ ...base.register(graph as never), ...primitives })
+    ) => ({ ...base.toComposition(graph as never), ...primitives })
 
-    return { ...base, ...primitives, register }
+    return { ...base, ...primitives, toComposition }
   }
 
   if (config === undefined) {

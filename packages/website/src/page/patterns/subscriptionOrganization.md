@@ -2,7 +2,7 @@
 
 ## Overview
 
-A Block owns the Subscriptions that produce its Messages. Its completed Block carries those registrations and their handler recipes. A parent connection lifts them through the same Model accessor and Message wrapper used for update and view.
+A Block owns the Subscriptions that produce its Messages. Its completed Block carries those registrations and their handler recipes. A parent Binding lifts them through the same Model accessor and Message wrapper used for update and view.
 
 This keeps one parent-child relationship in one place. The parent does not separately lift and aggregate a child's Subscription record, and the application entry does not import leaf Subscription handlers.
 
@@ -12,15 +12,15 @@ Use the Block definition's `subscriptions` helper. It fixes the Model and Messag
 
 ::Snippet{name="subscriptionOrganizationChild" label="Block Subscription definitions"}
 
-Compose the attached entry recipes in the feature's local `EffectsLayer`. Pass that bundle to `FeatureDefinition.toBlock`. A parent connection contributes it automatically.
+Compose the attached entry recipes in the feature's local `EffectsLayer`. Pass that bundle to `FeatureComposition.toBlock`. A parent Binding contributes it automatically.
 
 ## Connect the Child Once
 
-The parent connects the completed child and registers the connection in its own definition:
+The parent binds the completed child and includes the Binding in its Composition:
 
-::Snippet{name="subscriptionOrganizationComposing" label="Registering child Subscriptions through a connection"}
+::Snippet{name="subscriptionOrganizationComposing" label="Composing child Subscriptions through a Binding"}
 
-The connection derives three things from the same policy:
+The Binding derives three things from the same policy:
 
 - `read` locates the child Model for update and every lifecycle.
 - `parentMessage` wraps update, Command, Subscription, Mount, and ManagedResource Messages.
@@ -30,7 +30,7 @@ Nested Blocks repeat the same pattern. By the time a Stream reaches the root, ev
 
 ## Install the Root
 
-The typed Application or its registered composition already contains the Subscription and handler graph. Its owned `make` method completes the browser program with the implementation:
+The Application Composition already contains the Subscription and handler graph. Its owned `make` method completes the browser program with the implementation:
 
 ::Snippet{name="subscriptionOrganizationRoot" label="Installing the root Subscription graph"}
 
@@ -46,17 +46,17 @@ When that child reappears, its Streams start in a new occurrence scope.
 
 ## Parent-owned Gates {#gating}
 
-A child expresses conditions from its own Model through `modelToDependencies` and its Stream. It cannot see parent-owned state such as the active Route. Put that policy on the connection.
+A child expresses conditions from its own Model through `modelToDependencies` and its Stream. It cannot see parent-owned state such as the active Route. Put that policy on the Binding.
 
 ### Gate the whole child record
 
 ::Snippet{name="subscriptionOrganizationGate" label="Route-gated child Subscriptions"}
 
-The gate controls Stream lifetime only. It does not make the child Model absent and does not prevent `connection.fold` from running.
+The gate controls Stream lifetime only. It does not make the child Model absent and does not prevent `binding.fold` from running.
 
 ### Gate named entries
 
-Use a record when some entries remain active. This Room keeps its connection Stream alive while gating only its keyboard listener:
+Use a record when some entries remain active. This Room keeps its Binding Stream alive while gating only its keyboard listener:
 
 ::Snippet{name="subscriptionOrganizationEntryGate" label="Per-entry Subscription gate"}
 
@@ -64,10 +64,10 @@ An omitted entry has no additional parent gate. It still stops when `read` retur
 
 ## Keyed Children
 
-Use `child.keyedConnection` for a collection. The connection declares `readAll`, the stable `key`, and parent routing once. Every active key receives independent Stream scopes and its own gate evaluation.
+Use `ParentDefinition.bindChild` with `readAll` and `key` for a collection. The Binding declares collection enumeration, stable identity, and parent routing once. Every active key receives independent Stream scopes and its own gate evaluation.
 
 Removing a key stops those Streams. Reusing the key later creates a fresh occurrence, so callbacks captured by the old occurrence cannot dispatch into the replacement.
 
 ## Ownership Rule
 
-Put a Subscription in the lowest Block whose Messages it emits and whose Model controls its dependencies. Parent route policy belongs on the connection. Shared event-source services belong in Effect Layers supplied at application assembly.
+Put a Subscription in the lowest Block whose Messages it emits and whose Model controls its dependencies. Parent route policy belongs on the Binding. Shared event-source services belong in Effect Layers supplied at application assembly.

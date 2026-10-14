@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
 
-import * as Settings from './blockOwnedDescriptor'
+import * as Settings from './blockSettings'
 
 export const Model = Schema.Struct({
   currentUser: Schema.Struct({ accountId: Schema.String }),

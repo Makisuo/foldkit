@@ -1,6 +1,5 @@
 export * as ExampleDetail from './exampleDetail'
-export { EffectsLayer, mounts } from './exampleDetail'
-export { block, init, update, view } from './exampleDetail'
+export { block } from './exampleDetail'
 export { Message } from './message'
 export { Model } from './model'
 export {

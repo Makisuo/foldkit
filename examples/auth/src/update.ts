@@ -3,7 +3,7 @@ import { UrlRequest } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
-import { Application, loggedIn, loggedOut } from './children'
+import { Application } from './application'
 import {
   LoadExternal,
   LogError,
@@ -11,6 +11,7 @@ import {
   RedirectToDashboard,
   RedirectToLogin,
 } from './command'
+import { loggedIn, loggedOut } from './connection'
 import { Message } from './message'
 import { urlToApplicationRoute } from './route'
 

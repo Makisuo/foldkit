@@ -5,6 +5,12 @@ import type { InstanceKey } from './instanceContext.js'
 /** @internal Enumerates a binding's active children from one parent Model. */
 export type RuntimeBinding = Readonly<{
   block: BindableBlock
+  inspection: Readonly<{
+    subscriptions: object
+    managedResources: object
+    mounts: ReadonlyArray<unknown>
+    EffectsLayer: unknown
+  }>
   select: (
     model: any,
   ) => ReadonlyArray<Readonly<{ key?: InstanceKey; model: any }>>

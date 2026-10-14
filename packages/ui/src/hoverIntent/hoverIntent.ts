@@ -24,7 +24,11 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-const HoverIntent = Block.define('HoverIntent', { Model, Message, OutMessage })
+const HoverIntentDefinition = Block.define('HoverIntent', {
+  Model,
+  Message,
+  OutMessage,
+})
 
 const DEFAULT_OPEN_DELAY = Duration.millis(200)
 const DEFAULT_CLOSE_DELAY = Duration.millis(300)
@@ -57,28 +61,34 @@ export const init = (config: InitConfig = {}): Model => ({
 // COMMAND
 
 /** Waits before opening, then emits the version that scheduled the wait. */
-export const WaitBeforeOpening = HoverIntent.command('WaitBeforeOpening', {
-  args: { delay: Schema.DurationFromMillis, version: Schema.Number },
-  messages: [Message.CompletedWaitBeforeOpening],
-  handler: function* () {
-    return ({ delay, version }) =>
-      Effect.sleep(delay).pipe(
-        Effect.as(Message.CompletedWaitBeforeOpening({ version })),
-      )
+export const WaitBeforeOpening = HoverIntentDefinition.command(
+  'WaitBeforeOpening',
+  {
+    args: { delay: Schema.DurationFromMillis, version: Schema.Number },
+    messages: [Message.CompletedWaitBeforeOpening],
+    handler: function* () {
+      return ({ delay, version }) =>
+        Effect.sleep(delay).pipe(
+          Effect.as(Message.CompletedWaitBeforeOpening({ version })),
+        )
+    },
   },
-})
+)
 
 /** Waits before closing, then emits the version that scheduled the wait. */
-export const WaitBeforeClosing = HoverIntent.command('WaitBeforeClosing', {
-  args: { delay: Schema.DurationFromMillis, version: Schema.Number },
-  messages: [Message.CompletedWaitBeforeClosing],
-  handler: function* () {
-    return ({ delay, version }) =>
-      Effect.sleep(delay).pipe(
-        Effect.as(Message.CompletedWaitBeforeClosing({ version })),
-      )
+export const WaitBeforeClosing = HoverIntentDefinition.command(
+  'WaitBeforeClosing',
+  {
+    args: { delay: Schema.DurationFromMillis, version: Schema.Number },
+    messages: [Message.CompletedWaitBeforeClosing],
+    handler: function* () {
+      return ({ delay, version }) =>
+        Effect.sleep(delay).pipe(
+          Effect.as(Message.CompletedWaitBeforeClosing({ version })),
+        )
+    },
   },
-})
+)
 
 /** Effect providers used by the HoverIntent component. */
 export const EffectsLayer = Layer.mergeAll(
@@ -114,7 +124,7 @@ const finishClosing = (model: Model) => {
   }
 }
 
-const scheduleOpen = HoverIntent.step(model => {
+const scheduleOpen = HoverIntentDefinition.step(model => {
   const version = Number.increment(model.pendingOpenVersion)
   return {
     model: modifyFields(model, { pendingOpenVersion: () => version }),
@@ -123,7 +133,7 @@ const scheduleOpen = HoverIntent.step(model => {
 })
 
 const scheduleClose = (delay: Duration.Duration) =>
-  HoverIntent.step(model => {
+  HoverIntentDefinition.step(model => {
     const version = Number.increment(model.pendingCloseVersion)
     return {
       model: modifyFields(model, { pendingCloseVersion: () => version }),
@@ -221,7 +231,7 @@ const dismiss = (model: Model, isTriggerFocused: boolean) => {
 
 /** Programmatically closes HoverIntent immediately, invalidating pending
  *  transitions and suppressing reopening until the trigger disengages. */
-const close = HoverIntent.step(model =>
+const close = HoverIntentDefinition.step(model =>
   dismiss(
     model,
     Option.exists(
@@ -232,7 +242,7 @@ const close = HoverIntent.step(model =>
 )
 
 /** Processes a HoverIntent Message and returns the next Model, optional Commands, and an optional OutMessage. */
-export const update = HoverIntent.update((model, message) =>
+export const update = HoverIntentDefinition.update((model, message) =>
   Message.match(message, {
     EnteredTrigger: () =>
       entered(modifyFields(model, { isTriggerHovered: () => true })),
@@ -300,7 +310,7 @@ export type ViewInputs = Readonly<{
 }>
 
 /** Renders headless HoverIntent event bundles. It owns no markup, ARIA semantics, positioning, or styling. */
-export const view = HoverIntent.view.withInputs<ViewInputs>(
+export const view = HoverIntentDefinition.view.withInputs<ViewInputs>(
   (model, { focusTriggerSelector, toView }, h) => {
     const toPressedEscape =
       (source: 'Trigger' | 'Panel') =>
@@ -348,10 +358,10 @@ export const view = HoverIntent.view.withInputs<ViewInputs>(
 )
 
 /** Complete HoverIntent Block definition for connecting to a parent. */
-export const block = HoverIntent.assemble({
+export const block = HoverIntentDefinition.toBlock({
   init: (config?: InitConfig) => ({ model: init(config) }),
   update,
   view,
-  steps: { close },
+  expose: { close },
   EffectsLayer,
 })

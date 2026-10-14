@@ -23,8 +23,6 @@ const clampResetSeconds = (seconds: number): number =>
     maximum: MAX_RESET_DURATION,
   })
 
-// MODEL
-
 const AnimationPhase = Schema.Literals([
   'Idle',
   'IncrementMessage',
@@ -52,8 +50,6 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   ClickedDemoIncrement: {},
   ChangedDemoResetDuration: { seconds: Schema.Number },
@@ -62,9 +58,10 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-const AsyncCounterDemo = Block.define('AsyncCounterDemo', { Model, Message })
-
-// INIT
+const AsyncCounterDemoDefinition = Block.define('AsyncCounterDemo', {
+  Model,
+  Message,
+})
 
 export const init = () => ({
   model: Model.make({
@@ -77,9 +74,7 @@ export const init = () => ({
   }),
 })
 
-// UPDATE
-
-export const DelayAdvanceAsyncCounterPhase = AsyncCounterDemo.command(
+export const DelayAdvanceAsyncCounterPhase = AsyncCounterDemoDefinition.command(
   'DelayAdvanceAsyncCounterPhase',
   {
     args: { generation: Schema.Number, duration: Schema.DurationFromMillis },
@@ -104,7 +99,7 @@ const prependToLog =
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     pipe([entry, ...messageLog], Array.take(MAX_LOG_ENTRIES))
 
-export const update = AsyncCounterDemo.update((model, message) =>
+export const update = AsyncCounterDemoDefinition.update((model, message) =>
   Message.match(message, {
     ClickedDemoIncrement: () => {
       const nextModel = modifyFields(model, {
@@ -274,8 +269,6 @@ export const update = AsyncCounterDemo.update((model, message) =>
   }),
 )
 
-// VIEW
-
 const phaseLabel = (phase: AnimationPhase): string =>
   Match.value(phase).pipe(
     Match.when('Idle', () => 'Idle'),
@@ -330,7 +323,7 @@ const phaseColorClass = (phase: AnimationPhase): string =>
     Match.exhaustive,
   )
 
-export const view = AsyncCounterDemo.view((model, h) =>
+export const view = AsyncCounterDemoDefinition.view((model, h) =>
   DemoView.shell(
     DemoView.codePanel(
       'demo-code-panel',
@@ -556,7 +549,7 @@ const progressBarView = (model: Model, isCommand: boolean): Html =>
     ],
   )
 
-export const block = AsyncCounterDemo.assemble({
+export const block = AsyncCounterDemoDefinition.toBlock({
   init,
   update,
   view,

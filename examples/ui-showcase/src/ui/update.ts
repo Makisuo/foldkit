@@ -17,6 +17,7 @@ import {
 import { defaultLeaveCommand } from '@foldkit/ui/animation'
 
 import { CityCombobox, CityMultiCombobox } from './combobox'
+import { init } from './init'
 import { CharacterListbox, ItemListbox, ItemMultiListbox } from './listbox'
 import { DemoMenu } from './menu'
 import { Message } from './message'
@@ -29,7 +30,7 @@ import {
   ROW_COUNT as VIRTUAL_LIST_ROW_COUNT,
 } from './virtualList'
 
-const Ui = Block.define('Ui', {
+const UiDefinition = Block.define('Ui', {
   Model: Model,
   Message: Message,
 })
@@ -633,11 +634,11 @@ const foldAnimationDemoOutMessage = (
 ) =>
   Animation.OutMessage.match(outMessage, {
     StartedLeaveAnimating: () =>
-      Ui.step(model => ({
+      UiDefinition.step(model => ({
         model,
         commands: [liftCommand(defaultLeaveCommand(model.animationDemo))],
       })),
-    TransitionedOut: () => Ui.step(model => ({ model })),
+    TransitionedOut: () => UiDefinition.step(model => ({ model })),
   })
 
 export const animationDemo = Animation.block.connection({
@@ -659,7 +660,7 @@ export const virtualListVariableDemo = ActivityVirtualList.connection({
   parentMessage: Message.GotVirtualListVariableDemoMessage,
 })
 
-export const ui = Ui.register({
+export const RegisteredUiDefinition = UiDefinition.register({
   children: [
     mobileMenuDialog,
     comboboxDemo,
@@ -702,7 +703,7 @@ export const ui = Ui.register({
   ],
 })
 
-export const update = Ui.update((model, message) =>
+export const update = UiDefinition.update((model, message) =>
   Message.match(message, {
     GotMobileMenuDialogMessage: ({ message }) =>
       mobileMenuDialog.fold(model, message),
@@ -981,6 +982,12 @@ export const update = Ui.update((model, message) =>
   }),
 )
 
-export const openMobileMenu = Ui.step(mobileMenuDialog.open())
+export const openMobileMenu = UiDefinition.step(mobileMenuDialog.open())
 
-export const closeMobileMenu = Ui.step(mobileMenuDialog.close())
+export const closeMobileMenu = UiDefinition.step(mobileMenuDialog.close())
+
+export const block = RegisteredUiDefinition.toBlock({
+  init,
+  update,
+  expose: { openMobileMenu, closeMobileMenu },
+})

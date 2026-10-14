@@ -6,16 +6,12 @@ import { modifyFields } from 'foldkit/struct'
 
 const TICK_INTERVAL_MS = 1000
 
-// MODEL
-
 const Model = Schema.Struct({
   count: Schema.Number,
   step: Schema.Number,
   isAutoCounting: Schema.Boolean,
 })
 type Model = typeof Model.Type
-
-// MESSAGE
 
 const Message = defineMessageUnion({
   ClickedIncrement: {},
@@ -25,11 +21,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const Counter = Block.define('Counter', { Model, Message })
+const CounterDefinition = Block.define('Counter', { Model, Message })
 
-// SUBSCRIPTION
-
-const subscriptions = Counter.subscriptions(entry => ({
+const subscriptions = CounterDefinition.subscriptions(entry => ({
   gameClockTicks: entry(
     'GameClockTicks',
     { isAutoCounting: Schema.Boolean },
@@ -52,9 +46,7 @@ const subscriptions = Counter.subscriptions(entry => ({
   ),
 }))
 
-// UPDATE
-
-const update = Counter.update((model, message) =>
+const update = CounterDefinition.update((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + model.step }),
@@ -73,9 +65,7 @@ const update = Counter.update((model, message) =>
   }),
 )
 
-// VIEW
-
-const view = Counter.view((model, h): Document => ({
+const view = CounterDefinition.view((model, h): Document => ({
   title: `Count: ${model.count}`,
   body: h.div(
     [],

@@ -45,8 +45,6 @@ const entryClassName =
 const buttonClassName =
   'demo-neutral-button inline-flex items-center gap-1.5 text-sm'
 
-// VIEW
-
 export const demo = (
   toastModel: typeof Toast.Model.Type,
   maybeLastDismissedTitle: Option.Option<string>,

@@ -75,7 +75,7 @@ const foldToastOutMessage = Toast.OutMessage.match<Update.Step<Model, Message>>(
   },
 )
 
-// The binding delegates Toast Messages, writes the next Toast Model, maps its
+// The connection delegates Toast Messages, writes the next Toast Model, maps its
 // Commands, handles its OutMessages, and collects its Subscriptions.
 const toast = Toast.connection({
   Model,
@@ -84,15 +84,17 @@ const toast = Toast.connection({
   outMessage: { fold: foldToastOutMessage },
 })
 
-const Notifications = Block.define('Notifications', {
+const NotificationsDefinition = Block.define('Notifications', {
   Model,
   Message,
 })
-const registered = Notifications.register({ children: [toast] })
+const RegisteredNotificationsDefinition = NotificationsDefinition.register({
+  children: [toast],
+})
 
 declare const changesRouter: () => string
 
-const update = Notifications.update((model, message) =>
+const update = NotificationsDefinition.update((model, message) =>
   Message.match(message, {
     GotToastMessage: ({ message }) => toast.fold(model, message),
     ClickedSave: () =>
@@ -113,7 +115,7 @@ const update = Notifications.update((model, message) =>
 // component handles the <div> wrapper, hover-to-pause, swipe-to-dismiss
 // (pointerdown + data-swipe="move"/"settling"/"end" +
 // translate/--toast-swipe-move-x), and enter/leave animations.
-const view = registered.view((model, h) =>
+const view = RegisteredNotificationsDefinition.view((model, h) =>
   h.block(
     toast.embedView({
       slotId: 'app-toast',

@@ -35,8 +35,6 @@ const STATS_REFETCH_INTERVAL = Duration.seconds(5)
 
 export const TABS_ID = 'api-cache-tabs'
 
-// MODEL
-
 const FetchedPosts = Schema.Struct({
   posts: Schema.Array(Post),
   fetchedAt: Schema.Number,
@@ -74,8 +72,6 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   GotTabsMessage: { message: AppTabs.Message },
   ClickedPost: { postId: Schema.String },
@@ -96,9 +92,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const Authoring = defineApplication({ Model, Message })
-
-// UPDATE
+const ApplicationDefinition = defineApplication({ Model, Message })
 
 const applyPostsTransition = (
   model: Model,
@@ -148,12 +142,9 @@ const activateTab = (model: Model, tab: Tab) => {
 }
 
 const activateTabStep = (tab: Tab) =>
-  Authoring.step(model => activateTab(model, tab))
+  ApplicationDefinition.step(model => activateTab(model, tab))
 
-const foldTabsOutMessage = AppTabs.OutMessage.match<
-  ReturnType<typeof activateTabStep>,
-  typeof AppTabs.OutMessage.Type
->({
+const foldTabsOutMessage = AppTabs.OutMessage.match({
   Selected: ({ value }) => activateTabStep(value),
 })
 
@@ -164,7 +155,7 @@ const tabs = AppTabs.connection({
   outMessage: { fold: foldTabsOutMessage },
 })
 
-export const Application = Authoring.register({
+export const Application = ApplicationDefinition.register({
   children: [tabs],
 })
 
@@ -232,8 +223,6 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// INIT
-
 export const init = () => ({
   model: Model.make({
     tabs: AppTabs.init({ id: TABS_ID }).model,
@@ -246,9 +235,7 @@ export const init = () => ({
   commands: [FetchPosts()],
 })
 
-// COMMAND
-
-export const FetchPosts = Authoring.command('FetchPosts', {
+export const FetchPosts = ApplicationDefinition.command('FetchPosts', {
   messages: [Message.CompletedFetchPosts],
   handler: function* () {
     const clock = yield* Clock.Clock
@@ -267,29 +254,32 @@ export const FetchPosts = Authoring.command('FetchPosts', {
   },
 })
 
-export const FetchPostDetail = Authoring.command('FetchPostDetail', {
-  args: { postId: Schema.String },
-  messages: [Message.CompletedFetchPostDetail],
-  handler: function* () {
-    const clock = yield* Clock.Clock
+export const FetchPostDetail = ApplicationDefinition.command(
+  'FetchPostDetail',
+  {
+    args: { postId: Schema.String },
+    messages: [Message.CompletedFetchPostDetail],
+    handler: function* () {
+      const clock = yield* Clock.Clock
 
-    return ({ postId }) =>
-      pipe(
-        Effect.gen(function* () {
-          const detail = yield* fetchPostDetail(postId)
-          const fetchedAt = yield* clock.currentTimeMillis
+      return ({ postId }) =>
+        pipe(
+          Effect.gen(function* () {
+            const detail = yield* fetchPostDetail(postId)
+            const fetchedAt = yield* clock.currentTimeMillis
 
-          return FetchedPostDetail.make({ detail, fetchedAt })
-        }),
-        Effect.result,
-        Effect.map(result =>
-          Message.CompletedFetchPostDetail({ postId, result }),
-        ),
-      )
+            return FetchedPostDetail.make({ detail, fetchedAt })
+          }),
+          Effect.result,
+          Effect.map(result =>
+            Message.CompletedFetchPostDetail({ postId, result }),
+          ),
+        )
+    },
   },
-})
+)
 
-export const FetchStats = Authoring.command('FetchStats', {
+export const FetchStats = ApplicationDefinition.command('FetchStats', {
   messages: [Message.CompletedFetchStats],
   handler: function* () {
     const clock = yield* Clock.Clock
@@ -307,8 +297,6 @@ export const FetchStats = Authoring.command('FetchStats', {
       )
   },
 })
-
-// SUBSCRIPTION
 
 export const subscriptions = Application.subscriptions(entry => ({
   statsRevalidationTicks: entry(
@@ -336,16 +324,12 @@ export const subscriptions = Application.subscriptions(entry => ({
   ),
 }))
 
-// EFFECTS LAYER
-
 export const EffectsLayer = Layer.mergeAll(
   FetchPosts.layer,
   FetchPostDetail.layer,
   FetchStats.layer,
   subscriptions.statsRevalidationTicks.layer,
 )
-
-// VIEW
 
 const formatFetchedAt = (fetchedAt: number): string =>
   new Date(fetchedAt).toLocaleTimeString()
@@ -779,11 +763,3 @@ const errorPanel = (
       ),
     ],
   )
-
-export const implementation = {
-  init,
-  update,
-  view,
-  subscriptions,
-  EffectsLayer,
-}

@@ -4,9 +4,13 @@ import type { Html } from 'foldkit/html'
 import type { RenderInfo } from '@foldkit/ui/radioGroup'
 
 import type { Plan } from '../model'
-import { horizontalRadioGroupDemo, ui, verticalRadioGroupDemo } from '../update'
+import {
+  RegisteredUiDefinition,
+  horizontalRadioGroupDemo,
+  verticalRadioGroupDemo,
+} from '../update'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof ui>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
 
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 
@@ -57,7 +61,7 @@ const checkPlaceholder = (h: HtmlBuilder): Html => {
   return h.div([h.Class('size-5')])
 }
 
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   const verticalPlanOptionsView = ({
     group,
     options,

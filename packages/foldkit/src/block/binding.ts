@@ -74,27 +74,68 @@ type AnyUpdateReturn = Readonly<{
 
 type AnyProducer = (model: any, ...args: ReadonlyArray<any>) => AnyUpdateReturn
 
-type ReservedBindingMember =
-  | 'placement'
-  | 'init'
-  | 'fold'
-  | 'subscriptions'
-  | 'managedResources'
-  | 'mounts'
-  | 'EffectsLayer'
-  | 'embedView'
-  | '__blockBindingBlock'
-  | '__blockHandlerRequirements'
-  | '__blockKeyedBinding'
+/** @internal Carries connection evidence without adding string members. */
+declare const ConnectionEvidenceTypeId: unique symbol
 
-/** @internal Rejects owned Step names that would overwrite connection members. */
-export type ValidateBindingStepNames<Steps> = [
-  Extract<keyof Steps, ReservedBindingMember>,
+/** Lifecycle registrations and Layer metadata retained by a connection. */
+export type ConnectionInspection<
+  Subscriptions,
+  ManagedResources,
+  Mounts,
+  EffectsLayer,
+> = Readonly<{
+  subscriptions: Subscriptions
+  managedResources: ManagedResources
+  mounts: Mounts
+  EffectsLayer: EffectsLayer
+}>
+
+/** @internal Exact connection evidence used by composition validation. */
+export type ConnectionEvidence<
+  BlockValue,
+  HandlerRequirements,
+  Inspection,
+  IsKeyed extends boolean,
+> = Readonly<{
+  block: BlockValue
+  handlerRequirements: HandlerRequirements
+  inspection: Inspection
+  isKeyed: IsKeyed
+}>
+
+/** @internal Associates exact evidence through a module-private property key. */
+export type BindingEvidence<
+  BlockValue,
+  HandlerRequirements,
+  Inspection,
+  IsKeyed extends boolean,
+> = Readonly<{
+  [ConnectionEvidenceTypeId]: ConnectionEvidence<
+    BlockValue,
+    HandlerRequirements,
+    Inspection,
+    IsKeyed
+  >
+}>
+
+/** The metadata returned by {@link inspectConnection}. */
+export type InspectionOfConnection<Connection> =
+  Connection extends Readonly<{
+    [ConnectionEvidenceTypeId]: Readonly<{ inspection: infer Inspection }>
+  }>
+    ? Inspection
+    : never
+
+type ReservedBindingMember = 'placement' | 'init' | 'fold' | 'embedView'
+
+/** @internal Rejects exposed operation names that overwrite connection members. */
+export type ValidateConnectionOperationNames<Operations> = [
+  Extract<keyof Operations, ReservedBindingMember>,
 ] extends [never]
   ? unknown
   : Readonly<{
-      'Block step names must not collide with connection members': Extract<
-        keyof Steps,
+      'Block exposed operation names must not collide with connection members': Extract<
+        keyof Operations,
         ReservedBindingMember
       >
     }>
@@ -103,32 +144,27 @@ const reservedBindingMembers = new Set<string>([
   'placement',
   'init',
   'fold',
-  'subscriptions',
-  'managedResources',
-  'mounts',
-  'EffectsLayer',
   'embedView',
-  '__blockBindingBlock',
-  '__blockHandlerRequirements',
-  '__blockKeyedBinding',
 ])
 
 /** @internal Guards JavaScript callers and erased Block values at runtime. */
-export const assertValidBindingStepNames = (
-  steps: Readonly<Record<string, unknown>>,
+export const assertValidConnectionOperationNames = (
+  operations: Readonly<Record<string, unknown>>,
 ): void => {
-  for (const name of Object.keys(steps)) {
+  for (const name of Object.keys(operations)) {
     if (reservedBindingMembers.has(name)) {
       throw new Error(
-        `[foldkit] Block Step name "${name}" collides with a connection member.`,
+        `[foldkit] Block exposed operation name "${name}" collides with a connection member.`,
       )
     }
   }
 }
 
-/** Structural portion of a complete block needed to create a binding.
- * It deliberately omits the block's own `bind` method, avoiding a
- * recursive constraint while preserving every channel collected by parents. */
+/**
+ * Structural portion of a complete block needed to create a binding. It
+ * deliberately omits the block's own `connection` method, avoiding a recursive
+ * constraint while preserving every channel collected by parents.
+ */
 export type BindableBlock = Readonly<{
   owner: Owner<any>
   Model: Readonly<{ Type: any }>
@@ -139,7 +175,7 @@ export type BindableBlock = Readonly<{
   children: ReadonlyArray<AnyBinding>
   init: AnyFunction
   update: AnyFunction
-  steps: Readonly<Record<string, AnyFunction>>
+  expose: Readonly<Record<string, AnyFunction>>
   subscriptions: Subscription.Subscriptions<any, any, any>
   managedResources: Readonly<
     Record<
@@ -491,20 +527,20 @@ const liftManagedResources = <
     config,
   )
 
-type BoundSteps<
+type BoundExposedOperations<
   BlockValue extends Readonly<{
-    steps: Readonly<Record<string, (...args: ReadonlyArray<any>) => any>>
+    expose: Readonly<Record<string, (...args: ReadonlyArray<any>) => any>>
   }>,
   ParentModel,
   ParentMessage,
   Placement extends string,
   Policy,
 > = Readonly<{
-  [Key in keyof BlockValue['steps']]: BlockValue['steps'][Key] extends (
+  [Key in keyof BlockValue['expose']]: BlockValue['expose'][Key] extends (
     ...args: ReadonlyArray<any>
   ) => any
     ? (
-        ...args: Parameters<BlockValue['steps'][Key]> extends readonly [
+        ...args: Parameters<BlockValue['expose'][Key]> extends readonly [
           unknown,
           ...infer Context,
         ]
@@ -515,7 +551,7 @@ type BoundSteps<
       ) => BindingReturn<
         ParentModel,
         ParentMessage,
-        BlockValue['steps'][Key],
+        BlockValue['expose'][Key],
         Policy,
         Placement,
         BlockId<BlockValue>,
@@ -534,7 +570,7 @@ export type Binding<
     OutMessage?: Readonly<{ Type: any }>
     init: (...args: ReadonlyArray<any>) => any
     update: (...args: ReadonlyArray<any>) => any
-    steps: Readonly<Record<string, (...args: ReadonlyArray<any>) => any>>
+    expose: Readonly<Record<string, (...args: ReadonlyArray<any>) => any>>
     subscriptions: Subscription.Subscriptions<any, any, any>
     managedResources: Readonly<
       Record<
@@ -550,14 +586,87 @@ export type Binding<
   Placement extends string,
   Policy,
 > = Readonly<{
-  /**
-   * @internal Retains exact block evidence without a runtime field.
-   */
-  __blockBindingBlock: BlockValue
-  /** @internal Retains qualified unresolved handler evidence for root assembly. */
-  __blockHandlerRequirements: Qualify<
-    Placement,
-    HandlerEvidenceOfBlock<BlockValue>
+  [ConnectionEvidenceTypeId]: ConnectionEvidence<
+    BlockValue,
+    Qualify<Placement, HandlerEvidenceOfBlock<BlockValue>>,
+    ConnectionInspection<
+      {
+        readonly [
+          Key in keyof BlockValue['subscriptions']
+        ]: BlockValue['subscriptions'][Key] extends Subscription.Subscription<
+          any,
+          any,
+          infer Dependencies,
+          infer Services
+        >
+          ? Subscription.Subscription<
+              ParentModel,
+              ParentMessage,
+              Subscription.GatedDependencies<Dependencies>,
+              Qualify<Placement, Services>
+            > &
+              (BlockValue['subscriptions'][Key] extends Readonly<{
+                messages: infer Messages
+              }>
+                ? Readonly<{ messages: Messages }>
+                : unknown) &
+              (BlockValue['subscriptions'][Key] extends Readonly<{
+                name: infer Name
+                toLayer: infer ToLayer
+              }>
+                ? Readonly<{ name: Name; toLayer: ToLayer }>
+                : unknown) &
+              (BlockValue['subscriptions'][Key] extends Readonly<{
+                layer: infer EntryLayer
+              }>
+                ? Readonly<{ layer: EntryLayer }>
+                : unknown)
+          : never
+      },
+      {
+        readonly [
+          Key in keyof BlockValue['managedResources']
+        ]: BlockValue['managedResources'][Key] extends ManagedResource.Entry<
+          any,
+          any,
+          infer Requirements,
+          infer Value,
+          infer Service,
+          infer OnAcquired extends (...args: ReadonlyArray<any>) => any,
+          infer LifecycleServices,
+          infer Params
+        >
+          ? ManagedResource.Entry<
+              ParentModel,
+              ParentMessage,
+              Requirements,
+              Value,
+              Qualify<Placement, Service>,
+              (...args: Parameters<OnAcquired>) => ParentMessage,
+              Qualify<Placement, LifecycleServices>,
+              Params
+            > &
+              (BlockValue['managedResources'][Key] extends Readonly<{
+                name: infer Name
+                toLayer: infer ToLayer
+              }>
+                ? Readonly<{ name: Name; toLayer: ToLayer }>
+                : unknown) &
+              (BlockValue['managedResources'][Key] extends Readonly<{
+                layer: infer EntryLayer
+              }>
+                ? Readonly<{ layer: EntryLayer }>
+                : unknown)
+          : never
+      },
+      BlockValue['mounts'],
+      Layer.Layer<
+        Qualify<Placement, Layer.Success<BlockValue['EffectsLayer']>>,
+        Layer.Error<BlockValue['EffectsLayer']>,
+        Qualify<Placement, Layer.Services<BlockValue['EffectsLayer']>>
+      >
+    >,
+    false
   >
   placement: Placement
   /** Initializes child state while scoping and lifting its Commands. */
@@ -591,81 +700,6 @@ export type Binding<
     Placement,
     BlockId<BlockValue>,
     BindingRequirement<Placement, BlockValue>
-  >
-  subscriptions: {
-    readonly [
-      Key in keyof BlockValue['subscriptions']
-    ]: BlockValue['subscriptions'][Key] extends Subscription.Subscription<
-      any,
-      any,
-      infer Dependencies,
-      infer Services
-    >
-      ? Subscription.Subscription<
-          ParentModel,
-          ParentMessage,
-          Subscription.GatedDependencies<Dependencies>,
-          Qualify<Placement, Services>
-        > &
-          (BlockValue['subscriptions'][Key] extends Readonly<{
-            messages: infer Messages
-          }>
-            ? Readonly<{ messages: Messages }>
-            : unknown) &
-          (BlockValue['subscriptions'][Key] extends Readonly<{
-            name: infer Name
-            toLayer: infer ToLayer
-          }>
-            ? Readonly<{ name: Name; toLayer: ToLayer }>
-            : unknown) &
-          (BlockValue['subscriptions'][Key] extends Readonly<{
-            layer: infer EntryLayer
-          }>
-            ? Readonly<{ layer: EntryLayer }>
-            : unknown)
-      : never
-  }
-  managedResources: {
-    readonly [
-      Key in keyof BlockValue['managedResources']
-    ]: BlockValue['managedResources'][Key] extends ManagedResource.Entry<
-      any,
-      any,
-      infer Requirements,
-      infer Value,
-      infer Service,
-      infer OnAcquired extends (...args: ReadonlyArray<any>) => any,
-      infer LifecycleServices,
-      infer Params
-    >
-      ? ManagedResource.Entry<
-          ParentModel,
-          ParentMessage,
-          Requirements,
-          Value,
-          Qualify<Placement, Service>,
-          (...args: Parameters<OnAcquired>) => ParentMessage,
-          Qualify<Placement, LifecycleServices>,
-          Params
-        > &
-          (BlockValue['managedResources'][Key] extends Readonly<{
-            name: infer Name
-            toLayer: infer ToLayer
-          }>
-            ? Readonly<{ name: Name; toLayer: ToLayer }>
-            : unknown) &
-          (BlockValue['managedResources'][Key] extends Readonly<{
-            layer: infer EntryLayer
-          }>
-            ? Readonly<{ layer: EntryLayer }>
-            : unknown)
-      : never
-  }
-  mounts: BlockValue['mounts']
-  EffectsLayer: Layer.Layer<
-    Qualify<Placement, Layer.Success<BlockValue['EffectsLayer']>>,
-    Layer.Error<BlockValue['EffectsLayer']>,
-    Qualify<Placement, Layer.Services<BlockValue['EffectsLayer']>>
   >
   embedView: BlockValue extends Readonly<{
     [DefaultViewTypeId]: infer CanonicalView extends AnyBlockView
@@ -739,7 +773,13 @@ export type Binding<
         ParentMessage
       >
 }> &
-  BoundSteps<BlockValue, ParentModel, ParentMessage, Placement, Policy>
+  BoundExposedOperations<
+    BlockValue,
+    ParentModel,
+    ParentMessage,
+    Placement,
+    Policy
+  >
 
 /** The `Home.block.connection({...})` method of a complete Block. Parent
  * types are inferred from the placement accessors and Message lift. */
@@ -830,18 +870,15 @@ export type Bind<BlockValue extends BindableBlock> = AccessorBind<BlockValue> &
 /** Structural bound for a child binding stored by a parent block.
  * @inline */
 export type AnyBinding = Readonly<{
-  /**
-   * @internal Retains exact block evidence without a runtime field.
-   */
-  __blockBindingBlock: BindableBlock
-  __blockHandlerRequirements?: unknown
+  [ConnectionEvidenceTypeId]: ConnectionEvidence<
+    BindableBlock,
+    unknown,
+    ConnectionInspection<any, any, any, any>,
+    boolean
+  >
   placement: string
   init: AnyFunction
   fold: AnyFunction
-  subscriptions: BindableBlock['subscriptions']
-  managedResources: BindableBlock['managedResources']
-  mounts: ReadonlyArray<LayeredMountDefinition>
-  EffectsLayer: Layer.Any
   embedView: AnyFunction
 }>
 
@@ -870,25 +907,57 @@ export type BindingRequirement<
 /**
  * @internal Structural block evidence used by type-level fixtures.
  */
-export type BindingBlockEvidence<BlockValue> = Readonly<{
-  __blockBindingBlock: BlockValue
-}>
+export type BindingBlockEvidence<
+  BlockValue,
+  HandlerRequirements = never,
+  Inspection = ConnectionInspection<
+    Readonly<Record<never, never>>,
+    Readonly<Record<never, never>>,
+    readonly [],
+    Layer.Layer<never, never, never>
+  >,
+  IsKeyed extends boolean = false,
+> = BindingEvidence<BlockValue, HandlerRequirements, Inspection, IsKeyed>
 
 /**
  * @internal Recovers the block type retained by a binding.
  */
 export type BlockOfBinding<BindingValue> =
   BindingValue extends Readonly<{
-    __blockBindingBlock: infer BlockValue
+    [ConnectionEvidenceTypeId]: Readonly<{ block: infer BlockValue }>
   }>
     ? BlockValue
     : never
+
+/** @internal Recovers unresolved handler evidence retained by a binding. */
+export type HandlerRequirementsOfBinding<BindingValue> =
+  BindingValue extends Readonly<{
+    [ConnectionEvidenceTypeId]: Readonly<{
+      handlerRequirements: infer HandlerRequirements
+    }>
+  }>
+    ? HandlerRequirements
+    : unknown
+
+/** @internal Reports whether a connection owns a keyed collection. */
+export type IsKeyedBinding<BindingValue> =
+  BindingValue extends Readonly<{
+    [ConnectionEvidenceTypeId]: Readonly<{ isKeyed: infer IsKeyed }>
+  }>
+    ? IsKeyed
+    : false
+
+/** @internal Removes private evidence before another connection form replaces it. */
+export type WithoutBindingEvidence<BindingValue> = Omit<
+  BindingValue,
+  typeof ConnectionEvidenceTypeId
+>
 
 /** @internal Recovers the registered graph requirement for one binding. */
 export type RequirementOfBinding<BindingValue> =
   BindingValue extends Readonly<{
     placement: infer Placement extends string
-    __blockBindingBlock: infer BlockValue
+    [ConnectionEvidenceTypeId]: Readonly<{ block: infer BlockValue }>
   }>
     ? BindingRequirement<Placement, BlockValue>
     : never
@@ -896,8 +965,6 @@ export type RequirementOfBinding<BindingValue> =
 /** @internal Collects the registered graph requirements for child bindings. */
 export type RequirementsOfBindings<Bindings extends ReadonlyArray<unknown>> =
   RequirementOfBinding<Bindings[number]>
-
-const bindingBlocks = new WeakMap<AnyBinding, BindableBlock>()
 
 /**
  * @internal Returns the block retained by a binding.
@@ -912,6 +979,13 @@ export const blockOf = (binding: AnyBinding): BindableBlock => {
 
   return block
 }
+
+/** Returns a connection's lifecycle registrations and Layer metadata. */
+export const inspectConnection = <Connection extends AnyBinding>(
+  connection: Connection,
+): InspectionOfConnection<Connection> =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  runtimeBindingOf(connection).inspection as InspectionOfConnection<Connection>
 
 type RuntimeOutMessagePolicy = Readonly<{
   fold?: AnyFunction
@@ -1035,7 +1109,7 @@ const makeFold = (
   }
 }
 
-const makeBoundStep = (
+const makeBoundOperation = (
   producer: AnyProducer,
   config: RuntimeBindingConfig,
   frame: InstanceFrame,
@@ -1046,19 +1120,19 @@ const makeBoundStep = (
       fold(model, ...args)
 }
 
-const makeBoundSteps = (
-  steps: Readonly<Record<string, AnyProducer>>,
+const makeBoundOperations = (
+  operations: Readonly<Record<string, AnyProducer>>,
   config: RuntimeBindingConfig,
   frame: InstanceFrame,
 ): Readonly<Record<string, AnyFunction>> => {
-  assertValidBindingStepNames(steps)
-  const boundSteps: Record<string, AnyFunction> = {}
+  assertValidConnectionOperationNames(operations)
+  const boundOperations: Record<string, AnyFunction> = {}
 
-  for (const [name, step] of Object.entries(steps)) {
-    boundSteps[name] = makeBoundStep(step, config, frame)
+  for (const [name, operation] of Object.entries(operations)) {
+    boundOperations[name] = makeBoundOperation(operation, config, frame)
   }
 
-  return boundSteps
+  return boundOperations
 }
 
 const bindRuntime = <
@@ -1099,12 +1173,12 @@ const bindRuntime = <
       frame,
       allowedIdentities,
     )
-  const steps = Record.map(
-    block.steps,
-    step =>
+  const exposedOperations = Record.map(
+    block.expose,
+    operation =>
       (model: any, ...args: ReadonlyArray<any>) =>
         scopeReturn(
-          withOperationGraph(block.children, () => step(model, ...args)),
+          withOperationGraph(block.children, () => operation(model, ...args)),
           placement,
           block.owner,
           frame,
@@ -1178,7 +1252,21 @@ const bindRuntime = <
     >
 
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  const boundSteps = makeBoundSteps(steps, runtimeConfig, frame)
+  const boundOperations = makeBoundOperations(
+    exposedOperations,
+    runtimeConfig,
+    frame,
+  )
+
+  const EffectsLayer = qualifyLayer(
+    placement,
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    block.EffectsLayer as Layer.Layer<
+      Layer.Success<BlockValue['EffectsLayer']>,
+      Layer.Error<BlockValue['EffectsLayer']>,
+      Layer.Services<BlockValue['EffectsLayer']>
+    >,
+  )
 
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const binding = {
@@ -1199,18 +1287,8 @@ const bindRuntime = <
       }
     },
     fold: makeFold(update, runtimeConfig, frame),
-    subscriptions,
-    managedResources,
-    mounts: block.mounts,
-    // oxlint-disable effecttsgo/any-unknown-in-error-context
-    EffectsLayer: qualifyLayer(
-      placement,
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      block.EffectsLayer as Layer.Layer<any, any, any>,
-    ),
-    // oxlint-enable effecttsgo/any-unknown-in-error-context
     embedView,
-    ...boundSteps,
+    ...boundOperations,
   } as unknown as Binding<
     BlockValue,
     ParentModel,
@@ -1219,7 +1297,6 @@ const bindRuntime = <
     Policy
   >
 
-  bindingBlocks.set(binding, block)
   registerBinding(binding, {
     block,
     select: model =>
@@ -1234,6 +1311,12 @@ const bindRuntime = <
         return when(model)
       }
       return when?.[name]?.(model) ?? true
+    },
+    inspection: {
+      subscriptions,
+      managedResources,
+      mounts: block.mounts,
+      EffectsLayer,
     },
   })
 
@@ -1282,10 +1365,12 @@ type BindBlock = {
   (block: BindableBlock, config: never): AnyBinding
 }
 
-/** Binds a complete child block to one static or optional state
- * placement. Update, registered Steps, Subscriptions, and ManagedResources use
- * its placement accessors. Lifecycle and view Messages use its parent lift.
- * Parent init ordering remains explicit. */
+/**
+ * Binds a complete child block to one static or optional state placement.
+ * Update, exposed operations, Subscriptions, and ManagedResources use its
+ * placement accessors. Lifecycle and view Messages use its parent lift. Parent
+ * init ordering remains explicit.
+ */
 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
 export const bind: BindBlock = bindRuntime as unknown as BindBlock
 
@@ -1293,7 +1378,12 @@ type ChildRecordFunction<
   Child extends AnyBinding,
   Key extends 'subscriptions' | 'managedResources',
 > = Child extends unknown
-  ? (entries: Namespaced<Child['placement'], Child[Key]>) => void
+  ? (
+      entries: Namespaced<
+        Child['placement'],
+        InspectionOfConnection<Child>[Key]
+      >,
+    ) => void
   : never
 
 type MergeRecords<
@@ -1308,18 +1398,18 @@ type MergeRecords<
     : {}
 
 type ChildMount<Children extends ReadonlyArray<AnyBinding>> =
-  Children[number]['mounts'][number]
+  InspectionOfConnection<Children[number]>['mounts'][number]
 
 type LayerSuccess<Children extends ReadonlyArray<AnyBinding>> = Layer.Success<
-  Children[number]['EffectsLayer']
+  InspectionOfConnection<Children[number]>['EffectsLayer']
 >
 
 type LayerError<Children extends ReadonlyArray<AnyBinding>> = Layer.Error<
-  Children[number]['EffectsLayer']
+  InspectionOfConnection<Children[number]>['EffectsLayer']
 >
 
 type LayerServices<Children extends ReadonlyArray<AnyBinding>> = Layer.Services<
-  Children[number]['EffectsLayer']
+  InspectionOfConnection<Children[number]>['EffectsLayer']
 >
 
 /** The lifecycle registrations and handler recipe contributed by a block's
@@ -1343,8 +1433,9 @@ const mergeChildRecords = (
   const entries: Record<string, unknown> = {}
 
   for (const child of children) {
+    const inspection = inspectConnection(child)
     const childEntries =
-      child[kind === 'Subscription' ? 'subscriptions' : 'managedResources']
+      inspection[kind === 'Subscription' ? 'subscriptions' : 'managedResources']
 
     for (const [key, entry] of Object.entries(childEntries)) {
       const registrationKey = `${child.placement}/${key}`
@@ -1385,14 +1476,16 @@ export const aggregateChildren = <
       )
     }
     seenPlacements.add(child.placement)
-    for (const mount of child.mounts) {
+    const inspection = inspectConnection(child)
+
+    for (const mount of inspection.mounts) {
       if (!seenMounts.has(mount)) {
         seenMounts.add(mount)
         mounts.push(mount)
       }
     }
 
-    layers.push(child.EffectsLayer)
+    layers.push(inspection.EffectsLayer)
   }
 
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */

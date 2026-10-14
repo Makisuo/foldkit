@@ -196,8 +196,6 @@ const deleteProjectContent = (
     ],
   )
 
-// VIEW
-
 export const view = (dialogModel: typeof Dialog.Model.Type, h: ViewBuilder) => {
   return [
     trigger('Open Dialog', Message.ClickedOpenDialog(), h),

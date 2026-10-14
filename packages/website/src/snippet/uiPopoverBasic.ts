@@ -53,7 +53,7 @@ const foldPopoverOutMessage = Popover.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-// The binding wires the completed child Block into the parent: it runs Popover.update,
+// The connection wires the completed child Block into the parent: it runs Popover.update,
 // writes the next Popover Model back, maps the Block's Commands into your
 // Message type, and hands any OutMessage to the OutMessage fold.
 const popover = Popover.block.connection({
@@ -63,14 +63,16 @@ const popover = Popover.block.connection({
   outMessage: { fold: foldPopoverOutMessage },
 })
 
-const PopoverExample = Block.define('PopoverExample', {
+const PopoverExampleDefinition = Block.define('PopoverExample', {
   Model,
   Message,
 })
-const registered = PopoverExample.register({ children: [popover] })
+const RegisteredPopoverExampleDefinition = PopoverExampleDefinition.register({
+  children: [popover],
+})
 
 // In the corresponding Message.match handler, call the fold:
-const update = PopoverExample.update((model, message) =>
+const update = PopoverExampleDefinition.update((model, message) =>
   Message.match(message, {
     GotPopoverMessage: ({ message }) => popover.fold(model, message),
   }),
@@ -82,7 +84,7 @@ const update = PopoverExample.update((model, message) =>
 // `ariaLabelledBy` so the trigger is named by the label. The attribute is
 // only emitted when provided, so the trigger never carries a dangling
 // `aria-labelledby`.
-const view = registered.view((model, h) => {
+const view = RegisteredPopoverExampleDefinition.view((model, h) => {
   const labelId = 'info-label'
 
   const popoverView = ({

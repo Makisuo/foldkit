@@ -2,15 +2,11 @@ import { Schema, Stream } from 'effect'
 import { Dom, Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-// MESSAGE
-
 const Message = defineMessageUnion({
   TickedFrame: { deltaTime: Schema.Number },
   ClickedTogglePlay: {},
 })
 type Message = typeof Message.Type
-
-// MODEL
 
 const Model = Schema.Struct({
   isPlaying: Schema.Boolean,
@@ -18,11 +14,9 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// SUBSCRIPTION
+const SpinnerDefinition = Block.define('Spinner', { Model, Message })
 
-const Spinner = Block.define('Spinner', { Model, Message })
-
-const subscriptions = Spinner.subscriptions(entry => ({
+const subscriptions = SpinnerDefinition.subscriptions(entry => ({
   animationFrameTicks: entry(
     'AnimationFrameTicks',
     { isActive: Schema.Boolean },

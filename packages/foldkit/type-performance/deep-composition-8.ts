@@ -39,11 +39,14 @@ class Clock extends Context.Service<
 >()('TypePerformanceDeepLeafClock') {}
 const ClockLayer = Layer.succeed(Clock, { run: Effect.void })
 
-const TypePerformanceDeepLeaf = Block.define('TypePerformanceDeepLeaf', {
-  Model: LeafModel,
-  Message: LeafMessage,
-})
-const RunLeaf = TypePerformanceDeepLeaf.command('RunLeaf', {
+const TypePerformanceDeepLeafDefinition = Block.define(
+  'TypePerformanceDeepLeaf',
+  {
+    Model: LeafModel,
+    Message: LeafMessage,
+  },
+)
+const RunLeaf = TypePerformanceDeepLeafDefinition.command('RunLeaf', {
   messages: [LeafMessage.CompletedRun],
   handler: function* () {
     const clock = yield* Clock
@@ -51,19 +54,19 @@ const RunLeaf = TypePerformanceDeepLeaf.command('RunLeaf', {
     return () => clock.run.pipe(Effect.as(LeafMessage.CompletedRun()))
   },
 })
-const runLeaf = TypePerformanceDeepLeaf.step(model => ({
+const runLeaf = TypePerformanceDeepLeafDefinition.step(model => ({
   model,
   commands: [RunLeaf()],
 }))
-const Leaf = TypePerformanceDeepLeaf.assemble({
+const Leaf = TypePerformanceDeepLeafDefinition.toBlock({
   init: () => ({ model: LeafModel.make({ value: 0 }) }),
-  update: TypePerformanceDeepLeaf.update((model, message) =>
+  update: TypePerformanceDeepLeafDefinition.update((model, message) =>
     LeafMessage.match(message, {
       RequestedRun: () => runLeaf(model),
       CompletedRun: () => ({ model }),
     }),
   ),
-  steps: { runLeaf },
+  expose: { runLeaf },
   EffectsLayer: RunLeaf.layer,
 })
 
@@ -73,13 +76,16 @@ const child001 = Leaf.connection({
   write: (_model: LeafModel, nextChild: LeafModel) => nextChild,
   toParentMessage: (message: LeafMessage) => message,
 })
-const TypePerformanceLevel001 = Block.define('TypePerformanceLevel001', {
-  Model: LeafModel,
-  Message: LeafMessage,
-}).register({ children: [child001] })
-const Level001 = TypePerformanceLevel001.assemble({
+const TypePerformanceLevel001Definition = Block.define(
+  'TypePerformanceLevel001',
+  {
+    Model: LeafModel,
+    Message: LeafMessage,
+  },
+).register({ children: [child001] })
+const Level001 = TypePerformanceLevel001Definition.toBlock({
   init: () => child001.init(),
-  update: TypePerformanceLevel001.update((model, message) =>
+  update: TypePerformanceLevel001Definition.update((model, message) =>
     child001.fold(model, message),
   ),
   EffectsLayer: Layer.empty,
@@ -91,13 +97,16 @@ const child002 = Level001.connection({
   write: (_model: LeafModel, nextChild: LeafModel) => nextChild,
   toParentMessage: (message: LeafMessage) => message,
 })
-const TypePerformanceLevel002 = Block.define('TypePerformanceLevel002', {
-  Model: LeafModel,
-  Message: LeafMessage,
-}).register({ children: [child002] })
-const Level002 = TypePerformanceLevel002.assemble({
+const TypePerformanceLevel002Definition = Block.define(
+  'TypePerformanceLevel002',
+  {
+    Model: LeafModel,
+    Message: LeafMessage,
+  },
+).register({ children: [child002] })
+const Level002 = TypePerformanceLevel002Definition.toBlock({
   init: () => child002.init(),
-  update: TypePerformanceLevel002.update((model, message) =>
+  update: TypePerformanceLevel002Definition.update((model, message) =>
     child002.fold(model, message),
   ),
   EffectsLayer: Layer.empty,
@@ -109,13 +118,16 @@ const child003 = Level002.connection({
   write: (_model: LeafModel, nextChild: LeafModel) => nextChild,
   toParentMessage: (message: LeafMessage) => message,
 })
-const TypePerformanceLevel003 = Block.define('TypePerformanceLevel003', {
-  Model: LeafModel,
-  Message: LeafMessage,
-}).register({ children: [child003] })
-const Level003 = TypePerformanceLevel003.assemble({
+const TypePerformanceLevel003Definition = Block.define(
+  'TypePerformanceLevel003',
+  {
+    Model: LeafModel,
+    Message: LeafMessage,
+  },
+).register({ children: [child003] })
+const Level003 = TypePerformanceLevel003Definition.toBlock({
   init: () => child003.init(),
-  update: TypePerformanceLevel003.update((model, message) =>
+  update: TypePerformanceLevel003Definition.update((model, message) =>
     child003.fold(model, message),
   ),
   EffectsLayer: Layer.empty,
@@ -127,13 +139,16 @@ const child004 = Level003.connection({
   write: (_model: LeafModel, nextChild: LeafModel) => nextChild,
   toParentMessage: (message: LeafMessage) => message,
 })
-const TypePerformanceLevel004 = Block.define('TypePerformanceLevel004', {
-  Model: LeafModel,
-  Message: LeafMessage,
-}).register({ children: [child004] })
-const Level004 = TypePerformanceLevel004.assemble({
+const TypePerformanceLevel004Definition = Block.define(
+  'TypePerformanceLevel004',
+  {
+    Model: LeafModel,
+    Message: LeafMessage,
+  },
+).register({ children: [child004] })
+const Level004 = TypePerformanceLevel004Definition.toBlock({
   init: () => child004.init(),
-  update: TypePerformanceLevel004.update((model, message) =>
+  update: TypePerformanceLevel004Definition.update((model, message) =>
     child004.fold(model, message),
   ),
   EffectsLayer: Layer.empty,
@@ -145,13 +160,16 @@ const child005 = Level004.connection({
   write: (_model: LeafModel, nextChild: LeafModel) => nextChild,
   toParentMessage: (message: LeafMessage) => message,
 })
-const TypePerformanceLevel005 = Block.define('TypePerformanceLevel005', {
-  Model: LeafModel,
-  Message: LeafMessage,
-}).register({ children: [child005] })
-const Level005 = TypePerformanceLevel005.assemble({
+const TypePerformanceLevel005Definition = Block.define(
+  'TypePerformanceLevel005',
+  {
+    Model: LeafModel,
+    Message: LeafMessage,
+  },
+).register({ children: [child005] })
+const Level005 = TypePerformanceLevel005Definition.toBlock({
   init: () => child005.init(),
-  update: TypePerformanceLevel005.update((model, message) =>
+  update: TypePerformanceLevel005Definition.update((model, message) =>
     child005.fold(model, message),
   ),
   EffectsLayer: Layer.empty,
@@ -163,13 +181,16 @@ const child006 = Level005.connection({
   write: (_model: LeafModel, nextChild: LeafModel) => nextChild,
   toParentMessage: (message: LeafMessage) => message,
 })
-const TypePerformanceLevel006 = Block.define('TypePerformanceLevel006', {
-  Model: LeafModel,
-  Message: LeafMessage,
-}).register({ children: [child006] })
-const Level006 = TypePerformanceLevel006.assemble({
+const TypePerformanceLevel006Definition = Block.define(
+  'TypePerformanceLevel006',
+  {
+    Model: LeafModel,
+    Message: LeafMessage,
+  },
+).register({ children: [child006] })
+const Level006 = TypePerformanceLevel006Definition.toBlock({
   init: () => child006.init(),
-  update: TypePerformanceLevel006.update((model, message) =>
+  update: TypePerformanceLevel006Definition.update((model, message) =>
     child006.fold(model, message),
   ),
   EffectsLayer: Layer.empty,
@@ -181,13 +202,16 @@ const child007 = Level006.connection({
   write: (_model: LeafModel, nextChild: LeafModel) => nextChild,
   toParentMessage: (message: LeafMessage) => message,
 })
-const TypePerformanceLevel007 = Block.define('TypePerformanceLevel007', {
-  Model: LeafModel,
-  Message: LeafMessage,
-}).register({ children: [child007] })
-const Level007 = TypePerformanceLevel007.assemble({
+const TypePerformanceLevel007Definition = Block.define(
+  'TypePerformanceLevel007',
+  {
+    Model: LeafModel,
+    Message: LeafMessage,
+  },
+).register({ children: [child007] })
+const Level007 = TypePerformanceLevel007Definition.toBlock({
   init: () => child007.init(),
-  update: TypePerformanceLevel007.update((model, message) =>
+  update: TypePerformanceLevel007Definition.update((model, message) =>
     child007.fold(model, message),
   ),
   EffectsLayer: Layer.empty,
@@ -199,13 +223,16 @@ const child008 = Level007.connection({
   write: (_model: LeafModel, nextChild: LeafModel) => nextChild,
   toParentMessage: (message: LeafMessage) => message,
 })
-const TypePerformanceLevel008 = Block.define('TypePerformanceLevel008', {
-  Model: LeafModel,
-  Message: LeafMessage,
-}).register({ children: [child008] })
-const Level008 = TypePerformanceLevel008.assemble({
+const TypePerformanceLevel008Definition = Block.define(
+  'TypePerformanceLevel008',
+  {
+    Model: LeafModel,
+    Message: LeafMessage,
+  },
+).register({ children: [child008] })
+const Level008 = TypePerformanceLevel008Definition.toBlock({
   init: () => child008.init(),
-  update: TypePerformanceLevel008.update((model, message) =>
+  update: TypePerformanceLevel008Definition.update((model, message) =>
     child008.fold(model, message),
   ),
   EffectsLayer: Layer.empty,

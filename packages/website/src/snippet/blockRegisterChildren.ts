@@ -4,8 +4,8 @@ import { Message } from './message'
 import { Model } from './model'
 import { primaryComposer, secondaryComposer } from './placements'
 
-export const Chat = Block.define('Chat', { Model, Message })
+export const ChatDefinition = Block.define('Chat', { Model, Message })
 
-export const registered = Chat.register({
+export const RegisteredChatDefinition = ChatDefinition.register({
   children: [primaryComposer, secondaryComposer],
 })

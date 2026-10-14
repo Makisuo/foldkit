@@ -1,9 +1,9 @@
-import { SnippetCopy } from './block'
+import { SnippetCopyDefinition } from './definition'
 import { init } from './init'
 import { EffectsLayer, update } from './update'
 import { view } from './view'
 
-export const block = SnippetCopy.assemble({
+export const block = SnippetCopyDefinition.toBlock({
   init,
   update,
   view,

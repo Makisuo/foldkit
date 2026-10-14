@@ -61,7 +61,7 @@ const foldListboxOutMessage = PlanListbox.OutMessage.match<
     }),
 })
 
-// The binding wires the completed child Block into the parent: it delegates keyboard
+// The connection wires the completed child Block into the parent: it delegates keyboard
 // navigation, typeahead, and open/close to PlanListbox.update, writes the next
 // Listbox Model back, maps the Block's Commands into your Message type, and
 // hands any OutMessage to the OutMessage fold.
@@ -72,14 +72,16 @@ const planListbox = PlanListbox.connection({
   outMessage: { fold: foldListboxOutMessage },
 })
 
-const PlanPicker = Block.define('PlanPicker', {
+const PlanPickerDefinition = Block.define('PlanPicker', {
   Model,
   Message,
 })
-const registered = PlanPicker.register({ children: [planListbox] })
+const RegisteredPlanPickerDefinition = PlanPickerDefinition.register({
+  children: [planListbox],
+})
 
 // In the corresponding Message.match handler, call the fold:
-const update = PlanPicker.update((model, message) =>
+const update = PlanPickerDefinition.update((model, message) =>
   Message.match(message, {
     GotListboxMessage: ({ message }) => planListbox.fold(model, message),
   }),
@@ -92,7 +94,7 @@ const plans: ReadonlyArray<Plan> = ['Free', 'Pro', 'Enterprise']
 // `<label for>`: target the trigger id with `buttonId('plan')` from `@foldkit/ui/listbox`. The
 // `for` association gives the trigger both its accessible name and
 // click-to-focus, so ariaLabelledBy is not needed here.
-const view = registered.view((model, h) =>
+const view = RegisteredPlanPickerDefinition.view((model, h) =>
   h.div(
     [],
     [

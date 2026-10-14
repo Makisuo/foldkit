@@ -5,9 +5,9 @@ import { Checkbox, Fieldset, Input, Textarea } from '@foldkit/ui'
 
 import { Message } from '../message'
 import type { Model } from '../model'
-import { ui } from '../update'
+import { RegisteredUiDefinition } from '../update'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof ui>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
 
 const FIELDSET_CHECKBOX_DEMO_ID = 'fieldset-checkbox-demo'
 const FIELDSET_DISABLED_CHECKBOX_ID = 'fieldset-disabled-checkbox'
@@ -300,9 +300,7 @@ const disabledDemo = (h: HtmlBuilder): Html => {
   )
 }
 
-// VIEW
-
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   return h.div(
     [],
     [

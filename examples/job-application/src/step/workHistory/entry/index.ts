@@ -3,10 +3,8 @@ export {
   Message,
   OutMessage,
   init,
-  update,
   hasErrors,
   isComplete,
   revealErrors,
-} from './block'
-export { view } from './view'
+} from './definition'
 export { block } from './entry'

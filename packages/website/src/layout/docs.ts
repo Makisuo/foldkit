@@ -8,6 +8,7 @@ import {
   inertHtml as ih,
 } from 'foldkit/html'
 
+import { type CodeBlock, Shared } from '../component'
 import {
   type ViewRequirements,
   apiReference,
@@ -17,8 +18,7 @@ import {
   snippetCopy as snippetCopyBinding,
   snippetDisclosure as snippetDisclosureBinding,
   uiPages,
-} from '../children'
-import { type CodeBlock, Shared } from '../component'
+} from '../connection'
 import { pageNeighbors } from '../docsNav'
 import { Icon } from '../icon'
 import { Link } from '../link'
@@ -429,8 +429,6 @@ const lazyProseContent = (
 
 const lazyApiReference = createLazy()
 const lazyApiReferenceSkeleton = createLazy()
-
-// VIEW
 
 export const view = (
   model: Model,

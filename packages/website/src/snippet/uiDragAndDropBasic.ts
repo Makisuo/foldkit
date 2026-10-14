@@ -74,7 +74,7 @@ const foldDragAndDropOutMessage = DragAndDrop.OutMessage.match<
   Cancelled: () => model => ({ model }),
 })
 
-// The binding delegates the child update, writes the next DragAndDrop Model,
+// The connection delegates the child update, writes the next DragAndDrop Model,
 // maps its Commands, handles OutMessages, and collects its Subscriptions.
 const dragAndDrop = DragAndDrop.block.connection({
   Model,
@@ -83,13 +83,15 @@ const dragAndDrop = DragAndDrop.block.connection({
   outMessage: { fold: foldDragAndDropOutMessage },
 })
 
-const SortableList = Block.define('SortableList', {
+const SortableListDefinition = Block.define('SortableList', {
   Model,
   Message,
 })
-const registered = SortableList.register({ children: [dragAndDrop] })
+const RegisteredSortableListDefinition = SortableListDefinition.register({
+  children: [dragAndDrop],
+})
 
-const update = SortableList.update((model, message) =>
+const update = SortableListDefinition.update((model, message) =>
   Message.match(message, {
     GotDragAndDropMessage: ({ message }) => dragAndDrop.fold(model, message),
   }),
@@ -99,7 +101,7 @@ const update = SortableList.update((model, message) =>
 
 // Inside your view function, spread draggable() onto items and droppable()
 // onto containers:
-const view = registered.view((model, h) =>
+const view = RegisteredSortableListDefinition.view((model, h) =>
   h.ul(
     [
       ...DragAndDropDroppable('list', 'Sortable items'),

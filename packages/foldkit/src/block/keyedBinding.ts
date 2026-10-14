@@ -12,11 +12,15 @@ import type {
   AnyBinding,
   BindableBlock,
   Binding,
+  BindingEvidence,
   BindingRequirement,
   BindingReturn,
+  ConnectionInspection,
+  HandlerRequirementsOfBinding,
   ValidateEmbeddedViewMounts,
+  WithoutBindingEvidence,
 } from './binding.js'
-import { assertValidBindingStepNames } from './binding.js'
+import { assertValidConnectionOperationNames } from './binding.js'
 import { registerBinding } from './composition.js'
 import { type DefaultViewTypeId, defaultViewOf } from './defaultView.js'
 import { ViewScopeTypeId, hostIdentitiesOf } from './identity.js'
@@ -257,7 +261,7 @@ type KeyedEmbed<
     }
   : unknown)
 
-type KeyedBoundSteps<
+type KeyedBoundExposedOperations<
   BlockValue extends BindableBlock,
   ParentModel,
   ParentMessage,
@@ -265,7 +269,7 @@ type KeyedBoundSteps<
   Placement extends string,
   Policy,
 > = Readonly<{
-  [Name in keyof BlockValue['steps']]: (
+  [Name in keyof BlockValue['expose']]: (
     key: Key,
     ...args: Parameters<
       Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy>[Name]
@@ -283,18 +287,36 @@ export type KeyedBinding<
   Key extends InstanceKey,
   Placement extends string,
   Policy,
-> = Omit<
-  Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy>,
-  | 'init'
-  | 'fold'
-  | 'embedView'
-  | 'subscriptions'
-  | 'managedResources'
-  | keyof BlockValue['steps']
+> = WithoutBindingEvidence<
+  Omit<
+    Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy>,
+    'init' | 'fold' | 'embedView' | keyof BlockValue['expose']
+  >
 > &
+  BindingEvidence<
+    BlockValue,
+    HandlerRequirementsOfBinding<
+      Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy>
+    >,
+    ConnectionInspection<
+      Readonly<Record<never, never>>,
+      Readonly<Record<never, never>>,
+      BlockValue['mounts'],
+      Layer.Layer<
+        import('./scope.js').Qualify<
+          Placement,
+          Layer.Success<BlockValue['EffectsLayer']>
+        >,
+        Layer.Error<BlockValue['EffectsLayer']>,
+        import('./scope.js').Qualify<
+          Placement,
+          Layer.Services<BlockValue['EffectsLayer']>
+        >
+      >
+    >,
+    true
+  > &
   Readonly<{
-    /** @internal Distinguishes lifecycle services owned by dynamic instances. */
-    __blockKeyedBinding: true
     init: (
       key: Key,
       ...args: Parameters<BlockValue['init']>
@@ -324,11 +346,9 @@ export type KeyedBinding<
       BlockId<BlockValue>,
       BindingRequirement<Placement, BlockValue>
     >
-    subscriptions: Readonly<Record<never, never>>
-    managedResources: Readonly<Record<never, never>>
     embedView: KeyedEmbed<BlockValue, ParentMessage, Placement, Key>
   }> &
-  KeyedBoundSteps<
+  KeyedBoundExposedOperations<
     BlockValue,
     ParentModel,
     ParentMessage,
@@ -482,13 +502,13 @@ type RuntimeBoundKeyedFold = (
 ) => AnyUpdateReturn
 
 /** @internal Implements collection folding and embedding without constructing Layers. */
-export const bindEach = (
-  block: BindableBlock,
+export const bindEach = <const BlockValue extends BindableBlock>(
+  block: BlockValue,
   config: RuntimeKeyedBindingConfig,
 ): AnyBinding => {
   const placement = config.placement ?? block.owner.id
   assertSegment(placement)
-  assertValidBindingStepNames(block.steps)
+  assertValidConnectionOperationNames(block.expose)
   const allowedIdentities = hostIdentitiesOf(block)
   const readAt = (model: any, key: InstanceKey): Option.Option<any> =>
     Option.map(
@@ -601,7 +621,7 @@ export const bindEach = (
     }
   }
   const fold = makeFold(block.update)
-  const steps = Record.map(block.steps, producer => {
+  const exposedOperations = Record.map(block.expose, producer => {
     const foldStep = makeFold(producer)
     return (key: InstanceKey, ...args: ReadonlyArray<any>) =>
       (model: any) =>
@@ -614,6 +634,15 @@ export const bindEach = (
 
     return key
   }
+  const EffectsLayer = qualifyLayer(
+    placement,
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    block.EffectsLayer as Layer.Layer<
+      Layer.Success<BlockValue['EffectsLayer']>,
+      Layer.Error<BlockValue['EffectsLayer']>,
+      Layer.Services<BlockValue['EffectsLayer']>
+    >,
+  )
   const binding = {
     placement,
     init: (key: InstanceKey, ...args: ReadonlyArray<any>) => {
@@ -632,16 +661,6 @@ export const bindEach = (
       }
     },
     fold,
-    subscriptions: {},
-    managedResources: {},
-    mounts: block.mounts,
-    // oxlint-disable effecttsgo/any-unknown-in-error-context
-    EffectsLayer: qualifyLayer(
-      placement,
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      block.EffectsLayer as Layer.Layer<any, any, any>,
-    ),
-    // oxlint-enable effecttsgo/any-unknown-in-error-context
     embedView: <View extends AnyBlockView>(
       embedConfig: Omit<
         BoundBlockFields<View, any>,
@@ -664,7 +683,7 @@ export const bindEach = (
       } as unknown as BoundBlockConfig<View, any>
       return boundConfig
     },
-    ...steps,
+    ...exposedOperations,
   }
   registerBinding(binding, {
     block,
@@ -682,6 +701,12 @@ export const bindEach = (
         return when(model, instanceKey)
       }
       return when?.[name]?.(model, instanceKey) ?? true
+    },
+    inspection: {
+      subscriptions: {},
+      managedResources: {},
+      mounts: block.mounts,
+      EffectsLayer,
     },
   })
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */

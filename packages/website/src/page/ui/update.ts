@@ -33,7 +33,7 @@ import { Message } from './message'
 import { Model, VirtualListChatStartProximity } from './model'
 import type { DemoCard, DemoColumn, VirtualListChatMessage } from './model'
 
-export const Ui = Block.define('Ui', {
+export const UiDefinition = Block.define('Ui', {
   Model,
   Message,
 })
@@ -784,11 +784,11 @@ const foldAnimationDemoOutMessage = (
 ) =>
   Animation.OutMessage.match(outMessage, {
     StartedLeaveAnimating: () =>
-      Ui.step(model => ({
+      UiDefinition.step(model => ({
         model,
         commands: [liftCommand(defaultLeaveCommand(model.animationDemo))],
       })),
-    TransitionedOut: () => Ui.step(model => ({ model })),
+    TransitionedOut: () => UiDefinition.step(model => ({ model })),
   })
 
 export const animationDemo = Animation.block.connection({
@@ -965,8 +965,6 @@ const prependVirtualListChatMessagesOnStartThresholdEntry =
     return prependVirtualListChatMessages(nextModel)
   }
 
-// UPDATE
-
 const foldVerticalRadioGroupDemoOutMessage = PlanRadioGroup.OutMessage.match<
   Update.Step<Model, Message>,
   typeof PlanRadioGroup.OutMessage.Type
@@ -1007,7 +1005,7 @@ export const horizontalRadioGroupDemo = PlanRadioGroup.connection({
   outMessage: { fold: foldHorizontalRadioGroupDemoOutMessage },
 })
 
-export const ui = Ui.register({
+export const RegisteredUiDefinition = UiDefinition.register({
   children: [
     animationDemo,
     calendarBasicDemo,
@@ -1051,7 +1049,7 @@ export const ui = Ui.register({
   ],
 })
 
-export const update = Ui.update((model, message) =>
+export const update = UiDefinition.update((model, message) =>
   Message.match(message, {
     UpdatedInputDemoValue: ({ value }) => ({
       model: modifyFields(model, { inputDemoValue: () => value }),

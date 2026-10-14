@@ -1,7 +1,7 @@
 import { expectOutMessage, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
-import { Message, OutMessage, init, update } from './block'
+import { Message, OutMessage, init, update } from './definition'
 
 describe('education entry', () => {
   test('UpdatedSchool stores a valid school', () => {

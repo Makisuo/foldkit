@@ -26,12 +26,8 @@ const urlToApplicationRoute = Route.parseUrlWithFallback(
   ApplicationRoute.NotFound,
 )
 
-// MODEL
-
 const Model = Schema.Struct({ route: ApplicationRoute })
 type Model = typeof Model.Type
-
-// MESSAGE
 
 const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
@@ -41,11 +37,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const Application = defineApplication({ Model, Message })
+const ApplicationDefinition = defineApplication({ Model, Message })
 
-// COMMAND
-
-const NavigateInternal = Application.command('NavigateInternal', {
+const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -56,7 +50,7 @@ const NavigateInternal = Application.command('NavigateInternal', {
   },
 })
 
-const LoadExternal = Application.command('LoadExternal', {
+const LoadExternal = ApplicationDefinition.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -65,9 +59,7 @@ const LoadExternal = Application.command('LoadExternal', {
   },
 })
 
-// UPDATE
-
-const update = Application.update((model, message) =>
+const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),

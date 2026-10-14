@@ -111,8 +111,6 @@ export const comboboxViewInputs = ({
   }
 }
 
-// VIEW
-
 export const view = (
   comboboxModel: typeof Combobox.Model.Type,
   maybeSelectedCity: Option.Option<City>,

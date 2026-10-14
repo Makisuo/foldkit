@@ -88,7 +88,7 @@ A delivery host runs the built `fetch` handler. It does not import the applicati
 
 #### Application config on the server
 
-`renderToString` takes three arguments: the typed `Application` or its registered composition, the shared implementation record, and render options. Include `Flags` and `routing` in the implementation record when the application declares them. Pass the same Application value whose owned `make` method builds the browser program.
+`renderToString` takes three arguments: the typed `Application` or its registered composition, an explicit completion config, and render options. List `init`, `update`, `view`, and any `Flags`, `routing`, lifecycle, or handler fields directly. Pass the same Application value whose owned `make` method builds the browser program.
 
 `container` is not a server rendering input. `renderToString` privately completes the checked Application composition, runs its `init`, and runs its view once over the resulting Model. It does not start update, Commands, Subscriptions, ManagedResources, Mount handlers, or the handler graph. There is no DOM to attach to and no Message to dispatch.
 

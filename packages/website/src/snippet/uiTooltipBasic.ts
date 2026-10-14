@@ -51,7 +51,7 @@ const foldTooltipOutMessage = Tooltip.OutMessage.match<
   Hidden: () => model => ({ model }),
 })
 
-// The binding wires the completed child Block into the parent: it runs Tooltip.update,
+// The connection wires the completed child Block into the parent: it runs Tooltip.update,
 // writes the next Tooltip Model back, maps the Block's Commands into your
 // Message type, and hands any OutMessage to the OutMessage fold.
 const tooltip = Tooltip.block.connection({
@@ -61,14 +61,16 @@ const tooltip = Tooltip.block.connection({
   outMessage: { fold: foldTooltipOutMessage },
 })
 
-const TooltipExample = Block.define('TooltipExample', {
+const TooltipExampleDefinition = Block.define('TooltipExample', {
   Model,
   Message,
 })
-const registered = TooltipExample.register({ children: [tooltip] })
+const RegisteredTooltipExampleDefinition = TooltipExampleDefinition.register({
+  children: [tooltip],
+})
 
 // In the corresponding Message.match handler, call the fold:
-const update = TooltipExample.update((model, message) =>
+const update = TooltipExampleDefinition.update((model, message) =>
   Message.match(message, {
     GotTooltipMessage: ({ message }) => tooltip.fold(model, message),
   }),
@@ -79,7 +81,7 @@ const update = TooltipExample.update((model, message) =>
 // an accessible name with `ariaLabel`. (Point `ariaLabelledBy` at a visible
 // label element instead when one exists.) The attribute is only emitted when
 // provided, so the trigger never carries a dangling `aria-labelledby`.
-const view = registered.view((model, h) => {
+const view = RegisteredTooltipExampleDefinition.view((model, h) => {
   const tooltipView = ({ trigger, panel, isVisible }: TooltipRenderInfo) =>
     h.div(
       [h.Class('relative inline-block')],

@@ -2,8 +2,7 @@ import { define as defineApplication } from 'foldkit/application'
 
 import { Message } from './message'
 import { Model } from './model'
-import * as Home from './page/home'
-import * as Products from './page/products'
+import { Home, Products } from './page'
 
 const home = Home.block.connection({
   Model,
@@ -17,6 +16,8 @@ const products = Products.block.connection({
   parentMessage: Message.GotProductsMessage,
 })
 
-export const Application = defineApplication({ Model, Message }).register({
+export const ApplicationDefinition = defineApplication({ Model, Message })
+
+export const Application = ApplicationDefinition.register({
   children: [home, products],
 })

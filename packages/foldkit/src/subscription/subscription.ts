@@ -409,9 +409,10 @@ type RuntimeHandlerGenerator = () => Generator<
  * generics are provided up front; the callback builds a record with `entry`.
  *
  * Application features use their Block definition's `subscriptions`
- * helper, which also qualifies the handler identities. Include the resulting
- * registry and local handler recipes in `definition.implement`. Registered
- * child bindings collect their own registries automatically.
+ * helper, which also qualifies the handler identities. Pass the resulting
+ * registry as `subscriptions` and its local handler recipes through
+ * `EffectsLayer` when calling `definition.toBlock`. Registered child bindings
+ * collect their own registries automatically.
  *
  * @example
  * ```ts

@@ -518,6 +518,53 @@ const bindingConfigHasProperties = (
   return names.every(name => properties.has(name))
 }
 
+const isDirectBlockDefinitionStage = (
+  node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => {
+  const isBlockDefine =
+    references === undefined
+      ? Option.exists(staticMemberPath(node.callee), path =>
+          Option.exists(
+            Array.last(path.members),
+            member => path.root.name === 'Block' && member === 'define',
+          ),
+        )
+      : Option.exists(resolveFoldkitApiPath(references, node.callee), path =>
+          Array.match(path, {
+            onEmpty: () => false,
+            onNonEmpty: ([namespace, methodName, ...rest]) =>
+              namespace === 'Block' &&
+              methodName === 'define' &&
+              Array.isArrayEmpty(rest),
+          }),
+        )
+  if (isBlockDefine) {
+    return true
+  }
+
+  if (
+    !isMemberExpression(node.callee) ||
+    !isCallExpression(node.callee.object) ||
+    !Option.exists(staticMemberName(node.callee), member =>
+      Array.contains(['define', 'register'], member),
+    )
+  ) {
+    return false
+  }
+
+  return isDirectBlockDefinitionStage(node.callee.object, references)
+}
+
+const isDirectBlockCompletion = (
+  node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean =>
+  isMemberExpression(node.callee) &&
+  isCallExpression(node.callee.object) &&
+  Option.contains(staticMemberName(node.callee), 'toBlock') &&
+  isDirectBlockDefinitionStage(node.callee.object, references)
+
 /** Recognizes a completed Block's binding method from its configuration. */
 export const blockBindingMethod = (
   node: ESTree.CallExpression,
@@ -556,16 +603,18 @@ export const blockBindingMethod = (
             return false
           }
 
-          return Option.exists(
-            staticMemberPath(definition.node.init.callee),
-            initPath =>
-              Option.exists(
-                Array.last(initPath.members),
-                member =>
-                  member === 'assemble' ||
-                  member === 'create' ||
-                  member === 'make',
-              ),
+          return (
+            Option.exists(
+              staticMemberPath(definition.node.init.callee),
+              initPath =>
+                Option.exists(
+                  Array.last(initPath.members),
+                  member =>
+                    member === 'toBlock' ||
+                    member === 'create' ||
+                    member === 'make',
+                ),
+            ) || isDirectBlockCompletion(definition.node.init, references)
           )
         }),
       )

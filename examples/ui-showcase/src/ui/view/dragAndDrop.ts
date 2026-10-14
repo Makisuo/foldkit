@@ -16,9 +16,9 @@ import {
 
 import { Message } from '../message'
 import type { DemoCard, DemoColumn } from '../model'
-import { ui } from '../update'
+import { RegisteredUiDefinition } from '../update'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof ui>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
 
 const cardClassName =
   'rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 cursor-grab active:cursor-grabbing select-none transition-opacity'
@@ -210,7 +210,7 @@ const ghostView = (
   )
 }
 
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   return h.div(
     [],
     [

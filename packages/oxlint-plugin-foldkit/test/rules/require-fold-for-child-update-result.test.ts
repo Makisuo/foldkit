@@ -276,7 +276,7 @@ describe('require-fold-for-child-update-result', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('allows init assembly without a current child Model argument', () => {
+  it('allows init completion without a current child Model argument', () => {
     const result = resultFor(
       'Settings',
       'settings',

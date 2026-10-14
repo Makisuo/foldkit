@@ -66,7 +66,7 @@ export type Opened = typeof OutMessage.Opened.Type
 export type Closed = typeof OutMessage.Closed.Type
 export type OutMessage = typeof OutMessage.Type
 
-const Dialog = Block.define('Dialog', { Model, Message, OutMessage })
+const DialogDefinition = Block.define('Dialog', { Model, Message, OutMessage })
 
 // INIT
 
@@ -153,7 +153,7 @@ const acquireDialogResourcesResult = (
  *  acquisition becomes uninterruptible after the committed element is found,
  *  so modal resources and the scroll lock cannot split. A concurrent
  *  lifecycle acquisition reuses the resources already held by the id. */
-export const ShowDialog = Dialog.command('ShowDialog', {
+export const ShowDialog = DialogDefinition.command('ShowDialog', {
   args: { id: Schema.String, focusSelector: Schema.String },
   messages: [Message.SucceededShowDialog, Message.FailedShowDialog],
   handler: function* () {
@@ -167,7 +167,7 @@ export const ShowDialog = Dialog.command('ShowDialog', {
  *  open Dialog without replaying initialization Commands. A successful
  *  acquisition also resumes a preserved animation transition from its current
  *  phase. */
-export const AcquireResources = Dialog.mount('AcquireResources', {
+export const AcquireResources = DialogDefinition.mount('AcquireResources', {
   args: { id: Schema.String, focusSelector: Schema.String },
   messages: [Message.SucceededAcquireResources, Message.FailedAcquireResources],
   handler: function* () {
@@ -206,7 +206,7 @@ export const AcquireResources = Dialog.mount('AcquireResources', {
  *  close runs, the Command calls `Dom.releaseDialogResources` instead. That
  *  releases the scroll lock, focus trap, return focus, and stack entry if the
  *  dialog still holds them. The background is restored before return focus. */
-export const CloseDialog = Dialog.command('CloseDialog', {
+export const CloseDialog = DialogDefinition.command('CloseDialog', {
   args: { id: Schema.String },
   messages: [Message.CompletedCloseDialog],
   handler: function* () {
@@ -225,17 +225,20 @@ export const CloseDialog = Dialog.command('CloseDialog', {
  *  focus trap, return focus, stack entry, background isolation) when the
  *  element unmounts without a purposeful close. Calling it after
  *  `CloseDialog` released those resources is a no-op. */
-export const ReleaseDialogResources = Dialog.command('ReleaseDialogResources', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedReleaseDialogResources],
-  handler: function* () {
-    return ({ id }) =>
-      Dom.releaseDialogResources(id).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedReleaseDialogResources()),
-      )
+export const ReleaseDialogResources = DialogDefinition.command(
+  'ReleaseDialogResources',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedReleaseDialogResources],
+    handler: function* () {
+      return ({ id }) =>
+        Dom.releaseDialogResources(id).pipe(
+          Effect.ignore,
+          Effect.as(Message.CompletedReleaseDialogResources()),
+        )
+    },
   },
-})
+)
 
 /** Mount definitions rendered by Dialog. */
 export const mounts = [AcquireResources]
@@ -269,12 +272,12 @@ const resetToClosed = (model: Model): Model =>
 const foldStartedLeaveAnimating = (
   liftCommand: Update.FoldContext<Animation.Message, Message>['liftCommand'],
 ) =>
-  Dialog.step(model => ({
+  DialogDefinition.step(model => ({
     model,
     commands: [liftCommand(Animation.defaultLeaveCommand(model.animation))],
   }))
 
-const foldTransitionedOut = Dialog.step(model => ({
+const foldTransitionedOut = DialogDefinition.step(model => ({
   model,
   commands: [CloseDialog({ id: model.id })],
 }))
@@ -301,10 +304,13 @@ const animation = Animation.block.connection({
 
 const resumeAnimationAfterAcquisition = animation.resume()
 
-const registered = Dialog.register({ mounts, children: [animation] })
+const RegisteredDialogDefinition = DialogDefinition.register({
+  mounts,
+  children: [animation],
+})
 
 /** Processes a Dialog Message and returns the next Model and optional Commands. */
-export const update = Dialog.update((model, message) =>
+export const update = DialogDefinition.update((model, message) =>
   Message.match(message, {
     RequestedOpen: () => {
       const wasClosed = !model.isOpen
@@ -427,10 +433,14 @@ export const boot = (config: InitConfig) =>
   update(init(config), Message.RequestedOpen())
 
 /** Programmatically opens the Dialog. */
-const open = Dialog.step(model => update(model, Message.RequestedOpen()))
+const open = DialogDefinition.step(model =>
+  update(model, Message.RequestedOpen()),
+)
 
 /** Programmatically closes the Dialog. */
-const close = Dialog.step(model => update(model, Message.RequestedClose()))
+const close = DialogDefinition.step(model =>
+  update(model, Message.RequestedClose()),
+)
 
 // VIEW
 
@@ -519,7 +529,7 @@ export type ViewInputs = Readonly<{
  *  `ShowDialog` and the dialog's Mount open it through `Dom.showDialog`,
  *  isolate the background, trap focus, and handle Escape on the topmost
  *  Dialog. The component supplies its own backdrop. */
-export const view = registered.view.withInputs<ViewInputs>(
+export const view = RegisteredDialogDefinition.view.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const {
       id,
@@ -628,10 +638,10 @@ export const view = registered.view.withInputs<ViewInputs>(
 )
 
 /** Complete Dialog Block definition. */
-export const block = registered.assemble({
+export const block = RegisteredDialogDefinition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),
   update,
   view,
-  steps: { open, close },
+  expose: { open, close },
   EffectsLayer: LocalEffectsLayer,
 })

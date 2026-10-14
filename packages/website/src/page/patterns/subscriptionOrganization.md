@@ -2,7 +2,7 @@
 
 ## Overview
 
-A Block owns the Subscriptions that produce its Messages. Its completed descriptor carries those registrations and their handler recipes. A parent connection lifts them through the same Model accessor and Message wrapper used for update and view.
+A Block owns the Subscriptions that produce its Messages. Its completed Block carries those registrations and their handler recipes. A parent connection lifts them through the same Model accessor and Message wrapper used for update and view.
 
 This keeps one parent-child relationship in one place. The parent does not separately lift and aggregate a child's Subscription record, and the application entry does not import leaf Subscription handlers.
 
@@ -12,7 +12,7 @@ Use the Block definition's `subscriptions` helper. It fixes the Model and Messag
 
 ::Snippet{name="subscriptionOrganizationChild" label="Block Subscription definitions"}
 
-Compose the attached entry recipes in the feature's local `EffectsLayer`. Pass that bundle to `definition.assemble`. A parent connection contributes it automatically.
+Compose the attached entry recipes in the feature's local `EffectsLayer`. Pass that bundle to `FeatureDefinition.toBlock`. A parent connection contributes it automatically.
 
 ## Connect the Child Once
 

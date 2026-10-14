@@ -4,12 +4,22 @@
 
 Build applications from Blocks. Fold their updates into a single application Model.
 
-A Block packages a composable part of a Foldkit application: its Model, Messages, init and update, optional view, lifecycle effects, handler recipes, and public operations. Its parent binds it into the parent Model, drives its public API, and handles its OutMessages.
+A Block packages a composable part of a Foldkit application: its Model, Messages, init and update, optional view, lifecycle effects, handler recipes, and public operations. Its parent connects it to the parent Model, drives its public API, and handles its OutMessages.
 
-That one binding replaces repeated wiring across update, view, Subscriptions, ManagedResources, Mounts, and Effect Layers. The parent still owns application policy: where the child Model lives, when an optional child exists, how OutMessages affect the parent, which routes activate Subscriptions, initialization order, and where the child renders.
+The composition flow has five phases:
+
+1. Define the Block's contracts with `Block.define`.
+2. Author its behavior through the returned definition.
+3. Produce its completed Block with `toBlock`.
+4. Connect the completed Block to its parent and register that connection.
+5. Complete the root Application as a runtime input.
+
+Definition, authoring, Block production, connection, and Application completion are passive configuration. The Runtime constructs Layers and performs effects only after `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` starts that input.
+
+That one connection replaces repeated wiring across update, view, Subscriptions, ManagedResources, Mounts, and Effect Layers. The parent still owns application policy: where the child Model lives, when an optional child exists, how OutMessages affect the parent, which routes activate Subscriptions, initialization order, and where the child renders.
 
 :::Info{label="Complete application"}
-The [Typing Terminal application](/example-apps/typing-terminal) composes Home and Room as Blocks. Its [client source](https://github.com/foldkit/foldkit/tree/main/packages/typing-game/client/src) shows definitions split across files, parent bindings, route gates, OutMessages, and root service provision.
+The [Typing Terminal application](/example-apps/typing-terminal) composes Home and Room as Blocks. Its [client source](https://github.com/foldkit/foldkit/tree/main/packages/typing-game/client/src) shows definitions split across files, parent connections, route gates, OutMessages, and root service provision.
 :::
 
 ## When to Create a Block
@@ -26,39 +36,39 @@ If a section only renders parent state, use a view function. A card that receive
 
 ### Establish the feature boundary
 
-Declare the Schemas, then call `Block.define('Settings', { Model, Message, OutMessage })`. This creates the local identity and typed authoring helpers together. The ID is local to the feature; do not include ancestors or filesystem paths. The declaration identifier must match the literal ID, so name this value `Settings`.
+Declare the Schemas, then call `Block.define('Settings', { Model, Message, OutMessage })`. This creates the local identity and typed authoring helpers together. The ID is local to the feature; do not include ancestors or filesystem paths. Name the returned value `SettingsDefinition`; the `Definition` suffix distinguishes authoring from the completed Block while the declared ID remains `Settings`.
 
-::Snippet{name="blockOwnerContract" label="Defining a typed Block"}
+::Snippet{name="blockDefinition" label="Defining a typed Block"}
 
 The returned value supplies `command`, `mount`, `mountStream`, `resource`, `update`, `step`, `view`, `subscriptions`, and `managedResources`. It provides the owning identity and precise contextual types, while retaining inferred Command and Service requirements. Keep this value in one module and import it; creating another definition with the same readable ID does not reuse the original definition.
 
-Commands and lifecycle handlers declare local names such as `SaveTheme`. Foldkit derives the full runtime path from composition. Settings bound under Profile becomes `Profile/Settings/SaveTheme`; the feature remains reusable under another parent.
+Commands and lifecycle handlers declare local names such as `SaveTheme`. Foldkit derives the full runtime path from composition. Settings connected under Profile becomes `Profile/Settings/SaveTheme`; the feature remains reusable under another parent.
 
 ### Register the composition graph
 
-Call `register({ children, mounts })` after defining the child connections and parent policies. It checks that graph and supplies the view capabilities available to assembly. The returned value preserves the established primitive and typed helpers.
+Call `register({ children, mounts })` after defining the child connections and parent policies. It checks that graph and supplies the view capabilities available while authoring the view and producing the Block. The returned value preserves the established primitive and typed helpers.
 
-Chain `Block.define(...).register(...)` when the child policies do not depend on earlier parent operations. Otherwise, keep the initial `Settings` value, author the parent Steps and connections, then use `const settings = Settings.register(...)`. This ordering breaks the inference cycle between a parent Step, the child policy that uses it, and the graph containing that policy. Nesting depth does not determine whether separate statements are needed.
+Chain `Block.define(...).register(...)` into `SettingsDefinition` when the child policies do not depend on earlier parent operations. Otherwise, keep the initial `SettingsDefinition`, author the parent Steps and connections, then use `const RegisteredSettingsDefinition = SettingsDefinition.register(...)`. This ordering breaks the inference cycle between a parent Step, the child policy that uses it, and the graph containing that policy. Nesting depth does not determine whether separate statements are needed.
 
-Features without children or Mounts can use `view` and `assemble` directly. Registration configures capabilities; it does not build Layers or start child behavior.
+Features without children or Mounts can use `view` and `toBlock` directly. Registration configures capabilities; it does not build Layers or start child behavior.
 
-### Assemble the feature
+### Produce the completed Block
 
-Call `assemble` after the feature's pieces exist. Composition is passive: it checks and records the implementation without building a Layer, running init, or starting lifecycle work.
+Call `toBlock` after the feature's pieces exist. It packages the authored pieces into a checked Block without building a Layer, running init, or starting lifecycle work. A completed Block may still carry ordinary Service requirements or handlers that its host must provide.
 
-::Snippet{name="blockOwnedDescriptor" label="Implementing a Block"}
+::Snippet{name="blockSettings" label="Producing a completed Block"}
 
 Export the completed value as `block`. Parents import the feature namespace and use `Settings.block.connection(...)`.
 
-`EffectsLayer` contains only the feature's local handler recipes. Omit it when the feature has no local handlers; Foldkit uses an empty recipe and still checks completeness. Registered child bindings contribute their complete recipes automatically. A handler Layer may require an HTTP client, store, RPC client, clock, or browser service. Those ordinary service requirements continue through composition until the application root supplies them.
+`EffectsLayer` contains only the feature's local handler recipes. Omit it when the feature has no local handlers; Foldkit uses an empty recipe and still checks completeness. Registered child connections contribute their complete recipes automatically. A handler Layer may require an HTTP client, store, RPC client, clock, or browser service. Those ordinary Service requirements continue through composition until the application root supplies them.
 
 ### Multi-file organization
 
-Organize files by responsibility. A split feature can keep its typed authoring declaration in `block.ts`, then assemble the completed value in `settings.ts`:
+Organize files by responsibility. A split feature can keep its typed authoring declaration in `definition.ts`, then produce the completed value in `settings.ts`:
 
 ```text
 settings/
-├── block.ts         # typed authoring declaration
+├── definition.ts    # typed authoring definition
 ├── model.ts
 ├── message.ts
 ├── update.ts        # Commands live beside the update that returns them
@@ -67,59 +77,59 @@ settings/
 └── index.ts         # explicit public barrel
 ```
 
-Keep small features together. Add `subscription.ts`, `mount.ts`, or `managedResource.ts` when that concern makes a separate file easier to navigate. Extract `layer.ts` for substantial or reused composition, and `children.ts` for substantial binding policies. Keep the typed declaration separate from the completed feature when implementation files import its helpers. They must not import their own completed barrel: completion depends on those implementation files.
+Keep small features together. Add `subscription.ts`, `mount.ts`, or `managedResource.ts` when that concern makes a separate file easier to navigate. Extract `layer.ts` for substantial or reused composition, and `connection.ts` for substantial parent–child policies. Keep the definition separate from the completed feature when implementation files import its helpers. They must not import their own completed barrel: completion depends on those implementation files.
 
 Export `block` and the intended structural pieces from the feature barrel. Export the feature as a namespace from the parent barrel. The namespace supplies context for `Settings.Model`, `Settings.Message`, `Settings.OutMessage.match`, and `Settings.block.connection`:
 
 ::Snippet{name="blockFeatureExports" label="Exporting a completed feature"}
 
-## Bind a Child {#embedding}
+## Connect a Child {#embedding}
 
-Call the completed child's `connection` method in the parent. The binding records the child's placement in the parent Model and Message context.
+Call the completed child's `connection` method in the parent. The connection records the child's placement in the parent Model and Message context.
 
-::Snippet{name="blockBindDescriptor" label="Binding and embedding a Block"}
+::Snippet{name="blockProfile" label="Connecting and embedding a Block"}
 
 For a required direct Struct field, pass `Model` and `field` instead of read/write functions. Use `parentMessage: Message.GotSettingsMessage` when the wrapper contains only `{ message }`; Foldkit constructs that parent Message for every child Message, including Command results and lifecycle emissions. Use `toParentMessage` for custom mappings, and supply exactly one mapping field.
 
 Placement defaults to `field` for this shorthand and to the child's Block ID for accessor connections. An explicit `placement` overrides either default. Two different fields therefore identify two different occurrences. Keep an override when composition identity should differ from storage location:
 
-::Snippet{name="blockStaticPlacements" label="Binding two static placements"}
+::Snippet{name="blockStaticPlacements" label="Connecting two static placements"}
 
-Register every binding through the parent's `register` method:
+Register every connection through the parent's `register` method:
 
-::Snippet{name="blockRegisterChildren" label="Registering child bindings"}
+::Snippet{name="blockRegisterChildren" label="Registering child connections"}
 
 This registration is what lets Foldkit collect child handler recipes and lifecycle definitions, validate embedded views, derive qualified effect identities, and manage active occurrences.
 
 ### Fold child Messages {#fold-child}
 
-Use `binding.fold(model, message, ...context)` in the wrapper Message handler. It runs the child's update, writes the next child Model, lifts Commands back to the parent Message type, and applies the binding's OutMessage policy.
+Use `connection.fold(model, message, ...context)` in the wrapper Message handler. It runs the child's update, writes the next child Model, lifts Commands back to the parent Message type, and applies the connection's OutMessage policy.
 
-::Snippet{name="blockFoldChild" label="Folding a bound child Message"}
+::Snippet{name="blockFoldChild" label="Folding a connected child Message"}
 
-Declare parent-driven operations under `steps`, then call them directly through the binding. Forward received child Messages through `fold`; use named operations for changes the parent initiates:
+Declare parent-driven operations under `expose`, then call them directly through the connection. Forward received child Messages through `fold`; use named operations for changes the parent initiates:
 
-::Snippet{name="blockProjectedSteps" label="Calling a bound public operation"}
+::Snippet{name="blockProjectedSteps" label="Calling a connected public operation"}
 
 These calls are pure. They produce parent Update.Steps containing the next Model, optional Commands, and optional OutMessage. The Runtime executes returned Commands later. Every public operation receives the same read/write, absence, Command lifting, resource access, and OutMessage guarantees as `fold`.
 
-Delegating an operation to update can share behavior. Use a truthful Message such as `RequestedClose`; a programmatic close did not click a button. A direct pure Step or shared pure helper is also valid. Do not invent a Message only to route through update. Omit `steps` when the Block exposes no named operations.
+Delegating an operation to update can share behavior. Use a truthful Message such as `RequestedClose`; a programmatic close did not click a button. A direct pure Step or shared pure helper is also valid. Do not invent a Message only to route through update. Omit `expose` when the Block exposes no named operations.
 
-The bound forms retain the exact argument types, Command requirements, and OutMessage behavior of the child operation.
+The connection operations retain the exact argument types, Command requirements, and OutMessage behavior of the child operation.
 
 ### Initialize the child
 
-The parent decides how several initial Models combine. Call `binding.init(...args)`, put its Model into the parent Model, and retain its lifted Commands.
+The parent decides how several initial Models combine. Call `connection.init(...args)`, put its Model into the parent Model, and retain its lifted Commands.
 
-::Snippet{name="blockFoldChildInit" label="Initializing a bound child"}
+::Snippet{name="blockFoldChildInit" label="Initializing a connected child"}
 
 Block init cannot emit an OutMessage. When startup must perform an ordinary transition that can surface a fact, expose a public API operation such as `boot` and apply it after the initial Model exists.
 
 ### Embed the child view {#wiring-the-view}
 
-`binding.embedView` supplies the canonical view, the Message wrapper, the composition identity, and the binding's Mount evidence. Pass its result to `h.block`:
+`connection.embedView` supplies the canonical view, the Message wrapper, the composition identity, and the connection's Mount evidence. Pass its result to `h.block`:
 
-::Snippet{name="blockParentView" label="Embedding a bound child view"}
+::Snippet{name="blockParentView" label="Embedding a connected child view"}
 
 `slotId` identifies one render position inside the current view boundary. Keep it stable. The parent still supplies the child Model explicitly, which keeps rendering a pure function of the parent Model.
 
@@ -143,7 +153,7 @@ A headless Block may supply behavior while its parent chooses the markup. The ch
 
 ::Snippet{name="blockChildAttributesPublish" label="Publishing child attributes"}
 
-The parent spreads those groups onto its own elements. Child handlers still reach the child update through the binding's Message wrapper; parent handlers built alongside them reach the parent update.
+The parent spreads those groups onto its own elements. Child handlers still reach the child update through the connection's Message wrapper; parent handlers built alongside them reach the parent update.
 
 ::Snippet{name="blockChildAttributesConsume" label="Rendering child attributes"}
 
@@ -151,7 +161,7 @@ Block authors call `childAttributes`; consumers spread the supplied groups. Stat
 
 ### Share parent renderers
 
-Build shared renderers in the parent and pass them as top-level `viewInputs` callbacks. A renderer can embed a sibling Block through that sibling's registered binding. Each embed then establishes its own child boundary.
+Build shared renderers in the parent and pass them as top-level `viewInputs` callbacks. A renderer can embed a sibling Block through that sibling's registered connection. Each embed then establishes its own child boundary.
 
 Thread `h` through view functions and render callbacks. Do not store a builder in module state; its dispatch context belongs to the current render boundary.
 
@@ -159,7 +169,7 @@ Thread `h` through view functions and render callbacks. Do not store a builder i
 
 `read` returns `Option` because a routed or conditional child may be absent. When it returns `None`:
 
-- bound folds leave the parent Model unchanged;
+- connected folds leave the parent Model unchanged;
 - that occurrence's Subscription Streams stop;
 - its ManagedResource handles release;
 - its mounted elements clean up.
@@ -176,11 +186,11 @@ The gate controls Streams. It does not remove the child or disable its update.
 
 ## OutMessages {#surfacing-facts}
 
-A child reports facts to its parent through an OutMessage. Every binding of a Block with OutMessages must declare an explicit policy.
+A child reports facts to its parent through an OutMessage. Every connection for a Block with OutMessages must declare an explicit policy.
 
 - `outMessage.fold` handles the fact in the current parent and returns a parent Step.
 - `outMessage.forward` translates selected facts into the current Block's own OutMessage.
-- A binding may do both. A derived OutMessage from the local fold takes precedence for that dispatch.
+- A connection may do both. A derived OutMessage from the local fold takes precedence for that dispatch.
 
 Build an OutMessage fold directly from the child's exhaustive matcher:
 
@@ -188,19 +198,19 @@ Build an OutMessage fold directly from the child's exhaustive matcher:
 
 The child does not know who embeds it. The parent decides what the reported fact means at that boundary.
 
-An OutMessage fold receives `FoldContext` when its policy needs to lift a child Command or compare the transition with parent state from before the child update. `modelBeforeUpdate` is that previous parent Model. The Step returned by the fold still receives the parent Model after the next child Model has been written, so policy can deliberately use either side of the transition without reconstructing the fold by hand.
+OutMessage handling is parent update logic. The connection records the policy, and both `fold` and exposed operations apply it during the same pure parent transition. Keep a substantial policy in a named parent fold near the connection or the parent transition that uses it. An OutMessage fold receives `FoldContext` when it needs to lift a child Command or compare the transition with parent state from before the child update. `modelBeforeUpdate` is that previous parent Model. The Step returned by the fold still receives the parent Model after the next child Model has been written, so policy can deliberately use either side of the transition without reconstructing the fold by hand.
 
 ## Keyed Collections {#fold-child-at}
 
-Use `keyedConnection` when one parent owns a dynamic collection of the same Block. The binding declares collection enumeration and stable identity once.
+Use `keyedConnection` when one parent owns a dynamic collection of the same Block. The connection declares collection enumeration and stable identity once.
 
-::Snippet{name="blockMultipleInstances" label="Binding a keyed collection" class="mb-4"}
+::Snippet{name="blockMultipleInstances" label="Connecting a keyed collection" class="mb-4"}
 
-Each active key gets independent Subscription, ManagedResource, and Mount scopes. `fold`, `step`, public API operations, `init`, and `embedView` take the key first. The key must be a stable string or finite number and must be unique in the current collection.
+Each active key gets independent Subscription, ManagedResource, and Mount scopes. `fold`, exposed operations, `init`, and `embedView` take the key first. The key must be a stable string or finite number and must be unique in the current collection.
 
 Removing a key synchronously makes its dispatchers stale and starts lifecycle cleanup. Reusing the same key later creates a new occurrence; results and callbacks captured by the earlier occurrence cannot update it.
 
-Keyed bindings do not reconcile the collection itself. Application update remains responsible for adding, removing, and ordering items in the parent Model.
+Keyed connections do not reconcile the collection itself. Application update remains responsible for adding, removing, and ordering items in the parent Model.
 
 ## Reading Parent State
 
@@ -222,17 +232,17 @@ Sometimes another source is authoritative: the URL may own filter bounds, or a f
 
 ::Snippet{name="blockReflectExternalState" label="Reflecting URL state into a child"}
 
-Use reflection only for silent synchronization. If the transition should emit Commands or an OutMessage, expose a public Step and use its bound form.
+Use reflection only for silent synchronization. If the transition should emit Commands or an OutMessage, expose a public Step and call it through the connection.
 
-## Application Assembly
+## Complete the Application
 
-Import `define as defineApplication` from `foldkit/application` and export the typed `Application` from `application.ts`. Its owned methods author root Commands, updates, Steps, views, and lifecycle declarations. Register the root graph once, then call its owned `make` or `makeElement` method in `entry.ts` with the implementation pieces and browser inputs. A defined Application cannot be connected as a child:
+Import `define as defineApplication` from `foldkit/application` and export the early typed value as `ApplicationDefinition`. Its owned methods author root Commands, updates, Steps, views, and lifecycle declarations. Register the root graph once and export that value as `Application`. A graphless root completes `ApplicationDefinition` directly. Call the selected authoring value's `make` or `makeElement` in `entry.ts` with explicitly listed implementation pieces and browser inputs. A defined Application cannot be connected as a child:
 
-::Snippet{name="blockApplicationDescriptor" label="Completing the Application"}
+::Snippet{name="blockApplicationCompletion" label="Completing the Application"}
 
 The defined Application already carries the registered child graph. Its completion config supplies local handler recipes and lifecycle definitions. `ApplicationLayer` supplies ordinary application services. It does not re-merge each feature's `EffectsLayer`.
 
-`Application.make` validates the concrete composition before the Runtime starts. Missing handlers, incompatible child bindings, and unregistered Mount requirements are assembly errors rather than work discovered after a user interaction.
+`Application.make` validates the concrete composition before the Runtime starts. Missing handlers, incompatible child connections, and unregistered Mount requirements fail before a user interaction.
 
 Server rendering uses the same root:
 
@@ -256,7 +266,7 @@ Whole-handler replacement is useful for a host-owned feature contract, a deliber
 
 A reusable factory can refine a completed Block with a Schema while sharing one identity and one local handler recipe. For this specialized case, `Block.define('Combobox')` establishes the identity and primitive methods before the single/multi and generic item contracts exist. Its `.define({ Model, Message, OutMessage })` method then establishes each typed contract under that same identity. Ordinary features use the two-argument form.
 
-::Snippet{name="blockGenericDescriptor" label="Schema-refined Block"}
+::Snippet{name="blockGenericFactory" label="Schema-refined Block"}
 
 Keep the shared identity and recipe at module scope. Factory calls may refine Model, Message, OutMessage, view inputs, and public operation payloads. They must not manufacture new effect identities for the same reusable component.
 
@@ -271,7 +281,7 @@ Composition preserves the owner of each effect lifetime:
 | One active Block occurrence | Subscription Streams and ManagedResource handles |
 | One mounted element         | Mount acquisition and cleanup                    |
 
-Binding a Block does not build a Layer. The Runtime builds the selected handler graph once, then starts and stops occurrence work as the Model changes.
+Connecting a Block does not build a Layer. The Runtime builds the selected handler graph once, then starts and stops occurrence work as the Model changes.
 
 ## Never Bypass the Child's Update {#never-bypass-the-update}
 
@@ -279,15 +289,15 @@ The parent stores the child Model but does not own its transitions. Do not reach
 
 ::Snippet{name="blockDirectModifyFieldsAntipattern" label="❌ Resetting child state directly"}
 
-Expose a named operation under `steps` and call it through the binding:
+Expose a named operation under `expose` and call it through the connection:
 
-::Snippet{name="blockDelegateViaHelper" label="✅ Resetting child state through a bound Step"}
+::Snippet{name="blockDelegateViaHelper" label="✅ Resetting child state through a connected Step"}
 
 This preserves invariants, Commands, OutMessages, effect requirements, and the child's freedom to change its Model shape.
 
 ## Boundary Identity and Model Identity {#boundary-id-and-model-identity}
 
-A Block definition identifies a reusable feature. A binding identifies one placement in its parent. `slotId` identifies one render position, and a `keyedConnection` key identifies one dynamic occurrence. These values serve different jobs and should all remain stable.
+A Block definition identifies a reusable feature. A connection identifies one placement in its parent. `slotId` identifies one render position, and a `keyedConnection` key identifies one dynamic occurrence. These values serve different jobs and should all remain stable.
 
 The child Model may have its own domain ID. Foldkit does not infer runtime placement from that field. State identity and composition identity often coincide, but keeping the relationship explicit avoids hidden routing rules.
 
@@ -299,13 +309,13 @@ Name wrapper Messages `Got<Child>Message`. DevTools uses that convention to grou
 
 ### Block.define
 
-`Block.define(id, { Model, Message, OutMessage? })` creates a local identity and typed authoring methods. `id` is a nonempty segment without `/` or `::` and matches its declaration identifier. `register({ mounts?, children? })` adds graph-aware view and assembly capabilities while retaining the established helpers.
+`Block.define(id, { Model, Message, OutMessage? })` creates a local identity and typed authoring methods. `id` is a nonempty segment without `/` or `::`. Name the returned value `<Id>Definition`, such as `SettingsDefinition` for the ID `Settings`. `register({ mounts?, children? })` adds graph-aware view and completion capabilities while retaining the established helpers.
 
 For shared definitions specialized by a generic factory, `Block.define(id)` supplies the primitive methods and `.define(contracts)` establishes each later typed contract. Both forms are passive configuration.
 
-### definition.assemble
+### FeatureDefinition.toBlock
 
-`definition.assemble({ init, update, view?, steps?, subscriptions?, managedResources?, EffectsLayer?, hostHandlers? })` checks and returns the passive completed Block.
+`FeatureDefinition.toBlock({ init, update, view?, expose?, subscriptions?, managedResources?, EffectsLayer?, hostHandlers? })` checks and returns the passive completed Block. `EffectsLayer` and `hostHandlers` may leave ordinary Services or host contracts for the application root to provide.
 
 ### block.connection
 
@@ -313,27 +323,33 @@ For shared definitions specialized by a generic factory, `Block.define(id)` supp
 
 ### block.keyedConnection
 
-`block.keyedConnection(config)` binds a keyed collection. It requires `readAll`, `key`, `read`, `writeAt`, and `toParentMessage`, with keyed variants of Subscription gates and OutMessage policy.
+`block.keyedConnection(config)` connects a keyed collection. It requires `readAll`, `key`, `read`, `writeAt`, and `toParentMessage`, with keyed variants of Subscription gates and OutMessage policy.
 
-### definition.step
+### FeatureDefinition.step
 
-`definition.step(producer)` authors a pure operation over the child Model. It infers the operation's arguments, result Messages and Command requirements. Register selected operations in the completed Block's `steps` record; internal Steps need not be exposed.
+`FeatureDefinition.step(producer)` authors a pure operation over the child Model. It infers the operation's arguments, result Messages and Command requirements. Select public operations in the completed Block's `expose` record; internal Steps need not be exposed.
 
-### binding.fold
+### connection.fold
 
-`binding.fold(model, message, ...context)` forwards a received child Message through the child update and the binding's policies. Parents import the child Message Schema to declare their wrapper Message, but should invoke a named operation when initiating a change.
+`connection.fold(model, message, ...context)` forwards a received child Message through the child update and the connection's policies. Parents import the child Message Schema to declare their wrapper Message, but should invoke a named operation when initiating a change.
 
-### Bound public operations
+### Exposed connection operations
 
-A declared operation such as `clearSelection` becomes `binding.clearSelection(...args)`. It returns a parent Update.Step through the same Model access, Command lifting, resource access and OutMessage policy as `fold`. A keyed binding takes the occurrence key before the operation arguments. Operation names cannot collide with connection members such as `fold`, `init` or `embedView`.
+A declared operation such as `clearSelection` becomes `connection.clearSelection(...args)`. It returns a parent Update.Step through the same Model access, Command lifting, resource access, and OutMessage policy as `fold`. A keyed connection takes the occurrence key before the operation arguments. Operation names cannot collide with connection members such as `fold`, `init`, or `embedView`.
 
-### binding.init
+### connection.init
 
-`binding.init(...args)` runs child init and returns the child Model with Commands already scoped and lifted to the parent Message type. A keyed binding takes the occurrence key first.
+`connection.init(...args)` runs child init and returns the child Model with Commands already scoped and lifted to the parent Message type. A keyed connection takes the occurrence key first.
 
-### binding.embedView
+### connection.embedView
 
-`binding.embedView({ slotId, model, viewInputs? })` returns the only accepted `h.block` config for that placement. A keyed binding also requires `key`.
+`connection.embedView({ slotId, model, viewInputs? })` returns the only accepted `h.block` config for that placement. A keyed connection also requires `key`.
+
+### Block.inspectConnection
+
+`Block.inspectConnection(connection)` exposes the exact Subscriptions, ManagedResources, Mounts, and `EffectsLayer` carried by a static or keyed connection. Use it when tooling or a lifecycle test must inspect eligibility. Normal parent code uses the connection's `placement`, `init`, `fold`, `embedView`, and exposed operations; registration collects the connection's lifecycle records and handler graph automatically.
+
+::Snippet{name="blockInspectConnection" label="Inspecting connection lifecycle metadata"}
 
 ### block.replaceEffectsLayer
 

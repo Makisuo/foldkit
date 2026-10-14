@@ -6,8 +6,8 @@ import apiModuleIndex from 'virtual:api-module-index'
 import { Disclosure } from '@foldkit/ui'
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
-import { type ViewRequirements, mobileMenuDialog } from '../children'
 import { Shared } from '../component'
+import { type ViewRequirements, mobileMenuDialog } from '../connection'
 import {
   DOCS_SIDEBAR_NAV_ID,
   MOBILE_MENU_NAV_ID,

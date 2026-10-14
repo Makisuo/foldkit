@@ -14,7 +14,7 @@ export const OutMessage = defineMessageUnion({
 
 export const init = () => ({ model: Model.make({ theme: 'Light' }) })
 
-export const update = settings.update((model, message) =>
+export const update = SettingsDefinition.update((model, message) =>
   Message.match(message, {
     RestoredTheme: ({ theme }) => ({
       model: modifyFields(model, { theme: () => theme }),
@@ -25,13 +25,13 @@ export const update = settings.update((model, message) =>
   }),
 )
 
-export const restore = settings.step((model, theme: Theme) =>
+export const restore = SettingsDefinition.step((model, theme: Theme) =>
   update(model, Message.RestoredTheme({ theme })),
 )
 
-export const block = settings.assemble({
+export const block = SettingsDefinition.toBlock({
   init,
   update,
-  steps: { restore },
+  expose: { restore },
   EffectsLayer,
 })

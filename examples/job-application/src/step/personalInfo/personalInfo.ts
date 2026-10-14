@@ -2,15 +2,15 @@ import { modifyFields } from 'foldkit/struct'
 
 import {
   EffectsLayer,
+  RegisteredPersonalInfoDefinition,
   availableDatePicker,
   init,
-  personalInfo,
   pronounsListbox,
   update,
-} from './block'
+} from './definition'
 import { view } from './view'
 
-export const block = personalInfo.assemble({
+export const block = RegisteredPersonalInfoDefinition.toBlock({
   init: (today: Parameters<typeof init>[0]) => {
     const pronounsInit = pronounsListbox.init({ id: 'pronouns' })
     const availableDateInit = availableDatePicker.init({

@@ -1,15 +1,15 @@
 import { modifyFields } from 'foldkit/struct'
 
 import {
+  RegisteredSkillsEntryDefinition,
   init,
   proficiencyRadioGroup,
   proficiencyRadioGroupId,
-  skillsEntry,
   update,
-} from './block'
+} from './definition'
 import { view } from './view'
 
-export const block = skillsEntry.assemble({
+export const block = RegisteredSkillsEntryDefinition.toBlock({
   init: (entryId: Parameters<typeof init>[0]) => {
     const proficiencyInit = proficiencyRadioGroup.init({
       id: proficiencyRadioGroupId(entryId),

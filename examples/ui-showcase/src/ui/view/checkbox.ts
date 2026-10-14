@@ -5,9 +5,9 @@ import { Checkbox } from '@foldkit/ui'
 
 import { Message } from '../message'
 import type { Model } from '../model'
-import { ui } from '../update'
+import { RegisteredUiDefinition } from '../update'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof ui>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
 
 const CHECKBOX_BASIC_DEMO_ID = 'checkbox-basic-demo'
 const CHECKBOX_ALL_DEMO_ID = 'checkbox-all-demo'
@@ -24,7 +24,7 @@ const labelClassName =
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
   const basicCheckboxView = (
     attributes: Checkbox.CheckboxAttributes<Message>,

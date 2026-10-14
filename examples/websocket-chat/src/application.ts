@@ -31,8 +31,6 @@ const getZonedTime = DateTime.now.pipe(
   Effect.map(utc => DateTime.setZone(utc, DateTime.zoneMakeLocal())),
 )
 
-// MODEL
-
 const ChatMessage = Schema.Struct({
   text: Schema.String,
   zoned: Schema.DateTimeZoned,
@@ -57,8 +55,6 @@ export const Model = Schema.Struct({
 
 export type Model = typeof Model.Type
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   ClickedConnect: {},
   ConnectedChatSocket: {},
@@ -80,15 +76,14 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-type ViewBuilder = HtmlBuilderOf<typeof Application>
+type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
-const ChatSocket = Application.resource<Socket.WebSocketLike>()('ChatSocket')
+const ChatSocket =
+  ApplicationDefinition.resource<Socket.WebSocketLike>()('ChatSocket')
 
-// UPDATE
-
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     ClickedConnect: () => ({
       model: modifyFields(model, {
@@ -175,8 +170,6 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// INIT
-
 export const init = () => ({
   model: {
     connection: ConnectionState.Disconnected(),
@@ -185,9 +178,7 @@ export const init = () => ({
   },
 })
 
-// COMMAND
-
-export const TimestampSentMessage = Application.command(
+export const TimestampSentMessage = ApplicationDefinition.command(
   'TimestampSentMessage',
   {
     args: { text: Schema.String },
@@ -203,7 +194,7 @@ export const TimestampSentMessage = Application.command(
   },
 )
 
-export const TimestampReceivedMessage = Application.command(
+export const TimestampReceivedMessage = ApplicationDefinition.command(
   'TimestampReceivedMessage',
   {
     args: { text: Schema.String },
@@ -219,7 +210,7 @@ export const TimestampReceivedMessage = Application.command(
   },
 )
 
-export const SendMessage = Application.command('SendMessage', {
+export const SendMessage = ApplicationDefinition.command('SendMessage', {
   args: { text: Schema.String },
   messages: [Message.SucceededSendMessage, Message.FailedSendMessage],
   handler: function* () {
@@ -249,69 +240,71 @@ export const SendMessage = Application.command('SendMessage', {
 
 // MANAGED RESOURCE
 
-export const managedResources = Application.managedResources(entry => ({
-  chatSocket: entry('ManageChatSocket', Schema.Option(Schema.Null), {
-    resource: ChatSocket,
-    modelToMaybeRequirements: model =>
-      Match.value(model.connection).pipe(
-        Match.tag('Connecting', () => Option.some(null)),
-        Match.tag('Connected', () => Option.some(null)),
-        Match.orElse(() => Option.none()),
-      ),
-    onAcquired: () => Message.ConnectedChatSocket(),
-    onReleased: () => Message.ReleasedChatSocket(),
-    onAcquireError: error =>
-      Message.FailedConnectChatSocket({
-        error: error instanceof Error ? error.message : 'Unknown error',
-      }),
-    handler: function* () {
-      const makeWebSocket = yield* Socket.WebSocketConstructor
+export const managedResources = ApplicationDefinition.managedResources(
+  entry => ({
+    chatSocket: entry('ManageChatSocket', Schema.Option(Schema.Null), {
+      resource: ChatSocket,
+      modelToMaybeRequirements: model =>
+        Match.value(model.connection).pipe(
+          Match.tag('Connecting', () => Option.some(null)),
+          Match.tag('Connected', () => Option.some(null)),
+          Match.orElse(() => Option.none()),
+        ),
+      onAcquired: () => Message.ConnectedChatSocket(),
+      onReleased: () => Message.ReleasedChatSocket(),
+      onAcquireError: error =>
+        Message.FailedConnectChatSocket({
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }),
+      handler: function* () {
+        const makeWebSocket = yield* Socket.WebSocketConstructor
 
-      return {
-        acquire: () =>
-          Effect.gen(function* () {
-            const socket = yield* Effect.acquireRelease(
-              Effect.sync(() => makeWebSocket(WS_URL)),
-              socket =>
-                Effect.sync(() => {
-                  socket.close()
-                }),
-            )
+        return {
+          acquire: () =>
+            Effect.gen(function* () {
+              const socket = yield* Effect.acquireRelease(
+                Effect.sync(() => makeWebSocket(WS_URL)),
+                socket =>
+                  Effect.sync(() => {
+                    socket.close()
+                  }),
+              )
 
-            yield* Effect.callback<void, Error>(resume => {
-              const removeListeners = () => {
-                socket.removeEventListener('open', handleOpen)
-                socket.removeEventListener('error', handleError)
-              }
-              const handleOpen = () => {
-                removeListeners()
-                resume(Effect.void)
-              }
-              const handleError = () => {
-                removeListeners()
-                resume(Effect.fail(new Error('Failed to connect to WebSocket')))
-              }
+              yield* Effect.callback<void, Error>(resume => {
+                const removeListeners = () => {
+                  socket.removeEventListener('open', handleOpen)
+                  socket.removeEventListener('error', handleError)
+                }
+                const handleOpen = () => {
+                  removeListeners()
+                  resume(Effect.void)
+                }
+                const handleError = () => {
+                  removeListeners()
+                  resume(
+                    Effect.fail(new Error('Failed to connect to WebSocket')),
+                  )
+                }
 
-              socket.addEventListener('open', handleOpen)
-              socket.addEventListener('error', handleError)
+                socket.addEventListener('open', handleOpen)
+                socket.addEventListener('error', handleError)
 
-              return Effect.sync(removeListeners)
-            }).pipe(
-              Effect.timeout(Duration.millis(CONNECTION_TIMEOUT_MS)),
-              Effect.catchTag('TimeoutError', () =>
-                Effect.fail(new Error('Connection timeout')),
-              ),
-            )
+                return Effect.sync(removeListeners)
+              }).pipe(
+                Effect.timeout(Duration.millis(CONNECTION_TIMEOUT_MS)),
+                Effect.catchTag('TimeoutError', () =>
+                  Effect.fail(new Error('Connection timeout')),
+                ),
+              )
 
-            return socket
-          }),
-        release: () => Effect.void,
-      }
-    },
+              return socket
+            }),
+          release: () => Effect.void,
+        }
+      },
+    }),
   }),
-}))
-
-// SUBSCRIPTION
+)
 
 const streamChatSocketMessages = (socket: Socket.WebSocketLike) =>
   Stream.callback<
@@ -356,7 +349,7 @@ const streamChatSocketMessages = (socket: Socket.WebSocketLike) =>
     ).pipe(Effect.flatMap(() => Effect.never)),
   )
 
-export const subscriptions = Application.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   chatSocketMessages: entry(
     'ChatSocketMessages',
     { isConnected: Schema.Boolean },
@@ -387,8 +380,6 @@ export const subscriptions = Application.subscriptions(entry => ({
   ),
 }))
 
-// EFFECTS LAYER
-
 export const EffectsLayer = Layer.mergeAll(
   TimestampSentMessage.layer,
   TimestampReceivedMessage.layer,
@@ -397,9 +388,7 @@ export const EffectsLayer = Layer.mergeAll(
   subscriptions.chatSocketMessages.layer,
 )
 
-// VIEW
-
-export const view = Application.view((model, h) => ({
+export const view = ApplicationDefinition.view((model, h) => ({
   title: 'WebSocket Chat',
   body: h.div(
     [
@@ -660,12 +649,3 @@ const errorView = (error: string, h: ViewBuilder): Html =>
       ),
     ],
   )
-
-export const implementation = {
-  init,
-  update,
-  view,
-  subscriptions,
-  managedResources,
-  EffectsLayer,
-}

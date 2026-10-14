@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import { Update } from 'foldkit'
 
-import { ApiReference } from './block'
+import { ApiReferenceDefinition } from './definition'
 import { Message } from './message'
 import { type ApiData, ApiDataAsyncData, Model } from './model'
 import { update } from './update'
@@ -13,7 +13,7 @@ export const init = () => ({
   }),
 })
 
-export const boot = ApiReference.step(
+export const boot = ApiReferenceDefinition.step(
   (model, maybeApiData: Option.Option<ApiData> = Option.none()) =>
     Update.combine(model, [
       stepModel => update(stepModel, Message.RequestedApiData()),

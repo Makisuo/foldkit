@@ -9,7 +9,7 @@ import { idSelector } from '../internal/selectors.js'
 import { type Hid, Message, Model, OutMessage, type Showed } from './schema.js'
 
 /** Authored Animation Block definition shared by its implementation modules. */
-export const Animation = Block.define('Animation', {
+export const AnimationDefinition = Block.define('Animation', {
   Model,
   Message,
   OutMessage,
@@ -21,7 +21,7 @@ const elementSelector = (id: string): string => idSelector(id)
 
 /** Waits for paint via double-rAF, then reports the transition generation that
  *  scheduled the wait. */
-export const WaitForPaint = Animation.command('WaitForPaint', {
+export const WaitForPaint = AnimationDefinition.command('WaitForPaint', {
   args: { generation: Schema.Number },
   messages: [Message.CompletedWaitForPaint],
   handler: function* () {
@@ -34,7 +34,7 @@ export const WaitForPaint = Animation.command('WaitForPaint', {
 
 /** Waits for all CSS transitions and keyframe animations on the element to
  *  settle, then reports the transition generation that scheduled the wait. */
-export const WaitForAnimationSettled = Animation.command(
+export const WaitForAnimationSettled = AnimationDefinition.command(
   'WaitForAnimationSettled',
   {
     args: { id: Schema.String, generation: Schema.Number },
@@ -97,7 +97,7 @@ const hideTransition = (model: Model) => {
  *  but cannot finish one, so direct calls with either Message return a plain
  *  update result. Results from an earlier transition generation leave the Model
  *  unchanged. */
-const updateInferred = Animation.update((model, message) =>
+const updateInferred = AnimationDefinition.update((model, message) =>
   Message.match(message, {
     Showed: () => showTransition(model),
 
@@ -169,19 +169,19 @@ export function update(model: Model, message: Message): UpdateReturn {
 }
 
 /** Programmatically starts the enter lifecycle. */
-export const show = Animation.step(showTransition)
+export const show = AnimationDefinition.step(showTransition)
 
 /** Programmatically starts the leave lifecycle. */
-export const hide = Animation.step(hideTransition)
+export const hide = AnimationDefinition.step(hideTransition)
 
 /** Completes the current transition generation. Results from an earlier
  * generation leave the Model unchanged. */
-export const finish = Animation.step((model, generation: number) =>
+export const finish = AnimationDefinition.step((model, generation: number) =>
   update(model, Message.EndedAnimation({ generation })),
 )
 
 /** Toggles the animation between its shown and hidden states. */
-export const toggle = Animation.step(model => {
+export const toggle = AnimationDefinition.step(model => {
   if (model.isShowing) {
     return hide(model)
   } else {
@@ -191,7 +191,7 @@ export const toggle = Animation.step(model => {
 
 /** Resumes the pending transition Command after a mounted parent reacquires
  *  lifecycle resources for a preserved Animation Model. */
-export const resume = Animation.step(model =>
+export const resume = AnimationDefinition.step(model =>
   Match.value(model.transitionState).pipe(
     Match.when('Idle', () => ({ model })),
     Match.whenOr('EnterStart', 'LeaveStart', () => ({

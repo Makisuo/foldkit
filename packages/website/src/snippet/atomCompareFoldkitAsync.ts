@@ -5,8 +5,6 @@ import { defineMessageUnion } from 'foldkit/message'
 
 import { Api, ApiLayer } from './api'
 
-// MODEL
-
 // Remote state is a value in the Model. AsyncData is the shipped six-state
 // union, so there is no hand-rolled loading/failure/stale union to maintain.
 const UserAsyncData = AsyncData.Schema(User, ApiError)
@@ -16,8 +14,6 @@ export const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// MESSAGE
-
 const Message = defineMessageUnion({
   ClickedLoadUser: {},
   SucceededLoadUser: { user: User },
@@ -25,12 +21,10 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const Application = defineApplication({ Model, Message })
-
-// COMMAND
+const ApplicationDefinition = defineApplication({ Model, Message })
 
 // Api is an Effect service; ApiLayer provides it.
-const FetchUser = Application.command('FetchUser', {
+const FetchUser = ApplicationDefinition.command('FetchUser', {
   messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
   handler: function* () {
     const api = yield* Api
@@ -48,9 +42,7 @@ const FetchUser = Application.command('FetchUser', {
 export const EffectsLayer = FetchUser.layer
 export const ServicesLayer = ApiLayer
 
-// UPDATE
-
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     ClickedLoadUser: () => ({
       model: modifyFields(model, { user: () => UserAsyncData.Loading() }),

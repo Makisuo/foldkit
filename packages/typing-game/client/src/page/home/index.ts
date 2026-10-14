@@ -1,6 +1,3 @@
 export { block } from './home'
-export * from './init'
-export * from './model'
+export { Model } from './model'
 export { Message, OutMessage } from './message'
-export * from './update'
-export * from './view'

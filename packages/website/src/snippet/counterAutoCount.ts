@@ -2,8 +2,6 @@ import { Duration, Effect, Schema, Stream } from 'effect'
 import { define as defineApplication } from 'foldkit/application'
 import { defineMessageUnion } from 'foldkit/message'
 
-// MESSAGE
-
 const Message = defineMessageUnion({
   ClickedIncrement: {},
   ToggledAutoCounting: {},
@@ -11,19 +9,15 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-// MODEL
-
 const Model = Schema.Struct({
   count: Schema.Number,
   isAutoCounting: Schema.Boolean,
 })
 type Model = typeof Model.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-// SUBSCRIPTION
-
-export const subscriptions = Application.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   gameClockTicks: entry(
     'GameClockTicks',
     { isAutoCounting: Schema.Boolean },

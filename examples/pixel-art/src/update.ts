@@ -15,7 +15,7 @@ import {
   ToolRadioGroup,
 } from './components'
 import { DEFAULT_COLOR_INDEX } from './constant'
-import { Application as Authoring } from './definition'
+import { ApplicationDefinition } from './definition'
 import {
   createEmptyGrid,
   erasePixels,
@@ -69,7 +69,7 @@ export const errorDialog = Dialog.block.connection({
 
 const foldThemeListboxOutMessage = ThemeListbox.OutMessage.match({
   Selected: ({ value }) =>
-    Authoring.step(model => {
+    ApplicationDefinition.step(model => {
       const themeIndex = Number(value)
       const maybeNextTheme = Array.get(PALETTE_THEMES, themeIndex)
       if (Option.isNone(maybeNextTheme)) {
@@ -174,7 +174,7 @@ export const paletteRadioGroup = PaletteRadioGroup.connection({
   outMessage: { fold: foldPaletteRadioGroupOutMessage },
 })
 
-export const Application = Authoring.register({
+export const Application = ApplicationDefinition.register({
   children: [
     errorDialog,
     themeListbox,

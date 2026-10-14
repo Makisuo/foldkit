@@ -19,7 +19,7 @@ const view = ConnectionViewsChild.view.withInputs<ViewInputs>(
       [inputs.label, globalThis.String(model.count)],
     ),
 )
-const block = ConnectionViewsChild.assemble({
+const block = ConnectionViewsChild.toBlock({
   init: () => ({ model: Model.make({ count: 0 }) }),
   update: ConnectionViewsChild.update(model => ({
     model: modifyFields(model, { count: count => count + 1 }),

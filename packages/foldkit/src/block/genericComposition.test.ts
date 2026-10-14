@@ -23,7 +23,7 @@ const makeGenericComplete = <const Id extends string>(id: Id) => {
   })
   const definition = Feature.define({ Model, Message })
 
-  return definition.assemble({
+  return definition.toBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: definition.update((model, message) =>
       Message.match(message, {
@@ -45,7 +45,7 @@ const makeGenericMissing = <const Id extends string>(id: Id) => {
   })
   const definition = Feature.define({ Model, Message })
 
-  return definition.assemble({
+  return definition.toBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: definition.update((model, message) =>
       Message.match(message, {
@@ -93,7 +93,7 @@ if (false) {
   })
 
   const checkRoot = (container: HTMLElement) => {
-    // @ts-expect-error Root assembly validates deferred generic handler coverage.
+    // @ts-expect-error Root completion validates deferred generic handler coverage.
     Application.makeElement<typeof missing, { container: HTMLElement }>({
       block: missing,
       container,

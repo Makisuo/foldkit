@@ -163,7 +163,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const VirtualList = Block.define('VirtualList', { Model, Message })
+const VirtualListDefinition = Block.define('VirtualList', { Model, Message })
 
 // INIT
 
@@ -460,7 +460,7 @@ const scrollTopForRequest = (
 
 const mountedContainers = new Map<string, Set<HTMLElement>>()
 
-export const ApplyScroll = VirtualList.command('ApplyScroll', {
+export const ApplyScroll = VirtualListDefinition.command('ApplyScroll', {
   args: {
     id: Schema.String,
     request: ScrollRequest,
@@ -533,7 +533,7 @@ export type ScrollToOptions = Readonly<{
 }>
 
 const buildScrollRequest = (request: typeof ScrollRequest.Type) =>
-  VirtualList.step(model => {
+  VirtualListDefinition.step(model => {
     const nextVersion = Number.increment(model.pendingScrollVersion)
     return {
       model: modifyFields(model, {
@@ -623,7 +623,7 @@ const measureContainer = (
     Unmeasured: () => false,
     Measured: measurement => measurement.containerWidth !== containerWidth,
   })
-  const recordContainerMeasurement = VirtualList.step(stepModel => ({
+  const recordContainerMeasurement = VirtualListDefinition.step(stepModel => ({
     model: modifyFields(stepModel, {
       measurement: () =>
         Measurement.Measured({ containerWidth, containerHeight }),
@@ -708,7 +708,7 @@ const applyRowMeasurements = (
 }
 
 /** Processes a VirtualList Message and returns the next Model and optional Commands. */
-export const update = VirtualList.update((model, message) =>
+export const update = VirtualListDefinition.update((model, message) =>
   Message.match(message, {
     ObservedContainerScroll: snapshot => {
       const nextPendingScrollVersion = PendingScroll.match<number>(
@@ -767,7 +767,7 @@ type RowOffsets = Readonly<{
 }>
 
 /** Programmatically scrolls to a logical target. */
-export const scrollTo = VirtualList.step(
+export const scrollTo = VirtualListDefinition.step(
   (model, target: ScrollTarget, options: ScrollToOptions = {}) =>
     Update.combine(model, [
       stepModel => ({
@@ -787,33 +787,33 @@ export const scrollTo = VirtualList.step(
 /** Programmatically scrolls the container so the row at `index` is visible.
  *  The next view resolves the logical index with its current sizing mode, and
  *  the Command aligns the live rendered row. */
-export const scrollToIndex = VirtualList.step(
+export const scrollToIndex = VirtualListDefinition.step(
   (model, index: number, options: ScrollToOptions = {}) =>
     scrollTo(model, ScrollTarget.Index({ index }), options),
 )
 
 /** Programmatically scrolls to the row whose `itemToKey` result matches
  *  `key`. The next view resolves the key against its current items. */
-export const scrollToKey = VirtualList.step(
+export const scrollToKey = VirtualListDefinition.step(
   (model, key: string, options: ScrollToOptions = {}) =>
     scrollTo(model, ScrollTarget.Key({ key }), options),
 )
 
 /** Programmatically scrolls to an exact pixel offset from the start of the
  *  list. Negative offsets clamp to zero. */
-export const scrollToOffset = VirtualList.step((model, offset: number) =>
-  scrollTo(model, ScrollTarget.Offset({ offset })),
+export const scrollToOffset = VirtualListDefinition.step(
+  (model, offset: number) => scrollTo(model, ScrollTarget.Offset({ offset })),
 )
 
 /** Programmatically scrolls to the end of the list. */
-export const scrollToEnd = VirtualList.step(model =>
+export const scrollToEnd = VirtualListDefinition.step(model =>
   scrollTo(model, ScrollTarget.End()),
 )
 
 /** Notifies VirtualList that its parent-owned items changed. The next view
  *  resolves the stored stable-key anchor against the new items, and the
  *  Command restores that anchor after the DOM patch. */
-export const informItemsChanged = VirtualList.step(
+export const informItemsChanged = VirtualListDefinition.step(
   (model, itemKeys: ReadonlyArray<string>) => {
     const currentKeys = HashSet.fromIterable(itemKeys)
     return Update.combine(model, [
@@ -1259,7 +1259,7 @@ const observeVirtualList = (
 
 /** Container-owned Mount that tracks scrolling, container resizing, and
  *  rendered row measurements for dynamic-height lists. */
-export const ObserveVirtualList = VirtualList.mountStream(
+export const ObserveVirtualList = VirtualListDefinition.mountStream(
   'ObserveVirtualList',
   {
     args: { id: Schema.String },
@@ -1284,7 +1284,9 @@ export const ObserveVirtualList = VirtualList.mountStream(
 /** Mount Definitions rendered by VirtualList views. */
 export const mounts = [ObserveVirtualList]
 
-const registered = VirtualList.register({ mounts })
+const RegisteredVirtualListDefinition = VirtualListDefinition.register({
+  mounts,
+})
 
 /** Provides VirtualList's Command and Mount handlers. */
 export const EffectsLayer = Layer.mergeAll(
@@ -1351,138 +1353,139 @@ export const view = <Item>() =>
 
 type InternalInputs = ViewInputs<unknown>
 
-const viewImpl = registered.view.withInputs<InternalInputs>(
-  (model, viewInputs, h) => {
-    const {
-      items,
-      itemToKey,
-      itemToView,
-      itemToRowHeightPx,
-      dynamicRowHeights,
-      itemToEstimatedRowHeightPx,
-      overscan = DEFAULT_OVERSCAN,
-      rowElement = 'li',
-      containerClassName,
-      containerAttributes = [],
-      contentAlignment = 'Start',
-    } = viewInputs
+const viewImpl =
+  RegisteredVirtualListDefinition.view.withInputs<InternalInputs>(
+    (model, viewInputs, h) => {
+      const {
+        items,
+        itemToKey,
+        itemToView,
+        itemToRowHeightPx,
+        dynamicRowHeights,
+        itemToEstimatedRowHeightPx,
+        overscan = DEFAULT_OVERSCAN,
+        rowElement = 'li',
+        containerClassName,
+        containerAttributes = [],
+        contentAlignment = 'Start',
+      } = viewInputs
 
-    const baseContainerAttributes = [
-      h.Id(model.id),
-      h.Role('list'),
-      h.DataAttribute(
-        'virtual-list-scroll-version',
-        String(model.pendingScrollVersion),
-      ),
-      h.OnMount(ObserveVirtualList({ id: model.id })),
-      h.Style({
-        overflow: 'auto',
-        'overflow-anchor': 'none',
-        'list-style': 'none',
-        margin: '0',
-        padding: '0',
-      }),
-      ...(containerClassName !== undefined
-        ? [h.Class(containerClassName)]
-        : []),
-    ]
+      const baseContainerAttributes = [
+        h.Id(model.id),
+        h.Role('list'),
+        h.DataAttribute(
+          'virtual-list-scroll-version',
+          String(model.pendingScrollVersion),
+        ),
+        h.OnMount(ObserveVirtualList({ id: model.id })),
+        h.Style({
+          overflow: 'auto',
+          'overflow-anchor': 'none',
+          'list-style': 'none',
+          margin: '0',
+          padding: '0',
+        }),
+        ...(containerClassName !== undefined
+          ? [h.Class(containerClassName)]
+          : []),
+      ]
 
-    const allContainerAttributes = [
-      ...childAttributes(baseContainerAttributes),
-      ...containerAttributes,
-    ]
+      const allContainerAttributes = [
+        ...childAttributes(baseContainerAttributes),
+        ...containerAttributes,
+      ]
 
-    const renderContainer = (children: ReadonlyArray<Html>): Html =>
-      h.keyed('ul')(model.id, allContainerAttributes, children)
+      const renderContainer = (children: ReadonlyArray<Html>): Html =>
+        h.keyed('ul')(model.id, allContainerAttributes, children)
 
-    const layout = listLayout(
-      model,
-      items,
-      itemToKey,
-      itemToRowHeightPx,
-      dynamicRowHeights,
-      itemToEstimatedRowHeightPx,
-      contentAlignment,
-    )
-    const maybeWindow = Measurement.match<Option.Option<VisibleWindow>>(
-      model.measurement,
-      {
-        Unmeasured: () => Option.none(),
-        Measured: () =>
-          Option.some(
-            visibleWindowForLayout(
-              layout,
-              scrollTopForView(model, layout, items, itemToKey),
-              items.length,
-              overscan,
+      const layout = listLayout(
+        model,
+        items,
+        itemToKey,
+        itemToRowHeightPx,
+        dynamicRowHeights,
+        itemToEstimatedRowHeightPx,
+        contentAlignment,
+      )
+      const maybeWindow = Measurement.match<Option.Option<VisibleWindow>>(
+        model.measurement,
+        {
+          Unmeasured: () => Option.none(),
+          Measured: () =>
+            Option.some(
+              visibleWindowForLayout(
+                layout,
+                scrollTopForView(model, layout, items, itemToKey),
+                items.length,
+                overscan,
+              ),
             ),
-          ),
-      },
-    )
+        },
+      )
 
-    return Option.match(maybeWindow, {
-      onNone: () => renderContainer([]),
+      return Option.match(maybeWindow, {
+        onNone: () => renderContainer([]),
 
-      onSome: ({
-        startIndex,
-        endIndex,
-        topSpacerHeight,
-        bottomSpacerHeight,
-      }) => {
-        const visibleItems = items.slice(startIndex, endIndex)
+        onSome: ({
+          startIndex,
+          endIndex,
+          topSpacerHeight,
+          bottomSpacerHeight,
+        }) => {
+          const visibleItems = items.slice(startIndex, endIndex)
 
-        const topSpacer = h.keyed('li')(`${model.id}-top-spacer`, [
-          h.Role('presentation'),
-          h.Style({ height: `${topSpacerHeight}px` }),
-        ])
+          const topSpacer = h.keyed('li')(`${model.id}-top-spacer`, [
+            h.Role('presentation'),
+            h.Style({ height: `${topSpacerHeight}px` }),
+          ])
 
-        const bottomSpacer = h.keyed('li')(`${model.id}-bottom-spacer`, [
-          h.Role('presentation'),
-          h.Style({ height: `${bottomSpacerHeight}px` }),
-        ])
+          const bottomSpacer = h.keyed('li')(`${model.id}-bottom-spacer`, [
+            h.Role('presentation'),
+            h.Style({ height: `${bottomSpacerHeight}px` }),
+          ])
 
-        const renderedRows = Array.map(visibleItems, (item, sliceIndex) => {
-          const dataIndex = startIndex + sliceIndex
-          const key = itemToKey(item, dataIndex)
-          const rowHeight =
-            offsetAt(layout, dataIndex + 1) - offsetAt(layout, dataIndex)
-          const rowSizingAttributes =
-            dynamicRowHeights === undefined
-              ? [
-                  h.Style({
-                    height: `${rowHeight}px`,
-                    display: 'grid',
-                  }),
-                ]
-              : [
-                  h.DataAttribute('virtual-list-measure', 'true'),
-                  h.DataAttribute(
-                    'virtual-list-layout-version',
-                    String(model.layoutVersion),
-                  ),
-                  h.Style({ display: 'grid' }),
-                ]
-          return h.keyed(rowElement)(
-            key,
-            [
-              h.Role('listitem'),
-              h.DataAttribute('virtual-list-item-key', key),
-              h.DataAttribute('virtual-list-item-index', String(dataIndex)),
-              h.AriaSetsize(items.length),
-              h.AriaPosinset(dataIndex + 1),
-              ...rowSizingAttributes,
-            ],
-            [itemToView(item, dataIndex)],
-          )
-        })
+          const renderedRows = Array.map(visibleItems, (item, sliceIndex) => {
+            const dataIndex = startIndex + sliceIndex
+            const key = itemToKey(item, dataIndex)
+            const rowHeight =
+              offsetAt(layout, dataIndex + 1) - offsetAt(layout, dataIndex)
+            const rowSizingAttributes =
+              dynamicRowHeights === undefined
+                ? [
+                    h.Style({
+                      height: `${rowHeight}px`,
+                      display: 'grid',
+                    }),
+                  ]
+                : [
+                    h.DataAttribute('virtual-list-measure', 'true'),
+                    h.DataAttribute(
+                      'virtual-list-layout-version',
+                      String(model.layoutVersion),
+                    ),
+                    h.Style({ display: 'grid' }),
+                  ]
+            return h.keyed(rowElement)(
+              key,
+              [
+                h.Role('listitem'),
+                h.DataAttribute('virtual-list-item-key', key),
+                h.DataAttribute('virtual-list-item-index', String(dataIndex)),
+                h.AriaSetsize(items.length),
+                h.AriaPosinset(dataIndex + 1),
+                ...rowSizingAttributes,
+              ],
+              [itemToView(item, dataIndex)],
+            )
+          })
 
-        return renderContainer([topSpacer, ...renderedRows, bottomSpacer])
-      },
-    })
-  },
-)
+          return renderContainer([topSpacer, ...renderedRows, bottomSpacer])
+        },
+      })
+    },
+  )
 
-const steps = {
+const expose = {
   informItemsChanged,
   scrollTo,
   scrollToIndex,
@@ -1492,11 +1495,11 @@ const steps = {
 }
 
 /** Complete VirtualList Block definition using an unknown item type. */
-export const block = registered.assemble({
+export const block = RegisteredVirtualListDefinition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),
   update,
   view: viewImpl,
-  steps,
+  expose,
   EffectsLayer,
 })
 
@@ -1504,11 +1507,11 @@ export const block = registered.assemble({
 export const create = <Item>() => {
   const refinedView = view<Item>()
 
-  return registered.assemble({
+  return RegisteredVirtualListDefinition.toBlock({
     init: (config: InitConfig) => ({ model: init(config) }),
     update,
     view: refinedView,
-    steps,
+    expose,
     EffectsLayer,
   })
 }

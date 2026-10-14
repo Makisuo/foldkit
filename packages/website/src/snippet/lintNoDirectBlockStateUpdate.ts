@@ -10,12 +10,12 @@ const settings = Settings.block.connection({
   parentMessage: Message.GotSettingsMessage,
 })
 
-// ❌ Bad: the parent changes a child field without running Settings.update.
+// ❌ Bad: the parent changes a child field without running SettingsDefinition.update.
 const badReset = (model: Model) => ({
   model: modifyFields(model, {
     settings: current => modifyFields(current, { theme: () => 'Light' }),
   }),
 })
 
-// ✅ Good: the child decides the transition and the binding preserves it.
+// ✅ Good: the child decides the transition and the connection preserves it.
 const goodReset = (model: Model) => settings.setTheme('Light')(model)

@@ -18,6 +18,7 @@ import { githubStarCount } from 'virtual:landing-data'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
 
+import { DARK_COLOR_SCHEME_QUERY } from './colorScheme'
 import {
   apiReference,
   comingFromReact,
@@ -31,9 +32,8 @@ import {
   snippetDisclosure,
   themeMenu,
   uiPages,
-} from './children'
-import { DARK_COLOR_SCHEME_QUERY } from './colorScheme'
-import { Application } from './definition'
+} from './connection'
+import { ApplicationDefinition } from './definition'
 import { Deployment, isTelemetryEnabled } from './deployment'
 import {
   DOCS_SIDEBAR_NAV_ID,
@@ -66,8 +66,6 @@ import {
 export type { Message } from './message'
 export { Model } from './model'
 export type { TableOfContentsEntry } from './tableOfContentsEntry'
-export { view } from './view/application'
-
 export { type ThemePreference, type ResolvedTheme } from './message'
 
 // FLAGS
@@ -136,8 +134,6 @@ const loadBrowserEnvironment = Effect.gen(function* () {
     today,
   })
 })
-
-// INIT
 
 const isGroupOpenOnBoot = (
   maybeSidebarState: Option.Option<SidebarState>,
@@ -288,8 +284,6 @@ export const init = (flags: Flags, url: Url) => {
   }
 }
 
-// UPDATE
-
 const isPathnameEqual = (a: Url, b: Url): boolean => a.pathname === b.pathname
 
 const reconcileHomePresence = (route: ApplicationRoute) => (model: Model) =>
@@ -313,7 +307,7 @@ const reconcileHomePresence = (route: ApplicationRoute) => (model: Model) =>
     })),
   )
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match(request, {
@@ -596,9 +590,7 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// COMMAND
-
-const InjectAnalytics = Application.command('InjectAnalytics', {
+const InjectAnalytics = ApplicationDefinition.command('InjectAnalytics', {
   messages: [Message.CompletedInjectAnalytics],
   handler: function* () {
     return () =>
@@ -608,33 +600,39 @@ const InjectAnalytics = Application.command('InjectAnalytics', {
   },
 })
 
-const LoadBrowserEnvironment = Application.command('LoadBrowserEnvironment', {
-  messages: [Message.CompletedLoadBrowserEnvironment],
-  handler: function* () {
-    const localStorage = yield* LocalStorage
-    const sessionStorage = yield* SessionStorage
-    const clock = yield* Clock.Clock
+const LoadBrowserEnvironment = ApplicationDefinition.command(
+  'LoadBrowserEnvironment',
+  {
+    messages: [Message.CompletedLoadBrowserEnvironment],
+    handler: function* () {
+      const localStorage = yield* LocalStorage
+      const sessionStorage = yield* SessionStorage
+      const clock = yield* Clock.Clock
 
-    return () =>
-      loadBrowserEnvironment.pipe(
-        Effect.provideService(LocalStorage, localStorage),
-        Effect.provideService(SessionStorage, sessionStorage),
-        Effect.provideService(Clock.Clock, clock),
-      )
+      return () =>
+        loadBrowserEnvironment.pipe(
+          Effect.provideService(LocalStorage, localStorage),
+          Effect.provideService(SessionStorage, sessionStorage),
+          Effect.provideService(Clock.Clock, clock),
+        )
+    },
   },
-})
+)
 
-const InjectSpeedInsights = Application.command('InjectSpeedInsights', {
-  messages: [Message.CompletedInjectSpeedInsights],
-  handler: function* () {
-    return () =>
-      Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
-        Effect.as(Message.CompletedInjectSpeedInsights()),
-      )
+const InjectSpeedInsights = ApplicationDefinition.command(
+  'InjectSpeedInsights',
+  {
+    messages: [Message.CompletedInjectSpeedInsights],
+    handler: function* () {
+      return () =>
+        Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
+          Effect.as(Message.CompletedInjectSpeedInsights()),
+        )
+    },
   },
-})
+)
 
-const CopyLink = Application.command('CopyLink', {
+const CopyLink = ApplicationDefinition.command('CopyLink', {
   args: { url: Schema.String },
   messages: [Message.SucceededCopyLink, Message.FailedCopyLink],
   handler: function* () {
@@ -649,7 +647,7 @@ const CopyLink = Application.command('CopyLink', {
   },
 })
 
-export const ScrollToTop = Application.command('ScrollToTop', {
+export const ScrollToTop = ApplicationDefinition.command('ScrollToTop', {
   messages: [Message.CompletedScrollToTop],
   handler: function* () {
     return () =>
@@ -660,7 +658,7 @@ export const ScrollToTop = Application.command('ScrollToTop', {
   },
 })
 
-const ScrollToAnchor = Application.command('ScrollToAnchor', {
+const ScrollToAnchor = ApplicationDefinition.command('ScrollToAnchor', {
   args: { hash: Schema.String },
   messages: [Message.CompletedScrollToAnchor],
   handler: function* () {
@@ -673,7 +671,7 @@ const ScrollToAnchor = Application.command('ScrollToAnchor', {
   },
 })
 
-export const ScrollSidebarActiveLinkIntoView = Application.command(
+export const ScrollSidebarActiveLinkIntoView = ApplicationDefinition.command(
   'ScrollSidebarActiveLinkIntoView',
   {
     messages: [Message.CompletedScrollSidebarActiveLinkIntoView],
@@ -691,7 +689,7 @@ export const ScrollSidebarActiveLinkIntoView = Application.command(
 
 const MOBILE_MENU_ACTIVE_LINK = `#${MOBILE_MENU_NAV_ID} [aria-current="page"]`
 
-const ScrollMobileMenuActiveLinkIntoView = Application.command(
+const ScrollMobileMenuActiveLinkIntoView = ApplicationDefinition.command(
   'ScrollMobileMenuActiveLinkIntoView',
   {
     messages: [Message.CompletedScrollMobileMenuActiveLinkIntoView],
@@ -707,7 +705,7 @@ const ScrollMobileMenuActiveLinkIntoView = Application.command(
   },
 )
 
-const SaveSidebarState = Application.command('SaveSidebarState', {
+const SaveSidebarState = ApplicationDefinition.command('SaveSidebarState', {
   args: { state: SidebarState },
   messages: [Message.CompletedSaveSidebarState],
   handler: function* () {
@@ -731,7 +729,7 @@ const modelToSidebarState = (model: Model): SidebarState => ({
 const saveSidebarState = (model: Model) =>
   SaveSidebarState({ state: modelToSidebarState(model) })
 
-const NavigateInternal = Application.command('NavigateInternal', {
+const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -740,7 +738,7 @@ const NavigateInternal = Application.command('NavigateInternal', {
   },
 })
 
-const LoadExternal = Application.command('LoadExternal', {
+const LoadExternal = ApplicationDefinition.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {

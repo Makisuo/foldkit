@@ -5,7 +5,7 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 import { Session } from '../../domain/session'
 import { notFoundView } from '../../notFoundView'
 import { dashboardRouter, settingsRouter } from '../../route'
-import { LoggedIn } from './block'
+import { LoggedInDefinition } from './definition'
 import { Message } from './message'
 import * as Dashboard from './page/dashboard'
 import * as Settings from './page/settings'
@@ -63,7 +63,7 @@ const navigationView = (
     ],
   )
 
-export const view = LoggedIn.view((model, h) =>
+export const view = LoggedInDefinition.view((model, h) =>
   h.div(
     [h.Class('min-h-screen')],
     [

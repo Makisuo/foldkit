@@ -1,12 +1,12 @@
-import { ApiReference } from './block'
+import { ApiReferenceDefinition } from './definition'
 import { boot, init } from './init'
 import { EffectsLayer, informRouteChanged, update } from './update'
 import { view } from './view'
 
-export const block = ApiReference.assemble({
+export const block = ApiReferenceDefinition.toBlock({
   init,
   update,
   view,
-  steps: { boot, informRouteChanged },
+  expose: { boot, informRouteChanged },
   EffectsLayer,
 })

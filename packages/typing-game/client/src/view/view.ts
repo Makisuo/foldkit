@@ -1,7 +1,6 @@
 import { Html, HtmlBuilder } from 'foldkit/html'
 
-import { home, room } from '../children'
-import { Application } from '../children'
+import { Application, home, room } from '../application'
 import { Message } from '../message'
 import { Model } from '../model'
 import { ApplicationRoute } from '../route'

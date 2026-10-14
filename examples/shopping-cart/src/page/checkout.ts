@@ -7,8 +7,6 @@ import { Message } from '../application'
 import { Cart } from '../domain'
 import { cartRouter, productsRouter } from '../route'
 
-// VIEW
-
 export const view = (
   cart: Cart.Cart,
   deliveryInstructions: string,

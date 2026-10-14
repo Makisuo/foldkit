@@ -3,10 +3,10 @@ import { click, expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
 import { ApplicationRoute, type Model, update, view } from './application'
-import * as Ui from './ui'
+import { init as initUi } from './ui/init'
 
 const today = Calendar.make(2026, 4, 16)
-const uiInit = Ui.init(today)
+const uiInit = initUi(today)
 
 const modelForRoute = (route: Model['route']): Model => ({
   route,

@@ -1,9 +1,15 @@
 import { modifyFields } from 'foldkit/struct'
 
-import { EffectsLayer, entries, init, skills, update } from './block'
+import {
+  EffectsLayer,
+  RegisteredSkillsDefinition,
+  entries,
+  init,
+  update,
+} from './definition'
 import { view } from './view'
 
-export const block = skills.assemble({
+export const block = RegisteredSkillsDefinition.toBlock({
   init: (initialEntryId: Parameters<typeof init>[0]) => {
     const entryInit = entries.init(initialEntryId, initialEntryId)
 

@@ -1,7 +1,5 @@
 import type { Document, HtmlBuilder } from 'foldkit/html'
 
-// VIEW
-
 const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: `Counter: ${model.count}`,
   body: h.div(
@@ -34,8 +32,6 @@ const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
     ],
   ),
 })
-
-// STYLE
 
 const containerStyle =
   'min-h-screen bg-cream flex flex-col items-center justify-center gap-6 p-6'

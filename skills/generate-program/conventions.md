@@ -52,7 +52,7 @@ CompletedItemsFocus
 
 ```ts
 // RIGHT: the Message is named from the Command that caused it
-const DetermineStartTime = Feature.command('DetermineStartTime', {
+const DetermineStartTime = FeatureDefinition.command('DetermineStartTime', {
   args: { elapsedMs: Schema.Number },
   messages: [Message.CompletedDetermineStartTime],
 
@@ -65,7 +65,7 @@ const DetermineStartTime = Feature.command('DetermineStartTime', {
       )
   },
 })
-const GenerateCardId = Feature.command('GenerateCardId', {
+const GenerateCardId = FeatureDefinition.command('GenerateCardId', {
   args: { columnId: Schema.String },
   messages: [Message.CompletedGenerateCardId],
 
@@ -79,7 +79,7 @@ const GenerateCardId = Feature.command('GenerateCardId', {
       })
   },
 })
-const SaveTodos = Feature.command('SaveTodos', {
+const SaveTodos = FeatureDefinition.command('SaveTodos', {
   args: { todos: Todos },
   messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
 
@@ -388,7 +388,7 @@ expect(formSubmit.commands ?? []).toHaveLength(1)
 
 When the operation name collides with the function, use a trailing underscore such as `init_`. Do not destructure or rename `model`, `commands`, or `outMessage` from update-like results. Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. Name a child fold's `write` parameter after the next child Model, such as `nextSettings`. Pass optional Commands directly to APIs that accept them, including `Command.mapMessages`. Use `result.commands ?? []` only when the next operation requires a concrete array for spreading, concatenating, execution, or an assertion.
 
-Author an ordinary Block through `const Child = Block.define('Child', { Model, Message, OutMessage? })`, with the declaration identifier exactly matching the literal. Use one-argument `Block.define('Child')` followed by `Child.define(...)` only when a generic factory shares effect definitions across several specialized contracts. Register the graph with `Child.register({ children, mounts })`, and complete it through `registered.assemble(...)`. Export the completed value as `block`, and export `* as Child` from the parent barrel. Parent code imports that namespace, creates `Child.block.connection(...)` or `keyedConnection(...)`, and registers the connection under `children`. Call `connection.fold` for the primary child update and `connection.name(...)` for named parent entry points. The completed Block aggregates child registrations and handler Layers; the connection supplies the canonical view and Message wrapper through `connection.embedView`.
+Author an ordinary Block through `const ChildDefinition = Block.define('Child', { Model, Message, OutMessage? })`. Use one-argument `Block.define('Child')` followed by `.define(...)` only when a generic factory shares effect definitions across several specialized contracts. Register the graph with `ChildDefinition.register({ children, mounts })`, and complete it through `ChildDefinition.toBlock(...)`. Export the completed value as `block`, and export `* as Child` from the parent barrel. Parent code imports that namespace, creates `Child.block.connection(...)` or `keyedConnection(...)`, and registers the connection under `children`. Call `connection.fold` for the primary child update and `connection.name(...)` for named parent entry points selected under `expose`. The completed Block aggregates child registrations and handler Layers; the connection supplies the canonical view and Message wrapper through `connection.embedView`.
 
 Select an alternate whole local handler bundle through `block.replaceEffectsLayer(localRecipe)` before creating a connection. The selected Block keeps its child recipes. Ordinary application tests usually retain its handlers and replace their service providers instead.
 
@@ -407,7 +407,7 @@ including a collection key, previous Model state, an entry payload, or
 `outMessage.forward` mapper that needs only the OutMessage. Name every variant,
 including a singleton union. Pass a generic child's refined OutMessage type as
 the matcher's second generic. When a branch returns a Command-producing
-`definition.step`, preserve its inferred Command requirements instead of
+`FeatureDefinition.step`, preserve its inferred Command requirements instead of
 constraining the matcher to a requirement-free `Update.Step`.
 
 When a connection handles an OutMessage locally, put the exhaustive matcher in `outMessage.fold`. Add `outMessage.forward` only for variants that continue upward. A derived parent OutMessage takes precedence over direct forwarding for that dispatch.
@@ -539,7 +539,7 @@ Use `taggedStruct` when the variants cannot be declared together:
 ## Code Style
 
 - No inline or block comments. If code needs explanation, use better names
-- Section headers are allowed: `// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// COMMAND`, `// EFFECTS LAYER`, `// VIEW`
+- A short section header is allowed when a long file has a substantial group that benefits from wayfinding. Do not add routine architecture headers to small application or example files.
 - TSDoc (`/** ... */`) on public exports
 - Always use braces for control flow: `if (foo) { return true }` not `if (foo) return true`
 - Use `const` exclusively. `let` only when mutation is truly unavoidable

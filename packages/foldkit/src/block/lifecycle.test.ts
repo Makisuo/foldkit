@@ -159,7 +159,7 @@ const buildGraph = (events: Array<LifecycleEvent>) => {
   const childView = childDefinition.view((model, h) =>
     h.div([h.OnMount(ObservePanel())], [`child:${model.id}`]),
   )
-  const Child = childDefinition.assemble({
+  const Child = childDefinition.toBlock({
     view: childView,
     init: () => ({ model: ChildModel.make({ id: 'one' }) }),
     update: (model: ChildModel, message: ChildMessage) =>

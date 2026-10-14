@@ -10,8 +10,8 @@ import * as VideoCall from './videoCall'
 
 const SIGNALING_URL = 'wss://example.com/call/signaling'
 
-const Call = Block.define('Call', { Model, Message })
-const SignalingSocket = Call.resource<WebSocket>()('SignalingSocket')
+const CallDefinition = Block.define('Call', { Model, Message })
+const SignalingSocket = CallDefinition.resource<WebSocket>()('SignalingSocket')
 
 const videoCall = VideoCall.block.connection({
   read: (model: Model) => model.videoCall,
@@ -20,26 +20,34 @@ const videoCall = VideoCall.block.connection({
   parentMessage: Message.GotVideoCallMessage,
 })
 
-const call = Call.register({ children: [videoCall] })
+const RegisteredCallDefinition = CallDefinition.register({
+  children: [videoCall],
+})
 
-export const managedResources = call.managedResources(entry => ({
-  signalingSocket: entry('ManageSignalingSocket', Schema.Option(Schema.Null), {
-    resource: SignalingSocket,
-    modelToMaybeRequirements: model => Option.as(model.videoCall, null),
-    onAcquired: () => Message.OpenedSignaling(),
-    onReleased: () => Message.ClosedSignaling(),
-    onAcquireError: error =>
-      Message.FailedSignaling({ error: globalThis.String(error) }),
-    handler: function* () {
-      return {
-        acquire: () => Effect.try(() => new WebSocket(SIGNALING_URL)),
-        release: socket => Effect.sync(() => socket.close()),
-      }
-    },
+export const managedResources = RegisteredCallDefinition.managedResources(
+  entry => ({
+    signalingSocket: entry(
+      'ManageSignalingSocket',
+      Schema.Option(Schema.Null),
+      {
+        resource: SignalingSocket,
+        modelToMaybeRequirements: model => Option.as(model.videoCall, null),
+        onAcquired: () => Message.OpenedSignaling(),
+        onReleased: () => Message.ClosedSignaling(),
+        onAcquireError: error =>
+          Message.FailedSignaling({ error: globalThis.String(error) }),
+        handler: function* () {
+          return {
+            acquire: () => Effect.try(() => new WebSocket(SIGNALING_URL)),
+            release: socket => Effect.sync(() => socket.close()),
+          }
+        },
+      },
+    ),
   }),
-}))
+)
 
-export const block = call.assemble({
+export const block = RegisteredCallDefinition.toBlock({
   init,
   update,
   managedResources,

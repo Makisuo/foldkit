@@ -88,7 +88,7 @@ lifters. Every matcher names every variant, including a singleton union. A
 `outMessage.forward` mapper that needs only the OutMessage uses the same direct
 matcher form. A generic child with a refined payload passes its refined
 OutMessage type as the second matcher generic. A Command-producing branch uses
-`definition.step` and keeps its inferred requirements instead of forcing the
+`FeatureDefinition.step` and keeps its inferred requirements instead of forcing the
 whole matcher to a requirement-free `Update.Step`.
 
 When several operations update the same Model in sequence, use `Update.combine`. Initialize each child through its registered connection and combine the mapped Commands when assembling the parent Model.

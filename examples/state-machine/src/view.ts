@@ -5,7 +5,6 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 import { Button, Checkbox, Input, RadioGroup } from '@foldkit/ui'
 import type { OptionInfo } from '@foldkit/ui/radioGroup'
 
-import * as Icon from './icon'
 import {
   Application,
   CheckoutState,
@@ -19,13 +18,12 @@ import {
   editionRadioGroup,
   isReviewReady,
   promoToMaybeDiscount,
-} from './stateMachine'
+} from './application'
+import * as Icon from './icon'
 
 type StateMachineHtmlBuilder = Parameters<
   Parameters<typeof Application.view>[0]
 >[1]
-
-// VIEW
 
 const PHYSICAL_PRICE = 52
 const DIGITAL_PRICE = 28

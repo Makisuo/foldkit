@@ -70,7 +70,7 @@ const foldTabsOutMessage = FrameworkTabs.OutMessage.match<
     model => ({ model: modifyFields(model, { activeFramework: () => value }) }),
 })
 
-// The binding wires the completed child Block into the parent: it runs
+// The connection wires the completed child Block into the parent: it runs
 // FrameworkTabs.update, writes the next Tabs Model back, maps the Block's
 // Commands into your Message type, and hands any OutMessage to
 // the OutMessage fold.
@@ -81,13 +81,15 @@ const tabs = FrameworkTabs.connection({
   outMessage: { fold: foldTabsOutMessage },
 })
 
-const TabsExample = Block.define('TabsExample', {
+const TabsExampleDefinition = Block.define('TabsExample', {
   Model,
   Message,
 })
-const registered = TabsExample.register({ children: [tabs] })
+const RegisteredTabsExampleDefinition = TabsExampleDefinition.register({
+  children: [tabs],
+})
 
-const update = TabsExample.update((model, message) =>
+const update = TabsExampleDefinition.update((model, message) =>
   Message.match(message, {
     GotTabsMessage: ({ message }) => tabs.fold(model, message),
   }),
@@ -95,7 +97,7 @@ const update = TabsExample.update((model, message) =>
 
 // Inside your view function, embed the tabs via h.block and pass the
 // parent-owned active tab as selectedValue:
-const view = registered.view((model, h) => {
+const view = RegisteredTabsExampleDefinition.view((model, h) => {
   const tabsView = ({
     tablist,
     tabs,

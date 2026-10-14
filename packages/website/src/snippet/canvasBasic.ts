@@ -8,9 +8,9 @@ const Message = defineMessageUnion({
   ClickedCanvas: { x: Schema.Number, y: Schema.Number },
 })
 
-const CanvasApp = Block.define('CanvasApp', { Model, Message })
+const CanvasAppDefinition = Block.define('CanvasApp', { Model, Message })
 
-const subscriptions = CanvasApp.subscriptions(entry => ({
+const subscriptions = CanvasAppDefinition.subscriptions(entry => ({
   animationFrameTicks: entry(
     'AnimationFrameTicks',
     { isActive: Schema.Boolean },
@@ -29,7 +29,7 @@ const subscriptions = CanvasApp.subscriptions(entry => ({
   ),
 }))
 
-const view = CanvasApp.view((model, h) =>
+const view = CanvasAppDefinition.view((model, h) =>
   Canvas.view(
     {
       width: 600,

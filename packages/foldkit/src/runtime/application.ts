@@ -405,7 +405,7 @@ type PendingApplication<
    * Provision also works when the application has no unmet requirements. For
    * example, only its Flags Effect may need a shared service. Commands and
    * Subscription restarts reuse the provided services. Keep concrete
-   * environment providers at application assembly so tests can provide
+   * environment providers at application completion so tests can provide
    * different services to the same handler Layers. Use `Layer.provideMerge`
    * when the provider must also be available to Flags or other runtime effects.
    *

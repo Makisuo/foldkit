@@ -80,8 +80,6 @@ const routeSearchText = (route: PeopleRoute): string =>
 export const findPerson = (id: number) =>
   Array.findFirst(people, person => person.id === id)
 
-// MODEL
-
 export const SearchResults = defineTaggedUnion({
   Loading: {},
   Loaded: { query: Schema.String, people: Schema.Array(Person) },
@@ -94,8 +92,6 @@ export const Model = Schema.Struct({
   results: SearchResults,
 })
 export type Model = typeof Model.Type
-
-// MESSAGE
 
 export const Message = defineMessageUnion({
   ChangedSearchInput: { value: Schema.String },
@@ -110,9 +106,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const People = Block.define('People', { Model, Message })
-
-// INIT
+const PeopleDefinition = Block.define('People', { Model, Message })
 
 export const init = (route: PeopleRoute) => {
   const searchText = routeSearchText(route)
@@ -126,9 +120,7 @@ export const init = (route: PeopleRoute) => {
   }
 }
 
-// COMMAND
-
-export const PushSearchUrl = People.command('PushSearchUrl', {
+export const PushSearchUrl = PeopleDefinition.command('PushSearchUrl', {
   args: { searchText: Schema.Option(Schema.String) },
   messages: [Message.CompletedPushSearchUrl],
   handler: function* () {
@@ -139,7 +131,7 @@ export const PushSearchUrl = People.command('PushSearchUrl', {
   },
 })
 
-export const FetchPeople = People.command('FetchPeople', {
+export const FetchPeople = PeopleDefinition.command('FetchPeople', {
   args: { searchText: Schema.String },
   messages: [Message.CompletedFetchPeople],
   handler: function* () {
@@ -160,9 +152,7 @@ export const EffectsLayer = Layer.mergeAll(
   FetchPeople.layer,
 )
 
-// UPDATE
-
-export const update = People.update((model, message) =>
+export const update = PeopleDefinition.update((model, message) =>
   Message.match(message, {
     ChangedSearchInput: ({ value }) => ({
       model: modifyFields(model, { searchInput: () => value }),
@@ -205,11 +195,9 @@ export const update = People.update((model, message) =>
  *  route and returns the refetch Command. The parent calls this from its
  *  `ChangedUrl` handler. Contrast a `reflect*` setter, which writes a field the
  *  Block owns from an external value, with no derivation and no Command. */
-export const informRouteChanged = People.step((model, route: PeopleRoute) =>
-  update(model, Message.ChangedRoute({ route })),
+export const informRouteChanged = PeopleDefinition.step(
+  (model, route: PeopleRoute) => update(model, Message.ChangedRoute({ route })),
 )
-
-// VIEW
 
 const statusText = (results: SearchResults): string =>
   SearchResults.match<string>(results, {
@@ -266,7 +254,7 @@ const personListItemView = (person: Person, h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-export const view = People.view((model, h) =>
+export const view = PeopleDefinition.view((model, h) =>
   h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [
@@ -348,10 +336,10 @@ export const view = People.view((model, h) =>
   ),
 )
 
-export const block = People.assemble({
+export const block = PeopleDefinition.toBlock({
   init,
   update,
   view,
   EffectsLayer,
-  steps: { informRouteChanged },
+  expose: { informRouteChanged },
 })

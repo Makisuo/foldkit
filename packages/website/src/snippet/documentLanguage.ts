@@ -7,8 +7,6 @@ const translate = (locale: Locale, key: string): string => {
   return catalog[locale][key]
 }
 
-// VIEW
-
 const languageTag: Readonly<Record<Locale, string>> = {
   English: 'en',
   Arabic: 'ar',

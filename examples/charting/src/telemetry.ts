@@ -46,8 +46,6 @@ const MILLISECONDS_PER_WEEK = 7 * 24 * 60 * 60 * MILLISECONDS_PER_SECOND
 const LAST_YEAR_MILLISECONDS = 52 * MILLISECONDS_PER_WEEK
 const TOP_CONTRIBUTOR_COUNT = 6
 
-// MODEL
-
 export type RawPackageData = Readonly<{
   spec: PackageSpec
   downloads: typeof NpmDownloadsResponse.Type

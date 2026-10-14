@@ -67,10 +67,10 @@ const update = search.update((model, message) =>
 const clear = search.step(model => ({
   model: modifyFields(model, { value: () => '' }),
 }))
-const block = search.assemble({
+const block = search.toBlock({
   init: () => ({ model: Model.make({ value: '' }) }),
   update,
-  steps: { clear },
+  expose: { clear },
   EffectsLayer: Save.layer,
 })
 expectTypeOf<Update.RequirementsOf<typeof update>>().toEqualTypeOf<
@@ -97,12 +97,12 @@ const Shared = Early.command('Shared', {
 })
 const first = Early.define({ Model, Message })
 const second = Early.define({ Model, Message })
-const firstBlock = first.assemble({
+const firstBlock = first.toBlock({
   init: () => ({ model: Model.make({ value: '' }) }),
   update: first.update(model => ({ model, commands: [Shared()] })),
   EffectsLayer: Shared.layer,
 })
-const secondBlock = second.assemble({
+const secondBlock = second.toBlock({
   init: () => ({ model: Model.make({ value: '' }) }),
   update: second.update(model => ({ model, commands: [Shared()] })),
   EffectsLayer: Shared.layer,
@@ -163,7 +163,7 @@ if (false) {
   // @ts-expect-error Typed helpers retain the declared Message payload.
   update(Model.make({ value: '' }), Message.RequestedSave({ value: 1 }))
   // @ts-expect-error Missing local handler remains rejected.
-  first.assemble({
+  first.toBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: first.update(model => ({ model, commands: [Shared()] })),
   })
@@ -171,7 +171,7 @@ if (false) {
   const ForeignShared = Foreign.command('Shared', {
     messages: [Message.CompletedSave],
   })
-  Foreign.assemble({
+  Foreign.toBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: Foreign.update(model => ({ model, commands: [ForeignShared()] })),
     // @ts-expect-error A different owner cannot provide the local handler.

@@ -56,13 +56,16 @@ const activityList = ActivityList.connection({
   parentMessage: Message.GotActivityListMessage,
 })
 
-const ActivityListExample = Block.define('ActivityListExample', {
+const ActivityListExampleDefinition = Block.define('ActivityListExample', {
   Model,
   Message,
 })
-const registered = ActivityListExample.register({ children: [activityList] })
+const RegisteredActivityListExampleDefinition =
+  ActivityListExampleDefinition.register({
+    children: [activityList],
+  })
 
-const update = ActivityListExample.update((model, message) =>
+const update = ActivityListExampleDefinition.update((model, message) =>
   Message.match(message, {
     GotActivityListMessage: ({ message }) => activityList.fold(model, message),
     ClickedScrollActivityListToMiddle: () =>
@@ -76,7 +79,7 @@ const update = ActivityListExample.update((model, message) =>
 // fixed height the container grows to fit its children and never scrolls.
 // The component sets only `overflow: auto` inline; everything else is
 // yours:
-const view = registered.view(
+const view = RegisteredActivityListExampleDefinition.view(
   (model, h) =>
     h.block(
       activityList.embedView({

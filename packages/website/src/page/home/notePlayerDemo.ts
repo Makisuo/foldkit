@@ -51,8 +51,6 @@ const MIN_NOTES = 2
 const MAX_NOTES = 8
 const NOTE_DURATION_RADIO_GROUP_ID = 'note-duration'
 
-// MODEL
-
 const Note = Schema.Literals(['A', 'B', 'C', 'D', 'E', 'F', 'G'])
 type Note = typeof Note.Type
 
@@ -117,8 +115,6 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   ChangedNoteInput: { value: Schema.String },
   GotNoteDurationMessage: { message: NoteDurationRadioGroup.Message },
@@ -133,7 +129,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-const NotePlayerDemo = Block.define('NotePlayerDemo', {
+const NotePlayerDemoDefinition = Block.define('NotePlayerDemo', {
   Model,
   Message,
 })
@@ -154,8 +150,6 @@ const parseNotes = (value: string) =>
       })
     }),
   )
-// INIT
-
 const INITIAL_NOTE_SEQUENCE = 'CDEFGABC'
 
 export const init = () => {
@@ -178,14 +172,12 @@ export const init = () => {
   }
 }
 
-// UPDATE
-
 const prependToLog =
   (entry: string) =>
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     Array.take([entry, ...messageLog], MAX_LOG_ENTRIES)
 
-const DelayAdvanceNotePlayerPhase = NotePlayerDemo.command(
+const DelayAdvanceNotePlayerPhase = NotePlayerDemoDefinition.command(
   'DelayAdvanceNotePlayerPhase',
   {
     args: { generation: Schema.Number },
@@ -251,11 +243,11 @@ type ViewRequirements = Block.RequirementsOfConnections<
   readonly [typeof noteDurationRadioGroup]
 >
 
-const notePlayerDemo = NotePlayerDemo.register({
+const RegisteredNotePlayerDemoDefinition = NotePlayerDemoDefinition.register({
   children: [noteDurationRadioGroup],
 })
 
-export const update = NotePlayerDemo.update((model, message) =>
+export const update = NotePlayerDemoDefinition.update((model, message) =>
   Message.match(message, {
     ChangedNoteInput: ({ value }) => {
       const uppercased = String.toUpperCase(value)
@@ -468,33 +460,33 @@ export const update = NotePlayerDemo.update((model, message) =>
 // MANAGED RESOURCE
 
 const AudioContextResource =
-  NotePlayerDemo.resource<AudioContext>()('AudioContext')
+  NotePlayerDemoDefinition.resource<AudioContext>()('AudioContext')
 
-export const managedResources = NotePlayerDemo.managedResources(entry => ({
-  audioContext: entry('ManageAudioContext', Schema.Option(Schema.Null), {
-    resource: AudioContextResource,
-    modelToMaybeRequirements: () => Option.some(null),
-    onAcquired: () => Message.SucceededAcquireAudioContext(),
-    onReleased: () => Message.ReleasedAudioContext(),
-    onAcquireError: () => Message.FailedAcquireAudioContext(),
-    handler: function* () {
-      return {
-        acquire: () =>
-          Effect.try({
-            try: () => new AudioContext(),
-            catch: () =>
-              new Error('The Web Audio API is unavailable in this browser.'),
-          }),
-        release: audioContext =>
-          Effect.promise(() => audioContext.close().catch(() => undefined)),
-      }
-    },
+export const managedResources = NotePlayerDemoDefinition.managedResources(
+  entry => ({
+    audioContext: entry('ManageAudioContext', Schema.Option(Schema.Null), {
+      resource: AudioContextResource,
+      modelToMaybeRequirements: () => Option.some(null),
+      onAcquired: () => Message.SucceededAcquireAudioContext(),
+      onReleased: () => Message.ReleasedAudioContext(),
+      onAcquireError: () => Message.FailedAcquireAudioContext(),
+      handler: function* () {
+        return {
+          acquire: () =>
+            Effect.try({
+              try: () => new AudioContext(),
+              catch: () =>
+                new Error('The Web Audio API is unavailable in this browser.'),
+            }),
+          release: audioContext =>
+            Effect.promise(() => audioContext.close().catch(() => undefined)),
+        }
+      },
+    }),
   }),
-}))
+)
 
-// COMMAND
-
-const PlayNote = NotePlayerDemo.command('PlayNote', {
+const PlayNote = NotePlayerDemoDefinition.command('PlayNote', {
   args: { note: Note, duration: NoteDuration, noteIndex: Schema.Number },
   messages: [Message.CompletedPlayNote],
   handler: function* () {
@@ -563,8 +555,6 @@ export const EffectsLayer = Layer.mergeAll(
   managedResources.audioContext.layer,
 )
 
-// VIEW
-
 const inputBorderClass = (field: FieldValidation.Field<string>): string =>
   FieldValidation.match(field, {
     onNotValidated: () => 'border-gray-300 dark:border-gray-600',
@@ -585,7 +575,7 @@ const durationButtonClass = (
       !isSelected && isDisabled,
   })
 
-export const view = notePlayerDemo.view((model, h) =>
+export const view = RegisteredNotePlayerDemoDefinition.view((model, h) =>
   DemoView.shell(
     DemoView.codePanel(
       'note-demo-code-panel',
@@ -993,7 +983,7 @@ const phaseIndicatorView = (model: Model): Html =>
     [],
   )
 
-export const block = notePlayerDemo.assemble({
+export const block = RegisteredNotePlayerDemoDefinition.toBlock({
   init,
   update,
   view,

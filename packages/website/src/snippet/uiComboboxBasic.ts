@@ -49,11 +49,13 @@ const combobox = CityCombobox.connection({
   outMessage: { fold: foldComboboxOutMessage },
 })
 
-// Registering the binding collects its lifecycle and handler graph.
-const CityPicker = Block.define('CityPicker', { Model, Message })
-const registered = CityPicker.register({ children: [combobox] })
+// Registering the connection collects its lifecycle and handler graph.
+const CityPickerDefinition = Block.define('CityPicker', { Model, Message })
+const RegisteredCityPickerDefinition = CityPickerDefinition.register({
+  children: [combobox],
+})
 
-const update = CityPicker.update((model, message) =>
+const update = CityPickerDefinition.update((model, message) =>
   Message.match(message, {
     GotComboboxMessage: ({ message }) => combobox.fold(model, message),
   }),
@@ -66,7 +68,7 @@ const cities: ReadonlyArray<City> = [
   'Wellington',
 ]
 
-const view = registered.view((model, h) => {
+const view = RegisteredCityPickerDefinition.view((model, h) => {
   const filteredCities =
     model.combobox.inputValue === ''
       ? cities
@@ -117,7 +119,7 @@ const view = registered.view((model, h) => {
   )
 })
 
-export const block = registered.assemble({
+export const block = RegisteredCityPickerDefinition.toBlock({
   init,
   update,
   view,

@@ -65,8 +65,6 @@ const glyph = (symbol: string, offsetY?: string): Html =>
     ],
   )
 
-// VIEW
-
 export const contentView = (
   renderCopyButton: CodeBlock.RenderCopyButton,
   renderSnippet: CodeBlock.RenderSnippet,

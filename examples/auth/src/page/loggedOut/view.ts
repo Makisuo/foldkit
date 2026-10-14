@@ -2,10 +2,10 @@ import { Match } from 'effect'
 
 import { notFoundView } from '../../notFoundView'
 import { homeRouter } from '../../route'
-import { loggedOut, login } from './block'
+import { RegisteredLoggedOutDefinition, login } from './definition'
 import * as Home from './page/home'
 
-export const view = loggedOut.view((model, h) =>
+export const view = RegisteredLoggedOutDefinition.view((model, h) =>
   h.div(
     [h.Class('py-8')],
     [

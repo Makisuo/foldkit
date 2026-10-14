@@ -15,7 +15,7 @@ import {
   headingWithContent,
   pageTitle,
 } from '../../prose'
-import { ApiReference } from './block'
+import { ApiReferenceDefinition } from './definition'
 import {
   type ApiFunction,
   type ApiInterface,
@@ -610,7 +610,7 @@ type ViewInputs = Readonly<{
  * element is built in, so one built here would be rejected by this Block's
  * `toParentMessage`.
  */
-export const view = ApiReference.view.withInputs<ViewInputs>(
+export const view = ApiReferenceDefinition.view.withInputs<ViewInputs>(
   (model, { module, highlights, renderHeadingLink }, h) =>
     h.div(
       [h.DataAttribute('pagefind-meta', 'kind:API Reference')],

@@ -3,13 +3,11 @@ import {
   demoTabs,
   notePlayerDemo,
   playgroundMenu,
-} from './bindings'
-import { Home } from './block'
+} from './connection'
+import { HomeDefinition } from './definition'
 import { Message } from './message'
 
-// UPDATE
-
-export const update = Home.update((model, message) =>
+export const update = HomeDefinition.update((model, message) =>
   Message.match(message, {
     GotDemoTabsMessage: ({ message }) => demoTabs.fold(model, message),
     GotPlaygroundMenuMessage: ({ message }) =>

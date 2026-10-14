@@ -14,8 +14,6 @@ type AccessToken = typeof AccessToken.Type
 const makeAccessToken = (accessToken: string): AccessToken =>
   Redacted.make(accessToken, { label: accessTokenLabel })
 
-// MODEL
-
 // 2. Store the wrapper in the Model, never the raw string.
 const Model = Schema.Struct({ accessToken: AccessToken })
 type Model = typeof Model.Type
@@ -24,14 +22,10 @@ const init = (accessToken: string) => ({
   model: { accessToken: makeAccessToken(accessToken) },
 })
 
-// MESSAGE
-
 const Message = defineMessageUnion({
   CompletedFetchProfile: {},
   FailedFetchProfile: {},
 })
-
-// COMMAND
 
 const FetchProfile = Command.define('FetchProfile', {
   // 3. Require a Redacted value because DevTools records Command arguments.

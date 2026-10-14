@@ -2,16 +2,16 @@
   "typescriptVersion": "7.0.2",
   "fixtures": {
     "deep-composition-8": {
-      "maxInstantiationsDelta": 1052857,
-      "maxTypesDelta": 47724
+      "maxInstantiationsDelta": 1126164,
+      "maxTypesDelta": 49591
     },
     "wide-composition-100": {
-      "maxInstantiationsDelta": 3099131,
-      "maxTypesDelta": 209453
+      "maxInstantiationsDelta": 3132298,
+      "maxTypesDelta": 211029
     },
     "command-requirements-200": {
-      "maxInstantiationsDelta": 2615513,
-      "maxTypesDelta": 382772
+      "maxInstantiationsDelta": 2616095,
+      "maxTypesDelta": 382863
     }
   }
 }

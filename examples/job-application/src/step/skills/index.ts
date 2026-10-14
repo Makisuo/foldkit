@@ -2,12 +2,9 @@ export {
   Model,
   Message,
   init,
-  update,
-  GenerateSkillsEntryId,
   hasErrors,
   isComplete,
   revealErrors,
-} from './block'
+} from './definition'
 export * as Entry from './entry'
-export { view } from './view'
 export { block } from './skills'

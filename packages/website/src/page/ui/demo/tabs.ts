@@ -24,8 +24,6 @@ const verticalButtonClassName =
 const verticalPanelClassName =
   'flex-1 p-6 bg-cream dark:bg-gray-900 rounded-r-lg rounded-bl-lg border border-gray-200 dark:border-gray-700'
 
-// VIEW
-
 export const horizontalDemo = (
   tabsModel: typeof Tabs.Model.Type,
   selectedTab: DemoTab,

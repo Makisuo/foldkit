@@ -65,7 +65,7 @@ const foldListboxOutMessage = CharacterListbox.OutMessage.match<
     }),
 })
 
-// The binding wires the completed child Block into the parent: it delegates keyboard
+// The connection wires the completed child Block into the parent: it delegates keyboard
 // navigation, typeahead, and open/close to CharacterListbox.update, writes the
 // next Listbox Model back, maps the Block's Commands into your Message
 // type, and hands any OutMessage to the OutMessage fold.
@@ -76,14 +76,16 @@ const characterListbox = CharacterListbox.connection({
   outMessage: { fold: foldListboxOutMessage },
 })
 
-const CharacterPicker = Block.define('CharacterPicker', {
+const CharacterPickerDefinition = Block.define('CharacterPicker', {
   Model,
   Message,
 })
-const registered = CharacterPicker.register({ children: [characterListbox] })
+const RegisteredCharacterPickerDefinition = CharacterPickerDefinition.register({
+  children: [characterListbox],
+})
 
 // In the corresponding Message.match handler, call the fold:
-const update = CharacterPicker.update((model, message) =>
+const update = CharacterPickerDefinition.update((model, message) =>
   Message.match(message, {
     GotListboxMessage: ({ message }) => characterListbox.fold(model, message),
   }),
@@ -101,7 +103,7 @@ const characters: ReadonlyArray<Character> = [
 // Inside your view function, group items by a key and render a heading for
 // each group. Items are grouped in the order they appear. Make sure items
 // with the same key are contiguous in the items array:
-const view = registered.view((model, h) =>
+const view = RegisteredCharacterPickerDefinition.view((model, h) =>
   h.block(
     characterListbox.embedView({
       slotId: 'character',

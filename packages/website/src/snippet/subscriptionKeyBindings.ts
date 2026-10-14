@@ -20,9 +20,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const Search = Block.define('Search', { Model, Message })
+const SearchDefinition = Block.define('Search', { Model, Message })
 
-const subscriptions = Search.subscriptions(entry => ({
+const subscriptions = SearchDefinition.subscriptions(entry => ({
   keyBindings: entry(
     'KeyBindings',
     { searchState: SearchState },

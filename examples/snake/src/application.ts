@@ -21,8 +21,6 @@ import { modifyFields } from 'foldkit/struct'
 import { GAME, GAME_SPEED } from './constants'
 import { Apple, Direction, Position, Snake } from './domain'
 
-// MODEL
-
 export const GameState = Schema.Literals([
   'NotStarted',
   'Playing',
@@ -42,8 +40,6 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   TickedClock: {},
   PressedKey: { key: Schema.String },
@@ -54,11 +50,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-type ViewBuilder = HtmlBuilderOf<typeof Application>
-
-// INIT
+type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
 export const init = () => {
   const snake = Snake.create(GAME.INITIAL_POSITION)
@@ -77,9 +71,7 @@ export const init = () => {
   }
 }
 
-// UPDATE
-
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     PressedKey: ({ key }) =>
       Match.value(key).pipe(
@@ -224,9 +216,7 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// COMMAND
-
-export const GenerateApplePosition = Application.command(
+export const GenerateApplePosition = ApplicationDefinition.command(
   'GenerateApplePosition',
   {
     args: { snake: Snake.Snake },
@@ -242,9 +232,7 @@ export const GenerateApplePosition = Application.command(
   },
 )
 
-// SUBSCRIPTION
-
-export const subscriptions = Application.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   gameClockTicks: entry(
     'GameClockTicks',
     {
@@ -287,15 +275,11 @@ export const subscriptions = Application.subscriptions(entry => ({
   }),
 }))
 
-// EFFECTS LAYER
-
 export const EffectsLayer = Layer.mergeAll(
   GenerateApplePosition.layer,
   subscriptions.gameClockTicks.layer,
   subscriptions.keyboardPresses.layer,
 )
-
-// VIEW
 
 const cellClass = (x: number, y: number, model: Model): string => {
   const isSnakeHead = Position.equivalence(
@@ -349,7 +333,7 @@ const instructionsView = (h: ViewBuilder): Html =>
     ],
   )
 
-export const view = Application.view((model, h) => ({
+export const view = ApplicationDefinition.view((model, h) => ({
   title: `Snake | ${model.points} pts`,
   body: h.div(
     [
@@ -372,11 +356,3 @@ export const view = Application.view((model, h) => ({
     ],
   ),
 }))
-
-export const implementation = {
-  init,
-  update,
-  view,
-  subscriptions,
-  EffectsLayer,
-}

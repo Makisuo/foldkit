@@ -1,6 +1,7 @@
 import { Match } from 'effect'
 
-import { Application, loggedIn, loggedOut } from './children'
+import { Application } from './application'
+import { loggedIn, loggedOut } from './connection'
 import { Model } from './model'
 
 const title = (model: Model): string =>

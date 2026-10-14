@@ -60,7 +60,7 @@ const foldSliderOutMessage = Slider.OutMessage.match<
     model => ({ model: modifyFields(model, { ratingValue: () => value }) }),
 })
 
-// The binding wires the completed child Block into the parent: it runs Slider.update,
+// The connection wires the completed child Block into the parent: it runs Slider.update,
 // writes the next Slider Model back, maps the Block's Commands into your
 // Message type, and hands any OutMessage to the OutMessage fold.
 const slider = Slider.block.connection({
@@ -70,13 +70,15 @@ const slider = Slider.block.connection({
   outMessage: { fold: foldSliderOutMessage },
 })
 
-const VolumeSlider = Block.define('VolumeSlider', {
+const VolumeSliderDefinition = Block.define('VolumeSlider', {
   Model,
   Message,
 })
-const registered = VolumeSlider.register({ children: [slider] })
+const RegisteredVolumeSliderDefinition = VolumeSliderDefinition.register({
+  children: [slider],
+})
 
-const update = VolumeSlider.update((model, message) =>
+const update = VolumeSliderDefinition.update((model, message) =>
   Message.match(message, {
     GotSliderMessage: ({ message }) => slider.fold(model, message),
   }),
@@ -87,7 +89,7 @@ const update = VolumeSlider.update((model, message) =>
 // Inside your view function, render the slider. You control every element's
 // markup and classes through the `toView` callback. The `attributes` groups
 // provide ARIA, pointer, and keyboard wiring:
-const view = registered.view((model, h) => {
+const view = RegisteredVolumeSliderDefinition.view((model, h) => {
   const sliderView = (attributes: SliderSliderAttributes) =>
     h.div(
       [h.Class('flex flex-col gap-2 w-full max-w-sm')],

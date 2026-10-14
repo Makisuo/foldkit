@@ -1,7 +1,7 @@
-import { Application, init, update, view } from './application'
-import { Flags } from './flags'
+import { ApplicationDefinition, init, update, view } from './counterFlagsRoot'
+import { Flags } from './flagsDefinition'
 
-const application = Application.make({
+export const application = ApplicationDefinition.make({
   init,
   update,
   view,

@@ -11,8 +11,6 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Button, Input } from '@foldkit/ui'
 
-// MODEL
-
 export const WeatherData = Schema.Struct({
   zipCode: Schema.String,
   temperature: Schema.Number,
@@ -32,8 +30,6 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   UpdatedZipCodeInput: { value: Schema.String },
   SubmittedWeatherForm: {},
@@ -43,11 +39,11 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-type ViewBuilder = HtmlBuilderOf<typeof Application>
+type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     UpdatedZipCodeInput: ({ value }) => ({
       model: modifyFields(model, {
@@ -81,16 +77,12 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// INIT
-
 export const init = () => ({
   model: Model.make({
     zipCodeInput: '',
     weather: WeatherAsyncData.Idle(),
   }),
 })
-
-// COMMAND
 
 const GEOCODING_API = 'https://geocoding-api.open-meteo.com/v1/search'
 const WEATHER_API = 'https://api.open-meteo.com/v1/forecast'
@@ -130,7 +122,7 @@ const weatherCodeToDescription = (code: number): string =>
     Match.orElse(() => 'Unknown'),
   )
 
-export const FetchWeather = Application.command('FetchWeather', {
+export const FetchWeather = ApplicationDefinition.command('FetchWeather', {
   args: { zipCode: Schema.String },
   messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
   handler: function* () {
@@ -225,13 +217,9 @@ export const FetchWeather = Application.command('FetchWeather', {
   },
 })
 
-// EFFECTS LAYER
-
 export const EffectsLayer = FetchWeather.layer
 
-// VIEW
-
-export const view = Application.view((model, h) => ({
+export const view = ApplicationDefinition.view((model, h) => ({
   title: 'Weather',
   body: h.div(
     [
@@ -365,10 +353,3 @@ const weatherView = (weather: WeatherData, h: ViewBuilder): Html =>
       ),
     ],
   )
-
-export const implementation = {
-  init,
-  update,
-  view,
-  EffectsLayer,
-}

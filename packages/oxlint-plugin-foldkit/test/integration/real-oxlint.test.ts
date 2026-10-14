@@ -173,7 +173,7 @@ describe('real-oxlint rule fixtures', () => {
   })
 
   it('resolves aliased constructors and helpers to their imported APIs', () => {
-    expect(countDiagnostics('block-name-matches-variable', 'invalid')).toBe(6)
+    expect(countDiagnostics('block-name-matches-variable', 'invalid')).toBe(9)
     expect(countDiagnostics('no-hardcoded-route-strings', 'invalid')).toBe(2)
     expect(countDiagnostics('keyed-required-for-mapped-rows', 'invalid')).toBe(
       3,
@@ -183,7 +183,7 @@ describe('real-oxlint rule fixtures', () => {
     ).toBe(7)
     expect(
       countDiagnostics('wrap-child-output-in-got-message', 'invalid'),
-    ).toBe(2)
+    ).toBe(3)
     expect(
       countDiagnostics('got-wrapper-carries-only-routing', 'invalid'),
     ).toBe(2)

@@ -5,18 +5,13 @@ import { DragAndDrop } from '@foldkit/ui'
 
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import { DEFAULT_COLUMNS, STORAGE_KEY } from './constant'
-import { Message } from './message'
-import { Model, SavedBoard, SavedBoardJsonString } from './model'
-import { Application, update } from './update'
-import { view } from './view'
+import { SavedBoard, SavedBoardJsonString } from './model'
 
-const EffectsLayer = Layer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
   GenerateCardId.layer,
   SaveBoard.layer,
   FocusAddCardInput.layer,
 )
-
-// FLAGS
 
 export const Flags = Schema.Struct({
   maybeSavedBoard: Schema.Option(SavedBoard),
@@ -37,8 +32,6 @@ export const flags = Effect.gen(function* () {
   ),
 )
 
-// INIT
-
 export const init = (flags: Flags) => {
   const columns = Option.match(flags.maybeSavedBoard, {
     onNone: () => DEFAULT_COLUMNS,
@@ -55,14 +48,3 @@ export const init = (flags: Flags) => {
     },
   }
 }
-
-export const implementation = {
-  init,
-  update,
-  view,
-  EffectsLayer,
-}
-
-export { Message, Model, update, view }
-
-export { Application }

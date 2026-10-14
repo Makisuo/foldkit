@@ -3,25 +3,19 @@ import { define as defineApplication } from 'foldkit/application'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-// MODEL - Your entire application state
-
 const Model = Schema.Struct({
   count: Schema.Number,
 })
 type Model = typeof Model.Type
-
-// MESSAGE - Events that can happen in your app
 
 const Message = defineMessageUnion({
   ClickedIncrement: {},
 })
 type Message = typeof Message.Type
 
-const Application = defineApplication({ Model, Message })
+const ApplicationDefinition = defineApplication({ Model, Message })
 
-// UPDATE - How Messages change the Model
-
-const update = Application.update((model, message) =>
+const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + 1 }),
@@ -29,9 +23,7 @@ const update = Application.update((model, message) =>
   }),
 )
 
-// VIEW - A pure function from Model to a Document
-
-const view = Application.view((model, h) => ({
+const view = ApplicationDefinition.view((model, h) => ({
   title: `Count: ${model.count}`,
   body: h.div(
     [],

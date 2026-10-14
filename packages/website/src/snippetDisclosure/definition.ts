@@ -1,6 +1,9 @@
-import { SnippetDisclosure } from './block'
-import { MeasureSnippetHeight } from './mount'
+import { Block } from 'foldkit'
 
-export const snippetDisclosure = SnippetDisclosure.register({
-  mounts: [MeasureSnippetHeight],
+import { Message } from './message'
+import { Model } from './model'
+
+export const SnippetDisclosureDefinition = Block.define('SnippetDisclosure', {
+  Model,
+  Message,
 })

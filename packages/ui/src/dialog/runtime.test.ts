@@ -15,7 +15,7 @@ const RuntimeMessage = defineMessageUnion({
 type RuntimeMessage = typeof RuntimeMessage.Type
 type Model = Dialog.Model
 
-const Application = defineApplication({
+const ApplicationDefinition = defineApplication({
   Model: Dialog.Model,
   Message: RuntimeMessage,
 })
@@ -34,16 +34,18 @@ const dialog = Dialog.block.connection({
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const registered = Application.register({ children: [dialog] })
+const RegisteredApplicationDefinition = ApplicationDefinition.register({
+  children: [dialog],
+})
 
-const update = Application.update((model, message) =>
+const update = ApplicationDefinition.update((model, message) =>
   RuntimeMessage.match(message, {
     GotDialogMessage: ({ message: dialogMessage }) =>
       dialog.fold(model, dialogMessage),
   }),
 )
 
-const view = registered.view((model, h) =>
+const view = RegisteredApplicationDefinition.view((model, h) =>
   h.block(
     dialog.embedView({
       slotId: model.id,
@@ -70,7 +72,7 @@ const view = registered.view((model, h) =>
 const init = () => dialog.open()(dialog.init({ id: dialogId }).model)
 
 const makeDialogProgram = (container: HTMLElement) =>
-  registered.makeElement({
+  RegisteredApplicationDefinition.makeElement({
     container,
     init,
     update,

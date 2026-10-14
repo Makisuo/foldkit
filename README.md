@@ -24,9 +24,9 @@ React, Vue, Svelte, and Solid solve rendering and leave the architecture to you.
 
 Foldkit uses [The Elm Architecture](https://guide.elm-lang.org/architecture/). Application state does not live in component instances or hook lifecycles. The Model is the single source of truth, and every transition stays visible in update. That discipline is a real commitment. Foldkit works best when the team wants one architecture across the application and is ready to build on Effect throughout. [Coming from React?](https://foldkit.dev/react/coming-from-react)
 
-Each feature declares the effects it needs and bundles their handlers in [Effect Layers](https://foldkit.dev/core/layers). Parent Block bindings carry those handlers to the application root, where you provide the shared services they require. TypeScript checks that the assembled application is complete before it can run. Tests can provide controlled services while running the same effect handlers.
+Each feature declares the effects it needs and bundles their handlers in [Effect Layers](https://foldkit.dev/core/layers). Parent Block connections carry those handlers to the application root, where you provide the shared services they require. TypeScript checks that the completed application is ready before it can run. Tests can provide controlled services while running the same effect handlers.
 
-A [Block](https://foldkit.dev/core/block) packages its Model and Message contracts, update, public operations, lifecycle registrations, view, and handler recipes. Its parent binds the child once to a Model location and Message wrapper. Composition then collects the child’s registrations and handlers; the parent decides when to dispatch Messages, render the child, and handle its OutMessages.
+A [Block](https://foldkit.dev/core/block) packages its Model and Message contracts, update, public operations, lifecycle registrations, view, and handler recipes. Its parent connects the child once to a Model location and Message wrapper. Registration then collects the child’s lifecycle entries and handlers; the parent decides when to dispatch Messages, render the child, and handle its OutMessages.
 
 > [!NOTE]
 > Foldkit is pre-1.0 and under active development. The architecture is settled and the core API is stable in practice, but breaking changes may occur in minor releases. See the [roadmap](https://foldkit.dev/introduction/roadmap).
@@ -52,14 +52,10 @@ import { define as defineApplication } from 'foldkit/application'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-// MODEL
-
 export const Model = Schema.Struct({
   count: Schema.Number,
 })
 export type Model = typeof Model.Type
-
-// MESSAGE
 
 export const Message = defineMessageUnion({
   ClickedDecrement: {},
@@ -67,12 +63,10 @@ export const Message = defineMessageUnion({
   ClickedReset: {},
 })
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 export type Message = typeof Message.Type
 
-// UPDATE
-
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: count => count - 1 }),
@@ -84,15 +78,11 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// INIT
-
 export const init = () => ({
   model: { count: 0 },
 })
 
-// VIEW
-
-export const view = Application.view((model, h) => ({
+export const view = ApplicationDefinition.view((model, h) => ({
   title: `Counter: ${model.count}`,
   body: h.div(
     [
@@ -126,8 +116,6 @@ export const view = Application.view((model, h) => ({
   ),
 }))
 
-// STYLE
-
 const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
 ```
 
@@ -135,9 +123,9 @@ const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
 // src/entry.ts
 import { Runtime } from 'foldkit'
 
-import { Application, init, update, view } from './application'
+import { ApplicationDefinition, init, update, view } from './application'
 
-const application = Application.make({
+const application = ApplicationDefinition.make({
   init,
   update,
   view,

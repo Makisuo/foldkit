@@ -32,8 +32,6 @@ const backdropClassName = 'fixed inset-0 z-0'
 
 const wrapperClassName = 'relative inline-block'
 
-// VIEW
-
 const POPOVER_ANCHOR: AnchorConfig = {
   placement: 'bottom-start',
   gap: 4,

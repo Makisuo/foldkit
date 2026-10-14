@@ -166,20 +166,20 @@ const Message = defineMessageUnion({
 ```ts
 import { Update } from 'foldkit'
 
-const update = definition.update((model, message) =>
+const update = FeatureDefinition.update((model, message) =>
   Message.match(message, {
     // ...
   }),
 )
 ```
 
-`definition.update` preserves the handler requirements of Commands returned by every Message branch while supplying the Block's Model, Message, and OutMessage context. Use it for every Block update.
+`FeatureDefinition.update` preserves the handler requirements of Commands returned by every Message branch while supplying the Block's Model, Message, and OutMessage context. Use it for every Block update.
 
 `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is the Block counterpart, adding an optional `outMessage` field.
 
 Update, init, boot, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, they return it directly without checking whether it is empty. Never write the literal `commands: []`.
 
-Inside `definition.update`, let the outer helper infer the Command requirement channel through `Message.match(message, handlers)`. An explicit `Message.match<Update.Return<Model, Message>>` fixes that channel to `never` and discards the handler requirements the application must provide. When helpers or other matchers need a reusable return alias and any branch returns Commands, include the relevant requirements. Derive them with `Update.RequirementsOf<typeof update>` when the update contract is available, rather than from `EffectsLayer`, which may also contain lifecycle handlers that update never returns. Do not repeat the alias on the update function when the match already constrains its branches.
+Inside `FeatureDefinition.update`, let the outer helper infer the Command requirement channel through `Message.match(message, handlers)`. An explicit `Message.match<Update.Return<Model, Message>>` fixes that channel to `never` and discards the handler requirements the application must provide. When helpers or other matchers need a reusable return alias and any branch returns Commands, include the relevant requirements. Derive them with `Update.RequirementsOf<typeof update>` when the update contract is available, rather than from `EffectsLayer`, which may also contain lifecycle handlers that update never returns. Do not repeat the alias on the update function when the match already constrains its branches.
 
 Use `Update.Return<Model, Message>` for an update that cannot emit an OutMessage. It prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. A result with no `outMessage` can still be used where `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is expected. The missing field means that update emitted no OutMessage. A hand-written plain-return type must preserve the `outMessage?: never` field.
 
@@ -250,12 +250,13 @@ export const SavedBoardJsonString = Schema.fromJsonString(
 
 `toCodecJson` turns the domain value into canonical JSON, then `fromJsonString` stringifies it. Leave it out and a field like `Schema.Option` writes Effect's runtime shape (`{_id:"Option",_tag:"None"}`) to storage. The next boot fails to decode it, the Flags `Effect.catch` falls back to the empty value, and the user's saved data looks gone. For a Schema that is already JSON-native, `toCodecJson` changes nothing on the wire, so composing it every time costs nothing.
 
-Import `define as defineApplication` from `foldkit/application`. Declare the root Model and Message through a typed PascalCase `Application`, register the root graph, declare the `Flags` Schema in the registered composition's `make` config, then pass the Effect to `Runtime.run`:
+Import `define as defineApplication` from `foldkit/application`. Declare the root Model and Message through `ApplicationDefinition`, register the root graph as `Application`, declare the `Flags` Schema in its `make` config, then pass the runtime input to `Runtime.run`:
 
 ```ts
 import { define as defineApplication } from 'foldkit/application'
 
-const Application = defineApplication({ Model, Message }).register({ children })
+const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = ApplicationDefinition.register({ children })
 
 const application = Application.make({
   init,
@@ -289,7 +290,7 @@ export const EffectsLayer = Layer.mergeAll(
 )
 ```
 
-Pass this local recipe to the feature's `assemble`; its `register({ children, mounts })` stage supplies the graph. Export the completed value as `block`. At the root, `const Application = defineApplication({ Model, Message }).register(...)` establishes the checked composition. Export that definition and the implementation pieces from `application.ts`. `entry.ts` chooses the host inputs and calls owned completion:
+Pass this local recipe to the feature's `toBlock`; its `register({ children, mounts })` stage supplies the graph. Export the completed value as `block`. At the root, `ApplicationDefinition` establishes the contracts and `ApplicationDefinition.register(...)` produces the registered `Application`. Export the authoring values from `application.ts`. `entry.ts` imports each completion field from its real owner, chooses the host inputs, and calls owned completion:
 
 ```ts
 import { Runtime } from 'foldkit'
@@ -307,7 +308,7 @@ const application = Application.make({
 Runtime.run(application.provide(ApplicationLayer))
 ```
 
-Tests and server entries import the passive definition and implementation pieces without selecting a browser container or starting the Runtime. `ApplicationLayer` supplies the ordinary Services still required by the completed application.
+Tests and server entries import the passive definition and the pieces they need without selecting a browser container or starting the Runtime. `ApplicationLayer` supplies the ordinary Services still required by the completed application.
 
 If an owning module's handler Layers need a business service defined by that module, provide it beneath that module's `EffectsLayer`. Leave concrete HTTP, storage, RPC, and browser requirements open for the application root. The root chooses those providers and uses `Layer.provideMerge` when their outputs must remain available to Flags or another application consumer. Keep handler-by-handler imports out of the entry point. Calls such as `application.provide(firstLayer).provide(secondLayer)` can be chained when one Layer leaves requirements for a later Layer, but a composed `ApplicationLayer` keeps ordinary application wiring at module granularity.
 
@@ -320,7 +321,7 @@ Omit `handler` only at an external host boundary. The definition then has `toLay
 ```ts
 import { Context, Effect } from 'effect'
 
-import { Feature } from './name'
+import { FeatureDefinition } from './definition'
 import { Message } from './message'
 
 type HostApi = Readonly<{
@@ -329,7 +330,7 @@ type HostApi = Readonly<{
 
 const HostApi = Context.Service<HostApi>('HostApi')
 
-export const RequestHostToken = Feature.command('RequestHostToken', {
+export const RequestHostToken = FeatureDefinition.command('RequestHostToken', {
   messages: [Message.CompletedRequestHostToken],
 })
 
@@ -360,7 +361,7 @@ The implementation Layer graph does not replace the registration graph. A comple
 Use a Mount when work follows one rendered element and needs that live `Element`. For example, measuring a panel belongs in a Mount because `getBoundingClientRect()` must read the actual DOM node after insertion:
 
 ```ts
-export const MeasurePanel = Feature.mount('MeasurePanel', {
+export const MeasurePanel = FeatureDefinition.mount('MeasurePanel', {
   messages: [Message.CompletedMeasurePanel],
   handler: function* () {
     return ({ element }) =>
@@ -376,9 +377,9 @@ export const mounts = [MeasurePanel]
 export const EffectsLayer = MeasurePanel.layer
 ```
 
-The view uses `h.OnMount(MeasurePanel())`. Put the Mount in `feature.register({ mounts })` and author the view with `registered.view`; its builder receives the registered capability automatically. A view with inputs uses `registered.view.withInputs<ViewInputs>`. For extracted helpers that attach the owner's Mounts or embed its children, use `Block.HtmlBuilderOf<typeof registered>`; pure helpers keep `HtmlBuilder<Message>`. Use `Feature.mountStream` when the element supplies an ongoing event Stream; keep listener or observer acquisition and cleanup inside the returned Stream so each element owns its own scope.
+The view uses `h.OnMount(MeasurePanel())`. Put the Mount in `FeatureDefinition.register({ mounts })` and author the view through the returned definition; its builder receives the registered capability automatically. A view with inputs uses that definition's `view.withInputs<ViewInputs>`. Derive the builder for extracted helpers from that same returned definition with `Block.HtmlBuilderOf`; pure helpers keep `HtmlBuilder<Message>`. Use `FeatureDefinition.mountStream` when the element supplies an ongoing event Stream; keep listener or observer acquisition and cleanup inside the returned Stream so each element owns its own scope.
 
-When several helpers share a mounted or child embedding path, export an alias such as `type HtmlBuilder = Block.HtmlBuilderOf<typeof registered>`. Helpers then use `h: HtmlBuilder`, or `h: Chart.HtmlBuilder` through a module namespace import. Pure helpers retain `HtmlBuilder<Message>`.
+When several helpers share a mounted or child embedding path, export an alias such as `type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredFeatureDefinition>`. Helpers then use `h: HtmlBuilder`, or `h: Chart.HtmlBuilder` through a module namespace import. Pure helpers retain `HtmlBuilder<Message>`.
 
 Complete each feature with its local Subscription registry. Register its connection in the parent’s `children`; composition collects the child records and preserves their Message contracts automatically. Parent Subscription activation belongs in the connection’s `subscriptions.when` policy.
 
@@ -386,42 +387,49 @@ Complete each feature with its local Subscription registry. Register its connect
 
 When a module grows too large, extract a Block: a child module with its own Model, Message, init, update, and optional view. Complete every Block through its definition so update, view, lifecycle registrations, and handler Layers stay in one checked contract.
 
-Ordinary single-file and split features establish their typed identity after the Schemas exist with `Block.define('Child', { Model, Message, OutMessage })`. In a split feature, an early `block.ts` imports its contracts and exports the authoring value. Implementation files import that early value, never their completed barrel. Register Mounts and child connections when needed:
+Ordinary single-file and split features establish their typed identity after the Schemas exist with `Block.define('Child', { Model, Message, OutMessage })`. In a split feature, an early `definition.ts` imports its contracts and exports the authoring value. Implementation files import that early value, never their completed barrel. Register Mounts and child connections when needed:
 
 ```ts
-// block.ts
+// definition.ts
 import { Block } from 'foldkit'
 
 import { Message, OutMessage } from './message'
 import { Model } from './model'
 
-export const Child = Block.define('Child', { Model, Message, OutMessage })
+export const ChildDefinition = Block.define('Child', {
+  Model,
+  Message,
+  OutMessage,
+})
 
-// children.ts
-export const child = Child.register({ mounts, children })
+// connection.ts
+export const RegisteredChildDefinition = ChildDefinition.register({
+  mounts,
+  children,
+})
 ```
 
-Use `Child.update` and `Child.step` before registration when child policies depend on those helpers. The registered `child` retains those helpers and supplies graph-aware `child.view` / `child.view.withInputs<ViewInputs>`. If no policy inference cycle exists, chaining `Block.define(...).register(...)` is sufficient. Extra statements reflect a dependency cycle, not nesting depth.
+Use `ChildDefinition.update` and `ChildDefinition.step` before registration when child policies depend on those helpers. `RegisteredChildDefinition` retains those helpers and supplies graph-aware `RegisteredChildDefinition.view` / `RegisteredChildDefinition.view.withInputs<ViewInputs>`. If no policy inference cycle exists, chaining `Block.define(...).register(...)` into `ChildDefinition` is sufficient. Extra statements reflect a dependency cycle, not nesting depth.
 
 The name-only `Block.define('Combobox')` form is reserved for generic factories sharing effect definitions before specializing several typed contracts with `.define({ Model, Message, OutMessage })`.
 
-Finish in the named feature assembly file, such as `child/child.ts`:
+Finish in the named feature file, such as `child/child.ts`:
 
 ```ts
-export const block = child.assemble({
+export const block = RegisteredChildDefinition.toBlock({
   init,
   update,
   view,
-  steps: { close, selectItem },
+  expose: { close, selectItem },
   subscriptions,
   managedResources,
   EffectsLayer,
 })
 ```
 
-Composition is passive. It checks that every exact handler contract required by the producers and registrations is present in the selected handler graph or declared in `hostHandlers`. Ordinary API, storage, RPC, and browser service requirements remain open until the root `ApplicationLayer`; the Runtime builds those shared services once.
+Definition, registration, and `toBlock` are passive. Completion checks that every exact handler contract required by the producers and registrations is present in the selected handler graph or declared in `hostHandlers`. Ordinary API, storage, RPC, and browser Service requirements remain open until the root `ApplicationLayer`; the Runtime builds those shared services once.
 
-Declare only intentional parent-driven operations in `steps`. Connections expose them directly, such as `dialog.close()`, as parent Steps. Forward received child Messages through `dialog.fold(model, message)`; import the child Message Schema/type for wrapper declarations, but do not construct child Messages to initiate changes. The owned authoring `child.step(...)` remains a pure child Model helper.
+Declare only intentional parent-driven operations in `expose`. Connections expose them directly, such as `dialog.close()`, as parent Steps. Forward received child Messages through `dialog.fold(model, message)`; import the child Message Schema/type for wrapper declarations, but do not construct child Messages to initiate changes. The owned authoring `ChildDefinition.step(...)` remains a pure child Model helper.
 
 Call `block.replaceEffectsLayer(localRecipe)` before creating a connection to replace the feature's whole local handler bundle. The selected Block retains its child connections and their recipes. Ordinary application execution tests keep the canonical handlers and provide deterministic service Layers beneath them.
 
@@ -431,7 +439,7 @@ Parent → Child: the parent routes child Messages or calls a connected named St
 Child → Parent: the child returns a record with an optional `outMessage`
 
 ```ts
-export const Parent = Block.define('Parent', { Model, Message })
+export const ParentDefinition = Block.define('Parent', { Model, Message })
 
 const childConnection = Child.block.connection({
   read: (model: Model) => model.maybeChild,
@@ -442,7 +450,7 @@ const childConnection = Child.block.connection({
   outMessage: {
     fold: Child.OutMessage.match({
       SucceededCreateRoom: ({ roomId }) =>
-        Parent.step(model => ({
+        ParentDefinition.step(model => ({
           model,
           commands: [navigateToRoom(roomId)],
         })),
@@ -450,19 +458,22 @@ const childConnection = Child.block.connection({
   },
 })
 
-export const parent = Parent.register({ children: [childConnection] })
+export const RegisteredParentDefinition = ParentDefinition.register({
+  children: [childConnection],
+})
 
-const update = parent.update((model, message, currentUser: CurrentUser) =>
-  Message.match(message, {
-    GotChildMessage: ({ message }) =>
-      childConnection.fold(model, message, currentUser),
-  }),
+const update = RegisteredParentDefinition.update(
+  (model, message, currentUser: CurrentUser) =>
+    Message.match(message, {
+      GotChildMessage: ({ message }) =>
+        childConnection.fold(model, message, currentUser),
+    }),
 )
 ```
 
-Every child Block with an OutMessage requires `outMessage.fold`, `outMessage.forward`, or both. Bind its union matcher directly when the policy needs only that value. Name every variant. The connection carries Command requirements from policy Steps. A generic factory keeps one module-scope named authoring value and handler graph while refining its Schema-backed Message, OutMessage, view inputs, and named API operations per factory result.
+Every child Block with an OutMessage requires `outMessage.fold`, `outMessage.forward`, or both. Bind its union matcher directly when the policy needs only that value. Name every variant. The connection records parent update policy, and `fold` and exposed operations apply that policy consistently during the pure parent transition. The connection carries Command requirements from policy Steps. A generic factory keeps one module-scope named authoring value and handler graph while refining its Schema-backed Message, OutMessage, view inputs, and named API operations per factory result.
 
-Register the connection with `Parent.register({ children })`. The completed parent automatically aggregates the connected child's Subscriptions, ManagedResources, Mounts, and handler graph under its placement. `read` controls optional update and ManagedResource presence. `subscriptions.when` is separate Stream lifecycle policy and does not prevent update delegation.
+Register the connection with `ParentDefinition.register({ children })`. The completed parent automatically aggregates the connected child's Subscriptions, ManagedResources, Mounts, and handler graph under its placement. `read` controls optional update and ManagedResource presence. `subscriptions.when` is separate Stream lifecycle policy and does not prevent update delegation. Use `Block.inspectConnection(connection)` only when tooling or a lifecycle test intentionally needs the exact carried metadata.
 
 Use `block.keyedConnection` with stable keys for dynamic collections. The parent still owns collection reconciliation and construction of its complete initial Model.
 
@@ -471,7 +482,7 @@ Use `block.keyedConnection` with stable keys for dynamic collections. The parent
 Child views are embedded via `h.block`. A connection's `embedView` method supplies its canonical view and Message wrapper:
 
 ```ts
-export const view = parent.view((model, h) =>
+export const view = RegisteredParentDefinition.view((model, h) =>
   Option.match(model.maybeChild, {
     onNone: () => h.empty,
     onSome: childModel =>
@@ -482,13 +493,13 @@ export const view = parent.view((model, h) =>
 )
 ```
 
-The child defines its canonical view with `registered.view`; with per-render inputs, it uses `registered.view.withInputs<ViewInputs>` and the parent supplies `viewInputs` to `embedView`. The runtime resolves the wrapper at event time, so the child's builder dispatches only child Messages. Parent-built slot callbacks supplied in `viewInputs` retain the parent dispatch boundary.
+The child defines its canonical view with `RegisteredChildDefinition.view`; with per-render inputs, it uses `RegisteredChildDefinition.view.withInputs<ViewInputs>` and the parent supplies `viewInputs` to `embedView`. The runtime resolves the wrapper at event time, so the child's builder dispatches only child Messages. Parent-built slot callbacks supplied in `viewInputs` retain the parent dispatch boundary.
 
 ## Subscriptions
 
 Subscriptions are model-driven streams. They automatically start and stop based on model state.
 
-Build them with `definition.subscriptions(entry => ({ ... }))`, where `definition` is the owning Block definition. Use the Layer-backed `entry(handlerName, fields, callbacks)` form when its lifetime depends on the Model. For those Subscriptions, provide:
+Build them with `FeatureDefinition.subscriptions(entry => ({ ... }))`. Use the Layer-backed `entry(handlerName, fields, callbacks)` form when its lifetime depends on the Model. For those Subscriptions, provide:
 
 - A stable handler name. Distinct definitions in one application need distinct names even when their record keys differ.
 - A `fields` map (the bare field map passed as `entry`'s second argument) naming every dependency. The builder calls `Schema.Struct(fields)` internally and infers the dependency type from this map.
@@ -503,7 +514,7 @@ For Layer-backed Subscriptions without local Model dependencies (keyboard listen
 A silent Subscription can own scoped DOM state. Keep acquisition and cleanup inside the `Stream<never>` so dependency changes and runtime shutdown remove the owned style:
 
 ```ts
-const subscriptions = definition.subscriptions(entry => ({
+const subscriptions = FeatureDefinition.subscriptions(entry => ({
   dragSelectionStyles: entry(
     'DragSelectionStyles',
     { isDragging: Schema.Boolean },
@@ -611,7 +622,7 @@ Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, o
 
 ## With and Without URL Routing
 
-`const Application = defineApplication({ Model, Message }).register(...)` establishes the root graph in both cases. `Application.make(implementation)` completes it. Add a `routing` config when the app needs URL routing.
+`const ApplicationDefinition = defineApplication({ Model, Message })` establishes the root contracts. Export the registered graph as `Application` when it has children or Mounts. Complete `ApplicationDefinition` directly when the root is graphless. Call the selected authoring value's `make({ init, update, view, ... })` with explicit fields. Add a `routing` config when the app needs URL routing.
 
 ### Without Routing
 
@@ -620,10 +631,12 @@ For single-page apps that own the page but don't navigate. init receives only Fl
 ```ts
 import { define as defineApplication } from 'foldkit/application'
 
-const Application = defineApplication({ Model, Message }).register({})
+const ApplicationDefinition = defineApplication({ Model, Message })
 
-const application = Application.make({
-  ...implementation,
+const application = ApplicationDefinition.make({
+  init,
+  update,
+  view,
   container: document.getElementById('root'),
 })
 
@@ -637,10 +650,13 @@ For apps with pages, navigation, and URL-driven state. init receives Flags (if a
 ```ts
 import { define as defineApplication } from 'foldkit/application'
 
-const Application = defineApplication({ Model, Message }).register({ children })
+const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = ApplicationDefinition.register({ children })
 
 const application = Application.make({
-  ...implementation,
+  init,
+  update,
+  view,
   container: document.getElementById('root'),
   routing: {
     onUrlRequest: request => Message.ClickedLink({ request }),
@@ -659,7 +675,9 @@ Use the registered composition's `makeElement` method instead. Its `view` return
 
 ```ts
 const element = Application.makeElement({
-  ...implementation,
+  init,
+  update,
+  view,
   container: document.getElementById('widget'),
 })
 
@@ -671,7 +689,9 @@ Element Flags are self-contained in the assembly config. A host factory can turn
 ```ts
 export const makeElement = (container: HTMLElement, flags: Flags) =>
   Application.makeElement({
-    ...implementation,
+    init,
+    update,
+    view,
     Flags,
     flags: Effect.succeed(flags),
     container,

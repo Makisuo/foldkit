@@ -13,16 +13,12 @@ import 'vanilla-colorful/hex-color-picker.js'
 import { Button, Input } from '@foldkit/ui'
 import '@shoelace-style/shoelace/dist/components/qr-code/qr-code.js'
 
-// MODEL
-
 export const Model = Schema.Struct({
   content: Schema.String,
   fillColor: Schema.String,
   backgroundColor: Schema.String,
 })
 export type Model = typeof Model.Type
-
-// MESSAGE
 
 export const Message = defineMessageUnion({
   UpdatedContent: { value: Schema.String },
@@ -32,11 +28,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-type ViewBuilder = HtmlBuilderOf<typeof Application>
-
-// INIT
+type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
 const DEFAULT_CONTENT = 'https://foldkit.dev'
 const DEFAULT_FILL_COLOR = '#1e1b4b'
@@ -50,9 +44,7 @@ export const init = () => ({
   },
 })
 
-// UPDATE
-
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     UpdatedContent: ({ value }) => ({
       model: modifyFields(model, { content: () => value }),
@@ -91,9 +83,7 @@ const qrCode = CustomElement.define({
   events: {},
 })
 
-// VIEW
-
-export const view = Application.view((model, h) => ({
+export const view = ApplicationDefinition.view((model, h) => ({
   title: 'Foldkit QR Designer',
   body: h.div(
     [
@@ -330,10 +320,4 @@ const previewView = (model: Model, h: ViewBuilder): Html => {
       ),
     ],
   )
-}
-
-export const implementation = {
-  init,
-  update,
-  view,
 }

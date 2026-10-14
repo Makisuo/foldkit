@@ -7,7 +7,10 @@ import { describe, it } from '@effect/vitest'
 
 import { Message, Model, OutMessage, block, init } from './index.js'
 
-const HoverIntentScene = Block.define('HoverIntentScene', { Model, Message })
+const HoverIntentSceneDefinition = Block.define('HoverIntentScene', {
+  Model,
+  Message,
+})
 
 const foldHoverIntentOutMessage = OutMessage.match<Update.Step<Model, Message>>(
   {
@@ -23,13 +26,14 @@ const hoverIntent = block.connection({
   outMessage: { fold: foldHoverIntentOutMessage },
 })
 
-const registered = HoverIntentScene.register({ children: [hoverIntent] })
+const RegisteredHoverIntentSceneDefinition =
+  HoverIntentSceneDefinition.register({ children: [hoverIntent] })
 
-const update = HoverIntentScene.update((model, message) =>
+const update = HoverIntentSceneDefinition.update((model, message) =>
   hoverIntent.fold(model, message),
 )
 
-const sceneView = registered.view((model, h) =>
+const sceneView = RegisteredHoverIntentSceneDefinition.view((model, h) =>
   h.block(
     hoverIntent.embedView({
       slotId: 'hover-intent',

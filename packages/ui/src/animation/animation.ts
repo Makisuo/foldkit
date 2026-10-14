@@ -10,7 +10,7 @@ import {
   init,
 } from './schema.js'
 import {
-  Animation,
+  AnimationDefinition,
   EffectsLayer,
   WaitForAnimationSettled,
   WaitForPaint,
@@ -61,7 +61,7 @@ export type ViewInputs = Readonly<{
  *  - `data-leave`: leave animation is active
  *  - `data-transition`: any animation is active
  */
-export const view = Animation.view.withInputs<ViewInputs>(
+export const view = AnimationDefinition.view.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const { id, isShowing, transitionState } = model
     const {
@@ -159,10 +159,10 @@ export const view = Animation.view.withInputs<ViewInputs>(
 )
 
 /** Complete Animation Block definition for connecting to a parent. */
-export const block = Animation.assemble({
+export const block = AnimationDefinition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),
   update,
   view,
-  steps: { show, hide, finish, toggle, resume },
+  expose: { show, hide, finish, toggle, resume },
   EffectsLayer,
 })

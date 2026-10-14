@@ -1,15 +1,15 @@
 import { modifyFields } from 'foldkit/struct'
 
 import {
+  RegisteredWorkHistoryEntryDefinition,
   endDatePicker,
   init,
   startDatePicker,
   update,
-  workHistoryEntry,
-} from './block'
+} from './definition'
 import { view } from './view'
 
-export const block = workHistoryEntry.assemble({
+export const block = RegisteredWorkHistoryEntryDefinition.toBlock({
   init: (
     entryId: Parameters<typeof init>[0],
     today: Parameters<typeof init>[1],

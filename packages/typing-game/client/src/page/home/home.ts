@@ -1,14 +1,14 @@
-import { Home } from './block'
+import { HomeDefinition } from './definition'
 import { init } from './init'
-import { EffectsLayer as LocalEffectsLayer } from './layer'
-import { subscriptions as localSubscriptions } from './subscription'
+import { EffectsLayer } from './layer'
+import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-export const block = Home.assemble({
+export const block = HomeDefinition.toBlock({
   init,
   update,
   view,
-  subscriptions: localSubscriptions,
-  EffectsLayer: LocalEffectsLayer,
+  subscriptions,
+  EffectsLayer,
 })

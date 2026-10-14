@@ -1,7 +1,7 @@
 import { Effect, Match, Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message, ResolvedTheme, ThemePreference } from './message'
 import { LocalStorage } from './storage'
 
@@ -20,7 +20,7 @@ export const resolveTheme = (
   )
 
 export const selectThemePreference = (preference: ThemePreference) =>
-  Application.step(model => {
+  ApplicationDefinition.step(model => {
     const resolvedTheme = resolveTheme(preference, model.systemTheme)
 
     return {
@@ -47,7 +47,7 @@ const setThemeColorMeta = (color: string): void => {
   }
 }
 
-export const ApplyTheme = Application.command('ApplyTheme', {
+export const ApplyTheme = ApplicationDefinition.command('ApplyTheme', {
   args: { theme: ResolvedTheme },
   messages: [Message.CompletedApplyTheme],
   handler: function* () {
@@ -69,18 +69,21 @@ export const ApplyTheme = Application.command('ApplyTheme', {
   },
 })
 
-export const SaveThemePreference = Application.command('SaveThemePreference', {
-  args: { preference: ThemePreference },
-  messages: [Message.CompletedSaveThemePreference],
-  handler: function* () {
-    const store = yield* LocalStorage
+export const SaveThemePreference = ApplicationDefinition.command(
+  'SaveThemePreference',
+  {
+    args: { preference: ThemePreference },
+    messages: [Message.CompletedSaveThemePreference],
+    handler: function* () {
+      const store = yield* LocalStorage
 
-    return ({ preference }) =>
-      store.set(THEME_STORAGE_KEY, JSON.stringify(preference)).pipe(
-        Effect.as(Message.CompletedSaveThemePreference()),
-        Effect.catch(() =>
-          Effect.succeed(Message.CompletedSaveThemePreference()),
-        ),
-      )
+      return ({ preference }) =>
+        store.set(THEME_STORAGE_KEY, JSON.stringify(preference)).pipe(
+          Effect.as(Message.CompletedSaveThemePreference()),
+          Effect.catch(() =>
+            Effect.succeed(Message.CompletedSaveThemePreference()),
+          ),
+        )
+    },
   },
-})
+)

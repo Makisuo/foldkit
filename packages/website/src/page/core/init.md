@@ -24,15 +24,11 @@ Define the boundary with a Flags Schema. For a fresh client boot, also define an
 
 ### Fresh Client Boot
 
-In the entry, pass the Schema to the typed root’s owned `Application.make` method as `Flags`. The Counter Application uses the `init` above.
+In the entry, pass the Schema to the graphless root’s owned `ApplicationDefinition.make` method as `Flags`. The Counter Application uses the `init` above.
 
 ::Snippet{name="counterApplicationWithFlags" label="Application configuration with Flags"}
 
-Root `services.ts` supplies the store implementation:
-
-::Snippet{name="counterFlagsServices" label="Browser storage provider"}
-
-The entry chooses the container and passes the Flags Effect to `Runtime.run`. The runtime resolves the Effect before calling `init`. If the configuration omits the Schema, `init` takes no Flags argument and the compiler rejects mismatched wiring.
+The entry defines this one small provider beside application startup, chooses the container and passes the Flags Effect to `Runtime.run`. The runtime resolves the Effect before calling `init`. If the configuration omits the Schema, `init` takes no Flags argument and the compiler rejects mismatched wiring.
 
 ::Snippet{name="counterEntryWithFlags" label="Flags wiring"}
 
@@ -42,7 +38,7 @@ The Flags Effect leaves `KeyValueStore` in its requirements, and the completed a
 
 #### Server-Supplied Flags
 
-Server rendering provides Flags from the request or build instead of running a client Flags Effect. `Server.renderToString(Application, { ...implementation, Flags }, { flags })` uses that value to call `init`, encodes it through the Schema, and embeds the result in the HTML. `Runtime.hydrate` decodes the same value and calls the same `init`, so the client reconstructs the Model that produced the server HTML.
+Server rendering provides Flags from the request or build instead of running a client Flags Effect. `Server.renderToString(Application, { init, update, view, Flags }, { flags })` uses that value to call `init`, encodes it through the Schema, and embeds the result in the HTML. List every completion field explicitly, importing it from its real owner. `Runtime.hydrate` decodes the same value and calls the same `init`, so the client reconstructs the Model that produced the server HTML.
 
 #### Handoff Validation
 

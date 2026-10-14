@@ -11,7 +11,7 @@ import { modifyFields } from '../struct/index.js'
 import * as Subscription from '../subscription/subscription.js'
 import * as Update from '../update/index.js'
 import type { BindingRequirement } from './binding.js'
-import { aggregateChildren, bind } from './binding.js'
+import { aggregateChildren, bind, inspectConnection } from './binding.js'
 import { define } from './define.js'
 import { LocalMountsTypeId } from './definition.js'
 import type { Owner } from './owner.js'
@@ -139,11 +139,11 @@ const report = childBase.step((model: ChildModel) => ({
   outMessage: ChildOutMessage.Reported({ value: model.count }),
 }))
 
-const Child = ChildDefinition.assemble({
+const Child = ChildDefinition.toBlock({
   view: childView,
   init: (count: number) => ({ model: ChildModel.make({ count }) }),
   update: childUpdate,
-  steps: { save, reset, addForRoom, report },
+  expose: { save, reset, addForRoom, report },
   subscriptions: childSubscriptions,
   managedResources: childManagedResources,
   EffectsLayer: Layer.empty,
@@ -216,6 +216,7 @@ const home = Child.connection({
     },
   },
 })
+const homeInspection = inspectConnection(home)
 
 const foldChildOutMessageWithCommand = (
   outMessage: ChildOutMessage,
@@ -409,10 +410,10 @@ const addMany = WrappedArityDefinition.step(
 const resetArity = WrappedArityDefinition.step((model: ArityModel) => ({
   model: modifyFields(model, { count: () => 0 }),
 }))
-const WrappedArity = WrappedArityDefinition.assemble({
+const WrappedArity = WrappedArityDefinition.toBlock({
   init: () => ({ model: ArityModel.make({ count: 0 }) }),
   update: wrappedArityUpdate,
-  steps: { defaultIncrement, addMany, resetArity },
+  expose: { defaultIncrement, addMany, resetArity },
   EffectsLayer: Layer.empty,
 })
 const wrappedArity = WrappedArity.connection({
@@ -447,7 +448,7 @@ const makeArityBlock = <
     model: ArityModel.make({ count: 0 }),
   }),
   update,
-  steps: {},
+  expose: {},
   subscriptions: {},
   managedResources: {},
   EffectsLayer: Layer.empty,
@@ -552,7 +553,7 @@ describe('Block binding', () => {
     expect(result).toEqual({ model: parentWithoutChild })
   })
 
-  it('exposes registered Steps directly and preserves their argument tuples', () => {
+  it('projects exposed operations directly and preserves their argument tuples', () => {
     const resetResult = home.reset()(initialParent)
     const contextualResult = home.addForRoom(3, { roomId: 'room' })(
       initialParent,
@@ -586,7 +587,9 @@ describe('Block binding', () => {
   it('keeps Subscription gates separate from update placement', () => {
     const gatedParent: ParentModel = { ...initialParent, isListening: false }
     const dependencies =
-      home.subscriptions.ticks.modelToDependencies(gatedParent)
+      inspectConnection(home).subscriptions.ticks.modelToDependencies(
+        gatedParent,
+      )
     const updateResult = home.fold(
       gatedParent,
       ChildMessage.ChangedCount({ amount: 1 }),
@@ -608,7 +611,9 @@ describe('Block binding', () => {
         when: (model: ParentModel) => model.isListening,
       },
     })
-    const dependencies = gated.subscriptions.ticks.modelToDependencies({
+    const dependencies = inspectConnection(
+      gated,
+    ).subscriptions.ticks.modelToDependencies({
       ...initialParent,
       isListening: false,
     })
@@ -701,27 +706,31 @@ describe('Block binding', () => {
     )
 
     expect(childSubscriptions.ticks.name).toBe('BindingChild/ObserveTicks')
-    expect(home.subscriptions.ticks.name).toBe('home/ObserveTicks')
-    expect(home.managedResources.session.name).toBe('home/ManageSession')
-    expect(home.managedResources.session.resource._tag.key).not.toBe(
-      Session._tag.key,
+    expect(inspectConnection(home).subscriptions.ticks.name).toBe(
+      'home/ObserveTicks',
     )
+    expect(inspectConnection(home).managedResources.session.name).toBe(
+      'home/ManageSession',
+    )
+    expect(
+      inspectConnection(home).managedResources.session.resource._tag.key,
+    ).not.toBe(Session._tag.key)
     expect(aggregated.subscriptions['home/ticks']).toBe(
-      home.subscriptions.ticks,
+      inspectConnection(home).subscriptions.ticks,
     )
     expect(aggregated.managedResources['home/session']).toBe(
-      home.managedResources.session,
+      inspectConnection(home).managedResources.session,
     )
     expect(declarations).toHaveLength(1)
     expect(declarations[0]).toMatchObject({
-      entry: home.subscriptions.ticks,
+      entry: inspectConnection(home).subscriptions.ticks,
       entryKey: 'home/ticks',
     })
     expect(declarations[0]?.messageMappers).toHaveLength(1)
   })
 
   it('preserves lifecycle contracts from a named child array', () => {
-    const pulseChild = ChildDefinition.assemble({
+    const pulseChild = ChildDefinition.toBlock({
       init: Child.init,
       update: Child.update,
       subscriptions: { pulses: childSubscriptions.ticks },
@@ -749,7 +758,7 @@ describe('Block binding', () => {
     const parentContract = parentBase.register({
       children,
     })
-    const parent = parentContract.assemble({
+    const parent = parentContract.toBlock({
       init: () => ({ model: initialParent }),
       update: (model: ParentModel, _message: ParentMessage) => ({ model }),
       EffectsLayer: Layer.empty,
@@ -774,15 +783,19 @@ describe('Block binding', () => {
       ManagedResource.ServicesOf<typeof inline.managedResources>
     >()
     expectTypeOf(parent.subscriptions['home/ticks']).toEqualTypeOf<
-      typeof home.subscriptions.ticks
+      typeof homeInspection.subscriptions.ticks
     >()
     expectTypeOf(parent.managedResources['home/session']).toEqualTypeOf<
-      typeof home.managedResources.session
+      typeof homeInspection.managedResources.session
     >()
-    expect(parent.subscriptions['home/ticks']).toBe(home.subscriptions.ticks)
-    expect(parent.subscriptions['room/pulses']).toBe(room.subscriptions.pulses)
+    expect(parent.subscriptions['home/ticks']).toBe(
+      inspectConnection(home).subscriptions.ticks,
+    )
+    expect(parent.subscriptions['room/pulses']).toBe(
+      inspectConnection(room).subscriptions.pulses,
+    )
     expect(parent.managedResources['home/session']).toBe(
-      home.managedResources.session,
+      inspectConnection(home).managedResources.session,
     )
   })
 
@@ -911,8 +924,10 @@ describe('Block child registration composition', () => {
       'home/session',
       'sidebar/session',
     ])
-    expect(home.managedResources.session.resource._tag.key).not.toBe(
-      sidebar.managedResources.session.resource._tag.key,
+    expect(
+      inspectConnection(home).managedResources.session.resource._tag.key,
+    ).not.toBe(
+      inspectConnection(sidebar).managedResources.session.resource._tag.key,
     )
   })
 
@@ -940,7 +955,7 @@ describe('Block child registration composition', () => {
         buildCount += 1
         return {}
       })
-      const Repeated = RepeatedDefinition.assemble({
+      const Repeated = RepeatedDefinition.toBlock({
         init: () => ({ model: ChildModel.make({ count: 0 }) }),
         update: (model: ChildModel) => ({ model }),
         EffectsLayer,
@@ -1003,10 +1018,10 @@ describe('generic block refinement', () => {
       commands: [FinishChoice()],
     }))
 
-    return Definition.assemble({
+    return Definition.toBlock({
       init: (value: Value) => ({ model: Model.make({ value }) }),
       update,
-      steps: { finish },
+      expose: { finish },
       EffectsLayer: Layer.empty,
       hostHandlers: [FinishChoice],
     })

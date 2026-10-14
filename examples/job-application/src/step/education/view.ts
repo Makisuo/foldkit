@@ -4,7 +4,7 @@ import { type Html, createKeyedLazy } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
-import { Message, education, entries } from './block'
+import { Message, RegisteredEducationDefinition, entries } from './definition'
 import * as Entry from './entry'
 
 const lazyEntry = createKeyedLazy()
@@ -23,9 +23,11 @@ const entryView = (
     }),
   )
 
-type EducationHtmlBuilder = Block.HtmlBuilderOf<typeof education>
+type EducationHtmlBuilder = Block.HtmlBuilderOf<
+  typeof RegisteredEducationDefinition
+>
 
-export const view = education.view((model, h) =>
+export const view = RegisteredEducationDefinition.view((model, h) =>
   h.div(
     [h.Class('space-y-6')],
     [

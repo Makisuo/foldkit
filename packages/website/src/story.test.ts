@@ -1,5 +1,5 @@
 import { HashSet, Option, pipe } from 'effect'
-import { Calendar } from 'foldkit'
+import { Block, Calendar } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
 import * as Url from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
@@ -7,20 +7,25 @@ import { describe, expect, test } from 'vitest'
 import { Dialog, Menu } from '@foldkit/ui'
 import { ShowDialog } from '@foldkit/ui/dialog'
 
-import {
-  ScrollSidebarActiveLinkIntoView,
-  ScrollToTop,
-  init,
-  update,
-} from './application'
-import { LoadPlayground, home } from './children'
+import { LoadPlayground, home } from './connection'
 import { Deployment } from './deployment'
 import { Message } from './message'
 import { type Model } from './model'
 import { Home } from './page'
 import * as NotePlayerDemo from './page/home/notePlayerDemo'
+import {
+  ScrollSidebarActiveLinkIntoView,
+  ScrollToTop,
+  init,
+  update,
+} from './root'
 import * as Search from './search'
+import { FocusSearchInput } from './search/update'
 import * as SnippetCopy from './snippetCopy'
+import {
+  CopySnippet,
+  WaitBeforeHidingCopiedIndicator,
+} from './snippetCopy/update'
 import * as SnippetDisclosure from './snippetDisclosure'
 
 const parseUrl = (value: string): Url.Url =>
@@ -43,7 +48,7 @@ const expectHomePresent = (model: Model): void => {
   expect(Option.isSome(model.maybeHome)).toBe(true)
   expect(
     Option.isSome(
-      home.managedResources[
+      Block.inspectConnection(home).managedResources[
         'notePlayerDemo/audioContext'
       ].modelToMaybeRequirements(model),
     ),
@@ -54,7 +59,7 @@ const expectHomeAbsent = (model: Model): void => {
   expect(Option.isNone(model.maybeHome)).toBe(true)
   expect(
     Option.isNone(
-      home.managedResources[
+      Block.inspectConnection(home).managedResources[
         'notePlayerDemo/audioContext'
       ].modelToMaybeRequirements(model),
     ),
@@ -189,7 +194,7 @@ describe('application', () => {
       }),
       Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
       Command.resolve(
-        Search.FocusSearchInput,
+        FocusSearchInput,
         Search.Message.CompletedFocusSearchInput(),
       ),
     )
@@ -210,7 +215,7 @@ describe('application', () => {
         }),
       ),
       Command.resolve(
-        SnippetCopy.CopySnippet,
+        CopySnippet,
         SnippetCopy.Message.SucceededCopySnippet({ snippetId }),
       ),
       model(model => {
@@ -219,7 +224,7 @@ describe('application', () => {
         )
       }),
       Command.resolve(
-        SnippetCopy.WaitBeforeHidingCopiedIndicator,
+        WaitBeforeHidingCopiedIndicator,
         SnippetCopy.Message.CompletedWaitBeforeHidingCopiedIndicator({
           snippetId,
         }),

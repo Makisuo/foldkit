@@ -2,11 +2,11 @@ import { Array, Option } from 'effect'
 import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../constant'
-import { Home } from './block'
+import { HomeDefinition } from './definition'
 import { Message } from './message'
 import { HOME_ACTIONS, HomeAction, HomeStep, homeActionToLabel } from './model'
 
-export const view = Home.view((model, h) => {
+export const view = HomeDefinition.view((model, h) => {
   const maybeUsername = HomeStep.match(model.homeStep, {
     EnterUsername: () => Option.none(),
     SelectAction: ({ username }) => Option.some(username),

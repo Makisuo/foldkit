@@ -37,7 +37,11 @@ export const Model = Schema.Struct({
 
 export type Model = typeof Model.Type
 
-const Tooltip = Block.define('Tooltip', { Model, Message, OutMessage })
+const TooltipDefinition = Block.define('Tooltip', {
+  Model,
+  Message,
+  OutMessage,
+})
 
 // SELECTORS
 
@@ -78,19 +82,22 @@ export const init = (config: InitConfig): Model => ({
 
 /** Waits for the tooltip's show delay before emitting
  *  `CompletedWaitBeforeShowing`. */
-export const WaitBeforeShowing = Tooltip.command('WaitBeforeShowing', {
-  args: { delay: Schema.DurationFromMillis, version: Schema.Number },
-  messages: [Message.CompletedWaitBeforeShowing],
-  handler: function* () {
-    return ({ delay, version }) =>
-      Effect.sleep(delay).pipe(
-        Effect.as(Message.CompletedWaitBeforeShowing({ version })),
-      )
+export const WaitBeforeShowing = TooltipDefinition.command(
+  'WaitBeforeShowing',
+  {
+    args: { delay: Schema.DurationFromMillis, version: Schema.Number },
+    messages: [Message.CompletedWaitBeforeShowing],
+    handler: function* () {
+      return ({ delay, version }) =>
+        Effect.sleep(delay).pipe(
+          Effect.as(Message.CompletedWaitBeforeShowing({ version })),
+        )
+    },
   },
-})
+)
 
 /** The anchor-positioning Mount this Tooltip renders on its panel. */
-export const AnchorTooltip = Tooltip.mount('AnchorTooltip', {
+export const AnchorTooltip = TooltipDefinition.mount('AnchorTooltip', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorTooltip],
   handler: function* () {
@@ -120,7 +127,7 @@ export const EffectsLayer = Layer.mergeAll(
   AnchorTooltip.layer,
 )
 
-const computeUpdate = Tooltip.update((model, message) =>
+const computeUpdate = TooltipDefinition.update((model, message) =>
   Message.match(message, {
     EnteredTrigger: () => {
       if (model.isOpen || model.isDismissed) {
@@ -237,7 +244,7 @@ const toVisibilityOutMessage = (
  *  and an optional OutMessage. `Shown`/`Hidden` fire only on `isOpen`
  *  transitions, so consumers don't get spurious events for messages that
  *  only update hover/focus/delay state without changing visibility. */
-export const update = Tooltip.update((model, message) => {
+export const update = TooltipDefinition.update((model, message) => {
   const tooltipUpdate = computeUpdate(model, message)
   const outMessage = toVisibilityOutMessage(
     model.isOpen,
@@ -259,7 +266,7 @@ export const reflectShowDelay: Block.Reflect<Model, Duration.Input> =
 
 // VIEW
 
-const registered = Tooltip.register({ mounts })
+const RegisteredTooltipDefinition = TooltipDefinition.register({ mounts })
 
 /** Render-time payload published to the consumer's `toView`.
  *
@@ -289,7 +296,7 @@ export type ViewInputs = Readonly<{
 /** Renders a headless tooltip with an anchored non-interactive panel.
  *  Shows on hover (after delay) or focus (from keyboard, touch, or pen;
  *  mouse-click focus is excluded). Hides on leave, blur, or Escape. */
-export const view = registered.view.withInputs<ViewInputs>(
+export const view = RegisteredTooltipDefinition.view.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const { id, isOpen } = model
     const { anchor, toView, isDisabled, ariaLabel, ariaLabelledBy } = viewInputs
@@ -361,7 +368,7 @@ export const view = registered.view.withInputs<ViewInputs>(
 )
 
 /** Complete Tooltip Block definition for connecting to a parent. */
-export const block = registered.assemble({
+export const block = RegisteredTooltipDefinition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),
   update,
   view,

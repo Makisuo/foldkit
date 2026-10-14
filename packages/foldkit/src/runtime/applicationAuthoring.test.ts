@@ -33,7 +33,7 @@ const ChildMessage = defineMessageUnion({
   UpdatedChildValue: { value: Schema.String },
 })
 const child = Child.define({ Model: ChildModel, Message: ChildMessage })
-const childBlock = child.assemble({
+const childBlock = child.toBlock({
   init: () => ({ model: { value: 'child' } }),
   update: child.update((model, { value }) => ({
     model: modifyFields(model, { value: () => value }),
@@ -379,8 +379,8 @@ describe('Application authoring', () => {
 
     // @ts-expect-error an application root is not a reusable Block.
     void Application.bind
-    // @ts-expect-error a composition does not expose Block assembly.
-    void composition.assemble
+    // @ts-expect-error an Application composition does not expose Block completion.
+    void composition.toBlock
     // @ts-expect-error an application graph can only be registered once.
     void composition.register
   })

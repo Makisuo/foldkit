@@ -73,7 +73,7 @@ const childManagedResources = child.managedResources(entry => ({
     },
   }),
 }))
-const childBlock = child.assemble({
+const childBlock = child.toBlock({
   init: (id: number) => ({ model: { id } }),
   update: child.update(model => ({ model })),
   subscriptions,
@@ -141,7 +141,7 @@ const initialModel = RootModel.make({
   entries: [],
   subscriptionState: 'Active',
 })
-const block = root.assemble({
+const block = root.toBlock({
   init: () => ({ model: initialModel }),
   update: rootBase.update(model => ({ model })),
   managedResources: rootManagedResources,
@@ -174,7 +174,7 @@ const nestedParentBase = NestedParent.define({
   Message: NestedParentMessage,
 })
 const nestedParent = nestedParentBase.register({ children: [nestedEntries] })
-const nestedParentBlock = nestedParent.assemble({
+const nestedParentBlock = nestedParent.toBlock({
   init: (id: number, entries: ReadonlyArray<typeof ChildModel.Type>) => ({
     model: { id, entries },
   }),
@@ -214,7 +214,7 @@ const nestedRoot = nestedRootBase.register({ children: [nestedParents] })
 const nestedInitialModel = NestedRootModel.make({
   parents: [{ id: 1, entries: [{ id: 10 }] }],
 })
-const nestedBlock = nestedRoot.assemble({
+const nestedBlock = nestedRoot.toBlock({
   init: () => ({ model: nestedInitialModel }),
   update: nestedRootBase.update((model, message) =>
     NestedRootMessage.match(message, {

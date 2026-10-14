@@ -48,7 +48,7 @@ With no `args`, `Query.define` returns a Query that retains one value. In this d
 
 Choose Query names so their generated Fetch Command names are distinct from all other Command definitions in the application. For example, `name: 'Posts'` generates `FetchPosts` and must not share that handler name with a separately declared `FetchPosts` Command. TypeScript rejects a same-named provider with an incompatible handler protocol. Definitions with identical names and protocols remain structurally indistinguishable to TypeScript, so Foldkit checks their private identity before the generated Fetch handler runs. Create alternate implementations with the original Query's `toLayer`.
 
-Add the resulting Layer to the owning feature's local `EffectsLayer` and pass that bundle to `definition.assemble`. Parent bindings carry the handler graph to the root; the entry supplies service providers through `ApplicationLayer`. Loading operations carry `FetchPosts` as a handler requirement, so an application that starts this Query cannot run without its Layer. The handler generator can capture stable services while the application Layer is built; those services are available when the fetch Command executes later.
+Add the resulting Layer to the owning feature's local `EffectsLayer` and pass that bundle to `FeatureDefinition.toBlock`. Parent connections carry the handler graph to the root; the entry supplies service providers through `ApplicationLayer`. Loading operations carry `FetchPosts` as a handler requirement, so an application that starts this Query cannot run without its Layer. The handler generator can capture stable services while the application Layer is built; those services are available when the fetch Command executes later.
 
 Omit `handler` when an external host supplies the fetch implementation. That definition has no `.layer`; the host constructs its provider with `toLayer`, which accepts the implementation Effect constructor. The method also constructs an alternative to an attached handler. Ordinary execution tests keep `.layer` and replace the services required by its handler.
 
@@ -76,7 +76,7 @@ The `parentField` form tells `lift` which field contains an always-present Query
 
 #### Optional and Nested Queries
 
-Use the full lens form of `lift` when the Query is nested or exists only in some parent variants. Supply `read`, `write`, and `toParentMessage`, following the same lens contract as a [child binding](/core/block#embedding). When `read` returns `None`, the lifted operations return the parent Model unchanged and no Commands.
+Use the full lens form of `lift` when the Query is nested or exists only in some parent variants. Supply `read`, `write`, and `toParentMessage`, following the same lens contract as a [child connection](/core/block#embedding). When `read` returns `None`, the lifted operations return the parent Model unchanged and no Commands.
 
 #### Starting a Load
 

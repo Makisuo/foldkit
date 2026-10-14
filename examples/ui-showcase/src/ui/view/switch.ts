@@ -5,9 +5,9 @@ import type { Html } from 'foldkit/html'
 import { Switch } from '@foldkit/ui'
 
 import { Message } from '../message'
-import { ui } from '../update'
+import { RegisteredUiDefinition } from '../update'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof ui>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
 
 const SWITCH_DEMO_ID = 'switch-demo'
 
@@ -32,7 +32,7 @@ const knob = (isChecked: boolean, h: HtmlBuilder): Html => {
   ])
 }
 
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   const switchView = (attributes: Switch.SwitchAttributes<Message>): Html =>
     h.div(
       [h.Class(wrapperClassName)],

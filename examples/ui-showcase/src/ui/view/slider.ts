@@ -2,7 +2,11 @@ import type { Html } from 'foldkit/html'
 
 import type { SliderAttributes } from '@foldkit/ui/slider'
 
-import { sliderRatingDemo, sliderVolumeDemo, ui } from '../update'
+import {
+  RegisteredUiDefinition,
+  sliderRatingDemo,
+  sliderVolumeDemo,
+} from '../update'
 
 const horizontalRowClassName = 'flex flex-col gap-2 w-full max-w-sm'
 
@@ -38,7 +42,7 @@ const thumbClassName =
 const ratingFormatted = (value: number): string => `${value} of 10`
 const volumeFormatted = (value: number): string => `${Math.round(value * 100)}%`
 
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   const horizontalSliderView = (attributes: SliderAttributes): Html =>
     h.div(
       [h.Class(horizontalRowClassName)],

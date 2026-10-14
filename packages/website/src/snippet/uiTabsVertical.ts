@@ -22,10 +22,10 @@ const descriptions: Record<Framework, string> = {
   Elm: 'The original MVU architecture.',
 }
 
-// `definition` and the child binding below come from the basic walkthrough.
+// The registered parent definition and child connection below come from the basic walkthrough.
 // Inside your view function, set orientation to 'Vertical' and use flex +
 // flex-col for layout:
-const view = registered.view((model, h) => {
+const view = RegisteredTabsExampleDefinition.view((model, h) => {
   const tabsView = ({
     tablist,
     tabs,

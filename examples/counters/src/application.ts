@@ -11,8 +11,6 @@ import { Button } from '@foldkit/ui'
 
 import * as Counter from './counter'
 
-// MODEL
-
 const Row = Schema.Struct({
   id: Schema.String,
   counter: Counter.Model,
@@ -25,8 +23,6 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   ClickedAddRow: {},
   ClickedRemoveRow: { id: Schema.String },
@@ -37,8 +33,6 @@ export const Message = defineMessageUnion({
 })
 
 export type Message = typeof Message.Type
-
-// UPDATE
 
 const counters = Counter.block.keyedConnection({
   readAll: (model: Model) => model.rows,
@@ -60,7 +54,9 @@ const counters = Counter.block.keyedConnection({
   ): Message => Message.GotCounterMessage({ id, message }),
 })
 
-export const Application = defineApplication({ Model, Message }).register({
+export const ApplicationDefinition = defineApplication({ Model, Message })
+
+export const Application = ApplicationDefinition.register({
   children: [counters],
 })
 
@@ -84,8 +80,6 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// INIT
-
 export const init = () => ({
   model: {
     rows: [
@@ -96,8 +90,6 @@ export const init = () => ({
     nextRowId: 3,
   },
 })
-
-// VIEW
 
 type ViewBuilder = HtmlBuilderOf<typeof Application>
 
@@ -176,9 +168,3 @@ export const view = Application.view((model, h) => ({
     ],
   ),
 }))
-
-export const implementation = {
-  init,
-  update,
-  view,
-}

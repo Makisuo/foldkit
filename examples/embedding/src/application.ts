@@ -6,15 +6,11 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
-// MODEL
-
 export const Model = Schema.Struct({
   count: Schema.Number,
   step: Schema.Number,
 })
 export type Model = typeof Model.Type
-
-// MESSAGE
 
 export const Message = defineMessageUnion({
   Ticked: {},
@@ -25,7 +21,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
 // PORT
 
@@ -34,8 +30,6 @@ export const ports = {
   outbound: { countChanged: Port.outbound(Schema.Number) },
 }
 
-// INIT
-
 export const Flags = Schema.Struct({ initialCount: Schema.Number })
 export type Flags = typeof Flags.Type
 
@@ -43,9 +37,7 @@ export const init = (flags: Flags) => ({
   model: Model.make({ count: flags.initialCount, step: 1 }),
 })
 
-// COMMAND
-
-export const ReportCount = Application.command('ReportCount', {
+export const ReportCount = ApplicationDefinition.command('ReportCount', {
   args: { count: Schema.Number },
   messages: [Message.CompletedReportCount],
   handler: function* () {
@@ -56,8 +48,6 @@ export const ReportCount = Application.command('ReportCount', {
   },
 })
 
-// UPDATE
-
 const advance = (model: Model) => {
   const count = model.count + model.step
   return {
@@ -66,7 +56,7 @@ const advance = (model: Model) => {
   }
 }
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     Ticked: () => advance(model),
     ClickedAdvance: () => advance(model),
@@ -77,11 +67,9 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// SUBSCRIPTION
-
 const TICK_INTERVAL = Duration.seconds(1)
 
-export const subscriptions = Application.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   widgetTicks: entry('WidgetTicks', {
     messages: [Message.Ticked],
     handler: function* () {
@@ -103,17 +91,13 @@ export const subscriptions = Application.subscriptions(entry => ({
   }),
 }))
 
-// EFFECTS LAYER
-
 export const EffectsLayer = Layer.mergeAll(
   ReportCount.layer,
   subscriptions.widgetTicks.layer,
   subscriptions.hostStepChanges.layer,
 )
 
-// VIEW
-
-export const view = Application.view((model, h) =>
+export const view = ApplicationDefinition.view((model, h) =>
   h.div(
     [
       h.Class(
@@ -156,11 +140,3 @@ export const view = Application.view((model, h) =>
     ],
   ),
 )
-
-export const implementation = {
-  init,
-  update,
-  view,
-  subscriptions,
-  EffectsLayer,
-}

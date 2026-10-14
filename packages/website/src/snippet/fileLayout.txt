@@ -1,6 +1,6 @@
 src/
 +-- entry.ts              Browser startup, container, inputs, Runtime.run
-+-- application.ts        Typed Application, composition, implementation
++-- application.ts        ApplicationDefinition and registered Application
 +-- services.ts           Shared providers, ApplicationLayer
 +-- model.ts
 +-- message.ts
@@ -13,7 +13,7 @@ src/
 |   +-- index.ts          Exports Home and Products namespaces
 |   +-- home/
 |   |   +-- index.ts      Explicit public barrel
-|   |   +-- block.ts      Block.define for split implementation files
+|   |   +-- definition.ts Definition for split implementation files
 |   |   +-- home.ts       Completed Block and small EffectsLayer bundle
 |   |   +-- model.ts
 |   |   +-- message.ts
@@ -23,9 +23,9 @@ src/
 |   |   +-- scene.test.ts
 |   +-- products/
 |       +-- index.ts
-|       +-- block.ts
+|       +-- definition.ts
 |       +-- products.ts
-|       +-- children.ts   Substantial binding policies
+|       +-- connection.ts Substantial connection policies
 |       +-- layer.ts      Substantial or reused handler composition
 |       +-- service.ts    ProductCatalog business service and Layer
 |       +-- subscription.ts

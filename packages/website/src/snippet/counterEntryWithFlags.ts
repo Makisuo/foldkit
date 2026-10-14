@@ -1,10 +1,13 @@
 import { Runtime } from 'foldkit'
 
-import { Application, init, update, view } from './application'
-import { Flags, flags } from './flags'
-import { ApplicationLayer } from './services'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
 
-const application = Application.make({
+import { ApplicationDefinition, init, update, view } from './counterFlagsRoot'
+import { Flags, flags } from './flagsDefinition'
+
+const ApplicationLayer = BrowserKeyValueStore.layerLocalStorage
+
+const application = ApplicationDefinition.make({
   init,
   update,
   view,

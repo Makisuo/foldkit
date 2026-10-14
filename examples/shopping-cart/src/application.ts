@@ -21,8 +21,6 @@ import {
   urlToApplicationRoute,
 } from './route'
 
-// MODEL
-
 export const Model = Schema.Struct({
   route: ApplicationRoute,
   cart: Cart.Cart,
@@ -31,8 +29,6 @@ export const Model = Schema.Struct({
   productsPage: Products.Model,
 })
 export type Model = typeof Model.Type
-
-// MESSAGE
 
 export const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
@@ -50,9 +46,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const Authoring = defineApplication({ Model, Message })
-
-// INIT
+const ApplicationDefinition = defineApplication({ Model, Message })
 
 export const init = (url: Url) => {
   return {
@@ -66,9 +60,7 @@ export const init = (url: Url) => {
   }
 }
 
-// COMMAND
-
-const NavigateInternal = Authoring.command('NavigateInternal', {
+const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -77,7 +69,7 @@ const NavigateInternal = Authoring.command('NavigateInternal', {
   },
 })
 
-const LoadExternal = Authoring.command('LoadExternal', {
+const LoadExternal = ApplicationDefinition.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -86,14 +78,10 @@ const LoadExternal = Authoring.command('LoadExternal', {
   },
 })
 
-// EFFECTS LAYER
-
 export const EffectsLayer = Layer.mergeAll(
   NavigateInternal.layer,
   LoadExternal.layer,
 )
-
-// UPDATE
 
 const foldProductsOutMessage = Products.OutMessage.match<
   Update.Step<Model, Message>
@@ -122,7 +110,9 @@ export const productsPage = Products.block.connection({
   outMessage: { fold: foldProductsOutMessage },
 })
 
-export const Application = Authoring.register({ children: [productsPage] })
+export const Application = ApplicationDefinition.register({
+  children: [productsPage],
+})
 
 export const update = Application.update((model, message) =>
   Message.match(message, {
@@ -189,8 +179,6 @@ export const update = Application.update((model, message) =>
     }),
   }),
 )
-
-// VIEW
 
 type HtmlBuilder = HtmlBuilderOf<typeof Application>
 
@@ -315,10 +303,3 @@ export const view = Application.view((model, h) => {
     ),
   }
 })
-
-export const implementation = {
-  init,
-  update,
-  view,
-  EffectsLayer,
-}

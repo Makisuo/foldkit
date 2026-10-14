@@ -1,11 +1,12 @@
 import { Option, Schema } from 'effect'
+import type * as Block from 'foldkit/block'
 import { modifyFields } from 'foldkit/struct'
 
 import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewInputsCommon,
-  Combobox,
+  ComboboxDefinition,
   type ItemSchema,
   LocalEffectsLayer,
   Message,
@@ -30,7 +31,11 @@ export const Model = Schema.Struct({
 
 export type Model = typeof Model.Type
 
-const combobox = Combobox.define({ Model, Message, OutMessage })
+const SingleComboboxDefinition = ComboboxDefinition.define({
+  Model,
+  Message,
+  OutMessage,
+})
 
 // INIT
 
@@ -79,7 +84,7 @@ const defaultUpdate = makeUpdate(Model, Message, 'CloseWithFocus', {
   }),
 })
 
-export const update = combobox.update(defaultUpdate.update)
+export const update = SingleComboboxDefinition.update(defaultUpdate.update)
 
 type UpdateReturn = ReturnType<typeof update>
 
@@ -120,10 +125,10 @@ export type ViewInputs<Item extends string> = BaseViewInputsCommon<Item> &
     maybeSelectedValue: Option.Option<Item>
   }>
 
-const makeBlock = <Item extends string>(Item: ItemSchema<Item>) => {
+const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
   const ItemMessage: MessageSchema<Item> = makeMessage(Item)
   const ItemOutMessage: OutMessageSchema<Item> = makeOutMessage(Item)
-  const single = Combobox.define({
+  const ItemComboboxDefinition = ComboboxDefinition.define({
     Model,
     Message: ItemMessage,
     OutMessage: ItemOutMessage,
@@ -160,57 +165,76 @@ const makeBlock = <Item extends string>(Item: ItemSchema<Item>) => {
       outMessage: ItemOutMessage.Selected({ value: item }),
     }),
   })
-  const registered = single.register({
+  const RegisteredItemComboboxDefinition = ItemComboboxDefinition.register({
     mounts,
     children: [itemUpdate.animation],
   })
-  const update = single.update(itemUpdate.update)
+  const update = ItemComboboxDefinition.update(itemUpdate.update)
   const render = makeView<Model, Item>(
     { ariaMultiSelectable: false },
     ItemMessage,
   )
-  const view = registered.view.withInputs<ViewInputs<Item>>(
-    (model, { maybeSelectedValue, ...baseInputs }, h) =>
-      render(
-        model,
-        {
-          ...baseInputs,
-          selectedValues: Option.toArray(maybeSelectedValue),
-        },
-        h,
-      ),
-  )
-  const open = single.step(model =>
-    update(model, ItemMessage.Opened({ maybeActiveItemIndex: Option.none() })),
-  )
-  const close = single.step((model, restingInputValue: string) =>
-    update(model, ItemMessage.Closed({ restingInputValue, isClearable: true })),
-  )
-  const selectItem = single.step((model, item: Item, displayText: string) =>
-    update(
+  const view = RegisteredItemComboboxDefinition.view.withInputs<
+    ViewInputs<Item>
+  >((model, { maybeSelectedValue, ...baseInputs }, h) =>
+    render(
       model,
-      ItemMessage.SelectedItem({
-        item,
-        displayText,
-        wasSelected: false,
-      }),
+      {
+        ...baseInputs,
+        selectedValues: Option.toArray(maybeSelectedValue),
+      },
+      h,
     ),
   )
+  const open = ItemComboboxDefinition.step(model =>
+    update(model, ItemMessage.Opened({ maybeActiveItemIndex: Option.none() })),
+  )
+  const close = ItemComboboxDefinition.step(
+    (model, restingInputValue: string) =>
+      update(
+        model,
+        ItemMessage.Closed({ restingInputValue, isClearable: true }),
+      ),
+  )
+  const selectItem = ItemComboboxDefinition.step(
+    (model, item: Item, displayText: string) =>
+      update(
+        model,
+        ItemMessage.SelectedItem({
+          item,
+          displayText,
+          wasSelected: false,
+        }),
+      ),
+  )
 
-  const steps = { open, close, selectItem }
-  return registered.assemble({
-    view,
-    init: (config: InitConfig) => ({ model: init(config) }),
-    update,
-    steps,
-    EffectsLayer: LocalEffectsLayer,
-  })
+  return {
+    definition: RegisteredItemComboboxDefinition,
+    implementation: {
+      view,
+      init: (config: InitConfig) => ({ model: init(config) }),
+      update,
+      expose: { open, close, selectItem },
+      EffectsLayer: LocalEffectsLayer,
+    },
+  }
 }
 
+type BlockParts<Item extends string> = ReturnType<typeof makeBlockParts<Item>>
+
 /** A completed single-select Combobox Block refined to one Item Schema. */
-export type Completed<Item extends string = string> = ReturnType<
-  typeof makeBlock<Item>
+export type Completed<Item extends string = string> = Block.Completed<
+  BlockParts<Item>['definition'],
+  BlockParts<Item>['implementation']
 >
+
+const makeBlock = <Item extends string>(
+  Item: ItemSchema<Item>,
+): Completed<Item> => {
+  const { definition, implementation } = makeBlockParts(Item)
+
+  return definition.toBlock(implementation)
+}
 
 /** Creates a checked single-select Combobox Block. Pass an Item Schema to
  * retain its exact Message and OutMessage payloads. */

@@ -16,21 +16,16 @@ import {
   STORAGE_KEY,
 } from './constant'
 import { createEmptyGrid } from './grid'
-import { Message } from './message'
 import { Model, SavedCanvas, SavedCanvasJsonString } from './model'
 import { subscriptions } from './subscription'
-import { Application, update } from './update'
-import { view } from './view'
 
-const EffectsLayer = Layer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
   SaveCanvas.layer,
   ExportPng.layer,
   subscriptions.undoRedoKeyPresses.layer,
   subscriptions.toolKeyPresses.layer,
   subscriptions.mouseReleases.layer,
 )
-
-// FLAGS
 
 export const Flags = Schema.Struct({
   maybeSavedCanvas: Schema.Option(SavedCanvas),
@@ -50,8 +45,6 @@ export const flags = Effect.gen(function* () {
     Effect.succeed(Flags.make({ maybeSavedCanvas: Option.none() })),
   ),
 )
-
-// INIT
 
 export const init = (flags: Flags) => ({
   model: Model.make({
@@ -87,15 +80,3 @@ export const init = (flags: Flags) => ({
     paletteRadioGroup: RadioGroup.init({ id: PALETTE_RADIO_GROUP_ID }),
   }),
 })
-
-export const implementation = {
-  init,
-  update,
-  view,
-  subscriptions,
-  EffectsLayer,
-}
-
-export { Message, Model, subscriptions, update, view }
-
-export { Application }

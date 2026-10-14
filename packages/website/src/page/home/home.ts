@@ -23,9 +23,9 @@ import {
   demoTabs,
   notePlayerDemo,
   playgroundMenu,
-} from './bindings'
-import { type ViewBuilder, home } from './block'
+} from './connection'
 import { contentView } from './content'
+import { HomeDefinition, type ViewBuilder } from './definition'
 import * as DemoTab from './demoTab'
 import { init } from './init'
 import * as NotePlayerDemo from './notePlayerDemo'
@@ -173,91 +173,91 @@ type ViewInputs = Readonly<{
   isBrowserEnvironmentLoaded: boolean
 }>
 
-// VIEW
+export const view = HomeDefinition.view.withInputs<ViewInputs>(
+  (model, viewInputs, h) => {
+    const asyncCounterDemoView = lazyAsyncCounterDemo(renderAsyncCounterDemo, [
+      model.asyncCounterDemo,
+      h,
+    ])
 
-export const view = home.view.withInputs<ViewInputs>((model, viewInputs, h) => {
-  const asyncCounterDemoView = lazyAsyncCounterDemo(renderAsyncCounterDemo, [
-    model.asyncCounterDemo,
-    h,
-  ])
+    const notePlayerDemoView = lazyNotePlayerDemo(renderNotePlayerDemo, [
+      model.notePlayerDemo,
+      h,
+    ])
 
-  const notePlayerDemoView = lazyNotePlayerDemo(renderNotePlayerDemo, [
-    model.notePlayerDemo,
-    h,
-  ])
-
-  const playgroundMenu = playgroundMenuView(
-    model.playgroundMenu,
-    examples.map(example => example.slug),
-    h,
-  )
-
-  const buttonLabelFor = (tab: DemoTab.Tab): string =>
-    Match.value(tab).pipe(
-      Match.when('Architecture', () => 'Async Counter'),
-      Match.when('Note Player', () => 'Note Player'),
-      Match.exhaustive,
+    const playgroundMenu = playgroundMenuView(
+      model.playgroundMenu,
+      examples.map(example => example.slug),
+      h,
     )
 
-  const panelFor = (tab: DemoTab.Tab) =>
-    Match.value(tab).pipe(
-      Match.when('Architecture', () => asyncCounterDemoView),
-      Match.when('Note Player', () => notePlayerDemoView),
-      Match.exhaustive,
+    const buttonLabelFor = (tab: DemoTab.Tab): string =>
+      Match.value(tab).pipe(
+        Match.when('Architecture', () => 'Async Counter'),
+        Match.when('Note Player', () => 'Note Player'),
+        Match.exhaustive,
+      )
+
+    const panelFor = (tab: DemoTab.Tab) =>
+      Match.value(tab).pipe(
+        Match.when('Architecture', () => asyncCounterDemoView),
+        Match.when('Note Player', () => notePlayerDemoView),
+        Match.exhaustive,
+      )
+
+    const demoTabsView = h.block(
+      demoTabs.embedView({
+        slotId: model.demoTabs.id,
+        model: model.demoTabs,
+        viewInputs: {
+          tabs: DemoTab.all,
+          selectedValue: model.activeDemoTab,
+          ariaLabel: 'Demo tabs',
+          orientation: viewInputs.isNarrowViewport ? 'Horizontal' : 'Vertical',
+          toView: ({ tablist, tabs, activeIndex }) =>
+            h.div(
+              [h.Class('lg:flex')],
+              [
+                h.div(
+                  [...tablist, h.Class('flex lg:flex-col gap-1')],
+                  tabs.map(tab =>
+                    h.button(
+                      [...tab.tab, h.Class(demoTabButtonClassName)],
+                      [h.span([], [buttonLabelFor(tab.value)])],
+                    ),
+                  ),
+                ),
+                ...tabs
+                  .filter(tab => tab.index === activeIndex)
+                  .map(tab =>
+                    h.div(
+                      [...tab.panel, h.Class(demoTabPanelClassName)],
+                      [panelFor(tab.value)],
+                    ),
+                  ),
+              ],
+            ),
+        },
+      }),
     )
 
-  const demoTabsView = h.block(
-    demoTabs.embedView({
-      slotId: model.demoTabs.id,
-      model: model.demoTabs,
-      viewInputs: {
-        tabs: DemoTab.all,
-        selectedValue: model.activeDemoTab,
-        ariaLabel: 'Demo tabs',
-        orientation: viewInputs.isNarrowViewport ? 'Horizontal' : 'Vertical',
-        toView: ({ tablist, tabs, activeIndex }) =>
-          h.div(
-            [h.Class('lg:flex')],
-            [
-              h.div(
-                [...tablist, h.Class('flex lg:flex-col gap-1')],
-                tabs.map(tab =>
-                  h.button(
-                    [...tab.tab, h.Class(demoTabButtonClassName)],
-                    [h.span([], [buttonLabelFor(tab.value)])],
-                  ),
-                ),
-              ),
-              ...tabs
-                .filter(tab => tab.index === activeIndex)
-                .map(tab =>
-                  h.div(
-                    [...tab.panel, h.Class(demoTabPanelClassName)],
-                    [panelFor(tab.value)],
-                  ),
-                ),
-            ],
-          ),
-      },
-    }),
-  )
+    const content = contentView(
+      viewInputs.renderCopyButton,
+      viewInputs.renderSnippet,
+      demoTabsView,
+      Shared.emailSignupContent,
+      playgroundMenu,
+      viewInputs.maybeGitHubStarCount,
+      viewInputs.resolvedTheme,
+      viewInputs.isBrowserEnvironmentLoaded,
+      h,
+    )
 
-  const content = contentView(
-    viewInputs.renderCopyButton,
-    viewInputs.renderSnippet,
-    demoTabsView,
-    Shared.emailSignupContent,
-    playgroundMenu,
-    viewInputs.maybeGitHubStarCount,
-    viewInputs.resolvedTheme,
-    viewInputs.isBrowserEnvironmentLoaded,
-    h,
-  )
+    return content
+  },
+)
 
-  return content
-})
-
-export const block = home.assemble({
+export const block = HomeDefinition.toBlock({
   init,
   update,
   view,

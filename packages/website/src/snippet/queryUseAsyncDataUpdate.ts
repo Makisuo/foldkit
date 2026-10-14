@@ -7,7 +7,7 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const update = Application.update((model, message) =>
+const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     ClickedPlaceOrder: () => ({
       model: modifyFields(model, {

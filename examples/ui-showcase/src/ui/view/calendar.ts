@@ -11,9 +11,9 @@ import type {
 } from '@foldkit/ui/calendar'
 
 import * as Icon from '../../icon'
-import { calendarBasicDemo, ui } from '../update'
+import { RegisteredUiDefinition, calendarBasicDemo } from '../update'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof ui>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
 
 const containerClassName =
   'inline-flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm select-none min-w-[304px] min-h-[324px]'
@@ -169,9 +169,7 @@ const yearsView = (years: YearsModeAttributes, h: HtmlBuilder): Html =>
     ],
   )
 
-// VIEW
-
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   const calendarView = Match.type<CalendarAttributes>().pipe(
     Match.tagsExhaustive({
       Days: days => daysView(days, h),

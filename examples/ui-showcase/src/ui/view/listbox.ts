@@ -9,13 +9,13 @@ import * as Icon from '../../icon'
 import type { Character } from '../listbox'
 import type { ListboxItem } from '../model'
 import {
+  RegisteredUiDefinition,
   listboxDemo,
   listboxGroupedDemo,
   listboxMultiDemo,
-  ui,
 } from '../update'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof ui>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
 
 const LISTBOX_ITEMS: ReadonlyArray<ListboxItem> = [
   'Michael Bluth',
@@ -226,9 +226,7 @@ const groupedDemo = (
   )
 }
 
-// VIEW
-
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   return h.div(
     [],
     [

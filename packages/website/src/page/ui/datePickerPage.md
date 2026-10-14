@@ -12,7 +12,7 @@ The parent owns the selected date. Store it in the parent Model, pass it to the 
 
 ### Programmatic Control
 
-For programmatic control in a parent update, call the connection’s `api.open()` and `api.close()` Steps. Both operations can emit an OutMessage that reports whether the DatePicker opened or closed.
+For programmatic control in a parent update, call the connection’s `open()` and `close()` operations. Both can emit an OutMessage that reports whether the DatePicker opened or closed.
 
 ### Calendar Views
 
@@ -131,11 +131,11 @@ The discriminated union passed to `toCalendarView`. Pattern-match on `_tag` (`'D
 
 Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the connection’s `outMessage.fold` policy.
 
-| Name               | Type                              | Default | Description                                                                                                                                                                                                 |
-| ------------------ | --------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SelectedDate`     | `{ date: CalendarDate }`          | —       | Emitted when the user commits a date (click / Enter / Space). Handle it in the connection's `outMessage.fold` policy to lift the date into domain state.                                                    |
-| `ClearedDate`      | `{}`                              | —       | Emitted when the user clears the selected date (via `Cleared` or the connection’s `api.clear()`). The popover stays open. Fold it into the parent-owned selected-date field by setting it to Option.none(). |
-| `ChangedViewMonth` | `{ year: number; month: number }` | —       | Emitted when navigation changes the visible month inside the calendar grid.                                                                                                                                 |
+| Name               | Type                              | Default | Description                                                                                                                                                                                             |
+| ------------------ | --------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SelectedDate`     | `{ date: CalendarDate }`          | —       | Emitted when the user commits a date (click / Enter / Space). Handle it in the connection's `outMessage.fold` policy to lift the date into domain state.                                                |
+| `ClearedDate`      | `{}`                              | —       | Emitted when the user clears the selected date (via `Cleared` or the connection’s `clear()`). The popover stays open. Fold it into the parent-owned selected-date field by setting it to Option.none(). |
+| `ChangedViewMonth` | `{ year: number; month: number }` | —       | Emitted when navigation changes the visible month inside the calendar grid.                                                                                                                             |
 
 ### Programmatic Helpers
 

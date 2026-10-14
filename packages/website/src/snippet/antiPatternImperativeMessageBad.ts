@@ -7,7 +7,7 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const update = Application.update((model, message) =>
+const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     FetchWeather: () => ({ model, commands: [FetchWeather()] }),
   }),

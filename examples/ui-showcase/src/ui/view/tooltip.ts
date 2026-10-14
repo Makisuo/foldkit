@@ -6,7 +6,11 @@ import {
   triggerId,
 } from '@foldkit/ui/tooltip'
 
-import { tooltipBasicDemo, tooltipNoDelayDemo, ui } from '../update'
+import {
+  RegisteredUiDefinition,
+  tooltipBasicDemo,
+  tooltipNoDelayDemo,
+} from '../update'
 
 const triggerClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -22,7 +26,7 @@ const TOOLTIP_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   const basicTooltipView = ({ trigger, panel, isVisible }: RenderInfo): Html =>
     h.div(
       [h.Class(wrapperClassName)],

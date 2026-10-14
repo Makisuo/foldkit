@@ -4,8 +4,6 @@ import { define as defineApplication } from 'foldkit/application'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-// MODEL
-
 const Post = Schema.Struct({ id: Schema.String, title: Schema.String })
 
 const PostsData = AsyncData.Schema(Schema.Array(Post), Schema.String)
@@ -15,8 +13,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// MESSAGE
-
 const Message = defineMessageUnion({
   EnteredPostsRoute: {},
   CompletedFetchPosts: {
@@ -25,11 +21,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const Application = defineApplication({ Model, Message })
+const ApplicationDefinition = defineApplication({ Model, Message })
 
-// COMMAND
-
-const FetchPosts = Application.command('FetchPosts', {
+const FetchPosts = ApplicationDefinition.command('FetchPosts', {
   messages: [Message.CompletedFetchPosts],
   handler: function* () {
     return () =>
@@ -41,9 +35,7 @@ const FetchPosts = Application.command('FetchPosts', {
   },
 })
 
-// UPDATE
-
-const update = Application.update((model, message) =>
+const update = ApplicationDefinition.update((model, message) =>
   Match.value(message).pipe(
     Match.tagsExhaustive({
       EnteredPostsRoute: () =>

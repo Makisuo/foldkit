@@ -2,9 +2,9 @@ import { Effect, Option } from 'effect'
 import type { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { Message, Model } from './blockBindDescriptor'
-import * as Settings from './blockOwnedDescriptor'
-import { SaveTheme } from './blockOwnerContract'
+import { SaveTheme } from './blockDefinition'
+import { Message, Model } from './blockProfile'
+import * as Settings from './blockSettings'
 
 const SettingsDemo = Settings.block.replaceEffectsLayer(
   SaveTheme.toLayer(

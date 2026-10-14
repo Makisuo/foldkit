@@ -12,15 +12,11 @@ const UserState = defineTaggedUnion({
   Failure: { error: Schema.String },
 })
 
-// MODEL
-
 const Model = Schema.Struct({
   userId: Schema.String,
   user: UserState,
 })
 type Model = typeof Model.Type
-
-// MESSAGE
 
 const Message = defineMessageUnion({
   ClickedFetchUser: { userId: Schema.String },
@@ -29,11 +25,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const Application = defineApplication({ Model, Message })
+const ApplicationDefinition = defineApplication({ Model, Message })
 
-// COMMAND
-
-const FetchUser = Application.command('FetchUser', {
+const FetchUser = ApplicationDefinition.command('FetchUser', {
   args: { userId: Schema.String },
   messages: [Message.SucceededFetchUser, Message.FailedFetchUser],
   handler: function* () {
@@ -52,9 +46,7 @@ const FetchUser = Application.command('FetchUser', {
   },
 })
 
-// UPDATE
-
-const update = Application.update((model, message) =>
+const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     ClickedFetchUser: ({ userId }) => ({
       model: modifyFields(model, { user: () => UserState.Loading() }),

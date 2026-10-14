@@ -67,7 +67,7 @@ const foldPlanRadioGroupOutMessage = PlanRadioGroup.OutMessage.match<
     }),
 })
 
-// The binding wires the completed child Block into the parent: it runs the child update,
+// The connection wires the completed child Block into the parent: it runs the child update,
 // writes the child Model back, maps the child's Commands into your Message
 // type, and hands any OutMessage to the OutMessage fold.
 const planRadioGroup = PlanRadioGroup.connection({
@@ -77,14 +77,16 @@ const planRadioGroup = PlanRadioGroup.connection({
   outMessage: { fold: foldPlanRadioGroupOutMessage },
 })
 
-const PlanPicker = Block.define('PlanPicker', {
+const PlanPickerDefinition = Block.define('PlanPicker', {
   Model,
   Message,
 })
-const registered = PlanPicker.register({ children: [planRadioGroup] })
+const RegisteredPlanPickerDefinition = PlanPickerDefinition.register({
+  children: [planRadioGroup],
+})
 
 // In the corresponding Message.match handler, call the fold:
-const update = PlanPicker.update((model, message) =>
+const update = PlanPickerDefinition.update((model, message) =>
   Message.match(message, {
     GotPlanRadioGroupMessage: ({ message }) =>
       planRadioGroup.fold(model, message),
@@ -93,7 +95,7 @@ const update = PlanPicker.update((model, message) =>
 
 // Inside your view function, embed the radio group via h.block and pass
 // the parent-owned selection as selectedValue:
-const view = registered.view((model, h) => {
+const view = RegisteredPlanPickerDefinition.view((model, h) => {
   const radioGroupView = ({ group, options }: RadioGroupRenderInfo<Plan>) =>
     h.div(
       [...group, h.Class('flex flex-col gap-3')],

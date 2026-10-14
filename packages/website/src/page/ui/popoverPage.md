@@ -4,7 +4,7 @@
 
 An anchored floating panel with natural Tab navigation. Unlike Dialog (which is modal and traps focus) or Menu (which uses aria-activedescendant for item navigation), Popover holds arbitrary content and uses the disclosure ARIA pattern. Focus flows naturally through the panel content.
 
-Connect `Popover.block` in the parent. For programmatic control in a parent update, call the connection’s `api.open()` and `api.close()`. Both return parent Steps, so they can run directly or inside `Update.combine`.
+Connect `Popover.block` in the parent. For programmatic control in a parent update, call the connection’s `open()` and `close()` operations. Both return parent Steps, so they can run directly or inside `Update.combine`.
 
 :::Info{label="See it in an app"}
 Check out how Popover is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/popover.ts).
@@ -156,7 +156,7 @@ Payload delivered to the `toView` callback each render.
 
 Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the connection’s `outMessage.fold` policy.
 
-| Name     | Type | Default | Description                                                                                                                                          |
-| -------- | ---- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Opened` | `{}` | —       | Emitted once the popover has transitioned to open. Fires after `update` has processed `RequestedOpen` and `isOpen` reflects the new state.           |
-| `Closed` | `{}` | —       | Emitted once the popover has transitioned to closed. Programmatic `Popover.steps.close` on an already-closed Model is a no-op that does not re-emit. |
+| Name     | Type | Default | Description                                                                                                                                                         |
+| -------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Opened` | `{}` | —       | Emitted once the popover has transitioned to open. Fires after `update` has processed `RequestedOpen` and `isOpen` reflects the new state.                          |
+| `Closed` | `{}` | —       | Emitted once the popover has transitioned to closed. Calling the connected `popover.close()` operation on an already-closed Model is a no-op that does not re-emit. |

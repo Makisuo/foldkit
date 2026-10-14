@@ -1,10 +1,17 @@
 import { Runtime } from 'foldkit'
 
-import { Application, implementation } from './application'
+import { EffectsLayer, init } from './application'
 import { Message } from './message'
+import { subscriptions } from './subscription'
+import { Application, update } from './update'
+import { view } from './view'
 
 const application = Application.make({
-  ...implementation,
+  init,
+  update,
+  view,
+  subscriptions,
+  EffectsLayer,
   container: document.getElementById('root'),
   devTools: {
     Message,

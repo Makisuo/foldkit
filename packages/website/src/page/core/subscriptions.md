@@ -67,7 +67,7 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 
 ### Defining Entries
 
-`definition.subscriptions` receives a function that builds a named record of entries for the Block. When a Layer-backed entry depends on the Model, `entry` takes three arguments:
+`FeatureDefinition.subscriptions` receives a function that builds a named record of entries for the Block. When a Layer-backed entry depends on the Model, `entry` takes three arguments:
 
 - A stable handler name for the Layer requirement.
 - A field map defining the dependency Schema, in the same shape passed to `Schema.Struct`.
@@ -77,7 +77,7 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 
 The declared Message Schemas constrain the Stream returned by both the attached handler and an external `toLayer` implementation. Emitting an undeclared Message is a type error. Scene uses these Schemas to validate `Subscription.emit(entry, message)` against the registered source, including its Message mapping through parents. An empty declaration requires a `Stream<never>` for work that emits no Messages.
 
-Each entry, such as `subscriptions.gameClockTicks`, is an individual owned definition. Its record key identifies the local runtime registration, while its handler name becomes part of the owned Layer requirement that assembly must satisfy. Several child connections can carry one definition into different placements while retaining separate Stream scopes. Naming also gives tools a declared identity to display; Subscription lifecycle events in DevTools are follow-up work. An entry with `handler` exposes `.layer`; include that recipe in the local `EffectsLayer` passed to `definition.assemble`.
+Each entry, such as `subscriptions.gameClockTicks`, is an individual owned definition. Its record key identifies the local runtime registration, while its handler name becomes part of the owned Layer requirement that assembly must satisfy. Several child connections can carry one definition into different placements while retaining separate Stream scopes. Naming also gives tools a declared identity to display; Subscription lifecycle events in DevTools are follow-up work. An entry with `handler` exposes `.layer`; include that recipe in the local `EffectsLayer` passed to `FeatureDefinition.toBlock`.
 
 The Runtime runs the attached handler generator once while building the application Layer and obtains a `dependencies => Stream` function. Return that function directly when construction needs no services. The constructor must not capture the current dependency record; Foldkit passes that record when starting each Stream. A dependency change restarts the Stream scope without reconstructing the handler or its provider. Scoped resources owned by the application Layer release when the runtime stops.
 
@@ -87,7 +87,7 @@ In a whole-application execution test, retain that real Stream handler and repla
 
 Subscription names are local to their named Block. Two features can both declare `GameClockTicks`; their owners keep the definitions distinct. Names must be unique within one owner. Composition derives a path for each connection placement, so repeated uses of one completed child share its handler recipe while retaining separate Stream scopes.
 
-A Subscription handler requirement contains its owned name, decoded dependency record, and declared Message union. `definition.assemble` checks that each local requirement is supplied by `EffectsLayer` or declared in `hostHandlers`; `block.provideHandlers` checks an external provider against those declared contracts. Use `Subscription.HandlerOf<typeof subscriptions.gameClockTicks>` for an explicit requirement; the expanded form is `Subscription.Handler<Name, Dependencies, DeclaredMessage>`, with all three arguments required.
+A Subscription handler requirement contains its owned name, decoded dependency record, and declared Message union. `FeatureDefinition.toBlock` checks that each local requirement is supplied by `EffectsLayer` or declared in `hostHandlers`; `block.provideHandlers` checks an external provider against those declared contracts. Use `Subscription.HandlerOf<typeof subscriptions.gameClockTicks>` for an explicit requirement; the expanded form is `Subscription.Handler<Name, Dependencies, DeclaredMessage>`, with all three arguments required.
 
 Definitions created by different named Blocks receive different owned names even when their local names and protocols match. Each definition also retains a private runtime identity. An external implementation should use the registered entry's `toLayer` so it keeps that identity.
 
@@ -131,7 +131,7 @@ For a Layer-backed Subscription with no local Model dependencies, pass its stabl
 
 ::Snippet{name="subscriptionPersistent" label="Heartbeat without Model dependencies"}
 
-For work whose lifetime depends on the Model, define an entry with `definition.subscriptions` and derive its dependencies from the Model.
+For work whose lifetime depends on the Model, define an entry with `FeatureDefinition.subscriptions` and derive its dependencies from the Model.
 
 ## Dom Streams
 

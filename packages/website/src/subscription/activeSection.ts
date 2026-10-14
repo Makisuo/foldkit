@@ -12,7 +12,7 @@ import {
 } from 'effect'
 import { AsyncData, Render } from 'foldkit'
 
-import { Application } from '../definition'
+import { ApplicationDefinition } from '../definition'
 import { Message } from '../message'
 import {
   About,
@@ -47,7 +47,7 @@ import {
   WhyFoldkit,
 } from '../page'
 
-export const subscriptions = Application.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   activeSectionChanges: entry(
     'ActiveSectionChanges',
     {

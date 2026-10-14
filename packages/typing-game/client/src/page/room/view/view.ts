@@ -6,7 +6,7 @@ import * as Shared from '@typing-game/shared'
 
 import { ROOM_PAGE_USERNAME_INPUT_ID } from '../../../constant'
 import { Icon } from '../../../view/icon'
-import { Room } from '../block'
+import { RoomDefinition } from '../definition'
 import { Message } from '../message'
 import { Model, RoomPlayerSession } from '../model'
 import { findFirstWrongCharIndex } from '../userGameText'
@@ -18,75 +18,77 @@ import { waiting } from './waiting'
 
 export type ViewInputs = Readonly<{ roomId: string }>
 
-export const view = Room.view.withInputs<ViewInputs>((model, viewInputs, h) => {
-  const { roomId } = viewInputs
+export const view = RoomDefinition.view.withInputs<ViewInputs>(
+  (model, viewInputs, h) => {
+    const { roomId } = viewInputs
 
-  const maybeError = AsyncData.getError(model.roomAsyncData)
+    const maybeError = AsyncData.getError(model.roomAsyncData)
 
-  const welcomeText = Option.match(model.maybeSession, {
-    onNone: () => h.empty,
-    onSome: ({ player }) =>
-      h.h2([h.Class('mb-6')], [`Welcome, ${player.username}!`]),
-  })
+    const welcomeText = Option.match(model.maybeSession, {
+      onNone: () => h.empty,
+      onSome: ({ player }) =>
+        h.h2([h.Class('mb-6')], [`Welcome, ${player.username}!`]),
+    })
 
-  const copiedIndicator = model.isRoomIdCopyIndicatorVisible
-    ? h.div(
-        [
-          h.Class(
-            'text-lg rounded py-1 px-2 font-medium bg-terminal-green-dim text-terminal-bg uppercase',
-          ),
-        ],
-        ['Copied'],
-      )
-    : h.empty
+    const copiedIndicator = model.isRoomIdCopyIndicatorVisible
+      ? h.div(
+          [
+            h.Class(
+              'text-lg rounded py-1 px-2 font-medium bg-terminal-green-dim text-terminal-bg uppercase',
+            ),
+          ],
+          ['Copied'],
+        )
+      : h.empty
 
-  const copyButton = h.button(
-    [
-      h.Class(
-        'p-2 rounded hover:bg-terminal-green-dim hover:text-terminal-bg transition text-terminal-green',
-      ),
-      h.AriaLabel('Copy room ID'),
-      h.OnClick(Message.ClickedCopyRoomId()),
-    ],
-    [Icon.copy()],
-  )
+    const copyButton = h.button(
+      [
+        h.Class(
+          'p-2 rounded hover:bg-terminal-green-dim hover:text-terminal-bg transition text-terminal-green',
+        ),
+        h.AriaLabel('Copy room ID'),
+        h.OnClick(Message.ClickedCopyRoomId()),
+      ],
+      [Icon.copy()],
+    )
 
-  const isInLeavableState = Option.exists(
-    AsyncData.getData(model.roomAsyncData),
-    ({ status }) => status._tag === 'Waiting' || status._tag === 'Finished',
-  )
+    const isInLeavableState = Option.exists(
+      AsyncData.getData(model.roomAsyncData),
+      ({ status }) => status._tag === 'Waiting' || status._tag === 'Finished',
+    )
 
-  const isExitCountingDown = model.exitCountdownSecondsLeft > 0
+    const isExitCountingDown = model.exitCountdownSecondsLeft > 0
 
-  const leaveRoomContent = isExitCountingDown
-    ? h.div(
-        [h.Class('opacity-30')],
-        [`< Backspace to leave room (${model.exitCountdownSecondsLeft})`],
-      )
-    : h.div([], ['< Backspace to leave room'])
+    const leaveRoomContent = isExitCountingDown
+      ? h.div(
+          [h.Class('opacity-30')],
+          [`< Backspace to leave room (${model.exitCountdownSecondsLeft})`],
+        )
+      : h.div([], ['< Backspace to leave room'])
 
-  const leaveRoomText = isInLeavableState ? leaveRoomContent : h.empty
+    const leaveRoomText = isInLeavableState ? leaveRoomContent : h.empty
 
-  return h.div(
-    [h.Class('max-w-4xl flex-1 flex flex-col justify-between')],
-    [
-      h.div(
-        [],
-        [
-          welcomeText,
-          h.h3([h.Class('uppercase')], ['[Room id]']),
-          h.div(
-            [h.Class('mb-12 flex items-center gap-2')],
-            [h.span([], [roomId]), copyButton, copiedIndicator],
-          ),
-          content(model, h),
-          maybeErrorMessage(maybeError, h),
-        ],
-      ),
-      h.div([], [leaveRoomText]),
-    ],
-  )
-})
+    return h.div(
+      [h.Class('max-w-4xl flex-1 flex flex-col justify-between')],
+      [
+        h.div(
+          [],
+          [
+            welcomeText,
+            h.h3([h.Class('uppercase')], ['[Room id]']),
+            h.div(
+              [h.Class('mb-12 flex items-center gap-2')],
+              [h.span([], [roomId]), copyButton, copiedIndicator],
+            ),
+            content(model, h),
+            maybeErrorMessage(maybeError, h),
+          ],
+        ),
+        h.div([], [leaveRoomText]),
+      ],
+    )
+  },
+)
 
 const content = (
   { roomAsyncData, maybeSession, userGameText, username }: Model,

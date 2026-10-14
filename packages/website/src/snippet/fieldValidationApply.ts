@@ -3,7 +3,7 @@ import { modifyFields } from 'foldkit/struct'
 
 const validateUsername = validate(usernameRules)
 
-const update = Application.update((model, message) =>
+const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     ChangedUsername: ({ value }) => ({
       model: modifyFields(model, {

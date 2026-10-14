@@ -46,16 +46,18 @@ const hoverMenu = HoverIntent.block.connection({
   outMessage: { fold: foldHoverMenuOutMessage },
 })
 
-const HoverMenu = Block.define('HoverMenu', {
+const HoverMenuDefinition = Block.define('HoverMenu', {
   Model,
   Message,
 })
-const registered = HoverMenu.register({ children: [hoverMenu] })
+const RegisteredHoverMenuDefinition = HoverMenuDefinition.register({
+  children: [hoverMenu],
+})
 
 // Close the menu immediately when any item is clicked.
 
 // In the corresponding Message.match handlers:
-const update = HoverMenu.update((model, message) =>
+const update = HoverMenuDefinition.update((model, message) =>
   Message.match(message, {
     GotHoverMenuMessage: ({ message }) => hoverMenu.fold(model, message),
     ClickedHoverMenuItem: () => hoverMenu.close()(model),
@@ -65,7 +67,7 @@ const update = HoverMenu.update((model, message) =>
 const triggerId = 'actions-trigger'
 const panelId = 'actions-panel'
 
-const view = registered.view((model, h) => {
+const view = RegisteredHoverMenuDefinition.view((model, h) => {
   const hoverMenuView = ({
     trigger,
     panel,

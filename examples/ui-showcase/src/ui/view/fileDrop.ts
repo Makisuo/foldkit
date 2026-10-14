@@ -5,7 +5,7 @@ import type { Html } from 'foldkit/html'
 import type { FileDropAttributes } from '@foldkit/ui/fileDrop'
 
 import { Message } from '../message'
-import { fileDropBasicDemo, ui } from '../update'
+import { RegisteredUiDefinition, fileDropBasicDemo } from '../update'
 
 const dropZoneClassName =
   'flex flex-col items-center gap-2 cursor-pointer rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center hover:border-accent-400 select-none data-[drag-over]:border-accent-500 data-[drag-over]:bg-accent-50'
@@ -40,7 +40,7 @@ const formatFileSize = (bytes: number): string =>
 const fileKey = (file: File.File): string =>
   `${File.name(file)}:${File.size(file)}:${file.lastModified}`
 
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   const fileDropView = (attributes: FileDropAttributes): Html =>
     h.label(
       [...attributes.root, h.Class(dropZoneClassName)],

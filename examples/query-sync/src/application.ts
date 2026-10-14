@@ -161,16 +161,12 @@ const urlToApplicationRoute = Route.parseUrlWithFallback(
   ApplicationRoute.NotFound,
 )
 
-// MODEL
-
 export const Model = Schema.Struct({
   route: ApplicationRoute,
   dietListbox: DietListbox.Model,
   periodListbox: PeriodListbox.Model,
 })
 export type Model = typeof Model.Type
-
-// MESSAGE
 
 export const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
@@ -186,9 +182,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const Authoring = defineApplication({ Model, Message })
-
-// INIT
+const ApplicationDefinition = defineApplication({ Model, Message })
 
 type BrowseFields = Omit<typeof ApplicationRoute.Browse.Type, '_tag'>
 
@@ -216,8 +210,6 @@ export const init = (url: Url) => {
     },
   }
 }
-
-// UPDATE
 
 const columnSortDirection = (
   sorting: Sorting,
@@ -256,7 +248,7 @@ const selectionToParam = <A extends string>(
   )
 }
 
-export const ReplaceFilters = Authoring.command('ReplaceFilters', {
+export const ReplaceFilters = ApplicationDefinition.command('ReplaceFilters', {
   args: {
     search: Schema.Option(Schema.String),
     sorting: Sorting,
@@ -272,7 +264,7 @@ export const ReplaceFilters = Authoring.command('ReplaceFilters', {
   },
 })
 
-const NavigateInternal = Authoring.command('NavigateInternal', {
+const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -281,7 +273,7 @@ const NavigateInternal = Authoring.command('NavigateInternal', {
   },
 })
 
-const LoadExternal = Authoring.command('LoadExternal', {
+const LoadExternal = ApplicationDefinition.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -289,8 +281,6 @@ const LoadExternal = Authoring.command('LoadExternal', {
       load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
   },
 })
-
-// EFFECTS LAYER
 
 export const EffectsLayer = Layer.mergeAll(
   ReplaceFilters.layer,
@@ -300,7 +290,7 @@ export const EffectsLayer = Layer.mergeAll(
 
 const foldDietListboxOutMessage = DietListbox.OutMessage.match({
   Selected: ({ value }) =>
-    Authoring.step(model => {
+    ApplicationDefinition.step(model => {
       const fields = routeToBrowseFields(model.route)
       return {
         model,
@@ -323,7 +313,7 @@ export const dietListbox = DietListbox.connection({
 
 const foldPeriodListboxOutMessage = PeriodListbox.OutMessage.match({
   Selected: ({ value }) =>
-    Authoring.step(model => {
+    ApplicationDefinition.step(model => {
       const fields = routeToBrowseFields(model.route)
       return {
         model,
@@ -344,7 +334,7 @@ export const periodListbox = PeriodListbox.connection({
   outMessage: { fold: foldPeriodListboxOutMessage },
 })
 
-export const Application = Authoring.register({
+export const Application = ApplicationDefinition.register({
   children: [dietListbox, periodListbox],
 })
 
@@ -408,8 +398,6 @@ export const update = Application.update((model, message) =>
 )
 
 type HtmlBuilder = HtmlBuilderOf<typeof Application>
-
-// VIEW
 
 const columnOrders: Record<SortColumn, Order.Order<Dinosaur>> = {
   Name: Order.mapInput(Order.String, ({ name }: Dinosaur) => name),
@@ -903,10 +891,3 @@ export const view = Application.view((model, h) => {
 
   return { title: routeTitle(model.route), body }
 })
-
-export const implementation = {
-  init,
-  update,
-  view,
-  EffectsLayer,
-}

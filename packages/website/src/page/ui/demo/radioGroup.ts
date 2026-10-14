@@ -39,8 +39,6 @@ const descriptionClassName = 'text-sm text-gray-700 dark:text-gray-300'
 const priceClassName =
   'text-sm font-semibold text-accent-700 dark:text-accent-400'
 
-// VIEW
-
 export const verticalDemo = (model: Model, h: ViewBuilder) => {
   const checkIcon = h.svg(
     [

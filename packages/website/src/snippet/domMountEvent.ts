@@ -6,9 +6,9 @@ const Message = defineMessageUnion({
   MovedPointer: { clientX: Schema.Number, clientY: Schema.Number },
 })
 const Model = Schema.Struct({})
-const Panel = Block.define('Panel', { Model, Message })
+const PanelDefinition = Block.define('Panel', { Model, Message })
 
-const TrackPointer = Panel.mountStream('TrackPointer', {
+const TrackPointer = PanelDefinition.mountStream('TrackPointer', {
   messages: [Message.MovedPointer],
   handler: function* () {
     return ({ element }) =>
@@ -24,9 +24,11 @@ const TrackPointer = Panel.mountStream('TrackPointer', {
   },
 })
 
-const panel = Panel.register({ mounts: [TrackPointer] })
+const RegisteredPanelDefinition = PanelDefinition.register({
+  mounts: [TrackPointer],
+})
 
-const view = panel.view((_model, h) =>
+const view = RegisteredPanelDefinition.view((_model, h) =>
   h.div([h.Class('h-48'), h.OnMount(TrackPointer())]),
 )
 

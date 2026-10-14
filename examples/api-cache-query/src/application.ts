@@ -132,7 +132,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-const Authoring = defineApplication({ Model, Message })
+const ApplicationDefinition = defineApplication({ Model, Message })
 
 const posts = postsQuery.lift<Model, Message>({
   parentField: 'posts',
@@ -160,12 +160,9 @@ const activateTab = (model: Model, tab: Tab) => {
 }
 
 const activateTabStep = (tab: Tab) =>
-  Authoring.step(model => activateTab(model, tab))
+  ApplicationDefinition.step(model => activateTab(model, tab))
 
-const foldTabsOutMessage = AppTabs.OutMessage.match<
-  ReturnType<typeof activateTabStep>,
-  typeof AppTabs.OutMessage.Type
->({
+const foldTabsOutMessage = AppTabs.OutMessage.match({
   Selected: ({ value }) => activateTabStep(value),
 })
 
@@ -176,7 +173,7 @@ const tabs = AppTabs.connection({
   outMessage: { fold: foldTabsOutMessage },
 })
 
-export const Application = Authoring.register({
+export const Application = ApplicationDefinition.register({
   children: [tabs],
 })
 
@@ -246,16 +243,12 @@ export const subscriptions = Application.subscriptions(entry => ({
   ),
 }))
 
-// EFFECTS LAYER
-
 export const EffectsLayer = Layer.mergeAll(
   postsQuery.layer,
   statsQuery.layer,
   postQuery.layer,
   subscriptions.statsRefreshTicks.layer,
 )
-
-// VIEW
 
 const formatFetchedAt = (fetchedAt: number): string =>
   DateTime.formatUtc(DateTime.makeUnsafe(fetchedAt), {
@@ -678,11 +671,3 @@ const errorPanel = (
       ),
     ],
   )
-
-export const implementation = {
-  init,
-  update,
-  view,
-  subscriptions,
-  EffectsLayer,
-}

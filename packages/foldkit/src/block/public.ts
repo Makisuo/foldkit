@@ -13,7 +13,8 @@ export type {
   Bind as Connect,
   Binding as Connection,
   BindingConfig as ConnectionConfig,
-  BindingBlockEvidence as ConnectionBlockEvidence,
+  ConnectionInspection,
+  InspectionOfConnection,
   BindingRequirement as ConnectionRequirement,
   BindingReturn as ConnectionReturn,
   BlockOfBinding as BlockOfConnection,
@@ -22,6 +23,7 @@ export type {
   RequirementsOfBindings as RequirementsOfConnections,
   ValidateEmbeddedViewMounts,
 } from './binding.js'
+export { inspectConnection } from './binding.js'
 export { LocalMountsTypeId } from './definition.js'
 export type {
   AnyBlock,
@@ -44,7 +46,7 @@ export type {
   Block,
   Implementation,
   HtmlBuilderOf,
-  AssembleBlock,
+  ToBlock,
   OwnedManagedResourceEntryBuilder,
   OwnedSubscriptionEntryBuilder,
   RefineViewInputs,

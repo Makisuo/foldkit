@@ -3,7 +3,7 @@ import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { FetchTelemetry, SyncChart } from './command'
-import { Application as Authoring } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 import { Model, TelemetryAsyncData } from './model'
 import {
@@ -69,10 +69,7 @@ const selectedControl =
     }
   }
 
-const foldChartModeRadioGroupOutMessage = ChartModeRadioGroup.OutMessage.match<
-  ReturnType<typeof selectedControl>,
-  typeof ChartModeRadioGroup.OutMessage.Type
->({
+const foldChartModeRadioGroupOutMessage = ChartModeRadioGroup.OutMessage.match({
   Selected: ({ value }) =>
     selectedControl(modifyFields({ chartMode: () => value })),
 })
@@ -85,10 +82,7 @@ export const chartModeRadioGroup = ChartModeRadioGroup.connection({
   outMessage: { fold: foldChartModeRadioGroupOutMessage },
 })
 
-const foldPeriodRadioGroupOutMessage = PeriodRadioGroup.OutMessage.match<
-  ReturnType<typeof selectedControl>,
-  typeof PeriodRadioGroup.OutMessage.Type
->({
+const foldPeriodRadioGroupOutMessage = PeriodRadioGroup.OutMessage.match({
   Selected: ({ value }) =>
     selectedControl(modifyFields({ period: () => value })),
 })
@@ -101,10 +95,7 @@ export const periodRadioGroup = PeriodRadioGroup.connection({
   outMessage: { fold: foldPeriodRadioGroupOutMessage },
 })
 
-const foldPackageRadioGroupOutMessage = PackageRadioGroup.OutMessage.match<
-  ReturnType<typeof selectedControl>,
-  typeof PackageRadioGroup.OutMessage.Type
->({
+const foldPackageRadioGroupOutMessage = PackageRadioGroup.OutMessage.match({
   Selected: ({ value }) =>
     selectedControl(modifyFields({ selectedPackageId: () => value })),
 })
@@ -117,7 +108,7 @@ export const packageRadioGroup = PackageRadioGroup.connection({
   outMessage: { fold: foldPackageRadioGroupOutMessage },
 })
 
-export const Application = Authoring.register({
+export const Application = ApplicationDefinition.register({
   mounts: [MountChart],
   children: [chartModeRadioGroup, periodRadioGroup, packageRadioGroup],
 })

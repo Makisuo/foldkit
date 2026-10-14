@@ -32,8 +32,6 @@ const emailRules = makeRules({
   rules: [Rule.email('Please enter a valid email address')],
 })
 
-// MODEL
-
 const Submission = defineTaggedUnion({
   NotSubmitted: {},
   Submitting: {},
@@ -51,8 +49,6 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   UpdatedName: { value: Schema.String },
   UpdatedEmail: { value: Schema.String },
@@ -65,9 +61,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
-
-// INIT
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
 export const initialModel: Model = {
   name: NotValidated({ value: '' }),
@@ -96,7 +90,7 @@ const isEmailOnWaitlist = (email: string): Effect.Effect<boolean> =>
     return Array.contains(EMAILS_ON_WAITLIST, email.toLowerCase())
   })
 
-export const ValidateEmail = Application.command('ValidateEmail', {
+export const ValidateEmail = ApplicationDefinition.command('ValidateEmail', {
   args: { email: Schema.String },
   messages: [Message.CompletedValidateEmail],
   handler: function* () {
@@ -127,9 +121,7 @@ const isFormValid = (model: Model): boolean =>
     [model.email, emailRules],
   ])
 
-// UPDATE
-
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     UpdatedName: ({ value }) => ({
       model: modifyFields(model, {
@@ -218,9 +210,7 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// COMMAND
-
-export const SubmitForm = Application.command('SubmitForm', {
+export const SubmitForm = ApplicationDefinition.command('SubmitForm', {
   args: {
     name: Schema.String,
     email: Schema.String,
@@ -242,16 +232,12 @@ export const SubmitForm = Application.command('SubmitForm', {
   },
 })
 
-// EFFECTS LAYER
-
 export const EffectsLayer = Layer.mergeAll(
   ValidateEmail.layer,
   SubmitForm.layer,
 )
 
-// VIEW
-
-type HtmlBuilder = HtmlBuilderOf<typeof Application>
+type HtmlBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
 const LABEL_CLASS = 'text-sm font-medium text-gray-700'
 const DESCRIPTION_CLASS = 'text-sm mt-1'
@@ -382,7 +368,7 @@ const textareaFieldView = (
     h,
   )
 
-export const view = Application.view((model, h) => {
+export const view = ApplicationDefinition.view((model, h) => {
   const canSubmit = isFormValid(model) && model.submission._tag !== 'Submitting'
 
   const body = h.div(
@@ -483,10 +469,3 @@ export const view = Application.view((model, h) => {
 
   return { title: 'Foldkit Form Example', body }
 })
-
-export const implementation = {
-  init,
-  update,
-  view,
-  EffectsLayer,
-}

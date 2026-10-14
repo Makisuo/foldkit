@@ -1,6 +1,6 @@
 import { Server } from 'foldkit/experimental'
 
-import { implementation, registered } from './blockBindDescriptor'
+import { Application, init, update, view } from './blockProfile'
 
 export const render = () =>
-  Server.renderToString(registered, implementation, {})
+  Server.renderToString(Application, { init, update, view }, {})

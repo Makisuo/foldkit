@@ -1,6 +1,4 @@
+export { block } from './comingFromReact'
 export { Model } from './model'
 export { Message } from './message'
-export { init } from './init'
-export { update } from './update'
-export { tableOfContents, view } from './view'
-export { block } from './comingFromReact'
+export { tableOfContents } from './view'

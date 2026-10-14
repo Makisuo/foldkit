@@ -24,7 +24,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-const DisabledButtonTest = Block.define('DisabledButtonTest', {
+const DisabledButtonTestDefinition = Block.define('DisabledButtonTest', {
   Model,
   Message,
 })
@@ -52,9 +52,10 @@ const dialog = Dialog.block.connection({
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const registered = DisabledButtonTest.register({ children: [dialog] })
+const RegisteredDisabledButtonTestDefinition =
+  DisabledButtonTestDefinition.register({ children: [dialog] })
 
-export const update = DisabledButtonTest.update((model, message) =>
+export const update = DisabledButtonTestDefinition.update((model, message) =>
   Message.match(message, {
     ClickedToggle: () => ({
       model: modifyFields(model, { isEnabled: isEnabled => !isEnabled }),
@@ -93,34 +94,36 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
 }
 
 /** View with submit button inside a dialog's panel. */
-export const viewWithDialog = registered.view((model, h) => {
-  return h.div(
-    [],
-    [
-      h.button([h.OnClick(Message.ClickedToggle())], ['Toggle']),
-      h.block(
-        dialog.embedView({
-          slotId: model.dialog.id,
-          model: model.dialog,
-          viewInputs: {
-            toView: ({ dialog, backdrop, panel, isVisible }) =>
-              h.dialog(
-                [...dialog],
-                isVisible
-                  ? [
-                      h.div([...backdrop]),
-                      h.div([...panel], [submitButton(model.isEnabled, h)]),
-                    ]
-                  : [],
-              ),
-          },
-        }),
-      ),
-    ],
-  )
-})
+export const viewWithDialog = RegisteredDisabledButtonTestDefinition.view(
+  (model, h) => {
+    return h.div(
+      [],
+      [
+        h.button([h.OnClick(Message.ClickedToggle())], ['Toggle']),
+        h.block(
+          dialog.embedView({
+            slotId: model.dialog.id,
+            model: model.dialog,
+            viewInputs: {
+              toView: ({ dialog, backdrop, panel, isVisible }) =>
+                h.dialog(
+                  [...dialog],
+                  isVisible
+                    ? [
+                        h.div([...backdrop]),
+                        h.div([...panel], [submitButton(model.isEnabled, h)]),
+                      ]
+                    : [],
+                ),
+            },
+          }),
+        ),
+      ],
+    )
+  },
+)
 
-export const block = registered.assemble({
+export const block = RegisteredDisabledButtonTestDefinition.toBlock({
   init: () => ({ model: initialModel }),
   update,
   view: viewWithDialog,

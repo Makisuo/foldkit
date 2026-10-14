@@ -1,6 +1,5 @@
 import clsx from 'clsx'
 import { Array, Effect, Layer, Match, Option, Schema, pipe } from 'effect'
-import { Block } from 'foldkit'
 import { Calendar, Route, Update } from 'foldkit'
 import {
   type HtmlBuilderOf,
@@ -14,7 +13,6 @@ import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import { Nav } from '@foldkit/ui'
-import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
 import * as Icon from './icon'
 import * as Ui from './ui'
@@ -186,16 +184,12 @@ const urlToApplicationRoute = Route.parseUrlWithFallback(
   ApplicationRoute.NotFound,
 )
 
-// MODEL
-
 export const Model = Schema.Struct({
   route: ApplicationRoute,
   uiModel: Ui.Model,
 })
 
 export type Model = typeof Model.Type
-
-// MESSAGE
 
 export const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
@@ -214,14 +208,13 @@ const ui = Ui.block.connection({
   parentMessage: Message.GotUiMessage,
 })
 
-export const Application = defineApplication({ Model, Message }).register({
+export const ApplicationDefinition = defineApplication({ Model, Message })
+
+export const Application = ApplicationDefinition.register({
   children: [ui],
 })
 
 type ShowcaseHtmlBuilder = HtmlBuilderOf<typeof Application>
-type UiHtmlBuilder = Block.HtmlBuilderOf<typeof Ui.ui>
-
-// COMMAND
 
 const NavigateInternal = Application.command('NavigateInternal', {
   args: { url: Schema.String },
@@ -240,8 +233,6 @@ const LoadExternal = Application.command('LoadExternal', {
       load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
   },
 })
-
-// INIT
 
 export const Flags = Schema.Struct({
   today: Calendar.CalendarDate,
@@ -266,8 +257,6 @@ export const init = (flags: Flags, url: Url) => {
     commands: uiInit.commands,
   }
 }
-
-// UPDATE
 
 export const update = Application.update((model, message) =>
   Message.match(message, {
@@ -301,8 +290,6 @@ export const update = Application.update((model, message) =>
     GotUiMessage: ({ message }) => ui.fold(model, message),
   }),
 )
-
-// VIEW
 
 type NavItem = Readonly<{
   label: string
@@ -452,66 +439,66 @@ const sidebarView = (
   return componentNav(currentRoute, sidebarNavView)
 }
 
-const mobileMenuContent = (
-  currentRoute: ApplicationRoute,
-  closeButton: DialogRenderInfo['closeButton'],
-  h: UiHtmlBuilder,
-): Html => {
-  const mobileNavView = ({ nav, items }: Nav.RenderInfo): Html =>
-    h.nav(
-      [
-        ...nav,
-        h.Class('flex-1 overflow-y-auto min-h-0 p-4'),
-        h.Tabindex(-1),
-        h.Autofocus(true),
-      ],
-      [navListView(items, mobileNavLinkClassName, h)],
-    )
+const mobileMenuContent =
+  (
+    currentRoute: ApplicationRoute,
+  ): Ui.View.MobileMenuViewInputs['renderContent'] =>
+  (closeButton, h) => {
+    const mobileNavView = ({ nav, items }: Nav.RenderInfo): Html =>
+      h.nav(
+        [
+          ...nav,
+          h.Class('flex-1 overflow-y-auto min-h-0 p-4'),
+          h.Tabindex(-1),
+          h.Autofocus(true),
+        ],
+        [navListView(items, mobileNavLinkClassName, h)],
+      )
 
-  return h.div(
-    [h.Class('flex flex-col h-full')],
-    [
-      h.div(
-        [
-          h.Class(
-            'flex items-center justify-between border-b border-gray-200 px-4 py-3',
-          ),
-        ],
-        [
-          h.a(
-            [h.Href(homeRouter()), h.Class('block')],
-            [
-              h.div(
-                [h.Class('flex flex-col')],
-                [
-                  h.span(
-                    [h.Class('text-base font-bold text-gray-900')],
-                    ['Foldkit UI'],
-                  ),
-                  h.span(
-                    [h.Class('text-xs text-gray-500')],
-                    ['Component Showcase'],
-                  ),
-                ],
-              ),
-            ],
-          ),
-          h.button(
-            [
-              ...closeButton,
-              h.Class(
-                'p-2 rounded-md hover:bg-gray-200 transition text-gray-700 cursor-pointer',
-              ),
-              h.AriaLabel('Close menu'),
-            ],
-            [Icon.xMark('w-6 h-6')],
-          ),
-        ],
-      ),
-      componentNav(currentRoute, mobileNavView),
-    ],
-  )
-}
+    return h.div(
+      [h.Class('flex flex-col h-full')],
+      [
+        h.div(
+          [
+            h.Class(
+              'flex items-center justify-between border-b border-gray-200 px-4 py-3',
+            ),
+          ],
+          [
+            h.a(
+              [h.Href(homeRouter()), h.Class('block')],
+              [
+                h.div(
+                  [h.Class('flex flex-col')],
+                  [
+                    h.span(
+                      [h.Class('text-base font-bold text-gray-900')],
+                      ['Foldkit UI'],
+                    ),
+                    h.span(
+                      [h.Class('text-xs text-gray-500')],
+                      ['Component Showcase'],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            h.button(
+              [
+                ...closeButton,
+                h.Class(
+                  'p-2 rounded-md hover:bg-gray-200 transition text-gray-700 cursor-pointer',
+                ),
+                h.AriaLabel('Close menu'),
+              ],
+              [Icon.xMark('w-6 h-6')],
+            ),
+          ],
+        ),
+        componentNav(currentRoute, mobileNavView),
+      ],
+    )
+  }
 
 const mobileHeaderView = (model: Model, h: ShowcaseHtmlBuilder): Html =>
   h.header(
@@ -553,54 +540,13 @@ const mobileHeaderView = (model: Model, h: ShowcaseHtmlBuilder): Html =>
     ],
   )
 
-type MobileMenuViewInputs = Readonly<{
-  currentRoute: ApplicationRoute
-}>
-
-const mobileMenuDialogView = Ui.ui.view.withInputs<MobileMenuViewInputs>(
-  (model, { currentRoute }, h): Html => {
-    const mobileMenuDialogContent = ({
-      dialog,
-      backdrop,
-      panel,
-      closeButton,
-      isVisible,
-    }: DialogRenderInfo): Html =>
-      h.dialog(
-        [...dialog, h.Class('md:hidden')],
-        isVisible
-          ? [
-              h.div([...backdrop, h.Class('fixed inset-0 z-[59]')]),
-              h.div(
-                [
-                  ...panel,
-                  h.Class('fixed inset-0 z-[60] bg-white flex flex-col'),
-                ],
-                [mobileMenuContent(currentRoute, closeButton, h)],
-              ),
-            ]
-          : [],
-      )
-
-    return h.block(
-      Ui.mobileMenuDialog.embedView({
-        slotId: model.mobileMenuDialog.id,
-        model: model.mobileMenuDialog,
-        viewInputs: {
-          toView: mobileMenuDialogContent,
-        },
-      }),
-    )
-  },
-)
-
 const mobileMenuView = (model: Model, h: ShowcaseHtmlBuilder): Html =>
   h.block(
     ui.embedView({
       slotId: 'mobile-menu',
       model: model.uiModel,
-      view: mobileMenuDialogView,
-      viewInputs: { currentRoute: model.route },
+      view: Ui.View.mobileMenu,
+      viewInputs: { renderContent: mobileMenuContent(model.route) },
     }),
   )
 
@@ -711,9 +657,7 @@ export const view = Application.view((model, h) => ({
   ),
 }))
 
-export const implementation = {
-  init,
-  update,
-  view,
-  EffectsLayer: Layer.merge(NavigateInternal.layer, LoadExternal.layer),
-}
+export const EffectsLayer = Layer.merge(
+  NavigateInternal.layer,
+  LoadExternal.layer,
+)

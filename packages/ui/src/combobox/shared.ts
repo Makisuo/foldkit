@@ -26,7 +26,7 @@ import { findFirstEnabledIndex, keyToIndex } from '../keyboard.js'
 export { groupContiguous }
 
 /** Shared named component handle for both Combobox selection variants. */
-export const Combobox = Block.define('Combobox')
+export const ComboboxDefinition = Block.define('Combobox')
 
 // MODEL
 
@@ -272,14 +272,14 @@ type HandlerReturn<Model, Item extends string> = Readonly<{
 }>
 
 /** Prevents page scrolling while the combobox popup is open in modal mode. */
-export const LockScroll = Combobox.command('LockScroll', {
+export const LockScroll = ComboboxDefinition.command('LockScroll', {
   messages: [Message.CompletedLockScroll],
   handler: function* () {
     return () => Dom.lockScroll.pipe(Effect.as(Message.CompletedLockScroll()))
   },
 })
 /** Re-enables page scrolling after the combobox popup closes. */
-export const UnlockScroll = Combobox.command('UnlockScroll', {
+export const UnlockScroll = ComboboxDefinition.command('UnlockScroll', {
   messages: [Message.CompletedUnlockScroll],
   handler: function* () {
     return () =>
@@ -287,7 +287,7 @@ export const UnlockScroll = Combobox.command('UnlockScroll', {
   },
 })
 /** Marks all elements outside the combobox as inert for modal behavior. */
-export const InertOthers = Combobox.command('InertOthers', {
+export const InertOthers = ComboboxDefinition.command('InertOthers', {
   args: { id: Schema.String },
   messages: [Message.CompletedInertOthers],
   handler: function* () {
@@ -300,7 +300,7 @@ export const InertOthers = Combobox.command('InertOthers', {
   },
 })
 /** Removes the inert attribute from elements outside the combobox. */
-export const RestoreInert = Combobox.command('RestoreInert', {
+export const RestoreInert = ComboboxDefinition.command('RestoreInert', {
   args: { id: Schema.String },
   messages: [Message.CompletedRestoreInert],
   handler: function* () {
@@ -309,7 +309,7 @@ export const RestoreInert = Combobox.command('RestoreInert', {
   },
 })
 /** Moves focus to the combobox input after selection or close. */
-export const FocusInput = Combobox.command('FocusInput', {
+export const FocusInput = ComboboxDefinition.command('FocusInput', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusInput],
   handler: function* () {
@@ -321,19 +321,22 @@ export const FocusInput = Combobox.command('FocusInput', {
   },
 })
 /** Scrolls the active combobox item into view after keyboard navigation. */
-export const ScrollItemIntoView = Combobox.command('ScrollItemIntoView', {
-  args: { id: Schema.String, index: Schema.Number },
-  messages: [Message.CompletedScrollItemIntoView],
-  handler: function* () {
-    return ({ id, index }) =>
-      Dom.scrollIntoView(itemSelector(id, index)).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedScrollItemIntoView()),
-      )
+export const ScrollItemIntoView = ComboboxDefinition.command(
+  'ScrollItemIntoView',
+  {
+    args: { id: Schema.String, index: Schema.Number },
+    messages: [Message.CompletedScrollItemIntoView],
+    handler: function* () {
+      return ({ id, index }) =>
+        Dom.scrollIntoView(itemSelector(id, index)).pipe(
+          Effect.ignore,
+          Effect.as(Message.CompletedScrollItemIntoView()),
+        )
+    },
   },
-})
+)
 /** Programmatically clicks the active combobox item's DOM element. */
-export const ClickItem = Combobox.command('ClickItem', {
+export const ClickItem = ComboboxDefinition.command('ClickItem', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedClickItem],
   handler: function* () {
@@ -345,7 +348,7 @@ export const ClickItem = Combobox.command('ClickItem', {
   },
 })
 /** Detects whether the combobox input wrapper moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation block that leave is complete. */
-export const DetectMovementOrAnimationEnd = Combobox.command(
+export const DetectMovementOrAnimationEnd = ComboboxDefinition.command(
   'DetectMovementOrAnimationEnd',
   {
     args: { id: Schema.String, generation: Schema.Number },
@@ -722,7 +725,7 @@ export const makeUpdate = <Item extends string>(
  *  installs the `pointerdown`-cancelling capture listener that prevents
  *  input blur on item presses. Exposed so Scene tests can call
  *  `Scene.Mount.resolve(Anchor, CompletedAnchor())`. */
-export const Anchor = Combobox.mount('Anchor', {
+export const Anchor = ComboboxDefinition.mount('Anchor', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchor],
   handler: function* () {
@@ -759,7 +762,7 @@ export const Anchor = Combobox.mount('Anchor', {
  *  capture listener that prevents blur on item presses. Exposed so Scene
  *  tests can call
  *  `Scene.Mount.resolve(AttachPreventBlur, CompletedAttachPreventBlur())`. */
-export const AttachPreventBlur = Combobox.mount('AttachPreventBlur', {
+export const AttachPreventBlur = ComboboxDefinition.mount('AttachPreventBlur', {
   messages: [Message.CompletedAttachPreventBlur],
   handler: function* () {
     return ({ element }) =>
@@ -789,33 +792,36 @@ export const AttachPreventBlur = Combobox.mount('AttachPreventBlur', {
 /** The Mount this Combobox renders to install the input's select-on-focus
  *  behavior. Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AttachSelectOnFocus, CompletedAttachSelectOnFocus())`. */
-export const AttachSelectOnFocus = Combobox.mount('AttachSelectOnFocus', {
-  messages: [Message.CompletedAttachSelectOnFocus],
-  handler: function* () {
-    return ({ element }) =>
-      Effect.gen(function* () {
-        yield* Effect.acquireRelease(
-          Effect.sync(() => {
-            const handler = () => {
-              if (element instanceof HTMLInputElement) {
-                element.select()
+export const AttachSelectOnFocus = ComboboxDefinition.mount(
+  'AttachSelectOnFocus',
+  {
+    messages: [Message.CompletedAttachSelectOnFocus],
+    handler: function* () {
+      return ({ element }) =>
+        Effect.gen(function* () {
+          yield* Effect.acquireRelease(
+            Effect.sync(() => {
+              const handler = () => {
+                if (element instanceof HTMLInputElement) {
+                  element.select()
+                }
               }
-            }
-            element.addEventListener('focus', handler)
-            return handler
-          }),
-          handler =>
-            Effect.sync(() => element.removeEventListener('focus', handler)),
-        )
-        return Message.CompletedAttachSelectOnFocus()
-      })
+              element.addEventListener('focus', handler)
+              return handler
+            }),
+            handler =>
+              Effect.sync(() => element.removeEventListener('focus', handler)),
+          )
+          return Message.CompletedAttachSelectOnFocus()
+        })
+    },
   },
-})
+)
 
 /** The backdrop-portaling Mount this Combobox renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalBackdrop, CompletedPortalBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalBackdrop = Combobox.mount('PortalBackdrop', {
+export const PortalBackdrop = ComboboxDefinition.mount('PortalBackdrop', {
   messages: [Message.CompletedPortalBackdrop],
   handler: function* () {
     return ({ element }) =>

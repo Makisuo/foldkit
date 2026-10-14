@@ -512,7 +512,7 @@ const manualChildResultMessage = (
  *  into the matching modifyFields field. It requires a matching
  *  Update.foldChild, Update.foldChildAt, or Update.foldChildStep reference in
  *  the file, and leaves ordinary helpers, direct imports, aliases, init
- *  assembly, keyed collection writes, and Model-only reflect helpers alone. */
+ *  completion, keyed collection writes, and Model-only reflect helpers alone. */
 export const requireFoldForChildUpdateResult = Rule.define({
   name: 'require-fold-for-child-update-result',
   meta: Rule.meta({

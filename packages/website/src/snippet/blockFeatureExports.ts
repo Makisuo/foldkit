@@ -1,9 +1,9 @@
 // page/settings/settings.ts
-export const block = Settings.assemble({
+export const block = SettingsDefinition.toBlock({
   init,
   update,
   view,
-  steps: { reset },
+  expose: { reset },
   EffectsLayer: SaveTheme.layer,
 })
 

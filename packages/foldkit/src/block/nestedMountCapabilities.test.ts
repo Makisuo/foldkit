@@ -20,7 +20,7 @@ const leafRegistered = MountCapabilityLeaf.register({ mounts: [ObserveLeaf] })
 const leafView = leafRegistered.view((model, h) =>
   h.div([h.OnMount(ObserveLeaf())], [globalThis.String(model.count)]),
 )
-const leafBlock = leafRegistered.assemble({
+const leafBlock = leafRegistered.toBlock({
   init: () => ({ model: LeafModel.make({ count: 0 }) }),
   update: MountCapabilityLeaf.update(model => ({ model })),
   view: leafView,
@@ -49,7 +49,7 @@ const middleView = middleRegistered.view((model, h) =>
     }),
   ),
 )
-const middleBlock = middleRegistered.assemble({
+const middleBlock = middleRegistered.toBlock({
   init: () => ({
     model: MiddleModel.make({ leaf: leaf.init().model }),
   }),
@@ -83,7 +83,7 @@ const rootView = rootRegistered.view((model, h) =>
     }),
   ),
 )
-const rootBlock = rootRegistered.assemble({
+const rootBlock = rootRegistered.toBlock({
   init: () => ({
     model: RootModel.make({ middle: middle.init().model }),
   }),

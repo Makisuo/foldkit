@@ -2,8 +2,8 @@ import { Option } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import * as Settings from './blockOwnedDescriptor'
 import { Message, Model } from './blockProfileContract'
+import * as Settings from './blockSettings'
 
 const foldSettingsOutMessage = Settings.OutMessage.match<
   Update.Step<Model, Message>

@@ -1,7 +1,16 @@
+import { Array, Option, String } from 'effect'
 import { spawnSync } from 'node:child_process'
-import { copyFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs'
+import {
+  copyFileSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+} from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+import { API } from '../node_modules/typescript/dist/api/async/api.js'
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const fixtureRoot = join(packageRoot, 'declaration-tests')
@@ -39,7 +48,55 @@ const assertBuiltEntry = (path: string): void => {
   }
 }
 
-const main = (): void => {
+const assertConnectionCompletions = async (): Promise<void> => {
+  const acceptedFixture = join(fixtureRoot, 'accepted.ts')
+  const acceptedConfig = join(fixtureRoot, 'tsconfig.accepted.json')
+  const marker = 'child.refresh()(model)'
+  const source = readFileSync(acceptedFixture, 'utf8')
+  const markerPosition = Option.getOrElse(String.indexOf(marker)(source), () =>
+    fail(`Could not find the connection completion marker ${marker}.`),
+  )
+
+  const api = new API({ cwd: packageRoot })
+
+  try {
+    const snapshot = await api.updateSnapshot({
+      openProjects: [acceptedConfig],
+      openFiles: [acceptedFixture],
+    })
+    const project = snapshot.getProject(acceptedConfig)
+
+    if (project === undefined) {
+      return fail(`Could not open the declaration project ${acceptedConfig}.`)
+    }
+
+    const diagnostics =
+      await project.program.getSemanticDiagnostics(acceptedFixture)
+
+    if (Array.isArrayNonEmpty(Array.fromIterable(diagnostics))) {
+      fail(
+        `The native completion fixture has ${diagnostics.length} semantic diagnostics.`,
+      )
+    }
+
+    const completion = await project.checker.getCompletionsAtPosition(
+      acceptedFixture,
+      markerPosition + 'child.'.length,
+    )
+    const actual = completion?.entries.map(entry => entry.name).sort()
+    const expected = ['embedView', 'fold', 'init', 'placement', 'refresh']
+
+    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+      fail(
+        `Expected connection completions ${JSON.stringify(expected)}, received ${JSON.stringify(actual)}.`,
+      )
+    }
+  } finally {
+    await api.close()
+  }
+}
+
+const main = async (): Promise<void> => {
   assertBuiltEntry('dist/index.d.ts')
   assertBuiltEntry('dist/block/public.d.ts')
   assertBuiltEntry('dist/command/public.d.ts')
@@ -83,8 +140,10 @@ const main = (): void => {
       join(outputDirectory, 'tsconfig.json'),
     ])
 
+    await assertConnectionCompletions()
+
     process.stdout.write(
-      `[emitted-declarations] ${version}; accepted, rejected, and downstream declaration checks passed.\n`,
+      `[emitted-declarations] ${version}; accepted, rejected, downstream, and native completion checks passed.\n`,
     )
   } finally {
     rmSync(outputDirectory, { recursive: true, force: true })
@@ -92,7 +151,7 @@ const main = (): void => {
 }
 
 try {
-  main()
+  await main()
 } catch (error) {
   const message =
     error instanceof Error ? error.message : globalThis.String(error)

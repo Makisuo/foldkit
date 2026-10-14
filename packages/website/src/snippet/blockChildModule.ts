@@ -4,8 +4,6 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-// MODEL
-
 export const Theme = Schema.Literals(['Light', 'Dark', 'System'])
 export type Theme = typeof Theme.Type
 
@@ -19,8 +17,6 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   ChangedTheme: { theme: Theme },
   ChangedFontSize: { fontSize: FontSize },
@@ -28,11 +24,9 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const Settings = Block.define('Settings', { Model, Message })
+export const SettingsDefinition = Block.define('Settings', { Model, Message })
 
-// UPDATE
-
-export const update = Settings.update((model, message) =>
+export const update = SettingsDefinition.update((model, message) =>
   Message.match(message, {
     ChangedTheme: ({ theme }) => ({
       model: modifyFields(model, { theme: () => theme }),

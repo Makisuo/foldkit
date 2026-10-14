@@ -1,7 +1,3 @@
 export { block } from './room'
-export * from './model'
+export { Model } from './model'
 export { Message } from './message'
-export { NavigateHome } from './update'
-export * from './init'
-export * from './update'
-export * from './view'

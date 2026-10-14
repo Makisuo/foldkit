@@ -48,8 +48,6 @@ const ComputeEngineLayer: Layer.Layer<
   ),
 )
 
-// MODEL
-
 export const EngineState = defineTaggedUnion({
   Off: {},
   Booting: {},
@@ -65,8 +63,6 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   ClickedStartEngine: {},
   ClickedStopEngine: {},
@@ -80,15 +76,13 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-type ViewBuilder = HtmlBuilderOf<typeof Application>
+type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
-const Engine = Application.resource<ComputeEngine>()('ComputeEngine')
+const Engine = ApplicationDefinition.resource<ComputeEngine>()('ComputeEngine')
 
-// COMMAND
-
-export const Compute = Application.command('Compute', {
+export const Compute = ApplicationDefinition.command('Compute', {
   args: { value: Schema.Number },
   messages: [Message.SucceededCompute, Message.FailedCompute],
   handler: function* () {
@@ -105,9 +99,7 @@ export const Compute = Application.command('Compute', {
   },
 })
 
-// UPDATE
-
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     ClickedStartEngine: () => ({
       model: modifyFields(model, { engine: () => EngineState.Booting() }),
@@ -149,8 +141,6 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// INIT
-
 export const init = () => ({
   model: {
     engine: EngineState.Off(),
@@ -161,39 +151,37 @@ export const init = () => ({
 
 // MANAGED RESOURCE
 
-export const managedResources = Application.managedResources(entry => ({
-  engine: entry('ManageEngine', Schema.Option(Schema.Null), {
-    resource: Engine,
-    modelToMaybeRequirements: model =>
-      Match.value(model.engine).pipe(
-        Match.tag('Booting', 'Ready', () => Option.some(null)),
-        Match.tag('Off', 'Failed', () => Option.none()),
-        Match.exhaustive,
-      ),
-    onAcquired: ({ engineId }) => Message.StartedEngine({ engineId }),
-    onReleased: () => Message.StoppedEngine(),
-    onAcquireError: error =>
-      Message.FailedStartEngine({ reason: String(error) }),
-    handler: function* () {
-      return {
-        acquire: () =>
-          Layer.build(ComputeEngineLayer).pipe(
-            Effect.map(context => Context.get(context, ComputeEngineService)),
-          ),
-        release: () => Effect.void,
-      }
-    },
+export const managedResources = ApplicationDefinition.managedResources(
+  entry => ({
+    engine: entry('ManageEngine', Schema.Option(Schema.Null), {
+      resource: Engine,
+      modelToMaybeRequirements: model =>
+        Match.value(model.engine).pipe(
+          Match.tag('Booting', 'Ready', () => Option.some(null)),
+          Match.tag('Off', 'Failed', () => Option.none()),
+          Match.exhaustive,
+        ),
+      onAcquired: ({ engineId }) => Message.StartedEngine({ engineId }),
+      onReleased: () => Message.StoppedEngine(),
+      onAcquireError: error =>
+        Message.FailedStartEngine({ reason: String(error) }),
+      handler: function* () {
+        return {
+          acquire: () =>
+            Layer.build(ComputeEngineLayer).pipe(
+              Effect.map(context => Context.get(context, ComputeEngineService)),
+            ),
+          release: () => Effect.void,
+        }
+      },
+    }),
   }),
-}))
-
-// EFFECTS LAYER
+)
 
 export const EffectsLayer = Layer.mergeAll(
   Compute.layer,
   managedResources.engine.layer,
 )
-
-// VIEW
 
 const buttonClassName =
   'px-6 py-3 font-semibold text-white transition-colors data-[disabled]:opacity-40 data-[disabled]:cursor-not-allowed'
@@ -287,7 +275,7 @@ const squareResultView = (
 
 const isEngineReady = (engine: EngineState): boolean => engine._tag === 'Ready'
 
-export const view = Application.view((model, h) => {
+export const view = ApplicationDefinition.view((model, h) => {
   const isComputeDisabled = !isEngineReady(model.engine)
 
   return {
@@ -318,11 +306,3 @@ export const view = Application.view((model, h) => {
     ),
   }
 })
-
-export const implementation = {
-  init,
-  update,
-  view,
-  managedResources,
-  EffectsLayer,
-}

@@ -31,7 +31,7 @@ import {
   TRAIL_LENGTH,
   TWO_PI,
 } from './constant'
-import { Application as Authoring } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 import { Model, Particle, Point } from './model'
 import { fractalNoise } from './noise'
@@ -250,7 +250,7 @@ export const noiseScaleSlider = Slider.block.connection({
   outMessage: { fold: foldNoiseScaleSliderOutMessage },
 })
 
-export const Application = Authoring.register({
+export const Application = ApplicationDefinition.register({
   children: [flowStrengthSlider, noiseScaleSlider],
 })
 

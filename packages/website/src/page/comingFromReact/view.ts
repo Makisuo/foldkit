@@ -7,8 +7,8 @@ import { type CodeBlock } from '../../component'
 import { Icon } from '../../icon'
 import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink } from '../../prose'
-import { ComingFromReact } from './block'
 import raw from './comingFromReact.md'
+import { ComingFromReactDefinition } from './definition'
 import { Message } from './message'
 import type { Model } from './model'
 
@@ -95,7 +95,7 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = ComingFromReact.view.withInputs<ViewInputs>(
+export const view = ComingFromReactDefinition.view.withInputs<ViewInputs>(
   (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h) =>
     renderPage({
       demos: {},

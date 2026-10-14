@@ -5,7 +5,7 @@ import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewInputs,
-  Listbox,
+  ListboxDefinition,
   LocalEffectsLayer,
   Message,
   OutMessage,
@@ -51,7 +51,7 @@ const makeBlock = <Item, Value extends string>() => {
   const RefinedOutMessage =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     OutMessage as unknown as OutMessageSchema<Value>
-  const multi = Listbox.define({
+  const ItemListboxDefinition = ListboxDefinition.define({
     Model,
     Message,
     OutMessage: RefinedOutMessage,
@@ -69,11 +69,11 @@ const makeBlock = <Item, Value extends string>() => {
   const castReturn = (result: ReturnType<typeof itemUpdate.update>) =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     result as unknown as RefinedReturn
-  const registered = multi.register({
+  const RegisteredItemListboxDefinition = ItemListboxDefinition.register({
     mounts,
     children: [itemUpdate.animation],
   })
-  const update = multi.update((model, message) =>
+  const update = ItemListboxDefinition.update((model, message) =>
     castReturn(itemUpdate.update(model, message)),
   )
   const refinedView =
@@ -83,22 +83,24 @@ const makeBlock = <Item, Value extends string>() => {
       viewInputs: ViewInputs<Item, Value>,
       h: Parameters<ReturnType<typeof internalView<unknown, string>>>[2],
     ) => Html
-  const view = registered.view.withInputs<ViewInputs<Item, Value>>(
-    (model, viewInputs, h) => refinedView(model, viewInputs, h),
-  )
-  const open = multi.step(model =>
+  const view = RegisteredItemListboxDefinition.view.withInputs<
+    ViewInputs<Item, Value>
+  >((model, viewInputs, h) => refinedView(model, viewInputs, h))
+  const open = ItemListboxDefinition.step(model =>
     update(model, Message.Opened({ maybeActiveItemIndex: Option.none() })),
   )
-  const close = multi.step(model => update(model, Message.Closed()))
-  const selectItem = multi.step((model, item: Value) =>
+  const close = ItemListboxDefinition.step(model =>
+    update(model, Message.Closed()),
+  )
+  const selectItem = ItemListboxDefinition.step((model, item: Value) =>
     update(model, Message.SelectedItem({ item })),
   )
-  const steps = { open, close, selectItem }
-  return registered.assemble({
+  const expose = { open, close, selectItem }
+  return RegisteredItemListboxDefinition.toBlock({
     init: (config: InitConfig) => ({ model: init(config) }),
     update,
     view,
-    steps,
+    expose,
     EffectsLayer: LocalEffectsLayer,
   })
 }
@@ -132,14 +134,14 @@ type UpdateReturn = ReturnType<typeof update>
 
 /** Programmatically opens the Listbox, updating the Model and returning focus
  *  and modal Commands. Use this in domain-event handlers. */
-export const open = (model: Model): UpdateReturn => block.steps.open(model)
+export const open = (model: Model): UpdateReturn => block.expose.open(model)
 
 /** Programmatically closes the listbox. If it is open, returns the closed Model
  *  with focus and modal Commands. If it is already closed, returns the Model
  *  unchanged with no Commands. Use this in domain-event handlers to close the
  *  listbox. */
-export const close = (model: Model): UpdateReturn => block.steps.close(model)
+export const close = (model: Model): UpdateReturn => block.expose.close(model)
 
 /** Programmatically activates an item in the multi-select listbox. Emits `Selected({ value })`; the parent toggles the value's membership. */
 export const selectItem = (model: Model, item: string): UpdateReturn =>
-  block.steps.selectItem(model, item)
+  block.expose.selectItem(model, item)

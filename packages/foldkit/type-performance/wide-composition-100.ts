@@ -39,11 +39,14 @@ class Clock extends Context.Service<
 >()('TypePerformanceWideLeafClock') {}
 const ClockLayer = Layer.succeed(Clock, { run: Effect.void })
 
-const TypePerformanceWideLeaf = Block.define('TypePerformanceWideLeaf', {
-  Model: LeafModel,
-  Message: LeafMessage,
-})
-const RunLeaf = TypePerformanceWideLeaf.command('RunLeaf', {
+const TypePerformanceWideLeafDefinition = Block.define(
+  'TypePerformanceWideLeaf',
+  {
+    Model: LeafModel,
+    Message: LeafMessage,
+  },
+)
+const RunLeaf = TypePerformanceWideLeafDefinition.command('RunLeaf', {
   messages: [LeafMessage.CompletedRun],
   handler: function* () {
     const clock = yield* Clock
@@ -51,19 +54,19 @@ const RunLeaf = TypePerformanceWideLeaf.command('RunLeaf', {
     return () => clock.run.pipe(Effect.as(LeafMessage.CompletedRun()))
   },
 })
-const runLeaf = TypePerformanceWideLeaf.step(model => ({
+const runLeaf = TypePerformanceWideLeafDefinition.step(model => ({
   model,
   commands: [RunLeaf()],
 }))
-const Leaf = TypePerformanceWideLeaf.assemble({
+const Leaf = TypePerformanceWideLeafDefinition.toBlock({
   init: () => ({ model: LeafModel.make({ value: 0 }) }),
-  update: TypePerformanceWideLeaf.update((model, message) =>
+  update: TypePerformanceWideLeafDefinition.update((model, message) =>
     LeafMessage.match(message, {
       RequestedRun: () => runLeaf(model),
       CompletedRun: () => ({ model }),
     }),
   ),
-  steps: { runLeaf },
+  expose: { runLeaf },
   EffectsLayer: RunLeaf.layer,
 })
 

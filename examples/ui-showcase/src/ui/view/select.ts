@@ -4,7 +4,7 @@ import { Select } from '@foldkit/ui'
 
 import * as Icon from '../../icon'
 import { Message } from '../message'
-import { ui } from '../update'
+import { RegisteredUiDefinition } from '../update'
 
 const selectClassName =
   'appearance-none inline-flex items-center gap-2 w-full px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'
@@ -18,7 +18,7 @@ const labelClassName = 'block text-sm font-medium text-gray-700'
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   const countryOptions = (): ReadonlyArray<Html> => [
     h.option([h.Value('us')], ['United States']),
     h.option([h.Value('ca')], ['Canada']),

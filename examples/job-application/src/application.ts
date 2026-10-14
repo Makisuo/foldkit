@@ -1,8 +1,8 @@
 import { Crypto, Effect, Schema } from 'effect'
 import { Calendar } from 'foldkit'
 
+import { SubmitApplication } from './command'
 import {
-  Application,
   attachments,
   coverLetter,
   education,
@@ -11,14 +11,8 @@ import {
   stepMenu,
   stepTabs,
   workHistory,
-} from './children'
-import { SubmitApplication } from './command'
-import { Message } from './message'
+} from './connection'
 import { Model, Submission } from './model'
-import { update } from './update'
-import { view } from './view/view'
-
-// FLAGS
 
 export const Flags = Schema.Struct({
   today: Calendar.CalendarDate,
@@ -43,8 +37,6 @@ export const flags = Effect.gen(function* () {
     initialSkillsEntryId,
   }
 })
-
-// INIT
 
 export const init = ({
   today,
@@ -89,13 +81,4 @@ export const init = ({
   }
 }
 
-export const implementation = {
-  init,
-  update,
-  view,
-  EffectsLayer: SubmitApplication.layer,
-}
-
-export { Message, Model, update, view }
-
-export { Application }
+export const EffectsLayer = SubmitApplication.layer

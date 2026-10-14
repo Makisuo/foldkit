@@ -53,11 +53,11 @@ The Counter starter begins with these files:
 - `AGENTS.md`: your instructions for AI coding assistants working on the project
 - `FOLDKIT.md`: Foldkit's own conventions for those assistants, [replaced from the current template when you upgrade Foldkit](/ai/overview)
 
-In a small starter, `src/application.ts` calls `defineApplication({ Model, Message })`, exports the typed `Application`, and authors init, update, and view through it. When the root owns Commands, Subscriptions, Mounts, or ManagedResources, their definitions and handler recipes stay at that Application boundary. Larger examples move those pieces into focused files and register child connections as the application grows.
+In a small starter, `src/application.ts` calls `defineApplication({ Model, Message })`, exports the typed `ApplicationDefinition`, and authors init, update, and view through it. A root with child connections or Mounts exports the registered authoring value as `Application`. Commands, Subscriptions, Mounts, ManagedResources, and their handler recipes stay at that Application boundary. Larger examples move substantial pieces into focused files as the application grows.
 
 ### Runtime Entry
 
-For the Counter starter, `src/entry.ts` calls the typed root’s owned `Application.make({ ...implementation, container })` method, then starts the resulting program with `Runtime.run`. A starter whose handlers need application Services defines `ApplicationLayer` in `src/services.ts`, then the entry calls `application.provide(ApplicationLayer)`. Importing `application.ts` and providing a Layer remain passive; startup happens only when the Runtime starts the program.
+For the Counter starter, `src/entry.ts` imports `ApplicationDefinition`, init, update, and view, then lists them with the container in `ApplicationDefinition.make`. A starter whose handlers need application Services defines `ApplicationLayer`, then the entry calls `application.provide(ApplicationLayer)`. Importing the authoring definition, creating the runtime input, and providing a Layer remain passive; startup happens only when the Runtime starts the program.
 
 ### Project Scripts
 

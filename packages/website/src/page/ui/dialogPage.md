@@ -12,7 +12,7 @@ Check out how Dialog is wired up in a [real Foldkit app](https://github.com/fold
 
 ### Basic
 
-Open the Dialog from a trigger by dispatching your own Message. Call the connection’s `api.open()` and `api.close()` Steps. Spread the `closeButton` bundle onto a Cancel button to dismiss it. Spread `...title` onto a heading element so the Dialog is labeled for screen readers.
+Open the Dialog from a trigger by dispatching your own Message. Call the connection’s `open()` and `close()` operations. Spread the `closeButton` bundle onto a Cancel button to dismiss it. Spread `...title` onto a heading element so the Dialog is labeled for screen readers.
 
 ::Demo{name="dialog"}
 
@@ -129,7 +129,7 @@ Payload delivered to the `toView` callback each render.
 
 Messages emitted to the parent through the optional `outMessage` field. Match on the OutMessage in the connection’s `outMessage.fold` policy.
 
-| Name     | Type | Default | Description                                                                                                                                                                                                            |
-| -------- | ---- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Opened` | `{}` | —       | Emitted once the dialog has transitioned to open. Fires after `update` has processed `RequestedOpen` and `isOpen` reflects the new state.                                                                              |
-| `Closed` | `{}` | —       | Emitted once the dialog has transitioned to closed. Programmatic `Dialog.steps.close` on an already-closed Model is a no-op that does not re-emit, as is calling close while a leave animation is already in progress. |
+| Name     | Type | Default | Description                                                                                                                                                                                                                           |
+| -------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Opened` | `{}` | —       | Emitted once the dialog has transitioned to open. Fires after `update` has processed `RequestedOpen` and `isOpen` reflects the new state.                                                                                             |
+| `Closed` | `{}` | —       | Emitted once the dialog has transitioned to closed. Calling the connected `dialog.close()` operation on an already-closed Model is a no-op that does not re-emit, as is calling close while a leave animation is already in progress. |

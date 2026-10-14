@@ -98,7 +98,7 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-const Slider = Block.define('Slider', { Model, Message, OutMessage })
+const SliderDefinition = Block.define('Slider', { Model, Message, OutMessage })
 
 // INIT
 
@@ -205,7 +205,7 @@ const withChangedValue = (
  *  Model: the view supplies the current value on the Messages that need it,
  *  and value changes surface as `ChangedValue` rather than mutating this
  *  Model. */
-export const update = Slider.update((model, message) =>
+export const update = SliderDefinition.update((model, message) =>
   Message.match<UpdateReturn>(message, {
     PressedThumb: ({ originValue }) =>
       Match.value(model.dragState).pipe(
@@ -746,7 +746,7 @@ const renderView = (
 }
 
 /** Renders an accessible Slider with the supplied value and view callback. */
-export const view = Slider.view.withInputs<ViewInputs>(renderView)
+export const view = SliderDefinition.view.withInputs<ViewInputs>(renderView)
 
 const defineSubscriptionsForRoot = <Id extends string>(
   defineSubscriptions: Block.DefineSubscriptions<Id, Model, Message>,
@@ -833,7 +833,7 @@ const defineSubscriptionsForRoot = <Id extends string>(
 
 /** Default drag Subscriptions, with the track looked up via `document`. */
 export const subscriptions = defineSubscriptionsForRoot(
-  Slider.subscriptions,
+  SliderDefinition.subscriptions,
   () => document,
 )
 
@@ -843,7 +843,7 @@ const LocalEffectsLayer = Layer.mergeAll(
 )
 
 /** Complete Slider Block definition. */
-export const block = Slider.assemble({
+export const block = SliderDefinition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),
   update,
   view,
@@ -856,18 +856,22 @@ export const block = Slider.assemble({
  * a custom document or Shadow DOM root.
  */
 export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
-  const Slider = Block.define('Slider', { Model, Message, OutMessage })
-  const rootUpdate = Slider.update(update)
-  const rootView = Slider.view.withInputs<ViewInputs>(renderView)
+  const SliderDefinition = Block.define('Slider', {
+    Model,
+    Message,
+    OutMessage,
+  })
+  const rootUpdate = SliderDefinition.update(update)
+  const rootView = SliderDefinition.view.withInputs<ViewInputs>(renderView)
   const subscriptions = defineSubscriptionsForRoot(
-    Slider.subscriptions,
+    SliderDefinition.subscriptions,
     getTrackRoot,
   )
   const EffectsLayer = Layer.mergeAll(
     subscriptions.dragPointer.layer,
     subscriptions.dragEscape.layer,
   )
-  return Slider.assemble({
+  return SliderDefinition.toBlock({
     init: (config: InitConfig) => ({ model: init(config) }),
     update: rootUpdate,
     view: rootView,

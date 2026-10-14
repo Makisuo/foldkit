@@ -93,10 +93,16 @@ describe('rendering templates', () => {
       'Runtime.hydrate',
     )
     expect(readTemplateFile('rendering/ssg/src/application.ts')).toContain(
-      'Application.make({',
+      'ApplicationDefinition = defineApplication({ Model, Message })',
+    )
+    expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
+      'ApplicationDefinition.make({',
+    )
+    expect(readTemplateFile('rendering/ssg/src/application.ts')).not.toContain(
+      'Application = ApplicationDefinition',
     )
     expect(readTemplateFile('rendering/ssg/src/entry.ts')).not.toContain(
-      'Application.make({',
+      '...implementation',
     )
   })
 
@@ -129,10 +135,16 @@ describe('rendering templates', () => {
       'Runtime.hydrate',
     )
     expect(readTemplateFile('rendering/ssr/src/application.ts')).toContain(
-      'Application.make({',
+      'ApplicationDefinition = defineApplication({ Model, Message })',
+    )
+    expect(readTemplateFile('rendering/ssr/src/entry.ts')).toContain(
+      'ApplicationDefinition.make({',
+    )
+    expect(readTemplateFile('rendering/ssr/src/application.ts')).not.toContain(
+      'Application = ApplicationDefinition',
     )
     expect(readTemplateFile('rendering/ssr/src/entry.ts')).not.toContain(
-      'Application.make({',
+      '...implementation',
     )
   })
 

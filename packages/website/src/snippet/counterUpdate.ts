@@ -1,8 +1,6 @@
 import { modifyFields } from 'foldkit/struct'
 
-// UPDATE
-
-const update = definition.update((model, message) =>
+const update = CounterDefinition.update((model, message) =>
   Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: count => count - 1 }),

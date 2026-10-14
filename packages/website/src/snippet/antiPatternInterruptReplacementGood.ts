@@ -2,7 +2,7 @@
 
 import { Number } from 'effect'
 
-const update = Application.update((model, message) =>
+const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     UpdatedQuery: ({ query }) =>
       SearchState.match(model.searchState, {

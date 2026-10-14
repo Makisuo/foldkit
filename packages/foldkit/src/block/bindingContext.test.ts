@@ -19,10 +19,10 @@ const reset = ResetCounter.step(model => ({
   model: modifyFields(model, { count: () => 0 }),
   outMessage: CounterOutMessage.Reset(),
 }))
-const block = ResetCounter.assemble({
+const block = ResetCounter.toBlock({
   init: (count: number) => ({ model: CounterModel.make({ count }) }),
   update: ResetCounter.update((model, _message) => reset(model)),
-  steps: { reset },
+  expose: { reset },
   EffectsLayer: Layer.empty,
 })
 const Model = Schema.Struct({
@@ -133,10 +133,10 @@ const record = SequencedCounter.step(model => ({
 const multiply = SequencedCounter.step((model, factor: number) => ({
   model: modifyFields(model, { count: count => count * factor }),
 }))
-const sequencedCounterBlock = SequencedCounter.assemble({
+const sequencedCounterBlock = SequencedCounter.toBlock({
   init: (count: number) => ({ model: { count } }),
   update: SequencedCounter.update(model => ({ model })),
-  steps: { add, record, multiply },
+  expose: { add, record, multiply },
   EffectsLayer: Layer.empty,
   hostHandlers: [RecordCount],
 })
@@ -207,7 +207,7 @@ if (false) {
   entries.init(1)
   // @ts-expect-error A keyed fold requires the key before the child Message.
   entries.fold(initialModel, CounterMessage.ClickedReset())
-  // @ts-expect-error A keyed public Step requires its key.
+  // @ts-expect-error A keyed exposed operation requires its key.
   entries.reset()
 
   // @ts-expect-error A keyed child with OutMessages requires an explicit policy.
@@ -252,7 +252,7 @@ if (false) {
 }
 
 describe('bound OutMessage context', () => {
-  it('preserves the previous parent Model for static folds and declared Steps', () => {
+  it('preserves the previous parent Model for static folds and exposed operations', () => {
     const results = [
       boundCounter.fold(initialModel, CounterMessage.ClickedReset()),
       boundCounter.reset()(initialModel),
@@ -263,7 +263,7 @@ describe('bound OutMessage context', () => {
     }
   })
 
-  it('preserves the previous parent Model for keyed folds and declared Steps', () => {
+  it('preserves the previous parent Model for keyed folds and exposed operations', () => {
     const results = [
       entries.fold(initialModel, 1, CounterMessage.ClickedReset()),
       entries.reset(1)(initialModel),

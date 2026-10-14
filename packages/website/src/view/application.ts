@@ -1,15 +1,15 @@
 import { Match, Option } from 'effect'
 import { type HtmlBuilder } from 'foldkit/html'
 
+import { Application } from '../application'
+import { Shared } from '../component'
 import {
   type ViewRequirements,
   home,
   playground,
   snippetCopy,
   snippetDisclosure,
-} from '../children'
-import { Application } from '../children'
-import { Shared } from '../component'
+} from '../connection'
 import { Deployment } from '../deployment'
 import { Docs, Marketing } from '../layout'
 import { Message } from '../message'

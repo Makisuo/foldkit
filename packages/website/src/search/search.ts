@@ -1,13 +1,13 @@
-import { search } from './block'
+import { SearchDefinition } from './definition'
 import { init } from './init'
 import { EffectsLayer } from './layer'
 import { informRouteChanged, open, update } from './update'
 import { view } from './view'
 
-export const block = search.assemble({
+export const block = SearchDefinition.toBlock({
   init,
   update,
   view,
-  steps: { informRouteChanged, open },
+  expose: { informRouteChanged, open },
   EffectsLayer,
 })

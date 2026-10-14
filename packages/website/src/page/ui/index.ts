@@ -1,11 +1,9 @@
 export { Model } from './model'
 export { Message } from './message'
-export { init } from './init'
-export { update } from './update'
-export { block } from './block'
+export { block } from './ui'
 
 export * as OverviewPage from './overviewPage'
-export * as SelectionBlocksPage from './selectionSubmodelsPage'
+export * as SelectionBlocksPage from './selectionBlocksPage'
 export * as ButtonPage from './buttonPage'
 export * as InputPage from './inputPage'
 export * as TextareaPage from './textareaPage'

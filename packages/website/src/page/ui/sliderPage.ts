@@ -3,7 +3,7 @@ import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import * as Slider from './demo/slider'
 import raw from './sliderPage.md'
-import { ui } from './update'
+import { RegisteredUiDefinition } from './update'
 
 const { tableOfContents, view: renderPage } = slotDocPage<
   'horizontal' | 'vertical'
@@ -17,7 +17,7 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = ui.view.withInputs<ViewInputs>(
+export const view = RegisteredUiDefinition.view.withInputs<ViewInputs>(
   (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h) =>
     renderPage({
       demos: {

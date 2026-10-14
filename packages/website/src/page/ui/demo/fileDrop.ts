@@ -41,8 +41,6 @@ const formatFileSize = (bytes: number): string => {
   return `${(bytes / BYTES_PER_MB).toFixed(1)} MB`
 }
 
-// VIEW
-
 export const basicDemo = (
   model: Model,
   h: ViewBuilder,

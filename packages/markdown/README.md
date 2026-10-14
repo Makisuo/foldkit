@@ -140,7 +140,9 @@ const counter = Counter.block.connection({
   parentMessage: Message.GotCounterMessage,
 })
 
-export const Application = defineApplication({ Model, Message }).register({
+export const ApplicationDefinition = defineApplication({ Model, Message })
+
+export const Application = ApplicationDefinition.register({
   children: [counter],
 })
 

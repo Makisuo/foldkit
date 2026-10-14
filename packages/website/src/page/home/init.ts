@@ -3,11 +3,9 @@ import {
   demoTabs,
   notePlayerDemo,
   playgroundMenu,
-} from './bindings'
+} from './connection'
 import * as DemoTab from './demoTab'
 import { Model } from './model'
-
-// INIT
 
 export const init = () => {
   const activeDemoTab: DemoTab.Tab = 'Architecture'

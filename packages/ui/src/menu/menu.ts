@@ -30,7 +30,7 @@ import {
 } from '../keyboard.js'
 import { resolveTypeaheadMatch } from '../typeahead.js'
 
-const Menu = Block.define('Menu')
+const MenuDefinition = Block.define('Menu')
 
 // MODEL
 
@@ -163,7 +163,11 @@ export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
 export type ReleasedPointerOnItems = typeof Message.ReleasedPointerOnItems.Type
 
-const menu = Menu.define({ Model, Message, OutMessage })
+const TypedMenuDefinition = MenuDefinition.define({
+  Model,
+  Message,
+  OutMessage,
+})
 
 // INIT
 
@@ -220,7 +224,7 @@ const itemSelector = (id: string, index: number): string =>
   idSelector(`${id}-item-${index}`)
 
 /** Prevents page scrolling while the menu is open. */
-export const LockMenuScroll = Menu.command('LockMenuScroll', {
+export const LockMenuScroll = MenuDefinition.command('LockMenuScroll', {
   messages: [Message.CompletedLockMenuScroll],
   handler: function* () {
     return () =>
@@ -228,7 +232,7 @@ export const LockMenuScroll = Menu.command('LockMenuScroll', {
   },
 })
 /** Re-enables page scrolling after the menu closes. */
-export const UnlockMenuScroll = Menu.command('UnlockMenuScroll', {
+export const UnlockMenuScroll = MenuDefinition.command('UnlockMenuScroll', {
   messages: [Message.CompletedUnlockMenuScroll],
   handler: function* () {
     return () =>
@@ -236,7 +240,7 @@ export const UnlockMenuScroll = Menu.command('UnlockMenuScroll', {
   },
 })
 /** Marks all elements outside the menu as inert for modal behavior. */
-export const InertMenuOthers = Menu.command('InertMenuOthers', {
+export const InertMenuOthers = MenuDefinition.command('InertMenuOthers', {
   args: { id: Schema.String },
   messages: [Message.CompletedInertMenuOthers],
   handler: function* () {
@@ -247,7 +251,7 @@ export const InertMenuOthers = Menu.command('InertMenuOthers', {
   },
 })
 /** Removes the inert attribute from elements outside the Menu. */
-export const RestoreMenuInert = Menu.command('RestoreMenuInert', {
+export const RestoreMenuInert = MenuDefinition.command('RestoreMenuInert', {
   args: { id: Schema.String },
   messages: [Message.CompletedRestoreMenuInert],
   handler: function* () {
@@ -256,7 +260,7 @@ export const RestoreMenuInert = Menu.command('RestoreMenuInert', {
   },
 })
 /** Moves focus to the menu items container after opening. */
-export const FocusMenuItems = Menu.command('FocusMenuItems', {
+export const FocusMenuItems = MenuDefinition.command('FocusMenuItems', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusMenuItems],
   handler: function* () {
@@ -268,7 +272,7 @@ export const FocusMenuItems = Menu.command('FocusMenuItems', {
   },
 })
 /** Moves focus back to the menu button after closing. */
-export const FocusMenuButton = Menu.command('FocusMenuButton', {
+export const FocusMenuButton = MenuDefinition.command('FocusMenuButton', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusMenuButton],
   handler: function* () {
@@ -280,19 +284,22 @@ export const FocusMenuButton = Menu.command('FocusMenuButton', {
   },
 })
 /** Scrolls the active menu item into view after keyboard navigation. */
-export const ScrollMenuItemIntoView = Menu.command('ScrollMenuItemIntoView', {
-  args: { id: Schema.String, index: Schema.Number },
-  messages: [Message.CompletedScrollMenuItemIntoView],
-  handler: function* () {
-    return ({ id, index }) =>
-      Dom.scrollIntoView(itemSelector(id, index)).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedScrollMenuItemIntoView()),
-      )
+export const ScrollMenuItemIntoView = MenuDefinition.command(
+  'ScrollMenuItemIntoView',
+  {
+    args: { id: Schema.String, index: Schema.Number },
+    messages: [Message.CompletedScrollMenuItemIntoView],
+    handler: function* () {
+      return ({ id, index }) =>
+        Dom.scrollIntoView(itemSelector(id, index)).pipe(
+          Effect.ignore,
+          Effect.as(Message.CompletedScrollMenuItemIntoView()),
+        )
+    },
   },
-})
+)
 /** Programmatically clicks the active menu item's DOM element. */
-export const ClickMenuItem = Menu.command('ClickMenuItem', {
+export const ClickMenuItem = MenuDefinition.command('ClickMenuItem', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedClickMenuItem],
   handler: function* () {
@@ -304,18 +311,21 @@ export const ClickMenuItem = Menu.command('ClickMenuItem', {
   },
 })
 /** Waits for the typeahead search debounce period before clearing the query. */
-export const DelayClearMenuSearch = Menu.command('DelayClearMenuSearch', {
-  args: { version: Schema.Number },
-  messages: [Message.CompletedDelayClearMenuSearch],
-  handler: function* () {
-    return ({ version }) =>
-      Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
-        Effect.as(Message.CompletedDelayClearMenuSearch({ version })),
-      )
+export const DelayClearMenuSearch = MenuDefinition.command(
+  'DelayClearMenuSearch',
+  {
+    args: { version: Schema.Number },
+    messages: [Message.CompletedDelayClearMenuSearch],
+    handler: function* () {
+      return ({ version }) =>
+        Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
+          Effect.as(Message.CompletedDelayClearMenuSearch({ version })),
+        )
+    },
   },
-})
+)
 /** Detects whether the menu button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation block that leave is complete. */
-export const DetectMenuMovementOrAnimationEnd = Menu.command(
+export const DetectMenuMovementOrAnimationEnd = MenuDefinition.command(
   'DetectMenuMovementOrAnimationEnd',
   {
     args: { id: Schema.String, generation: Schema.Number },
@@ -339,7 +349,7 @@ export const DetectMenuMovementOrAnimationEnd = Menu.command(
 )
 
 const detectMenuMovementOrAnimationEnd = (generation: number) =>
-  menu.step(model => ({
+  TypedMenuDefinition.step(model => ({
     model,
     commands: [DetectMenuMovementOrAnimationEnd({ id: model.id, generation })],
   }))
@@ -352,7 +362,7 @@ const foldAnimationOutMessage =
   Animation.OutMessage.match<AnimationOutMessageStep>({
     StartedLeaveAnimating: ({ generation }) =>
       detectMenuMovementOrAnimationEnd(generation),
-    TransitionedOut: () => menu.step(model => ({ model })),
+    TransitionedOut: () => TypedMenuDefinition.step(model => ({ model })),
   })
 
 const animation = Animation.block.connection({
@@ -362,7 +372,7 @@ const animation = Animation.block.connection({
   outMessage: { fold: foldAnimationOutMessage },
 })
 
-const internalUpdate = menu.update((model, message) => {
+const internalUpdate = TypedMenuDefinition.update((model, message) => {
   const maybeLockScroll = OptionExt.when(model.isModal, LockMenuScroll())
 
   const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockMenuScroll())
@@ -653,7 +663,7 @@ const internalUpdate = menu.update((model, message) => {
  *  Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu())`.
  */
-export const AnchorMenu = Menu.mount('AnchorMenu', {
+export const AnchorMenu = MenuDefinition.mount('AnchorMenu', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorMenu],
   handler: function* () {
@@ -677,7 +687,7 @@ export const AnchorMenu = Menu.mount('AnchorMenu', {
 /** The backdrop-portaling Mount this Menu renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalMenuBackdrop, Message.CompletedPortalMenuBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalMenuBackdrop = Menu.mount('PortalMenuBackdrop', {
+export const PortalMenuBackdrop = MenuDefinition.mount('PortalMenuBackdrop', {
   messages: [Message.CompletedPortalMenuBackdrop],
   handler: function* () {
     return ({ element }) =>
@@ -696,11 +706,14 @@ export const mounts = [AnchorMenu, PortalMenuBackdrop]
 
 type MountRequirements = Mount.RequirementsOf<typeof mounts>
 
-const registered = menu.register({ mounts, children: [animation] })
+const RegisteredMenuDefinition = TypedMenuDefinition.register({
+  mounts,
+  children: [animation],
+})
 
 /** Processes a Menu Message and returns the next Model, optional Commands, and
  *  an optional OutMessage. */
-export const update = menu.update(internalUpdate)
+export const update = TypedMenuDefinition.update(internalUpdate)
 
 const LocalEffectsLayer = Layer.mergeAll(
   LockMenuScroll.layer,
@@ -719,7 +732,7 @@ const LocalEffectsLayer = Layer.mergeAll(
 
 /** Programmatically opens the Menu, updating the Model and returning focus and
  *  modal Commands. Use this in domain-event handlers. */
-export const open = menu.step(model =>
+export const open = TypedMenuDefinition.step(model =>
   update(model, Message.Opened({ maybeActiveItemIndex: Option.none() })),
 )
 
@@ -727,12 +740,15 @@ export const open = menu.step(model =>
  *  with focus and modal Commands. If it is already closed, returns the Model
  *  unchanged with no Commands. Use this in domain-event handlers to close the
  *  Menu. */
-export const close = menu.step(model => update(model, Message.Closed()))
+export const close = TypedMenuDefinition.step(model =>
+  update(model, Message.Closed()),
+)
 
 /** Programmatically selects a Menu item, closing the Menu and returning focus
  *  Commands plus a `Selected` OutMessage. Use this in domain-event handlers. */
-export const selectItem = menu.step((model, item: string, index: number) =>
-  update(model, Message.SelectedItem({ index, item })),
+export const selectItem = TypedMenuDefinition.step(
+  (model, item: string, index: number) =>
+    update(model, Message.SelectedItem({ index, item })),
 )
 
 // VIEW
@@ -805,7 +821,7 @@ const internalView = <Item extends string>() =>
 
 type MenuInputs = ViewInputs<string>
 
-const menuViewImpl = registered.view.withInputs<MenuInputs>(
+const menuViewImpl = RegisteredMenuDefinition.view.withInputs<MenuInputs>(
   (model, viewInputs, h) => {
     const {
       id,
@@ -1257,18 +1273,18 @@ const menuViewImpl = registered.view.withInputs<MenuInputs>(
   },
 )
 
-const steps = { open, close, selectItem }
+const expose = { open, close, selectItem }
 
 type RefineOutMessage<Return, OutMessage> = Return extends unknown
   ? Omit<Return, 'outMessage'> & Readonly<{ outMessage?: OutMessage }>
   : never
 
 /** Complete default Menu Block definition. */
-export const block = registered.assemble({
+export const block = RegisteredMenuDefinition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),
   update,
   view: menuViewImpl,
-  steps,
+  expose,
   EffectsLayer: LocalEffectsLayer,
 })
 
@@ -1284,15 +1300,15 @@ const makeBlock = <Item extends string>() => {
   const RefinedOutMessage =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     OutMessage as unknown as OutMessageSchema<Item>
-  const refinedMenu = Menu.define({
+  const ItemMenuDefinition = MenuDefinition.define({
     Model,
     Message,
     OutMessage: RefinedOutMessage,
   })
-  const refinedUpdate = refinedMenu.update((model, message) =>
+  const refinedUpdate = ItemMenuDefinition.update((model, message) =>
     castReturn(update(model, message)),
   )
-  const refinedRegistered = refinedMenu.register({
+  const RegisteredItemMenuDefinition = ItemMenuDefinition.register({
     mounts,
     children: [animation],
   })
@@ -1303,26 +1319,27 @@ const makeBlock = <Item extends string>() => {
       viewInputs: ViewInputs<Item>,
       h: Parameters<typeof menuViewImpl>[2],
     ) => Html
-  const view = refinedRegistered.view.withInputs<ViewInputs<Item>>(
+  const view = RegisteredItemMenuDefinition.view.withInputs<ViewInputs<Item>>(
     (model, viewInputs, h) => refinedView(model, viewInputs, h),
   )
-  const open = refinedMenu.step(model =>
+  const open = ItemMenuDefinition.step(model =>
     refinedUpdate(
       model,
       Message.Opened({ maybeActiveItemIndex: Option.none() }),
     ),
   )
-  const close = refinedMenu.step(model =>
+  const close = ItemMenuDefinition.step(model =>
     refinedUpdate(model, Message.Closed()),
   )
-  const selectItem = refinedMenu.step((model, item: Item, index: number) =>
-    refinedUpdate(model, Message.SelectedItem({ index, item })),
+  const selectItem = ItemMenuDefinition.step(
+    (model, item: Item, index: number) =>
+      refinedUpdate(model, Message.SelectedItem({ index, item })),
   )
-  return refinedRegistered.assemble({
+  return RegisteredItemMenuDefinition.toBlock({
     init: (config: InitConfig) => ({ model: init(config) }),
     update: refinedUpdate,
     view,
-    steps: { open, close, selectItem },
+    expose: { open, close, selectItem },
     EffectsLayer: LocalEffectsLayer,
   })
 }

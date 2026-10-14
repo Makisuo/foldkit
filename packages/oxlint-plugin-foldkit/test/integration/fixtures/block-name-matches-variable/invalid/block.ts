@@ -2,6 +2,7 @@ import { Block, Block as AliasedBlock } from 'foldkit'
 import * as Foldkit from 'foldkit'
 import { define as aliasedDefine, define } from 'foldkit/block'
 import * as BlockModule from 'foldkit/block'
+import { define as defineApplication } from 'foldkit/application'
 
 const WrongRoot = Block.define('Root')
 const WrongAliasedRoot = AliasedBlock.define('AliasedRoot')
@@ -12,6 +13,15 @@ const WrongRegistered = BlockModule.define('Registered', {
   Model,
   Message,
 }).register({})
+const WrongIdentityFirst = Block.define('IdentityFirst').define({
+  Model,
+  Message,
+})
+const WrongApplication = defineApplication({ Model, Message })
+const WrongRegisteredApplication = defineApplication({
+  Model,
+  Message,
+}).register({})
 
 void WrongRoot
 void WrongAliasedRoot
@@ -19,3 +29,6 @@ void WrongNamespaceRoot
 void WrongSubpathDefine
 void WrongAliasedSubpathDefine
 void WrongRegistered
+void WrongIdentityFirst
+void WrongApplication
+void WrongRegisteredApplication

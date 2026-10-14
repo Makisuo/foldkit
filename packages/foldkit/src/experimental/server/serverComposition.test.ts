@@ -61,7 +61,7 @@ const childImplementation = {
   ),
   EffectsLayer: Layer.merge(Prepare.layer, Observe.layer),
 }
-const childBlock = child.assemble(childImplementation)
+const childBlock = child.toBlock(childImplementation)
 const RootModel = Schema.Struct({ title: Schema.String })
 const RootMessage = defineMessageUnion({
   GotChildMessage: { message: ChildMessage },
@@ -162,20 +162,20 @@ const htmlImplementation = {
 const OtherFlags = Schema.Struct({ count: Schema.Number })
 
 const verifyServerBlockContracts = (): void => {
-  renderToString(RegisteredApplication, rootImplementation, {
+  const rootRender = renderToString(RegisteredApplication, rootImplementation, {
     isHydratable: false,
   })
-  renderToString(
+  const flagsRender = renderToString(
     FlagsApplication,
     { ...flagsImplementation, Flags: ServerFlags },
     { flags: { title: 'flags' }, isHydratable: false },
   )
-  renderToString(
+  const routingRender = renderToString(
     RoutingApplication,
     { ...routingImplementation, routing: {} },
     { url: 'https://foldkit.dev/docs', isHydratable: false },
   )
-  renderToString(
+  const routingFlagsRender = renderToString(
     RoutingFlagsApplication,
     {
       ...routingFlagsImplementation,
@@ -189,36 +189,56 @@ const verifyServerBlockContracts = (): void => {
     },
   )
 
-  // @ts-expect-error A server implementation must supply a page-owning Document view.
-  renderToString(DataApplication, dataImplementation, {
-    isHydratable: false,
-  })
+  const invalidDataRender = renderToString(
+    DataApplication,
+    // @ts-expect-error A server implementation must supply a page-owning Document view.
+    dataImplementation,
+    {
+      isHydratable: false,
+    },
+  )
 
-  // @ts-expect-error An embeddable HTML view cannot own the rendered Document.
-  renderToString(HtmlApplication, htmlImplementation, {
-    isHydratable: false,
-  })
+  const invalidHtmlRender = renderToString(
+    HtmlApplication,
+    // @ts-expect-error An embeddable HTML view cannot own the rendered Document.
+    htmlImplementation,
+    {
+      isHydratable: false,
+    },
+  )
 
-  renderToString(
+  const invalidFlagsValueRender = renderToString(
     FlagsApplication,
     // @ts-expect-error Render Flags must match the config's Flags Schema.
     { ...flagsImplementation, Flags: ServerFlags },
     { flags: { title: 1 }, isHydratable: false },
   )
 
-  renderToString(
+  const invalidFlagsSchemaRender = renderToString(
     FlagsApplication,
     // @ts-expect-error The Flags Schema must match the root's init input.
     { ...flagsImplementation, Flags: OtherFlags },
     { flags: { count: 1 }, isHydratable: false },
   )
 
-  renderToString(
+  const invalidRoutingRender = renderToString(
     RegisteredApplication,
     // @ts-expect-error A routing root must accept the parsed Url as its init input.
     { ...rootImplementation, routing: {} },
     { url: 'https://foldkit.dev', isHydratable: false },
   )
+
+  void [
+    rootRender,
+    flagsRender,
+    routingRender,
+    routingFlagsRender,
+    invalidDataRender,
+    invalidHtmlRender,
+    invalidFlagsValueRender,
+    invalidFlagsSchemaRender,
+    invalidRoutingRender,
+  ]
 }
 
 void verifyServerBlockContracts

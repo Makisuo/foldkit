@@ -56,7 +56,7 @@ const foldMenuOutMessage = ActionMenu.OutMessage.match<
   Selected: () => model => ({ model }),
 })
 
-// The binding wires the completed child Block into the parent: it runs ActionMenu.update,
+// The connection wires the completed child Block into the parent: it runs ActionMenu.update,
 // writes the next Menu Model back, maps the Block's Commands into your
 // Message type, and hands any OutMessage to the OutMessage fold.
 const menu = ActionMenu.connection({
@@ -66,13 +66,14 @@ const menu = ActionMenu.connection({
   outMessage: { fold: foldMenuOutMessage },
 })
 
-const ActionMenuExample = Block.define('ActionMenuExample', {
+const ActionMenuExampleDefinition = Block.define('ActionMenuExample', {
   Model,
   Message,
 })
-const registered = ActionMenuExample.register({ children: [menu] })
+const RegisteredActionMenuExampleDefinition =
+  ActionMenuExampleDefinition.register({ children: [menu] })
 
-const update = ActionMenuExample.update((model, message) =>
+const update = ActionMenuExampleDefinition.update((model, message) =>
   Message.match(message, {
     GotMenuMessage: ({ message }) => menu.fold(model, message),
   }),
@@ -84,7 +85,7 @@ const update = ActionMenuExample.update((model, message) =>
 // label element (target the trigger id with `buttonId('actions')` from `@foldkit/ui/menu` for a
 // native `<label for>`). Either attribute is only emitted when provided, so
 // the trigger never carries a dangling `aria-labelledby`.
-const view = registered.view((model, h) =>
+const view = RegisteredActionMenuExampleDefinition.view((model, h) =>
   h.block(
     menu.embedView({
       slotId: 'menu',

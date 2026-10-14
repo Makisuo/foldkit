@@ -1,10 +1,19 @@
 import { Option } from 'effect'
 import { Runtime } from 'foldkit'
 
-import { Application, Message, crashView, implementation } from './application'
+import {
+  ApplicationDefinition,
+  Message,
+  crashView,
+  init,
+  update,
+  view,
+} from './application'
 
-const application = Application.make({
-  ...implementation,
+const application = ApplicationDefinition.make({
+  init,
+  update,
+  view,
   container: document.getElementById('root'),
   crash: {
     view: crashView,

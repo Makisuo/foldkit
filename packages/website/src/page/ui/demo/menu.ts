@@ -56,8 +56,6 @@ const itemGroupKey = (item: MenuItem): string =>
     Match.orElse(() => 'Actions'),
   )
 
-// VIEW
-
 const MENU_ANCHOR: AnchorConfig = {
   placement: 'bottom-start',
   gap: 4,

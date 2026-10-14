@@ -29,8 +29,6 @@ export type ThemePreference = typeof ThemePreference.Type
 
 export { ResolvedTheme } from './colorScheme'
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
   CompletedLoadExternal: {},

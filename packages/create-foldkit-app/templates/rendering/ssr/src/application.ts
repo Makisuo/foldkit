@@ -7,8 +7,6 @@ import { Button } from '@foldkit/ui'
 
 import { COUNT_COOKIE } from './cookie'
 
-// MODEL
-
 export const Model = Schema.Struct({
   count: Schema.Number,
   renderedAt: Schema.String,
@@ -16,16 +14,12 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-// FLAGS
-
 export const Flags = Schema.Struct({
   initialCount: Schema.Number,
   renderedAt: Schema.String,
   renderedOn: Schema.Literals(['Server', 'Client']),
 })
 export type Flags = typeof Flags.Type
-
-// MESSAGE
 
 export const Message = defineMessageUnion({
   ClickedDecrement: {},
@@ -35,11 +29,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-// UPDATE
-
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     ClickedDecrement: () => {
       const nextCount = model.count - 1
@@ -59,11 +51,9 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// COMMAND
-
 const COUNT_COOKIE_MAX_AGE_SECONDS = 31536000
 
-export const PersistCount = Application.command('PersistCount', {
+export const PersistCount = ApplicationDefinition.command('PersistCount', {
   args: { count: Schema.Number },
   messages: [Message.CompletedPersistCount],
   handler: function* () {
@@ -77,9 +67,7 @@ export const PersistCount = Application.command('PersistCount', {
   },
 })
 
-const EffectsLayer = PersistCount.layer
-
-// INIT
+export const EffectsLayer = PersistCount.layer
 
 export const init = (flags: Flags) => ({
   model: {
@@ -89,9 +77,7 @@ export const init = (flags: Flags) => ({
   },
 })
 
-// VIEW
-
-export const view = Application.view((model, h) => ({
+export const view = ApplicationDefinition.view((model, h) => ({
   title: `Count ${model.count}`,
   body: h.div(
     [
@@ -144,13 +130,4 @@ export const view = Application.view((model, h) => ({
   ),
 }))
 
-// STYLE
-
 const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
-
-export const implementation = {
-  init,
-  update,
-  view,
-  EffectsLayer,
-}

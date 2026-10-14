@@ -26,8 +26,6 @@ import { Button, Checkbox, Input } from '@foldkit/ui'
 
 const TODOS_STORAGE_KEY = 'todos'
 
-// MODEL
-
 const Todo = Schema.Struct({
   id: Schema.String,
   text: Schema.String,
@@ -58,8 +56,6 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   UpdatedNewTodo: { text: Schema.String },
   UpdatedEditingTodo: { text: Schema.String },
@@ -82,18 +78,14 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-type ViewBuilder = HtmlBuilderOf<typeof Application>
-
-// FLAGS
+type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
 export const Flags = Schema.Struct({
   todos: Schema.Option(Todos),
 })
 export type Flags = typeof Flags.Type
-
-// INIT
 
 export const init = (flags: Flags) => ({
   model: Model.make({
@@ -104,9 +96,7 @@ export const init = (flags: Flags) => ({
   }),
 })
 
-// UPDATE
-
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     UpdatedNewTodo: ({ text }) => ({
       model: modifyFields(model, {
@@ -274,9 +264,7 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// COMMAND
-
-export const GenerateTodo = Application.command('GenerateTodo', {
+export const GenerateTodo = ApplicationDefinition.command('GenerateTodo', {
   args: { text: Schema.String },
   messages: [Message.CompletedGenerateTodo],
   handler: function* () {
@@ -295,7 +283,7 @@ export const GenerateTodo = Application.command('GenerateTodo', {
   },
 })
 
-export const SaveTodos = Application.command('SaveTodos', {
+export const SaveTodos = ApplicationDefinition.command('SaveTodos', {
   args: { todos: Todos },
   messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
   handler: function* () {
@@ -310,11 +298,7 @@ export const SaveTodos = Application.command('SaveTodos', {
   },
 })
 
-// EFFECTS LAYER
-
 export const EffectsLayer = Layer.mergeAll(GenerateTodo.layer, SaveTodos.layer)
-
-// VIEW
 
 const editingTextFor = (
   editing: EditingState,
@@ -565,7 +549,7 @@ const filterTodos = (todos: Todos, filter: Filter): Todos =>
     Match.exhaustive,
   )
 
-export const view = Application.view((model, h) => {
+export const view = ApplicationDefinition.view((model, h) => {
   const filteredTodos = filterTodos(model.todos, model.filter)
   const activeCount = Array.length(
     Array.filter(model.todos, todo => !todo.completed),
@@ -671,10 +655,3 @@ export const flags = Effect.gen(function* () {
 
   return { todos: Option.some(todos) }
 }).pipe(Effect.catch(() => Effect.succeed({ todos: Option.none() })))
-
-export const implementation = {
-  init,
-  update,
-  view,
-  EffectsLayer,
-}

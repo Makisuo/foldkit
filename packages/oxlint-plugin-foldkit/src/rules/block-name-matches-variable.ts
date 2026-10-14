@@ -37,34 +37,73 @@ const isBlockDefineCall = (
   })
 }
 
-const blockDefineCall = (
+const isApplicationDefineCall = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
-): ESTree.CallExpression | undefined => {
-  if (isBlockDefineCall(node, references)) {
-    return node
+): boolean => {
+  if (references === undefined) {
+    return AST.isCallOf(node, 'Application', 'define')
+  }
+
+  return Option.exists(resolveFoldkitApiPath(references, node.callee), path => {
+    const [namespace, methodName, extraMember] = path
+
+    return (
+      namespace === 'Application' &&
+      methodName === 'define' &&
+      extraMember === undefined
+    )
+  })
+}
+
+type DefinitionCall = Readonly<{
+  call: ESTree.CallExpression
+  isApplication: boolean
+  isRegistered: boolean
+}>
+
+const definitionCall = (
+  node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): DefinitionCall | undefined => {
+  const isBlock = isBlockDefineCall(node, references)
+  const isApplication = isApplicationDefineCall(node, references)
+  if (isBlock || isApplication) {
+    return { call: node, isApplication, isRegistered: false }
   }
 
   if (
     !isMemberExpression(node.callee) ||
     node.callee.computed ||
-    !isIdentifier(node.callee.property, 'register') ||
-    !isCallExpression(node.callee.object) ||
-    !isBlockDefineCall(node.callee.object, references)
+    !isIdentifier(node.callee.property) ||
+    !isCallExpression(node.callee.object)
   ) {
     return undefined
   }
 
-  return node.callee.object
+  const methodName = node.callee.property.name
+  if (methodName !== 'define' && methodName !== 'register') {
+    return undefined
+  }
+
+  const precedingStage = definitionCall(node.callee.object, references)
+  if (precedingStage === undefined) {
+    return undefined
+  }
+
+  return {
+    ...precedingStage,
+    isRegistered: precedingStage.isRegistered || methodName === 'register',
+  }
 }
 
-/** Requires a variable bound to Block.define to match its literal name. */
+/** Requires definition bindings to follow the definition stage naming model. */
 export const blockNameMatchesVariable = Rule.define({
   name: 'block-name-matches-variable',
   meta: Rule.meta({
     type: 'suggestion',
     description:
-      'Keep a Block declaration identifier in sync with its Block.define name.',
+      'Name Block and Application definition bindings for their authoring stage.',
   }),
   create: function* () {
     const ctx = yield* RuleContext
@@ -83,20 +122,46 @@ export const blockNameMatchesVariable = Rule.define({
           return Effect.void
         }
 
-        const defineCall = blockDefineCall(init, references)
-        if (defineCall === undefined) {
+        const definition = definitionCall(init, references)
+        if (definition === undefined) {
           return Effect.void
         }
 
-        const nameArgument = firstStringArgument(defineCall)
-        if (nameArgument === undefined || node.id.name === nameArgument.value) {
+        if (definition.isApplication) {
+          const expectedName = definition.isRegistered
+            ? 'Application'
+            : 'ApplicationDefinition'
+          if (node.id.name === expectedName) {
+            return Effect.void
+          }
+
+          return ctx.report(
+            Diagnostic.make({
+              node: node.id,
+              message: `Application definition identifier "${node.id.name}" must be "${expectedName}" at this authoring stage.`,
+            }),
+          )
+        }
+
+        const nameArgument = firstStringArgument(definition.call)
+        if (nameArgument === undefined) {
+          return Effect.void
+        }
+
+        const expectedSuffix = `${nameArgument.value}Definition`
+        const isValidName = definition.isRegistered
+          ? node.id.name.endsWith(expectedSuffix)
+          : node.id.name === expectedSuffix
+        if (isValidName) {
           return Effect.void
         }
 
         return ctx.report(
           Diagnostic.make({
             node: node.id,
-            message: `Block declaration identifier "${node.id.name}" does not match its Block.define name "${nameArgument.value}".`,
+            message: definition.isRegistered
+              ? `Registered Block definition identifier "${node.id.name}" must end with "${expectedSuffix}".`
+              : `Block definition identifier "${node.id.name}" must be "${expectedSuffix}".`,
           }),
         )
       },

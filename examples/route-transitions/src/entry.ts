@@ -1,9 +1,19 @@
 import { Runtime } from 'foldkit'
 
-import { Application, Message, implementation } from './application'
+import {
+  ApplicationDefinition,
+  EffectsLayer,
+  Message,
+  init,
+  update,
+  view,
+} from './application'
 
-const application = Application.make({
-  ...implementation,
+const application = ApplicationDefinition.make({
+  init,
+  update,
+  view,
+  EffectsLayer,
   container: document.getElementById('root'),
   routing: {
     onUrlRequest: request => Message.ClickedLink({ request }),

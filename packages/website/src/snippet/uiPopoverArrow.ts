@@ -2,7 +2,7 @@
 // Popover positions the arrow. The CSS below the demo draws it.
 import type { RenderInfo as PopoverRenderInfo } from '@foldkit/ui/popover'
 
-const view = registered.view((model, h) => {
+const view = RegisteredPopoverExampleDefinition.view((model, h) => {
   const popoverView = ({
     button,
     panel,

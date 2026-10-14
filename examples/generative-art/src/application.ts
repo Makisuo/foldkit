@@ -15,13 +15,9 @@ import {
   NOISE_SCALE_MIN_DIVISOR,
   NOISE_SCALE_STEP,
 } from './constant'
-import { Message } from './message'
-import { Model } from './model'
 import { subscriptions } from './subscription'
-import { Application, update } from './update'
-import { view } from './view'
 
-const EffectsLayer = Layer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
   GenerateAmbientParticle.layer,
   GenerateBurstParticle.layer,
   subscriptions.animationFrameTicks.layer,
@@ -63,15 +59,3 @@ export const init = () => ({
     GenerateAmbientParticle(),
   ),
 })
-
-export const implementation = {
-  init,
-  update,
-  view,
-  subscriptions,
-  EffectsLayer,
-}
-
-export { Message, Model, subscriptions, update, view }
-
-export { Application }

@@ -123,7 +123,7 @@ const LEFT_MOUSE_BUTTON = 0
  *  The returned Block contains everything needed to wire a toast stack into
  *  an app: `Model`, `Message`, `init`, `update`, the headless `view`,
  *  `subscriptions`, `EffectsLayer`, and the `show`, `dismiss`, and
- *  `dismissAll` transitions in `steps`.
+ *  `dismissAll` transitions in `expose`.
  *
  *  The payload is whatever content shape the consumer supplies via Schema.
  *  The Block never reads it. It flows through to `entryToView`. The Block
@@ -131,11 +131,11 @@ const LEFT_MOUSE_BUTTON = 0
  *  hover state, and swipe state.
  *
  *  Consume the completed Block everywhere. Use `Toast.Model` in your app
- *  Model, `Toast.Message` in your parent Message union, `Toast.steps.show`
- *  and `Toast.steps.dismiss` for raw Model operations, and `Toast.connection`
- *  in the parent Block. Invoke `show` and `dismiss` directly on the connection. The
- *  separate exports provide payload-independent Schemas, constants, and
- *  Commands.
+ *  Model, `Toast.Message` in your parent Message union, `Toast.expose.show`
+ *  and `Toast.expose.dismiss` for raw Model operations, and `Toast.connection`
+ *  in the parent Block. Exposed operations such as `show` and `dismiss` are
+ *  available directly on the connection. The separate exports provide
+ *  payload-independent Schemas, constants, and Commands.
  *
  *  @example
  *  ```ts
@@ -152,7 +152,7 @@ const LEFT_MOUSE_BUTTON = 0
 /** @internal Builds a completed Toast Block and exposes its definitions to package tests. */
 export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const runtime = makeRuntime(payloadSchema)
-  const { registered, entryAnimation, ...toastRuntime } = runtime
+  const { RegisteredToastDefinition, entryAnimation, ...toastRuntime } = runtime
   type Entry = typeof toastRuntime.Entry.Type
 
   type ToastMessage = typeof toastRuntime.Message.Type
@@ -179,7 +179,7 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
    *  release offset to `100vw` or `-100vw` when leave animation begins.
    *  The offset lives on `translate` rather than `transform` so it composes
    *  with your `transform` animations instead of overriding them. */
-  const view = registered.view.withInputs<ViewInputs>(
+  const view = RegisteredToastDefinition.view.withInputs<ViewInputs>(
     (model, viewInputs, h) => {
       const { id, entries } = model
       const {
@@ -319,11 +319,11 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     },
   )
 
-  const block = registered.assemble({
+  const block = RegisteredToastDefinition.toBlock({
     init: (config: InitConfig) => ({ model: toastRuntime.init(config) }),
     update: toastRuntime.update,
     view,
-    steps: toastRuntime.steps,
+    expose: toastRuntime.expose,
     subscriptions: toastRuntime.subscriptions,
     EffectsLayer: toastRuntime.EffectsLayer,
   })

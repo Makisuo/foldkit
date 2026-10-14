@@ -25,8 +25,6 @@ type Message = typeof Message.Type
 
 const initialMessages: ReadonlyArray<typeof ChatMessage.Type> = []
 
-// INIT
-
 const init = () => {
   const messageListInit = messageList.init({
     id: 'message-list',
@@ -44,21 +42,22 @@ const init = () => {
   }
 }
 
-// UPDATE
-
 const messageList = MessageList.connection({
   Model,
   field: 'messageList',
   parentMessage: Message.GotMessageListMessage,
 })
 
-const MessageListExample = Block.define('MessageListExample', {
+const MessageListExampleDefinition = Block.define('MessageListExample', {
   Model,
   Message,
 })
-const registered = MessageListExample.register({ children: [messageList] })
+const RegisteredMessageListExampleDefinition =
+  MessageListExampleDefinition.register({
+    children: [messageList],
+  })
 
-const update = MessageListExample.update((model, message) =>
+const update = MessageListExampleDefinition.update((model, message) =>
   Message.match(message, {
     GotMessageListMessage: ({ message }) => messageList.fold(model, message),
     ReceivedMessage: ({ message }) => {
@@ -73,9 +72,7 @@ const update = MessageListExample.update((model, message) =>
   }),
 )
 
-// VIEW
-
-const view = registered.view((model, h) =>
+const view = RegisteredMessageListExampleDefinition.view((model, h) =>
   h.block(
     messageList.embedView({
       slotId: 'message-list',

@@ -8,7 +8,7 @@ const settings = Settings.block.connection({
   parentMessage: Message.GotSettingsMessage,
 })
 
-const update = definition.update((model, message) =>
+const update = ParentDefinition.update((model, message) =>
   Message.match(message, {
     ClickedResetSettings: () =>
       settings.fold(model, SettingsMessage.ChangedTheme({ theme: 'Light' })),

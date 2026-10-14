@@ -7,10 +7,10 @@ import type { EntryHandlers, Variant } from '@foldkit/ui/toast'
 import * as Icon from '../../icon'
 import { Message } from '../message'
 import { Toast } from '../toast'
-import { toastDemo, ui } from '../update'
+import { RegisteredUiDefinition, toastDemo } from '../update'
 
 type Entry = (typeof Toast.Model.Type)['entries'][number]
-type HtmlBuilder = Block.HtmlBuilderOf<typeof ui>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
 
 const variantClassName = (variant: Variant): string =>
   Match.value(variant).pipe(
@@ -78,7 +78,7 @@ const renderToastEntry = (
 const demoButtonClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
 
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   return h.div(
     [],
     [

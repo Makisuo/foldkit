@@ -107,7 +107,7 @@ describe('Subscription startup supervision', () => {
         },
       ),
     }))
-    const block = Child.assemble({
+    const block = Child.toBlock({
       init: () => ({ model: { count: 0 } }),
       update: Child.update(model => ({ model })),
       subscriptions,

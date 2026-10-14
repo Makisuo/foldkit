@@ -18,6 +18,9 @@ const themeMenu = ThemeMenu.block.connection({
   outMessage: { fold: foldThemeMenuOutMessage },
 })
 
-export const Settings = Block.define('Settings', { Model, Message }).register({
+export const SettingsDefinition = Block.define('Settings', {
+  Model,
+  Message,
+}).register({
   children: [themeMenu],
 })

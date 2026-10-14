@@ -139,7 +139,7 @@ describe('Toast', () => {
   describe('show', () => {
     it('appends an entry and schedules enter + dismiss commands', () => {
       const initial = toastInit({ id: 'test' })
-      const toastShow = block.steps.show(initial, {
+      const toastShow = block.expose.show(initial, {
         payload: { body: 'Saved' },
       })
 
@@ -154,7 +154,7 @@ describe('Toast', () => {
     })
 
     it('does not schedule a dismiss command when sticky', () => {
-      const toastShow = block.steps.show(toastInit({ id: 'test' }), {
+      const toastShow = block.expose.show(toastInit({ id: 'test' }), {
         payload: { body: 'Sticky' },
         sticky: true,
       })
@@ -164,7 +164,7 @@ describe('Toast', () => {
     })
 
     it('uses a caller-provided duration over the default', () => {
-      const toastShow = block.steps.show(toastInit({ id: 'test' }), {
+      const toastShow = block.expose.show(toastInit({ id: 'test' }), {
         payload: { body: 'Quick' },
         duration: 100,
       })
@@ -175,10 +175,10 @@ describe('Toast', () => {
     })
 
     it('generates sequential entry ids using nextEntryKey', () => {
-      const firstShow = block.steps.show(toastInit({ id: 'test' }), {
+      const firstShow = block.expose.show(toastInit({ id: 'test' }), {
         payload: { body: 'One' },
       })
-      const secondShow = block.steps.show(firstShow.model, {
+      const secondShow = block.expose.show(firstShow.model, {
         payload: { body: 'Two' },
       })
       const ids = secondShow.model.entries.map((entry: Entry) => entry.id)
@@ -187,7 +187,7 @@ describe('Toast', () => {
     })
 
     it('sticky wins over an explicit duration', () => {
-      const toastShow = block.steps.show(toastInit({ id: 'test' }), {
+      const toastShow = block.expose.show(toastInit({ id: 'test' }), {
         payload: { body: 'Sticky beats duration' },
         sticky: true,
         duration: 100,
@@ -1682,7 +1682,7 @@ describe('Toast', () => {
         entries: () => [makeSettledEntry()],
         nextEntryKey: () => 1,
       })
-      const toastDismiss = block.steps.dismiss(model, firstEntryId)
+      const toastDismiss = block.expose.dismiss(model, firstEntryId)
       expect(
         requireEntry(toastDismiss.model, 0).animation.transitionState,
       ).toBe('LeaveStart')
@@ -1696,7 +1696,7 @@ describe('Toast', () => {
         ],
         nextEntryKey: () => 2,
       })
-      const toastDismissAll = block.steps.dismissAll(model)
+      const toastDismissAll = block.expose.dismissAll(model)
       toastDismissAll.model.entries.forEach((entry: Entry) => {
         expect(entry.animation.transitionState).toBe('LeaveStart')
       })

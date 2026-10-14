@@ -21,8 +21,8 @@ const menu = Menu.block.connection({
   outMessage: { fold: foldMenuOutMessage },
 })
 
-const Application = defineApplication({ Model, Message })
-const registered = Application.register({ children: [dialog, menu] })
+const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = ApplicationDefinition.register({ children: [dialog, menu] })
 
 const update = Application.update((model, message) =>
   Message.match(message, {
@@ -31,7 +31,7 @@ const update = Application.update((model, message) =>
   }),
 )
 
-const view = registered.view((model, h) => ({
+const view = Application.view((model, h) => ({
   title: 'Account',
   body: h.main(
     [],
@@ -55,7 +55,7 @@ const view = registered.view((model, h) => ({
 }))
 
 export const makeApplication = (container: HTMLElement | null) =>
-  registered.make({
+  Application.make({
     init,
     update,
     view,

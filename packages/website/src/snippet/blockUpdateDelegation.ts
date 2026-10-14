@@ -1,8 +1,8 @@
-import { settings } from './bindings'
-import { Application } from './definition'
+import { settings } from './connection'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     GotSettingsMessage: ({ message }) => settings.fold(model, message),
   }),

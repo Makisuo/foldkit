@@ -3,10 +3,14 @@ import type { Block } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
 import { Message } from '../message'
-import { ui, virtualListDemo, virtualListVariableDemo } from '../update'
+import {
+  RegisteredUiDefinition,
+  virtualListDemo,
+  virtualListVariableDemo,
+} from '../update'
 import { type Activity, ROW_COUNT } from '../virtualList'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof ui>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
 
 const actorNames = [
   'Sarah Chen',
@@ -246,7 +250,7 @@ const tallRow = (row: Activity, summary: Summary, h: HtmlBuilder): Html => {
   )
 }
 
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   return h.div(
     [],
     [

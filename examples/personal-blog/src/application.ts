@@ -19,15 +19,11 @@ import * as Route from './route'
 
 export { ApplicationRoute } from './route'
 
-// MODEL
-
 export const Model = Schema.Struct({
   route: Route.ApplicationRoute,
   counter: Counter.Model,
 })
 export type Model = typeof Model.Type
-
-// MESSAGE
 
 export const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
@@ -45,13 +41,13 @@ const counter = Counter.block.connection({
   parentMessage: Message.GotCounterMessage,
 })
 
-export const Application = defineApplication({ Model, Message }).register({
+export const ApplicationDefinition = defineApplication({ Model, Message })
+
+export const Application = ApplicationDefinition.register({
   children: [counter],
 })
 
 type HtmlBuilder = HtmlBuilderOf<typeof Application>
-
-// INIT
 
 export const init = (url: Url) => ({
   model: {
@@ -59,8 +55,6 @@ export const init = (url: Url) => ({
     counter: counter.init().model,
   },
 })
-
-// COMMAND
 
 const NavigateInternal = Application.command('NavigateInternal', {
   args: { url: Schema.String },
@@ -80,14 +74,10 @@ const LoadExternal = Application.command('LoadExternal', {
   },
 })
 
-// EFFECTS LAYER
-
 export const EffectsLayer = Layer.mergeAll(
   NavigateInternal.layer,
   LoadExternal.layer,
 )
-
-// UPDATE
 
 export const update = Application.update((model, message) =>
   Message.match(message, {
@@ -113,8 +103,6 @@ export const update = Application.update((model, message) =>
     CompletedLoadExternal: () => ({ model }),
   }),
 )
-
-// VIEW
 
 const islandViews = (model: Model, h: HtmlBuilder): Markdown.Islands =>
   Markdown.islandsFor(islandAttributes, {
@@ -367,10 +355,3 @@ export const view = Application.view((model, h) => {
     ),
   }
 })
-
-export const implementation = {
-  init,
-  update,
-  view,
-  EffectsLayer,
-}

@@ -261,7 +261,7 @@ export type DefinedUpdate<
  * the returned function.
  *
  * Use this when Command implementations come from Layers, so application
- * assembly can infer every required handler service without a hand-written
+ * completion can infer every required handler service without a hand-written
  * requirements union:
  *
  * ```ts

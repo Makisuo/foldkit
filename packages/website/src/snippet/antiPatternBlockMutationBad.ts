@@ -1,6 +1,6 @@
 // ❌ Bad: the parent changes the Settings Model directly.
 
-const update = Application.update((model, message) =>
+const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     ClickedResetSettings: () => ({
       model: modifyFields(model, {

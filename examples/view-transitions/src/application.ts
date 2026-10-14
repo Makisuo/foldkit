@@ -21,15 +21,11 @@ import {
 
 export { ApplicationRoute } from './route'
 
-// MODEL
-
 export const Model = Schema.Struct({
   route: ApplicationRoute,
   filterText: Schema.String,
 })
 export type Model = typeof Model.Type
-
-// MESSAGE
 
 export const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
@@ -41,19 +37,15 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-type ViewBuilder = HtmlBuilderOf<typeof Application>
-
-// INIT
+type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
 export const init = (url: Url) => ({
   model: Model.make({ route: urlToApplicationRoute(url), filterText: '' }),
 })
 
-// COMMAND
-
-const NavigateInternal = Application.command('NavigateInternal', {
+const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -62,7 +54,7 @@ const NavigateInternal = Application.command('NavigateInternal', {
   },
 })
 
-const LoadExternal = Application.command('LoadExternal', {
+const LoadExternal = ApplicationDefinition.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -71,16 +63,12 @@ const LoadExternal = Application.command('LoadExternal', {
   },
 })
 
-// EFFECTS LAYER
-
 export const EffectsLayer = Layer.mergeAll(
   NavigateInternal.layer,
   LoadExternal.layer,
 )
 
-// UPDATE
-
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
@@ -131,8 +119,6 @@ export const viewTransition: Runtime.ViewTransitionConfig<Model, Message> = ({
     }),
   })
 }
-
-// VIEW
 
 const transitionNameFor = (artworkId: number): string => `artwork-${artworkId}`
 
@@ -317,7 +303,7 @@ const routeTitle = (route: ApplicationRoute): string =>
     NotFound: () => 'Page Not Found | View Transitions',
   })
 
-export const view = Application.view((model, h) => {
+export const view = ApplicationDefinition.view((model, h) => {
   const routeContent = ApplicationRoute.match(model.route, {
     Gallery: () => galleryView(model.filterText, h),
     Artwork: ({ artworkId }) => artworkDetailView(artworkId, h),
@@ -359,10 +345,3 @@ export const view = Application.view((model, h) => {
     ),
   }
 })
-
-export const implementation = {
-  init,
-  update,
-  view,
-  EffectsLayer,
-}

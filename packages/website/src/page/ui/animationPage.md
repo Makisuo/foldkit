@@ -32,7 +32,7 @@ Check out how Animation is wired up in a [real Foldkit app](https://github.com/f
 
 ## Examples
 
-Call the connection’s `api.show()` to start the enter animation and `api.hide()` to start the leave animation. Style with Tailwind data-attribute selectors like `data-[closed]:opacity-0`.
+Call the connection’s `show()` operation to start the enter animation and `hide()` to start the leave animation. Style with Tailwind data-attribute selectors like `data-[closed]:opacity-0`.
 
 ::Demo{name="animation"}
 
@@ -113,7 +113,7 @@ The `animateSize` option uses CSS grid (`grid-template-rows: 0fr` → `1fr`) for
 
 ### toggle
 
-`Animation.steps.toggle(model)` returns the Animation update result that starts the enter or leave lifecycle according to `model.isShowing`. A connection projects it as `animation.toggle()`, a parent Step that reads and writes the child Model.
+Call the connected `animation.toggle()` operation to start the enter or leave lifecycle according to the child Model's `isShowing` value. It returns a parent Step that reads and writes the child Model through the connection.
 
 ### InitConfig {#init-config}
 
@@ -126,7 +126,7 @@ Configuration object passed to `Animation.init()`.
 
 ### show and hide
 
-`Animation.steps.show(model)` and `Animation.steps.hide(model)` return the next Animation Model and any Commands. From a parent, call the connection-projected `animation.show()` and `animation.hide()` Steps; do not construct `Animation.Message.Showed()` or `Animation.Message.Hid()` from the parent.
+Call the connected `animation.show()` and `animation.hide()` operations from the parent. They return parent Steps that preserve the next Animation Model and any Commands; do not construct `Animation.Message.Showed()` or `Animation.Message.Hid()` from the parent.
 
 ### finish
 

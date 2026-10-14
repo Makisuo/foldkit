@@ -9,15 +9,11 @@ import { Button, Input } from '@foldkit/ui'
 import { Cart, Item } from '../domain'
 import { cartRouter, productsRouter } from '../route'
 
-// MODEL
-
 export const Model = Schema.Struct({
   products: Schema.Array(Item.Item),
   searchText: Schema.String,
 })
 export type Model = typeof Model.Type
-
-// MESSAGE
 
 export const Message = defineMessageUnion({
   CompletedReplaceSearchUrl: {},
@@ -28,8 +24,6 @@ export const Message = defineMessageUnion({
 })
 
 export type Message = typeof Message.Type
-
-// OUT MESSAGE
 
 export const OutMessage = defineMessageUnion({
   AddedToCart: { item: Item.Item },
@@ -43,17 +37,17 @@ export type AddedToCart = typeof OutMessage.AddedToCart.Type
 export type IncrementedQuantity = typeof OutMessage.IncrementedQuantity.Type
 export type DecrementedQuantity = typeof OutMessage.DecrementedQuantity.Type
 
-const Products = Block.define('Products', { Model, Message, OutMessage })
-
-// INIT
+const ProductsDefinition = Block.define('Products', {
+  Model,
+  Message,
+  OutMessage,
+})
 
 export const init = (products: ReadonlyArray<Item.Item>) => ({
   model: Model.make({ products, searchText: '' }),
 })
 
-// COMMAND
-
-export const ReplaceSearchUrl = Products.command('ReplaceSearchUrl', {
+export const ReplaceSearchUrl = ProductsDefinition.command('ReplaceSearchUrl', {
   args: { url: Schema.String },
   messages: [Message.CompletedReplaceSearchUrl],
   handler: function* () {
@@ -62,9 +56,7 @@ export const ReplaceSearchUrl = Products.command('ReplaceSearchUrl', {
   },
 })
 
-// UPDATE
-
-export const update = Products.update((model, message) =>
+export const update = ProductsDefinition.update((model, message) =>
   Message.match(message, {
     CompletedReplaceSearchUrl: () => ({ model }),
 
@@ -99,13 +91,11 @@ export const update = Products.update((model, message) =>
   }),
 )
 
-// VIEW
-
 export type ViewInputs = Readonly<{
   cart: Cart.Cart
 }>
 
-export const view = Products.view.withInputs<ViewInputs>(
+export const view = ProductsDefinition.view.withInputs<ViewInputs>(
   (model, { cart }, h) => {
     const filteredProducts = model.searchText
       ? model.products.filter(product =>
@@ -263,7 +253,7 @@ export const view = Products.view.withInputs<ViewInputs>(
   },
 )
 
-export const block = Products.assemble({
+export const block = ProductsDefinition.toBlock({
   init,
   update,
   view,

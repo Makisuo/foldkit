@@ -97,7 +97,7 @@ const foldDatePickerOutMessage = DatePicker.OutMessage.match<
   ChangedViewMonth: () => model => ({ model }),
 })
 
-// The binding wires the completed child Block into the parent: it delegates navigation,
+// The connection wires the completed child Block into the parent: it delegates navigation,
 // focus, and popover messages to DatePicker.update, writes the next DatePicker
 // Model back, maps the Block's Commands into your Message type, and hands
 // any OutMessage to the OutMessage fold.
@@ -108,16 +108,21 @@ const datePicker = DatePicker.block.connection({
   outMessage: { fold: foldDatePickerOutMessage },
 })
 
-const DatePickerExample = Block.define('DatePickerExample', {
+const DatePickerExampleDefinition = Block.define('DatePickerExample', {
   Model,
   Message,
 })
-const registered = DatePickerExample.register({ children: [datePicker] })
+const RegisteredDatePickerExampleDefinition =
+  DatePickerExampleDefinition.register({
+    children: [datePicker],
+  })
 
-type ViewBuilder = Block.HtmlBuilderOf<typeof registered>
+type ViewBuilder = Block.HtmlBuilderOf<
+  typeof RegisteredDatePickerExampleDefinition
+>
 
 // In the corresponding Message.match handler, call the fold:
-const update = DatePickerExample.update((model, message) =>
+const update = DatePickerExampleDefinition.update((model, message) =>
   Message.match(message, {
     GotDatePickerMessage: ({ message }) => datePicker.fold(model, message),
   }),
@@ -304,7 +309,7 @@ const yearsView = (
 // `triggerId('date-picker-demo')` from `@foldkit/ui/datePicker` for a native `<label for>`. The
 // attribute is only emitted when provided, so the trigger never carries a
 // dangling `aria-labelledby`.
-const view = registered.view((model, h) => {
+const view = RegisteredDatePickerExampleDefinition.view((model, h) => {
   const labelId = 'date-picker-label'
 
   return h.div(

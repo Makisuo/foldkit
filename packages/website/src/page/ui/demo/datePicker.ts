@@ -28,8 +28,6 @@ const wrapperClassName = 'relative inline-block'
 const calendarWrapperClassName =
   'flex flex-col gap-3 select-none min-w-[268px] min-h-[284px]'
 
-// VIEW
-
 const DATE_PICKER_ANCHOR: AnchorConfig = {
   placement: 'bottom-start',
   gap: 4,

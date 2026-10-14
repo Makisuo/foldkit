@@ -4,9 +4,9 @@ import { defineMessageUnion } from 'foldkit/message'
 
 const Model = Schema.Struct({ value: Schema.String })
 const Message = defineMessageUnion({ CompletedFetchUser: {} })
-const Application = defineApplication({ Model, Message })
-const RegisteredApplication = Application.register({})
+const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = ApplicationDefinition.register({})
 
-export const FetchUser = RegisteredApplication.command('FetchUser', {
+export const FetchUser = Application.command('FetchUser', {
   messages: [Message.CompletedFetchUser],
 })

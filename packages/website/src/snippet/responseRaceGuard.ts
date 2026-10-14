@@ -12,15 +12,11 @@ const SearchResultsData = AsyncData.Schema(
   Schema.String,
 )
 
-// MODEL
-
 const Model = Schema.Struct({
   queryInput: Schema.String,
   searchResults: SearchResultsData.schema,
 })
 type Model = typeof Model.Type
-
-// MESSAGE
 
 const Message = defineMessageUnion({
   UpdatedQuery: { query: Schema.String },
@@ -31,11 +27,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const Application = defineApplication({ Model, Message })
+const ApplicationDefinition = defineApplication({ Model, Message })
 
-// COMMAND
-
-const Search = Application.command('Search', {
+const Search = ApplicationDefinition.command('Search', {
   args: { query: Schema.String },
   messages: [Message.SettledSearch],
   handler: function* () {
@@ -59,9 +53,7 @@ const Search = Application.command('Search', {
   },
 })
 
-// UPDATE
-
-const update = Application.update((model, message) =>
+const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     UpdatedQuery: ({ query }) => ({
       model: modifyFields(model, {

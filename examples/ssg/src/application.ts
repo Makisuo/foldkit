@@ -16,15 +16,11 @@ import {
   urlToApplicationRoute,
 } from './route'
 
-// MODEL
-
 export const Model = Schema.Struct({
   route: ApplicationRoute,
   count: Schema.Number,
 })
 export type Model = typeof Model.Type
-
-// MESSAGE
 
 export const Message = defineMessageUnion({
   ClickedIncrement: {},
@@ -36,19 +32,15 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-type ViewBuilder = HtmlBuilderOf<typeof Application>
-
-// INIT
+type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
 export const init = (url: Url) => ({
   model: { route: urlToApplicationRoute(url), count: 0 },
 })
 
-// COMMAND
-
-const NavigateInternal = Application.command('NavigateInternal', {
+const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -57,7 +49,7 @@ const NavigateInternal = Application.command('NavigateInternal', {
   },
 })
 
-const LoadExternal = Application.command('LoadExternal', {
+const LoadExternal = ApplicationDefinition.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -66,16 +58,12 @@ const LoadExternal = Application.command('LoadExternal', {
   },
 })
 
-// EFFECTS LAYER
-
 export const EffectsLayer = Layer.mergeAll(
   NavigateInternal.layer,
   LoadExternal.layer,
 )
 
-// UPDATE
-
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + 1 }),
@@ -98,8 +86,6 @@ export const update = Application.update((model, message) =>
     CompletedLoadExternal: () => ({ model }),
   }),
 )
-
-// VIEW
 
 const routeTitle = (route: ApplicationRoute): string =>
   ApplicationRoute.match(route, {
@@ -169,17 +155,10 @@ const pageView = (model: Model, h: ViewBuilder): Html =>
       ),
   })
 
-export const view = Application.view((model, h) => ({
+export const view = ApplicationDefinition.view((model, h) => ({
   title: routeTitle(model.route),
   body: h.main(
     [h.Class('mx-auto grid min-h-screen max-w-3xl content-center gap-10 p-8')],
     [navigationView(h), pageView(model, h)],
   ),
 }))
-
-export const implementation = {
-  init,
-  update,
-  view,
-  EffectsLayer,
-}

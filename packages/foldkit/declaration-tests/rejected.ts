@@ -11,6 +11,8 @@ import {
   Child,
   ChildMessage,
   type ChildModel,
+  type CompletedChild,
+  type CompletedChoice,
   Measure,
   ParentMessage,
   ParentModel,
@@ -20,21 +22,25 @@ import {
   makeProvisionPageAwaitingDependency,
 } from './accepted.js'
 
-const InvalidApplication = defineApplication({
-  Model: ParentModel,
-  Message: ParentMessage,
-})
+const InvalidApplicationDefinition = (() => {
+  const ApplicationDefinition = defineApplication({
+    Model: ParentModel,
+    Message: ParentMessage,
+  })
+
+  return ApplicationDefinition
+})()
 const invalidApplicationImplementation = {
   init: () => ({
     model: ParentModel.make({ child: Child.Model.make({ value: 0 }) }),
   }),
-  update: InvalidApplication.update(model => ({ model })),
+  update: InvalidApplicationDefinition.update(model => ({ model })),
   EffectsLayer: Layer.empty,
 }
-const invalidElementView = InvalidApplication.view((model, h) =>
+const invalidElementView = InvalidApplicationDefinition.view((model, h) =>
   h.main([], [globalThis.String(model.child.value)]),
 )
-const invalidDocumentView = InvalidApplication.view((model, h) => ({
+const invalidDocumentView = InvalidApplicationDefinition.view((model, h) => ({
   title: 'Invalid application fixture',
   body: h.main([], [globalThis.String(model.child.value)]),
 }))
@@ -86,7 +92,7 @@ const RequiresConflictingProvisionContract = Layer.effect(
   }),
 )
 
-const provisionContractProgram = InvalidApplication.makeElement({
+const provisionContractProgram = InvalidApplicationDefinition.makeElement({
   ...invalidApplicationImplementation,
   container: null,
   view: invalidElementView,
@@ -102,20 +108,20 @@ programWithProvisionContract.provide(ConflictingProvisionContract.layer)
 programWithProvisionContract.provide(RequiresConflictingProvisionContract)
 
 // @ts-expect-error Page Applications require a Document view.
-InvalidApplication.make({
+InvalidApplicationDefinition.make({
   ...invalidApplicationImplementation,
   container: null,
   view: invalidElementView,
 })
 
 // @ts-expect-error Element Applications require an HTML view.
-InvalidApplication.makeElement({
+InvalidApplicationDefinition.makeElement({
   ...invalidApplicationImplementation,
   container: null,
   view: invalidDocumentView,
 })
 
-const requiredContextUpdate = InvalidApplication.update(
+const requiredContextUpdate = InvalidApplicationDefinition.update(
   (model, _message, requiredContext: string) => {
     void requiredContext
     return { model }
@@ -123,7 +129,7 @@ const requiredContextUpdate = InvalidApplication.update(
 )
 
 // @ts-expect-error Application update cannot require root dispatch context.
-InvalidApplication.makeElement({
+InvalidApplicationDefinition.makeElement({
   ...invalidApplicationImplementation,
   update: requiredContextUpdate,
   container: null,
@@ -136,16 +142,20 @@ const WiderMessage = defineMessageUnion({
   RequestedRefresh: {},
   RequestedExtraWork: {},
 })
-const WiderMessageApplication = defineApplication({
-  Model: ParentModel,
-  Message: WiderMessage,
-})
-const widerMessageUpdate = WiderMessageApplication.update(
+const WiderMessageApplicationDefinition = (() => {
+  const ApplicationDefinition = defineApplication({
+    Model: ParentModel,
+    Message: WiderMessage,
+  })
+
+  return ApplicationDefinition
+})()
+const widerMessageUpdate = WiderMessageApplicationDefinition.update(
   (model, _message): Update.Return<ParentModel, ParentMessage> => ({ model }),
 )
 
 // @ts-expect-error Application update must accept exactly the root Message.
-InvalidApplication.makeElement({
+InvalidApplicationDefinition.makeElement({
   ...invalidApplicationImplementation,
   update: widerMessageUpdate,
   container: null,
@@ -153,18 +163,22 @@ InvalidApplication.makeElement({
 })
 
 const WiderInputModel = Schema.Struct({})
-const WiderInputModelApplication = defineApplication({
-  Model: WiderInputModel,
-  Message: ParentMessage,
-})
-const widerModelUpdate = WiderInputModelApplication.update(
+const WiderInputModelApplicationDefinition = (() => {
+  const ApplicationDefinition = defineApplication({
+    Model: WiderInputModel,
+    Message: ParentMessage,
+  })
+
+  return ApplicationDefinition
+})()
+const widerModelUpdate = WiderInputModelApplicationDefinition.update(
   (_model, _message): Update.Return<ParentModel, ParentMessage> => ({
     model: ParentModel.make({ child: Child.Model.make({ value: 0 }) }),
   }),
 )
 
 // @ts-expect-error Application update must accept exactly the root Model.
-InvalidApplication.makeElement({
+InvalidApplicationDefinition.makeElement({
   ...invalidApplicationImplementation,
   update: widerModelUpdate,
   container: null,
@@ -173,7 +187,7 @@ InvalidApplication.makeElement({
 
 // oxlint-disable-next-line effecttsgo/floating-effect
 Server.renderToString(
-  InvalidApplication,
+  InvalidApplicationDefinition,
   // @ts-expect-error Server rendering requires a page-owning Document view.
   { ...invalidApplicationImplementation, view: invalidElementView },
   { isHydratable: false },
@@ -187,11 +201,13 @@ Block.define('Invalid::TypedBlock', {
   Message: ParentMessage,
 })
 
-const DeclarationTestsConstructor = Block.define('DeclarationTestsConstructor')
+const DeclarationTestsConstructorDefinition = Block.define(
+  'DeclarationTestsConstructor',
+)
 const ConstructorMessage = defineMessageUnion({ CompletedWork: {} })
 const ForeignPrimitiveMessage = defineMessageUnion({ ForeignCompleted: {} })
 
-const DeclarationTestsTypedPrimitiveOwner = Block.define(
+const DeclarationTestsTypedPrimitiveOwnerDefinition = Block.define(
   'DeclarationTestsTypedPrimitiveOwner',
   {
     Model: ParentModel,
@@ -199,47 +215,57 @@ const DeclarationTestsTypedPrimitiveOwner = Block.define(
   },
 )
 
-DeclarationTestsTypedPrimitiveOwner.command('ForeignCommand', {
+DeclarationTestsTypedPrimitiveOwnerDefinition.command('ForeignCommand', {
   // @ts-expect-error A typed Block Command must produce its owner's Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-DeclarationTestsTypedPrimitiveOwner.mount('ForeignMount', {
+DeclarationTestsTypedPrimitiveOwnerDefinition.mount('ForeignMount', {
   // @ts-expect-error A typed Block Mount must produce its owner's Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-DeclarationTestsTypedPrimitiveOwner.mountStream('ForeignMountStream', {
-  // @ts-expect-error A typed Block stream Mount must produce its owner's Message.
-  messages: [ForeignPrimitiveMessage.ForeignCompleted],
-})
+DeclarationTestsTypedPrimitiveOwnerDefinition.mountStream(
+  'ForeignMountStream',
+  {
+    // @ts-expect-error A typed Block stream Mount must produce its owner's Message.
+    messages: [ForeignPrimitiveMessage.ForeignCompleted],
+  },
+)
 
-const TypedPrimitiveApplication = defineApplication({
-  Model: ParentModel,
-  Message: ParentMessage,
-})
+const TypedPrimitiveApplicationDefinition = (() => {
+  const ApplicationDefinition = defineApplication({
+    Model: ParentModel,
+    Message: ParentMessage,
+  })
 
-TypedPrimitiveApplication.command('ForeignApplicationCommand', {
+  return ApplicationDefinition
+})()
+
+TypedPrimitiveApplicationDefinition.command('ForeignApplicationCommand', {
   // @ts-expect-error A root Command must produce the Application Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-TypedPrimitiveApplication.mount('ForeignApplicationMount', {
+TypedPrimitiveApplicationDefinition.mount('ForeignApplicationMount', {
   // @ts-expect-error A root Mount must produce the Application Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-TypedPrimitiveApplication.mountStream('ForeignApplicationMountStream', {
-  // @ts-expect-error A root stream Mount must produce the Application Message.
-  messages: [ForeignPrimitiveMessage.ForeignCompleted],
-})
+TypedPrimitiveApplicationDefinition.mountStream(
+  'ForeignApplicationMountStream',
+  {
+    // @ts-expect-error A root stream Mount must produce the Application Message.
+    messages: [ForeignPrimitiveMessage.ForeignCompleted],
+  },
+)
 
 // @ts-expect-error Owned primitive names cannot contain a scoped identity separator.
-DeclarationTestsConstructor.command('Invalid::Work', {
+DeclarationTestsConstructorDefinition.command('Invalid::Work', {
   messages: [ConstructorMessage.CompletedWork],
 })
 
-const HostWork = DeclarationTestsConstructor.command('HostWork', {
+const HostWork = DeclarationTestsConstructorDefinition.command('HostWork', {
   messages: [ConstructorMessage.CompletedWork],
 })
 
-DeclarationTestsConstructor.command('InvalidConstructedWork', {
+DeclarationTestsConstructorDefinition.command('InvalidConstructedWork', {
   messages: [ConstructorMessage.CompletedWork],
   // @ts-expect-error Foldkit handlers are unavailable while another handler is constructed.
   handler: function* () {
@@ -304,16 +330,20 @@ Child.keyedConnection({
   parentMessage: ParentMessage.GotChildMessage,
 })
 
-const invalidParentBase = Block.define('DeclarationTestsInvalidParent').define({
+const DeclarationTestsInvalidParentDefinition = Block.define(
+  'DeclarationTestsInvalidParent',
+).define({
   Model: ParentModel,
   Message: ParentMessage,
 })
 // @ts-expect-error Registered child bindings must use the definition's parent Message.
-invalidParentBase.register({
+DeclarationTestsInvalidParentDefinition.register({
   children: [foreignChild],
 })
 
-const omittedChildBase = Block.define('DeclarationTestsOmittedChild').define({
+const DeclarationTestsOmittedChildDefinition = Block.define(
+  'DeclarationTestsOmittedChild',
+).define({
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -325,14 +355,15 @@ Block.define('DeclarationTestsInvalidDirectContracts', {
   children: [child],
 })
 
-const omittedChildUpdate = omittedChildBase.update((model, message) =>
-  ParentMessage.match(message, {
-    GotChildMessage: ({ message }) => child.fold(model, message),
-    RequestedRefresh: () => ({ model }),
-  }),
+const omittedChildUpdate = DeclarationTestsOmittedChildDefinition.update(
+  (model, message) =>
+    ParentMessage.match(message, {
+      GotChildMessage: ({ message }) => child.fold(model, message),
+      RequestedRefresh: () => ({ model }),
+    }),
 )
 
-omittedChildBase.assemble({
+DeclarationTestsOmittedChildDefinition.toBlock({
   init: () => ({
     model: ParentModel.make({ child: Child.Model.make({ value: 0 }) }),
   }),
@@ -364,17 +395,39 @@ RefinedChoice.OutMessage.make({
 })
 
 const refinedModel = RefinedChoice.Model.make({ value: 'One' })
+const completedRefinedChoice: CompletedChoice<readonly ['One', 'Two']> =
+  RefinedChoice
 
-// @ts-expect-error Direct Steps retain their refined input after assembly.
-RefinedChoice.steps.finish(refinedModel, 'Three')
+// @ts-expect-error Direct exposed operations retain their refined input after completion.
+completedRefinedChoice.expose.finish(refinedModel, 'Three')
 
-const invalidViewBase = Block.define('DeclarationTestsInvalidView').define({
+// @ts-expect-error A named completion preserves the exact Block contract.
+const invalidCompletedChild: CompletedChild = Direct
+void invalidCompletedChild
+
+// @ts-expect-error Connection lifecycle metadata is available through Block.inspectConnection.
+child.subscriptions
+// @ts-expect-error Connection resource metadata is available through Block.inspectConnection.
+child.managedResources
+// @ts-expect-error Connection Mount metadata is available through Block.inspectConnection.
+child.mounts
+// @ts-expect-error Connection Layer metadata is available through Block.inspectConnection.
+child.EffectsLayer
+// @ts-expect-error Internal connection evidence is not a string member.
+child.__blockBindingBlock
+// @ts-expect-error Internal handler evidence is not a string member.
+child.__blockHandlerRequirements
+
+const DeclarationTestsInvalidViewDefinition = Block.define(
+  'DeclarationTestsInvalidView',
+).define({
   Model: ParentModel,
   Message: ParentMessage,
 })
-const invalidViewDefinition = invalidViewBase.register({ children: [child] })
+const RegisteredDeclarationTestsInvalidViewDefinition =
+  DeclarationTestsInvalidViewDefinition.register({ children: [child] })
 
-invalidViewDefinition.view((model, h) => {
+RegisteredDeclarationTestsInvalidViewDefinition.view((model, h) => {
   const config = child.embedView({ slotId: 'child', model: model.child })
 
   h.block(config)

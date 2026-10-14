@@ -10,8 +10,11 @@ import type { Handler as SubscriptionHandler } from '../subscription/handler.js'
 import type * as Update from '../update/index.js'
 import type {
   BlockOfBinding,
+  HandlerRequirementsOfBinding,
+  InspectionOfConnection,
+  IsKeyedBinding,
   RequirementsOfBindings,
-  ValidateBindingStepNames,
+  ValidateConnectionOperationNames,
 } from './binding.js'
 import type { LocalMountsTypeId } from './definition.js'
 import type { IsConcreteOwner } from './owner.js'
@@ -90,17 +93,10 @@ type SatisfyRequirements<Requirements, Provided> = Requirements extends unknown
       : Requirements
   : never
 
-type HandlerEvidenceOfBinding<Binding> =
-  Binding extends Readonly<{
-    __blockHandlerRequirements: infer Evidence
-  }>
-    ? Evidence
-    : unknown
-
 type ChildHandlerEvidence<Children> = Children extends readonly []
   ? never
   : Children extends ReadonlyArray<infer Binding>
-    ? HandlerEvidenceOfBinding<Binding>
+    ? HandlerRequirementsOfBinding<Binding>
     : unknown
 
 /**
@@ -133,16 +129,16 @@ export type HandlerEvidenceOfBlock<Block> =
 export type ValidateRootHandlerAssembly<Block> =
   IsAny<HandlerEvidenceOfBlock<Block>> extends true
     ? Readonly<{
-        'Application Block must provide every handler contract before assembly': HandlerEvidenceOfBlock<Block>
+        'Application Block must provide every handler contract before completion': HandlerEvidenceOfBlock<Block>
       }>
     : IsUnknown<HandlerEvidenceOfBlock<Block>> extends true
       ? Readonly<{
-          'Application Block must provide every handler contract before assembly': HandlerEvidenceOfBlock<Block>
+          'Application Block must provide every handler contract before completion': HandlerEvidenceOfBlock<Block>
         }>
       : [HandlerEvidenceOfBlock<Block>] extends [never]
         ? unknown
         : Readonly<{
-            'Application Block must provide every handler contract before assembly': HandlerEvidenceOfBlock<Block>
+            'Application Block must provide every handler contract before completion': HandlerEvidenceOfBlock<Block>
           }>
 
 /**
@@ -311,7 +307,7 @@ type BlockManagedResources<Block> =
 
 type BindingRuntimeServices<Binding> =
   Binding extends Readonly<{ placement: infer Placement extends string }>
-    ? Binding extends Readonly<{ __blockKeyedBinding: true }>
+    ? IsKeyedBinding<Binding> extends true
       ? Qualify<Placement, RuntimeServicesOfBlock<BlockOfBinding<Binding>>>
       : Qualify<Placement, ChildRuntimeServices<BlockOfBinding<Binding>>>
     : never
@@ -345,7 +341,7 @@ type LocalOperationRequirements<Block> =
   | (Block extends Readonly<{ update: infer UpdateFunction }>
       ? ProducerRequirements<UpdateFunction>
       : never)
-  | (Block extends Readonly<{ steps: infer Steps }>
+  | (Block extends Readonly<{ expose: infer Steps }>
       ? ProducerRecordRequirements<Steps>
       : never)
   | (Block extends Readonly<{ subscriptions: infer Subscriptions }>
@@ -366,30 +362,38 @@ type BindingDefinitionOperationRequirements<Binding> = Binding extends unknown
     : OperationRequirementsOfBlock<BlockOfBinding<Binding>>
   : never
 
-type BindingStepFactories<Binding> =
+type BindingOperationFactories<Binding> =
   BlockOfBinding<Binding> extends Readonly<{
-    steps: infer Steps extends Readonly<Record<string, AnyFunction>>
+    expose: infer Operations extends Readonly<Record<string, AnyFunction>>
   }>
     ? {
-        [Name in keyof Steps]: Binding extends Readonly<
+        [Name in keyof Operations]: Binding extends Readonly<
           Record<Name, infer Factory>
         >
           ? Factory
           : never
-      }[keyof Steps]
+      }[keyof Operations]
     : never
 
 type BindingOwnOperationRequirements<Binding> =
   | (Binding extends Readonly<{ fold: infer Fold }>
       ? ProducerRequirements<Fold>
       : never)
-  | ProducerRequirements<BindingStepFactories<Binding>>
-  | (Binding extends Readonly<{ subscriptions: infer Subscriptions }>
-      ? SubscriptionRequirements<Subscriptions>
-      : never)
-  | (Binding extends Readonly<{ managedResources: infer ManagedResources }>
-      ? ManagedResourceLifecycleRequirements<ManagedResources>
-      : never)
+  | ProducerRequirements<BindingOperationFactories<Binding>>
+  | SubscriptionRequirements<
+      InspectionOfConnection<Binding> extends Readonly<{
+        subscriptions: infer Subscriptions
+      }>
+        ? Subscriptions
+        : never
+    >
+  | ManagedResourceLifecycleRequirements<
+      InspectionOfConnection<Binding> extends Readonly<{
+        managedResources: infer ManagedResources
+      }>
+        ? ManagedResources
+        : never
+    >
 
 type ChildInheritedRequirements<Block> =
   Block extends Readonly<{
@@ -423,14 +427,14 @@ export type OperationRequirementsOfBlock<Block> =
   | LocalOperationRequirements<Block>
   | ChildOperationRequirements<Block>
 
-type AssemblyOperationRequirements<Block> =
+type CompletionOperationRequirements<Block> =
   | LocalOperationRequirements<Block>
   | ChildOwnOperationRequirements<Block>
 
 type ResidualRequirements<Block> =
   | SatisfyRequirements<
       | Exclude<
-          AssemblyOperationRequirements<Block>,
+          CompletionOperationRequirements<Block>,
           RuntimeServicesOfBlock<Block>
         >
       | ChildInheritedRequirements<Block>,
@@ -479,20 +483,20 @@ type InvalidHostDefinitions<Block> =
 
 type PrecisionFailures<Block> =
   | ErasedRequirement<
-      'init, update, or steps',
+      'init, update, or exposed operations',
       Block extends Readonly<{ init: infer Init }>
         ? ProducerRequirements<Init>
         : never
     >
   | ErasedRequirement<
-      'init, update, or steps',
+      'init, update, or exposed operations',
       Block extends Readonly<{ update: infer UpdateFunction }>
         ? ProducerRequirements<UpdateFunction>
         : never
     >
   | ErasedRequirement<
-      'init, update, or steps',
-      Block extends Readonly<{ steps: infer Steps }>
+      'init, update, or exposed operations',
+      Block extends Readonly<{ expose: infer Steps }>
         ? ProducerRecordRequirements<Steps>
         : never
     >
@@ -544,9 +548,9 @@ type ValidateUnexpectedHostHandlers<Block> = [
       'Block hostHandlers must match residual handler requirements': UnexpectedHostHandlers<Block>
     }>
 
-type ValidateBlockStepNames<Block> =
-  Block extends Readonly<{ steps: infer Steps }>
-    ? ValidateBindingStepNames<Steps>
+type ValidateBlockOperationNames<Block> =
+  Block extends Readonly<{ expose: infer Operations }>
+    ? ValidateConnectionOperationNames<Operations>
     : unknown
 
 type LocalOperationRegistrationEvidence<Block> =
@@ -556,7 +560,7 @@ type LocalOperationRegistrationEvidence<Block> =
   | (Block extends Readonly<{ update: infer UpdateFunction }>
       ? ProducerRegistrationEvidence<UpdateFunction>
       : never)
-  | (Block extends Readonly<{ steps: infer Steps }>
+  | (Block extends Readonly<{ expose: infer Steps }>
       ? ProducerRecordRegistrationEvidence<Steps>
       : never)
 
@@ -581,7 +585,7 @@ type ValidateOperationRegistrations<Block> = [
     }>
 
 type ValidateFullComposition<Composition> =
-  ValidateBlockStepNames<Composition> &
+  ValidateBlockOperationNames<Composition> &
     ValidateOperationRegistrations<Composition> &
     ValidatePreciseRequirements<Composition> &
     ValidateHostDefinitions<Composition> &
@@ -653,7 +657,7 @@ type LocalHandlerContracts<Composition> =
     >
 
 type ValidateLocalComposition<Composition> =
-  ValidateBlockStepNames<Composition> &
+  ValidateBlockOperationNames<Composition> &
     ValidateOperationRegistrations<Composition> &
     ValidatePreciseRequirements<Composition> &
     ValidateHostDefinitions<Composition> &

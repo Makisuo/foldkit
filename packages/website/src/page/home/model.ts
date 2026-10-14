@@ -5,8 +5,6 @@ import * as DemoTab from './demoTab'
 import * as NotePlayerDemo from './notePlayerDemo'
 import { PlaygroundMenu } from './playgroundMenu'
 
-// MODEL
-
 export const Model = Schema.Struct({
   demoTabs: DemoTab.DemoTabs.Model,
   activeDemoTab: DemoTab.Tab,

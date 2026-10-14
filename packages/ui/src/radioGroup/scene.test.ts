@@ -31,7 +31,10 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const RadioGroupScene = Block.define('RadioGroupScene', { Model, Message })
+const RadioGroupSceneDefinition = Block.define('RadioGroupScene', {
+  Model,
+  Message,
+})
 
 const modelWith = (maybeSelectedValue: Option.Option<string>): Model => ({
   radioGroup: init({ id: RADIO_ID }),
@@ -60,9 +63,11 @@ const radioGroup = TestRadioGroup.connection({
   outMessage: { fold: foldRadioGroupOutMessage },
 })
 
-const registered = RadioGroupScene.register({ children: [radioGroup] })
+const RegisteredRadioGroupSceneDefinition = RadioGroupSceneDefinition.register({
+  children: [radioGroup],
+})
 
-const update = RadioGroupScene.update((model, message) =>
+const update = RadioGroupSceneDefinition.update((model, message) =>
   Message.match(message, {
     GotRadioGroupMessage: ({ message }) => radioGroup.fold(model, message),
   }),
@@ -73,29 +78,30 @@ type Overrides = Omit<
   'options' | 'selectedValue' | 'ariaLabel' | 'toView'
 >
 
-const rootView = registered.view.withInputs<Overrides>((model, overrides, h) =>
-  h.block(
-    radioGroup.embedView({
-      slotId: RADIO_ID,
-      model: model.radioGroup,
-      viewInputs: {
-        options,
-        selectedValue: model.maybeSelectedValue,
-        ariaLabel: 'Tool',
-        ...overrides,
-        toView: ({ group, options: optionInfos }) =>
-          h.div(
-            [...group],
-            optionInfos.map(option =>
-              h.button(
-                [...option.option],
-                [h.span([...option.label], [option.value])],
+const rootView = RegisteredRadioGroupSceneDefinition.view.withInputs<Overrides>(
+  (model, overrides, h) =>
+    h.block(
+      radioGroup.embedView({
+        slotId: RADIO_ID,
+        model: model.radioGroup,
+        viewInputs: {
+          options,
+          selectedValue: model.maybeSelectedValue,
+          ariaLabel: 'Tool',
+          ...overrides,
+          toView: ({ group, options: optionInfos }) =>
+            h.div(
+              [...group],
+              optionInfos.map(option =>
+                h.button(
+                  [...option.option],
+                  [h.span([...option.label], [option.value])],
+                ),
               ),
             ),
-          ),
-      },
-    }),
-  ),
+        },
+      }),
+    ),
 )
 
 const testView = Scene.withViewInputs(rootView, {})

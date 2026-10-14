@@ -6,8 +6,6 @@ import { DemoTabs } from './demoTab'
 import * as NotePlayerDemo from './notePlayerDemo'
 import { PlaygroundMenu } from './playgroundMenu'
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   GotDemoTabsMessage: { message: DemoTabs.Message },
   GotPlaygroundMenuMessage: { message: PlaygroundMenu.Message },

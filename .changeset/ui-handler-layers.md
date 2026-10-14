@@ -2,7 +2,7 @@
 '@foldkit/ui': minor
 ---
 
-Expose each stateful Foldkit UI component as a completed Block. Bind components at the Block that owns them and register those bindings under `children`. Composition then carries their handler Layers, Mounts, Subscriptions, and ManagedResources to the application root.
+Expose each stateful Foldkit UI component as a completed Block. Connect components at the Block that owns them and register those connections under `children`. Composition then carries their handler Layers, Mounts, Subscriptions, and ManagedResources to the application root.
 
 Before:
 
@@ -54,11 +54,11 @@ const tabs = AppTabs.connection({
   outMessage: { fold: foldTabsOutMessage },
 })
 
-const Panel = Block.define('Panel', { Model, Message }).register({
+const PanelDefinition = Block.define('Panel', { Model, Message }).register({
   children: [menu, tabs],
 })
 
-export const view = Panel.view((model, h) =>
+export const view = PanelDefinition.view((model, h) =>
   h.block(
     menu.embedView({
       slotId: model.menu.id,
@@ -69,7 +69,7 @@ export const view = Panel.view((model, h) =>
 )
 ```
 
-Do not export or compose a package-wide UI handler bundle. Register only the components the owner actually embeds. A binding makes the parent-child relationship explicit once and gives update `binding.fold` for received child Messages and direct named operations such as `binding.open()` for parent-driven changes, while view uses `binding.embedView`.
+Do not export or compose a package-wide UI handler bundle. Register only the components the owner actually embeds. A connection makes the parent-child relationship explicit once and gives update `connection.fold` for received child Messages and direct named operations such as `connection.open()` for parent-driven changes, while view uses `connection.embedView`.
 
 Factories live on the component namespace: `Combobox.create`, `Combobox.Multi.create`, `Listbox.create`, `Listbox.Multi.create`, `Menu.create`, `Tabs.create`, `RadioGroup.create`, `VirtualList.create`, and `Toast.make`. Factory instances retain stable local names; connection placement and keys distinguish occurrences. Toast no longer needs a caller-supplied effect name. Schema-taking factories such as `Combobox.create(City)` preserve decoded Item payloads. Type-only factories such as `Tabs.create<Tab>()` preserve the selected value type. Import ViewInputs and domain helpers from component subpaths; the completed value itself carries its Model, Message, and declared OutMessage matcher.
 
@@ -92,7 +92,7 @@ const toast = AppToast.connection({
 })
 ```
 
-The binding contributes Toast's swipe Subscription and handler recipe automatically. Scene swipe events continue to use `Subscription.emit` with the registration reached through the completed Block.
+The connection contributes Toast's swipe Subscription and handler recipe automatically. Scene swipe events continue to use `Subscription.emit` with the registration reached through the completed Block.
 
 For dynamic keyed component collections, use `block.keyedConnection` instead of manually lifting each lifecycle registry. Every rendered occurrence needs a stable string or number key.
 
@@ -116,4 +116,4 @@ const dialogs = Dialog.block.keyedConnection({
 })
 ```
 
-Stateless render helpers such as Button, Input, Textarea, Select, Fieldset, Checkbox, Switch, Disclosure, and Nav remain direct view functions. They do not need bindings because they own no Model or lifecycle graph.
+Stateless render helpers such as Button, Input, Textarea, Select, Fieldset, Checkbox, Switch, Disclosure, and Nav remain direct view functions. They do not need connections because they own no Model or lifecycle graph.

@@ -21,16 +21,12 @@ import { Button } from '@foldkit/ui'
 
 const TICK_INTERVAL_MS = 10
 
-// MODEL
-
 export const Model = Schema.Struct({
   elapsedMs: Schema.Number,
   isRunning: Schema.Boolean,
   startTime: Schema.Number,
 })
 export type Model = typeof Model.Type
-
-// MESSAGE
 
 export const Message = defineMessageUnion({
   ClickedStart: {},
@@ -43,49 +39,51 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-type ViewBuilder = HtmlBuilderOf<typeof Application>
+type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
-// COMMAND
+export const DetermineStartTime = ApplicationDefinition.command(
+  'DetermineStartTime',
+  {
+    args: { elapsedMs: Schema.Number },
+    messages: [Message.CompletedDetermineStartTime],
+    handler: function* () {
+      const clock = yield* Clock.Clock
 
-export const DetermineStartTime = Application.command('DetermineStartTime', {
-  args: { elapsedMs: Schema.Number },
-  messages: [Message.CompletedDetermineStartTime],
-  handler: function* () {
-    const clock = yield* Clock.Clock
+      return ({ elapsedMs }) =>
+        Effect.gen(function* () {
+          const now = yield* clock.currentTimeMillis
 
-    return ({ elapsedMs }) =>
-      Effect.gen(function* () {
-        const now = yield* clock.currentTimeMillis
-
-        return Message.CompletedDetermineStartTime({
-          startTime: now - elapsedMs,
+          return Message.CompletedDetermineStartTime({
+            startTime: now - elapsedMs,
+          })
         })
-      })
+    },
   },
-})
+)
 
-export const DetermineTickTime = Application.command('DetermineTickTime', {
-  args: { startTime: Schema.Number },
-  messages: [Message.CompletedDetermineTickTime],
-  handler: function* () {
-    const clock = yield* Clock.Clock
+export const DetermineTickTime = ApplicationDefinition.command(
+  'DetermineTickTime',
+  {
+    args: { startTime: Schema.Number },
+    messages: [Message.CompletedDetermineTickTime],
+    handler: function* () {
+      const clock = yield* Clock.Clock
 
-    return ({ startTime }) =>
-      Effect.gen(function* () {
-        const now = yield* clock.currentTimeMillis
+      return ({ startTime }) =>
+        Effect.gen(function* () {
+          const now = yield* clock.currentTimeMillis
 
-        return Message.CompletedDetermineTickTime({
-          elapsedMs: now - startTime,
+          return Message.CompletedDetermineTickTime({
+            elapsedMs: now - startTime,
+          })
         })
-      })
+    },
   },
-})
+)
 
-// UPDATE
-
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     ClickedStart: () => ({
       model,
@@ -126,8 +124,6 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// INIT
-
 export const init = () => ({
   model: {
     elapsedMs: 0,
@@ -136,9 +132,7 @@ export const init = () => ({
   },
 })
 
-// SUBSCRIPTION
-
-export const subscriptions = Application.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   stopwatchTicks: entry(
     'StopwatchTicks',
     { isRunning: Schema.Boolean },
@@ -159,15 +153,11 @@ export const subscriptions = Application.subscriptions(entry => ({
   ),
 }))
 
-// EFFECTS LAYER
-
 export const EffectsLayer = Layer.mergeAll(
   DetermineStartTime.layer,
   DetermineTickTime.layer,
   subscriptions.stopwatchTicks.layer,
 )
-
-// VIEW
 
 const formatTime = (ms: number): string => {
   const minutes = pipe(Duration.millis(ms), Duration.toMinutes, floorAndPad)
@@ -190,7 +180,7 @@ const formatTime = (ms: number): string => {
 
 const floorAndPad = flow(Math.floor, v => v.toString(), String.padStart(2, '0'))
 
-export const view = Application.view((model, h) => ({
+export const view = ApplicationDefinition.view((model, h) => ({
   title: `Stopwatch ${formatTime(model.elapsedMs)}`,
   body: h.div(
     [h.Class('min-h-screen bg-gray-200 flex items-center justify-center')],
@@ -263,11 +253,3 @@ const startStopButton = (isRunning: boolean, h: ViewBuilder): Html =>
 
 const buttonStyle =
   'px-6 py-4 flex-1 font-semibold text-white transition-colors'
-
-export const implementation = {
-  init,
-  update,
-  view,
-  subscriptions,
-  EffectsLayer,
-}

@@ -28,13 +28,13 @@ const childDefinition = ChildOwner.define({ Model: ChildModel, Message })
 const reset = childDefinition.step((_model: ChildModel) => ({
   model: ChildModel.make({ count: 0 }),
 }))
-const Child = childDefinition.assemble({
+const Child = childDefinition.toBlock({
   view: childDefinition.view((_model, h) => h.div([])),
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
   update: childDefinition.update(model => ({
     model: modifyFields(model, { count: count => count + 1 }),
   })),
-  steps: { reset },
+  expose: { reset },
   EffectsLayer: Layer.empty,
 })
 
@@ -50,7 +50,7 @@ const omittedParentDefinition = define('OperationGraphOmittedParent').define({
   Model: ParentModel,
   Message,
 })
-const OmittedParent = omittedParentDefinition.assemble({
+const OmittedParent = omittedParentDefinition.toBlock({
   view: omittedParentDefinition.view((_model, h) => h.div([])),
   init: () => ({
     model: modifyFields(initialModel, {
@@ -99,7 +99,7 @@ const exactParentBase = define('OperationGraphExactParent').define({
 const exactParentDefinition = exactParentBase.register({
   children: [registeredPlacement],
 })
-const ExactParent = exactParentDefinition.assemble({
+const ExactParent = exactParentDefinition.toBlock({
   view: exactParentDefinition.view((_model, h) => h.div([])),
   init: () => ({ model: initialModel }),
   update: (model: ParentModel, message: Message) =>
@@ -127,7 +127,7 @@ const policyDefinition = PolicyOwner.define({
   Message,
   OutMessage: PolicyOutMessage,
 })
-const PolicyChild = policyDefinition.assemble({
+const PolicyChild = policyDefinition.toBlock({
   view: policyDefinition.view((_model, h) => h.div([])),
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
   update: (model: ChildModel) => ({
@@ -162,7 +162,7 @@ const policyParentBase = define('OperationGraphPolicyParent').define({
 const policyParentDefinition = policyParentBase.register({
   children: [policyChild, siblingChild],
 })
-const PolicyParent = policyParentDefinition.assemble({
+const PolicyParent = policyParentDefinition.toBlock({
   view: policyParentDefinition.view((_model, h) => h.div([])),
   init: () => ({ model: initialModel }),
   update: (model: ParentModel, message: Message) =>

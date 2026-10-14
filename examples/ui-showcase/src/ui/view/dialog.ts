@@ -8,17 +8,17 @@ import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 import { Message } from '../message'
 import type { City } from '../model'
 import {
+  RegisteredUiDefinition,
   dialogAnimatedDemo,
   dialogDemo,
   nestedDialogChildDemo,
   nestedDialogParentDemo,
   overlayComboboxDemo,
   overlayDialogDemo,
-  ui,
 } from '../update'
 import { comboboxInputs } from './combobox'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof ui>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
 
 const triggerClassName =
   'px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -368,9 +368,7 @@ const nestedDemo = (
   )
 }
 
-// VIEW
-
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   return h.div(
     [],
     [

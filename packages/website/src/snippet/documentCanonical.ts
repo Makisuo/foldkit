@@ -31,8 +31,6 @@ const routeToCanonicalUrl = (route: ApplicationRoute): string =>
     }),
   )
 
-// VIEW
-
 const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: pageTitle(model.route),
   canonical: routeToCanonicalUrl(model.route),

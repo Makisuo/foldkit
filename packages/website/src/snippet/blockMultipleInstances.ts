@@ -22,8 +22,8 @@ export const applicants = Applicant.block.keyedConnection({
     Message.GotApplicantMessage({ applicantId, message }),
 })
 
-const Application = defineApplication({ Model, Message })
-const registered = Application.register({ children: [applicants] })
+const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = ApplicationDefinition.register({ children: [applicants] })
 
 export const update = Application.update((model, message) =>
   Message.match(message, {
@@ -32,7 +32,7 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-export const view = registered.view((model, h) =>
+export const view = Application.view((model, h) =>
   h.ul(
     [h.Class('flex flex-col gap-4')],
     Array.map(model.applicants, applicant =>

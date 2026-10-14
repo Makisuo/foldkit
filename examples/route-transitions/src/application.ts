@@ -38,8 +38,6 @@ const PAINTING_LATENCY = Duration.millis(400)
 const SAVE_LATENCY = Duration.millis(300)
 const MAX_LOGGED_TRANSITIONS = 20
 
-// MODEL
-
 export const CatalogStatus = Schema.Literals(['Idle', 'Loading', 'Ready'])
 export type CatalogStatus = typeof CatalogStatus.Type
 
@@ -67,8 +65,6 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
   CompletedLoadExternal: {},
@@ -82,11 +78,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-// COMMAND
-
-const NavigateInternal = Application.command('NavigateInternal', {
+const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -95,7 +89,7 @@ const NavigateInternal = Application.command('NavigateInternal', {
   },
 })
 
-const LoadExternal = Application.command('LoadExternal', {
+const LoadExternal = ApplicationDefinition.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -104,7 +98,7 @@ const LoadExternal = Application.command('LoadExternal', {
   },
 })
 
-export const LoadCatalog = Application.command('LoadCatalog', {
+export const LoadCatalog = ApplicationDefinition.command('LoadCatalog', {
   messages: [Message.CompletedLoadCatalog],
   handler: function* () {
     return () =>
@@ -114,7 +108,7 @@ export const LoadCatalog = Application.command('LoadCatalog', {
   },
 })
 
-export const LoadPainting = Application.command('LoadPainting', {
+export const LoadPainting = ApplicationDefinition.command('LoadPainting', {
   args: { paintingId: Schema.Number },
   messages: [Message.CompletedLoadPainting],
   handler: function* () {
@@ -125,7 +119,7 @@ export const LoadPainting = Application.command('LoadPainting', {
   },
 })
 
-export const SaveDraft = Application.command('SaveDraft', {
+export const SaveDraft = ApplicationDefinition.command('SaveDraft', {
   args: { draft: Schema.String },
   messages: [Message.CompletedSaveDraft],
   handler: function* () {
@@ -136,8 +130,6 @@ export const SaveDraft = Application.command('SaveDraft', {
   },
 })
 
-// EFFECTS LAYER
-
 export const EffectsLayer = Layer.mergeAll(
   NavigateInternal.layer,
   LoadExternal.layer,
@@ -145,8 +137,6 @@ export const EffectsLayer = Layer.mergeAll(
   LoadPainting.layer,
   SaveDraft.layer,
 )
-
-// UPDATE
 
 export type AppTransition = Transition.Transition<ApplicationRoute>
 
@@ -230,7 +220,7 @@ const handleTransition = (model: Model, transition: AppTransition) =>
     saveDraftOnStudioExit(transition),
   ])
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
@@ -282,8 +272,6 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// INIT
-
 export const init = (url: Url) => {
   const route = urlToApplicationRoute(url)
   const initialModel = Model.make({
@@ -297,9 +285,7 @@ export const init = (url: Url) => {
   return handleTransition(initialModel, Transition.coldLoad(route))
 }
 
-// VIEW
-
-type ViewBuilder = HtmlBuilderOf<typeof Application>
+type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
 const routeLabel = (route: ApplicationRoute): string =>
   ApplicationRoute.match(route, {
@@ -756,7 +742,7 @@ const routeTitle = (route: ApplicationRoute): string =>
     ),
   )
 
-export const view = Application.view((model, h) => {
+export const view = ApplicationDefinition.view((model, h) => {
   const routeContent = ApplicationRoute.match(model.route, {
     Home: () => homeView(h),
     Gallery: () => galleryView(model.catalogStatus, h),
@@ -784,10 +770,3 @@ export const view = Application.view((model, h) => {
     ),
   }
 })
-
-export const implementation = {
-  init,
-  update,
-  view,
-  EffectsLayer,
-}

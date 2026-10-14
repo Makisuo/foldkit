@@ -48,7 +48,7 @@ const defaultView = observeComposition.view.withInputs<
   h.div([h.OnMount(Observe())], [`${label}: ${model.value}`]),
 )
 
-const Child = observeComposition.assemble({
+const Child = observeComposition.toBlock({
   init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
   update: childBase.update(model => ({ model })),
   view: defaultView,
@@ -102,7 +102,7 @@ if (false) {
     ]),
   )
 
-  childBase.assemble({
+  childBase.toBlock({
     init: Child.init,
     update: Child.update,
     // @ts-expect-error A graphless Base cannot complete a Mount-capable view.

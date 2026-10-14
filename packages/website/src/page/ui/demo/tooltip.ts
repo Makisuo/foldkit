@@ -13,8 +13,6 @@ const panelClassName =
 
 const wrapperClassName = 'relative inline-block'
 
-// VIEW
-
 const TOOLTIP_ANCHOR: AnchorConfig = {
   placement: 'top',
   gap: 6,

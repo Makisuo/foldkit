@@ -3,7 +3,7 @@ import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import * as RadioGroup from './demo/radioGroup'
 import raw from './radioGroupPage.md'
-import { ui } from './update'
+import { RegisteredUiDefinition } from './update'
 
 const { tableOfContents, view: renderPage } = slotDocPage<
   'vertical' | 'horizontal'
@@ -17,7 +17,7 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = ui.view.withInputs<ViewInputs>(
+export const view = RegisteredUiDefinition.view.withInputs<ViewInputs>(
   (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h) =>
     renderPage({
       demos: {

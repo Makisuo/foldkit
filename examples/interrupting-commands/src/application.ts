@@ -18,8 +18,6 @@ import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-// MODEL
-
 export const UploadStatus = Schema.Literals(['Uploading', 'Done', 'Cancelled'])
 export type UploadStatus = typeof UploadStatus.Type
 
@@ -37,8 +35,6 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   ClickedStartUpload: {},
   ClickedCancelUpload: { uploadId: Schema.Number },
@@ -53,11 +49,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-type ViewBuilder = HtmlBuilderOf<typeof Application>
-
-// INIT
+type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
 export const initialModel: Model = {
   uploadId: 0,
@@ -91,14 +85,12 @@ const fakeFileForUpload = (uploadId: number): FakeFile =>
     Option.getOrElse(() => Array.headNonEmpty(FAKE_FILES)),
   )
 
-// COMMAND
-
 const MILLISECONDS_PER_MEGABYTE = 100
 
 export const UploadKey = Schema.Struct({ uploadId: Schema.Number })
 export type UploadKey = typeof UploadKey.Type
 
-export const UploadFile = Application.command('UploadFile', {
+export const UploadFile = ApplicationDefinition.command('UploadFile', {
   args: { ...UploadKey.fields, sizeMegabytes: Schema.Number },
   messages: [Message.CompletedUploadFile],
   interrupt: {
@@ -116,16 +108,12 @@ export const UploadFile = Application.command('UploadFile', {
   },
 })
 
-// EFFECTS LAYER
-
 export const EffectsLayer = UploadFile.layer
 
 export const CancelUploadFile = ({ uploadId }: UploadKey) =>
   UploadFile.Interrupt({ uploadId }, outcome =>
     Message.CompletedCancelUploadFile({ uploadId, outcome }),
   )
-
-// UPDATE
 
 const setStatusForId = (uploadId: number, status: UploadStatus) =>
   Array.map((upload: Upload) =>
@@ -134,7 +122,7 @@ const setStatusForId = (uploadId: number, status: UploadStatus) =>
       : upload,
   )
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     ClickedStartUpload: () => {
       const fakeFile = fakeFileForUpload(model.uploadId)
@@ -208,8 +196,6 @@ export const update = Application.update((model, message) =>
       }),
   }),
 )
-
-// VIEW
 
 const badgeClass = (status: UploadStatus): string =>
   Match.value(status).pipe(
@@ -306,7 +292,7 @@ const uploadView = (upload: Upload, h: ViewBuilder): Html =>
     ],
   )
 
-export const view = Application.view((model, h) => {
+export const view = ApplicationDefinition.view((model, h) => {
   const isAnyUploadRunning = Array.some(
     model.uploads,
     upload => upload.status === 'Uploading',
@@ -369,10 +355,3 @@ export const view = Application.view((model, h) => {
 
   return { title: 'Foldkit Interrupting Commands Example', body }
 })
-
-export const implementation = {
-  init,
-  update,
-  view,
-  EffectsLayer,
-}

@@ -1,3 +1,2 @@
-export { Model, Message, init, update } from './block'
-export { view } from './view'
+export { Model, Message, init } from './definition'
 export { block } from './attachments'

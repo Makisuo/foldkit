@@ -3,12 +3,12 @@ import { KeyValueStore } from 'effect/persistence'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
 
 import { SESSION_STORAGE_KEY } from './constant'
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Session, SessionJsonString } from './domain/session'
 import { Message } from './message'
 import { dashboardRouter, homeRouter, loginRouter } from './route'
 
-export const SaveSession = Application.command('SaveSession', {
+export const SaveSession = ApplicationDefinition.command('SaveSession', {
   args: { session: Session },
   messages: [Message.SucceededSaveSession, Message.FailedSaveSession],
   handler: function* () {
@@ -28,7 +28,7 @@ export const SaveSession = Application.command('SaveSession', {
   },
 })
 
-export const ClearSession = Application.command('ClearSession', {
+export const ClearSession = ApplicationDefinition.command('ClearSession', {
   messages: [Message.SucceededClearSession, Message.FailedClearSession],
   handler: function* () {
     const store = yield* KeyValueStore.KeyValueStore
@@ -43,7 +43,7 @@ export const ClearSession = Application.command('ClearSession', {
   },
 })
 
-export const LogError = Application.command('LogError', {
+export const LogError = ApplicationDefinition.command('LogError', {
   args: { entries: Schema.Array(Schema.Unknown) },
   messages: [Message.CompletedLogError],
   handler: function* () {
@@ -52,16 +52,19 @@ export const LogError = Application.command('LogError', {
   },
 })
 
-export const NavigateInternal = Application.command('NavigateInternal', {
-  args: { url: Schema.String },
-  messages: [Message.CompletedNavigateInternal],
-  handler: function* () {
-    return ({ url }) =>
-      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
+export const NavigateInternal = ApplicationDefinition.command(
+  'NavigateInternal',
+  {
+    args: { url: Schema.String },
+    messages: [Message.CompletedNavigateInternal],
+    handler: function* () {
+      return ({ url }) =>
+        pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
+    },
   },
-})
+)
 
-export const LoadExternal = Application.command('LoadExternal', {
+export const LoadExternal = ApplicationDefinition.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -70,27 +73,33 @@ export const LoadExternal = Application.command('LoadExternal', {
   },
 })
 
-export const RedirectToLogin = Application.command('RedirectToLogin', {
-  messages: [Message.CompletedRedirectToLogin],
-  handler: function* () {
-    return () =>
-      replaceUrl(loginRouter()).pipe(
-        Effect.as(Message.CompletedRedirectToLogin()),
-      )
+export const RedirectToLogin = ApplicationDefinition.command(
+  'RedirectToLogin',
+  {
+    messages: [Message.CompletedRedirectToLogin],
+    handler: function* () {
+      return () =>
+        replaceUrl(loginRouter()).pipe(
+          Effect.as(Message.CompletedRedirectToLogin()),
+        )
+    },
   },
-})
+)
 
-export const RedirectToDashboard = Application.command('RedirectToDashboard', {
-  messages: [Message.CompletedRedirectToDashboard],
-  handler: function* () {
-    return () =>
-      replaceUrl(dashboardRouter()).pipe(
-        Effect.as(Message.CompletedRedirectToDashboard()),
-      )
+export const RedirectToDashboard = ApplicationDefinition.command(
+  'RedirectToDashboard',
+  {
+    messages: [Message.CompletedRedirectToDashboard],
+    handler: function* () {
+      return () =>
+        replaceUrl(dashboardRouter()).pipe(
+          Effect.as(Message.CompletedRedirectToDashboard()),
+        )
+    },
   },
-})
+)
 
-export const RedirectToHome = Application.command('RedirectToHome', {
+export const RedirectToHome = ApplicationDefinition.command('RedirectToHome', {
   messages: [Message.CompletedRedirectToHome],
   handler: function* () {
     return () =>

@@ -50,8 +50,6 @@ export const SlowWarning = Schema.Struct({
 })
 export type SlowWarning = typeof SlowWarning.Type
 
-// MODEL
-
 export const Model = Schema.Struct({
   activeWorkload: Workload,
   nextWarningId: Schema.Number,
@@ -60,8 +58,6 @@ export const Model = Schema.Struct({
   patchRun: Schema.Number,
 })
 export type Model = typeof Model.Type
-
-// MESSAGE
 
 export const Message = defineMessageUnion({
   ClickedRunUpdateWork: {},
@@ -74,9 +70,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-type ViewBuilder = HtmlBuilderOf<typeof Application>
+type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
 const slowWarningTarget: Dom.TypedEventTarget<{
   [SLOW_WARNING_EVENT]: CustomEvent<SlowWarningReport>
@@ -168,14 +164,12 @@ export const handleSlow = (
   )
 }
 
-// UPDATE
-
 const prependWarning =
   (warning: SlowWarning) =>
   (warnings: ReadonlyArray<SlowWarning>): ReadonlyArray<SlowWarning> =>
     pipe(warnings, Array.prepend(warning), Array.take(MAX_WARNING_COUNT))
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     ClickedRunUpdateWork: () => {
       burnCpu(UPDATE_WORK_MS)
@@ -226,8 +220,6 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// INIT
-
 export const init = () => ({
   model: Model.make({
     activeWorkload: 'Idle',
@@ -238,9 +230,7 @@ export const init = () => ({
   }),
 })
 
-// SUBSCRIPTION
-
-export const subscriptions = Application.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   slowWarningReports: entry('SlowWarningReports', {
     messages: [Message.RecordedSlowWarning],
     handler: function* () {
@@ -276,14 +266,10 @@ export const subscriptions = Application.subscriptions(entry => ({
   ),
 }))
 
-// EFFECTS LAYER
-
 export const EffectsLayer = Layer.mergeAll(
   subscriptions.slowWarningReports.layer,
   subscriptions.dependencyExtractionWork.layer,
 )
-
-// VIEW
 
 const lazyPatchRows = createLazy()
 
@@ -499,7 +485,7 @@ const patchSurfaceView = (model: Model, h: ViewBuilder): Html =>
     ],
   )
 
-export const view = Application.view((model, h) => {
+export const view = ApplicationDefinition.view((model, h) => {
   burnCpuDuringView(model.activeWorkload)
 
   return {
@@ -587,11 +573,3 @@ export const view = Application.view((model, h) => {
     ),
   }
 })
-
-export const implementation = {
-  init,
-  update,
-  view,
-  subscriptions,
-  EffectsLayer,
-}

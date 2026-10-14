@@ -358,9 +358,9 @@ export interface EntryBuilder<Model, Message> {
  *
  * Application features create accessors through their named Block's
  * `resource` and registries through their definition's `managedResources`.
- * Include the registry and its local handler recipes
- * in `definition.implement`; registered child bindings collect their own
- * registries and derive independent occurrence lifetimes.
+ * Pass the registry as `managedResources` and its local handler recipes through
+ * `EffectsLayer` when calling `definition.toBlock`; registered child bindings
+ * collect their own registries and derive independent occurrence lifetimes.
  *
  * Use this when a resource is expensive or stateful and should only exist while
  * the model is in a particular state: a camera stream during a video call, a

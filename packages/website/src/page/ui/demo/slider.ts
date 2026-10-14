@@ -41,8 +41,6 @@ const verticalFilledTrackClassName =
 const thumbClassName =
   'h-5 w-5 rounded-full bg-white border-2 border-accent-600 dark:border-accent-500 shadow cursor-grab focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-600 dark:focus-visible:ring-accent-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 data-[dragging]:cursor-grabbing data-[disabled]:cursor-not-allowed data-[disabled]:border-gray-400'
 
-// VIEW
-
 const ratingFormatted = (value: number): string => `${String(value)} of 10`
 const volumeFormatted = (value: number): string =>
   `${String(Math.round(value * 100))}%`

@@ -1,9 +1,22 @@
 import { Runtime } from 'foldkit'
 
-import { Application, Message, handleSlow, implementation } from './application'
+import {
+  ApplicationDefinition,
+  EffectsLayer,
+  Message,
+  handleSlow,
+  init,
+  subscriptions,
+  update,
+  view,
+} from './application'
 
-const application = Application.make({
-  ...implementation,
+const application = ApplicationDefinition.make({
+  init,
+  update,
+  view,
+  subscriptions,
+  EffectsLayer,
   container: document.getElementById('root'),
   slow: {
     show: 'Always',

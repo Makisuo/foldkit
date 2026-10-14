@@ -307,7 +307,7 @@ describe('no-disabling-dev-guardrails', () => {
   })
 })
 
-it('checks guards at the Application assembly boundary', () => {
+it('checks guards at the Application completion boundary', () => {
   const node = Testing.callOfMember('Application', 'make', [
     Testing.objectExpr([
       { key: 'freezeModel', value: { type: 'Literal', value: false } },

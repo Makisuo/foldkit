@@ -26,7 +26,7 @@ const disabledAt =
   (index: number) =>
     indices.includes(index)
 
-const TabsScene = Block.define('TabsScene', { Model, Message })
+const TabsSceneDefinition = Block.define('TabsScene', { Model, Message })
 
 const foldTabsOutMessage = OutMessage.match<Update.Step<Model, Message>>({
   Selected: () => model => ({ model }),
@@ -39,9 +39,11 @@ const tabs = block.connection({
   outMessage: { fold: foldTabsOutMessage },
 })
 
-const registered = TabsScene.register({ children: [tabs] })
+const RegisteredTabsSceneDefinition = TabsSceneDefinition.register({
+  children: [tabs],
+})
 
-const sceneView = registered.view((model, h) =>
+const sceneView = RegisteredTabsSceneDefinition.view((model, h) =>
   h.block(
     tabs.embedView({
       slotId: 'tabs',
@@ -73,7 +75,7 @@ const sceneView = registered.view((model, h) =>
   ),
 )
 
-const allPanelsView = registered.view((model, h) =>
+const allPanelsView = RegisteredTabsSceneDefinition.view((model, h) =>
   h.block(
     tabs.embedView({
       slotId: 'tabs',

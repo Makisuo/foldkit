@@ -1,4 +1,4 @@
-// ✅ Use the child-owned Step exposed through the binding.
+// ✅ Use the child-owned Step exposed through the connection.
 
 // PARENT UPDATE
 

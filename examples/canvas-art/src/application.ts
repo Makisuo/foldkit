@@ -20,8 +20,6 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
-// MODEL
-
 const CANVAS_WIDTH = 600
 const CANVAS_HEIGHT = 400
 
@@ -60,8 +58,6 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   TickedFrame: { deltaTime: Schema.Number },
   ClickedCanvas: { x: Schema.Number, y: Schema.Number },
@@ -79,19 +75,15 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-type ViewBuilder = HtmlBuilderOf<typeof Application>
-
-// INIT
+type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
 
 export const init = () => ({
   model: Model.make({ balls: [], nextId: 0, isRunning: true }),
 })
 
-// COMMAND
-
-export const GenerateBall = Application.command('GenerateBall', {
+export const GenerateBall = ApplicationDefinition.command('GenerateBall', {
   args: { x: Schema.Number, y: Schema.Number },
   messages: [Message.CompletedGenerateBall],
   handler: function* () {
@@ -123,8 +115,6 @@ export const GenerateBall = Application.command('GenerateBall', {
   },
 })
 
-// UPDATE
-
 const advanceBall =
   (deltaSeconds: number) =>
   (ball: Ball): Ball => {
@@ -144,7 +134,7 @@ const advanceBall =
     })
   }
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     TickedFrame: ({ deltaTime }) => ({
       model: modifyFields(model, {
@@ -180,9 +170,7 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// SUBSCRIPTION
-
-export const subscriptions = Application.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   animationFrameTicks: entry(
     'AnimationFrameTicks',
     { isActive: Schema.Boolean },
@@ -201,14 +189,10 @@ export const subscriptions = Application.subscriptions(entry => ({
   ),
 }))
 
-// EFFECTS LAYER
-
 export const EffectsLayer = Layer.mergeAll(
   GenerateBall.layer,
   subscriptions.animationFrameTicks.layer,
 )
-
-// VIEW
 
 const backgroundShape = Canvas.Rect({
   x: 0,
@@ -280,7 +264,7 @@ const controlsView = (model: Model, h: ViewBuilder): Html =>
     ],
   )
 
-export const view = Application.view((model, h) => ({
+export const view = ApplicationDefinition.view((model, h) => ({
   title: `Canvas Art (${model.balls.length} balls)`,
   body: h.div(
     [
@@ -308,11 +292,3 @@ export const view = Application.view((model, h) => ({
     ],
   ),
 }))
-
-export const implementation = {
-  init,
-  update,
-  view,
-  subscriptions,
-  EffectsLayer,
-}

@@ -3,17 +3,17 @@ import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { optionWhen } from '../../../optionWhen'
-import { Home } from '../block'
 import {
   FocusRoomIdInput,
   FocusUsernameInput,
   JoinRoomFromHome,
 } from '../command'
+import { HomeDefinition } from '../definition'
 import { Message, OutMessage } from '../message'
 import { HomeStep } from '../model'
 import { handleKeyPressed } from './handleKeyPressed'
 
-export const update = Home.update((model, message) =>
+export const update = HomeDefinition.update((model, message) =>
   Message.match(message, {
     CompletedFocusUsernameInput: () => ({ model }),
 

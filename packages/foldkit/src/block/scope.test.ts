@@ -2,6 +2,7 @@ import { Context, Effect, Layer, Option, Ref, Schema, Scope } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
+import { inspectConnection } from './binding.js'
 import { define } from './define.js'
 import { identityOf } from './identity.js'
 import {
@@ -39,7 +40,7 @@ const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
     model,
     commands: [ReadValue()],
   }))
-  const block = feature.assemble({
+  const block = feature.toBlock({
     init: () => ({ model: {} }),
     update,
     EffectsLayer: ReadValue.layer,
@@ -79,9 +80,10 @@ describe('Block capability contexts', () => {
     const model = { child: {} }
     const leftCommand = left.fold(model, Message.RequestedValue()).commands!
     const rightCommand = right.fold(model, Message.RequestedValue()).commands!
-    const layer = Layer.merge(left.EffectsLayer, right.EffectsLayer).pipe(
-      Layer.provide(Layer.succeed(ValueSource, { value: 'shared' })),
-    )
+    const layer = Layer.merge(
+      inspectConnection(left).EffectsLayer,
+      inspectConnection(right).EffectsLayer,
+    ).pipe(Layer.provide(Layer.succeed(ValueSource, { value: 'shared' })))
 
     const results = await Effect.runPromise(
       Effect.scoped(
@@ -132,7 +134,10 @@ describe('Block capability contexts', () => {
         write: (_model, nextChild) => nextChild,
         toParentMessage: message => message,
       })
-    const layer = Layer.merge(left.EffectsLayer, right.EffectsLayer)
+    const layer = Layer.merge(
+      inspectConnection(left).EffectsLayer,
+      inspectConnection(right).EffectsLayer,
+    )
     const commands = [
       ...(left.fold({}, Message.RequestedValue()).commands ?? []),
       ...(right.fold({}, Message.RequestedValue()).commands ?? []),
@@ -185,7 +190,7 @@ describe('Block capability contexts', () => {
           const memoMap = Layer.makeMemoMapUnsafe()
           yield* Layer.buildWithMemoMap(ambient, memoMap, scope)
           const context = yield* Layer.buildWithMemoMap(
-            selected.EffectsLayer,
+            inspectConnection(selected).EffectsLayer,
             memoMap,
             scope,
           )

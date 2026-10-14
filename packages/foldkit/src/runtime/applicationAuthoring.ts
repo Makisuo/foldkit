@@ -1,6 +1,10 @@
 import type { Schema } from 'effect'
 
-import type { AnyBinding, RequirementsOfBindings } from '../block/binding.js'
+import type {
+  AnyBinding,
+  InspectionOfConnection,
+  RequirementsOfBindings,
+} from '../block/binding.js'
 import { define as defineBlock } from '../block/define.js'
 import {
   type Definition as BlockDefinition,
@@ -129,7 +133,9 @@ export type MountsOf<CompositionValue> =
     ? readonly [
         ...Mounts,
         ...ReadonlyArray<
-          ChildrenOf<CompositionValue>[number]['mounts'][number]
+          InspectionOfConnection<
+            ChildrenOf<CompositionValue>[number]
+          >['mounts'][number]
         >,
       ]
     : never
@@ -171,7 +177,9 @@ export type Composition<
   Message: MessageSchema
   mounts: readonly [
     ...Mounts,
-    ...ReadonlyArray<Children[number]['mounts'][number]>,
+    ...ReadonlyArray<
+      InspectionOfConnection<Children[number]>['mounts'][number]
+    >,
   ]
   children: Children
   view: DefineView<
@@ -346,7 +354,7 @@ export const complete = <
   implementation: Implementation,
 ): CompletedComposition<CompositionValue, Implementation> =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  definitionOf(composition).assemble(implementation as never)
+  definitionOf(composition).toBlock(implementation as never)
 
 /** @internal Creates the public staged application definition function. */
 export const makeDefine =

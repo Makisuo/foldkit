@@ -1,6 +1,6 @@
 import { Update } from 'foldkit'
 
-import { dialog, settings } from './bindings'
+import { dialog, settings } from './connection'
 import type { Model } from './model'
 
 export const resetSettings = (model: Model) => settings.reset()(model)

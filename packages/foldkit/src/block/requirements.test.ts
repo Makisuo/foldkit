@@ -103,7 +103,7 @@ const refresh = Update.defineStep((_model: Model) => ({
 type CompleteBlock = Readonly<{
   init: typeof init
   update: typeof update
-  steps: Readonly<{ boot: typeof boot; refresh: typeof refresh }>
+  expose: Readonly<{ boot: typeof boot; refresh: typeof refresh }>
   subscriptions: EmptyRecord
   managedResources: EmptyRecord
   mounts: readonly []
@@ -197,7 +197,7 @@ type ChildWork = HostDefinition<ChildHandler>
 type ChildBlock = Readonly<{
   init: () => Update.Return<Model, Message, ChildHandler>
   update: (model: Model, message: Message) => Update.Return<Model, Message>
-  steps: EmptyRecord
+  expose: EmptyRecord
   subscriptions: EmptyRecord
   managedResources: EmptyRecord
   mounts: readonly []
@@ -209,7 +209,7 @@ type ChildBlock = Readonly<{
 type ChildBinding = BindingBlockEvidence<ChildBlock> &
   Readonly<{
     fold: (model: Model) => Update.Return<Model, Message>
-    steps: EmptyRecord
+    expose: EmptyRecord
     subscriptions: EmptyRecord
     managedResources: EmptyRecord
     mounts: readonly []
@@ -218,7 +218,7 @@ type ChildBinding = BindingBlockEvidence<ChildBlock> &
 type ParentBase = Readonly<{
   init: () => Update.Return<Model, Message>
   update: (model: Model, message: Message) => Update.Return<Model, Message>
-  steps: EmptyRecord
+  expose: EmptyRecord
   subscriptions: EmptyRecord
   managedResources: EmptyRecord
   mounts: readonly []
@@ -337,7 +337,7 @@ type ResourceOperation = () => Update.Return<
 type RuntimeHandleBlock = Readonly<{
   init: ResourceOperation
   update: (model: Model, message: Message) => Update.Return<Model, Message>
-  steps: EmptyRecord
+  expose: EmptyRecord
   subscriptions: EmptyRecord
   managedResources: Registrations['managedResources']
   mounts: readonly []
@@ -357,7 +357,7 @@ it('satisfies operation and Layer construction handles at runtime', () => {
 type RuntimeHandleBinding = BindingBlockEvidence<RuntimeHandleBlock> &
   Readonly<{
     fold: (model: Model) => Update.Return<Model, Message>
-    steps: EmptyRecord
+    expose: EmptyRecord
     subscriptions: EmptyRecord
     managedResources: Registrations['managedResources']
     mounts: readonly []
@@ -366,7 +366,7 @@ type RuntimeHandleBinding = BindingBlockEvidence<RuntimeHandleBlock> &
 type ParentWithLiftedRuntimeHandle = Readonly<{
   init: () => Update.Return<Model, Message>
   update: (model: Model, message: Message) => Update.Return<Model, Message>
-  steps: EmptyRecord
+  expose: EmptyRecord
   subscriptions: EmptyRecord
   managedResources: Registrations['managedResources']
   mounts: readonly []
@@ -386,7 +386,7 @@ it('satisfies an inherited child Layer construction handle at runtime', () => {
 type NearbyOrdinaryServiceBlock = Readonly<{
   init: () => Update.Return<Model, Message, RoomsClient>
   update: (model: Model, message: Message) => Update.Return<Model, Message>
-  steps: EmptyRecord
+  expose: EmptyRecord
   subscriptions: EmptyRecord
   managedResources: EmptyRecord
   mounts: readonly []
@@ -395,7 +395,7 @@ type NearbyOrdinaryServiceBlock = Readonly<{
   hostHandlers: readonly []
 }>
 
-it('separates unchanged operation services from Layer assembly residuals', () => {
+it('separates unchanged operation services from Layer completion residuals', () => {
   expectTypeOf<
     RequirementsOfBlock<NearbyOrdinaryServiceBlock>
   >().toEqualTypeOf<never>()
@@ -404,9 +404,9 @@ it('separates unchanged operation services from Layer assembly residuals', () =>
   >().toEqualTypeOf<RoomsClient>()
 })
 
-type ErasedProducerBlock = Omit<CompleteBlock, 'steps'> &
+type ErasedProducerBlock = Omit<CompleteBlock, 'expose'> &
   Readonly<{
-    steps: Readonly<{
+    expose: Readonly<{
       erased: () => Update.Return<Model, Message, any>
     }>
   }>
@@ -417,7 +417,7 @@ it('rejects erased producer requirements', () => {
       CompleteBlock,
       ErasedProducerBlock
     >['Block requirement sources must preserve exact service types']
-  >().toEqualTypeOf<'init, update, or steps'>()
+  >().toEqualTypeOf<'init, update, or exposed operations'>()
 })
 
 const ImportedWork = Command.define('ImportedWork', {
@@ -435,7 +435,7 @@ const importedInit = () => ({ model, commands: [ImportedWork()] })
 type ImportedBase = Readonly<{
   init: typeof importedInit
   update: (model: Model, message: Message) => Update.Return<Model, Message>
-  steps: EmptyRecord
+  expose: EmptyRecord
   subscriptions: EmptyRecord
   managedResources: EmptyRecord
   mounts: readonly []
@@ -499,26 +499,28 @@ it('retains Command requirements through nested Step factories', () => {
   >()
 })
 
-type StepFactoryBinding = Readonly<{
-  __blockBindingBlock: Readonly<{
-    steps: Readonly<{ refresh: typeof refreshFactory }>
+type OperationFactoryConnection = BindingBlockEvidence<
+  Readonly<{
+    expose: Readonly<{
+      refresh: (model: Model, value: string) => Readonly<{ model: Model }>
+    }>
   }>
-  fold: (model: Model, message: Message) => Update.Return<Model, Message>
-  refresh: typeof refreshFactory
-  subscriptions: EmptyRecord
-  managedResources: EmptyRecord
-  mounts: readonly []
-}>
+> &
+  Readonly<{
+    placement: 'Child'
+    fold: (model: Model, message: Message) => Update.Return<Model, Message>
+    refresh: typeof refreshFactory
+  }>
 
 type ParentWithPolicyStep = Readonly<{
   init: () => Update.Return<Model, Message>
   update: (model: Model, message: Message) => Update.Return<Model, Message>
-  children: readonly [StepFactoryBinding]
+  children: readonly [OperationFactoryConnection]
   EffectsLayer: Layer.Layer<never, never, never>
   hostHandlers: readonly []
 }>
 
-it('reports policy Commands returned by argument-taking bound Steps', () => {
+it('reports policy Commands returned by argument-taking exposed operations', () => {
   expectTypeOf<RequirementsOfBlock<ParentWithPolicyStep>>().toEqualTypeOf<
     Command.HandlerOf<typeof Refresh>
   >()

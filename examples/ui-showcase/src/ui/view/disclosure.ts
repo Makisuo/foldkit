@@ -6,9 +6,9 @@ import { Disclosure } from '@foldkit/ui'
 
 import * as Icon from '../../icon'
 import { Message } from '../message'
-import { ui } from '../update'
+import { RegisteredUiDefinition } from '../update'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof ui>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
 
 const DISCLOSURE_BASIC_DEMO_ID = 'disclosure-basic-demo'
 const DISCLOSURE_ANIMATED_DEMO_ID = 'disclosure-animated-demo'
@@ -68,7 +68,7 @@ const subheading = (text: string, h: HtmlBuilder): Html => {
   )
 }
 
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   const basicDisclosureView = (
     attributes: Disclosure.DisclosureAttributes<Message>,
   ): Html =>

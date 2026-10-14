@@ -12,15 +12,15 @@ import {
 import * as Icon from '../../icon'
 import type { City } from '../model'
 import {
+  RegisteredUiDefinition,
   comboboxDemo,
   comboboxMultiDemo,
   comboboxNullableDemo,
   comboboxPlacementLockDemo,
   comboboxSelectOnFocusDemo,
-  ui,
 } from '../update'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof ui>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
 
 const CITIES: ReadonlyArray<City> = [
   'Johannesburg',
@@ -116,7 +116,7 @@ export const comboboxInputs = (
   }
 }
 
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   return h.div(
     [],
     [

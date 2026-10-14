@@ -64,11 +64,11 @@ const confirmDialog = Dialog.block.connection({
   outMessage: { fold: foldConfirmDialogOutMessage },
 })
 
-const ProjectDialogs = Block.define('ProjectDialogs', {
+const ProjectDialogsDefinition = Block.define('ProjectDialogs', {
   Model,
   Message,
 })
-const registered = ProjectDialogs.register({
+const RegisteredProjectDialogsDefinition = ProjectDialogsDefinition.register({
   children: [settingsDialog, confirmDialog],
 })
 
@@ -76,7 +76,7 @@ const registered = ProjectDialogs.register({
 // The button dispatches ClickedDeleteProject; the update opens the confirmation
 // through `dialog.open()`, keeping Got* for genuine child results.
 
-const update = ProjectDialogs.update((model, message) =>
+const update = ProjectDialogsDefinition.update((model, message) =>
   Message.match(message, {
     GotSettingsDialogMessage: ({ message }) =>
       settingsDialog.fold(model, message),
@@ -91,7 +91,7 @@ const update = ProjectDialogs.update((model, message) =>
 // focus in the topmost, and Escape closes the topmost before the one beneath
 // it. Cancel dismisses the confirmation through the `closeButton` bundle.
 // Delete dispatches a fact that runs the work and closes through `dialog.close()`.
-const view = registered.view((model, h) => {
+const view = RegisteredProjectDialogsDefinition.view((model, h) => {
   const confirmDialogView = ({
     dialog,
     backdrop,

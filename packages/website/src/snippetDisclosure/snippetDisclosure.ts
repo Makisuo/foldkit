@@ -1,12 +1,11 @@
-import { snippetDisclosure } from './definition'
 import { init } from './init'
 import { MeasureSnippetHeight } from './mount'
 import { update } from './update'
-import { view } from './view'
+import { RegisteredSnippetDisclosureDefinition, view } from './view'
 
 export const EffectsLayer = MeasureSnippetHeight.layer
 
-export const block = snippetDisclosure.assemble({
+export const block = RegisteredSnippetDisclosureDefinition.toBlock({
   init,
   update,
   view,

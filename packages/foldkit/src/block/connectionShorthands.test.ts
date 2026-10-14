@@ -5,7 +5,7 @@ import type * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
-import { aggregateChildren } from './binding.js'
+import { aggregateChildren, inspectConnection } from './binding.js'
 import { define } from './define.js'
 import { normalizeConnectionConfig } from './directConnection.js'
 import { ViewScopeTypeId } from './identity.js'
@@ -70,7 +70,7 @@ const registered = Child.register({ mounts: [Observe] })
 const view = registered.view((model, h) =>
   h.div([h.OnMount(Observe())], [globalThis.String(model.count)]),
 )
-const block = registered.assemble({
+const block = registered.toBlock({
   init: () => ({ model: Model.make({ count: 0 }) }),
   update: Child.update((model, message) =>
     Message.match(message, {
@@ -98,7 +98,7 @@ const block = registered.assemble({
     subscriptions.ticks.layer,
     managedResources.session.layer,
   ),
-  steps: { read: Child.step(model => ({ model, commands: [Read()] })) },
+  expose: { read: Child.step(model => ({ model, commands: [Read()] })) },
 })
 const Entry = Schema.Struct({ id: Schema.String, child: Model })
 const ParentModel = Schema.Struct({
@@ -127,6 +127,7 @@ const primary = block.connection({
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
+const primaryInspection = inspectConnection(primary)
 const secondary = block.connection({
   Model: ParentModel,
   field: 'secondary',
@@ -225,6 +226,9 @@ if (false) {
 }
 
 it('keeps exact placement literals and child operation arguments', () => {
+  expectTypeOf<Extract<keyof typeof primary, string>>().toEqualTypeOf<
+    'placement' | 'init' | 'fold' | 'embedView' | 'read'
+  >()
   expectTypeOf(primary.placement).toEqualTypeOf<'primary'>()
   expectTypeOf(secondary.placement).toEqualTypeOf<'secondary'>()
   expectTypeOf(overridden.placement).toEqualTypeOf<'alternate'>()
@@ -238,15 +242,35 @@ it('keeps exact placement literals and child operation arguments', () => {
     Qualify<'primary', Command.HandlerOf<typeof Read>>
   >()
   expectTypeOf<
-    Layer.Services<typeof primary.EffectsLayer>
+    Layer.Services<typeof primaryInspection.EffectsLayer>
   >().toEqualTypeOf<ValueSource>()
   expectTypeOf<
-    Layer.Error<typeof primary.EffectsLayer>
+    Layer.Error<typeof primaryInspection.EffectsLayer>
   >().toEqualTypeOf<never>()
+  expectTypeOf<(typeof primaryInspection.mounts)[number]>().toEqualTypeOf<
+    typeof Observe
+  >()
   expect(primary.placement).toBe('primary')
   expect(secondary.placement).toBe('secondary')
   expect(overridden.placement).toBe('alternate')
   expect(accessor.placement).toBe('Child')
+  expect(Object.keys(primary)).toEqual([
+    'placement',
+    'init',
+    'fold',
+    'embedView',
+    'read',
+  ])
+  expect(Object.keys(keyed)).toEqual([
+    'placement',
+    'init',
+    'fold',
+    'embedView',
+    'read',
+  ])
+  expect(inspectConnection(keyed).subscriptions).toEqual({})
+  expect(inspectConnection(keyed).managedResources).toEqual({})
+  expect(Array.head(primaryInspection.mounts)).toEqual(Option.some(Observe))
 })
 
 it('lifts real Command execution through the constructor and preserves OutMessage handling', async () => {
@@ -255,7 +279,7 @@ it('lifts real Command execution through the constructor and preserves OutMessag
   const operation = Option.getOrThrow(
     Array.head(primary.read()(initial).commands!),
   )
-  const services = primary.EffectsLayer.pipe(
+  const services = inspectConnection(primary).EffectsLayer.pipe(
     Layer.provide(Layer.succeed(ValueSource, { value: 42 })),
   )
   const completed = await Effect.runPromise(
@@ -300,25 +324,35 @@ it('uses one resolved occurrence placement for lifecycle registrations and mount
     model: initial.secondary,
   })
 
-  expect(primary.subscriptions.ticks.name).toBe('primary/Ticks')
-  expect(secondary.subscriptions.ticks.name).toBe('secondary/Ticks')
-  expect(primary.managedResources.session.name).toBe('primary/ManageSession')
-  expect(secondary.managedResources.session.name).toBe(
+  expect(inspectConnection(primary).subscriptions.ticks.name).toBe(
+    'primary/Ticks',
+  )
+  expect(inspectConnection(secondary).subscriptions.ticks.name).toBe(
+    'secondary/Ticks',
+  )
+  expect(inspectConnection(primary).managedResources.session.name).toBe(
+    'primary/ManageSession',
+  )
+  expect(inspectConnection(secondary).managedResources.session.name).toBe(
     'secondary/ManageSession',
   )
-  expect(primary.managedResources.session.resource.key).toBe(
+  expect(inspectConnection(primary).managedResources.session.resource.key).toBe(
     `primary/${Session.key}`,
   )
-  expect(secondary.managedResources.session.resource._tag.key).not.toBe(
-    primary.managedResources.session.resource._tag.key,
+  expect(
+    inspectConnection(secondary).managedResources.session.resource._tag.key,
+  ).not.toBe(
+    inspectConnection(primary).managedResources.session.resource._tag.key,
   )
   expect(Reflect.get(primaryEmbed, ViewScopeTypeId).placement).toBe('primary')
   expect(Reflect.get(secondaryEmbed, ViewScopeTypeId).placement).toBe(
     'secondary',
   )
-  expect(graph.subscriptions['primary/ticks']).toBe(primary.subscriptions.ticks)
+  expect(graph.subscriptions['primary/ticks']).toBe(
+    inspectConnection(primary).subscriptions.ticks,
+  )
   expect(graph.subscriptions['secondary/ticks']).toBe(
-    secondary.subscriptions.ticks,
+    inspectConnection(secondary).subscriptions.ticks,
   )
   expect(() => aggregateChildren([primary, primary])).toThrow(
     /duplicate|Two child Blocks/,

@@ -27,7 +27,7 @@ describe('no-child-message-construction-in-root', () => {
     expect(result[0]?.diagnostic.message).toContain(
       'child.fold(model, message)',
     )
-    expect(result[0]?.diagnostic.message).toContain("Block's `steps` record")
+    expect(result[0]?.diagnostic.message).toContain("Block's `expose` record")
     expect(result[0]?.diagnostic.message).toContain(
       'child.clearSelection()(model)',
     )

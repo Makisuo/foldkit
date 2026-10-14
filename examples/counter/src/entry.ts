@@ -1,9 +1,17 @@
 import { Runtime } from 'foldkit'
 
-import { Application, Message, implementation } from './application'
+import {
+  ApplicationDefinition,
+  Message,
+  init,
+  update,
+  view,
+} from './application'
 
-const application = Application.make({
-  ...implementation,
+const application = ApplicationDefinition.make({
+  init,
+  update,
+  view,
   container: document.getElementById('root'),
   devTools: { Message },
 })

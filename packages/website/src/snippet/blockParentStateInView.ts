@@ -1,12 +1,12 @@
-import { settings } from './bindings'
-import { Settings } from './definition'
+import { settings } from './connection'
+import { SettingsDefinition } from './definition'
 import type { User } from './user'
 
 type ViewInputs = Readonly<{
   currentUser: User
 }>
 
-export const view = Settings.view.withInputs<ViewInputs>(
+export const view = SettingsDefinition.view.withInputs<ViewInputs>(
   (model, { currentUser }, h) =>
     h.div([], [h.h2([], [`Settings for ${currentUser.name}`])]),
 )

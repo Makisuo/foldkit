@@ -1,8 +1,12 @@
 import { Effect } from 'effect'
 import { Server } from 'foldkit/experimental'
 
-import { Application, Flags, implementation } from './application'
+import { Application } from './application'
 import { readCountCookie } from './cookie'
+import { Flags } from './flags'
+import { init } from './init'
+import { update } from './update'
+import { view } from './view'
 
 export const renderDocument = Server.renderDocument
 
@@ -15,7 +19,7 @@ export const renderPage = (request: Request): Promise<Server.EntryResult> =>
     Effect.gen(function* () {
       const renderedApplication = yield* Server.renderToString(
         Application,
-        { ...implementation, Flags },
+        { init, update, view, Flags },
         {
           flags: flagsForRequest(request),
         },

@@ -9,6 +9,17 @@ const variableDeclarator = (name: string, init: unknown) => ({
   init,
 })
 
+const callMethod = (object: unknown, methodName: string) => ({
+  type: 'CallExpression',
+  callee: {
+    type: 'MemberExpression',
+    computed: false,
+    object,
+    property: Testing.id(methodName),
+  },
+  arguments: [],
+})
+
 describe('block-name-matches-variable', () => {
   it('flags a declaration identifier that does not match the Block name', () => {
     const result = Testing.runRule(
@@ -24,7 +35,7 @@ describe('block-name-matches-variable', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain(
-      '"People" does not match its Block.define name "PeopleDirectory"',
+      '"People" must be "PeopleDirectoryDefinition"',
     )
   })
 
@@ -33,7 +44,7 @@ describe('block-name-matches-variable', () => {
       blockNameMatchesVariable,
       'VariableDeclarator',
       variableDeclarator(
-        'People',
+        'PeopleDefinition',
         Testing.callOfMember('Block', 'define', [Testing.strLiteral('People')]),
       ),
     )
@@ -62,7 +73,96 @@ describe('block-name-matches-variable', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain(
-      '"People" does not match its Block.define name "PeopleDirectory"',
+      '"People" must end with "PeopleDirectoryDefinition"',
+    )
+  })
+
+  it('allows a graph stage prefix on a registered definition', () => {
+    const defineCall = Testing.callOfMember('Block', 'define', [
+      Testing.strLiteral('PeopleDirectory'),
+    ])
+    const result = Testing.runRule(
+      blockNameMatchesVariable,
+      'VariableDeclarator',
+      variableDeclarator('RegisteredPeopleDirectoryDefinition', {
+        type: 'CallExpression',
+        callee: {
+          type: 'MemberExpression',
+          computed: false,
+          object: defineCall,
+          property: Testing.id('register'),
+        },
+        arguments: [],
+      }),
+    )
+
+    expect(result).toHaveLength(0)
+  })
+
+  it('unwraps an identity-first typed definition', () => {
+    const identity = Testing.callOfMember('Block', 'define', [
+      Testing.strLiteral('PeopleDirectory'),
+    ])
+    const result = Testing.runRule(
+      blockNameMatchesVariable,
+      'VariableDeclarator',
+      variableDeclarator(
+        'PeopleDirectoryDefinition',
+        callMethod(identity, 'define'),
+      ),
+    )
+
+    expect(result).toHaveLength(0)
+  })
+
+  it('unwraps an identity-first registered definition', () => {
+    const identity = Testing.callOfMember('Block', 'define', [
+      Testing.strLiteral('PeopleDirectory'),
+    ])
+    const result = Testing.runRule(
+      blockNameMatchesVariable,
+      'VariableDeclarator',
+      variableDeclarator(
+        'RegisteredPeopleDirectoryDefinition',
+        callMethod(callMethod(identity, 'define'), 'register'),
+      ),
+    )
+
+    expect(result).toHaveLength(0)
+  })
+
+  it('requires ApplicationDefinition before registration', () => {
+    const result = Testing.runRule(
+      blockNameMatchesVariable,
+      'VariableDeclarator',
+      variableDeclarator(
+        'Application',
+        Testing.callOfMember('Application', 'define', []),
+      ),
+    )
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.diagnostic.message).toContain(
+      '"Application" must be "ApplicationDefinition"',
+    )
+  })
+
+  it('requires Application after inline registration', () => {
+    const result = Testing.runRule(
+      blockNameMatchesVariable,
+      'VariableDeclarator',
+      variableDeclarator(
+        'ApplicationDefinition',
+        callMethod(
+          Testing.callOfMember('Application', 'define', []),
+          'register',
+        ),
+      ),
+    )
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.diagnostic.message).toContain(
+      '"ApplicationDefinition" must be "Application"',
     )
   })
 

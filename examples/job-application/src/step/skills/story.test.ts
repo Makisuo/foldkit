@@ -2,7 +2,7 @@ import { Array, Option, pipe } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
-import { GenerateSkillsEntryId, Message, init, update } from './block'
+import { GenerateSkillsEntryId, Message, init, update } from './definition'
 import * as Entry from './entry'
 
 const givenInitial = given(init('skills-entry-1'))

@@ -5,14 +5,14 @@ import { Popover } from '@foldkit/ui'
 import { type RenderInfo, buttonId } from '@foldkit/ui/popover'
 
 import {
+  RegisteredUiDefinition,
   popoverAnimatedDemo,
   popoverBasicDemo,
   popoverNestedChildDemo,
   popoverNestedParentDemo,
-  ui,
 } from '../update'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof ui>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
 
 const triggerClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -191,7 +191,7 @@ const nestedDemo = (
   )
 }
 
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   return h.div(
     [],
     [

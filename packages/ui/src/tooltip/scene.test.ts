@@ -16,7 +16,7 @@ import {
   triggerId,
 } from './index.js'
 
-const TooltipScene = Block.define('TooltipScene', { Model, Message })
+const TooltipSceneDefinition = Block.define('TooltipScene', { Model, Message })
 
 const foldTooltipOutMessage = OutMessage.match<Update.Step<Model, Message>>({
   Shown: () => model => ({ model }),
@@ -30,9 +30,11 @@ const tooltip = block.connection({
   outMessage: { fold: foldTooltipOutMessage },
 })
 
-const registered = TooltipScene.register({ children: [tooltip] })
+const RegisteredTooltipSceneDefinition = TooltipSceneDefinition.register({
+  children: [tooltip],
+})
 
-const update = TooltipScene.update((model, message) =>
+const update = TooltipSceneDefinition.update((model, message) =>
   tooltip.fold(model, message),
 )
 
@@ -47,22 +49,26 @@ type ViewInputs = Readonly<{
   ariaLabelledBy?: string
 }>
 
-const rootView = registered.view.withInputs<ViewInputs>((model, overrides, h) =>
-  h.block(
-    tooltip.embedView({
-      slotId: 'test',
-      model,
-      viewInputs: {
-        anchor: { placement: 'top' },
-        ...overrides,
-        toView: ({ trigger, panel, isVisible }) =>
-          h.div(
-            [],
-            [h.button([...trigger]), ...(isVisible ? [h.div([...panel])] : [])],
-          ),
-      },
-    }),
-  ),
+const rootView = RegisteredTooltipSceneDefinition.view.withInputs<ViewInputs>(
+  (model, overrides, h) =>
+    h.block(
+      tooltip.embedView({
+        slotId: 'test',
+        model,
+        viewInputs: {
+          anchor: { placement: 'top' },
+          ...overrides,
+          toView: ({ trigger, panel, isVisible }) =>
+            h.div(
+              [],
+              [
+                h.button([...trigger]),
+                ...(isVisible ? [h.div([...panel])] : []),
+              ],
+            ),
+        },
+      }),
+    ),
 )
 
 const sceneView = Scene.withViewInputs(rootView, {})

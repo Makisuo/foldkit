@@ -95,7 +95,7 @@ const disabledGuardrailMessage = (
   return pipe(staticKeyName(property), Option.flatMap(guardrailMessageForKey))
 }
 
-/** Flags `freezeModel: false` and `slow: false` in config objects passed directly to Application assembly. Disabling a dev guardrail hides the problem it would have surfaced; a deliberate disable belongs behind an oxlint-disable comment. */
+/** Flags `freezeModel: false` and `slow: false` in config objects passed directly to Application completion. Disabling a dev guardrail hides the problem it would have surfaced; a deliberate disable belongs behind an oxlint-disable comment. */
 export const noDisablingDevGuardrails = Rule.define({
   name: 'no-disabling-dev-guardrails',
   meta: Rule.meta({

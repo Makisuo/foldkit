@@ -3,8 +3,8 @@ import { Array, Match, Option, String, pipe } from 'effect'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 
 import { Icon } from '../icon'
-import { dialog } from './bindings'
-import { search } from './block'
+import { dialog } from './connection'
+import { SearchDefinition } from './definition'
 import { Message, type SearchResult } from './message'
 import type { Model } from './model'
 import { SearchState, resultsFromState } from './model'
@@ -236,7 +236,7 @@ const keyboardWarmupInput: Html = ih.input([
   ih.Class('fixed top-0 left-0 w-px h-px opacity-0 pointer-events-none -z-10'),
 ])
 
-export const view = search.view((model, h) =>
+export const view = SearchDefinition.view((model, h) =>
   h.div(
     [],
     [

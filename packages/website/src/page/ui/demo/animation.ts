@@ -11,8 +11,6 @@ const triggerClassName = 'demo-neutral-button'
 const contentClassName =
   'mt-4 rounded-lg bg-accent-100 dark:bg-accent-900/30 border border-accent-300 dark:border-accent-700 p-4 transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:scale-95 data-[closed]:-translate-y-2'
 
-// VIEW
-
 export const view = (
   animationModel: typeof Animation.Model.Type,
   h: ViewBuilder,

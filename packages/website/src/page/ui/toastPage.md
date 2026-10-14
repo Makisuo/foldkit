@@ -2,7 +2,7 @@
 
 ## Overview
 
-A stack of transient notifications positioned along an edge of the viewport. Each entry has its own enter and leave animation and hover state. Non-sticky entries have independent auto-dismiss timers that pause on hover. Swipe-to-dismiss is opt-in for the container. Keep the container at the app root and add entries with the connection’s `api.show`.
+A stack of transient notifications positioned along an edge of the viewport. Each entry has its own enter and leave animation and hover state. Non-sticky entries have independent auto-dismiss timers that pause on hover. Swipe-to-dismiss is opt-in for the container. Keep the container at the app root and add entries with the connection’s `show` operation.
 
 Toast is parameterized on a payload Schema that you provide. The component owns entry IDs, variants, animations, optional dismiss timers, hover state, and swipe state. Your payload holds the content rendered by `entryToView`. `Toast.make(PayloadSchema)` returns a completed Block whose Model, programmatic API, view, Subscriptions, and handler recipes are bound to that payload type. Each parent connection supplies its occurrence identity.
 
@@ -72,7 +72,7 @@ Configuration object passed to the Toast connection’s `init()`.
 | Name              | Type                                                    | Default               | Description                                                                                                                                                                                                                        |
 | ----------------- | ------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`              | `string`                                                | —                     | Unique ID for the toast container.                                                                                                                                                                                                 |
-| `defaultDuration` | `Duration.Input`                                        | `Duration.seconds(4)` | Auto-dismiss duration for an `api.show` call without its own `duration` or `sticky: true`. Accepts any Effect Duration input; a bare number means milliseconds.                                                                    |
+| `defaultDuration` | `Duration.Input`                                        | `Duration.seconds(4)` | Auto-dismiss duration for a `show` call without its own `duration` or `sticky: true`. Accepts any Effect Duration input; a bare number means milliseconds.                                                                         |
 | `swipeToDismiss`  | `{ threshold?: number; direction?: 'Left' \| 'Right' }` | —                     | Opts the container into swipe-to-dismiss. Omit it to leave swipe disabled. Defaults to a rightward 40px threshold. Set `threshold` for the dismissal distance and `direction: 'Left'` for a leftward swipe. Applies per container. |
 
 ### ShowInput {#show-input}
@@ -100,7 +100,7 @@ Pass the child Model as `model` and these fields as `viewInputs` to the Toast co
 
 ### Programmatic Helpers
 
-Toast operations are public parent Steps. Call the connection’s `api.show`, `api.dismiss`, and `api.dismissAll` projections from the parent.
+Toast operations are public parent Steps. Call the connection’s `show`, `dismiss`, and `dismissAll` operations from the parent.
 
 | Name         | Type                                | Default | Description                                                                                                                                                                                  |
 | ------------ | ----------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -111,7 +111,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const ModelSchema = makeModel(payloadSchema)
   const MessageSchema = makeMessage(payloadSchema)
   const OutMessageSchema = makeOutMessage(payloadSchema)
-  const Toast = Block.define('Toast', {
+  const ToastDefinition = Block.define('Toast', {
     Model: ModelSchema,
     Message: MessageSchema,
     OutMessage: OutMessageSchema,
@@ -125,7 +125,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
   /** Waits for an entry's auto-dismiss duration, then emits a versioned
    *  `CompletedWaitBeforeDismissal` Message so update can ignore stale timers. */
-  const WaitBeforeDismissal = Toast.command('WaitBeforeDismissal', {
+  const WaitBeforeDismissal = ToastDefinition.command('WaitBeforeDismissal', {
     args: {
       entryId: Schema.String,
       version: Schema.Number,
@@ -146,7 +146,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
   /** Waits for a short or cancelled swipe to animate back, then emits
    *  `CompletedWaitForSwipeSettled` so update can clear `Settling`. */
-  const WaitForSwipeSettled = Toast.command('WaitForSwipeSettled', {
+  const WaitForSwipeSettled = ToastDefinition.command('WaitForSwipeSettled', {
     args: {
       entryId: Schema.String,
       version: Schema.Number,
@@ -241,7 +241,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   }
 
   const settleSnapBack = (entry: Entry) =>
-    Toast.step(model => {
+    ToastDefinition.step(model => {
       const nextSwipeVersion = Number.increment(entry.swipeVersion)
       const nextEntry = modifyFields(entry, {
         pendingDismissVersion: Number.increment,
@@ -273,7 +273,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   ) =>
     AnimationOutMessage.match(outMessage, {
       StartedLeaveAnimating: () =>
-        Toast.step(model =>
+        ToastDefinition.step(model =>
           Option.match(readEntryAnimation(entryId)(model), {
             onNone: () => ({ model }),
             onSome: animation => ({
@@ -283,7 +283,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           }),
         ),
       TransitionedOut: () =>
-        Toast.step(model =>
+        ToastDefinition.step(model =>
           Option.match(
             Array.findFirst(model.entries, ({ id }) => id === entryId),
             {
@@ -316,7 +316,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     outMessage: { fold: foldEntryAnimationOutMessage },
   })
 
-  const registered = Toast.register({
+  const RegisteredToastDefinition = ToastDefinition.register({
     children: [entryAnimation],
   })
 
@@ -369,18 +369,18 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   /** Processes a Toast Message and returns the next Model, optional Commands,
    *  and an optional `DismissedToast` OutMessage emitted once an entry has
    *  finished its leave animation. */
-  const update = Toast.update((model, message) =>
+  const update = ToastDefinition.update((model, message) =>
     MessageSchema.match(message, {
       Added: ({ entry }) => {
         return Update.combine(model, [
-          Toast.step(stepModel => ({
+          ToastDefinition.step(stepModel => ({
             model: modifyFields(stepModel, {
               entries: entries => Array.append(entries, entry),
               nextEntryKey: Number.increment,
             }),
           })),
           foldEntryAnimationShow(entry),
-          Toast.step(stepModel => ({
+          ToastDefinition.step(stepModel => ({
             model: stepModel,
             commands: pipe(
               Array.findFirst(stepModel.entries, ({ id }) => id === entry.id),
@@ -613,21 +613,21 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   )
 
   /** Adds a new toast entry. */
-  const show = Toast.step((model, input: ShowInput<A>) =>
+  const show = ToastDefinition.step((model, input: ShowInput<A>) =>
     update(model, MessageSchema.Added({ entry: createEntry(model, input) })),
   )
 
   /** Begins dismissing a specific entry. */
-  const dismiss = Toast.step((model, entryId: string) =>
+  const dismiss = ToastDefinition.step((model, entryId: string) =>
     update(model, MessageSchema.Dismissed({ entryId })),
   )
 
   /** Begins dismissing every currently-visible entry. */
-  const dismissAll = Toast.step(model =>
+  const dismissAll = ToastDefinition.step(model =>
     update(model, MessageSchema.DismissedAll()),
   )
 
-  const steps = { show, dismiss, dismissAll }
+  const expose = { show, dismiss, dismissAll }
 
   const swipeDependencies = (model: Model) => ({
     isSwipeEnabled: Option.isSome(model.maybeSwipeConfig),
@@ -639,7 +639,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     | typeof MessageSchema.ReleasedSwipePointer.Type
     | typeof MessageSchema.CancelledSwipe.Type
 
-  const subscriptions = Toast.subscriptions(entry => ({
+  const subscriptions = ToastDefinition.subscriptions(entry => ({
     swipePointer: entry(
       'SwipePointer',
       {
@@ -732,7 +732,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   )
 
   return {
-    registered,
+    RegisteredToastDefinition,
     entryAnimation,
     Entry: EntrySchema,
     Model: ModelSchema,
@@ -745,7 +745,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     show,
     dismiss,
     dismissAll,
-    steps,
+    expose,
     subscriptions,
     EffectsLayer,
     WaitBeforeDismissal,

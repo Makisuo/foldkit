@@ -6,7 +6,7 @@ Subscriptions declare the Message Schemas their Streams can emit. Create them th
 
 The handler name identifies the Layer requirement that application assembly must satisfy. The record key identifies the runtime registration whose Stream Foldkit starts and stops. Several lifted registrations can share one definition and handler Layer while keeping separate Stream scopes. Subscription lifecycle display in DevTools remains follow-up work.
 
-The declared Message Schemas constrain the attached handler and external `toLayer` implementations. An undeclared output is a type error; an empty declaration constrains a silent Subscription to `Stream<never>`. Scene uses the declarations to validate an emitted Message against its registered Subscription source, including Message mappings through parent Block bindings. The declarations and handler Layer remain available after completed Block composition.
+The declared Message Schemas constrain the attached handler and external `toLayer` implementations. An undeclared output is a type error; an empty declaration constrains a silent Subscription to `Stream<never>`. Scene uses the declarations to validate an emitted Message against its registered Subscription source, including Message mappings through parent Block connections. The declarations and handler Layer remain available after completed Block composition.
 
 Remove uses of `Subscription.persistentEntry`, `Subscription.animationFrameEntry`, and `Port.subscriptionEntry`. Define ordinary named entries instead. Replace `Subscription.persistentEntry(stream)` with `entry(name, { messages, handler: function* () { return () => stream } })`, then provide the entry's `.layer`.
 
@@ -26,7 +26,7 @@ const subscriptions = Subscription.make<Model, Message>()(_entry => ({
 **After**
 
 ```ts
-const subscriptions = app.subscriptions(entry => ({
+const subscriptions = FeatureDefinition.subscriptions(entry => ({
   animationFrameTicks: entry(
     // A named handler replaces the anonymous animation-frame helper.
     'AnimationFrameTicks',
@@ -49,7 +49,7 @@ const subscriptions = app.subscriptions(entry => ({
 
 const EffectsLayer = subscriptions.animationFrameTicks.layer
 
-export const block = app.assemble({
+export const block = FeatureDefinition.toBlock({
   init,
   update,
   view,
@@ -58,7 +58,7 @@ export const block = app.assemble({
 })
 ```
 
-Build inbound Port handlers from `Port.stream(port)`. This example assumes `ports.inbound.stepChanged` is an inbound Port and `app` is the owning Block definition.
+Build inbound Port handlers from `Port.stream(port)`. This example assumes `ports.inbound.stepChanged` is an inbound Port and `FeatureDefinition` is the owning Block definition.
 
 **Before**
 
@@ -78,7 +78,7 @@ const subscriptions = Subscription.aggregate(
 **After**
 
 ```ts
-const subscriptions = app.subscriptions(entry => ({
+const subscriptions = FeatureDefinition.subscriptions(entry => ({
   hostStep: entry('HostStepChanges', {
     messages: [Message.ChangedStep],
     handler: function* () {
@@ -93,7 +93,7 @@ const subscriptions = app.subscriptions(entry => ({
 
 const EffectsLayer = subscriptions.hostStep.layer
 
-export const block = app.assemble({
+export const block = FeatureDefinition.toBlock({
   init,
   update,
   view,

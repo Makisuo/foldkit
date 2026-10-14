@@ -26,15 +26,15 @@ export const update = (model: Model) => foldChildSave(model)
 const saveButton = (h: HtmlBuilder<Child.Message>) =>
   h.button([h.OnClick(Child.Message.ClickedSave())])
 
-const ChildView = Block.define('ChildView')
-const childView = ChildView.define({
+const ChildViewDefinition = Block.define('ChildView')
+const childView = ChildViewDefinition.define({
   Model: Child.Model,
   Message: Child.Message,
 })
 export const view = childView.view((_model, h) => saveButton(h))
 
-const DirectMessageView = Block.define('DirectMessageView')
-const directMessageDefinition = DirectMessageView.define({
+const DirectMessageViewDefinition = Block.define('DirectMessageView')
+const directMessageDefinition = DirectMessageViewDefinition.define({
   Model: Child.Model,
   Message: DirectChildMessage,
 })
@@ -42,8 +42,8 @@ export const directMessageView = directMessageDefinition.view((_model, h) =>
   h.button([h.OnClick(DirectChildMessage.ClickedSave())]),
 )
 
-const NestedMainMessageView = Block.define('NestedMainMessageView')
-const nestedMainMessageDefinition = NestedMainMessageView.define({
+const NestedMainMessageViewDefinition = Block.define('NestedMainMessageView')
+const nestedMainMessageDefinition = NestedMainMessageViewDefinition.define({
   Model: Child.Model,
   Message: NestedMainMessage,
 })

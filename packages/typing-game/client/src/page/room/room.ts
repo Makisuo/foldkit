@@ -1,15 +1,15 @@
-import { Room } from './block'
+import { RoomDefinition } from './definition'
 import { init } from './init'
-import { EffectsLayer as LocalEffectsLayer } from './layer'
-import { subscriptions as localSubscriptions } from './subscription'
+import { EffectsLayer } from './layer'
+import { subscriptions } from './subscription'
 import { informJoined, update } from './update'
 import { view } from './view'
 
-export const block = Room.assemble({
+export const block = RoomDefinition.toBlock({
   init,
   update,
   view,
-  steps: { informJoined },
-  subscriptions: localSubscriptions,
-  EffectsLayer: LocalEffectsLayer,
+  expose: { informJoined },
+  subscriptions,
+  EffectsLayer,
 })

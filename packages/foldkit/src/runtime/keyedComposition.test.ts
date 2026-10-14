@@ -193,7 +193,7 @@ const itemImplementation = {
   managedResources,
   EffectsLayer: ItemEffectsLayer,
 }
-const itemBlock = item.assemble(itemImplementation)
+const itemBlock = item.toBlock(itemImplementation)
 
 const RootModel = Schema.Struct({ entries: Schema.Array(ItemModel) })
 const RootMessage = defineMessageUnion({

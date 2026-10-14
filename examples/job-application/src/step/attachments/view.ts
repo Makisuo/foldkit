@@ -5,7 +5,12 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
-import { Message, additionalFilesDrop, attachments, resumeDrop } from './block'
+import {
+  Message,
+  RegisteredAttachmentsDefinition,
+  additionalFilesDrop,
+  resumeDrop,
+} from './definition'
 
 const BYTES_PER_KB = 1024
 const BYTES_PER_MB = BYTES_PER_KB * BYTES_PER_KB
@@ -115,7 +120,7 @@ const additionalFileView = (
     ],
   )
 
-export const view = attachments.view((model, h) => {
+export const view = RegisteredAttachmentsDefinition.view((model, h) => {
   const { maybeResume, additionalFiles } = model
 
   const resumeSection = h.div(

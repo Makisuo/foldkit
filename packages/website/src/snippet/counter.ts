@@ -3,14 +3,10 @@ import { define as defineApplication } from 'foldkit/application'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-// MODEL
-
 export const Model = Schema.Struct({
   count: Schema.Number,
 })
 export type Model = typeof Model.Type
-
-// MESSAGE
 
 export const Message = defineMessageUnion({
   ClickedDecrement: {},
@@ -18,12 +14,10 @@ export const Message = defineMessageUnion({
   ClickedReset: {},
 })
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 export type Message = typeof Message.Type
 
-// UPDATE
-
-export const update = Application.update((model, message) =>
+export const update = ApplicationDefinition.update((model, message) =>
   Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: count => count - 1 }),
@@ -35,15 +29,11 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// INIT
-
 export const init = () => ({
   model: { count: 0 },
 })
 
-// VIEW
-
-export const view = Application.view((model, h) => ({
+export const view = ApplicationDefinition.view((model, h) => ({
   title: `Counter: ${model.count}`,
   body: h.div(
     [
@@ -76,7 +66,5 @@ export const view = Application.view((model, h) => ({
     ],
   ),
 }))
-
-// STYLE
 
 const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'

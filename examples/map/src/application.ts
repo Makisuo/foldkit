@@ -34,8 +34,6 @@ const SELECTED_LOCATION_ZOOM = 12
 const USER_LOCATION_ZOOM = 13
 const GEOLOCATION_TIMEOUT_MS = 10_000
 
-// MODEL
-
 const Bounds = Schema.Struct({
   west: Schema.Number,
   south: Schema.Number,
@@ -66,8 +64,6 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   SucceededMountMap: { hostId: Schema.String },
   FailedMountMap: { reason: Schema.String },
@@ -91,15 +87,13 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const Authoring = defineApplication({ Model, Message })
+const ApplicationDefinition = defineApplication({ Model, Message })
 
 type MountMapMessage =
   | typeof Message.SucceededMountMap.Type
   | typeof Message.FailedMountMap.Type
   | typeof Message.MovedMap.Type
   | typeof Message.ClickedMarker.Type
-
-// COMMAND
 
 const flyToMap = (
   maps: typeof MapRegistry.Service,
@@ -128,7 +122,7 @@ const flyToMap = (
     })
   })
 
-export const FlyTo = Authoring.command('FlyTo', {
+export const FlyTo = ApplicationDefinition.command('FlyTo', {
   args: {
     maybeHostId: Schema.Option(Schema.String),
     lng: Schema.Number,
@@ -152,7 +146,7 @@ export const FlyTo = Authoring.command('FlyTo', {
   },
 })
 
-export const Geolocate = Authoring.command('Geolocate', {
+export const Geolocate = ApplicationDefinition.command('Geolocate', {
   messages: [Message.SucceededGeolocate, Message.FailedGeolocate],
   handler: function* () {
     return () =>
@@ -197,18 +191,21 @@ export const Geolocate = Authoring.command('Geolocate', {
 
 const SEARCH_INPUT_ID = 'map-search-input'
 
-export const FocusSearchInput = Authoring.command('FocusSearchInput', {
-  messages: [Message.CompletedFocusSearchInput],
-  handler: function* () {
-    return () =>
-      Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedFocusSearchInput()),
-      )
+export const FocusSearchInput = ApplicationDefinition.command(
+  'FocusSearchInput',
+  {
+    messages: [Message.CompletedFocusSearchInput],
+    handler: function* () {
+      return () =>
+        Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
+          Effect.ignore,
+          Effect.as(Message.CompletedFocusSearchInput()),
+        )
+    },
   },
-})
+)
 
-export const LockBodyScroll = Authoring.command('LockBodyScroll', {
+export const LockBodyScroll = ApplicationDefinition.command('LockBodyScroll', {
   messages: [Message.CompletedLockBodyScroll],
   handler: function* () {
     return () =>
@@ -219,18 +216,19 @@ export const LockBodyScroll = Authoring.command('LockBodyScroll', {
   },
 })
 
-export const UnlockBodyScroll = Authoring.command('UnlockBodyScroll', {
-  messages: [Message.CompletedUnlockBodyScroll],
-  handler: function* () {
-    return () =>
-      Effect.sync(() => {
-        document.body.classList.remove('overflow-hidden')
-        return Message.CompletedUnlockBodyScroll()
-      })
+export const UnlockBodyScroll = ApplicationDefinition.command(
+  'UnlockBodyScroll',
+  {
+    messages: [Message.CompletedUnlockBodyScroll],
+    handler: function* () {
+      return () =>
+        Effect.sync(() => {
+          document.body.classList.remove('overflow-hidden')
+          return Message.CompletedUnlockBodyScroll()
+        })
+    },
   },
-})
-
-// INIT
+)
 
 export const init = () => ({
   model: {
@@ -317,7 +315,7 @@ const listenToMapMovesAndMarkerClicks = (
       }),
   )
 
-export const MountMap = Authoring.mountStream('MountMap', {
+export const MountMap = ApplicationDefinition.mountStream('MountMap', {
   args: { hostId: Schema.String },
   messages: [
     Message.SucceededMountMap,
@@ -394,9 +392,9 @@ export const MountMap = Authoring.mountStream('MountMap', {
   },
 })
 
-export const Application = Authoring.register({ mounts: [MountMap] })
-
-// UPDATE
+export const Application = ApplicationDefinition.register({
+  mounts: [MountMap],
+})
 
 const findLocation = (
   model: Model,
@@ -490,8 +488,6 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// EFFECTS LAYER
-
 export const EffectsLayer = Layer.mergeAll(
   FlyTo.layer,
   Geolocate.layer,
@@ -510,8 +506,6 @@ const boundsFromMap = (map: MapInstance): Bounds => {
     north: bounds.getNorth(),
   }
 }
-
-// VIEW
 
 const HOST_ID = 'map-host-1'
 
@@ -834,10 +828,3 @@ const spinnerView = (h: MapHtmlBuilder): Html =>
 
 const markerStyle =
   'block w-3.5 h-3.5 rounded-full bg-rose-500 ring-2 ring-white shadow cursor-pointer hover:bg-rose-600 transition'
-
-export const implementation = {
-  init,
-  update,
-  view,
-  EffectsLayer,
-}

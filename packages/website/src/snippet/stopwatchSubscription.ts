@@ -2,14 +2,10 @@ import { Duration, Effect, Schema, Stream } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-// MESSAGE
-
 const Message = defineMessageUnion({
   Ticked: {},
 })
 type Message = typeof Message.Type
-
-// MODEL
 
 const Model = Schema.Struct({
   isRunning: Schema.Boolean,
@@ -17,11 +13,9 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// SUBSCRIPTION
+const StopwatchDefinition = Block.define('Stopwatch', { Model, Message })
 
-const Stopwatch = Block.define('Stopwatch', { Model, Message })
-
-const subscriptions = Stopwatch.subscriptions(entry => ({
+const subscriptions = StopwatchDefinition.subscriptions(entry => ({
   stopwatchTicks: entry(
     'StopwatchTicks',
     { isRunning: Schema.Boolean },

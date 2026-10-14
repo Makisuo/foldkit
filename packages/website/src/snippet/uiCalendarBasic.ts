@@ -90,7 +90,7 @@ const foldCalendarOutMessage = UiCalendar.OutMessage.match<
   ChangedViewMonth: () => model => ({ model }),
 })
 
-// The binding wires the completed child Block into the parent: it delegates navigation,
+// The connection wires the completed child Block into the parent: it delegates navigation,
 // focus, and picker-mode transitions to UiCalendar.update, writes the next
 // Calendar Model back, maps the Block's Commands into your Message type,
 // and hands any OutMessage to the OutMessage fold.
@@ -101,15 +101,19 @@ const calendar = UiCalendar.block.connection({
   outMessage: { fold: foldCalendarOutMessage },
 })
 
-const CalendarExample = Block.define('CalendarExample', {
+const CalendarExampleDefinition = Block.define('CalendarExample', {
   Model,
   Message,
 })
-const registered = CalendarExample.register({ children: [calendar] })
+const RegisteredCalendarExampleDefinition = CalendarExampleDefinition.register({
+  children: [calendar],
+})
 
-type ViewBuilder = Block.HtmlBuilderOf<typeof registered>
+type ViewBuilder = Block.HtmlBuilderOf<
+  typeof RegisteredCalendarExampleDefinition
+>
 
-const update = CalendarExample.update((model, message) =>
+const update = CalendarExampleDefinition.update((model, message) =>
   Message.match(message, {
     GotCalendarMessage: ({ message }) => calendar.fold(model, message),
   }),
@@ -288,7 +292,7 @@ const yearsView = (
 // receives a discriminated `CalendarAttributes` whose variant matches the
 // calendar's current `viewMode`, so the match hands each grid to its own view
 // function:
-const view = registered.view((model, h) => {
+const view = RegisteredCalendarExampleDefinition.view((model, h) => {
   const calendarView = Match.type<UiCalendarCalendarAttributes>().pipe(
     Match.tagsExhaustive({
       Days: days => daysView(days, h),

@@ -5,9 +5,13 @@ import type { Html } from 'foldkit/html'
 import type { RenderInfo } from '@foldkit/ui/tabs'
 
 import type { DemoTab } from '../model'
-import { horizontalTabsDemo, ui, verticalTabsDemo } from '../update'
+import {
+  RegisteredUiDefinition,
+  horizontalTabsDemo,
+  verticalTabsDemo,
+} from '../update'
 
-type HtmlBuilder = Block.HtmlBuilderOf<typeof ui>
+type HtmlBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>
 
 const demoTabs: ReadonlyArray<DemoTab> = ['Foldkit', 'React', 'Elm']
 
@@ -94,7 +98,7 @@ const panelFor = (tab: DemoTab, h: HtmlBuilder): Html =>
     Match.exhaustive,
   )
 
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   const horizontalTabsView = ({
     tablist,
     tabs,

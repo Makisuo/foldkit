@@ -123,8 +123,6 @@ const sampleActivities: ReadonlyArray<Activity> = Array.makeBy(
   },
 )
 
-// VIEW
-
 const containerClassName =
   'h-96 w-full rounded-lg bg-white dark:bg-gray-900 ring-1 ring-gray-200 dark:ring-gray-800 overscroll-none'
 

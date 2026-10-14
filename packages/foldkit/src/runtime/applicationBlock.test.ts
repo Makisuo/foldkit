@@ -36,7 +36,7 @@ const ReadValue = Child.command('ReadValue', {
   },
 })
 const child = Child.define({ Model: ChildModel, Message: ChildMessage })
-const childBlock = child.assemble({
+const childBlock = child.toBlock({
   init: (label: string) => ({ model: { label }, commands: [ReadValue()] }),
   update: child.update((model, { value }) => ({
     model: modifyFields(model, { label: () => value }),
@@ -105,7 +105,7 @@ const hostChildDefinition = HostChild.define({
   Model: HostChildModel,
   Message: HostChildMessage,
 })
-const unresolvedHostChild = hostChildDefinition.assemble({
+const unresolvedHostChild = hostChildDefinition.toBlock({
   init: () => ({ model: { value: '' }, commands: [ReadHostValue()] }),
   update: hostChildDefinition.update((model, { value }) => ({
     model: modifyFields(model, { value: () => value }),
@@ -200,7 +200,7 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-describe('registered Application composition assembly', () => {
+describe('registered Application composition completion', () => {
   it('includes child recipes and lifts initialization Commands through the real runtime', async () => {
     const container = document.createElement('div')
     container.id = 'composed-element'
@@ -289,7 +289,7 @@ describe('registered Application composition assembly', () => {
         },
       }),
     }))
-    const leafBlock = leaf.assemble({
+    const leafBlock = leaf.toBlock({
       init: () => ({ model: { value: 'pending' } }),
       update: leaf.update((model, message) =>
         LeafMessage.match(message, {
@@ -340,7 +340,7 @@ describe('registered Application composition assembly', () => {
       Message: MiddleMessage,
     })
     const middleComposition = middle.register({ children: [leafBinding] })
-    const middleBlock = middleComposition.assemble({
+    const middleBlock = middleComposition.toBlock({
       init: () => ({ model: { leaf: leafBinding.init().model } }),
       update: middle.update((model, { message }) => {
         if (message._tag === 'CompletedReadValue') {
@@ -469,7 +469,7 @@ describe('registered Application composition assembly', () => {
       Model: ServiceChildModel,
       Message: ServiceChildMessage,
     })
-    const serviceChildBlock = serviceChild.assemble({
+    const serviceChildBlock = serviceChild.toBlock({
       init: () => ({
         model: { value: 'pending' },
         commands: [ReadSharedValue()],
@@ -667,7 +667,7 @@ describe('registered Application composition assembly', () => {
         },
       ),
     }))
-    const featureBlock = featureComposition.assemble({
+    const featureBlock = featureComposition.toBlock({
       init: (label: string) => ({ model: { label } }),
       update: feature.update(model => ({ model })),
       view: featureComposition.view((model, h) =>
@@ -774,7 +774,7 @@ const checkAssemblyTypes = (container: HTMLElement) => {
     EffectsLayer: Layer.empty,
   })
 
-  // @ts-expect-error Root assembly requires inherited host handlers to be supplied first.
+  // @ts-expect-error Root completion requires inherited host handlers to be supplied first.
   unresolvedHostComposition.makeElement({
     container,
     init: unresolvedHostInit,

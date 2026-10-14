@@ -32,7 +32,7 @@ The example below shows two component connections registered by one owning Block
 
 ::Snippet{name="uiEffects" label="Providing Foldkit UI effects"}
 
-Mounted UI views and attribute slots carry their Mount requirements. Author the parent view through its definition's `view`; its builder derives the registered component and Mount capabilities. Extracted helpers that use those capabilities can take `Block.HtmlBuilderOf<typeof definition>`. TypeScript checks registration during composition and handler provision before startup. Foldkit also checks each rendered definition before patching the DOM. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views).
+Mounted UI views and attribute slots carry their Mount requirements. Author the parent view through its registered definition's `view`; its builder derives the component and Mount capabilities. Extracted helpers that use those capabilities can take `Block.HtmlBuilderOf<typeof RegisteredFeatureDefinition>`. TypeScript checks registration during composition and handler provision before startup. Foldkit also checks each rendered definition before patching the DOM. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views).
 
 Component factories with instance-specific behavior return completed Blocks. Connect the result of `Slider.forRoot(getTrackRoot)` or `Toast.make(PayloadSchema)` in the Block that owns the instance.
 

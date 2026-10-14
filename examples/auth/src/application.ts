@@ -2,7 +2,6 @@ import { Effect, Layer, Match, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 import { Url } from 'foldkit/url'
 
-import { Application, loggedIn, loggedOut } from './children'
 import {
   ClearSession,
   LoadExternal,
@@ -13,13 +12,15 @@ import {
   RedirectToLogin,
   SaveSession,
 } from './command'
+import { loggedIn, loggedOut } from './connection'
 import { SESSION_STORAGE_KEY } from './constant'
+import { ApplicationDefinition } from './definition'
 import { Session, SessionJsonString } from './domain/session'
 import { ApplicationRoute, urlToApplicationRoute } from './route'
-import { update } from './update'
-import { view } from './view'
 
-// FLAGS
+export const Application = ApplicationDefinition.register({
+  children: [loggedOut, loggedIn],
+})
 
 export const Flags = Schema.Struct({
   maybeSession: Schema.Option(Session),
@@ -44,7 +45,7 @@ export const flags = Effect.gen(function* () {
 
 export type Flags = typeof Flags.Type
 
-const EffectsLayer = Layer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
   SaveSession.layer,
   ClearSession.layer,
   LogError.layer,
@@ -54,8 +55,6 @@ const EffectsLayer = Layer.mergeAll(
   RedirectToDashboard.layer,
   RedirectToHome.layer,
 )
-
-// INIT
 
 export const init = (flags: Flags, url: Url) => {
   const route = urlToApplicationRoute(url)
@@ -84,12 +83,3 @@ export const init = (flags: Flags, url: Url) => {
       ),
   })
 }
-
-export const implementation = {
-  init,
-  update,
-  view,
-  EffectsLayer,
-}
-
-export { Application }

@@ -18,6 +18,7 @@ import { Dispatch } from '../runtime/index.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Subscription from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
+import { inspectConnection } from './binding.js'
 import { defaultViewOf } from './defaultView.js'
 import { type Authoring, define } from './define.js'
 import { LocalEffectsLayerTypeId } from './definition.js'
@@ -192,11 +193,11 @@ const homeInformJoined = homeDefinition.step(
   }),
 )
 
-const Home = homeDefinition.assemble({
+const Home = homeDefinition.toBlock({
   view: homeView,
   init: homeInit,
   update: homeUpdate,
-  steps: {
+  expose: {
     boot: homeBoot,
     informJoined: homeInformJoined,
   },
@@ -209,7 +210,7 @@ const noMessageDefinition = NoMessageOwner.define({
   Message: Schema.Never,
 })
 const noMessageUpdate = noMessageDefinition.update(model => ({ model }))
-const NoMessage = noMessageDefinition.assemble({
+const NoMessage = noMessageDefinition.toBlock({
   init: () => ({ model: null }),
   update: noMessageUpdate,
   view: noMessageDefinition.view((_model, h) => ({
@@ -257,7 +258,7 @@ const makeGenericAuthoring = <const Id extends string, Item, Value>(id: Id) => {
     GenericAuthoringViewInputs<Item, Value>
   >((model, _viewInputs, h) => h.div([], [model.value]))
 
-  return definition.assemble({
+  return definition.toBlock({
     view,
     init: () => ({ model: GenericModel.make({ value: '' }) }),
     update: definition.update((model, message) =>
@@ -314,8 +315,7 @@ const homeImplementation = {
   update: homeUpdate,
   EffectsLayer: CreateRoomTestLayer,
 } satisfies Implementation<HomeModel, HomeMessage, HomeOutMessage>
-const HomeWithCheckedImplementation =
-  homeDefinition.assemble(homeImplementation)
+const HomeWithCheckedImplementation = homeDefinition.toBlock(homeImplementation)
 
 const RoomOwner = define('AuthoringRoom')
 
@@ -365,12 +365,12 @@ const roomInformJoined = roomDefinition.step(
   }),
 )
 
-const Room = roomDefinition.assemble({
+const Room = roomDefinition.toBlock({
   init: (roomId: string) => ({
     model: RoomModel.make({ roomId, joinedCount: 0 }),
   }),
   update: roomUpdate,
-  steps: { informJoined: roomInformJoined },
+  expose: { informJoined: roomInformJoined },
   hostHandlers: [LoadRoom],
 })
 
@@ -432,11 +432,11 @@ const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
     outMessage: OutMessage.make({ value }),
   }))
 
-  return definition.assemble({
+  return definition.toBlock({
     view,
     init: (value: Value) => ({ model: Model.make({ value }) }),
     update,
-    steps: { finish },
+    expose: { finish },
     EffectsLayer: ChoiceEffectsLayer,
     hostHandlers: [ObserveChoice],
   })
@@ -461,7 +461,7 @@ const makeLeaf = <const Namespace extends string>(
     Message: LeafMessage,
   })
 
-  return definition.assemble({
+  return definition.toBlock({
     init: () => ({ model: LeafModel.make({ value: '' }) }),
     update: (model: LeafModel, _message: LeafMessage) => ({ model }),
     EffectsLayer,
@@ -519,7 +519,7 @@ const graphChildImplementation = {
   EffectsLayer: RunChildWork.layer,
 }
 
-const GraphChild = graphChildDefinition.assemble(graphChildImplementation)
+const GraphChild = graphChildDefinition.toBlock(graphChildImplementation)
 
 const GraphParentOwner = define('AuthoringGraphParent')
 
@@ -564,7 +564,7 @@ const graphParentImplementation = {
   EffectsLayer: Layer.empty,
 }
 
-const GraphParent = graphParentDefinition.assemble(graphParentImplementation)
+const GraphParent = graphParentDefinition.toBlock(graphParentImplementation)
 
 const SelectedGraphChild = GraphChild.replaceEffectsLayer(
   RunChildWork.toLayer<never, 'ChildProviderUnavailable', SelectedRoomsClient>(
@@ -588,7 +588,7 @@ const selectedGraphParentBase = define('AuthoringSelectedGraphParent').define({
 })
 const SelectedGraphParent = selectedGraphParentBase
   .register({ children: [selectedGraphChild] })
-  .assemble(graphParentImplementation)
+  .toBlock(graphParentImplementation)
   .replaceEffectsLayer(Layer.empty)
 
 const SelectedGraphParentWithFailure = SelectedGraphParent.replaceEffectsLayer(
@@ -629,7 +629,7 @@ const policyParentDefinition = policyParentBase.register({
   children: [choiceWithPolicyCommand],
 })
 
-const PolicyParent = policyParentDefinition.assemble({
+const PolicyParent = policyParentDefinition.toBlock({
   init: () => ({
     model: PolicyParentModel.make({
       choice: StringChoice.Model.make({ value: 'One' }),
@@ -693,7 +693,7 @@ const policyConflictChildDefinition = PolicyConflictChildOwner.define({
   OutMessage: PolicyConflictChildOutMessage,
 })
 
-const PolicyConflictChild = policyConflictChildDefinition.assemble({
+const PolicyConflictChild = policyConflictChildDefinition.toBlock({
   init: () => ({ model: PolicyConflictChildModel.make({ value: '' }) }),
   update: policyConflictChildDefinition.update((model, _message) => ({
     model,
@@ -796,19 +796,19 @@ if (false) {
       commands: maybeCreateRoomCommands(shouldCreateRoom),
     }),
   )
-  const HomeWithForwardedCommands = homeDefinition.assemble({
+  const HomeWithForwardedCommands = homeDefinition.toBlock({
     init: initWithForwardedCommands,
     update: updateWithForwardedCommands,
-    steps: { boot: bootWithForwardedCommands },
+    expose: { boot: bootWithForwardedCommands },
     EffectsLayer: CreateRoom.layer,
   })
 
   const collidingFold = homeDefinition.step(model => ({ model }))
-  homeDefinition.assemble({
+  homeDefinition.toBlock({
     init: homeInit,
     update: homeUpdate,
-    steps: { fold: collidingFold },
-    // @ts-expect-error A public Step cannot overwrite a connection member.
+    expose: { fold: collidingFold },
+    // @ts-expect-error An exposed operation cannot overwrite a connection member.
     EffectsLayer: CreateRoom.layer,
   })
 
@@ -824,12 +824,12 @@ if (false) {
   expectTypeOf(HomeWithForwardedCommands.update)
     .parameter(2)
     .toEqualTypeOf<boolean>()
-  expectTypeOf(HomeWithForwardedCommands.steps.boot)
+  expectTypeOf(HomeWithForwardedCommands.expose.boot)
     .parameter(1)
     .toEqualTypeOf<boolean>()
 
   // @ts-expect-error Omitting EffectsLayer still rejects unresolved local handlers.
-  homeDefinition.assemble({
+  homeDefinition.toBlock({
     init: homeInit,
     update: homeUpdate,
   })
@@ -839,7 +839,7 @@ if (false) {
     HomeMessage,
     HomeOutMessage
   > = homeImplementation
-  const erasedBlock = homeDefinition.assemble(erasedImplementation)
+  const erasedBlock = homeDefinition.toBlock(erasedImplementation)
   // @ts-expect-error A broad annotation cannot produce a usable block.
   erasedBlock.init
   const ErasedBlockApplication = defineApplication({
@@ -902,7 +902,7 @@ if (false) {
     Message: HomeMessage,
   })
   const crossKindDefinition = crossKindBase.register({ mounts: [MountFocus] })
-  crossKindDefinition.assemble({
+  crossKindDefinition.toBlock({
     init: homeInit,
     update: (model: HomeModel) => ({ model, commands: [CommandFocus()] }),
     // @ts-expect-error A same-name Mount handler cannot satisfy a Command contract.
@@ -1003,7 +1003,7 @@ if (false) {
   const supersetHomeViewDefinition = supersetHomeViewBase.register({
     mounts: [ObserveHomeView, ObserveSecondaryHomeView],
   })
-  supersetHomeViewDefinition.assemble({
+  supersetHomeViewDefinition.toBlock({
     init: homeInit,
     update: (model: HomeModel, _message: HomeMessage) => ({ model }),
     view: subsetHomeView,
@@ -1020,7 +1020,7 @@ if (false) {
     OutMessage: HomeOutMessage,
   })
   const foreignHomeView = foreignHomeDefinition.view((_model, h) => h.div([]))
-  homeDefinition.assemble({
+  homeDefinition.toBlock({
     init: homeInit,
     update: (model: HomeModel, _message: HomeMessage) => ({ model }),
     // @ts-expect-error A completed Block must use a view authored by its own definition.
@@ -1035,7 +1035,7 @@ if (false) {
   const sameOwnerDifferentView = sameOwnerDifferentDefinition.view(
     (_model, h) => h.div([]),
   )
-  homeDefinition.assemble({
+  homeDefinition.toBlock({
     init: homeInit,
     update: (model: HomeModel, _message: HomeMessage) => ({ model }),
     // @ts-expect-error Owner identity cannot substitute for the definition's Model and Message view channels.
@@ -1045,14 +1045,14 @@ if (false) {
 
   const erasedHomeView: any = homeView
   // @ts-expect-error any cannot erase an implementation's authored view contract.
-  homeDefinition.assemble({
+  homeDefinition.toBlock({
     init: homeInit,
     update: (model: HomeModel, _message: HomeMessage) => ({ model }),
     view: erasedHomeView,
     EffectsLayer: Layer.empty,
   })
 
-  homeDefinition.assemble({
+  homeDefinition.toBlock({
     // @ts-expect-error Specialized implementation shapes retain the definition Model returned by init.
     init: () => ({
       model: RoomModel.make({ roomId: 'foreign', joinedCount: 0 }),
@@ -1063,7 +1063,7 @@ if (false) {
     EffectsLayer: Layer.empty,
   })
 
-  homeDefinition.assemble({
+  homeDefinition.toBlock({
     init: () => ({
       // @ts-expect-error Specialized implementation shapes with Subscriptions retain the definition Model returned by init.
       model: RoomModel.make({ roomId: 'foreign', joinedCount: 0 }),
@@ -1180,7 +1180,7 @@ if (false) {
     return { model }
   })
 
-  roomDefinition.assemble({
+  roomDefinition.toBlock({
     init: flags => {
       // @ts-expect-error Inline init parameters require explicit annotations.
       flags.nonexistent
@@ -1191,7 +1191,7 @@ if (false) {
       context.nonexistent
       return { model }
     },
-    steps: {
+    expose: {
       inspect: (model, input) => {
         // @ts-expect-error Inline Step inputs require explicit annotations.
         input.nonexistent
@@ -1207,7 +1207,7 @@ if (false) {
   // @ts-expect-error Explicit any context erases the operation contract.
   homeDefinition.update((model, _message, _context: any) => ({ model }))
 
-  graphParentDefinition.assemble({
+  graphParentDefinition.toBlock({
     init: GraphParent.init,
     update: (model: GraphParentModel) => ({
       model,
@@ -1229,7 +1229,7 @@ if (false) {
     Model: GraphParentModel,
     Message: GraphParentMessage,
   })
-  unregisteredGraphParent.assemble({
+  unregisteredGraphParent.toBlock({
     init: () => {
       const childInit = unregisteredGraphChild.init()
       return {
@@ -1248,7 +1248,7 @@ if (false) {
     EffectsLayer: Layer.empty,
   })
 
-  policyConflictParentDefinition.assemble({
+  policyConflictParentDefinition.toBlock({
     init: () => ({
       model: PolicyConflictParentModel.make({
         child: PolicyConflictChildModel.make({ value: '' }),
@@ -1268,7 +1268,7 @@ if (false) {
   })
 
   // @ts-expect-error A child named Step's OutMessage policy Command requires its matching host handler.
-  policyParentDefinition.assemble({
+  policyParentDefinition.toBlock({
     init: PolicyParent.init,
     update: PolicyParent.update,
     EffectsLayer: Layer.empty,
@@ -1413,7 +1413,7 @@ describe('Block authoring', () => {
     >().toEqualTypeOf<SelectedRoomsClient>()
     expectTypeOf(HomeWithTestProvider.update).toEqualTypeOf(Home.update)
     expectTypeOf(HomeWithTestProvider.init).toEqualTypeOf(Home.init)
-    expectTypeOf(HomeWithTestProvider.steps).toEqualTypeOf(Home.steps)
+    expectTypeOf(HomeWithTestProvider.expose).toEqualTypeOf(Home.expose)
     expectTypeOf<
       RequirementsOfBlock<typeof HomeWithCheckedImplementation>
     >().toEqualTypeOf<never>()
@@ -1421,8 +1421,8 @@ describe('Block authoring', () => {
       Room.update,
     )
     expectTypeOf(
-      StringChoice.replaceEffectsLayer(Layer.empty).steps.finish,
-    ).toEqualTypeOf(StringChoice.steps.finish)
+      StringChoice.replaceEffectsLayer(Layer.empty).expose.finish,
+    ).toEqualTypeOf(StringChoice.expose.finish)
 
     expect(HomeWithTestProvider.Model).toBe(Home.Model)
     expect(HomeWithTestProvider.Message).toBe(Home.Message)
@@ -1430,7 +1430,7 @@ describe('Block authoring', () => {
     expect(HomeWithTestProvider.view).toBe(Home.view)
     expect(HomeWithTestProvider.init).toBe(Home.init)
     expect(HomeWithTestProvider.update).toBe(Home.update)
-    expect(HomeWithTestProvider.steps).toBe(Home.steps)
+    expect(HomeWithTestProvider.expose).toBe(Home.expose)
     expect(HomeWithTestProvider.children).toBe(Home.children)
     expect(HomeWithTestProvider.hostHandlers).toEqual(Home.hostHandlers)
     expect(HomeWithTestProvider.EffectsLayer).not.toBe(CreateRoomTestLayer)
@@ -1493,7 +1493,7 @@ describe('Block authoring', () => {
     const definition = base.register({
       children: [child],
     })
-    const block = definition.assemble({
+    const block = definition.toBlock({
       init: () => ({
         model: LeafParentModel.make({ leaf: LeafModel.make({ value: '' }) }),
       }),
@@ -1548,7 +1548,7 @@ describe('Block authoring', () => {
     const definition = base.register({
       children: [bindLeaf(block, 'default'), bindLeaf(selected, 'selected')],
     })
-    const parent = definition.assemble({
+    const parent = definition.toBlock({
       init: () => ({
         model: LeafParentModel.make({ leaf: LeafModel.make({ value: '' }) }),
       }),
@@ -1644,29 +1644,31 @@ describe('Block authoring', () => {
     ).toThrow(/primitive name must be non-empty/)
   })
 
-  it('rejects dynamic Step names that collide with connection members', () => {
+  it('rejects dynamic exposed operation names that collide with connection members', () => {
     const name: string = 'fold'
 
     expect(() =>
-      homeDefinition.assemble({
+      homeDefinition.toBlock({
         init: homeInit,
         update: homeUpdate,
-        steps: { [name]: homeBoot },
+        expose: { [name]: homeBoot },
         EffectsLayer: CreateRoom.layer,
       }),
-    ).toThrow(/Step name "fold" collides with a connection member/)
+    ).toThrow(
+      /Block exposed operation name "fold" collides with a connection member/,
+    )
   })
 
-  it('constructs a passive block with named public Steps', () => {
+  it('constructs a passive block with named exposed operations', () => {
     expect(homeInitCalls).toBe(0)
     expect(createRoomHandlerBuilds).toBe(0)
     expect(Home.view).toBe(homeDefinition.view)
     expect(defaultViewOf(Home)).toBe(homeView)
-    expect(Home.steps).toEqual({
+    expect(Home.expose).toEqual({
       boot: homeBoot,
       informJoined: homeInformJoined,
     })
-    expect(typeof homeDefinition.assemble).toBe('function')
+    expect(typeof homeDefinition.toBlock).toBe('function')
     expect(typeof Home.connection).toBe('function')
 
     const homeInit_ = Home.init()
@@ -1678,7 +1680,7 @@ describe('Block authoring', () => {
   it('preserves update requirements, OutMessages, and contextual Step inputs', () => {
     const model = HomeModel.make({ status: 'Idle', joinedCount: 0 })
     const startedCreate = Home.update(model, HomeMessage.ClickedCreateRoom())
-    const informedJoined = Home.steps.informJoined(model, 3)
+    const informedJoined = Home.expose.informJoined(model, 3)
 
     expect(startedCreate.model.status).toBe('Creating')
     expect(startedCreate.commands?.map(command => command.name)).toEqual([
@@ -1713,7 +1715,7 @@ describe('Block authoring', () => {
         Command.HandlerOf<typeof LoadRoom>
       >
     >()
-    expectTypeOf(Room.steps.informJoined).toEqualTypeOf<
+    expectTypeOf(Room.expose.informJoined).toEqualTypeOf<
       (
         model: RoomModel,
         joinedCount: number,
@@ -1731,7 +1733,7 @@ describe('Block authoring', () => {
     expectTypeOf<typeof StringChoice.OutMessage.Type>().toEqualTypeOf<
       Readonly<{ _tag: 'SelectedChoice'; value: 'One' | 'Two' }>
     >()
-    expectTypeOf(StringChoice.steps.finish).toEqualTypeOf<
+    expectTypeOf(StringChoice.expose.finish).toEqualTypeOf<
       (
         model: typeof StringChoice.Model.Type,
         value: 'One' | 'Two',
@@ -1849,7 +1851,7 @@ describe('Block authoring', () => {
     const definition = base.register({
       children: [first, second],
     })
-    const parent = definition.assemble({
+    const parent = definition.toBlock({
       init: () => ({
         model: LeafParentModel.make({ leaf: LeafModel.make({ value: '' }) }),
       }),
@@ -1885,7 +1887,7 @@ describe('Block authoring', () => {
     const definition = base.register({
       children: [first, second],
     })
-    const parent = definition.assemble({
+    const parent = definition.toBlock({
       init: () => ({
         model: LeafParentModel.make({ leaf: LeafModel.make({ value: '' }) }),
       }),
@@ -1942,7 +1944,10 @@ describe('Block authoring', () => {
     const messages = await Effect.runPromise(
       Effect.scoped(
         Effect.forEach(policyUpdate.commands ?? [], command =>
-          Effect.provide(command.effect, binding.EffectsLayer),
+          Effect.provide(
+            command.effect,
+            inspectConnection(binding).EffectsLayer,
+          ),
         ),
       ),
     )
@@ -1998,7 +2003,10 @@ describe('Block authoring', () => {
     const messages = await Effect.runPromise(
       Effect.scoped(
         Effect.forEach(policyUpdate.commands ?? [], command =>
-          Effect.provide(command.effect, binding.EffectsLayer),
+          Effect.provide(
+            command.effect,
+            inspectConnection(binding).EffectsLayer,
+          ),
         ),
       ),
     )
@@ -2009,7 +2017,7 @@ describe('Block authoring', () => {
   })
 
   it('rejects a child handler in its parent local recipe', async () => {
-    const parent = graphParentDefinition.assemble({
+    const parent = graphParentDefinition.toBlock({
       ...graphParentImplementation,
       EffectsLayer: RunChildWork.layer,
     })

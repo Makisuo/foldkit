@@ -2,7 +2,7 @@
 
 ## Overview
 
-A small Foldkit application can start in two files. `src/application.ts` exports the typed `Application`, Model and Message contracts, and implementation pieces. `src/entry.ts` chooses browser inputs, calls owned `Application.make` or `makeElement`, and starts the Runtime. Shared Service providers live in `services.ts` as `ApplicationLayer`. Importing application pieces in a test does not start the Runtime.
+A small Foldkit application can start in two files. `src/application.ts` exports the typed `ApplicationDefinition`, Model and Message contracts, and implementation pieces. `src/entry.ts` chooses browser inputs, assembles a small `ApplicationLayer`, calls owned `make` or `makeElement`, and starts the Runtime. Extract `services.ts` only when provider composition is substantial or reused. Importing application pieces in a test does not start the Runtime.
 
 The Runtime API makes two independent choices:
 
@@ -11,7 +11,7 @@ The Runtime API makes two independent choices:
 
 The defined Application carries the handler requirements for its Commands, Subscriptions, Mounts, and ManagedResources into `Application.make` or `Application.makeElement`. Call `application.provide(layer)` or `element.provide(layer)` until the remaining service requirements are satisfied, then pass the runnable program to `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` as appropriate. Each call returns a new passive program. The assembly config has no `resources` field, and the Runtime builds the supplied Layers only when it starts that program.
 
-For a larger application, each completed child Block is bound and registered in its parent's `children`. This carries the handler and lifecycle graph to the Application without root-level handler lists. A feature may provide business services it owns while leaving HTTP, storage, RPC, and browser requirements open. The application root combines those external providers in `ApplicationLayer`; `Application.make({ init, update, view, ... })` already has the handlers. [Project Organization](/patterns/project-organization#composing-handler-layers) shows the complete file structure.
+For a larger application, each completed child Block is connected and registered in its parent's `children`. This carries the handler and lifecycle graph to the Application without root-level handler lists. A feature may provide business services it owns while leaving HTTP, storage, RPC, and browser requirements open. The application root combines those external providers in `ApplicationLayer`; `Application.make({ init, update, view, ... })` already has the handlers. [Project Organization](/patterns/project-organization#composing-handler-layers) shows the complete file structure.
 
 Create the typed definition with `define as defineApplication` from `foldkit/application`. Its completion methods capture the Model, Message, and registered graph; callers supply implementation pieces and host inputs. The returned lowercase `application` carries its unsatisfied requirements and supplies ordinary Services through `application.provide(layer)`.
 

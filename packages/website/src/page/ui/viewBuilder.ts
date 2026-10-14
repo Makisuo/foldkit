@@ -1,5 +1,5 @@
 import type { Block } from 'foldkit'
 
-import type { ui } from './update'
+import type { RegisteredUiDefinition } from './update'
 
-export type ViewBuilder = Block.HtmlBuilderOf<typeof ui>
+export type ViewBuilder = Block.HtmlBuilderOf<typeof RegisteredUiDefinition>

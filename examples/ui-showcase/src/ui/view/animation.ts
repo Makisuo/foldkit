@@ -1,5 +1,5 @@
 import { Message } from '../message'
-import { animationDemo, ui } from '../update'
+import { RegisteredUiDefinition, animationDemo } from '../update'
 
 const triggerClassName =
   'px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-200/50 select-none'
@@ -7,7 +7,7 @@ const triggerClassName =
 const contentClassName =
   'rounded-lg bg-indigo-50 border border-indigo-200 p-4 transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:scale-95 data-[closed]:-translate-y-2'
 
-export const view = ui.view((model, h) => {
+export const view = RegisteredUiDefinition.view((model, h) => {
   return h.div(
     [],
     [

@@ -1,7 +1,13 @@
 import { Effect } from 'effect'
 import { Server } from 'foldkit/experimental'
 
-import { Application, implementation } from './application'
+import {
+  ApplicationDefinition,
+  EffectsLayer,
+  init,
+  update,
+  view,
+} from './application'
 
 export const renderDocument = Server.renderDocument
 
@@ -11,8 +17,8 @@ export const renderPage = (request: Request): Promise<Server.EntryResult> =>
   Effect.runPromise(
     Effect.gen(function* () {
       const renderedApplication = yield* Server.renderToString(
-        Application,
-        { ...implementation, routing: {} },
+        ApplicationDefinition,
+        { init, update, view, EffectsLayer, routing: {} },
         { url: request.url },
       )
 

@@ -61,7 +61,9 @@ export const lowerBlock = (
         key: `${segment}/${entry.resource.key}`,
         _tag: Context.Service(qualifyKey(segment, entry.resource._tag.key)),
       },
+      // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
       acquire: (params: any) => qualifyEffect(segment, entry.acquire(params)),
+      // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
       release: (value: any) => qualifyEffect(segment, entry.release(value)),
     }
     copyIdentity(entry, lowered)

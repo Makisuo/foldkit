@@ -6,13 +6,13 @@ import {
   inertHtml as ih,
 } from 'foldkit/html'
 
+import { Shared } from '../component'
 import {
   type ViewRequirements,
   snippetCopy as snippetCopyBinding,
   snippetDisclosure as snippetDisclosureBinding,
   uiPages as uiPagesBinding,
-} from '../children'
-import { Shared } from '../component'
+} from '../connection'
 import { Docs } from '../layout'
 import { docPage } from '../markdown'
 import { Message } from '../message'
@@ -70,8 +70,6 @@ const postView = (
 }
 
 const lazyPostView = createKeyedLazy()
-
-// VIEW
 
 export const view = (
   model: Model,

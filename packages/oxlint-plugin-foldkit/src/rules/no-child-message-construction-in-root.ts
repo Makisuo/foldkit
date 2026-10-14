@@ -28,7 +28,7 @@ import {
 const pascalIdentifierPattern = /^[A-Z][A-Za-z0-9]*$/
 
 const childMessageConstructionMessage = (calleeLabel: string): string =>
-  `Do not construct the child Message \`${calleeLabel}(...)\` from a parent. Pass a received child Message to \`child.fold(model, message)\`. For parent-driven behavior, expose a named Step in the child Block's \`steps\` record and call the projected operation, such as \`child.clearSelection()(model)\`. Child-owned views, Steps, Commands, and Subscriptions may construct their own Messages.`
+  `Do not construct the child Message \`${calleeLabel}(...)\` from a parent. Pass a received child Message to \`child.fold(model, message)\`. For parent-driven behavior, expose a named Step through the child Block's \`expose\` record and call the projected operation, such as \`child.clearSelection()(model)\`. Child-owned views, Steps, Commands, and Subscriptions may construct their own Messages.`
 
 type ImportedMessagePath = Pick<ImportedPath, 'source' | 'members'>
 

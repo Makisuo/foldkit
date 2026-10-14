@@ -68,7 +68,7 @@ const foldListboxMultiOutMessage = PeopleListbox.OutMessage.match<
     }),
 })
 
-// The binding wires the completed child Block into the parent: it delegates keyboard
+// The connection wires the completed child Block into the parent: it delegates keyboard
 // navigation, typeahead, and open/close to PeopleListbox.update, writes the
 // next Listbox Model back, maps the Block's Commands into your Message
 // type, and hands any OutMessage to the OutMessage fold.
@@ -79,14 +79,16 @@ const peopleListbox = PeopleListbox.connection({
   outMessage: { fold: foldListboxMultiOutMessage },
 })
 
-const PeoplePicker = Block.define('PeoplePicker', {
+const PeoplePickerDefinition = Block.define('PeoplePicker', {
   Model,
   Message,
 })
-const registered = PeoplePicker.register({ children: [peopleListbox] })
+const RegisteredPeoplePickerDefinition = PeoplePickerDefinition.register({
+  children: [peopleListbox],
+})
 
 // In the corresponding Message.match handler, call the fold:
-const update = PeoplePicker.update((model, message) =>
+const update = PeoplePickerDefinition.update((model, message) =>
   Message.match(message, {
     GotListboxMultiMessage: ({ message }) => peopleListbox.fold(model, message),
   }),
@@ -100,7 +102,7 @@ const people: ReadonlyArray<Person> = [
 
 // Inside your view function, embed the Listbox via h.block. Multi-select
 // stays open on selection so the user can toggle several items:
-const view = registered.view((model, h) =>
+const view = RegisteredPeoplePickerDefinition.view((model, h) =>
   h.block(
     peopleListbox.embedView({
       slotId: 'people',

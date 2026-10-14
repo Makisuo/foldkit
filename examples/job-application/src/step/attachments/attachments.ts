@@ -1,15 +1,15 @@
 import { modifyFields } from 'foldkit/struct'
 
 import {
+  RegisteredAttachmentsDefinition,
   additionalFilesDrop,
-  attachments,
   init,
   resumeDrop,
   update,
-} from './block'
+} from './definition'
 import { view } from './view'
 
-export const block = attachments.assemble({
+export const block = RegisteredAttachmentsDefinition.toBlock({
   init: () => {
     const resumeDropInit = resumeDrop.init({ id: 'attachments-resume' })
     const additionalFilesDropInit = additionalFilesDrop.init({

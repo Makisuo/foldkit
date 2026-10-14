@@ -15,9 +15,11 @@ import { describe, test } from 'vitest'
 import { Tabs } from '@foldkit/ui'
 import { FocusTab } from '@foldkit/ui/tabs'
 
-import { init, update, view } from '../../application'
 import { Deployment } from '../../deployment'
+import { init, update } from '../../root'
 import * as SnippetDisclosure from '../../snippetDisclosure'
+import { MeasureSnippetHeight } from '../../snippetDisclosure/mount'
+import { view } from '../../view/application'
 import { type ExampleSources } from './sources'
 
 const longCode = pipe(
@@ -60,7 +62,7 @@ describe('example detail', () => {
       { update, view },
       given(init(flags, url).model),
       Mount.resolve(
-        SnippetDisclosure.MeasureSnippetHeight({
+        MeasureSnippetHeight({
           snippetId: 'example-ssr-source-src/application.ts',
         }),
         SnippetDisclosure.Message.CompletedMeasureSnippetHeight({

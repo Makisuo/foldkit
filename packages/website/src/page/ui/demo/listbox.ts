@@ -66,8 +66,6 @@ const LISTBOX_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-// VIEW
-
 export const basicDemo = (
   listboxModel: typeof Listbox.Model.Type,
   maybeSelectedItem: Option.Option<ListboxItem>,

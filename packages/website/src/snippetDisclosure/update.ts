@@ -1,10 +1,10 @@
 import { HashMap, HashSet } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { snippetDisclosure } from './definition'
+import { SnippetDisclosureDefinition } from './definition'
 import { Message } from './message'
 
-export const update = snippetDisclosure.update((model, message) =>
+export const update = SnippetDisclosureDefinition.update((model, message) =>
   Message.match(message, {
     ToggledCodeDisclosure: ({ disclosureId, isOpen }) => ({
       model: modifyFields(model, {

@@ -30,16 +30,12 @@ import {
 
 export { ApplicationRoute } from './route'
 
-// MODEL
-
 export const Model = Schema.Struct({
   route: ApplicationRoute,
   peoplePage: People.Model,
 })
 
 export type Model = typeof Model.Type
-
-// MESSAGE
 
 const NavigationShortcut = Schema.Literals(['GH', 'GP', 'GF', 'GN'])
 type NavigationShortcut = typeof NavigationShortcut.Type
@@ -61,11 +57,11 @@ const peoplePage = People.block.connection({
   parentMessage: Message.GotPeopleMessage,
 })
 
-export const Application = defineApplication({ Model, Message }).register({
+export const ApplicationDefinition = defineApplication({ Model, Message })
+
+export const Application = ApplicationDefinition.register({
   children: [peoplePage],
 })
-
-// INIT
 
 export const init = (url: Url) => {
   const route = urlToApplicationRoute(url)
@@ -82,8 +78,6 @@ export const init = (url: Url) => {
     commands: peopleInit.commands,
   }
 }
-
-// COMMAND
 
 export const NavigateInternal = Application.command('NavigateInternal', {
   args: { url: Schema.String },
@@ -102,8 +96,6 @@ const LoadExternal = Application.command('LoadExternal', {
       load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
   },
 })
-
-// UPDATE
 
 const navigationUrlByShortcut: Readonly<
   Record<NavigationShortcut, () => string>
@@ -158,8 +150,6 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-// SUBSCRIPTION
-
 export const subscriptions = Application.subscriptions(entry => ({
   navigationShortcutPresses: entry('NavigationShortcutPresses', {
     messages: [Message.EnteredNavigationShortcut],
@@ -193,15 +183,11 @@ export const subscriptions = Application.subscriptions(entry => ({
   }),
 }))
 
-// EFFECTS LAYER
-
 export const EffectsLayer = Layer.mergeAll(
   NavigateInternal.layer,
   LoadExternal.layer,
   subscriptions.navigationShortcutPresses.layer,
 )
-
-// VIEW
 
 type ViewBuilder = HtmlBuilderOf<typeof Application>
 
@@ -621,11 +607,3 @@ export const view = Application.view((model, h) => {
     ),
   }
 })
-
-export const implementation = {
-  init,
-  update,
-  view,
-  subscriptions,
-  EffectsLayer,
-}

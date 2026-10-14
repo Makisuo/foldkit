@@ -1,11 +1,11 @@
-// application.ts (parent)
+// view.ts (parent)
 
-import { commandMenu } from './bindings'
-import { registered } from './definition'
+import { Application } from './application'
+import { commandMenu } from './connection'
 
 const MENU_ITEMS: ReadonlyArray<string> = ['Open', 'Rename', 'Archive']
 
-export const view = registered.view((model, h) => ({
+export const view = Application.view((model, h) => ({
   title: 'My App',
   body: h.div(
     [],

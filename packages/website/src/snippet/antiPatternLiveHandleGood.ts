@@ -6,12 +6,12 @@ import { Block } from 'foldkit'
 import { Message } from './message'
 import { Model } from './model'
 
-const Chat = Block.define('Chat', { Model, Message })
-const ChatSocket = Chat.resource<WebSocket>()('ChatSocket')
+const ChatDefinition = Block.define('Chat', { Model, Message })
+const ChatSocket = ChatDefinition.resource<WebSocket>()('ChatSocket')
 
 const RoomRequirements = Schema.Struct({ roomId: Schema.String })
 
-const managedResources = Chat.managedResources(entry => ({
+const managedResources = ChatDefinition.managedResources(entry => ({
   chatSocket: entry('ManageChatSocket', Schema.Option(RoomRequirements), {
     resource: ChatSocket,
     modelToMaybeRequirements: model => model.maybeRoomRequirements,
@@ -29,7 +29,7 @@ const managedResources = Chat.managedResources(entry => ({
   }),
 }))
 
-const SendChatMessage = Chat.command('SendChatMessage', {
+const SendChatMessage = ChatDefinition.command('SendChatMessage', {
   args: { text: Schema.String },
   messages: [Message.SucceededSendChatMessage, Message.FailedSendChatMessage],
   handler: function* () {

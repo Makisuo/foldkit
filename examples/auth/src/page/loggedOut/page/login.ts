@@ -19,8 +19,6 @@ import { Button, Input } from '@foldkit/ui'
 import { Session } from '../../../domain/session'
 import { homeRouter } from '../../../route'
 
-// MODEL
-
 export const Model = Schema.Struct({
   email: Field(Schema.String),
   password: Field(Schema.String),
@@ -35,8 +33,6 @@ export const initModel = (): Model => ({
   isSubmitting: false,
 })
 
-// MESSAGE
-
 export const Message = defineMessageUnion({
   ChangedEmail: { value: Schema.String },
   ChangedPassword: { value: Schema.String },
@@ -47,15 +43,13 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-// OUT MESSAGE
-
 export const OutMessage = defineMessageUnion({
   SucceededLogin: { session: Session },
 })
 
 export type OutMessage = typeof OutMessage.Type
 
-const Login = Block.define('Login', { Model, Message, OutMessage })
+const LoginDefinition = Block.define('Login', { Model, Message, OutMessage })
 
 // VALIDATION
 
@@ -77,42 +71,43 @@ const isFormValid = (model: Model): boolean =>
     [model.password, passwordRules],
   ])
 
-// UPDATE
+export const SimulateAuthRequest = LoginDefinition.command(
+  'SimulateAuthRequest',
+  {
+    args: { email: Schema.String, password: Schema.String },
+    messages: [
+      Message.SucceededSimulateAuthRequest,
+      Message.FailedSimulateAuthRequest,
+    ],
+    handler: function* () {
+      return ({ email, password }) =>
+        Effect.gen(function* () {
+          yield* Effect.sleep(Duration.seconds(1))
 
-export const SimulateAuthRequest = Login.command('SimulateAuthRequest', {
-  args: { email: Schema.String, password: Schema.String },
-  messages: [
-    Message.SucceededSimulateAuthRequest,
-    Message.FailedSimulateAuthRequest,
-  ],
-  handler: function* () {
-    return ({ email, password }) =>
-      Effect.gen(function* () {
-        yield* Effect.sleep(Duration.seconds(1))
+          if (password !== 'password') {
+            return Message.FailedSimulateAuthRequest({
+              error: 'Invalid credentials',
+            })
+          }
 
-        if (password !== 'password') {
-          return Message.FailedSimulateAuthRequest({
-            error: 'Invalid credentials',
-          })
-        }
+          const name = pipe(
+            email,
+            String.split('@'),
+            Array.head,
+            Option.getOrElse(() => email),
+          )
 
-        const name = pipe(
-          email,
-          String.split('@'),
-          Array.head,
-          Option.getOrElse(() => email),
-        )
+          const session: Session = { userId: '1', email, name }
 
-        const session: Session = { userId: '1', email, name }
-
-        return Message.SucceededSimulateAuthRequest({ session })
-      })
+          return Message.SucceededSimulateAuthRequest({ session })
+        })
+    },
   },
-})
+)
 
 export const EffectsLayer = SimulateAuthRequest.layer
 
-export const update = Login.update((model, message) =>
+export const update = LoginDefinition.update((model, message) =>
   Message.match(message, {
     ChangedEmail: ({ value }) => ({
       model: modifyFields(model, { email: () => validateEmail(value) }),
@@ -159,8 +154,6 @@ export const update = Login.update((model, message) =>
     }),
   }),
 )
-
-// VIEW
 
 const fieldToBorderClass = (field: Field<string>) =>
   FieldValidation.match(field, {
@@ -238,7 +231,7 @@ const fieldView = (
   )
 }
 
-export const view = Login.view((model, h) => {
+export const view = LoginDefinition.view((model, h) => {
   const canSubmit = isFormValid(model) && !model.isSubmitting
 
   return h.div(
@@ -324,7 +317,7 @@ export const view = Login.view((model, h) => {
   )
 })
 
-export const block = Login.assemble({
+export const block = LoginDefinition.toBlock({
   init: () => ({ model: initModel() }),
   update,
   view,

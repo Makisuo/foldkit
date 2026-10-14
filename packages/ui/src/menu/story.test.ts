@@ -32,7 +32,7 @@ import {
   update,
 } from './index.js'
 
-const MenuStory = Block.define('MenuStory', { Model, Message })
+const MenuStoryDefinition = Block.define('MenuStory', { Model, Message })
 
 const foldMenuOutMessage = OutMessage.match<Update.Step<Model, Message>>({
   Selected: () => model => ({ model }),
@@ -45,7 +45,9 @@ const menu = block.connection({
   outMessage: { fold: foldMenuOutMessage },
 })
 
-const registered = MenuStory.register({ children: [menu] })
+const RegisteredMenuStoryDefinition = MenuStoryDefinition.register({
+  children: [menu],
+})
 
 const sceneView = (
   overrides: Pick<
@@ -53,7 +55,7 @@ const sceneView = (
     'ariaLabel' | 'ariaLabelledBy'
   > = {},
 ) =>
-  registered.view((model, h) =>
+  RegisteredMenuStoryDefinition.view((model, h) =>
     h.block(
       menu.embedView({
         slotId: 'menu',

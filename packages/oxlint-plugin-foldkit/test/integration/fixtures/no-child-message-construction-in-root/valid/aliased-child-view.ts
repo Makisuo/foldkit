@@ -4,8 +4,8 @@ import { Child } from './child'
 
 const save = Child.Message.ClickedChildViewSave
 
-const AliasedChildView = Block.define('AliasedChildView')
-const childView = AliasedChildView.define({
+const AliasedChildViewDefinition = Block.define('AliasedChildView')
+const childView = AliasedChildViewDefinition.define({
   Model: Child.Model,
   Message: Child.Message,
 })

@@ -37,38 +37,39 @@ import {
 export { Message } from './message'
 export { CurrentSourcesAsyncData, Model } from './model'
 
-const ExampleDetail = Block.define('ExampleDetail', {
+const ExampleDetailDefinition = Block.define('ExampleDetail', {
   Model,
   Message,
 })
 
-// COMMAND
-
 /** Loads the source files for the example identified by `slug`, producing the
  *  loaded sources on success or a failure Message when the fetch does not
  *  complete. */
-export const LoadExampleSources = ExampleDetail.command('LoadExampleSources', {
-  args: { slug: Schema.String },
-  messages: [
-    Message.SucceededLoadExampleSources,
-    Message.FailedLoadExampleSources,
-  ],
-  handler: function* () {
-    return ({ slug }) =>
-      Effect.tryPromise({
-        try: () => loadSourcesForSlug(slug),
-        catch: error =>
-          error instanceof Error ? error.message : `Unknown example: ${slug}`,
-      }).pipe(
-        Effect.map(sources => Message.SucceededLoadExampleSources({ sources })),
-        Effect.catch(error =>
-          Effect.succeed(Message.FailedLoadExampleSources({ error })),
-        ),
-      )
+export const LoadExampleSources = ExampleDetailDefinition.command(
+  'LoadExampleSources',
+  {
+    args: { slug: Schema.String },
+    messages: [
+      Message.SucceededLoadExampleSources,
+      Message.FailedLoadExampleSources,
+    ],
+    handler: function* () {
+      return ({ slug }) =>
+        Effect.tryPromise({
+          try: () => loadSourcesForSlug(slug),
+          catch: error =>
+            error instanceof Error ? error.message : `Unknown example: ${slug}`,
+        }).pipe(
+          Effect.map(sources =>
+            Message.SucceededLoadExampleSources({ sources }),
+          ),
+          Effect.catch(error =>
+            Effect.succeed(Message.FailedLoadExampleSources({ error })),
+          ),
+        )
+    },
   },
-})
-
-// MOUNT
+)
 
 const BRIDGE_MESSAGE_TYPE = 'foldkit-example-url'
 
@@ -116,7 +117,7 @@ const observeExampleUrlMessages = (element: Element) => {
   )
 }
 
-const ObserveExampleUrlMessages = ExampleDetail.mountStream(
+const ObserveExampleUrlMessages = ExampleDetailDefinition.mountStream(
   'ObserveExampleUrlMessages',
   {
     messages: [Message.ChangedExampleUrl],
@@ -134,7 +135,7 @@ type ViewRequirements =
   | Mount.RequirementsOf<typeof mounts>
   | Block.RequirementsOfConnections<typeof children>
 
-const exampleDetail = ExampleDetail.register({
+const RegisteredExampleDetailDefinition = ExampleDetailDefinition.register({
   mounts,
   children,
 })
@@ -143,8 +144,6 @@ export const EffectsLayer = Layer.mergeAll(
   LoadExampleSources.layer,
   ObserveExampleUrlMessages.layer,
 )
-
-// INIT
 
 export const init = () => {
   const sourceFileTabsInit = sourceFileTabs.init({ id: 'source-file-tabs' })
@@ -167,7 +166,7 @@ const isSourceAvailable = (slug: string): boolean =>
     onSome: meta => meta.livePreview !== 'Unavailable',
   })
 
-export const boot = ExampleDetail.step(
+export const boot = ExampleDetailDefinition.step(
   (
     model,
     maybeInitialSlug: Option.Option<string>,
@@ -190,9 +189,7 @@ export const boot = ExampleDetail.step(
   },
 )
 
-// UPDATE
-
-export const update = ExampleDetail.update((model, message) =>
+export const update = ExampleDetailDefinition.update((model, message) =>
   Message.match(message, {
     GotSourceFileTabsMessage: ({ message }) =>
       sourceFileTabs.fold(model, message),
@@ -243,24 +240,24 @@ export const update = ExampleDetail.update((model, message) =>
   }),
 )
 
-export const informRouteChanged = ExampleDetail.step((model, slug: string) => {
-  if (isSourceAvailable(slug)) {
-    return update(model, Message.RequestedExampleSources({ slug }))
-  }
+export const informRouteChanged = ExampleDetailDefinition.step(
+  (model, slug: string) => {
+    if (isSourceAvailable(slug)) {
+      return update(model, Message.RequestedExampleSources({ slug }))
+    }
 
-  const sourceFileTabsInit = sourceFileTabs.init({ id: 'source-file-tabs' })
-  return {
-    model: modifyFields(model, {
-      sourceFileTabs: () => sourceFileTabsInit.model,
-      maybeActiveSourceFilePath: () => Option.none(),
-      maybeExampleUrl: () => Option.none(),
-      currentSources: () => CurrentSourcesAsyncData.Idle(),
-    }),
-    commands: sourceFileTabsInit.commands ?? [],
-  }
-})
-
-// VIEW
+    const sourceFileTabsInit = sourceFileTabs.init({ id: 'source-file-tabs' })
+    return {
+      model: modifyFields(model, {
+        sourceFileTabs: () => sourceFileTabsInit.model,
+        maybeActiveSourceFilePath: () => Option.none(),
+        maybeExampleUrl: () => Option.none(),
+        currentSources: () => CurrentSourcesAsyncData.Idle(),
+      }),
+      commands: sourceFileTabsInit.commands ?? [],
+    }
+  },
+)
 
 const featureTag = (text: string): Html =>
   ih.div(
@@ -712,36 +709,37 @@ type ViewInputs = Readonly<{
  * renderer runs in the parent's boundary, so its Messages are wrapped for the
  * parent instead of being rejected by this page's `toParentMessage`.
  */
-export const view = exampleDetail.view.withInputs<ViewInputs>(
-  (model, { slug, isNarrowViewport, renderSnippet }, h) =>
-    Option.match(findBySlug(slug), {
-      onNone: () => h.div([], ['Example not found']),
-      onSome: meta =>
-        h.keyed('div')(
-          slug,
-          [],
-          [
-            headerView(meta),
-            ...(meta.livePreview === 'Unavailable'
-              ? [pausedExampleNotice(meta)]
-              : availableExampleContentView(
-                  model,
-                  meta,
-                  slug,
-                  isNarrowViewport,
-                  renderSnippet,
-                  h,
-                )),
-          ],
-        ),
-    }),
-)
+export const view =
+  RegisteredExampleDetailDefinition.view.withInputs<ViewInputs>(
+    (model, { slug, isNarrowViewport, renderSnippet }, h) =>
+      Option.match(findBySlug(slug), {
+        onNone: () => h.div([], ['Example not found']),
+        onSome: meta =>
+          h.keyed('div')(
+            slug,
+            [],
+            [
+              headerView(meta),
+              ...(meta.livePreview === 'Unavailable'
+                ? [pausedExampleNotice(meta)]
+                : availableExampleContentView(
+                    model,
+                    meta,
+                    slug,
+                    isNarrowViewport,
+                    renderSnippet,
+                    h,
+                  )),
+            ],
+          ),
+      }),
+  )
 
-export const block = exampleDetail.assemble({
+export const block = RegisteredExampleDetailDefinition.toBlock({
   init,
   update,
   view,
-  steps: { boot, informRouteChanged },
+  expose: { boot, informRouteChanged },
   EffectsLayer,
 })
 

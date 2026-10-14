@@ -8,7 +8,7 @@ const SearchState = defineTaggedUnion({
   Cancelling: {},
 })
 
-const update = definition.update((model, message) =>
+const update = SearchDefinition.update((model, message) =>
   Message.match(message, {
     UpdatedQuery: ({ query }) =>
       SearchState.match(model.searchState, {

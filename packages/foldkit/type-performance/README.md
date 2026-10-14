@@ -3,7 +3,7 @@
 This harness measures deterministic TypeScript diagnostics for completed Block
 composition through Foldkit's published declarations. Each checked-in fixture
 imports public `foldkit` package entry points, completes its Block graph, and
-finishes with `ApplicationDefinition.update`,
+finishes with `Application.update`,
 `ApplicationComposition.makeElement`, and the completed program’s
 `.provide(...)` method.
 

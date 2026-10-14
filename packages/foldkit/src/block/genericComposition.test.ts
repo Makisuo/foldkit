@@ -61,11 +61,11 @@ const makeGenericMissing = <const Id extends string>(id: Id) => {
 const complete = makeGenericComplete('GenericComplete')
 type CompleteModel = typeof complete.Model.Type
 
-const CompleteParentDefinition = define('GenericCompleteParent', {
+const CompleteParent = define('GenericCompleteParent', {
   Model: complete.Model,
   Message: complete.Message,
 })
-const completeBinding = CompleteParentDefinition.bindChild(complete, {
+const completeBinding = CompleteParent.bindChild(complete, {
   read: (model: CompleteModel) => Option.some(model),
   write: (_model: CompleteModel, nextModel: CompleteModel) => nextModel,
   toParentMessage: (message: Message) => message,
@@ -78,13 +78,13 @@ it('keeps a complete generic Block connectable after literal instantiation', () 
 if (false) {
   const missing = makeGenericMissing('GenericMissing')
   type MissingModel = typeof missing.Model.Type
-  const MissingParentDefinition = define('GenericMissingParent', {
+  const MissingParent = define('GenericMissingParent', {
     Model: missing.Model,
     Message: missing.Message,
   })
 
   // @ts-expect-error Concrete Bindings validate deferred generic handler coverage.
-  MissingParentDefinition.bindChild(missing, {
+  MissingParent.bindChild(missing, {
     read: (model: MissingModel) => Option.some(model),
     write: (_model: MissingModel, nextModel: MissingModel) => nextModel,
     toParentMessage: (message: Message) => message,

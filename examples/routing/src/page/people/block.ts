@@ -1,5 +1,5 @@
 import { FetchPeople, PushSearchUrl } from './command'
-import { PeopleDefinition } from './definition'
+import { People } from './definition'
 import { informRouteChanged, init, update } from './update'
 import { view } from './view'
 
@@ -8,7 +8,7 @@ export const EffectsLayer = Layer.mergeAll(
   FetchPeople.layer,
 )
 
-export const block = PeopleDefinition.toComposition().toBlock({
+export const block = People.toComposition().toBlock({
   init,
   update,
   view,

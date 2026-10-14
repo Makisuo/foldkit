@@ -2,10 +2,10 @@ import { Effect, Option, Schema, Stream } from 'effect'
 import { Dom } from 'foldkit'
 
 import { DARK_COLOR_SCHEME_QUERY } from '../colorScheme'
-import { ApplicationDefinition } from '../definition'
+import { Application } from '../definition'
 import { Message } from '../message'
 
-export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
+export const subscriptions = Application.subscriptions(entry => ({
   systemThemeChanges: entry(
     'SystemThemeChanges',
     { isSystemPreference: Schema.Boolean },

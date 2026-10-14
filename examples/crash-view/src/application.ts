@@ -15,9 +15,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition()
+export const ApplicationComposition = Application.toComposition()
 
 export const update = ApplicationComposition.update((_model, _message) => {
   throw new Error('This is a simulated crash!')

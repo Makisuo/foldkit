@@ -4,10 +4,10 @@ import {
   notePlayerDemo,
   playgroundMenu,
 } from './childBindings'
-import { HomeDefinition } from './definition'
+import { Home } from './definition'
 import { Message } from './message'
 
-export const update = HomeDefinition.update((model, message) =>
+export const update = Home.update((model, message) =>
   Message.match(message, {
     GotDemoTabsMessage: ({ message }) => demoTabs.fold(model, message),
     GotPlaygroundMenuMessage: ({ message }) =>

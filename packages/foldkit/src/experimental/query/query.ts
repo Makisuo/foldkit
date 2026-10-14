@@ -417,20 +417,20 @@ const makeHostQuery = <Name extends string, A, AI, E, EI>(
   const Model = makeQueryModel(config.data, config.error)
   const Message = makeQueryMessage(config.data, config.error)
   const QueryOwner = Block.define(config.name)
-  const QueryDefinition = QueryOwner.define({ Model, Message })
-  const Fetch = QueryDefinition.command('Fetch', {
+  const Query = QueryOwner.define({ Model, Message })
+  const Fetch = Query.command('Fetch', {
     args: { generation: Schema.Number },
     messages: [Message.CompletedFetch],
   })
   const api = makeQueryApi(config, Model, Message, Fetch)
-  const reset = QueryDefinition.step(api.reset)
-  const revalidate = QueryDefinition.step(api.revalidate)
-  const revalidateOrLoad = QueryDefinition.step(api.revalidateOrLoad)
-  const loadIfMissing = QueryDefinition.step(api.loadIfMissing)
-  const QueryComposition = QueryDefinition.toComposition()
+  const reset = Query.step(api.reset)
+  const revalidate = Query.step(api.revalidate)
+  const revalidateOrLoad = Query.step(api.revalidateOrLoad)
+  const loadIfMissing = Query.step(api.loadIfMissing)
+  const QueryComposition = Query.toComposition()
   const block = QueryComposition.toBlock({
     init: api.init,
-    update: QueryDefinition.update(api.update),
+    update: Query.update(api.update),
     expose: { reset, revalidate, revalidateOrLoad, loadIfMissing },
     EffectsLayer: Layer.empty,
     hostHandlers: [Fetch],
@@ -475,20 +475,20 @@ const makeCanonicalQuery = <
   const Model = makeQueryModel(config.data, config.error)
   const Message = makeQueryMessage(config.data, config.error)
   const QueryOwner = Block.define(config.name)
-  const QueryDefinition = QueryOwner.define({ Model, Message })
-  const Fetch = QueryDefinition.command('Fetch', {
+  const Query = QueryOwner.define({ Model, Message })
+  const Fetch = Query.command('Fetch', {
     args: { generation: Schema.Number },
     messages: [Message.CompletedFetch],
   })
   const api = makeQueryApi(config, Model, Message, Fetch)
-  const reset = QueryDefinition.step(api.reset)
-  const revalidate = QueryDefinition.step(api.revalidate)
-  const revalidateOrLoad = QueryDefinition.step(api.revalidateOrLoad)
-  const loadIfMissing = QueryDefinition.step(api.loadIfMissing)
-  const QueryComposition = QueryDefinition.toComposition()
+  const reset = Query.step(api.reset)
+  const revalidate = Query.step(api.revalidate)
+  const revalidateOrLoad = Query.step(api.revalidateOrLoad)
+  const loadIfMissing = Query.step(api.loadIfMissing)
+  const QueryComposition = Query.toComposition()
   const block = QueryComposition.toBlock({
     init: api.init,
-    update: QueryDefinition.update(api.update),
+    update: Query.update(api.update),
     expose: { reset, revalidate, revalidateOrLoad, loadIfMissing },
     EffectsLayer: api.toLayer(handler),
   })

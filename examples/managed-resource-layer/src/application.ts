@@ -76,15 +76,15 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition()
+export const ApplicationComposition = Application.toComposition()
 
-type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
+type ViewBuilder = HtmlBuilderOf<typeof Application>
 
-const Engine = ApplicationDefinition.resource<ComputeEngine>()('ComputeEngine')
+const Engine = Application.resource<ComputeEngine>()('ComputeEngine')
 
-export const Compute = ApplicationDefinition.command('Compute', {
+export const Compute = Application.command('Compute', {
   args: { value: Schema.Number },
   messages: [Message.SucceededCompute, Message.FailedCompute],
   handler: function* () {
@@ -153,32 +153,30 @@ export const init = () => ({
 
 // MANAGED RESOURCE
 
-export const managedResources = ApplicationDefinition.managedResources(
-  entry => ({
-    engine: entry('ManageEngine', Schema.Option(Schema.Null), {
-      resource: Engine,
-      modelToMaybeRequirements: model =>
-        Match.value(model.engine).pipe(
-          Match.tag('Booting', 'Ready', () => Option.some(null)),
-          Match.tag('Off', 'Failed', () => Option.none()),
-          Match.exhaustive,
-        ),
-      onAcquired: ({ engineId }) => Message.StartedEngine({ engineId }),
-      onReleased: () => Message.StoppedEngine(),
-      onAcquireError: error =>
-        Message.FailedStartEngine({ reason: String(error) }),
-      handler: function* () {
-        return {
-          acquire: () =>
-            Layer.build(ComputeEngineLayer).pipe(
-              Effect.map(context => Context.get(context, ComputeEngineService)),
-            ),
-          release: () => Effect.void,
-        }
-      },
-    }),
+export const managedResources = Application.managedResources(entry => ({
+  engine: entry('ManageEngine', Schema.Option(Schema.Null), {
+    resource: Engine,
+    modelToMaybeRequirements: model =>
+      Match.value(model.engine).pipe(
+        Match.tag('Booting', 'Ready', () => Option.some(null)),
+        Match.tag('Off', 'Failed', () => Option.none()),
+        Match.exhaustive,
+      ),
+    onAcquired: ({ engineId }) => Message.StartedEngine({ engineId }),
+    onReleased: () => Message.StoppedEngine(),
+    onAcquireError: error =>
+      Message.FailedStartEngine({ reason: String(error) }),
+    handler: function* () {
+      return {
+        acquire: () =>
+          Layer.build(ComputeEngineLayer).pipe(
+            Effect.map(context => Context.get(context, ComputeEngineService)),
+          ),
+        release: () => Effect.void,
+      }
+    },
   }),
-)
+}))
 
 export const EffectsLayer = Layer.mergeAll(
   Compute.layer,

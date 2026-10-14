@@ -249,7 +249,7 @@ it('checks the Message wrapper in a completed Block binding', () => {
   const node = callWithCallee(
     {
       type: 'MemberExpression',
-      object: Testing.id('ApplicationDefinition'),
+      object: Testing.id('Application'),
       property: Testing.id('bindChild'),
       computed: false,
     },
@@ -276,7 +276,7 @@ const directConnectionCall = (constructorName: string) =>
   callWithCallee(
     {
       type: 'MemberExpression',
-      object: Testing.id('ApplicationDefinition'),
+      object: Testing.id('Application'),
       property: Testing.id('bindChild'),
       computed: false,
     },

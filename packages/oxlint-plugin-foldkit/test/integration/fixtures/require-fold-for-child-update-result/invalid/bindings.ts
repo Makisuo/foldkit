@@ -16,14 +16,14 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({
   GotSettingsMessage: { message: BoundSettings.Message },
 })
-const ApplicationDefinition = defineApplication({ Model, Message })
-export const settings = ApplicationDefinition.bindChild(BoundSettings.Settings, {read: (model: Model) => Option.some(model.settings),
+const Application = defineApplication({ Model, Message })
+export const settings = Application.bindChild(BoundSettings.Settings, {read: (model: Model) => Option.some(model.settings),
 write: (model, nextSettings) =>
     modifyFields(model, { settings: () => nextSettings }),
 toParentMessage: message => Message.GotSettingsMessage({ message })})
-export const directSettings = ApplicationDefinition.bindChild(DirectBoundSettings.Settings, {field: 'directSettings',
+export const directSettings = Application.bindChild(DirectBoundSettings.Settings, {field: 'directSettings',
 parentMessage: Message.GotSettingsMessage})
-export const keyedSettings = ApplicationDefinition.bindChild(KeyedBoundSettings.Settings, {readAll: (model: Model) => [model.keyedSettings],
+export const keyedSettings = Application.bindChild(KeyedBoundSettings.Settings, {readAll: (model: Model) => [model.keyedSettings],
 key: () => 'settings',
 read: settings => settings,
 writeAt: (model, _key, nextSettings) =>

@@ -751,11 +751,11 @@ describe('Query Block binding', () => {
     const KeyedMessage = defineMessageUnion({
       GotNoteMessage: { message: noteById.Message },
     })
-    const KeyedDefinition = Block.define('KeyedQueryParent', {
+    const Keyed = Block.define('KeyedQueryParent', {
       Model: KeyedModel,
       Message: KeyedMessage,
     })
-    const keyedNotes = KeyedDefinition.bindChild(noteById, {
+    const keyedNotes = Keyed.bindChild(noteById, {
       field: 'notes',
       parentMessage: KeyedMessage.GotNoteMessage,
     })
@@ -1538,11 +1538,11 @@ describe('Query handler requirements', () => {
     const ParentMessage = defineMessageUnion({
       GotNotesMessage: { message: served.Message },
     })
-    const ParentDefinition = Block.define('ServedNotesParent', {
+    const Parent = Block.define('ServedNotesParent', {
       Model: ParentModel,
       Message: ParentMessage,
     })
-    const servedNotes = ParentDefinition.bindChild(served, {
+    const servedNotes = Parent.bindChild(served, {
       field: 'notes',
       parentMessage: ParentMessage.GotNotesMessage,
     })
@@ -1648,11 +1648,11 @@ describe('Query types', () => {
     const ParentMessage = defineMessageUnion({
       GotNotesMessage: { message: notes.Message },
     })
-    const ParentDefinition = Block.define('TypedQueryParent', {
+    const Parent = Block.define('TypedQueryParent', {
       Model: ParentModel,
       Message: ParentMessage,
     })
-    const notesChild = ParentDefinition.bindChild(notes, {
+    const notesChild = Parent.bindChild(notes, {
       field: 'notes',
       parentMessage: ParentMessage.GotNotesMessage,
     })
@@ -1663,15 +1663,15 @@ describe('Query types', () => {
       .toEqualTypeOf<(typeof notes.Message)['Type']>()
     expectTypeOf(notesChild.revalidateOrLoad).parameters.toEqualTypeOf<[]>()
 
-    const KeyedParent = Schema.Struct({ notes: noteById.Model })
+    const KeyedParentModel = Schema.Struct({ notes: noteById.Model })
     const KeyedParentMessage = defineMessageUnion({
       GotNoteMessage: { message: noteById.Message },
     })
-    const KeyedParentDefinition = Block.define('TypedKeyedQueryParent', {
-      Model: KeyedParent,
+    const KeyedParent = Block.define('TypedKeyedQueryParent', {
+      Model: KeyedParentModel,
       Message: KeyedParentMessage,
     })
-    const noteByIdChild = KeyedParentDefinition.bindChild(noteById, {
+    const noteByIdChild = KeyedParent.bindChild(noteById, {
       field: 'notes',
       parentMessage: KeyedParentMessage.GotNoteMessage,
     })

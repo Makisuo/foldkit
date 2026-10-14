@@ -3,11 +3,11 @@ import { Effect, Layer, Option, Schema, pipe } from 'effect'
 import { TakePhoto } from './command'
 import { init } from './init'
 import { Message } from './message'
-import { CameraDefinition, CameraStream } from './resource'
+import { Camera, CameraStream } from './resource'
 import { update } from './update'
 import { view } from './view'
 
-const managedResources = CameraDefinition.managedResources(entry => ({
+const managedResources = Camera.managedResources(entry => ({
   camera: entry(
     'ManageCamera',
     Schema.Option(Schema.Struct({ facingMode: Schema.String })),
@@ -39,7 +39,7 @@ const managedResources = CameraDefinition.managedResources(entry => ({
   ),
 }))
 
-export const block = CameraDefinition.toComposition().toBlock({
+export const block = Camera.toComposition().toBlock({
   init,
   update,
   view,

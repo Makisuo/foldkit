@@ -15,7 +15,7 @@ import {
   ToolRadioGroup,
 } from './components'
 import { DEFAULT_COLOR_INDEX } from './constant'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { createEmptyGrid, isGridEmpty } from './grid'
 import { Message } from './message'
 import {
@@ -35,7 +35,7 @@ const foldErrorDialogOutMessage = Dialog.OutMessage.match<
   }),
 })
 
-export const errorDialog = ApplicationDefinition.bindChild(Dialog.block, {
+export const errorDialog = Application.bindChild(Dialog.block, {
   field: 'errorDialog',
   parentMessage: Message.GotErrorDialogMessage,
   outMessage: { fold: foldErrorDialogOutMessage },
@@ -43,7 +43,7 @@ export const errorDialog = ApplicationDefinition.bindChild(Dialog.block, {
 
 const foldThemeListboxOutMessage = ThemeListbox.OutMessage.match({
   Selected: ({ value }) =>
-    ApplicationDefinition.step(model => {
+    Application.step(model => {
       const themeIndex = Number(value)
       const maybeNextTheme = Array.get(PALETTE_THEMES, themeIndex)
       if (Option.isNone(maybeNextTheme)) {
@@ -57,7 +57,7 @@ const foldThemeListboxOutMessage = ThemeListbox.OutMessage.match({
     }),
 })
 
-export const themeListbox = ApplicationDefinition.bindChild(ThemeListbox, {
+export const themeListbox = Application.bindChild(ThemeListbox, {
   field: 'themeListbox',
   parentMessage: Message.GotThemeListboxMessage,
   outMessage: { fold: foldThemeListboxOutMessage },
@@ -74,14 +74,11 @@ const foldGridSizeConfirmDialogOutMessage = Dialog.OutMessage.match<
   }),
 })
 
-export const gridSizeConfirmDialog = ApplicationDefinition.bindChild(
-  Dialog.block,
-  {
-    field: 'gridSizeConfirmDialog',
-    parentMessage: Message.GotGridSizeConfirmDialogMessage,
-    outMessage: { fold: foldGridSizeConfirmDialogOutMessage },
-  },
-)
+export const gridSizeConfirmDialog = Application.bindChild(Dialog.block, {
+  field: 'gridSizeConfirmDialog',
+  parentMessage: Message.GotGridSizeConfirmDialogMessage,
+  outMessage: { fold: foldGridSizeConfirmDialogOutMessage },
+})
 
 export const selectTool = (model: Model, tool: Tool) => ({
   model: modifyFields(model, { tool: () => tool }),
@@ -104,7 +101,7 @@ const foldToolRadioGroupOutMessage = ToolRadioGroup.OutMessage.match<
       selectTool(model, value),
 })
 
-export const toolRadioGroup = ApplicationDefinition.bindChild(ToolRadioGroup, {
+export const toolRadioGroup = Application.bindChild(ToolRadioGroup, {
   placement: TOOL_RADIO_GROUP_ID,
   field: 'toolRadioGroup',
   parentMessage: Message.GotToolRadioGroupMessage,
@@ -120,15 +117,12 @@ const foldGridSizeRadioGroupOutMessage = GridSizeRadioGroup.OutMessage.match<
       requestGridSizeChange(model, Number(value)),
 })
 
-export const gridSizeRadioGroup = ApplicationDefinition.bindChild(
-  GridSizeRadioGroup,
-  {
-    placement: GRID_SIZE_RADIO_GROUP_ID,
-    field: 'gridSizeRadioGroup',
-    parentMessage: Message.GotGridSizeRadioGroupMessage,
-    outMessage: { fold: foldGridSizeRadioGroupOutMessage },
-  },
-)
+export const gridSizeRadioGroup = Application.bindChild(GridSizeRadioGroup, {
+  placement: GRID_SIZE_RADIO_GROUP_ID,
+  field: 'gridSizeRadioGroup',
+  parentMessage: Message.GotGridSizeRadioGroupMessage,
+  outMessage: { fold: foldGridSizeRadioGroupOutMessage },
+})
 
 const foldPaletteRadioGroupOutMessage = PaletteRadioGroup.OutMessage.match<
   (model: Model) => ReturnType<typeof selectColor>
@@ -142,15 +136,12 @@ const foldPaletteRadioGroupOutMessage = PaletteRadioGroup.OutMessage.match<
       ),
 })
 
-export const paletteRadioGroup = ApplicationDefinition.bindChild(
-  PaletteRadioGroup,
-  {
-    placement: PALETTE_RADIO_GROUP_ID,
-    field: 'paletteRadioGroup',
-    parentMessage: Message.GotPaletteRadioGroupMessage,
-    outMessage: { fold: foldPaletteRadioGroupOutMessage },
-  },
-)
+export const paletteRadioGroup = Application.bindChild(PaletteRadioGroup, {
+  placement: PALETTE_RADIO_GROUP_ID,
+  field: 'paletteRadioGroup',
+  parentMessage: Message.GotPaletteRadioGroupMessage,
+  outMessage: { fold: foldPaletteRadioGroupOutMessage },
+})
 
 export const applyGridSizeChange = (model: Model, size: number) => ({
   model: modifyFields(model, {

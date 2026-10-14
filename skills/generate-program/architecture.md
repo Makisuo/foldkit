@@ -166,20 +166,20 @@ const Message = defineMessageUnion({
 ```ts
 import { Update } from 'foldkit'
 
-const update = FeatureDefinition.update((model, message) =>
+const update = Feature.update((model, message) =>
   Message.match(message, {
     // ...
   }),
 )
 ```
 
-`FeatureDefinition.update` preserves the handler requirements of Commands returned by every Message branch while supplying the Block's Model, Message, and OutMessage context. Use it for every Block update.
+`Feature.update` preserves the handler requirements of Commands returned by every Message branch while supplying the Block's Model, Message, and OutMessage context. Use it for every Block update.
 
 `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is the Block counterpart, adding an optional `outMessage` field.
 
 Update, init, boot, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, they return it directly without checking whether it is empty. Never write the literal `commands: []`.
 
-Inside `FeatureDefinition.update`, let the outer helper infer the Command requirement channel through `Message.match(message, handlers)`. An explicit `Message.match<Update.Return<Model, Message>>` fixes that channel to `never` and discards the handler requirements the application must provide. When helpers or other matchers need a reusable return alias and any branch returns Commands, include the relevant requirements. Derive them with `Update.RequirementsOf<typeof update>` when the update contract is available, rather than from `EffectsLayer`, which may also contain lifecycle handlers that update never returns. Do not repeat the alias on the update function when the match already constrains its branches.
+Inside `Feature.update`, let the outer helper infer the Command requirement channel through `Message.match(message, handlers)`. An explicit `Message.match<Update.Return<Model, Message>>` fixes that channel to `never` and discards the handler requirements the application must provide. When helpers or other matchers need a reusable return alias and any branch returns Commands, include the relevant requirements. Derive them with `Update.RequirementsOf<typeof update>` when the update contract is available, rather than from `EffectsLayer`, which may also contain lifecycle handlers that update never returns. Do not repeat the alias on the update function when the match already constrains its branches.
 
 Use `Update.Return<Model, Message>` for an update that cannot emit an OutMessage. It prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. A result with no `outMessage` can still be used where `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is expected. The missing field means that update emitted no OutMessage. A hand-written plain-return type must preserve the `outMessage?: never` field.
 
@@ -250,13 +250,13 @@ export const SavedBoardJsonString = Schema.fromJsonString(
 
 `toCodecJson` turns the domain value into canonical JSON, then `fromJsonString` stringifies it. Leave it out and a field like `Schema.Option` writes Effect's runtime shape (`{_id:"Option",_tag:"None"}`) to storage. The next boot fails to decode it, the Flags `Effect.catch` falls back to the empty value, and the user's saved data looks gone. For a Schema that is already JSON-native, `toCodecJson` changes nothing on the wire, so composing it every time costs nothing.
 
-Import `define as defineApplication` from `foldkit/application`. Declare the root Model and Message through `ApplicationDefinition`, establish the root graph as `ApplicationComposition`, declare the `Flags` Schema in its `make` config, then pass the runtime input to `Runtime.run`:
+Import `define as defineApplication` from `foldkit/application`. Declare the root Model and Message through `Application`, establish the root graph as `ApplicationComposition`, declare the `Flags` Schema in its `make` config, then pass the runtime input to `Runtime.run`:
 
 ```ts
 import { define as defineApplication } from 'foldkit/application'
 
-const ApplicationDefinition = defineApplication({ Model, Message })
-const ApplicationComposition = ApplicationDefinition.toComposition({ children })
+const Application = defineApplication({ Model, Message })
+const ApplicationComposition = Application.toComposition({ children })
 
 const application = ApplicationComposition.make({
   init,
@@ -290,7 +290,7 @@ export const EffectsLayer = Layer.mergeAll(
 )
 ```
 
-Pass this local recipe to `FeatureComposition.toBlock(...)`; `FeatureDefinition.toComposition({ children, mounts })` supplies the graph. Export the completed value as `block`. At the root, `ApplicationDefinition` establishes the contracts and `ApplicationDefinition.toComposition(...)` produces `ApplicationComposition`. Export those passive authoring values from `application.ts`. `entry.ts` imports each completion field from its real owner, chooses host inputs, and calls owned completion:
+Pass this local recipe to `FeatureComposition.toBlock(...)`; `Feature.toComposition({ children, mounts })` supplies the graph. Export the completed value as `block`. At the root, `Application` establishes the contracts and `Application.toComposition(...)` produces `ApplicationComposition`. Export those passive authoring values from `application.ts`. `entry.ts` imports each completion field from its real owner, chooses host inputs, and calls owned completion:
 
 ```ts
 import { Runtime } from 'foldkit'
@@ -324,7 +324,7 @@ Omit `handler` only at an external host boundary. The definition then has `toLay
 ```ts
 import { Context, Effect } from 'effect'
 
-import { FeatureDefinition } from './definition'
+import { Feature } from './definition'
 import { Message } from './message'
 
 type HostApi = Readonly<{
@@ -333,7 +333,7 @@ type HostApi = Readonly<{
 
 const HostApi = Context.Service<HostApi>('HostApi')
 
-export const RequestHostToken = FeatureDefinition.command('RequestHostToken', {
+export const RequestHostToken = Feature.command('RequestHostToken', {
   messages: [Message.CompletedRequestHostToken],
 })
 
@@ -357,14 +357,14 @@ Handlers and services may own mutable execution bookkeeping, such as worker avai
 
 Whole-application execution tests compose the same handler Layers with deterministic providers for external services before building the application Layer. Keep any business service Layer whose decoding, retries, or policy the test should cover, and replace its lower HTTP or RPC transport. That keeps Command result mapping, Subscription Stream transformation, Mount element lifecycle, and ManagedResource acquire and release behavior under test. Replacing a complete handler is a narrower way to orchestrate a result path, and does not test the replaced handler. Use Effect Layers directly for substitution rather than introducing a testing DSL.
 
-The implementation Layer graph does not replace the Composition graph. A completed child Block collects `subscriptions`, `managedResources`, and `mounts` through the same Bindings that supply handler Layers. Root `application.ts` creates `ApplicationDefinition` with `defineApplication` and exports `ApplicationComposition` from `toComposition`. The entry imports that Composition and the implementation fields from their actual owners, chooses the container, and calls `make` or `makeElement` with explicit fields. It provides `ApplicationLayer` to the completed program and starts the Runtime.
+The implementation Layer graph does not replace the Composition graph. A completed child Block collects `subscriptions`, `managedResources`, and `mounts` through the same Bindings that supply handler Layers. Root `application.ts` creates `Application` with `defineApplication` and exports `ApplicationComposition` from `toComposition`. The entry imports that Composition and the implementation fields from their actual owners, chooses the container, and calls `make` or `makeElement` with explicit fields. It provides `ApplicationLayer` to the completed program and starts the Runtime.
 
 ## Mounts
 
 Use a Mount when work follows one rendered element and needs that live `Element`. For example, measuring a panel belongs in a Mount because `getBoundingClientRect()` must read the actual DOM node after insertion:
 
 ```ts
-export const MeasurePanel = FeatureDefinition.mount('MeasurePanel', {
+export const MeasurePanel = Feature.mount('MeasurePanel', {
   messages: [Message.CompletedMeasurePanel],
   handler: function* () {
     return ({ element }) =>
@@ -380,7 +380,7 @@ export const mounts = [MeasurePanel]
 export const EffectsLayer = MeasurePanel.layer
 ```
 
-The view uses `h.OnMount(MeasurePanel())`. Put the Mount in `FeatureDefinition.toComposition({ mounts })` and author the view through that Composition; its builder receives the capability automatically. Ordinary extracted rendering helpers use `FeatureComposition.render`, `render.builder`, or `render.withInput<Input>()`. Use `Block.HtmlBuilderOf<typeof FeatureComposition>` only for a deliberate public helper signature; reusable helpers independent of one owner keep `HtmlBuilder<Message>`. Use `FeatureDefinition.mountStream` when the element supplies an ongoing event Stream; keep listener or observer acquisition and cleanup inside the returned Stream so each element owns its own scope.
+The view uses `h.OnMount(MeasurePanel())`. Put the Mount in `Feature.toComposition({ mounts })` and author the view through that Composition; its builder receives the capability automatically. Ordinary extracted rendering helpers use `FeatureComposition.render`, `render.builder`, or `render.withInput<Input>()`. Use `Block.HtmlBuilderOf<typeof FeatureComposition>` only for a deliberate public helper signature; reusable helpers independent of one owner keep `HtmlBuilder<Message>`. Use `Feature.mountStream` when the element supplies an ongoing event Stream; keep listener or observer acquisition and cleanup inside the returned Stream so each element owns its own scope.
 
 When a public helper interface deliberately shares a mounted or child embedding path, export an alias such as `type HtmlBuilder = Block.HtmlBuilderOf<typeof FeatureComposition>`. Ordinary owned helpers use `FeatureComposition.render`; reusable helpers retain `HtmlBuilder<Message>`.
 
@@ -391,13 +391,13 @@ Complete each feature with its local Subscription registry. Include its parent-o
 A Block gives one feature its own Model, Message, update, lifecycle graph, view, and optional OutMessage. Every Block follows the same passive stages:
 
 ```ts
-const ChildDefinition = Block.define('Child', {
+const Child = Block.define('Child', {
   Model,
   Message,
   OutMessage,
 })
 
-const ChildComposition = ChildDefinition.toComposition({
+const ChildComposition = Child.toComposition({
   children,
   mounts,
 })
@@ -413,7 +413,7 @@ export const block = ChildComposition.toBlock({
 })
 ```
 
-Definition establishes contracts and typed authoring helpers. Composition establishes child Bindings and Mount capabilities. Block completion checks the implementation and handler graph. `children` and `mounts` are independently optional, so a pure feature still completes through `ChildDefinition.toComposition().toBlock(...)`. Use the name-only `Block.define('Combobox')` form only for a generic factory that shares definitions before specializing contracts with `.define(...)`.
+Definition establishes contracts and typed authoring helpers. Composition establishes child Bindings and Mount capabilities. Block completion checks the implementation and handler graph. `children` and `mounts` are independently optional, so a pure feature still completes through `Child.toComposition().toBlock(...)`. Use the name-only `Block.define('Combobox')` form only for a generic factory that shares definitions before specializing contracts with `.define(...)`.
 
 Split features put early contracts in `definition.ts` only when implementation files need them, completed assembly in `block.ts`, substantial parent wiring in `childBindings.ts`, and substantial handler Layer composition in `layer.ts`. Implementation files import the early Definition, never the completed barrel. An explicit `index.ts` exports `block`, Model, Message, OutMessage, and intentional domain helpers.
 
@@ -424,13 +424,13 @@ Declare only intentional parent-driven operations in `expose`. Bindings expose t
 The parent owns child integration. Create a Binding from the parent Definition, then register it in the parent Composition:
 
 ```ts
-export const ParentDefinition = Block.define('Parent', { Model, Message })
+export const Parent = Block.define('Parent', { Model, Message })
 
 const foldChildOutMessage = Child.OutMessage.match({
   SucceededCreateRoom: ({ roomId }) => openRoom(roomId),
 })
 
-export const child = ParentDefinition.bindChild(Child.block, {
+export const child = Parent.bindChild(Child.block, {
   read: model => model.maybeChild,
   write: (model, nextChild) =>
     modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
@@ -439,7 +439,7 @@ export const child = ParentDefinition.bindChild(Child.block, {
   outMessage: { fold: foldChildOutMessage },
 })
 
-export const ParentComposition = ParentDefinition.toComposition({
+export const ParentComposition = Parent.toComposition({
   children: [child],
 })
 ```
@@ -476,7 +476,7 @@ The runtime resolves the Message wrapper at event time. Child builders dispatch 
 
 Subscriptions are model-driven streams. They automatically start and stop based on model state.
 
-Build them with `FeatureDefinition.subscriptions(entry => ({ ... }))`. Use the Layer-backed `entry(handlerName, fields, callbacks)` form when its lifetime depends on the Model. For those Subscriptions, provide:
+Build them with `Feature.subscriptions(entry => ({ ... }))`. Use the Layer-backed `entry(handlerName, fields, callbacks)` form when its lifetime depends on the Model. For those Subscriptions, provide:
 
 - A stable handler name. Distinct definitions in one application need distinct names even when their record keys differ.
 - A `fields` map (the bare field map passed as `entry`'s second argument) naming every dependency. The builder calls `Schema.Struct(fields)` internally and infers the dependency type from this map.
@@ -491,7 +491,7 @@ For Layer-backed Subscriptions without local Model dependencies (keyboard listen
 A silent Subscription can own scoped DOM state. Keep acquisition and cleanup inside the `Stream<never>` so dependency changes and runtime shutdown remove the owned style:
 
 ```ts
-const subscriptions = FeatureDefinition.subscriptions(entry => ({
+const subscriptions = Feature.subscriptions(entry => ({
   dragSelectionStyles: entry(
     'DragSelectionStyles',
     { isDragging: Schema.Boolean },
@@ -599,15 +599,15 @@ Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, o
 
 ## With and Without URL Routing
 
-`const ApplicationDefinition = defineApplication({ Model, Message })` establishes root contracts. Every root then creates `ApplicationComposition = ApplicationDefinition.toComposition({ children?, mounts? })`; use `toComposition()` for a graphless app. Complete only the Composition, with explicit implementation fields.
+`const Application = defineApplication({ Model, Message })` establishes root contracts. Every root then creates `ApplicationComposition = Application.toComposition({ children?, mounts? })`; use `toComposition()` for a graphless app. Complete only the Composition, with explicit implementation fields.
 
 ### Without Routing
 
 ```ts
 import { define as defineApplication } from 'foldkit/application'
 
-const ApplicationDefinition = defineApplication({ Model, Message })
-const ApplicationComposition = ApplicationDefinition.toComposition()
+const Application = defineApplication({ Model, Message })
+const ApplicationComposition = Application.toComposition()
 
 const application = ApplicationComposition.make({
   init,
@@ -624,12 +624,12 @@ Runtime.run(application.provide(ApplicationLayer))
 A routing init receives Flags, when declared, and the current URL. Add both Message constructors to `routing`:
 
 ```ts
-const home = ApplicationDefinition.bindChild(Home.block, {
+const home = Application.bindChild(Home.block, {
   field: 'home',
   parentMessage: Message.GotHomeMessage,
 })
 
-const ApplicationComposition = ApplicationDefinition.toComposition({
+const ApplicationComposition = Application.toComposition({
   children: [home],
 })
 

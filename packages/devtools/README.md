@@ -24,9 +24,15 @@ With `@foldkit/vite-plugin`, installing this package as a development dependency
 // src/entry.ts
 import { Runtime } from 'foldkit'
 
-import { Application, init, update, view, Message } from './application'
+import {
+  ApplicationComposition,
+  init,
+  update,
+  view,
+  Message,
+} from './application'
 
-const application = Application.make({
+const application = ApplicationComposition.make({
   init,
   update,
   view,
@@ -39,14 +45,14 @@ const application = Application.make({
 Runtime.run(application)
 ```
 
-`Application` is the typed definition your `application.ts` exports after calling `defineApplication({ Model, Message })`, with an optional `.register(...)` step for its child graph. Complete it with `Application.make` only in the entry point.
+`Application` is the typed authoring value created by `defineApplication({ Model, Message })`. Export `ApplicationComposition = Application.toComposition({ children })` from `application.ts`, or call `toComposition()` for a root without children. Complete that Composition with `ApplicationComposition.make` in the entry point.
 
 The `devTools` configuration is optional unless you need settings such as `Message`, `position`, or `excludeFromHistory`. Recording and the WebSocket bridge that the [DevTools MCP server](https://foldkit.dev/ai/mcp) connects to live in Foldkit's core Runtime.
 
 To include the overlay in production, move `@foldkit/devtools` to regular `dependencies` and set `show: 'Always'`. The dependency section is the build-time opt-in, and `show` controls whether the Runtime mounts it:
 
 ```typescript
-const application = Application.make({
+const application = ApplicationComposition.make({
   // ...
   devTools: {
     show: 'Always',

@@ -8,12 +8,12 @@ import {
   FocusUsernameInput,
   JoinRoomFromHome,
 } from '../command'
-import { HomeDefinition } from '../definition'
+import { Home } from '../definition'
 import { Message, OutMessage } from '../message'
 import { HomeStep } from '../model'
 import { handleKeyPressed } from './handleKeyPressed'
 
-export const update = HomeDefinition.update((model, message) =>
+export const update = Home.update((model, message) =>
   Message.match(message, {
     CompletedFocusUsernameInput: () => ({ model }),
 

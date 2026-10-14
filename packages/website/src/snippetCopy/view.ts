@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { HashSet } from 'effect'
 
 import { Icon } from '../icon'
-import { SnippetCopyDefinition } from './definition'
+import { SnippetCopy } from './definition'
 import { Message } from './message'
 
 export type ViewInputs = Readonly<{
@@ -13,7 +13,7 @@ export type ViewInputs = Readonly<{
   variant: 'Header' | 'Overlay'
 }>
 
-export const view = SnippetCopyDefinition.view.withInputs<ViewInputs>(
+export const view = SnippetCopy.view.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const isCopied = HashSet.has(model.copiedSnippetIds, viewInputs.snippetId)
 

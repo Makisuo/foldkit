@@ -7,10 +7,10 @@ import {
   LockBodyScroll,
   UnlockBodyScroll,
 } from './command'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { MountMap } from './mount'
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   mounts: [MountMap],
 })
 

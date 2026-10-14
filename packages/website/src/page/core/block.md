@@ -37,7 +37,7 @@ If a section only renders parent state, use a view function. A card that receive
 
 ### Establish the feature boundary
 
-Declare the Schemas, then call `Block.define('Settings', { Model, Message, OutMessage })`. This creates the local identity and typed authoring helpers together. The ID is local to the feature; do not include ancestors or filesystem paths. Name the returned value `SettingsDefinition`; the `Definition` suffix distinguishes authoring from the completed Block while the declared ID remains `Settings`.
+Declare the Schemas, then call `Block.define('Settings', { Model, Message, OutMessage })`. This creates the local identity and typed authoring helpers together. The ID is local to the feature; do not include ancestors or filesystem paths. Name the returned value `Settings`; export the completed Block as `block`, and name the graph-aware value `SettingsComposition`.
 
 ::Snippet{name="blockDefinition" label="Defining a typed Block"}
 
@@ -49,7 +49,7 @@ Commands and lifecycle handlers declare local names such as `SaveTheme`. Foldkit
 
 Call `toComposition({ children, mounts })` after defining the child Bindings and parent policies. It checks that graph and supplies the view capabilities available while authoring the view and producing the Block. Both fields are optional and default to empty collections. The returned Composition preserves the established primitive and typed helpers.
 
-Chain `Block.define(...).toComposition(...)` when the child policies do not depend on earlier parent operations. Otherwise, keep `SettingsDefinition`, author the parent Steps and Bindings, then create `SettingsComposition`. This ordering breaks the inference cycle between a parent Step, the child policy that uses it, and the graph containing that policy. Nesting depth does not determine whether separate statements are needed.
+Chain `Block.define(...).toComposition(...)` when the child policies do not depend on earlier parent operations. Otherwise, keep `Settings`, author the parent Steps and Bindings, then create `SettingsComposition`. This ordering breaks the inference cycle between a parent Step, the child policy that uses it, and the graph containing that policy. Nesting depth does not determine whether separate statements are needed.
 
 Features without children or Mounts still call `toComposition()`. Composition configures capabilities; it does not build Layers or start child behavior.
 
@@ -237,7 +237,7 @@ Use reflection only for silent synchronization. If the transition should emit Co
 
 ## Complete the Application
 
-Import `define as defineApplication` from `foldkit/application` and export the early typed value as `ApplicationDefinition`. Its owned methods author root Commands, updates, Steps, views, and lifecycle declarations. Create `ApplicationComposition` with the root child Bindings and Mounts, then call its `make` or `makeElement` in `entry.ts` with explicitly listed implementation pieces and browser inputs. A graphless root still calls `ApplicationDefinition.toComposition()`. An Application cannot be bound as a child:
+Import `define as defineApplication` from `foldkit/application` and export the early typed value as `Application`. Its owned methods author root Commands, updates, Steps, views, and lifecycle declarations. Create `ApplicationComposition` with the root child Bindings and Mounts, then call its `make` or `makeElement` in `entry.ts` with explicitly listed implementation pieces and browser inputs. A graphless root still calls `Application.toComposition()`. An Application cannot be bound as a child:
 
 ::Snippet{name="blockApplicationCompletion" label="Completing the Application"}
 
@@ -310,25 +310,25 @@ Name wrapper Messages `Got<Child>Message`. DevTools uses that convention to grou
 
 ### Block.define
 
-`Block.define(id, { Model, Message, OutMessage? })` creates a local identity and typed authoring methods. `id` is a nonempty segment without `/` or `::`. Name the returned value `<Id>Definition`, such as `SettingsDefinition` for the ID `Settings`. `toComposition({ mounts?, children? })` adds graph-aware view and completion capabilities while retaining the established helpers.
+`Block.define(id, { Model, Message, OutMessage? })` creates a local identity and typed authoring methods. `id` is a nonempty segment without `/` or `::`. Name the returned value `<Id>`, such as `Settings` for the ID `Settings`. `toComposition({ mounts?, children? })` adds graph-aware view and completion capabilities while retaining the established helpers.
 
 For shared definitions specialized by a generic factory, `Block.define(id)` supplies the primitive methods and `.define(contracts)` establishes each later typed contract. Both forms are passive configuration.
 
-### FeatureDefinition.toComposition
+### Feature.toComposition
 
-`FeatureDefinition.toComposition({ children?, mounts? })` checks the composition graph and returns `FeatureComposition`. Omitted children and Mounts default to empty collections without granting their capabilities.
+`Feature.toComposition({ children?, mounts? })` checks the composition graph and returns `FeatureComposition`. Omitted children and Mounts default to empty collections without granting their capabilities.
 
 ### FeatureComposition.toBlock
 
 `FeatureComposition.toBlock({ init, update, view?, expose?, subscriptions?, managedResources?, EffectsLayer?, hostHandlers? })` checks and returns the passive completed Block. `EffectsLayer` may require ordinary Services supplied by `application.provide(ApplicationLayer)`. `hostHandlers` explicitly declares contracts left to the host. Complete those Blocks with their own `provideHandlers(...)` before binding them into a runnable application; final Application completion rejects unresolved child handlers.
 
-### ParentDefinition.bindChild
+### Parent.bindChild
 
-`ParentDefinition.bindChild(block, config)` creates one static, optional, or keyed Binding in the established parent Model and Message context. Supply explicit `read`/`write`, or `field` for a required direct Struct field. Supply exactly one of `parentMessage` and `toParentMessage`. A keyed Binding requires `readAll`, `key`, `read`, and `writeAt`. An explicit placement overrides the field or Block ID default. Subscription gates and OutMessage handling are parent policies.
+`Parent.bindChild(block, config)` creates one static, optional, or keyed Binding in the established parent Model and Message context. Supply explicit `read`/`write`, or `field` for a required direct Struct field. Supply exactly one of `parentMessage` and `toParentMessage`. A keyed Binding requires `readAll`, `key`, `read`, and `writeAt`. An explicit placement overrides the field or Block ID default. Subscription gates and OutMessage handling are parent policies.
 
-### FeatureDefinition.step
+### Feature.step
 
-`FeatureDefinition.step(producer)` authors a pure operation over the child Model. It infers the operation's arguments, result Messages and Command requirements. Select public operations in the completed Block's `expose` record; internal Steps need not be exposed.
+`Feature.step(producer)` authors a pure operation over the child Model. It infers the operation's arguments, result Messages and Command requirements. Select public operations in the completed Block's `expose` record; internal Steps need not be exposed.
 
 ### binding.fold
 

@@ -1,6 +1,12 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect'
 
-import { Application, Block, Message, Struct, Update } from '../src/index.js'
+import {
+  Application as ApplicationModule,
+  Block,
+  Message,
+  Struct,
+  Update,
+} from '../src/index.js'
 
 export class ChildClock extends Context.Service<
   ChildClock,
@@ -15,14 +21,14 @@ const ChildMessage = Message.defineMessageUnion({
 const ChildOutMessage = Message.defineMessageUnion({
   SelectedValue: { value: Schema.String },
 })
-const ChildDefinition = Block.define('DeclarationParentOwnedChild', {
+const Child = Block.define('DeclarationParentOwnedChild', {
   Model: ChildModel,
   Message: ChildMessage,
   OutMessage: ChildOutMessage,
 })
 const handlerConstruction: Effect.Effect<void, 'HandlerUnavailable'> =
   Effect.void
-export const ReadChildValue = ChildDefinition.command('ReadChildValue', {
+export const ReadChildValue = Child.command('ReadChildValue', {
   messages: [ChildMessage.CompletedReadChildValue],
   handler: function* () {
     const clock = yield* ChildClock
@@ -34,10 +40,10 @@ export const ReadChildValue = ChildDefinition.command('ReadChildValue', {
       )
   },
 })
-const ChildComposition = ChildDefinition.toComposition()
+const ChildComposition = Child.toComposition()
 export const ChildBlock = ChildComposition.toBlock({
   init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
-  update: ChildDefinition.update((model, message) =>
+  update: Child.update((model, message) =>
     ChildMessage.match(message, {
       UpdatedValue: ({ value }) => ({
         model: Struct.modifyFields(model, { value: () => value }),
@@ -46,11 +52,11 @@ export const ChildBlock = ChildComposition.toBlock({
     }),
   ),
   expose: {
-    select: ChildDefinition.step(model => ({
+    select: Child.step(model => ({
       model,
       outMessage: ChildOutMessage.SelectedValue({ value: model.value }),
     })),
-    refresh: ChildDefinition.step(model => ({
+    refresh: Child.step(model => ({
       model,
       commands: [ReadChildValue()],
     })),
@@ -75,7 +81,7 @@ const ParentMessage = Message.defineMessageUnion({
 export const ParentOutMessage = Message.defineMessageUnion({
   ForwardedSelectedValue: { value: Schema.String },
 })
-const ParentDefinition = Block.define('DeclarationParentOwnedParent', {
+const Parent = Block.define('DeclarationParentOwnedParent', {
   Model: ParentModel,
   Message: ParentMessage,
   OutMessage: ParentOutMessage,
@@ -87,13 +93,13 @@ const foldChildOutMessage = ChildOutMessage.match<
   SelectedValue: () => model => ({ model }),
 })
 
-export const directChild = ParentDefinition.bindChild(ChildBlock, {
+export const directChild = Parent.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
 export const directChildInspection = Block.inspectBinding(directChild)
-export const forwardingChild = ParentDefinition.bindChild(ChildBlock, {
+export const forwardingChild = Parent.bindChild(ChildBlock, {
   field: 'child',
   placement: 'forwardingChild',
   parentMessage: ParentMessage.GotChildMessage,
@@ -106,7 +112,7 @@ export const forwardingChild = ParentDefinition.bindChild(ChildBlock, {
   },
 })
 
-export const optionalChild = ParentDefinition.bindChild(ChildBlock, {
+export const optionalChild = Parent.bindChild(ChildBlock, {
   placement: 'optionalChild',
   read: model => model.maybeChild,
   write: (model, nextChild) =>
@@ -130,7 +136,7 @@ export const optionalChild = ParentDefinition.bindChild(ChildBlock, {
   },
 })
 
-export const taggedChild = ParentDefinition.bindChild(ChildBlock, {
+export const taggedChild = Parent.bindChild(ChildBlock, {
   placement: 'taggedChild',
   read: model =>
     model.slot._tag === 'Child' ? Option.some(model.slot.child) : Option.none(),
@@ -142,7 +148,7 @@ export const taggedChild = ParentDefinition.bindChild(ChildBlock, {
   outMessage: { fold: foldChildOutMessage },
 })
 
-export const keyedChild = ParentDefinition.bindChild(ChildBlock, {
+export const keyedChild = Parent.bindChild(ChildBlock, {
   placement: 'entries',
   readAll: model => model.entries,
   key: entry => entry.id,
@@ -168,7 +174,7 @@ export const keyedChild = ParentDefinition.bindChild(ChildBlock, {
   },
 })
 
-const ParentComposition = ParentDefinition.toComposition({
+const ParentComposition = Parent.toComposition({
   children: [directChild, optionalChild, taggedChild, keyedChild],
 })
 export const ParentBlock = ParentComposition.toBlock({
@@ -180,7 +186,7 @@ export const ParentBlock = ParentComposition.toBlock({
       entries: [],
     }),
   }),
-  update: ParentDefinition.update((model, message) =>
+  update: Parent.update((model, message) =>
     ParentMessage.match(message, {
       GotChildMessage: ({ message }) => directChild.fold(model, message),
       GotEntryMessage: ({ id, message }) => keyedChild.fold(model, id, message),
@@ -188,16 +194,16 @@ export const ParentBlock = ParentComposition.toBlock({
   ),
 })
 
-const ApplicationDefinition = Application.define({
+const Application = ApplicationModule.define({
   Model: ParentModel,
   Message: ParentMessage,
 })
-export const applicationChild = ApplicationDefinition.bindChild(ChildBlock, {
+export const applicationChild = Application.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [applicationChild],
 })
 

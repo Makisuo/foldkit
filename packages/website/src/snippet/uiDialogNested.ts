@@ -50,24 +50,24 @@ const foldConfirmDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const ProjectDialogsDefinition = Block.define('ProjectDialogs', {
+const ProjectDialogs = Block.define('ProjectDialogs', {
   Model,
   Message,
 })
 
-const settingsDialog = ProjectDialogsDefinition.bindChild(Dialog.block, {
+const settingsDialog = ProjectDialogs.bindChild(Dialog.block, {
   field: 'settingsDialog',
   parentMessage: Message.GotSettingsDialogMessage,
   outMessage: { fold: foldConfirmDialogOutMessage },
 })
 
-const confirmDialog = ProjectDialogsDefinition.bindChild(Dialog.block, {
+const confirmDialog = ProjectDialogs.bindChild(Dialog.block, {
   field: 'confirmDialog',
   parentMessage: Message.GotConfirmDialogMessage,
   outMessage: { fold: foldConfirmDialogOutMessage },
 })
 
-const ProjectDialogsComposition = ProjectDialogsDefinition.toComposition({
+const ProjectDialogsComposition = ProjectDialogs.toComposition({
   children: [settingsDialog, confirmDialog],
 })
 
@@ -75,7 +75,7 @@ const ProjectDialogsComposition = ProjectDialogsDefinition.toComposition({
 // The button dispatches ClickedDeleteProject; the update opens the confirmation
 // through `dialog.open()`, keeping Got* for genuine child results.
 
-const update = ProjectDialogsDefinition.update((model, message) =>
+const update = ProjectDialogs.update((model, message) =>
   Message.match(message, {
     GotSettingsDialogMessage: ({ message }) =>
       settingsDialog.fold(model, message),

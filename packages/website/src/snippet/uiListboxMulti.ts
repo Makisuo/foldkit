@@ -72,23 +72,23 @@ const foldListboxMultiOutMessage = PeopleListbox.OutMessage.match<
 // navigation, typeahead, and open/close to PeopleListbox.update, writes the
 // next Listbox Model back, maps the Block's Commands into your Message
 // type, and hands any OutMessage to the OutMessage fold.
-const PeoplePickerDefinition = Block.define('PeoplePicker', {
+const PeoplePicker = Block.define('PeoplePicker', {
   Model,
   Message,
 })
 
-const peopleListbox = PeoplePickerDefinition.bindChild(PeopleListbox, {
+const peopleListbox = PeoplePicker.bindChild(PeopleListbox, {
   field: 'listboxMulti',
   parentMessage: Message.GotListboxMultiMessage,
   outMessage: { fold: foldListboxMultiOutMessage },
 })
 
-const PeoplePickerComposition = PeoplePickerDefinition.toComposition({
+const PeoplePickerComposition = PeoplePicker.toComposition({
   children: [peopleListbox],
 })
 
 // In the corresponding Message.match handler, call the fold:
-const update = PeoplePickerDefinition.update((model, message) =>
+const update = PeoplePicker.update((model, message) =>
   Message.match(message, {
     GotListboxMultiMessage: ({ message }) => peopleListbox.fold(model, message),
   }),

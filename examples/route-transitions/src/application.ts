@@ -7,9 +7,9 @@ import {
   NavigateInternal,
   SaveDraft,
 } from './command'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 
-export const ApplicationComposition = ApplicationDefinition.toComposition()
+export const ApplicationComposition = Application.toComposition()
 
 export const EffectsLayer = Layer.mergeAll(
   NavigateInternal.layer,

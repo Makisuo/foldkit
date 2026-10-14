@@ -15,7 +15,7 @@ const RuntimeMessage = defineMessageUnion({
 type RuntimeMessage = typeof RuntimeMessage.Type
 type Model = Dialog.Model
 
-const ApplicationDefinition = defineApplication({
+const Application = defineApplication({
   Model: Dialog.Model,
   Message: RuntimeMessage,
 })
@@ -27,18 +27,18 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const dialog = ApplicationDefinition.bindChild(Dialog.block, {
+const dialog = Application.bindChild(Dialog.block, {
   read: (model: Model) => Option.some(model),
   write: (_model: Model, nextDialog: Dialog.Model) => nextDialog,
   parentMessage: RuntimeMessage.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const ApplicationComposition = ApplicationDefinition.toComposition({
+const ApplicationComposition = Application.toComposition({
   children: [dialog],
 })
 
-const update = ApplicationDefinition.update((model, message) =>
+const update = Application.update((model, message) =>
   RuntimeMessage.match(message, {
     GotDialogMessage: ({ message: dialogMessage }) =>
       dialog.fold(model, dialogMessage),

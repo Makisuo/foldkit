@@ -6,9 +6,9 @@ import { Applicant } from './applicant'
 import { Message } from './message'
 import { Model } from './model'
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = defineApplication({ Model, Message })
 
-export const applicants = ApplicationDefinition.bindChild(Applicant.block, {
+export const applicants = Application.bindChild(Applicant.block, {
   readAll: model => model.applicants,
   key: applicant => applicant.id,
   read: applicant => applicant.entry,
@@ -24,7 +24,7 @@ export const applicants = ApplicationDefinition.bindChild(Applicant.block, {
     Message.GotApplicantMessage({ applicantId, message }),
 })
 
-const ApplicationComposition = ApplicationDefinition.toComposition({
+const ApplicationComposition = Application.toComposition({
   children: [applicants],
 })
 

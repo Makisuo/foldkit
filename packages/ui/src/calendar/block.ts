@@ -97,7 +97,7 @@ export type OutMessage = typeof OutMessage.Type
 export type ChangedViewMonth = typeof OutMessage.ChangedViewMonth.Type
 export type SelectedDate = typeof OutMessage.SelectedDate.Type
 
-const CalendarDefinition = Block.define('Calendar', {
+const Calendar = Block.define('Calendar', {
   Model,
   Message,
   OutMessage,
@@ -146,7 +146,7 @@ const gridSelector = (modelId: string): string => idSelector(gridId(modelId))
 
 /** Focuses the calendar grid container. Parent components like DatePicker
  * dispatch this after opening to hand focus to the grid's keyboard layer. */
-export const FocusGrid = CalendarDefinition.command('FocusGrid', {
+export const FocusGrid = Calendar.command('FocusGrid', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusGrid],
   handler: function* () {
@@ -387,7 +387,7 @@ const selectDateTransition = (model: Model, date: CalendarDate) => {
 /** Programmatically selects a date on the calendar, committing it as the
  * chosen value and moving the cursor onto it. Use this in controlled-mode
  * handlers to write the selection back to the calendar's internal state. */
-const selectDate = CalendarDefinition.step(selectDateTransition)
+const selectDate = Calendar.step(selectDateTransition)
 
 /** Applies a focus move to the model, clamping to the allowed range and
  * skipping disabled dates. Emits `ChangedViewMonth` if the move crossed a
@@ -533,7 +533,7 @@ const applyYearsFocusShift = (model: Model, yearShift: number) => {
 
 /** Processes a Calendar Message and returns the next Model, optional Commands,
  *  and an optional OutMessage. */
-export const update = CalendarDefinition.update((model, message) =>
+export const update = Calendar.update((model, message) =>
   Message.match(message, {
     ClickedDay: ({ date }) => selectDateTransition(model, date),
 
@@ -1388,7 +1388,7 @@ const buildYearsAttributes = (
  *  bundles + derived cell data, then delegates layout to the consumer's
  *  `toView` callback. The variant of `CalendarAttributes` passed to
  *  `toView` matches `model.viewMode`. */
-export const view = CalendarDefinition.view.withInputs<ViewInputs>(
+export const view = Calendar.view.withInputs<ViewInputs>(
   (model, viewInputs, h) =>
     viewInputs.toView(
       Match.value(model.viewMode).pipe(
@@ -1402,7 +1402,7 @@ export const view = CalendarDefinition.view.withInputs<ViewInputs>(
 )
 
 /** Complete Calendar Block definition for connecting to a parent. */
-const CalendarComposition = CalendarDefinition.toComposition()
+const CalendarComposition = Calendar.toComposition()
 
 export const block = CalendarComposition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),

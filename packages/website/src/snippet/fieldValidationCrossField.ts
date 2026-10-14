@@ -28,7 +28,7 @@ const validateConfirmPassword = (
   return result
 }
 
-const update = ApplicationDefinition.update((model, message) =>
+const update = Application.update((model, message) =>
   Message.match(message, {
     ChangedPassword: ({ value }) => ({
       model: modifyFields(model, {

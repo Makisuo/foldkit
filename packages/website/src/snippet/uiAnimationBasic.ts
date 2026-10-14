@@ -40,7 +40,7 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const AnimationExampleDefinition = Block.define('AnimationExample', {
+const AnimationExample = Block.define('AnimationExample', {
   Model,
   Message,
 })
@@ -66,7 +66,7 @@ const foldAnimationOutMessage = (
     // element to settle, then dispatches EndedAnimation back into
     // Animation.update. Use it unless you need a custom strategy.
     StartedLeaveAnimating: () =>
-      AnimationExampleDefinition.step(model => ({
+      AnimationExample.step(model => ({
         model,
         commands: [liftCommand(AnimationDefaultLeaveCommand(model.animation))],
       })),
@@ -83,20 +83,20 @@ const foldAnimationOutMessage = (
 // The Binding wires the completed child Block into the parent: it runs Animation.update,
 // writes the next Animation Model back, maps the Block's Commands into your
 // Message type, and hands any OutMessage to the OutMessage fold.
-const animation = AnimationExampleDefinition.bindChild(Animation.block, {
+const animation = AnimationExample.bindChild(Animation.block, {
   field: 'animation',
   parentMessage: Message.GotAnimationMessage,
   outMessage: { fold: foldAnimationOutMessage },
 })
 
-const AnimationExampleComposition = AnimationExampleDefinition.toComposition({
+const AnimationExampleComposition = AnimationExample.toComposition({
   children: [animation],
 })
 
 // Bound public operations integrate the next child Model and Commands without
 // exposing the internal Showed or Hid Message constructors to the parent.
 
-const update = AnimationExampleDefinition.update((model, message) =>
+const update = AnimationExample.update((model, message) =>
   Message.match(message, {
     GotAnimationMessage: ({ message }) => animation.fold(model, message),
     ClickedToggleAnimation: () =>

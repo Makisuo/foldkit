@@ -2,9 +2,9 @@ import { Layer } from 'effect'
 
 import { dietListbox, periodListbox } from './childBindings'
 import { LoadExternal, NavigateInternal, ReplaceFilters } from './command'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [dietListbox, periodListbox],
 })
 

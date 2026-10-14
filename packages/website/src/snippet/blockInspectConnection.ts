@@ -1,11 +1,11 @@
 import { Block } from 'foldkit'
 
-import { ApplicationDefinition } from './application'
+import { Application } from './application'
 import { Message } from './message'
 import { Model } from './model'
 import { Room } from './page'
 
-const room = ApplicationDefinition.bindChild(Room.block, {
+const room = Application.bindChild(Room.block, {
   field: 'room',
   parentMessage: Message.GotRoomMessage,
 })

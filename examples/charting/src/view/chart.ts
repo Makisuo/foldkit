@@ -5,7 +5,7 @@ import type { HtmlBuilder as FoldkitHtmlBuilder, Html } from 'foldkit/html'
 
 import type { ApplicationComposition } from '../application'
 import { ChartRegistry } from '../chartRegistry'
-import { ApplicationDefinition } from '../definition'
+import { Application } from '../definition'
 import type { Telemetry } from '../domain'
 import { selectedDatumLabel } from '../echarts'
 import { Message } from '../message'
@@ -122,7 +122,7 @@ const mountChart = (
     ),
   )
 
-export const MountChart = ApplicationDefinition.mountStream('MountChart', {
+export const MountChart = Application.mountStream('MountChart', {
   args: { hostId: Schema.String },
   messages: [
     Message.SucceededMountChart,

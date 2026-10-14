@@ -45,22 +45,22 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const DialogExampleDefinition = Block.define('DialogExample', {
+const DialogExample = Block.define('DialogExample', {
   Model,
   Message,
 })
 
-const dialog = DialogExampleDefinition.bindChild(Dialog.block, {
+const dialog = DialogExample.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const DialogExampleComposition = DialogExampleDefinition.toComposition({
+const DialogExampleComposition = DialogExample.toComposition({
   children: [dialog],
 })
 
-const update = DialogExampleDefinition.update((model, message) =>
+const update = DialogExample.update((model, message) =>
   Message.match(message, {
     ClickedOpenDialog: () => dialog.open()(model),
     GotDialogMessage: ({ message }) => dialog.fold(model, message),

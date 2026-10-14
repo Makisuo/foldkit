@@ -70,11 +70,11 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition()
+export const ApplicationComposition = Application.toComposition()
 
-type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
+type ViewBuilder = HtmlBuilderOf<typeof Application>
 
 const slowWarningTarget: Dom.TypedEventTarget<{
   [SLOW_WARNING_EVENT]: CustomEvent<SlowWarningReport>
@@ -232,7 +232,7 @@ export const init = () => ({
   }),
 })
 
-export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
+export const subscriptions = Application.subscriptions(entry => ({
   slowWarningReports: entry('SlowWarningReports', {
     messages: [Message.RecordedSlowWarning],
     handler: function* () {

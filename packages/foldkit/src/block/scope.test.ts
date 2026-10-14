@@ -24,7 +24,7 @@ class ValueSource extends Context.Service<
 >()('ScopeTest/ValueSource') {}
 
 const ScopeParentModel = Schema.Struct({})
-const ScopeParentDefinition = define('ScopeTestParent', {
+const ScopeParent = define('ScopeTestParent', {
   Model: ScopeParentModel,
   Message,
 })
@@ -52,7 +52,7 @@ const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
     EffectsLayer: ReadValue.layer,
   })
   const bind = (placement: string) =>
-    ScopeParentDefinition.bindChild(block, {
+    ScopeParent.bindChild(block, {
       placement,
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
@@ -121,7 +121,7 @@ describe('Block capability contexts', () => {
         Layer.provide(Layer.succeed(ValueSource, { value: 'left' })),
       ),
     )
-    const left = ScopeParentDefinition.bindChild(leftBlock, {
+    const left = ScopeParent.bindChild(leftBlock, {
       placement: 'Left',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
@@ -132,7 +132,7 @@ describe('Block capability contexts', () => {
         Layer.provide(Layer.succeed(ValueSource, { value: 'right' })),
       ),
     )
-    const right = ScopeParentDefinition.bindChild(rightBlock, {
+    const right = ScopeParent.bindChild(rightBlock, {
       placement: 'Right',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
@@ -179,7 +179,7 @@ describe('Block capability contexts', () => {
         Layer.provide(Layer.succeed(ValueSource, { value: 'selected' })),
       ),
     )
-    const selected = ScopeParentDefinition.bindChild(selectedBlock, {
+    const selected = ScopeParent.bindChild(selectedBlock, {
       placement: 'Selected',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,

@@ -11,9 +11,9 @@ import { Model } from './model'
 import { Home, Room } from './page'
 import { ApplicationRoute, roomRouter, urlToApplicationRoute } from './route'
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = defineApplication({ Model, Message })
 
-const NavigateToRoom = ApplicationDefinition.command('NavigateToRoom', {
+const NavigateToRoom = Application.command('NavigateToRoom', {
   args: { roomId: Schema.String },
   messages: [Message.CompletedNavigateToRoom],
   handler: function* () {
@@ -24,7 +24,7 @@ const NavigateToRoom = ApplicationDefinition.command('NavigateToRoom', {
   },
 })
 
-const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {
+const NavigateInternal = Application.command('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -33,7 +33,7 @@ const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {
   },
 })
 
-const LoadExternal = ApplicationDefinition.command('LoadExternal', {
+const LoadExternal = Application.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -42,7 +42,7 @@ const LoadExternal = ApplicationDefinition.command('LoadExternal', {
   },
 })
 
-export const room = ApplicationDefinition.bindChild(Room.block, {
+export const room = Application.bindChild(Room.block, {
   field: 'room',
   parentMessage: Message.GotRoomMessage,
   subscriptions: {
@@ -66,7 +66,7 @@ const foldHomeOutMessage = Home.OutMessage.match({
   JoinedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
 })
 
-export const home = ApplicationDefinition.bindChild(Home.block, {
+export const home = Application.bindChild(Home.block, {
   field: 'home',
   parentMessage: Message.GotHomeMessage,
   subscriptions: {
@@ -75,7 +75,7 @@ export const home = ApplicationDefinition.bindChild(Home.block, {
   outMessage: { fold: foldHomeOutMessage },
 })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [home, room],
 })
 

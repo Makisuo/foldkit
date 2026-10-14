@@ -2,10 +2,10 @@ import { Layer } from 'effect'
 
 import { peoplePage } from './childBindings'
 import { LoadExternal, NavigateInternal } from './command'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { subscriptions } from './subscription'
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [peoplePage],
 })
 

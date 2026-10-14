@@ -21,10 +21,10 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = defineApplication({ Model, Message })
 
 // Api is an Effect service; ApiLayer provides it.
-const FetchUser = ApplicationDefinition.command('FetchUser', {
+const FetchUser = Application.command('FetchUser', {
   messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
   handler: function* () {
     const api = yield* Api
@@ -42,7 +42,7 @@ const FetchUser = ApplicationDefinition.command('FetchUser', {
 export const EffectsLayer = FetchUser.layer
 export const ServicesLayer = ApiLayer
 
-export const update = ApplicationDefinition.update((model, message) =>
+export const update = Application.update((model, message) =>
   Message.match(message, {
     ClickedLoadUser: () => ({
       model: modifyFields(model, { user: () => UserAsyncData.Loading() }),

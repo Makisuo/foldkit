@@ -39,11 +39,11 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition()
+export const ApplicationComposition = Application.toComposition()
 
-type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
+type ViewBuilder = HtmlBuilderOf<typeof Application>
 
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
@@ -124,7 +124,7 @@ const weatherCodeToDescription = (code: number): string =>
     Match.orElse(() => 'Unknown'),
   )
 
-export const FetchWeather = ApplicationDefinition.command('FetchWeather', {
+export const FetchWeather = Application.command('FetchWeather', {
   args: { zipCode: Schema.String },
   messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
   handler: function* () {

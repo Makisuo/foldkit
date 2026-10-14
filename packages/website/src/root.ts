@@ -33,7 +33,7 @@ import {
   uiPages,
 } from './childBindings'
 import { DARK_COLOR_SCHEME_QUERY } from './colorScheme'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { Deployment, isTelemetryEnabled } from './deployment'
 import {
   DOCS_SIDEBAR_NAV_ID,
@@ -307,7 +307,7 @@ const reconcileHomePresence = (route: ApplicationRoute) => (model: Model) =>
     })),
   )
 
-export const update = ApplicationDefinition.update((model, message) =>
+export const update = Application.update((model, message) =>
   Message.match(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match(request, {
@@ -590,7 +590,7 @@ export const update = ApplicationDefinition.update((model, message) =>
   }),
 )
 
-const InjectAnalytics = ApplicationDefinition.command('InjectAnalytics', {
+const InjectAnalytics = Application.command('InjectAnalytics', {
   messages: [Message.CompletedInjectAnalytics],
   handler: function* () {
     return () =>
@@ -600,39 +600,33 @@ const InjectAnalytics = ApplicationDefinition.command('InjectAnalytics', {
   },
 })
 
-const LoadBrowserEnvironment = ApplicationDefinition.command(
-  'LoadBrowserEnvironment',
-  {
-    messages: [Message.CompletedLoadBrowserEnvironment],
-    handler: function* () {
-      const localStorage = yield* LocalStorage
-      const sessionStorage = yield* SessionStorage
-      const clock = yield* Clock.Clock
+const LoadBrowserEnvironment = Application.command('LoadBrowserEnvironment', {
+  messages: [Message.CompletedLoadBrowserEnvironment],
+  handler: function* () {
+    const localStorage = yield* LocalStorage
+    const sessionStorage = yield* SessionStorage
+    const clock = yield* Clock.Clock
 
-      return () =>
-        loadBrowserEnvironment.pipe(
-          Effect.provideService(LocalStorage, localStorage),
-          Effect.provideService(SessionStorage, sessionStorage),
-          Effect.provideService(Clock.Clock, clock),
-        )
-    },
+    return () =>
+      loadBrowserEnvironment.pipe(
+        Effect.provideService(LocalStorage, localStorage),
+        Effect.provideService(SessionStorage, sessionStorage),
+        Effect.provideService(Clock.Clock, clock),
+      )
   },
-)
+})
 
-const InjectSpeedInsights = ApplicationDefinition.command(
-  'InjectSpeedInsights',
-  {
-    messages: [Message.CompletedInjectSpeedInsights],
-    handler: function* () {
-      return () =>
-        Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
-          Effect.as(Message.CompletedInjectSpeedInsights()),
-        )
-    },
+const InjectSpeedInsights = Application.command('InjectSpeedInsights', {
+  messages: [Message.CompletedInjectSpeedInsights],
+  handler: function* () {
+    return () =>
+      Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
+        Effect.as(Message.CompletedInjectSpeedInsights()),
+      )
   },
-)
+})
 
-const CopyLink = ApplicationDefinition.command('CopyLink', {
+const CopyLink = Application.command('CopyLink', {
   args: { url: Schema.String },
   messages: [Message.SucceededCopyLink, Message.FailedCopyLink],
   handler: function* () {
@@ -647,7 +641,7 @@ const CopyLink = ApplicationDefinition.command('CopyLink', {
   },
 })
 
-export const ScrollToTop = ApplicationDefinition.command('ScrollToTop', {
+export const ScrollToTop = Application.command('ScrollToTop', {
   messages: [Message.CompletedScrollToTop],
   handler: function* () {
     return () =>
@@ -658,7 +652,7 @@ export const ScrollToTop = ApplicationDefinition.command('ScrollToTop', {
   },
 })
 
-const ScrollToAnchor = ApplicationDefinition.command('ScrollToAnchor', {
+const ScrollToAnchor = Application.command('ScrollToAnchor', {
   args: { hash: Schema.String },
   messages: [Message.CompletedScrollToAnchor],
   handler: function* () {
@@ -671,7 +665,7 @@ const ScrollToAnchor = ApplicationDefinition.command('ScrollToAnchor', {
   },
 })
 
-export const ScrollSidebarActiveLinkIntoView = ApplicationDefinition.command(
+export const ScrollSidebarActiveLinkIntoView = Application.command(
   'ScrollSidebarActiveLinkIntoView',
   {
     messages: [Message.CompletedScrollSidebarActiveLinkIntoView],
@@ -689,7 +683,7 @@ export const ScrollSidebarActiveLinkIntoView = ApplicationDefinition.command(
 
 const MOBILE_MENU_ACTIVE_LINK = `#${MOBILE_MENU_NAV_ID} [aria-current="page"]`
 
-const ScrollMobileMenuActiveLinkIntoView = ApplicationDefinition.command(
+const ScrollMobileMenuActiveLinkIntoView = Application.command(
   'ScrollMobileMenuActiveLinkIntoView',
   {
     messages: [Message.CompletedScrollMobileMenuActiveLinkIntoView],
@@ -705,7 +699,7 @@ const ScrollMobileMenuActiveLinkIntoView = ApplicationDefinition.command(
   },
 )
 
-const SaveSidebarState = ApplicationDefinition.command('SaveSidebarState', {
+const SaveSidebarState = Application.command('SaveSidebarState', {
   args: { state: SidebarState },
   messages: [Message.CompletedSaveSidebarState],
   handler: function* () {
@@ -729,7 +723,7 @@ const modelToSidebarState = (model: Model): SidebarState => ({
 const saveSidebarState = (model: Model) =>
   SaveSidebarState({ state: modelToSidebarState(model) })
 
-const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {
+const NavigateInternal = Application.command('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -738,7 +732,7 @@ const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {
   },
 })
 
-const LoadExternal = ApplicationDefinition.command('LoadExternal', {
+const LoadExternal = Application.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {

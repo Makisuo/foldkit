@@ -1,11 +1,11 @@
 import { Effect, Option, Schema, Stream } from 'effect'
 import { Dom } from 'foldkit'
 
-import { ApplicationDefinition } from '../definition'
+import { Application } from '../definition'
 import { Message } from '../message'
 import { isSearchRoute } from '../route'
 
-export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
+export const subscriptions = Application.subscriptions(entry => ({
   searchShortcutPresses: entry(
     'SearchShortcutPresses',
     { isSearchAvailable: Schema.Boolean },

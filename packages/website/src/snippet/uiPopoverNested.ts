@@ -54,28 +54,28 @@ const foldPopoverOutMessage = Popover.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const AccountMenuDefinition = Block.define('AccountMenu', {
+const AccountMenu = Block.define('AccountMenu', {
   Model,
   Message,
 })
 
-const accountPopover = AccountMenuDefinition.bindChild(Popover.block, {
+const accountPopover = AccountMenu.bindChild(Popover.block, {
   field: 'accountPopover',
   parentMessage: Message.GotAccountPopoverMessage,
   outMessage: { fold: foldPopoverOutMessage },
 })
 
-const accountDetailsPopover = AccountMenuDefinition.bindChild(Popover.block, {
+const accountDetailsPopover = AccountMenu.bindChild(Popover.block, {
   field: 'accountDetailsPopover',
   parentMessage: Message.GotAccountDetailsPopoverMessage,
   outMessage: { fold: foldPopoverOutMessage },
 })
 
-const AccountMenuComposition = AccountMenuDefinition.toComposition({
+const AccountMenuComposition = AccountMenu.toComposition({
   children: [accountPopover, accountDetailsPopover],
 })
 
-const update = AccountMenuDefinition.update((model, message) =>
+const update = AccountMenu.update((model, message) =>
   Message.match(message, {
     GotAccountPopoverMessage: ({ message }) =>
       accountPopover.fold(model, message),

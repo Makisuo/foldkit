@@ -12,23 +12,20 @@ export const Message = defineMessageUnion({
   CompletedWaitBeforeReset: {},
 })
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition()
+export const ApplicationComposition = Application.toComposition()
 export type Message = typeof Message.Type
 
-export const WaitBeforeReset = ApplicationDefinition.command(
-  'WaitBeforeReset',
-  {
-    messages: [Message.CompletedWaitBeforeReset],
-    handler: function* () {
-      return () =>
-        Effect.sleep('1 second').pipe(
-          Effect.as(Message.CompletedWaitBeforeReset()),
-        )
-    },
+export const WaitBeforeReset = Application.command('WaitBeforeReset', {
+  messages: [Message.CompletedWaitBeforeReset],
+  handler: function* () {
+    return () =>
+      Effect.sleep('1 second').pipe(
+        Effect.as(Message.CompletedWaitBeforeReset()),
+      )
   },
-)
+})
 
 export const EffectsLayer = WaitBeforeReset.layer
 

@@ -129,7 +129,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-const NotePlayerDemoDefinition = Block.define('NotePlayerDemo', {
+const NotePlayerDemo = Block.define('NotePlayerDemo', {
   Model,
   Message,
 })
@@ -177,7 +177,7 @@ const prependToLog =
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     Array.take([entry, ...messageLog], MAX_LOG_ENTRIES)
 
-const DelayAdvanceNotePlayerPhase = NotePlayerDemoDefinition.command(
+const DelayAdvanceNotePlayerPhase = NotePlayerDemo.command(
   'DelayAdvanceNotePlayerPhase',
   {
     args: { generation: Schema.Number },
@@ -232,7 +232,7 @@ const foldNoteDurationRadioGroupOutMessage =
       }),
   })
 
-const noteDurationRadioGroup = NotePlayerDemoDefinition.bindChild(
+const noteDurationRadioGroup = NotePlayerDemo.bindChild(
   NoteDurationRadioGroup,
   {
     field: 'noteDurationRadioGroup',
@@ -245,11 +245,11 @@ type ViewRequirements = Block.RequirementsOfBindings<
   readonly [typeof noteDurationRadioGroup]
 >
 
-const NotePlayerDemoComposition = NotePlayerDemoDefinition.toComposition({
+const NotePlayerDemoComposition = NotePlayerDemo.toComposition({
   children: [noteDurationRadioGroup],
 })
 
-export const update = NotePlayerDemoDefinition.update((model, message) =>
+export const update = NotePlayerDemo.update((model, message) =>
   Message.match(message, {
     ChangedNoteInput: ({ value }) => {
       const uppercased = String.toUpperCase(value)
@@ -462,33 +462,31 @@ export const update = NotePlayerDemoDefinition.update((model, message) =>
 // MANAGED RESOURCE
 
 const AudioContextResource =
-  NotePlayerDemoDefinition.resource<AudioContext>()('AudioContext')
+  NotePlayerDemo.resource<AudioContext>()('AudioContext')
 
-export const managedResources = NotePlayerDemoDefinition.managedResources(
-  entry => ({
-    audioContext: entry('ManageAudioContext', Schema.Option(Schema.Null), {
-      resource: AudioContextResource,
-      modelToMaybeRequirements: () => Option.some(null),
-      onAcquired: () => Message.SucceededAcquireAudioContext(),
-      onReleased: () => Message.ReleasedAudioContext(),
-      onAcquireError: () => Message.FailedAcquireAudioContext(),
-      handler: function* () {
-        return {
-          acquire: () =>
-            Effect.try({
-              try: () => new AudioContext(),
-              catch: () =>
-                new Error('The Web Audio API is unavailable in this browser.'),
-            }),
-          release: audioContext =>
-            Effect.promise(() => audioContext.close().catch(() => undefined)),
-        }
-      },
-    }),
+export const managedResources = NotePlayerDemo.managedResources(entry => ({
+  audioContext: entry('ManageAudioContext', Schema.Option(Schema.Null), {
+    resource: AudioContextResource,
+    modelToMaybeRequirements: () => Option.some(null),
+    onAcquired: () => Message.SucceededAcquireAudioContext(),
+    onReleased: () => Message.ReleasedAudioContext(),
+    onAcquireError: () => Message.FailedAcquireAudioContext(),
+    handler: function* () {
+      return {
+        acquire: () =>
+          Effect.try({
+            try: () => new AudioContext(),
+            catch: () =>
+              new Error('The Web Audio API is unavailable in this browser.'),
+          }),
+        release: audioContext =>
+          Effect.promise(() => audioContext.close().catch(() => undefined)),
+      }
+    },
   }),
-)
+}))
 
-const PlayNote = NotePlayerDemoDefinition.command('PlayNote', {
+const PlayNote = NotePlayerDemo.command('PlayNote', {
   args: { note: Note, duration: NoteDuration, noteIndex: Schema.Number },
   messages: [Message.CompletedPlayNote],
   handler: function* () {

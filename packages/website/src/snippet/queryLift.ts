@@ -11,14 +11,14 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = defineApplication({ Model, Message })
 
-const posts = ApplicationDefinition.bindChild(postsQuery, {
+const posts = Application.bindChild(postsQuery, {
   field: 'posts',
   parentMessage: Message.GotPostsMessage,
 })
 
-const ApplicationComposition = ApplicationDefinition.toComposition({
+const ApplicationComposition = Application.toComposition({
   children: [posts],
 })
 

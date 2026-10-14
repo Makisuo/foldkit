@@ -29,7 +29,7 @@ import {
   keyToIndex,
 } from '../keyboard.js'
 import { resolveTypeaheadMatch } from '../typeahead.js'
-import { MenuDefinition as SharedMenuDefinition } from './definition.js'
+import { Menu as SharedMenu } from './definition.js'
 
 // MODEL
 
@@ -162,7 +162,7 @@ export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
 export type ReleasedPointerOnItems = typeof Message.ReleasedPointerOnItems.Type
 
-const MenuDefinition = SharedMenuDefinition.define({
+const Menu = SharedMenu.define({
   Model,
   Message,
   OutMessage,
@@ -223,7 +223,7 @@ const itemSelector = (id: string, index: number): string =>
   idSelector(`${id}-item-${index}`)
 
 /** Prevents page scrolling while the menu is open. */
-export const LockMenuScroll = SharedMenuDefinition.command('LockMenuScroll', {
+export const LockMenuScroll = SharedMenu.command('LockMenuScroll', {
   messages: [Message.CompletedLockMenuScroll],
   handler: function* () {
     return () =>
@@ -231,18 +231,15 @@ export const LockMenuScroll = SharedMenuDefinition.command('LockMenuScroll', {
   },
 })
 /** Re-enables page scrolling after the menu closes. */
-export const UnlockMenuScroll = SharedMenuDefinition.command(
-  'UnlockMenuScroll',
-  {
-    messages: [Message.CompletedUnlockMenuScroll],
-    handler: function* () {
-      return () =>
-        Dom.unlockScroll.pipe(Effect.as(Message.CompletedUnlockMenuScroll()))
-    },
+export const UnlockMenuScroll = SharedMenu.command('UnlockMenuScroll', {
+  messages: [Message.CompletedUnlockMenuScroll],
+  handler: function* () {
+    return () =>
+      Dom.unlockScroll.pipe(Effect.as(Message.CompletedUnlockMenuScroll()))
   },
-)
+})
 /** Marks all elements outside the menu as inert for modal behavior. */
-export const InertMenuOthers = SharedMenuDefinition.command('InertMenuOthers', {
+export const InertMenuOthers = SharedMenu.command('InertMenuOthers', {
   args: { id: Schema.String },
   messages: [Message.CompletedInertMenuOthers],
   handler: function* () {
@@ -253,21 +250,16 @@ export const InertMenuOthers = SharedMenuDefinition.command('InertMenuOthers', {
   },
 })
 /** Removes the inert attribute from elements outside the Menu. */
-export const RestoreMenuInert = SharedMenuDefinition.command(
-  'RestoreMenuInert',
-  {
-    args: { id: Schema.String },
-    messages: [Message.CompletedRestoreMenuInert],
-    handler: function* () {
-      return ({ id }) =>
-        Dom.restoreInert(id).pipe(
-          Effect.as(Message.CompletedRestoreMenuInert()),
-        )
-    },
+export const RestoreMenuInert = SharedMenu.command('RestoreMenuInert', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedRestoreMenuInert],
+  handler: function* () {
+    return ({ id }) =>
+      Dom.restoreInert(id).pipe(Effect.as(Message.CompletedRestoreMenuInert()))
   },
-)
+})
 /** Moves focus to the menu items container after opening. */
-export const FocusMenuItems = SharedMenuDefinition.command('FocusMenuItems', {
+export const FocusMenuItems = SharedMenu.command('FocusMenuItems', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusMenuItems],
   handler: function* () {
@@ -279,7 +271,7 @@ export const FocusMenuItems = SharedMenuDefinition.command('FocusMenuItems', {
   },
 })
 /** Moves focus back to the menu button after closing. */
-export const FocusMenuButton = SharedMenuDefinition.command('FocusMenuButton', {
+export const FocusMenuButton = SharedMenu.command('FocusMenuButton', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusMenuButton],
   handler: function* () {
@@ -291,7 +283,7 @@ export const FocusMenuButton = SharedMenuDefinition.command('FocusMenuButton', {
   },
 })
 /** Scrolls the active menu item into view after keyboard navigation. */
-export const ScrollMenuItemIntoView = SharedMenuDefinition.command(
+export const ScrollMenuItemIntoView = SharedMenu.command(
   'ScrollMenuItemIntoView',
   {
     args: { id: Schema.String, index: Schema.Number },
@@ -306,7 +298,7 @@ export const ScrollMenuItemIntoView = SharedMenuDefinition.command(
   },
 )
 /** Programmatically clicks the active menu item's DOM element. */
-export const ClickMenuItem = SharedMenuDefinition.command('ClickMenuItem', {
+export const ClickMenuItem = SharedMenu.command('ClickMenuItem', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedClickMenuItem],
   handler: function* () {
@@ -318,21 +310,18 @@ export const ClickMenuItem = SharedMenuDefinition.command('ClickMenuItem', {
   },
 })
 /** Waits for the typeahead search debounce period before clearing the query. */
-export const DelayClearMenuSearch = SharedMenuDefinition.command(
-  'DelayClearMenuSearch',
-  {
-    args: { version: Schema.Number },
-    messages: [Message.CompletedDelayClearMenuSearch],
-    handler: function* () {
-      return ({ version }) =>
-        Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
-          Effect.as(Message.CompletedDelayClearMenuSearch({ version })),
-        )
-    },
+export const DelayClearMenuSearch = SharedMenu.command('DelayClearMenuSearch', {
+  args: { version: Schema.Number },
+  messages: [Message.CompletedDelayClearMenuSearch],
+  handler: function* () {
+    return ({ version }) =>
+      Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
+        Effect.as(Message.CompletedDelayClearMenuSearch({ version })),
+      )
   },
-)
+})
 /** Detects whether the menu button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation block that leave is complete. */
-export const DetectMenuMovementOrAnimationEnd = SharedMenuDefinition.command(
+export const DetectMenuMovementOrAnimationEnd = SharedMenu.command(
   'DetectMenuMovementOrAnimationEnd',
   {
     args: { id: Schema.String, generation: Schema.Number },
@@ -356,7 +345,7 @@ export const DetectMenuMovementOrAnimationEnd = SharedMenuDefinition.command(
 )
 
 const detectMenuMovementOrAnimationEnd = (generation: number) =>
-  MenuDefinition.step(model => ({
+  Menu.step(model => ({
     model,
     commands: [DetectMenuMovementOrAnimationEnd({ id: model.id, generation })],
   }))
@@ -369,16 +358,16 @@ const foldAnimationOutMessage =
   Animation.OutMessage.match<AnimationOutMessageStep>({
     StartedLeaveAnimating: ({ generation }) =>
       detectMenuMovementOrAnimationEnd(generation),
-    TransitionedOut: () => MenuDefinition.step(model => ({ model })),
+    TransitionedOut: () => Menu.step(model => ({ model })),
   })
 
-const animation = MenuDefinition.bindChild(Animation.block, {
+const animation = Menu.bindChild(Animation.block, {
   field: 'animation',
   parentMessage: Message.GotAnimationMessage,
   outMessage: { fold: foldAnimationOutMessage },
 })
 
-const internalUpdate = MenuDefinition.update((model, message) => {
+const internalUpdate = Menu.update((model, message) => {
   const maybeLockScroll = OptionExt.when(model.isModal, LockMenuScroll())
 
   const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockMenuScroll())
@@ -669,7 +658,7 @@ const internalUpdate = MenuDefinition.update((model, message) => {
  *  Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu())`.
  */
-export const AnchorMenu = SharedMenuDefinition.mount('AnchorMenu', {
+export const AnchorMenu = SharedMenu.mount('AnchorMenu', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorMenu],
   handler: function* () {
@@ -693,36 +682,33 @@ export const AnchorMenu = SharedMenuDefinition.mount('AnchorMenu', {
 /** The backdrop-portaling Mount this Menu renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalMenuBackdrop, Message.CompletedPortalMenuBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalMenuBackdrop = SharedMenuDefinition.mount(
-  'PortalMenuBackdrop',
-  {
-    messages: [Message.CompletedPortalMenuBackdrop],
-    handler: function* () {
-      return ({ element }) =>
-        Effect.gen(function* () {
-          yield* Effect.acquireRelease(
-            Effect.sync(() => portalBackdrop(element)),
-            cleanup => Effect.sync(cleanup),
-          )
-          return Message.CompletedPortalMenuBackdrop()
-        })
-    },
+export const PortalMenuBackdrop = SharedMenu.mount('PortalMenuBackdrop', {
+  messages: [Message.CompletedPortalMenuBackdrop],
+  handler: function* () {
+    return ({ element }) =>
+      Effect.gen(function* () {
+        yield* Effect.acquireRelease(
+          Effect.sync(() => portalBackdrop(element)),
+          cleanup => Effect.sync(cleanup),
+        )
+        return Message.CompletedPortalMenuBackdrop()
+      })
   },
-)
+})
 
 /** Mount definitions rendered by Menu. */
 export const mounts = [AnchorMenu, PortalMenuBackdrop]
 
 type MountRequirements = Mount.RequirementsOf<typeof mounts>
 
-const MenuComposition = MenuDefinition.toComposition({
+const MenuComposition = Menu.toComposition({
   mounts,
   children: [animation],
 })
 
 /** Processes a Menu Message and returns the next Model, optional Commands, and
  *  an optional OutMessage. */
-export const update = MenuDefinition.update(internalUpdate)
+export const update = Menu.update(internalUpdate)
 
 const EffectsLayer = Layer.mergeAll(
   LockMenuScroll.layer,
@@ -741,7 +727,7 @@ const EffectsLayer = Layer.mergeAll(
 
 /** Programmatically opens the Menu, updating the Model and returning focus and
  *  modal Commands. Use this in domain-event handlers. */
-export const open = MenuDefinition.step(model =>
+export const open = Menu.step(model =>
   update(model, Message.Opened({ maybeActiveItemIndex: Option.none() })),
 )
 
@@ -749,15 +735,12 @@ export const open = MenuDefinition.step(model =>
  *  with focus and modal Commands. If it is already closed, returns the Model
  *  unchanged with no Commands. Use this in domain-event handlers to close the
  *  Menu. */
-export const close = MenuDefinition.step(model =>
-  update(model, Message.Closed()),
-)
+export const close = Menu.step(model => update(model, Message.Closed()))
 
 /** Programmatically selects a Menu item, closing the Menu and returning focus
  *  Commands plus a `Selected` OutMessage. Use this in domain-event handlers. */
-export const selectItem = MenuDefinition.step(
-  (model, item: string, index: number) =>
-    update(model, Message.SelectedItem({ index, item })),
+export const selectItem = Menu.step((model, item: string, index: number) =>
+  update(model, Message.SelectedItem({ index, item })),
 )
 
 // VIEW
@@ -1307,20 +1290,20 @@ const makeBlock = <Item extends string>() => {
   const RefinedOutMessage =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     OutMessage as unknown as OutMessageSchema<Item>
-  const MenuDefinition = SharedMenuDefinition.define({
+  const Menu = SharedMenu.define({
     Model,
     Message,
     OutMessage: RefinedOutMessage,
   })
-  const refinedUpdate = MenuDefinition.update((model, message) =>
+  const refinedUpdate = Menu.update((model, message) =>
     castReturn(update(model, message)),
   )
-  const itemAnimation = MenuDefinition.bindChild(Animation.block, {
+  const itemAnimation = Menu.bindChild(Animation.block, {
     field: 'animation',
     parentMessage: Message.GotAnimationMessage,
     outMessage: { fold: foldAnimationOutMessage },
   })
-  const MenuComposition = MenuDefinition.toComposition({
+  const MenuComposition = Menu.toComposition({
     mounts,
     children: [itemAnimation],
   })
@@ -1334,16 +1317,14 @@ const makeBlock = <Item extends string>() => {
   const view = MenuComposition.view.withInputs<ViewInputs<Item>>(
     (model, viewInputs, h) => refinedView(model, viewInputs, h),
   )
-  const open = MenuDefinition.step(model =>
+  const open = Menu.step(model =>
     refinedUpdate(
       model,
       Message.Opened({ maybeActiveItemIndex: Option.none() }),
     ),
   )
-  const close = MenuDefinition.step(model =>
-    refinedUpdate(model, Message.Closed()),
-  )
-  const selectItem = MenuDefinition.step((model, item: Item, index: number) =>
+  const close = Menu.step(model => refinedUpdate(model, Message.Closed()))
+  const selectItem = Menu.step((model, item: Item, index: number) =>
     refinedUpdate(model, Message.SelectedItem({ index, item })),
   )
   return MenuComposition.toBlock({

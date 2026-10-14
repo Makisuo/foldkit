@@ -2,11 +2,11 @@ import { HashMap, Layer, Option } from 'effect'
 
 import { tabs } from './childBindings'
 import { FetchPostDetail, FetchPosts, FetchStats } from './command'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { AppTabs, Model, PostsData, StatsData, TABS_ID } from './model'
 import { subscriptions } from './subscription'
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [tabs],
 })
 

@@ -61,17 +61,17 @@ const ParentMessage = defineMessageUnion({
   GotChildMessage: { message: ChildMessage },
 })
 type ParentMessage = typeof ParentMessage.Type
-const ParentDefinition = define('StagedParent', {
+const Parent = define('StagedParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
 
-const directChild = ParentDefinition.bindChild(Child, {
+const directChild = Parent.bindChild(Child, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
 })
 
-const explicitChild = ParentDefinition.bindChild(Child, {
+const explicitChild = Parent.bindChild(Child, {
   read: model => Option.some(model.child),
   write: (_model, child) => ParentModel.make({ child }),
   parentMessage: ParentMessage.GotChildMessage,

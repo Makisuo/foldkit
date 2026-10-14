@@ -39,7 +39,7 @@ npx create-foldkit-app@latest
 
 ## Counter
 
-A complete Foldkit program. State lives in a single Model, events become Messages, and a pure function handles every transition. `application.ts` exports `ApplicationDefinition`, `ApplicationComposition`, and its implementation. `entry.ts` supplies the browser container and boots the Runtime, so importing the application from a test has no startup side effect.
+A complete Foldkit program. State lives in a single Model, events become Messages, and a pure function handles every transition. `application.ts` exports `Application`, `ApplicationComposition`, and its implementation. `entry.ts` supplies the browser container and boots the Runtime, so importing the application from a test has no startup side effect.
 
 ```ts
 // src/application.ts
@@ -58,9 +58,9 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition()
+export const ApplicationComposition = Application.toComposition()
 
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
@@ -108,9 +108,9 @@ const application = ApplicationComposition.make({
 Runtime.run(application)
 ```
 
-`defineApplication` creates helpers owned by this root, including `ApplicationDefinition.command`, `ApplicationDefinition.update`, and `ApplicationComposition.view`. Every application establishes its child and Mount graph with `ApplicationDefinition.toComposition({ children, mounts })`, using `ApplicationDefinition.toComposition()` for an empty graph. Root-owned handler recipes can be passed to the Composition's `make` as `EffectsLayer`.
+`defineApplication` creates helpers owned by this root, including `Application.command`, `Application.update`, and `ApplicationComposition.view`. Every application establishes its child and Mount graph with `Application.toComposition({ children, mounts })`, using `Application.toComposition()` for an empty graph. Root-owned handler recipes can be passed to the Composition's `make` as `EffectsLayer`.
 
-A feature follows the same staged flow. Define its contracts as `FeatureDefinition` with `Block.define('Feature', { Model, Message, OutMessage })`, author its behavior through that Definition, and establish the graph with `FeatureDefinition.toComposition({ children, mounts })`. Use `FeatureDefinition.toComposition()` for an empty graph, then export the completed Block from `FeatureComposition.toBlock({ init, update, view })`. A parent imports the `Feature` namespace, creates a Binding with `ParentDefinition.bindChild(Feature.block, config)`, and includes that Binding in its Composition's child graph.
+A feature follows the same staged flow. Define its contracts as `Feature` with `Block.define('Feature', { Model, Message, OutMessage })`, author its behavior through that Definition, and establish the graph with `Feature.toComposition({ children, mounts })`. Use `Feature.toComposition()` for an empty graph, then export the completed Block from `FeatureComposition.toBlock({ init, update, view })`. A parent imports the `Feature` namespace, creates a Binding with `Parent.bindChild(Feature.block, config)`, and includes that Binding in its Composition's child graph.
 
 Ordinary Effect services stay in `ApplicationLayer`. Keep a small provider composition in `entry.ts`, and extract `layer.ts` only when it is substantial or reused. Supply that Layer after the Application is complete:
 

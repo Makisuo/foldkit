@@ -6,21 +6,21 @@ import { Dialog, Menu } from '@foldkit/ui'
 import { Message } from './message'
 import { Model } from './model'
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = defineApplication({ Model, Message })
 
-const dialog = ApplicationDefinition.bindChild(Dialog.block, {
+const dialog = Application.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const menu = ApplicationDefinition.bindChild(Menu.block, {
+const menu = Application.bindChild(Menu.block, {
   field: 'menu',
   parentMessage: Message.GotMenuMessage,
   outMessage: { fold: foldMenuOutMessage },
 })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [dialog, menu],
 })
 

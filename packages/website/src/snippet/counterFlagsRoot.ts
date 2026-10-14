@@ -14,9 +14,9 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({ ClickedIncrement: {} })
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition()
+export const ApplicationComposition = Application.toComposition()
 
 export const init = (flags: Flags) => ({
   model: Model.make({

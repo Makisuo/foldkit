@@ -61,9 +61,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition()
+export const ApplicationComposition = Application.toComposition()
 
 export const initialModel: Model = {
   name: NotValidated({ value: '' }),
@@ -92,7 +92,7 @@ const isEmailOnWaitlist = (email: string): Effect.Effect<boolean> =>
     return Array.contains(EMAILS_ON_WAITLIST, email.toLowerCase())
   })
 
-export const ValidateEmail = ApplicationDefinition.command('ValidateEmail', {
+export const ValidateEmail = Application.command('ValidateEmail', {
   args: { email: Schema.String },
   messages: [Message.CompletedValidateEmail],
   handler: function* () {
@@ -212,7 +212,7 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-export const SubmitForm = ApplicationDefinition.command('SubmitForm', {
+export const SubmitForm = Application.command('SubmitForm', {
   args: {
     name: Schema.String,
     email: Schema.String,
@@ -239,7 +239,7 @@ export const EffectsLayer = Layer.mergeAll(
   SubmitForm.layer,
 )
 
-type HtmlBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
+type HtmlBuilder = HtmlBuilderOf<typeof Application>
 
 const LABEL_CLASS = 'text-sm font-medium text-gray-700'
 const DESCRIPTION_CLASS = 'text-sm mt-1'

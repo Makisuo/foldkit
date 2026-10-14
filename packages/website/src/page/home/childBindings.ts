@@ -2,7 +2,7 @@ import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import * as AsyncCounterDemo from './asyncCounterDemo'
-import { HomeDefinition } from './definition'
+import { Home } from './definition'
 import * as DemoTab from './demoTab'
 import { Message, OutMessage } from './message'
 import { Model } from './model'
@@ -20,7 +20,7 @@ const foldDemoTabsOutMessage = DemoTab.DemoTabs.OutMessage.match<
     }),
 })
 
-export const demoTabs = HomeDefinition.bindChild(DemoTab.DemoTabs, {
+export const demoTabs = Home.bindChild(DemoTab.DemoTabs, {
   field: 'demoTabs',
   parentMessage: Message.GotDemoTabsMessage,
   outMessage: { fold: foldDemoTabsOutMessage },
@@ -38,25 +38,22 @@ const foldPlaygroundMenuOutMessage = PlaygroundMenu.OutMessage.match<
     }),
 })
 
-export const playgroundMenu = HomeDefinition.bindChild(PlaygroundMenu, {
+export const playgroundMenu = Home.bindChild(PlaygroundMenu, {
   field: 'playgroundMenu',
   parentMessage: Message.GotPlaygroundMenuMessage,
   outMessage: { fold: foldPlaygroundMenuOutMessage },
 })
 
-export const asyncCounterDemo = HomeDefinition.bindChild(
-  AsyncCounterDemo.block,
-  {
-    field: 'asyncCounterDemo',
-    parentMessage: Message.GotAsyncCounterDemoMessage,
-  },
-)
+export const asyncCounterDemo = Home.bindChild(AsyncCounterDemo.block, {
+  field: 'asyncCounterDemo',
+  parentMessage: Message.GotAsyncCounterDemoMessage,
+})
 
-export const notePlayerDemo = HomeDefinition.bindChild(NotePlayerDemo.block, {
+export const notePlayerDemo = Home.bindChild(NotePlayerDemo.block, {
   field: 'notePlayerDemo',
   parentMessage: Message.GotNotePlayerDemoMessage,
 })
 
-export const HomeComposition = HomeDefinition.toComposition({
+export const HomeComposition = Home.toComposition({
   children: [asyncCounterDemo, demoTabs, notePlayerDemo, playgroundMenu],
 })

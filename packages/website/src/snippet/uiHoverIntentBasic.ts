@@ -41,23 +41,22 @@ const foldHoverIntentOutMessage = HoverIntent.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const HoverIntentExampleDefinition = Block.define('HoverIntentExample', {
+const HoverIntentExample = Block.define('HoverIntentExample', {
   Model,
   Message,
 })
 
-const hoverIntent = HoverIntentExampleDefinition.bindChild(HoverIntent.block, {
+const hoverIntent = HoverIntentExample.bindChild(HoverIntent.block, {
   field: 'hoverIntent',
   parentMessage: Message.GotHoverIntentMessage,
   outMessage: { fold: foldHoverIntentOutMessage },
 })
 
-const HoverIntentExampleComposition =
-  HoverIntentExampleDefinition.toComposition({
-    children: [hoverIntent],
-  })
+const HoverIntentExampleComposition = HoverIntentExample.toComposition({
+  children: [hoverIntent],
+})
 
-const update = HoverIntentExampleDefinition.update((model, message) =>
+const update = HoverIntentExample.update((model, message) =>
   Message.match(message, {
     GotHoverIntentMessage: ({ message }) => hoverIntent.fold(model, message),
   }),

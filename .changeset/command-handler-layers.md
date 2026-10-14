@@ -19,7 +19,7 @@ Commands, Mounts, Subscription entries, and ManagedResource entries may omit `ha
 
 Each before/after pair shows the affected part of an existing module. Imports from `./message` and `./model` refer to the application's existing Message and Model Schemas. When several definitions belong to one Block or application module, compose their `.layer` recipes in that owner's local `EffectsLayer`.
 
-Completed Blocks collect child Bindings automatically. Pass only local handler recipes to `FeatureComposition.toBlock({ EffectsLayer })`, include Bindings through `FeatureDefinition.toComposition({ children })`, and export the completed `block`. Define locally owned Commands through `FeatureDefinition.command` so the composition path qualifies their protocol names.
+Completed Blocks collect child Bindings automatically. Pass only local handler recipes to `FeatureComposition.toBlock({ EffectsLayer })`, include Bindings through `Feature.toComposition({ children })`, and export the completed `block`. Define locally owned Commands through `Feature.command` so the composition path qualifies their protocol names.
 
 ### Commands
 
@@ -56,11 +56,11 @@ import { Effect, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 
 import { Message } from './message'
-import { DraftEditorDefinition } from './definition'
+import { DraftEditor } from './definition'
 
 const DRAFT_STORAGE_KEY = 'draft'
 
-export const StoreDraft = DraftEditorDefinition.command('StoreDraft', {
+export const StoreDraft = DraftEditor.command('StoreDraft', {
   args: { contents: Schema.String },
   messages: [Message.CompletedStoreDraft, Message.FailedStoreDraft],
   handler: function* () {
@@ -88,11 +88,11 @@ A constructor that has no service to look up still uses the same generator shape
 import { Duration, Effect } from 'effect'
 
 import { Message } from './message'
-import { NotificationsDefinition } from './definition'
+import { Notifications } from './definition'
 
 const DISMISSAL_DELAY = Duration.seconds(5)
 
-export const WaitBeforeDismissal = NotificationsDefinition.command(
+export const WaitBeforeDismissal = Notifications.command(
   'WaitBeforeDismissal',
   {
     messages: [Message.CompletedWaitBeforeDismissal],
@@ -151,12 +151,12 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
 ```ts
 import { Duration, Effect, Schema, Stream } from 'effect'
 
-import { FeatureDefinition } from './definition'
+import { Feature } from './definition'
 import { Message } from './message'
 
 const TICK_INTERVAL = Duration.seconds(1)
 
-export const subscriptions = FeatureDefinition.subscriptions(entry => ({
+export const subscriptions = Feature.subscriptions(entry => ({
   gameClockTicks: entry(
     // Handler name; gameClockTicks is this Stream's registration key.
     'GameClockTicks',
@@ -209,7 +209,7 @@ export const subscriptions = Subscription.make<Model, Message>()(_entry => ({
 **After**
 
 ```ts
-export const subscriptions = FeatureDefinition.subscriptions(entry => ({
+export const subscriptions = Feature.subscriptions(entry => ({
   // No dependency Schema or Model projection is needed.
   heartbeatTicks: entry('HeartbeatTicks', {
     messages: [Message.TickedHeartbeat],
@@ -231,7 +231,7 @@ export const EffectsLayer = subscriptions.heartbeatTicks.layer
 Use `messages: []` when a Subscription owns scoped work but never emits a Message. The handler must then return `Stream<never>`. This example installs its own selection style while a drag is active and removes that style when the dependency changes or the application stops:
 
 ```ts
-export const subscriptions = FeatureDefinition.subscriptions(entry => ({
+export const subscriptions = Feature.subscriptions(entry => ({
   dragSelectionStyles: entry(
     'DragSelectionStyles',
     { isDragging: Schema.Boolean },
@@ -294,9 +294,9 @@ export const MeasurePanel = Mount.define('MeasurePanel', {
 import { Effect } from 'effect'
 
 import { Message } from './message'
-import { PanelDefinition } from './definition'
+import { Panel } from './definition'
 
-export const MeasurePanel = PanelDefinition.mount('MeasurePanel', {
+export const MeasurePanel = Panel.mount('MeasurePanel', {
   messages: [Message.CompletedMeasurePanel],
   handler: function* () {
     // Measure each mounted element, not during application construction.
@@ -314,9 +314,9 @@ export const mounts = [MeasurePanel]
 export const EffectsLayer = MeasurePanel.layer
 ```
 
-Use `h.OnMount(MeasurePanel())` in the view as before. Include `MeasurePanel` in the owning `FeatureDefinition.toComposition({ mounts })` and include `MeasurePanel.layer` in the local `EffectsLayer` passed to `FeatureComposition.toBlock`. The Mount reads the rendered panel's actual `getBoundingClientRect().height` after that element enters the DOM and reports it as `CompletedMeasurePanel`. TypeScript rejects unregistered Mounts; Foldkit also checks the exact rendered definition before patching the DOM. A registered Mount that is absent from the rendered tree performs no element work.
+Use `h.OnMount(MeasurePanel())` in the view as before. Include `MeasurePanel` in the owning `Feature.toComposition({ mounts })` and include `MeasurePanel.layer` in the local `EffectsLayer` passed to `FeatureComposition.toBlock`. The Mount reads the rendered panel's actual `getBoundingClientRect().height` after that element enters the DOM and reports it as `CompletedMeasurePanel`. TypeScript rejects unregistered Mounts; Foldkit also checks the exact rendered definition before patching the DOM. A registered Mount that is absent from the rendered tree performs no element work.
 
-`FeatureDefinition.mountStream` uses the same `config.handler` generator, returning an element function that produces a Stream. Keep element acquisition and cleanup inside that returned handler so each element owns its own scope.
+`Feature.mountStream` uses the same `config.handler` generator, returning an element function that produces a Stream. Keep element acquisition and cleanup inside that returned handler so each element owns its own scope.
 
 ### Views that use Mounts
 
@@ -343,8 +343,8 @@ import { Block } from 'foldkit'
 import { MeasurePanel } from './mount'
 import { Message } from './message'
 import { Model } from './model'
-export const PanelDefinition = Block.define('Panel', { Model, Message })
-export const PanelComposition = PanelDefinition.toComposition({
+export const Panel = Block.define('Panel', { Model, Message })
+export const PanelComposition = Panel.toComposition({
   mounts: [MeasurePanel],
 })
 
@@ -439,7 +439,7 @@ export const managedResources = ManagedResource.make<Model, Message>()(
 ```ts
 import { Effect, Schema } from 'effect'
 
-import { CameraDefinition } from './definition'
+import { Camera } from './definition'
 import { Message } from './message'
 
 const CameraStream = ManagedResource.tag<MediaStream>()('CameraStream')
@@ -447,7 +447,7 @@ const CameraRequirements = Schema.Option(
   Schema.Struct({ facingMode: Schema.String }),
 )
 
-export const managedResources = CameraDefinition.managedResources(entry => ({
+export const managedResources = Camera.managedResources(entry => ({
   camera: entry('ManageCamera', CameraRequirements, {
     resource: CameraStream,
     modelToMaybeRequirements: model => model.maybeCamera,
@@ -477,7 +477,7 @@ Pass `managedResources` and its local `EffectsLayer` to `CameraComposition.toBlo
 
 ### Application assembly and runtime resources
 
-Remove the `resources` field. Establish `ApplicationDefinition` and `ApplicationComposition` in `application.ts`, then complete it in `entry.ts` with its owned `make` or `makeElement` method. Supply ordinary Services through the completed program's `provide` method before calling the Runtime.
+Remove the `resources` field. Establish `Application` and `ApplicationComposition` in `application.ts`, then complete it in `entry.ts` with its owned `make` or `makeElement` method. Supply ordinary Services through the completed program's `provide` method before calling the Runtime.
 
 This example uses the storage service needed by `StoreDraft`. The Application collects its local handler recipes and the recipes of child Bindings included in its Composition; `ApplicationLayer` supplies their ordinary Services.
 
@@ -511,8 +511,8 @@ import { define as defineApplication } from 'foldkit/application'
 import { Model } from './model'
 import { Message } from './message'
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
-export const ApplicationComposition = ApplicationDefinition.toComposition()
+export const Application = defineApplication({ Model, Message })
+export const ApplicationComposition = Application.toComposition()
 ```
 
 In `entry.ts`:
@@ -548,7 +548,7 @@ Omit `handler` only when the definition is an implementation contract for an ext
 ```ts
 import { Context, Effect } from 'effect'
 import { Message } from './message'
-import { HostBridgeDefinition } from './definition'
+import { HostBridge } from './definition'
 
 type HostApi = Readonly<{
   requestToken: Effect.Effect<string>
@@ -557,12 +557,9 @@ type HostApi = Readonly<{
 const HostApi = Context.Service<HostApi>('HostApi')
 
 // A host contract omits handler, so this definition has no attached .layer.
-export const RequestHostToken = HostBridgeDefinition.command(
-  'RequestHostToken',
-  {
-    messages: [Message.CompletedRequestHostToken],
-  },
-)
+export const RequestHostToken = HostBridge.command('RequestHostToken', {
+  messages: [Message.CompletedRequestHostToken],
+})
 
 // Build the host implementation from the original definition.
 const RequestHostTokenLayer = RequestHostToken.toLayer(
@@ -612,12 +609,12 @@ const update = (model: Model, message: Message) =>
 ```ts
 import { Update } from 'foldkit'
 
-import { DraftEditorDefinition } from './definition'
+import { DraftEditor } from './definition'
 import { StoreDraft } from './command'
 import { Message } from './message'
 
 // Infer Command requirements from the returned Commands across all branches.
-const update = DraftEditorDefinition.update((model, message) =>
+const update = DraftEditor.update((model, message) =>
   Message.match(message, {
     ClickedSaveDraft: () => ({
       model,
@@ -636,7 +633,7 @@ type CommandRequirements = Update.RequirementsOf<typeof update>
 
 #### Named Steps
 
-Use the owning Block or Application's `step` method for a named Step that returns Commands. With the same imports and `DraftEditorDefinition`:
+Use the owning Block or Application's `step` method for a named Step that returns Commands. With the same imports and `DraftEditor`:
 
 **Before**
 
@@ -655,7 +652,7 @@ const storeDraft: Update.Step<
 
 ```ts
 // The owner supplies Model typing; the result supplies Command requirements.
-const storeDraft = DraftEditorDefinition.step(model => ({
+const storeDraft = DraftEditor.step(model => ({
   model,
   commands: [StoreDraft({ contents: model.contents })],
 }))

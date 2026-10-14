@@ -67,7 +67,7 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 
 ### Defining Entries
 
-`FeatureDefinition.subscriptions` receives a function that builds a named record of entries for the Block. When a Layer-backed entry depends on the Model, `entry` takes three arguments:
+`Feature.subscriptions` receives a function that builds a named record of entries for the Block. When a Layer-backed entry depends on the Model, `entry` takes three arguments:
 
 - A stable handler name for the Layer requirement.
 - A field map defining the dependency Schema, in the same shape passed to `Schema.Struct`.
@@ -131,7 +131,7 @@ For a Layer-backed Subscription with no local Model dependencies, pass its stabl
 
 ::Snippet{name="subscriptionPersistent" label="Heartbeat without Model dependencies"}
 
-For work whose lifetime depends on the Model, define an entry with `FeatureDefinition.subscriptions` and derive its dependencies from the Model.
+For work whose lifetime depends on the Model, define an entry with `Feature.subscriptions` and derive its dependencies from the Model.
 
 ## Dom Streams
 
@@ -159,7 +159,7 @@ Most entries should use the first `dependencies` argument directly. Reach for `r
 
 When a parent embeds a Block with Subscriptions, its Binding lifts the child's Messages into the parent Message type and applies the same `read` policy used by update. Returning `None` stops every child Stream without reading child dependencies.
 
-`ParentDefinition.bindChild(child, { read, write, parentMessage, ... })` performs that lift once. Include the Binding in the parent's `children` list, and the parent collects the lifted entries under placement-qualified keys. The Application Composition installs the collected graph through its owned `make({ init, update, view, ... })` method.
+`Parent.bindChild(child, { read, write, parentMessage, ... })` performs that lift once. Include the Binding in the parent's `children` list, and the parent collects the lifted entries under placement-qualified keys. The Application Composition installs the collected graph through its owned `make({ init, update, view, ... })` method.
 
 ### Gating Child Subscriptions
 

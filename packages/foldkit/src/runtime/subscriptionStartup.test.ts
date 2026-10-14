@@ -119,18 +119,18 @@ describe('Subscription startup supervision', () => {
       ClickedActivateChild: {},
       GotChildMessage: { message: ChildMessage },
     })
-    const ApplicationDefinition = defineApplication({ Model, Message })
-    const child = ApplicationDefinition.bindChild(block, {
+    const Application = defineApplication({ Model, Message })
+    const child = Application.bindChild(block, {
       read: model => model.maybeChild,
       write: (model, nextChild) =>
         modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
       parentMessage: Message.GotChildMessage,
     })
-    const Application = ApplicationDefinition.toComposition({
+    const ApplicationComposition = Application.toComposition({
       children: [child],
     })
     const report = vi.fn()
-    const application = Application.makeElement({
+    const application = ApplicationComposition.makeElement({
       container,
       init: () => ({ model: { maybeChild: Option.none() } }),
       update: Application.update((model, message) =>

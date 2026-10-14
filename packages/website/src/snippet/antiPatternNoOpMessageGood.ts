@@ -9,7 +9,7 @@ type Message = typeof Message.Type
 
 const handleMouseClick = () => Message.IgnoredMouseClick()
 
-const update = ApplicationDefinition.update((model, message) =>
+const update = Application.update((model, message) =>
   Message.match(message, {
     IgnoredMouseClick: () => ({ model }),
   }),

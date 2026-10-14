@@ -26,7 +26,7 @@ const subscriptions = Subscription.make<Model, Message>()(_entry => ({
 **After**
 
 ```ts
-const subscriptions = FeatureDefinition.subscriptions(entry => ({
+const subscriptions = Feature.subscriptions(entry => ({
   animationFrameTicks: entry(
     // A named handler replaces the anonymous animation-frame helper.
     'AnimationFrameTicks',
@@ -48,7 +48,7 @@ const subscriptions = FeatureDefinition.subscriptions(entry => ({
 }))
 
 const EffectsLayer = subscriptions.animationFrameTicks.layer
-const FeatureComposition = FeatureDefinition.toComposition()
+const FeatureComposition = Feature.toComposition()
 
 export const block = FeatureComposition.toBlock({
   init,
@@ -59,7 +59,7 @@ export const block = FeatureComposition.toBlock({
 })
 ```
 
-Build inbound Port handlers from `Port.stream(port)`. This example assumes `ports.inbound.stepChanged` is an inbound Port and `FeatureDefinition` is the owning Block definition.
+Build inbound Port handlers from `Port.stream(port)`. This example assumes `ports.inbound.stepChanged` is an inbound Port and `Feature` is the owning Block definition.
 
 **Before**
 
@@ -79,7 +79,7 @@ const subscriptions = Subscription.aggregate(
 **After**
 
 ```ts
-const subscriptions = FeatureDefinition.subscriptions(entry => ({
+const subscriptions = Feature.subscriptions(entry => ({
   hostStep: entry('HostStepChanges', {
     messages: [Message.ChangedStep],
     handler: function* () {
@@ -93,7 +93,7 @@ const subscriptions = FeatureDefinition.subscriptions(entry => ({
 }))
 
 const EffectsLayer = subscriptions.hostStep.layer
-const FeatureComposition = FeatureDefinition.toComposition()
+const FeatureComposition = Feature.toComposition()
 
 export const block = FeatureComposition.toBlock({
   init,

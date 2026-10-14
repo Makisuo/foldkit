@@ -75,13 +75,13 @@ const foldProficiencyRadioGroupOutMessage =
       }),
   })
 
-const SkillsEntryDefinition = Block.define('SkillsEntry', {
+const SkillsEntry = Block.define('SkillsEntry', {
   Model,
   Message,
   OutMessage,
 })
 
-export const proficiencyRadioGroup = SkillsEntryDefinition.bindChild(
+export const proficiencyRadioGroup = SkillsEntry.bindChild(
   ProficiencyRadioGroup,
   {
     field: 'proficiencyRadioGroup',
@@ -90,11 +90,11 @@ export const proficiencyRadioGroup = SkillsEntryDefinition.bindChild(
   },
 )
 
-export const SkillsEntryComposition = SkillsEntryDefinition.toComposition({
+export const SkillsEntryComposition = SkillsEntry.toComposition({
   children: [proficiencyRadioGroup],
 })
 
-export const update = SkillsEntryDefinition.update((model, message) =>
+export const update = SkillsEntry.update((model, message) =>
   Message.match(message, {
     UpdatedName: ({ value }) => ({
       model: modifyFields(model, { name: () => validateName(value) }),

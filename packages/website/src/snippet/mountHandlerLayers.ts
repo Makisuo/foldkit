@@ -8,9 +8,9 @@ const Message = defineMessageUnion({
   CompletedMeasurePanel: { height: Schema.Number },
 })
 
-const PanelDefinition = Block.define('Panel', { Model, Message })
+const Panel = Block.define('Panel', { Model, Message })
 
-const MeasurePanel = PanelDefinition.mount('MeasurePanel', {
+const MeasurePanel = Panel.mount('MeasurePanel', {
   messages: [Message.CompletedMeasurePanel],
   handler: function* () {
     return ({ element }) =>
@@ -22,7 +22,7 @@ const MeasurePanel = PanelDefinition.mount('MeasurePanel', {
   },
 })
 
-const PanelComposition = PanelDefinition.toComposition({
+const PanelComposition = Panel.toComposition({
   mounts: [MeasurePanel],
 })
 

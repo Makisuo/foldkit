@@ -101,25 +101,25 @@ const foldDatePickerOutMessage = DatePicker.OutMessage.match<
 // focus, and popover messages to DatePicker.update, writes the next DatePicker
 // Model back, maps the Block's Commands into your Message type, and hands
 // any OutMessage to the OutMessage fold.
-const DatePickerExampleDefinition = Block.define('DatePickerExample', {
+const DatePickerExample = Block.define('DatePickerExample', {
   Model,
   Message,
 })
 
-const datePicker = DatePickerExampleDefinition.bindChild(DatePicker.block, {
+const datePicker = DatePickerExample.bindChild(DatePicker.block, {
   field: 'datePickerDemo',
   parentMessage: Message.GotDatePickerMessage,
   outMessage: { fold: foldDatePickerOutMessage },
 })
 
-const DatePickerExampleComposition = DatePickerExampleDefinition.toComposition({
+const DatePickerExampleComposition = DatePickerExample.toComposition({
   children: [datePicker],
 })
 
 type ViewBuilder = Block.HtmlBuilderOf<typeof DatePickerExampleComposition>
 
 // In the corresponding Message.match handler, call the fold:
-const update = DatePickerExampleDefinition.update((model, message) =>
+const update = DatePickerExample.update((model, message) =>
   Message.match(message, {
     GotDatePickerMessage: ({ message }) => datePicker.fold(model, message),
   }),

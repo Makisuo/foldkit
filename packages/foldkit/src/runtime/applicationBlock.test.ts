@@ -101,16 +101,16 @@ const HostChildMessage = defineMessageUnion({
 const ReadHostValue = HostChild.command('ReadHostValue', {
   messages: [HostChildMessage.CompletedReadHostValue],
 })
-const hostChildDefinition = HostChild.define({
+const hostChild = HostChild.define({
   Model: HostChildModel,
   Message: HostChildMessage,
 })
-const unresolvedHostChild = hostChildDefinition.toComposition().toBlock({
+const unresolvedHostChild = hostChild.toComposition().toBlock({
   init: () => ({ model: { value: '' }, commands: [ReadHostValue()] }),
-  update: hostChildDefinition.update((model, { value }) => ({
+  update: hostChild.update((model, { value }) => ({
     model: modifyFields(model, { value: () => value }),
   })),
-  view: hostChildDefinition.view((model, h) => h.span([], [model.value])),
+  view: hostChild.view((model, h) => h.span([], [model.value])),
   EffectsLayer: Layer.empty,
   hostHandlers: [ReadHostValue],
 })

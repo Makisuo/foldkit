@@ -17,7 +17,7 @@ import {
 import { defaultLeaveCommand } from '@foldkit/ui/animation'
 
 import { CityCombobox, CityMultiCombobox } from './combobox'
-import { UiDefinition } from './definition'
+import { Ui } from './definition'
 import { CharacterListbox, ItemListbox, ItemMultiListbox } from './listbox'
 import { DemoMenu } from './menu'
 import { Message } from './message'
@@ -107,7 +107,7 @@ const foldHoverIntentOutMessage = HoverIntent.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-export const mobileMenuDialog = UiDefinition.bindChild(Dialog.block, {
+export const mobileMenuDialog = Ui.bindChild(Dialog.block, {
   field: 'mobileMenuDialog',
   parentMessage: Message.GotMobileMenuDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
@@ -126,7 +126,7 @@ const foldComboboxDemoOutMessage = CityCombobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-export const comboboxDemo = UiDefinition.bindChild(CityCombobox, {
+export const comboboxDemo = Ui.bindChild(CityCombobox, {
   field: 'comboboxDemo',
   parentMessage: Message.GotComboboxDemoMessage,
   outMessage: { fold: foldComboboxDemoOutMessage },
@@ -153,7 +153,7 @@ const foldComboboxNullableDemoOutMessage = CityCombobox.OutMessage.match<
   }),
 })
 
-export const comboboxNullableDemo = UiDefinition.bindChild(CityCombobox, {
+export const comboboxNullableDemo = Ui.bindChild(CityCombobox, {
   field: 'comboboxNullableDemo',
   parentMessage: Message.GotComboboxNullableDemoMessage,
   outMessage: { fold: foldComboboxNullableDemoOutMessage },
@@ -178,7 +178,7 @@ const foldComboboxMultiDemoOutMessage = CityMultiCombobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-export const comboboxMultiDemo = UiDefinition.bindChild(CityMultiCombobox, {
+export const comboboxMultiDemo = Ui.bindChild(CityMultiCombobox, {
   field: 'comboboxMultiDemo',
   parentMessage: Message.GotComboboxMultiDemoMessage,
   outMessage: { fold: foldComboboxMultiDemoOutMessage },
@@ -197,7 +197,7 @@ const foldComboboxPlacementLockDemoOutMessage = CityCombobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-export const comboboxPlacementLockDemo = UiDefinition.bindChild(CityCombobox, {
+export const comboboxPlacementLockDemo = Ui.bindChild(CityCombobox, {
   field: 'comboboxPlacementLockDemo',
   parentMessage: Message.GotComboboxPlacementLockDemoMessage,
   outMessage: { fold: foldComboboxPlacementLockDemoOutMessage },
@@ -216,25 +216,25 @@ const foldComboboxSelectOnFocusDemoOutMessage = CityCombobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-export const comboboxSelectOnFocusDemo = UiDefinition.bindChild(CityCombobox, {
+export const comboboxSelectOnFocusDemo = Ui.bindChild(CityCombobox, {
   field: 'comboboxSelectOnFocusDemo',
   parentMessage: Message.GotComboboxSelectOnFocusDemoMessage,
   outMessage: { fold: foldComboboxSelectOnFocusDemoOutMessage },
 })
 
-export const dialogDemo = UiDefinition.bindChild(Dialog.block, {
+export const dialogDemo = Ui.bindChild(Dialog.block, {
   field: 'dialogDemo',
   parentMessage: Message.GotDialogDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-export const dialogAnimatedDemo = UiDefinition.bindChild(Dialog.block, {
+export const dialogAnimatedDemo = Ui.bindChild(Dialog.block, {
   field: 'dialogAnimatedDemo',
   parentMessage: Message.GotDialogAnimatedDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-export const overlayDialogDemo = UiDefinition.bindChild(Dialog.block, {
+export const overlayDialogDemo = Ui.bindChild(Dialog.block, {
   field: 'overlayDialogDemo',
   parentMessage: Message.GotOverlayDialogDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
@@ -253,19 +253,19 @@ const foldOverlayComboboxDemoOutMessage = CityCombobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-export const overlayComboboxDemo = UiDefinition.bindChild(CityCombobox, {
+export const overlayComboboxDemo = Ui.bindChild(CityCombobox, {
   field: 'overlayComboboxDemo',
   parentMessage: Message.GotOverlayComboboxDemoMessage,
   outMessage: { fold: foldOverlayComboboxDemoOutMessage },
 })
 
-export const nestedDialogParentDemo = UiDefinition.bindChild(Dialog.block, {
+export const nestedDialogParentDemo = Ui.bindChild(Dialog.block, {
   field: 'nestedDialogParentDemo',
   parentMessage: Message.GotNestedDialogParentDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-export const nestedDialogChildDemo = UiDefinition.bindChild(Dialog.block, {
+export const nestedDialogChildDemo = Ui.bindChild(Dialog.block, {
   field: 'nestedDialogChildDemo',
   parentMessage: Message.GotNestedDialogChildDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
@@ -284,7 +284,7 @@ const foldCalendarBasicDemoOutMessage = Calendar.OutMessage.match<
   ChangedViewMonth: () => model => ({ model }),
 })
 
-export const calendarBasicDemo = UiDefinition.bindChild(Calendar.block, {
+export const calendarBasicDemo = Ui.bindChild(Calendar.block, {
   field: 'calendarBasicDemo',
   parentMessage: Message.GotCalendarBasicDemoMessage,
   outMessage: { fold: foldCalendarBasicDemoOutMessage },
@@ -308,7 +308,7 @@ const foldDatePickerBasicDemoOutMessage = DatePicker.OutMessage.match<
   ChangedViewMonth: () => model => ({ model }),
 })
 
-export const datePickerBasicDemo = UiDefinition.bindChild(DatePicker.block, {
+export const datePickerBasicDemo = Ui.bindChild(DatePicker.block, {
   field: 'datePickerBasicDemo',
   parentMessage: Message.GotDatePickerBasicDemoMessage,
   outMessage: { fold: foldDatePickerBasicDemoOutMessage },
@@ -334,7 +334,7 @@ const foldDragAndDropDemoOutMessage = DragAndDrop.OutMessage.match<
   Cancelled: () => model => ({ model }),
 })
 
-export const dragAndDropDemo = UiDefinition.bindChild(DragAndDrop.block, {
+export const dragAndDropDemo = Ui.bindChild(DragAndDrop.block, {
   field: 'dragAndDropDemo',
   parentMessage: Message.GotDragAndDropDemoMessage,
   outMessage: { fold: foldDragAndDropDemoOutMessage },
@@ -353,7 +353,7 @@ const foldFileDropBasicDemoOutMessage = FileDrop.OutMessage.match<
   RejectedNonFiles: () => model => ({ model }),
 })
 
-export const fileDropBasicDemo = UiDefinition.bindChild(FileDrop.block, {
+export const fileDropBasicDemo = Ui.bindChild(FileDrop.block, {
   field: 'fileDropBasicDemo',
   parentMessage: Message.GotFileDropBasicDemoMessage,
   outMessage: { fold: foldFileDropBasicDemoOutMessage },
@@ -372,7 +372,7 @@ const foldListboxDemoOutMessage = ItemListbox.OutMessage.match<
     }),
 })
 
-export const listboxDemo = UiDefinition.bindChild(ItemListbox, {
+export const listboxDemo = Ui.bindChild(ItemListbox, {
   field: 'listboxDemo',
   parentMessage: Message.GotListboxDemoMessage,
   outMessage: { fold: foldListboxDemoOutMessage },
@@ -397,7 +397,7 @@ const foldListboxMultiDemoOutMessage = ItemMultiListbox.OutMessage.match<
     }),
 })
 
-export const listboxMultiDemo = UiDefinition.bindChild(ItemMultiListbox, {
+export const listboxMultiDemo = Ui.bindChild(ItemMultiListbox, {
   field: 'listboxMultiDemo',
   parentMessage: Message.GotListboxMultiDemoMessage,
   outMessage: { fold: foldListboxMultiDemoOutMessage },
@@ -415,43 +415,43 @@ const foldListboxGroupedDemoOutMessage = CharacterListbox.OutMessage.match<
     }),
 })
 
-export const listboxGroupedDemo = UiDefinition.bindChild(CharacterListbox, {
+export const listboxGroupedDemo = Ui.bindChild(CharacterListbox, {
   field: 'listboxGroupedDemo',
   parentMessage: Message.GotListboxGroupedDemoMessage,
   outMessage: { fold: foldListboxGroupedDemoOutMessage },
 })
 
-export const menuBasicDemo = UiDefinition.bindChild(DemoMenu, {
+export const menuBasicDemo = Ui.bindChild(DemoMenu, {
   field: 'menuBasicDemo',
   parentMessage: Message.GotMenuBasicDemoMessage,
   outMessage: { fold: foldMenuOutMessage },
 })
 
-export const menuAnimatedDemo = UiDefinition.bindChild(DemoMenu, {
+export const menuAnimatedDemo = Ui.bindChild(DemoMenu, {
   field: 'menuAnimatedDemo',
   parentMessage: Message.GotMenuAnimatedDemoMessage,
   outMessage: { fold: foldMenuOutMessage },
 })
 
-export const popoverBasicDemo = UiDefinition.bindChild(Popover.block, {
+export const popoverBasicDemo = Ui.bindChild(Popover.block, {
   field: 'popoverBasicDemo',
   parentMessage: Message.GotPopoverBasicDemoMessage,
   outMessage: { fold: foldPopoverOutMessage },
 })
 
-export const popoverAnimatedDemo = UiDefinition.bindChild(Popover.block, {
+export const popoverAnimatedDemo = Ui.bindChild(Popover.block, {
   field: 'popoverAnimatedDemo',
   parentMessage: Message.GotPopoverAnimatedDemoMessage,
   outMessage: { fold: foldPopoverOutMessage },
 })
 
-export const popoverNestedParentDemo = UiDefinition.bindChild(Popover.block, {
+export const popoverNestedParentDemo = Ui.bindChild(Popover.block, {
   field: 'popoverNestedParentDemo',
   parentMessage: Message.GotPopoverNestedParentDemoMessage,
   outMessage: { fold: foldPopoverOutMessage },
 })
 
-export const popoverNestedChildDemo = UiDefinition.bindChild(Popover.block, {
+export const popoverNestedChildDemo = Ui.bindChild(Popover.block, {
   field: 'popoverNestedChildDemo',
   parentMessage: Message.GotPopoverNestedChildDemoMessage,
   outMessage: { fold: foldPopoverOutMessage },
@@ -470,7 +470,7 @@ const foldVerticalRadioGroupDemoOutMessage = PlanRadioGroup.OutMessage.match<
     }),
 })
 
-export const verticalRadioGroupDemo = UiDefinition.bindChild(PlanRadioGroup, {
+export const verticalRadioGroupDemo = Ui.bindChild(PlanRadioGroup, {
   field: 'verticalRadioGroupDemo',
   parentMessage: Message.GotVerticalRadioGroupDemoMessage,
   outMessage: { fold: foldVerticalRadioGroupDemoOutMessage },
@@ -489,7 +489,7 @@ const foldHorizontalRadioGroupDemoOutMessage = PlanRadioGroup.OutMessage.match<
     }),
 })
 
-export const horizontalRadioGroupDemo = UiDefinition.bindChild(PlanRadioGroup, {
+export const horizontalRadioGroupDemo = Ui.bindChild(PlanRadioGroup, {
   field: 'horizontalRadioGroupDemo',
   parentMessage: Message.GotHorizontalRadioGroupDemoMessage,
   outMessage: { fold: foldHorizontalRadioGroupDemoOutMessage },
@@ -505,7 +505,7 @@ const foldSliderRatingDemoOutMessage = Slider.OutMessage.match<
     }),
 })
 
-export const sliderRatingDemo = UiDefinition.bindChild(Slider.block, {
+export const sliderRatingDemo = Ui.bindChild(Slider.block, {
   field: 'sliderRatingDemo',
   parentMessage: Message.GotSliderRatingDemoMessage,
   outMessage: { fold: foldSliderRatingDemoOutMessage },
@@ -521,7 +521,7 @@ const foldSliderVolumeDemoOutMessage = Slider.OutMessage.match<
     }),
 })
 
-export const sliderVolumeDemo = UiDefinition.bindChild(Slider.block, {
+export const sliderVolumeDemo = Ui.bindChild(Slider.block, {
   field: 'sliderVolumeDemo',
   parentMessage: Message.GotSliderVolumeDemoMessage,
   outMessage: { fold: foldSliderVolumeDemoOutMessage },
@@ -538,7 +538,7 @@ const foldHorizontalTabsDemoOutMessage = DemoTabs.OutMessage.match<
     }),
 })
 
-export const horizontalTabsDemo = UiDefinition.bindChild(DemoTabs, {
+export const horizontalTabsDemo = Ui.bindChild(DemoTabs, {
   field: 'horizontalTabsDemo',
   parentMessage: Message.GotHorizontalTabsDemoMessage,
   outMessage: { fold: foldHorizontalTabsDemoOutMessage },
@@ -555,31 +555,31 @@ const foldVerticalTabsDemoOutMessage = DemoTabs.OutMessage.match<
     }),
 })
 
-export const verticalTabsDemo = UiDefinition.bindChild(DemoTabs, {
+export const verticalTabsDemo = Ui.bindChild(DemoTabs, {
   field: 'verticalTabsDemo',
   parentMessage: Message.GotVerticalTabsDemoMessage,
   outMessage: { fold: foldVerticalTabsDemoOutMessage },
 })
 
-export const toastDemo = UiDefinition.bindChild(Toast, {
+export const toastDemo = Ui.bindChild(Toast, {
   field: 'toastDemo',
   parentMessage: Message.GotToastDemoMessage,
   outMessage: { fold: foldToastOutMessage },
 })
 
-export const tooltipBasicDemo = UiDefinition.bindChild(Tooltip.block, {
+export const tooltipBasicDemo = Ui.bindChild(Tooltip.block, {
   field: 'tooltipBasicDemo',
   parentMessage: Message.GotTooltipBasicDemoMessage,
   outMessage: { fold: foldTooltipOutMessage },
 })
 
-export const tooltipNoDelayDemo = UiDefinition.bindChild(Tooltip.block, {
+export const tooltipNoDelayDemo = Ui.bindChild(Tooltip.block, {
   field: 'tooltipNoDelayDemo',
   parentMessage: Message.GotTooltipNoDelayDemoMessage,
   outMessage: { fold: foldTooltipOutMessage },
 })
 
-export const hoverIntentDemo = UiDefinition.bindChild(HoverIntent.block, {
+export const hoverIntentDemo = Ui.bindChild(HoverIntent.block, {
   field: 'hoverIntentDemo',
   parentMessage: Message.GotHoverIntentDemoMessage,
   outMessage: { fold: foldHoverIntentOutMessage },
@@ -591,33 +591,30 @@ const foldAnimationDemoOutMessage = (
 ) =>
   Animation.OutMessage.match(outMessage, {
     StartedLeaveAnimating: () =>
-      UiDefinition.step(model => ({
+      Ui.step(model => ({
         model,
         commands: [liftCommand(defaultLeaveCommand(model.animationDemo))],
       })),
-    TransitionedOut: () => UiDefinition.step(model => ({ model })),
+    TransitionedOut: () => Ui.step(model => ({ model })),
   })
 
-export const animationDemo = UiDefinition.bindChild(Animation.block, {
+export const animationDemo = Ui.bindChild(Animation.block, {
   field: 'animationDemo',
   parentMessage: Message.GotAnimationDemoMessage,
   outMessage: { fold: foldAnimationDemoOutMessage },
 })
 
-export const virtualListDemo = UiDefinition.bindChild(ActivityVirtualList, {
+export const virtualListDemo = Ui.bindChild(ActivityVirtualList, {
   field: 'virtualListDemo',
   parentMessage: Message.GotVirtualListDemoMessage,
 })
 
-export const virtualListVariableDemo = UiDefinition.bindChild(
-  ActivityVirtualList,
-  {
-    field: 'virtualListVariableDemo',
-    parentMessage: Message.GotVirtualListVariableDemoMessage,
-  },
-)
+export const virtualListVariableDemo = Ui.bindChild(ActivityVirtualList, {
+  field: 'virtualListVariableDemo',
+  parentMessage: Message.GotVirtualListVariableDemoMessage,
+})
 
-export const UiComposition = UiDefinition.toComposition({
+export const UiComposition = Ui.toComposition({
   children: [
     mobileMenuDialog,
     comboboxDemo,

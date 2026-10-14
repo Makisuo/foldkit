@@ -1,7 +1,7 @@
 import { Option, Schema, String, pipe } from 'effect'
 
 import { ReplaceFilters } from './command'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { Message } from './message'
 import { DietListbox, PeriodListbox } from './model'
 import { Diet, Period, routeToBrowseFields } from './route'
@@ -21,7 +21,7 @@ const selectionToParam = <A extends string>(
 
 const foldDietListboxOutMessage = DietListbox.OutMessage.match({
   Selected: ({ value }) =>
-    ApplicationDefinition.step(model => {
+    Application.step(model => {
       const fields = routeToBrowseFields(model.route)
       return {
         model,
@@ -35,7 +35,7 @@ const foldDietListboxOutMessage = DietListbox.OutMessage.match({
     }),
 })
 
-export const dietListbox = ApplicationDefinition.bindChild(DietListbox, {
+export const dietListbox = Application.bindChild(DietListbox, {
   field: 'dietListbox',
   parentMessage: Message.GotDietListboxMessage,
   outMessage: { fold: foldDietListboxOutMessage },
@@ -43,7 +43,7 @@ export const dietListbox = ApplicationDefinition.bindChild(DietListbox, {
 
 const foldPeriodListboxOutMessage = PeriodListbox.OutMessage.match({
   Selected: ({ value }) =>
-    ApplicationDefinition.step(model => {
+    Application.step(model => {
       const fields = routeToBrowseFields(model.route)
       return {
         model,
@@ -57,7 +57,7 @@ const foldPeriodListboxOutMessage = PeriodListbox.OutMessage.match({
     }),
 })
 
-export const periodListbox = ApplicationDefinition.bindChild(PeriodListbox, {
+export const periodListbox = Application.bindChild(PeriodListbox, {
   field: 'periodListbox',
   parentMessage: Message.GotPeriodListboxMessage,
   outMessage: { fold: foldPeriodListboxOutMessage },

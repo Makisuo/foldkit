@@ -24,7 +24,7 @@ Define the boundary with a Flags Schema. For a fresh client boot, also define an
 
 ### Fresh Client Boot
 
-In the entry, create the graphless root with `ApplicationDefinition.toComposition()`, then pass the Schema to the Composition's owned `make` method as `Flags`. The Counter Application uses the `init` above.
+In the entry, create the graphless root with `Application.toComposition()`, then pass the Schema to the Composition's owned `make` method as `Flags`. The Counter Application uses the `init` above.
 
 ::Snippet{name="counterApplicationWithFlags" label="Application configuration with Flags"}
 

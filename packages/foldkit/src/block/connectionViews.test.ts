@@ -79,11 +79,11 @@ const ActiveParent = Schema.TaggedStruct('Active', { child: Model })
 const InactiveParent = Schema.TaggedStruct('Inactive', {})
 const TaggedParentModel = Schema.Union([ActiveParent, InactiveParent])
 type TaggedParentModel = typeof TaggedParentModel.Type
-const TaggedParentDefinition = define('ConnectionViewsTaggedParent', {
+const TaggedParent = define('ConnectionViewsTaggedParent', {
   Model: TaggedParentModel,
   Message: ParentMessage,
 })
-const tagged = TaggedParentDefinition.bindChild(block, {
+const tagged = TaggedParent.bindChild(block, {
   read: model =>
     model._tag === 'Active' ? Option.some(model.child) : Option.none(),
   write: (model, nextChild) =>
@@ -158,7 +158,7 @@ it('supports explicit tagged-union readers and writers', () => {
   )
 
   if (false) {
-    TaggedParentDefinition.bindChild(block, {
+    TaggedParent.bindChild(block, {
       read: (model: TaggedParentModel) =>
         model._tag === 'Active' ? Option.some(model.child) : Option.none(),
       // @ts-expect-error A tagged Binding writer must return the parent Model union.
@@ -184,11 +184,11 @@ it('lowers required-field shorthand through the shared pure Binding adapter', ()
   expectTypeOf(result.model).toEqualTypeOf<ParentModel>()
 
   const optionalModel = Schema.Struct({ maybeChild: Schema.Option(Model) })
-  const OptionalParentDefinition = define('ConnectionViewsOptionalParent', {
+  const OptionalParent = define('ConnectionViewsOptionalParent', {
     Model: optionalModel,
     Message: ParentMessage,
   })
-  const optional = OptionalParentDefinition.bindChild(block, {
+  const optional = OptionalParent.bindChild(block, {
     read: model => model.maybeChild,
     write: (model, nextChild) =>
       modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
@@ -213,36 +213,36 @@ it('lowers required-field shorthand through the shared pure Binding adapter', ()
       label: Schema.optionalKey(Schema.String),
     }),
   })
-  const WiderParentDefinition = define('ConnectionViewsWiderParent', {
+  const WiderParent = define('ConnectionViewsWiderParent', {
     Model: widerModel,
     Message: ParentMessage,
   })
-  const NarrowerParentDefinition = define('ConnectionViewsNarrowerParent', {
+  const NarrowerParent = define('ConnectionViewsNarrowerParent', {
     Model: narrowerModel,
     Message: ParentMessage,
   })
-  const ExtendedParentDefinition = define('ConnectionViewsExtendedParent', {
+  const ExtendedParent = define('ConnectionViewsExtendedParent', {
     Model: extendedModel,
     Message: ParentMessage,
   })
 
   if (false) {
-    WiderParentDefinition.bindChild(block, {
+    WiderParent.bindChild(block, {
       // @ts-expect-error A wider field cannot be replaced by this child's Model.
       field: 'child',
       parentMessage: ParentMessage.GotChildMessage,
     })
-    NarrowerParentDefinition.bindChild(block, {
+    NarrowerParent.bindChild(block, {
       // @ts-expect-error A narrower field cannot accept every child Model update.
       field: 'child',
       parentMessage: ParentMessage.GotChildMessage,
     })
-    ExtendedParentDefinition.bindChild(block, {
+    ExtendedParent.bindChild(block, {
       // @ts-expect-error The Binding cannot discard additional optional child fields.
       field: 'child',
       parentMessage: ParentMessage.GotChildMessage,
     })
-    OptionalParentDefinition.bindChild(block, {
+    OptionalParent.bindChild(block, {
       // @ts-expect-error Optional children require explicit accessors.
       field: 'maybeChild',
       parentMessage: ParentMessage.GotChildMessage,

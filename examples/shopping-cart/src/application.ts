@@ -46,7 +46,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = defineApplication({ Model, Message })
 
 export const init = (url: Url) => {
   return {
@@ -60,7 +60,7 @@ export const init = (url: Url) => {
   }
 }
 
-const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {
+const NavigateInternal = Application.command('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -69,7 +69,7 @@ const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {
   },
 })
 
-const LoadExternal = ApplicationDefinition.command('LoadExternal', {
+const LoadExternal = Application.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -103,13 +103,13 @@ const foldProductsOutMessage = Products.OutMessage.match<
     }),
 })
 
-export const productsPage = ApplicationDefinition.bindChild(Products.block, {
+export const productsPage = Application.bindChild(Products.block, {
   field: 'productsPage',
   parentMessage: Message.GotProductsMessage,
   outMessage: { fold: foldProductsOutMessage },
 })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [productsPage],
 })
 

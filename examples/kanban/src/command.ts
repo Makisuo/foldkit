@@ -3,12 +3,12 @@ import { KeyValueStore } from 'effect/persistence'
 import { Dom } from 'foldkit'
 
 import { ADD_CARD_INPUT_ID, STORAGE_KEY } from './constant'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { Column } from './domain'
 import { Message } from './message'
 import { SavedBoardJsonString } from './model'
 
-export const GenerateCardId = ApplicationDefinition.command('GenerateCardId', {
+export const GenerateCardId = Application.command('GenerateCardId', {
   args: { columnId: Schema.String, title: Schema.String },
   messages: [Message.CompletedGenerateCardId],
   handler: function* () {
@@ -23,7 +23,7 @@ export const GenerateCardId = ApplicationDefinition.command('GenerateCardId', {
   },
 })
 
-export const SaveBoard = ApplicationDefinition.command('SaveBoard', {
+export const SaveBoard = Application.command('SaveBoard', {
   args: { columns: Schema.Array(Column.Column) },
   messages: [Message.CompletedSaveBoard],
   handler: function* () {
@@ -40,16 +40,13 @@ export const SaveBoard = ApplicationDefinition.command('SaveBoard', {
   },
 })
 
-export const FocusAddCardInput = ApplicationDefinition.command(
-  'FocusAddCardInput',
-  {
-    messages: [Message.CompletedFocusAddCardInput],
-    handler: function* () {
-      return () =>
-        Dom.focus(`#${ADD_CARD_INPUT_ID}`).pipe(
-          Effect.ignore,
-          Effect.as(Message.CompletedFocusAddCardInput()),
-        )
-    },
+export const FocusAddCardInput = Application.command('FocusAddCardInput', {
+  messages: [Message.CompletedFocusAddCardInput],
+  handler: function* () {
+    return () =>
+      Dom.focus(`#${ADD_CARD_INPUT_ID}`).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedFocusAddCardInput()),
+      )
   },
-)
+})

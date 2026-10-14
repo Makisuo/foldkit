@@ -2,12 +2,12 @@
 
 import { Message as SettingsMessage } from './settings/message'
 
-const settings = ParentDefinition.bindChild(Settings.block, {
+const settings = Parent.bindChild(Settings.block, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
 })
 
-const update = ParentDefinition.update((model, message) =>
+const update = Parent.update((model, message) =>
   Message.match(message, {
     ClickedResetSettings: () =>
       settings.fold(model, SettingsMessage.ChangedTheme({ theme: 'Light' })),

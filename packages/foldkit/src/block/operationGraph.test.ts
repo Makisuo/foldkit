@@ -24,25 +24,25 @@ const initialModel = ParentModel.make({
 })
 
 const ChildOwner = define('OperationGraphChild')
-const childDefinition = ChildOwner.define({ Model: ChildModel, Message })
-const reset = childDefinition.step((_model: ChildModel) => ({
+const Child = ChildOwner.define({ Model: ChildModel, Message })
+const reset = Child.step((_model: ChildModel) => ({
   model: ChildModel.make({ count: 0 }),
 }))
-const Child = childDefinition.toComposition().toBlock({
-  view: childDefinition.view((_model, h) => h.div([])),
+const ChildBlock = Child.toComposition().toBlock({
+  view: Child.view((_model, h) => h.div([])),
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
-  update: childDefinition.update(model => ({
+  update: Child.update(model => ({
     model: modifyFields(model, { count: count => count + 1 }),
   })),
   expose: { reset },
   EffectsLayer: Layer.empty,
 })
 
-const omittedParentDefinition = define('OperationGraphOmittedParent').define({
+const omittedParent = define('OperationGraphOmittedParent').define({
   Model: ParentModel,
   Message,
 })
-const omittedChild = omittedParentDefinition.bindChild(Child, {
+const omittedChild = omittedParent.bindChild(ChildBlock, {
   placement: 'omitted-child',
   read: (model: ParentModel) => Option.some(model.primary),
   write: (model, nextChild) =>
@@ -50,8 +50,8 @@ const omittedChild = omittedParentDefinition.bindChild(Child, {
   toParentMessage: (message: Message) => message,
 })
 
-const OmittedParent = omittedParentDefinition.toComposition().toBlock({
-  view: omittedParentDefinition.view((_model, h) => h.div([])),
+const OmittedParent = omittedParent.toComposition().toBlock({
+  view: omittedParent.view((_model, h) => h.div([])),
   init: () => ({
     model: modifyFields(initialModel, {
       primary: () => omittedChild.init().model,
@@ -78,7 +78,7 @@ const exactParentBase = define('OperationGraphExactParent').define({
   Model: ParentModel,
   Message,
 })
-const registeredPlacement = exactParentBase.bindChild(Child, {
+const registeredPlacement = exactParentBase.bindChild(ChildBlock, {
   placement: 'same-placement',
   readAll: (model: ParentModel) => [model.primary],
   key: () => 'only',
@@ -87,7 +87,7 @@ const registeredPlacement = exactParentBase.bindChild(Child, {
     modifyFields(model, { primary: () => nextChild }),
   toParentMessage: (_key, message: Message) => message,
 })
-const wrongPlacement = exactParentBase.bindChild(Child, {
+const wrongPlacement = exactParentBase.bindChild(ChildBlock, {
   placement: 'same-placement',
   readAll: readAllWrongPlacement,
   key: () => 'only',
@@ -96,11 +96,11 @@ const wrongPlacement = exactParentBase.bindChild(Child, {
   toParentMessage: (_key, message: Message) => message,
 })
 
-const exactParentDefinition = exactParentBase.toComposition({
+const exactParentComposition = exactParentBase.toComposition({
   children: [registeredPlacement],
 })
-const ExactParent = exactParentDefinition.toBlock({
-  view: exactParentDefinition.view((_model, h) => h.div([])),
+const ExactParent = exactParentComposition.toBlock({
+  view: exactParentComposition.view((_model, h) => h.div([])),
   init: () => ({ model: initialModel }),
   update: (model: ParentModel, message: Message) =>
     wrongPlacement.fold(model, 'only', message),
@@ -122,13 +122,13 @@ const PolicyOutMessage = defineMessageUnion({ RequestedSiblingReset: {} })
 type PolicyOutMessage = typeof PolicyOutMessage.Type
 
 const PolicyOwner = define('OperationGraphPolicyChild')
-const policyDefinition = PolicyOwner.define({
+const policy = PolicyOwner.define({
   Model: ChildModel,
   Message,
   OutMessage: PolicyOutMessage,
 })
-const PolicyChild = policyDefinition.toComposition().toBlock({
-  view: policyDefinition.view((_model, h) => h.div([])),
+const PolicyChild = policy.toComposition().toBlock({
+  view: policy.view((_model, h) => h.div([])),
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
   update: (model: ChildModel) => ({
     model,
@@ -141,7 +141,7 @@ const policyParentBase = define('OperationGraphPolicyParent').define({
   Model: ParentModel,
   Message,
 })
-const siblingChild = policyParentBase.bindChild(Child, {
+const siblingChild = policyParentBase.bindChild(ChildBlock, {
   placement: 'sibling-child',
   read: (model: ParentModel) => Option.some(model.sibling),
   write: (model, nextChild) =>
@@ -159,11 +159,11 @@ const policyChild = policyParentBase.bindChild(PolicyChild, {
   },
 })
 
-const policyParentDefinition = policyParentBase.toComposition({
+const policyParentComposition = policyParentBase.toComposition({
   children: [policyChild, siblingChild],
 })
-const PolicyParent = policyParentDefinition.toBlock({
-  view: policyParentDefinition.view((_model, h) => h.div([])),
+const PolicyParent = policyParentComposition.toBlock({
+  view: policyParentComposition.view((_model, h) => h.div([])),
   init: () => ({ model: initialModel }),
   update: (model: ParentModel, message: Message) =>
     policyChild.fold(model, message),

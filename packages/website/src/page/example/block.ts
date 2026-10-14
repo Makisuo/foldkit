@@ -25,7 +25,7 @@ import {
 } from '../../route'
 import type { TableOfContentsEntry } from '../../tableOfContentsEntry'
 import { sourceFileTabs } from './childBindings'
-import { ExampleDetailDefinition } from './definition'
+import { ExampleDetail } from './definition'
 import { Message } from './message'
 import { type ExampleMeta, findBySlug } from './meta'
 import { CurrentSourcesAsyncData, Model } from './model'
@@ -41,31 +41,26 @@ export { CurrentSourcesAsyncData, Model } from './model'
 /** Loads the source files for the example identified by `slug`, producing the
  *  loaded sources on success or a failure Message when the fetch does not
  *  complete. */
-export const LoadExampleSources = ExampleDetailDefinition.command(
-  'LoadExampleSources',
-  {
-    args: { slug: Schema.String },
-    messages: [
-      Message.SucceededLoadExampleSources,
-      Message.FailedLoadExampleSources,
-    ],
-    handler: function* () {
-      return ({ slug }) =>
-        Effect.tryPromise({
-          try: () => loadSourcesForSlug(slug),
-          catch: error =>
-            error instanceof Error ? error.message : `Unknown example: ${slug}`,
-        }).pipe(
-          Effect.map(sources =>
-            Message.SucceededLoadExampleSources({ sources }),
-          ),
-          Effect.catch(error =>
-            Effect.succeed(Message.FailedLoadExampleSources({ error })),
-          ),
-        )
-    },
+export const LoadExampleSources = ExampleDetail.command('LoadExampleSources', {
+  args: { slug: Schema.String },
+  messages: [
+    Message.SucceededLoadExampleSources,
+    Message.FailedLoadExampleSources,
+  ],
+  handler: function* () {
+    return ({ slug }) =>
+      Effect.tryPromise({
+        try: () => loadSourcesForSlug(slug),
+        catch: error =>
+          error instanceof Error ? error.message : `Unknown example: ${slug}`,
+      }).pipe(
+        Effect.map(sources => Message.SucceededLoadExampleSources({ sources })),
+        Effect.catch(error =>
+          Effect.succeed(Message.FailedLoadExampleSources({ error })),
+        ),
+      )
   },
-)
+})
 
 const BRIDGE_MESSAGE_TYPE = 'foldkit-example-url'
 
@@ -113,7 +108,7 @@ const observeExampleUrlMessages = (element: Element) => {
   )
 }
 
-const ObserveExampleUrlMessages = ExampleDetailDefinition.mountStream(
+const ObserveExampleUrlMessages = ExampleDetail.mountStream(
   'ObserveExampleUrlMessages',
   {
     messages: [Message.ChangedExampleUrl],
@@ -131,7 +126,7 @@ type ViewRequirements =
   | Mount.RequirementsOf<typeof mounts>
   | Block.RequirementsOfBindings<typeof children>
 
-const ExampleDetailComposition = ExampleDetailDefinition.toComposition({
+const ExampleDetailComposition = ExampleDetail.toComposition({
   mounts,
   children,
 })
@@ -162,7 +157,7 @@ const isSourceAvailable = (slug: string): boolean =>
     onSome: meta => meta.livePreview !== 'Unavailable',
   })
 
-export const boot = ExampleDetailDefinition.step(
+export const boot = ExampleDetail.step(
   (
     model,
     maybeInitialSlug: Option.Option<string>,
@@ -185,7 +180,7 @@ export const boot = ExampleDetailDefinition.step(
   },
 )
 
-export const update = ExampleDetailDefinition.update((model, message) =>
+export const update = ExampleDetail.update((model, message) =>
   Message.match(message, {
     GotSourceFileTabsMessage: ({ message }) =>
       sourceFileTabs.fold(model, message),
@@ -236,24 +231,22 @@ export const update = ExampleDetailDefinition.update((model, message) =>
   }),
 )
 
-export const informRouteChanged = ExampleDetailDefinition.step(
-  (model, slug: string) => {
-    if (isSourceAvailable(slug)) {
-      return update(model, Message.RequestedExampleSources({ slug }))
-    }
+export const informRouteChanged = ExampleDetail.step((model, slug: string) => {
+  if (isSourceAvailable(slug)) {
+    return update(model, Message.RequestedExampleSources({ slug }))
+  }
 
-    const sourceFileTabsInit = sourceFileTabs.init({ id: 'source-file-tabs' })
-    return {
-      model: modifyFields(model, {
-        sourceFileTabs: () => sourceFileTabsInit.model,
-        maybeActiveSourceFilePath: () => Option.none(),
-        maybeExampleUrl: () => Option.none(),
-        currentSources: () => CurrentSourcesAsyncData.Idle(),
-      }),
-      commands: sourceFileTabsInit.commands ?? [],
-    }
-  },
-)
+  const sourceFileTabsInit = sourceFileTabs.init({ id: 'source-file-tabs' })
+  return {
+    model: modifyFields(model, {
+      sourceFileTabs: () => sourceFileTabsInit.model,
+      maybeActiveSourceFilePath: () => Option.none(),
+      maybeExampleUrl: () => Option.none(),
+      currentSources: () => CurrentSourcesAsyncData.Idle(),
+    }),
+    commands: sourceFileTabsInit.commands ?? [],
+  }
+})
 
 const featureTag = (text: string): Html =>
   ih.div(

@@ -6,7 +6,7 @@ import {
   periodRadioGroup,
 } from './childBindings'
 import { FetchTelemetry, SyncChart } from './command'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { MountChart } from './view/chart'
 
 export const EffectsLayer = Layer.mergeAll(
@@ -15,7 +15,7 @@ export const EffectsLayer = Layer.mergeAll(
   MountChart.layer,
 )
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   mounts: [MountChart],
   children: [chartModeRadioGroup, periodRadioGroup, packageRadioGroup],
 })

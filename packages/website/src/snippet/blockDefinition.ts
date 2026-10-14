@@ -20,7 +20,7 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-export const SettingsDefinition = Block.define('Settings', {
+export const Settings = Block.define('Settings', {
   Model,
   Message,
   OutMessage,
@@ -31,7 +31,7 @@ export class SettingsStore extends Context.Service<
   Readonly<{ saveTheme: (theme: Theme) => Effect.Effect<void, Error> }>
 >()('SettingsStore') {}
 
-export const SaveTheme = SettingsDefinition.command('SaveTheme', {
+export const SaveTheme = Settings.command('SaveTheme', {
   args: { theme: Theme },
   messages: [Message.CompletedSaveTheme, Message.FailedSaveTheme],
   handler: function* () {

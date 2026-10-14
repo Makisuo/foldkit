@@ -15,11 +15,11 @@ import {
   reflectedAttributeName,
 } from '../packages/foldkit/dist/domReflection.js'
 
-const ApplicationDefinition = defineApplication({
+const Application = defineApplication({
   Model: Schema.Null,
   Message: Schema.Never,
 })
-const ApplicationComposition = ApplicationDefinition.toComposition()
+const ApplicationComposition = Application.toComposition()
 const makeParityImplementation = (
   view: (
     model: null,
@@ -27,8 +27,8 @@ const makeParityImplementation = (
   ) => Readonly<{ title: string; body: Html }>,
 ) => ({
   init: () => ({ model: null }),
-  update: ApplicationComposition.update(model => ({ model })),
-  view: ApplicationComposition.view(view),
+  update: Application.update(model => ({ model })),
+  view: Application.view(view),
   EffectsLayer: Layer.empty,
 })
 

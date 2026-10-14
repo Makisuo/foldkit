@@ -18,7 +18,7 @@ yarn add @foldkit/ui
 
 ## Usage
 
-Import a component namespace by name. Stateful components are completed Blocks: `Dialog.block.connection(...)` connects their state, Messages, public operations, view, and lifecycle effects to the parent. Stateless render helpers such as Button expose a view function.
+Import a component namespace by name. Stateful components are completed Blocks: `Application.bindChild(Dialog.block, config)` connects their state, Messages, public operations, view, and lifecycle effects to the parent. Stateless render helpers such as Button expose a view function.
 
 ```typescript
 import type { HtmlBuilder } from 'foldkit/html'
@@ -42,7 +42,7 @@ const view = (h: HtmlBuilder<Message>) =>
 Components come in two shapes:
 
 - **Render helpers** (Button, Input, Textarea, Select, Checkbox, Switch, Disclosure, Fieldset) are stateless. Call their `view` directly with a typed config. The controlled helpers (Checkbox, Switch, Disclosure) take the current value in through their config and dispatch a parent Message when the user changes it; you store that value in your own Model.
-- **Blocks** (Combobox, Dialog, Listbox, Menu, Popover, RadioGroup, and the like) own a Model. Create a connection such as `Dialog.block.connection(...)`, register it in the parent Application or Block's `children`, and render its `embedView(...)` descriptor with `h.block`. The connection also folds the child's Messages and OutMessages into the parent.
+- **Blocks** (Combobox, Dialog, Listbox, Menu, Popover, RadioGroup, and the like) own a Model. Create a Binding through the parent authoring value, such as `Application.bindChild(Dialog.block, config)`, include it in the Composition's `children`, and render its `embedView(...)` descriptor with `h.block`. The Binding also folds the child's Messages and OutMessages into the parent.
 
 Component subpaths also expose domain helpers and types. Generic factories are separate exports: `Combobox.create(City)` returns a completed Block with Schema-refined payloads, and `Tabs.create<Tab>()` refines a type-only tab value. Import component ViewInputs and other helper types from their subpaths.
 

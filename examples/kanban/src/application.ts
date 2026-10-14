@@ -6,7 +6,7 @@ import { DragAndDrop } from '@foldkit/ui'
 import { dragAndDrop } from './childBindings'
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import { DEFAULT_COLUMNS, STORAGE_KEY } from './constant'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { SavedBoard, SavedBoardJsonString } from './model'
 
 export const EffectsLayer = Layer.mergeAll(
@@ -51,6 +51,6 @@ export const init = (flags: Flags) => {
   }
 }
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [dragAndDrop],
 })

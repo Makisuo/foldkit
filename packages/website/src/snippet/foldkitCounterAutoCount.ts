@@ -19,9 +19,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const CounterDefinition = Block.define('Counter', { Model, Message })
+const Counter = Block.define('Counter', { Model, Message })
 
-const subscriptions = CounterDefinition.subscriptions(entry => ({
+const subscriptions = Counter.subscriptions(entry => ({
   gameClockTicks: entry(
     'GameClockTicks',
     { isAutoCounting: Schema.Boolean },
@@ -44,7 +44,7 @@ const subscriptions = CounterDefinition.subscriptions(entry => ({
   ),
 }))
 
-const update = CounterDefinition.update((model, message) =>
+const update = Counter.update((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + 1 }),
@@ -60,7 +60,7 @@ const update = CounterDefinition.update((model, message) =>
   }),
 )
 
-const view = CounterDefinition.view((model, h): Document => ({
+const view = Counter.view((model, h): Document => ({
   title: `Count: ${model.count}`,
   body: h.div(
     [],

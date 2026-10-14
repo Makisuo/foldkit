@@ -114,7 +114,7 @@ const ParentMessage = defineMessageUnion({
   GotForeignMessage: { message: Schema.String },
 })
 type ParentMessage = typeof ParentMessage.Type
-const ParentDefinition = define('ConnectionShorthandsParent', {
+const Parent = define('ConnectionShorthandsParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -125,24 +125,24 @@ const foldChildOutMessage = OutMessage.match<
     model: modifyFields(model, { requests: requests => requests + 1 }),
   }),
 })
-const primary = ParentDefinition.bindChild(block, {
+const primary = Parent.bindChild(block, {
   field: 'primary',
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
 const primaryInspection = inspectBinding(primary)
-const secondary = ParentDefinition.bindChild(block, {
+const secondary = Parent.bindChild(block, {
   field: 'secondary',
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
-const overridden = ParentDefinition.bindChild(block, {
+const overridden = Parent.bindChild(block, {
   field: 'secondary',
   placement: 'alternate',
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
-const accessor = ParentDefinition.bindChild(block, {
+const accessor = Parent.bindChild(block, {
   read: model => Option.some(model.primary),
   write: (model, nextPrimary) =>
     modifyFields(model, { primary: () => nextPrimary }),
@@ -150,7 +150,7 @@ const accessor = ParentDefinition.bindChild(block, {
   outMessage: { fold: foldChildOutMessage },
 })
 const entryKey = (entry: typeof Entry.Type): string => entry.id
-const keyed = ParentDefinition.bindChild(block, {
+const keyed = Parent.bindChild(block, {
   placement: 'entries',
   readAll: (model: ParentModel) => model.entries,
   key: entryKey,
@@ -179,19 +179,19 @@ const initial = ParentModel.make({
 
 if (false) {
   // @ts-expect-error A foreign Message payload cannot receive the child union.
-  ParentDefinition.bindChild(block, {
+  Parent.bindChild(block, {
     field: 'primary',
     parentMessage: ParentMessage.GotForeignMessage,
     outMessage: { fold: foldChildOutMessage },
   })
   // @ts-expect-error A keyed constructor requires an additional payload field.
-  ParentDefinition.bindChild(block, {
+  Parent.bindChild(block, {
     field: 'primary',
     parentMessage: ParentMessage.GotEntryMessage,
     outMessage: { fold: foldChildOutMessage },
   })
   // @ts-expect-error Exactly one parent Message mapping may be supplied.
-  ParentDefinition.bindChild(block, {
+  Parent.bindChild(block, {
     field: 'primary',
     toParentMessage: (message: typeof Message.Type) =>
       ParentMessage.GotChildMessage({ message }),
@@ -199,7 +199,7 @@ if (false) {
     outMessage: { fold: foldChildOutMessage },
   })
   // @ts-expect-error An accessor Binding also requires exactly one mapping.
-  ParentDefinition.bindChild(block, {
+  Parent.bindChild(block, {
     read: (model: ParentModel) => Option.some(model.primary),
     write: (model: ParentModel, nextPrimary: typeof Model.Type) =>
       modifyFields(model, { primary: () => nextPrimary }),
@@ -209,12 +209,12 @@ if (false) {
     outMessage: { fold: foldChildOutMessage },
   })
   // @ts-expect-error OutMessage handling remains required for constructor shorthand.
-  ParentDefinition.bindChild(block, {
+  Parent.bindChild(block, {
     field: 'primary',
     parentMessage: ParentMessage.GotChildMessage,
   })
   // @ts-expect-error Keyed Bindings require their explicit key-aware mapping.
-  ParentDefinition.bindChild(block, {
+  Parent.bindChild(block, {
     readAll: (model: ParentModel) => model.entries,
     key: (entry: typeof Entry.Type) => entry.id,
     read: (entry: typeof Entry.Type) => entry.child,

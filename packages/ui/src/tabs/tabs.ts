@@ -16,7 +16,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { idSelector } from '../internal/selectors.js'
 import { keyToIndex } from '../keyboard.js'
-import { TabsDefinition as SharedTabsDefinition } from './definition.js'
+import { Tabs as SharedTabs } from './definition.js'
 
 export { wrapIndex, findFirstEnabledIndex, keyToIndex } from '../keyboard.js'
 
@@ -118,14 +118,14 @@ const tabId = (id: string, index: number): string => `${id}-tab-${index}`
 
 const tabPanelId = (id: string, index: number): string => `${id}-panel-${index}`
 
-const TabsDefinition = SharedTabsDefinition.define({
+const Tabs = SharedTabs.define({
   Model,
   Message,
   OutMessage,
 })
 
 /** Moves focus to the tab at the given index. */
-export const FocusTab = TabsDefinition.command('FocusTab', {
+export const FocusTab = Tabs.command('FocusTab', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedFocusTab],
   handler: function* () {
@@ -144,7 +144,7 @@ export const EffectsLayer = Layer.mergeAll(FocusTab.layer)
  *  an optional OutMessage. `Selected` fires when a tab is committed via click
  *  or keyboard; the parent stores the new value and passes it back in as
  *  `selectedValue`. */
-export const update = TabsDefinition.update((model, message) =>
+export const update = Tabs.update((model, message) =>
   Message.match(message, {
     SelectedTab: ({ index, value }) => ({
       model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),
@@ -220,7 +220,7 @@ export type ViewInputs<Value extends string = string> = Readonly<{
   panelMount?: PanelMount
 }>
 
-const TabsComposition = TabsDefinition.toComposition()
+const TabsComposition = Tabs.toComposition()
 
 const internalView = TabsComposition.view.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
@@ -404,12 +404,12 @@ const makeBlock = <Value extends string>() => {
   const RefinedOutMessage =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     OutMessage as unknown as OutMessageSchema<Value>
-  const TabsDefinition = SharedTabsDefinition.define({
+  const Tabs = SharedTabs.define({
     Model,
     Message,
     OutMessage: RefinedOutMessage,
   })
-  const refinedUpdate = TabsDefinition.update((model, message) =>
+  const refinedUpdate = Tabs.update((model, message) =>
     castReturn(update(model, message)),
   )
   const refinedView =
@@ -419,7 +419,7 @@ const makeBlock = <Value extends string>() => {
       viewInputs: ViewInputs<Value>,
       h: Parameters<typeof internalView>[2],
     ) => Html
-  const TabsComposition = TabsDefinition.toComposition()
+  const TabsComposition = Tabs.toComposition()
   const view = TabsComposition.view.withInputs<ViewInputs<Value>>(
     (model, viewInputs, h) => refinedView(model, viewInputs, h),
   )

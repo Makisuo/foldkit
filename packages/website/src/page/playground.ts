@@ -77,7 +77,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-const PlaygroundDefinition = Block.define('Playground', {
+const Playground = Block.define('Playground', {
   Model,
   Message,
 })
@@ -94,7 +94,7 @@ const foldPlaygroundFileTabsOutMessage = Tabs.OutMessage.match<
     }),
 })
 
-const fileTabs = PlaygroundDefinition.bindChild(PlaygroundFileTabs, {
+const fileTabs = Playground.bindChild(PlaygroundFileTabs, {
   field: 'fileTabs',
   parentMessage: Message.GotFileTabsMessage,
   outMessage: { fold: foldPlaygroundFileTabsOutMessage },
@@ -154,10 +154,9 @@ export const init = (
 
 // MANAGED RESOURCE
 
-const WebContainerPlayground =
-  PlaygroundDefinition.resource<PlaygroundWebContainer>()(
-    'WebContainerPlayground',
-  )
+const WebContainerPlayground = Playground.resource<PlaygroundWebContainer>()(
+  'WebContainerPlayground',
+)
 
 export type WebContainerPlaygroundService = ManagedResource.ServiceOf<
   typeof WebContainerPlayground
@@ -417,7 +416,7 @@ const streamPlaygroundEditorMessages = (
     ),
   )
 
-export const MountPlaygroundEditor = PlaygroundDefinition.mountStream(
+export const MountPlaygroundEditor = Playground.mountStream(
   'MountPlaygroundEditor',
   {
     args: {
@@ -452,7 +451,7 @@ const STYLES_CSS_PATH = 'src/styles.css'
 
 const WRITE_DEBOUNCE_MILLIS = 250
 
-export const WaitForPlaygroundServerFailure = PlaygroundDefinition.command(
+export const WaitForPlaygroundServerFailure = Playground.command(
   'WaitForPlaygroundServerFailure',
   {
     messages: [Message.CompletedWaitForPlaygroundServerFailure],
@@ -474,7 +473,7 @@ export const WaitForPlaygroundServerFailure = PlaygroundDefinition.command(
   },
 )
 
-export const SchedulePlaygroundFileWrite = PlaygroundDefinition.command(
+export const SchedulePlaygroundFileWrite = Playground.command(
   'SchedulePlaygroundFileWrite',
   {
     args: { path: Schema.String, content: Schema.String },
@@ -526,51 +525,48 @@ export const SchedulePlaygroundFileWrite = PlaygroundDefinition.command(
   },
 )
 
-const PlaygroundComposition = PlaygroundDefinition.toComposition({
+const PlaygroundComposition = Playground.toComposition({
   mounts: [MountPlaygroundEditor],
   children: [fileTabs],
 })
 
 type ViewBuilder = Block.HtmlBuilderOf<typeof PlaygroundComposition>
 
-export const managedResources = PlaygroundDefinition.managedResources(
-  entry => ({
-    webContainerPlayground: entry(
-      'ManageWebContainerPlayground',
-      Schema.Option(PlaygroundParams),
-      {
-        resource: WebContainerPlayground,
-        modelToMaybeRequirements: ({ slug, state, maybeIsSupported }) =>
-          state._tag === 'Failed' ||
-          state._tag === 'Idle' ||
-          !Option.contains(maybeIsSupported, true)
-            ? Option.none()
-            : pipe(
-                slug,
-                Option.liftPredicate(() => Record.has(filesBySlug, slug)),
-                Option.map(() => ({ slug })),
-              ),
-        onAcquired: ({ previewUrl }) =>
-          Message.BootedPlayground({ previewUrl }),
-        onReleased: () => Message.ReleasedPlayground(),
-        onAcquireError: error =>
-          Message.FailedBootPlayground({ reason: reasonFromError(error) }),
-        handler: function* () {
-          return {
-            acquire: ({ slug }) =>
-              Effect.gen(function* () {
-                const fileEntry = yield* Effect.fromOption(
-                  Record.get(filesBySlug, slug),
-                )
-                return yield* acquirePlaygroundWebContainer(fileEntry.files)
-              }),
-            release: () => Effect.void,
-          }
-        },
+export const managedResources = Playground.managedResources(entry => ({
+  webContainerPlayground: entry(
+    'ManageWebContainerPlayground',
+    Schema.Option(PlaygroundParams),
+    {
+      resource: WebContainerPlayground,
+      modelToMaybeRequirements: ({ slug, state, maybeIsSupported }) =>
+        state._tag === 'Failed' ||
+        state._tag === 'Idle' ||
+        !Option.contains(maybeIsSupported, true)
+          ? Option.none()
+          : pipe(
+              slug,
+              Option.liftPredicate(() => Record.has(filesBySlug, slug)),
+              Option.map(() => ({ slug })),
+            ),
+      onAcquired: ({ previewUrl }) => Message.BootedPlayground({ previewUrl }),
+      onReleased: () => Message.ReleasedPlayground(),
+      onAcquireError: error =>
+        Message.FailedBootPlayground({ reason: reasonFromError(error) }),
+      handler: function* () {
+        return {
+          acquire: ({ slug }) =>
+            Effect.gen(function* () {
+              const fileEntry = yield* Effect.fromOption(
+                Record.get(filesBySlug, slug),
+              )
+              return yield* acquirePlaygroundWebContainer(fileEntry.files)
+            }),
+          release: () => Effect.void,
+        }
       },
-    ),
-  }),
-)
+    },
+  ),
+}))
 
 export const EffectsLayer = Layer.mergeAll(
   managedResources.webContainerPlayground.layer,
@@ -615,7 +611,7 @@ const markPreviewLoaded = (
     Match.orElse(() => state),
   )
 
-export const update = PlaygroundDefinition.update((model, message) =>
+export const update = Playground.update((model, message) =>
   Message.match(message, {
     BootedPlayground: ({ previewUrl }) => ({
       model: modifyFields(model, {
@@ -685,13 +681,11 @@ export const update = PlaygroundDefinition.update((model, message) =>
   }),
 )
 
-export const informSupport = PlaygroundDefinition.step(
-  (model, isSupported: boolean) => ({
-    model: modifyFields(model, {
-      maybeIsSupported: () => Option.some(isSupported),
-    }),
+export const informSupport = Playground.step((model, isSupported: boolean) => ({
+  model: modifyFields(model, {
+    maybeIsSupported: () => Option.some(isSupported),
   }),
-)
+}))
 
 const FILE_TAB_BUTTON_BASE_CLASS =
   'block w-full text-left px-3 py-1.5 font-mono text-xs'

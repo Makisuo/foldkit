@@ -2,11 +2,11 @@ import { Cause, Effect, Option, Schema, Stream } from 'effect'
 
 import { capturedKeyDownStream } from '../../keyboard'
 import { RoomsClient } from '../../rpc'
-import { RoomDefinition } from './definition'
+import { Room } from './definition'
 import { Message } from './message'
 import { capturesKeyboard } from './model'
 
-export const subscriptions = RoomDefinition.subscriptions(entry => ({
+export const subscriptions = Room.subscriptions(entry => ({
   roomUpdates: entry(
     'RoomUpdates',
     {

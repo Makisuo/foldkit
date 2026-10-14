@@ -7,7 +7,7 @@ import * as Runtime from 'foldkit/runtime'
 import * as Update from 'foldkit/update'
 
 import {
-  Child,
+  ChildBlock,
   ChildEffectsLayer,
   ChildModel,
   Clock,
@@ -68,7 +68,7 @@ const childModel = ChildModel.make({ value: 1 })
 const directModel = DirectModel.make({ value: 1 })
 const parentModel = ParentModel.make({ child: childModel })
 
-export const childRefresh = Child.expose.refresh(childModel)
+export const childRefresh = ChildBlock.expose.refresh(childModel)
 export const directRefresh = Direct.expose.refreshDirectValue(directModel)
 export const boundRefresh = child.refresh()(parentModel)
 export const directBoundRefresh = directChild.refresh()(parentModel)
@@ -120,7 +120,7 @@ type EmittedBoundRequirementsAreExact = Expect<
 type EmittedBoundEvidenceIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<ReturnType<typeof child.refresh>>>,
-    Block.BindingRequirement<'child', typeof Child>
+    Block.BindingRequirement<'child', typeof ChildBlock>
   >
 >
 type EmittedAccessorMappedMessageIsExact = Expect<
@@ -171,7 +171,9 @@ type EmittedDirectRequirementsAreExact = Expect<
 type EmittedRefinementIsExact = Expect<
   Equal<RefinedChoiceOutMessage['value'], 'One' | 'Two'>
 >
-type EmittedCompletedChildIsExact = Expect<Equal<CompletedChild, typeof Child>>
+type EmittedCompletedChildIsExact = Expect<
+  Equal<CompletedChild, typeof ChildBlock>
+>
 type EmittedCompletedPureIsExact = Expect<Equal<CompletedPure, typeof Pure>>
 type EmittedCompletedChoiceIsExact = Expect<
   Equal<CompletedChoice<readonly ['One', 'Two']>, typeof RefinedChoice>

@@ -3,4 +3,4 @@ import { Block } from 'foldkit'
 import { Message } from './message'
 import { Model } from './model'
 
-export const RoomDefinition = Block.define('Room', { Model, Message })
+export const Room = Block.define('Room', { Model, Message })

@@ -142,7 +142,7 @@ export const makeCompositionRuntime = <Model, Message>({
     }
 
     const makeNode = (
-      childDefinition: BindableBlock,
+      childBlock: BindableBlock,
       model: any,
       placement: string,
       parentContext: Context.Context<never>,
@@ -151,7 +151,7 @@ export const makeCompositionRuntime = <Model, Message>({
       binding?: object,
       key?: InstanceKey,
     ): InstanceNode => {
-      const channels = localChannelsOf(childDefinition)
+      const channels = localChannelsOf(childBlock)
       const managedResourceRefs = Object.values(channels.managedResources).map(
         config => ({
           config: {
@@ -172,7 +172,7 @@ export const makeCompositionRuntime = <Model, Message>({
           ? undefined
           : retiringOccurrenceAt(parent, binding, key)
       const node: InstanceNode = {
-        block: childDefinition,
+        block: childBlock,
         model,
         placement,
         label:
@@ -554,9 +554,9 @@ export const makeCompositionRuntime = <Model, Message>({
       if (existing !== undefined) {
         return existing
       }
-      const childDefinition = runtimeBindingOf(frame.binding).block
+      const childBlock = runtimeBindingOf(frame.binding).block
       const historical = makeHistoricalNode(
-        childDefinition,
+        childBlock,
         frame.binding,
         frame.key,
       )

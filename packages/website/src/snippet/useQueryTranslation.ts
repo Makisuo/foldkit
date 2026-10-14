@@ -21,9 +21,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = defineApplication({ Model, Message })
 
-const FetchPosts = ApplicationDefinition.command('FetchPosts', {
+const FetchPosts = Application.command('FetchPosts', {
   messages: [Message.CompletedFetchPosts],
   handler: function* () {
     return () =>
@@ -35,7 +35,7 @@ const FetchPosts = ApplicationDefinition.command('FetchPosts', {
   },
 })
 
-const update = ApplicationDefinition.update((model, message) =>
+const update = Application.update((model, message) =>
   Match.value(message).pipe(
     Match.tagsExhaustive({
       EnteredPostsRoute: () =>

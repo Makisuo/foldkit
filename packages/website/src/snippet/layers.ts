@@ -13,7 +13,7 @@ const Message = defineMessageUnion({
 })
 
 const Model = Schema.Struct({ maybeUser: Schema.Option(User) })
-const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = defineApplication({ Model, Message })
 
 type ApiClient = Readonly<{
   getUser: (userId: string) => Effect.Effect<User, unknown>
@@ -23,7 +23,7 @@ class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(
   'ApiClientService',
 ) {}
 
-const LoadUser = ApplicationDefinition.command('LoadUser', {
+const LoadUser = Application.command('LoadUser', {
   args: { userId: Schema.String },
   messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
   handler: function* () {

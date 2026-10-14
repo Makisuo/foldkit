@@ -4,7 +4,7 @@ import { Effect } from 'effect'
 import { Dom } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-const FocusSearchInput = ApplicationDefinition.command('FocusSearchInput', {
+const FocusSearchInput = Application.command('FocusSearchInput', {
   messages: [Message.CompletedFocusSearchInput],
   handler: function* () {
     return () =>
@@ -15,7 +15,7 @@ const FocusSearchInput = ApplicationDefinition.command('FocusSearchInput', {
   },
 })
 
-const update = ApplicationDefinition.update((model, message) =>
+const update = Application.update((model, message) =>
   Message.match(message, {
     ClickedOpenDialog: () => ({
       model: modifyFields(model, { dialogState: () => 'Open' }),

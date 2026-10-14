@@ -2,7 +2,7 @@
 
 import { Number } from 'effect'
 
-const update = ApplicationDefinition.update((model, message) =>
+const update = Application.update((model, message) =>
   Message.match(message, {
     UpdatedQuery: ({ query }) => {
       const nextSearchGeneration = Number.increment(model.searchGeneration)

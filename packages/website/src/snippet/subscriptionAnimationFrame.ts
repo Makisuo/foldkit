@@ -1,5 +1,5 @@
 import { Schema, Stream } from 'effect'
-import { Dom, Block } from 'foldkit'
+import { Block, Dom } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Message = defineMessageUnion({
@@ -14,9 +14,9 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const SpinnerDefinition = Block.define('Spinner', { Model, Message })
+const Spinner = Block.define('Spinner', { Model, Message })
 
-const subscriptions = SpinnerDefinition.subscriptions(entry => ({
+const subscriptions = Spinner.subscriptions(entry => ({
   animationFrameTicks: entry(
     'AnimationFrameTicks',
     { isActive: Schema.Boolean },

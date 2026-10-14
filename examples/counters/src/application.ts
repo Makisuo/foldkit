@@ -34,9 +34,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-const counters = ApplicationDefinition.bindChild(Counter.block, {
+const counters = Application.bindChild(Counter.block, {
   readAll: (model: Model) => model.rows,
   key: row => row.id,
   read: row => row.counter,
@@ -56,7 +56,7 @@ const counters = ApplicationDefinition.bindChild(Counter.block, {
   ): Message => Message.GotCounterMessage({ id, message }),
 })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [counters],
 })
 

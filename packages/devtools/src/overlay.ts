@@ -397,7 +397,7 @@ const taggedPayload = (
 
 // UPDATE
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = defineApplication({ Model, Message })
 
 const foldInspectorTabsOutMessage = Tabs.OutMessage.match<
   Update.Step<Model, Message>,
@@ -410,7 +410,7 @@ const foldInspectorTabsOutMessage = Tabs.OutMessage.match<
     }),
 })
 
-const inspectorTabs = ApplicationDefinition.bindChild(InspectorTabs, {
+const inspectorTabs = Application.bindChild(InspectorTabs, {
   field: 'inspectorTabs',
   parentMessage: Message.GotInspectorTabsMessage,
   outMessage: { fold: foldInspectorTabsOutMessage },
@@ -429,7 +429,7 @@ const foldBlockFilterOutMessage = Listbox.OutMessage.match<
     }),
 })
 
-const blockFilterListbox = ApplicationDefinition.bindChild(BlockFilterListbox, {
+const blockFilterListbox = Application.bindChild(BlockFilterListbox, {
   field: 'blockFilterListbox',
   parentMessage: Message.GotBlockFilterMessage,
   outMessage: { fold: foldBlockFilterOutMessage },
@@ -455,7 +455,7 @@ const foldScrubberSliderOutMessage = Slider.OutMessage.match<
 type DevToolsScrubber = typeof scrubberSlider
 
 const makeBindings = (scrubberSlider: DevToolsScrubber) => {
-  const scrubber = ApplicationDefinition.bindChild(scrubberSlider, {
+  const scrubber = Application.bindChild(scrubberSlider, {
     field: 'scrubberSlider',
     parentMessage: Message.GotScrubberSliderMessage,
     outMessage: { fold: foldScrubberSliderOutMessage },
@@ -483,7 +483,7 @@ type OverlayBindings = typeof bindings
 type ViewRequirements = Block.RequirementsOfBindings<
   OverlayBindings['children']
 >
-const ApplicationComposition = ApplicationDefinition.toComposition({
+const ApplicationComposition = Application.toComposition({
   children: bindings.children,
 })
 

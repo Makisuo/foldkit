@@ -64,7 +64,7 @@ An omitted entry has no additional parent gate. It still stops when `read` retur
 
 ## Keyed Children
 
-Use `ParentDefinition.bindChild` with `readAll` and `key` for a collection. The Binding declares collection enumeration, stable identity, and parent routing once. Every active key receives independent Stream scopes and its own gate evaluation.
+Use `Parent.bindChild` with `readAll` and `key` for a collection. The Binding declares collection enumeration, stable identity, and parent routing once. Every active key receives independent Stream scopes and its own gate evaluation.
 
 Removing a key stops those Streams. Reusing the key later creates a fresh occurrence, so callbacks captured by the old occurrence cannot dispatch into the replacement.
 

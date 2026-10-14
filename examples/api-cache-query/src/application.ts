@@ -1,11 +1,11 @@
 import { Option } from 'effect'
 
 import { postDetails, posts, stats, tabs } from './childBindings'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { Model, TABS_ID } from './model'
 import { subscriptions } from './subscription'
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [tabs, posts, stats, postDetails],
 })
 export const init = () => {

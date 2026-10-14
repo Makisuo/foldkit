@@ -58,7 +58,7 @@ type FruitParentModel = typeof FruitParentModel.Type
 
 type FruitMessage = typeof FruitCombobox.Message.Type
 
-const FruitComboboxTestDefinition = Block.define('FruitComboboxTest', {
+const FruitComboboxTest = Block.define('FruitComboboxTest', {
   Model: FruitParentModel,
   Message: FruitCombobox.Message,
 })
@@ -76,7 +76,7 @@ const foldFruitComboboxOutMessage = FruitCombobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const fruitCombobox = FruitComboboxTestDefinition.bindChild(FruitCombobox, {
+const fruitCombobox = FruitComboboxTest.bindChild(FruitCombobox, {
   field: 'combobox',
   toParentMessage: message => message,
   outMessage: { fold: foldFruitComboboxOutMessage },

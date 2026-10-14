@@ -8,13 +8,13 @@ Mount is the escape hatch for work whose cause is a particular element existing 
 
 ### Mount Definitions
 
-Use `FeatureDefinition.mount` for work that produces one Message when it starts. Its handler receives the live element and the rendered view's state, then returns an `Effect<Message>` that emits that Message. Its scope remains open until unmount so cleanup registered with `Effect.acquireRelease` runs at the right time. Use `FeatureDefinition.mountStream` when listeners or observers on the element must emit a continuing `Stream<Message>`.
+Use `Feature.mount` for work that produces one Message when it starts. Its handler receives the live element and the rendered view's state, then returns an `Effect<Message>` that emits that Message. Its scope remains open until unmount so cleanup registered with `Effect.acquireRelease` runs at the right time. Use `Feature.mountStream` when listeners or observers on the element must emit a continuing `Stream<Message>`.
 
 Mount definitions declare their name, args, and result Messages in the config, then set `config.handler` to a generator constructor. Foldkit applies `Effect.gen` internally. Both owned constructors expose the attached recipe as `.layer`.
 
 ### Result Messages
 
-Both `FeatureDefinition.mount` and `FeatureDefinition.mountStream` require at least one declared result Message. When no result needs to change the Model, return a descriptive `Completed*` Message and leave the Model unchanged in update. The Message keeps the effect visible to DevTools, Scene tests, and replay.
+Both `Feature.mount` and `Feature.mountStream` require at least one declared result Message. When no result needs to change the Model, return a descriptive `Completed*` Message and leave the Model unchanged in update. The Message keeps the effect visible to DevTools, Scene tests, and replay.
 
 :::Info{label="Functional core, imperative shell"}
 The view describes what should be on screen. `OnMount` handles imperative work at the boundary between the virtual DOM and a live element. Results still return to update as Messages, and setup stays paired with cleanup inside the Mount's Effect or Stream.
@@ -80,9 +80,9 @@ Name the Mount for the imperative work attached to the element, using a verb-fir
 
 Registering a Mount that the view never renders starts no element lifecycle, listeners, or DOM work. Its provided handler constructor still runs during application startup.
 
-For an owned Block, create `NameDefinition = Block.define('Name', { Model, Message })`, create Mounts through that typed authoring value, and list them in `NameComposition = NameDefinition.toComposition({ mounts })`. Author the canonical view with `NameComposition.view`, then pass the local handler recipes to `NameComposition.toBlock({ EffectsLayer })`. A parent that includes the child Binding receives its Mount registrations and handler graph together. `ApplicationComposition` installs the root graph through its owned `make({ init, update, view, ... })` method.
+For an owned Block, create `Name = Block.define('Name', { Model, Message })`, create Mounts through that typed authoring value, and list them in `NameComposition = Name.toComposition({ mounts })`. Author the canonical view with `NameComposition.view`, then pass the local handler recipes to `NameComposition.toBlock({ EffectsLayer })`. A parent that includes the child Binding receives its Mount registrations and handler graph together. `ApplicationComposition` installs the root graph through its owned `make({ init, update, view, ... })` method.
 
-Use `ParentDefinition.bindChild` with `readAll` and `key` for a dynamically keyed collection. Each active key gets independent Mount ownership, and the parent includes the keyed Binding once under `children`.
+Use `Parent.bindChild` with `readAll` and `key` for a dynamically keyed collection. Each active key gets independent Mount ownership, and the parent includes the keyed Binding once under `children`.
 
 ### Mount Requirements in Reusable Views
 
@@ -128,7 +128,7 @@ A Mount often needs an input that differs by element instance, such as an initia
 
 #### Runtime Invocation
 
-Calling the Definition with an args record creates the MountAction passed to `OnMount`. That call never runs the handler. The Runtime invokes it when the element enters the DOM, so the pure view only describes the action. A `FeatureDefinition.mountStream` handler returns a `Stream<Message>` instead.
+Calling the Definition with an args record creates the MountAction passed to `OnMount`. That call never runs the handler. The Runtime invokes it when the element enters the DOM, so the pure view only describes the action. A `Feature.mountStream` handler returns a `Stream<Message>` instead.
 
 #### What Belongs in Args
 

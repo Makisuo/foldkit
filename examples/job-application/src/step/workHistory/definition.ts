@@ -25,7 +25,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const WorkHistoryDefinition = Block.define('WorkHistory', {
+const WorkHistory = Block.define('WorkHistory', {
   Model,
   Message,
 })
@@ -35,7 +35,7 @@ export const init = (today: CalendarDate, initialEntryId: string): Model => ({
   today,
 })
 
-export const GenerateWorkHistoryEntryId = WorkHistoryDefinition.command(
+export const GenerateWorkHistoryEntryId = WorkHistory.command(
   'GenerateWorkHistoryEntryId',
   {
     messages: [
@@ -72,7 +72,7 @@ const foldEntryOutMessage = (
     }),
   })
 
-export const entries = WorkHistoryDefinition.bindChild(Entry.block, {
+export const entries = WorkHistory.bindChild(Entry.block, {
   readAll: (model: Model) => model.entries,
   key: (entry: typeof Entry.Model.Type) => entry.id,
   read: entry => entry,
@@ -85,11 +85,11 @@ export const entries = WorkHistoryDefinition.bindChild(Entry.block, {
   outMessage: { fold: foldEntryOutMessage },
 })
 
-export const WorkHistoryComposition = WorkHistoryDefinition.toComposition({
+export const WorkHistoryComposition = WorkHistory.toComposition({
   children: [entries],
 })
 
-export const update = WorkHistoryDefinition.update((model, message) =>
+export const update = WorkHistory.update((model, message) =>
   Message.match(message, {
     ClickedAddEntry: () => ({
       model,

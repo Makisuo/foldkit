@@ -3,7 +3,7 @@ import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { FetchTelemetry, SyncChart } from './command'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { Message } from './message'
 import { Model } from './model'
 import {
@@ -73,42 +73,33 @@ const foldChartModeRadioGroupOutMessage = ChartModeRadioGroup.OutMessage.match({
     selectedControl(modifyFields({ chartMode: () => value })),
 })
 
-export const chartModeRadioGroup = ApplicationDefinition.bindChild(
-  ChartModeRadioGroup,
-  {
-    placement: CHART_MODE_RADIO_GROUP_ID,
-    field: 'chartModeRadioGroup',
-    parentMessage: Message.GotChartModeRadioGroupMessage,
-    outMessage: { fold: foldChartModeRadioGroupOutMessage },
-  },
-)
+export const chartModeRadioGroup = Application.bindChild(ChartModeRadioGroup, {
+  placement: CHART_MODE_RADIO_GROUP_ID,
+  field: 'chartModeRadioGroup',
+  parentMessage: Message.GotChartModeRadioGroupMessage,
+  outMessage: { fold: foldChartModeRadioGroupOutMessage },
+})
 
 const foldPeriodRadioGroupOutMessage = PeriodRadioGroup.OutMessage.match({
   Selected: ({ value }) =>
     selectedControl(modifyFields({ period: () => value })),
 })
 
-export const periodRadioGroup = ApplicationDefinition.bindChild(
-  PeriodRadioGroup,
-  {
-    placement: PERIOD_RADIO_GROUP_ID,
-    field: 'periodRadioGroup',
-    parentMessage: Message.GotPeriodRadioGroupMessage,
-    outMessage: { fold: foldPeriodRadioGroupOutMessage },
-  },
-)
+export const periodRadioGroup = Application.bindChild(PeriodRadioGroup, {
+  placement: PERIOD_RADIO_GROUP_ID,
+  field: 'periodRadioGroup',
+  parentMessage: Message.GotPeriodRadioGroupMessage,
+  outMessage: { fold: foldPeriodRadioGroupOutMessage },
+})
 
 const foldPackageRadioGroupOutMessage = PackageRadioGroup.OutMessage.match({
   Selected: ({ value }) =>
     selectedControl(modifyFields({ selectedPackageId: () => value })),
 })
 
-export const packageRadioGroup = ApplicationDefinition.bindChild(
-  PackageRadioGroup,
-  {
-    placement: PACKAGE_RADIO_GROUP_ID,
-    field: 'packageRadioGroup',
-    parentMessage: Message.GotPackageRadioGroupMessage,
-    outMessage: { fold: foldPackageRadioGroupOutMessage },
-  },
-)
+export const packageRadioGroup = Application.bindChild(PackageRadioGroup, {
+  placement: PACKAGE_RADIO_GROUP_ID,
+  field: 'packageRadioGroup',
+  parentMessage: Message.GotPackageRadioGroupMessage,
+  outMessage: { fold: foldPackageRadioGroupOutMessage },
+})

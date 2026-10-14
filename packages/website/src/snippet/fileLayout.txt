@@ -1,6 +1,6 @@
 src/
 +-- entry.ts              Browser startup, container, inputs, Runtime.run
-+-- application.ts        ApplicationDefinition, Bindings, and ApplicationComposition
++-- application.ts        Application, Bindings, and ApplicationComposition
 +-- layer.ts              Substantial shared provider composition
 +-- environment.ts        Concrete HTTP, RPC, and browser providers
 +-- storage.ts            LocalStorage and SessionStorage implementations

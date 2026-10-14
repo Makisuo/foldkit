@@ -1,4 +1,3 @@
-import { ImportedDefinition as EarlierDefinition } from '../valid/definition'
 import { Block, Block as AliasedBlock } from 'foldkit'
 import * as Foldkit from 'foldkit'
 import { define as aliasedDefine, define } from 'foldkit/block'
@@ -34,8 +33,9 @@ void WrongIdentityFirst
 void WrongApplication
 void WrongRegisteredApplication
 
-const SeparateDefinition = Block.define('Separate', { Model, Message })
-const WrongSeparateComposition = SeparateDefinition.toComposition()
-const WrongImportedComposition = EarlierDefinition.toComposition()
+const Separate = Block.define('Separate', { Model, Message })
+const WrongSeparateComposition = Separate.toComposition()
+const Shared = Block.define('Shared')
+const WrongShared = Shared.define({ Model, Message })
 void WrongSeparateComposition
-void WrongImportedComposition
+void WrongShared

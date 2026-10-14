@@ -6,7 +6,7 @@ import { DragAndDrop } from '@foldkit/ui'
 import { maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 
 import { SaveBoard } from './command'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { Column } from './domain'
 import { Message } from './message'
 import { Model } from './model'
@@ -96,7 +96,7 @@ const screenReaderTextForDrop = (
 const foldDragAndDropOutMessage = (previousModel: Model) =>
   DragAndDrop.OutMessage.match({
     Reordered: outMessage =>
-      ApplicationDefinition.step(model => {
+      Application.step(model => {
         const { itemId, fromContainerId, toContainerId, toIndex } = outMessage
         const nextColumns = Column.reorder(
           model.columns,
@@ -115,7 +115,7 @@ const foldDragAndDropOutMessage = (previousModel: Model) =>
         }
       }),
     Cancelled: outMessage =>
-      ApplicationDefinition.step(model => ({
+      Application.step(model => ({
         model: modifyFields(model, {
           announcement: () =>
             screenReaderTextForDrop(previousModel, outMessage),
@@ -134,7 +134,7 @@ const dragAndDropOutMessagePolicy = {
   ) => foldDragAndDropOutMessage(context.modelBeforeUpdate)(outMessage),
 }
 
-export const dragAndDrop = ApplicationDefinition.bindChild(DragAndDrop.block, {
+export const dragAndDrop = Application.bindChild(DragAndDrop.block, {
   read: (model: Model) => Option.some(model.dragAndDrop),
   write: (model, nextDragAndDrop) =>
     modifyFields(model, {

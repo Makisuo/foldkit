@@ -25,7 +25,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const EducationDefinition = Block.define('Education', {
+const Education = Block.define('Education', {
   Model,
   Message,
 })
@@ -35,7 +35,7 @@ export const init = (today: CalendarDate, initialEntryId: string): Model => ({
   today,
 })
 
-export const GenerateEducationEntryId = EducationDefinition.command(
+export const GenerateEducationEntryId = Education.command(
   'GenerateEducationEntryId',
   {
     messages: [
@@ -72,7 +72,7 @@ const foldEntryOutMessage = (
     }),
   })
 
-export const entries = EducationDefinition.bindChild(Entry.block, {
+export const entries = Education.bindChild(Entry.block, {
   readAll: (model: Model) => model.entries,
   key: (entry: typeof Entry.Model.Type) => entry.id,
   read: entry => entry,
@@ -85,11 +85,11 @@ export const entries = EducationDefinition.bindChild(Entry.block, {
   outMessage: { fold: foldEntryOutMessage },
 })
 
-export const EducationComposition = EducationDefinition.toComposition({
+export const EducationComposition = Education.toComposition({
   children: [entries],
 })
 
-export const update = EducationDefinition.update((model, message) =>
+export const update = Education.update((model, message) =>
   Message.match(message, {
     ClickedAddEntry: () => ({ model, commands: [GenerateEducationEntryId()] }),
 

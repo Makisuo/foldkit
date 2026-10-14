@@ -49,11 +49,11 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition()
+export const ApplicationComposition = Application.toComposition()
 
-type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
+type ViewBuilder = HtmlBuilderOf<typeof Application>
 
 export const initialModel: Model = {
   uploadId: 0,
@@ -92,7 +92,7 @@ const MILLISECONDS_PER_MEGABYTE = 100
 export const UploadKey = Schema.Struct({ uploadId: Schema.Number })
 export type UploadKey = typeof UploadKey.Type
 
-export const UploadFile = ApplicationDefinition.command('UploadFile', {
+export const UploadFile = Application.command('UploadFile', {
   args: { ...UploadKey.fields, sizeMegabytes: Schema.Number },
   messages: [Message.CompletedUploadFile],
   interrupt: {

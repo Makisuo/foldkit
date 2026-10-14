@@ -4,7 +4,7 @@ import { Products } from './page'
 // Access a feature namespace
 Products.Model
 Products.Message
-ApplicationDefinition.bindChild(Products.block, {
+Application.bindChild(Products.block, {
   field: 'products',
   parentMessage: Message.GotProductsMessage,
 })

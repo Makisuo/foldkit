@@ -1,4 +1,4 @@
-import { Array, Effect, Option } from 'effect'
+import { Effect, Option } from 'effect'
 import {
   AST,
   Diagnostic,
@@ -16,7 +16,6 @@ import {
   isMemberExpression,
   isVariableDeclarator,
   resolveFoldkitApiPath,
-  resolveImportedPath,
   resolvedVariable,
   staticMemberPath,
 } from '../guards.ts'
@@ -59,17 +58,17 @@ const isApplicationDefineCall = (
   })
 }
 
-type DefinitionStage = Readonly<{
+type AuthoringStage = Readonly<{
   isApplication: boolean
   isComposition: boolean
   identity: string | undefined
 }>
 
-const definitionStage = (
+const authoringStage = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
   visited: ReadonlySet<ESTree.Node> = new Set(),
-): DefinitionStage | undefined => {
+): AuthoringStage | undefined => {
   if (visited.has(node)) {
     return undefined
   }
@@ -100,7 +99,7 @@ const definitionStage = (
   const receiver = node.callee.object
   const precedingStage = (() => {
     if (isCallExpression(receiver)) {
-      return definitionStage(receiver, references, new Set([...visited, node]))
+      return authoringStage(receiver, references, new Set([...visited, node]))
     }
 
     if (references === undefined) {
@@ -120,26 +119,11 @@ const definitionStage = (
           isVariableDeclarator(definition.node) &&
           isCallExpression(definition.node.init)
         ) {
-          return definitionStage(
+          return authoringStage(
             definition.node.init,
             references,
             new Set([...visited, node]),
           )
-        }
-      }
-    }
-
-    const imported = resolveImportedPath(references, receiver)
-    if (Option.isSome(imported)) {
-      const definitionName = Option.getOrUndefined(
-        Array.last(imported.value.members),
-      )
-      if (definitionName?.endsWith('Definition')) {
-        const identity = definitionName.slice(0, -'Definition'.length)
-        return {
-          identity,
-          isApplication: identity === 'Application',
-          isComposition: false,
         }
       }
     }
@@ -157,7 +141,7 @@ const definitionStage = (
   }
 }
 
-/** Requires definition bindings to follow the Definition and Composition stage naming model. */
+/** Requires Block and Application bindings to follow the authoring and Composition stage naming model. */
 export const blockNameMatchesVariable = Rule.define({
   name: 'block-name-matches-variable',
   meta: Rule.meta({
@@ -182,15 +166,15 @@ export const blockNameMatchesVariable = Rule.define({
           return Effect.void
         }
 
-        const definition = definitionStage(init, references)
-        if (definition === undefined) {
+        const stage = authoringStage(init, references)
+        if (stage === undefined) {
           return Effect.void
         }
 
-        if (definition.isApplication) {
-          const expectedName = definition.isComposition
+        if (stage.isApplication) {
+          const expectedName = stage.isComposition
             ? 'ApplicationComposition'
-            : 'ApplicationDefinition'
+            : 'Application'
           if (node.id.name === expectedName) {
             return Effect.void
           }
@@ -198,17 +182,17 @@ export const blockNameMatchesVariable = Rule.define({
           return ctx.report(
             Diagnostic.make({
               node: node.id,
-              message: `Application definition identifier "${node.id.name}" must be "${expectedName}" at this authoring stage.`,
+              message: `Application identifier "${node.id.name}" must be "${expectedName}" at this authoring stage.`,
             }),
           )
         }
 
-        const identity = definition.identity
+        const identity = stage.identity
         if (identity === undefined) {
           return Effect.void
         }
 
-        const expectedName = `${identity}${definition.isComposition ? 'Composition' : 'Definition'}`
+        const expectedName = `${identity}${stage.isComposition ? 'Composition' : ''}`
         const isValidName = node.id.name === expectedName
         if (isValidName) {
           return Effect.void
@@ -217,7 +201,7 @@ export const blockNameMatchesVariable = Rule.define({
         return ctx.report(
           Diagnostic.make({
             node: node.id,
-            message: `Block ${definition.isComposition ? 'Composition' : 'Definition'} identifier "${node.id.name}" must be "${expectedName}".`,
+            message: `Block ${stage.isComposition ? 'Composition' : 'authoring'} identifier "${node.id.name}" must be "${expectedName}".`,
           }),
         )
       },

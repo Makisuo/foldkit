@@ -7,7 +7,7 @@ import { describe, it } from '@effect/vitest'
 
 import { Message, Model, OutMessage, block, init } from './index.js'
 
-const HoverIntentSceneDefinition = Block.define('HoverIntentScene', {
+const HoverIntentScene = Block.define('HoverIntentScene', {
   Model,
   Message,
 })
@@ -19,18 +19,18 @@ const foldHoverIntentOutMessage = OutMessage.match<Update.Step<Model, Message>>(
   },
 )
 
-const hoverIntent = HoverIntentSceneDefinition.bindChild(block, {
+const hoverIntent = HoverIntentScene.bindChild(block, {
   read: (model: Model) => Option.some(model),
   write: (_model: Model, nextHoverIntent: Model) => nextHoverIntent,
   toParentMessage: (message: Message): Message => message,
   outMessage: { fold: foldHoverIntentOutMessage },
 })
 
-const HoverIntentSceneComposition = HoverIntentSceneDefinition.toComposition({
+const HoverIntentSceneComposition = HoverIntentScene.toComposition({
   children: [hoverIntent],
 })
 
-const update = HoverIntentSceneDefinition.update((model, message) =>
+const update = HoverIntentScene.update((model, message) =>
   hoverIntent.fold(model, message),
 )
 

@@ -3,7 +3,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { type PeopleRoute } from '../../route'
 import { FetchPeople, PushSearchUrl } from './command'
-import { PeopleDefinition } from './definition'
+import { People } from './definition'
 import { Message } from './message'
 import {
   Model,
@@ -23,7 +23,7 @@ export const init = (route: PeopleRoute) => {
     commands: [FetchPeople({ searchText })],
   }
 }
-export const update = PeopleDefinition.update((model, message) =>
+export const update = People.update((model, message) =>
   Message.match(message, {
     ChangedSearchInput: ({ value }) => ({
       model: modifyFields(model, { searchInput: () => value }),
@@ -66,6 +66,6 @@ export const update = PeopleDefinition.update((model, message) =>
  *  route and returns the refetch Command. The parent calls this from its
  *  `ChangedUrl` handler. Contrast a `reflect*` setter, which writes a field the
  *  Block owns from an external value, with no derivation and no Command. */
-export const informRouteChanged = PeopleDefinition.step(
-  (model, route: PeopleRoute) => update(model, Message.ChangedRoute({ route })),
+export const informRouteChanged = People.step((model, route: PeopleRoute) =>
+  update(model, Message.ChangedRoute({ route })),
 )

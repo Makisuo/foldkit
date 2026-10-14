@@ -36,15 +36,12 @@ const foldComboboxOutMessage = Combobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const ComboboxMountRequirementsDefinition = Block.define(
-  'ComboboxMountRequirements',
-  {
-    Model: Combobox.Model,
-    Message: Combobox.Message,
-  },
-)
+const ComboboxMountRequirements = Block.define('ComboboxMountRequirements', {
+  Model: Combobox.Model,
+  Message: Combobox.Message,
+})
 
-const combobox = ComboboxMountRequirementsDefinition.bindChild(Combobox.block, {
+const combobox = ComboboxMountRequirements.bindChild(Combobox.block, {
   read: (model: Combobox.Model) => Option.some(model),
   write: (_model: Combobox.Model, nextCombobox: Combobox.Model) => nextCombobox,
   toParentMessage: (message: Combobox.Message): Combobox.Message => message,
@@ -70,15 +67,12 @@ const foldListboxOutMessage = Listbox.OutMessage.match<
   Selected: () => model => ({ model }),
 })
 
-const ListboxMountRequirementsDefinition = Block.define(
-  'ListboxMountRequirements',
-  {
-    Model: Listbox.Model,
-    Message: Listbox.Message,
-  },
-)
+const ListboxMountRequirements = Block.define('ListboxMountRequirements', {
+  Model: Listbox.Model,
+  Message: Listbox.Message,
+})
 
-const listbox = ListboxMountRequirementsDefinition.bindChild(Listbox.block, {
+const listbox = ListboxMountRequirements.bindChild(Listbox.block, {
   read: (model: Listbox.Model) => Option.some(model),
   write: (_model: Listbox.Model, nextListbox: Listbox.Model) => nextListbox,
   toParentMessage: (message: Listbox.Message): Listbox.Message => message,
@@ -103,12 +97,12 @@ const foldMenuOutMessage = Menu.OutMessage.match<
   Selected: () => model => ({ model }),
 })
 
-const MenuMountRequirementsDefinition = Block.define('MenuMountRequirements', {
+const MenuMountRequirements = Block.define('MenuMountRequirements', {
   Model: Menu.Model,
   Message: Menu.Message,
 })
 
-const menu = MenuMountRequirementsDefinition.bindChild(Menu.block, {
+const menu = MenuMountRequirements.bindChild(Menu.block, {
   read: (model: Menu.Model) => Option.some(model),
   write: (_model: Menu.Model, nextMenu: Menu.Model) => nextMenu,
   toParentMessage: (message: Menu.Message): Menu.Message => message,

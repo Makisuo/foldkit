@@ -6,7 +6,7 @@ const foldLoginOutMessage = (
 ) =>
   Login.OutMessage.match(outMessage, {
     RequestedMagicLink: ({ email }) =>
-      ApplicationDefinition.step(model => ({
+      Application.step(model => ({
         model,
         commands: [
           liftCommand(

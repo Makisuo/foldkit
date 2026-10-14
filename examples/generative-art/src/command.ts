@@ -13,10 +13,10 @@ import {
   PARTICLE_SPEED_MIN,
   SETTLE_BAND_PX,
 } from './constant'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { Message } from './message'
 
-export const GenerateAmbientParticle = ApplicationDefinition.command(
+export const GenerateAmbientParticle = Application.command(
   'GenerateAmbientParticle',
   {
     messages: [Message.CompletedGenerateAmbientParticle],
@@ -65,7 +65,7 @@ const BURST_INITIAL_SPEED_SCALE_MIN = 1.4
 const BURST_INITIAL_SPEED_SCALE_MAX = 2.2
 const BURST_HUE_JITTER_DEGREES = 30
 
-export const GenerateBurstParticle = ApplicationDefinition.command(
+export const GenerateBurstParticle = Application.command(
   'GenerateBurstParticle',
   {
     args: {

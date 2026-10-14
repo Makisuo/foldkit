@@ -43,23 +43,22 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const AnimatedDialogExampleDefinition = Block.define('AnimatedDialogExample', {
+const AnimatedDialogExample = Block.define('AnimatedDialogExample', {
   Model,
   Message,
 })
 
-const dialog = AnimatedDialogExampleDefinition.bindChild(Dialog.block, {
+const dialog = AnimatedDialogExample.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const AnimatedDialogExampleComposition =
-  AnimatedDialogExampleDefinition.toComposition({
-    children: [dialog],
-  })
+const AnimatedDialogExampleComposition = AnimatedDialogExample.toComposition({
+  children: [dialog],
+})
 
-const update = AnimatedDialogExampleDefinition.update((model, message) =>
+const update = AnimatedDialogExample.update((model, message) =>
   Message.match(message, {
     GotDialogMessage: ({ message }) => dialog.fold(model, message),
   }),

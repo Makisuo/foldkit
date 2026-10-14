@@ -19,8 +19,8 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({ ClickedLabel: { label: Schema.String } })
 type Message = typeof Message.Type
 
-const ApplicationDefinition = defineApplication({ Model, Message })
-const ApplicationComposition = ApplicationDefinition.toComposition()
+const Application = defineApplication({ Model, Message })
+const ApplicationComposition = Application.toComposition()
 
 const modelRender = ApplicationComposition.render((model, h) =>
   h.button(
@@ -60,7 +60,7 @@ export type ApplicationRenderAssertions = [
 ]
 
 if (false) {
-  const update = ApplicationDefinition.update(model => ({ model }))
+  const update = Application.update(model => ({ model }))
   const init = () => ({ model: Model.make({ label: 'initial' }) })
 
   // @ts-expect-error A plain render helper cannot complete an Application as its branded view.

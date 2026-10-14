@@ -42,22 +42,21 @@ const init = () => {
   }
 }
 
-const MessageListExampleDefinition = Block.define('MessageListExample', {
+const MessageListExample = Block.define('MessageListExample', {
   Model,
   Message,
 })
 
-const messageList = MessageListExampleDefinition.bindChild(MessageList, {
+const messageList = MessageListExample.bindChild(MessageList, {
   field: 'messageList',
   parentMessage: Message.GotMessageListMessage,
 })
 
-const MessageListExampleComposition =
-  MessageListExampleDefinition.toComposition({
-    children: [messageList],
-  })
+const MessageListExampleComposition = MessageListExample.toComposition({
+  children: [messageList],
+})
 
-const update = MessageListExampleDefinition.update((model, message) =>
+const update = MessageListExample.update((model, message) =>
   Message.match(message, {
     GotMessageListMessage: ({ message }) => messageList.fold(model, message),
     ReceivedMessage: ({ message }) => {

@@ -3,7 +3,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Slider } from '@foldkit/ui'
 
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { Message } from './message'
 import { Model } from './model'
 
@@ -17,14 +17,11 @@ const foldFlowStrengthSliderOutMessage = Slider.OutMessage.match<
     }),
 })
 
-export const flowStrengthSlider = ApplicationDefinition.bindChild(
-  Slider.block,
-  {
-    field: 'flowStrengthSlider',
-    parentMessage: Message.GotFlowStrengthSliderMessage,
-    outMessage: { fold: foldFlowStrengthSliderOutMessage },
-  },
-)
+export const flowStrengthSlider = Application.bindChild(Slider.block, {
+  field: 'flowStrengthSlider',
+  parentMessage: Message.GotFlowStrengthSliderMessage,
+  outMessage: { fold: foldFlowStrengthSliderOutMessage },
+})
 
 const foldNoiseScaleSliderOutMessage = Slider.OutMessage.match<
   Update.Step<Model, Message>
@@ -36,7 +33,7 @@ const foldNoiseScaleSliderOutMessage = Slider.OutMessage.match<
     }),
 })
 
-export const noiseScaleSlider = ApplicationDefinition.bindChild(Slider.block, {
+export const noiseScaleSlider = Application.bindChild(Slider.block, {
   field: 'noiseScaleSlider',
   parentMessage: Message.GotNoiseScaleSliderMessage,
   outMessage: { fold: foldNoiseScaleSliderOutMessage },

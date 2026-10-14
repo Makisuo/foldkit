@@ -15,9 +15,9 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition()
+export const ApplicationComposition = Application.toComposition()
 
 export const subscriptions = ApplicationComposition.subscriptions(entry => ({
   gameClockTicks: entry(

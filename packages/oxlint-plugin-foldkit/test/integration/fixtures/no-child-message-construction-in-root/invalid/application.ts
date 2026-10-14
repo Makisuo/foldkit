@@ -64,8 +64,8 @@ export const update = (model: Model) => {
   }
 }
 
-const ParentViewDefinition = Block.define('ParentView')
-const parentView = ParentViewDefinition.define({
+const ParentView = Block.define('ParentView')
+const parentView = ParentView.define({
   Model,
   Message: ParentMessage,
 })
@@ -82,8 +82,8 @@ export const parentStep = parentView.step(model => ({
   message: Child.Message.ClickedParentStepSave(),
 }))
 
-const ServerChildViewDefinition = Block.define('ServerChildView')
-const serverChildViewDefinition = ServerChildViewDefinition.define({
+const ServerChildView = Block.define('ServerChildView')
+const serverChildViewDefinition = ServerChildView.define({
   Model: Child.Model,
   Message: Child.Message,
 })

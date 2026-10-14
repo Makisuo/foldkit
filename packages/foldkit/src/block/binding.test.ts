@@ -82,13 +82,13 @@ const childBase = ChildOwner.define({
   Message: ChildMessage,
   OutMessage: ChildOutMessage,
 })
-const ChildDefinition = childBase.toComposition({ mounts: [Measure] })
+const ChildComposition = childBase.toComposition({ mounts: [Measure] })
 
-const childView = ChildDefinition.view((model, h) =>
+const childView = ChildComposition.view((model, h) =>
   h.div([], [`Count ${model.count}`]),
 )
 
-const detailedChildView = ChildDefinition.view.withInputs<
+const detailedChildView = ChildComposition.view.withInputs<
   Readonly<{ prefix: string }>
 >((model, viewInputs, h) => h.div([], [`${viewInputs.prefix} ${model.count}`]))
 
@@ -139,7 +139,7 @@ const report = childBase.step((model: ChildModel) => ({
   outMessage: ChildOutMessage.Reported({ value: model.count }),
 }))
 
-const Child = ChildDefinition.toBlock({
+const Child = ChildComposition.toBlock({
   view: childView,
   init: (count: number) => ({ model: ChildModel.make({ count }) }),
   update: childUpdate,
@@ -174,7 +174,7 @@ const ParentOutMessage = defineMessageUnion({
 })
 type ParentOutMessage = typeof ParentOutMessage.Type
 
-const ParentDefinition = define('BindingParent', {
+const Parent = define('BindingParent', {
   Model: ParentModel,
   Message: ParentMessage,
   OutMessage: ParentOutMessage,
@@ -208,7 +208,7 @@ const writeChild = (
 ): ParentModel =>
   modifyFields(model, { maybeChild: () => Option.some(nextChildModel) })
 
-const home = ParentDefinition.bindChild(Child, {
+const home = Parent.bindChild(Child, {
   placement: 'home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
@@ -247,7 +247,7 @@ const foldChildOutMessageWithCommand = (
       }),
   })
 
-const commandHome = ParentDefinition.bindChild(Child, {
+const commandHome = Parent.bindChild(Child, {
   placement: 'command-home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
@@ -262,7 +262,7 @@ const ParentPolicyOwner = define('BindingParentPolicy')
 const RunPolicyWork = ParentPolicyOwner.command('RunPolicyWork', {
   messages: [PolicyMessage.CompletedPolicyWork],
 })
-const ParentPolicyDefinition = ParentPolicyOwner.define({
+const ParentPolicy = ParentPolicyOwner.define({
   Model: ParentModel,
   Message: PolicyMessage,
   OutMessage: ParentOutMessage,
@@ -285,7 +285,7 @@ const foldChildOutMessageWithParentCommand = ChildOutMessage.match<
     }),
 })
 
-const parentCommandHome = ParentPolicyDefinition.bindChild(Child, {
+const parentCommandHome = ParentPolicy.bindChild(Child, {
   placement: 'parent-command-home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
@@ -293,7 +293,7 @@ const parentCommandHome = ParentPolicyDefinition.bindChild(Child, {
   outMessage: { fold: foldChildOutMessageWithParentCommand },
 })
 
-const forwardOnlyHome = ParentDefinition.bindChild(Child, {
+const forwardOnlyHome = Parent.bindChild(Child, {
   placement: 'forward-only-home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
@@ -303,7 +303,7 @@ const forwardOnlyHome = ParentDefinition.bindChild(Child, {
 
 const bindWithoutOutMessagePolicy = () =>
   // @ts-expect-error an OutMessage block requires an explicit parent policy
-  ParentDefinition.bindChild(Child, {
+  Parent.bindChild(Child, {
     placement: 'missing-policy',
     read: (model: ParentModel) => model.maybeChild,
     write: writeChild,
@@ -313,7 +313,7 @@ void bindWithoutOutMessagePolicy
 
 const bindWithUnknownForward = () =>
   // @ts-expect-error an unknown return would erase the parent OutMessage contract
-  ParentDefinition.bindChild(Child, {
+  Parent.bindChild(Child, {
     placement: 'unknown-forward',
     read: (model: ParentModel) => model.maybeChild,
     write: writeChild,
@@ -323,7 +323,7 @@ const bindWithUnknownForward = () =>
   })
 void bindWithUnknownForward
 
-const locallyHandledWithoutForwarding = ParentDefinition.bindChild(Child, {
+const locallyHandledWithoutForwarding = Parent.bindChild(Child, {
   placement: 'locally-handled',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
@@ -364,11 +364,11 @@ const writeArityChild = (
 const toArityParentMessage = (message: ArityMessage): ArityMessage => message
 
 const WrappedArityOwner = define('BindingWrappedArity')
-const WrappedArityDefinition = WrappedArityOwner.define({
+const WrappedArity = WrappedArityOwner.define({
   Model: ArityModel,
   Message: ArityMessage,
 })
-const wrappedArityUpdate = WrappedArityDefinition.update(
+const wrappedArityUpdate = WrappedArity.update(
   (
     ...[model, _message, context]: [
       model: ArityModel,
@@ -381,12 +381,12 @@ const wrappedArityUpdate = WrappedArityDefinition.update(
     }),
   }),
 )
-const defaultIncrement = WrappedArityDefinition.step(
+const defaultIncrement = WrappedArity.step(
   (model: ArityModel, amount: number = 1) => ({
     model: modifyFields(model, { count: count => count + amount }),
   }),
 )
-const addMany = WrappedArityDefinition.step(
+const addMany = WrappedArity.step(
   (model: ArityModel, ...amounts: ReadonlyArray<number>) => ({
     model: modifyFields(model, {
       count: count =>
@@ -394,20 +394,20 @@ const addMany = WrappedArityDefinition.step(
     }),
   }),
 )
-const resetArity = WrappedArityDefinition.step((model: ArityModel) => ({
+const resetArity = WrappedArity.step((model: ArityModel) => ({
   model: modifyFields(model, { count: () => 0 }),
 }))
-const WrappedArity = WrappedArityDefinition.toComposition().toBlock({
+const WrappedArityBlock = WrappedArity.toComposition().toBlock({
   init: () => ({ model: ArityModel.make({ count: 0 }) }),
   update: wrappedArityUpdate,
   expose: { defaultIncrement, addMany, resetArity },
   EffectsLayer: Layer.empty,
 })
-const WrappedArityParentDefinition = define('BindingWrappedArityParent', {
+const WrappedArityParent = define('BindingWrappedArityParent', {
   Model: ArityParent,
   Message: ArityMessage,
 })
-const wrappedArity = WrappedArityParentDefinition.bindChild(WrappedArity, {
+const wrappedArity = WrappedArityParent.bindChild(WrappedArityBlock, {
   placement: 'wrapped-arity',
   read: readArityChild,
   write: writeArityChild,
@@ -590,7 +590,7 @@ describe('Block binding', () => {
   })
 
   it('applies one Subscription gate across every child entry', () => {
-    const gated = ParentDefinition.bindChild(Child, {
+    const gated = Parent.bindChild(Child, {
       placement: 'gated-home',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
@@ -719,7 +719,7 @@ describe('Block binding', () => {
   })
 
   it('preserves lifecycle contracts from a named child array', () => {
-    const pulseChild = ChildDefinition.toBlock({
+    const pulseChild = ChildComposition.toBlock({
       init: Child.init,
       update: Child.update,
       subscriptions: { pulses: childSubscriptions.ticks },
@@ -853,12 +853,12 @@ describe('Block binding arity', () => {
     const message = ArityMessage.IncreasedCount()
     const folded = wrappedArity.fold(initialArityParent, message, { amount: 2 })
 
-    expect(WrappedArity.update.length).toBe(0)
+    expect(WrappedArityBlock.update.length).toBe(0)
     expect(folded.model.child.count).toBe(2)
     expectTypeOf(folded).toEqualTypeOf<
       Update.WithRegistrationEvidence<
         Update.Return<ArityParent, ArityMessage>,
-        BindingRequirement<'wrapped-arity', typeof WrappedArity>
+        BindingRequirement<'wrapped-arity', typeof WrappedArityBlock>
       >
     >()
   })
@@ -907,7 +907,7 @@ describe('Block binding arity', () => {
 
 describe('Block child registration composition', () => {
   it('gives repeated ManagedResources independent placement capability keys', () => {
-    const sidebar = ParentDefinition.bindChild(Child, {
+    const sidebar = Parent.bindChild(Child, {
       placement: 'sidebar',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
@@ -944,32 +944,32 @@ describe('Block child registration composition', () => {
         Model: ChildModel,
         Message: RepeatedMessage,
       })
-      const RepeatedDefinition = repeatedBase.toComposition({
+      const RepeatedComposition = repeatedBase.toComposition({
         mounts: [RepeatedMount],
       })
       const EffectsLayer = Layer.sync(BuildMarker, () => {
         buildCount += 1
         return {}
       })
-      const Repeated = RepeatedDefinition.toBlock({
+      const Repeated = RepeatedComposition.toBlock({
         init: () => ({ model: ChildModel.make({ count: 0 }) }),
         update: (model: ChildModel) => ({ model }),
         EffectsLayer,
         hostHandlers: [RepeatedMount],
       })
-      const RepeatedParent = Schema.Struct({ child: ChildModel })
-      type RepeatedParent = typeof RepeatedParent.Type
+      const RepeatedParentModel = Schema.Struct({ child: ChildModel })
+      type RepeatedParentModel = typeof RepeatedParentModel.Type
       const toRepeatedParentMessage = (
         message: RepeatedMessage,
       ): RepeatedMessage => message
-      const RepeatedParentDefinition = define('BindingRepeatedParent', {
-        Model: RepeatedParent,
+      const RepeatedParent = define('BindingRepeatedParent', {
+        Model: RepeatedParentModel,
         Message: RepeatedMessage,
       })
       const bindRepeated = (placement: 'first' | 'second') =>
-        RepeatedParentDefinition.bindChild(Repeated, {
+        RepeatedParent.bindChild(Repeated, {
           placement,
-          read: (model: RepeatedParent) => Option.some(model.child),
+          read: (model: RepeatedParentModel) => Option.some(model.child),
           write: (model, child) => ({ ...model, child }),
           toParentMessage: toRepeatedParentMessage,
         })
@@ -1033,8 +1033,8 @@ describe('generic block refinement', () => {
     type ChoiceModel = typeof Choice.Model.Type
     type ChoiceMessage = typeof Choice.Message.Type
     type ChoiceOutMessage = typeof Choice.OutMessage.Type
-    const ChoiceParent = Schema.Struct({ choice: Choice.Model })
-    type ChoiceParent = typeof ChoiceParent.Type
+    const ChoiceParentModel = Schema.Struct({ choice: Choice.Model })
+    type ChoiceParentModel = typeof ChoiceParentModel.Type
     type DeclaredOutMessage =
       typeof Choice extends Readonly<{
         OutMessage: Readonly<{ Type: infer OutMessage }>
@@ -1044,28 +1044,28 @@ describe('generic block refinement', () => {
     expectTypeOf<DeclaredOutMessage>().toEqualTypeOf<ChoiceOutMessage>()
     const directBinding = bind(Choice, {
       placement: 'direct-choice',
-      read: (model: ChoiceParent) => Option.some(model.choice),
+      read: (model: ChoiceParentModel) => Option.some(model.choice),
       write: (model, choice) => ({ ...model, choice }),
       toParentMessage: (message: ChoiceMessage) => message,
       outMessage: {
         fold: outMessage => model => ({ model, outMessage }),
       },
     })
-    const ChoiceParentDefinition = define('BindingChoiceParent', {
-      Model: ChoiceParent,
+    const ChoiceParent = define('BindingChoiceParent', {
+      Model: ChoiceParentModel,
       Message: Choice.Message,
       OutMessage: Choice.OutMessage,
     })
-    const binding = ChoiceParentDefinition.bindChild(Choice, {
+    const binding = ChoiceParent.bindChild(Choice, {
       placement: 'choice',
-      read: (model: ChoiceParent) => Option.some(model.choice),
-      write: (model: ChoiceParent, choice: ChoiceModel) => ({
+      read: (model: ChoiceParentModel) => Option.some(model.choice),
+      write: (model: ChoiceParentModel, choice: ChoiceModel) => ({
         ...model,
         choice,
       }),
       toParentMessage: (message: ChoiceMessage) => message,
       outMessage: {
-        fold: (outMessage: ChoiceOutMessage) => (model: ChoiceParent) => ({
+        fold: (outMessage: ChoiceOutMessage) => (model: ChoiceParentModel) => ({
           model,
           outMessage,
         }),

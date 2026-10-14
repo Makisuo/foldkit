@@ -13,9 +13,9 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const StopwatchDefinition = Block.define('Stopwatch', { Model, Message })
+const Stopwatch = Block.define('Stopwatch', { Model, Message })
 
-const subscriptions = StopwatchDefinition.subscriptions(entry => ({
+const subscriptions = Stopwatch.subscriptions(entry => ({
   stopwatchTicks: entry(
     'StopwatchTicks',
     { isRunning: Schema.Boolean },

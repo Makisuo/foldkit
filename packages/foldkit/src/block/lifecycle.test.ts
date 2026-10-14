@@ -155,11 +155,11 @@ const buildGraph = (events: Array<LifecycleEvent>) => {
     Model: ChildModel,
     Message: ChildMessage,
   })
-  const childDefinition = childBase.toComposition({ mounts: [ObservePanel] })
-  const childView = childDefinition.view((model, h) =>
+  const childComposition = childBase.toComposition({ mounts: [ObservePanel] })
+  const childView = childComposition.view((model, h) =>
     h.div([h.OnMount(ObservePanel())], [`child:${model.id}`]),
   )
-  const Child = childDefinition.toBlock({
+  const Child = childComposition.toBlock({
     view: childView,
     init: () => ({ model: ChildModel.make({ id: 'one' }) }),
     update: (model: ChildModel, message: ChildMessage) =>

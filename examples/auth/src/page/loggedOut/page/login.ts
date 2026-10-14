@@ -49,7 +49,7 @@ export const OutMessage = defineMessageUnion({
 
 export type OutMessage = typeof OutMessage.Type
 
-const LoginDefinition = Block.define('Login', { Model, Message, OutMessage })
+const Login = Block.define('Login', { Model, Message, OutMessage })
 
 // VALIDATION
 
@@ -71,43 +71,40 @@ const isFormValid = (model: Model): boolean =>
     [model.password, passwordRules],
   ])
 
-export const SimulateAuthRequest = LoginDefinition.command(
-  'SimulateAuthRequest',
-  {
-    args: { email: Schema.String, password: Schema.String },
-    messages: [
-      Message.SucceededSimulateAuthRequest,
-      Message.FailedSimulateAuthRequest,
-    ],
-    handler: function* () {
-      return ({ email, password }) =>
-        Effect.gen(function* () {
-          yield* Effect.sleep(Duration.seconds(1))
+export const SimulateAuthRequest = Login.command('SimulateAuthRequest', {
+  args: { email: Schema.String, password: Schema.String },
+  messages: [
+    Message.SucceededSimulateAuthRequest,
+    Message.FailedSimulateAuthRequest,
+  ],
+  handler: function* () {
+    return ({ email, password }) =>
+      Effect.gen(function* () {
+        yield* Effect.sleep(Duration.seconds(1))
 
-          if (password !== 'password') {
-            return Message.FailedSimulateAuthRequest({
-              error: 'Invalid credentials',
-            })
-          }
+        if (password !== 'password') {
+          return Message.FailedSimulateAuthRequest({
+            error: 'Invalid credentials',
+          })
+        }
 
-          const name = pipe(
-            email,
-            String.split('@'),
-            Array.head,
-            Option.getOrElse(() => email),
-          )
+        const name = pipe(
+          email,
+          String.split('@'),
+          Array.head,
+          Option.getOrElse(() => email),
+        )
 
-          const session: Session = { userId: '1', email, name }
+        const session: Session = { userId: '1', email, name }
 
-          return Message.SucceededSimulateAuthRequest({ session })
-        })
-    },
+        return Message.SucceededSimulateAuthRequest({ session })
+      })
   },
-)
+})
 
 export const EffectsLayer = SimulateAuthRequest.layer
 
-export const update = LoginDefinition.update((model, message) =>
+export const update = Login.update((model, message) =>
   Message.match(message, {
     ChangedEmail: ({ value }) => ({
       model: modifyFields(model, { email: () => validateEmail(value) }),
@@ -231,7 +228,7 @@ const fieldView = (
   )
 }
 
-export const view = LoginDefinition.view((model, h) => {
+export const view = Login.view((model, h) => {
   const canSubmit = isFormValid(model) && !model.isSubmitting
 
   return h.div(
@@ -317,7 +314,7 @@ export const view = LoginDefinition.view((model, h) => {
   )
 })
 
-export const block = LoginDefinition.toComposition().toBlock({
+export const block = Login.toComposition().toBlock({
   init: () => ({ model: initModel() }),
   update,
   view,

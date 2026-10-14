@@ -2,10 +2,10 @@ import { Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { postDetails, posts, stats, tabs } from './childBindings'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { Message } from './message'
 
-export const update = ApplicationDefinition.update((model, message) =>
+export const update = Application.update((model, message) =>
   Message.match(message, {
     GotTabsMessage: ({ message }) => tabs.fold(model, message),
     GotPostsMessage: ({ message }) => posts.fold(model, message),

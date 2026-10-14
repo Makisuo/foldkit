@@ -31,7 +31,7 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const RadioGroupSceneDefinition = Block.define('RadioGroupScene', {
+const RadioGroupScene = Block.define('RadioGroupScene', {
   Model,
   Message,
 })
@@ -56,17 +56,17 @@ const foldRadioGroupOutMessage = RadioGroupOutMessage.match<
     }),
 })
 
-const radioGroup = RadioGroupSceneDefinition.bindChild(TestRadioGroup, {
+const radioGroup = RadioGroupScene.bindChild(TestRadioGroup, {
   field: 'radioGroup',
   parentMessage: Message.GotRadioGroupMessage,
   outMessage: { fold: foldRadioGroupOutMessage },
 })
 
-const RadioGroupSceneComposition = RadioGroupSceneDefinition.toComposition({
+const RadioGroupSceneComposition = RadioGroupScene.toComposition({
   children: [radioGroup],
 })
 
-const update = RadioGroupSceneDefinition.update((model, message) =>
+const update = RadioGroupScene.update((model, message) =>
   Message.match(message, {
     GotRadioGroupMessage: ({ message }) => radioGroup.fold(model, message),
   }),

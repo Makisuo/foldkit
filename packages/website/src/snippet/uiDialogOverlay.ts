@@ -74,28 +74,28 @@ const foldComboboxOutMessage = CityCombobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const FilterDialogDefinition = Block.define('FilterDialog', {
+const FilterDialog = Block.define('FilterDialog', {
   Model,
   Message,
 })
 
-const dialog = FilterDialogDefinition.bindChild(Dialog.block, {
+const dialog = FilterDialog.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const combobox = FilterDialogDefinition.bindChild(CityCombobox, {
+const combobox = FilterDialog.bindChild(CityCombobox, {
   field: 'combobox',
   parentMessage: Message.GotComboboxMessage,
   outMessage: { fold: foldComboboxOutMessage },
 })
 
-const FilterDialogComposition = FilterDialogDefinition.toComposition({
+const FilterDialogComposition = FilterDialog.toComposition({
   children: [dialog, combobox],
 })
 
-const update = FilterDialogDefinition.update((model, message) =>
+const update = FilterDialog.update((model, message) =>
   Message.match(message, {
     GotDialogMessage: ({ message }) => dialog.fold(model, message),
     GotComboboxMessage: ({ message }) => combobox.fold(model, message),

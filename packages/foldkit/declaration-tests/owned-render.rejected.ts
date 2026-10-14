@@ -1,17 +1,17 @@
 import { Layer, Schema } from 'effect'
 
-import { Application, Message } from '../src/index.js'
+import { Application as ApplicationModule, Message } from '../src/index.js'
 import {
   ChildComposition,
   ChildModel,
   ObserveParent,
-  ParentDefinition,
+  Parent,
   ParentMessage,
   child,
   childRender,
 } from './owned-render.accepted.js'
 
-const OmittedParentComposition = ParentDefinition.toComposition()
+const OmittedParentComposition = Parent.toComposition()
 
 OmittedParentComposition.render((model, h) =>
   h.block(
@@ -47,11 +47,11 @@ ChildComposition.toBlock({
   EffectsLayer: Layer.empty,
 })
 
-const ApplicationDefinition = Application.define({
+const Application = ApplicationModule.define({
   Model: Schema.Struct({ label: Schema.String }),
   Message: ParentMessage,
 })
-const ApplicationComposition = ApplicationDefinition.toComposition()
+const ApplicationComposition = Application.toComposition()
 const applicationRender = ApplicationComposition.render((model, h) =>
   h.main([], [model.label]),
 )
@@ -60,6 +60,6 @@ const applicationRender = ApplicationComposition.render((model, h) =>
 ApplicationComposition.makeElement({
   container: null,
   init: () => ({ model: { label: 'initial' } }),
-  update: ApplicationDefinition.update(model => ({ model })),
+  update: Application.update(model => ({ model })),
   view: applicationRender,
 })

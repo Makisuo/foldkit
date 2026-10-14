@@ -1,7 +1,7 @@
 import { modifyFields } from 'foldkit/struct'
 
 import { FetchPeople } from './informingBlocksCommand'
-import { PeopleDefinition } from './informingBlocksDefinition'
+import { People } from './informingBlocksDefinition'
 import { init } from './informingBlocksInit'
 import { Message } from './informingBlocksMessage'
 import {
@@ -11,7 +11,7 @@ import {
 } from './informingBlocksModel'
 import { type PeopleRoute } from './informingBlocksRoute'
 
-export const update = PeopleDefinition.update((model, message) =>
+export const update = People.update((model, message) =>
   Message.match(message, {
     ChangedRoute: ({ route }) => {
       const searchText = routeSearchText(route.searchText)
@@ -33,11 +33,11 @@ export const update = PeopleDefinition.update((model, message) =>
   }),
 )
 
-export const informRouteChanged = PeopleDefinition.step(
-  (model, route: PeopleRoute) => update(model, Message.ChangedRoute({ route })),
+export const informRouteChanged = People.step((model, route: PeopleRoute) =>
+  update(model, Message.ChangedRoute({ route })),
 )
 
-export const block = PeopleDefinition.toComposition().toBlock({
+export const block = People.toComposition().toBlock({
   init,
   update,
   expose: { informRouteChanged },

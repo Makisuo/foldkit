@@ -10,9 +10,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const HeartbeatDefinition = Block.define('Heartbeat', { Model, Message })
+const Heartbeat = Block.define('Heartbeat', { Model, Message })
 
-export const subscriptions = HeartbeatDefinition.subscriptions(entry => ({
+export const subscriptions = Heartbeat.subscriptions(entry => ({
   heartbeatTicks: entry('HeartbeatTicks', {
     messages: [Message.TickedHeartbeat],
     handler: function* () {

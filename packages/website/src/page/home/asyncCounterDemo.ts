@@ -58,7 +58,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-const AsyncCounterDemoDefinition = Block.define('AsyncCounterDemo', {
+const AsyncCounterDemo = Block.define('AsyncCounterDemo', {
   Model,
   Message,
 })
@@ -74,7 +74,7 @@ export const init = () => ({
   }),
 })
 
-export const DelayAdvanceAsyncCounterPhase = AsyncCounterDemoDefinition.command(
+export const DelayAdvanceAsyncCounterPhase = AsyncCounterDemo.command(
   'DelayAdvanceAsyncCounterPhase',
   {
     args: { generation: Schema.Number, duration: Schema.DurationFromMillis },
@@ -99,7 +99,7 @@ const prependToLog =
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     pipe([entry, ...messageLog], Array.take(MAX_LOG_ENTRIES))
 
-export const update = AsyncCounterDemoDefinition.update((model, message) =>
+export const update = AsyncCounterDemo.update((model, message) =>
   Message.match(message, {
     ClickedDemoIncrement: () => {
       const nextModel = modifyFields(model, {
@@ -323,7 +323,7 @@ const phaseColorClass = (phase: AnimationPhase): string =>
     Match.exhaustive,
   )
 
-export const view = AsyncCounterDemoDefinition.view((model, h) =>
+export const view = AsyncCounterDemo.view((model, h) =>
   DemoView.shell(
     DemoView.codePanel(
       'demo-code-panel',
@@ -549,7 +549,7 @@ const progressBarView = (model: Model, isCommand: boolean): Html =>
     ],
   )
 
-export const block = AsyncCounterDemoDefinition.toComposition().toBlock({
+export const block = AsyncCounterDemo.toComposition().toBlock({
   init,
   update,
   view,

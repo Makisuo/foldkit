@@ -1,7 +1,7 @@
 import { Clock, Effect, Option, Schema } from 'effect'
 
 import { ChartRegistry } from './chartRegistry'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { ChartMode, PackageId, Period, Telemetry } from './domain'
 import { makeChartOption } from './echarts'
 import { GitHubApi } from './githubApi'
@@ -9,7 +9,7 @@ import { Message } from './message'
 import { NpmApi } from './npmApi'
 import { fetchRawTelemetry, transformTelemetry } from './telemetry'
 
-export const FetchTelemetry = ApplicationDefinition.command('FetchTelemetry', {
+export const FetchTelemetry = Application.command('FetchTelemetry', {
   messages: [Message.SucceededFetchTelemetry, Message.FailedFetchTelemetry],
   handler: function* () {
     const github = yield* GitHubApi
@@ -34,7 +34,7 @@ export const FetchTelemetry = ApplicationDefinition.command('FetchTelemetry', {
   },
 })
 
-export const SyncChart = ApplicationDefinition.command('SyncChart', {
+export const SyncChart = Application.command('SyncChart', {
   args: {
     hostId: Schema.String,
     telemetry: Telemetry,

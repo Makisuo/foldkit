@@ -94,24 +94,24 @@ const foldCalendarOutMessage = UiCalendar.OutMessage.match<
 // focus, and picker-mode transitions to UiCalendar.update, writes the next
 // Calendar Model back, maps the Block's Commands into your Message type,
 // and hands any OutMessage to the OutMessage fold.
-const CalendarExampleDefinition = Block.define('CalendarExample', {
+const CalendarExample = Block.define('CalendarExample', {
   Model,
   Message,
 })
 
-const calendar = CalendarExampleDefinition.bindChild(UiCalendar.block, {
+const calendar = CalendarExample.bindChild(UiCalendar.block, {
   field: 'calendarDemo',
   parentMessage: Message.GotCalendarMessage,
   outMessage: { fold: foldCalendarOutMessage },
 })
 
-const CalendarExampleComposition = CalendarExampleDefinition.toComposition({
+const CalendarExampleComposition = CalendarExample.toComposition({
   children: [calendar],
 })
 
 type ViewBuilder = Block.HtmlBuilderOf<typeof CalendarExampleComposition>
 
-const update = CalendarExampleDefinition.update((model, message) =>
+const update = CalendarExample.update((model, message) =>
   Message.match(message, {
     GotCalendarMessage: ({ message }) => calendar.fold(model, message),
   }),

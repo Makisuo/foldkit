@@ -25,9 +25,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = defineApplication({ Model, Message })
 
-const FetchUser = ApplicationDefinition.command('FetchUser', {
+const FetchUser = Application.command('FetchUser', {
   args: { userId: Schema.String },
   messages: [Message.SucceededFetchUser, Message.FailedFetchUser],
   handler: function* () {
@@ -46,7 +46,7 @@ const FetchUser = ApplicationDefinition.command('FetchUser', {
   },
 })
 
-const update = ApplicationDefinition.update((model, message) =>
+const update = Application.update((model, message) =>
   Message.match(message, {
     ClickedFetchUser: ({ userId }) => ({
       model: modifyFields(model, { user: () => UserState.Loading() }),

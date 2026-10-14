@@ -76,22 +76,22 @@ const foldDragAndDropOutMessage = DragAndDrop.OutMessage.match<
 
 // The Binding delegates the child update, writes the next DragAndDrop Model,
 // maps its Commands, handles OutMessages, and collects its Subscriptions.
-const SortableListDefinition = Block.define('SortableList', {
+const SortableList = Block.define('SortableList', {
   Model,
   Message,
 })
 
-const dragAndDrop = SortableListDefinition.bindChild(DragAndDrop.block, {
+const dragAndDrop = SortableList.bindChild(DragAndDrop.block, {
   field: 'dragAndDrop',
   parentMessage: Message.GotDragAndDropMessage,
   outMessage: { fold: foldDragAndDropOutMessage },
 })
 
-const SortableListComposition = SortableListDefinition.toComposition({
+const SortableListComposition = SortableList.toComposition({
   children: [dragAndDrop],
 })
 
-const update = SortableListDefinition.update((model, message) =>
+const update = SortableList.update((model, message) =>
   Message.match(message, {
     GotDragAndDropMessage: ({ message }) => dragAndDrop.fold(model, message),
   }),

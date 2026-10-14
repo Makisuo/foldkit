@@ -66,7 +66,7 @@ The Foldkit entry point supplies the Runtime with the application definitions:
 
 ::Snippet{name="comparisonFoldkitProgram" label="Foldkit program"}
 
-`init` constructs the first Model and startup Commands. The typed `ApplicationDefinition` establishes the Model and Message Schemas. `ApplicationComposition` collects child Bindings, and its owned `make` method receives init, update, view, local lifecycle declarations and handler recipes, the Flags Schema, and the container. The Runtime dispatches Messages and executes lifecycle primitives.
+`init` constructs the first Model and startup Commands. The typed `Application` establishes the Model and Message Schemas. `ApplicationComposition` collects child Bindings, and its owned `make` method receives init, update, view, local lifecycle declarations and handler recipes, the Flags Schema, and the container. The Runtime dispatches Messages and executes lifecycle primitives.
 
 The Foldkit view still passes Model data to smaller view functions as parameters. Those functions do not own Hook state or lifecycle, so the Runtime assembly stays separate from the view tree.
 

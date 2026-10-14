@@ -75,17 +75,17 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition()
+export const ApplicationComposition = Application.toComposition()
 
-type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
+type ViewBuilder = HtmlBuilderOf<typeof Application>
 
 export const init = () => ({
   model: Model.make({ balls: [], nextId: 0, isRunning: true }),
 })
 
-export const GenerateBall = ApplicationDefinition.command('GenerateBall', {
+export const GenerateBall = Application.command('GenerateBall', {
   args: { x: Schema.Number, y: Schema.Number },
   messages: [Message.CompletedGenerateBall],
   handler: function* () {
@@ -172,7 +172,7 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
+export const subscriptions = Application.subscriptions(entry => ({
   animationFrameTicks: entry(
     'AnimationFrameTicks',
     { isActive: Schema.Boolean },

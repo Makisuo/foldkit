@@ -17,9 +17,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const CounterDefinition = Block.define('Counter', { Model, Message })
+const Counter = Block.define('Counter', { Model, Message })
 
-export const update = CounterDefinition.update((model, message) =>
+export const update = Counter.update((model, message) =>
   Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: count => count - 1 }),
@@ -30,7 +30,7 @@ export const update = CounterDefinition.update((model, message) =>
   }),
 )
 
-export const view = CounterDefinition.view((model, h) =>
+export const view = Counter.view((model, h) =>
   h.div(
     [
       h.Class(
@@ -65,7 +65,7 @@ export const view = CounterDefinition.view((model, h) =>
 const buttonStyle =
   'h-9 w-9 rounded bg-gray-900 text-white text-lg leading-none hover:bg-gray-700 transition cursor-pointer'
 
-export const block = CounterDefinition.toComposition().toBlock({
+export const block = Counter.toComposition().toBlock({
   init,
   update,
   view,

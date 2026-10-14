@@ -3,7 +3,7 @@ const OutMessage = defineMessageUnion({
   RestoredEditor: { documentId: Schema.String },
 })
 
-const search = ApplicationDefinition.bindChild(Search.block, {
+const search = Application.bindChild(Search.block, {
   field: 'search',
   parentMessage: Message.GotSearchMessage,
   outMessage: {
@@ -13,7 +13,7 @@ const search = ApplicationDefinition.bindChild(Search.block, {
   },
 })
 
-const editor = ApplicationDefinition.bindChild(Editor.block, {
+const editor = Application.bindChild(Editor.block, {
   field: 'editor',
   parentMessage: Message.GotEditorMessage,
   outMessage: {

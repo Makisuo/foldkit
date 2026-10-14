@@ -39,25 +39,25 @@ const foldHoverMenuOutMessage = HoverIntent.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const HoverMenuDefinition = Block.define('HoverMenu', {
+const HoverMenu = Block.define('HoverMenu', {
   Model,
   Message,
 })
 
-const hoverMenu = HoverMenuDefinition.bindChild(HoverIntent.block, {
+const hoverMenu = HoverMenu.bindChild(HoverIntent.block, {
   field: 'hoverMenu',
   parentMessage: Message.GotHoverMenuMessage,
   outMessage: { fold: foldHoverMenuOutMessage },
 })
 
-const HoverMenuComposition = HoverMenuDefinition.toComposition({
+const HoverMenuComposition = HoverMenu.toComposition({
   children: [hoverMenu],
 })
 
 // Close the menu immediately when any item is clicked.
 
 // In the corresponding Message.match handlers:
-const update = HoverMenuDefinition.update((model, message) =>
+const update = HoverMenu.update((model, message) =>
   Message.match(message, {
     GotHoverMenuMessage: ({ message }) => hoverMenu.fold(model, message),
     ClickedHoverMenuItem: () => hoverMenu.close()(model),

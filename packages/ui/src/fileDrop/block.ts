@@ -41,7 +41,7 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-const FileDropDefinition = Block.define('FileDrop', {
+const FileDrop = Block.define('FileDrop', {
   Model,
   Message,
   OutMessage,
@@ -64,7 +64,7 @@ export const init = (config: InitConfig): Model => ({
 
 /** Processes a file-drop Message and returns the next Model, optional Commands,
  *  and an optional OutMessage. */
-export const update = FileDropDefinition.update((model, message) =>
+export const update = FileDrop.update((model, message) =>
   Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
     message,
     {
@@ -118,7 +118,7 @@ const dispatchDroppedFiles = (files: ReadonlyArray<File.File>) =>
 
 /** Renders an accessible file-drop zone by publishing attribute groups
  *  for a `<label>`-wrapped hidden file input. */
-export const view = FileDropDefinition.view.withInputs<ViewInputs>(
+export const view = FileDrop.view.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const { id, isDragOver } = model
     const { toView, accept, multiple = false, isDisabled = false } = viewInputs
@@ -159,7 +159,7 @@ export const view = FileDropDefinition.view.withInputs<ViewInputs>(
 )
 
 /** Complete FileDrop Block definition for connecting to a parent. */
-const FileDropComposition = FileDropDefinition.toComposition()
+const FileDropComposition = FileDrop.toComposition()
 
 export const block = FileDropComposition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),

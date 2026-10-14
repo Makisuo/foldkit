@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { Dom, Block } from 'foldkit'
+import { Block, Dom } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Message = defineMessageUnion({
@@ -12,12 +12,12 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const MotionPreferencesDefinition = Block.define('MotionPreferences', {
+const MotionPreferences = Block.define('MotionPreferences', {
   Model,
   Message,
 })
 
-const subscriptions = MotionPreferencesDefinition.subscriptions(entry => ({
+const subscriptions = MotionPreferences.subscriptions(entry => ({
   reducedMotionChanges: entry('ReducedMotionChanges', {
     messages: [Message.ChangedReducedMotion],
     handler: function* () {

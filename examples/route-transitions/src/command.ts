@@ -1,26 +1,23 @@
 import { Duration, Effect, Schema } from 'effect'
 import { load, pushUrl } from 'foldkit/navigation'
 
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { Message } from './message'
 
 const CATALOG_LATENCY = Duration.millis(600)
 const PAINTING_LATENCY = Duration.millis(400)
 const SAVE_LATENCY = Duration.millis(300)
 
-export const NavigateInternal = ApplicationDefinition.command(
-  'NavigateInternal',
-  {
-    args: { url: Schema.String },
-    messages: [Message.CompletedNavigateInternal],
-    handler: function* () {
-      return ({ url }) =>
-        pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
-    },
+export const NavigateInternal = Application.command('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
   },
-)
+})
 
-export const LoadExternal = ApplicationDefinition.command('LoadExternal', {
+export const LoadExternal = Application.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -29,7 +26,7 @@ export const LoadExternal = ApplicationDefinition.command('LoadExternal', {
   },
 })
 
-export const LoadCatalog = ApplicationDefinition.command('LoadCatalog', {
+export const LoadCatalog = Application.command('LoadCatalog', {
   messages: [Message.CompletedLoadCatalog],
   handler: function* () {
     return () =>
@@ -39,7 +36,7 @@ export const LoadCatalog = ApplicationDefinition.command('LoadCatalog', {
   },
 })
 
-export const LoadPainting = ApplicationDefinition.command('LoadPainting', {
+export const LoadPainting = Application.command('LoadPainting', {
   args: { paintingId: Schema.Number },
   messages: [Message.CompletedLoadPainting],
   handler: function* () {
@@ -50,7 +47,7 @@ export const LoadPainting = ApplicationDefinition.command('LoadPainting', {
   },
 })
 
-export const SaveDraft = ApplicationDefinition.command('SaveDraft', {
+export const SaveDraft = Application.command('SaveDraft', {
   args: { draft: Schema.String },
   messages: [Message.CompletedSaveDraft],
   handler: function* () {

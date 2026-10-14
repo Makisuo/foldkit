@@ -27,9 +27,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = defineApplication({ Model, Message })
 
-const Search = ApplicationDefinition.command('Search', {
+const Search = Application.command('Search', {
   args: { query: Schema.String },
   messages: [Message.SettledSearch],
   handler: function* () {
@@ -53,7 +53,7 @@ const Search = ApplicationDefinition.command('Search', {
   },
 })
 
-const update = ApplicationDefinition.update((model, message) =>
+const update = Application.update((model, message) =>
   Message.match(message, {
     UpdatedQuery: ({ query }) => ({
       model: modifyFields(model, {

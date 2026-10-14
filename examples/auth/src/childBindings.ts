@@ -6,7 +6,7 @@ import {
   RedirectToHome,
   SaveSession,
 } from './command'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { Message } from './message'
 import { Model } from './model'
 import { LoggedIn, LoggedOut } from './page'
@@ -14,13 +14,13 @@ import { ApplicationRoute } from './route'
 
 const foldLoggedOutOutMessage = LoggedOut.OutMessage.match({
   SucceededLogin: ({ session }) =>
-    ApplicationDefinition.step(() => ({
+    Application.step(() => ({
       model: LoggedIn.init(ApplicationRoute.Dashboard(), session),
       commands: [SaveSession({ session }), RedirectToDashboard()],
     })),
 })
 
-export const loggedOut = ApplicationDefinition.bindChild(LoggedOut.block, {
+export const loggedOut = Application.bindChild(LoggedOut.block, {
   read: (model: Model) =>
     Match.value(model).pipe(
       Match.tagsExhaustive({
@@ -35,13 +35,13 @@ export const loggedOut = ApplicationDefinition.bindChild(LoggedOut.block, {
 
 const foldLoggedInOutMessage = LoggedIn.OutMessage.match({
   RequestedLogout: () =>
-    ApplicationDefinition.step(() => ({
+    Application.step(() => ({
       model: LoggedOut.init(ApplicationRoute.Home()),
       commands: [ClearSession(), RedirectToHome()],
     })),
 })
 
-export const loggedIn = ApplicationDefinition.bindChild(LoggedIn.block, {
+export const loggedIn = Application.bindChild(LoggedIn.block, {
   read: (model: Model) =>
     Match.value(model).pipe(
       Match.tagsExhaustive({

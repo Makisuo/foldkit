@@ -1,6 +1,6 @@
-import { ApplicationDefinition } from './application'
+import { Application } from './application'
 
-export const update = ApplicationDefinition.update((model, message) =>
+export const update = Application.update((model, message) =>
   Message.match(message, {
     PressedCell: ({ x, y }) =>
       Match.value(model.tool).pipe(

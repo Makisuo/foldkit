@@ -23,7 +23,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const SkillsDefinition = Block.define('Skills', {
+const Skills = Block.define('Skills', {
   Model,
   Message,
 })
@@ -32,28 +32,25 @@ export const init = (initialEntryId: string): Model => ({
   entries: [Entry.init(initialEntryId)],
 })
 
-export const GenerateSkillsEntryId = SkillsDefinition.command(
-  'GenerateSkillsEntryId',
-  {
-    messages: [
-      Message.SucceededGenerateSkillsEntryId,
-      Message.FailedGenerateSkillsEntryId,
-    ],
-    handler: function* () {
-      const crypto = yield* Crypto.Crypto
+export const GenerateSkillsEntryId = Skills.command('GenerateSkillsEntryId', {
+  messages: [
+    Message.SucceededGenerateSkillsEntryId,
+    Message.FailedGenerateSkillsEntryId,
+  ],
+  handler: function* () {
+    const crypto = yield* Crypto.Crypto
 
-      return () =>
-        crypto.randomUUIDv4.pipe(
-          Effect.map(entryId =>
-            Message.SucceededGenerateSkillsEntryId({ entryId }),
-          ),
-          Effect.catch(() =>
-            Effect.succeed(Message.FailedGenerateSkillsEntryId()),
-          ),
-        )
-    },
+    return () =>
+      crypto.randomUUIDv4.pipe(
+        Effect.map(entryId =>
+          Message.SucceededGenerateSkillsEntryId({ entryId }),
+        ),
+        Effect.catch(() =>
+          Effect.succeed(Message.FailedGenerateSkillsEntryId()),
+        ),
+      )
   },
-)
+})
 
 export const EffectsLayer = GenerateSkillsEntryId.layer
 
@@ -69,7 +66,7 @@ const foldEntryOutMessage = (
     }),
   })
 
-export const entries = SkillsDefinition.bindChild(Entry.block, {
+export const entries = Skills.bindChild(Entry.block, {
   readAll: (model: Model) => model.entries,
   key: (entry: typeof Entry.Model.Type) => entry.id,
   read: entry => entry,
@@ -82,11 +79,11 @@ export const entries = SkillsDefinition.bindChild(Entry.block, {
   outMessage: { fold: foldEntryOutMessage },
 })
 
-export const SkillsComposition = SkillsDefinition.toComposition({
+export const SkillsComposition = Skills.toComposition({
   children: [entries],
 })
 
-export const update = SkillsDefinition.update((model, message) =>
+export const update = Skills.update((model, message) =>
   Message.match(message, {
     ClickedAddEntry: () => ({ model, commands: [GenerateSkillsEntryId()] }),
 

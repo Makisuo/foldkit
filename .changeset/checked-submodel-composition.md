@@ -36,19 +36,19 @@ import { Block } from 'foldkit'
 import { Message, OutMessage } from './message'
 import { Model } from './model'
 
-export const HomeDefinition = Block.define('Home', {
+export const Home = Block.define('Home', {
   Model,
   Message,
   OutMessage,
 })
 
 // block.ts
-import { HomeDefinition } from './definition'
+import { Home } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const HomeComposition = HomeDefinition.toComposition()
+const HomeComposition = Home.toComposition()
 
 export const block = HomeComposition.toBlock({ init, update, view })
 
@@ -58,13 +58,13 @@ export { Message, OutMessage } from './message'
 export { Model } from './model'
 ```
 
-`children` and `mounts` are independently optional. Use `toComposition()`, `toComposition({ children })`, `toComposition({ mounts })`, or `toComposition({ children, mounts })`. Omitted registrations grant no capabilities. Keep operations required by child policy on the Definition; the Composition retains the established authoring helpers.
+`children` and `mounts` are independently optional. Use `toComposition()`, `toComposition({ children })`, `toComposition({ mounts })`, or `toComposition({ children, mounts })`. Omitted registrations grant no capabilities. Keep operations required by child policy on the authoring value; the Composition retains the established authoring helpers.
 
 Use the one-argument `Block.define('Feature')` form only for a generic factory that shares definitions before specializing several contracts with `.define(...)`. Ordinary features establish their contracts in the first call.
 
 ## Move child integration to the parent
 
-A completed child Block no longer creates a connection. The parent Definition creates the Binding because the parent owns Model access, Message mapping, OutMessage policy, and lifecycle policy.
+A completed child Block no longer creates a connection. The parent authoring value creates the Binding because the parent owns Model access, Message mapping, OutMessage policy, and lifecycle policy.
 
 Before:
 
@@ -93,14 +93,14 @@ import { Message } from './message'
 import { Model } from './model'
 import { Home } from './page'
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-export const home = ApplicationDefinition.bindChild(Home.block, {
+export const home = Application.bindChild(Home.block, {
   field: 'home',
   parentMessage: Message.GotHomeMessage,
 })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [home],
 })
 ```
@@ -132,13 +132,13 @@ import { Model } from './model'
 import { openArticle } from './operation'
 import { Home } from './page'
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
 const foldHomeOutMessage = Home.OutMessage.match({
   SelectedArticle: ({ articleId }) => openArticle(articleId),
 })
 
-export const home = ApplicationDefinition.bindChild(Home.block, {
+export const home = Application.bindChild(Home.block, {
   field: 'home',
   parentMessage: Message.GotHomeMessage,
   outMessage: { fold: foldHomeOutMessage },
@@ -157,9 +157,9 @@ import { Model } from './model'
 import { Row } from './row'
 import { replaceRow } from './rows'
 
-const TableDefinition = Block.define('Table', { Model, Message })
+const Table = Block.define('Table', { Model, Message })
 
-export const rows = TableDefinition.bindChild(Row.block, {
+export const rows = Table.bindChild(Row.block, {
   readAll: model => model.rows,
   key: row => row.id,
   read: row => row,
@@ -168,7 +168,7 @@ export const rows = TableDefinition.bindChild(Row.block, {
     Message.GotRowMessage({ rowId, message }),
 })
 
-export const TableComposition = TableDefinition.toComposition({
+export const TableComposition = Table.toComposition({
   children: [rows],
 })
 ```
@@ -196,14 +196,14 @@ export const postsQuery = Query.define({
   },
 })
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-export const posts = ApplicationDefinition.bindChild(postsQuery, {
+export const posts = Application.bindChild(postsQuery, {
   field: 'posts',
   parentMessage: Message.GotPostsMessage,
 })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [posts],
 })
 ```
@@ -237,12 +237,12 @@ Keep plain generic rendering helpers for code deliberately reusable across owner
 
 ## Name and organize the final roles
 
-Use `FooDefinition`, `FooComposition`, and `block`. Use `ApplicationDefinition`, `ApplicationComposition`, and lowercase `application` or `element` at the root.
+Use `Foo`, `FooComposition`, and `block`. Use `Application`, `ApplicationComposition`, and lowercase `application` or `element` at the root.
 
 - `definition.ts`: an early authoring dependency when split implementation files need it.
 - `block.ts`: completed feature assembly.
 - `childBindings.ts`: substantial parent-owned child integration.
-- `application.ts`: root Definition, Bindings, Composition, and cohesive root behavior.
+- `application.ts`: root Application, Bindings, Composition, and cohesive root behavior.
 - `entry.ts`: container, startup inputs, root Service providers, and Runtime startup.
 - `layer.ts`: substantial or reused Layer composition at that directory boundary.
 
@@ -284,8 +284,8 @@ import { define as defineApplication } from 'foldkit/application'
 import { Message } from './message'
 import { Model } from './model'
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
-export const ApplicationComposition = ApplicationDefinition.toComposition()
+export const Application = defineApplication({ Model, Message })
+export const ApplicationComposition = Application.toComposition()
 
 // entry.ts
 import { Runtime } from 'foldkit'
@@ -306,7 +306,7 @@ const application = ApplicationComposition.make({
 Runtime.run(application)
 ```
 
-Call `application.provide(ApplicationLayer)` or `element.provide(ApplicationLayer)` when ordinary Services remain. `application.provide` is an instance method on the completed passive program. There is no standalone `provide` function and no `ApplicationDefinition.provide` method.
+Call `application.provide(ApplicationLayer)` or `element.provide(ApplicationLayer)` when ordinary Services remain. `application.provide` is an instance method on the completed passive program. There is no standalone `provide` function and no `Application.provide` method.
 
 Server rendering receives the same passive Composition and explicit implementation fields:
 
@@ -332,4 +332,4 @@ TypeScript checks contracts, precise handler and Service requirements, construct
 
 Runtime identity maps and lifecycle generations enforce exact occurrence identity, stale Command and callback suppression, keyed generation isolation, Mount ownership, and the private identity of structurally identical handler protocols. These are runtime guarantees rather than type-level proofs.
 
-Lint rules enforce repository naming and architectural conventions such as Definition variable names and avoiding direct child state updates. File names, narrow barrels, section heading restraint, and the distinction between substantial and small Layer modules remain review conventions.
+Lint rules enforce repository naming and architectural conventions such as authoring and Composition value names and avoiding direct child state updates. File names, narrow barrels, section heading restraint, and the distinction between substantial and small Layer modules remain review conventions.

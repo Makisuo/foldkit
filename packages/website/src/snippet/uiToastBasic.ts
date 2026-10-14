@@ -77,24 +77,24 @@ const foldToastOutMessage = Toast.OutMessage.match<Update.Step<Model, Message>>(
 
 // The Binding delegates Toast Messages, writes the next Toast Model, maps its
 // Commands, handles its OutMessages, and collects its Subscriptions.
-const NotificationsDefinition = Block.define('Notifications', {
+const Notifications = Block.define('Notifications', {
   Model,
   Message,
 })
 
-const toast = NotificationsDefinition.bindChild(Toast, {
+const toast = Notifications.bindChild(Toast, {
   field: 'toast',
   parentMessage: Message.GotToastMessage,
   outMessage: { fold: foldToastOutMessage },
 })
 
-const NotificationsComposition = NotificationsDefinition.toComposition({
+const NotificationsComposition = Notifications.toComposition({
   children: [toast],
 })
 
 declare const changesRouter: () => string
 
-const update = NotificationsDefinition.update((model, message) =>
+const update = Notifications.update((model, message) =>
   Message.match(message, {
     GotToastMessage: ({ message }) => toast.fold(model, message),
     ClickedSave: () =>

@@ -21,7 +21,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
 // PORT
 
@@ -37,7 +37,7 @@ export const init = (flags: Flags) => ({
   model: Model.make({ count: flags.initialCount, step: 1 }),
 })
 
-export const ReportCount = ApplicationDefinition.command('ReportCount', {
+export const ReportCount = Application.command('ReportCount', {
   args: { count: Schema.Number },
   messages: [Message.CompletedReportCount],
   handler: function* () {
@@ -56,7 +56,7 @@ const advance = (model: Model) => {
   }
 }
 
-export const update = ApplicationDefinition.update((model, message) =>
+export const update = Application.update((model, message) =>
   Message.match(message, {
     Ticked: () => advance(model),
     ClickedAdvance: () => advance(model),
@@ -69,7 +69,7 @@ export const update = ApplicationDefinition.update((model, message) =>
 
 const TICK_INTERVAL = Duration.seconds(1)
 
-export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
+export const subscriptions = Application.subscriptions(entry => ({
   widgetTicks: entry('WidgetTicks', {
     messages: [Message.Ticked],
     handler: function* () {
@@ -97,7 +97,7 @@ export const EffectsLayer = Layer.mergeAll(
   subscriptions.hostStepChanges.layer,
 )
 
-export const view = ApplicationDefinition.view((model, h) =>
+export const view = Application.view((model, h) =>
   h.div(
     [
       h.Class(

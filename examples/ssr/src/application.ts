@@ -33,9 +33,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition()
+export const ApplicationComposition = Application.toComposition()
 
 type ViewBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
@@ -61,7 +61,7 @@ export const update = ApplicationComposition.update((model, message) =>
 
 const COUNT_COOKIE_MAX_AGE_SECONDS = 31536000
 
-export const PersistCount = ApplicationDefinition.command('PersistCount', {
+export const PersistCount = Application.command('PersistCount', {
   args: { count: Schema.Number },
   messages: [Message.CompletedPersistCount],
   handler: function* () {

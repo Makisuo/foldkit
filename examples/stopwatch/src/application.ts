@@ -39,51 +39,45 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition()
+export const ApplicationComposition = Application.toComposition()
 
-type ViewBuilder = HtmlBuilderOf<typeof ApplicationDefinition>
+type ViewBuilder = HtmlBuilderOf<typeof Application>
 
-export const DetermineStartTime = ApplicationDefinition.command(
-  'DetermineStartTime',
-  {
-    args: { elapsedMs: Schema.Number },
-    messages: [Message.CompletedDetermineStartTime],
-    handler: function* () {
-      const clock = yield* Clock.Clock
+export const DetermineStartTime = Application.command('DetermineStartTime', {
+  args: { elapsedMs: Schema.Number },
+  messages: [Message.CompletedDetermineStartTime],
+  handler: function* () {
+    const clock = yield* Clock.Clock
 
-      return ({ elapsedMs }) =>
-        Effect.gen(function* () {
-          const now = yield* clock.currentTimeMillis
+    return ({ elapsedMs }) =>
+      Effect.gen(function* () {
+        const now = yield* clock.currentTimeMillis
 
-          return Message.CompletedDetermineStartTime({
-            startTime: now - elapsedMs,
-          })
+        return Message.CompletedDetermineStartTime({
+          startTime: now - elapsedMs,
         })
-    },
+      })
   },
-)
+})
 
-export const DetermineTickTime = ApplicationDefinition.command(
-  'DetermineTickTime',
-  {
-    args: { startTime: Schema.Number },
-    messages: [Message.CompletedDetermineTickTime],
-    handler: function* () {
-      const clock = yield* Clock.Clock
+export const DetermineTickTime = Application.command('DetermineTickTime', {
+  args: { startTime: Schema.Number },
+  messages: [Message.CompletedDetermineTickTime],
+  handler: function* () {
+    const clock = yield* Clock.Clock
 
-      return ({ startTime }) =>
-        Effect.gen(function* () {
-          const now = yield* clock.currentTimeMillis
+    return ({ startTime }) =>
+      Effect.gen(function* () {
+        const now = yield* clock.currentTimeMillis
 
-          return Message.CompletedDetermineTickTime({
-            elapsedMs: now - startTime,
-          })
+        return Message.CompletedDetermineTickTime({
+          elapsedMs: now - startTime,
         })
-    },
+      })
   },
-)
+})
 
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
@@ -134,7 +128,7 @@ export const init = () => ({
   },
 })
 
-export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
+export const subscriptions = Application.subscriptions(entry => ({
   stopwatchTicks: entry(
     'StopwatchTicks',
     { isRunning: Schema.Boolean },

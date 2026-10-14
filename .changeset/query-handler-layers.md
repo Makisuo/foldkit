@@ -103,14 +103,14 @@ import { Message } from './message'
 import { Model } from './model'
 import { postsQuery } from './query'
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = defineApplication({ Model, Message })
 
-const posts = ApplicationDefinition.bindChild(postsQuery, {
+const posts = Application.bindChild(postsQuery, {
   field: 'posts',
   parentMessage: Message.GotPostsMessage,
 })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [posts],
 })
 ```

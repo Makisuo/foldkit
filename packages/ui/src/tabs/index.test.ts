@@ -26,20 +26,20 @@ const disabledAt =
   (index: number) =>
     indices.includes(index)
 
-const TabsSceneDefinition = Block.define('TabsScene', { Model, Message })
+const TabsScene = Block.define('TabsScene', { Model, Message })
 
 const foldTabsOutMessage = OutMessage.match<Update.Step<Model, Message>>({
   Selected: () => model => ({ model }),
 })
 
-const tabs = TabsSceneDefinition.bindChild(block, {
+const tabs = TabsScene.bindChild(block, {
   read: (model: Model) => Option.some(model),
   write: (_model: Model, nextTabs: Model) => nextTabs,
   toParentMessage: (message: Message): Message => message,
   outMessage: { fold: foldTabsOutMessage },
 })
 
-const TabsSceneComposition = TabsSceneDefinition.toComposition({
+const TabsSceneComposition = TabsScene.toComposition({
   children: [tabs],
 })
 

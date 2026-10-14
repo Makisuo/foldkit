@@ -1,6 +1,10 @@
 import { Layer, Option, Schema } from 'effect'
 
-import { Application, Block, Message } from '../src/index.js'
+import {
+  Application as ApplicationModule,
+  Block,
+  Message,
+} from '../src/index.js'
 import {
   ChildBlock,
   ParentOutMessage,
@@ -18,29 +22,29 @@ const ParentMessage = Message.defineMessageUnion({
   GotEntryMessage: { id: Schema.Number, message: ChildBlock.Message },
   ForeignMessage: {},
 })
-const ParentDefinition = Block.define('DeclarationRejectedParent', {
+const Parent = Block.define('DeclarationRejectedParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const unregisteredChild = ParentDefinition.bindChild(ChildBlock, {
+const unregisteredChild = Parent.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: () => model => ({ model }) },
 })
 
 // @ts-expect-error Optional fields cannot use the required-field shorthand.
-ParentDefinition.bindChild(ChildBlock, {
+Parent.bindChild(ChildBlock, {
   field: 'maybeChild',
   parentMessage: ParentMessage.GotChildMessage,
 })
 
-const ForwardingDefinition = Block.define('DeclarationRejectedForwarding', {
+const Forwarding = Block.define('DeclarationRejectedForwarding', {
   Model: ParentModel,
   Message: ParentMessage,
   OutMessage: ParentOutMessage,
 })
 // @ts-expect-error A forwarded OutMessage must belong to the parent contract.
-ForwardingDefinition.bindChild(ChildBlock, {
+Forwarding.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: {
@@ -50,19 +54,19 @@ ForwardingDefinition.bindChild(ChildBlock, {
 })
 
 // @ts-expect-error Wrapper constructors with extra fields need a custom mapper.
-ParentDefinition.bindChild(ChildBlock, {
+Parent.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotEntryMessage,
 })
 
 // @ts-expect-error A custom mapper must return the established parent Message.
-ParentDefinition.bindChild(ChildBlock, {
+Parent.bindChild(ChildBlock, {
   field: 'child',
   toParentMessage: () => ({ _tag: 'OutsideParentMessage' }),
 })
 
 // @ts-expect-error A Binding supplies exactly one parent Message mapping.
-ParentDefinition.bindChild(ChildBlock, {
+Parent.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
   toParentMessage: () =>
@@ -72,7 +76,7 @@ ParentDefinition.bindChild(ChildBlock, {
 })
 
 // @ts-expect-error Keyed Binding keys must be stable primitive instance keys.
-ParentDefinition.bindChild(ChildBlock, {
+Parent.bindChild(ChildBlock, {
   readAll: model => model.entries,
   key: entry => ({ id: entry.id }),
   read: entry => entry.child,
@@ -83,15 +87,15 @@ ParentDefinition.bindChild(ChildBlock, {
 })
 
 // @ts-expect-error A Definition cannot complete before toComposition.
-ParentDefinition.toBlock
+Parent.toBlock
 // @ts-expect-error The breaking staging API has no register alias.
-ParentDefinition.register
+Parent.register
 // @ts-expect-error A completed child has no child-owned Binding factory.
 ChildBlock.connection
 // @ts-expect-error Keyed Bindings are also created by the parent.
 ChildBlock.keyedConnection
 
-ParentDefinition.toComposition().toBlock({
+Parent.toComposition().toBlock({
   init: () => ({
     model: ParentModel.make({
       child: ChildBlock.Model.make({ value: 'initial' }),
@@ -99,7 +103,7 @@ ParentDefinition.toComposition().toBlock({
       entries: [],
     }),
   }),
-  update: ParentDefinition.update((model, message) =>
+  update: Parent.update((model, message) =>
     ParentMessage.match(message, {
       GotChildMessage: ({ message }) => unregisteredChild.fold(model, message),
       GotEntryMessage: () => ({ model }),
@@ -110,12 +114,12 @@ ParentDefinition.toComposition().toBlock({
   EffectsLayer: Layer.empty,
 })
 
-const ApplicationDefinition = Application.define({
+const Application = ApplicationModule.define({
   Model: ParentModel,
   Message: ParentMessage,
 })
 // @ts-expect-error A root Application cannot forward a child OutMessage.
-ApplicationDefinition.bindChild(ChildBlock, {
+Application.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: {
@@ -124,6 +128,6 @@ ApplicationDefinition.bindChild(ChildBlock, {
   },
 })
 // @ts-expect-error An Application Definition cannot complete before toComposition.
-ApplicationDefinition.makeElement
+Application.makeElement
 // @ts-expect-error An Application Definition has no register alias.
-ApplicationDefinition.register
+Application.register

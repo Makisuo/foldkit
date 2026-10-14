@@ -14,11 +14,11 @@ import {
   SaveSession,
 } from './command'
 import { SESSION_STORAGE_KEY } from './constant'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { Session, SessionJsonString } from './domain/session'
 import { ApplicationRoute, urlToApplicationRoute } from './route'
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [loggedOut, loggedIn],
 })
 

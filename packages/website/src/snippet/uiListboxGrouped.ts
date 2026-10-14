@@ -69,23 +69,23 @@ const foldListboxOutMessage = CharacterListbox.OutMessage.match<
 // navigation, typeahead, and open/close to CharacterListbox.update, writes the
 // next Listbox Model back, maps the Block's Commands into your Message
 // type, and hands any OutMessage to the OutMessage fold.
-const CharacterPickerDefinition = Block.define('CharacterPicker', {
+const CharacterPicker = Block.define('CharacterPicker', {
   Model,
   Message,
 })
 
-const characterListbox = CharacterPickerDefinition.bindChild(CharacterListbox, {
+const characterListbox = CharacterPicker.bindChild(CharacterListbox, {
   field: 'listbox',
   parentMessage: Message.GotListboxMessage,
   outMessage: { fold: foldListboxOutMessage },
 })
 
-const CharacterPickerComposition = CharacterPickerDefinition.toComposition({
+const CharacterPickerComposition = CharacterPicker.toComposition({
   children: [characterListbox],
 })
 
 // In the corresponding Message.match handler, call the fold:
-const update = CharacterPickerDefinition.update((model, message) =>
+const update = CharacterPicker.update((model, message) =>
   Message.match(message, {
     GotListboxMessage: ({ message }) => characterListbox.fold(model, message),
   }),

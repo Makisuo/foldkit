@@ -78,18 +78,18 @@ export type RenderAssertions = [
 
 const ChildModel = Schema.Struct({ value: Schema.String })
 const ChildMessage = defineMessageUnion({ ClickedChild: {} })
-const ChildDefinition = define('RenderHelperChild', {
+const Child = define('RenderHelperChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const ChildComposition = ChildDefinition.toComposition()
+const ChildComposition = Child.toComposition()
 const childView = ChildComposition.view((model, h) => h.span([], [model.value]))
 const childRender = ChildComposition.render((model, h) =>
   h.span([], [model.value]),
 )
 const childBlock = ChildComposition.toBlock({
   init: () => ({ model: ChildModel.make({ value: 'child' }) }),
-  update: ChildDefinition.update(model => ({ model })),
+  update: Child.update(model => ({ model })),
   view: childView,
   EffectsLayer: Layer.empty,
 })
@@ -99,21 +99,21 @@ const ParentMessage = defineMessageUnion({
   GotChildMessage: { message: ChildMessage },
   CompletedObserveParent: {},
 })
-const ParentDefinition = define('RenderHelperParent', {
+const Parent = define('RenderHelperParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ObserveParent = ParentDefinition.mount('ObserveParent', {
+const ObserveParent = Parent.mount('ObserveParent', {
   messages: [ParentMessage.CompletedObserveParent],
   handler: function* () {
     return () => Effect.succeed(ParentMessage.CompletedObserveParent())
   },
 })
-const child = ParentDefinition.bindChild(childBlock, {
+const child = Parent.bindChild(childBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
 })
-const ParentComposition = ParentDefinition.toComposition({
+const ParentComposition = Parent.toComposition({
   children: [child],
   mounts: [ObserveParent],
 })
@@ -123,7 +123,7 @@ const parentRender = ParentComposition.render((model, h) =>
     [h.block(child.embedView({ slotId: 'child', model: model.child }))],
   ),
 )
-const OmittedParentComposition = ParentDefinition.toComposition()
+const OmittedParentComposition = Parent.toComposition()
 
 type ParentRenderParametersAreExact = Expect<
   Equal<
@@ -174,7 +174,7 @@ if (false) {
 
   ChildComposition.toBlock({
     init: () => ({ model: ChildModel.make({ value: 'child' }) }),
-    update: ChildDefinition.update(model => ({ model })),
+    update: Child.update(model => ({ model })),
     // @ts-expect-error A plain render helper cannot complete a Block as its branded view.
     view: childRender,
     EffectsLayer: Layer.empty,

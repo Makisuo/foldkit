@@ -144,7 +144,7 @@ const subscriptionLiftMapperArrow = (
     : Option.none()
 
   return pipe(
-    isBinding ? Option.some('Definition.bindChild') : maybeLift,
+    isBinding ? Option.some('bindChild') : maybeLift,
     Option.flatMap(() => {
       const configArgument = blockBindingConfiguration(node)
       if (!isObjectExpression(configArgument)) {

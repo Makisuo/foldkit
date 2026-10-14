@@ -345,7 +345,7 @@ it('rejects an empty forward policy on a completed Block binding', () => {
     type: 'CallExpression',
     callee: {
       type: 'MemberExpression',
-      object: Testing.id('ApplicationDefinition'),
+      object: Testing.id('Application'),
       property: Testing.id('bindChild'),
       computed: false,
     },

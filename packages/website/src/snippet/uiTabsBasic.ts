@@ -74,22 +74,22 @@ const foldTabsOutMessage = FrameworkTabs.OutMessage.match<
 // FrameworkTabs.update, writes the next Tabs Model back, maps the Block's
 // Commands into your Message type, and hands any OutMessage to
 // the OutMessage fold.
-const TabsExampleDefinition = Block.define('TabsExample', {
+const TabsExample = Block.define('TabsExample', {
   Model,
   Message,
 })
 
-const tabs = TabsExampleDefinition.bindChild(FrameworkTabs, {
+const tabs = TabsExample.bindChild(FrameworkTabs, {
   field: 'tabs',
   parentMessage: Message.GotTabsMessage,
   outMessage: { fold: foldTabsOutMessage },
 })
 
-const TabsExampleComposition = TabsExampleDefinition.toComposition({
+const TabsExampleComposition = TabsExample.toComposition({
   children: [tabs],
 })
 
-const update = TabsExampleDefinition.update((model, message) =>
+const update = TabsExample.update((model, message) =>
   Message.match(message, {
     GotTabsMessage: ({ message }) => tabs.fold(model, message),
   }),

@@ -2,19 +2,19 @@ import { Effect, Layer, Schema } from 'effect'
 import { load, pushUrl } from 'foldkit/navigation'
 import { type Url } from 'foldkit/url'
 
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { Flags } from './flags'
 import { Message } from './message'
 import { Model } from './model'
 import { urlToApplicationRoute } from './route'
 import * as Ui from './ui'
 
-export const ui = ApplicationDefinition.bindChild(Ui.block, {
+export const ui = Application.bindChild(Ui.block, {
   field: 'uiModel',
   parentMessage: Message.GotUiMessage,
 })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [ui],
 })
 

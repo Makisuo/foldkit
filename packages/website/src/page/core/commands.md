@@ -16,7 +16,7 @@ The counter's update function has only changed the count so far. Add a button th
 
 ### Definition Fields
 
-`ApplicationDefinition.command` gives the work a name within the Application and declares its result contract. This example keeps the definition and its handler together:
+`Application.command` gives the work a name within the Application and declares its result contract. This example keeps the definition and its handler together:
 
 ::Snippet{name="counterCommands" label="Counter with a delayed reset"}
 
@@ -35,13 +35,13 @@ Constructors prepare execution machinery. Application state and workflow decisio
 
 Three pieces connect the work to update:
 
-- `ApplicationDefinition.command` names `WaitBeforeReset`, declares the Messages it can produce, and stores its handler constructor in `config.handler`. The returned handler waits one second, then produces `CompletedWaitBeforeReset`.
+- `Application.command` names `WaitBeforeReset`, declares the Messages it can produce, and stores its handler constructor in `config.handler`. The returned handler waits one second, then produces `CompletedWaitBeforeReset`.
 - `WaitBeforeReset.layer` is the Layer recipe for that handler.
 - `WaitBeforeReset()` creates the Command value that update returns. Creating that value does not start the timer.
 
 The typed definition's `update` method infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
 
-`application.ts` exports the typed `ApplicationDefinition`, its graphless `ApplicationComposition`, its update/view, and the local handler recipe. `entry.ts` passes those pieces to `ApplicationComposition.make`, supplies any remaining Services through `application.provide(layer)`, and starts the Runtime:
+`application.ts` exports the typed `Application`, its graphless `ApplicationComposition`, its update/view, and the local handler recipe. `entry.ts` passes those pieces to `ApplicationComposition.make`, supplies any remaining Services through `application.provide(layer)`, and starts the Runtime:
 
 ::Snippet{name="counterCommandsEntry" label="Starting the counter"}
 
@@ -142,7 +142,7 @@ A handler can own execution bookkeeping, such as a resource pool or worker respo
 
 ### Naming and Composition
 
-Compose `FetchCount.layer` directly in the feature's local `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` composition. Pass a feature's local bundle to `toBlock`; child Bindings carry its handler recipe to the Application Composition. Root `application.ts` exports `ApplicationDefinition` and `ApplicationComposition`. The entry imports implementation pieces from their real owners, lists them explicitly in `ApplicationComposition.make`, and then calls `application.provide(ApplicationLayer)`. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
+Compose `FetchCount.layer` directly in the feature's local `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` composition. Pass a feature's local bundle to `toBlock`; child Bindings carry its handler recipe to the Application Composition. Root `application.ts` exports `Application` and `ApplicationComposition`. The entry imports implementation pieces from their real owners, lists them explicitly in `ApplicationComposition.make`, and then calls `application.provide(ApplicationLayer)`. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
 
 Command names are local to their named Block. Two features can both declare `FetchCount`; their owners keep the definitions distinct. Names must be unique within one owner, and composition derives readable paths for each Binding placement. A Command's handler requirement includes that owned name, its decoded args, and its declared result Messages. `FeatureComposition.toBlock` checks that the feature's `EffectsLayer` supplies each local requirement or that the definition appears in `hostHandlers`.
 
@@ -150,7 +150,7 @@ Derive an explicit handler requirement from its owning definition. `Command.Hand
 
 ::Snippet{name="handlerRequirementAnnotation" label="Deriving a Command handler requirement"}
 
-`FeatureDefinition.update` normally infers the requirement, so most application code needs no annotation. The explicit expanded form is `Command.Handler<Name, Args, DeclaredMessage>`.
+`Feature.update` normally infers the requirement, so most application code needs no annotation. The explicit expanded form is `Command.Handler<Name, Args, DeclaredMessage>`.
 
 Definitions created by different named Blocks receive different owned names even when their local names and protocols match. Each definition also retains a private runtime identity. Build an external implementation or test alternative with the original definition's `toLayer` so it keeps that identity.
 

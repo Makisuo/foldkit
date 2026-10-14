@@ -6,13 +6,13 @@ import { Message, OutMessage } from './message'
 import { Model } from './model'
 import * as Login from './page/login'
 
-export const LoggedOutDefinition = Block.define('LoggedOut', {
+export const LoggedOut = Block.define('LoggedOut', {
   Model,
   Message,
   OutMessage,
 })
 
-export const login = LoggedOutDefinition.bindChild(Login.block, {
+export const login = LoggedOut.bindChild(Login.block, {
   read: (model: Model) => Option.some(model.loginModel),
   write: (model, nextLoginModel) =>
     modifyFields(model, { loginModel: () => nextLoginModel }),
@@ -24,6 +24,6 @@ export const login = LoggedOutDefinition.bindChild(Login.block, {
   },
 })
 
-export const LoggedOutComposition = LoggedOutDefinition.toComposition({
+export const LoggedOutComposition = LoggedOut.toComposition({
   children: [login],
 })

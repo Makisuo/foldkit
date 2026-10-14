@@ -1,11 +1,11 @@
 import { Layer } from 'effect'
 
 import { LoadPlayground, children } from './childBindings'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import * as Root from './root'
 import * as Subscriptions from './subscription'
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children,
 })
 

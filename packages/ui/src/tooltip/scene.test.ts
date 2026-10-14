@@ -16,25 +16,25 @@ import {
   triggerId,
 } from './index.js'
 
-const TooltipSceneDefinition = Block.define('TooltipScene', { Model, Message })
+const TooltipScene = Block.define('TooltipScene', { Model, Message })
 
 const foldTooltipOutMessage = OutMessage.match<Update.Step<Model, Message>>({
   Shown: () => model => ({ model }),
   Hidden: () => model => ({ model }),
 })
 
-const tooltip = TooltipSceneDefinition.bindChild(block, {
+const tooltip = TooltipScene.bindChild(block, {
   read: (model: Model) => Option.some(model),
   write: (_model: Model, nextTooltip: Model) => nextTooltip,
   toParentMessage: (message: Message): Message => message,
   outMessage: { fold: foldTooltipOutMessage },
 })
 
-const TooltipSceneComposition = TooltipSceneDefinition.toComposition({
+const TooltipSceneComposition = TooltipScene.toComposition({
   children: [tooltip],
 })
 
-const update = TooltipSceneDefinition.update((model, message) =>
+const update = TooltipScene.update((model, message) =>
   tooltip.fold(model, message),
 )
 

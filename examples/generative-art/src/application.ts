@@ -16,7 +16,7 @@ import {
   NOISE_SCALE_MIN_DIVISOR,
   NOISE_SCALE_STEP,
 } from './constant'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { subscriptions } from './subscription'
 
 export const EffectsLayer = Layer.mergeAll(
@@ -62,6 +62,6 @@ export const init = () => ({
   ),
 })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [flowStrengthSlider, noiseScaleSlider],
 })

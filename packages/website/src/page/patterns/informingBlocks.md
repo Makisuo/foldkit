@@ -24,7 +24,7 @@ This page builds on the [Blocks](/core/block) pattern. Read that first if the `G
 
 ### Keep the Message Private
 
-People declares its Model, Message, and early `PeopleDefinition` in cycle-safe files. The internal `ChangedRoute` Message carries only `PeopleRoute`, the part of the application Route that the feature understands. Commands import that early definition and the Message constructors they produce; the completed Block imports the Commands and their handler recipes.
+People declares its Model, Message, and early `People` in cycle-safe files. The internal `ChangedRoute` Message carries only `PeopleRoute`, the part of the application Route that the feature understands. Commands import that early definition and the Message constructors they produce; the completed Block imports the Commands and their handler recipes.
 
 ::Snippet{name="informingBlocksMessage" label="People Message contract"}
 
@@ -34,7 +34,7 @@ Update copies the route query into the input, records it in recent searches, and
 
 ### Expose a Public Helper
 
-`informRouteChanged` is a typed public operation authored with `PeopleDefinition.step`. It calls `update(model, ChangedRoute({ route }))`, keeping construction of that internal Message inside the child, and the completed Block selects it under `expose`.
+`informRouteChanged` is a typed public operation authored with `People.step`. It calls `update(model, ChangedRoute({ route }))`, keeping construction of that internal Message inside the child, and the completed Block selects it under `expose`.
 
 ::Snippet{name="informingBlocksChild" label="Child informRouteChanged helper"}
 

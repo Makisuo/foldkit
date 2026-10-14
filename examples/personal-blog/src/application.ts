@@ -35,14 +35,14 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-const counter = ApplicationDefinition.bindChild(Counter.block, {
+const counter = Application.bindChild(Counter.block, {
   field: 'counter',
   parentMessage: Message.GotCounterMessage,
 })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [counter],
 })
 

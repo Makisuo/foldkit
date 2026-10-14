@@ -56,7 +56,7 @@ export type ChangedViewMonth = typeof OutMessage.ChangedViewMonth.Type
 export type SelectedDate = typeof OutMessage.SelectedDate.Type
 export type ClearedDate = typeof OutMessage.ClearedDate.Type
 
-const DatePickerDefinition = Block.define('DatePicker', {
+const DatePicker = Block.define('DatePicker', {
   Model,
   Message,
   OutMessage,
@@ -110,7 +110,7 @@ export const init = (config: InitConfig): Model => ({
 
 // UPDATE
 
-const dropCalendarToDays = DatePickerDefinition.step(model => ({
+const dropCalendarToDays = DatePicker.step(model => ({
   model: modifyFields(model, { calendar: UiCalendar.dropToDays }),
 }))
 
@@ -121,14 +121,14 @@ const foldPopoverOutMessage = Popover.OutMessage.match<
   Closed: () => dropCalendarToDays,
 })
 
-const popover = DatePickerDefinition.bindChild(Popover.block, {
+const popover = DatePicker.bindChild(Popover.block, {
   field: 'popover',
   parentMessage: Message.GotPopoverMessage,
   outMessage: { fold: foldPopoverOutMessage },
 })
 
 const foldCalendarOutMessage = UiCalendar.OutMessage.match({
-  ChangedViewMonth: () => DatePickerDefinition.step(model => ({ model })),
+  ChangedViewMonth: () => DatePicker.step(model => ({ model })),
   SelectedDate: () => popover.close(),
 })
 
@@ -138,7 +138,7 @@ const toDatePickerOutMessage = UiCalendar.OutMessage.match<OutMessage>({
   SelectedDate: ({ date }) => OutMessage.SelectedDate({ date }),
 })
 
-const calendar = DatePickerDefinition.bindChild(UiCalendar.block, {
+const calendar = DatePicker.bindChild(UiCalendar.block, {
   field: 'calendar',
   parentMessage: Message.GotCalendarMessage,
   outMessage: {
@@ -147,7 +147,7 @@ const calendar = DatePickerDefinition.bindChild(UiCalendar.block, {
   },
 })
 
-const DatePickerComposition = DatePickerDefinition.toComposition({
+const DatePickerComposition = DatePicker.toComposition({
   children: [popover, calendar],
 })
 
@@ -156,7 +156,7 @@ export const mounts = DatePickerComposition.mounts
 
 /** Processes a DatePicker Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. */
-export const update = DatePickerDefinition.update((model, message) =>
+export const update = DatePicker.update((model, message) =>
   Message.match(message, {
     GotCalendarMessage: ({ message: calendarMessage }) =>
       calendar.fold(model, calendarMessage),
@@ -176,22 +176,18 @@ export const update = DatePickerDefinition.update((model, message) =>
 
 /** Programmatically opens the DatePicker, updating the Model and returning
  *  focus and Popover Commands. Use this in domain-event handlers. */
-const open = DatePickerDefinition.step(model => update(model, Message.Opened()))
+const open = DatePicker.step(model => update(model, Message.Opened()))
 
 /** Programmatically closes the date picker. Use this in domain-event handlers. */
-const close = DatePickerDefinition.step(model =>
-  update(model, Message.Closed()),
-)
+const close = DatePicker.step(model => update(model, Message.Closed()))
 
 /** Programmatically selects a date, committing it and closing the popover. Emits a `SelectedDate` OutMessage just like a user-initiated selection. */
-const selectDate = DatePickerDefinition.step((model, date: CalendarDate) =>
+const selectDate = DatePicker.step((model, date: CalendarDate) =>
   update(model, Message.RequestedSelectDate({ date })),
 )
 
 /** Programmatically clears the selected date. */
-const clear = DatePickerDefinition.step(model =>
-  update(model, Message.Cleared()),
-)
+const clear = DatePicker.step(model => update(model, Message.Cleared()))
 
 /** Moves the embedded calendar's view and cursor to a date without changing
  *  the selection (which the parent owns). Use it to navigate the picker onto a

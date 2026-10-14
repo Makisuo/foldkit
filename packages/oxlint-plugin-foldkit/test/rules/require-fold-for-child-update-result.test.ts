@@ -433,7 +433,7 @@ it('detects copied child results using completed Block binding evidence', () => 
     type: 'CallExpression',
     callee: {
       type: 'MemberExpression',
-      object: Testing.id('ApplicationDefinition'),
+      object: Testing.id('Application'),
       property: Testing.id('bindChild'),
       computed: false,
     },
@@ -458,7 +458,7 @@ it('detects copied child results using completed Block binding evidence', () => 
 })
 
 it('detects copied child results using direct field Binding shorthand', () => {
-  const binding = Testing.callOfMember('ApplicationDefinition', 'bindChild', [
+  const binding = Testing.callOfMember('Application', 'bindChild', [
     Testing.id('Settings'),
     objectExpression([
       property('field', Testing.strLiteral('settings')),
@@ -487,7 +487,7 @@ it('detects copied child results using keyed Binding evidence', () => {
     },
     [Testing.id('model')],
   )
-  const binding = Testing.callOfMember('ApplicationDefinition', 'bindChild', [
+  const binding = Testing.callOfMember('Application', 'bindChild', [
     Testing.id('Settings'),
     objectExpression([
       property('readAll', readAll),

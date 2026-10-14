@@ -5,11 +5,11 @@ import {
   TimestampReceivedMessage,
   TimestampSentMessage,
 } from './command'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { managedResources } from './managedResource'
 import { subscriptions } from './subscription'
 
-export const ApplicationComposition = ApplicationDefinition.toComposition()
+export const ApplicationComposition = Application.toComposition()
 
 export const EffectsLayer = Layer.mergeAll(
   TimestampSentMessage.layer,

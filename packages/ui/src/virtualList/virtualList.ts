@@ -163,7 +163,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const VirtualListDefinition = Block.define('VirtualList', { Model, Message })
+const VirtualList = Block.define('VirtualList', { Model, Message })
 
 // INIT
 
@@ -460,7 +460,7 @@ const scrollTopForRequest = (
 
 const mountedContainers = new Map<string, Set<HTMLElement>>()
 
-export const ApplyScroll = VirtualListDefinition.command('ApplyScroll', {
+export const ApplyScroll = VirtualList.command('ApplyScroll', {
   args: {
     id: Schema.String,
     request: ScrollRequest,
@@ -533,7 +533,7 @@ export type ScrollToOptions = Readonly<{
 }>
 
 const buildScrollRequest = (request: typeof ScrollRequest.Type) =>
-  VirtualListDefinition.step(model => {
+  VirtualList.step(model => {
     const nextVersion = Number.increment(model.pendingScrollVersion)
     return {
       model: modifyFields(model, {
@@ -623,7 +623,7 @@ const measureContainer = (
     Unmeasured: () => false,
     Measured: measurement => measurement.containerWidth !== containerWidth,
   })
-  const recordContainerMeasurement = VirtualListDefinition.step(stepModel => ({
+  const recordContainerMeasurement = VirtualList.step(stepModel => ({
     model: modifyFields(stepModel, {
       measurement: () =>
         Measurement.Measured({ containerWidth, containerHeight }),
@@ -708,7 +708,7 @@ const applyRowMeasurements = (
 }
 
 /** Processes a VirtualList Message and returns the next Model and optional Commands. */
-export const update = VirtualListDefinition.update((model, message) =>
+export const update = VirtualList.update((model, message) =>
   Message.match(message, {
     ObservedContainerScroll: snapshot => {
       const nextPendingScrollVersion = PendingScroll.match<number>(
@@ -767,7 +767,7 @@ type RowOffsets = Readonly<{
 }>
 
 /** Programmatically scrolls to a logical target. */
-export const scrollTo = VirtualListDefinition.step(
+export const scrollTo = VirtualList.step(
   (model, target: ScrollTarget, options: ScrollToOptions = {}) =>
     Update.combine(model, [
       stepModel => ({
@@ -787,33 +787,33 @@ export const scrollTo = VirtualListDefinition.step(
 /** Programmatically scrolls the container so the row at `index` is visible.
  *  The next view resolves the logical index with its current sizing mode, and
  *  the Command aligns the live rendered row. */
-export const scrollToIndex = VirtualListDefinition.step(
+export const scrollToIndex = VirtualList.step(
   (model, index: number, options: ScrollToOptions = {}) =>
     scrollTo(model, ScrollTarget.Index({ index }), options),
 )
 
 /** Programmatically scrolls to the row whose `itemToKey` result matches
  *  `key`. The next view resolves the key against its current items. */
-export const scrollToKey = VirtualListDefinition.step(
+export const scrollToKey = VirtualList.step(
   (model, key: string, options: ScrollToOptions = {}) =>
     scrollTo(model, ScrollTarget.Key({ key }), options),
 )
 
 /** Programmatically scrolls to an exact pixel offset from the start of the
  *  list. Negative offsets clamp to zero. */
-export const scrollToOffset = VirtualListDefinition.step(
-  (model, offset: number) => scrollTo(model, ScrollTarget.Offset({ offset })),
+export const scrollToOffset = VirtualList.step((model, offset: number) =>
+  scrollTo(model, ScrollTarget.Offset({ offset })),
 )
 
 /** Programmatically scrolls to the end of the list. */
-export const scrollToEnd = VirtualListDefinition.step(model =>
+export const scrollToEnd = VirtualList.step(model =>
   scrollTo(model, ScrollTarget.End()),
 )
 
 /** Notifies VirtualList that its parent-owned items changed. The next view
  *  resolves the stored stable-key anchor against the new items, and the
  *  Command restores that anchor after the DOM patch. */
-export const informItemsChanged = VirtualListDefinition.step(
+export const informItemsChanged = VirtualList.step(
   (model, itemKeys: ReadonlyArray<string>) => {
     const currentKeys = HashSet.fromIterable(itemKeys)
     return Update.combine(model, [
@@ -1259,7 +1259,7 @@ const observeVirtualList = (
 
 /** Container-owned Mount that tracks scrolling, container resizing, and
  *  rendered row measurements for dynamic-height lists. */
-export const ObserveVirtualList = VirtualListDefinition.mountStream(
+export const ObserveVirtualList = VirtualList.mountStream(
   'ObserveVirtualList',
   {
     args: { id: Schema.String },
@@ -1284,7 +1284,7 @@ export const ObserveVirtualList = VirtualListDefinition.mountStream(
 /** Mount Definitions rendered by VirtualList views. */
 export const mounts = [ObserveVirtualList]
 
-const VirtualListComposition = VirtualListDefinition.toComposition({
+const VirtualListComposition = VirtualList.toComposition({
   mounts,
 })
 

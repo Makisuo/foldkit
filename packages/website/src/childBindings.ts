@@ -5,7 +5,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Dialog } from '@foldkit/ui'
 
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { Message } from './message'
 import { Model } from './model'
 import {
@@ -25,7 +25,7 @@ import * as SnippetDisclosure from './snippetDisclosure'
 import { selectThemePreference } from './theme'
 import { ThemeMenu } from './view/themeMenu'
 
-export const LoadPlayground = ApplicationDefinition.command('LoadPlayground', {
+export const LoadPlayground = Application.command('LoadPlayground', {
   args: { exampleSlug: ExampleSlug },
   messages: [Message.CompletedLoadPlayground],
   handler: function* () {
@@ -46,7 +46,7 @@ const foldHomeOutMessage = Home.OutMessage.match({
     loadPlaygroundExample(exampleSlug),
 })
 
-export const home = ApplicationDefinition.bindChild(Home.block, {
+export const home = Application.bindChild(Home.block, {
   read: (model: Model) => model.maybeHome,
   write: (model, nextHome) =>
     modifyFields(model, { maybeHome: () => Option.some(nextHome) }),
@@ -56,17 +56,17 @@ export const home = ApplicationDefinition.bindChild(Home.block, {
   },
 })
 
-export const search = ApplicationDefinition.bindChild(Search.block, {
+export const search = Application.bindChild(Search.block, {
   field: 'search',
   parentMessage: Message.GotSearchMessage,
 })
 
-export const snippetCopy = ApplicationDefinition.bindChild(SnippetCopy.block, {
+export const snippetCopy = Application.bindChild(SnippetCopy.block, {
   field: 'snippetCopy',
   parentMessage: Message.GotSnippetCopyMessage,
 })
 
-export const snippetDisclosure = ApplicationDefinition.bindChild(
+export const snippetDisclosure = Application.bindChild(
   SnippetDisclosure.block,
   {
     field: 'snippetDisclosure',
@@ -74,49 +74,37 @@ export const snippetDisclosure = ApplicationDefinition.bindChild(
   },
 )
 
-export const exampleDetail = ApplicationDefinition.bindChild(
-  ExampleDetail.block,
-  {
-    field: 'exampleDetail',
-    parentMessage: Message.GotExampleDetailMessage,
-  },
-)
+export const exampleDetail = Application.bindChild(ExampleDetail.block, {
+  field: 'exampleDetail',
+  parentMessage: Message.GotExampleDetailMessage,
+})
 
-export const playground = ApplicationDefinition.bindChild(Playground.block, {
+export const playground = Application.bindChild(Playground.block, {
   read: (model: Model) => model.playground,
   write: (model: Model, nextPlayground: typeof Playground.Model.Type) =>
     modifyFields(model, { playground: () => Option.some(nextPlayground) }),
   parentMessage: Message.GotPlaygroundMessage,
 })
 
-export const uiPages = ApplicationDefinition.bindChild(Ui.block, {
+export const uiPages = Application.bindChild(Ui.block, {
   field: 'uiPages',
   parentMessage: Message.GotUiPageMessage,
 })
 
-export const apiReference = ApplicationDefinition.bindChild(
-  ApiReference.block,
-  {
-    field: 'apiReference',
-    parentMessage: Message.GotApiReferenceMessage,
-  },
-)
+export const apiReference = Application.bindChild(ApiReference.block, {
+  field: 'apiReference',
+  parentMessage: Message.GotApiReferenceMessage,
+})
 
-export const comingFromReact = ApplicationDefinition.bindChild(
-  ComingFromReact.block,
-  {
-    field: 'comingFromReact',
-    parentMessage: Message.GotComingFromReactMessage,
-  },
-)
+export const comingFromReact = Application.bindChild(ComingFromReact.block, {
+  field: 'comingFromReact',
+  parentMessage: Message.GotComingFromReactMessage,
+})
 
-export const coreBlockPage = ApplicationDefinition.bindChild(
-  CoreBlockPage.block,
-  {
-    field: 'coreBlockPage',
-    parentMessage: Message.GotCoreBlockPageMessage,
-  },
-)
+export const coreBlockPage = Application.bindChild(CoreBlockPage.block, {
+  field: 'coreBlockPage',
+  parentMessage: Message.GotCoreBlockPageMessage,
+})
 
 const foldMobileMenuDialogOutMessage = Dialog.OutMessage.match<
   Update.Step<Model, Message>
@@ -125,7 +113,7 @@ const foldMobileMenuDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-export const mobileMenuDialog = ApplicationDefinition.bindChild(Dialog.block, {
+export const mobileMenuDialog = Application.bindChild(Dialog.block, {
   field: 'mobileMenuDialog',
   parentMessage: Message.GotMobileMenuDialogMessage,
   outMessage: { fold: foldMobileMenuDialogOutMessage },
@@ -135,7 +123,7 @@ const foldThemeMenuOutMessage = ThemeMenu.OutMessage.match({
   Selected: ({ value }) => selectThemePreference(value),
 })
 
-export const themeMenu = ApplicationDefinition.bindChild(ThemeMenu, {
+export const themeMenu = Application.bindChild(ThemeMenu, {
   field: 'themeMenu',
   parentMessage: Message.GotThemeMenuMessage,
   outMessage: { fold: foldThemeMenuOutMessage },

@@ -37,7 +37,7 @@ const Message = defineMessageUnion({
   GotCounterMessage: { message: CounterMessage },
 })
 type Message = typeof Message.Type
-const ParentDefinition = define('BindingContextParent', {
+const Parent = define('BindingContextParent', {
   Model,
   Message,
 })
@@ -55,7 +55,7 @@ const foldCounterOutMessage = (
       }),
     }),
   })
-const boundCounter = ParentDefinition.bindChild(block, {
+const boundCounter = Parent.bindChild(block, {
   read: model => Option.some(model.counter),
   write: (model: Model, nextCounter: typeof CounterModel.Type) =>
     modifyFields(model, { counter: () => nextCounter }),
@@ -105,7 +105,7 @@ const keyedBaseConfig = {
   toParentMessage: (_id: number, message: typeof CounterMessage.Type) =>
     Message.GotCounterMessage({ message }),
 }
-const entries = ParentDefinition.bindChild(block, {
+const entries = Parent.bindChild(block, {
   ...keyedBaseConfig,
   outMessage: keyedPolicy,
 })
@@ -149,11 +149,11 @@ type SequencedParentModel = typeof SequencedParentModel.Type
 const SequencedParentMessage = defineMessageUnion({
   GotSequencedCounterMessage: { message: SequencedCounterMessage },
 })
-const SequencedParentDefinition = define('SequencedCounterParent', {
+const SequencedParent = define('SequencedCounterParent', {
   Model: SequencedParentModel,
   Message: SequencedParentMessage,
 })
-const sequencedCounterBinding = SequencedParentDefinition.bindChild(
+const sequencedCounterBinding = SequencedParent.bindChild(
   sequencedCounterBlock,
   {
     read: model => Option.some(model.child),
@@ -222,10 +222,10 @@ if (false) {
   entries.reset()
 
   // @ts-expect-error A keyed child with OutMessages requires an explicit policy.
-  ParentDefinition.bindChild(block, keyedBaseConfig)
+  Parent.bindChild(block, keyedBaseConfig)
 
   // @ts-expect-error The policy key and parent Message must match the binding.
-  ParentDefinition.bindChild(block, {
+  Parent.bindChild(block, {
     ...keyedBaseConfig,
     outMessage: {
       fold:
@@ -243,19 +243,19 @@ if (false) {
   })
 
   // @ts-expect-error Forwarding must return a concrete parent OutMessage.
-  ParentDefinition.bindChild(block, {
+  Parent.bindChild(block, {
     ...keyedBaseConfig,
     outMessage: { forward: () => undefined },
   })
 
   // @ts-expect-error An unknown forwarding contract erases the parent OutMessage.
-  ParentDefinition.bindChild(block, {
+  Parent.bindChild(block, {
     ...keyedBaseConfig,
     outMessage: { forward: (): unknown => undefined },
   })
 
   // @ts-expect-error An any forwarding contract erases the parent OutMessage.
-  ParentDefinition.bindChild(block, {
+  Parent.bindChild(block, {
     ...keyedBaseConfig,
     // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
     outMessage: { forward: (): any => undefined },

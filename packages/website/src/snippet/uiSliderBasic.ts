@@ -63,22 +63,22 @@ const foldSliderOutMessage = Slider.OutMessage.match<
 // The Binding wires the completed child Block into the parent: it runs Slider.update,
 // writes the next Slider Model back, maps the Block's Commands into your
 // Message type, and hands any OutMessage to the OutMessage fold.
-const VolumeSliderDefinition = Block.define('VolumeSlider', {
+const VolumeSlider = Block.define('VolumeSlider', {
   Model,
   Message,
 })
 
-const slider = VolumeSliderDefinition.bindChild(Slider.block, {
+const slider = VolumeSlider.bindChild(Slider.block, {
   field: 'ratingDemo',
   parentMessage: Message.GotSliderMessage,
   outMessage: { fold: foldSliderOutMessage },
 })
 
-const VolumeSliderComposition = VolumeSliderDefinition.toComposition({
+const VolumeSliderComposition = VolumeSlider.toComposition({
   children: [slider],
 })
 
-const update = VolumeSliderDefinition.update((model, message) =>
+const update = VolumeSlider.update((model, message) =>
   Message.match(message, {
     GotSliderMessage: ({ message }) => slider.fold(model, message),
   }),

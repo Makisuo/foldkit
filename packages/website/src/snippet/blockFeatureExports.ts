@@ -1,5 +1,5 @@
 // page/settings/block.ts
-export const block = SettingsDefinition.toComposition().toBlock({
+export const block = Settings.toComposition().toBlock({
   init,
   update,
   view,
@@ -21,7 +21,7 @@ import { Settings } from './page'
 Settings.Model
 Settings.Message
 Settings.OutMessage.match
-ApplicationDefinition.bindChild(Settings.block, {
+Application.bindChild(Settings.block, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
 })

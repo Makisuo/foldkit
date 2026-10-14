@@ -3,19 +3,19 @@ import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import {
-  tabs,
   applyPostsTransition,
   applyStatsTransition,
+  tabs,
 } from './childBindings'
 import { FetchPostDetail } from './command'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { Message } from './message'
 import { PostDetailData } from './model'
 
 const setPostDetail = (postId: string, postDetail: PostDetailData) =>
   HashMap.set(postId, postDetail)
 
-export const update = ApplicationDefinition.update((model, message) =>
+export const update = Application.update((model, message) =>
   Message.match(message, {
     GotTabsMessage: ({ message }) => tabs.fold(model, message),
 

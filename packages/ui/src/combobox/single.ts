@@ -12,7 +12,7 @@ import {
   type MessageSchema,
   OutMessage,
   type OutMessageSchema,
-  ComboboxDefinition as SharedComboboxDefinition,
+  Combobox as SharedCombobox,
   baseInit,
   closedBaseModel,
   makeMessage,
@@ -31,7 +31,7 @@ export const Model = Schema.Struct({
 
 export type Model = typeof Model.Type
 
-const ComboboxDefinition = SharedComboboxDefinition.define({
+const Combobox = SharedCombobox.define({
   Model,
   Message,
   OutMessage,
@@ -52,7 +52,7 @@ export const init = (config: InitConfig): Model => baseInit(config)
  *  `Selected({ value })` for the parent to store. A nullable Combobox also
  *  emits `ClearedSelection` when it closes with an empty input. */
 const defaultUpdate = makeUpdate(
-  ComboboxDefinition.bindChild,
+  Combobox.bindChild,
   Message,
   'CloseWithFocus',
   {
@@ -89,7 +89,7 @@ const defaultUpdate = makeUpdate(
   },
 )
 
-export const update = ComboboxDefinition.update(defaultUpdate.update)
+export const update = Combobox.update(defaultUpdate.update)
 
 type UpdateReturn = ReturnType<typeof update>
 
@@ -133,13 +133,13 @@ export type ViewInputs<Item extends string> = BaseViewInputsCommon<Item> &
 const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
   const ItemMessage: MessageSchema<Item> = makeMessage(Item)
   const ItemOutMessage: OutMessageSchema<Item> = makeOutMessage(Item)
-  const ComboboxDefinition = SharedComboboxDefinition.define({
+  const Combobox = SharedCombobox.define({
     Model,
     Message: ItemMessage,
     OutMessage: ItemOutMessage,
   })
   const itemUpdate = makeUpdate(
-    ComboboxDefinition.bindChild,
+    Combobox.bindChild,
     ItemMessage,
     'CloseWithFocus',
     {
@@ -175,11 +175,11 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
       }),
     },
   )
-  const ComboboxComposition = ComboboxDefinition.toComposition({
+  const ComboboxComposition = Combobox.toComposition({
     mounts,
     children: [itemUpdate.animation],
   })
-  const update = ComboboxDefinition.update(itemUpdate.update)
+  const update = Combobox.update(itemUpdate.update)
   const render = makeView<Model, Item>(
     { ariaMultiSelectable: false },
     ItemMessage,
@@ -195,22 +195,21 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
         h,
       ),
   )
-  const open = ComboboxDefinition.step(model =>
+  const open = Combobox.step(model =>
     update(model, ItemMessage.Opened({ maybeActiveItemIndex: Option.none() })),
   )
-  const close = ComboboxDefinition.step((model, restingInputValue: string) =>
+  const close = Combobox.step((model, restingInputValue: string) =>
     update(model, ItemMessage.Closed({ restingInputValue, isClearable: true })),
   )
-  const selectItem = ComboboxDefinition.step(
-    (model, item: Item, displayText: string) =>
-      update(
-        model,
-        ItemMessage.SelectedItem({
-          item,
-          displayText,
-          wasSelected: false,
-        }),
-      ),
+  const selectItem = Combobox.step((model, item: Item, displayText: string) =>
+    update(
+      model,
+      ItemMessage.SelectedItem({
+        item,
+        displayText,
+        wasSelected: false,
+      }),
+    ),
   )
 
   return {

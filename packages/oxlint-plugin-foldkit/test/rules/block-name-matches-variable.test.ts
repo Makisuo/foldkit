@@ -35,7 +35,7 @@ describe('block-name-matches-variable', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain(
-      '"People" must be "PeopleDirectoryDefinition"',
+      '"People" must be "PeopleDirectory"',
     )
   })
 
@@ -44,7 +44,7 @@ describe('block-name-matches-variable', () => {
       blockNameMatchesVariable,
       'VariableDeclarator',
       variableDeclarator(
-        'PeopleDefinition',
+        'People',
         Testing.callOfMember('Block', 'define', [Testing.strLiteral('People')]),
       ),
     )
@@ -77,7 +77,7 @@ describe('block-name-matches-variable', () => {
     )
   })
 
-  it('allows a graph stage prefix on a Composition', () => {
+  it('allows the Block name with a Composition suffix', () => {
     const defineCall = Testing.callOfMember('Block', 'define', [
       Testing.strLiteral('PeopleDirectory'),
     ])
@@ -106,10 +106,7 @@ describe('block-name-matches-variable', () => {
     const result = Testing.runRule(
       blockNameMatchesVariable,
       'VariableDeclarator',
-      variableDeclarator(
-        'PeopleDirectoryDefinition',
-        callMethod(identity, 'define'),
-      ),
+      variableDeclarator('PeopleDirectory', callMethod(identity, 'define')),
     )
 
     expect(result).toHaveLength(0)
@@ -131,19 +128,19 @@ describe('block-name-matches-variable', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('requires ApplicationDefinition before toComposition', () => {
+  it('requires Application at the authoring stage', () => {
     const result = Testing.runRule(
       blockNameMatchesVariable,
       'VariableDeclarator',
       variableDeclarator(
-        'Application',
+        'ApplicationDefinition',
         Testing.callOfMember('Application', 'define', []),
       ),
     )
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain(
-      '"Application" must be "ApplicationDefinition"',
+      '"ApplicationDefinition" must be "Application"',
     )
   })
 
@@ -152,7 +149,7 @@ describe('block-name-matches-variable', () => {
       blockNameMatchesVariable,
       'VariableDeclarator',
       variableDeclarator(
-        'ApplicationDefinition',
+        'Application',
         callMethod(
           Testing.callOfMember('Application', 'define', []),
           'toComposition',
@@ -162,7 +159,7 @@ describe('block-name-matches-variable', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain(
-      '"ApplicationDefinition" must be "ApplicationComposition"',
+      '"Application" must be "ApplicationComposition"',
     )
   })
 
@@ -188,6 +185,32 @@ describe('block-name-matches-variable', () => {
         Testing.callOfMember('Registry', 'define', [
           Testing.strLiteral('PeopleDirectory'),
         ]),
+      ),
+    )
+
+    expect(result).toHaveLength(0)
+  })
+
+  it('ignores chains rooted in unrelated define methods', () => {
+    const unrelatedDefine = Testing.callOfMember('Registry', 'define', [
+      Testing.strLiteral('PeopleDirectory'),
+    ])
+    const result = Testing.runRule(
+      blockNameMatchesVariable,
+      'VariableDeclarator',
+      variableDeclarator('People', callMethod(unrelatedDefine, 'define')),
+    )
+
+    expect(result).toHaveLength(0)
+  })
+
+  it('ignores unrelated toComposition methods', () => {
+    const result = Testing.runRule(
+      blockNameMatchesVariable,
+      'VariableDeclarator',
+      variableDeclarator(
+        'People',
+        Testing.callOfMember('Registry', 'toComposition', []),
       ),
     )
 

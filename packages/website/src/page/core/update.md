@@ -36,7 +36,7 @@ Return Commands beside the next Model from the Message branch that requests the 
 
 `ClickedIncrement` changes the count and asks the runtime to persist it. `CompletedPersistCount` records that the Command finished, but it has no more work to request, so that branch omits `commands`.
 
-`FeatureDefinition.update` authors a Block's update and infers the handler services required by the Commands across all of its branches. It leaves the function's runtime behavior unchanged.
+`Feature.update` authors a Block's update and infers the handler services required by the Commands across all of its branches. It leaves the function's runtime behavior unchanged.
 
 `Update.defineStep` does the same inference for a standalone Step producer. Annotate its Model parameter and let the helper infer the returned Command requirements and OutMessage. A pure OutMessage fold can use `OutMessage.match<Update.Step<Model, Message>>` directly; the matcher types its Model parameter without a Step helper. Callers can then compose that Step with pure Steps through `Update.combine` without naming a service union by hand.
 

@@ -1,9 +1,9 @@
-import { ComingFromReactDefinition } from './definition'
+import { ComingFromReact } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const block = ComingFromReactDefinition.toComposition().toBlock({
+export const block = ComingFromReact.toComposition().toBlock({
   init,
   update,
   view,

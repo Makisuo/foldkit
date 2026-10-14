@@ -3,7 +3,7 @@ import { Block } from 'foldkit'
 import { Message } from './message'
 import { Model } from './model'
 
-export const SnippetCopyDefinition = Block.define('SnippetCopy', {
+export const SnippetCopy = Block.define('SnippetCopy', {
   Model,
   Message,
 })

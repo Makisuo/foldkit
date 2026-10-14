@@ -8,11 +8,11 @@ import {
   USER_GAME_TEXT_INPUT_ID,
 } from '../../constant'
 import { RoomsClient } from '../../rpc'
-import { RoomDefinition } from './definition'
+import { Room } from './definition'
 import { Message } from './message'
 import { RoomPlayerSession, RoomPlayerSessionJsonString } from './model'
 
-export const FetchRoom = RoomDefinition.command('FetchRoom', {
+export const FetchRoom = Room.command('FetchRoom', {
   args: { roomId: Schema.String },
   messages: [Message.SucceededFetchRoom, Message.FailedFetchRoom],
   handler: function* () {
@@ -26,7 +26,7 @@ export const FetchRoom = RoomDefinition.command('FetchRoom', {
   },
 })
 
-export const LoadSession = RoomDefinition.command('LoadSession', {
+export const LoadSession = Room.command('LoadSession', {
   args: { roomId: Schema.String },
   messages: [Message.CompletedLoadSession],
   handler: function* () {
@@ -61,7 +61,7 @@ export const LoadSession = RoomDefinition.command('LoadSession', {
   },
 })
 
-export const JoinRoom = RoomDefinition.command('JoinRoom', {
+export const JoinRoom = Room.command('JoinRoom', {
   args: { username: Schema.String, roomId: Schema.String },
   messages: [Message.SucceededJoinRoom, Message.FailedJoinRoom],
   handler: function* () {
@@ -75,7 +75,7 @@ export const JoinRoom = RoomDefinition.command('JoinRoom', {
   },
 })
 
-export const StartGame = RoomDefinition.command('StartGame', {
+export const StartGame = Room.command('StartGame', {
   args: { roomId: Schema.String, playerId: Schema.String },
   messages: [Message.SucceededStartGame, Message.FailedStartGame],
   handler: function* () {
@@ -89,38 +89,35 @@ export const StartGame = RoomDefinition.command('StartGame', {
   },
 })
 
-export const UpdatePlayerProgress = RoomDefinition.command(
-  'UpdatePlayerProgress',
-  {
-    args: {
-      playerId: Schema.String,
-      gameId: Schema.String,
-      userGameText: Schema.String,
-      charsTyped: Schema.Number,
-    },
-    messages: [Message.CompletedUpdatePlayerProgress],
-    handler: function* () {
-      const client = yield* RoomsClient
-
-      return ({ playerId, gameId, userGameText, charsTyped }) =>
-        client
-          .updatePlayerProgress({
-            playerId,
-            gameId,
-            userText: userGameText,
-            charsTyped,
-          })
-          .pipe(
-            Effect.as(Message.CompletedUpdatePlayerProgress()),
-            Effect.catch(() =>
-              Effect.succeed(Message.CompletedUpdatePlayerProgress()),
-            ),
-          )
-    },
+export const UpdatePlayerProgress = Room.command('UpdatePlayerProgress', {
+  args: {
+    playerId: Schema.String,
+    gameId: Schema.String,
+    userGameText: Schema.String,
+    charsTyped: Schema.Number,
   },
-)
+  messages: [Message.CompletedUpdatePlayerProgress],
+  handler: function* () {
+    const client = yield* RoomsClient
 
-export const CopyRoomId = RoomDefinition.command('CopyRoomId', {
+    return ({ playerId, gameId, userGameText, charsTyped }) =>
+      client
+        .updatePlayerProgress({
+          playerId,
+          gameId,
+          userText: userGameText,
+          charsTyped,
+        })
+        .pipe(
+          Effect.as(Message.CompletedUpdatePlayerProgress()),
+          Effect.catch(() =>
+            Effect.succeed(Message.CompletedUpdatePlayerProgress()),
+          ),
+        )
+  },
+})
+
+export const CopyRoomId = Room.command('CopyRoomId', {
   args: { roomId: Schema.String },
   messages: [Message.SucceededCopyRoomId, Message.FailedCopyRoomId],
   handler: function* () {
@@ -135,7 +132,7 @@ export const CopyRoomId = RoomDefinition.command('CopyRoomId', {
   },
 })
 
-export const WaitForExitCountdownInterval = RoomDefinition.command(
+export const WaitForExitCountdownInterval = Room.command(
   'WaitForExitCountdownInterval',
   {
     messages: [Message.CompletedWaitForExitCountdownInterval],
@@ -150,7 +147,7 @@ export const WaitForExitCountdownInterval = RoomDefinition.command(
 
 const COPY_INDICATOR_DURATION = '2 seconds'
 
-export const WaitBeforeHidingRoomIdCopiedIndicator = RoomDefinition.command(
+export const WaitBeforeHidingRoomIdCopiedIndicator = Room.command(
   'WaitBeforeHidingRoomIdCopiedIndicator',
   {
     messages: [Message.CompletedWaitBeforeHidingRoomIdCopiedIndicator],
@@ -165,7 +162,7 @@ export const WaitBeforeHidingRoomIdCopiedIndicator = RoomDefinition.command(
 
 // SESSION COMMANDS
 
-export const SavePlayerSession = RoomDefinition.command('SavePlayerSession', {
+export const SavePlayerSession = Room.command('SavePlayerSession', {
   args: { session: RoomPlayerSession },
   messages: [Message.CompletedSavePlayerSession],
   handler: function* () {
@@ -185,7 +182,7 @@ export const SavePlayerSession = RoomDefinition.command('SavePlayerSession', {
   },
 })
 
-export const ClearSession = RoomDefinition.command('ClearSession', {
+export const ClearSession = Room.command('ClearSession', {
   messages: [Message.CompletedClearSession],
   handler: function* () {
     const store = yield* KeyValueStore.KeyValueStore
@@ -198,7 +195,7 @@ export const ClearSession = RoomDefinition.command('ClearSession', {
   },
 })
 
-export const FocusRoomPageUsernameInput = RoomDefinition.command(
+export const FocusRoomPageUsernameInput = Room.command(
   'FocusRoomPageUsernameInput',
   {
     messages: [Message.CompletedFocusRoomPageUsernameInput],
@@ -212,16 +209,13 @@ export const FocusRoomPageUsernameInput = RoomDefinition.command(
   },
 )
 
-export const FocusUserGameTextInput = RoomDefinition.command(
-  'FocusUserGameTextInput',
-  {
-    messages: [Message.CompletedFocusUserGameTextInput],
-    handler: function* () {
-      return () =>
-        Dom.focus(`#${USER_GAME_TEXT_INPUT_ID}`).pipe(
-          Effect.ignore,
-          Effect.as(Message.CompletedFocusUserGameTextInput()),
-        )
-    },
+export const FocusUserGameTextInput = Room.command('FocusUserGameTextInput', {
+  messages: [Message.CompletedFocusUserGameTextInput],
+  handler: function* () {
+    return () =>
+      Dom.focus(`#${USER_GAME_TEXT_INPUT_ID}`).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedFocusUserGameTextInput()),
+      )
   },
-)
+})

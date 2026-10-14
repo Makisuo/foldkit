@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { Dom, Block } from 'foldkit'
+import { Block, Dom } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 
@@ -20,9 +20,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const SearchDefinition = Block.define('Search', { Model, Message })
+const Search = Block.define('Search', { Model, Message })
 
-const subscriptions = SearchDefinition.subscriptions(entry => ({
+const subscriptions = Search.subscriptions(entry => ({
   keyBindings: entry(
     'KeyBindings',
     { searchState: SearchState },

@@ -54,7 +54,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const PersonalInfoDefinition = Block.define('PersonalInfo', {
+const PersonalInfo = Block.define('PersonalInfo', {
   Model,
   Message,
 })
@@ -128,31 +128,28 @@ const isEmailTaken = (emailInput: string): Effect.Effect<boolean> =>
     return Array.contains(TAKEN_EMAILS, emailInput.toLowerCase())
   })
 
-export const ValidateEmailAsync = PersonalInfoDefinition.command(
-  'ValidateEmailAsync',
-  {
-    args: { emailInput: Schema.String, validationId: Schema.Number },
-    messages: [Message.CompletedValidateEmailAsync],
-    handler: function* () {
-      return ({ emailInput, validationId }) =>
-        Effect.gen(function* () {
-          if (yield* isEmailTaken(emailInput)) {
-            return Message.CompletedValidateEmailAsync({
-              validationId,
-              field: Invalid({
-                value: emailInput,
-                errors: ['This email is already in use'],
-              }),
-            })
-          }
+export const ValidateEmailAsync = PersonalInfo.command('ValidateEmailAsync', {
+  args: { emailInput: Schema.String, validationId: Schema.Number },
+  messages: [Message.CompletedValidateEmailAsync],
+  handler: function* () {
+    return ({ emailInput, validationId }) =>
+      Effect.gen(function* () {
+        if (yield* isEmailTaken(emailInput)) {
           return Message.CompletedValidateEmailAsync({
             validationId,
-            field: Valid({ value: emailInput }),
+            field: Invalid({
+              value: emailInput,
+              errors: ['This email is already in use'],
+            }),
           })
+        }
+        return Message.CompletedValidateEmailAsync({
+          validationId,
+          field: Valid({ value: emailInput }),
         })
-    },
+      })
   },
-)
+})
 
 export const EffectsLayer = ValidateEmailAsync.layer
 
@@ -168,14 +165,11 @@ const foldPronounsOutMessage = PronounsListbox.OutMessage.match<
     }),
 })
 
-export const pronounsListbox = PersonalInfoDefinition.bindChild(
-  PronounsListbox,
-  {
-    field: 'pronouns',
-    parentMessage: Message.GotPronounsMessage,
-    outMessage: { fold: foldPronounsOutMessage },
-  },
-)
+export const pronounsListbox = PersonalInfo.bindChild(PronounsListbox, {
+  field: 'pronouns',
+  parentMessage: Message.GotPronounsMessage,
+  outMessage: { fold: foldPronounsOutMessage },
+})
 
 const foldAvailableDateOutMessage = DatePicker.OutMessage.match<
   Update.Step<Model, Message>
@@ -193,20 +187,17 @@ const foldAvailableDateOutMessage = DatePicker.OutMessage.match<
   ChangedViewMonth: () => model => ({ model }),
 })
 
-export const availableDatePicker = PersonalInfoDefinition.bindChild(
-  DatePicker.block,
-  {
-    field: 'availableDate',
-    parentMessage: Message.GotAvailableDateMessage,
-    outMessage: { fold: foldAvailableDateOutMessage },
-  },
-)
+export const availableDatePicker = PersonalInfo.bindChild(DatePicker.block, {
+  field: 'availableDate',
+  parentMessage: Message.GotAvailableDateMessage,
+  outMessage: { fold: foldAvailableDateOutMessage },
+})
 
-export const PersonalInfoComposition = PersonalInfoDefinition.toComposition({
+export const PersonalInfoComposition = PersonalInfo.toComposition({
   children: [pronounsListbox, availableDatePicker],
 })
 
-export const update = PersonalInfoDefinition.update((model, message) =>
+export const update = PersonalInfo.update((model, message) =>
   Message.match(message, {
     UpdatedFirstName: ({ value }) => ({
       model: modifyFields(model, { firstName: () => validateFirstName(value) }),

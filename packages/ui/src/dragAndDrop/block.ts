@@ -140,7 +140,7 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-const DragAndDropDefinition = Block.define('DragAndDrop', {
+const DragAndDrop = Block.define('DragAndDrop', {
   Model,
   Message,
   OutMessage,
@@ -171,7 +171,7 @@ export const init = (config: InitConfig): Model => ({
 type Direction = (typeof Message.PressedArrowKey.Type)['direction']
 
 /** Focuses a draggable item by ID after a keyboard move, drop, or cancel. */
-export const FocusItem = DragAndDropDefinition.command('FocusItem', {
+export const FocusItem = DragAndDrop.command('FocusItem', {
   args: { itemId: Schema.String },
   messages: [Message.CompletedFocusItem],
   handler: function* () {
@@ -292,33 +292,30 @@ const resolveKeyboardMoveTarget = (
   )
 
 /** Resolves the next keyboard drag position by querying the DOM for adjacent sortable items and containers. */
-export const ResolveKeyboardMove = DragAndDropDefinition.command(
-  'ResolveKeyboardMove',
-  {
-    args: {
-      itemId: Schema.String,
-      currentContainerId: Schema.String,
-      currentIndex: Schema.Number,
-      direction: Schema.Literals([
-        'Up',
-        'Down',
-        'Left',
-        'Right',
-        'NextContainer',
-        'PreviousContainer',
-      ]),
-    },
-    messages: [Message.CompletedResolveKeyboardMove],
-    handler: function* () {
-      return resolveKeyboardMoveTarget
-    },
+export const ResolveKeyboardMove = DragAndDrop.command('ResolveKeyboardMove', {
+  args: {
+    itemId: Schema.String,
+    currentContainerId: Schema.String,
+    currentIndex: Schema.Number,
+    direction: Schema.Literals([
+      'Up',
+      'Down',
+      'Left',
+      'Right',
+      'NextContainer',
+      'PreviousContainer',
+    ]),
   },
-)
+  messages: [Message.CompletedResolveKeyboardMove],
+  handler: function* () {
+    return resolveKeyboardMoveTarget
+  },
+})
 // UPDATE
 
 /** Processes a drag-and-drop Message and returns the next Model, optional
  *  Commands, and an optional OutMessage for the parent. */
-export const update = DragAndDropDefinition.update((model, message) =>
+export const update = DragAndDrop.update((model, message) =>
   Message.match(message, {
     PressedDraggable: ({ itemId, containerId, index, screenX, screenY }) => ({
       model: modifyFields(model, {
@@ -611,7 +608,7 @@ const streamKeyboardDragEvents = () =>
     },
   })
 
-export const subscriptions = DragAndDropDefinition.subscriptions(entry => ({
+export const subscriptions = DragAndDrop.subscriptions(entry => ({
   documentPointer: entry(
     'DragAndDropDocumentPointer',
     {
@@ -931,7 +928,7 @@ export const maybeDropTarget = (
   )
 
 /** Complete DragAndDrop Block definition for connecting to a parent. */
-const DragAndDropComposition = DragAndDropDefinition.toComposition()
+const DragAndDropComposition = DragAndDrop.toComposition()
 
 export const block = DragAndDropComposition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),

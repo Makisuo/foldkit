@@ -17,13 +17,13 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const CoverLetterDefinition = Block.define('CoverLetter', { Model, Message })
+const CoverLetter = Block.define('CoverLetter', { Model, Message })
 
 export const init = (): Model => ({
   content: '',
 })
 
-export const update = CoverLetterDefinition.update((model, message) =>
+export const update = CoverLetter.update((model, message) =>
   Message.match(message, {
     UpdatedContent: ({ value }) => ({
       model: modifyFields(model, { content: () => value }),
@@ -34,7 +34,7 @@ export const update = CoverLetterDefinition.update((model, message) =>
 const MAX_COVER_LETTER_LENGTH = 2000
 const WARNING_THRESHOLD_CHARS = 200
 
-export const view = CoverLetterDefinition.view((model, h) => {
+export const view = CoverLetter.view((model, h) => {
   const remaining = MAX_COVER_LETTER_LENGTH - model.content.length
   const isOverLimit = remaining < 0
   const isWarning = !isOverLimit && remaining <= WARNING_THRESHOLD_CHARS
@@ -93,7 +93,7 @@ export const view = CoverLetterDefinition.view((model, h) => {
   )
 })
 
-export const block = CoverLetterDefinition.toComposition().toBlock({
+export const block = CoverLetter.toComposition().toBlock({
   init: () => ({ model: init() }),
   update,
   view,

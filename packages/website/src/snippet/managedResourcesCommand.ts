@@ -1,9 +1,9 @@
 import { Array, Effect, Option } from 'effect'
 
 import { Message } from './message'
-import { CameraDefinition, CameraStream } from './resource'
+import { Camera, CameraStream } from './resource'
 
-export const TakePhoto = CameraDefinition.command('TakePhoto', {
+export const TakePhoto = Camera.command('TakePhoto', {
   messages: [Message.SucceededTakePhoto, Message.FailedTakePhoto],
   handler: function* () {
     return () =>

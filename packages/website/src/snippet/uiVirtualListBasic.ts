@@ -50,22 +50,21 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ActivityListExampleDefinition = Block.define('ActivityListExample', {
+const ActivityListExample = Block.define('ActivityListExample', {
   Model,
   Message,
 })
 
-const activityList = ActivityListExampleDefinition.bindChild(ActivityList, {
+const activityList = ActivityListExample.bindChild(ActivityList, {
   field: 'activityList',
   parentMessage: Message.GotActivityListMessage,
 })
 
-const ActivityListExampleComposition =
-  ActivityListExampleDefinition.toComposition({
-    children: [activityList],
-  })
+const ActivityListExampleComposition = ActivityListExample.toComposition({
+  children: [activityList],
+})
 
-const update = ActivityListExampleDefinition.update((model, message) =>
+const update = ActivityListExample.update((model, message) =>
   Message.match(message, {
     GotActivityListMessage: ({ message }) => activityList.fold(model, message),
     ClickedScrollActivityListToMiddle: () =>

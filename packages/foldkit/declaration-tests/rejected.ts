@@ -8,7 +8,7 @@ import * as Runtime from 'foldkit/runtime'
 import * as Update from 'foldkit/update'
 
 import {
-  Child,
+  ChildBlock,
   ChildMessage,
   type ChildModel,
   type CompletedChild,
@@ -22,40 +22,37 @@ import {
   makeProvisionPageAwaitingDependency,
 } from './accepted.js'
 
-const InvalidApplicationDefinition = (() => {
-  const ApplicationDefinition = defineApplication({
+const InvalidApplication = (() => {
+  const Application = defineApplication({
     Model: ParentModel,
     Message: ParentMessage,
   })
 
-  return ApplicationDefinition
+  return Application
 })()
 const invalidApplicationImplementation = {
   init: () => ({
-    model: ParentModel.make({ child: Child.Model.make({ value: 0 }) }),
+    model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   }),
-  update: InvalidApplicationDefinition.update(model => ({ model })),
+  update: InvalidApplication.update(model => ({ model })),
   EffectsLayer: Layer.empty,
 }
-const invalidElementView = InvalidApplicationDefinition.view((model, h) =>
+const invalidElementView = InvalidApplication.view((model, h) =>
   h.main([], [globalThis.String(model.child.value)]),
 )
-const invalidDocumentView = InvalidApplicationDefinition.view((model, h) => ({
+const invalidDocumentView = InvalidApplication.view((model, h) => ({
   title: 'Invalid application fixture',
   body: h.main([], [globalThis.String(model.child.value)]),
 }))
 
-const DeclarationTestsRenderDefinition = Block.define(
-  'DeclarationTestsRender',
-  {
-    Model: ParentModel,
-    Message: ParentMessage,
-  },
-)
-const ObserveRender = DeclarationTestsRenderDefinition.mount('ObserveRender', {
+const DeclarationTestsRender = Block.define('DeclarationTestsRender', {
+  Model: ParentModel,
+  Message: ParentMessage,
+})
+const ObserveRender = DeclarationTestsRender.mount('ObserveRender', {
   messages: [ParentMessage.RequestedRefresh],
 })
-const RenderComposition = DeclarationTestsRenderDefinition.toComposition()
+const RenderComposition = DeclarationTestsRender.toComposition()
 const renderOnly = RenderComposition.render((model, h) =>
   h.main([], [globalThis.String(model.child.value)]),
 )
@@ -88,14 +85,13 @@ RenderComposition.render.withInput()((_input, h) => h.empty)
 
 RenderComposition.toBlock({
   init: invalidApplicationImplementation.init,
-  update: DeclarationTestsRenderDefinition.update(model => ({ model })),
+  update: DeclarationTestsRender.update(model => ({ model })),
   // @ts-expect-error A plain render helper cannot complete a Block as its branded view.
   view: renderOnly,
   EffectsLayer: Layer.empty,
 })
 
-const InvalidApplicationComposition =
-  InvalidApplicationDefinition.toComposition()
+const InvalidApplicationComposition = InvalidApplication.toComposition()
 const applicationRenderOnly = InvalidApplicationComposition.render((model, h) =>
   h.main([], [globalThis.String(model.child.value)]),
 )
@@ -183,7 +179,7 @@ InvalidApplicationComposition.makeElement({
   view: invalidDocumentView,
 })
 
-const requiredContextUpdate = InvalidApplicationDefinition.update(
+const requiredContextUpdate = InvalidApplication.update(
   (model, _message, requiredContext: string) => {
     void requiredContext
     return { model }
@@ -204,15 +200,15 @@ const WiderMessage = defineMessageUnion({
   RequestedRefresh: {},
   RequestedExtraWork: {},
 })
-const WiderMessageApplicationDefinition = (() => {
-  const ApplicationDefinition = defineApplication({
+const WiderMessageApplication = (() => {
+  const Application = defineApplication({
     Model: ParentModel,
     Message: WiderMessage,
   })
 
-  return ApplicationDefinition
+  return Application
 })()
-const widerMessageUpdate = WiderMessageApplicationDefinition.update(
+const widerMessageUpdate = WiderMessageApplication.update(
   (model, _message): Update.Return<ParentModel, ParentMessage> => ({ model }),
 )
 
@@ -225,17 +221,17 @@ InvalidApplicationComposition.makeElement({
 })
 
 const WiderInputModel = Schema.Struct({})
-const WiderInputModelApplicationDefinition = (() => {
-  const ApplicationDefinition = defineApplication({
+const WiderInputModelApplication = (() => {
+  const Application = defineApplication({
     Model: WiderInputModel,
     Message: ParentMessage,
   })
 
-  return ApplicationDefinition
+  return Application
 })()
-const widerModelUpdate = WiderInputModelApplicationDefinition.update(
+const widerModelUpdate = WiderInputModelApplication.update(
   (_model, _message): Update.Return<ParentModel, ParentMessage> => ({
-    model: ParentModel.make({ child: Child.Model.make({ value: 0 }) }),
+    model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   }),
 )
 
@@ -263,13 +259,11 @@ Block.define('Invalid::TypedBlock', {
   Message: ParentMessage,
 })
 
-const DeclarationTestsConstructorDefinition = Block.define(
-  'DeclarationTestsConstructor',
-)
+const DeclarationTestsConstructor = Block.define('DeclarationTestsConstructor')
 const ConstructorMessage = defineMessageUnion({ CompletedWork: {} })
 const ForeignPrimitiveMessage = defineMessageUnion({ ForeignCompleted: {} })
 
-const DeclarationTestsTypedPrimitiveOwnerDefinition = Block.define(
+const DeclarationTestsTypedPrimitiveOwner = Block.define(
   'DeclarationTestsTypedPrimitiveOwner',
   {
     Model: ParentModel,
@@ -277,57 +271,51 @@ const DeclarationTestsTypedPrimitiveOwnerDefinition = Block.define(
   },
 )
 
-DeclarationTestsTypedPrimitiveOwnerDefinition.command('ForeignCommand', {
+DeclarationTestsTypedPrimitiveOwner.command('ForeignCommand', {
   // @ts-expect-error A typed Block Command must produce its owner's Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-DeclarationTestsTypedPrimitiveOwnerDefinition.mount('ForeignMount', {
+DeclarationTestsTypedPrimitiveOwner.mount('ForeignMount', {
   // @ts-expect-error A typed Block Mount must produce its owner's Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-DeclarationTestsTypedPrimitiveOwnerDefinition.mountStream(
-  'ForeignMountStream',
-  {
-    // @ts-expect-error A typed Block stream Mount must produce its owner's Message.
-    messages: [ForeignPrimitiveMessage.ForeignCompleted],
-  },
-)
+DeclarationTestsTypedPrimitiveOwner.mountStream('ForeignMountStream', {
+  // @ts-expect-error A typed Block stream Mount must produce its owner's Message.
+  messages: [ForeignPrimitiveMessage.ForeignCompleted],
+})
 
-const TypedPrimitiveApplicationDefinition = (() => {
-  const ApplicationDefinition = defineApplication({
+const TypedPrimitiveApplication = (() => {
+  const Application = defineApplication({
     Model: ParentModel,
     Message: ParentMessage,
   })
 
-  return ApplicationDefinition
+  return Application
 })()
 
-TypedPrimitiveApplicationDefinition.command('ForeignApplicationCommand', {
+TypedPrimitiveApplication.command('ForeignApplicationCommand', {
   // @ts-expect-error A root Command must produce the Application Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-TypedPrimitiveApplicationDefinition.mount('ForeignApplicationMount', {
+TypedPrimitiveApplication.mount('ForeignApplicationMount', {
   // @ts-expect-error A root Mount must produce the Application Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-TypedPrimitiveApplicationDefinition.mountStream(
-  'ForeignApplicationMountStream',
-  {
-    // @ts-expect-error A root stream Mount must produce the Application Message.
-    messages: [ForeignPrimitiveMessage.ForeignCompleted],
-  },
-)
+TypedPrimitiveApplication.mountStream('ForeignApplicationMountStream', {
+  // @ts-expect-error A root stream Mount must produce the Application Message.
+  messages: [ForeignPrimitiveMessage.ForeignCompleted],
+})
 
 // @ts-expect-error Owned primitive names cannot contain a scoped identity separator.
-DeclarationTestsConstructorDefinition.command('Invalid::Work', {
+DeclarationTestsConstructor.command('Invalid::Work', {
   messages: [ConstructorMessage.CompletedWork],
 })
 
-const HostWork = DeclarationTestsConstructorDefinition.command('HostWork', {
+const HostWork = DeclarationTestsConstructor.command('HostWork', {
   messages: [ConstructorMessage.CompletedWork],
 })
 
-DeclarationTestsConstructorDefinition.command('InvalidConstructedWork', {
+DeclarationTestsConstructor.command('InvalidConstructedWork', {
   messages: [ConstructorMessage.CompletedWork],
   // @ts-expect-error Foldkit handlers are unavailable while another handler is constructed.
   handler: function* () {
@@ -338,7 +326,7 @@ DeclarationTestsConstructorDefinition.command('InvalidConstructedWork', {
 })
 
 // @ts-expect-error A replacement Layer must preserve the Block's exact handler outputs.
-Child.replaceEffectsLayer(Layer.empty)
+ChildBlock.replaceEffectsLayer(Layer.empty)
 
 const ForeignParentMessage = defineMessageUnion({ ReceivedChildMessage: {} })
 const ExtraParentMessage = defineMessageUnion({
@@ -350,23 +338,23 @@ const WrongChildParentMessage = defineMessageUnion({
   GotChildMessage: { message: Schema.String },
 })
 
-const ForeignParentDefinition = Block.define('DeclarationTestsForeignParent', {
+const ForeignParent = Block.define('DeclarationTestsForeignParent', {
   Model: ParentModel,
   Message: ForeignParentMessage,
 })
-const foreignChild = ForeignParentDefinition.bindChild(Child, {
+const foreignChild = ForeignParent.bindChild(ChildBlock, {
   placement: 'foreign-child',
   read: model => Option.some(model.child),
   write: (_model, nextChild) => ParentModel.make({ child: nextChild }),
   toParentMessage: () => ForeignParentMessage.ReceivedChildMessage(),
 })
 
-const BindingParentDefinition = Block.define('DeclarationTestsBindingParent', {
+const BindingParent = Block.define('DeclarationTestsBindingParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
 
-BindingParentDefinition.bindChild(Child, {
+BindingParent.bindChild(ChildBlock, {
   field: 'child',
   // @ts-expect-error A parent Message constructor is exclusive with a custom mapper.
   parentMessage: ParentMessage.GotChildMessage,
@@ -374,27 +362,27 @@ BindingParentDefinition.bindChild(Child, {
     ParentMessage.GotChildMessage({ message }),
 })
 
-const WrongChildParentDefinition = Block.define(
-  'DeclarationTestsWrongChildParent',
-  { Model: ParentModel, Message: WrongChildParentMessage },
-)
-WrongChildParentDefinition.bindChild(Child, {
+const WrongChildParent = Block.define('DeclarationTestsWrongChildParent', {
+  Model: ParentModel,
+  Message: WrongChildParentMessage,
+})
+WrongChildParent.bindChild(ChildBlock, {
   field: 'child',
   // @ts-expect-error A parent Message constructor must accept this Block's Message.
   parentMessage: WrongChildParentMessage.GotChildMessage,
 })
 
-const ExtraParentDefinition = Block.define('DeclarationTestsExtraParent', {
+const ExtraParent = Block.define('DeclarationTestsExtraParent', {
   Model: ParentModel,
   Message: ExtraParentMessage,
 })
-ExtraParentDefinition.bindChild(Child, {
+ExtraParent.bindChild(ChildBlock, {
   field: 'child',
   // @ts-expect-error A parent Message constructor cannot require fields beyond the child Message.
   parentMessage: ExtraParentMessage.GotChildMessage,
 })
 
-BindingParentDefinition.bindChild(Child, {
+BindingParent.bindChild(ChildBlock, {
   // @ts-expect-error Keyed Bindings do not accept the static parentMessage shorthand.
   placement: 'children',
   readAll: (model: ParentModel) => [model.child],
@@ -410,18 +398,18 @@ BindingParentDefinition.bindChild(Child, {
   parentMessage: ParentMessage.GotChildMessage,
 })
 
-const DeclarationTestsInvalidParentDefinition = Block.define(
+const DeclarationTestsInvalidParent = Block.define(
   'DeclarationTestsInvalidParent',
 ).define({
   Model: ParentModel,
   Message: ParentMessage,
 })
 // @ts-expect-error Registered child bindings must use the definition's parent Message.
-DeclarationTestsInvalidParentDefinition.toComposition({
+DeclarationTestsInvalidParent.toComposition({
   children: [foreignChild],
 })
 
-const DeclarationTestsOmittedChildDefinition = Block.define(
+const DeclarationTestsOmittedChild = Block.define(
   'DeclarationTestsOmittedChild',
 ).define({
   Model: ParentModel,
@@ -435,7 +423,7 @@ Block.define('DeclarationTestsInvalidDirectContracts', {
   children: [child],
 })
 
-const omittedChildUpdate = DeclarationTestsOmittedChildDefinition.update(
+const omittedChildUpdate = DeclarationTestsOmittedChild.update(
   (model, message) =>
     ParentMessage.match(message, {
       GotChildMessage: ({ message }) => child.fold(model, message),
@@ -443,9 +431,9 @@ const omittedChildUpdate = DeclarationTestsOmittedChildDefinition.update(
     }),
 )
 
-DeclarationTestsOmittedChildDefinition.toComposition().toBlock({
+DeclarationTestsOmittedChild.toComposition().toBlock({
   init: () => ({
-    model: ParentModel.make({ child: Child.Model.make({ value: 0 }) }),
+    model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   }),
   update: omittedChildUpdate,
   // @ts-expect-error A Block implementation cannot use an unregistered child operation.
@@ -464,7 +452,7 @@ ParentMessage.match<Update.Return<ParentModel, ParentMessage>>(
         toParentMessage: message => message,
       }),
     RequestedRefresh: () => ({
-      model: ParentModel.make({ child: Child.Model.make({ value: 0 }) }),
+      model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
     }),
   },
 )
@@ -498,16 +486,16 @@ child.__blockBindingBlock
 // @ts-expect-error Internal handler evidence is not a string member.
 child.__blockHandlerRequirements
 
-const DeclarationTestsInvalidViewDefinition = Block.define(
+const DeclarationTestsInvalidView = Block.define(
   'DeclarationTestsInvalidView',
 ).define({
   Model: ParentModel,
   Message: ParentMessage,
 })
-const RegisteredDeclarationTestsInvalidViewDefinition =
-  DeclarationTestsInvalidViewDefinition.toComposition({ children: [child] })
+const DeclarationTestsInvalidViewComposition =
+  DeclarationTestsInvalidView.toComposition({ children: [child] })
 
-RegisteredDeclarationTestsInvalidViewDefinition.view((model, h) => {
+DeclarationTestsInvalidViewComposition.view((model, h) => {
   const config = child.embedView({ slotId: 'child', model: model.child })
 
   h.block(config)

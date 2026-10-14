@@ -21,8 +21,8 @@ const CustomFactory = {
 }
 const CustomChild = CustomFactory.create()
 
-const ApplicationDefinition = defineApplication({ Model, Message })
-ApplicationDefinition.bindChild(CustomChild.block, {field: 'child',
+const Application = defineApplication({ Model, Message })
+Application.bindChild(CustomChild.block, {field: 'child',
 parentMessage: ParentMessage.GotCustomChildMessage})
 
 const Message = defineMessageUnion({

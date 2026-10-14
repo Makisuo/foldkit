@@ -43,21 +43,21 @@ import { menuViewInputs } from './viewInputs'
 const AppMenu = Menu.create()
 const AppTabs = Tabs.create<Tab>()
 
-const PanelDefinition = Block.define('Panel', { Model, Message })
+const Panel = Block.define('Panel', { Model, Message })
 
-const menu = PanelDefinition.bindChild(AppMenu, {
+const menu = Panel.bindChild(AppMenu, {
   field: 'menu',
   parentMessage: Message.GotMenuMessage,
   outMessage: { fold: foldMenuOutMessage },
 })
 
-const tabs = PanelDefinition.bindChild(AppTabs, {
+const tabs = Panel.bindChild(AppTabs, {
   field: 'tabs',
   parentMessage: Message.GotTabsMessage,
   outMessage: { fold: foldTabsOutMessage },
 })
 
-const PanelComposition = PanelDefinition.toComposition({
+const PanelComposition = Panel.toComposition({
   children: [menu, tabs],
 })
 
@@ -88,9 +88,9 @@ import { Model } from './model'
 const ToastPayload = Schema.Struct({ message: Schema.String })
 const AppToast = Toast.make(ToastPayload)
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = defineApplication({ Model, Message })
 
-const toast = ApplicationDefinition.bindChild(AppToast, {
+const toast = Application.bindChild(AppToast, {
   field: 'toast',
   parentMessage: Message.GotToastMessage,
   outMessage: { fold: foldToastOutMessage },
@@ -110,9 +110,9 @@ import { foldDialogOutMessage } from './outMessage'
 import { Message } from './message'
 import { Model } from './model'
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = defineApplication({ Model, Message })
 
-const dialogs = ApplicationDefinition.bindChild(Dialog.block, {
+const dialogs = Application.bindChild(Dialog.block, {
   readAll: model => model.dialogs,
   key: dialog => dialog.id,
   read: dialog => dialog.model,

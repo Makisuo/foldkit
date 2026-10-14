@@ -33,31 +33,31 @@ import {
   update,
 } from './index.js'
 
-const MenuStoryDefinition = Block.define('MenuStory', { Model, Message })
+const MenuStory = Block.define('MenuStory', { Model, Message })
 
 const foldMenuOutMessage = OutMessage.match<Update.Step<Model, Message>>({
   Selected: () => model => ({ model }),
 })
 
-const menu = MenuStoryDefinition.bindChild(block, {
+const menu = MenuStory.bindChild(block, {
   read: (model: Model) => Option.some(model),
   write: (_model: Model, nextMenu: Model) => nextMenu,
   toParentMessage: (message: Message): Message => message,
   outMessage: { fold: foldMenuOutMessage },
 })
 
-const MenuStoryComposition = MenuStoryDefinition.toComposition({
+const MenuStoryComposition = MenuStory.toComposition({
   children: [menu],
 })
 
 const RefinedMenu = create<'Edit' | 'Duplicate' | 'Delete'>()
 
-const RefinedMenuStoryDefinition = Block.define('RefinedMenuStory', {
+const RefinedMenuStory = Block.define('RefinedMenuStory', {
   Model,
   Message,
 })
 
-const refinedMenu = RefinedMenuStoryDefinition.bindChild(RefinedMenu, {
+const refinedMenu = RefinedMenuStory.bindChild(RefinedMenu, {
   read: (model: Model) => Option.some(model),
   write: (_model: Model, nextMenu: Model) => nextMenu,
   toParentMessage: (message: Message): Message => message,
@@ -68,7 +68,7 @@ const refinedMenu = RefinedMenuStoryDefinition.bindChild(RefinedMenu, {
   },
 })
 
-const RefinedMenuStoryComposition = RefinedMenuStoryDefinition.toComposition({
+const RefinedMenuStoryComposition = RefinedMenuStory.toComposition({
   children: [refinedMenu],
 })
 

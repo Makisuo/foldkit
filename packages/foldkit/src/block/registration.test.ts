@@ -14,13 +14,13 @@ const Message = defineMessageUnion({ Advanced: {}, Ignored: {} })
 type Message = typeof Message.Type
 
 const ChildOwner = define('RegistrationChild')
-const childDefinition = ChildOwner.define({ Model: ChildModel, Message })
-const reset = childDefinition.step((_model: ChildModel) => ({
+const Child = ChildOwner.define({ Model: ChildModel, Message })
+const reset = Child.step((_model: ChildModel) => ({
   model: ChildModel.make({ count: 0 }),
 }))
-const Child = childDefinition.toComposition().toBlock({
+const ChildBlock = Child.toComposition().toBlock({
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
-  update: childDefinition.update(model => ({
+  update: Child.update(model => ({
     model: ChildModel.make({ count: model.count + 1 }),
   })),
   expose: { reset },
@@ -40,7 +40,7 @@ const registeredParentBase = define('RegisteredPureChildParent').define({
   Model: ParentModel,
   Message,
 })
-const child = registeredParentBase.bindChild(Child, {
+const child = registeredParentBase.bindChild(ChildBlock, {
   placement: 'child',
   read: (model: ParentModel) => Option.some(model.child),
   write: (model, nextChild) => ParentModel.make({ ...model, child: nextChild }),
@@ -262,7 +262,7 @@ const unusedChildParentBase = define('UnusedRegisteredChildParent').define({
   Model: ParentModel,
   Message,
 })
-const unusedRegisteredChild = unusedChildParentBase.bindChild(Child, {
+const unusedRegisteredChild = unusedChildParentBase.bindChild(ChildBlock, {
   placement: 'child',
   read: (model: ParentModel) => Option.some(model.child),
   write: (model, nextChild) => ParentModel.make({ ...model, child: nextChild }),
@@ -294,7 +294,7 @@ const registeredKeyedParentBase = define(
   Model: ParentModel,
   Message,
 })
-const children = registeredKeyedParentBase.bindChild(Child, {
+const children = registeredKeyedParentBase.bindChild(ChildBlock, {
   placement: 'children',
   readAll: (model: ParentModel) => model.children,
   key: childModel => childModel.count,
@@ -384,12 +384,12 @@ const omittedKeyedInit = OmittedKeyedParent.toBlock({
 const PolicyOutMessage = defineMessageUnion({ RequestedSecondaryReset: {} })
 type PolicyOutMessage = typeof PolicyOutMessage.Type
 
-const policyChildDefinition = define('RegistrationPolicyChild').define({
+const PolicyChild = define('RegistrationPolicyChild').define({
   Model: ChildModel,
   Message,
   OutMessage: PolicyOutMessage,
 })
-const PolicyChild = policyChildDefinition.toComposition().toBlock({
+const PolicyChildBlock = PolicyChild.toComposition().toBlock({
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
   update: (model: ChildModel) => ({
     model,
@@ -402,7 +402,7 @@ const policyParentBase = define('RegisteredPolicyParent').define({
   Model: ParentModel,
   Message,
 })
-const secondaryChild = policyParentBase.bindChild(Child, {
+const secondaryChild = policyParentBase.bindChild(ChildBlock, {
   placement: 'secondary-child',
   read: (model: ParentModel) => Option.some(model.child),
   write: (model, nextChild) => ParentModel.make({ ...model, child: nextChild }),
@@ -415,7 +415,7 @@ const unsupportedNestedRawChildStep = Update.foldChildStep({
   write: (_model, nextModel) => nextModel,
   toParentMessage: (message: Message) => message,
 })
-const policyChild = policyParentBase.bindChild(PolicyChild, {
+const policyChild = policyParentBase.bindChild(PolicyChildBlock, {
   placement: 'policy-child',
   read: (model: ParentModel) => Option.some(model.child),
   write: (model, nextChild) => ParentModel.make({ ...model, child: nextChild }),
@@ -433,13 +433,13 @@ const omittedPolicyParentBase = define('OmittedPolicyParent').define({
   Model: ParentModel,
   Message,
 })
-const omittedSecondaryChild = omittedPolicyParentBase.bindChild(Child, {
+const omittedSecondaryChild = omittedPolicyParentBase.bindChild(ChildBlock, {
   placement: 'secondary-child',
   read: (model: ParentModel) => Option.some(model.child),
   write: (model, nextChild) => ParentModel.make({ ...model, child: nextChild }),
   toParentMessage: (message: Message) => message,
 })
-const omittedPolicyChild = omittedPolicyParentBase.bindChild(PolicyChild, {
+const omittedPolicyChild = omittedPolicyParentBase.bindChild(PolicyChildBlock, {
   placement: 'policy-child',
   read: (model: ParentModel) => Option.some(model.child),
   write: (model, nextChild) => ParentModel.make({ ...model, child: nextChild }),
@@ -471,7 +471,7 @@ const keyedPolicyParentBase = define('RegisteredKeyedPolicyParent').define({
   Message,
 })
 const childModelKey = (childModel: ChildModel) => childModel.count
-const secondaryChildren = keyedPolicyParentBase.bindChild(Child, {
+const secondaryChildren = keyedPolicyParentBase.bindChild(ChildBlock, {
   placement: 'secondary-children',
   readAll: (model: ParentModel) => model.children,
   key: childModelKey,
@@ -485,7 +485,7 @@ const secondaryChildren = keyedPolicyParentBase.bindChild(Child, {
     }),
   toParentMessage: (_key, message: Message) => message,
 })
-const policyChildren = keyedPolicyParentBase.bindChild(PolicyChild, {
+const policyChildren = keyedPolicyParentBase.bindChild(PolicyChildBlock, {
   placement: 'policy-children',
   readAll: (model: ParentModel) => model.children,
   key: childModelKey,
@@ -511,22 +511,25 @@ const omittedKeyedPolicyParentBase = define('OmittedKeyedPolicyParent').define({
   Model: ParentModel,
   Message,
 })
-const omittedSecondaryChildren = omittedKeyedPolicyParentBase.bindChild(Child, {
-  placement: 'secondary-children',
-  readAll: (model: ParentModel) => model.children,
-  key: childModelKey,
-  read: childModel => childModel,
-  writeAt: (model, key, nextChild) =>
-    ParentModel.make({
-      ...model,
-      children: model.children.map(childModel =>
-        childModel.count === key ? nextChild : childModel,
-      ),
-    }),
-  toParentMessage: (_key, message: Message) => message,
-})
+const omittedSecondaryChildren = omittedKeyedPolicyParentBase.bindChild(
+  ChildBlock,
+  {
+    placement: 'secondary-children',
+    readAll: (model: ParentModel) => model.children,
+    key: childModelKey,
+    read: childModel => childModel,
+    writeAt: (model, key, nextChild) =>
+      ParentModel.make({
+        ...model,
+        children: model.children.map(childModel =>
+          childModel.count === key ? nextChild : childModel,
+        ),
+      }),
+    toParentMessage: (_key, message: Message) => message,
+  },
+)
 const omittedPolicyChildren = omittedKeyedPolicyParentBase.bindChild(
-  PolicyChild,
+  PolicyChildBlock,
   {
     placement: 'policy-children',
     readAll: (model: ParentModel) => model.children,
@@ -569,18 +572,22 @@ const foldOutMessageParentBase = define(
   Model: ParentModel,
   Message,
 })
-const foldOutMessageChild = foldOutMessageParentBase.bindChild(Child, {
+const foldOutMessageChild = foldOutMessageParentBase.bindChild(ChildBlock, {
   placement: 'child',
   read: (model: ParentModel) => Option.some(model.child),
   write: (model, nextChild) => ParentModel.make({ ...model, child: nextChild }),
   toParentMessage: (message: Message) => message,
 })
-const foldOutMessageSecondaryChild = foldOutMessageParentBase.bindChild(Child, {
-  placement: 'secondary-child',
-  read: (model: ParentModel) => Option.some(model.child),
-  write: (model, nextChild) => ParentModel.make({ ...model, child: nextChild }),
-  toParentMessage: (message: Message) => message,
-})
+const foldOutMessageSecondaryChild = foldOutMessageParentBase.bindChild(
+  ChildBlock,
+  {
+    placement: 'secondary-child',
+    read: (model: ParentModel) => Option.some(model.child),
+    write: (model, nextChild) =>
+      ParentModel.make({ ...model, child: nextChild }),
+    toParentMessage: (message: Message) => message,
+  },
+)
 const RegisteredFoldOutMessageParent = foldOutMessageParentBase.toComposition({
   children: [foldOutMessageChild, foldOutMessageSecondaryChild],
 })
@@ -591,7 +598,7 @@ const omittedFoldOutMessageParentBase = define(
   Message,
 })
 const omittedFoldOutMessageChild = omittedFoldOutMessageParentBase.bindChild(
-  Child,
+  ChildBlock,
   {
     placement: 'child',
     read: (model: ParentModel) => Option.some(model.child),
@@ -601,7 +608,7 @@ const omittedFoldOutMessageChild = omittedFoldOutMessageParentBase.bindChild(
   },
 )
 const omittedFoldOutMessageSecondaryChild =
-  omittedFoldOutMessageParentBase.bindChild(Child, {
+  omittedFoldOutMessageParentBase.bindChild(ChildBlock, {
     placement: 'secondary-child',
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
@@ -701,11 +708,11 @@ const omittedFoldOutMessageInits = OmittedFoldOutMessageParent.toBlock({
 })
 
 const LifecycleOwner = define('RegistrationLifecycleChild')
-const lifecycleDefinition = LifecycleOwner.define({
+const Lifecycle = LifecycleOwner.define({
   Model: ChildModel,
   Message,
 })
-const lifecycleSubscriptions = lifecycleDefinition.subscriptions(entry => ({
+const lifecycleSubscriptions = Lifecycle.subscriptions(entry => ({
   idle: entry('Idle', {
     messages: [],
     handler: function* () {
@@ -713,7 +720,7 @@ const lifecycleSubscriptions = lifecycleDefinition.subscriptions(entry => ({
     },
   }),
 }))
-const LifecycleChild = lifecycleDefinition.toComposition().toBlock({
+const LifecycleChild = Lifecycle.toComposition().toBlock({
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
   update: (model: ChildModel) => ({ model }),
   subscriptions: lifecycleSubscriptions,
@@ -809,7 +816,7 @@ it('keeps the declared child graph independent from operation use', () => {
   expect(removedLifecycleChild.children).toEqual([])
   expectTypeOf<
     Update.RegistrationEvidenceOf<typeof childResultWithOutMessage>
-  >().toEqualTypeOf<BindingRequirement<'child', typeof Child>>()
+  >().toEqualTypeOf<BindingRequirement<'child', typeof ChildBlock>>()
   expectTypeOf<
     Update.RequirementsOf<() => typeof childResultWithOutMessage>
   >().toEqualTypeOf<never>()

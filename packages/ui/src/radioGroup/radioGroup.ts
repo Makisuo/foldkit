@@ -17,7 +17,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { idSelector } from '../internal/selectors.js'
 import { keyToIndex } from '../keyboard.js'
-import { RadioGroupDefinition as SharedRadioGroupDefinition } from './definition.js'
+import { RadioGroup as SharedRadioGroup } from './definition.js'
 
 // MODEL
 
@@ -115,7 +115,7 @@ const descriptionId = (id: string, index: number): string =>
   `${id}-option-${index}-description`
 
 /** Moves focus to the option at the given index. */
-export const FocusOption = SharedRadioGroupDefinition.command('FocusOption', {
+export const FocusOption = SharedRadioGroup.command('FocusOption', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedFocusOption],
   handler: function* () {
@@ -130,7 +130,7 @@ export const FocusOption = SharedRadioGroupDefinition.command('FocusOption', {
 /** Effect providers used by the RadioGroup component. */
 export const EffectsLayer = Layer.mergeAll(FocusOption.layer)
 
-const RadioGroupDefinition = SharedRadioGroupDefinition.define({
+const RadioGroup = SharedRadioGroup.define({
   Model,
   Message,
   OutMessage,
@@ -140,7 +140,7 @@ const RadioGroupDefinition = SharedRadioGroupDefinition.define({
  *  Commands, and an optional OutMessage. `Selected` fires when an option is
  *  committed via click or keyboard; the parent stores the new value and passes
  *  it back in as `selectedValue`. */
-export const update = RadioGroupDefinition.update((model, message) =>
+export const update = RadioGroup.update((model, message) =>
   Message.match(message, {
     SelectedOption: ({ index, value }) => ({
       model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),
@@ -226,7 +226,7 @@ export type ViewInputs<Value extends string = string> = Readonly<{
   name?: string
 }>
 
-const internalView = RadioGroupDefinition.view.withInputs<ViewInputs>(
+const internalView = RadioGroup.view.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const { id, maybeFocusedIndex } = model
     const {
@@ -454,7 +454,7 @@ const internalView = RadioGroupDefinition.view.withInputs<ViewInputs>(
 )
 
 /** Complete RadioGroup Block definition. */
-const RadioGroupComposition = RadioGroupDefinition.toComposition()
+const RadioGroupComposition = RadioGroup.toComposition()
 
 export const block = RadioGroupComposition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),
@@ -477,12 +477,12 @@ const makeBlock = <Value extends string>() => {
   const RefinedOutMessage =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     OutMessage as unknown as OutMessageSchema<Value>
-  const RadioGroupDefinition = SharedRadioGroupDefinition.define({
+  const RadioGroup = SharedRadioGroup.define({
     Model,
     Message,
     OutMessage: RefinedOutMessage,
   })
-  const refinedUpdate = RadioGroupDefinition.update((model, message) =>
+  const refinedUpdate = RadioGroup.update((model, message) =>
     castReturn(update(model, message)),
   )
   const refinedView =
@@ -492,10 +492,10 @@ const makeBlock = <Value extends string>() => {
       viewInputs: ViewInputs<Value>,
       h: Parameters<typeof internalView>[2],
     ) => Html
-  const view = RadioGroupDefinition.view.withInputs<ViewInputs<Value>>(
+  const view = RadioGroup.view.withInputs<ViewInputs<Value>>(
     (model, viewInputs, h) => refinedView(model, viewInputs, h),
   )
-  const RadioGroupComposition = RadioGroupDefinition.toComposition()
+  const RadioGroupComposition = RadioGroup.toComposition()
 
   return RadioGroupComposition.toBlock({
     init: (config: InitConfig) => ({ model: init(config) }),

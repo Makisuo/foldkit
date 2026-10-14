@@ -2,7 +2,7 @@ import { Update } from 'foldkit'
 
 import { Dialog } from '@foldkit/ui'
 
-import { SearchDefinition } from './definition'
+import { Search } from './definition'
 import { Message } from './message'
 import { Model } from './model'
 
@@ -13,12 +13,12 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-export const dialog = SearchDefinition.bindChild(Dialog.block, {
+export const dialog = Search.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotSearchDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-export const SearchComposition = SearchDefinition.toComposition({
+export const SearchComposition = Search.toComposition({
   children: [dialog],
 })

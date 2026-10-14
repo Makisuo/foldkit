@@ -20,14 +20,14 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
 
-export const people = ApplicationDefinition.bindChild(People.block, {
+export const people = Application.bindChild(People.block, {
   field: 'people',
   parentMessage: Message.GotPeopleMessage,
 })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [people],
 })
 

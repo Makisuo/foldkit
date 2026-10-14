@@ -24,7 +24,7 @@ export class Clock extends Context.Service<
   Readonly<{ now: Effect.Effect<number> }>
 >()('DeclarationTestsClock') {}
 
-const DeclarationTestsChildDefinition = Block.define('DeclarationTestsChild')
+const DeclarationTestsChild = Block.define('DeclarationTestsChild')
 
 // eslint-disable-next-line foldkit/block-name-matches-variable
 const SingleColonOwner = Block.define('DeclarationTests:SingleColon')
@@ -46,7 +46,7 @@ export type ChildMessage = typeof ChildMessage.Type
 const handlerConstruction: Effect.Effect<void, 'HandlerUnavailable'> =
   Effect.void
 
-export const ReadCount = DeclarationTestsChildDefinition.command('ReadCount', {
+export const ReadCount = DeclarationTestsChild.command('ReadCount', {
   messages: [ChildMessage.CompletedRead],
   handler: function* () {
     const clock = yield* Clock
@@ -57,7 +57,7 @@ export const ReadCount = DeclarationTestsChildDefinition.command('ReadCount', {
   },
 })
 
-export const Measure = DeclarationTestsChildDefinition.mount('Measure', {
+export const Measure = DeclarationTestsChild.mount('Measure', {
   messages: [ChildMessage.CompletedMeasure],
   handler: function* () {
     return ({ element }) =>
@@ -69,19 +69,19 @@ export const Measure = DeclarationTestsChildDefinition.mount('Measure', {
   },
 })
 
-const ChildDefinition = DeclarationTestsChildDefinition.define({
+const Child = DeclarationTestsChild.define({
   Model: ChildModel,
   Message: ChildMessage,
 })
-const RegisteredChildDefinition = ChildDefinition.toComposition({
+const ChildComposition = Child.toComposition({
   mounts: [Measure],
 })
 
-const childView = RegisteredChildDefinition.view((model, h) =>
+const childView = ChildComposition.view((model, h) =>
   h.div([h.OnMount(Measure())], [globalThis.String(model.value)]),
 )
 
-const childUpdate = ChildDefinition.update((model, message) =>
+const childUpdate = Child.update((model, message) =>
   ChildMessage.match(message, {
     RequestedRead: () => ({ model, commands: [ReadCount()] }),
     CompletedRead: ({ value }) => ({
@@ -91,7 +91,7 @@ const childUpdate = ChildDefinition.update((model, message) =>
   }),
 )
 
-const refresh = ChildDefinition.step(model => ({
+const refresh = Child.step(model => ({
   model,
   commands: [ReadCount()],
 }))
@@ -120,13 +120,13 @@ const childImplementation = {
 }
 
 export type CompletedChild = Block.Completed<
-  typeof RegisteredChildDefinition,
+  typeof ChildComposition,
   typeof childImplementation
 >
 
-export const Child = RegisteredChildDefinition.toBlock(childImplementation)
+export const ChildBlock = ChildComposition.toBlock(childImplementation)
 
-type CompletedChildIsExact = Expect<Equal<CompletedChild, typeof Child>>
+type CompletedChildIsExact = Expect<Equal<CompletedChild, typeof ChildBlock>>
 
 export const DirectModel = Schema.Struct({ value: Schema.Number })
 export type DirectModel = typeof DirectModel.Type
@@ -137,18 +137,17 @@ export const DirectMessage = defineMessageUnion({
 })
 export type DirectMessage = typeof DirectMessage.Type
 
-const DeclarationTestsDirectDefinition = Block.define(
-  'DeclarationTestsDirect',
-  {
-    Model: DirectModel,
-    Message: DirectMessage,
-  },
+const DeclarationTestsDirect = Block.define('DeclarationTestsDirect', {
+  Model: DirectModel,
+  Message: DirectMessage,
+})
+const DeclarationTestsDirectComposition = DeclarationTestsDirect.toComposition(
+  {},
 )
-const RegisteredDeclarationTestsDirectDefinition =
-  DeclarationTestsDirectDefinition.toComposition({})
 
-export const ReadDirectValue =
-  RegisteredDeclarationTestsDirectDefinition.command('ReadDirectValue', {
+export const ReadDirectValue = DeclarationTestsDirectComposition.command(
+  'ReadDirectValue',
+  {
     messages: [DirectMessage.CompletedReadDirectValue],
     handler: function* () {
       const clock = yield* Clock
@@ -160,19 +159,24 @@ export const ReadDirectValue =
           ),
         )
     },
-  })
+  },
+)
 
-export const ObserveDirectValue =
-  RegisteredDeclarationTestsDirectDefinition.mount('ObserveDirectValue', {
+export const ObserveDirectValue = DeclarationTestsDirectComposition.mount(
+  'ObserveDirectValue',
+  {
     messages: [DirectMessage.CompletedReadDirectValue],
-  })
+  },
+)
 
-export const StreamDirectValue =
-  RegisteredDeclarationTestsDirectDefinition.mountStream('StreamDirectValue', {
+export const StreamDirectValue = DeclarationTestsDirectComposition.mountStream(
+  'StreamDirectValue',
+  {
     messages: [DirectMessage.CompletedReadDirectValue],
-  })
+  },
+)
 
-export const directUpdate = RegisteredDeclarationTestsDirectDefinition.update(
+export const directUpdate = DeclarationTestsDirectComposition.update(
   (model, message) =>
     DirectMessage.match(message, {
       RequestedReadDirectValue: () => ({
@@ -185,28 +189,28 @@ export const directUpdate = RegisteredDeclarationTestsDirectDefinition.update(
     }),
 )
 
-export const refreshDirectValue =
-  RegisteredDeclarationTestsDirectDefinition.step(model => ({
+export const refreshDirectValue = DeclarationTestsDirectComposition.step(
+  model => ({
     model,
     commands: [ReadDirectValue()],
-  }))
+  }),
+)
 
-export const Direct = RegisteredDeclarationTestsDirectDefinition.toBlock({
+export const Direct = DeclarationTestsDirectComposition.toBlock({
   init: () => ({ model: DirectModel.make({ value: 0 }) }),
   update: directUpdate,
   expose: { refreshDirectValue },
   EffectsLayer: ReadDirectValue.layer,
 })
 
-const DeclarationTestsPureDefinition = Block.define('DeclarationTestsPure', {
+const DeclarationTestsPure = Block.define('DeclarationTestsPure', {
   Model: DirectModel,
   Message: DirectMessage,
 })
-const DeclarationTestsPureComposition =
-  DeclarationTestsPureDefinition.toComposition()
+const DeclarationTestsPureComposition = DeclarationTestsPure.toComposition()
 const pureImplementation = {
   init: () => ({ model: DirectModel.make({ value: 0 }) }),
-  update: DeclarationTestsPureDefinition.update((model, _message) => ({
+  update: DeclarationTestsPure.update((model, _message) => ({
     model,
   })),
 }
@@ -232,21 +236,19 @@ export const ParentMessage = defineMessageUnion({
 })
 export type ParentMessage = typeof ParentMessage.Type
 
-const DeclarationTestsParentDefinition = Block.define(
-  'DeclarationTestsParent',
-).define({
+const DeclarationTestsParent = Block.define('DeclarationTestsParent').define({
   Model: ParentModel,
   Message: ParentMessage,
 })
 
-export const child = DeclarationTestsParentDefinition.bindChild(Child, {
+export const child = DeclarationTestsParent.bindChild(ChildBlock, {
   placement: 'child',
   read: model => Option.some(model.child),
   write: (_model, nextChild) => ParentModel.make({ child: nextChild }),
   parentMessage: ParentMessage.GotChildMessage,
 })
 
-export const directChild = DeclarationTestsParentDefinition.bindChild(Child, {
+export const directChild = DeclarationTestsParent.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
 })
@@ -266,7 +268,7 @@ type BoundRefreshRequirementsAreExact = Expect<
 type BoundRefreshEvidenceIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<ReturnType<typeof child.refresh>>>,
-    Block.BindingRequirement<'child', typeof Child>
+    Block.BindingRequirement<'child', typeof ChildBlock>
   >
 >
 type ChildBindingStringKeysAreExact = Expect<
@@ -285,21 +287,16 @@ type ChildInspectionMountsAreExact = Expect<
   Equal<(typeof childInspection.mounts)[number], typeof Measure>
 >
 
-export const ObserveParent = DeclarationTestsParentDefinition.mount(
-  'ObserveParent',
-  {
-    messages: [ParentMessage.RequestedRefresh],
-    handler: function* () {
-      return () => Effect.succeed(ParentMessage.RequestedRefresh())
-    },
+export const ObserveParent = DeclarationTestsParent.mount('ObserveParent', {
+  messages: [ParentMessage.RequestedRefresh],
+  handler: function* () {
+    return () => Effect.succeed(ParentMessage.RequestedRefresh())
   },
-)
-export const ParentComposition = DeclarationTestsParentDefinition.toComposition(
-  {
-    children: [child],
-    mounts: [ObserveParent],
-  },
-)
+})
+export const ParentComposition = DeclarationTestsParent.toComposition({
+  children: [child],
+  mounts: [ObserveParent],
+})
 
 const parentView = ParentComposition.view((model, h) =>
   h.div(
@@ -328,15 +325,14 @@ export const parentArrayRender = ParentComposition.render.withInput<
   ReadonlyArray<string>
 >()((labels, h) => labels.map(label => h.span([], [label])))
 
-export const parentUpdate = DeclarationTestsParentDefinition.update(
-  (model, message) =>
-    ParentMessage.match(message, {
-      GotChildMessage: ({ message }) => child.fold(model, message),
-      RequestedRefresh: () => child.refresh()(model),
-    }),
+export const parentUpdate = DeclarationTestsParent.update((model, message) =>
+  ParentMessage.match(message, {
+    GotChildMessage: ({ message }) => child.fold(model, message),
+    RequestedRefresh: () => child.refresh()(model),
+  }),
 )
 
-const refreshChild = DeclarationTestsParentDefinition.step(model =>
+const refreshChild = DeclarationTestsParent.step(model =>
   child.refresh()(model),
 )
 
@@ -345,7 +341,7 @@ export const RefreshContext = Schema.Struct({
 })
 export type RefreshContext = typeof RefreshContext.Type
 
-export const contextualRefreshChild = DeclarationTestsParentDefinition.step(
+export const contextualRefreshChild = DeclarationTestsParent.step(
   (model, _context?: RefreshContext) => child.refresh()(model),
 )
 
@@ -383,7 +379,7 @@ export type ParentAssertions = [
   ParentErrorIsExact,
 ]
 
-const DeclarationTestsChoiceDefinition = Block.define('DeclarationTestsChoice')
+const DeclarationTestsChoice = Block.define('DeclarationTestsChoice')
 
 const makeChoiceParts = <const Values extends ReadonlyArray<string>>(
   Value: Schema.Literals<Values>,
@@ -392,7 +388,7 @@ const makeChoiceParts = <const Values extends ReadonlyArray<string>>(
   const Model = Schema.Struct({ value: Value })
   const Message = Schema.TaggedStruct('SelectedValue', { value: Value })
   const OutMessage = Schema.TaggedStruct('SelectedValue', { value: Value })
-  const definition = DeclarationTestsChoiceDefinition.define({
+  const definition = DeclarationTestsChoice.define({
     Model,
     Message,
     OutMessage,
@@ -448,18 +444,18 @@ type CompletedChoiceIsExact = Expect<
   Equal<CompletedChoice<readonly ['One', 'Two']>, typeof RefinedChoice>
 >
 
-const ChoiceParent = Schema.Struct({ choice: RefinedChoice.Model })
-type ChoiceParent = typeof ChoiceParent.Type
-const ChoiceParentDefinition = Block.define('DeclarationTestsChoiceParent', {
-  Model: ChoiceParent,
+const ChoiceParentModel = Schema.Struct({ choice: RefinedChoice.Model })
+type ChoiceParentModel = typeof ChoiceParentModel.Type
+const ChoiceParent = Block.define('DeclarationTestsChoiceParent', {
+  Model: ChoiceParentModel,
   Message: RefinedChoice.Message,
   OutMessage: RefinedChoice.OutMessage,
 })
 
-export const refinedChoice = ChoiceParentDefinition.bindChild(RefinedChoice, {
+export const refinedChoice = ChoiceParent.bindChild(RefinedChoice, {
   placement: 'refined-choice',
   read: model => Option.some(model.choice),
-  write: (_model, nextChoice) => ChoiceParent.make({ choice: nextChoice }),
+  write: (_model, nextChoice) => ChoiceParentModel.make({ choice: nextChoice }),
   toParentMessage: message => message,
   outMessage: {
     fold: outMessage => model => ({ model, outMessage }),
@@ -516,12 +512,12 @@ export const provisionPorts = {
   outbound: { valueRead: Port.outbound(Schema.Number) },
 }
 
-const ApplicationDefinition = defineApplication({
+const Application = defineApplication({
   Model: ParentModel,
   Message: ParentMessage,
 })
-const PureApplicationDefinition = ApplicationDefinition
-const PureApplicationComposition = PureApplicationDefinition.toComposition()
+const PureApplication = Application
+const PureApplicationComposition = PureApplication.toComposition()
 const preserveFunction = <Args extends ReadonlyArray<unknown>, ReturnValue>(
   fn: (...args: Args) => ReturnValue,
 ) => ({ fn })
@@ -535,12 +531,10 @@ const wrappedPureUpdate = preserveFunction(
   },
 )
 const pureInit = () => ({
-  model: ParentModel.make({ child: Child.Model.make({ value: 0 }) }),
+  model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
 })
-const pureElementView = PureApplicationDefinition.view((_model, h) =>
-  h.main([]),
-)
-const pureDocumentView = PureApplicationDefinition.view((_model, h) => ({
+const pureElementView = PureApplication.view((_model, h) => h.main([]))
+const pureDocumentView = PureApplication.view((_model, h) => ({
   title: 'Pure application',
   body: h.main([]),
 }))
@@ -548,7 +542,7 @@ const pureElementProgram: ElementProgram<undefined, never, never, never> =
   PureApplicationComposition.makeElement({
     container: null,
     init: pureInit,
-    update: PureApplicationDefinition.update(wrappedPureUpdate.fn),
+    update: PureApplication.update(wrappedPureUpdate.fn),
     view: pureElementView,
   })
 const purePageProgram: ApplicationProgram<
@@ -560,30 +554,30 @@ const purePageProgram: ApplicationProgram<
 > = PureApplicationComposition.make({
   container: null,
   init: pureInit,
-  update: PureApplicationDefinition.update(wrappedPureUpdate.fn),
+  update: PureApplication.update(wrappedPureUpdate.fn),
   view: pureDocumentView,
 })
 void pureElementProgram
 void purePageProgram
-export const ReadApplicationValue = ApplicationDefinition.command(
+export const ReadApplicationValue = Application.command(
   'ReadApplicationValue',
   {
     messages: [ParentMessage.RequestedRefresh],
   },
 )
-export const ObserveApplicationValue = ApplicationDefinition.mount(
+export const ObserveApplicationValue = Application.mount(
   'ObserveApplicationValue',
   {
     messages: [ParentMessage.RequestedRefresh],
   },
 )
-export const StreamApplicationValue = ApplicationDefinition.mountStream(
+export const StreamApplicationValue = Application.mountStream(
   'StreamApplicationValue',
   {
     messages: [ParentMessage.RequestedRefresh],
   },
 )
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [directChild],
 })
 const applicationElementView = ApplicationComposition.view((model, h) =>
@@ -614,7 +608,7 @@ export const applicationInputRender =
       }),
     ),
   )
-const applicationUpdate = ApplicationDefinition.update((model, message) =>
+const applicationUpdate = Application.update((model, message) =>
   ParentMessage.match(message, {
     GotChildMessage: ({ message }) => directChild.fold(model, message),
     RequestedRefresh: () => directChild.refresh()(model),
@@ -644,11 +638,11 @@ const makeInferredProvisionPageAwaitingDependency = (
     container,
     init: ({ initialValue }: typeof ProvisionFlags.Type) => ({
       model: ParentModel.make({
-        child: Child.Model.make({ value: initialValue }),
+        child: ChildBlock.Model.make({ value: initialValue }),
       }),
     }),
     ports: provisionPorts,
-    update: PureApplicationDefinition.update(wrappedPureUpdate.fn),
+    update: PureApplication.update(wrappedPureUpdate.fn),
     view: pureDocumentView,
   }).provide(ClockAndExtraLayer)
 
@@ -676,7 +670,7 @@ const makeInferredProvisionElement = (container: HTMLElement | null) =>
     container,
     init: pureInit,
     ports: provisionPorts,
-    update: PureApplicationDefinition.update(wrappedPureUpdate.fn),
+    update: PureApplication.update(wrappedPureUpdate.fn),
     view: pureElementView,
   })
     .provide(ClockAndExtraLayer)

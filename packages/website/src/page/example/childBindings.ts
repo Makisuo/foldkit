@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Tabs } from '@foldkit/ui'
 
-import { ExampleDetailDefinition } from './definition'
+import { ExampleDetail } from './definition'
 import { Message } from './message'
 import { Model } from './model'
 
@@ -22,11 +22,8 @@ const foldSourceFileTabsOutMessage = Tabs.OutMessage.match<
     }),
 })
 
-export const sourceFileTabs = ExampleDetailDefinition.bindChild(
-  SourceFileTabs,
-  {
-    field: 'sourceFileTabs',
-    parentMessage: Message.GotSourceFileTabsMessage,
-    outMessage: { fold: foldSourceFileTabsOutMessage },
-  },
-)
+export const sourceFileTabs = ExampleDetail.bindChild(SourceFileTabs, {
+  field: 'sourceFileTabs',
+  parentMessage: Message.GotSourceFileTabsMessage,
+  outMessage: { fold: foldSourceFileTabsOutMessage },
+})

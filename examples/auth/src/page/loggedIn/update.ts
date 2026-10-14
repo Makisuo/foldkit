@@ -1,7 +1,7 @@
-import { LoggedInDefinition } from './definition'
+import { LoggedIn } from './definition'
 import { Message, OutMessage } from './message'
 
-export const update = LoggedInDefinition.update((model, message) =>
+export const update = LoggedIn.update((model, message) =>
   Message.match(message, {
     ClickedLogout: () => ({
       model,

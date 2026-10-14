@@ -13,9 +13,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = defineApplication({ Model, Message })
 
-const ApplicationComposition = ApplicationDefinition.toComposition()
+const ApplicationComposition = Application.toComposition()
 
 const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {

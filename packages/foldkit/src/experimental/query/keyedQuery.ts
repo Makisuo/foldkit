@@ -711,8 +711,8 @@ const makeHostKeyedQuery = <
   const Model = makeKeyedQueryModel(config.data, config.error, Args)
   const Message = makeKeyedQueryMessage(config.data, config.error, Args)
   const QueryOwner = Block.define(config.name)
-  const QueryDefinition = QueryOwner.define({ Model, Message })
-  const Fetch = QueryDefinition.command('Fetch', {
+  const Query = QueryOwner.define({ Model, Message })
+  const Fetch = Query.command('Fetch', {
     args: {
       args: Args,
       generation: Schema.Number,
@@ -721,17 +721,14 @@ const makeHostKeyedQuery = <
     messages: [Message.CompletedFetch],
   })
   const api = makeKeyedQueryApi(config, Args, Model, Message, Fetch)
-  const reset = QueryDefinition.step(api.reset)
-  const revalidate = defineKeyedStep(QueryDefinition.step, api.revalidate)
-  const revalidateOrLoad = defineKeyedStep(
-    QueryDefinition.step,
-    api.revalidateOrLoad,
-  )
-  const loadIfMissing = defineKeyedStep(QueryDefinition.step, api.loadIfMissing)
-  const QueryComposition = QueryDefinition.toComposition()
+  const reset = Query.step(api.reset)
+  const revalidate = defineKeyedStep(Query.step, api.revalidate)
+  const revalidateOrLoad = defineKeyedStep(Query.step, api.revalidateOrLoad)
+  const loadIfMissing = defineKeyedStep(Query.step, api.loadIfMissing)
+  const QueryComposition = Query.toComposition()
   const block = QueryComposition.toBlock({
     init: api.init,
-    update: QueryDefinition.update(api.update),
+    update: Query.update(api.update),
     expose: { reset, revalidate, revalidateOrLoad, loadIfMissing },
     EffectsLayer: Layer.empty,
     hostHandlers: [Fetch],
@@ -784,8 +781,8 @@ const makeCanonicalKeyedQuery = <
   const Model = makeKeyedQueryModel(config.data, config.error, Args)
   const Message = makeKeyedQueryMessage(config.data, config.error, Args)
   const QueryOwner = Block.define(config.name)
-  const QueryDefinition = QueryOwner.define({ Model, Message })
-  const Fetch = QueryDefinition.command('Fetch', {
+  const Query = QueryOwner.define({ Model, Message })
+  const Fetch = Query.command('Fetch', {
     args: {
       args: Args,
       generation: Schema.Number,
@@ -794,17 +791,14 @@ const makeCanonicalKeyedQuery = <
     messages: [Message.CompletedFetch],
   })
   const api = makeKeyedQueryApi(config, Args, Model, Message, Fetch)
-  const reset = QueryDefinition.step(api.reset)
-  const revalidate = defineKeyedStep(QueryDefinition.step, api.revalidate)
-  const revalidateOrLoad = defineKeyedStep(
-    QueryDefinition.step,
-    api.revalidateOrLoad,
-  )
-  const loadIfMissing = defineKeyedStep(QueryDefinition.step, api.loadIfMissing)
-  const QueryComposition = QueryDefinition.toComposition()
+  const reset = Query.step(api.reset)
+  const revalidate = defineKeyedStep(Query.step, api.revalidate)
+  const revalidateOrLoad = defineKeyedStep(Query.step, api.revalidateOrLoad)
+  const loadIfMissing = defineKeyedStep(Query.step, api.loadIfMissing)
+  const QueryComposition = Query.toComposition()
   const block = QueryComposition.toBlock({
     init: api.init,
-    update: QueryDefinition.update(api.update),
+    update: Query.update(api.update),
     expose: { reset, revalidate, revalidateOrLoad, loadIfMissing },
     EffectsLayer: api.toLayer(handler),
   })

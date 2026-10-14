@@ -22,7 +22,7 @@ In the diagram, `products/catalog.ts` owns the feature's `ProductCatalogLayer` b
 
 Keep Commands within the feature whose update returns them. Small features can declare them alongside update; extract a feature-local `command.ts` when several definitions or substantial handlers make a separate file easier to navigate. A feature that fetches its own data owns that Command instead of importing it from a root Command collection. Extract `message.ts` when a Command needs to import its result Message constructors without creating a cycle.
 
-A feature that declares Subscriptions can own `subscription.ts`. Put its early typed authoring Definition in `definition.ts` when split implementation files need it: `export const HomeDefinition = Block.define('Home', { Model, Message })`. Produce the completed Home Block in `home/block.ts`, export it as `block` from `home/index.ts`, and export the folder as `Home` from `page/index.ts`. A parent imports that namespace and calls `ParentDefinition.bindChild(Home.block, config)`. Including the resulting Binding under `children` adds the child's lifecycle records automatically. See [Defining a Block](/core/block#child-block).
+A feature that declares Subscriptions can own `subscription.ts`. Put its early typed authoring value in `definition.ts` when split implementation files need it: `export const Home = Block.define('Home', { Model, Message })`. Produce the completed Home Block in `home/block.ts`, export it as `block` from `home/index.ts`, and export the folder as `Home` from `page/index.ts`. A parent imports that namespace and calls `Parent.bindChild(Home.block, config)`. Including the resulting Binding under `children` adds the child's lifecycle records automatically. See [Defining a Block](/core/block#child-block).
 
 Use standard structural names within each feature: `Model`, `Message`, `OutMessage`, `Flags`, `init`, `update`, `view`, `subscriptions`, `managedResources`, `mounts`, and `EffectsLayer`. The feature value supplies context in parent code: `Home.Model` and `Home.Message`. Domain Schemas and individual effects keep descriptive names such as `Person`, `FetchPeople`, and `FocusSearchInput`.
 
@@ -36,7 +36,7 @@ Keep each handler attached to the Command, Subscription, Mount, or ManagedResour
 
 Compose a small local `EffectsLayer` directly in `block.ts`. Extract `layer.ts` when that Layer composition is substantial or independently reused. Pass this local bundle to `HomeComposition.toBlock`; child Bindings contribute their selected handler graphs. A feature may provide business services that it owns while leaving concrete HTTP, storage, RPC, and browser providers open for the application root. Import Effect's module as `Layer`; the bundle has a different name, so no alias is needed.
 
-Root `application.ts` owns `ApplicationDefinition`, its child Bindings, and `ApplicationComposition`. `entry.ts` imports each completion field from its real owner, handles browser startup, selects the container and startup inputs, and calls `Runtime.run`. Keep a small `ApplicationLayer` there; extract `layer.ts` when the provider composition is substantial or reused. Keep substantial Model, Message, update, and view logic in their respective files. This layout keeps application imports from starting a browser Runtime.
+Root `application.ts` owns `Application`, its child Bindings, and `ApplicationComposition`. `entry.ts` imports each completion field from its real owner, handles browser startup, selects the container and startup inputs, and calls `Runtime.run`. Keep a small `ApplicationLayer` there; extract `layer.ts` when the provider composition is substantial or reused. Keep substantial Model, Message, update, and view logic in their respective files. This layout keeps application imports from starting a browser Runtime.
 
 The feature Layer contains only handlers owned at that boundary. Child Bindings contribute their own graphs, including keyed Bindings.
 
@@ -58,7 +58,7 @@ Adding another handler changes the owning feature's local `EffectsLayer`; changi
 
 ## Composing Runtime Behavior
 
-Handler Layers and lifecycle declarations have different jobs. A feature's `EffectsLayer` supplies implementations. Its Subscriptions, ManagedResources, and Mounts say which behavior Foldkit manages. The root `ApplicationDefinition.toComposition` call collects those graphs through child Bindings while preserving the root's update, step, Subscription, ManagedResource, Command, Mount, and Resource authoring helpers.
+Handler Layers and lifecycle declarations have different jobs. A feature's `EffectsLayer` supplies implementations. Its Subscriptions, ManagedResources, and Mounts say which behavior Foldkit manages. The root `Application.toComposition` call collects those graphs through child Bindings while preserving the root's update, step, Subscription, ManagedResource, Command, Mount, and Resource authoring helpers.
 
 ::Snippet{name="applicationRegistrations" label="Root runtime composition"}
 

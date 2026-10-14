@@ -16,9 +16,9 @@ const foldSettingsOutMessage = Settings.OutMessage.match<
     }),
 })
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const Application = defineApplication({ Model, Message })
 
-export const settings = ApplicationDefinition.bindChild(Settings.block, {
+export const settings = Application.bindChild(Settings.block, {
   read: (model: Model) => model.maybeSettings,
   write: (model, nextSettings) =>
     modifyFields(model, {
@@ -28,7 +28,7 @@ export const settings = ApplicationDefinition.bindChild(Settings.block, {
   outMessage: { fold: foldSettingsOutMessage },
 })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [settings],
 })
 

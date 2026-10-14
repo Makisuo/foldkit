@@ -1,5 +1,5 @@
 import { Schema, Stream } from 'effect'
-import { Canvas, Dom, Block } from 'foldkit'
+import { Block, Canvas, Dom } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Model = Schema.Struct({ isPlaying: Schema.Boolean, angle: Schema.Number })
@@ -8,9 +8,9 @@ const Message = defineMessageUnion({
   ClickedCanvas: { x: Schema.Number, y: Schema.Number },
 })
 
-const CanvasAppDefinition = Block.define('CanvasApp', { Model, Message })
+const CanvasApp = Block.define('CanvasApp', { Model, Message })
 
-const subscriptions = CanvasAppDefinition.subscriptions(entry => ({
+const subscriptions = CanvasApp.subscriptions(entry => ({
   animationFrameTicks: entry(
     'AnimationFrameTicks',
     { isActive: Schema.Boolean },
@@ -29,7 +29,7 @@ const subscriptions = CanvasAppDefinition.subscriptions(entry => ({
   ),
 }))
 
-const view = CanvasAppDefinition.view((model, h) =>
+const view = CanvasApp.view((model, h) =>
   Canvas.view(
     {
       width: 600,

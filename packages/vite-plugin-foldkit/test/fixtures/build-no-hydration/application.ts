@@ -8,13 +8,15 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({})
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const Application = defineApplication({ Model, Message })
+
+export const ApplicationComposition = Application.toComposition()
 
 export const init = () => ({ model: Model.make({ count: 0 }) })
 
-export const update = ApplicationDefinition.update(model => ({ model }))
+export const update = Application.update(model => ({ model }))
 
-export const view = ApplicationDefinition.view((model, h) => ({
+export const view = Application.view((model, h) => ({
   title: 'Client only',
   body: h.main([], [model.count.toString()]),
 }))

@@ -691,7 +691,7 @@ describe('completed Block bindings', () => {
     type: 'CallExpression',
     callee: {
       type: 'MemberExpression',
-      object: Testing.id('ApplicationDefinition'),
+      object: Testing.id('Application'),
       property: Testing.id('bindChild'),
       computed: false,
     },
@@ -709,7 +709,7 @@ describe('completed Block bindings', () => {
     type: 'CallExpression',
     callee: {
       type: 'MemberExpression',
-      object: Testing.id('ApplicationDefinition'),
+      object: Testing.id('Application'),
       property: Testing.id('bindChild'),
       computed: false,
     },

@@ -1,14 +1,14 @@
 import { Schema } from 'effect'
-import { Dom, Block } from 'foldkit'
+import { Block, Dom } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Message = defineMessageUnion({
   MovedPointer: { clientX: Schema.Number, clientY: Schema.Number },
 })
 const Model = Schema.Struct({})
-const PanelDefinition = Block.define('Panel', { Model, Message })
+const Panel = Block.define('Panel', { Model, Message })
 
-const TrackPointer = PanelDefinition.mountStream('TrackPointer', {
+const TrackPointer = Panel.mountStream('TrackPointer', {
   messages: [Message.MovedPointer],
   handler: function* () {
     return ({ element }) =>
@@ -24,7 +24,7 @@ const TrackPointer = PanelDefinition.mountStream('TrackPointer', {
   },
 })
 
-const PanelComposition = PanelDefinition.toComposition({
+const PanelComposition = Panel.toComposition({
   mounts: [TrackPointer],
 })
 

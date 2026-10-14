@@ -6,38 +6,35 @@ import {
   Model,
   OutMessage,
   SaveTheme,
-  SettingsDefinition,
+  Settings,
   Theme,
 } from './blockDefinition'
 
 const CurrentUser = Schema.Struct({ accountId: Schema.String })
 export type CurrentUser = typeof CurrentUser.Type
 
-const update = SettingsDefinition.update(
-  (model, message, currentUser: CurrentUser) =>
-    Message.match(message, {
-      ChangedTheme: ({ theme }) => ({
-        model: modifyFields(model, { theme: () => theme }),
-        commands: [SaveTheme({ theme })],
-        outMessage: OutMessage.ChangedTheme({
-          accountId: currentUser.accountId,
-          theme,
-        }),
+const update = Settings.update((model, message, currentUser: CurrentUser) =>
+  Message.match(message, {
+    ChangedTheme: ({ theme }) => ({
+      model: modifyFields(model, { theme: () => theme }),
+      commands: [SaveTheme({ theme })],
+      outMessage: OutMessage.ChangedTheme({
+        accountId: currentUser.accountId,
+        theme,
       }),
-      CompletedSaveTheme: () => ({ model }),
-      FailedSaveTheme: () => ({ model }),
     }),
+    CompletedSaveTheme: () => ({ model }),
+    FailedSaveTheme: () => ({ model }),
+  }),
 )
 
-const reset = SettingsDefinition.step(model => ({
+const reset = Settings.step(model => ({
   model: modifyFields(model, { theme: () => 'System' }),
 }))
 
-const view = SettingsDefinition.view((model, h) =>
-  h.p([], [`Theme: ${model.theme}`]),
-)
+const view = Settings.view((model, h) => h.p([], [`Theme: ${model.theme}`]))
 
-export const block = SettingsDefinition.toComposition().toBlock({
+export const block = Settings.toComposition().toBlock({
   init: () => ({ model: Model.make({ theme: 'System' }) }),
   update,
   view,

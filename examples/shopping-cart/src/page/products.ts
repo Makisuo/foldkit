@@ -37,7 +37,7 @@ export type AddedToCart = typeof OutMessage.AddedToCart.Type
 export type IncrementedQuantity = typeof OutMessage.IncrementedQuantity.Type
 export type DecrementedQuantity = typeof OutMessage.DecrementedQuantity.Type
 
-const ProductsDefinition = Block.define('Products', {
+const Products = Block.define('Products', {
   Model,
   Message,
   OutMessage,
@@ -47,7 +47,7 @@ export const init = (products: ReadonlyArray<Item.Item>) => ({
   model: Model.make({ products, searchText: '' }),
 })
 
-export const ReplaceSearchUrl = ProductsDefinition.command('ReplaceSearchUrl', {
+export const ReplaceSearchUrl = Products.command('ReplaceSearchUrl', {
   args: { url: Schema.String },
   messages: [Message.CompletedReplaceSearchUrl],
   handler: function* () {
@@ -56,7 +56,7 @@ export const ReplaceSearchUrl = ProductsDefinition.command('ReplaceSearchUrl', {
   },
 })
 
-export const update = ProductsDefinition.update((model, message) =>
+export const update = Products.update((model, message) =>
   Message.match(message, {
     CompletedReplaceSearchUrl: () => ({ model }),
 
@@ -95,7 +95,7 @@ export type ViewInputs = Readonly<{
   cart: Cart.Cart
 }>
 
-export const view = ProductsDefinition.view.withInputs<ViewInputs>(
+export const view = Products.view.withInputs<ViewInputs>(
   (model, { cart }, h) => {
     const filteredProducts = model.searchText
       ? model.products.filter(product =>
@@ -253,7 +253,7 @@ export const view = ProductsDefinition.view.withInputs<ViewInputs>(
   },
 )
 
-export const block = ProductsDefinition.toComposition().toBlock({
+export const block = Products.toComposition().toBlock({
   init,
   update,
   view,

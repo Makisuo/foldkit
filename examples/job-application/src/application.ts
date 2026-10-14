@@ -12,7 +12,7 @@ import {
   workHistory,
 } from './childBindings'
 import { SubmitApplication } from './command'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { Model, Submission } from './model'
 
 export const Flags = Schema.Struct({
@@ -84,7 +84,7 @@ export const init = ({
 
 export const EffectsLayer = SubmitApplication.layer
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [
     personalInfo,
     workHistory,

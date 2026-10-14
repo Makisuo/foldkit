@@ -88,13 +88,13 @@ const foldGraduationYearListboxOutMessage =
       }),
   })
 
-const EducationEntryDefinition = Block.define('EducationEntry', {
+const EducationEntry = Block.define('EducationEntry', {
   Model,
   Message,
   OutMessage,
 })
 
-export const graduationYearListbox = EducationEntryDefinition.bindChild(
+export const graduationYearListbox = EducationEntry.bindChild(
   GraduationYearListbox,
   {
     field: 'graduationYearListbox',
@@ -103,13 +103,11 @@ export const graduationYearListbox = EducationEntryDefinition.bindChild(
   },
 )
 
-export const EducationEntryComposition = EducationEntryDefinition.toComposition(
-  {
-    children: [graduationYearListbox],
-  },
-)
+export const EducationEntryComposition = EducationEntry.toComposition({
+  children: [graduationYearListbox],
+})
 
-export const update = EducationEntryDefinition.update((model, message) =>
+export const update = EducationEntry.update((model, message) =>
   Message.match(message, {
     UpdatedSchool: ({ value }) => ({
       model: modifyFields(model, { school: () => validateSchool(value) }),

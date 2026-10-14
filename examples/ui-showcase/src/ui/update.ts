@@ -41,11 +41,11 @@ import {
   virtualListDemo,
   virtualListVariableDemo,
 } from './childBindings'
-import { UiDefinition } from './definition'
+import { Ui } from './definition'
 import { Message } from './message'
 import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './virtualList'
 
-export const update = UiDefinition.update((model, message) =>
+export const update = Ui.update((model, message) =>
   Message.match(message, {
     GotMobileMenuDialogMessage: ({ message }) =>
       mobileMenuDialog.fold(model, message),
@@ -324,6 +324,6 @@ export const update = UiDefinition.update((model, message) =>
   }),
 )
 
-export const openMobileMenu = UiDefinition.step(mobileMenuDialog.open())
+export const openMobileMenu = Ui.step(mobileMenuDialog.open())
 
-export const closeMobileMenu = UiDefinition.step(mobileMenuDialog.close())
+export const closeMobileMenu = Ui.step(mobileMenuDialog.close())

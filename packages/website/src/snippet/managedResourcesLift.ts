@@ -10,17 +10,17 @@ import * as VideoCall from './videoCall'
 
 const SIGNALING_URL = 'wss://example.com/call/signaling'
 
-const CallDefinition = Block.define('Call', { Model, Message })
-const SignalingSocket = CallDefinition.resource<WebSocket>()('SignalingSocket')
+const Call = Block.define('Call', { Model, Message })
+const SignalingSocket = Call.resource<WebSocket>()('SignalingSocket')
 
-const videoCall = CallDefinition.bindChild(VideoCall.block, {
+const videoCall = Call.bindChild(VideoCall.block, {
   read: (model: Model) => model.videoCall,
   write: (model, nextVideoCall) =>
     modifyFields(model, { videoCall: () => Option.some(nextVideoCall) }),
   parentMessage: Message.GotVideoCallMessage,
 })
 
-const CallComposition = CallDefinition.toComposition({
+const CallComposition = Call.toComposition({
   children: [videoCall],
 })
 

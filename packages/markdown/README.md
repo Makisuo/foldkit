@@ -134,19 +134,18 @@ const Message = defineMessageUnion({
   GotCounterMessage: { message: Counter.Message },
 })
 
-const counter = Counter.block.connection({
-  Model,
+export const Application = defineApplication({ Model, Message })
+
+const counter = Application.bindChild(Counter.block, {
   field: 'counter',
   parentMessage: Message.GotCounterMessage,
 })
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
-
-export const Application = ApplicationDefinition.register({
+export const ApplicationComposition = Application.toComposition({
   children: [counter],
 })
 
-type HtmlBuilder = HtmlBuilderOf<typeof Application>
+type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 const postView = (
   model: Model,

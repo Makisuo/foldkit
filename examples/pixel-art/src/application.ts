@@ -23,7 +23,7 @@ import {
   DEFAULT_PALETTE_THEME_INDEX,
   STORAGE_KEY,
 } from './constant'
-import { ApplicationDefinition } from './definition'
+import { Application } from './definition'
 import { createEmptyGrid } from './grid'
 import { Model, SavedCanvas, SavedCanvasJsonString } from './model'
 import { subscriptions } from './subscription'
@@ -90,7 +90,7 @@ export const init = (flags: Flags) => ({
   }),
 })
 
-export const ApplicationComposition = ApplicationDefinition.toComposition({
+export const ApplicationComposition = Application.toComposition({
   children: [
     errorDialog,
     themeListbox,

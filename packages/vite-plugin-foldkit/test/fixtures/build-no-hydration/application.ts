@@ -1,4 +1,4 @@
-import { Layer, Schema } from 'effect'
+import { Schema } from 'effect'
 import { define as defineApplication } from 'foldkit/application'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -8,20 +8,13 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({})
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
 export const init = () => ({ model: Model.make({ count: 0 }) })
 
-export const update = Application.update(model => ({ model }))
+export const update = ApplicationDefinition.update(model => ({ model }))
 
-export const view = Application.view((model, h) => ({
+export const view = ApplicationDefinition.view((model, h) => ({
   title: 'Client only',
   body: h.main([], [model.count.toString()]),
 }))
-
-export const implementation = {
-  init,
-  update,
-  view,
-  EffectsLayer: Layer.empty,
-}

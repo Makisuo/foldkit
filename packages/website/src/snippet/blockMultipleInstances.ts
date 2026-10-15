@@ -1,6 +1,5 @@
 import { Array } from 'effect'
 import { defineApplication } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
 
 import { Applicant } from './applicant'
 import { Message } from './message'
@@ -9,17 +8,9 @@ import { Model } from './model'
 const Application = defineApplication({ Model, Message })
 
 export const applicants = Application.bindChild(Applicant.block, {
-  readAll: model => model.applicants,
-  key: applicant => applicant.id,
-  read: applicant => applicant.entry,
-  writeAt: (model, applicantId, nextEntry) =>
-    modifyFields(model, {
-      applicants: Array.map(applicant =>
-        applicant.id === applicantId
-          ? modifyFields(applicant, { entry: () => nextEntry })
-          : applicant,
-      ),
-    }),
+  field: 'applicants',
+  key: 'id',
+  childField: 'entry',
   toParentMessage: (applicantId, message) =>
     Message.GotApplicantMessage({ applicantId, message }),
 })

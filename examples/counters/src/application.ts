@@ -37,17 +37,9 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 
 const counters = Application.bindChild(Counter.block, {
-  readAll: ({ counters }) => counters,
-  key: ({ id }) => id,
-  read: ({ counter }) => counter,
-  writeAt: (model, id, nextCounter) =>
-    modifyFields(model, {
-      counters: Array.map(counterInstance =>
-        counterInstance.id === id
-          ? modifyFields(counterInstance, { counter: () => nextCounter })
-          : counterInstance,
-      ),
-    }),
+  field: 'counters',
+  key: 'id',
+  childField: 'counter',
   toParentMessage: (id, message) => Message.GotCounterMessage({ id, message }),
 })
 

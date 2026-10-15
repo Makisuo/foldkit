@@ -221,15 +221,21 @@ When a parent field is an array of child Models and each child has its stable ke
 
 This shorthand requires a child Model Schema that exposes Struct fields. Use the general keyed form for union, suspended, or other Schema declarations whose fields are opaque, even when every decoded variant has the same key field.
 
-Use the general keyed form when collection items wrap the child Model or writing one child requires custom parent logic. `readAll` enumerates the items, `key` selects stable identity, `read` selects the child Model, and `writeAt` stores its next value.
+When each array item wraps the child Model, add `childField`:
 
 ::Snippet{name="blockMultipleInstances" label="Binding a wrapped child collection" class="mb-4"}
+
+This form requires an exact parent Struct whose `field` is a required `Schema.Array` of closed Struct wrapper records. `key` must name a required string or finite-number field on each wrapper. `childField` must name a different required field whose Schema has exactly the same decoded shape as the child Model. The child Model itself may be a primitive or union because the wrapper owns the key. Placement defaults to `field`.
+
+When Foldkit writes a child result, it replaces only `childField` in the matching wrapper. It preserves array order, wrapper metadata, and every unmatched wrapper reference. If the key has been removed, it leaves the array unchanged instead of inserting a wrapper.
+
+Use the general keyed form when the parent or wrapper Schema is opaque, wrappers are a union or use open/index-signature storage such as `Schema.StructWithRest`, the collection is derived from a zero-or-one `Option<RoomInstance>`, or writing a child requires other parent changes. `readAll` enumerates the items, `key` selects stable identity, `read` selects the child Model, and `writeAt` stores its next value.
 
 Each active key gets independent Subscription, ManagedResource, and Mount scopes. `fold`, exposed operations, `init`, and `embedView` take the key first. The key must be a stable string or finite number and must be unique in the current collection.
 
 Removing a key synchronously makes its dispatchers stale and starts lifecycle cleanup. Reusing the same key later creates a new occurrence; results and callbacks captured by the earlier occurrence cannot update it.
 
-Keyed Bindings do not reconcile the collection itself. Application update remains responsible for adding, removing, and ordering items in the parent Model. In the direct field form, `init(key, ...)` must return a child Model with that key, and a child fold or operation cannot change it. The parent changes occurrence identity by removing one child Model and adding another under its own update logic.
+Keyed Bindings do not reconcile the collection itself. Application update remains responsible for adding, removing, and ordering items in the parent Model. In the direct child array form, `init(key, ...)` must return a child Model with that key, and a child fold or operation cannot change it. In the wrapped array form, the wrapper key stays fixed while child folds and operations replace only the child field. The parent changes occurrence identity by removing one item and adding another under its own update logic.
 
 A keyed Binding can also represent one optional child whose domain identity changes. Enumerate zero or one item from an `Option`, and store its ID beside the child Model.
 
@@ -348,7 +354,7 @@ For shared definitions specialized by a generic factory, `Block.define(id)` supp
 
 ### Parent.bindChild
 
-`Parent.bindChild(block, config)` creates one static, optional, or keyed Binding in the established parent Model and Message context. Use `field` for an exact direct Struct field containing the child Model or `Option<ChildModel>`; `presentWhen` can add whole-child presence policy to that direct form. Use explicit `read`/`write` for custom access. A direct child-Model array uses string-valued `field` and `key` when the child Model Schema exposes Struct fields; union, suspended, and other opaque child Schemas use the general keyed form with `readAll`, function-valued `key`, `read`, and `writeAt`. Supply exactly one of `parentMessage` and `toParentMessage` for a static Binding; keyed Message mappings receive both the key and child Message. An explicit placement overrides the field or Block ID default. `subscriptions.when` gates only Streams. OutMessage handling is parent policy.
+`Parent.bindChild(block, config)` creates one static, optional, or keyed Binding in the established parent Model and Message context. Use `field` for an exact direct Struct field containing the child Model or `Option<ChildModel>`; `presentWhen` can add whole-child presence policy to that direct form. Use explicit `read`/`write` for custom access. A direct child-Model array uses string-valued `field` and `key` when the child Model Schema exposes Struct fields. A required `Schema.Array` field on a parent Struct containing closed wrappers adds a distinct `childField`; its key is a required string or finite-number wrapper field, while `childField` is a required field with exactly the same decoded shape as the child Model. Both array forms default placement to `field`. Union, suspended, and other opaque direct child Schemas, opaque, union, or open/index-signature wrappers, optional collections, and custom writes use the general keyed form with `readAll`, function-valued `key`, `read`, and `writeAt`. Supply exactly one of `parentMessage` and `toParentMessage` for a static Binding; keyed Message mappings receive both the key and child Message. An explicit placement overrides the field or Block ID default. `subscriptions.when` gates only Streams. OutMessage handling is parent policy.
 
 ### Feature.step
 

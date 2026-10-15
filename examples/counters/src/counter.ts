@@ -5,17 +5,18 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
-export const Model = Schema.Struct({ count: Schema.Number })
-export type Model = typeof Model.Type
+export const Model = Schema.Struct({
+  count: Schema.Number,
+})
 
-export const init = () => ({ model: Model.make({ count: 0 }) })
+export const init = () => ({
+  model: Model.make({ count: 0 }),
+})
 
 export const Message = defineMessageUnion({
   ClickedDecrement: {},
   ClickedIncrement: {},
 })
-
-export type Message = typeof Message.Type
 
 const Counter = Block.define('Counter', { Model, Message })
 

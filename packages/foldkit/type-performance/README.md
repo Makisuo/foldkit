@@ -106,3 +106,32 @@ properties. Shared conditional overloads preserve required OutMessage policies
 and callback inference while avoiding duplicate signature shapes. Deferred
 handler validation checks the existing owner evidence directly. Accepted,
 rejected, and downstream declaration fixtures verify these changes together.
+
+## Wrapped keyed-array adapter
+
+The `childField` overload retains the same 8/100/200 fixture sizes. Compared
+with checkpoint `1c64a700eb`, the final public declarations measure:
+
+| Fixture                    | Before instantiations | After instantiations | Before types | After types |
+| -------------------------- | --------------------: | -------------------: | -----------: | ----------: |
+| `deep-composition-8`       |             1,126,656 |            1,126,656 |       52,564 |      52,579 |
+| `wide-composition-100`     |             3,021,829 |            3,037,198 |      215,407 |     216,662 |
+| `command-requirements-200` |             2,632,385 |            2,632,385 |      386,042 |     386,057 |
+
+The wide fixture increases by 0.51% instantiations and 0.58% types. It uses
+accessor Bindings; the extra overload contributes contextual type computation
+even when no call selects it. A counterfactual with only a required `childField`
+parameter still added 226 types, exceeding the previous ceiling's 12-type
+headroom. Moving the overload and extracting its signature did not reduce
+that cost.
+
+Selected-field validation avoids scanning unrelated generic wrapper payloads.
+The wrapped config declares its Subscription policy directly instead of
+instantiating and omitting the entire general keyed config. These reductions
+retain exact child, key, Message, OutMessage, registration, Service and error
+checks. Generic Toast and emitted acceptance/rejection fixtures verify the
+result.
+
+Only the wide fixture's Types ceiling changes, to the exact observed 216,662.
+All instantiation ceilings and the deep and Command Types ceilings stay in
+place. No fixture was narrowed and no rejection test was removed.

@@ -744,6 +744,25 @@ describe('completed Block bindings', () => {
       ],
     })
 
+  const wrappedEntriesBinding = Testing.varDecl('const', 'entries', {
+    type: 'CallExpression',
+    callee: {
+      type: 'MemberExpression',
+      object: Testing.id('Application'),
+      property: Testing.id('bindChild'),
+      computed: false,
+    },
+    arguments: [
+      Testing.id('Counter'),
+      objectExpression([
+        property('field', Testing.strLiteral('entries')),
+        property('key', Testing.strLiteral('id')),
+        property('childField', Testing.strLiteral('counter')),
+        property('toParentMessage', Testing.arrowFn(Testing.id('message'))),
+      ]),
+    ],
+  })
+
   const updateEntriesManually = () =>
     modifyFields(
       'model',
@@ -763,6 +782,40 @@ describe('completed Block bindings', () => {
               ),
               [Testing.id('entry')],
             ),
+          ]),
+        ),
+      ]),
+    )
+
+  const updateWrappedEntry = (field: string) =>
+    modifyFields(
+      'model',
+      objectExpression([
+        property(
+          'entries',
+          Testing.callOfMember('Array', 'map', [
+            Testing.arrowFn(
+              modifyFields(
+                'entry',
+                objectExpression([
+                  property(field, Testing.arrowFn(Testing.id('replacement'))),
+                ]),
+              ),
+              [Testing.id('entry')],
+            ),
+          ]),
+        ),
+      ]),
+    )
+
+  const removeWrappedEntry = () =>
+    modifyFields(
+      'model',
+      objectExpression([
+        property(
+          'entries',
+          Testing.callOfMember('Array', 'filter', [
+            Testing.arrowFn(Testing.id('shouldKeep'), [Testing.id('entry')]),
           ]),
         ),
       ]),
@@ -829,6 +882,68 @@ describe('completed Block bindings', () => {
     ])
 
     expect(result).toHaveLength(1)
+  })
+
+  it('flags replacing a wrapped child Model through binding.fold', () => {
+    const result = runRule([
+      wrappedEntriesBinding,
+      Testing.callOfMember('entries', 'fold', [
+        Testing.id('model'),
+        Testing.strLiteral('first'),
+        Testing.id('message'),
+      ]),
+      updateWrappedEntry('counter'),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('tracks wrapped child Models through named Binding operations', () => {
+    const result = runRule([
+      wrappedEntriesBinding,
+      Testing.callOfMember('Update', 'combine', [
+        Testing.id('model'),
+        {
+          type: 'ArrayExpression',
+          elements: [
+            Testing.callOfMember('entries', 'increment', [
+              Testing.strLiteral('first'),
+            ]),
+          ],
+        },
+      ]),
+      updateWrappedEntry('counter'),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('allows updating metadata beside a wrapped child Model', () => {
+    const result = runRule([
+      wrappedEntriesBinding,
+      Testing.callOfMember('entries', 'fold', [
+        Testing.id('model'),
+        Testing.strLiteral('first'),
+        Testing.id('message'),
+      ]),
+      updateWrappedEntry('label'),
+    ])
+
+    expect(result).toHaveLength(0)
+  })
+
+  it('allows removing a wrapper from the parent collection', () => {
+    const result = runRule([
+      wrappedEntriesBinding,
+      Testing.callOfMember('entries', 'fold', [
+        Testing.id('model'),
+        Testing.strLiteral('first'),
+        Testing.id('message'),
+      ]),
+      removeWrappedEntry(),
+    ])
+
+    expect(result).toHaveLength(0)
   })
 
   it('does not recognize keyField as direct keyed shorthand', () => {

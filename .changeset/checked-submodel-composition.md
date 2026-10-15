@@ -176,7 +176,49 @@ export const TableComposition = Table.toComposition({
 })
 ```
 
-The child Schema must expose its declared Struct fields. Use the general keyed form for a union Model or a Schema without declared fields. The shorthand otherwise defaults placement to `field`. Keep the previous Block-ID placement explicitly when migrating an existing general keyed Binding whose resolved identity differs, as above. The child Model returned by `init(key, ...)` must contain that key, and child folds and operations cannot change it. Parent update owns collection membership, so it replaces identity by removing one Model and adding another. Use `readAll`, function-valued `key`, `read`, and `writeAt` when collection items wrap the child Model or writing one child requires custom parent logic.
+The child Schema must expose its declared Struct fields. Use the general keyed form for a union Model or a Schema without declared fields. The shorthand otherwise defaults placement to `field`. Keep the previous Block-ID placement explicitly when migrating an existing general keyed Binding whose resolved identity differs, as above. The child Model returned by `init(key, ...)` must contain that key, and child folds and operations cannot change it. Parent update owns collection membership, so it replaces identity by removing one Model and adding another.
+
+A required `Schema.Array` field on a parent Struct can store closed Struct wrappers around child Models. Add `childField` when `key` belongs to the wrapper.
+
+Before:
+
+```ts
+import { Array } from 'effect'
+import { modifyFields } from 'foldkit/struct'
+
+export const applicants = Application.bindChild(Applicant.block, {
+  readAll: model => model.applicants,
+  key: applicant => applicant.id,
+  read: applicant => applicant.entry,
+  writeAt: (model, applicantId, nextEntry) =>
+    modifyFields(model, {
+      applicants: Array.map(applicant =>
+        applicant.id === applicantId
+          ? modifyFields(applicant, { entry: () => nextEntry })
+          : applicant,
+      ),
+    }),
+  toParentMessage: (applicantId, message) =>
+    Message.GotApplicantMessage({ applicantId, message }),
+})
+```
+
+After:
+
+```ts
+export const applicants = Application.bindChild(Applicant.block, {
+  placement: 'Applicant',
+  field: 'applicants',
+  key: 'id',
+  childField: 'entry',
+  toParentMessage: (applicantId, message) =>
+    Message.GotApplicantMessage({ applicantId, message }),
+})
+```
+
+`key` must name a required string or finite-number wrapper field, and `childField` must name a different required field whose Schema has exactly the same decoded shape as the child Model. The child Model may be a primitive or union because its identity stays on the wrapper. A child write replaces only the matching wrapper's child field, preserving its metadata, array position, and every unmatched wrapper reference. It does not insert a wrapper after parent update has removed that key. Placement defaults to `field`; retain the old Block-ID placement explicitly if the existing Binding's resolved identity must stay the same.
+
+Use `readAll`, function-valued `key`, `read`, and `writeAt` for custom parent writes, opaque, union, or open/index-signature wrappers, and collections such as `Option<RoomInstance>` that enumerate zero or one child. These explicit accessors continue to define application-specific storage and enumeration policy.
 
 Use a keyed Binding for a routed child when its domain ID changes, even if only one instance is present at a time. Capture the key in `toParentMessage` so delayed Command results and Subscription emissions retain their origin. Replacing the key retires that occurrence and its dispatchers; reusing the key later creates a new occurrence. Running Commands retain application lifetime, so isolate external writes by domain ID when their completion must not overwrite another instance's data.
 

@@ -22,6 +22,8 @@ import {
 import {
   type KeyAt,
   type KeyedFieldConfig,
+  type WrappedItemAt,
+  type WrappedKeyedFieldConfig,
   isKeyedFieldStorage,
   normalizeKeyedFieldConfig,
 } from './keyedFieldConnection.js'
@@ -201,6 +203,7 @@ type GeneralKeyedConfig<
   Placement
 > &
   Readonly<{
+    childField?: never
     field?: never
     presentWhen?: never
     parentMessage?: never
@@ -239,6 +242,7 @@ type DirectChildConfig<
      * parent Struct field. None makes the child absent; folds never create it.
      * Placement defaults to this storage field name. */
     field: Field
+    childField?: never
     Model?: never
     ChildModel?: never
     /** Makes the whole occurrence absent when false. This stops its lifecycle
@@ -269,6 +273,7 @@ type AccessorChildConfig<
   ValidateParentMessageMapping<Mapper, ParentMessage> &
   ValidateConcreteComposition<BlockValue> &
   Readonly<{
+    childField?: never
     Model?: never
     ChildModel?: never
     field?: never
@@ -479,6 +484,48 @@ export interface BindChild<
   >
   <
     const BlockValue extends BindableBlock,
+    const Mapper,
+    const Field extends keyof ParentModelSchema['Type'] & string,
+    const KeyField extends string,
+    const ChildField extends string,
+    const Policy,
+    const Placement extends string = Field,
+  >(
+    block: BlockValue,
+    config: Readonly<{ childField: ChildField; key: KeyField }> &
+      (ParentModelSchema extends Schema.Struct<Schema.Struct.Fields>
+        ? WrappedKeyedFieldConfig<
+            BlockValue,
+            ParentModelSchema,
+            ParentMessageSchema['Type'],
+            Mapper,
+            Field,
+            KeyField,
+            ChildField,
+            Placement
+          > &
+            KeyedFieldOutMessageConfig<
+              BlockValue,
+              ParentModelSchema['Type'],
+              ParentMessageSchema['Type'],
+              ParentOutMessage<ParentOutMessageSchema>,
+              KeyAt<WrappedItemAt<ParentModelSchema['Type'], Field>, KeyField>,
+              Policy
+            >
+        : never),
+  ): KeyedBinding<
+    BlockValue,
+    ParentModelSchema['Type'],
+    ParentMessageSchema['Type'],
+    KeyAt<WrappedItemAt<ParentModelSchema['Type'], Field>, KeyField>,
+    Placement,
+    PolicyOf<BlockValue, Policy>,
+    ParentModelSchema['Type'],
+    ParentMessageSchema['Type'],
+    ParentOutMessage<ParentOutMessageSchema>
+  >
+  <
+    const BlockValue extends BindableBlock,
     Item,
     const Key extends InstanceKey,
     const Placement extends string = BlockId<BlockValue>,
@@ -577,6 +624,7 @@ const assertGeneralKeyedConfig = (config: object): void => {
     'subscriptions',
     'outMessage',
     'field',
+    'childField',
     'presentWhen',
     'parentMessage',
   ])
@@ -588,10 +636,17 @@ const assertGeneralKeyedConfig = (config: object): void => {
     }
   }
 
-  for (const forbiddenField of ['field', 'presentWhen', 'parentMessage']) {
+  for (const forbiddenField of [
+    'field',
+    'childField',
+    'presentWhen',
+    'parentMessage',
+  ]) {
     if (Object.hasOwn(config, forbiddenField)) {
       throw new Error(
-        '[foldkit] A general keyed Binding cannot supply field, presentWhen, or parentMessage.',
+        forbiddenField === 'childField'
+          ? '[foldkit] A general keyed Binding cannot supply childField.'
+          : '[foldkit] A general keyed Binding cannot supply field, presentWhen, or parentMessage.',
       )
     }
   }
@@ -647,6 +702,7 @@ export const makeBindChild = <
       Predicate.isObject(config) &&
       Object.hasOwn(config, 'field') &&
       (Object.hasOwn(config, 'key') ||
+        Object.hasOwn(config, 'childField') ||
         isKeyedFieldStorage(
           parentContract.Model,
           block.Model,

@@ -292,7 +292,11 @@ const main = async (): Promise<void> => {
       childPlacementConsumerConfig,
     ])
 
-    for (const configName of ['direct-field', 'keyed-field']) {
+    for (const configName of [
+      'direct-field',
+      'keyed-field',
+      'wrapped-keyed-field',
+    ]) {
       const fixtureName =
         configName === 'keyed-field' ? 'keyed-field-binding' : configName
       const directory = join(outputDirectory, configName)

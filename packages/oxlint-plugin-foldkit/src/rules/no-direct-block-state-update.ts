@@ -20,6 +20,7 @@ import {
   resolveImportedPath,
   resolvedVariable,
   staticMemberPath,
+  staticPropertyName,
   staticStringValue,
   blockBindingMethod,
   blockBindingConfiguration,
@@ -370,11 +371,13 @@ const callbackValue = (
 type FoldDefinition = Readonly<{
   childField: string
   kind: FoldKind
+  wrappedChildField?: string
 }>
 
 type CombineStepDefinition = Readonly<{
   childFields: ReadonlySet<string>
   keyedChildFields: ReadonlySet<string>
+  wrappedChildFields: ReadonlyMap<string, ReadonlySet<string>>
 }>
 
 type FoldEvidence = Readonly<{
@@ -384,6 +387,14 @@ type FoldEvidence = Readonly<{
   fallbackKeyedChildFieldsByParentModel: ReadonlyMap<
     string,
     ReadonlySet<string>
+  >
+  wrappedChildFieldsByParentModel: ReadonlyMap<
+    Variable,
+    ReadonlyMap<string, ReadonlySet<string>>
+  >
+  fallbackWrappedChildFieldsByParentModel: ReadonlyMap<
+    string,
+    ReadonlyMap<string, ReadonlySet<string>>
   >
   writeCallbacks: ReadonlySet<ESTree.Node>
 }>
@@ -399,6 +410,20 @@ const addChildField = <Key>(
     return
   }
   fields.add(childField)
+}
+
+const addWrappedChildField = <Key>(
+  fieldsByParentModel: Map<Key, Map<string, Set<string>>>,
+  parentModel: Key,
+  parentField: string,
+  childField: string,
+): void => {
+  const fieldsByParentField =
+    fieldsByParentModel.get(parentModel) ?? new Map<string, Set<string>>()
+  const fields = fieldsByParentField.get(parentField) ?? new Set<string>()
+  fields.add(childField)
+  fieldsByParentField.set(parentField, fields)
+  fieldsByParentModel.set(parentModel, fieldsByParentField)
 }
 
 const foldDefinitions = (
@@ -447,7 +472,14 @@ const foldDefinitions = (
             )
           : undefined
       if (directField !== undefined) {
-        const definition = { childField: directField, kind }
+        const wrappedChildField = Option.getOrUndefined(
+          staticStringValue(propertyValue(configuration, 'childField')),
+        )
+        const definition = {
+          childField: directField,
+          kind,
+          ...(wrappedChildField === undefined ? {} : { wrappedChildField }),
+        }
         fallbackByName.set(declarator.id.name, definition)
         for (const scope of scopes ?? []) {
           for (const variable of scope.variables) {
@@ -555,7 +587,11 @@ const childFieldsForCombine = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): CombineStepDefinition => {
   if (!isCombineCall(node, references)) {
-    return { childFields: new Set(), keyedChildFields: new Set() }
+    return {
+      childFields: new Set(),
+      keyedChildFields: new Set(),
+      wrappedChildFields: new Map(),
+    }
   }
   const [firstArgument, secondArgument] = node.arguments
   const steps = isArrayExpression(firstArgument)
@@ -564,16 +600,33 @@ const childFieldsForCombine = (
       ? secondArgument
       : undefined
   if (steps === undefined) {
-    return { childFields: new Set(), keyedChildFields: new Set() }
+    return {
+      childFields: new Set(),
+      keyedChildFields: new Set(),
+      wrappedChildFields: new Map(),
+    }
   }
 
   const childFields = new Set<string>()
   const keyedChildFields = new Set<string>()
+  const wrappedChildFields = new Map<string, Set<string>>()
+  const addDefinition = (definition: FoldDefinition): void => {
+    childFields.add(definition.childField)
+    if (definition.kind === 'Keyed') {
+      keyedChildFields.add(definition.childField)
+    }
+    if (definition.wrappedChildField !== undefined) {
+      const fields =
+        wrappedChildFields.get(definition.childField) ?? new Set<string>()
+      fields.add(definition.wrappedChildField)
+      wrappedChildFields.set(definition.childField, fields)
+    }
+  }
   for (const step of steps.elements) {
     if (isIdentifierReference(step)) {
       const definition = foldDefinitionFor(step, definitions, references)
       if (definition?.kind === 'Step') {
-        childFields.add(definition.childField)
+        addDefinition(definition)
       }
       continue
     }
@@ -584,13 +637,10 @@ const childFieldsForCombine = (
 
     const definition = foldDefinitionFor(step.callee, definitions, references)
     if (definition?.kind === 'Fold' || definition?.kind === 'Keyed') {
-      childFields.add(definition.childField)
-      if (definition.kind === 'Keyed') {
-        keyedChildFields.add(definition.childField)
-      }
+      addDefinition(definition)
     }
   }
-  return { childFields, keyedChildFields }
+  return { childFields, keyedChildFields, wrappedChildFields }
 }
 
 const combineStepDefinitions = (
@@ -621,16 +671,13 @@ const combineStepDefinitions = (
     if (!isArrayExpression(firstArgument) || secondArgument !== undefined) {
       return
     }
-    const { childFields, keyedChildFields } = childFieldsForCombine(
-      node.init,
-      definitions,
-      references,
-    )
+    const { childFields, keyedChildFields, wrappedChildFields } =
+      childFieldsForCombine(node.init, definitions, references)
     if (childFields.size === 0) {
       return
     }
 
-    const definition = { childFields, keyedChildFields }
+    const definition = { childFields, keyedChildFields, wrappedChildFields }
     fallbackByName.set(node.id.name, definition)
     for (const scope of scopes ?? []) {
       for (const variable of scope.variables) {
@@ -710,6 +757,11 @@ const addDefinitionEvidence = (
   fallbackChildFieldsByParentModel: Map<string, Set<string>>,
   keyedChildFieldsByParentModel: Map<Variable, Set<string>>,
   fallbackKeyedChildFieldsByParentModel: Map<string, Set<string>>,
+  wrappedChildFieldsByParentModel: Map<Variable, Map<string, Set<string>>>,
+  fallbackWrappedChildFieldsByParentModel: Map<
+    string,
+    Map<string, Set<string>>
+  >,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): void => {
   if (references === undefined) {
@@ -725,6 +777,14 @@ const addDefinitionEvidence = (
         definition.childField,
       )
     }
+    if (definition.wrappedChildField !== undefined) {
+      addWrappedChildField(
+        fallbackWrappedChildFieldsByParentModel,
+        parentModel.name,
+        definition.childField,
+        definition.wrappedChildField,
+      )
+    }
     return
   }
 
@@ -735,6 +795,14 @@ const addDefinitionEvidence = (
         keyedChildFieldsByParentModel,
         variable,
         definition.childField,
+      )
+    }
+    if (definition.wrappedChildField !== undefined) {
+      addWrappedChildField(
+        wrappedChildFieldsByParentModel,
+        variable,
+        definition.childField,
+        definition.wrappedChildField,
       )
     }
   })
@@ -756,6 +824,48 @@ const foldEvidence = (
   const fallbackChildFieldsByParentModel = new Map<string, Set<string>>()
   const keyedChildFieldsByParentModel = new Map<Variable, Set<string>>()
   const fallbackKeyedChildFieldsByParentModel = new Map<string, Set<string>>()
+  const wrappedChildFieldsByParentModel = new Map<
+    Variable,
+    Map<string, Set<string>>
+  >()
+  const fallbackWrappedChildFieldsByParentModel = new Map<
+    string,
+    Map<string, Set<string>>
+  >()
+  const addEvidence = (
+    definition: FoldDefinition,
+    parentModel: ESTree.IdentifierReference,
+  ): void =>
+    addDefinitionEvidence(
+      definition,
+      parentModel,
+      childFieldsByParentModel,
+      fallbackChildFieldsByParentModel,
+      keyedChildFieldsByParentModel,
+      fallbackKeyedChildFieldsByParentModel,
+      wrappedChildFieldsByParentModel,
+      fallbackWrappedChildFieldsByParentModel,
+      references,
+    )
+  const addCombineEvidence = (
+    definition: CombineStepDefinition,
+    parentModel: ESTree.IdentifierReference,
+  ): void => {
+    for (const childField of definition.childFields) {
+      const kind = definition.keyedChildFields.has(childField)
+        ? 'Keyed'
+        : 'Step'
+      const wrappedChildFields = definition.wrappedChildFields.get(childField)
+      if (wrappedChildFields === undefined) {
+        addEvidence({ childField, kind }, parentModel)
+        continue
+      }
+
+      for (const wrappedChildField of wrappedChildFields) {
+        addEvidence({ childField, kind, wrappedChildField }, parentModel)
+      }
+    }
+  }
 
   walk(program, (node, ancestors) => {
     if (!isCallExpression(node)) {
@@ -767,22 +877,7 @@ const foldEvidence = (
       : undefined
     if (parentModelForCombine !== undefined) {
       const childFields = childFieldsForCombine(node, definitions, references)
-      for (const childField of childFields.childFields) {
-        addDefinitionEvidence(
-          {
-            childField,
-            kind: childFields.keyedChildFields.has(childField)
-              ? 'Keyed'
-              : 'Step',
-          },
-          parentModelForCombine,
-          childFieldsByParentModel,
-          fallbackChildFieldsByParentModel,
-          keyedChildFieldsByParentModel,
-          fallbackKeyedChildFieldsByParentModel,
-          references,
-        )
-      }
+      addCombineEvidence(childFields, parentModelForCombine)
     }
 
     if (isDataLastFoldCall(node, ancestors)) {
@@ -799,22 +894,7 @@ const foldEvidence = (
       if (!isIdentifierReference(parentModel)) {
         return
       }
-      for (const childField of stepDefinition.childFields) {
-        addDefinitionEvidence(
-          {
-            childField,
-            kind: stepDefinition.keyedChildFields.has(childField)
-              ? 'Keyed'
-              : 'Step',
-          },
-          parentModel,
-          childFieldsByParentModel,
-          fallbackChildFieldsByParentModel,
-          keyedChildFieldsByParentModel,
-          fallbackKeyedChildFieldsByParentModel,
-          references,
-        )
-      }
+      addCombineEvidence(stepDefinition, parentModel)
       return
     }
 
@@ -846,21 +926,15 @@ const foldEvidence = (
       return
     }
 
-    addDefinitionEvidence(
-      definition,
-      parentModel,
-      childFieldsByParentModel,
-      fallbackChildFieldsByParentModel,
-      keyedChildFieldsByParentModel,
-      fallbackKeyedChildFieldsByParentModel,
-      references,
-    )
+    addEvidence(definition, parentModel)
   })
   return {
     childFieldsByParentModel,
     fallbackChildFieldsByParentModel,
     keyedChildFieldsByParentModel,
     fallbackKeyedChildFieldsByParentModel,
+    wrappedChildFieldsByParentModel,
+    fallbackWrappedChildFieldsByParentModel,
     writeCallbacks: definitions.writeCallbacks,
   }
 }
@@ -961,6 +1035,54 @@ const updatesKeyedChildArray = (
   })
 }
 
+const updatesWrappedKeyedChildArray = (
+  expression: ESTree.Expression,
+  childrenName: string | undefined,
+  childFields: ReadonlySet<string>,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => {
+  const updater = keyedChildArrayUpdater(expression, childrenName, references)
+  if (updater === undefined) {
+    return false
+  }
+
+  const [wrapper] = updater.params
+  if (!isIdentifier(wrapper)) {
+    return false
+  }
+
+  return expressionsReturnedBy(updater).some(returned => {
+    let updatesChild = false
+    walk(returned, (node, ancestors) => {
+      if (
+        updatesChild ||
+        ancestors.some(isFunction) ||
+        !isCallExpression(node) ||
+        !isModifyFieldsCall(node, references)
+      ) {
+        return
+      }
+
+      const [updatedModel, updates] = node.arguments
+      if (
+        !isIdentifier(updatedModel, wrapper.name) ||
+        !isObjectExpression(updates)
+      ) {
+        return
+      }
+
+      updatesChild = updates.properties.some(
+        property =>
+          property.type === 'Property' &&
+          Option.exists(staticPropertyName(property), childField =>
+            childFields.has(childField),
+          ),
+      )
+    })
+    return updatesChild
+  })
+}
+
 const directChildModifyFieldsField = (
   node: ESTree.CallExpression,
   evidence: FoldEvidence,
@@ -996,6 +1118,16 @@ const directChildModifyFieldsField = (
             ),
           ),
         )
+  const wrappedChildFields =
+    references === undefined
+      ? evidence.fallbackWrappedChildFieldsByParentModel.get(model.name)
+      : Option.getOrUndefined(
+          Option.flatMap(resolvedVariable(references, model), variable =>
+            Option.fromNullishOr(
+              evidence.wrappedChildFieldsByParentModel.get(variable),
+            ),
+          ),
+        )
   for (const property of updates.properties) {
     if (
       property.type !== 'Property' ||
@@ -1009,7 +1141,14 @@ const directChildModifyFieldsField = (
     if (
       keyedChildFields?.has(property.key.name) === true &&
       isCallExpression(property.value) &&
-      updatesKeyedChildArray(property.value, undefined, references)
+      (wrappedChildFields?.get(property.key.name) === undefined
+        ? updatesKeyedChildArray(property.value, undefined, references)
+        : updatesWrappedKeyedChildArray(
+            property.value,
+            undefined,
+            wrappedChildFields.get(property.key.name) ?? new Set(),
+            references,
+          ))
     ) {
       return property.key.name
     }
@@ -1025,7 +1164,14 @@ const directChildModifyFieldsField = (
     for (const nestedUpdate of expressionsReturnedBy(property.value)) {
       if (
         keyedChildFields?.has(property.key.name) === true &&
-        updatesKeyedChildArray(nestedUpdate, childModel.name, references)
+        (wrappedChildFields?.get(property.key.name) === undefined
+          ? updatesKeyedChildArray(nestedUpdate, childModel.name, references)
+          : updatesWrappedKeyedChildArray(
+              nestedUpdate,
+              childModel.name,
+              wrappedChildFields.get(property.key.name) ?? new Set(),
+              references,
+            ))
       ) {
         return property.key.name
       }

@@ -1,8 +1,8 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect'
+import { defineApplication } from 'foldkit'
 import {
   type Application as ApplicationProgram,
   type Element as ElementProgram,
-  define as defineApplication,
 } from 'foldkit/application'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
@@ -305,25 +305,29 @@ const parentView = ParentComposition.view((model, h) =>
   ),
 )
 
-export const parentModelRender = ParentComposition.render((model, h) =>
+export type ParentViewBuilder = Block.HtmlBuilderOf<typeof ParentComposition>
+
+export const parentModelViewHelper = (
+  model: ParentModel,
+  h: ParentViewBuilder,
+) =>
   h.div(
     [h.OnClick(ParentMessage.RequestedRefresh()), h.OnMount(ObserveParent())],
     [h.block(child.embedView({ slotId: 'child', model: model.child }))],
-  ),
-)
-
-export const parentBuilderRender = ParentComposition.render.builder(h =>
-  h.div([h.OnMount(ObserveParent())]),
-)
-
-export const parentInputRender =
-  ParentComposition.render.withInput<ChildModel>()((childModel, h) =>
-    h.block(child.embedView({ slotId: 'child-input', model: childModel })),
   )
 
-export const parentArrayRender = ParentComposition.render.withInput<
-  ReadonlyArray<string>
->()((labels, h) => labels.map(label => h.span([], [label])))
+export const parentBuilderViewHelper = (h: ParentViewBuilder) =>
+  h.div([h.OnMount(ObserveParent())])
+
+export const parentInputViewHelper = (
+  childModel: ChildModel,
+  h: ParentViewBuilder,
+) => h.block(child.embedView({ slotId: 'child-input', model: childModel }))
+
+export const parentArrayViewHelper = (
+  labels: ReadonlyArray<string>,
+  h: ParentViewBuilder,
+) => labels.map(label => h.span([], [label]))
 
 export const parentUpdate = DeclarationTestsParent.update((model, message) =>
   ParentMessage.match(message, {
@@ -539,7 +543,7 @@ const pureDocumentView = PureApplication.view((_model, h) => ({
   body: h.main([]),
 }))
 const pureElementProgram: ElementProgram<undefined, never, never, never> =
-  PureApplicationComposition.makeElement({
+  PureApplicationComposition.toElement({
     container: null,
     init: pureInit,
     update: PureApplication.update(wrappedPureUpdate.fn),
@@ -551,7 +555,7 @@ const purePageProgram: ApplicationProgram<
   never,
   never,
   never
-> = PureApplicationComposition.make({
+> = PureApplicationComposition.toApplication({
   container: null,
   init: pureInit,
   update: PureApplication.update(wrappedPureUpdate.fn),
@@ -587,26 +591,30 @@ const applicationDocumentView = ApplicationComposition.view((model, h) => ({
   title: 'Declaration test',
   body: h.block(directChild.embedView({ slotId: 'child', model: model.child })),
 }))
-export const applicationModelRender = ApplicationComposition.render(
-  (model, h) =>
-    h.block(
-      directChild.embedView({
-        slotId: 'application-child',
-        model: model.child,
-      }),
-    ),
-)
-export const applicationBuilderRender = ApplicationComposition.render.builder(
-  h => h.main([]),
-)
-export const applicationInputRender =
-  ApplicationComposition.render.withInput<ChildModel>()((childModel, h) =>
-    h.block(
-      directChild.embedView({
-        slotId: 'application-input-child',
-        model: childModel,
-      }),
-    ),
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>
+export const applicationModelViewHelper = (
+  model: ParentModel,
+  h: ApplicationViewBuilder,
+) =>
+  h.block(
+    directChild.embedView({
+      slotId: 'application-child',
+      model: model.child,
+    }),
+  )
+export const applicationBuilderViewHelper = (h: ApplicationViewBuilder) =>
+  h.main([])
+export const applicationInputViewHelper = (
+  childModel: ChildModel,
+  h: ApplicationViewBuilder,
+) =>
+  h.block(
+    directChild.embedView({
+      slotId: 'application-input-child',
+      model: childModel,
+    }),
   )
 const applicationUpdate = Application.update((model, message) =>
   ParentMessage.match(message, {
@@ -633,7 +641,7 @@ const applicationImplementation = {
 const makeInferredProvisionPageAwaitingDependency = (
   container: HTMLElement | null,
 ) =>
-  PureApplicationComposition.make({
+  PureApplicationComposition.toApplication({
     Flags: ProvisionFlags,
     container,
     init: ({ initialValue }: typeof ProvisionFlags.Type) => ({
@@ -666,7 +674,7 @@ export const makeProvisionPageAwaitingDependency: (
 ) => ProvisionPage = makeInferredProvisionPageAwaitingDependency
 
 const makeInferredProvisionElement = (container: HTMLElement | null) =>
-  PureApplicationComposition.makeElement({
+  PureApplicationComposition.toElement({
     container,
     init: pureInit,
     ports: provisionPorts,
@@ -696,14 +704,14 @@ const provisionAssertions: ProvisionAssertions = [true, true]
 void provisionAssertions
 
 export const makeProgram = (container: HTMLElement) =>
-  ApplicationComposition.makeElement({
+  ApplicationComposition.toElement({
     ...applicationImplementation,
     container,
     view: applicationElementView,
   }).provide(ClockLayer)
 
 export const makePageProgram = (container: HTMLElement | null) =>
-  ApplicationComposition.make({
+  ApplicationComposition.toApplication({
     ...applicationImplementation,
     container,
     view: applicationDocumentView,

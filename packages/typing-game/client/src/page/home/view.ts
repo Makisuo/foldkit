@@ -1,8 +1,8 @@
 import { Array, Option } from 'effect'
-import { Html, HtmlBuilder } from 'foldkit/html'
+import { Html } from 'foldkit/html'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../constant'
-import { Home } from './definition'
+import { Home, type ViewBuilder } from './definition'
 import { Message } from './message'
 import { HOME_ACTIONS, HomeAction, HomeStep, homeActionToLabel } from './model'
 
@@ -37,7 +37,7 @@ export const view = Home.view((model, h) => {
 
 const enterUsername = (
   { username }: typeof HomeStep.EnterUsername.Type,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html =>
   h.form(
     [h.OnSubmit(Message.SubmittedUsernameForm())],
@@ -73,7 +73,7 @@ const enterUsername = (
 
 const selectAction = (
   { selectedAction }: typeof HomeStep.SelectAction.Type,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html =>
   h.div(
     [h.Class('space-y-4')],
@@ -87,7 +87,7 @@ const selectAction = (
   )
 
 const action =
-  (selectedAction: HomeAction, h: HtmlBuilder<Message>) =>
+  (selectedAction: HomeAction, h: ViewBuilder) =>
   (homeAction: HomeAction): Html =>
     h.div(
       [h.Class('whitespace-pre-wrap')],
@@ -99,7 +99,7 @@ const action =
 
 const enterRoomId = (
   { roomId }: typeof HomeStep.EnterRoomId.Type,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html =>
   h.form(
     [h.OnSubmit(Message.SubmittedJoinRoomForm())],
@@ -135,7 +135,7 @@ const enterRoomId = (
 
 const maybeErrorMessage = (
   maybeRoomFormError: Option.Option<string>,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html =>
   Option.match(maybeRoomFormError, {
     onNone: () => h.empty,

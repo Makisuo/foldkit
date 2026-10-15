@@ -191,30 +191,33 @@ const main = async (): Promise<void> => {
       focusedConsumerConfig,
     ])
 
-    const renderOutputDirectory = join(outputDirectory, 'render')
-    runCompiler('Emitting the owned render declarations', [
+    const viewHelperOutputDirectory = join(outputDirectory, 'view-helper')
+    runCompiler('Emitting the plain view helper declarations', [
       '-p',
-      join(fixtureRoot, 'tsconfig.render.accepted.json'),
+      join(fixtureRoot, 'tsconfig.plain-view-helper.accepted.json'),
       '--outDir',
-      renderOutputDirectory,
+      viewHelperOutputDirectory,
     ])
 
-    runCompiler('Checking rejected owned render wiring', [
+    runCompiler('Checking rejected plain view helper wiring', [
       '-p',
-      join(fixtureRoot, 'tsconfig.render.rejected.json'),
+      join(fixtureRoot, 'tsconfig.plain-view-helper.rejected.json'),
     ])
 
-    const renderFixtureDirectory = join(
-      renderOutputDirectory,
+    const viewHelperFixtureDirectory = join(
+      viewHelperOutputDirectory,
       'declaration-tests',
     )
     copyFileSync(
-      join(fixtureRoot, 'owned-render.consume.ts'),
-      join(renderFixtureDirectory, 'owned-render.consume.ts'),
+      join(fixtureRoot, 'plain-view-helper.consume.ts'),
+      join(viewHelperFixtureDirectory, 'plain-view-helper.consume.ts'),
     )
-    const renderConsumerConfig = join(renderOutputDirectory, 'tsconfig.json')
+    const viewHelperConsumerConfig = join(
+      viewHelperOutputDirectory,
+      'tsconfig.json',
+    )
     writeFileSync(
-      renderConsumerConfig,
+      viewHelperConsumerConfig,
       JSON.stringify({
         compilerOptions: {
           strict: true,
@@ -228,19 +231,114 @@ const main = async (): Promise<void> => {
           exactOptionalPropertyTypes: true,
           noUncheckedIndexedAccess: true,
         },
-        include: ['declaration-tests/owned-render.consume.ts'],
+        include: ['declaration-tests/plain-view-helper.consume.ts'],
       }),
     )
 
-    runCompiler('Consuming the emitted owned render declarations', [
+    runCompiler('Consuming the emitted plain view helper declarations', [
       '-p',
-      renderConsumerConfig,
+      viewHelperConsumerConfig,
     ])
+
+    const childPlacementOutputDirectory = join(
+      outputDirectory,
+      'child-placement',
+    )
+    runCompiler('Emitting the child placement declarations', [
+      '-p',
+      join(fixtureRoot, 'tsconfig.child-placement.accepted.json'),
+      '--outDir',
+      childPlacementOutputDirectory,
+    ])
+
+    runCompiler('Checking rejected child placements', [
+      '-p',
+      join(fixtureRoot, 'tsconfig.child-placement.rejected.json'),
+    ])
+
+    const childPlacementFixtureDirectory = join(
+      childPlacementOutputDirectory,
+      'declaration-tests',
+    )
+    copyFileSync(
+      join(fixtureRoot, 'child-placement.consume.ts'),
+      join(childPlacementFixtureDirectory, 'child-placement.consume.ts'),
+    )
+    const childPlacementConsumerConfig = join(
+      childPlacementOutputDirectory,
+      'tsconfig.json',
+    )
+    writeFileSync(
+      childPlacementConsumerConfig,
+      JSON.stringify({
+        compilerOptions: {
+          strict: true,
+          skipLibCheck: false,
+          module: 'NodeNext',
+          moduleResolution: 'NodeNext',
+          target: 'ES2022',
+          lib: ['ESNext', 'DOM'],
+          types: [],
+          noEmit: true,
+          exactOptionalPropertyTypes: true,
+          noUncheckedIndexedAccess: true,
+        },
+        include: ['declaration-tests/child-placement.consume.ts'],
+      }),
+    )
+
+    runCompiler('Consuming the emitted child placement declarations', [
+      '-p',
+      childPlacementConsumerConfig,
+    ])
+
+    for (const configName of ['direct-field', 'keyed-field']) {
+      const fixtureName =
+        configName === 'keyed-field' ? 'keyed-field-binding' : configName
+      const directory = join(outputDirectory, configName)
+      runCompiler(`Emitting ${configName} declarations`, [
+        '-p',
+        join(fixtureRoot, `tsconfig.${configName}.accepted.json`),
+        '--outDir',
+        directory,
+      ])
+      runCompiler(`Rejecting invalid ${configName} configurations`, [
+        '-p',
+        join(fixtureRoot, `tsconfig.${configName}.rejected.json`),
+      ])
+      copyFileSync(
+        join(fixtureRoot, `${fixtureName}.consume.ts`),
+        join(directory, 'declaration-tests', `${fixtureName}.consume.ts`),
+      )
+      const consumerConfig = join(directory, 'tsconfig.json')
+      writeFileSync(
+        consumerConfig,
+        JSON.stringify({
+          compilerOptions: {
+            strict: true,
+            skipLibCheck: false,
+            module: 'NodeNext',
+            moduleResolution: 'NodeNext',
+            target: 'ES2022',
+            lib: ['ESNext', 'DOM'],
+            types: [],
+            noEmit: true,
+            exactOptionalPropertyTypes: true,
+            noUncheckedIndexedAccess: true,
+          },
+          include: [`declaration-tests/${fixtureName}.consume.ts`],
+        }),
+      )
+      runCompiler(`Consuming emitted ${configName} declarations`, [
+        '-p',
+        consumerConfig,
+      ])
+    }
 
     await assertBindingCompletions()
 
     process.stdout.write(
-      `[emitted-declarations] ${version}; accepted, rejected, focused Binding and Query, owned render, downstream, and native completion checks passed.\n`,
+      `[emitted-declarations] ${version}; accepted, rejected, focused Binding and Query, plain view helpers, child placements, downstream, and native completion checks passed.\n`,
     )
   } finally {
     rmSync(outputDirectory, { recursive: true, force: true })

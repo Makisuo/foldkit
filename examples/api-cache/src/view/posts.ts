@@ -3,7 +3,7 @@ import { AsyncData } from 'foldkit'
 
 import * as Button from '@foldkit/ui/button'
 
-import { ApplicationComposition } from '../application'
+import type { ViewBuilder } from '../application'
 import type { Post, PostDetail } from '../data'
 import { Message } from '../message'
 import { type Model, PostDetailData } from '../model'
@@ -12,15 +12,14 @@ import { errorPanel, loadingPanel, toolbarButtonClassName } from './shared'
 const formatFetchedAt = (fetchedAt: number): string =>
   new Date(fetchedAt).toLocaleTimeString()
 
-export const postsTabView = ApplicationComposition.render((model, h) =>
+export const postsTabView = (model: Model, h: ViewBuilder) =>
   Option.match(model.maybeSelectedPostId, {
     onNone: () =>
       h.section([h.Class('flex flex-col gap-4')], [postsListView(model, h)]),
     onSome: postId => postDetailSection({ model, postId }, h),
-  }),
-)
+  })
 
-const postsListView = ApplicationComposition.render((model, h) => {
+const postsListView = (model: Model, h: ViewBuilder) => {
   const isPending = AsyncData.isPending(model.posts)
 
   return h.div(
@@ -84,7 +83,7 @@ const postsListView = ApplicationComposition.render((model, h) => {
       }),
     ],
   )
-})
+}
 
 const isPostDetailCached = (
   postDetailById: HashMap.HashMap<string, PostDetailData>,
@@ -97,156 +96,153 @@ type PostListItemsInput = Readonly<{
   postDetailById: HashMap.HashMap<string, PostDetailData>
 }>
 
-const postListItems =
-  ApplicationComposition.render.withInput<PostListItemsInput>()(
-    ({ posts, postDetailById }, h) =>
-      Array.map(posts, post =>
-        h.keyed('li')(
-          post.id,
-          [],
-          [
-            Button.view(
-              {
-                onClick: Message.ClickedPost({ postId: post.id }),
-                toView: attributes =>
-                  h.button(
-                    [
-                      ...attributes.button,
-                      h.Class(
-                        'w-full text-left bg-white rounded-lg shadow px-4 py-3 hover:bg-slate-50 transition cursor-pointer flex items-center justify-between gap-4',
-                      ),
-                    ],
+const postListItems = (
+  { posts, postDetailById }: PostListItemsInput,
+  h: ViewBuilder,
+) =>
+  Array.map(posts, post =>
+    h.keyed('li')(
+      post.id,
+      [],
+      [
+        Button.view(
+          {
+            onClick: Message.ClickedPost({ postId: post.id }),
+            toView: attributes =>
+              h.button(
+                [
+                  ...attributes.button,
+                  h.Class(
+                    'w-full text-left bg-white rounded-lg shadow px-4 py-3 hover:bg-slate-50 transition cursor-pointer flex items-center justify-between gap-4',
+                  ),
+                ],
+                [
+                  h.div(
+                    [],
                     [
                       h.div(
-                        [],
-                        [
-                          h.div(
-                            [h.Class('font-semibold text-slate-800')],
-                            [post.title],
-                          ),
-                          h.div(
-                            [h.Class('text-sm text-slate-500')],
-                            [post.excerpt],
-                          ),
-                        ],
+                        [h.Class('font-semibold text-slate-800')],
+                        [post.title],
                       ),
-                      isPostDetailCached(postDetailById, post.id)
-                        ? h.span(
-                            [
-                              h.Class(
-                                'shrink-0 text-xs font-semibold text-emerald-700 bg-emerald-100 rounded-full px-2 py-1',
-                              ),
-                            ],
-                            ['Cached'],
-                          )
-                        : h.empty,
+                      h.div(
+                        [h.Class('text-sm text-slate-500')],
+                        [post.excerpt],
+                      ),
                     ],
                   ),
-              },
-              h,
-            ),
-          ],
+                  isPostDetailCached(postDetailById, post.id)
+                    ? h.span(
+                        [
+                          h.Class(
+                            'shrink-0 text-xs font-semibold text-emerald-700 bg-emerald-100 rounded-full px-2 py-1',
+                          ),
+                        ],
+                        ['Cached'],
+                      )
+                    : h.empty,
+                ],
+              ),
+          },
+          h,
         ),
-      ),
+      ],
+    ),
   )
 
 type PostDetailInput = Readonly<{ model: Model; postId: string }>
 
-const postDetailSection =
-  ApplicationComposition.render.withInput<PostDetailInput>()(
-    ({ model, postId }, h) =>
-      h.keyed('section')(
-        postId,
-        [h.Class('flex flex-col gap-4')],
-        [postDetailView({ model, postId }, h)],
-      ),
+const postDetailSection = (
+  { model, postId }: PostDetailInput,
+  h: ViewBuilder,
+) =>
+  h.keyed('section')(
+    postId,
+    [h.Class('flex flex-col gap-4')],
+    [postDetailView({ model, postId }, h)],
   )
 
-const postDetailView =
-  ApplicationComposition.render.withInput<PostDetailInput>()(
-    ({ model, postId }, h) => {
-      const postDetailData = Option.getOrElse(
-        HashMap.get(model.postDetailById, postId),
-        () => PostDetailData.Idle(),
-      )
+const postDetailView = ({ model, postId }: PostDetailInput, h: ViewBuilder) => {
+  const postDetailData = Option.getOrElse(
+    HashMap.get(model.postDetailById, postId),
+    () => PostDetailData.Idle(),
+  )
 
-      return h.div(
-        [h.Class('flex flex-col gap-4')],
-        [
-          Button.view(
-            {
-              onClick: Message.ClickedBackToPosts(),
-              toView: attributes =>
-                h.button(
-                  [
-                    ...attributes.button,
-                    h.Class(
-                      'self-start text-sm font-semibold text-indigo-600 hover:underline cursor-pointer',
-                    ),
-                  ],
-                  ['Back to posts'],
+  return h.div(
+    [h.Class('flex flex-col gap-4')],
+    [
+      Button.view(
+        {
+          onClick: Message.ClickedBackToPosts(),
+          toView: attributes =>
+            h.button(
+              [
+                ...attributes.button,
+                h.Class(
+                  'self-start text-sm font-semibold text-indigo-600 hover:underline cursor-pointer',
                 ),
+              ],
+              ['Back to posts'],
+            ),
+        },
+        h,
+      ),
+      AsyncData.matchDataSplitEmpty(postDetailData, {
+        onIdle: () => loadingPanel('Loading post...', h),
+        onLoading: () => loadingPanel('Loading post...', h),
+        onFailure: error =>
+          errorPanel(
+            {
+              error,
+              retryMessage: Message.ClickedRetryPostDetail({ postId }),
             },
             h,
           ),
-          AsyncData.matchDataSplitEmpty(postDetailData, {
-            onIdle: () => loadingPanel('Loading post...', h),
-            onLoading: () => loadingPanel('Loading post...', h),
-            onFailure: error =>
-              errorPanel(
-                {
-                  error,
-                  retryMessage: Message.ClickedRetryPostDetail({ postId }),
-                },
-                h,
-              ),
-            onData: ({ detail, fetchedAt }) =>
-              h.div(
-                [h.Class('flex flex-col gap-4')],
-                [
-                  ...Option.match(AsyncData.getError(postDetailData), {
-                    onNone: () => [],
-                    onSome: error => [
-                      errorPanel(
-                        {
-                          error,
-                          retryMessage: Message.ClickedRetryPostDetail({
-                            postId,
-                          }),
-                        },
-                        h,
-                      ),
-                    ],
-                  }),
-                  postDetailCard({ detail, fetchedAt }, h),
+        onData: ({ detail, fetchedAt }) =>
+          h.div(
+            [h.Class('flex flex-col gap-4')],
+            [
+              ...Option.match(AsyncData.getError(postDetailData), {
+                onNone: () => [],
+                onSome: error => [
+                  errorPanel(
+                    {
+                      error,
+                      retryMessage: Message.ClickedRetryPostDetail({
+                        postId,
+                      }),
+                    },
+                    h,
+                  ),
                 ],
-              ),
-          }),
-        ],
-      )
-    },
+              }),
+              postDetailCard({ detail, fetchedAt }, h),
+            ],
+          ),
+      }),
+    ],
   )
+}
 
 type PostDetailCardInput = Readonly<{
   detail: PostDetail
   fetchedAt: number
 }>
 
-const postDetailCard =
-  ApplicationComposition.render.withInput<PostDetailCardInput>()(
-    ({ detail, fetchedAt }, h) =>
-      h.article(
-        [h.Class('bg-white rounded-xl shadow p-6 flex flex-col gap-3')],
+const postDetailCard = (
+  { detail, fetchedAt }: PostDetailCardInput,
+  h: ViewBuilder,
+) =>
+  h.article(
+    [h.Class('bg-white rounded-xl shadow p-6 flex flex-col gap-3')],
+    [
+      h.h2([h.Class('text-2xl font-bold text-slate-900')], [detail.title]),
+      h.p([h.Class('text-sm text-slate-500')], [`By ${detail.author}`]),
+      h.p([h.Class('text-slate-700 leading-relaxed')], [detail.body]),
+      h.p(
+        [h.Class('text-xs text-slate-400')],
         [
-          h.h2([h.Class('text-2xl font-bold text-slate-900')], [detail.title]),
-          h.p([h.Class('text-sm text-slate-500')], [`By ${detail.author}`]),
-          h.p([h.Class('text-slate-700 leading-relaxed')], [detail.body]),
-          h.p(
-            [h.Class('text-xs text-slate-400')],
-            [
-              `Fetched at ${formatFetchedAt(fetchedAt)}. Future visits render instantly from the Model.`,
-            ],
-          ),
+          `Fetched at ${formatFetchedAt(fetchedAt)}. Future visits render instantly from the Model.`,
         ],
       ),
+    ],
   )

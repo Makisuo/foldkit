@@ -15,7 +15,7 @@ import { view } from './view/view'
 
 export const ApplicationLayer = BrowserCrypto.layer
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

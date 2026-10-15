@@ -136,7 +136,7 @@ describe('real-oxlint rule fixtures', () => {
   })
 
   it('traces direct and named data-last combine Steps', () => {
-    expect(countDiagnostics('no-direct-block-state-update', 'invalid')).toBe(9)
+    expect(countDiagnostics('no-direct-block-state-update', 'invalid')).toBe(10)
   })
 
   it('reports direct child Message construction and local constructor aliases', () => {
@@ -152,6 +152,8 @@ describe('real-oxlint rule fixtures', () => {
         'Child.Message.ClickedBarrelSave',
         'Child.Message.ClickedDirectBarrelSave',
         'Child.Message.ClickedFromElementCompletion',
+        'Child.Message.ClickedFromImportedViewBuilder',
+        'Child.Message.ClickedFromLocalViewBuilder',
         'Child.Message.ClickedFromRootCompletion',
         'Child.Message.ClickedFromRootViewHelper',
         'Child.Message.ClickedNestedSave',
@@ -164,6 +166,14 @@ describe('real-oxlint rule fixtures', () => {
         'Child.server.Message.ClickedServerChildSave',
         'CommandPalette.Message.OpenedCommandPalette',
         'DirectChild.Message.ClickedDirectChildSave',
+        'Definition.Message.ClickedChildSave',
+        'Definition.Message.ClickedEntrySave',
+        'Definition.Message.ClickedEntryFromForeignBuilder',
+        'Definition.Message.ClickedFromLocalDefinitionAlias',
+        'Definition.Message.CompletedChildWork',
+        'Definition.Message.GotChildMessage',
+        'Definition.Message.UpdatedEntry',
+        'Definition.Message.UpdatedAncestor',
         'Feature.Message.ClickedFeatureSave',
         'Profile.Message.ClickedProfileSave',
         'Search.Message.ClickedSearchResult',

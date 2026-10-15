@@ -64,7 +64,7 @@ The parent wraps the Query's Message and routes that wrapper back through its Bi
 
 #### Binding Configuration
 
-The `field` form tells `bindChild` which field contains an always-present Query Model. `parentMessage` supplies the parent's `Got*Message` constructor, which wraps the result Message produced by the Query's fetch Command. The Binding returns the child fold and Query operations expressed in the parent Model and Message types. These functions return pure Steps or update results; they do not perform Effects.
+The `field` form tells `bindChild` which exact field contains the Query Model or `Option<QueryModel>`. `parentMessage` supplies the parent's `Got*Message` constructor, which wraps the result Message produced by the Query's fetch Command. The Binding returns the child fold and Query operations expressed in the parent Model and Message types. These functions return pure Steps or update results; they do not perform Effects.
 
 #### Bound Operations
 
@@ -74,7 +74,7 @@ The `field` form tells `bindChild` which field contains an always-present Query 
 
 #### Optional and Nested Queries
 
-Use the accessor form of `bindChild` when the Query is nested or exists only in some parent variants. Supply `read`, `write`, and `toParentMessage`, following the same lens contract as a [child Binding](/core/block#embedding). When `read` returns `None`, the bound operations return the parent Model unchanged and no Commands.
+Use `field` when an optional Query occupies an exact Option field. Its bound operations return the parent Model unchanged and no Commands while the field is `None`; they never insert a missing Query Model. Add `presentWhen` when a parent condition governs the whole direct child while retaining its stored Model. Use explicit `read` and `write` when the Query is nested, spans tagged parent variants, or needs a custom write. When `read` returns `None`, it has the same absent behavior.
 
 #### Starting a Load
 

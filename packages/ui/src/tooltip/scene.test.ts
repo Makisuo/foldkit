@@ -24,9 +24,9 @@ const foldTooltipOutMessage = OutMessage.match<Update.Step<Model, Message>>({
 })
 
 const tooltip = TooltipScene.bindChild(block, {
-  read: (model: Model) => Option.some(model),
-  write: (_model: Model, nextTooltip: Model) => nextTooltip,
-  toParentMessage: (message: Message): Message => message,
+  read: model => Option.some(model),
+  write: (_model, nextTooltip) => nextTooltip,
+  toParentMessage: message => message,
   outMessage: { fold: foldTooltipOutMessage },
 })
 

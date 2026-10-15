@@ -1,7 +1,8 @@
-import { Html, HtmlBuilder } from 'foldkit/html'
+import { Option } from 'effect'
+import { Html } from 'foldkit/html'
 
-import { ApplicationComposition, home, room } from '../application'
-import { Message } from '../message'
+import { ApplicationComposition, type ViewBuilder } from '../application'
+import { home, room } from '../childBindings'
 import { Model } from '../model'
 import { ApplicationRoute } from '../route'
 
@@ -22,13 +23,20 @@ export const view = ApplicationComposition.view((model, h) => {
         }),
       ),
     Room: ({ roomId }) =>
-      h.block(
-        room.embedView({
-          slotId: 'room',
-          model: model.room,
-          viewInputs: { roomId },
-        }),
-      ),
+      Option.match(model.maybeRoomInstance, {
+        onNone: () => h.empty,
+        onSome: roomInstance =>
+          roomInstance.roomId === roomId
+            ? h.block(
+                room.embedView({
+                  key: roomId,
+                  slotId: 'room',
+                  model: roomInstance.model,
+                  viewInputs: { roomId },
+                }),
+              )
+            : h.empty,
+      }),
     NotFound: route => notFound(route, h),
   })
 
@@ -62,7 +70,7 @@ export const view = ApplicationComposition.view((model, h) => {
 
 const notFound = (
   { path }: typeof ApplicationRoute.NotFound.Type,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html =>
   h.section(
     [h.Class('max-w-4xl')],

@@ -40,7 +40,7 @@ const crashView = (
   ),
 })
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

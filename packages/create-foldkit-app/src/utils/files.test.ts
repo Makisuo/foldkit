@@ -97,7 +97,7 @@ describe('rendering templates', () => {
       'Application = defineApplication({ Model, Message })',
     )
     expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
-      'ApplicationComposition.make({',
+      'ApplicationComposition.toApplication({',
     )
     expect(readTemplateFile('rendering/ssg/src/application.ts')).toContain(
       'ApplicationComposition = Application.toComposition()',
@@ -140,7 +140,7 @@ describe('rendering templates', () => {
       'Application = defineApplication({ Model, Message })',
     )
     expect(readTemplateFile('rendering/ssr/src/entry.ts')).toContain(
-      'ApplicationComposition.make({',
+      'ApplicationComposition.toApplication({',
     )
     expect(readTemplateFile('rendering/ssr/src/application.ts')).toContain(
       'ApplicationComposition = Application.toComposition()',

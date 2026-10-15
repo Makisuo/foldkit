@@ -1,6 +1,5 @@
 import clsx from 'clsx'
 import { Array, Option } from 'effect'
-import type { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 
 import {
@@ -18,9 +17,8 @@ import {
   comboboxPlacementLockDemo,
   comboboxSelectOnFocusDemo,
 } from '../childBindings'
+import type { ViewBuilder } from '../childBindings'
 import type { City } from '../model'
-
-type HtmlBuilder = Block.HtmlBuilderOf<typeof UiComposition>
 
 const CITIES: ReadonlyArray<City> = [
   'Johannesburg',
@@ -78,7 +76,7 @@ export const comboboxInputs = (
     anchor?: AnchorConfig
     wrapperClass?: string
   }>,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Omit<ComboboxViewInputs<City>, 'maybeSelectedValue'> => {
   const filteredCities = filterCities(inputValue)
 

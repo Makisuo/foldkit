@@ -1,6 +1,5 @@
 import clsx from 'clsx'
 import { Array, Option, pipe } from 'effect'
-import type { Block } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
 import { DragAndDrop } from '@foldkit/ui'
@@ -15,10 +14,9 @@ import {
 } from '@foldkit/ui/dragAndDrop'
 
 import { UiComposition } from '../childBindings'
+import type { ViewBuilder } from '../childBindings'
 import { Message } from '../message'
 import type { DemoCard, DemoColumn } from '../model'
-
-type HtmlBuilder = Block.HtmlBuilderOf<typeof UiComposition>
 
 const cardClassName =
   'rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 cursor-grab active:cursor-grabbing select-none transition-opacity'
@@ -43,7 +41,7 @@ const cardView = (
   index: number,
   containerId: string,
   dragAndDropModel: typeof DragAndDrop.Model.Type,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html => {
   const maybeItemId = maybeDraggedItemId(dragAndDropModel)
   const isBeingDragged = Option.exists(maybeItemId, id => id === card.id)
@@ -79,17 +77,17 @@ const cardView = (
   )
 }
 
-const dropPlaceholder = UiComposition.render.builder(h => {
+const dropPlaceholder = (h: ViewBuilder) => {
   return h.keyed('div')('drop-placeholder', [
     h.Class('rounded-lg border-2 border-dashed border-accent-400/50 h-9'),
   ])
-})
+}
 
 const renderColumn = (
   column: DemoColumn,
   dragAndDropModel: typeof DragAndDrop.Model.Type,
   children: ReadonlyArray<Html>,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html => {
   const maybeTarget = maybeDropTarget(dragAndDropModel)
   const isDropTarget =
@@ -130,7 +128,7 @@ const columnView = (
   columns: ReadonlyArray<DemoColumn>,
   column: DemoColumn,
   dragAndDropModel: typeof DragAndDrop.Model.Type,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html => {
   const maybeItemId = maybeDraggedItemId(dragAndDropModel)
   const maybeTarget = maybeDropTarget(dragAndDropModel)
@@ -182,7 +180,7 @@ const columnView = (
 const ghostView = (
   columns: ReadonlyArray<DemoColumn>,
   dragAndDropModel: typeof DragAndDrop.Model.Type,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html => {
   const maybeItemId = maybeDraggedItemId(dragAndDropModel)
 

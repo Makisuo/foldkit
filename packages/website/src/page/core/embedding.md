@@ -8,7 +8,7 @@ The [embedding example](/example-apps/embedding) runs everything on this page: a
 
 ## Choosing an Entry Point
 
-Embedded apps are usually built with `ApplicationComposition.makeElement`: the view returns `Html` and the runtime stays scoped to its container, never touching the document `<head>`, the URL bar, or anything else the host owns. Use `ApplicationComposition.make` when the embedded app should own page-level concerns like the document title. `embed` accepts programs from both. Both forms carry their Effect requirements until the completed program's `provide` method supplies the needed Layers.
+Embedded apps are usually built with `ApplicationComposition.toElement`: the view returns `Html` and the runtime stays scoped to its container, never touching the document `<head>`, the URL bar, or anything else the host owns. Use `ApplicationComposition.toApplication` when the embedded app should own page-level concerns like the document title. `embed` accepts programs from both. Both forms carry their Effect requirements until the completed program's `provide` method supplies the needed Layers.
 
 ## Providing Host Implementations
 

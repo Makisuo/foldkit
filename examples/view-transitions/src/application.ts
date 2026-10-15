@@ -1,9 +1,6 @@
 import { Array, Effect, Layer, Option, Schema, String } from 'effect'
-import { Runtime } from 'foldkit'
-import {
-  type HtmlBuilderOf,
-  define as defineApplication,
-} from 'foldkit/application'
+import { Runtime, defineApplication } from 'foldkit'
+import type { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
@@ -41,7 +38,7 @@ export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
 
-type ViewBuilder = HtmlBuilderOf<typeof Application>
+type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 export const init = (url: Url) => ({
   model: Model.make({ route: urlToApplicationRoute(url), filterText: '' }),

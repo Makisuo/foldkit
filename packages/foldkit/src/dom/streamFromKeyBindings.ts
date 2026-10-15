@@ -19,10 +19,16 @@ export type WhileTyping = 'Suppress' | 'Allow'
 export type KeySequence = string | Readonly<[string, string, ...Array<string>]>
 
 type BindingBase<Output> = Readonly<{
+  /** Key press or multi-press sequence that selects this binding. */
   keys: KeySequence
+  /** Maps the completing keyboard event to the emitted value. */
   mapEvent: (event: KeyboardEvent) => Output
+  /** Whether this binding participates. Defaults to `true`. */
   isEnabled?: boolean
+  /** Whether events from editable elements may match. Defaults to
+   * `'Suppress'`. */
   whileTyping?: WhileTyping
+  /** Whether each matched press calls `preventDefault()`. Defaults to `true`. */
   preventDefault?: boolean
 }>
 
@@ -37,6 +43,7 @@ export type KeyBinding<Output> = BindingBase<Output> &
   (
     | Readonly<{
         keys: string
+        /** Whether a repeated keydown may emit. Defaults to `'Ignore'`. */
         whenRepeated?: 'Ignore' | 'Allow'
       }>
     | Readonly<{
@@ -49,9 +56,16 @@ type ModKey = 'Control' | 'Meta'
 
 /** Configuration for the {@link streamFromKeyBindings} Stream helper. */
 export type StreamFromKeyBindingsConfig<Output> = Readonly<{
+  /** Bindings evaluated for every keydown. Disabled entries are ignored. */
   bindings: ReadonlyArray<KeyBinding<Output>>
+  /** Event source, or a thunk resolved when the Stream starts. Defaults to the
+   * current `document`. */
   target?: EventTarget | (() => EventTarget)
+  /** Physical modifier represented by `Mod`. Foldkit detects Meta on Apple
+   * platforms and Control elsewhere by default. */
   modKey?: ModKey
+  /** Maximum delay between presses in a sequence. Defaults to one second and
+   * must resolve to a finite positive duration. */
   sequenceTimeout?: Duration.Input
 }>
 
@@ -879,8 +893,8 @@ const keyBindingStream = <Message>(
 
 /**
  * Build a Stream that maps declarative key bindings to values. The output is
- * inferred from each binding's `mapEvent` callback; the owning definition's
- * A Block definition's `subscriptions` method checks that the final Stream emits the application's
+ * inferred from each binding's `mapEvent` callback. A Block definition's
+ * `subscriptions` method checks that the final Stream emits the Block's
  * Message type.
  *
  * A string describes one key press. Modifiers are joined with `+`:

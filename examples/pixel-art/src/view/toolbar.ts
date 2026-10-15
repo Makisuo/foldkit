@@ -1,12 +1,11 @@
 import clsx from 'clsx'
 import { Array, Option } from 'effect'
-import type { HtmlBuilderOf } from 'foldkit/application'
 import { type Html, childAttributes } from 'foldkit/html'
 
 import { Button, Listbox, RadioGroup, Switch } from '@foldkit/ui'
 import type { AnchorConfig } from '@foldkit/ui/listbox'
 
-import { ApplicationComposition } from '../application'
+import type { ViewBuilder } from '../application'
 import {
   gridSizeRadioGroup as gridSizeRadioGroupBinding,
   paletteRadioGroup as paletteRadioGroupBinding,
@@ -23,8 +22,6 @@ const TOOLS: ReadonlyArray<Tool> = ['Brush', 'Fill', 'Eraser']
 export const MIRROR_HORIZONTAL_SWITCH_ID = 'mirror-horizontal'
 export const MIRROR_VERTICAL_SWITCH_ID = 'mirror-vertical'
 
-type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
-
 const TOOL_SHORTCUTS: Record<Tool, string> = {
   Brush: 'B',
   Fill: 'F',
@@ -39,7 +36,7 @@ export const THEME_LISTBOX_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-const sectionLabel = (text: string, h: HtmlBuilder): Html =>
+const sectionLabel = (text: string, h: ViewBuilder): Html =>
   h.div(
     [
       h.Class(
@@ -49,7 +46,7 @@ const sectionLabel = (text: string, h: HtmlBuilder): Html =>
     [text],
   )
 
-const trashIcon = (className: string, h: HtmlBuilder): Html =>
+const trashIcon = (className: string, h: ViewBuilder): Html =>
   h.svg(
     [
       h.AriaHidden(true),
@@ -71,7 +68,7 @@ const trashIcon = (className: string, h: HtmlBuilder): Html =>
     ],
   )
 
-const chevronDownIcon = (className: string, h: HtmlBuilder): Html =>
+const chevronDownIcon = (className: string, h: ViewBuilder): Html =>
   h.svg(
     [
       h.AriaHidden(true),
@@ -103,7 +100,7 @@ export const toolPanelView = (
   toolRadioGroup: typeof RadioGroup.Model.Type,
   gridSizeRadioGroup: typeof RadioGroup.Model.Type,
   paletteRadioGroup: typeof RadioGroup.Model.Type,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   h.div(
     [h.Class('w-full md:w-44 flex flex-col gap-5 flex-shrink-0')],
@@ -126,7 +123,7 @@ export const toolPanelView = (
 const toolSectionView = (
   selectedTool: Tool,
   toolRadioGroup: typeof RadioGroup.Model.Type,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   h.div(
     [],
@@ -175,7 +172,7 @@ const toolSectionView = (
     ],
   )
 
-const mirrorSectionView = (mirrorMode: MirrorMode, h: HtmlBuilder): Html => {
+const mirrorSectionView = (mirrorMode: MirrorMode, h: ViewBuilder): Html => {
   const isMirrorHorizontal =
     mirrorMode === 'Horizontal' || mirrorMode === 'Both'
   const isMirrorVertical = mirrorMode === 'Vertical' || mirrorMode === 'Both'
@@ -261,7 +258,7 @@ const mirrorSectionView = (mirrorMode: MirrorMode, h: HtmlBuilder): Html => {
 const sizeSectionView = (
   gridSize: number,
   gridSizeRadioGroup: typeof RadioGroup.Model.Type,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   h.div(
     [],
@@ -310,7 +307,7 @@ const paletteSectionView = (
   paletteThemeIndex: number,
   themeListbox: typeof Listbox.Model.Type,
   paletteRadioGroup: typeof RadioGroup.Model.Type,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html => {
   const paletteIndexStrings = theme.colors.map((_, index) => index.toString())
   const selectedHexColor = theme.colors[selectedColorIndex] ?? EMPTY_COLOR
@@ -370,7 +367,7 @@ const themeListboxView = (
   themeListbox: typeof Listbox.Model.Type,
   theme: PaletteTheme,
   paletteThemeIndex: number,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   h.block(
     themeListboxBinding.embedView({
@@ -422,7 +419,7 @@ const themeListboxView = (
     }),
   )
 
-const clearCanvasView = (isCanvasEmpty: boolean, h: HtmlBuilder): Html =>
+const clearCanvasView = (isCanvasEmpty: boolean, h: ViewBuilder): Html =>
   Button.view(
     {
       onClick: Message.ClickedClear(),

@@ -101,9 +101,7 @@ const exactMessageChild = Parent.bindChild(PlainChildBlock, {
 
 const exactCustomMessageChild = Parent.bindChild(PlainChildBlock, {
   placement: 'exactCustomMessageChild',
-  read: model => model.maybeChild,
-  write: (model, nextChild) =>
-    modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
+  field: 'maybeChild',
   toParentMessage: message => ParentMessage.GotChildMessage({ message }),
 })
 
@@ -277,6 +275,108 @@ const genericChoice = GenericParent.bindChild(GenericChoice.block, {
   },
 })
 
+const makeKeyedGenericParent = <const Value extends string>(
+  Value: Schema.Schema<Value>,
+) => {
+  const Entry = Schema.Struct({
+    id: Schema.Literals(['first', 'second']),
+    child: ChildModel,
+    payload: Value,
+  })
+  const Model = Schema.Struct({ entries: Schema.Array(Entry) })
+  const Message = defineMessageUnion({
+    GotChildMessage: { id: Schema.String, message: ChildMessage },
+  })
+  const Parent = define('ParentOwnedKeyedGenericParent', { Model, Message })
+  const foldOutMessage = (id: string, outMessage: ChildOutMessage) =>
+    ChildOutMessage.match<Update.Step<typeof Model.Type, typeof Message.Type>>(
+      outMessage,
+      {
+        SelectedValue: () => model => {
+          expectTypeOf(id).toEqualTypeOf<string>()
+          return { model }
+        },
+      },
+    )
+  const child = Parent.bindChild(ChildBlock, {
+    readAll: model => model.entries,
+    key: entry => {
+      const payload: Value = entry.payload
+      void payload
+      return entry.id
+    },
+    read: entry => entry.child,
+    writeAt: (model, id, nextChild) =>
+      modifyFields(model, {
+        entries: Array.map(entry =>
+          entry.id === id
+            ? modifyFields(entry, { child: () => nextChild })
+            : entry,
+        ),
+      }),
+    toParentMessage: (id, message) => Message.GotChildMessage({ id, message }),
+    outMessage: { fold: foldOutMessage },
+  })
+
+  return { child, Model, Message }
+}
+
+const KeyedGenericParent = makeKeyedGenericParent(
+  Schema.Literals(['One', 'Two']),
+)
+
+it('infers generic collection items and keys from their source callbacks', () => {
+  const { child, Model } = KeyedGenericParent
+  expectTypeOf(child.fold).parameter(0).toEqualTypeOf<typeof Model.Type>()
+  expectTypeOf(child.fold).parameter(1).toEqualTypeOf<'first' | 'second'>()
+  expectTypeOf(child.fold).parameter(2).toEqualTypeOf<ChildMessage>()
+  expectTypeOf(child.selectValue)
+    .parameter(0)
+    .toEqualTypeOf<'first' | 'second'>()
+  expectTypeOf<
+    (typeof Model.Type)['entries'][number]['payload']
+  >().toEqualTypeOf<'One' | 'Two'>()
+
+  const model = Model.make({
+    entries: [
+      { id: 'first', child: ChildModel.make({ value: 'old' }), payload: 'One' },
+    ],
+  })
+  const result = child.fold(
+    model,
+    'first',
+    ChildMessage.UpdatedValue({ value: 'next' }),
+  )
+  expect(Option.getOrThrow(Array.head(result.model.entries))).toEqual({
+    id: 'first',
+    child: ChildModel.make({ value: 'next' }),
+    payload: 'One',
+  })
+})
+
+if (false) {
+  // @ts-expect-error General keyed inference must retain the string key.
+  KeyedGenericParent.child.selectValue(1)
+  // @ts-expect-error A broader policy input must not widen the inferred key.
+  KeyedGenericParent.child.selectValue('third')
+}
+
+const keyedConfigWithExtraField = {
+  readAll: (model: ParentModel) => model.entries,
+  key: (entry: Entry) => entry.id,
+  read: (entry: Entry) => entry.child,
+  writeAt: (model: ParentModel) => model,
+  toParentMessage: (id: number, message: ChildMessage) =>
+    ParentMessage.GotKeyedChildMessage({ id, message }),
+  outMessage: { fold: () => (model: ParentModel) => ({ model }) },
+  unexpected: true,
+}
+
+if (false) {
+  // @ts-expect-error Capturing a keyed policy must not accept extra configuration fields.
+  Parent.bindChild(ChildBlock, keyedConfigWithExtraField)
+}
+
 const Application = defineApplication({
   Model: ParentModel,
   Message: ParentMessage,
@@ -303,7 +403,7 @@ if (false) {
   // @ts-expect-error The breaking staging API does not retain register aliases.
   Parent.register
   // @ts-expect-error Every Application completes through a Composition.
-  Application.makeElement
+  Application.toElement
   // @ts-expect-error An Application Composition does not expose Block completion.
   ApplicationComposition.toBlock
   // @ts-expect-error A completed child has no child-owned Binding factory.
@@ -311,17 +411,18 @@ if (false) {
   // @ts-expect-error Keyed Bindings are also created by the parent.
   ChildBlock.keyedConnection
 
-  // @ts-expect-error Direct shorthand accepts only exact required child fields.
   Parent.bindChild(ChildBlock, {
     field: 'maybeChild',
     parentMessage: ParentMessage.GotChildMessage,
     outMessage: { fold: foldChildOutMessage },
   })
 
-  // @ts-expect-error A child Message mapper must return the parent Message.
   Parent.bindChild(ChildBlock, {
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     field: 'child',
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     toParentMessage: () => ({ _tag: 'ForeignMessage' }),
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     outMessage: { fold: foldChildOutMessage },
   })
 

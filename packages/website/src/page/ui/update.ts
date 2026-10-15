@@ -20,23 +20,23 @@ import { defaultLeaveCommand } from '@foldkit/ui/animation'
 import { DragState } from '@foldkit/ui/dragAndDrop'
 
 import { CityCombobox, CityMultiCombobox } from './combobox'
-import { CharacterListbox, ItemListbox, ItemMultiListbox } from './demo/listbox'
-import { DemoMenu } from './demo/menu'
-import { PlanRadioGroup } from './demo/radioGroup'
-import { DemoTabs } from './demo/tabs'
+import { Ui } from './definition'
+import {
+  CharacterListbox,
+  DemoMenu,
+  DemoTabs,
+  ItemListbox,
+  ItemMultiListbox,
+  PlanRadioGroup,
+} from './demo/components'
 import { Toast } from './demo/toastModule'
 import {
   type Activity,
   ROW_COUNT as VIRTUAL_LIST_ROW_COUNT,
-} from './demo/virtualList'
+} from './demo/virtualListData'
 import { Message } from './message'
 import { Model, VirtualListChatStartProximity } from './model'
 import type { DemoCard, DemoColumn, VirtualListChatMessage } from './model'
-
-export const Ui = Block.define('Ui', {
-  Model,
-  Message,
-})
 
 // REORDER
 
@@ -367,69 +367,24 @@ export const comboboxSelectOnFocusDemo = Ui.bindChild(CityCombobox, {
   outMessage: { fold: foldComboboxSelectOnFocusDemoOutMessage },
 })
 
-const readDialogDemo = (
-  model: Model,
-): Option.Option<typeof Dialog.Model.Type> => Option.some(model.dialogDemo)
-
-const writeDialogDemo = (
-  model: Model,
-  nextDialogDemo: typeof Dialog.Model.Type,
-): Model => modifyFields(model, { dialogDemo: () => nextDialogDemo })
-
-const toGotDialogDemoMessage = (message: typeof Dialog.Message.Type): Message =>
-  Message.GotDialogDemoMessage({ message })
-
 export const dialogDemo = Ui.bindChild(Dialog.block, {
   placement: 'dialog-demo',
-  read: readDialogDemo,
-  write: writeDialogDemo,
-  toParentMessage: toGotDialogDemoMessage,
+  field: 'dialogDemo',
+  parentMessage: Message.GotDialogDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
-
-const readDialogAnimatedDemo = (
-  model: Model,
-): Option.Option<typeof Dialog.Model.Type> =>
-  Option.some(model.dialogAnimatedDemo)
-
-const writeDialogAnimatedDemo = (
-  model: Model,
-  nextDialogAnimatedDemo: typeof Dialog.Model.Type,
-): Model =>
-  modifyFields(model, { dialogAnimatedDemo: () => nextDialogAnimatedDemo })
-
-const toGotDialogAnimatedDemoMessage = (
-  message: typeof Dialog.Message.Type,
-): Message => Message.GotDialogAnimatedDemoMessage({ message })
 
 export const dialogAnimatedDemo = Ui.bindChild(Dialog.block, {
   placement: 'dialog-animated-demo',
-  read: readDialogAnimatedDemo,
-  write: writeDialogAnimatedDemo,
-  toParentMessage: toGotDialogAnimatedDemoMessage,
+  field: 'dialogAnimatedDemo',
+  parentMessage: Message.GotDialogAnimatedDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const readOverlayDialogDemo = (
-  model: Model,
-): Option.Option<typeof Dialog.Model.Type> =>
-  Option.some(model.overlayDialogDemo)
-
-const writeOverlayDialogDemo = (
-  model: Model,
-  nextOverlayDialogDemo: typeof Dialog.Model.Type,
-): Model =>
-  modifyFields(model, { overlayDialogDemo: () => nextOverlayDialogDemo })
-
-const toGotOverlayDialogDemoMessage = (
-  message: typeof Dialog.Message.Type,
-): Message => Message.GotOverlayDialogDemoMessage({ message })
-
 export const overlayDialogDemo = Ui.bindChild(Dialog.block, {
   placement: 'overlay-dialog-demo',
-  read: readOverlayDialogDemo,
-  write: writeOverlayDialogDemo,
-  toParentMessage: toGotOverlayDialogDemoMessage,
+  field: 'overlayDialogDemo',
+  parentMessage: Message.GotOverlayDialogDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
@@ -453,53 +408,17 @@ export const overlayComboboxDemo = Ui.bindChild(CityCombobox, {
   outMessage: { fold: foldOverlayComboboxDemoOutMessage },
 })
 
-const readNestedDialogParentDemo = (
-  model: Model,
-): Option.Option<typeof Dialog.Model.Type> =>
-  Option.some(model.nestedDialogParentDemo)
-
-const writeNestedDialogParentDemo = (
-  model: Model,
-  nextNestedDialogParentDemo: typeof Dialog.Model.Type,
-): Model =>
-  modifyFields(model, {
-    nestedDialogParentDemo: () => nextNestedDialogParentDemo,
-  })
-
-const toGotNestedDialogParentDemoMessage = (
-  message: typeof Dialog.Message.Type,
-): Message => Message.GotNestedDialogParentDemoMessage({ message })
-
 export const nestedDialogParentDemo = Ui.bindChild(Dialog.block, {
   placement: 'nested-dialog-parent-demo',
-  read: readNestedDialogParentDemo,
-  write: writeNestedDialogParentDemo,
-  toParentMessage: toGotNestedDialogParentDemoMessage,
+  field: 'nestedDialogParentDemo',
+  parentMessage: Message.GotNestedDialogParentDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const readNestedDialogChildDemo = (
-  model: Model,
-): Option.Option<typeof Dialog.Model.Type> =>
-  Option.some(model.nestedDialogChildDemo)
-
-const writeNestedDialogChildDemo = (
-  model: Model,
-  nextNestedDialogChildDemo: typeof Dialog.Model.Type,
-): Model =>
-  modifyFields(model, {
-    nestedDialogChildDemo: () => nextNestedDialogChildDemo,
-  })
-
-const toGotNestedDialogChildDemoMessage = (
-  message: typeof Dialog.Message.Type,
-): Message => Message.GotNestedDialogChildDemoMessage({ message })
-
 export const nestedDialogChildDemo = Ui.bindChild(Dialog.block, {
   placement: 'nested-dialog-child-demo',
-  read: readNestedDialogChildDemo,
-  write: writeNestedDialogChildDemo,
-  toParentMessage: toGotNestedDialogChildDemoMessage,
+  field: 'nestedDialogChildDemo',
+  parentMessage: Message.GotNestedDialogChildDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
@@ -700,26 +619,10 @@ export const hoverIntentCardDemo = Ui.bindChild(HoverIntent.block, {
   outMessage: { fold: foldHoverIntentOutMessage },
 })
 
-const readHoverIntentMenuDemo = (
-  model: Model,
-): Option.Option<typeof HoverIntent.Model.Type> =>
-  Option.some(model.hoverIntentMenuDemo)
-
-const writeHoverIntentMenuDemo = (
-  model: Model,
-  nextHoverIntentMenuDemo: typeof HoverIntent.Model.Type,
-): Model =>
-  modifyFields(model, { hoverIntentMenuDemo: () => nextHoverIntentMenuDemo })
-
-const toGotHoverIntentMenuDemoMessage = (
-  message: typeof HoverIntent.Message.Type,
-): Message => Message.GotHoverIntentMenuDemoMessage({ message })
-
 export const hoverIntentMenuDemo = Ui.bindChild(HoverIntent.block, {
   placement: 'hover-intent-menu-demo',
-  read: readHoverIntentMenuDemo,
-  write: writeHoverIntentMenuDemo,
-  toParentMessage: toGotHoverIntentMenuDemoMessage,
+  field: 'hoverIntentMenuDemo',
+  parentMessage: Message.GotHoverIntentMenuDemoMessage,
   outMessage: { fold: foldHoverIntentOutMessage },
 })
 
@@ -735,22 +638,10 @@ const foldToastDemoOutMessage = Toast.OutMessage.match<
     }),
 })
 
-const readToastDemo = (model: Model): Option.Option<typeof Toast.Model.Type> =>
-  Option.some(model.toastDemo)
-
-const writeToastDemo = (
-  model: Model,
-  nextToastDemo: typeof Toast.Model.Type,
-): Model => modifyFields(model, { toastDemo: () => nextToastDemo })
-
-const toGotToastDemoMessage = (message: typeof Toast.Message.Type): Message =>
-  Message.GotToastDemoMessage({ message })
-
 export const toastDemo = Ui.bindChild(Toast, {
   placement: 'toast-demo',
-  read: readToastDemo,
-  write: writeToastDemo,
-  toParentMessage: toGotToastDemoMessage,
+  field: 'toastDemo',
+  parentMessage: Message.GotToastDemoMessage,
   outMessage: { fold: foldToastDemoOutMessage },
 })
 
@@ -840,7 +731,7 @@ const foldDragAndDropDemoOutMessage = DragAndDrop.OutMessage.match<
 
 export const dragAndDropDemo = Ui.bindChild(DragAndDrop.block, {
   placement: 'drag-and-drop-demo',
-  read: (model: Model) => Option.some(model.dragAndDropDemo),
+  read: model => Option.some(model.dragAndDropDemo),
   write: (model, nextDragAndDropDemo) =>
     modifyFields(model, {
       dragAndDropDemo: () => nextDragAndDropDemo,
@@ -1017,6 +908,8 @@ export const UiComposition = Ui.toComposition({
     virtualListVariableDemo,
   ],
 })
+
+export type ViewBuilder = Block.HtmlBuilderOf<typeof UiComposition>
 
 export const update = Ui.update((model, message) =>
   Message.match(message, {

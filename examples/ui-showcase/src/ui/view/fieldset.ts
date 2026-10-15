@@ -3,7 +3,9 @@ import type { Html } from 'foldkit/html'
 import { Checkbox, Fieldset, Input, Textarea } from '@foldkit/ui'
 
 import { UiComposition } from '../childBindings'
+import type { ViewBuilder } from '../childBindings'
 import { Message } from '../message'
+import type { Model } from '../model'
 
 const FIELDSET_CHECKBOX_DEMO_ID = 'fieldset-checkbox-demo'
 const FIELDSET_DISABLED_CHECKBOX_ID = 'fieldset-disabled-checkbox'
@@ -39,11 +41,10 @@ const sectionHeadingClassName = 'text-lg font-semibold text-gray-900 mt-8 mb-4'
 
 // FIELDS
 
-const checkmark = UiComposition.render.builder(h =>
-  h.span([h.Class('text-white text-xs')], ['✓']),
-)
+const checkmark = (h: ViewBuilder) =>
+  h.span([h.Class('text-white text-xs')], ['✓'])
 
-const nameInput = UiComposition.render.withInput<string>()((value, h) => {
+const nameInput = (value: string, h: ViewBuilder) => {
   const nameInputView = (attributes: Input.InputAttributes<Message>): Html =>
     h.div(
       [h.Class(fieldClassName)],
@@ -69,9 +70,9 @@ const nameInput = UiComposition.render.withInput<string>()((value, h) => {
     },
     h,
   )
-})
+}
 
-const bioTextarea = UiComposition.render.withInput<string>()((value, h) => {
+const bioTextarea = (value: string, h: ViewBuilder) => {
   const bioTextareaView = (
     attributes: Textarea.TextareaAttributes<Message>,
   ): Html =>
@@ -100,53 +101,51 @@ const bioTextarea = UiComposition.render.withInput<string>()((value, h) => {
     },
     h,
   )
-})
+}
 
-const termsCheckbox = UiComposition.render.withInput<boolean>()(
-  (isChecked, h) => {
-    const termsCheckboxView = (
-      attributes: Checkbox.CheckboxAttributes<Message>,
-    ): Html =>
-      h.div(
-        [h.Class('flex flex-col gap-1')],
-        [
-          h.div(
-            [h.Class('flex items-center gap-2')],
-            [
-              h.button(
-                [...attributes.checkbox, h.Class(checkboxClassName)],
-                isChecked ? [checkmark(h)] : [],
-              ),
-              h.label(
-                [...attributes.label, h.Class(checkboxLabelClassName)],
-                ['I agree to the terms and conditions'],
-              ),
-            ],
-          ),
-          h.p(
-            [...attributes.description, h.Class(checkboxDescriptionClassName)],
-            ['You agree to our Terms of Service and Privacy Policy.'],
-          ),
-        ],
-      )
-
-    return Checkbox.view(
-      {
-        id: FIELDSET_CHECKBOX_DEMO_ID,
-        isChecked,
-        hasDescription: true,
-        onToggle: nextIsChecked =>
-          Message.ToggledFieldsetCheckboxDemo({ isChecked: nextIsChecked }),
-        toView: termsCheckboxView,
-      },
-      h,
+const termsCheckbox = (isChecked: boolean, h: ViewBuilder) => {
+  const termsCheckboxView = (
+    attributes: Checkbox.CheckboxAttributes<Message>,
+  ): Html =>
+    h.div(
+      [h.Class('flex flex-col gap-1')],
+      [
+        h.div(
+          [h.Class('flex items-center gap-2')],
+          [
+            h.button(
+              [...attributes.checkbox, h.Class(checkboxClassName)],
+              isChecked ? [checkmark(h)] : [],
+            ),
+            h.label(
+              [...attributes.label, h.Class(checkboxLabelClassName)],
+              ['I agree to the terms and conditions'],
+            ),
+          ],
+        ),
+        h.p(
+          [...attributes.description, h.Class(checkboxDescriptionClassName)],
+          ['You agree to our Terms of Service and Privacy Policy.'],
+        ),
+      ],
     )
-  },
-)
+
+  return Checkbox.view(
+    {
+      id: FIELDSET_CHECKBOX_DEMO_ID,
+      isChecked,
+      hasDescription: true,
+      onToggle: nextIsChecked =>
+        Message.ToggledFieldsetCheckboxDemo({ isChecked: nextIsChecked }),
+      toView: termsCheckboxView,
+    },
+    h,
+  )
+}
 
 // DISABLED FIELDS
 
-const disabledNameInput = UiComposition.render.builder(h => {
+const disabledNameInput = (h: ViewBuilder) => {
   const disabledNameInputView = (
     attributes: Input.InputAttributes<Message>,
   ): Html =>
@@ -167,9 +166,9 @@ const disabledNameInput = UiComposition.render.builder(h => {
     },
     h,
   )
-})
+}
 
-const disabledBioTextarea = UiComposition.render.builder(h => {
+const disabledBioTextarea = (h: ViewBuilder) => {
   const disabledBioTextareaView = (
     attributes: Textarea.TextareaAttributes<Message>,
   ): Html =>
@@ -192,9 +191,9 @@ const disabledBioTextarea = UiComposition.render.builder(h => {
     },
     h,
   )
-})
+}
 
-const disabledTermsCheckbox = UiComposition.render.builder(h => {
+const disabledTermsCheckbox = (h: ViewBuilder) => {
   const disabledTermsCheckboxView = (
     attributes: Checkbox.CheckboxAttributes<Message>,
   ): Html =>
@@ -222,11 +221,11 @@ const disabledTermsCheckbox = UiComposition.render.builder(h => {
     },
     h,
   )
-})
+}
 
 // DEMOS
 
-const basicDemo = UiComposition.render((model, h) => {
+const basicDemo = (model: Model, h: ViewBuilder) => {
   const basicFieldsetView = (
     attributes: Fieldset.FieldsetAttributes<Message>,
   ): Html =>
@@ -260,9 +259,9 @@ const basicDemo = UiComposition.render((model, h) => {
     },
     h,
   )
-})
+}
 
-const disabledDemo = UiComposition.render.builder(h => {
+const disabledDemo = (h: ViewBuilder) => {
   const disabledFieldsetView = (
     attributes: Fieldset.FieldsetAttributes<Message>,
   ): Html =>
@@ -297,7 +296,7 @@ const disabledDemo = UiComposition.render.builder(h => {
     },
     h,
   )
-})
+}
 
 export const view = UiComposition.view((model, h) => {
   return h.div(

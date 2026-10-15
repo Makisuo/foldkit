@@ -224,10 +224,10 @@ if (false) {
   // @ts-expect-error A keyed child with OutMessages requires an explicit policy.
   Parent.bindChild(block, keyedBaseConfig)
 
-  // @ts-expect-error The policy key and parent Message must match the binding.
   Parent.bindChild(block, {
     ...keyedBaseConfig,
     outMessage: {
+      // @ts-expect-error This invalid Binding configuration has no matching overload.
       fold:
         (
           _id: string,
@@ -242,22 +242,22 @@ if (false) {
     },
   })
 
-  // @ts-expect-error Forwarding must return a concrete parent OutMessage.
   Parent.bindChild(block, {
     ...keyedBaseConfig,
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     outMessage: { forward: () => undefined },
   })
 
-  // @ts-expect-error An unknown forwarding contract erases the parent OutMessage.
   Parent.bindChild(block, {
     ...keyedBaseConfig,
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     outMessage: { forward: (): unknown => undefined },
   })
 
-  // @ts-expect-error An any forwarding contract erases the parent OutMessage.
   Parent.bindChild(block, {
     ...keyedBaseConfig,
     // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     outMessage: { forward: (): any => undefined },
   })
 }

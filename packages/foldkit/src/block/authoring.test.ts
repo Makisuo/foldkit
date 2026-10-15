@@ -181,12 +181,12 @@ const homeUpdate = home.update((model, message) =>
   }),
 )
 
-const homeBoot = home.step((model: HomeModel) => ({
+const homeBoot = home.step(model => ({
   model,
   commands: [CreateRoom()],
 }))
 
-const homeInformJoined = home.step((model: HomeModel, joinedCount: number) => ({
+const homeInformJoined = home.step((model, joinedCount: number) => ({
   model: modifyFields(model, { joinedCount: () => joinedCount }),
 }))
 
@@ -427,7 +427,7 @@ const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
     }
   })
 
-  const finish = base.step((_model: Model, value: Value) => ({
+  const finish = base.step((_model, value: Value) => ({
     model: Model.make({ value }),
     outMessage: OutMessage.make({ value }),
   }))
@@ -463,7 +463,7 @@ const makeLeaf = <const Namespace extends string>(
 
   return definition.toComposition().toBlock({
     init: () => ({ model: LeafModel.make({ value: '' }) }),
-    update: (model: LeafModel, _message: LeafMessage) => ({ model }),
+    update: (model, _message) => ({ model }),
     EffectsLayer,
   })
 }
@@ -640,7 +640,7 @@ const PolicyParent = policyParentComposition.toBlock({
       choice: StringChoice.Model.make({ value: 'One' }),
     }),
   }),
-  update: (model: PolicyParentModel, message: HomeMessage) =>
+  update: (model, message) =>
     HomeMessage.match(message, {
       ClickedCreateRoom: () => choiceWithPolicyCommand.finish('Two')(model),
       CompletedCreateRoom: () => ({ model }),
@@ -861,7 +861,7 @@ if (false) {
     Model: HomeModel,
     Message: HomeMessage,
   })
-  ErasedBlockApplication.toComposition().makeElement({
+  ErasedBlockApplication.toComposition().toElement({
     // @ts-expect-error A reusable Block cannot become an application root.
     block: erasedBlock,
     container: null,
@@ -921,7 +921,7 @@ if (false) {
   })
   crossKindComposition.toBlock({
     init: homeInit,
-    update: (model: HomeModel) => ({ model, commands: [CommandFocus()] }),
+    update: model => ({ model, commands: [CommandFocus()] }),
     // @ts-expect-error A same-name Mount handler cannot satisfy a Command contract.
     EffectsLayer: MountFocus.layer,
   })
@@ -1024,7 +1024,7 @@ if (false) {
   })
   supersetHomeViewComposition.toBlock({
     init: homeInit,
-    update: (model: HomeModel, _message: HomeMessage) => ({ model }),
+    update: (model, _message) => ({ model }),
     view: subsetHomeView,
     EffectsLayer: Layer.merge(
       ObserveHomeView.layer,
@@ -1041,7 +1041,7 @@ if (false) {
   const foreignHomeView = foreignHome.view((_model, h) => h.div([]))
   home.toComposition().toBlock({
     init: homeInit,
-    update: (model: HomeModel, _message: HomeMessage) => ({ model }),
+    update: (model, _message) => ({ model }),
     // @ts-expect-error A completed Block must use a view authored by its own definition.
     view: foreignHomeView,
     EffectsLayer: Layer.empty,
@@ -1056,7 +1056,7 @@ if (false) {
   )
   home.toComposition().toBlock({
     init: homeInit,
-    update: (model: HomeModel, _message: HomeMessage) => ({ model }),
+    update: (model, _message) => ({ model }),
     // @ts-expect-error Owner identity cannot substitute for the definition's Model and Message view channels.
     view: sameOwnerDifferentView,
     EffectsLayer: Layer.empty,
@@ -1066,7 +1066,7 @@ if (false) {
   // @ts-expect-error any cannot erase an implementation's authored view contract.
   home.toComposition().toBlock({
     init: homeInit,
-    update: (model: HomeModel, _message: HomeMessage) => ({ model }),
+    update: (model, _message) => ({ model }),
     view: erasedHomeView,
     EffectsLayer: Layer.empty,
   })
@@ -1222,7 +1222,7 @@ if (false) {
 
   graphParentComposition.toBlock({
     init: GraphParent.init,
-    update: (model: GraphParentModel) => ({
+    update: model => ({
       model,
       commands: [RunParentWork()],
     }),
@@ -1253,7 +1253,7 @@ if (false) {
         commands: childInit.commands,
       }
     },
-    update: (model: GraphParentModel, message: GraphParentMessage) =>
+    update: (model, message) =>
       GraphParentMessage.match(message, {
         GotChildMessage: ({ message }) =>
           unregisteredGraphChild.fold(model, message),
@@ -1270,7 +1270,7 @@ if (false) {
         child: PolicyConflictChildModel.make({ value: '' }),
       }),
     }),
-    update: (model: PolicyConflictParentModel, message: HomeMessage) =>
+    update: (model, message) =>
       HomeMessage.match(message, {
         ClickedCreateRoom: () =>
           policyConflictChild.fold(
@@ -1304,14 +1304,16 @@ if (false) {
     Model: GraphParentModel,
     Message: GraphParentMessage,
   })
-  // @ts-expect-error Child policy Commands must produce the definition's Message.
   foreignCommandParentBase.bindChild(StringChoice, {
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     placement: 'foreign-command-message',
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     read: (_model: GraphParentModel) =>
       Option.some(StringChoice.Model.make({ value: 'One' })),
     write: (model: GraphParentModel) => model,
     toParentMessage: () => GraphParentMessage.CompletedParentWork(),
     outMessage: {
+      // @ts-expect-error This invalid Binding configuration has no matching overload.
       fold: () => (model: GraphParentModel) => ({
         model,
         commands: [CreateRoom()],
@@ -1325,14 +1327,16 @@ if (false) {
     Message: GraphParentMessage,
     OutMessage: ParentOutMessage,
   })
-  // @ts-expect-error Forwarded child OutMessages must belong to the parent OutMessage.
   foreignForwardParentBase.bindChild(StringChoice, {
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     placement: 'foreign-forward',
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     read: (_model: GraphParentModel) =>
       Option.some(StringChoice.Model.make({ value: 'One' })),
     write: (model: GraphParentModel) => model,
     toParentMessage: () => GraphParentMessage.CompletedParentWork(),
     outMessage: {
+      // @ts-expect-error This invalid Binding configuration has no matching overload.
       forward: () => HomeOutMessage.CreatedRoom({ roomId: 'foreign' }),
     },
   })
@@ -1340,14 +1344,16 @@ if (false) {
     Model: GraphParentModel,
     Message: GraphParentMessage,
   })
-  // @ts-expect-error A parent without OutMessage cannot forward a child OutMessage.
   missingForwardParentBase.bindChild(StringChoice, {
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     placement: 'missing-forward',
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     read: (_model: GraphParentModel) =>
       Option.some(StringChoice.Model.make({ value: 'One' })),
     write: (model: GraphParentModel) => model,
     toParentMessage: () => GraphParentMessage.CompletedParentWork(),
     outMessage: {
+      // @ts-expect-error This invalid Binding configuration has no matching overload.
       forward: () => ParentOutMessage.AcceptedChildResult(),
     },
   })
@@ -1357,14 +1363,16 @@ if (false) {
     Message: GraphParentMessage,
     OutMessage: ParentOutMessage,
   })
-  // @ts-expect-error Derived child OutMessages must belong to the parent OutMessage.
   foreignDerivedParentBase.bindChild(StringChoice, {
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     placement: 'foreign-derived-out-message',
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     read: (_model: GraphParentModel) =>
       Option.some(StringChoice.Model.make({ value: 'One' })),
     write: (model: GraphParentModel) => model,
     toParentMessage: () => GraphParentMessage.CompletedParentWork(),
     outMessage: {
+      // @ts-expect-error This invalid Binding configuration has no matching overload.
       fold: () => (model: GraphParentModel) => ({
         model,
         outMessage: HomeOutMessage.CreatedRoom({ roomId: 'foreign' }),
@@ -1511,7 +1519,7 @@ describe('Block authoring', () => {
       init: () => ({
         model: LeafParentModel.make({ leaf: LeafModel.make({ value: '' }) }),
       }),
-      update: (model: LeafParentModel, _message: LeafMessage) => ({ model }),
+      update: (model, _message) => ({ model }),
       EffectsLayer: DefaultParentLayer,
     })
     const replaceEffectsLayer = block.replaceEffectsLayer
@@ -1566,7 +1574,7 @@ describe('Block authoring', () => {
       init: () => ({
         model: LeafParentModel.make({ leaf: LeafModel.make({ value: '' }) }),
       }),
-      update: (model: LeafParentModel, _message: LeafMessage) => ({ model }),
+      update: (model, _message) => ({ model }),
       EffectsLayer: Layer.empty,
     })
 
@@ -1869,7 +1877,7 @@ describe('Block authoring', () => {
       init: () => ({
         model: LeafParentModel.make({ leaf: LeafModel.make({ value: '' }) }),
       }),
-      update: (model: LeafParentModel, _message: LeafMessage) => ({ model }),
+      update: (model, _message) => ({ model }),
       EffectsLayer: Layer.empty,
     })
 
@@ -1905,7 +1913,7 @@ describe('Block authoring', () => {
       init: () => ({
         model: LeafParentModel.make({ leaf: LeafModel.make({ value: '' }) }),
       }),
-      update: (model: LeafParentModel, _message: LeafMessage) => ({ model }),
+      update: (model, _message) => ({ model }),
       EffectsLayer: Layer.empty,
     })
 

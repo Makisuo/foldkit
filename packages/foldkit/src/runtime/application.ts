@@ -391,6 +391,10 @@ type PendingApplication<
   ProvidedServices,
   Kind extends 'Application' | 'Element' = 'Application',
 > = Readonly<{
+  /**
+   * Port declarations captured by completion. Runtime.embed returns connected
+   * send and subscription handles after the runtime has started.
+   */
   ports: P
   /**
    * Supplies the ordinary services a Layer produces and carries the Layer's
@@ -945,12 +949,12 @@ type ValidateRootView<
                 ? FunctionReturn<View> extends Document
                   ? unknown
                   : Readonly<{
-                      'Application.make requires a Document view': View
+                      'ApplicationComposition.toApplication requires a Document view': View
                     }>
                 : FunctionReturn<View> extends VNode | null
                   ? unknown
                   : Readonly<{
-                      'Application.makeElement requires an Element view': View
+                      'ApplicationComposition.toElement requires an Element view': View
                     }>
               : Readonly<{
                   'Application root view must not require view inputs': View
@@ -1067,30 +1071,102 @@ type PageRootInput<
   FlagsSchema,
   PortsValue,
 > = Readonly<{
+  /**
+   * Produces the initial Model and optional Commands on a fresh Runtime start,
+   * with the Flags and URL required by its signature. A valid Model restored
+   * after a Vite development reload skips init.
+   */
   init: Init
+  /**
+   * The pure root update authored in this Application context. It returns
+   * the next Model and optional Commands; it cannot emit an OutMessage.
+   */
   update: UpdateFunction
+  /**
+   * The canonical owned view. Its child and Mount requirements must be
+   * registered in this Composition.
+   */
   view: View
+  /**
+   * Local root Subscription declarations. Omit when there are none;
+   * registered children supply their own declarations automatically. The
+   * Runtime starts and stops Streams according to their Model dependencies.
+   */
   subscriptions?: SubscriptionsValue
+  /**
+   * Local root ManagedResource declarations. Omit when there are none;
+   * registered children supply their occurrence-scoped declarations. Handler
+   * construction is application-scoped; acquired handles follow Model state.
+   */
   managedResources?: ManagedResourcesValue
+  /**
+   * The root's local handler recipe. Defaults to Layer.empty. Child recipes
+   * are included automatically; provide ordinary Services on the completed
+   * Application or Element. The Runtime builds the selected graph at start.
+   */
   EffectsLayer?: EffectsLayerValue
+  /**
+   * The startup Flags Schema. Declare it when init accepts Flags. This
+   * Schema requires no encoding or decoding Services.
+   */
   Flags?: FlagsSchema
+  /**
+   * URL request and change Message constructors. Required when init accepts
+   * a URL; omit for an Application that does not route. The Runtime installs
+   * page navigation listeners when it starts.
+   */
   routing?: RoutingConfig<CompositionMessage<CompositionValue>>
+  /**
+   * The host element. Resolve it at browser startup. Completion rejects a
+   * missing element unless it adopts a matching server-rendered root.
+   */
   container: HTMLElement | null
+  /**
+   * Declared inbound and outbound Ports. Omit when there are none.
+   * Runtime.embed returns their connected consumer-facing handles.
+   */
   ports?: PortsValue
+  /**
+   * Optional crash rendering and reporting policy. Without a custom view,
+   * the Runtime renders its default crash UI. Dispatch stops on a crash.
+   */
   crash?: CrashConfig<
     CompositionModel<CompositionValue>,
     CompositionMessage<CompositionValue>
   >
+  /**
+   * Slow-phase measurement and reporting policy. Defaults to development-only
+   * measurements and console warnings. Pass false to disable.
+   */
   slow?: SlowConfig<
     CompositionModel<CompositionValue>,
     CompositionMessage<CompositionValue>
   >
+  /**
+   * Opt-in predicate for browser view transitions. Omit to use ordinary
+   * rendering without probing transition support. Unsupported browsers and
+   * reduced-motion preferences take the ordinary path.
+   */
   viewTransition?: ViewTransitionConfig<
     CompositionModel<CompositionValue>,
     CompositionMessage<CompositionValue>
   >
+  /**
+   * Deep-freezes Models after init and update under Vite development mode.
+   * Defaults to true; production is unaffected. Set false to disable.
+   */
   freezeModel?: boolean
+  /**
+   * Preserves the window scroll offset across Vite development reloads.
+   * Defaults to true for page-owning Applications. Production is unaffected;
+   * nested scroll containers are not preserved.
+   */
   preserveScroll?: boolean
+  /**
+   * DevTools recording and overlay policy. Defaults to development-only
+   * visibility; pass false to disable. Configure Message to permit decoded
+   * external dispatch through the DevTools bridge.
+   */
   devTools?: DevToolsConfig
 }>
 
@@ -1106,29 +1182,97 @@ type ElementRootInput<
   FlagsEffect,
   PortsValue,
 > = Readonly<{
+  /**
+   * Produces the initial Model and optional Commands on a fresh Runtime start,
+   * with the Flags and URL required by its signature. A valid Model restored
+   * after a Vite development reload skips init.
+   */
   init: Init
+  /**
+   * The pure root update authored in this Application context. It returns
+   * the next Model and optional Commands; it cannot emit an OutMessage.
+   */
   update: UpdateFunction
+  /**
+   * The canonical owned view. Its child and Mount requirements must be
+   * registered in this Composition.
+   */
   view: View
+  /**
+   * Local root Subscription declarations. Omit when there are none;
+   * registered children supply their own declarations automatically. The
+   * Runtime starts and stops Streams according to their Model dependencies.
+   */
   subscriptions?: SubscriptionsValue
+  /**
+   * Local root ManagedResource declarations. Omit when there are none;
+   * registered children supply their occurrence-scoped declarations. Handler
+   * construction is application-scoped; acquired handles follow Model state.
+   */
   managedResources?: ManagedResourcesValue
+  /**
+   * The root's local handler recipe. Defaults to Layer.empty. Child recipes
+   * are included automatically; provide ordinary Services on the completed
+   * Application or Element. The Runtime builds the selected graph at start.
+   */
   EffectsLayer?: EffectsLayerValue
+  /**
+   * The startup Flags Schema. Declare it when init accepts Flags. This
+   * Schema requires no encoding or decoding Services.
+   */
   Flags?: FlagsSchema
+  /**
+   * Resolves Flags once before init on a fresh Runtime start. A valid restored
+   * development Model skips both. Required together with Flags; omit both when
+   * init takes no Flags. It handles its own failures and may use ordinary
+   * Services provided on the completed Element.
+   */
   flags?: FlagsEffect
+  /**
+   * The host element. Resolve it at browser startup. Completion rejects a
+   * missing element; embedded Elements do not adopt a server-rendered root.
+   */
   container: HTMLElement | null
+  /**
+   * Declared inbound and outbound Ports. Omit when there are none.
+   * Runtime.embed returns their connected consumer-facing handles.
+   */
   ports?: PortsValue
+  /**
+   * Optional crash rendering and reporting policy. Without a custom view,
+   * the Runtime renders its default crash UI. Dispatch stops on a crash.
+   */
   crash?: ElementCrashConfig<
     CompositionModel<CompositionValue>,
     CompositionMessage<CompositionValue>
   >
+  /**
+   * Slow-phase measurement and reporting policy. Defaults to development-only
+   * measurements and console warnings. Pass false to disable.
+   */
   slow?: SlowConfig<
     CompositionModel<CompositionValue>,
     CompositionMessage<CompositionValue>
   >
+  /**
+   * Opt-in predicate for browser view transitions. Omit to use ordinary
+   * rendering without probing transition support. Unsupported browsers and
+   * reduced-motion preferences take the ordinary path.
+   */
   viewTransition?: ViewTransitionConfig<
     CompositionModel<CompositionValue>,
     CompositionMessage<CompositionValue>
   >
+  /**
+   * Deep-freezes Models after init and update under Vite development mode.
+   * Defaults to true; production is unaffected. Set false to disable.
+   */
   freezeModel?: boolean
+  /**
+   * DevTools recording and overlay policy. Defaults to development-only
+   * visibility; pass false to disable. Configure Message to permit decoded
+   * external dispatch through the DevTools bridge.
+   */
   devTools?: DevToolsConfig
 }>
 
@@ -1137,17 +1281,17 @@ type ValidateElementFlags<FlagsSchema, FlagsEffect> =
     ? undefined extends FlagsEffect
       ? unknown
       : Readonly<{
-          'Application.makeElement requires matching Flags and flags': FlagsEffect
+          'ApplicationComposition.toElement requires matching Flags and flags': FlagsEffect
         }>
     : FlagsSchema extends Schema.Codec<any, any, never, never>
       ? undefined extends FlagsEffect
         ? Readonly<{
-            'Application.makeElement requires matching Flags and flags': FlagsSchema
+            'ApplicationComposition.toElement requires matching Flags and flags': FlagsSchema
           }>
         : FlagsEffect extends Effect.Effect<FlagsSchema['Type'], never, any>
           ? unknown
           : Readonly<{
-              'Application.makeElement requires matching Flags and flags': FlagsEffect
+              'ApplicationComposition.toElement requires matching Flags and flags': FlagsEffect
             }>
       : never
 
@@ -1193,8 +1337,13 @@ type RootPorts<PortsValue> = undefined extends PortsValue
   ? undefined
   : Exclude<PortsValue, undefined>
 
-/** @internal Completes one exact application definition as a page. */
-export interface Make<CompositionValue extends AnyComposition> {
+/**
+ * Completes an Application Composition as a passive page-owning Application.
+ * Captures the registered graph, implementation and browser configuration.
+ * Remaining ordinary Service requirements stay in the returned type until
+ * application.provide supplies them. Runtime.run builds Layers and starts it.
+ */
+export interface ToApplication<CompositionValue extends AnyComposition> {
   <
     const Init extends AnyRootFunction,
     const UpdateFunction extends AnyRootFunction,
@@ -1276,8 +1425,13 @@ export interface Make<CompositionValue extends AnyComposition> {
   >
 }
 
-/** @internal Completes one exact application definition as an Element. */
-export interface MakeElement<CompositionValue extends AnyComposition> {
+/**
+ * Completes an Application Composition as a passive container-scoped Element.
+ * Its owned view returns Html. Optional Flags are resolved at Runtime startup
+ * from the supplied Effect. Runtime.run or Runtime.embed builds its Layers and
+ * starts its lifecycle work; completion does not execute handlers.
+ */
+export interface ToElement<CompositionValue extends AnyComposition> {
   <
     const Init extends AnyRootFunction,
     const UpdateFunction extends AnyRootFunction,
@@ -1363,12 +1517,11 @@ export interface MakeElement<CompositionValue extends AnyComposition> {
 }
 
 /**
- * Completes a page-owning application composition and binds it to its browser
- * host. Its handler recipe is included automatically; shared Service
- * requirements remain in the application's Effect requirements until
- * provided.
+ * Internal implementation of the owned toApplication completion method.
+ * Captures passive configuration and validates handler and view coverage.
+ * The Runtime constructs the selected handler and Service Layers at start.
  */
-export function make<
+export function toApplication<
   const CompositionValue extends AnyComposition,
   const Init extends AnyRootFunction,
   const UpdateFunction extends AnyRootFunction,
@@ -1448,7 +1601,7 @@ export function make<
     >
   >
 >
-export function make(composition: AnyComposition, config: any): any {
+export function toApplication(composition: AnyComposition, config: any): any {
   const { block, options } = completeRoot(composition, config)
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const lowered = lowerBlock(block as never)
@@ -1459,10 +1612,11 @@ export function make(composition: AnyComposition, config: any): any {
 }
 
 /**
- * Completes an embedded application composition whose view returns Html. The
- * runtime includes its handler recipe and lifecycle registrations.
+ * Internal implementation of the owned toElement completion method.
+ * Captures passive container configuration; the Runtime constructs handler
+ * Layers and starts lifecycle work later.
  */
-export function makeElement<
+export function toElement<
   const CompositionValue extends AnyComposition,
   const Init extends AnyRootFunction,
   const UpdateFunction extends AnyRootFunction,
@@ -1545,7 +1699,7 @@ export function makeElement<
     >
   >
 >
-export function makeElement(composition: AnyComposition, config: any): any {
+export function toElement(composition: AnyComposition, config: any): any {
   const { block, options } = completeRoot(composition, config)
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const element = __makeElementFromConfig({
@@ -1635,7 +1789,7 @@ const provideProgram = (
 
   if (internals === undefined) {
     throw new Error(
-      '[foldkit] application.provide expects a program created by Application.make or Application.makeElement.',
+      '[foldkit] application.provide expects a program created by ApplicationComposition.toApplication or ApplicationComposition.toElement.',
     )
   }
 

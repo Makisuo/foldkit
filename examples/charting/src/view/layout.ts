@@ -1,17 +1,17 @@
 import { Array, Option } from 'effect'
 import { AsyncData } from 'foldkit'
 import type { Html } from 'foldkit/html'
-import { HtmlBuilder } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
+import type { ViewBuilder } from '../application'
 import type { Telemetry } from '../domain'
 import { Message } from '../message'
 import type { Model } from '../model'
 import * as Chart from './chart'
 import { sidebarView } from './sidebar'
 
-export const headerView = (model: Model, h: HtmlBuilder<Message>): Html => {
+export const headerView = (model: Model, h: ViewBuilder): Html => {
   const isRefreshing = AsyncData.isRefreshing(model.telemetry)
   const isLoading = AsyncData.isLoading(model.telemetry)
 
@@ -80,7 +80,7 @@ const dashboardBanner = (
       }),
   })
 
-export const telemetryStateView = (model: Model, h: Chart.HtmlBuilder): Html =>
+export const telemetryStateView = (model: Model, h: ViewBuilder): Html =>
   AsyncData.matchData(model.telemetry, {
     onEmpty: () => loadingView(h),
     onFailure: error => failureView(error, h),
@@ -88,7 +88,7 @@ export const telemetryStateView = (model: Model, h: Chart.HtmlBuilder): Html =>
       dashboardShellView(model, data, dashboardBanner(model.telemetry), h),
   })
 
-export const loadingView = (h: HtmlBuilder<Message>): Html =>
+export const loadingView = (h: ViewBuilder): Html =>
   h.section(
     [
       h.Class(
@@ -115,7 +115,7 @@ export const loadingView = (h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-export const failureView = (error: string, h: HtmlBuilder<Message>): Html =>
+export const failureView = (error: string, h: ViewBuilder): Html =>
   h.section(
     [
       h.Class(
@@ -157,7 +157,7 @@ export const dashboardShellView = (
   model: Model,
   telemetry: Telemetry,
   maybeBanner: Option.Option<string>,
-  h: Chart.HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   h.section(
     [

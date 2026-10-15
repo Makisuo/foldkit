@@ -1,6 +1,6 @@
 import { Option } from 'effect'
+import { defineApplication } from 'foldkit'
 import type { Update } from 'foldkit'
-import { define as defineApplication } from 'foldkit/application'
 import { modifyFields } from 'foldkit/struct'
 
 import { Message, Model } from './blockProfileContract'
@@ -19,11 +19,8 @@ const foldSettingsOutMessage = Settings.OutMessage.match<
 const Application = defineApplication({ Model, Message })
 
 export const settings = Application.bindChild(Settings.block, {
-  read: (model: Model) => model.maybeSettings,
-  write: (model, nextSettings) =>
-    modifyFields(model, {
-      maybeSettings: () => Option.some(nextSettings),
-    }),
+  placement: 'Settings',
+  field: 'maybeSettings',
   parentMessage: Message.GotSettingsMessage,
   outMessage: { fold: foldSettingsOutMessage },
 })

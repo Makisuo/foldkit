@@ -53,13 +53,22 @@ type ChildAttributeValue<RequiredMountRequirements> =
  *  `ChildAttribute` alongside `Attribute<Message>` in their attribute
  *  arrays. */
 export type ChildAttribute<RequiredMountRequirements = never> = Readonly<{
+  /** Identifies values created by {@link childAttributes}. */
   readonly [BRAND]: true
+  /** Wrapped Attribute rendered by the receiving parent element. */
   readonly attribute: ChildAttributeValue<RequiredMountRequirements>
+  /** Dispatcher captured from the originating Block boundary. */
   readonly dispatch: DispatchSync
+  /** Captures an `OnUnmount` dispatch while the originating boundary exists. */
   readonly resolveUnmount: (message: unknown) => () => void
+  /** Message wrappers retained for Scene test resolution. */
   readonly boundaryMappers: ReadonlyArray<(message: unknown) => unknown>
+  /** Resolves the render-owned dispatcher for an `OnMount` Attribute. */
   readonly resolveMountDispatch?: MountDispatchResolver
-  /** @internal Captures the originating Block's capability aliases. */
+  /**
+   * Effect Context carrying the originating Block's Mount capability aliases.
+   * @internal
+   */
   readonly mountContext?: Context.Context<never>
 }>
 

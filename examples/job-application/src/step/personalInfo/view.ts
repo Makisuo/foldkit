@@ -7,12 +7,12 @@ import { DatePicker as UiDatePicker } from '@foldkit/ui'
 
 import { PronounOption } from '../../domain'
 import { DatePicker, Field, Icon } from '../../view'
+import { Message } from './definition'
 import {
-  Message,
   PersonalInfoComposition,
   availableDatePicker,
   pronounsListbox,
-} from './definition'
+} from './personalInfo'
 
 type PersonalInfoHtmlBuilder = Parameters<
   Parameters<typeof PersonalInfoComposition.view>[0]

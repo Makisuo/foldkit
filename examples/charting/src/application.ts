@@ -1,4 +1,5 @@
 import { Layer } from 'effect'
+import type { Block } from 'foldkit'
 
 import {
   chartModeRadioGroup,
@@ -19,3 +20,5 @@ export const ApplicationComposition = Application.toComposition({
   mounts: [MountChart],
   children: [chartModeRadioGroup, periodRadioGroup, packageRadioGroup],
 })
+
+export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>

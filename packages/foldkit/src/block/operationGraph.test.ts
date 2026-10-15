@@ -25,7 +25,7 @@ const initialModel = ParentModel.make({
 
 const ChildOwner = define('OperationGraphChild')
 const Child = ChildOwner.define({ Model: ChildModel, Message })
-const reset = Child.step((_model: ChildModel) => ({
+const reset = Child.step(_model => ({
   model: ChildModel.make({ count: 0 }),
 }))
 const ChildBlock = Child.toComposition().toBlock({
@@ -57,7 +57,7 @@ const OmittedParent = omittedParent.toComposition().toBlock({
       primary: () => omittedChild.init().model,
     }),
   }),
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   EffectsLayer: Layer.empty,
 })
 
@@ -102,8 +102,7 @@ const exactParentComposition = exactParentBase.toComposition({
 const ExactParent = exactParentComposition.toBlock({
   view: exactParentComposition.view((_model, h) => h.div([])),
   init: () => ({ model: initialModel }),
-  update: (model: ParentModel, message: Message) =>
-    wrongPlacement.fold(model, 'only', message),
+  update: (model, message) => wrongPlacement.fold(model, 'only', message),
   EffectsLayer: Layer.empty,
 })
 
@@ -130,7 +129,7 @@ const policy = PolicyOwner.define({
 const PolicyChild = policy.toComposition().toBlock({
   view: policy.view((_model, h) => h.div([])),
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
-  update: (model: ChildModel) => ({
+  update: model => ({
     model,
     outMessage: PolicyOutMessage.RequestedSiblingReset(),
   }),
@@ -165,8 +164,7 @@ const policyParentComposition = policyParentBase.toComposition({
 const PolicyParent = policyParentComposition.toBlock({
   view: policyParentComposition.view((_model, h) => h.div([])),
   init: () => ({ model: initialModel }),
-  update: (model: ParentModel, message: Message) =>
-    policyChild.fold(model, message),
+  update: (model, message) => policyChild.fold(model, message),
   EffectsLayer: Layer.empty,
 })
 

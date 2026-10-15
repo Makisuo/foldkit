@@ -1,7 +1,8 @@
 import { Array, Context, type Fiber, Option } from 'effect'
 import type { Effect as EffectType } from 'effect/Effect'
 
-/** @internal The stable key identifying a child in a collection. */
+/** A stable keyed Binding occurrence identity. Runtime keys must be strings or
+ * finite numbers. */
 export type InstanceKey = string | number
 
 /** @internal A logical step in the declared composition graph. */

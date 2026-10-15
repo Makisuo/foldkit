@@ -113,28 +113,24 @@ const childUpdate = childBase.update(
     }),
 )
 
-const save = childBase.step((model: ChildModel) => ({
+const save = childBase.step(model => ({
   model,
   commands: [Save()],
 }))
 
-const reset = childBase.step((model: ChildModel) => ({
+const reset = childBase.step(model => ({
   model: modifyFields(model, { count: () => 0 }),
 }))
 
 const addForRoom = childBase.step(
-  (
-    model: ChildModel,
-    amount: number,
-    context: Readonly<{ roomId: string }>,
-  ) => ({
+  (model, amount: number, context: Readonly<{ roomId: string }>) => ({
     model: modifyFields(model, {
       count: () => model.count + amount + context.roomId.length,
     }),
   }),
 )
 
-const report = childBase.step((model: ChildModel) => ({
+const report = childBase.step(model => ({
   model,
   outMessage: ChildOutMessage.Reported({ value: model.count }),
 }))
@@ -302,23 +298,28 @@ const forwardOnlyHome = Parent.bindChild(Child, {
 })
 
 const bindWithoutOutMessagePolicy = () =>
-  // @ts-expect-error an OutMessage block requires an explicit parent policy
   Parent.bindChild(Child, {
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     placement: 'missing-policy',
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     read: (model: ParentModel) => model.maybeChild,
     write: writeChild,
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     toParentMessage,
   })
 void bindWithoutOutMessagePolicy
 
 const bindWithUnknownForward = () =>
-  // @ts-expect-error an unknown return would erase the parent OutMessage contract
   Parent.bindChild(Child, {
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     placement: 'unknown-forward',
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     read: (model: ParentModel) => model.maybeChild,
     write: writeChild,
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     toParentMessage,
     // eslint-disable-next-line foldkit/no-empty-to-parent-out-message
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     outMessage: { forward: (): unknown => undefined },
   })
 void bindWithUnknownForward
@@ -756,7 +757,7 @@ describe('Block binding', () => {
     })
     const parent = parentContract.toBlock({
       init: () => ({ model: initialParent }),
-      update: (model: ParentModel, _message: ParentMessage) => ({ model }),
+      update: (model, _message) => ({ model }),
       EffectsLayer: Layer.empty,
     })
 
@@ -953,7 +954,7 @@ describe('Block child registration composition', () => {
       })
       const Repeated = RepeatedComposition.toBlock({
         init: () => ({ model: ChildModel.make({ count: 0 }) }),
-        update: (model: ChildModel) => ({ model }),
+        update: model => ({ model }),
         EffectsLayer,
         hostHandlers: [RepeatedMount],
       })
@@ -1014,7 +1015,7 @@ describe('generic block refinement', () => {
         return { model }
       }
     })
-    const finish = Definition.step((model: Model) => ({
+    const finish = Definition.step(model => ({
       model,
       commands: [FinishChoice()],
     }))

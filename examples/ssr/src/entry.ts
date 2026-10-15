@@ -11,7 +11,7 @@ import {
 } from './application'
 import './styles.css'
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

@@ -1,7 +1,8 @@
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test, vi } from 'vitest'
 
-import { Message, type Model, handleSlow } from './application'
+import { handleSlow } from './application'
+import { Message, type Model } from './definition'
 
 const initialModel: Model = {
   activeWorkload: 'Idle',

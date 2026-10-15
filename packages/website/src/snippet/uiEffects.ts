@@ -1,5 +1,5 @@
 // application.ts
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 
 import { Dialog, Menu } from '@foldkit/ui'
 
@@ -61,7 +61,7 @@ import { ApplicationComposition, update, view } from './application'
 import { init } from './init'
 import { Message } from './message'
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

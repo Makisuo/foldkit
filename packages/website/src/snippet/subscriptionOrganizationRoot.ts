@@ -1,7 +1,7 @@
 import { ApplicationComposition, init, update, view } from './application'
 import { Message } from './message'
 
-export const application = ApplicationComposition.make({
+export const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

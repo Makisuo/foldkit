@@ -8,17 +8,13 @@ import { Dialog, Menu } from '@foldkit/ui'
 import { ShowDialog } from '@foldkit/ui/dialog'
 
 import { LoadPlayground, home } from './childBindings'
+import { ScrollSidebarActiveLinkIntoView, ScrollToTop } from './command'
 import { Deployment } from './deployment'
 import { Message } from './message'
 import { type Model } from './model'
 import { Home } from './page'
 import * as NotePlayerDemo from './page/home/notePlayerDemo'
-import {
-  ScrollSidebarActiveLinkIntoView,
-  ScrollToTop,
-  init,
-  update,
-} from './root'
+import { init, update } from './root'
 import * as Search from './search'
 import { FocusSearchInput } from './search/update'
 import * as SnippetCopy from './snippetCopy'

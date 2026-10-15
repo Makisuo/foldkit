@@ -4,3 +4,7 @@ import { Message } from './message'
 import { Model } from './model'
 
 export const Room = Block.define('Room', { Model, Message })
+
+export const RoomComposition = Room.toComposition()
+
+export type ViewBuilder = Block.HtmlBuilderOf<typeof RoomComposition>

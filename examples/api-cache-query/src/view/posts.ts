@@ -3,7 +3,7 @@ import { AsyncData } from 'foldkit'
 
 import * as Button from '@foldkit/ui/button'
 
-import { ApplicationComposition } from '../application'
+import type { ViewBuilder } from '../application'
 import type { Post, PostDetail } from '../data'
 import { Message } from '../message'
 import type { Model } from '../model'
@@ -20,7 +20,7 @@ const isPostCached = (
   postId: string,
 ): boolean => AsyncData.hasData(postQuery.read(postDetails, { postId }))
 
-export const postsTabView = ApplicationComposition.render((model, h) =>
+export const postsTabView = (model: Model, h: ViewBuilder) =>
   Option.match(model.maybeSelectedPostId, {
     onNone: () =>
       h.section([h.Class('flex flex-col gap-4')], [postsListView(model, h)]),
@@ -30,10 +30,9 @@ export const postsTabView = ApplicationComposition.render((model, h) =>
         [h.Class('flex flex-col gap-4')],
         [postDetailView({ model, postId }, h)],
       ),
-  }),
-)
+  })
 
-export const postsListView = ApplicationComposition.render((model, h) => {
+export const postsListView = (model: Model, h: ViewBuilder) => {
   const postsAsyncData = postsQuery.read(model.posts)
   const isPending = AsyncData.isPending(postsAsyncData)
 
@@ -94,11 +93,18 @@ export const postsListView = ApplicationComposition.render((model, h) => {
       }),
     ],
   )
-})
+}
 
-export const postListItems = ApplicationComposition.render.withInput<
-  Readonly<{ posts: ReadonlyArray<Post>; postDetails: Model['postDetails'] }>
->()(({ posts, postDetails }, h) =>
+export const postListItems = (
+  {
+    posts,
+    postDetails,
+  }: Readonly<{
+    posts: ReadonlyArray<Post>
+    postDetails: Model['postDetails']
+  }>,
+  h: ViewBuilder,
+) =>
   Array.map(posts, post =>
     h.keyed('li')(
       post.id,
@@ -146,12 +152,12 @@ export const postListItems = ApplicationComposition.render.withInput<
         ),
       ],
     ),
-  ),
-)
+  )
 
-export const postDetailView = ApplicationComposition.render.withInput<
-  Readonly<{ model: Model; postId: string }>
->()(({ model, postId }, h) => {
+export const postDetailView = (
+  { model, postId }: Readonly<{ model: Model; postId: string }>,
+  h: ViewBuilder,
+) => {
   const postAsyncData = postQuery.read(model.postDetails, { postId })
 
   return h.div(
@@ -202,11 +208,12 @@ export const postDetailView = ApplicationComposition.render.withInput<
       }),
     ],
   )
-})
+}
 
-export const postCard = ApplicationComposition.render.withInput<
-  Readonly<{ post: PostDetail; fetchedAt: number }>
->()(({ post, fetchedAt }, h) =>
+export const postCard = (
+  { post, fetchedAt }: Readonly<{ post: PostDetail; fetchedAt: number }>,
+  h: ViewBuilder,
+) =>
   h.article(
     [h.Class('bg-white rounded-xl shadow p-6 flex flex-col gap-3')],
     [
@@ -220,5 +227,4 @@ export const postCard = ApplicationComposition.render.withInput<
         ],
       ),
     ],
-  ),
-)
+  )

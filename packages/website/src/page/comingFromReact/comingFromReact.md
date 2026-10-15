@@ -136,7 +136,7 @@ The compiler changes how React optimizes renders. It does not choose the applica
 :::Faq{id="faq-data-fetching" question="How do I fetch data?"}
 Return a Command from the update handler for the Message that starts the request. The runtime executes the Effect and dispatches the Command’s result Message. Update then stores the result in the Model, commonly using [AsyncData](/core/async-data).
 
-Independent requests are not ordered or cancelled automatically. When an earlier response could arrive late, include the request context in its result Message and accept it only if it still matches the current Model. [Coming from TanStack Query](/react/coming-from-tanstack-query#out-of-order-responses) shows the complete pattern. See the [Weather example](https://github.com/foldkit/foldkit/blob/main/examples/weather/src/application.ts#L153-L232) for a working request flow.
+Independent requests are not ordered or cancelled automatically. When an earlier response could arrive late, include the request context in its result Message and accept it only if it still matches the current Model. [Coming from TanStack Query](/react/coming-from-tanstack-query#out-of-order-responses) shows the complete pattern. See the [Weather example](https://github.com/foldkit/foldkit/blob/main/examples/weather/src/command.ts) for a working request flow.
 :::
 
 :::Faq{id="faq-ssr" question="Does Foldkit do SSR like Next.js?"}

@@ -44,7 +44,7 @@ A complete Foldkit program. State lives in a single Model, events become Message
 ```ts
 // src/application.ts
 import { Schema } from 'effect'
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -98,7 +98,7 @@ import { Runtime } from 'foldkit'
 
 import { ApplicationComposition, init, update, view } from './application'
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,
@@ -108,7 +108,7 @@ const application = ApplicationComposition.make({
 Runtime.run(application)
 ```
 
-`defineApplication` creates helpers owned by this root, including `Application.command`, `Application.update`, and `ApplicationComposition.view`. Every application establishes its child and Mount graph with `Application.toComposition({ children, mounts })`, using `Application.toComposition()` for an empty graph. Root-owned handler recipes can be passed to the Composition's `make` as `EffectsLayer`.
+`defineApplication` creates helpers owned by this root, including `Application.command`, `Application.update`, and `ApplicationComposition.view`. Every application establishes its child and Mount graph with `Application.toComposition({ children, mounts })`, using `Application.toComposition()` for an empty graph. Pass root-owned handler recipes to `ApplicationComposition.toApplication` as `EffectsLayer`.
 
 A feature follows the same staged flow. Define its contracts as `Feature` with `Block.define('Feature', { Model, Message, OutMessage })`, author its behavior through that Definition, and establish the graph with `Feature.toComposition({ children, mounts })`. Use `Feature.toComposition()` for an empty graph, then export the completed Block from `FeatureComposition.toBlock({ init, update, view })`. A parent imports the `Feature` namespace, creates a Binding with `Parent.bindChild(Feature.block, config)`, and includes that Binding in its Composition's child graph.
 

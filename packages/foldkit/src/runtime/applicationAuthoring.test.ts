@@ -61,12 +61,10 @@ const ReadRootValue = Application.command('ReadRootValue', {
       Effect.succeed(Message.CompletedReadRootValue({ value: source.value }))
   },
 })
-const documentView = Application.view(
-  (model, h: HtmlBuilderOf<typeof Application>) => ({
-    title: model.rootValue,
-    body: h.div([], [model.rootValue]),
-  }),
-)
+const documentView = Application.view((model, h) => ({
+  title: model.rootValue,
+  body: h.div([], [model.rootValue]),
+}))
 const graphlessElementView = Application.view((model, h) =>
   h.div([], [model.rootValue]),
 )
@@ -166,7 +164,7 @@ const typecheckRootCompletion = (): void => {
     messages: [ForeignMessage.ForeignCompleted],
   })
 
-  Application.toComposition().makeElement({
+  Application.toComposition().toElement({
     container: null,
     init,
     update,
@@ -174,7 +172,7 @@ const typecheckRootCompletion = (): void => {
     EffectsLayer: ReadRootValue.layer,
   })
 
-  const application = composition.make({
+  const application = composition.toApplication({
     container: null,
     init,
     update,
@@ -190,21 +188,21 @@ const typecheckRootCompletion = (): void => {
   > = application
   void pendingApplication
 
-  NoMessageComposition.make({
+  NoMessageComposition.toApplication({
     container: null,
     init: noMessageInit,
     update: noMessageUpdate,
     view: noMessageDocumentView,
   })
-  NoMessageComposition.makeElement({
+  NoMessageComposition.toElement({
     container: null,
     init: noMessageInit,
     update: noMessageUpdate,
     view: noMessageElementView,
   })
 
-  // @ts-expect-error make requires the registered Document view.
-  composition.make({
+  // @ts-expect-error toApplication requires the registered Document view.
+  composition.toApplication({
     container: null,
     init,
     update,
@@ -212,8 +210,8 @@ const typecheckRootCompletion = (): void => {
     EffectsLayer: ReadRootValue.layer,
   })
 
-  // @ts-expect-error makeElement requires the registered Element view.
-  composition.makeElement({
+  // @ts-expect-error toElement requires the registered Element view.
+  composition.toElement({
     container: null,
     init,
     update,
@@ -222,7 +220,7 @@ const typecheckRootCompletion = (): void => {
   })
 
   // @ts-expect-error the graphless definition has not registered the child used by this view.
-  Application.toComposition().makeElement({
+  Application.toComposition().toElement({
     container: null,
     init,
     update,
@@ -231,7 +229,7 @@ const typecheckRootCompletion = (): void => {
   })
 
   // @ts-expect-error the graphless definition has not registered the Mount used by this view.
-  Application.toComposition().makeElement({
+  Application.toComposition().toElement({
     container: null,
     init,
     update,
@@ -240,15 +238,15 @@ const typecheckRootCompletion = (): void => {
   })
 
   // @ts-expect-error root handler definitions must be included in EffectsLayer.
-  composition.makeElement({
+  composition.toElement({
     container: null,
     init,
     update,
     view,
   })
 
-  composition.makeElement({
-    // @ts-expect-error Model is established by Application.define.
+  composition.toElement({
+    // @ts-expect-error Model is established by defineApplication.
     Model,
     container: null,
     init,
@@ -264,7 +262,7 @@ const typecheckRootCompletion = (): void => {
       child: { value: 'child' },
     },
   })
-  const elementWithFlags = composition.makeElement({
+  const elementWithFlags = composition.toElement({
     Flags,
     flags: Effect.succeed({ initialValue: 'from flags' }),
     container: null,
@@ -287,7 +285,7 @@ const typecheckRootCompletion = (): void => {
     view: documentView,
     EffectsLayer: ReadRootValue.layer,
   }
-  const routedApplication = composition.make({
+  const routedApplication = composition.toApplication({
     ...routedImplementation,
     container: null,
     routing: {
@@ -317,7 +315,7 @@ const typecheckRootCompletion = (): void => {
     view: documentView,
     EffectsLayer: ReadRootValue.layer,
   }
-  const routedFlagsApplication = composition.make({
+  const routedFlagsApplication = composition.toApplication({
     ...routedFlagsImplementation,
     Flags,
     container: null,
@@ -342,7 +340,7 @@ const typecheckRootCompletion = (): void => {
   void pendingRoutedFlagsApplication
 
   // @ts-expect-error a Flags application init must receive its Flags.
-  composition.makeElement({
+  composition.toElement({
     Flags,
     flags: Effect.succeed({ initialValue: 'from flags' }),
     container: null,
@@ -388,7 +386,7 @@ describe('Application authoring', () => {
 
   it('completes an empty composition through its owned method', () => {
     expect(() =>
-      NoMessageComposition.makeElement({
+      NoMessageComposition.toElement({
         container: document.createElement('div'),
         init: noMessageInit,
         update: noMessageUpdate,
@@ -402,7 +400,7 @@ describe('Application authoring', () => {
     container.id = 'application-authoring'
     document.body.append(container)
 
-    const element = composition.makeElement({
+    const element = composition.toElement({
       container,
       init,
       update,

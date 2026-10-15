@@ -56,7 +56,12 @@ export const block = HomeComposition.toBlock({ init, update, view })
 export { block } from './block'
 export { Message, OutMessage } from './message'
 export { Model } from './model'
+
+// page/index.ts
+export * as Home from './home'
 ```
+
+Parents import the Home namespace from the parent barrel and bind `Home.block`.
 
 `children` and `mounts` are independently optional. Use `toComposition()`, `toComposition({ children })`, `toComposition({ mounts })`, or `toComposition({ children, mounts })`. Omitted registrations grant no capabilities. Keep operations required by child policy on the authoring value; the Composition retains the established authoring helpers.
 
@@ -87,7 +92,7 @@ const home = Home.block.connection({
 After:
 
 ```ts
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 
 import { Message } from './message'
 import { Model } from './model'
@@ -105,9 +110,9 @@ export const ApplicationComposition = Application.toComposition({
 })
 ```
 
-The direct field form infers the parent Model and child Model relationship. Use explicit `read` and `write` for optional, tagged, or custom storage. Use `toParentMessage` for a custom wrapper. Do not pass a redundant Model Schema.
+The direct field form infers the parent Model and child Model relationship for exact `ChildModel` and `Option<ChildModel>` fields. Both forms keep the field name as their default placement. `None` makes an optional field absent, and a fold or exposed operation never creates it. Add `presentWhen` when parent policy gates that whole direct child. Use explicit `read` and `write` for tagged, nested, or custom storage. Foldkit compares decoded built-in Schema shapes; reuse the same Schema instance for an opaque declaration or keep custom accessors. Use `toParentMessage` for a custom wrapper. Do not pass a redundant Model Schema.
 
-Substantial parent wiring belongs in `childBindings.ts`. It may configure several children. Small wiring can stay in `application.ts` or the parent `block.ts`.
+Keep straightforward parent Bindings together in `childBindings.ts`. Small wiring can stay in `application.ts` or the parent `block.ts`. When one child needs substantial parent policy, put that Binding and policy in `childBindings/<child>.ts`. In that layout, `childBindings/childBindings.ts` exports the complete `children` tuple with `as const`, while the explicit `childBindings/index.ts` exports the named Bindings and `children`. Do not divide Bindings into arbitrary groups such as `pages` or `controls`.
 
 The Binding projects `init`, `fold`, `embedView`, and operations selected under `expose`:
 
@@ -125,7 +130,7 @@ The parent configures OutMessage policy in its Binding. That policy executes dur
 parent update → child fold or operation → parent OutMessage handling → parent result
 
 ```ts
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 
 import { Message } from './message'
 import { Model } from './model'
@@ -147,7 +152,7 @@ export const home = Application.bindChild(Home.block, {
 
 `outMessage.fold` handles variants locally. Add an exhaustive `outMessage.forward` only when at least one variant continues through the current Block's OutMessage. A derived OutMessage takes precedence over forwarding for the same dispatch; local handling still runs.
 
-A keyed Binding uses the same parent-owned method. `readAll` selects the collection and distinguishes it from a static Binding:
+A keyed Binding uses the same parent-owned method. When a field is an array of child Models, a string-valued `key` names their stable identity field:
 
 ```ts
 import { Block } from 'foldkit'
@@ -155,15 +160,13 @@ import { Block } from 'foldkit'
 import { Message } from './message'
 import { Model } from './model'
 import { Row } from './row'
-import { replaceRow } from './rows'
 
 const Table = Block.define('Table', { Model, Message })
 
 export const rows = Table.bindChild(Row.block, {
-  readAll: model => model.rows,
-  key: row => row.id,
-  read: row => row,
-  writeAt: (model, rowId, nextRow) => replaceRow(model, rowId, nextRow),
+  placement: 'Row',
+  field: 'rows',
+  key: 'id',
   toParentMessage: (rowId, message) =>
     Message.GotRowMessage({ rowId, message }),
 })
@@ -173,12 +176,16 @@ export const TableComposition = Table.toComposition({
 })
 ```
 
+The child Schema must expose its declared Struct fields. Use the general keyed form for a union Model or a Schema without declared fields. The shorthand otherwise defaults placement to `field`. Keep the previous Block-ID placement explicitly when migrating an existing general keyed Binding whose resolved identity differs, as above. The child Model returned by `init(key, ...)` must contain that key, and child folds and operations cannot change it. Parent update owns collection membership, so it replaces identity by removing one Model and adding another. Use `readAll`, function-valued `key`, `read`, and `writeAt` when collection items wrap the child Model or writing one child requires custom parent logic.
+
+Use a keyed Binding for a routed child when its domain ID changes, even if only one instance is present at a time. Capture the key in `toParentMessage` so delayed Command results and Subscription emissions retain their origin. Replacing the key retires that occurrence and its dispatchers; reusing the key later creates a new occurrence. Running Commands retain application lifetime, so isolate external writes by domain ID when their completion must not overwrite another instance's data.
+
 A Query uses the same Binding path because Query and KeyedQuery are completed viewless Blocks. A KeyedQuery's keyed entries remain cache data inside one child Model; they are not keyed Block instances.
 
 ```ts
 import { Schema } from 'effect'
 import { Query } from 'foldkit/experimental'
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 
 import { fetchPosts } from './api'
 import { Message } from './message'
@@ -210,11 +217,14 @@ export const ApplicationComposition = Application.toComposition({
 
 Query preserves `Model`, `Message`, `Fetch`, direct `read` and `run`, cache generations, stale response protection, loading, refresh and reset operations, cache key typing, and precise handler constructor error and Service requirements. A canonical handler contributes `query.EffectsLayer`. A host-owned Query omits `handler`, lists the unresolved Fetch contract on its Block, and is completed with `query.provideHandlers(query.toLayer(...))` before binding.
 
-## Use Composition-owned rendering helpers
+## Use plain feature-local view helpers
 
-A Composition supplies the Model, Message, and registered capabilities for ordinary owned helpers:
+`Composition.render`, `render.builder`, and `render.withInput` are removed. The canonical owned view still uses `Composition.view` or `view.withInputs`. Ordinary helpers are plain functions with purposeful parameters.
+
+Before:
 
 ```ts
+import type { Article } from './article'
 import { ApplicationComposition } from './application'
 
 export const headerView = ApplicationComposition.render.builder(h =>
@@ -233,20 +243,69 @@ export const articleList = ApplicationComposition.render((model, h) =>
 )
 ```
 
-Keep plain generic rendering helpers for code deliberately reusable across owners. Use `HtmlBuilderOf<typeof Composition>` for a meaningful public interface with a different signature, including helpers that preserve caller-provided capability generics. Do not add an unused Model parameter solely to obtain contextual typing.
+After, keep the early root contract separate when child Bindings import its helpers:
+
+```ts
+// definition.ts
+import { defineApplication } from 'foldkit'
+
+import { Message } from './message'
+import { Model } from './model'
+
+export const Application = defineApplication({ Model, Message })
+
+// application.ts
+import type { Block } from 'foldkit'
+
+import { children } from './childBindings'
+import { Application } from './definition'
+import { mounts } from './mount'
+
+export { Application } from './definition'
+
+export const ApplicationComposition = Application.toComposition({
+  children,
+  mounts,
+})
+export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+```
+
+Then in the feature's helper module:
+
+```ts
+import type { Article } from './article'
+import type { ViewBuilder } from './application'
+import type { Model } from './model'
+
+export const headerView = (h: ViewBuilder) => h.header([], ['Articles'])
+
+export const articleCard = (article: Article, h: ViewBuilder) =>
+  h.article([], [article.title])
+
+export const articleList = (model: Model, h: ViewBuilder) =>
+  h.ul(
+    [],
+    model.articles.map(article => h.li([], [article.title])),
+  )
+```
+
+`Block.HtmlBuilderOf<typeof ApplicationComposition>` carries the root Message type plus its registered child and Mount capabilities. It is a type alias and constructs no runtime builder. A helper takes only the Model, domain value, or context it actually reads; TypeScript infers one `Html` result or an array. Keep the framework's general `HtmlBuilder<Message>` for functions genuinely shared across owners.
 
 ## Name and organize the final roles
 
 Use `Foo`, `FooComposition`, and `block`. Use `Application`, `ApplicationComposition`, and lowercase `application` or `element` at the root.
 
-- `definition.ts`: an early authoring dependency when split implementation files need it.
+- `definition.ts`: early Model, Message, OutMessage, and Block authoring contracts when split implementation files need them.
+- A folder-named implementation file, such as `workHistory/workHistory.ts`: substantial feature logic that does not warrant separate init/update/command files.
 - `block.ts`: completed feature assembly.
-- `childBindings.ts`: substantial parent-owned child integration.
-- `application.ts`: root Application, Bindings, Composition, and cohesive root behavior.
+- `childBindings.ts`: straightforward parent-owned child Bindings; use `childBindings/<child>.ts` for an individual substantial policy.
+- `application.ts`: root Application graph, Composition, and cohesive root behavior. Small root Bindings can stay here; extract substantial integration to `childBindings.ts` or `childBindings/`.
 - `entry.ts`: container, startup inputs, root Service providers, and Runtime startup.
 - `layer.ts`: substantial or reused Layer composition at that directory boundary.
 
-Do not create one file per API stage. Keep small examples compact. Use explicit barrels for intended feature contracts and import private implementations directly in tests.
+A compact root defines `Application` directly in `application.ts`. When split root Commands, Subscriptions, or child Bindings need that authoring value before Composition assembly, put its early contract in `definition.ts`. Those modules import the contract there; `application.ts` imports and re-exports `Application` and exports `ApplicationComposition`. Entry completion still imports each implementation field from its real owner.
+
+Keep final completion in `block.ts` when the view imports its Composition and Bindings from the implementation. The final assembly imports both modules, so the implementation never needs to import a view that depends on it. Do not create one file per API stage. Keep small examples compact. Use explicit barrels for intended feature contracts and import private implementations directly in tests.
 
 `EffectsLayer` supplies implementations of declared Commands, Subscriptions, Mounts, ManagedResources, and Query Fetch Commands. `ApplicationLayer` supplies ordinary Services required by those handlers and startup Effects. Compose a small feature `EffectsLayer` in `block.ts`; use feature `layer.ts` when substantial. Keep a small `ApplicationLayer` in `entry.ts`; use root `layer.ts` when substantial or reused. Remove `services.ts` files that only rename or merge a tiny provider bundle.
 
@@ -279,7 +338,7 @@ After:
 
 ```ts
 // application.ts
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 
 import { Message } from './message'
 import { Model } from './model'
@@ -290,16 +349,15 @@ export const ApplicationComposition = Application.toComposition()
 // entry.ts
 import { Runtime } from 'foldkit'
 
-import { ApplicationComposition, EffectsLayer } from './application'
+import { ApplicationComposition } from './application'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,
-  EffectsLayer,
   container: document.getElementById('root'),
 })
 

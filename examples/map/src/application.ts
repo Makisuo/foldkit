@@ -1,4 +1,5 @@
 import { Layer } from 'effect'
+import type { Block } from 'foldkit'
 
 import {
   FlyTo,
@@ -13,6 +14,8 @@ import { MountMap } from './mount'
 export const ApplicationComposition = Application.toComposition({
   mounts: [MountMap],
 })
+
+export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 export const EffectsLayer = Layer.mergeAll(
   FlyTo.layer,

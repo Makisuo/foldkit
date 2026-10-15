@@ -6,7 +6,7 @@ import {
   entries,
   init,
   update,
-} from './definition'
+} from './skills'
 import { view } from './view'
 
 export const block = SkillsComposition.toBlock({

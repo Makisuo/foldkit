@@ -48,7 +48,7 @@ This complete program defines the Model, Messages, update, init, and view in `ap
 ```ts
 // src/application.ts
 import { Schema } from 'effect'
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -127,7 +127,7 @@ import { Runtime } from 'foldkit'
 
 import { ApplicationComposition, init, update, view } from './application'
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

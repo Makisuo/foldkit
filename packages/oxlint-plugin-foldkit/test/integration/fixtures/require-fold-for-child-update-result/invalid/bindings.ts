@@ -1,4 +1,4 @@
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 import { Option, Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'

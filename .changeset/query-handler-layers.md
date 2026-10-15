@@ -97,7 +97,7 @@ Query's local `Fetch` Command belongs to its named Block. Parent Bindings qualif
 Query and KeyedQuery are completed viewless Blocks. Bind them through the owning parent Definition and list the Binding under `children`:
 
 ```ts
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 
 import { Message } from './message'
 import { Model } from './model'

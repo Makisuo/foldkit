@@ -1,8 +1,6 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect'
-import {
-  type Element as ElementProgram,
-  define as defineApplication,
-} from 'foldkit/application'
+import { defineApplication } from 'foldkit'
+import type { Element as ElementProgram } from 'foldkit/application'
 import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
 import type * as Update from 'foldkit/update'
@@ -2267,9 +2265,9 @@ const Application = defineApplication({
 })
 const worker = Application.bindChild(Worker, {
   placement: 'worker',
-  read: (model: WorkerModel) => Option.some(model),
-  write: (_model: WorkerModel, nextWorker: WorkerModel) => nextWorker,
-  toParentMessage: (message: WorkerMessage) => message,
+  read: model => Option.some(model),
+  write: (_model, nextWorker) => nextWorker,
+  toParentMessage: message => message,
 })
 const ApplicationComposition = Application.toComposition({ children: [worker] })
 const update = ApplicationComposition.update((model, message) =>
@@ -2277,7 +2275,7 @@ const update = ApplicationComposition.update((model, message) =>
 )
 const view = ApplicationComposition.view((_model, h) => h.main([]))
 
-export const program = ApplicationComposition.makeElement({
+export const program = ApplicationComposition.toElement({
   container: null,
   init: () => worker.init(),
   update,

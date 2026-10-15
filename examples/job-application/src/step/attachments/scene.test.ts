@@ -1,7 +1,7 @@
 import { expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { init, update } from './definition'
+import { init, update } from './attachments'
 import { view } from './view'
 
 describe('attachments', () => {

@@ -3,8 +3,9 @@ import { click, expect, given, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import { type Model, update, view } from './application'
+import { update, view } from './application'
 import { products } from './data/products'
+import { type Model } from './definition'
 import { Products } from './page'
 import { ApplicationRoute } from './route'
 

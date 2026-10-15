@@ -5,11 +5,8 @@ import { Button } from '@foldkit/ui'
 
 import { ProficiencyLevel } from '../../../domain'
 import { Field } from '../../../view'
-import {
-  Message,
-  SkillsEntryComposition,
-  proficiencyRadioGroup,
-} from './definition'
+import { Message } from './definition'
+import { SkillsEntryComposition, proficiencyRadioGroup } from './entry'
 
 export const view = SkillsEntryComposition.view((model, h) => {
   const nameView = Field.input(

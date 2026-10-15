@@ -352,13 +352,13 @@ export const view = PanelComposition.view((model, h) =>
   h.div([h.OnMount(MeasurePanel())], [model.label]),
 )
 
-// Extracted helpers on this mounted view path can use one derived alias.
-export type HtmlBuilder = Block.HtmlBuilderOf<typeof PanelComposition>
+// Extracted helpers on this mounted view path use one derived alias.
+export type ViewBuilder = Block.HtmlBuilderOf<typeof PanelComposition>
 ```
 
 A child with `ViewInputs` uses its Composition's `view.withInputs<ViewInputs>` and receives the builder third. A parent Binding carries the child's Mounts and handler recipe automatically. TypeScript checks that the parent Composition includes the Binding before `h.block(binding.embedView(...))` can embed it.
 
-Ordinary owned helpers use `FeatureComposition.render`, `render.builder`, or `render.withInput<Input>()`. Preserve `Block.HtmlBuilderOf<typeof FeatureComposition>` for a deliberate public helper interface; reusable helpers keep `HtmlBuilder<Message>`.
+The Composition's `view` or `view.withInputs` defines its canonical owned view. Ordinary feature-local helpers are plain functions whose `h` parameter uses a `ViewBuilder` alias derived with `Block.HtmlBuilderOf<typeof FeatureComposition>`. That alias retains the feature Message, child, and Mount requirements without constructing a runtime builder. Give each helper only the Model, domain, or context parameters it uses. Functions genuinely shared across owners keep the general `HtmlBuilder<Message>`.
 
 Let TypeScript infer Mount registration arrays and composed spreads. An annotation such as `ReadonlyArray<Mount.LayeredMountDefinition>` erases the definition contracts and is rejected at application assembly. If forwarded attribute arrays need an explicit type, preserve the requirements as `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>`. `childAttributes` and `CustomElement.withMessage(h)` preserve the requirements automatically.
 
@@ -477,7 +477,7 @@ Pass `managedResources` and its local `EffectsLayer` to `CameraComposition.toBlo
 
 ### Application assembly and runtime resources
 
-Remove the `resources` field. Establish `Application` and `ApplicationComposition` in `application.ts`, then complete it in `entry.ts` with its owned `make` or `makeElement` method. Supply ordinary Services through the completed program's `provide` method before calling the Runtime.
+Remove the `resources` field. Export `Application` and establish `ApplicationComposition` in `application.ts`, then complete it in `entry.ts` with its owned `toApplication` or `toElement` method. Supply ordinary Services through the completed program's `provide` method before calling the Runtime.
 
 This example uses the storage service needed by `StoreDraft`. The Application collects its local handler recipes and the recipes of child Bindings included in its Composition; `ApplicationLayer` supplies their ordinary Services.
 
@@ -506,7 +506,7 @@ Runtime.run(application)
 In `application.ts`:
 
 ```ts
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 
 import { Model } from './model'
 import { Message } from './message'
@@ -528,7 +528,7 @@ import { view } from './view'
 
 const ApplicationLayer = BrowserKeyValueStore.layerLocalStorage
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,
@@ -539,7 +539,7 @@ const application = ApplicationComposition.make({
 Runtime.run(application.provide(ApplicationLayer))
 ```
 
-For an Element, use `ApplicationComposition.makeElement`, call `element.provide(ApplicationLayer)`, and pass the result to `Runtime.run` or `Runtime.embed`. Preserve existing Flags, Ports, container, and DevTools host configuration. Include local Subscriptions and ManagedResources in completion; child Bindings included in the Composition contribute their lifecycle declarations and handlers automatically.
+For an Element, use `ApplicationComposition.toElement`, call `element.provide(ApplicationLayer)`, and pass the result to `Runtime.run` or `Runtime.embed`. Preserve existing Flags, Ports, container, and DevTools host configuration. Include local Subscriptions and ManagedResources in completion; child Bindings included in the Composition contribute their lifecycle declarations and handlers automatically.
 
 ### External host implementations
 
@@ -668,7 +668,7 @@ A Command-producing fold can infer its requirements through the owning definitio
 
 ### Composing Layers
 
-Keep definitions and handlers within the feature whose update returns them, alongside update or in a feature-local `command.ts`. Compose attached recipes directly as `Definition.layer` in each owning module's local `EffectsLayer`. When a recipe needs its own exported or reused binding, name it `FooLayer`; name an external alternative `FooTestLayer`. Pass the local bundle to `FeatureComposition.toBlock`; child Bindings included in the Composition contribute their recipes automatically. The typed Application Composition owns root completion and its graph. Its `make` method collects the handler recipes, while `ApplicationLayer` supplies ordinary Services. Import Effect's module as `Layer`; the bundle names avoid an alias.
+Keep definitions and handlers within the feature whose update returns them, alongside update or in a feature-local `command.ts`. Compose attached recipes directly as `Definition.layer` in each owning module's local `EffectsLayer`. When a recipe needs its own exported or reused binding, name it `FooLayer`; name an external alternative `FooTestLayer`. Pass the local bundle to `FeatureComposition.toBlock`; child Bindings included in the Composition contribute their recipes automatically. The typed Application Composition owns root completion and its graph. Completion through `ApplicationComposition.toApplication` or `.toElement` collects the handler recipes into a passive runtime input, while `ApplicationLayer` supplies ordinary Services. Import Effect's module as `Layer`; the bundle names avoid an alias.
 
 Foldkit UI components expose completed Blocks. Bind each component through the owning Definition and include it in the Composition's `children`; composition carries its Mounts, lifecycle registrations, and handler graph to the root. `Slider.forRoot(getTrackRoot)` and `Toast.make(payloadSchema)` return completed Blocks with refined Model, Message, and operation contracts.
 
@@ -676,7 +676,7 @@ Foldkit UI components expose completed Blocks. Bind each component through the o
 
 #### Inferred requirements
 
-`Update.define` infers Command requirements and OutMessages across Message branches while preserving required, optional, and rest context parameters. `Update.RequirementsOf<typeof update>` reads the Command services from an update contract without including lifecycle-only services. `ApplicationComposition.make` checks handler completeness across the Composition. The completed program carries the ordinary Service requirements of those handler recipes and startup Effects until `application.provide(ApplicationLayer)` satisfies them.
+`Update.define` infers Command requirements and OutMessages across Message branches while preserving required, optional, and rest context parameters. `Update.RequirementsOf<typeof update>` reads the Command services from an update contract without including lifecycle-only services. `ApplicationComposition.toApplication` checks handler completeness across the Composition. The completed program carries the ordinary Service requirements of those handler recipes and startup Effects until `application.provide(ApplicationLayer)` satisfies them.
 
 #### Registration names
 
@@ -692,7 +692,7 @@ Distinct definitions with identical names and protocols remain structurally indi
 
 #### ManagedResource ownership
 
-Each registered ManagedResource tag key has one lifecycle owner. `ApplicationComposition.make` and `ApplicationComposition.makeElement` reject the same resource key under multiple registration keys, including separately created tags with matching keys. Give independent resource instances distinct tag keys so each accessor resolves its own handle.
+Each registered ManagedResource tag key has one lifecycle owner. `ApplicationComposition.toApplication` and `ApplicationComposition.toElement` reject the same resource key under multiple registration keys, including separately created tags with matching keys. Give independent resource instances distinct tag keys so each accessor resolves its own handle.
 
 ### Startup and cleanup
 

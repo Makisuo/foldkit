@@ -1,17 +1,14 @@
 import { Option } from 'effect'
-import type { HtmlBuilderOf } from 'foldkit/application'
 import type { Html } from 'foldkit/html'
 
 import { Button, Dialog } from '@foldkit/ui'
 
-import { ApplicationComposition } from '../application'
+import type { ViewBuilder } from '../application'
 import {
   errorDialog as errorDialogBinding,
   gridSizeConfirmDialog as gridSizeConfirmDialogBinding,
 } from '../childBindings'
 import { Message } from '../message'
-
-type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 const dialogClassName =
   'bg-transparent p-0 open:flex items-center justify-center'
@@ -22,7 +19,7 @@ const panelClassName =
 export const errorDialogView = (
   errorDialog: typeof Dialog.Model.Type,
   maybeExportError: Option.Option<string>,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   h.block(
     errorDialogBinding.embedView({
@@ -85,7 +82,7 @@ export const errorDialogView = (
 export const gridSizeConfirmDialogView = (
   gridSizeConfirmDialog: typeof Dialog.Model.Type,
   maybePendingGridSize: Option.Option<number>,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   h.block(
     gridSizeConfirmDialogBinding.embedView({

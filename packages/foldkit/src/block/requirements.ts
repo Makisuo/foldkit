@@ -17,7 +17,7 @@ import type {
   ValidateBindingOperationNames,
 } from './binding.js'
 import type { LocalMountsTypeId } from './definition.js'
-import type { IsConcreteOwner } from './owner.js'
+import type { IsConcreteOwner, Owner } from './owner.js'
 import type { Qualify, Scoped } from './scope.js'
 
 type AnyFunction = (...args: ReadonlyArray<any>) => any
@@ -98,6 +98,65 @@ type ChildHandlerEvidence<Children> = Children extends readonly []
   : Children extends ReadonlyArray<infer Binding>
     ? HandlerRequirementsOfBinding<Binding>
     : unknown
+
+type IsUnion<Value, Whole = Value> = Value extends unknown
+  ? [Whole] extends [Value]
+    ? false
+    : true
+  : never
+
+type PreciseChildPlacement<Child> =
+  Child extends Readonly<{
+    placement: infer Placement extends string
+  }>
+    ? string extends Placement
+      ? never
+      : true extends IsUnion<Placement>
+        ? never
+        : Placement
+    : never
+
+type PreciseChildPlacements<Children extends ReadonlyArray<unknown>> = {
+  [Index in keyof Children]: PreciseChildPlacement<Children[Index]>
+}
+
+type PlacementIndexes<Placements extends ReadonlyArray<string>> = {
+  [
+    Index in keyof Placements as Index extends `${number}`
+      ? Placements[Index]
+      : never
+  ]: Index
+}
+
+type DuplicatePlacementKeys<Indexes> = {
+  [Placement in keyof Indexes]: true extends IsUnion<Indexes[Placement]>
+    ? Placement
+    : never
+}[keyof Indexes]
+
+type DuplicatePrecisePlacements<Placements extends ReadonlyArray<string>> =
+  Extract<DuplicatePlacementKeys<PlacementIndexes<Placements>>, string>
+
+type ValidateProjectedChildPlacements<
+  Placements extends ReadonlyArray<string>,
+> = [DuplicatePrecisePlacements<Placements>] extends [
+  infer Duplicate extends string,
+]
+  ? [Duplicate] extends [never]
+    ? unknown
+    : Readonly<{
+        'Block sibling child placements must be unique': Duplicate
+      }>
+  : never
+
+/** @internal Rejects precise child tuples whose resolved placements repeat. */
+export type ValidateUniqueChildPlacements<
+  Children extends ReadonlyArray<unknown>,
+> = number extends Children['length']
+  ? unknown
+  : Children extends readonly [] | readonly [unknown]
+    ? unknown
+    : ValidateProjectedChildPlacements<PreciseChildPlacements<Children>>
 
 /**
  * @internal Retains unresolved local and descendant handler contracts without
@@ -672,13 +731,14 @@ type HandlerContracts<Block> = HandlerRequirements<
   | DeclaredHostHandlers<Block>
 >
 
-/** @internal Resolves validation deferred by a generic named identity. */
-export type ValidateConcreteComposition<Composition> =
-  Composition extends Readonly<{ owner: infer OwnerValue }>
-    ? true extends IsConcreteOwner<OwnerValue>
-      ? unknown
-      : ValidateFullComposition<Composition>
-    : ValidateFullComposition<Composition>
+/** Validates composition details that remain deferred until a generic Block
+ * factory produces a concrete completed Block. */
+export type ValidateConcreteComposition<
+  Composition extends Readonly<{ owner: Owner<string> }>,
+> =
+  Composition extends Readonly<{ owner: Owner<string, false> }>
+    ? ValidateFullComposition<Composition>
+    : unknown
 
 type ValidateDefinitionComposition<Definition, Composition> =
   Definition extends Readonly<{

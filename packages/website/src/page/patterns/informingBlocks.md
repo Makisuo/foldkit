@@ -46,7 +46,7 @@ Update copies the route query into the input, records it in recent searches, and
 
 ### Define the Parent Folds
 
-The People Binding supplies one `read`, `write`, and `toParentMessage` boundary. Its `fold` handles regular People Messages, while `people.informRouteChanged` projects the public operation through the same boundary. The `ChangedUrl` handler matches the next Route and composes the relevant child Step with the pure `setRoute` Step through `Update.combine`. The projected operation retains the child Command requirement for application composition.
+The People Binding declares its parent Model `field` and `parentMessage` wrapper once. Its `fold` handles regular People Messages, while `people.informRouteChanged` projects the public operation through the same boundary. The `ChangedUrl` handler matches the next Route and composes the relevant child Step with the pure `setRoute` Step through `Update.combine`. The projected operation retains the child Command requirement for application composition.
 
 ::Snippet{name="informingBlocksParent" label="Parent route fold"}
 

@@ -793,7 +793,7 @@ const checkApplicationLayerTypes = (): void => {
     container,
     resources: Layer.empty,
   }
-  // @ts-expect-error Application.make rejects removed configuration fields.
+  // @ts-expect-error Root completion rejects removed configuration fields.
   Application.__makeFromConfig(staleResourcesConfig)
 
   const misspelledSubscriptionsConfig = {
@@ -804,13 +804,13 @@ const checkApplicationLayerTypes = (): void => {
     container,
     subsriptions: {},
   }
-  // @ts-expect-error Application.makeElement rejects unknown configuration fields.
+  // @ts-expect-error ApplicationComposition.toElement rejects unknown configuration fields.
   Application.__makeElementFromConfig(misspelledSubscriptionsConfig)
 
   Application.__makeFromConfig({
     Model,
     init: () => ({ model: Model.make({ label: 'ready' }) }),
-    // @ts-expect-error Application.make requires tagged Messages when update accepts a Message.
+    // @ts-expect-error ApplicationComposition.toApplication requires tagged Messages when update accepts a Message.
     update: (model: Model, _message: number) => ({ model }),
     view: (model, h) => ({ title: '', body: h.div([], [model.label]) }),
     container,

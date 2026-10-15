@@ -1,6 +1,5 @@
 import { Effect, Schema } from 'effect'
-import { AsyncData } from 'foldkit'
-import { define as defineApplication } from 'foldkit/application'
+import { AsyncData, defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 import { Api, ApiLayer } from './api'

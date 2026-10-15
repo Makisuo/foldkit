@@ -5,6 +5,7 @@ import { AppTabs, FetchedPostDetail, FetchedPosts, FetchedStats } from './model'
 
 export const Message = defineMessageUnion({
   GotTabsMessage: { message: AppTabs.Message },
+
   ClickedPost: { postId: Schema.String },
   ClickedBackToPosts: {},
   ClickedInvalidatePosts: {},
@@ -12,7 +13,9 @@ export const Message = defineMessageUnion({
   ClickedRetryPostDetail: { postId: Schema.String },
   ClickedRefreshStats: {},
   ClickedRetryStats: {},
+
   TickedRevalidateStats: {},
+
   CompletedFetchPosts: { result: Schema.Result(FetchedPosts, Schema.String) },
   CompletedFetchPostDetail: {
     postId: Schema.String,

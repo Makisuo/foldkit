@@ -7,10 +7,10 @@ import { Button } from '@foldkit/ui'
 
 import {
   AttachmentsComposition,
-  Message,
   additionalFilesDrop,
   resumeDrop,
-} from './definition'
+} from './attachments'
+import { Message } from './definition'
 
 const BYTES_PER_KB = 1024
 const BYTES_PER_MB = BYTES_PER_KB * BYTES_PER_KB

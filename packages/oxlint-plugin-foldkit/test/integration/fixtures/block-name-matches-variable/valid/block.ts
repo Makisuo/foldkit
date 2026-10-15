@@ -1,9 +1,8 @@
 import { Imported } from './definition'
-import { Block, Block as AliasedBlock } from 'foldkit'
+import { Block, Block as AliasedBlock, defineApplication } from 'foldkit'
 import * as Foldkit from 'foldkit'
 import { define as aliasedDefine, define } from 'foldkit/block'
 import * as BlockModule from 'foldkit/block'
-import { define as defineApplication } from 'foldkit/application'
 
 import { block as ImportedFeature } from './feature.ts'
 

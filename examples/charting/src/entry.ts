@@ -17,7 +17,7 @@ const TelemetryApisLayer = Layer.mergeAll(GitHubApiLayer, NpmApiLayer).pipe(
 
 const ApplicationLayer = Layer.mergeAll(ChartRegistryLayer, TelemetryApisLayer)
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

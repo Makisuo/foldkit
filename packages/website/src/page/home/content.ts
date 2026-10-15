@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Option, Predicate } from 'effect'
-import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
+import { Html, inertHtml as ih } from 'foldkit/html'
 import { foldkitVersion } from 'virtual:landing-data'
 
 import { type ResolvedTheme } from '../../colorScheme'
@@ -33,7 +33,7 @@ import {
   examples as exampleMetas,
 } from '../example'
 import { exampleAppCount } from '../examples'
-import { type Message } from './message'
+import type { ViewBuilder } from './childBindings'
 
 // CONTENT CONSTANTS
 
@@ -74,7 +74,7 @@ export const contentView = (
   maybeGitHubStarCount: Option.Option<number>,
   resolvedTheme: ResolvedTheme,
   isBrowserEnvironmentLoaded: boolean,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html => {
   return h.div(
     [h.Class('isolate overflow-x-clip')],
@@ -163,7 +163,7 @@ const heroSection = (
   renderCopyButton: CodeBlock.RenderCopyButton,
   playgroundMenuView: Html,
   maybeGitHubStarCount: Option.Option<number>,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html => {
   return h.section(
     [

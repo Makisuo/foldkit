@@ -53,7 +53,7 @@ describe('Subscription startup supervision', () => {
       ),
     }))
     const ApplicationComposition = Application.toComposition()
-    const application = ApplicationComposition.makeElement({
+    const application = ApplicationComposition.toElement({
       container,
       init: () => ({ model: { count: 0 } }),
       update: Application.update(model => ({ model })),
@@ -130,7 +130,7 @@ describe('Subscription startup supervision', () => {
       children: [child],
     })
     const report = vi.fn()
-    const application = ApplicationComposition.makeElement({
+    const application = ApplicationComposition.toElement({
       container,
       init: () => ({ model: { maybeChild: Option.none() } }),
       update: Application.update((model, message) =>

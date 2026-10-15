@@ -16,7 +16,9 @@ import { Effect, Queue, Stream } from 'effect'
  * The entry's declared Message Schemas constrain the final Stream output.
  */
 export type StreamFromMediaQueryConfig<Output> = Readonly<{
+  /** CSS media query passed to `window.matchMedia` when the Stream starts. */
   query: string
+  /** Maps the current and subsequent `matches` values to emitted values. */
   mapMatches: (isMatching: boolean) => Output
 }>
 

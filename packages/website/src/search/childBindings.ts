@@ -1,4 +1,5 @@
 import { Update } from 'foldkit'
+import type { Block } from 'foldkit'
 
 import { Dialog } from '@foldkit/ui'
 
@@ -22,3 +23,5 @@ export const dialog = Search.bindChild(Dialog.block, {
 export const SearchComposition = Search.toComposition({
   children: [dialog],
 })
+
+export type ViewBuilder = Block.HtmlBuilderOf<typeof SearchComposition>

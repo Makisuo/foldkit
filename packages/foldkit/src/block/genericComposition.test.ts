@@ -2,7 +2,6 @@ import { Effect, Layer, Option, Schema } from 'effect'
 import { expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
-import * as Application from '../runtime/application.js'
 import { define } from './define.js'
 
 const Message = defineMessageUnion({
@@ -83,19 +82,11 @@ if (false) {
     Message: missing.Message,
   })
 
-  // @ts-expect-error Concrete Bindings validate deferred generic handler coverage.
   MissingParent.bindChild(missing, {
+    // @ts-expect-error Deferred generic handler coverage prevents accessor overload selection.
     read: (model: MissingModel) => Option.some(model),
     write: (_model: MissingModel, nextModel: MissingModel) => nextModel,
+    // @ts-expect-error Concrete Bindings validate deferred generic handler coverage.
     toParentMessage: (message: Message) => message,
   })
-
-  const checkRoot = (container: HTMLElement) => {
-    // @ts-expect-error Root completion validates deferred generic handler coverage.
-    Application.makeElement<typeof missing, { container: HTMLElement }>({
-      block: missing,
-      container,
-    })
-  }
-  void checkRoot
 }

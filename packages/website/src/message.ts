@@ -20,14 +20,13 @@ import * as Search from './search'
 import { GroupKey, SidebarState } from './sidebarStorage'
 import * as SnippetCopy from './snippetCopy'
 import * as SnippetDisclosure from './snippetDisclosure'
+import { ThemePreference } from './themePreference'
 import { ThemeMenu } from './view/themeMenu'
 
 // THEME
 
-export const ThemePreference = Schema.Literals(['Dark', 'Light', 'System'])
-export type ThemePreference = typeof ThemePreference.Type
-
 export { ResolvedTheme } from './colorScheme'
+export { ThemePreference } from './themePreference'
 
 export const Message = defineMessageUnion({
   CompletedNavigateInternal: {},

@@ -8,6 +8,7 @@ import {
   horizontalTabsDemo,
   verticalTabsDemo,
 } from '../childBindings'
+import type { ViewBuilder } from '../childBindings'
 import type { DemoTab } from '../model'
 
 const demoTabs: ReadonlyArray<DemoTab> = ['Foldkit', 'React', 'Elm']
@@ -24,7 +25,7 @@ const verticalButtonClassName =
 const verticalPanelClassName =
   'flex-1 p-6 bg-white rounded-r-lg rounded-bl-lg border border-gray-200'
 
-const foldkitPanel = UiComposition.render.builder(h => {
+const foldkitPanel = (h: ViewBuilder) => {
   return h.div(
     [],
     [
@@ -43,9 +44,9 @@ const foldkitPanel = UiComposition.render.builder(h => {
       ),
     ],
   )
-})
+}
 
-const reactPanel = UiComposition.render.builder(h => {
+const reactPanel = (h: ViewBuilder) => {
   return h.div(
     [],
     [
@@ -64,9 +65,9 @@ const reactPanel = UiComposition.render.builder(h => {
       ),
     ],
   )
-})
+}
 
-const elmPanel = UiComposition.render.builder(h => {
+const elmPanel = (h: ViewBuilder) => {
   return h.div(
     [],
     [
@@ -85,16 +86,15 @@ const elmPanel = UiComposition.render.builder(h => {
       ),
     ],
   )
-})
+}
 
-const panelFor = UiComposition.render.withInput<DemoTab>()((tab, h) =>
+const panelFor = (tab: DemoTab, h: ViewBuilder) =>
   Match.value(tab).pipe(
     Match.when('Foldkit', () => foldkitPanel(h)),
     Match.when('React', () => reactPanel(h)),
     Match.when('Elm', () => elmPanel(h)),
     Match.exhaustive,
-  ),
-)
+  )
 
 export const view = UiComposition.view((model, h) => {
   const horizontalTabsView = ({

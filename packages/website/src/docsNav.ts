@@ -733,7 +733,7 @@ export const pageNeighbors = (_tag: string): PageNeighbors =>
     allPages,
     Array.findFirstIndex(page => page._tag === _tag),
     Option.match({
-      onNone: (): PageNeighbors => ({
+      onNone: () => ({
         maybePrevious: Option.none(),
         maybeNext: Option.none(),
       }),

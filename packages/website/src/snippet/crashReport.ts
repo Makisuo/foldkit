@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/browser'
 
 import { ApplicationComposition, init, update, view } from './application'
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

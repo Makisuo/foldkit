@@ -10,22 +10,10 @@ import {
   virtualListDemo,
   virtualListVariableDemo as virtualListVariableDemoBinding,
 } from '../update'
-import type { ViewBuilder } from '../viewBuilder'
+import type { ViewBuilder } from '../update'
+import { type Activity, ROW_COUNT } from './virtualListData'
 
 // SAMPLE DATA
-
-export type Activity = Readonly<{
-  id: number
-  actor: string
-  initial: string
-  colorClass: string
-  verb: string
-  target: string
-  timeAgo: string
-  hasSummary: boolean
-}>
-
-export const ROW_COUNT = 10_000
 
 const actorNames = [
   'Sarah Chen',

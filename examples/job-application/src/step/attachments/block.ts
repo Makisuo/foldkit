@@ -6,7 +6,7 @@ import {
   init,
   resumeDrop,
   update,
-} from './definition'
+} from './attachments'
 import { view } from './view'
 
 export const block = AttachmentsComposition.toBlock({

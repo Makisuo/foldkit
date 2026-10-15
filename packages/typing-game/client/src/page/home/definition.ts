@@ -8,3 +8,7 @@ export const Home = Block.define('Home', {
   Message,
   OutMessage,
 })
+
+export const HomeComposition = Home.toComposition()
+
+export type ViewBuilder = Block.HtmlBuilderOf<typeof HomeComposition>

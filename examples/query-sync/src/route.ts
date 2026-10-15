@@ -38,10 +38,8 @@ const optionFromValidParam = <A extends string>(schema: Schema.Codec<A, A>) => {
     Schema.decodeTo(
       Schema.Option(schema),
       SchemaTransformation.transform({
-        decode: (maybeRaw: Option.Option<string>): Option.Option<A> =>
-          Option.flatMap(maybeRaw, decode),
-        encode: (maybeValue: Option.Option<A>): Option.Option<string> =>
-          maybeValue,
+        decode: maybeRaw => Option.flatMap(maybeRaw, decode),
+        encode: maybeValue => maybeValue,
       }),
     ),
   )
@@ -57,7 +55,7 @@ const sortingFromParam = (() => {
     Schema.decodeTo(
       Sorting,
       SchemaTransformation.transform({
-        decode: (maybeRaw: Option.Option<string>): Sorting =>
+        decode: maybeRaw =>
           Option.match(maybeRaw, {
             onNone: () => Sorting.Unsorted(),
             onSome: value => {
@@ -91,7 +89,7 @@ const sortingFromParam = (() => {
               )
             },
           }),
-        encode: (sorting): Option.Option<string> =>
+        encode: sorting =>
           Sorting.match<Option.Option<string>>(sorting, {
             Unsorted: () => Option.none(),
             Ascending: ({ column }) =>

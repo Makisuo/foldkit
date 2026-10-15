@@ -1,5 +1,4 @@
 import { Effect, Layer } from 'effect'
-import type { HtmlBuilderOf as ApplicationHtmlBuilderOf } from 'foldkit/application'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
 import type { Html } from 'foldkit/html'
@@ -33,19 +32,19 @@ import {
   childInspection,
   contextualRefreshChild,
   directChild,
-  applicationBuilderRender,
-  applicationInputRender,
-  applicationModelRender,
+  applicationBuilderViewHelper,
+  applicationInputViewHelper,
+  applicationModelViewHelper,
   ApplicationComposition,
   makePageProgram,
   makeProgram,
   makeProvisionElement,
   makeProvisionPageAwaitingDependency,
   provisionPorts,
-  parentArrayRender,
-  parentBuilderRender,
-  parentInputRender,
-  parentModelRender,
+  parentArrayViewHelper,
+  parentBuilderViewHelper,
+  parentInputViewHelper,
+  parentModelViewHelper,
   refreshDirectValue,
   renderPage,
 } from './accepted.js'
@@ -187,53 +186,50 @@ type EmittedCompletedChoiceInputIsExact = Expect<
 type EmittedCompletedChildMountsAreExact = Expect<
   Equal<CompletedChild['mounts'][number], typeof Measure>
 >
-type EmittedParentModelRenderParametersAreExact = Expect<
+type EmittedParentModelViewHelperParametersAreExact = Expect<
   Equal<
-    Parameters<typeof parentModelRender>,
+    Parameters<typeof parentModelViewHelper>,
     [model: ParentModel, h: Block.HtmlBuilderOf<typeof ParentComposition>]
   >
 >
-type EmittedParentBuilderRenderParametersAreExact = Expect<
+type EmittedParentBuilderViewHelperParametersAreExact = Expect<
   Equal<
-    Parameters<typeof parentBuilderRender>,
+    Parameters<typeof parentBuilderViewHelper>,
     [h: Block.HtmlBuilderOf<typeof ParentComposition>]
   >
 >
-type EmittedParentInputRenderParametersAreExact = Expect<
+type EmittedParentInputViewHelperParametersAreExact = Expect<
   Equal<
-    Parameters<typeof parentInputRender>,
+    Parameters<typeof parentInputViewHelper>,
     [
       input: typeof ChildModel.Type,
       h: Block.HtmlBuilderOf<typeof ParentComposition>,
     ]
   >
 >
-type EmittedParentArrayRenderOutputIsHtmlArray = Expect<
-  ReturnType<typeof parentArrayRender> extends ReadonlyArray<Html>
+type EmittedParentArrayViewHelperOutputIsHtmlArray = Expect<
+  ReturnType<typeof parentArrayViewHelper> extends ReadonlyArray<Html>
     ? true
     : false
 >
-type EmittedApplicationModelRenderParametersAreExact = Expect<
+type EmittedApplicationModelViewHelperParametersAreExact = Expect<
   Equal<
-    Parameters<typeof applicationModelRender>,
-    [
-      model: ParentModel,
-      h: ApplicationHtmlBuilderOf<typeof ApplicationComposition>,
-    ]
+    Parameters<typeof applicationModelViewHelper>,
+    [model: ParentModel, h: Block.HtmlBuilderOf<typeof ApplicationComposition>]
   >
 >
-type EmittedApplicationBuilderRenderParametersAreExact = Expect<
+type EmittedApplicationBuilderViewHelperParametersAreExact = Expect<
   Equal<
-    Parameters<typeof applicationBuilderRender>,
-    [h: ApplicationHtmlBuilderOf<typeof ApplicationComposition>]
+    Parameters<typeof applicationBuilderViewHelper>,
+    [h: Block.HtmlBuilderOf<typeof ApplicationComposition>]
   >
 >
-type EmittedApplicationInputRenderParametersAreExact = Expect<
+type EmittedApplicationInputViewHelperParametersAreExact = Expect<
   Equal<
-    Parameters<typeof applicationInputRender>,
+    Parameters<typeof applicationInputViewHelper>,
     [
       input: typeof ChildModel.Type,
-      h: ApplicationHtmlBuilderOf<typeof ApplicationComposition>,
+      h: Block.HtmlBuilderOf<typeof ApplicationComposition>,
     ]
   >
 >
@@ -258,13 +254,13 @@ export type EmittedAssertions = [
   EmittedCompletedChoiceIsExact,
   EmittedCompletedChoiceInputIsExact,
   EmittedCompletedChildMountsAreExact,
-  EmittedParentModelRenderParametersAreExact,
-  EmittedParentBuilderRenderParametersAreExact,
-  EmittedParentInputRenderParametersAreExact,
-  EmittedParentArrayRenderOutputIsHtmlArray,
-  EmittedApplicationModelRenderParametersAreExact,
-  EmittedApplicationBuilderRenderParametersAreExact,
-  EmittedApplicationInputRenderParametersAreExact,
+  EmittedParentModelViewHelperParametersAreExact,
+  EmittedParentBuilderViewHelperParametersAreExact,
+  EmittedParentInputViewHelperParametersAreExact,
+  EmittedParentArrayViewHelperOutputIsHtmlArray,
+  EmittedApplicationModelViewHelperParametersAreExact,
+  EmittedApplicationBuilderViewHelperParametersAreExact,
+  EmittedApplicationInputViewHelperParametersAreExact,
   EmittedPagePortsAreExact,
   EmittedElementPortsAreExact,
 ]

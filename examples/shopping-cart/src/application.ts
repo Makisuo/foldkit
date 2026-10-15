@@ -1,16 +1,13 @@
 import { Effect, Layer, Match, Option, Schema } from 'effect'
 import { Update } from 'foldkit'
-import {
-  type HtmlBuilderOf,
-  define as defineApplication,
-} from 'foldkit/application'
+import type { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
-import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
-import { Url, toString as urlToString } from 'foldkit/url'
+import { type Url, toString as urlToString } from 'foldkit/url'
 
 import { products } from './data/products'
+import { Application, Message, type Model } from './definition'
 import { Cart } from './domain'
 import { Cart as CartPage, Checkout, Products } from './page'
 import {
@@ -20,33 +17,6 @@ import {
   productsRouter,
   urlToApplicationRoute,
 } from './route'
-
-export const Model = Schema.Struct({
-  route: ApplicationRoute,
-  cart: Cart.Cart,
-  deliveryInstructions: Schema.String,
-  orderPlaced: Schema.Boolean,
-  productsPage: Products.Model,
-})
-export type Model = typeof Model.Type
-
-export const Message = defineMessageUnion({
-  CompletedNavigateInternal: {},
-  CompletedLoadExternal: {},
-  ClickedLink: { request: UrlRequest },
-  ChangedUrl: { url: Url },
-  GotProductsMessage: { message: Products.Message },
-  ClickedIncrementQuantity: { itemId: Schema.String },
-  ClickedDecrementQuantity: { itemId: Schema.String },
-  ClickedRemoveCartItem: { itemId: Schema.String },
-  ClickedClearCart: {},
-  UpdatedDeliveryInstructions: { value: Schema.String },
-  ClickedPlaceOrder: {},
-})
-
-export type Message = typeof Message.Type
-
-const Application = defineApplication({ Model, Message })
 
 export const init = (url: Url) => {
   return {
@@ -179,12 +149,12 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
+type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 const navigationView = (
   currentRoute: ApplicationRoute,
   cartCount: number,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html => {
   const navLinkClassName = (isActive: boolean) =>
     `hover:bg-blue-600 font-medium px-3 py-1 rounded transition ${isActive ? 'bg-blue-700 bg-opacity-50' : ''}`
@@ -237,7 +207,7 @@ const navigationView = (
   )
 }
 
-const productsView = (model: Model, h: HtmlBuilder): Html =>
+const productsView = (model: Model, h: ViewBuilder): Html =>
   h.block(
     productsPage.embedView({
       slotId: 'products',
@@ -246,13 +216,13 @@ const productsView = (model: Model, h: HtmlBuilder): Html =>
     }),
   )
 
-const cartView = (model: Model, h: HtmlBuilder): Html =>
+const cartView = (model: Model, h: ViewBuilder): Html =>
   CartPage.view(model.cart, h)
 
-const checkoutView = (model: Model, h: HtmlBuilder): Html =>
+const checkoutView = (model: Model, h: ViewBuilder): Html =>
   Checkout.view(model.cart, model.deliveryInstructions, model.orderPlaced, h)
 
-const notFoundView = (path: string, h: HtmlBuilder): Html =>
+const notFoundView = (path: string, h: ViewBuilder): Html =>
   h.div(
     [h.Class('max-w-4xl mx-auto px-4 text-center')],
     [

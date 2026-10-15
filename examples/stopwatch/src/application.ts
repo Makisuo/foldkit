@@ -9,10 +9,8 @@ import {
   flow,
   pipe,
 } from 'effect'
-import {
-  type HtmlBuilderOf,
-  define as defineApplication,
-} from 'foldkit/application'
+import { defineApplication } from 'foldkit'
+import type { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -43,7 +41,7 @@ export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
 
-type ViewBuilder = HtmlBuilderOf<typeof Application>
+type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 export const DetermineStartTime = Application.command('DetermineStartTime', {
   args: { elapsedMs: Schema.Number },

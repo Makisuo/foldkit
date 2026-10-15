@@ -1,6 +1,5 @@
-import { define as defineApplication } from 'foldkit/application'
 import { Layer, Option } from 'effect'
-import { Block, Command as ChildCommand } from 'foldkit'
+import { Block, Command as ChildCommand, defineApplication } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { Child } from './child'
 import { ForwardedChildMessage } from './message'

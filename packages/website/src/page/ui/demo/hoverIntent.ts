@@ -8,7 +8,7 @@ import {
   hoverIntentCardDemo as hoverIntentCardDemoBinding,
   hoverIntentMenuDemo as hoverIntentMenuDemoBinding,
 } from '../update'
-import type { ViewBuilder } from '../viewBuilder'
+import type { ViewBuilder } from '../update'
 
 const triggerClassName =
   'button-accent inline-flex cursor-pointer items-center rounded-lg px-4 py-2 text-sm shadow-sm'

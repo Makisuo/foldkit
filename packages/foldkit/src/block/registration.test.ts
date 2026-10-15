@@ -15,7 +15,7 @@ type Message = typeof Message.Type
 
 const ChildOwner = define('RegistrationChild')
 const Child = ChildOwner.define({ Model: ChildModel, Message })
-const reset = Child.step((_model: ChildModel) => ({
+const reset = Child.step(_model => ({
   model: ChildModel.make({ count: 0 }),
 }))
 const ChildBlock = Child.toComposition().toBlock({
@@ -59,36 +59,36 @@ const OmittedParent = define('OmittedPureChildParent')
 
 const registeredFold = RegisteredParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel, message: Message) => child.fold(model, message),
+  update: (model, message) => child.fold(model, message),
   EffectsLayer: Layer.empty,
 })
 const omittedFold = OmittedParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel, message: Message) => child.fold(model, message),
+  update: (model, message) => child.fold(model, message),
   // @ts-expect-error A pure fold may use only a registered child binding.
   EffectsLayer: Layer.empty,
 })
 
 const registeredStep = RegisteredParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel) => child.reset()(model),
+  update: model => child.reset()(model),
   EffectsLayer: Layer.empty,
 })
 const omittedStep = OmittedParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel) => child.reset()(model),
+  update: model => child.reset()(model),
   // @ts-expect-error A pure Step may use only a registered child binding.
   EffectsLayer: Layer.empty,
 })
 
 const registeredCombinedStep = RegisteredParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel) => Update.combine(model, [child.reset()]),
+  update: model => Update.combine(model, [child.reset()]),
   EffectsLayer: Layer.empty,
 })
 const omittedCombinedStep = OmittedParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel) => Update.combine(model, [child.reset()]),
+  update: model => Update.combine(model, [child.reset()]),
   // @ts-expect-error combine preserves the registration of every child Step.
   EffectsLayer: Layer.empty,
 })
@@ -96,12 +96,12 @@ const omittedCombinedStep = OmittedParent.toBlock({
 const dynamicChildSteps = Array.map([child.reset()], step => step)
 const registeredDynamicCombinedStep = RegisteredParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel) => Update.combine(model, dynamicChildSteps),
+  update: model => Update.combine(model, dynamicChildSteps),
   EffectsLayer: Layer.empty,
 })
 const omittedDynamicCombinedStep = OmittedParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel) => Update.combine(model, dynamicChildSteps),
+  update: model => Update.combine(model, dynamicChildSteps),
   // @ts-expect-error A computed Step list retains its child registration.
   EffectsLayer: Layer.empty,
 })
@@ -114,7 +114,7 @@ const registeredInit = RegisteredParent.toBlock({
       commands: childInit.commands,
     }
   },
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   EffectsLayer: Layer.empty,
 })
 const omittedInit = OmittedParent.toBlock({
@@ -125,21 +125,21 @@ const omittedInit = OmittedParent.toBlock({
       commands: childInit.commands,
     }
   },
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   // @ts-expect-error Forwarded init Commands retain their child registration.
   EffectsLayer: Layer.empty,
 })
 
-const registeredDefinedUpdate = registeredParentBase.update(
-  (model: ParentModel, message: Message) => child.fold(model, message),
+const registeredDefinedUpdate = registeredParentBase.update((model, message) =>
+  child.fold(model, message),
 )
 const registeredDefinitionUpdate = RegisteredParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
   update: registeredDefinedUpdate,
   EffectsLayer: Layer.empty,
 })
-const omittedDefinedUpdate = OmittedParent.update(
-  (model: ParentModel, message: Message) => child.fold(model, message),
+const omittedDefinedUpdate = OmittedParent.update((model, message) =>
+  child.fold(model, message),
 )
 const omittedDefinitionUpdate = OmittedParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
@@ -203,12 +203,12 @@ const mappedChildInit = () => {
 }
 const registeredMappedInit = RegisteredParent.toBlock({
   init: mappedChildInit,
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   EffectsLayer: Layer.empty,
 })
 const omittedMappedInit = OmittedParent.toBlock({
   init: mappedChildInit,
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   // @ts-expect-error mapMessages preserves child registration on the collection.
   EffectsLayer: Layer.empty,
 })
@@ -220,12 +220,12 @@ const foldedChildInit = () =>
   })
 const registeredFoldedChildInit = RegisteredParent.toBlock({
   init: foldedChildInit,
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   EffectsLayer: Layer.empty,
 })
 const omittedFoldedChildInit = OmittedParent.toBlock({
   init: foldedChildInit,
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   // @ts-expect-error foldChildInit preserves its child's registration.
   EffectsLayer: Layer.empty,
 })
@@ -242,19 +242,19 @@ const foldedChildInits = () =>
   )
 const registeredFoldedChildInits = RegisteredParent.toBlock({
   init: foldedChildInits,
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   EffectsLayer: Layer.empty,
 })
 const omittedFoldedChildInits = OmittedParent.toBlock({
   init: foldedChildInits,
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   // @ts-expect-error foldChildInits preserves every child's registration.
   EffectsLayer: Layer.empty,
 })
 
 const modelOnlyChildInit = OmittedParent.toBlock({
   init: () => ({ model: makeParentModel(child.init().model) }),
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   EffectsLayer: Layer.empty,
 })
 
@@ -279,12 +279,12 @@ const RemovedUnusedChildParent = define('RemovedUnusedChildParent')
   .toComposition()
 const unusedChild = UnusedChildParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   EffectsLayer: Layer.empty,
 })
 const removedUnusedChild = RemovedUnusedChildParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   EffectsLayer: Layer.empty,
 })
 
@@ -321,38 +321,36 @@ const OmittedKeyedParent = define('OmittedPureKeyedChildParent')
 
 const registeredKeyedFold = RegisteredKeyedParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel, message: Message) =>
-    children.fold(model, 0, message),
+  update: (model, message) => children.fold(model, 0, message),
   EffectsLayer: Layer.empty,
 })
 const omittedKeyedFold = OmittedKeyedParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel, message: Message) =>
-    children.fold(model, 0, message),
+  update: (model, message) => children.fold(model, 0, message),
   // @ts-expect-error A keyed pure fold requires its registered collection.
   EffectsLayer: Layer.empty,
 })
 
 const registeredKeyedStep = RegisteredKeyedParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel) => children.reset(0)(model),
+  update: model => children.reset(0)(model),
   EffectsLayer: Layer.empty,
 })
 const omittedKeyedStep = OmittedKeyedParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel) => children.reset(0)(model),
+  update: model => children.reset(0)(model),
   // @ts-expect-error A keyed pure Step requires its registered collection.
   EffectsLayer: Layer.empty,
 })
 
 const registeredKeyedCombinedStep = RegisteredKeyedParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel) => Update.combine(model, [children.reset(0)]),
+  update: model => Update.combine(model, [children.reset(0)]),
   EffectsLayer: Layer.empty,
 })
 const omittedKeyedCombinedStep = OmittedKeyedParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel) => Update.combine(model, [children.reset(0)]),
+  update: model => Update.combine(model, [children.reset(0)]),
   // @ts-expect-error combine preserves a keyed child Step's registration.
   EffectsLayer: Layer.empty,
 })
@@ -365,7 +363,7 @@ const registeredKeyedInit = RegisteredKeyedParent.toBlock({
       commands: childInit.commands,
     }
   },
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   EffectsLayer: Layer.empty,
 })
 const omittedKeyedInit = OmittedKeyedParent.toBlock({
@@ -376,7 +374,7 @@ const omittedKeyedInit = OmittedKeyedParent.toBlock({
       commands: childInit.commands,
     }
   },
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   // @ts-expect-error Keyed init Commands retain their collection registration.
   EffectsLayer: Layer.empty,
 })
@@ -391,7 +389,7 @@ const PolicyChild = define('RegistrationPolicyChild').define({
 })
 const PolicyChildBlock = PolicyChild.toComposition().toBlock({
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
-  update: (model: ChildModel) => ({
+  update: model => ({
     model,
     outMessage: PolicyOutMessage.RequestedSecondaryReset(),
   }),
@@ -454,14 +452,12 @@ const OmittedPolicyParent = omittedPolicyParentBase.toComposition({
 })
 const registeredPolicyFold = RegisteredPolicyParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel, message: Message) =>
-    policyChild.fold(model, message),
+  update: (model, message) => policyChild.fold(model, message),
   EffectsLayer: Layer.empty,
 })
 const omittedPolicyFold = OmittedPolicyParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel, message: Message) =>
-    omittedPolicyChild.fold(model, message),
+  update: (model, message) => omittedPolicyChild.fold(model, message),
   // @ts-expect-error An OutMessage policy retains nested child Step registration.
   EffectsLayer: Layer.empty,
 })
@@ -554,14 +550,12 @@ const OmittedKeyedPolicyParent = omittedKeyedPolicyParentBase.toComposition({
 })
 const registeredKeyedPolicyFold = RegisteredKeyedPolicyParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel, message: Message) =>
-    policyChildren.fold(model, 0, message),
+  update: (model, message) => policyChildren.fold(model, 0, message),
   EffectsLayer: Layer.empty,
 })
 const omittedKeyedPolicyFold = OmittedKeyedPolicyParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel, message: Message) =>
-    omittedPolicyChildren.fold(model, 0, message),
+  update: (model, message) => omittedPolicyChildren.fold(model, 0, message),
   // @ts-expect-error A keyed OutMessage policy retains child Step registration.
   EffectsLayer: Layer.empty,
 })
@@ -647,12 +641,12 @@ const omittedFoldedOutMessageInit = () =>
   )
 const registeredFoldOutMessageInit = RegisteredFoldOutMessageParent.toBlock({
   init: registeredFoldedOutMessageInit,
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   EffectsLayer: Layer.empty,
 })
 const omittedFoldOutMessageInit = OmittedFoldOutMessageParent.toBlock({
   init: omittedFoldedOutMessageInit,
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   // @ts-expect-error foldChildInit retains registration from its OutMessage Step.
   EffectsLayer: Layer.empty,
 })
@@ -697,12 +691,12 @@ const omittedFoldedOutMessageInits = () =>
   })
 const registeredFoldOutMessageInits = RegisteredFoldOutMessageParent.toBlock({
   init: registeredFoldedOutMessageInits,
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   EffectsLayer: Layer.empty,
 })
 const omittedFoldOutMessageInits = OmittedFoldOutMessageParent.toBlock({
   init: omittedFoldedOutMessageInits,
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   // @ts-expect-error foldChildInits retains registration from each OutMessage Step.
   EffectsLayer: Layer.empty,
 })
@@ -722,7 +716,7 @@ const lifecycleSubscriptions = Lifecycle.subscriptions(entry => ({
 }))
 const LifecycleChild = Lifecycle.toComposition().toBlock({
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
-  update: (model: ChildModel) => ({ model }),
+  update: model => ({ model }),
   subscriptions: lifecycleSubscriptions,
   EffectsLayer: lifecycleSubscriptions.idle.layer,
 })
@@ -748,12 +742,12 @@ const RemovedLifecycleParent = define('RemovedLifecycleChildParent')
   .toComposition()
 const lifecycleOnlyChild = LifecycleOnlyParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   EffectsLayer: Layer.empty,
 })
 const removedLifecycleChild = RemovedLifecycleParent.toBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
-  update: (model: ParentModel) => ({ model }),
+  update: model => ({ model }),
   EffectsLayer: Layer.empty,
 })
 

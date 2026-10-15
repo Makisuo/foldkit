@@ -1,4 +1,4 @@
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 
 const Model = Schema.Struct({
   posts: postsQuery.Model,

@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect'
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
 import { Server } from 'foldkit/experimental'
@@ -45,63 +45,74 @@ const invalidDocumentView = InvalidApplication.view((model, h) => ({
   body: h.main([], [globalThis.String(model.child.value)]),
 }))
 
-const DeclarationTestsRender = Block.define('DeclarationTestsRender', {
+const DeclarationTestsViewHelper = Block.define('DeclarationTestsViewHelper', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ObserveRender = DeclarationTestsRender.mount('ObserveRender', {
-  messages: [ParentMessage.RequestedRefresh],
-})
-const RenderComposition = DeclarationTestsRender.toComposition()
-const renderOnly = RenderComposition.render((model, h) =>
-  h.main([], [globalThis.String(model.child.value)]),
+const ObserveViewHelper = DeclarationTestsViewHelper.mount(
+  'ObserveViewHelper',
+  {
+    messages: [ParentMessage.RequestedRefresh],
+  },
 )
+const ViewHelperComposition = DeclarationTestsViewHelper.toComposition()
+type ViewBuilder = Block.HtmlBuilderOf<typeof ViewHelperComposition>
+const viewHelper = (model: ParentModel, h: ViewBuilder) =>
+  h.main([], [globalThis.String(model.child.value)])
 
-RenderComposition.render((model, h) =>
+const viewHelperWithOmittedChild = (model: ParentModel, h: ViewBuilder) =>
   h.block(
-    // @ts-expect-error An extracted render helper cannot use a child absent from its Composition.
+    // @ts-expect-error An extracted view helper cannot use a child absent from its Composition.
     child.embedView({ slotId: 'omitted-child', model: model.child }),
-  ),
-)
+  )
 
-RenderComposition.render((_model, h) =>
+const viewHelperWithOmittedMount = (h: ViewBuilder) =>
   h.main([
-    // @ts-expect-error An extracted render helper cannot use a Mount absent from its Composition.
-    h.OnMount(ObserveRender()),
-  ]),
-)
+    // @ts-expect-error An extracted view helper cannot use a Mount absent from its Composition.
+    h.OnMount(ObserveViewHelper()),
+  ])
 
-const ForeignRenderMessage = defineMessageUnion({ ClickedForeignRender: {} })
+const ForeignViewHelperMessage = defineMessageUnion({
+  ClickedForeignViewHelper: {},
+})
 
-RenderComposition.render((_model, h) =>
+const viewHelperWithForeignMessage = (h: ViewBuilder) =>
   h.button([
-    // @ts-expect-error An extracted render helper accepts only its Composition's Message.
-    h.OnClick(ForeignRenderMessage.ClickedForeignRender()),
-  ]),
-)
+    // @ts-expect-error An extracted view helper accepts only its Composition's Message.
+    h.OnClick(ForeignViewHelperMessage.ClickedForeignViewHelper()),
+  ])
 
-// @ts-expect-error A domain render helper requires a concrete input type.
-RenderComposition.render.withInput()((_input, h) => h.empty)
+// @ts-expect-error Composition no longer carries a render helper.
+ViewHelperComposition.render
 
-RenderComposition.toBlock({
+ViewHelperComposition.toBlock({
   init: invalidApplicationImplementation.init,
-  update: DeclarationTestsRender.update(model => ({ model })),
-  // @ts-expect-error A plain render helper cannot complete a Block as its branded view.
-  view: renderOnly,
+  update: DeclarationTestsViewHelper.update(model => ({ model })),
+  // @ts-expect-error A plain view helper cannot complete a Block as its branded view.
+  view: viewHelper,
   EffectsLayer: Layer.empty,
 })
 
 const InvalidApplicationComposition = InvalidApplication.toComposition()
-const applicationRenderOnly = InvalidApplicationComposition.render((model, h) =>
-  h.main([], [globalThis.String(model.child.value)]),
-)
+type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof InvalidApplicationComposition
+>
+const applicationViewHelper = (model: ParentModel, h: ApplicationViewBuilder) =>
+  h.main([], [globalThis.String(model.child.value)])
 
-// @ts-expect-error A plain render helper cannot complete an Application as its branded view.
-InvalidApplicationComposition.makeElement({
+// @ts-expect-error Application Composition no longer carries a render helper.
+InvalidApplicationComposition.render
+
+// @ts-expect-error A plain view helper cannot complete an Application as its branded view.
+InvalidApplicationComposition.toElement({
   ...invalidApplicationImplementation,
   container: null,
-  view: applicationRenderOnly,
+  view: applicationViewHelper,
 })
+
+void viewHelperWithOmittedChild
+void viewHelperWithOmittedMount
+void viewHelperWithForeignMessage
 
 const provisionPageAwaitingDependency = makeProvisionPageAwaitingDependency(
   document.createElement('div'),
@@ -150,7 +161,7 @@ const RequiresConflictingProvisionContract = Layer.effect(
   }),
 )
 
-const provisionContractProgram = InvalidApplicationComposition.makeElement({
+const provisionContractProgram = InvalidApplicationComposition.toElement({
   ...invalidApplicationImplementation,
   container: null,
   view: invalidElementView,
@@ -166,14 +177,14 @@ programWithProvisionContract.provide(ConflictingProvisionContract.layer)
 programWithProvisionContract.provide(RequiresConflictingProvisionContract)
 
 // @ts-expect-error Page Applications require a Document view.
-InvalidApplicationComposition.make({
+InvalidApplicationComposition.toApplication({
   ...invalidApplicationImplementation,
   container: null,
   view: invalidElementView,
 })
 
 // @ts-expect-error Element Applications require an HTML view.
-InvalidApplicationComposition.makeElement({
+InvalidApplicationComposition.toElement({
   ...invalidApplicationImplementation,
   container: null,
   view: invalidDocumentView,
@@ -187,7 +198,7 @@ const requiredContextUpdate = InvalidApplication.update(
 )
 
 // @ts-expect-error Application update cannot require root dispatch context.
-InvalidApplicationComposition.makeElement({
+InvalidApplicationComposition.toElement({
   ...invalidApplicationImplementation,
   update: requiredContextUpdate,
   container: null,
@@ -213,7 +224,7 @@ const widerMessageUpdate = WiderMessageApplication.update(
 )
 
 // @ts-expect-error Application update must accept exactly the root Message.
-InvalidApplicationComposition.makeElement({
+InvalidApplicationComposition.toElement({
   ...invalidApplicationImplementation,
   update: widerMessageUpdate,
   container: null,
@@ -236,7 +247,7 @@ const widerModelUpdate = WiderInputModelApplication.update(
 )
 
 // @ts-expect-error Application update must accept exactly the root Model.
-InvalidApplicationComposition.makeElement({
+InvalidApplicationComposition.toElement({
   ...invalidApplicationImplementation,
   update: widerModelUpdate,
   container: null,
@@ -355,9 +366,11 @@ const BindingParent = Block.define('DeclarationTestsBindingParent', {
 })
 
 BindingParent.bindChild(ChildBlock, {
+  // @ts-expect-error Invalid Message mapping prevents the direct overload.
   field: 'child',
   // @ts-expect-error A parent Message constructor is exclusive with a custom mapper.
   parentMessage: ParentMessage.GotChildMessage,
+  // @ts-expect-error A parent Message constructor is exclusive with a custom mapper.
   toParentMessage: (message: ChildMessage) =>
     ParentMessage.GotChildMessage({ message }),
 })
@@ -367,6 +380,7 @@ const WrongChildParent = Block.define('DeclarationTestsWrongChildParent', {
   Message: WrongChildParentMessage,
 })
 WrongChildParent.bindChild(ChildBlock, {
+  // @ts-expect-error Invalid Message mapping prevents the direct overload.
   field: 'child',
   // @ts-expect-error A parent Message constructor must accept this Block's Message.
   parentMessage: WrongChildParentMessage.GotChildMessage,
@@ -377,21 +391,19 @@ const ExtraParent = Block.define('DeclarationTestsExtraParent', {
   Message: ExtraParentMessage,
 })
 ExtraParent.bindChild(ChildBlock, {
+  // @ts-expect-error Invalid Message mapping prevents the direct overload.
   field: 'child',
   // @ts-expect-error A parent Message constructor cannot require fields beyond the child Message.
   parentMessage: ExtraParentMessage.GotChildMessage,
 })
 
 BindingParent.bindChild(ChildBlock, {
-  // @ts-expect-error Keyed Bindings do not accept the static parentMessage shorthand.
   placement: 'children',
   readAll: (model: ParentModel) => [model.child],
   key: (): 'only' => 'only',
-  // @ts-expect-error The invalid static mapper prevents keyed overload selection.
   read: (childModel: ChildModel) => childModel,
   writeAt: (_model: ParentModel, _key: 'only', nextChild: ChildModel) =>
     ParentModel.make({ child: nextChild }),
-  // @ts-expect-error The invalid static mapper prevents keyed overload selection.
   toParentMessage: (_key: 'only', message: ChildMessage) =>
     ParentMessage.GotChildMessage({ message }),
   // @ts-expect-error Keyed Bindings do not accept the static parentMessage shorthand.

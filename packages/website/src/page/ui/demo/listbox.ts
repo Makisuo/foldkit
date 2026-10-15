@@ -7,7 +7,8 @@ import { type AnchorConfig, buttonId } from '@foldkit/ui/listbox'
 import { Icon } from '../../../icon'
 import type { ListboxItem } from '../model'
 import { listboxDemo, listboxGroupedDemo, listboxMultiDemo } from '../update'
-import type { ViewBuilder } from '../viewBuilder'
+import type { ViewBuilder } from '../update'
+import { type Character } from './components'
 
 // DEMO CONTENT
 
@@ -21,15 +22,6 @@ const LISTBOX_ITEMS: ReadonlyArray<ListboxItem> = [
   'Tobias Funke',
   'Lucille Bluth',
 ]
-
-type Character = Readonly<{
-  firstName: string
-  lastName: string
-}>
-
-export const ItemListbox = Listbox.create<ListboxItem>()
-export const ItemMultiListbox = Listbox.Multi.create<ListboxItem>()
-export const CharacterListbox = Listbox.create<Character>()
 
 const characterName = (character: Character): string =>
   `${character.firstName} ${character.lastName}`

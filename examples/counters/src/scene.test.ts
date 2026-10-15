@@ -15,15 +15,15 @@ import { describe, test } from 'vitest'
 import { type Model, update, view } from './application'
 
 const initialModel: Model = {
-  rows: [
+  counters: [
     { id: 'counter-0', counter: { count: 0 } },
     { id: 'counter-1', counter: { count: 0 } },
   ],
-  nextRowId: 2,
+  nextCounterId: 2,
 }
 
 describe('view', () => {
-  test('renders one Counter row per entry', () => {
+  test('renders one Counter instance per entry', () => {
     scene(
       { update, view },
       given(initialModel),
@@ -33,7 +33,7 @@ describe('view', () => {
     )
   })
 
-  test('clicking + on a Counter dispatches through h.block back to the right row', () => {
+  test('clicking + on a Counter dispatches through h.block back to the right instance', () => {
     scene(
       { update, view },
       given(initialModel),
@@ -48,8 +48,8 @@ describe('view', () => {
     scene(
       { update, view },
       given({
-        rows: [{ id: 'counter-0', counter: { count: 3 } }],
-        nextRowId: 1,
+        counters: [{ id: 'counter-0', counter: { count: 3 } }],
+        nextCounterId: 1,
       }),
       expect(text('3')).toExist(),
       click(role('button', { name: '-' })),
@@ -57,7 +57,7 @@ describe('view', () => {
     )
   })
 
-  test('Add Counter creates a new row with a fresh Counter', () => {
+  test('Add Counter creates a new instance with a fresh Counter', () => {
     scene(
       { update, view },
       given(initialModel),
@@ -67,15 +67,15 @@ describe('view', () => {
     )
   })
 
-  test('Remove deletes a row and routes future events to surviving rows', () => {
+  test('Remove deletes an instance and routes future events to surviving counters', () => {
     scene(
       { update, view },
       given({
-        rows: [
+        counters: [
           { id: 'counter-0', counter: { count: 5 } },
           { id: 'counter-1', counter: { count: 10 } },
         ],
-        nextRowId: 2,
+        nextCounterId: 2,
       }),
       expect(text('5')).toExist(),
       expect(text('10')).toExist(),

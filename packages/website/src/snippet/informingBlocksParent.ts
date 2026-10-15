@@ -1,6 +1,5 @@
 import { Match, Schema } from 'effect'
-import { Update } from 'foldkit'
-import { define as defineApplication } from 'foldkit/application'
+import { Update, defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import { Url } from 'foldkit/url'

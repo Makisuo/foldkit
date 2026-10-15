@@ -1,8 +1,8 @@
 import { Array, Match, Option } from 'effect'
-import type { HtmlBuilderOf } from 'foldkit/application'
 import { Html } from 'foldkit/html'
 
 import { ApplicationComposition } from './application'
+import type { ViewBuilder } from './application'
 import { peoplePage } from './childBindings'
 import {
   type File,
@@ -21,8 +21,6 @@ import {
   nestedRouter,
   peopleRouter,
 } from './route'
-
-type ViewBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 const navigationView = (
   currentRoute: ApplicationRoute,

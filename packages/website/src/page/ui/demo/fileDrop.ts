@@ -5,7 +5,7 @@ import type { Html } from 'foldkit/html'
 import { Message } from '../message'
 import type { Model } from '../model'
 import { fileDropBasicDemo } from '../update'
-import type { ViewBuilder } from '../viewBuilder'
+import type { ViewBuilder } from '../update'
 
 // DEMO CONTENT
 

@@ -9,11 +9,8 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { Dom } from 'foldkit'
-import {
-  type HtmlBuilderOf,
-  define as defineApplication,
-} from 'foldkit/application'
+import { Dom, defineApplication } from 'foldkit'
+import type { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -54,7 +51,7 @@ export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
 
-type ViewBuilder = HtmlBuilderOf<typeof Application>
+type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 export const init = () => {
   const snake = Snake.create(GAME.INITIAL_POSITION)

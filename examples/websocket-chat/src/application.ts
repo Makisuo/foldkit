@@ -1,4 +1,5 @@
 import { Layer } from 'effect'
+import type { Block } from 'foldkit'
 
 import {
   SendMessage,
@@ -10,6 +11,8 @@ import { managedResources } from './managedResource'
 import { subscriptions } from './subscription'
 
 export const ApplicationComposition = Application.toComposition()
+
+export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 export const EffectsLayer = Layer.mergeAll(
   TimestampSentMessage.layer,

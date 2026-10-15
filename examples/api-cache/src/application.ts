@@ -1,4 +1,5 @@
 import { HashMap, Layer, Option } from 'effect'
+import type { Block } from 'foldkit'
 
 import { tabs } from './childBindings'
 import { FetchPostDetail, FetchPosts, FetchStats } from './command'
@@ -9,6 +10,8 @@ import { subscriptions } from './subscription'
 export const ApplicationComposition = Application.toComposition({
   children: [tabs],
 })
+
+export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 export const init = () => ({
   model: Model.make({

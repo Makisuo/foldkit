@@ -1,4 +1,5 @@
 import { Update } from 'foldkit'
+import type { Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import * as AsyncCounterDemo from './asyncCounterDemo'
@@ -57,3 +58,5 @@ export const notePlayerDemo = Home.bindChild(NotePlayerDemo.block, {
 export const HomeComposition = Home.toComposition({
   children: [asyncCounterDemo, demoTabs, notePlayerDemo, playgroundMenu],
 })
+
+export type ViewBuilder = Block.HtmlBuilderOf<typeof HomeComposition>

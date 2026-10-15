@@ -1,6 +1,5 @@
 import { Duration, Effect, Schema, Stream } from 'effect'
 import { Block } from 'foldkit'
-import type { Document } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -60,7 +59,7 @@ const update = Counter.update((model, message) =>
   }),
 )
 
-const view = Counter.view((model, h): Document => ({
+const view = Counter.view((model, h) => ({
   title: `Count: ${model.count}`,
   body: h.div(
     [],

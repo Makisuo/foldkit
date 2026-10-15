@@ -1,28 +1,15 @@
-import { Effect, Layer, Match, Schema } from 'effect'
-import { Update, Url } from 'foldkit'
-import { define as defineApplication } from 'foldkit/application'
+import { Effect, Layer, Option, Schema } from 'effect'
+import { Url } from 'foldkit'
+import type { Block } from 'foldkit'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 
-import * as Shared from '@typing-game/shared'
-
+import { children, home, room } from './childBindings'
+import { NavigateToRoom } from './childBindings/home'
+import { Application } from './definition'
 import { Message } from './message'
-import { Model } from './model'
-import { Home, Room } from './page'
-import { ApplicationRoute, roomRouter, urlToApplicationRoute } from './route'
-
-const Application = defineApplication({ Model, Message })
-
-const NavigateToRoom = Application.command('NavigateToRoom', {
-  args: { roomId: Schema.String },
-  messages: [Message.CompletedNavigateToRoom],
-  handler: function* () {
-    return ({ roomId }) =>
-      pushUrl(roomRouter({ roomId })).pipe(
-        Effect.as(Message.CompletedNavigateToRoom()),
-      )
-  },
-})
+import { Model, RoomInstance } from './model'
+import { ApplicationRoute, urlToApplicationRoute } from './route'
 
 const NavigateInternal = Application.command('NavigateInternal', {
   args: { url: Schema.String },
@@ -42,59 +29,85 @@ const LoadExternal = Application.command('LoadExternal', {
   },
 })
 
-export const room = Application.bindChild(Room.block, {
-  field: 'room',
-  parentMessage: Message.GotRoomMessage,
-  subscriptions: {
-    when: { roomKeyPresses: ({ route }) => route._tag === 'Room' },
-  },
-})
-
-const navigateToRoom = (roomId: string) => (model: Model) => ({
-  model,
-  commands: [NavigateToRoom({ roomId })],
-})
-
-const enterJoinedRoom = (roomId: string, player: Shared.Player) =>
-  Update.combine([
-    navigateToRoom(roomId),
-    room.informJoined(player, { roomId }),
-  ])
-
-const foldHomeOutMessage = Home.OutMessage.match({
-  CreatedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
-  JoinedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
-})
-
-export const home = Application.bindChild(Home.block, {
-  field: 'home',
-  parentMessage: Message.GotHomeMessage,
-  subscriptions: {
-    when: ({ route }) => route._tag === 'Home',
-  },
-  outMessage: { fold: foldHomeOutMessage },
-})
-
 export const ApplicationComposition = Application.toComposition({
-  children: [home, room],
+  children,
 })
+
+export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 export const init = (url: Url.Url) => {
   const route = urlToApplicationRoute(url)
   const homeInit = home.init()
-  const roomInit = room.init(route)
-  const commands = ApplicationRoute.match(route, {
-    Home: () => homeInit.commands ?? [],
-    Room: () => roomInit.commands ?? [],
-    NotFound: () => [],
-  })
-  const model = Model.make({
-    route,
-    home: homeInit.model,
-    room: roomInit.model,
-  })
 
-  return { model, commands }
+  return ApplicationRoute.match(route, {
+    Home: () => ({
+      model: Model.make({
+        route,
+        home: homeInit.model,
+        maybeRoomInstance: Option.none(),
+      }),
+      commands: homeInit.commands,
+    }),
+    Room: ({ roomId }) => {
+      const roomInit = room.init(roomId, Option.some(roomId))
+
+      return {
+        model: Model.make({
+          route,
+          home: homeInit.model,
+          maybeRoomInstance: Option.some(
+            RoomInstance.make({ roomId, model: roomInit.model }),
+          ),
+        }),
+        commands: roomInit.commands,
+      }
+    },
+    NotFound: () => ({
+      model: Model.make({
+        route,
+        home: homeInit.model,
+        maybeRoomInstance: Option.none(),
+      }),
+    }),
+  })
+}
+
+const changeRoute = (model: Model, url: Url.Url) => {
+  const route = urlToApplicationRoute(url)
+  const routeChanged = modifyFields(model, { route: () => route })
+
+  return ApplicationRoute.match(route, {
+    Home: () => ({
+      model: modifyFields(routeChanged, {
+        maybeRoomInstance: () => Option.none(),
+      }),
+    }),
+    Room: ({ roomId }) =>
+      Option.match(model.maybeRoomInstance, {
+        onNone: () => initializeRoom(routeChanged, roomId),
+        onSome: roomInstance =>
+          roomInstance.roomId === roomId
+            ? { model: routeChanged }
+            : initializeRoom(routeChanged, roomId),
+      }),
+    NotFound: () => ({
+      model: modifyFields(routeChanged, {
+        maybeRoomInstance: () => Option.none(),
+      }),
+    }),
+  })
+}
+
+const initializeRoom = (model: Model, roomId: string) => {
+  const roomInit = room.init(roomId, Option.some(roomId))
+
+  return {
+    model: modifyFields(model, {
+      maybeRoomInstance: () =>
+        Option.some(RoomInstance.make({ roomId, model: roomInit.model })),
+    }),
+    commands: roomInit.commands,
+  }
 }
 
 export const update = ApplicationComposition.update((model, message) =>
@@ -110,19 +123,22 @@ export const update = ApplicationComposition.update((model, message) =>
           commands: [LoadExternal({ href })],
         }),
       }),
-    ChangedUrl: ({ url }) => ({
-      model: modifyFields(model, {
-        route: () => urlToApplicationRoute(url),
+    ChangedUrl: ({ url }) => changeRoute(model, url),
+    GotHomeMessage: ({ message }) =>
+      ApplicationRoute.match(model.route, {
+        Home: () => home.fold(model, message),
+        Room: () => ({ model }),
+        NotFound: () => ({ model }),
       }),
-    }),
-    GotHomeMessage: ({ message }) => home.fold(model, message),
-    GotRoomMessage: ({ message }) =>
-      Match.value(model.route).pipe(
-        Match.tag('Room', ({ roomId }) =>
-          room.fold(model, message, { roomId }),
-        ),
-        Match.orElse(() => ({ model })),
-      ),
+    GotRoomMessage: ({ roomId, message }) =>
+      ApplicationRoute.match(model.route, {
+        Home: () => ({ model }),
+        Room: route =>
+          route.roomId === roomId
+            ? room.fold(model, roomId, message, { roomId })
+            : { model },
+        NotFound: () => ({ model }),
+      }),
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
     CompletedNavigateToRoom: () => ({ model }),

@@ -77,7 +77,7 @@ const foldAnimationOutMessage = (
     // release a resource. No Commands here because animateSize keeps the
     // element mounted (collapsed to zero height) so there's nothing to
     // tear down.
-    TransitionedOut: () => (model: Model) => ({ model }),
+    TransitionedOut: () => AnimationExample.step(model => ({ model })),
   })
 
 // The Binding wires the completed child Block into the parent: it runs Animation.update,

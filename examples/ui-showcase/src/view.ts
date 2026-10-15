@@ -5,6 +5,7 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 import { Nav } from '@foldkit/ui'
 
 import { ApplicationComposition, ui } from './application'
+import type { ViewBuilder } from './application'
 import * as Icon from './icon'
 import { Message } from './message'
 import { Model } from './model'
@@ -154,42 +155,37 @@ const mobileNavLinkClassName = (isActive: boolean): string =>
       : 'text-gray-700 hover:bg-gray-200',
   )
 
-const sidebarView = ApplicationComposition.render.withInput<ApplicationRoute>()(
-  (currentRoute, h) => {
-    const sidebarNavView = ({ nav, items }: Nav.RenderInfo): Html =>
-      h.nav(
-        [
-          ...nav,
-          h.Class(
-            'hidden md:flex w-56 shrink-0 border-r border-gray-200 bg-gray-50 p-4 flex-col',
-          ),
-        ],
-        [
-          h.div(
-            [h.Class('mb-6')],
-            [
-              h.a(
-                [h.Href(homeRouter()), h.Class('block')],
-                [
-                  h.h1(
-                    [h.Class('text-lg font-bold text-gray-900')],
-                    ['Foldkit UI'],
-                  ),
-                ],
-              ),
-              h.span(
-                [h.Class('text-xs text-gray-500')],
-                ['Component Showcase'],
-              ),
-            ],
-          ),
-          navListView(items, navLinkClassName, h),
-        ],
-      )
+const sidebarView = (currentRoute: ApplicationRoute, h: ViewBuilder) => {
+  const sidebarNavView = ({ nav, items }: Nav.RenderInfo): Html =>
+    h.nav(
+      [
+        ...nav,
+        h.Class(
+          'hidden md:flex w-56 shrink-0 border-r border-gray-200 bg-gray-50 p-4 flex-col',
+        ),
+      ],
+      [
+        h.div(
+          [h.Class('mb-6')],
+          [
+            h.a(
+              [h.Href(homeRouter()), h.Class('block')],
+              [
+                h.h1(
+                  [h.Class('text-lg font-bold text-gray-900')],
+                  ['Foldkit UI'],
+                ),
+              ],
+            ),
+            h.span([h.Class('text-xs text-gray-500')], ['Component Showcase']),
+          ],
+        ),
+        navListView(items, navLinkClassName, h),
+      ],
+    )
 
-    return componentNav(currentRoute, sidebarNavView)
-  },
-)
+  return componentNav(currentRoute, sidebarNavView)
+}
 
 const mobileMenuContent =
   (
@@ -252,7 +248,7 @@ const mobileMenuContent =
     )
   }
 
-const mobileHeaderView = ApplicationComposition.render((model, h) =>
+const mobileHeaderView = (model: Model, h: ViewBuilder) =>
   h.header(
     [
       h.Class(
@@ -290,10 +286,9 @@ const mobileHeaderView = ApplicationComposition.render((model, h) =>
         [Icon.menu('w-6 h-6')],
       ),
     ],
-  ),
-)
+  )
 
-const mobileMenuView = ApplicationComposition.render((model, h) =>
+const mobileMenuView = (model: Model, h: ViewBuilder) =>
   h.block(
     ui.embedView({
       slotId: 'mobile-menu',
@@ -301,10 +296,9 @@ const mobileMenuView = ApplicationComposition.render((model, h) =>
       view: Ui.View.mobileMenu,
       viewInputs: { renderContent: mobileMenuContent(model.route) },
     }),
-  ),
-)
+  )
 
-const homeView = ApplicationComposition.render.builder(h =>
+const homeView = (h: ViewBuilder) =>
   h.div(
     [h.Class('max-w-2xl')],
     [
@@ -325,31 +319,28 @@ const homeView = ApplicationComposition.render.builder(h =>
         ],
       ),
     ],
-  ),
-)
+  )
 
-const notFoundView = ApplicationComposition.render.withInput<string>()(
-  (path, h) =>
-    h.div(
-      [h.Class('max-w-2xl')],
-      [
-        h.h1(
-          [h.Class('text-2xl md:text-3xl font-bold text-red-600 mb-4')],
-          ['404 — Page Not Found'],
-        ),
-        h.p(
-          [h.Class('text-gray-600 mb-4')],
-          [`The path "${path}" was not found.`],
-        ),
-        h.a(
-          [h.Href(homeRouter()), h.Class('text-accent-600 hover:underline')],
-          ['Go Home'],
-        ),
-      ],
-    ),
-)
+const notFoundView = (path: string, h: ViewBuilder) =>
+  h.div(
+    [h.Class('max-w-2xl')],
+    [
+      h.h1(
+        [h.Class('text-2xl md:text-3xl font-bold text-red-600 mb-4')],
+        ['404 — Page Not Found'],
+      ),
+      h.p(
+        [h.Class('text-gray-600 mb-4')],
+        [`The path "${path}" was not found.`],
+      ),
+      h.a(
+        [h.Href(homeRouter()), h.Class('text-accent-600 hover:underline')],
+        ['Go Home'],
+      ),
+    ],
+  )
 
-const contentView = ApplicationComposition.render((model, h) => {
+const contentView = (model: Model, h: ViewBuilder) => {
   const embedUi = (id: string, view: typeof Ui.View.button): Html =>
     h.block(
       ui.embedView({
@@ -390,7 +381,7 @@ const contentView = ApplicationComposition.render((model, h) => {
     VirtualList: () => embedUi('ui-virtual-list', Ui.View.virtualList),
     NotFound: ({ path }) => notFoundView(path, h),
   })
-})
+}
 
 const routeTitle = (route: Model['route']): string =>
   Match.value(route).pipe(

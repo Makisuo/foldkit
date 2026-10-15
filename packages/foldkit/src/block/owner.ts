@@ -1,7 +1,8 @@
 /** @internal Marks whether a named Block identity was created from a concrete literal. */
 export const ConcreteOwnerTypeId = Symbol('foldkit/Block/ConcreteOwner')
 
-/** @internal The stable identity shared by one named Block's definitions. */
+/** The stable type and runtime identity shared by one named Block's Definitions
+ * and completed Blocks. */
 export interface Owner<Id extends string, Concrete extends boolean = boolean> {
   readonly id: Id
   readonly namespace: Id

@@ -1,14 +1,14 @@
-import type { Block } from 'foldkit'
 import { type Html } from 'foldkit/html'
 
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
+import type { ViewBuilder } from '../childBindings'
 import { UiComposition, mobileMenuDialog } from '../childBindings'
 
 export type ViewInputs = Readonly<{
   renderContent: (
     closeButton: DialogRenderInfo['closeButton'],
-    h: Block.HtmlBuilderOf<typeof UiComposition>,
+    h: ViewBuilder,
   ) => Html
 }>
 

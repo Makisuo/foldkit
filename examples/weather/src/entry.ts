@@ -1,17 +1,13 @@
 import { Http, Runtime } from 'foldkit'
 
-import {
-  ApplicationComposition,
-  EffectsLayer,
-  Message,
-  init,
-  update,
-  view,
-} from './application'
+import { ApplicationComposition, init, update } from './application'
+import { EffectsLayer } from './command'
+import { Message } from './definition'
+import { view } from './view'
 
 export const ApplicationLayer = Http.layer
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

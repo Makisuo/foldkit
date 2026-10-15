@@ -46,6 +46,7 @@ export type {
   Block,
   Implementation,
   HtmlBuilderOf,
+  OwnedAuthoredView,
   ToBlock,
   OwnedManagedResourceEntryBuilder,
   OwnedSubscriptionEntryBuilder,
@@ -71,7 +72,6 @@ export type {
   KeyedOutMessagePolicy,
 } from './keyedBinding.js'
 export type { Owner } from './owner.js'
-export type { DefineRender, RenderOutput } from './render.js'
 export type { Qualify, Scoped } from './scope.js'
 export type { ValidateConcreteComposition } from './requirements.js'
 export type { Reflect, Reflect2 } from './block.js'

@@ -13,12 +13,7 @@ import * as Block from 'foldkit/block'
 import * as CalendarDomain from 'foldkit/calendar'
 import type { CalendarDate } from 'foldkit/calendar'
 import * as Dom from 'foldkit/dom'
-import {
-  type ChildAttribute,
-  type Html,
-  type HtmlBuilder,
-  childAttributes,
-} from 'foldkit/html'
+import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
@@ -922,7 +917,7 @@ const isYearDisabled = (model: Model, year: number): boolean =>
 const buildDaysAttributes = (
   model: Model,
   viewInputs: ViewInputs,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): DaysModeAttributes => {
   const {
     id,
@@ -1124,7 +1119,7 @@ const buildDaysAttributes = (
 const buildMonthsAttributes = (
   model: Model,
   viewInputs: ViewInputs,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): MonthsModeAttributes => {
   const {
     id,
@@ -1257,7 +1252,7 @@ const buildMonthsAttributes = (
 const buildYearsAttributes = (
   model: Model,
   viewInputs: ViewInputs,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): YearsModeAttributes => {
   const { id, viewYear, maybeFocusedDate, today, isGridFocused } = model
 
@@ -1403,6 +1398,8 @@ export const view = Calendar.view.withInputs<ViewInputs>(
 
 /** Complete Calendar Block definition for connecting to a parent. */
 const CalendarComposition = Calendar.toComposition()
+
+type ViewBuilder = Block.HtmlBuilderOf<typeof CalendarComposition>
 
 export const block = CalendarComposition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),

@@ -33,7 +33,8 @@ import {
 import type { ValidateConcreteComposition } from './requirements.js'
 import { assertSegment, qualifyCommand, qualifyLayer } from './scope.js'
 
-/** Handles and optionally forwards a keyed child's OutMessages at its parent. */
+/** Defines how a parent handles every OutMessage from one occurrence in a
+ * keyed child collection. */
 export type KeyedOutMessagePolicy<
   ParentModel,
   ChildMessage,
@@ -42,6 +43,8 @@ export type KeyedOutMessagePolicy<
   Key,
 > =
   | Readonly<{
+      /** Handles each child OutMessage in the parent. The returned Step receives
+       * the parent Model after Foldkit has written the next child Model. */
       fold: (
         key: Key,
         outMessage: ChildOutMessage,
@@ -50,7 +53,11 @@ export type KeyedOutMessagePolicy<
       forward?: never
     }>
   | Readonly<{
+      /** Maps selected child OutMessages into the parent's OutMessage union.
+       * Return `undefined` for a named variant that stops at this parent. */
       forward: (key: Key, outMessage: ChildOutMessage) => unknown | undefined
+      /** Also handles child OutMessages locally. A parent OutMessage returned by
+       * this Step takes precedence over the value returned by `forward`. */
       fold?: (
         key: Key,
         outMessage: ChildOutMessage,
@@ -138,7 +145,9 @@ export type ValidateKeyedPolicy<
       ? ValidateKeyedForward<Forward, ChildOutMessage, Key>
       : never
 
-/** @internal Shared collection and lifecycle policy for keyed Bindings. */
+/** Declares how one child Block is stored and identified in a parent-owned
+ * collection. Foldkit uses the same declaration for updates, views, Messages,
+ * and occurrence lifecycle work. */
 export type KeyedBindingBaseConfig<
   BlockValue extends BindableBlock,
   ParentModel,
@@ -147,20 +156,41 @@ export type KeyedBindingBaseConfig<
   Key extends InstanceKey,
   Placement extends string,
 > = Readonly<{
+  /** Identifies this Binding within the parent's composition graph. It defaults
+   * to the child Block ID and must be unique among the parent's Bindings. */
   placement?: Placement
+  /** Enumerates the current collection from the parent Model. The returned keys
+   * determine which child occurrences have active Subscription,
+   * ManagedResource, and Mount scopes. */
   readAll: (model: ParentModel) => ReadonlyArray<Item>
+  /** Returns the stable identity of an item. Keys must be unique in the current
+   * collection and must be strings or finite numbers. Removing a key ends that
+   * occurrence; reusing it later creates a new occurrence that cannot receive
+   * callbacks or Command results captured by the earlier one. */
   key: (item: Item) => Key
+  /** Reads the child Model stored by one collection item. */
   read: (item: Item) => BlockValue['Model']['Type']
+  /** Writes the next child Model at `key` into the parent Model. The parent owns
+   * collection membership and ordering; Foldkit calls this only after the key
+   * resolves to a current item. */
   writeAt: (
     model: ParentModel,
     key: Key,
     nextChildModel: BlockValue['Model']['Type'],
   ) => ParentModel
+  /** Wraps a child Message with the key of the occurrence that emitted it. The
+   * same mapping applies to view dispatches, Command results, Subscriptions,
+   * ManagedResources, and Mounts. */
   toParentMessage: (
     key: Key,
     message: BlockValue['Message']['Type'],
   ) => ParentMessage
+  /** Adds optional activation gates for child Subscriptions while an occurrence
+   * remains present. Gates do not disable updates or other lifecycle channels. */
   subscriptions?: Readonly<{
+    /** Enables every child Subscription with one predicate, or selected named
+     * Subscriptions with a partial record. Unspecified entries default to
+     * enabled. */
     when?:
       | ((model: ParentModel, key: Key) => boolean)
       | Readonly<
@@ -174,7 +204,8 @@ export type KeyedBindingBaseConfig<
   }>
 }>
 
-/** Declares a collection once, including its stable key and parent policies. */
+/** The complete parent policy for a keyed Binding, including OutMessage
+ * handling when the child Block can emit OutMessages. */
 export type KeyedBindingConfig<
   BlockValue extends BindableBlock,
   ParentModel,
@@ -191,6 +222,12 @@ export type KeyedBindingConfig<
   Key,
   Placement
 > &
+  Readonly<{
+    /** Handles every child OutMessage locally, forwards selected variants, or
+     * does both. This property is required exactly when the child declares an
+     * OutMessage type. */
+    outMessage?: Policy
+  }> &
   (BlockValue extends Readonly<{
     OutMessage: Readonly<{ Type: infer ChildOutMessage }>
   }>
@@ -282,7 +319,9 @@ type KeyedBoundExposedOperations<
   >
 }>
 
-/** A registered collection whose active keys receive independent lifecycle scopes. */
+/** A registered child collection whose active keys receive independent
+ * lifecycle scopes. The Binding is passive until a Runtime starts the composed
+ * application. */
 export type KeyedBinding<
   BlockValue extends BindableBlock,
   ParentModel,
@@ -296,7 +335,7 @@ export type KeyedBinding<
 > = WithoutBindingEvidence<
   Omit<
     Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy>,
-    'init' | 'fold' | 'embedView' | keyof BlockValue['expose']
+    'placement' | 'init' | 'fold' | 'embedView' | keyof BlockValue['expose']
   >
 > &
   BindingEvidence<
@@ -323,12 +362,22 @@ export type KeyedBinding<
     true
   > &
   Readonly<{
+    /** The stable identity of this child Binding in the parent Block's
+     * composition graph. Every keyed occurrence shares this placement; `key`
+     * distinguishes the occurrence within it. */
+    placement: Placement
+    /** Initializes one child occurrence and lifts its Commands to the parent
+     * Message type. The parent remains responsible for inserting the returned
+     * child Model into its collection. */
     init: (
       key: Key,
       ...args: Parameters<BlockValue['init']>
     ) => ReturnType<
       Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy>['init']
     >
+    /** Runs the child update for `key`, writes the next child Model through
+     * `writeAt`, lifts Commands, and applies the OutMessage policy. If the key is
+     * absent, the returned parent Model is unchanged. */
     fold: (
       model: ParentModel,
       key: Key,
@@ -352,6 +401,8 @@ export type KeyedBinding<
       BlockId<BlockValue>,
       BindingRequirement<Placement, BlockValue>
     >
+    /** Builds the `h.block` config for one keyed occurrence. The config carries
+     * the key, placement identity, Message mapping, and Mount evidence. */
     embedView: KeyedEmbed<BlockValue, ParentMessage, Placement, Key>
   }> &
   KeyedBoundExposedOperations<
@@ -366,7 +417,8 @@ export type KeyedBinding<
     ? unknown
     : ParentBindingContract<ContractModel, ContractMessage, ContractOutMessage>)
 
-/** Binds all occurrences of one Block through a single collection declaration. */
+/** Creates one keyed Binding for every occurrence of a Block in a
+ * parent-owned collection. */
 export type BindEach<BlockValue extends BindableBlock> =
   BlockValue extends Readonly<{
     OutMessage: Readonly<{ Type: infer ChildOutMessage }>
@@ -477,6 +529,7 @@ type RuntimeKeyedBindingConfig = Readonly<{
   toParentMessage: (key: InstanceKey, message: any) => any
   subscriptions?: Readonly<{ when?: RuntimeKeyedSubscriptionWhen }>
   outMessage?: RuntimeKeyedOutMessagePolicy
+  validateChildKey?: (key: InstanceKey, childModel: any) => void
 }>
 
 type RuntimeKeyedOperation = Readonly<{
@@ -521,10 +574,7 @@ export const bindEach = <const BlockValue extends BindableBlock>(
   const allowedIdentities = hostIdentitiesOf(block)
   const readAt = (model: any, key: InstanceKey): Option.Option<any> =>
     Option.map(
-      Array.findFirst(
-        config.readAll(model),
-        (item: any) => config.key(item) === key,
-      ),
+      Array.findFirst(config.readAll(model), item => config.key(item) === key),
       config.read,
     )
   const scopeReturn = (
@@ -657,11 +707,11 @@ export const bindEach = <const BlockValue extends BindableBlock>(
     init: (key: InstanceKey, ...args: ReadonlyArray<any>) => {
       assertRegisteredBinding(binding, placement)
 
-      const childInit = scopeReturn(
-        withOperationGraph(block.children, () => block.init(...args)),
-        key,
-        true,
+      const initialChild = withOperationGraph(block.children, () =>
+        block.init(...args),
       )
+      config.validateChildKey?.(key, initialChild.model)
+      const childInit = scopeReturn(initialChild, key, true)
       return {
         model: childInit.model,
         commands: mapMessages(childInit.commands, message =>
@@ -697,7 +747,7 @@ export const bindEach = <const BlockValue extends BindableBlock>(
   registerBinding(binding, {
     block,
     select: model =>
-      config.readAll(model).map((item: any) => ({
+      config.readAll(model).map(item => ({
         key: config.key(item),
         model: config.read(item),
       })),

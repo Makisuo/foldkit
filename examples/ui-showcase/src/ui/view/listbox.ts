@@ -1,5 +1,4 @@
 import { Array, Option } from 'effect'
-import type { Block } from 'foldkit'
 import { type Html, childAttributes } from 'foldkit/html'
 
 import { Listbox } from '@foldkit/ui'
@@ -12,10 +11,9 @@ import {
   listboxGroupedDemo,
   listboxMultiDemo,
 } from '../childBindings'
+import type { ViewBuilder } from '../childBindings'
 import type { Character } from '../listbox'
 import type { ListboxItem } from '../model'
-
-type HtmlBuilder = Block.HtmlBuilderOf<typeof UiComposition>
 
 const LISTBOX_ITEMS: ReadonlyArray<ListboxItem> = [
   'Michael Bluth',
@@ -79,21 +77,19 @@ const LISTBOX_ANCHOR = {
 
 // PIECES
 
-const itemContent = UiComposition.render.withInput<string>()((label, h) =>
+const itemContent = (label: string, h: ViewBuilder) =>
   h.div(
     [h.Class('flex items-center gap-2')],
     [Icon.check(checkIconClassName), h.span([], [label])],
-  ),
-)
+  )
 
-const buttonContent = UiComposition.render.withInput<string>()((label, h) =>
+const buttonContent = (label: string, h: ViewBuilder) =>
   h.div(
     [h.Class(buttonContentClassName)],
     [h.span([], [label]), Icon.chevronDown('w-4 h-4')],
-  ),
-)
+  )
 
-const chromeAttributes = (h: HtmlBuilder) => ({
+const chromeAttributes = (h: ViewBuilder) => ({
   buttonAttributes: childAttributes([h.Class(triggerClassName)]),
   itemsAttributes: childAttributes([h.Class(itemsClassName)]),
   backdropAttributes: childAttributes([h.Class(backdropClassName)]),
@@ -104,7 +100,7 @@ const field = (
   buttonId: string,
   label: string,
   listbox: Html,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   h.div(
     [h.Class(fieldClassName)],
@@ -119,7 +115,7 @@ const field = (
 const singleSelectDemo = (
   listboxModel: typeof Listbox.Model.Type,
   maybeSelectedItem: Option.Option<ListboxItem>,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html => {
   const buttonLabel = Option.getOrElse(
     maybeSelectedItem,
@@ -153,7 +149,7 @@ const singleSelectDemo = (
 const multiSelectDemo = (
   listboxModel: typeof Listbox.Multi.Model.Type,
   selectedItems: ReadonlyArray<ListboxItem>,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html => {
   const buttonLabel = Array.match(selectedItems, {
     onEmpty: () => 'Select Bluths',
@@ -190,7 +186,7 @@ const multiSelectDemo = (
 const groupedDemo = (
   listboxModel: typeof Listbox.Model.Type,
   maybeSelectedItem: Option.Option<string>,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html => {
   const buttonLabel = Option.getOrElse(
     maybeSelectedItem,

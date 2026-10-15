@@ -4,7 +4,7 @@ import { Url } from 'foldkit/url'
 import { Dialog } from '@foldkit/ui'
 
 import { Deployment } from './deployment'
-import { ResolvedTheme, ThemePreference } from './message'
+import { ResolvedTheme } from './message'
 import {
   ApiReference,
   ComingFromReact,
@@ -19,6 +19,7 @@ import * as Search from './search'
 import { SidebarGroups } from './sidebarStorage'
 import * as SnippetCopy from './snippetCopy'
 import * as SnippetDisclosure from './snippetDisclosure'
+import { ThemePreference } from './themePreference'
 import { ThemeMenu } from './view/themeMenu'
 
 export const Model = Schema.Struct({

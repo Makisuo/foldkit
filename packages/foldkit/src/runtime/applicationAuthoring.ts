@@ -16,6 +16,7 @@ import {
   type DefineUpdate,
   type DefineView,
   type ValidateChildBindings,
+  LocalMountsTypeId,
   makeDefinition,
 } from '../block/definition.js'
 import {
@@ -25,10 +26,9 @@ import {
   type DefineResource,
 } from '../block/named.js'
 import type { Owner } from '../block/owner.js'
-import type { DefineRender } from '../block/render.js'
 import type { HtmlBuilder } from '../html/index.js'
 import type * as Mount from '../mount/index.js'
-import type { Make, MakeElement } from './application.js'
+import type { ToApplication, ToElement } from './application.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
 type RootOwner = Owner<'Application', true>
@@ -37,17 +37,49 @@ type AuthoringHelpers<
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
 > = Readonly<{
+  /**
+   * Declares a root Command contract and optional handler constructor.
+   * The Runtime builds selected handler Layers once per application start.
+   */
   command: DefineCommand<'Application', MessageSchema['Type']>
+  /**
+   * Declares an element-owned acquisition with cleanup. Register its
+   * definition in this root's Composition before using it in a view.
+   */
   mount: DefineMount<'Application', MessageSchema['Type']>
+  /**
+   * Declares an element-owned Stream. Its listener or observer lifetime
+   * follows the mounted element, not the application handler constructor.
+   */
   mountStream: DefineMountStream<'Application', MessageSchema['Type']>
+  /**
+   * Declares a handle that Commands can require. Declare its Model-driven
+   * acquisition and release separately with managedResources.
+   */
   resource: DefineResource<'Application'>
+  /**
+   * Authors a pure root update with contextual Model and Message types.
+   * Infers Command requirements and child registration evidence from its result.
+   */
   update: DefineUpdate<ModelSchema['Type'], MessageSchema['Type'], never, true>
+  /**
+   * Authors a pure transformation of the root Model with inferred arguments
+   * and Command requirements. The Runtime executes returned Commands later.
+   */
   step: DefineStep<ModelSchema['Type'], MessageSchema['Type'], never>
+  /**
+   * Declares named root Streams, their result Messages and Model dependencies.
+   * Implementations are handler recipes; the Runtime manages active Streams.
+   */
   subscriptions: DefineSubscriptions<
     'Application',
     ModelSchema['Type'],
     MessageSchema['Type']
   >
+  /**
+   * Declares Model-driven root handle lifetimes. The Runtime acquires and
+   * releases handles while shared application Services remain alive.
+   */
   managedResources: DefineManagedResources<
     'Application',
     ModelSchema['Type'],
@@ -89,8 +121,20 @@ type CompletionHelpers<
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
 > = Readonly<{
-  make: Make<CompositionIdentity<ModelSchema, MessageSchema, Mounts, Children>>
-  makeElement: MakeElement<
+  /**
+   * Completes this Composition as a passive page-owning Application.
+   * Supply its implementation and browser inputs; provision ordinary Services
+   * on the returned value before passing it to Runtime.run.
+   */
+  toApplication: ToApplication<
+    CompositionIdentity<ModelSchema, MessageSchema, Mounts, Children>
+  >
+  /**
+   * Completes this Composition as a passive container-scoped Element.
+   * Its view returns Html and it does not own document metadata or URL routing.
+   * The Runtime constructs its Layers and starts its lifecycle effects later.
+   */
+  toElement: ToElement<
     CompositionIdentity<ModelSchema, MessageSchema, Mounts, Children>
   >
 }>
@@ -166,7 +210,7 @@ export type ViewRequirementsOf<CompositionValue> =
 
 /**
  * A passive application root after its child and Mount graph is known. Call
- * its `make` or `makeElement` method to complete it. It cannot be bound into
+ * its `toApplication` or `toElement` method to complete it. It cannot be bound into
  * another composition.
  */
 export type Composition<
@@ -175,19 +219,38 @@ export type Composition<
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
 > = Readonly<{
+  /**
+   * The root Model Schema established by defineApplication.
+   */
   Model: ModelSchema
+  /**
+   * The root Message Schema established by defineApplication.
+   */
   Message: MessageSchema
+  /**
+   * Local and lifted child Mount definitions available to the owned view.
+   * Local registrations are supplied to toComposition; child registrations
+   * are collected from its Bindings.
+   */
   mounts: readonly [
     ...Mounts,
     ...ReadonlyArray<InspectionOfBinding<Children[number]>['mounts'][number]>,
   ]
+  [LocalMountsTypeId]: Mounts
+  /**
+   * The registered child Bindings. Their handlers and lifecycle definitions
+   * are included automatically at completion.
+   */
   children: Children
+  /**
+   * Creates a passive child Binding in this root's Model and Message context.
+   * Include a used Binding in children when establishing the Composition.
+   */
   bindChild: BindChild<ModelSchema, MessageSchema>
-  render: DefineRender<
-    ModelSchema['Type'],
-    MessageSchema['Type'],
-    Mount.RequirementsOf<Mounts> | RequirementsOfBindings<Children>
-  >
+  /**
+   * Authors the canonical root view with the registered child and Mount
+   * capabilities. Application completion requires a view with no extra inputs.
+   */
   view: DefineView<
     RootOwner,
     ModelSchema['Type'],
@@ -261,7 +324,16 @@ export interface ToComposition<
     const Children extends ReadonlyArray<AnyBinding> = readonly [],
   >(
     config: Readonly<{
+      /**
+       * Local Mount definitions permitted in owned views. Defaults to an empty
+       * registry; child Mounts are collected from children automatically.
+       */
       mounts?: Mounts & Mount.PreciseMountRegistry<Mounts>
+      /**
+       * Child Bindings used by updates, operations, init or views. Defaults to
+       * an empty tuple. The Composition snapshots this graph and includes its
+       * handler recipes and occurrence lifecycle registrations at completion.
+       */
       children?: Children
     }> &
       ValidateChildBindings<
@@ -281,21 +353,52 @@ export type Definition<
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
 > = Readonly<{
+  /**
+   * The root Model Schema, shared by its authoring helpers.
+   */
   Model: ModelSchema
+  /**
+   * The root Message Schema, shared by its authoring helpers.
+   */
   Message: MessageSchema
+  /**
+   * An empty local registry before toComposition establishes Mount capabilities.
+   */
   mounts: readonly []
+  /**
+   * An empty child graph before toComposition registers Bindings.
+   */
   children: readonly []
+  /**
+   * Creates a passive Binding with contextual root Model and Message types.
+   * The parent selects storage, Message mapping and OutMessage policy.
+   */
   bindChild: BindChild<ModelSchema, MessageSchema>
+  /**
+   * Authors a root view before graph registration. Views using child Bindings
+   * or Mounts must use the registered Composition's view helper.
+   */
   view: DefineView<RootOwner, ModelSchema['Type'], MessageSchema['Type'], never>
+  /**
+   * Establishes the child and Mount graph and returns the root Composition.
+   * Omitted registries are empty. This step validates passive configuration;
+   * it neither constructs Layers nor starts lifecycle work.
+   */
   toComposition: ToComposition<ModelSchema, MessageSchema>
 }> &
   AuthoringHelpers<ModelSchema, MessageSchema>
 
-/** Defines the root Model, Message, and primitive authoring namespace. */
+/**
+ * Defines a passive root authoring value from its Model and Message Schemas.
+ * Establish its graph with toComposition, then complete that Composition with
+ * toApplication or toElement. The Runtime constructs Layers and runs effects.
+ */
 export interface Define {
   <const ModelSchema extends AnySchema, const MessageSchema extends AnySchema>(
     config: Readonly<{
+      /** The root Model Schema used to type init, update, views and bindings. */
       Model: ModelSchema
+      /** The root Message Schema used by Commands, lifecycle work and dispatch. */
       Message: MessageSchema
     }>,
   ): Definition<ModelSchema, MessageSchema>
@@ -307,8 +410,8 @@ const definitions = new WeakMap<
 >()
 
 type Completion = Readonly<{
-  make: (composition: AnyComposition, config: any) => any
-  makeElement: (composition: AnyComposition, config: any) => any
+  toApplication: (composition: AnyComposition, config: any) => any
+  toElement: (composition: AnyComposition, config: any) => any
 }>
 
 const makeComposition = (
@@ -325,9 +428,9 @@ const makeComposition = (
     Model: definition.Model,
     Message: definition.Message,
     mounts: definition.mounts,
+    [LocalMountsTypeId]: definition[LocalMountsTypeId],
     children: definition.children,
     bindChild: definition.bindChild,
-    render: definition.render,
     view: definition.view,
     command: primitives.command,
     mount: primitives.mount,
@@ -338,10 +441,11 @@ const makeComposition = (
     subscriptions: definition.subscriptions,
     managedResources: definition.managedResources,
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    make: (config: any) => completion.make(composition as never, config),
-    makeElement: (config: any) =>
+    toApplication: (config: any) =>
+      completion.toApplication(composition as never, config),
+    toElement: (config: any) =>
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      completion.makeElement(composition as never, config),
+      completion.toElement(composition as never, config),
   }
   definitions.set(composition, definition)
   return composition

@@ -14,15 +14,21 @@ import type { Owner } from './owner.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
 
-/** Owned effect declarations shared by every contract of one Block. */
+/** Effect declaration helpers scoped to one Block identity. */
 export type Primitives<Id extends string, Message = unknown> = Readonly<{
+  /** Defines a Command whose runtime name is owned by this Block. */
   command: DefineCommand<Id, Message>
+  /** Defines a one-shot Mount whose runtime name is owned by this Block. */
   mount: DefineMount<Id, Message>
+  /** Defines a streaming Mount whose runtime name is owned by this Block. */
   mountStream: DefineMountStream<Id, Message>
+  /** Defines a ManagedResource service identity owned by this Block. */
   resource: DefineResource<Id>
 }>
 
-/** Registers graph capabilities while retaining the Block's authoring methods. */
+/** Registers the child and Mount graph while retaining the Block's authoring
+ * methods. This step only records composition; it does not construct Layers or
+ * start lifecycle work. */
 export interface AuthoringToComposition<
   Id extends string,
   ModelSchema extends AnySchema,
@@ -45,7 +51,11 @@ export interface AuthoringToComposition<
     const Children extends ReadonlyArray<AnyBinding> = readonly [],
   >(
     config: Readonly<{
+      /** Mount definitions owned directly by this Block. Omitted Mounts default
+       * to an empty registry. */
       mounts?: Mounts & Mount.PreciseMountRegistry<Mounts>
+      /** Child Bindings registered in this Block's composition graph. Omitted
+       * children default to an empty tuple. */
       children?: Children
     }> &
       ValidateChildBindings<
@@ -65,7 +75,8 @@ export interface AuthoringToComposition<
     Primitives<Id, MessageSchema['Type']>
 }
 
-/** Typed helpers and owned primitives for a Block before graph registration. */
+/** Typed authoring helpers and owned effect declarations before graph
+ * registration. */
 export type AuthoringDefinition<
   Id extends string,
   ModelSchema extends AnySchema,
@@ -78,6 +89,8 @@ export type AuthoringDefinition<
 > &
   Primitives<Id, MessageSchema['Type']> &
   Readonly<{
+    /** Registers this Definition's child and Mount graph and returns the passive
+     * Composition used to author its view and complete its Block. */
     toComposition: AuthoringToComposition<
       Id,
       ModelSchema,
@@ -87,7 +100,8 @@ export type AuthoringDefinition<
     >
   }>
 
-/** Establishes typed contracts under an already declared Block identity. */
+/** Establishes Model, Message, and optional OutMessage Schemas under an already
+ * declared Block identity. */
 export interface DefineContracts<
   Id extends string,
   Concrete extends boolean = true,
@@ -98,8 +112,11 @@ export interface DefineContracts<
     const OutMessageSchema extends AnySchema,
   >(
     config: Readonly<{
+      /** Schema for the Block's Model. */
       Model: ModelSchema
+      /** Schema for facts the Block's update function handles. */
       Message: MessageSchema
+      /** Schema for facts the Block can report to a parent. */
       OutMessage: OutMessageSchema
       mounts?: never
       children?: never
@@ -113,7 +130,9 @@ export interface DefineContracts<
   >
   <const ModelSchema extends AnySchema, const MessageSchema extends AnySchema>(
     config: Readonly<{
+      /** Schema for the Block's Model. */
       Model: ModelSchema
+      /** Schema for facts the Block's update function handles. */
       Message: MessageSchema
       OutMessage?: never
       mounts?: never
@@ -122,16 +141,19 @@ export interface DefineContracts<
   ): AuthoringDefinition<Id, ModelSchema, MessageSchema, undefined, Concrete>
 }
 
-/** An early Block identity for shared effects declared before typed contracts. */
+/** A Block identity whose owned effects can be declared before a generic
+ * factory establishes its Model and Message contracts. */
 export type Authoring<
   Id extends string,
   Concrete extends boolean = true,
 > = Primitives<Id> &
   Readonly<{
+    /** Establishes a typed Definition under this existing Block identity. */
     define: DefineContracts<Id, Concrete>
   }>
 
-/** Defines a Block's local identity before specialized Model and Message contracts. */
+/** Defines a Block identity before a generic factory establishes its Model and
+ * Message contracts. The returned authoring value is passive configuration. */
 export function define(
   id: '' | `${string}/${string}` | `${string}::${string}`,
 ): never
@@ -139,7 +161,8 @@ export function define<const Id extends string>(
   id: Id & (string extends Id ? never : unknown),
 ): Authoring<Id, true>
 export function define<const Id extends string>(id: Id): Authoring<Id, false>
-/** Defines one Block's identity, typed authoring helpers, and owned effect declarations. */
+/** Defines one Block's identity, Schemas, typed authoring helpers, and owned
+ * effect declarations. The returned Definition is passive configuration. */
 export function define<
   const Id extends string,
   const ModelSchema extends AnySchema,
@@ -158,7 +181,8 @@ export function define<
     children?: never
   }>,
 ): AuthoringDefinition<Id, ModelSchema, MessageSchema, OutMessageSchema, true>
-/** Defines one Block's identity, typed authoring helpers, and owned effect declarations. */
+/** Defines one Block's identity, Schemas, typed authoring helpers, and owned
+ * effect declarations. The returned Definition is passive configuration. */
 export function define<
   const Id extends string,
   const ModelSchema extends AnySchema,
@@ -176,7 +200,8 @@ export function define<
     children?: never
   }>,
 ): AuthoringDefinition<Id, ModelSchema, MessageSchema, undefined, true>
-/** Defines one Block's identity, typed authoring helpers, and owned effect declarations. */
+/** Defines one Block's identity, Schemas, typed authoring helpers, and owned
+ * effect declarations. The returned Definition is passive configuration. */
 export function define<
   const Id extends string,
   const ModelSchema extends AnySchema,
@@ -194,7 +219,8 @@ export function define<
     children?: never
   }>,
 ): AuthoringDefinition<Id, ModelSchema, MessageSchema, OutMessageSchema, false>
-/** Defines one Block's identity, typed authoring helpers, and owned effect declarations. */
+/** Defines one Block's identity, Schemas, typed authoring helpers, and owned
+ * effect declarations. The returned Definition is passive configuration. */
 export function define<
   const Id extends string,
   const ModelSchema extends AnySchema,

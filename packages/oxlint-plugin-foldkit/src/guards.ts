@@ -518,6 +518,23 @@ const bindingConfigHasProperties = (
   return names.every(name => properties.has(name))
 }
 
+const bindingConfigHasStaticStringProperty = (
+  node: ESTree.CallExpression,
+  name: string,
+): boolean => {
+  const config = blockBindingConfiguration(node)
+  if (!isObjectExpression(config)) {
+    return false
+  }
+
+  return config.properties.some(
+    property =>
+      isObjectProperty(property) &&
+      Option.contains(staticPropertyName(property), name) &&
+      Option.isSome(staticStringValue(property.value)),
+  )
+}
+
 /** Returns a parent-owned Binding configuration, or a standalone fold configuration. */
 export const blockBindingConfiguration = (
   node: ESTree.CallExpression,
@@ -540,6 +557,13 @@ export const blockBindingMethod = (
 ): Option.Option<'Static' | 'Keyed'> => {
   if (!isOwnedDefinitionCall(node, 'bindChild', references)) {
     return Option.none()
+  }
+
+  if (
+    bindingConfigHasProperties(node, ['field', 'key', 'toParentMessage']) &&
+    bindingConfigHasStaticStringProperty(node, 'key')
+  ) {
+    return Option.some('Keyed')
   }
 
   if (
@@ -608,7 +632,11 @@ export const isOwnedDefinitionCall = (
             resolveFoldkitApiPath(references, call.callee),
             apiPath => {
               const path = Array.join(apiPath, '.')
-              return path === 'Block.define' || path === 'Application.define'
+              return (
+                path === 'Block.define' ||
+                path === 'Application.define' ||
+                path === 'defineApplication'
+              )
             },
           )
         ) {

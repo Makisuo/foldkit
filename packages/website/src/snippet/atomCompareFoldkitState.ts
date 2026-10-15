@@ -1,5 +1,5 @@
 import { Array, Schema } from 'effect'
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Filter = Schema.Literals(['All', 'Active', 'Done'])

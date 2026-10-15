@@ -1,15 +1,10 @@
 import { clsx } from 'clsx'
 import { Match, Option, String } from 'effect'
 import { AsyncData } from 'foldkit'
-import {
-  Html,
-  type HtmlBuilder,
-  createLazy,
-  inertHtml as ih,
-} from 'foldkit/html'
+import { Html, createLazy, inertHtml as ih } from 'foldkit/html'
 
+import type { ViewBuilder } from '../application'
 import {
-  type ViewRequirements,
   apiReference,
   comingFromReact,
   coreBlockPage,
@@ -71,18 +66,13 @@ import {
   ThemeSelector,
 } from '../view'
 
-type MountRequirements = ViewRequirements
-
 const PagefindBody = ih.DataAttribute('pagefind-body', '')
 const PagefindIgnore = ih.DataAttribute('pagefind-ignore', '')
 const LlmIgnore = ih.DataAttribute('llm-ignore', '')
 
 // DOCS HEADER
 
-export const headerView = (
-  model: Model,
-  h: HtmlBuilder<Message, MountRequirements>,
-) =>
+export const headerView = (model: Model, h: ViewBuilder) =>
   h.header(
     [
       h.Class(
@@ -170,10 +160,7 @@ export const headerView = (
 
 // DOCS FOOTER
 
-export const footerView = (
-  currentYear: number,
-  h: HtmlBuilder<Message>,
-): Html =>
+export const footerView = (currentYear: number, h: ViewBuilder): Html =>
   h.footer(
     [
       h.Class(
@@ -228,7 +215,7 @@ const neighborLink = (
     page: NavPage
     direction: 'Previous' | 'Next'
   }>,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ) =>
   h.a(
     [
@@ -268,7 +255,7 @@ const neighborLink = (
     ],
   )
 
-const pageNavigationView = (tag: string, h: HtmlBuilder<Message>) => {
+const pageNavigationView = (tag: string, h: ViewBuilder) => {
   const { maybePrevious, maybeNext } = pageNeighbors(tag)
 
   if (Option.isNone(maybePrevious) && Option.isNone(maybeNext)) {
@@ -358,7 +345,7 @@ const renderApiReference = (
   apiReferenceModel: typeof ApiReference.Model.Type,
   module: ApiReference.ApiModule,
   highlights: ApiReference.ApiData['highlights'],
-  h: HtmlBuilder<Message, MountRequirements>,
+  h: ViewBuilder,
 ): Html =>
   h.block(
     apiReference.embedView({
@@ -387,7 +374,7 @@ const renderDocContent = (
   pageView: DocPageView,
   snippetCopy: SnippetCopy.Model,
   snippetDisclosure: SnippetDisclosure.Model,
-  h: HtmlBuilder<Message, MountRequirements>,
+  h: ViewBuilder,
 ): Html => {
   const renderCopyButton = SnippetCopy.renderer(snippetCopy, config =>
     h.block(snippetCopyBinding.embedView(config)),
@@ -402,10 +389,7 @@ const renderDocContent = (
   )
 }
 
-const renderProseContent = (
-  pageView: ProseDocPageView,
-  h: HtmlBuilder<Message, MountRequirements>,
-): Html =>
+const renderProseContent = (pageView: ProseDocPageView, h: ViewBuilder): Html =>
   pageView(
     Prose.renderHeadingLink(hash => Message.ClickedCopyLink({ hash }), h),
   )
@@ -416,7 +400,7 @@ const memoizedProseContent = createLazy()
 type DocContentArgs = readonly [
   SnippetCopy.Model,
   SnippetDisclosure.Model,
-  HtmlBuilder<Message, MountRequirements>,
+  ViewBuilder,
 ]
 
 const lazyDocsContent = (view: DocPageView, args: DocContentArgs): Html =>
@@ -424,17 +408,13 @@ const lazyDocsContent = (view: DocPageView, args: DocContentArgs): Html =>
 
 const lazyProseContent = (
   view: ProseDocPageView,
-  args: readonly [HtmlBuilder<Message, MountRequirements>],
+  args: readonly [ViewBuilder],
 ): Html => memoizedProseContent(renderProseContent, [view, ...args])
 
 const lazyApiReference = createLazy()
 const lazyApiReferenceSkeleton = createLazy()
 
-export const view = (
-  model: Model,
-  docsRoute: DocsRoute,
-  h: HtmlBuilder<Message, MountRequirements>,
-) => {
+export const view = (model: Model, docsRoute: DocsRoute, h: ViewBuilder) => {
   const renderCopyButton = SnippetCopy.renderer(model.snippetCopy, config =>
     h.block(snippetCopyBinding.embedView(config)),
   )

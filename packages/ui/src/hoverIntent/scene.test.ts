@@ -20,9 +20,9 @@ const foldHoverIntentOutMessage = OutMessage.match<Update.Step<Model, Message>>(
 )
 
 const hoverIntent = HoverIntentScene.bindChild(block, {
-  read: (model: Model) => Option.some(model),
-  write: (_model: Model, nextHoverIntent: Model) => nextHoverIntent,
-  toParentMessage: (message: Message): Message => message,
+  read: model => Option.some(model),
+  write: (_model, nextHoverIntent) => nextHoverIntent,
+  toParentMessage: message => message,
   outMessage: { fold: foldHoverIntentOutMessage },
 })
 

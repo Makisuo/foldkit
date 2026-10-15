@@ -1967,14 +1967,7 @@ describe('Combobox', () => {
             update,
             view: sceneView({
               maybeSelectedValue: Option.some('Apple'),
-              itemToConfig: (
-                _item: string,
-                context: Readonly<{
-                  isActive: boolean
-                  isDisabled: boolean
-                  isSelected: boolean
-                }>,
-              ) => {
+              itemToConfig: (_item, context) => {
                 contexts.push(context)
                 return { content: null }
               },
@@ -2002,14 +1995,7 @@ describe('Combobox', () => {
             update,
             view: sceneView({
               maybeSelectedValue: Option.some('Apple'),
-              itemToConfig: (
-                _item: string,
-                context: Readonly<{
-                  isActive: boolean
-                  isDisabled: boolean
-                  isSelected: boolean
-                }>,
-              ) => {
+              itemToConfig: (_item, context) => {
                 contexts.push(context)
                 return { content: null }
               },

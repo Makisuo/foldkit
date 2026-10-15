@@ -1,6 +1,6 @@
 import { ApplicationComposition, init, update, view } from './application'
 import { Message } from './message'
-ApplicationComposition.make({
+ApplicationComposition.toApplication({
   init,
   update,
   view,

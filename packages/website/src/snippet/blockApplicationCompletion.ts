@@ -18,7 +18,7 @@ export const ApplicationLayer = Layer.succeed(SettingsStore, {
     }),
 })
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

@@ -1,16 +1,10 @@
 import { Effect, Layer, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
+import type { Block } from 'foldkit'
 
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
-import {
-  errorDialog,
-  gridSizeConfirmDialog,
-  gridSizeRadioGroup,
-  paletteRadioGroup,
-  themeListbox,
-  toolRadioGroup,
-} from './childBindings'
+import { children } from './childBindings'
 import { ExportPng, SaveCanvas } from './command'
 import {
   GRID_SIZE_RADIO_GROUP_ID,
@@ -91,12 +85,7 @@ export const init = (flags: Flags) => ({
 })
 
 export const ApplicationComposition = Application.toComposition({
-  children: [
-    errorDialog,
-    themeListbox,
-    gridSizeConfirmDialog,
-    toolRadioGroup,
-    gridSizeRadioGroup,
-    paletteRadioGroup,
-  ],
+  children,
 })
+
+export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>

@@ -6,11 +6,11 @@ import { describe, expect, test } from 'vitest'
 import {
   CancelUploadFile,
   FAKE_FILES,
-  Message,
   UploadFile,
   initialModel,
   update,
 } from './application'
+import { Message } from './definition'
 
 const firstFile = Array.headNonEmpty(FAKE_FILES)
 const secondFile = Option.getOrThrow(Array.get(FAKE_FILES, 1))

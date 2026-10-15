@@ -1,6 +1,6 @@
 import type { Model } from '../model'
 import { calendarBasicDemo } from '../update'
-import type { ViewBuilder } from '../viewBuilder'
+import type { ViewBuilder } from '../update'
 import { calendarView } from './calendarView'
 
 // DEMO CONTENT

@@ -77,8 +77,8 @@ export type BlockView<
   readonly [SUBMODEL_MOUNT_REQUIREMENTS_BRAND]: RequiredMountRequirements
 }
 
-/** A page-owning view branded with the Message and Mount requirements of its
- *  root Block. Document views cannot be embedded through \`h.block\`. */
+/** A page-owning view branded with the Model, Message, and Mount requirements
+ * of its root Block. Document views cannot be embedded through `h.block`. */
 export type DocumentView<Model, Message, RequiredMountRequirements = never> = ((
   model: Model,
   h: HtmlBuilder<Message, RequiredMountRequirements>,
@@ -205,14 +205,15 @@ export type AnyBlockView = ((...args: ReadonlyArray<any>) => VNode | null) & {
   readonly [SUBMODEL_MOUNT_REQUIREMENTS_BRAND]: unknown
 }
 
-/** @internal Structural bound for any branded page-owning view. */
+/** Structural bound for any branded page-owning {@link DocumentView},
+ * independent of its Model, Message, and Mount requirements. */
 export type AnyDocumentView = ((...args: ReadonlyArray<any>) => Document) & {
   readonly [SUBMODEL_MODEL_BRAND]: unknown
   readonly [SUBMODEL_MESSAGE_BRAND]: unknown
   readonly [SUBMODEL_MOUNT_REQUIREMENTS_BRAND]: unknown
 }
 
-/** @internal Structural bound shared by embedded and page-owning views. */
+/** Structural bound shared by branded embedded and page-owning views. */
 export type AnyAuthoredView = ((
   ...args: ReadonlyArray<any>
 ) => VNode | null | Document) & {
@@ -238,13 +239,15 @@ type ViewMessageOf<View extends AnyBlockView> = View extends {
   ? Message
   : never
 
+/** Extracts the Mount requirements carried by a branded Block view. */
 export type ViewMountRequirementsOf<View extends AnyBlockView> = View extends {
   readonly [SUBMODEL_MOUNT_REQUIREMENTS_BRAND]: infer Requirements
 }
   ? Requirements
   : never
 
-/** @internal Replaces a view's internal Mount graph with its bound requirement. */
+/** Replaces a view's authored Mount requirements with the capability supplied
+ * by its registered child Binding. */
 export type BoundBlockView<
   View extends AnyBlockView,
   BoundRequirement,
@@ -260,15 +263,19 @@ export type BoundBlockView<
  * wrapper, render position, and declared view inputs.
  *
  * `HtmlBuilder.block` accepts only {@link BoundBlockConfig}, produced by
- * a registered child binding's `embed` method. This base type also describes
+ * a registered child Binding's `embedView` method. This base type also describes
  * the native renderer's configuration before binding scope is attached.
  */
 export type BlockConfig<View extends AnyBlockView, ParentMessage> = Readonly<{
   /** @internal The child binding's capability scope. */
   [ViewScopeTypeId]?: ViewScope
+  /** Stable render position within the current view boundary. */
   slotId: string
+  /** Child Model rendered at this position. */
   model: ViewModelOf<View>
+  /** Child-authored view to render. */
   view: View
+  /** Maps Messages from the child view into the parent Message type. */
   toParentMessage: (message: ViewMessageOf<View>) => ParentMessage
 }> &
   // NOTE: required exactly when the view declares them. Left optional, omitting
@@ -276,30 +283,53 @@ export type BlockConfig<View extends AnyBlockView, ParentMessage> = Readonly<{
   // arguments, so the builder lands in the `viewInputs` slot and shadows every
   // field whose name collides with an element constructor.
   ([ViewInputsOf<View>] extends [void]
-    ? Readonly<{ viewInputs?: never }>
-    : Readonly<{ viewInputs: ViewInputsOf<View> }>)
+    ? Readonly<{
+        /** This view declares no per-render inputs. */
+        viewInputs?: never
+      }>
+    : Readonly<{
+        /** Per-render values declared by the child-authored view. Top-level
+         * callbacks execute in the parent boundary. */
+        viewInputs: ViewInputsOf<View>
+      }>)
 
-/** @internal Portable render fields shared by binding inputs and evidence. */
+/** Portable child render fields shared by Binding inputs and embedded render
+ * evidence. */
 export type BoundBlockFields<
   View extends AnyBlockView,
   ParentMessage,
 > = Readonly<{
+  /** Stable render position within the current view boundary. */
   slotId: string
+  /** Child Model rendered at this position. */
   model: View['__blockModel']
+  /** Child-authored view to render. */
   view: View
+  /** Maps Messages from the child view into the parent Message type. */
   toParentMessage: (message: View['__blockMessage']) => ParentMessage
 }> &
   (Parameters<View> extends [unknown, infer ViewInputs, unknown]
-    ? Readonly<{ viewInputs: ViewInputs }>
-    : Readonly<{ viewInputs?: never }>)
+    ? Readonly<{
+        /** Per-render values declared by the child-authored view. Top-level
+         * callbacks execute in the parent boundary. */
+        viewInputs: ViewInputs
+      }>
+    : Readonly<{
+        /** This view declares no per-render inputs. */
+        viewInputs?: never
+      }>)
 
-/** @internal Static render contract carried inside private binding scope evidence. */
+/** Static child render contract retained by a BoundBlockConfig's private
+ * Binding scope. */
 export type BoundBlockConfigEvidence<
   View extends AnyBlockView,
   ParentMessage,
 > = Readonly<{
+  /** Portable fields supplied to the child render. */
   config: BoundBlockFields<View, ParentMessage>
+  /** Parent Message type retained for dispatch boundary validation. */
   parentMessage: ParentMessage
+  /** Mount capabilities required by the child view. */
   mountRequirements: View['__blockMountRequirements']
 }>
 
@@ -309,7 +339,7 @@ type BoundViewScope<View extends AnyBlockView, ParentMessage> = ViewScope &
   }>
 
 /**
- * The render configuration produced by a registered child binding's `embed`
+ * The render configuration produced by a registered child Binding's `embedView`
  * method. Its private scope evidence prevents unregistered child rendering.
  * The binding supplies the child's view, Message wrapper, and capability scope.
  * The parent supplies `slotId`, the child Model, and any declared `viewInputs`.

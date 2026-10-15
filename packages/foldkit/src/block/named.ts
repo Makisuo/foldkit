@@ -103,7 +103,9 @@ type CommandNoArgs<
       Readonly<{ toLayer: Command.ToLayer<Name, void, Message> }>
   : Command.LayeredCommandDefinitionNoArgs<Name, Message>
 
-/** Defines Commands whose runtime names and handler identities belong to one Block. */
+/** Defines Commands whose runtime names and handler identities belong to one
+ * Block. Attached handlers become local Layer recipes; defining a Command does
+ * not construct its handler or perform its Effect. */
 export interface DefineCommand<Id extends string, OwnerMessage = unknown> {
   <
     const Name extends string,
@@ -295,7 +297,8 @@ type MountHandlerLayer<
   >
 }>
 
-/** Defines one-shot Mounts whose handler identities belong to one Block. */
+/** Defines one-shot Mounts whose runtime names and handler identities belong to
+ * one Block. A Runtime acquires the Mount when a matching element is mounted. */
 export interface DefineMount<Id extends string, OwnerMessage = unknown> {
   <
     const Name extends string,
@@ -421,7 +424,9 @@ type StreamMountHandlerLayer<
   >
 }>
 
-/** Defines streaming Mounts whose handler identities belong to one Block. */
+/** Defines streaming Mounts whose runtime names and handler identities belong to
+ * one Block. A Runtime runs the Stream only while a matching element is
+ * mounted. */
 export interface DefineMountStream<Id extends string, OwnerMessage = unknown> {
   <
     const Name extends string,
@@ -533,7 +538,9 @@ export interface DefineMountStream<Id extends string, OwnerMessage = unknown> {
   >
 }
 
-/** Defines ManagedResource accessors whose service identities belong to one Block. */
+/** Defines ManagedResource accessors whose service identities belong to one
+ * Block. The accessor declares identity only; a Runtime acquires registered
+ * resources for active Block occurrences. */
 export interface DefineResource<Id extends string> {
   <Value>(): <const Name extends string>(
     name: LocalName<Name>,

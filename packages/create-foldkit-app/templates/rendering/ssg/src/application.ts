@@ -1,5 +1,5 @@
 import { Effect, Layer, Schema, pipe } from 'effect'
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 import { type Html, type HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'

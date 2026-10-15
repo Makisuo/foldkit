@@ -1,17 +1,13 @@
 import { Match, Option } from 'effect'
-import {
-  type Html,
-  type HtmlBuilder,
-  childAttributes,
-  inertHtml as ih,
-} from 'foldkit/html'
+import { type Html, childAttributes, inertHtml as ih } from 'foldkit/html'
 
 import { Menu } from '@foldkit/ui'
 import type { AnchorConfig as MenuAnchorConfig } from '@foldkit/ui/menu'
 
-import { type ViewRequirements, themeMenu } from '../childBindings'
+import type { ViewBuilder } from '../application'
+import { themeMenu } from '../childBindings'
 import { Icon } from '../icon'
-import { Message, type ThemePreference } from '../message'
+import { type ThemePreference } from '../themePreference'
 
 const THEME_PREFERENCES: ReadonlyArray<ThemePreference> = [
   'Dark',
@@ -38,7 +34,7 @@ const preferenceIcon = (preference: ThemePreference, className: string): Html =>
 export const view = (
   menu: typeof Menu.Model.Type,
   maybeActivePreference: Option.Option<ThemePreference>,
-  h: HtmlBuilder<Message, ViewRequirements>,
+  h: ViewBuilder,
 ): Html => {
   const activePreference: ThemePreference = Option.getOrElse(
     maybeActivePreference,
@@ -53,7 +49,7 @@ export const view = (
         anchor: THEME_MENU_ANCHOR,
         ariaLabel: `Theme: ${activePreference}`,
         items: THEME_PREFERENCES,
-        itemToConfig: (preference: ThemePreference) => {
+        itemToConfig: preference => {
           const isSelected = preference === activePreference
 
           return {

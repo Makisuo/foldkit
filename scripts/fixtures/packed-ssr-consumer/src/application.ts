@@ -1,6 +1,5 @@
 import { Layer, Schema } from 'effect'
-import { CustomElement } from 'foldkit'
-import { define as defineApplication } from 'foldkit/application'
+import { CustomElement, defineApplication } from 'foldkit'
 import { type Document } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'

@@ -1,5 +1,4 @@
 import { Match } from 'effect'
-import type { Block } from 'foldkit'
 import { type Html, childAttributes } from 'foldkit/html'
 
 import { type GroupHeading, buttonId } from '@foldkit/ui/menu'
@@ -10,9 +9,8 @@ import {
   menuAnimatedDemo,
   menuBasicDemo,
 } from '../childBindings'
+import type { ViewBuilder } from '../childBindings'
 import type { MenuItem } from '../menu'
-
-type HtmlBuilder = Block.HtmlBuilderOf<typeof UiComposition>
 
 const triggerClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -63,7 +61,7 @@ const itemGroupKey = (item: MenuItem): string =>
 
 const groupToHeading = (
   groupKey: string,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): GroupHeading | undefined => {
   return Match.value(groupKey).pipe(
     Match.when('Danger', () => ({
@@ -80,7 +78,7 @@ const MENU_ANCHOR = {
   padding: 8,
 }
 
-const menuViewConfig = (itemsClassNameValue: string, h: HtmlBuilder) => {
+const menuViewConfig = (itemsClassNameValue: string, h: ViewBuilder) => {
   return {
     anchor: MENU_ANCHOR,
     items: MENU_ITEMS,

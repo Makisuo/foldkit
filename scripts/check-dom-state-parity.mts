@@ -1,5 +1,5 @@
 import { Effect, Layer, Schema } from 'effect'
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 import * as CustomElement from 'foldkit/customElement'
 import { Server } from 'foldkit/experimental'
 import { type Html, type HtmlBuilder } from 'foldkit/html'

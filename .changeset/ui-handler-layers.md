@@ -79,7 +79,7 @@ Factories live on the component namespace: `Combobox.create`, `Combobox.Multi.cr
 ```ts
 import { Toast } from '@foldkit/ui'
 import { Schema } from 'effect'
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 
 import { foldToastOutMessage } from './outMessage'
 import { Message } from './message'
@@ -103,7 +103,7 @@ For dynamic keyed component collections, use the keyed `bindChild` shape. Every 
 
 ```ts
 import { Dialog } from '@foldkit/ui'
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 
 import { replaceDialog } from './dialog'
 import { foldDialogOutMessage } from './outMessage'

@@ -1,8 +1,6 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect'
-import {
-  type Element as ElementProgram,
-  define as defineApplication,
-} from 'foldkit/application'
+import { defineApplication } from 'foldkit'
+import type { Element as ElementProgram } from 'foldkit/application'
 import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
 import type * as Update from 'foldkit/update'

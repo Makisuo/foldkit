@@ -181,7 +181,7 @@ describe('Toast', () => {
       const secondShow = block.expose.show(firstShow.model, {
         payload: { body: 'Two' },
       })
-      const ids = secondShow.model.entries.map((entry: Entry) => entry.id)
+      const ids = secondShow.model.entries.map(entry => entry.id)
       expect(ids).toStrictEqual(['test-entry-0', 'test-entry-1'])
       expect(secondShow.model.nextEntryKey).toBe(2)
     })
@@ -213,7 +213,7 @@ describe('Toast', () => {
               version: STALE_VERSION,
             }),
           ),
-          Story.model((next: Model) => {
+          Story.model(next => {
             expect(requireEntry(next, 0).animation.transitionState).toBe('Idle')
           }),
           Story.Command.expectNone(),
@@ -234,7 +234,7 @@ describe('Toast', () => {
               version: 0,
             }),
           ),
-          Story.model((next: Model) => {
+          Story.model(next => {
             expect(requireEntry(next, 0).animation.transitionState).toBe(
               'LeaveStart',
             )
@@ -287,7 +287,7 @@ describe('Toast', () => {
           block.update,
           Story.given(model),
           Story.message(Message.HoveredEntry({ entryId: firstEntryId })),
-          Story.model((next: Model) => {
+          Story.model(next => {
             const [entry] = next.entries
             expect(entry?.isHovered).toBe(true)
             expect(entry?.pendingDismissVersion).toBe(1)
@@ -309,7 +309,7 @@ describe('Toast', () => {
           block.update,
           Story.given(model),
           Story.message(Message.LeftEntry({ entryId: firstEntryId })),
-          Story.model((next: Model) => {
+          Story.model(next => {
             const [entry] = next.entries
             expect(entry?.isHovered).toBe(false)
             expect(entry?.pendingDismissVersion).toBe(2)
@@ -351,7 +351,7 @@ describe('Toast', () => {
           block.update,
           Story.given(model),
           Story.message(Message.HoveredEntry({ entryId: firstEntryId })),
-          Story.model((next: Model) => {
+          Story.model(next => {
             expect(requireEntry(next, 0).pendingDismissVersion).toBe(1)
           }),
           Story.message(
@@ -360,7 +360,7 @@ describe('Toast', () => {
               version: 0,
             }),
           ),
-          Story.model((next: Model) => {
+          Story.model(next => {
             const entry = requireEntry(next, 0)
             expect(entry.animation.transitionState).toBe('Idle')
             expect(entry.isHovered).toBe(true)
@@ -409,7 +409,7 @@ describe('Toast', () => {
           block.update,
           Story.given(model),
           Story.message(Message.Dismissed({ entryId: firstEntryId })),
-          Story.model((next: Model) => {
+          Story.model(next => {
             expect(requireEntry(next, 0).animation.transitionState).toBe(
               'LeaveStart',
             )
@@ -434,7 +434,7 @@ describe('Toast', () => {
               }),
             ],
           ),
-          Story.model((next: Model) => {
+          Story.model(next => {
             expect(next.entries).toHaveLength(0)
           }),
         )
@@ -458,7 +458,7 @@ describe('Toast', () => {
           Story.given(model),
           Story.message(Message.Dismissed({ entryId: firstEntryId })),
           Story.Command.expectNone(),
-          Story.model((next: Model) => {
+          Story.model(next => {
             expect(next).toBe(model)
           }),
         )
@@ -491,7 +491,7 @@ describe('Toast', () => {
           Story.expectOutMessage(
             ToastFixture.DismissedToast({ payload: entry.payload }),
           ),
-          Story.model((next: Model) => {
+          Story.model(next => {
             expect(next.entries).toHaveLength(0)
           }),
         )
@@ -522,7 +522,7 @@ describe('Toast', () => {
           block.update,
           Story.given(model),
           Story.message(Message.DismissedAll()),
-          Story.model((next: Model) => {
+          Story.model(next => {
             expect(requireEntry(next, 0).animation.transitionState).toBe(
               'LeaveStart',
             )
@@ -568,7 +568,7 @@ describe('Toast', () => {
               }),
             ],
           ),
-          Story.model((next: Model) => {
+          Story.model(next => {
             expect(next.entries).toHaveLength(0)
           }),
         )
@@ -605,7 +605,7 @@ describe('Toast', () => {
             }),
           ],
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).animation.transitionState).toBe('Idle')
         }),
         Story.Command.resolve(
@@ -615,7 +615,7 @@ describe('Toast', () => {
             version: 0,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).animation.transitionState).toBe(
             'LeaveStart',
           )
@@ -640,7 +640,7 @@ describe('Toast', () => {
             }),
           ],
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(next.entries).toHaveLength(0)
         }),
       )
@@ -664,7 +664,7 @@ describe('Toast', () => {
             }),
           ],
         }),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(next.entries).toHaveLength(0)
         }),
       )
@@ -698,7 +698,7 @@ describe('Toast', () => {
             }),
           ],
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(
             Array.map(
               next.entries,
@@ -716,7 +716,7 @@ describe('Toast', () => {
             }),
           ],
         }),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(next.entries).toHaveLength(0)
         }),
       )
@@ -736,7 +736,7 @@ describe('Toast', () => {
             clientX: 100,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           const entry = requireEntry(next, 0)
           expect(entry.swipeState).toStrictEqual(SwipeState.Idle())
           expect(entry.pendingDismissVersion).toBe(0)
@@ -757,7 +757,7 @@ describe('Toast', () => {
             clientX: 100,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).swipeState).toStrictEqual(
             SwipeState.Dragging({
               pointerId: POINTER_ID,
@@ -789,7 +789,7 @@ describe('Toast', () => {
             clientX: 150,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).swipeState).toStrictEqual(
             SwipeState.Dragging({
               pointerId: POINTER_ID,
@@ -825,7 +825,7 @@ describe('Toast', () => {
             clientX: 500,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           const entry = requireEntry(next, 0)
           expect(entry.swipeState).toStrictEqual(
             SwipeState.Dragging({
@@ -864,7 +864,7 @@ describe('Toast', () => {
             clientX: 140,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           const entry = requireEntry(next, 0)
           expect(entry.swipeState).toStrictEqual(
             SwipeState.Settling({ offsetX: 0 }),
@@ -881,7 +881,7 @@ describe('Toast', () => {
             version: SETTLING_SWIPE_VERSION,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).swipeState).toStrictEqual(
             SwipeState.Idle(),
           )
@@ -893,7 +893,7 @@ describe('Toast', () => {
             version: STALE_VERSION,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).animation.transitionState).toBe('Idle')
         }),
       )
@@ -923,7 +923,7 @@ describe('Toast', () => {
             clientX: 141,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           const entry = requireEntry(next, 0)
           expect(entry.swipeState).toStrictEqual(
             SwipeState.Dismissing({ offsetX: 41, direction: 'Right' }),
@@ -950,7 +950,7 @@ describe('Toast', () => {
             }),
           ],
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(next.entries).toHaveLength(0)
         }),
       )
@@ -975,7 +975,7 @@ describe('Toast', () => {
           }),
         ),
         Story.message(Message.CancelledSwipe({ pointerId: POINTER_ID })),
-        Story.model((next: Model) => {
+        Story.model(next => {
           const entry = requireEntry(next, 0)
           expect(entry.swipeState).toStrictEqual(
             SwipeState.Settling({ offsetX: 0 }),
@@ -991,7 +991,7 @@ describe('Toast', () => {
             version: SETTLING_SWIPE_VERSION,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).swipeState).toStrictEqual(
             SwipeState.Idle(),
           )
@@ -1003,7 +1003,7 @@ describe('Toast', () => {
             version: STALE_VERSION,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).animation.transitionState).toBe('Idle')
         }),
       )
@@ -1034,7 +1034,7 @@ describe('Toast', () => {
         block.update,
         Story.given(model),
         Story.message(Message.PressedEscape()),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).swipeState).toStrictEqual(
             SwipeState.Settling({ offsetX: 0 }),
           )
@@ -1088,7 +1088,7 @@ describe('Toast', () => {
             clientX: 200,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).swipeState).toStrictEqual(dragging)
           expect(requireEntry(next, 1).swipeState).toStrictEqual(
             SwipeState.Dragging({
@@ -1125,7 +1125,7 @@ describe('Toast', () => {
             clientX: 200,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).swipeState).toStrictEqual(dragging)
           expect(requireEntry(next, 1).swipeState).toStrictEqual(
             SwipeState.Idle(),
@@ -1168,7 +1168,7 @@ describe('Toast', () => {
             clientX: 340,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).swipeState).toStrictEqual(
             SwipeState.Dragging({
               pointerId: POINTER_ID,
@@ -1190,7 +1190,7 @@ describe('Toast', () => {
             clientX: 130,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).swipeState).toStrictEqual(
             SwipeState.Settling({ offsetX: 0 }),
           )
@@ -1209,7 +1209,7 @@ describe('Toast', () => {
             version: SETTLING_SWIPE_VERSION,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).swipeState).toStrictEqual(
             SwipeState.Idle(),
           )
@@ -1228,7 +1228,7 @@ describe('Toast', () => {
             version: STALE_VERSION,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).animation.transitionState).toBe('Idle')
           expect(requireEntry(next, 1).swipeState).toStrictEqual(
             SwipeState.Dragging({
@@ -1274,7 +1274,7 @@ describe('Toast', () => {
             clientX: 200,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           const dismissed = requireEntry(next, 0)
           expect(dismissed.swipeState).toStrictEqual(
             SwipeState.Dismissing({ offsetX: 100, direction: 'Right' }),
@@ -1308,7 +1308,7 @@ describe('Toast', () => {
             }),
           ],
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(next.entries).toHaveLength(1)
           expect(requireEntry(next, 0).id).toBe('test-entry-1')
           expect(requireEntry(next, 0).swipeState).toStrictEqual(
@@ -1342,7 +1342,7 @@ describe('Toast', () => {
             clientX: 100,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).swipeState).toStrictEqual(
             SwipeState.Idle(),
           )
@@ -1368,7 +1368,7 @@ describe('Toast', () => {
             clientX: 50,
           }),
         ),
-        Story.model((model: Model) => {
+        Story.model(model => {
           expect(requireEntry(model, 0).swipeState).toStrictEqual(
             SwipeState.Dragging({
               pointerId: POINTER_ID,
@@ -1383,7 +1383,7 @@ describe('Toast', () => {
             clientX: 50,
           }),
         ),
-        Story.model((model: Model) => {
+        Story.model(model => {
           const entry = requireEntry(model, 0)
           expect(entry.swipeState).toStrictEqual(
             SwipeState.Settling({ offsetX: 0 }),
@@ -1430,7 +1430,7 @@ describe('Toast', () => {
             clientX: 50,
           }),
         ),
-        Story.model((model: Model) => {
+        Story.model(model => {
           expect(requireEntry(model, 0).swipeState).toStrictEqual(
             SwipeState.Dragging({
               pointerId: POINTER_ID,
@@ -1445,7 +1445,7 @@ describe('Toast', () => {
             clientX: 50,
           }),
         ),
-        Story.model((model: Model) => {
+        Story.model(model => {
           const entry = requireEntry(model, 0)
           expect(entry.swipeState).toStrictEqual(
             SwipeState.Dismissing({ offsetX: -150, direction: 'Left' }),
@@ -1472,7 +1472,7 @@ describe('Toast', () => {
             }),
           ],
         ),
-        Story.model((model: Model) => {
+        Story.model(model => {
           expect(model.entries).toHaveLength(0)
         }),
       )
@@ -1496,7 +1496,7 @@ describe('Toast', () => {
             version: 0,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).swipeState).toStrictEqual(dragging)
         }),
         Story.Command.expectNone(),
@@ -1517,7 +1517,7 @@ describe('Toast', () => {
             version: 0,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).swipeState).toStrictEqual(settling)
         }),
         Story.Command.expectNone(),
@@ -1538,7 +1538,7 @@ describe('Toast', () => {
             clientX: 50,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).swipeState).toStrictEqual(
             SwipeState.Dragging({
               pointerId: POINTER_ID,
@@ -1554,7 +1554,7 @@ describe('Toast', () => {
             version: 0,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).swipeState).toStrictEqual(
             SwipeState.Dragging({
               pointerId: POINTER_ID,
@@ -1581,7 +1581,7 @@ describe('Toast', () => {
             version: 0,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(requireEntry(next, 0).swipeState).toStrictEqual(settling)
         }),
         Story.Command.expectNone(),
@@ -1614,7 +1614,7 @@ describe('Toast', () => {
             version: 2,
           }),
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           const entry = requireEntry(next, 0)
           expect(entry.swipeState).toStrictEqual(
             SwipeState.Dismissing({ offsetX: 100, direction: 'Right' }),
@@ -1638,7 +1638,7 @@ describe('Toast', () => {
           }),
         ),
         Story.message(Message.Dismissed({ entryId: firstEntryId })),
-        Story.model((next: Model) => {
+        Story.model(next => {
           const entry = requireEntry(next, 0)
           expect(entry.swipeState).toStrictEqual(
             SwipeState.Dragging({
@@ -1669,7 +1669,7 @@ describe('Toast', () => {
             }),
           ],
         ),
-        Story.model((next: Model) => {
+        Story.model(next => {
           expect(next.entries).toHaveLength(0)
         }),
       )
@@ -1697,7 +1697,7 @@ describe('Toast', () => {
         nextEntryKey: () => 2,
       })
       const toastDismissAll = block.expose.dismissAll(model)
-      toastDismissAll.model.entries.forEach((entry: Entry) => {
+      toastDismissAll.model.entries.forEach(entry => {
         expect(entry.animation.transitionState).toBe('LeaveStart')
       })
     })

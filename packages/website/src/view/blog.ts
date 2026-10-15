@@ -1,13 +1,8 @@
 import { Match, Option } from 'effect'
-import {
-  Html,
-  type HtmlBuilder,
-  createKeyedLazy,
-  inertHtml as ih,
-} from 'foldkit/html'
+import { Html, createKeyedLazy, inertHtml as ih } from 'foldkit/html'
 
+import type { ViewBuilder } from '../application'
 import {
-  type ViewRequirements,
   snippetCopy as snippetCopyBinding,
   snippetDisclosure as snippetDisclosureBinding,
   uiPages as uiPagesBinding,
@@ -34,7 +29,7 @@ const postView = (
   snippetCopy: SnippetCopy.Model,
   snippetDisclosure: SnippetDisclosure.Model,
   uiPages: typeof Ui.Model.Type,
-  h: HtmlBuilder<Message, ViewRequirements>,
+  h: ViewBuilder,
 ): Html => {
   const renderCopyButton = SnippetCopy.renderer(snippetCopy, config =>
     h.block(snippetCopyBinding.embedView(config)),
@@ -74,7 +69,7 @@ const lazyPostView = createKeyedLazy()
 export const view = (
   model: Model,
   blogRoute: BlogRoute | BlogPostRoute,
-  h: HtmlBuilder<Message, ViewRequirements>,
+  h: ViewBuilder,
 ): Html => {
   const content = Match.value(blogRoute).pipe(
     Match.withReturnType<Html>(),

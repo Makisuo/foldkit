@@ -3,6 +3,7 @@ import { Array, Match, pipe } from 'effect'
 import type { RenderInfo } from '@foldkit/ui/tabs'
 
 import { ApplicationComposition } from '../application'
+import type { ViewBuilder } from '../application'
 import { tabs } from '../childBindings'
 import { type Model, TABS_ID, Tab } from '../model'
 import { postsTabView } from './posts'
@@ -38,7 +39,7 @@ export const view = ApplicationComposition.view((model, h) => ({
   ),
 }))
 
-export const headerView = ApplicationComposition.render.builder(h =>
+export const headerView = (h: ViewBuilder) =>
   h.header(
     [h.Class('flex flex-col gap-1')],
     [
@@ -50,12 +51,15 @@ export const headerView = ApplicationComposition.render.builder(h =>
         ],
       ),
     ],
-  ),
-)
+  )
 
-export const tabsView = ApplicationComposition.render.withInput<
-  Readonly<{ model: Model; renderInfo: RenderInfo<Tab> }>
->()(({ model, renderInfo: { tablist, tabs } }, h) =>
+export const tabsView = (
+  {
+    model,
+    renderInfo: { tablist, tabs },
+  }: Readonly<{ model: Model; renderInfo: RenderInfo<Tab> }>,
+  h: ViewBuilder,
+) =>
   h.div(
     [h.Class('flex flex-col gap-6')],
     [
@@ -87,5 +91,4 @@ export const tabsView = ApplicationComposition.render.withInput<
         ),
       ),
     ],
-  ),
-)
+  )

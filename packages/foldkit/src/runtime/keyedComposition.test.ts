@@ -207,16 +207,9 @@ const rootBase = defineApplication({
   Message: RootMessage,
 })
 const entries = rootBase.bindChild(itemBlock, {
-  placement: 'entries',
-  readAll: (model: typeof RootModel.Type) => model.entries,
-  key: entry => entry.id,
-  read: entry => entry,
-  writeAt: (model, id: number, nextItem) =>
-    modifyFields(model, {
-      entries: Array.map(entry => (entry.id === id ? nextItem : entry)),
-    }),
-  toParentMessage: (id: number, message) =>
-    RootMessage.GotItemMessage({ id, message }),
+  field: 'entries',
+  key: 'id',
+  toParentMessage: (id, message) => RootMessage.GotItemMessage({ id, message }),
 })
 const root = rootBase.toComposition({ children: [entries] })
 const firstEntry = entries.init(1, 1, 'old').model
@@ -328,7 +321,7 @@ describe('keyed Block occurrences', () => {
     const container = document.createElement('div')
     container.id = 'memoized-keyed-composition'
     document.body.append(container)
-    const element = root.makeElement({
+    const element = root.toElement({
       container,
       init: rootInit,
       update: rootUpdate,
@@ -426,7 +419,7 @@ describe('keyed Block occurrences', () => {
     container.id = 'keyed-composition'
     document.body.append(container)
     const application = root
-      .makeElement({
+      .toElement({
         container,
         init: rootInit,
         update: rootUpdate,
@@ -518,7 +511,7 @@ describe('keyed Block occurrences', () => {
     container.id = 'keyed-mount-barrier'
     document.body.append(container)
     const application = root
-      .makeElement({
+      .toElement({
         container,
         init: rootInit,
         update: rootUpdate,

@@ -80,19 +80,19 @@ Name the Mount for the imperative work attached to the element, using a verb-fir
 
 Registering a Mount that the view never renders starts no element lifecycle, listeners, or DOM work. Its provided handler constructor still runs during application startup.
 
-For an owned Block, create `Name = Block.define('Name', { Model, Message })`, create Mounts through that typed authoring value, and list them in `NameComposition = Name.toComposition({ mounts })`. Author the canonical view with `NameComposition.view`, then pass the local handler recipes to `NameComposition.toBlock({ EffectsLayer })`. A parent that includes the child Binding receives its Mount registrations and handler graph together. `ApplicationComposition` installs the root graph through its owned `make({ init, update, view, ... })` method.
+For an owned Block, create `Name = Block.define('Name', { Model, Message })`, create Mounts through that typed authoring value, and list them in `NameComposition = Name.toComposition({ mounts })`. Author the canonical view with `NameComposition.view`, then pass the local handler recipes to `NameComposition.toBlock({ EffectsLayer })`. A parent that includes the child Binding receives its Mount registrations and handler graph together. `ApplicationComposition` installs the root graph through its owned `toApplication({ init, update, view, ... })` method.
 
-Use `Parent.bindChild` with `readAll` and `key` for a dynamically keyed collection. Each active key gets independent Mount ownership, and the parent includes the keyed Binding once under `children`.
+For a direct array of child Models with declared Struct key fields, use `Parent.bindChild` with `field`, a string-valued `key`, and `toParentMessage`. Wrapped items and custom storage retain general keyed accessors. Each active key gets independent Mount ownership, and the parent includes the keyed Binding once under `children`.
 
 ### Mount Requirements in Reusable Views
 
-An owned view receives a builder whose allowed Mounts are inferred from its Composition. When several deliberately reusable helpers share a mounted or child embedding path, derive one builder type with `Block.HtmlBuilderOf<typeof NameComposition>` and use it throughout the feature. `NameComposition.view` derives the builder from the Model, Message, local Mounts, and child Bindings:
+An owned view receives a builder whose allowed Mounts are inferred from its Composition. After establishing `NameComposition`, derive one feature-local `ViewBuilder` type with `Block.HtmlBuilderOf<typeof NameComposition>` and use it for ordinary helpers on the same mounted or child embedding path. The alias retains the Composition's Message, local Mounts, and child Bindings without constructing a runtime builder. `NameComposition.view` remains the canonical owned view:
 
 ::Snippet{name="mountBlockView" label="Preserving a Block view's Mount requirements"}
 
 The parent must include the child Binding under `children` before its builder can embed that child view. An owned child with `ViewInputs` uses `FeatureComposition.view.withInputs<ViewInputs>` and receives its builder third.
 
-The Composition derives its builder type from the complete Mount collection, and application assembly includes those definitions. Missing Mounts fail at the composition boundary, and helpers cannot attach Mounts outside their builder's declared set. Keep pure helpers on the framework's `HtmlBuilder<Message>`. The returned `Html` type stays the same.
+The Composition derives its builder type from the complete Mount collection, and application assembly includes those definitions. Missing Mounts fail at the composition boundary, and helpers cannot attach Mounts outside their builder's declared set. Keep helpers genuinely shared across Compositions on the framework's general `HtmlBuilder<Message>`, with an explicit requirements parameter when they forward capabilities. The returned `Html` type stays the same.
 
 Let TypeScript infer `mounts` arrays and composed spreads. Widening the array to `ReadonlyArray<Mount.LayeredMountDefinition>` discards the contracts required for registration checking, so application assembly rejects it. Forwarded attribute arrays preserve the same evidence: use `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>` when an explicit annotation is necessary. `childAttributes` infers those requirements from its input, and `CustomElement.withMessage(h)` retains the builder's allowed Mounts.
 

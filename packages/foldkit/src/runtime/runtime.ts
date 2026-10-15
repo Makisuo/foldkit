@@ -633,8 +633,7 @@ export const makeRuntime = <
                 runtimeScope,
                 enqueueMessage,
                 maybeSlowSubscriptionDependencies,
-                crashWith: (cause, message): Effect.Effect<void> =>
-                  crashWith(cause, message),
+                crashWith: (cause, message) => crashWith(cause, message),
               })).context
 
         const {

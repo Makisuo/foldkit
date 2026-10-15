@@ -1,5 +1,5 @@
 import { Array } from 'effect'
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { Applicant } from './applicant'

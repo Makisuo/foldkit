@@ -3,15 +3,15 @@
   "fixtures": {
     "deep-composition-8": {
       "maxInstantiationsDelta": 1152618,
-      "maxTypesDelta": 55845
+      "maxTypesDelta": 55843
     },
     "wide-composition-100": {
       "maxInstantiationsDelta": 3132298,
-      "maxTypesDelta": 215421
+      "maxTypesDelta": 215419
     },
     "command-requirements-200": {
       "maxInstantiationsDelta": 2659415,
-      "maxTypesDelta": 389462
+      "maxTypesDelta": 389460
     }
   }
 }

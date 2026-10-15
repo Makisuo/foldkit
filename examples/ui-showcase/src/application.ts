@@ -1,4 +1,5 @@
 import { Effect, Layer, Schema } from 'effect'
+import type { Block } from 'foldkit'
 import { load, pushUrl } from 'foldkit/navigation'
 import { type Url } from 'foldkit/url'
 
@@ -17,6 +18,8 @@ export const ui = Application.bindChild(Ui.block, {
 export const ApplicationComposition = Application.toComposition({
   children: [ui],
 })
+
+export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 export const NavigateInternal = ApplicationComposition.command(
   'NavigateInternal',

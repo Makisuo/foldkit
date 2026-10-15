@@ -2,7 +2,7 @@ import { DateTime } from 'effect'
 
 import * as Button from '@foldkit/ui/button'
 
-import { ApplicationComposition } from '../application'
+import type { ViewBuilder } from '../application'
 import { Message } from '../message'
 
 export const formatFetchedAt = (fetchedAt: number): string =>
@@ -17,29 +17,28 @@ export const formatFetchedAt = (fetchedAt: number): string =>
 export const toolbarButtonClassName =
   'px-3 py-1.5 bg-white text-slate-700 text-sm font-semibold rounded-md shadow hover:bg-slate-50 transition cursor-pointer data-[disabled]:opacity-50 data-[disabled]:cursor-default data-[disabled]:hover:bg-white'
 
-export const statCard = ApplicationComposition.render.withInput<
-  Readonly<{ label: string; value: string }>
->()(({ label, value }, h) =>
+export const statCard = (
+  { label, value }: Readonly<{ label: string; value: string }>,
+  h: ViewBuilder,
+) =>
   h.div(
     [h.Class('bg-white rounded-xl shadow p-4 flex flex-col gap-1')],
     [
       h.div([h.Class('text-sm text-slate-500')], [label]),
       h.div([h.Class('text-2xl font-bold text-slate-900')], [value]),
     ],
-  ),
-)
+  )
 
-export const loadingPanel = ApplicationComposition.render.withInput<string>()(
-  (text, h) =>
-    h.div(
-      [h.Class('bg-white rounded-lg shadow p-6 text-center text-slate-500')],
-      [text],
-    ),
-)
+export const loadingPanel = (text: string, h: ViewBuilder) =>
+  h.div(
+    [h.Class('bg-white rounded-lg shadow p-6 text-center text-slate-500')],
+    [text],
+  )
 
-export const errorPanel = ApplicationComposition.render.withInput<
-  Readonly<{ error: string; retryMessage: Message }>
->()(({ error, retryMessage }, h) =>
+export const errorPanel = (
+  { error, retryMessage }: Readonly<{ error: string; retryMessage: Message }>,
+  h: ViewBuilder,
+) =>
   h.div(
     [
       h.Class(
@@ -65,5 +64,4 @@ export const errorPanel = ApplicationComposition.render.withInput<
         h,
       ),
     ],
-  ),
-)
+  )

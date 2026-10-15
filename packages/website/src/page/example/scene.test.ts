@@ -19,7 +19,7 @@ import { Deployment } from '../../deployment'
 import { init, update } from '../../root'
 import * as SnippetDisclosure from '../../snippetDisclosure'
 import { MeasureSnippetHeight } from '../../snippetDisclosure/mount'
-import { view } from '../../view/application'
+import { view } from '../../view/view'
 import { type ExampleSources } from './sources'
 
 const longCode = pipe(

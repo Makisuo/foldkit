@@ -1,10 +1,10 @@
 import { clsx } from 'clsx'
 import { Array, Match, Option, String, pipe } from 'effect'
-import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
+import { Html, inertHtml as ih } from 'foldkit/html'
 
 import { Icon } from '../icon'
 import { dialog } from './childBindings'
-import { SearchComposition } from './childBindings'
+import { SearchComposition, type ViewBuilder } from './childBindings'
 import { Message, type SearchResult } from './message'
 import type { Model } from './model'
 import { SearchState, resultsFromState } from './model'
@@ -44,7 +44,7 @@ const handleSearchInputKeyDown = (
     Match.orElse(() => Option.none()),
   )
 
-const searchInputView = (model: Model, h: HtmlBuilder<Message>): Html => {
+const searchInputView = (model: Model, h: ViewBuilder): Html => {
   const isListboxVisible =
     model.searchState._tag === 'Ok' || model.searchState._tag === 'Loading'
 
@@ -104,7 +104,7 @@ const resultItemView = (
   result: typeof SearchResult.Type,
   index: number,
   isActive: boolean,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html =>
   h.a(
     [
@@ -176,7 +176,7 @@ const noResultsView = (query: string): Html =>
 const resultListView = (
   results: ReadonlyArray<typeof SearchResult.Type>,
   activeResultIndex: number,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html =>
   Array.match(results, {
     onEmpty: () => h.empty,
@@ -194,7 +194,7 @@ const resultListView = (
       ),
   })
 
-const resultsListView = (model: Model, h: HtmlBuilder<Message>): Html =>
+const resultsListView = (model: Model, h: ViewBuilder): Html =>
   SearchState.match<Html>(model.searchState, {
     Idle: () => emptyPrompt,
     Loading: ({ results }) =>

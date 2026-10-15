@@ -7,6 +7,7 @@ import {
   horizontalRadioGroupDemo,
   verticalRadioGroupDemo,
 } from '../childBindings'
+import type { ViewBuilder } from '../childBindings'
 import type { Plan } from '../model'
 
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
@@ -39,7 +40,7 @@ const descriptionClassName = 'text-sm text-gray-600'
 
 const priceClassName = 'text-sm font-semibold text-accent-600'
 
-const checkIcon = UiComposition.render.builder(h => {
+const checkIcon = (h: ViewBuilder) => {
   return h.svg(
     [h.ViewBox('0 0 24 24'), h.Fill('none'), h.Class('size-5 text-accent-600')],
     [
@@ -52,11 +53,11 @@ const checkIcon = UiComposition.render.builder(h => {
       ]),
     ],
   )
-})
+}
 
-const checkPlaceholder = UiComposition.render.builder(h => {
+const checkPlaceholder = (h: ViewBuilder) => {
   return h.div([h.Class('size-5')])
-})
+}
 
 export const view = UiComposition.view((model, h) => {
   const verticalPlanOptionsView = ({

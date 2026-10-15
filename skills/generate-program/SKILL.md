@@ -23,7 +23,7 @@ Before writing any code, analyze the description to identify:
 9. **File handling**: uploads, attachments, images → `File` module + `FileDrop` from `@foldkit/ui`
 10. **Remote data**: anything fetched, cached, refreshed, or revalidated → the `AsyncData` module (see Phase 4). Don't hand-roll a loading/error union
 11. **Multi-state flows**: a described process that moves through several named steps with rules about which step follows which (checkout, onboarding, multi-step approval, a connection lifecycle) → consider the `Machine` module (`foldkit/experimental`). Writing the transitions as a table lets `unreachableStates()` and `deadTransitions()` inspect reachability through the declared Edges from `initial` and any caller-supplied extra roots. The analysis cannot see state changes made outside the Machine, so pass restored, deep-linked, hydrated, and other externally entered states as extra roots before treating its findings as application defects. Present it as an experimental option and let the user choose. For a flow with only two or three states, use `defineTaggedUnion` and one `match`. `repos/foldkit/examples/state-machine/` is the reference
-12. **Host embedding**: the program runs inside another app ("a widget in our React app", "embed this in an existing page", "the host needs to control it") → a typed Application composition's `makeElement` method plus the `Runtime.embed` lifecycle handle, with Flags for initial data and Ports for ongoing communication in both directions. `repos/foldkit/examples/embedding/` is the canonical reference: a plain TypeScript host driving a Foldkit widget end to end
+12. **Host embedding**: the program runs inside another app ("a widget in our React app", "embed this in an existing page", "the host needs to control it") → a typed Application composition's `toElement` method plus the `Runtime.embed` lifecycle handle, with Flags for initial data and Ports for ongoing communication in both directions. `repos/foldkit/examples/embedding/` is the canonical reference: a plain TypeScript host driving a Foldkit widget end to end
 
 Present this analysis to the user before proceeding.
 
@@ -80,7 +80,7 @@ Read `${CLAUDE_SKILL_DIR}/../../examples/counter/src/application.ts`
 Read `${CLAUDE_SKILL_DIR}/../../examples/stopwatch/src/application.ts` (timer via subscription, `Duration` field pattern) and `${CLAUDE_SKILL_DIR}/../../examples/todo/src/application.ts` (CRUD with localStorage via Flags)
 
 **Tier 3: Async operations, loading/error states, API calls, form validation:**
-Read `${CLAUDE_SKILL_DIR}/../../examples/weather/src/application.ts` (HTTP with `HttpClient`) and `${CLAUDE_SKILL_DIR}/../../examples/form/src/application.ts` (uses `foldkit/fieldValidation`; see the Form Validation section in Phase 4)
+Read `${CLAUDE_SKILL_DIR}/../../examples/weather/src/command.ts` (HTTP with `HttpClient`) and its `application.ts` (request state transitions) and `${CLAUDE_SKILL_DIR}/../../examples/form/src/application.ts` (uses `foldkit/fieldValidation`; see the Form Validation section in Phase 4)
 
 **Tier 4: URL routing, multiple pages, query parameters:**
 Read `${CLAUDE_SKILL_DIR}/../../examples/routing/src/application.ts` and `${CLAUDE_SKILL_DIR}/../../examples/query-sync/src/application.ts`
@@ -148,17 +148,17 @@ To use a stateful Block:
 1. Create the component once at module scope: `const CityCombobox = Combobox.create(City)`, where `City` is the parent's string Schema
 2. Add its Model to your Model: `cityCombobox: CityCombobox.Model`
 3. Add a `Got*` Message: `GotCityComboboxMessage` with `{ message: CityCombobox.Message }`.
-4. Create `const cityCombobox = Parent.bindChild(CityCombobox, { field: 'cityCombobox', parentMessage: Message.GotCityComboboxMessage, ...policies })`. Use explicit accessors and `toParentMessage` when the child is optional, tagged, or stored through a custom mapping.
+4. Create `const cityCombobox = Parent.bindChild(CityCombobox, { field: 'cityCombobox', parentMessage: Message.GotCityComboboxMessage, ...policies })`. The same direct form accepts an exact Option field and keeps `None` absent. Use explicit accessors and `toParentMessage` when the child is tagged, nested, or stored through a custom mapping.
 5. Include the Binding in `Parent.toComposition({ children: [cityCombobox] })`, initialize through `cityCombobox.init`, and delegate update through `cityCombobox.fold` or a direct exposed operation.
 6. Embed the canonical view with `h.block(cityCombobox.embedView({ slotId: 'city', model: model.cityCombobox, viewInputs }))`.
 
-A Binding registered under `children` contributes the component's `EffectsLayer`, Mounts, Subscriptions, and ManagedResources automatically. Import `define as defineApplication` from `foldkit/application`, create `const Application = defineApplication({ Model, Message })`, then establish `const ApplicationComposition = Application.toComposition({ children })`. Complete that graph through `ApplicationComposition.make({ init, update, view, ... })`, listing every field explicitly. Author every application view and ordinary owned render helper through `ApplicationComposition`; this carries registered Mount and child capabilities without handwritten builder requirement types.
+A Binding registered under `children` contributes the component's `EffectsLayer`, Mounts, Subscriptions, and ManagedResources automatically. Import `defineApplication` from `foldkit`, create `const Application = defineApplication({ Model, Message })`, then establish `const ApplicationComposition = Application.toComposition({ children })`. Complete that graph through `ApplicationComposition.toApplication({ init, update, view, ... })`, listing every field explicitly. Author the canonical application view through `ApplicationComposition.view`. Beside the Composition, derive `type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>` for ordinary root-local helpers that need the same registered Mount and child capabilities.
 
 Select a whole feature's alternate local handler recipe with `block.replaceEffectsLayer(localRecipe)` before binding it. This preserves selected child recipes and does not build either Layer. Ordinary execution tests retain the real handlers and replace their Service Layers instead.
 
 **Always prefer Foldkit UI components over hand-rolling interactive widgets.** They make accessibility the default, not an afterthought.
 
-**For form inputs specifically:** every text input, textarea, and button in a form MUST go through `Input`, `Textarea`, and `Button`. This is not optional, even though raw `input`/`textarea` HTML elements are available on the view's builder `h`. The form example (`examples/form/src/application.ts`) defines `inputFieldView` and `textareaFieldView` helpers that wrap `Input.view` and `Textarea.view` with label + validation feedback. Copy that helper pattern. Raw `input`/`textarea` are for non-form cases (search fields, inline editors) where you're intentionally working below the component layer, and even then, reach for the component first.
+**For form inputs specifically:** every text input, textarea, and button in a form MUST go through `Input`, `Textarea`, and `Button`. This is not optional, even though raw `input`/`textarea` HTML elements are available on the view's builder `h`. The form example (`examples/form/src/view.ts`) defines `inputFieldView` and `textareaFieldView` helpers that wrap `Input.view` and `Textarea.view` with label + validation feedback. Copy that helper pattern. Raw `input`/`textarea` are for non-form cases (search fields, inline editors) where you're intentionally working below the component layer, and even then, reach for the component first.
 
 If the app uses UI components, **always read the ui-showcase example first** to understand how components are wired. This is the canonical reference for Foldkit UI integration patterns:
 
@@ -193,17 +193,18 @@ A common mistake (because kanban colocates `SavedBoard` in `model.ts`): putting 
 **Small application** (Tier 1-2):
 
 ```
-src/application.ts          ← Model, Message, init, update, view, root assembly
-src/entry.ts        ← Browser startup, container, inputs, Runtime.run
-src/layer.ts        ← Substantial or reused ApplicationLayer composition only
+src/application.ts  ← Application, ApplicationComposition, and compact root behavior
+src/entry.ts        ← Explicit completion fields, browser inputs, and Runtime.run
+src/layer.ts        ← Optional; substantial or reused ApplicationLayer composition only
 ```
 
 **Split application** (Tier 3-5):
 
 ```
-src/application.ts          ← Root definition, composition, implementation, and factory
-src/entry.ts        ← Container, startup inputs, Runtime.run
-src/layer.ts        ← Substantial or reused ApplicationLayer composition only
+src/definition.ts   ← Optional early Application contract for split-file imports
+src/application.ts  ← Re-exported Application, ApplicationComposition, cohesive root behavior
+src/entry.ts        ← Explicit completion fields, container, inputs, and Runtime.run
+src/layer.ts        ← Optional; substantial or reused ApplicationLayer composition only
 src/model.ts
 src/message.ts
 src/update.ts       ← Commands colocated with the update that returns them
@@ -212,30 +213,34 @@ src/route.ts        ← When routing is used
 src/domain/         ← Shared domain Schemas and pure operations
 ```
 
-If a Command needs to import result constructors, extract `message.ts` before separating that Command from update. Both modules import the Message union without importing root assembly.
+If a Command needs to import result constructors, extract `message.ts` before separating that Command from update. Both modules import the Message union without importing `application.ts` or the completed root graph. A compact root defines `Application` directly in `application.ts`. When substantial split root modules need the authoring value, put only that early contract in `definition.ts`; `application.ts` imports and intentionally re-exports `Application`, then exports `ApplicationComposition`. Keep init, update, view, and other implementation fields with their real owners for `entry.ts` to import directly.
 
 **Feature folders** (Tier 6-7):
 
 ```
 src/page/
-  index.ts          ← Exports completed Search and Settings values
+  index.ts          ← Exports `* as Search` and `* as Settings`
   search/
     index.ts        ← Explicit public barrel
-    definition.ts   ← Early authoring definition when split files need it
-    block.ts        ← Completed Block and small EffectsLayer bundle
-    model.ts
-    message.ts
-    update.ts
-    view.ts
-    childBindings.ts ← Only for substantial parent-owned Binding policies
-    layer.ts        ← Only for substantial or reused handler composition
+    definition.ts   ← Optional early contracts when split-file imports need them
+    search.ts       ← Substantial cohesive implementation, Composition, and Bindings
+    block.ts        ← Final completed Block and small local EffectsLayer
+    view.ts         ← Canonical view importing Composition and Bindings from search.ts
+    childBindings.ts ← Straightforward parent-owned Bindings
+    layer.ts        ← Optional; substantial or reused local EffectsLayer composition
+    model.ts        ← Optional focused contract module
+    message.ts      ← Optional focused contract module
+    update.ts       ← Optional focused behavior module
+    command.ts      ← Optional focused effect-definition module
   settings/
     ...
 ```
 
-Organize around responsibilities, not one file per construction stage. Combine small declarations and local Layer bundles where that improves navigation. Preserve an early identity leaf when the actual import graph requires it. Export `block` from the feature barrel, then `export * as Search from './search'` from the parent barrel. Parents import the `Search` namespace and pass `Search.block` to their own Definition's `bindChild` method.
+The tree shows available seams, not required files. Organize around responsibilities, not one file per construction stage. Keep compact features together. Use `definition.ts` only for early Model, Message, OutMessage, and authoring contracts that split implementation files must import. Put substantial cohesive behavior in the folder-named implementation file, let the view import its Composition and Bindings from that implementation, and let the small final `block.ts` import both so neither implementation nor view imports the completed barrel. Retain focused init, update, command, and contract files when each improves navigation. Compose a small local `EffectsLayer` in `block.ts`; use `layer.ts` only when that composition is substantial or reused. Export `block` and intentional contracts from the explicit feature barrel, then `export * as Search from './search'` from the parent barrel. Parents import the `Search` namespace and pass `Search.block` to their own Definition's `bindChild` method.
 
-Use standard local structural names: Model, Message, OutMessage, Flags, init, update, view, subscriptions, managedResources, mounts, EffectsLayer, and expose. The completed feature value supplies context in parent code, such as `Search.Model` and `Search.OutMessage.match`. Domain Schemas and individual effects retain descriptive names.
+When one child needs substantial parent policy, replace `childBindings.ts` with a `childBindings/` directory. Put that child's Binding and policy in `childBindings/<child>.ts`. Keep the straightforward Bindings in `childBindings/childBindings.ts`, exporting the complete `children` tuple with `as const` from that file. Use an explicit `childBindings/index.ts` to export the individual named Bindings and `children`. Do not invent intermediate groups such as `pages` or `controls`; split only for a substantial policy owned by one child.
+
+Use standard local structural names: Model, Message, OutMessage, Flags, init, update, view, subscriptions, managedResources, mounts, EffectsLayer, and expose. The feature namespace supplies context in parent code, such as `Search.Model` and `Search.OutMessage.match`. Domain Schemas and individual effects retain descriptive names.
 
 ## Phase 3.3: Architecture sketch (Tier 4+ only)
 
@@ -339,7 +344,7 @@ For each Foldkit module you plan to use, read the `.d.ts` at the paths below. Re
 <project>/node_modules/foldkit/dist/schema/public.d.ts  # defineTaggedUnion(), taggedStruct()
 <project>/node_modules/foldkit/dist/struct/index.d.ts   # modifyFields(): check nested-update signature
 <project>/node_modules/foldkit/dist/update/public.d.ts  # Update.Return, Update.ReturnWithOutMessage, Update.withOutMessage, Update.combine, Update.refresh
-<project>/node_modules/foldkit/dist/runtime/applicationPublic.d.ts # define and typed make/makeElement; completed programs expose provide
+<project>/node_modules/foldkit/dist/runtime/applicationPublic.d.ts # define and typed toApplication/toElement; completed programs expose provide
 <project>/node_modules/foldkit/dist/runtime/runtime.d.ts     # Runtime.run, Runtime.hydrate, Runtime.embed
 
 # If using routing
@@ -432,7 +437,7 @@ Record these in the crib and keep them visible while generating:
 - **Routers are callable for printing**: `homeRouter()` returns `'/'`, `tagFilterRouter({ tag: 'foo' })` returns `'/tag/foo'`. Never hand-construct URLs.
 - **UI components come from `@foldkit/ui`, not from a `Ui` namespace on `foldkit`.** `import { Dialog, Input } from '@foldkit/ui'`, then connect Dialog and call Input's stateless view helper. There is no `Ui` export on the `foldkit` package.
 - **`HttpClient` and `HttpClientRequest` come from `effect/http`**, not `@effect/platform`. Leave `HttpClient.HttpClient` in the handler's requirements and provide `Http.layer`, imported from `foldkit`, at the application root. This keeps the real handler reusable with a deterministic HTTP Layer in an execution test. `@effect/platform-browser` is a different thing, used for `BrowserKeyValueStore` and `BrowserCrypto`.
-- **Register each child Binding once.** Author an ordinary child through `const Child = Block.define('Child', { Model, Message, OutMessage? })`. Use one-argument `Block.define('Child')` followed by `.define(...)` only for a generic factory sharing effect definitions across several specialized contracts. Establish `ChildComposition = Child.toComposition({ children?, mounts? })`, produce it with `ChildComposition.toBlock(...)`, and export the completed `block`. Export `* as Child` from the parent barrel. Parent code calls `Parent.bindChild(Child.block, config)` and includes that Binding under `children` in `Parent.toComposition(...)`. A required exact Struct field uses `{ field, parentMessage }`; optional, tagged, and custom storage uses explicit accessors and `toParentMessage`; a keyed Binding adds `readAll`, `key`, and `writeAt`. The ordinary Binding surface contains `placement`, `init`, `fold`, `embedView`, and named operations from `expose`; Composition carries lifecycle records and handler Layers automatically. Initialize through `binding.init`, delegate ordinary child Messages through `binding.fold`, and invoke public entry points directly through `binding.name(...)`.
+- **Register each child Binding once.** Author an ordinary child through `const Child = Block.define('Child', { Model, Message, OutMessage? })`. Use one-argument `Block.define('Child')` followed by `.define(...)` only for a generic factory sharing effect definitions across several specialized contracts. Establish `ChildComposition = Child.toComposition({ children?, mounts? })`, produce it with `ChildComposition.toBlock(...)`, and export the completed `block`. Export `* as Child` from the parent barrel. Parent code calls `Parent.bindChild(Child.block, config)` and includes that Binding under `children` in `Parent.toComposition(...)`. An exact Struct field containing the child Model or its Option uses `{ field, parentMessage }`; direct-field `presentWhen` gates the whole child. Reuse the child Model Schema instance for opaque declarations, and use explicit accessors for tagged, nested, custom, or independently declared opaque storage. A direct array of child Models uses string-valued `field` and `key` with two-argument `toParentMessage` when the child Model Schema exposes Struct fields; union, suspended, and other opaque child Schemas use general keyed accessors. A key cannot change during child init or update, and parent update owns collection membership. Wrapped keyed items use `readAll`, function-valued `key`, `read`, and `writeAt`. The ordinary Binding surface contains `placement`, `init`, `fold`, `embedView`, and named operations from `expose`; Composition carries lifecycle records and handler Layers automatically. Initialize through `binding.init`, delegate ordinary child Messages through `binding.fold`, and invoke public entry points directly through `binding.name(...)`.
 - **Let `Feature.update` infer Command requirements.** Inside it, use `Message.match(message, handlers)` without `Update.Return<Model, Message>`; that two-argument type fixes the requirement channel to `never`. Use `Feature.step` for a named public entry point. When another matcher, helper, or exported signature needs an `UpdateReturn` alias and any branch returns Commands, derive the relevant requirements with `Update.RequirementsOf<typeof update>`. Pass them to `Update.Return<Model, Message, Requirements>` or `Update.ReturnWithOutMessage<Model, Message, OutMessage, Requirements>`. The match generic constrains the whole update, so omit a redundant return annotation. Use `Match.withReturnType<UpdateReturn>()` only for Effect `Match`.
 - **Preserve the plain-return OutMessage guard.** Use `Update.Return<Model, Message>` when an update cannot emit an OutMessage. It prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. A result with no `outMessage` can still be used where `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is expected. The missing field means that update emitted no OutMessage. A hand-written plain-return type must preserve the `outMessage?: never` field.
 - **Omit only statically empty Commands.** A producer with statically no Commands omits `commands`. A producer with a computed collection returns it without checking whether it is empty. Never write `commands: []`.
@@ -452,7 +457,7 @@ Generate files following the architecture and conventions guides exactly. Write 
 - Use discriminated unions for state: `Idle | Loading | Error | Ok`, never booleans for multi-valued state
 - Use `Option` for fields that may be absent. Never empty strings or null
 - Prefix Option-typed fields with `maybe`: `maybeCurrentUser`, `maybeError`
-- For remote data, use the `AsyncData` module rather than hand-rolling a union. `AsyncData.Schema(WeatherData, Schema.String)` returns `{ schema, Idle, Loading, Refreshing, Failure, Stale, Success }`; put `schema` in the Model and build values with the constructors. The `Refreshing` and `Stale` states are the point: they let a reload keep the current data on screen, and a failed reload keep it rather than discarding it. `repos/foldkit/examples/weather/src/application.ts` is the canonical use. Read `AsyncData.match`'s signature before calling it: the handlers take bare values (`onSuccess: data => ...`, `onFailure: error => ...`), except `onStale`, which takes `{ error, data }`
+- For remote data, use the `AsyncData` module rather than hand-rolling a union. `AsyncData.Schema(WeatherData, Schema.String)` returns `{ schema, Idle, Loading, Refreshing, Failure, Stale, Success }`; put `schema` in the Model and build values with the constructors. The `Refreshing` and `Stale` states are the point: they let a reload keep the current data on screen, and a failed reload keep it rather than discarding it. `repos/foldkit/examples/weather/src/definition.ts` declares the AsyncData contract; its `application.ts` demonstrates state transitions. Read `AsyncData.match`'s signature before calling it: the handlers take bare values (`onSuccess: data => ...`, `onFailure: error => ...`), except `onStale`, which takes `{ error, data }`
 - When several update paths share cached fetch, refresh, reset, and stale-response behavior, consider experimental `Query.define`. Query and KeyedQuery are completed viewless Blocks: bind them through the parent Definition, register the Binding in `children`, and call loading operations through that Binding. Preserve Query's generated `Fetch`, canonical `query.EffectsLayer` or explicit host `provideHandlers`, constructor error and Service requirements, request generations, and cache key type. A KeyedQuery's entries are cache data inside one Query Model, not keyed child Block occurrences. `repos/foldkit/examples/api-cache-query/` is the reference.
 - For non-remote multi-valued state (form steps, editor modes, connection phases), declare the whole union with `defineTaggedUnion()`. See Discriminated Unions for State in [conventions.md](conventions.md)
 - For apps with multiple domain entities referenced across modules, extract shared schemas into `src/domain/` (e.g., `domain/product.ts`, `domain/session.ts`). See the shopping-cart and auth examples for this pattern, and read `${CLAUDE_SKILL_DIR}/../../packages/website/src/page/projectOrganization.ts` for guidance on when and how to structure domain modules
@@ -495,7 +500,7 @@ Every message must carry meaning. No `NoOp`.
 
 - Define a `Flags` Schema for data the initial Model needs from side effects
 - Define `flags` as an `Effect<Flags>` that computes the values (localStorage reads, current time, etc.)
-- For a page-owning application, declare `Flags` in the typed `make` config and pass `flags` to `Runtime.run(application, { flags })` for a fresh browser boot. For an Element, declare both `Flags` and `flags` in the typed `makeElement` config. Hydrated applications call `Runtime.hydrate(application)` and use only the server-encoded Flags payload. `@foldkit/vite-plugin` compiles the shared deployment identity into Foldkit for coordinated client and server builds
+- For a page-owning application, declare `Flags` in the typed `toApplication` config and pass `flags` to `Runtime.run(application, { flags })` for a fresh browser boot. For an Element, declare both `Flags` and `flags` in the typed `toElement` config. Hydrated applications call `Runtime.hydrate(application)` and use only the server-encoded Flags payload. `@foldkit/vite-plugin` compiles the shared deployment identity into Foldkit for coordinated client and server builds
 - Pass the result into init. Never perform side effects at module level or inside init directly
 - See the Flags section in [architecture.md](architecture.md) for the full pattern
 
@@ -533,7 +538,7 @@ Every message must carry meaning. No `NoOp`.
 - Name each Command for the effect its handler performs, not the later Model transition caused when update handles its result. A timer that only waits before update starts a dismissal is `WaitBeforeDismissal`, not `DismissAfter`
 - Commands that can't meaningfully fail return `Completed*` Messages named from the Command, payload-carrying ones included: `DetermineStartTime` → `CompletedDetermineStartTime`, not `DeterminedStartTime`
 - Use Foldkit's `Dom` module for DOM operations (`Dom.focus`, `Dom.scrollIntoView`, `Dom.showDialog`, `Dom.lockScroll`, etc.) and Effect built-ins for everything else (`Clock.currentTimeMillis`, `Random.nextIntBetween`, `Effect.sleep(Duration.millis(...))`). For UUIDs, use the `Crypto.Crypto` service's `randomUUIDv4` with a platform Crypto layer. See DOM and Effect Helpers in [architecture.md](architecture.md)
-- For HTTP requests, use `HttpClient` and `HttpClientRequest` from `effect/http`. Leave the client in the handler's requirements and provide `Http.layer` from `foldkit` at the application root. See `examples/weather/src/application.ts` and `examples/weather/src/entry.ts` for the handler and root composition
+- For HTTP requests, use `HttpClient` and `HttpClientRequest` from `effect/http`. Leave the client in the handler's requirements and provide `Http.layer` from `foldkit` at the application root. See `examples/weather/src/command.ts` and `examples/weather/src/entry.ts` for the handler and root composition
 - Let the child Binding re-tag child Commands through its parent Message mapping. Use `Command.mapMessages` directly only for lower-level operations outside a composed Block.
 
 ### Form Validation
@@ -591,7 +596,7 @@ For file uploads (resumes, images, attachments):
 ### View
 
 - Every view receives `h`, the typed Html builder, as its last parameter. Define the completed view through its Composition's `view`. Application code never constructs a builder. The child dispatches in its own Message type, and the parent uses `binding.embedView` so the canonical view and Message wrapper come from the same placement.
-- Ordinary owned view helpers use `FeatureComposition.render`, `render.builder`, or `render.withInput<Input>()`; these provide the correct builder context without adding unused Model parameters. Deliberately reusable helpers take `h: HtmlBuilder<Message>` last. Preserve `Block.HtmlBuilderOf<typeof FeatureComposition>` for meaningful public interfaces with another signature, including generic attribute and callback helpers that carry caller capabilities. Inside a view, always use the view's own `h`. Only where no builder is in scope, typically module scope, use `inertHtml` from `foldkit/html`, aliased `ih` (typed `HtmlBuilder<never>`, so no handlers can be built with it).
+- Ordinary feature-local view helpers are plain functions. After establishing the Composition, export `type ViewBuilder = Block.HtmlBuilderOf<typeof FeatureComposition>` beside it and use the alias for their `h` parameter. The alias carries the feature Message plus registered child and Mount capabilities without constructing a runtime builder. Give each helper only the Model, domain value, or context parameters it uses; let its output infer. Genuinely shared helpers take the framework's general `HtmlBuilder<Message>` form last, preserving capability generics when they forward attributes, callbacks, children, or Mounts. Inside a view, always use the view's own `h`. Only where no builder is in scope, typically module scope, use `inertHtml` from `foldkit/html`, aliased `ih` (typed `HtmlBuilder<never>`, so no handlers can be built with it).
 - Use `h.Class(...)` for Tailwind classes
 - Use `clsx` from the `clsx` package for conditional class composition: `h.Class(clsx('base-classes', { 'active-class': isActive, 'bg-blue-500': variant === 'Primary' }))`. Use `clsx` whenever classes depend on model state, boolean flags, or discriminated union tags. Never string concatenation, template literals, or `&&` expressions.
 - Pattern match on model state through the union: `State.match(model.state, {...})`
@@ -604,18 +609,18 @@ For file uploads (resumes, images, attachments):
 
 ### Runtime Wiring
 
-- Import `define as defineApplication` from `foldkit/application`. Create `const Application = defineApplication({ Model, Message })`, then create `const ApplicationComposition = Application.toComposition({ children?, mounts? })`; use `toComposition()` when it has no graph entries. Call `ApplicationComposition.make({ init, update, view, ... })` for an app that owns the page, listing every completion field explicitly. Add `routing: { onUrlRequest, onUrlChange }` for URL routing. The root view returns a `Document` (`{ title, lang?, dir?, canonical?, ogUrl?, body }`). Derive `canonical` from the typed route in the Model, never from the address bar. The runtime applies `title`, `lang`, and `dir`. For `canonical` and `ogUrl`, a later omission restores the value recorded before the first client write or removes an element the runtime created. An omitted `ogUrl` uses an explicit `canonical`.
-- Use `ApplicationComposition.makeElement({ init, update, view, ... })` for a widget embedded on a page it does not own. Its registered root view returns `Html`, and the runtime never touches the document `<head>` or the `<html>` element. It has no `routing` config.
+- Import `defineApplication` from `foldkit`. Create `const Application = defineApplication({ Model, Message })`, then create `const ApplicationComposition = Application.toComposition({ children?, mounts? })`; use `toComposition()` when it has no graph entries. Call `ApplicationComposition.toApplication({ init, update, view, ... })` for an app that owns the page, listing every completion field explicitly. Add `routing: { onUrlRequest, onUrlChange }` for URL routing. The root view returns a `Document` (`{ title, lang?, dir?, canonical?, ogUrl?, body }`). Derive `canonical` from the typed route in the Model, never from the address bar. The runtime applies `title`, `lang`, and `dir`. For `canonical` and `ogUrl`, a later omission restores the value recorded before the first client write or removes an element the runtime created. An omitted `ogUrl` uses an explicit `canonical`.
+- Use `ApplicationComposition.toElement({ init, update, view, ... })` for a widget embedded on a page it does not own. Its registered root view returns `Html`, and the runtime never touches the document `<head>` or the `<html>` element. It has no `routing` config.
 - See the With and Without URL Routing section in [architecture.md](architecture.md) for the full pattern
 - Include `ClickedLink` and `ChangedUrl` Messages for programs with routing, with proper `UrlRequest.Internal` / `UrlRequest.External` handling in update
-- Each Block passes its local `EffectsLayer` to `FeatureComposition.toBlock`. Bindings in `children` add their handler graphs and lifecycle registrations automatically. Export the completed `block` for parent composition instead of forwarding its methods or aggregate `EffectsLayer`. Keep the barrel limited to intentional public contracts and domain helpers. Scene, Story, and focused lifecycle tests can deep-import private implementation owners without expanding the public barrel. The root remains a passive `ApplicationComposition`. `ApplicationComposition.make({ init, update, view, ... })` carries its handler graph, while `ApplicationLayer` contains ordinary Services and enters through `application.provide(ApplicationLayer)`. There is no `resources` field on `make` or `makeElement`.
-- Root `application.ts` exports `Application` and `ApplicationComposition` for the root graph. `entry.ts` imports that root authoring value and completion fields from their real owners, chooses the container and startup inputs, lists every field explicitly in the owned `make`, supplies `ApplicationLayer` through `application.provide(ApplicationLayer)`, and calls `Runtime.run`. Do not create an implementation bundle or forward implementation exports through `application.ts`. Tests and server entries import the definition and pieces they need without starting the browser Runtime.
+- Each Block passes its local `EffectsLayer` to `FeatureComposition.toBlock`. Bindings in `children` add their handler graphs and lifecycle registrations automatically. Export the completed `block` for parent composition instead of forwarding its methods or aggregate `EffectsLayer`. Keep the barrel limited to intentional public contracts and domain helpers. Scene, Story, and focused lifecycle tests can deep-import private implementation owners without expanding the public barrel. The root remains a passive `ApplicationComposition`. `ApplicationComposition.toApplication({ init, update, view, ... })` carries its handler graph, while `ApplicationLayer` contains ordinary Services and enters through `application.provide(ApplicationLayer)`. There is no `resources` field on `toApplication` or `toElement`.
+- Root `application.ts` exports `Application` and `ApplicationComposition` for the root graph. `entry.ts` imports that Composition and completion fields from their real owners, chooses the container and startup inputs, lists every field explicitly in the owned `toApplication`, supplies `ApplicationLayer` through `application.provide(ApplicationLayer)`, and calls `Runtime.run`. Do not create an implementation bundle or forward implementation exports through `application.ts`. Tests and server entries import the definition and pieces they need without starting the browser Runtime.
 - `application.provide(layer)` and `element.provide(layer)` return new passive programs. The supplied Layers build once when a Runtime starts the resulting program, including a restored-Model start, before a fresh Flags Effect, init, or the first render. Command lookup, Subscription restart, Mount insertion, and ManagedResource reacquisition reuse those app-scoped handlers and providers. `Runtime.hydrate` validates the server handoff before acquiring Layers. A Layer construction failure stops startup before the first render. The runtime releases the Layer Scope when that start stops
 - Give definitions distinct local handler names within one named Block. Different named Blocks may reuse a local name because ownership keeps their contracts separate. `FeatureComposition.toBlock` checks the local `EffectsLayer` and declared `hostHandlers`, and parent composition carries those checked contracts to the root. When an explicit type annotation is needed, derive the complete contract with `Command.HandlerOf<typeof Definition>`, `Subscription.HandlerOf<typeof subscriptions.entry>`, `Mount.RequirementsOf<typeof Definition>`, or `ManagedResource.HandlerOf<typeof managedResources.entry>`; never write a name-only `Handler<Name>`. An alternate implementation uses the original definition's `toLayer`.
 - Keep four lifetimes distinct: application services such as RPC clients last for one Runtime start; one Command Effect lasts for one dispatch; Subscription Streams and ManagedResource handles follow Model conditions; Mount acquisition follows one DOM element. Keep the `ManagedResource` name for the Model-scoped handle primitive
 - A definition's handler generator captures application services. It must not capture current time, Command args, Subscription dependencies, a DOM element, or an active ManagedResource handle. Service lookup retrieves the instance built for that application start; it does not construct the provider
 - Handlers and services may own mutable execution bookkeeping, such as worker availability or protocol request IDs. The Model and update own pending work shown to the user, selections, and submission rules. A `Ref` created in the constructor must not become the source of truth for workflow decisions or state read by view
-- A page-owning app with Flags declares the `Flags` Schema in its typed `make` config and passes the Flags Effect to `Runtime.run(application, { flags })`. A self-contained Element declares both `Flags` and `flags` in its typed `makeElement` config. Requirements of either Flags Effect can be supplied through the completed program's `provide` method
+- A page-owning app with Flags declares the `Flags` Schema in its typed `toApplication` config and passes the Flags Effect to `Runtime.run(application, { flags })`. A self-contained Element declares both `Flags` and `flags` in its typed `toElement` config. Requirements of either Flags Effect can be supplied through the completed program's `provide` method
 - Start a page-owning app with `Runtime.run(application.provide(ApplicationLayer), { flags })`, omitting the options argument when there are no Flags. When a host application controls the program's lifecycle, call `Runtime.embed(element.provide(ApplicationLayer))` and hand the returned handle to the host; mirror `repos/foldkit/examples/embedding/src/host.ts` for the host side and its `application.ts` for the widget side.
 - Name the root stages `Application` and `ApplicationComposition`, and the completed runtime input `application`
 
@@ -634,11 +639,11 @@ For file uploads (resumes, images, attachments):
 
 - Define named entries with `Feature.subscriptions(entry => ({ roomUpdates: entry('RoomUpdates', fields, { messages: [Message.ReceivedRoomUpdate], modelToDependencies, handler: function* () { return dependencies => stream } }) }))`. The stable handler name identifies the Layer requirement, while the record key identifies the runtime registration and Stream scope. Several connected registrations can share one definition and Layer while retaining distinct placement-qualified keys. `messages` is the exact Message Schema collection the handler can emit; `messages: []` requires a silent `Stream<never>` whose acquisition and cleanup stay inside the Stream scope. Compose `subscriptions.roomUpdates.layer` directly in the owning module's `EffectsLayer`
 - `modelToDependencies` extracts Subscription parameters from Model
-- Child Bindings lift Subscriptions automatically. Put placement-specific stream policy in `subscriptions.when`; use a keyed `bindChild` configuration for dynamic collections.
+- Child Bindings lift Subscriptions automatically. Use direct-field `presentWhen` when parent policy gates the whole child. Put placement-specific Stream-only policy in `subscriptions.when`; use a keyed `bindChild` configuration for dynamic collections.
 - The `handler` generator constructs a Stream function limited to the declared `messages`. Scene uses those declarations to validate both the selected `Subscription.emit` source and its Message Schema before applying lift mappings. A dependency change invokes the returned function with the latest dependencies and restarts the Stream scope without reconstructing the handler or its providers. Subscription lifecycle entries in DevTools are follow-up work. Omit `handler` only for an external host contract and pass the host's Stream-constructor Effect to `toLayer` at that boundary
 - Subscriptions auto-start/stop based on Model state. Never manually managed
 - For Subscriptions with no local Model dependencies, use `entry('KeyboardPresses', { messages: [Message.PressedKey], handler: function* () { return () => stream } })` with no dependency fields or callback; a parent can still gate the entry when lifting it
-- Child Bindings collect and lift Subscriptions automatically. Put parent-owned activation policy in `subscriptions.when`; `None` from an optional Binding's `read` stops every child Stream, and a keyed `bindChild` configuration gives each key its own Stream scopes.
+- Child Bindings collect and lift Subscriptions automatically. A direct Option field's `None`, `false` from direct-field `presentWhen`, or `None` from a custom `read` stops every child Stream as part of whole-child absence. Put Stream-only activation policy in `subscriptions.when`; a keyed `bindChild` configuration gives each key its own Stream scopes.
 
 ### Managed Resources (if stateful runtime handles)
 
@@ -796,7 +801,7 @@ Read FIRST, in this order:
    from the foldkit repo (vendored at repos/foldkit/ when the project
    has the subtree):
    - Tier 1-2: packages/foldkit/src/runtime/runtime.ts (quality calibration)
-   - Tier 3-4: examples/weather/src/application.ts OR examples/form/src/application.ts
+   - Tier 3-4: examples/weather/src/command.ts AND examples/weather/src/application.ts, OR examples/form/src/application.ts
    - Tier 5: examples/kanban/src/update.ts AND examples/kanban/src/domain/
    - Tier 6: examples/job-application/src/update.ts AND examples/auth/src/page/
    - Tier 7: packages/typing-game/client/src/page/room/

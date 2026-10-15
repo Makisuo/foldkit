@@ -30,7 +30,10 @@ type LifecycleEvent =
   | 'Subscription started'
   | 'Subscription stopped'
 
-const buildGraph = (events: Array<LifecycleEvent>) => {
+const buildGraph = (
+  events: Array<LifecycleEvent>,
+  mode: 'Option' | 'Route' | 'Subscriptions' = 'Option',
+) => {
   const trackHandler = (
     built: LifecycleEvent,
     released: LifecycleEvent,
@@ -162,7 +165,7 @@ const buildGraph = (events: Array<LifecycleEvent>) => {
   const Child = childComposition.toBlock({
     view: childView,
     init: () => ({ model: ChildModel.make({ id: 'one' }) }),
-    update: (model: ChildModel, message: ChildMessage) =>
+    update: (model, message) =>
       ChildMessage.match(message, {
         AcquiredSession: () => ({ model }),
         CompletedObservePanel: () => ({ model }),
@@ -180,6 +183,7 @@ const buildGraph = (events: Array<LifecycleEvent>) => {
 
   const ParentModel = Schema.Struct({
     maybeChild: Schema.Option(ChildModel),
+    route: Schema.Literals(['Home', 'Away']),
   })
   type ParentModel = typeof ParentModel.Type
   const ParentMessage = defineMessageUnion({
@@ -194,11 +198,17 @@ const buildGraph = (events: Array<LifecycleEvent>) => {
   })
   const child = parentBase.bindChild(Child, {
     placement: 'child',
-    read: model => model.maybeChild,
-    write: (model, nextChild) =>
-      modifyFields(model, {
-        maybeChild: () => Option.some(nextChild),
-      }),
+    field: 'maybeChild',
+    ...(mode === 'Route'
+      ? { presentWhen: (model: ParentModel) => model.route === 'Home' }
+      : {}),
+    ...(mode === 'Subscriptions'
+      ? {
+          subscriptions: {
+            when: (model: ParentModel) => model.route === 'Home',
+          },
+        }
+      : {}),
     parentMessage: ParentMessage.GotChildMessage,
   })
 
@@ -211,12 +221,14 @@ const buildGraph = (events: Array<LifecycleEvent>) => {
         Option.match(model.maybeChild, {
           onNone: () => h.p([], ['child removed']),
           onSome: childModel =>
-            h.block(
-              child.embedView({
-                slotId: 'child',
-                model: childModel,
-              }),
-            ),
+            mode === 'Route' && model.route !== 'Home'
+              ? h.p([], ['child removed'])
+              : h.block(
+                  child.embedView({
+                    slotId: 'child',
+                    model: childModel,
+                  }),
+                ),
         }),
       ],
     ),
@@ -224,6 +236,7 @@ const buildGraph = (events: Array<LifecycleEvent>) => {
   const init = () => ({
     model: ParentModel.make({
       maybeChild: Option.some(Child.init().model),
+      route: 'Home',
     }),
   })
   const update = parentBase.update((model, message) =>
@@ -232,7 +245,8 @@ const buildGraph = (events: Array<LifecycleEvent>) => {
         child.fold(model, childMessage),
       RemovedChild: () => ({
         model: modifyFields(model, {
-          maybeChild: () => Option.none(),
+          maybeChild: current => (mode === 'Option' ? Option.none() : current),
+          route: () => 'Away',
         }),
       }),
     }),
@@ -245,75 +259,125 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-it('keeps block effects scoped to the application and child placement lifetimes', async () => {
+it.each(['Option', 'Route'] as const)(
+  'keeps %s field presence scoped to the application and child placement lifetimes',
+  async mode => {
+    const events: Array<LifecycleEvent> = []
+    const { composition, init, update, view } = buildGraph(events, mode)
+    const container = document.createElement('div')
+    container.id = 'block-lifecycle-test'
+    document.body.appendChild(container)
+
+    const provided = composition.toElement({
+      container,
+      init,
+      update,
+      view,
+      EffectsLayer: Layer.empty,
+    })
+
+    expect(events).toEqual([])
+
+    const fiber = Effect.runFork(__startProgram(provided, undefined, 'Fresh'))
+
+    try {
+      await vi.waitFor(() => {
+        expect(document.body.textContent).toContain('child:one')
+        expect(events).toEqual(
+          expect.arrayContaining([
+            'Subscription handler built',
+            'Subscription started',
+            'ManagedResource handler built',
+            'ManagedResource acquired',
+            'Mount handler built',
+            'Mount acquired',
+          ]),
+        )
+      })
+
+      expect(
+        events.filter(event => event.endsWith('handler built')),
+      ).toHaveLength(3)
+
+      document.body.querySelector('button')?.click()
+
+      await vi.waitFor(() => {
+        expect(document.body.textContent).toContain('child removed')
+        expect(events).toEqual(
+          expect.arrayContaining([
+            'Subscription stopped',
+            'Subscription observed resource',
+            'ManagedResource released',
+            'Mount released',
+          ]),
+        )
+      })
+
+      expect(events.indexOf('Subscription stopped')).toBeLessThan(
+        events.indexOf('ManagedResource released'),
+      )
+
+      expect(events.some(event => event.endsWith('handler released'))).toBe(
+        false,
+      )
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+
+    expect(events.filter(event => event.endsWith('handler released'))).toEqual(
+      expect.arrayContaining([
+        'Subscription handler released',
+        'ManagedResource handler released',
+        'Mount handler released',
+      ]),
+    )
+    expect(
+      events.filter(event => event.endsWith('handler released')),
+    ).toHaveLength(3)
+  },
+)
+
+it('gates only Subscription Streams while the direct-field child remains present', async () => {
   const events: Array<LifecycleEvent> = []
-  const { composition, init, update, view } = buildGraph(events)
+  const { composition, init, update, view } = buildGraph(
+    events,
+    'Subscriptions',
+  )
   const container = document.createElement('div')
-  container.id = 'block-lifecycle-test'
+  container.id = 'block-subscription-only-lifecycle-test'
   document.body.appendChild(container)
-
-  const provided = composition.makeElement({
-    container,
-    init,
-    update,
-    view,
-    EffectsLayer: Layer.empty,
-  })
-
-  expect(events).toEqual([])
-
-  const fiber = Effect.runFork(__startProgram(provided, undefined, 'Fresh'))
+  const application = composition.toElement({ container, init, update, view })
+  const fiber = Effect.runFork(__startProgram(application, undefined, 'Fresh'))
 
   try {
     await vi.waitFor(() => {
-      expect(document.body.textContent).toContain('child:one')
       expect(events).toEqual(
         expect.arrayContaining([
-          'Subscription handler built',
           'Subscription started',
-          'ManagedResource handler built',
           'ManagedResource acquired',
-          'Mount handler built',
           'Mount acquired',
         ]),
       )
     })
 
-    expect(
-      events.filter(event => event.endsWith('handler built')),
-    ).toHaveLength(3)
-
     document.body.querySelector('button')?.click()
 
     await vi.waitFor(() => {
-      expect(document.body.textContent).toContain('child removed')
-      expect(events).toEqual(
-        expect.arrayContaining([
-          'Subscription stopped',
-          'Subscription observed resource',
-          'ManagedResource released',
-          'Mount released',
-        ]),
-      )
+      expect(events).toContain('Subscription stopped')
     })
 
-    expect(events.indexOf('Subscription stopped')).toBeLessThan(
-      events.indexOf('ManagedResource released'),
-    )
-
+    expect(events).not.toContain('ManagedResource released')
+    expect(events).not.toContain('Mount released')
     expect(events.some(event => event.endsWith('handler released'))).toBe(false)
   } finally {
     await Effect.runPromise(Fiber.interrupt(fiber))
   }
 
-  expect(events.filter(event => event.endsWith('handler released'))).toEqual(
+  expect(events).toEqual(
     expect.arrayContaining([
+      'ManagedResource released',
+      'Mount released',
       'Subscription handler released',
-      'ManagedResource handler released',
-      'Mount handler released',
     ]),
   )
-  expect(
-    events.filter(event => event.endsWith('handler released')),
-  ).toHaveLength(3)
 })

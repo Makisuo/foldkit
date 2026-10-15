@@ -115,10 +115,8 @@ markdown({ islands: islandAttributes })
 
 ```typescript
 import { Schema } from 'effect'
-import {
-  define as defineApplication,
-  type HtmlBuilderOf,
-} from 'foldkit/application'
+import { Block } from 'foldkit'
+import { defineApplication } from 'foldkit'
 import type { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -145,12 +143,12 @@ export const ApplicationComposition = Application.toComposition({
   children: [counter],
 })
 
-type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
+type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 const postView = (
   model: Model,
   post: Markdown.MarkdownDocument,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   Markdown.view(post, {
     islands: Markdown.islandsFor(islandAttributes, {

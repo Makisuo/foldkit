@@ -14,7 +14,7 @@ import {
   overlayComboboxDemo,
   overlayDialogDemo as overlayDialogDemoBinding,
 } from '../update'
-import type { ViewBuilder } from '../viewBuilder'
+import type { ViewBuilder } from '../update'
 import { comboboxViewInputs } from './combobox'
 
 // DEMO CONTENT

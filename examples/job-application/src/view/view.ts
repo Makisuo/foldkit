@@ -1,11 +1,11 @@
 import clsx from 'clsx'
 import { Array, Equal, HashSet, Match, Option, pipe } from 'effect'
-import type { HtmlBuilderOf } from 'foldkit/application'
 import type { ChildAttribute, Html } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
 import { ApplicationComposition } from '../application'
+import type { ViewBuilder } from '../application'
 import {
   attachments,
   coverLetter,
@@ -25,8 +25,6 @@ import * as WorkHistory from '../step/workHistory'
 import { preview } from './preview'
 import { review } from './review'
 import { stepMenu, stepTabButton } from './stepNav'
-
-export type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 const stepHasErrors =
   (model: Model) =>
@@ -68,7 +66,7 @@ const stepsNeedingAttention = (model: Model): ReadonlyArray<Step.Step> =>
 const stepContent = (
   model: Model,
   attentionSteps: ReadonlyArray<Step.Step>,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   Match.value(model.currentStep).pipe(
     Match.when('PersonalInfo', () =>
@@ -129,7 +127,7 @@ const isFirstStep = (model: Model): boolean =>
 const isLastStep = (model: Model): boolean =>
   pipe(Step.all, Array.last, Option.exists(Equal.equals(model.currentStep)))
 
-const navigationButtons = ApplicationComposition.render((model, h) =>
+const navigationButtons = (model: Model, h: ViewBuilder) =>
   h.div(
     [h.Class('flex justify-between pt-6 mt-8 border-t border-gray-200')],
     [
@@ -174,10 +172,9 @@ const navigationButtons = ApplicationComposition.render((model, h) =>
             ),
           ]),
     ],
-  ),
-)
+  )
 
-const pageHeader = ApplicationComposition.render.builder(h =>
+const pageHeader = (h: ViewBuilder) =>
   h.div(
     [h.Class('mb-6')],
     [
@@ -190,14 +187,13 @@ const pageHeader = ApplicationComposition.render.builder(h =>
         ['Fill out the form below and watch your resume build in real time.'],
       ),
     ],
-  ),
-)
+  )
 
 const stepContentPanel = (
   model: Model,
   attentionSteps: ReadonlyArray<Step.Step>,
   panelAttributes: ReadonlyArray<ChildAttribute>,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   h.div(
     [...panelAttributes, h.Class('flex-1 min-w-0')],
@@ -218,7 +214,7 @@ const stepTabsLayout = (
   model: Model,
   attentionSteps: ReadonlyArray<Step.Step>,
   attentionStepSet: HashSet.HashSet<Step.Step>,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   h.block(
     stepTabs.embedView({
@@ -272,7 +268,7 @@ const stepTabsLayout = (
     }),
   )
 
-const desktopPreviewSidebar = ApplicationComposition.render((model, h) =>
+const desktopPreviewSidebar = (model: Model, h: ViewBuilder) =>
   h.div(
     [h.Class('hidden w-80 shrink-0 xl:block')],
     [
@@ -299,10 +295,9 @@ const desktopPreviewSidebar = ApplicationComposition.render((model, h) =>
         ],
       ),
     ],
-  ),
-)
+  )
 
-const mobilePreviewToggle = ApplicationComposition.render((model, h) =>
+const mobilePreviewToggle = (model: Model, h: ViewBuilder) =>
   h.div(
     [h.Class('fixed top-4 right-4 xl:hidden')],
     [
@@ -328,10 +323,9 @@ const mobilePreviewToggle = ApplicationComposition.render((model, h) =>
         h,
       ),
     ],
-  ),
-)
+  )
 
-const mobilePreviewOverlay = ApplicationComposition.render((model, h) =>
+const mobilePreviewOverlay = (model: Model, h: ViewBuilder) =>
   h.div(
     [
       h.Class(
@@ -339,8 +333,7 @@ const mobilePreviewOverlay = ApplicationComposition.render((model, h) =>
       ),
     ],
     [preview(model)],
-  ),
-)
+  )
 
 export const view = ApplicationComposition.view((model, h) => {
   const attentionSteps = stepsNeedingAttention(model)

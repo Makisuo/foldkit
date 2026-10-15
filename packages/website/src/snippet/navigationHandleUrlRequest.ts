@@ -1,6 +1,5 @@
 import { Effect, Schema, pipe } from 'effect'
-import { Navigation, Route, Url } from 'foldkit'
-import { define as defineApplication } from 'foldkit/application'
+import { Navigation, Route, Url, defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineRouteUnion, int, literal, slash } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'

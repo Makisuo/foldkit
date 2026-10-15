@@ -4,13 +4,11 @@ import { Tabs } from '@foldkit/ui'
 
 import type { DemoTab } from '../model'
 import { horizontalTabsDemo, verticalTabsDemo } from '../update'
-import type { ViewBuilder } from '../viewBuilder'
+import type { ViewBuilder } from '../update'
 
 // DEMO CONTENT
 
 const demoTabs: ReadonlyArray<DemoTab> = ['Foldkit', 'React', 'Elm']
-
-export const DemoTabs = Tabs.create<DemoTab>()
 
 const buttonClassName =
   'px-4 py-2 text-base font-normal cursor-pointer transition rounded-t-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 mb-[-1px] data-[selected]:relative data-[selected]:z-10 data-[selected]:bg-cream data-[selected]:dark:bg-gray-900 data-[selected]:text-gray-900 data-[selected]:dark:text-white data-[selected]:border-b-0'

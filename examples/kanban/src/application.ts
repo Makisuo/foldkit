@@ -1,9 +1,10 @@
 import { Effect, Layer, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
+import type { Block } from 'foldkit'
 
 import { DragAndDrop } from '@foldkit/ui'
 
-import { dragAndDrop } from './childBindings'
+import { children } from './childBindings'
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import { DEFAULT_COLUMNS, STORAGE_KEY } from './constant'
 import { Application } from './definition'
@@ -52,5 +53,7 @@ export const init = (flags: Flags) => {
 }
 
 export const ApplicationComposition = Application.toComposition({
-  children: [dragAndDrop],
+  children,
 })
+
+export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>

@@ -1,5 +1,5 @@
 import { Match, Option, Schema } from 'effect'
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 import { Machine } from 'foldkit/experimental'
 import { modifyFields } from 'foldkit/struct'
 

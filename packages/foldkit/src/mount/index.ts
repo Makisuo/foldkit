@@ -85,13 +85,15 @@ export type MountDefinitionTypeId = typeof MountDefinitionTypeId
  */
 export type MountRegistration = Readonly<{ name: string }>
 
-/** @internal Property carrying a layered Mount's registration identity. */
+/** Property key carrying a layered Mount's registration identity through Block
+ * composition. */
 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
 export const MountRegistrationTypeId: unique symbol = Symbol.for(
   'foldkit/MountRegistration',
 ) as unknown as MountRegistrationTypeId
 
-/** @internal Property carrying a layered Mount's registration identity. */
+/** Type of the property key that carries a layered Mount's registration
+ * identity through Block composition. */
 export type MountRegistrationTypeId = typeof MountRegistrationTypeId
 
 /**
@@ -427,15 +429,15 @@ const wrapEffectAsStream =
  * Defines a one-shot Mount. Every input is a named field: `args` declares the
  * args Schema, and `messages` lists the Messages this Mount can produce.
  * `handler` is a generator function that constructs the handler. Foldkit
- * applies `Effect.gen` to the generator. The
- * Definition's `layer` provides that handler to the application. The returned
+ * applies `Effect.gen` to the generator. Include the Definition in the owning
+ * Block's `toComposition({ mounts: [...] })` call and include its `layer`
+ * recipe in the local Effects Layer passed to `toBlock`. The returned
  * handler receives the live `Element` as `element` and the runtime's
  * `viewStateChanges` Stream alongside the declared args, and returns an
  * `Effect<Message>` that runs once when the element mounts.
- * Register the Definition in
- * the owning definition's `register({ mounts: [...] })` call so completion
- * carries its handler requirement. The Layer lives for the application; each element controls
- * its own Mount acquisition and release.
+ * The completed Block carries the recipe without building it; a Runtime builds
+ * it once for the application, while each element controls its own Mount
+ * acquisition and release.
  *
  * Omit `handler` to declare a host contract. A host contract has no
  * `layer`; use its `toLayer` method to supply an implementation at the
@@ -732,10 +734,11 @@ export function define<
  * `Mount.define`: `args` declares the args Schema, and `messages` lists the
  * Messages this Mount can produce. `handler` is a generator function that
  * constructs a Stream handler. Foldkit applies `Effect.gen` to the generator.
- * The Definition's `layer` provides that handler
- * to the application, and the Definition must be registered in
- * the owning definition's `register({ mounts: [...] })` call. The returned
- * handler receives the
+ * Include the Definition in the owning Block's
+ * `toComposition({ mounts: [...] })` call and include its `layer` recipe in the
+ * local Effects Layer passed to `toBlock`. The completed Block carries the
+ * recipe without building it; a Runtime builds it once for the application.
+ * The returned handler receives the
  * live `Element` as `element` and the runtime's
  * `viewStateChanges` Stream alongside the declared args, and returns a
  * `Stream<Message>` whose lifetime is bound to the element's lifetime: each

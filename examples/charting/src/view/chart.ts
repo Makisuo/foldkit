@@ -1,9 +1,8 @@
 import * as echarts from 'echarts/core'
 import { Effect, Option, Queue, Schema, Stream, pipe } from 'effect'
-import type { HtmlBuilderOf } from 'foldkit/application'
-import type { HtmlBuilder as FoldkitHtmlBuilder, Html } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
-import type { ApplicationComposition } from '../application'
+import type { ViewBuilder } from '../application'
 import { ChartRegistry } from '../chartRegistry'
 import { Application } from '../definition'
 import type { Telemetry } from '../domain'
@@ -136,12 +135,10 @@ export const MountChart = Application.mountStream('MountChart', {
   },
 })
 
-export type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
-
 export const chartPanelView = (
   model: Model,
   telemetry: Telemetry,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   h.section(
     [
@@ -162,7 +159,7 @@ export const chartPanelView = (
 export const chartFooterView = (
   model: Model,
   telemetry: Telemetry,
-  h: FoldkitHtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html =>
   h.div(
     [
@@ -197,10 +194,7 @@ export const chartFooterLabel = (model: Model, telemetry: Telemetry): string =>
       )} open pull requests`,
   )
 
-export const chartStatusView = (
-  model: Model,
-  h: FoldkitHtmlBuilder<Message>,
-): Html =>
+export const chartStatusView = (model: Model, h: ViewBuilder): Html =>
   Option.match(model.maybeChartError, {
     onNone: () =>
       h.div([h.Class('text-xs font-medium text-emerald-700')], ['Chart ready']),

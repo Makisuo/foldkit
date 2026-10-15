@@ -1,6 +1,5 @@
 import { Schema } from 'effect'
-import { Runtime } from 'foldkit'
-import { define as defineApplication } from 'foldkit/application'
+import { Runtime, defineApplication } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 

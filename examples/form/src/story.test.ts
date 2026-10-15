@@ -3,14 +3,8 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
-import {
-  Message,
-  type Model,
-  SubmitForm,
-  ValidateEmail,
-  initialModel,
-  update,
-} from './application'
+import { SubmitForm, ValidateEmail, initialModel, update } from './application'
+import { Message, type Model } from './definition'
 
 const validModel: Model = modifyFields(initialModel, {
   name: () => FieldValidation.Valid({ value: 'Alice' }),

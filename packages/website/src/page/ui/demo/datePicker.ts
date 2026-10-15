@@ -6,7 +6,7 @@ import type { AnchorConfig } from '@foldkit/ui/popover'
 import { Icon } from '../../../icon'
 import type { Model } from '../model'
 import { datePickerBasicDemo } from '../update'
-import type { ViewBuilder } from '../viewBuilder'
+import type { ViewBuilder } from '../update'
 import { calendarView } from './calendarView'
 
 // DEMO CONTENT

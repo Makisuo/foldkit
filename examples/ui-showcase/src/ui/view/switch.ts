@@ -4,6 +4,7 @@ import type { Html } from 'foldkit/html'
 import { Switch } from '@foldkit/ui'
 
 import { UiComposition } from '../childBindings'
+import type { ViewBuilder } from '../childBindings'
 import { Message } from '../message'
 
 const SWITCH_DEMO_ID = 'switch-demo'
@@ -18,7 +19,7 @@ const labelClassName =
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-const knob = UiComposition.render.withInput<boolean>()((isChecked, h) => {
+const knob = (isChecked: boolean, h: ViewBuilder) => {
   return h.span([
     h.Class(
       clsx(
@@ -27,7 +28,7 @@ const knob = UiComposition.render.withInput<boolean>()((isChecked, h) => {
       ),
     ),
   ])
-})
+}
 
 export const view = UiComposition.view((model, h) => {
   const switchView = (attributes: Switch.SwitchAttributes<Message>): Html =>

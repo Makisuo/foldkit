@@ -40,9 +40,9 @@ const foldMenuOutMessage = OutMessage.match<Update.Step<Model, Message>>({
 })
 
 const menu = MenuStory.bindChild(block, {
-  read: (model: Model) => Option.some(model),
-  write: (_model: Model, nextMenu: Model) => nextMenu,
-  toParentMessage: (message: Message): Message => message,
+  read: model => Option.some(model),
+  write: (_model, nextMenu) => nextMenu,
+  toParentMessage: message => message,
   outMessage: { fold: foldMenuOutMessage },
 })
 
@@ -58,9 +58,9 @@ const RefinedMenuStory = Block.define('RefinedMenuStory', {
 })
 
 const refinedMenu = RefinedMenuStory.bindChild(RefinedMenu, {
-  read: (model: Model) => Option.some(model),
-  write: (_model: Model, nextMenu: Model) => nextMenu,
-  toParentMessage: (message: Message): Message => message,
+  read: model => Option.some(model),
+  write: (_model, nextMenu) => nextMenu,
+  toParentMessage: message => message,
   outMessage: {
     fold: RefinedMenu.OutMessage.match<Update.Step<Model, Message>>({
       Selected: () => model => ({ model }),

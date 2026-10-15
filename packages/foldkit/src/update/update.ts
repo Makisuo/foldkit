@@ -26,7 +26,8 @@ type NoRegistrationEvidence = Readonly<{
   [RegistrationEvidenceTypeId]?: never
 }>
 
-/** @internal Carries the nominal proof consumed by Block registration checks. */
+/** Type-level proof that an update result uses a child Binding registered in its
+ * owning Composition. It adds no Effect service requirement at runtime. */
 export type RegistrationEvidence<Evidence> = Readonly<{
   [RegistrationEvidenceTypeId]?: () => Evidence
 }>
@@ -97,7 +98,8 @@ type DirectRegistrationEvidenceOf<Value> = Value extends unknown
     : never
   : never
 
-/** @internal Reads child registration evidence from an operation result. */
+/** Extracts child Binding registration evidence retained by an update result or
+ * its Commands. */
 export type RegistrationEvidenceOf<Value> =
   | DirectRegistrationEvidenceOf<Value>
   | (Value extends Readonly<{ commands?: infer CommandValues }>
@@ -139,7 +141,8 @@ type RegistrationOutMessageOf<Value> = Value extends unknown
     : never
   : never
 
-/** @internal A nameable update result carrying child registration evidence. */
+/** An update result that retains child Binding registration evidence alongside
+ * its Model, Commands, and optional OutMessage. */
 export type ReturnWithRegistrationEvidence<
   Model,
   Message,
@@ -147,13 +150,17 @@ export type ReturnWithRegistrationEvidence<
   R,
   Evidence,
 > = Readonly<{
+  /** Next parent Model after the registered child operation completes. */
   model: Model
+  /** Commands to run, carrying the same child registration evidence. */
   commands?: (Commands<Message, R> & RegistrationEvidence<Evidence>) | undefined
+  /** Optional OutMessage surfaced by the child fold or parent policy. */
   outMessage?: OutMessage
 }> &
   RegistrationEvidence<Evidence>
 
-/** @internal Preserves child registration evidence on a result and its Commands. */
+/** Preserves child Binding registration evidence on an update result and its
+ * Commands. */
 export type WithRegistrationEvidence<Value, Evidence> = Value extends unknown
   ? [Evidence] extends [never]
     ? Value
@@ -235,7 +242,11 @@ type ValidateUpdate<Update extends AnyUpdate> =
         : never
       : never
 
-/** @internal The nameable normalized contract returned by {@link define}. */
+/**
+ * The normalized function contract returned by {@link define}. It preserves
+ * the update's full parameter list while deriving its Command requirements,
+ * OutMessage channel, and child registration evidence from the return type.
+ */
 export type DefinedUpdate<
   Arguments extends ReadonlyArray<unknown>,
   Model,
@@ -304,7 +315,12 @@ type ValidateStep<Step extends AnyStep> =
       : never
     : never
 
-/** @internal The nameable normalized contract returned by {@link defineStep}. */
+/**
+ * The normalized function contract returned by {@link defineStep}. It
+ * preserves the Step's full parameter list while deriving its Message,
+ * Command requirements, OutMessage channel, and child registration evidence
+ * from the return type.
+ */
 export type DefinedStep<
   Arguments extends ReadonlyArray<unknown>,
   Model,
@@ -1876,6 +1892,19 @@ const appendOutMessageStep = (
   )
 }
 
+type InitFoldRegistrationEvidence<Fold> =
+  Fold extends Readonly<{
+    foldOutMessage?: infer FoldOutMessage
+  }>
+    ? NonNullable<FoldOutMessage> extends (
+        ...args: ReadonlyArray<any>
+      ) => infer OutMessageStep
+      ? OutMessageStep extends (...args: ReadonlyArray<any>) => infer StepReturn
+        ? RegistrationEvidenceOf<StepReturn>
+        : never
+      : never
+    : never
+
 /** Builds a parent Model from a child's init or boot result, lifts the child's
  *  Commands through `toParentMessage`, and handles any child OutMessage.
  *  Call it data-first with the completed child result and the parent adapters.
@@ -1913,19 +1942,6 @@ const appendOutMessageStep = (
  *  replaces the forwarded one. When the child emits nothing, neither adapter
  *  runs and the result omits `outMessage`.
  */
-type InitFoldRegistrationEvidence<Fold> =
-  Fold extends Readonly<{
-    foldOutMessage?: infer FoldOutMessage
-  }>
-    ? NonNullable<FoldOutMessage> extends (
-        ...args: ReadonlyArray<any>
-      ) => infer OutMessageStep
-      ? OutMessageStep extends (...args: ReadonlyArray<any>) => infer StepReturn
-        ? RegistrationEvidenceOf<StepReturn>
-        : never
-      : never
-    : never
-
 export const foldChildInit: {
   <
     ParentModel,

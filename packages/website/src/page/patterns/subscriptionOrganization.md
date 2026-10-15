@@ -30,7 +30,7 @@ Nested Blocks repeat the same pattern. By the time a Stream reaches the root, ev
 
 ## Install the Root
 
-The Application Composition already contains the Subscription and handler graph. Its owned `make` method completes the browser program with the implementation:
+The Application Composition already contains the Subscription and handler graph. Its owned `toApplication` method completes the browser program with the implementation:
 
 ::Snippet{name="subscriptionOrganizationRoot" label="Installing the root Subscription graph"}
 
@@ -64,7 +64,7 @@ An omitted entry has no additional parent gate. It still stops when `read` retur
 
 ## Keyed Children
 
-Use `Parent.bindChild` with `readAll` and `key` for a collection. The Binding declares collection enumeration, stable identity, and parent routing once. Every active key receives independent Stream scopes and its own gate evaluation.
+For an array storing child Models directly, use `Parent.bindChild` with `field`, a string-valued `key`, and `toParentMessage`. The child Schema must expose its declared Struct fields. Wrapped items and custom storage use `readAll`, function-valued `key`, `read`, and `writeAt`. The Binding declares storage, stable identity, and parent Message routing once. Every active key receives independent Stream scopes and its own gate evaluation.
 
 Removing a key stops those Streams. Reusing the key later creates a fresh occurrence, so callbacks captured by the old occurrence cannot dispatch into the replacement.
 

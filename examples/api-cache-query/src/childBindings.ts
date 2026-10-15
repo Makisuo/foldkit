@@ -10,10 +10,12 @@ export const posts = Application.bindChild(postsQuery, {
   field: 'posts',
   parentMessage: Message.GotPostsMessage,
 })
+
 export const stats = Application.bindChild(statsQuery, {
   field: 'stats',
   parentMessage: Message.GotStatsMessage,
 })
+
 export const postDetails = Application.bindChild(postQuery, {
   field: 'postDetails',
   parentMessage: Message.GotPostMessage,
@@ -22,15 +24,18 @@ export const postDetails = Application.bindChild(postQuery, {
 const activateTab = (tab: Tab) =>
   Application.step(model => {
     const modelWithActiveTab = modifyFields(model, { activeTab: () => tab })
+
     return Match.value(tab).pipe(
       Match.when('Posts', () => posts.loadIfMissing()(modelWithActiveTab)),
       Match.when('Stats', () => stats.loadIfMissing()(modelWithActiveTab)),
       Match.exhaustive,
     )
   })
+
 const foldTabsOutMessage = AppTabs.OutMessage.match({
   Selected: ({ value }) => activateTab(value),
 })
+
 export const tabs = Application.bindChild(AppTabs, {
   field: 'tabs',
   parentMessage: Message.GotTabsMessage,

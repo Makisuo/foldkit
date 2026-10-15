@@ -1,7 +1,6 @@
 import { Effect, Schema, pipe } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
-import { AsyncData } from 'foldkit'
-import { define as defineApplication } from 'foldkit/application'
+import { AsyncData, defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 

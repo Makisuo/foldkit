@@ -105,19 +105,29 @@ export type Value<T> = T extends ManagedResource<infer V, any> ? V : never
 /** Type-level utility to extract the service identity type from a ManagedResource. */
 export type ServiceOf<T> = T extends ManagedResource<any, infer S> ? S : never
 
-/** Internal configuration for a single ManagedResource, used by the runtime. */
+/** Runtime-ready contract for one ManagedResource lifecycle. Applications
+ * normally create this through {@link make}; custom integrations may inspect
+ * the completed entry. */
 export type ManagedResourceConfig<Model, Message, LifecycleServices = never> = {
+  /** Requirements Schema used to compare consecutive lifecycle inputs. */
   readonly schema: Schema.Schema<any>
+  /** Resource identity and Effect accessor installed while acquired. */
   readonly resource: ManagedResource<any>
+  /** Derives the current optional acquisition requirements from the Model. */
   readonly modelToMaybeRequirements: (model: Model) => any
+  /** Acquires one resource value for the current requirements. */
   readonly acquire: (
     params: any,
   ) => Effect.Effect<any, unknown, Scope.Scope | LifecycleServices>
+  /** Releases a previously acquired value when its lifecycle ends. */
   readonly release: (
     value: any,
   ) => Effect.Effect<void, unknown, Scope.Scope | LifecycleServices>
+  /** Maps a successful acquisition to an application Message. */
   readonly onAcquired: (value: any) => Message
+  /** Produces the Message dispatched after release completes. */
   readonly onReleased: () => Message
+  /** Maps an acquisition failure to an application Message. */
   readonly onAcquireError: (error: unknown) => Message
 }
 

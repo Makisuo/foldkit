@@ -21,8 +21,7 @@ import {
   pipe,
 } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import { Block, Update } from 'foldkit'
-import { define as defineApplication } from 'foldkit/application'
+import { Block, Update, defineApplication } from 'foldkit'
 import {
   type CommandRecord,
   DEVTOOLS_HOST_ID,
@@ -38,12 +37,7 @@ import {
 } from 'foldkit/devtools-host'
 import * as Dom from 'foldkit/dom'
 import { lockScroll, unlockScroll } from 'foldkit/dom'
-import {
-  type Html,
-  type HtmlBuilder,
-  createKeyedLazy,
-  createLazy,
-} from 'foldkit/html'
+import { type Html, createKeyedLazy, createLazy } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import type { DevToolsMode, DevToolsPosition } from 'foldkit/runtime'
 import { defineTaggedUnion } from 'foldkit/schema'
@@ -480,12 +474,11 @@ const getDevToolsShadowRoot = (): ShadowRoot => {
 const scrubberSlider = Slider.forRoot(getDevToolsShadowRoot)
 const bindings = makeBindings(scrubberSlider)
 type OverlayBindings = typeof bindings
-type ViewRequirements = Block.RequirementsOfBindings<
-  OverlayBindings['children']
->
 const ApplicationComposition = Application.toComposition({
   children: bindings.children,
 })
+
+type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 class StoreService extends Context.Service<StoreService, DevToolsStore>()(
   'foldkit/DevToolsStore',
@@ -834,7 +827,7 @@ const init = (flags: typeof Flags.Type) => {
 }
 
 const makeUpdate = (bindings: OverlayBindings) =>
-  Update.define((model: Model, message: Message) =>
+  ApplicationComposition.update((model, message) =>
     Message.match(message, {
       ClickedToggle: () => {
         const nextIsOpen = !model.isOpen
@@ -1149,7 +1142,7 @@ const PANEL_POSITION_CLASS: Record<DevToolsPosition, string> = {
 // runtime's process-wide singleton.
 const makeView = (
   bindings: OverlayBindings,
-): ((model: Model, h: HtmlBuilder<Message, ViewRequirements>) => Html) => {
+): ((model: Model, h: ViewBuilder) => Html) => {
   const views = new WeakMap<ShadowRoot, (model: Model) => Html>()
 
   return (model, h) => {
@@ -1172,7 +1165,7 @@ const makeView = (
   }
 }
 
-const update = ApplicationComposition.update(makeUpdate(bindings))
+const update = makeUpdate(bindings)
 const view = ApplicationComposition.view(makeView(bindings))
 
 const buildOverlayView = (
@@ -1181,7 +1174,7 @@ const buildOverlayView = (
   shadow: ShadowRoot,
   maybeBanner: Option.Option<string>,
   bindings: OverlayBindings,
-  h: HtmlBuilder<Message, ViewRequirements>,
+  h: ViewBuilder,
 ): ((model: Model) => Html) => {
   const lazyTreeNode = createKeyedLazy()
   const lazyMessageRow = createKeyedLazy()
@@ -2860,7 +2853,7 @@ const buildOverlayView = (
   const interactionBlocker = (): Html =>
     h.div([h.Class('dt-interaction-blocker')])
 
-  return (model: Model): Html =>
+  return model =>
     h.div(
       [],
       [
@@ -3012,7 +3005,7 @@ export const createOverlay = (
       }
     })
 
-    const application = ApplicationComposition.makeElement({
+    const application = ApplicationComposition.toElement({
       init,
       update,
       view,

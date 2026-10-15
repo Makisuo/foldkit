@@ -28,7 +28,7 @@ const handleSlow = (context: Runtime.SlowContext<Model, Message>): void => {
   Sentry.captureMessage(`[foldkit slow] ${summary}`)
 }
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

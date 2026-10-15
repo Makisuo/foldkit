@@ -1,7 +1,8 @@
 import { expectOutMessage, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
-import { Message, OutMessage, init, update } from './definition'
+import { Message, OutMessage } from './definition'
+import { init, update } from './entry'
 
 describe('skills entry', () => {
   test('UpdatedName stores a valid skill name', () => {

@@ -28,7 +28,8 @@ import {
 
 declare const ScopedTypeId: unique symbol
 
-/** @internal A handler or resource capability at one composition path. */
+/** A handler or resource capability qualified by its Binding path in the
+ * composition graph. */
 export interface Scoped<Path extends string, Contract> {
   readonly [ScopedTypeId]: Readonly<{
     path: (path: Path) => Path
@@ -76,7 +77,8 @@ export type ValidateConstructionRequirements<Requirements> = [
       'Foldkit operation handlers and ManagedResources are unavailable during handler construction': InvalidConstructionRequirements<Requirements>
     }>
 
-/** @internal Qualifies local effect capabilities while retaining ordinary Services. */
+/** Qualifies Foldkit handler and resource capabilities with a Binding path while
+ * retaining ordinary Effect Services unchanged. */
 export type Qualify<Path extends string, Requirements> =
   Requirements extends Scoped<infer ChildPath, infer Contract>
     ? Scoped<`${Path}/${ChildPath}`, Contract>

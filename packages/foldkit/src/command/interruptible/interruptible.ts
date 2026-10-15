@@ -82,9 +82,7 @@ export const __makeRegistry = (): __Registry => {
       Array.match(lookup(key), {
         onEmpty: () => Effect.succeed<Outcome>(Outcome.NotFound()),
         onNonEmpty: fibers =>
-          Effect.map(Fiber.interruptAll(fibers), (): Outcome =>
-            Outcome.Interrupted(),
-          ),
+          Effect.map(Fiber.interruptAll(fibers), () => Outcome.Interrupted()),
       }),
     )
 

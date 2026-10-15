@@ -1,16 +1,12 @@
 import clsx from 'clsx'
 import { Array, Option } from 'effect'
 import { type CalendarDate } from 'foldkit/calendar'
-import type { Html } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
 import { Field, Icon } from '../../../view'
-import {
-  EducationEntryComposition,
-  Message,
-  graduationYearListbox,
-} from './definition'
+import { Message } from './definition'
+import { EducationEntryComposition, graduationYearListbox } from './entry'
 
 const GRADUATION_YEAR_WINDOW_SIZE = 30
 const GRADUATION_YEAR_FORWARD_OFFSET = 6
@@ -25,7 +21,7 @@ export type ViewInputs = Readonly<{
 }>
 
 export const view = EducationEntryComposition.view.withInputs<ViewInputs>(
-  (model, viewInputs, h): Html => {
+  (model, viewInputs, h) => {
     const { today } = viewInputs
 
     const showGraduationYear = !model.isCurrentlyEnrolled

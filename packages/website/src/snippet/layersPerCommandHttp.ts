@@ -10,7 +10,7 @@ import { init, view } from './counterHttpCompletion'
 
 export const ApplicationLayer = Http.layer
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

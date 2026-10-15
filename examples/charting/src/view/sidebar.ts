@@ -1,8 +1,8 @@
 import clsx from 'clsx'
 import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
-import { HtmlBuilder } from 'foldkit/html'
 
+import type { ViewBuilder } from '../application'
 import {
   chartModeRadioGroup,
   packageRadioGroup,
@@ -19,16 +19,14 @@ import {
   totalCommits,
   totalDownloads,
 } from '../domain'
-import { Message } from '../message'
 import { type Model } from '../model'
-import type * as Chart from './chart'
 import { formatCompact, formatFetchedAt, formatInteger } from './format'
 
 export const sidebarView = (
   model: Model,
   telemetry: Telemetry,
   maybeBanner: Option.Option<string>,
-  h: Chart.HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   h.aside(
     [h.Class('flex flex-col gap-4')],
@@ -52,10 +50,7 @@ export const sidebarView = (
     ],
   )
 
-export const summaryGridView = (
-  telemetry: Telemetry,
-  h: HtmlBuilder<Message>,
-): Html => {
+export const summaryGridView = (telemetry: Telemetry, h: ViewBuilder): Html => {
   const summaries = [
     {
       id: 'stars',
@@ -111,7 +106,7 @@ const radioOptionClassName = (isSelected: boolean): string =>
       : 'text-zinc-600 hover:text-zinc-950',
   )
 
-export const controlPanelView = (model: Model, h: Chart.HtmlBuilder): Html =>
+export const controlPanelView = (model: Model, h: ViewBuilder): Html =>
   h.section(
     [h.Class('rounded-md border border-zinc-200 bg-white p-3')],
     [
@@ -194,7 +189,7 @@ export const controlPanelView = (model: Model, h: Chart.HtmlBuilder): Html =>
 export const packagePanelView = (
   model: Model,
   telemetry: Telemetry,
-  h: Chart.HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   h.section(
     [h.Class('rounded-md border border-zinc-200 bg-white p-3')],
@@ -262,10 +257,7 @@ export const packagePanelView = (
     ],
   )
 
-export const contributorsView = (
-  telemetry: Telemetry,
-  h: HtmlBuilder<Message>,
-): Html =>
+export const contributorsView = (telemetry: Telemetry, h: ViewBuilder): Html =>
   h.section(
     [h.Class('rounded-md border border-zinc-200 bg-white p-3')],
     [

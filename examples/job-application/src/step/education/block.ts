@@ -7,7 +7,7 @@ import {
   entries,
   init,
   update,
-} from './definition'
+} from './education'
 import { view } from './view'
 
 export const block = EducationComposition.toBlock({

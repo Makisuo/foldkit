@@ -1,6 +1,7 @@
 import { Button } from '@foldkit/ui'
 
-import { Message, SkillsComposition, entries } from './definition'
+import { Message } from './definition'
+import { SkillsComposition, entries } from './skills'
 
 export const view = SkillsComposition.view((model, h) =>
   h.div(

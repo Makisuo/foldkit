@@ -1,6 +1,6 @@
 export * as AsyncData from './asyncData/public.js'
 export * as Calendar from './calendar/public.js'
-export * as Application from './runtime/applicationPublic.js'
+export { define as defineApplication } from './runtime/applicationPublic.js'
 export * as Canvas from './canvas/public.js'
 export * as Command from './command/public.js'
 export * as CustomElement from './customElement/public.js'

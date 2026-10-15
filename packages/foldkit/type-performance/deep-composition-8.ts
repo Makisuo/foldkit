@@ -1,8 +1,6 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect'
-import {
-  type Element as ElementProgram,
-  define as defineApplication,
-} from 'foldkit/application'
+import { defineApplication } from 'foldkit'
+import type { Element as ElementProgram } from 'foldkit/application'
 import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
 import type * as Update from 'foldkit/update'
@@ -73,9 +71,9 @@ const TypePerformanceLevel001 = Block.define('TypePerformanceLevel001', {
 })
 const child001 = TypePerformanceLevel001.bindChild(Leaf, {
   placement: 'child001',
-  read: (model: LeafModel) => Option.some(model),
-  write: (_model: LeafModel, nextChild: LeafModel) => nextChild,
-  toParentMessage: (message: LeafMessage) => message,
+  read: model => Option.some(model),
+  write: (_model, nextChild) => nextChild,
+  toParentMessage: message => message,
 })
 const TypePerformanceLevel001Composition =
   TypePerformanceLevel001.toComposition({ children: [child001] })
@@ -93,9 +91,9 @@ const TypePerformanceLevel002 = Block.define('TypePerformanceLevel002', {
 })
 const child002 = TypePerformanceLevel002.bindChild(Level001, {
   placement: 'child002',
-  read: (model: LeafModel) => Option.some(model),
-  write: (_model: LeafModel, nextChild: LeafModel) => nextChild,
-  toParentMessage: (message: LeafMessage) => message,
+  read: model => Option.some(model),
+  write: (_model, nextChild) => nextChild,
+  toParentMessage: message => message,
 })
 const TypePerformanceLevel002Composition =
   TypePerformanceLevel002.toComposition({ children: [child002] })
@@ -113,9 +111,9 @@ const TypePerformanceLevel003 = Block.define('TypePerformanceLevel003', {
 })
 const child003 = TypePerformanceLevel003.bindChild(Level002, {
   placement: 'child003',
-  read: (model: LeafModel) => Option.some(model),
-  write: (_model: LeafModel, nextChild: LeafModel) => nextChild,
-  toParentMessage: (message: LeafMessage) => message,
+  read: model => Option.some(model),
+  write: (_model, nextChild) => nextChild,
+  toParentMessage: message => message,
 })
 const TypePerformanceLevel003Composition =
   TypePerformanceLevel003.toComposition({ children: [child003] })
@@ -133,9 +131,9 @@ const TypePerformanceLevel004 = Block.define('TypePerformanceLevel004', {
 })
 const child004 = TypePerformanceLevel004.bindChild(Level003, {
   placement: 'child004',
-  read: (model: LeafModel) => Option.some(model),
-  write: (_model: LeafModel, nextChild: LeafModel) => nextChild,
-  toParentMessage: (message: LeafMessage) => message,
+  read: model => Option.some(model),
+  write: (_model, nextChild) => nextChild,
+  toParentMessage: message => message,
 })
 const TypePerformanceLevel004Composition =
   TypePerformanceLevel004.toComposition({ children: [child004] })
@@ -153,9 +151,9 @@ const TypePerformanceLevel005 = Block.define('TypePerformanceLevel005', {
 })
 const child005 = TypePerformanceLevel005.bindChild(Level004, {
   placement: 'child005',
-  read: (model: LeafModel) => Option.some(model),
-  write: (_model: LeafModel, nextChild: LeafModel) => nextChild,
-  toParentMessage: (message: LeafMessage) => message,
+  read: model => Option.some(model),
+  write: (_model, nextChild) => nextChild,
+  toParentMessage: message => message,
 })
 const TypePerformanceLevel005Composition =
   TypePerformanceLevel005.toComposition({ children: [child005] })
@@ -173,9 +171,9 @@ const TypePerformanceLevel006 = Block.define('TypePerformanceLevel006', {
 })
 const child006 = TypePerformanceLevel006.bindChild(Level005, {
   placement: 'child006',
-  read: (model: LeafModel) => Option.some(model),
-  write: (_model: LeafModel, nextChild: LeafModel) => nextChild,
-  toParentMessage: (message: LeafMessage) => message,
+  read: model => Option.some(model),
+  write: (_model, nextChild) => nextChild,
+  toParentMessage: message => message,
 })
 const TypePerformanceLevel006Composition =
   TypePerformanceLevel006.toComposition({ children: [child006] })
@@ -193,9 +191,9 @@ const TypePerformanceLevel007 = Block.define('TypePerformanceLevel007', {
 })
 const child007 = TypePerformanceLevel007.bindChild(Level006, {
   placement: 'child007',
-  read: (model: LeafModel) => Option.some(model),
-  write: (_model: LeafModel, nextChild: LeafModel) => nextChild,
-  toParentMessage: (message: LeafMessage) => message,
+  read: model => Option.some(model),
+  write: (_model, nextChild) => nextChild,
+  toParentMessage: message => message,
 })
 const TypePerformanceLevel007Composition =
   TypePerformanceLevel007.toComposition({ children: [child007] })
@@ -213,9 +211,9 @@ const TypePerformanceLevel008 = Block.define('TypePerformanceLevel008', {
 })
 const child008 = TypePerformanceLevel008.bindChild(Level007, {
   placement: 'child008',
-  read: (model: LeafModel) => Option.some(model),
-  write: (_model: LeafModel, nextChild: LeafModel) => nextChild,
-  toParentMessage: (message: LeafMessage) => message,
+  read: model => Option.some(model),
+  write: (_model, nextChild) => nextChild,
+  toParentMessage: message => message,
 })
 const TypePerformanceLevel008Composition =
   TypePerformanceLevel008.toComposition({ children: [child008] })
@@ -233,9 +231,9 @@ const Application = defineApplication({
 })
 const child008Root = Application.bindChild(Level008, {
   placement: 'child008Root',
-  read: (model: LeafModel) => Option.some(model),
-  write: (_model: LeafModel, nextChild: LeafModel) => nextChild,
-  toParentMessage: (message: LeafMessage) => message,
+  read: model => Option.some(model),
+  write: (_model, nextChild) => nextChild,
+  toParentMessage: message => message,
 })
 const ApplicationComposition = Application.toComposition({
   children: [child008Root],
@@ -245,7 +243,7 @@ const update = ApplicationComposition.update((model, message) =>
 )
 const view = ApplicationComposition.view((_model, h) => h.main([]))
 
-export const program = ApplicationComposition.makeElement({
+export const program = ApplicationComposition.toElement({
   container: null,
   init: () => child008Root.init(),
   update,

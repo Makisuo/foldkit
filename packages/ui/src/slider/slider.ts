@@ -12,12 +12,7 @@ import {
 } from 'effect'
 import { type Update } from 'foldkit'
 import * as Block from 'foldkit/block'
-import {
-  type ChildAttribute,
-  type Html,
-  type HtmlBuilder,
-  childAttributes,
-} from 'foldkit/html'
+import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -599,7 +594,7 @@ export type ViewInputs = Readonly<{
 const renderView = (
   model: Model,
   viewInputs: ViewInputs,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html => {
   const {
     value,
@@ -844,6 +839,8 @@ const EffectsLayer = Layer.mergeAll(
 
 /** Complete Slider Block definition. */
 const SliderComposition = Slider.toComposition()
+
+type ViewBuilder = Block.HtmlBuilderOf<typeof SliderComposition>
 
 export const block = SliderComposition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),

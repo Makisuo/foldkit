@@ -8,7 +8,7 @@ import {
   init,
   pronounsListbox,
   update,
-} from './definition'
+} from './personalInfo'
 import { view } from './view'
 
 export const block = PersonalInfoComposition.toBlock({

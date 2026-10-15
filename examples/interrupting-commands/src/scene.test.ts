@@ -6,12 +6,12 @@ import { describe, test } from 'vitest'
 import {
   CancelUploadFile,
   FAKE_FILES,
-  Message,
   UploadFile,
   initialModel,
   update,
-  view,
 } from './application'
+import { Message } from './definition'
+import { view } from './view'
 
 const firstFile = Array.headNonEmpty(FAKE_FILES)
 

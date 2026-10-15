@@ -1,12 +1,12 @@
 import { Match, Option } from 'effect'
 import { AsyncData } from 'foldkit'
-import { Html, HtmlBuilder } from 'foldkit/html'
+import { Html } from 'foldkit/html'
 
 import * as Shared from '@typing-game/shared'
 
 import { ROOM_PAGE_USERNAME_INPUT_ID } from '../../../constant'
 import { Icon } from '../../../view/icon'
-import { Room } from '../definition'
+import { Room, type ViewBuilder } from '../definition'
 import { Message } from '../message'
 import { Model, RoomPlayerSession } from '../model'
 import { findFirstWrongCharIndex } from '../userGameText'
@@ -90,7 +90,7 @@ export const view = Room.view.withInputs<ViewInputs>((model, viewInputs, h) => {
 
 const content = (
   { roomAsyncData, maybeSession, userGameText, username }: Model,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html =>
   AsyncData.matchData(roomAsyncData, {
     onEmpty: () => h.div([], ['Loading...']),
@@ -106,7 +106,7 @@ const gameContent = (
   room: Shared.Room,
   maybeSession: Option.Option<RoomPlayerSession>,
   userGameText: string,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html => {
   const maybeGameText = Option.map(room.maybeGame, ({ text }) => text)
   const maybeWrongCharIndex = Option.flatMap(
@@ -133,7 +133,7 @@ const gameContent = (
   )
 }
 
-const joinForm = (username: string, h: HtmlBuilder<Message>): Html =>
+const joinForm = (username: string, h: ViewBuilder): Html =>
   h.form(
     [h.OnSubmit(Message.SubmittedJoinRoomFromPage())],
     [
@@ -168,7 +168,7 @@ const joinForm = (username: string, h: HtmlBuilder<Message>): Html =>
 
 const maybeErrorMessage = (
   maybeRoomFormError: Option.Option<string>,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html =>
   Option.match(maybeRoomFormError, {
     onNone: () => h.empty,

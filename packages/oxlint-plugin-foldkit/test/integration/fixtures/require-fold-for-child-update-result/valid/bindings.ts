@@ -1,6 +1,5 @@
-import { define as defineApplication } from 'foldkit/application'
 import { Option, Schema } from 'effect'
-import { Update } from 'foldkit'
+import { Update, defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import * as BoundSettings from './boundSettings'

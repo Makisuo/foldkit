@@ -1,5 +1,4 @@
 import { Match, Option } from 'effect'
-import type { Block } from 'foldkit'
 import type { ChildAttribute, Html } from 'foldkit/html'
 
 import type {
@@ -14,8 +13,7 @@ import type { AnchorConfig } from '@foldkit/ui/popover'
 
 import * as Icon from '../../icon'
 import { UiComposition, datePickerBasicDemo } from '../childBindings'
-
-type HtmlBuilder = Block.HtmlBuilderOf<typeof UiComposition>
+import type { ViewBuilder } from '../childBindings'
 
 const triggerClassName =
   'inline-flex items-center justify-between gap-2 min-w-48 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -66,20 +64,20 @@ const monthYearButtonClassName =
 const navButton = (
   attributes: ReadonlyArray<ChildAttribute>,
   icon: Html,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html => h.button([...attributes, h.Class(navButtonClassName)], [icon])
 
 const headingButton = (
   heading: DaysModeAttributes['heading'],
   attributes: ReadonlyArray<ChildAttribute>,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   h.button(
     [h.Id(heading.id), ...attributes, h.Class(headingButtonClassName)],
     [heading.text, Icon.chevronDown('w-3 h-3')],
   )
 
-const weekRow = UiComposition.render.withInput<Week>()((week, h) =>
+const weekRow = (week: Week, h: ViewBuilder) =>
   h.div(
     [...week.attributes, h.Class(rowClassName)],
     week.cells.map(cell =>
@@ -93,103 +91,96 @@ const weekRow = UiComposition.render.withInput<Week>()((week, h) =>
         ],
       ),
     ),
-  ),
-)
+  )
 
 // MODES
 
-const daysView = UiComposition.render.withInput<DaysModeAttributes>()(
-  (days, h) =>
-    h.div(
-      [...days.root, h.Class(calendarWrapperClassName)],
-      [
-        h.div(
-          [h.Class(headerClassName)],
-          [
-            navButton(days.previousMonthButton, Icon.chevronLeft('w-5 h-5'), h),
-            headingButton(days.heading, days.headingButton, h),
-            navButton(days.nextMonthButton, Icon.chevronRight('w-5 h-5'), h),
-          ],
-        ),
-        h.div(
-          [...days.grid, h.Class(gridClassName)],
-          [
-            h.div(
-              [...days.headerRow, h.Class(rowClassName)],
-              days.columnHeaders.map(header =>
-                h.div(
-                  [...header.attributes, h.Class(columnHeaderClassName)],
-                  [header.name],
-                ),
+const daysView = (days: DaysModeAttributes, h: ViewBuilder) =>
+  h.div(
+    [...days.root, h.Class(calendarWrapperClassName)],
+    [
+      h.div(
+        [h.Class(headerClassName)],
+        [
+          navButton(days.previousMonthButton, Icon.chevronLeft('w-5 h-5'), h),
+          headingButton(days.heading, days.headingButton, h),
+          navButton(days.nextMonthButton, Icon.chevronRight('w-5 h-5'), h),
+        ],
+      ),
+      h.div(
+        [...days.grid, h.Class(gridClassName)],
+        [
+          h.div(
+            [...days.headerRow, h.Class(rowClassName)],
+            days.columnHeaders.map(header =>
+              h.div(
+                [...header.attributes, h.Class(columnHeaderClassName)],
+                [header.name],
               ),
             ),
-            ...days.weeks.map(week => weekRow(week, h)),
-          ],
-        ),
-      ],
-    ),
-)
+          ),
+          ...days.weeks.map(week => weekRow(week, h)),
+        ],
+      ),
+    ],
+  )
 
-const monthsView = UiComposition.render.withInput<MonthsModeAttributes>()(
-  (months, h) =>
-    h.div(
-      [...months.root, h.Class(calendarWrapperClassName)],
-      [
-        h.div(
-          [h.Class(`${headerClassName} justify-center`)],
-          [headingButton(months.heading, months.headingButton, h)],
-        ),
-        h.div(
-          [...months.grid, h.Class(monthYearGridClassName)],
-          months.cells.map(cell =>
-            h.div(
-              [...cell.cellAttributes, h.Class(cellClassName)],
-              [
-                h.button(
-                  [...cell.buttonAttributes, h.Class(monthYearButtonClassName)],
-                  [cell.shortLabel],
-                ),
-              ],
-            ),
+const monthsView = (months: MonthsModeAttributes, h: ViewBuilder) =>
+  h.div(
+    [...months.root, h.Class(calendarWrapperClassName)],
+    [
+      h.div(
+        [h.Class(`${headerClassName} justify-center`)],
+        [headingButton(months.heading, months.headingButton, h)],
+      ),
+      h.div(
+        [...months.grid, h.Class(monthYearGridClassName)],
+        months.cells.map(cell =>
+          h.div(
+            [...cell.cellAttributes, h.Class(cellClassName)],
+            [
+              h.button(
+                [...cell.buttonAttributes, h.Class(monthYearButtonClassName)],
+                [cell.shortLabel],
+              ),
+            ],
           ),
         ),
-      ],
-    ),
-)
+      ),
+    ],
+  )
 
-const yearsView = UiComposition.render.withInput<YearsModeAttributes>()(
-  (years, h) =>
-    h.div(
-      [...years.root, h.Class(calendarWrapperClassName)],
-      [
-        h.div(
-          [h.Class(headerClassName)],
-          [
-            navButton(years.previousPageButton, Icon.chevronLeft('w-5 h-5'), h),
-            h.h2(
-              [h.Id(years.heading.id), h.Class(headingTextClassName)],
-              [years.heading.text],
-            ),
-            navButton(years.nextPageButton, Icon.chevronRight('w-5 h-5'), h),
-          ],
-        ),
-        h.div(
-          [...years.grid, h.Class(monthYearGridClassName)],
-          years.cells.map(cell =>
-            h.div(
-              [...cell.cellAttributes, h.Class(cellClassName)],
-              [
-                h.button(
-                  [...cell.buttonAttributes, h.Class(monthYearButtonClassName)],
-                  [cell.label],
-                ),
-              ],
-            ),
+const yearsView = (years: YearsModeAttributes, h: ViewBuilder) =>
+  h.div(
+    [...years.root, h.Class(calendarWrapperClassName)],
+    [
+      h.div(
+        [h.Class(headerClassName)],
+        [
+          navButton(years.previousPageButton, Icon.chevronLeft('w-5 h-5'), h),
+          h.h2(
+            [h.Id(years.heading.id), h.Class(headingTextClassName)],
+            [years.heading.text],
+          ),
+          navButton(years.nextPageButton, Icon.chevronRight('w-5 h-5'), h),
+        ],
+      ),
+      h.div(
+        [...years.grid, h.Class(monthYearGridClassName)],
+        years.cells.map(cell =>
+          h.div(
+            [...cell.cellAttributes, h.Class(cellClassName)],
+            [
+              h.button(
+                [...cell.buttonAttributes, h.Class(monthYearButtonClassName)],
+                [cell.label],
+              ),
+            ],
           ),
         ),
-      ],
-    ),
-)
+      ),
+    ],
+  )
 
 // TRIGGER
 
@@ -204,9 +195,12 @@ const formatTriggerLabel = (
 ): string =>
   `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`
 
-const triggerContent = UiComposition.render.withInput<
-  Option.Option<Readonly<{ year: number; month: number; day: number }>>
->()((maybeDate, h) => {
+const triggerContent = (
+  maybeDate: Option.Option<
+    Readonly<{ year: number; month: number; day: number }>
+  >,
+  h: ViewBuilder,
+) => {
   return h.div(
     [h.Class(triggerContentClassName)],
     [
@@ -217,7 +211,7 @@ const triggerContent = UiComposition.render.withInput<
       Icon.chevronDown('w-4 h-4'),
     ],
   )
-})
+}
 
 export const view = UiComposition.view((model, h) => {
   return h.div(

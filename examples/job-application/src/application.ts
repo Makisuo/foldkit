@@ -1,4 +1,5 @@
 import { Crypto, Effect, Schema } from 'effect'
+import type { Block } from 'foldkit'
 import { Calendar } from 'foldkit'
 
 import {
@@ -96,3 +97,5 @@ export const ApplicationComposition = Application.toComposition({
     stepTabs,
   ],
 })
+
+export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>

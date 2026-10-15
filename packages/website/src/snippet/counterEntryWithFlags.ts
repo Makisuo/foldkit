@@ -7,7 +7,7 @@ import { Flags, flags } from './flagsDefinition'
 
 const ApplicationLayer = BrowserKeyValueStore.layerLocalStorage
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

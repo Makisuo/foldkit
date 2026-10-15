@@ -25,6 +25,7 @@ const Parent = Block.define('RejectedDeclarationQueryParent', {
 Parent.bindChild(Notes, {
   // @ts-expect-error The direct parent field must contain the Query Model.
   field: 'label',
+  // @ts-expect-error This invalid Binding configuration has no matching overload.
   parentMessage: ParentMessage.GotNotesMessage,
 })
 

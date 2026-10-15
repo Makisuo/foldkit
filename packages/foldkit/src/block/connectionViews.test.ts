@@ -159,10 +159,11 @@ it('supports explicit tagged-union readers and writers', () => {
 
   if (false) {
     TaggedParent.bindChild(block, {
+      // @ts-expect-error The invalid tagged writer prevents accessor overload selection.
       read: (model: TaggedParentModel) =>
         model._tag === 'Active' ? Option.some(model.child) : Option.none(),
-      // @ts-expect-error A tagged Binding writer must return the parent Model union.
       write: (_model: TaggedParentModel, nextChild) => nextChild,
+      // @ts-expect-error A tagged Binding writer must return the parent Model union.
       parentMessage: ParentMessage.GotChildMessage,
     })
   }
@@ -230,32 +231,37 @@ it('lowers required-field shorthand through the shared pure Binding adapter', ()
     WiderParent.bindChild(block, {
       // @ts-expect-error A wider field cannot be replaced by this child's Model.
       field: 'child',
+      // @ts-expect-error A wider field cannot be replaced by this child's Model.
       parentMessage: ParentMessage.GotChildMessage,
     })
     NarrowerParent.bindChild(block, {
       // @ts-expect-error A narrower field cannot accept every child Model update.
       field: 'child',
+      // @ts-expect-error A narrower field cannot accept every child Model update.
       parentMessage: ParentMessage.GotChildMessage,
     })
     ExtendedParent.bindChild(block, {
       // @ts-expect-error The Binding cannot discard additional optional child fields.
       field: 'child',
+      // @ts-expect-error The Binding cannot discard additional optional child fields.
       parentMessage: ParentMessage.GotChildMessage,
     })
     OptionalParent.bindChild(block, {
-      // @ts-expect-error Optional children require explicit accessors.
       field: 'maybeChild',
       parentMessage: ParentMessage.GotChildMessage,
     })
     ConnectionViewsParent.bindChild(block, {
       // @ts-expect-error Required-field shorthand rejects undeclared fields.
       field: 'missing',
+      // @ts-expect-error Required-field shorthand rejects undeclared fields.
       parentMessage: ParentMessage.GotChildMessage,
     })
     ConnectionViewsParent.bindChild(block, {
       // @ts-expect-error Required-field shorthand cannot mix explicit readers.
       field: 'child',
+      // @ts-expect-error The direct shorthand cannot mix explicit readers.
       read: (model: ParentModel) => Option.some(model.child),
+      // @ts-expect-error The invalid explicit reader prevents direct overload selection.
       parentMessage: ParentMessage.GotChildMessage,
     })
   }

@@ -24,7 +24,19 @@ Keep Commands within the feature whose update returns them. Small features can d
 
 A feature that declares Subscriptions can own `subscription.ts`. Put its early typed authoring value in `definition.ts` when split implementation files need it: `export const Home = Block.define('Home', { Model, Message })`. Produce the completed Home Block in `home/block.ts`, export it as `block` from `home/index.ts`, and export the folder as `Home` from `page/index.ts`. A parent imports that namespace and calls `Parent.bindChild(Home.block, config)`. Including the resulting Binding under `children` adds the child's lifecycle records automatically. See [Defining a Block](/core/block#child-block).
 
-Use standard structural names within each feature: `Model`, `Message`, `OutMessage`, `Flags`, `init`, `update`, `view`, `subscriptions`, `managedResources`, `mounts`, and `EffectsLayer`. The feature value supplies context in parent code: `Home.Model` and `Home.Message`. Domain Schemas and individual effects keep descriptive names such as `Person`, `FetchPeople`, and `FocusSearchInput`.
+Keep `definition.ts` focused on early Model, Message, OutMessage, and Block authoring contracts. Substantial feature behavior belongs in a folder-named file such as `workHistory/workHistory.ts`, or in focused `init.ts`, `update.ts`, and `command.ts` files when those make navigation easier. The view imports its Composition and Bindings from the implementation. The small final `block.ts` imports both the implementation and view; keeping completion there prevents the implementation from importing the view that already depends on it. Internal contract files can import a child's early contracts without loading its completed barrel. Compact features can stay together; do not create one file per API stage.
+
+Keep straightforward parent-owned child Bindings together in `childBindings.ts`. A Binding also owns the parent's integration policy for that child. This includes a custom `write` or `writeAt`, an OutMessage fold whose Step returns parent Commands, and any `FoldContext` lifters that fold uses. When one child's policy becomes substantial, replace the single file with a `childBindings/` directory:
+
+- `childBindings/<child>.ts` owns that child's Binding and parent policy.
+- `childBindings/childBindings.ts` owns the remaining straightforward Bindings and exports the complete `children` tuple with `as const` in composition order.
+- `childBindings/index.ts` is an explicit barrel for the intended individual Bindings and collections.
+
+Do not divide Bindings into arbitrary groups such as `pages` or `controls`. The files follow the parent policy they own.
+
+Use standard structural names within each feature: `Model`, `Message`, `OutMessage`, `Flags`, `init`, `update`, `view`, `subscriptions`, `managedResources`, `mounts`, `EffectsLayer`, and `expose`. The feature namespace supplies context in parent code: `Home.Model` and `Home.Message`. Domain Schemas and individual effects keep descriptive names such as `Person`, `FetchPeople`, and `FocusSearchInput`.
+
+Create the canonical owned view with `FeatureComposition.view` or `view.withInputs`. After establishing `FeatureComposition`, export one `type ViewBuilder = Block.HtmlBuilderOf<typeof FeatureComposition>` beside it. Ordinary feature-local view helpers import that alias for their `h` parameter and take only the Model, domain value, or context they actually use. The alias carries the feature's Message type and registered child and Mount capabilities without constructing a runtime builder. Keep the general `HtmlBuilder<Message, Requirements>` type for functions intentionally shared across Compositions.
 
 ### Split a Feature When It Grows
 
@@ -36,7 +48,9 @@ Keep each handler attached to the Command, Subscription, Mount, or ManagedResour
 
 Compose a small local `EffectsLayer` directly in `block.ts`. Extract `layer.ts` when that Layer composition is substantial or independently reused. Pass this local bundle to `HomeComposition.toBlock`; child Bindings contribute their selected handler graphs. A feature may provide business services that it owns while leaving concrete HTTP, storage, RPC, and browser providers open for the application root. Import Effect's module as `Layer`; the bundle has a different name, so no alias is needed.
 
-Root `application.ts` owns `Application`, its child Bindings, and `ApplicationComposition`. `entry.ts` imports each completion field from its real owner, handles browser startup, selects the container and startup inputs, and calls `Runtime.run`. Keep a small `ApplicationLayer` there; extract `layer.ts` when the provider composition is substantial or reused. Keep substantial Model, Message, update, and view logic in their respective files. This layout keeps application imports from starting a browser Runtime.
+Root `application.ts` owns graph assembly through `Application` and `ApplicationComposition`. Small root Bindings can stay there; substantial integration moves to `childBindings.ts` or `childBindings/`. `entry.ts` imports each completion field from its real owner, handles browser startup, selects the container and startup inputs, and calls `Runtime.run`. Keep a small `ApplicationLayer` there; extract `layer.ts` when the provider composition is substantial or reused. Keep substantial Model, Message, update, and view logic in their respective files. This layout keeps application imports from starting a browser Runtime.
+
+Define `Application` directly in `application.ts` for a compact root. When root Commands, Subscriptions, or child Bindings need its helpers before the Composition can be assembled, put the early typed contract in `definition.ts`. Those implementation modules import from `definition.ts`; `application.ts` imports and re-exports `Application`, then exports `ApplicationComposition`. Do not forward unrelated implementation exports through it: `entry.ts` still imports init, update, view, and other completion fields from their owners.
 
 The feature Layer contains only handlers owned at that boundary. Child Bindings contribute their own graphs, including keyed Bindings.
 
@@ -50,7 +64,7 @@ The root Composition receives top-level feature Bindings under `children`, so th
 
 `LocalStorageLayer` and `SessionStorageLayer` implement distinct application service tags, so both stores can coexist without changing the platform `KeyValueStore` identity inside either provider. `ApplicationLayer` provides production Services; `ApplicationTestLayer` provides deterministic alternatives beneath the same handler graph carried by the root Application definition.
 
-In this example, the substantial provider composition lives in root `layer.ts`, so the entry imports `ApplicationLayer` with the root Composition and implementation. It completes the Composition with `.make`, calls `application.provide(ApplicationLayer)`, and starts the result. The DOM container, routing callbacks, DevTools configuration, and startup Flags remain visible in `entry.ts`; `application.ts` stays portable for tests and server rendering.
+In this example, the substantial provider composition lives in root `layer.ts`, so the entry imports `ApplicationLayer` with the root Composition and implementation. It completes the Composition with `.toApplication`, calls `application.provide(ApplicationLayer)`, and starts the result. The DOM container, routing callbacks, DevTools configuration, and startup Flags remain visible in `entry.ts`; `application.ts` stays portable for tests and server rendering.
 
 ::Snippet{name="applicationEntryPoint" label="Browser application entry point"}
 
@@ -62,9 +76,9 @@ Handler Layers and lifecycle declarations have different jobs. A feature's `Effe
 
 ::Snippet{name="applicationRegistrations" label="Root runtime composition"}
 
-The Binding's `read` and `toParentMessage` connect every child lifecycle to the parent. Optional children stop lifecycle work when `read` returns `None`. A keyed Binding creates independent scopes for every active key. The same Binding also owns update folding and `embedView`, so these channels cannot drift apart.
+The Binding's storage and Message mapping connect every child lifecycle to the parent. Direct fields use `field` and `parentMessage`; custom relationships use accessors. An Option field containing `None`, a false `presentWhen`, or a custom reader returning `None` stops the child's lifecycle work. A keyed Binding creates independent scopes for every active key. The same Binding also owns update folding and `embedView`, so these channels cannot drift apart.
 
-The Application Composition owns `.make`. `entry.ts` imports that Composition and the portable implementation, adds browser host configuration, supplies `ApplicationLayer`, and starts the application. It does not import feature Commands, Subscription handlers, Mount handlers, ManagedResource handlers, or leaf `EffectsLayer` bundles.
+The Application Composition owns `.toApplication` and `.toElement`. `entry.ts` imports that Composition and the portable implementation, adds browser host configuration, supplies `ApplicationLayer`, and starts the application. It does not import feature Commands, Subscription handlers, Mount handlers, ManagedResource handlers, or leaf `EffectsLayer` bundles.
 
 The same propagation applies to stateful UI components. Include a component Binding, such as a bound Combobox, in the parent's `children`; the parent collects its handlers, lifecycle declarations, and Mount evidence. View-only components need no Binding.
 
@@ -98,7 +112,7 @@ Import the module as a namespace and call operations such as `Cart.addItem` and 
 
 ## Index Re-exports {#index-reexports}
 
-Use `index.ts` only as a barrel. Re-export the completed `block` from the feature's completion file, then export that feature folder as a namespace at the parent barrel. The namespace keeps `block`, Model, Message, OutMessage, and intentional public domain helpers together without hiding where they came from. Keep lifecycle registries and other implementation details out of the barrel. Focused tests can import a private implementation from its owning module without turning test access into a general public contract.
+Use `index.ts` only as a barrel. Re-export intended names explicitly so adding an internal export does not expand the public API. Use `export *` only when the entire module surface is intentionally public. Re-export the completed `block` from the feature's completion file, then export that feature folder as a namespace at the parent barrel. The namespace keeps `block`, Model, Message, OutMessage, and intentional public domain helpers together without hiding where they came from. Keep lifecycle registries and other implementation details out of the barrel. Focused tests can import a private implementation from its owning module without turning test access into a general public contract.
 
 ::Snippet{name="indexReexports" label="Index re-exports"}
 
@@ -111,5 +125,7 @@ Consumers import feature and domain modules as namespaces.
 ### Keep Barrel Dependencies Pointing Inward
 
 A parent barrel may re-export each immediate child namespace, and application code may import those namespaces from the barrel. The exported child modules must not import the application root in return. If `message.ts` imports `Home` from `page/index.ts` while a module re-exported by `page/index.ts` imports that root Message, the barrel closes a circular dependency.
+
+Within a feature, import implementation pieces from their owning modules rather than from the feature's own completed barrel. Early contract modules can import a child's Model or Message directly when loading its completed namespace would close a cycle.
 
 Keep shared leaf modules independent of the root. Pass parent-owned rendering capabilities through function arguments or Block `viewInputs`, and make stateful shared behavior its own Block. The parent then provides the capability at the view boundary while each Page remains importable through the one-level barrel.

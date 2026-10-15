@@ -825,28 +825,22 @@ export const draggable = <ParentMessage>(
     h.Role('option'),
     h.AriaRoleDescription('draggable'),
     h.Tabindex(0),
-    h.OnPointerDown(
-      (
-        _pointerType: string,
-        button: number,
-        screenX: number,
-        screenY: number,
-      ) =>
-        pipe(
-          button,
-          Option.liftPredicate(Equal.equals(LEFT_MOUSE_BUTTON)),
-          Option.map(() =>
-            config.toParentMessage(
-              Message.PressedDraggable({
-                itemId: config.itemId,
-                containerId: config.containerId,
-                index: config.index,
-                screenX,
-                screenY,
-              }),
-            ),
+    h.OnPointerDown((_pointerType, button, screenX, screenY) =>
+      pipe(
+        button,
+        Option.liftPredicate(Equal.equals(LEFT_MOUSE_BUTTON)),
+        Option.map(() =>
+          config.toParentMessage(
+            Message.PressedDraggable({
+              itemId: config.itemId,
+              containerId: config.containerId,
+              index: config.index,
+              screenX,
+              screenY,
+            }),
           ),
         ),
+      ),
     ),
     h.OnKeyDownPreventDefault(handleKeyDown),
     h.Style({

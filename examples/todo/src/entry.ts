@@ -9,7 +9,7 @@ import { Flags } from './model'
 import { init, update } from './update'
 import { view } from './view'
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

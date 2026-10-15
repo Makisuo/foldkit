@@ -875,12 +875,22 @@ export const mapMessage: {
   },
 )
 
+type CollectionMetadataKeys<Collection extends ReadonlyArray<unknown>> =
+  Exclude<keyof Collection, keyof ReadonlyArray<unknown> | `${number}`>
+
+type CollectionMetadata<Collection extends ReadonlyArray<unknown>> = [
+  CollectionMetadataKeys<Collection>,
+] extends [never]
+  ? unknown
+  : Partial<Pick<Collection, CollectionMetadataKeys<Collection>>>
+
 /** Lifts every Command in a list through `f`, transforming the result
  *  Message type from `FromMessage` to `ToMessage`. When `commands` is
  *  `undefined`, it returns an empty array. Registered Block bindings handle
- *  this mapping through `init`, `fold`, `step`, and projected `api` methods.
- *  An OutMessage policy uses its `FoldContext.liftCommand` for a child Command.
- *  Use `mapMessages` for a standalone batch outside Block composition:
+ *  this mapping through their `init`, `fold`, and projected exposed
+ *  operations. An OutMessage policy uses its `FoldContext.liftCommand` for a
+ *  child Command. Use `mapMessages` for a standalone batch outside Block
+ *  composition:
  *
  *  ```ts
  *  const commands = Command.mapMessages(
@@ -900,15 +910,6 @@ export const mapMessage: {
  *  Typed against {@link Command} in argument and result positions, so a
  *  generic combinator over a type-parameter Message unifies with
  *  `Command.Command<Message>` directly. */
-type CollectionMetadataKeys<Collection extends ReadonlyArray<unknown>> =
-  Exclude<keyof Collection, keyof ReadonlyArray<unknown> | `${number}`>
-
-type CollectionMetadata<Collection extends ReadonlyArray<unknown>> = [
-  CollectionMetadataKeys<Collection>,
-] extends [never]
-  ? unknown
-  : Partial<Pick<Collection, CollectionMetadataKeys<Collection>>>
-
 export const mapMessages: {
   <const Commands extends ReadonlyArray<Command<any, any, any>>, ToMessage>(
     commands: Commands,

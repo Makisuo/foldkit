@@ -7,7 +7,7 @@ import { Message } from './message'
 import { Flags, init, update } from './root'
 import { PagefindLayer } from './search'
 import { LocalStorageLayer, SessionStorageLayer } from './storage'
-import { view } from './view/application'
+import { view } from './view/view'
 
 const ApplicationLayer = Layer.mergeAll(
   LocalStorageLayer,
@@ -15,7 +15,7 @@ const ApplicationLayer = Layer.mergeAll(
   PagefindLayer,
 )
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

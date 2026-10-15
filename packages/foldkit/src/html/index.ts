@@ -2533,7 +2533,7 @@ const attributeHandlers: AttributeHandlers = {
         }
       },
     }),
-  OnMount: ({ action }, ctx: BuildContext) => {
+  OnMount: ({ action }, ctx) => {
     const capturedContext = ctx.getCapturedContext()
     const instance = Context.get(capturedContext, CurrentInstance)?.node
     const startBarrier = instance?.startBarrier

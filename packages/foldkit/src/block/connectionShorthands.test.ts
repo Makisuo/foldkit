@@ -178,48 +178,62 @@ const initial = ParentModel.make({
 })
 
 if (false) {
-  // @ts-expect-error A foreign Message payload cannot receive the child union.
   Parent.bindChild(block, {
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     field: 'primary',
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     parentMessage: ParentMessage.GotForeignMessage,
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     outMessage: { fold: foldChildOutMessage },
   })
-  // @ts-expect-error A keyed constructor requires an additional payload field.
   Parent.bindChild(block, {
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     field: 'primary',
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     parentMessage: ParentMessage.GotEntryMessage,
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     outMessage: { fold: foldChildOutMessage },
   })
-  // @ts-expect-error Exactly one parent Message mapping may be supplied.
   Parent.bindChild(block, {
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     field: 'primary',
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     toParentMessage: (message: typeof Message.Type) =>
       ParentMessage.GotChildMessage({ message }),
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     parentMessage: ParentMessage.GotChildMessage,
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     outMessage: { fold: foldChildOutMessage },
   })
-  // @ts-expect-error An accessor Binding also requires exactly one mapping.
   Parent.bindChild(block, {
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     read: (model: ParentModel) => Option.some(model.primary),
     write: (model: ParentModel, nextPrimary: typeof Model.Type) =>
       modifyFields(model, { primary: () => nextPrimary }),
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     toParentMessage: (message: typeof Message.Type) =>
       ParentMessage.GotChildMessage({ message }),
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     parentMessage: ParentMessage.GotChildMessage,
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     outMessage: { fold: foldChildOutMessage },
   })
-  // @ts-expect-error OutMessage handling remains required for constructor shorthand.
   Parent.bindChild(block, {
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     field: 'primary',
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     parentMessage: ParentMessage.GotChildMessage,
   })
-  // @ts-expect-error Keyed Bindings require their explicit key-aware mapping.
   Parent.bindChild(block, {
     readAll: (model: ParentModel) => model.entries,
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     key: (entry: typeof Entry.Type) => entry.id,
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     read: (entry: typeof Entry.Type) => entry.child,
     writeAt: (model: ParentModel) => model,
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     parentMessage: ParentMessage.GotEntryMessage,
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     outMessage: { fold: () => foldChildOutMessage },
   })
 }

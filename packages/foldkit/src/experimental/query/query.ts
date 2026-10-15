@@ -17,10 +17,13 @@ type AnyLayer =
   | Layer.Layer<never, unknown, unknown>
   | Layer.Layer<unknown, unknown, unknown>
 
-/** Definition fields for a Query. */
+/** Schemas and identity used to define an unkeyed Query. */
 export type QueryConfig<Name extends string, A, AI, E, EI> = Readonly<{
+  /** Block identity and prefix for the Query's Fetch Command. */
   name: Name
+  /** Schema for successfully fetched data. */
   data: Schema.Codec<A, AI, never, never>
+  /** Schema for expected fetch failures retained in AsyncData. */
   error: Schema.Codec<E, EI, never, never>
   execute?: never
 }>
@@ -264,20 +267,27 @@ type QueryModelType<A, AI, E, EI> = QueryModel<A, AI, E, EI>['Type']
 type QueryMessageType<A, AI, E, EI> = QueryMessage<A, AI, E, EI>['Type']
 
 type QueryExposedOperations<Name extends string, A, AI, E, EI> = Readonly<{
+  /** Returns the Query to Idle without starting a fetch. */
   reset: Update.Step<
     QueryModelType<A, AI, E, EI>,
     QueryMessageType<A, AI, E, EI>
   >
+  /** Starts a fetch for `Success` or `Stale` data while retaining that data.
+   * Other states remain unchanged. */
   revalidate: Update.Step<
     QueryModelType<A, AI, E, EI>,
     QueryMessageType<A, AI, E, EI>,
     QueryFetchHandler<Name, A, AI, E, EI>
   >
+  /** Revalidates retained data and starts an initial or retry fetch when no
+   * successful data is available. */
   revalidateOrLoad: Update.Step<
     QueryModelType<A, AI, E, EI>,
     QueryMessageType<A, AI, E, EI>,
     QueryFetchHandler<Name, A, AI, E, EI>
   >
+  /** Starts a fetch while the Query is `Idle` or `Failure`. Loaded and pending
+   * states remain unchanged. */
   loadIfMissing: Update.Step<
     QueryModelType<A, AI, E, EI>,
     QueryMessageType<A, AI, E, EI>,
@@ -308,13 +318,17 @@ type QueryImplementation<
 }>
 
 type QueryConveniences<Name extends string, A, AI, E, EI> = Readonly<{
+  /** Fetch Command definition owned by this Query Block. */
   Fetch: QueryFetchDefinition<Name, A, AI, E, EI>
+  /** Reads the retained AsyncData without exposing the Query Model shape. */
   read: (model: QueryModelType<A, AI, E, EI>) => AsyncData.AsyncData<A, E>
+  /** Runs the Query's fetch handler directly and returns settled AsyncData. */
   run: Effect.Effect<
     AsyncData.AsyncData<A, E>,
     never,
     QueryFetchHandler<Name, A, AI, E, EI>
   >
+  /** Builds a handler Layer from an Effect that constructs the fetch function. */
   toLayer: QueryToLayer<Name, A, AI, E, EI>
 }> &
   QueryExposedOperations<Name, A, AI, E, EI>
@@ -367,6 +381,7 @@ export type Query<
 > &
   QueryConveniences<Name, A, AI, E, EI> &
   Readonly<{
+    /** Replaces the Query's complete local fetch handler recipe. */
     replaceEffectsLayer: <SelectedEffectsLayer extends AnyLayer>(
       EffectsLayer: SelectedEffectsLayer &
         NoInfer<
@@ -383,6 +398,7 @@ export type Query<
           >
         >,
     ) => Query<Name, A, AI, E, EI, SelectedEffectsLayer, HostHandlers>
+    /** Supplies the host-provided Fetch handler and returns a complete Query. */
     provideHandlers: HostHandlers extends readonly [
       QueryFetchDefinition<Name, A, AI, E, EI>,
     ]

@@ -41,7 +41,7 @@ Three pieces connect the work to update:
 
 The typed definition's `update` method infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
 
-`application.ts` exports the typed `Application`, its graphless `ApplicationComposition`, its update/view, and the local handler recipe. `entry.ts` passes those pieces to `ApplicationComposition.make`, supplies any remaining Services through `application.provide(layer)`, and starts the Runtime:
+`application.ts` exports the typed `Application`, its graphless `ApplicationComposition`, its update/view, and the local handler recipe. `entry.ts` passes those pieces to `ApplicationComposition.toApplication`, supplies any remaining Services through `application.provide(layer)`, and starts the Runtime:
 
 ::Snippet{name="counterCommandsEntry" label="Starting the counter"}
 
@@ -116,7 +116,7 @@ Supply the HTTP provider at the application root:
 
 ::Snippet{name="commandHttpLayer" label="Providing the HTTP service"}
 
-The graphless root passes `FetchCountLayer` to `ApplicationComposition.make` as its local `EffectsLayer`. Its remaining `HttpClient` requirement reaches the entry, where `ApplicationLayer` supplies `Http.layer`. `application.provide(ApplicationLayer)` satisfies that ordinary Service requirement, and `Runtime.run` requires a runnable application.
+The graphless root passes `FetchCountLayer` to `ApplicationComposition.toApplication` as its local `EffectsLayer`. Its remaining `HttpClient` requirement reaches the entry, where `ApplicationLayer` supplies `Http.layer`. `application.provide(ApplicationLayer)` satisfies that ordinary Service requirement, and `Runtime.run` requires a runnable application.
 
 `Http.layer` is Foldkit's Fetch-backed client. The [Http guide](/core/http) explains its browser tracing defaults and customization. Keep the concrete provider at the root so the application and execution tests can select it, and so Commands share the same client.
 
@@ -142,7 +142,7 @@ A handler can own execution bookkeeping, such as a resource pool or worker respo
 
 ### Naming and Composition
 
-Compose `FetchCount.layer` directly in the feature's local `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` composition. Pass a feature's local bundle to `toBlock`; child Bindings carry its handler recipe to the Application Composition. Root `application.ts` exports `Application` and `ApplicationComposition`. The entry imports implementation pieces from their real owners, lists them explicitly in `ApplicationComposition.make`, and then calls `application.provide(ApplicationLayer)`. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
+Compose `FetchCount.layer` directly in the feature's local `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` composition. Pass a feature's local bundle to `toBlock`; child Bindings carry its handler recipe to the Application Composition. Root `application.ts` exports `Application` and `ApplicationComposition`. The entry imports implementation pieces from their real owners, lists them explicitly in `ApplicationComposition.toApplication`, and then calls `application.provide(ApplicationLayer)`. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
 
 Command names are local to their named Block. Two features can both declare `FetchCount`; their owners keep the definitions distinct. Names must be unique within one owner, and composition derives readable paths for each Binding placement. A Command's handler requirement includes that owned name, its decoded args, and its declared result Messages. `FeatureComposition.toBlock` checks that the feature's `EffectsLayer` supplies each local requirement or that the definition appears in `hostHandlers`.
 

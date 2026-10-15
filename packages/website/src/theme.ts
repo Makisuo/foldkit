@@ -2,8 +2,9 @@ import { Effect, Match, Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { Application } from './definition'
-import { Message, ResolvedTheme, ThemePreference } from './message'
+import { Message, ResolvedTheme } from './message'
 import { LocalStorage } from './storage'
+import { ThemePreference } from './themePreference'
 
 export const THEME_STORAGE_KEY = 'theme-preference'
 

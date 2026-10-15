@@ -49,13 +49,13 @@ import {
 } from './identity.js'
 import type { Owner } from './owner.js'
 import { makeOwnedName } from './ownerName.js'
-import { type DefineRender, makeDefineRender } from './render.js'
 import type {
   HandlerEvidence,
   HandlerOfHostDefinition,
   HandlerRequirements,
   ValidateComposition,
   ValidateImplementationComposition,
+  ValidateUniqueChildPlacements,
 } from './requirements.js'
 import type { ValidateConstructionRequirements } from './scope.js'
 import { selectLayer } from './scope.js'
@@ -83,7 +83,9 @@ type ValidateHandlerConstruction<
 /** @internal Identifies the local Layer recipe before child aggregation. */
 export const LocalEffectsLayerTypeId = Symbol('foldkit/Block/LocalEffectsLayer')
 
-/** @internal Identifies the Mount definitions owned directly by a block. */
+/** Property key retaining the Mount definitions owned directly by a Block.
+ * Composition uses it to distinguish local registrations from descendant
+ * Mounts collected through child Bindings. */
 export const LocalMountsTypeId = Symbol('foldkit/Block/LocalMounts')
 
 type LocalChannels = Readonly<{
@@ -189,7 +191,7 @@ export type DefinedUpdateSource<Source> = Readonly<{
   [DefinedUpdateSourceTypeId]: Source
 }>
 
-/** @internal The nameable contract returned by a Block update authoring helper. */
+/** The exact update function returned by a Block's `update` authoring helper. */
 export type DefinedUpdate<
   Model,
   Message,
@@ -208,7 +210,7 @@ export type DefinedUpdate<
   Evidence
 >
 
-/** @internal The nameable contract returned by a Block Step authoring helper. */
+/** The exact operation returned by a Block's `step` authoring helper. */
 export type DefinedStep<
   Model,
   Message,
@@ -226,7 +228,11 @@ export type DefinedStep<
   Evidence
 >
 
-type OwnedAuthoredView<
+/**
+ * @internal Retains an authored view's owner, Model, Message, and registered
+ * capabilities in a named type that downstream declarations can preserve.
+ */
+export type OwnedAuthoredView<
   View,
   OwnerValue,
   Model,
@@ -303,6 +309,8 @@ export interface DefineView<
     Message,
     RequiredViewRequirements
   >
+  /** Authors a view with explicit parent-owned values or callbacks supplied for
+   * each render. View inputs do not become part of the child Model. */
   readonly withInputs: <ViewInputs = never>(
     view: [ValidViewInputs<ViewInputs>] extends [never]
       ? never
@@ -888,18 +896,19 @@ export type ValidateChildBindings<
   ParentModel,
   ParentMessage,
   ParentOutMessage,
-> = [
-  | InvalidChildParentModels<Children, ParentModel>
-  | InvalidChildCommandMessages<Children, ParentMessage>
-  | InvalidChildOutMessages<Children, ParentOutMessage>,
-] extends [never]
-  ? unknown
-  : Readonly<{
-      'Block child bindings must match the parent Model, Message, and OutMessage':
-        | InvalidChildParentModels<Children, ParentModel>
-        | InvalidChildCommandMessages<Children, ParentMessage>
-        | InvalidChildOutMessages<Children, ParentOutMessage>
-    }>
+> = ValidateUniqueChildPlacements<Children> &
+  ([
+    | InvalidChildParentModels<Children, ParentModel>
+    | InvalidChildCommandMessages<Children, ParentMessage>
+    | InvalidChildOutMessages<Children, ParentOutMessage>,
+  ] extends [never]
+    ? unknown
+    : Readonly<{
+        'Block child bindings must match the parent Model, Message, and OutMessage':
+          | InvalidChildParentModels<Children, ParentModel>
+          | InvalidChildCommandMessages<Children, ParentMessage>
+          | InvalidChildOutMessages<Children, ParentOutMessage>
+      }>)
 
 type LayerOutput<LayerRecipe> = LayerRecipe extends Layer.Any
   ? Layer.Success<LayerRecipe>
@@ -960,13 +969,20 @@ type ImplementationHostHandlers<Implementation> =
  * service requirements; annotating it with this broad type erases them.
  */
 export type Implementation<Model, Message, OutMessage = never> = Readonly<{
+  /** Default view authored by the same Definition. Omit it for a headless Block
+   * or when every parent supplies an alternate authored view. */
   view?: AnyAuthoredView
+  /** Creates the initial child Model and optional Commands. Block init cannot
+   * emit an OutMessage. */
   init(...args: ReadonlyArray<unknown>): OwnedReturn<Model, Message, never>
+  /** Produces the next child Model and optional Commands or OutMessage for one
+   * child Message. */
   update(
     model: Model,
     message: Message,
     ...context: ReadonlyArray<unknown>
   ): OwnedReturn<Model, Message, OutMessage>
+  /** Parent-driven named operations that preserve the child's update boundary. */
   expose?: Readonly<
     Record<
       string,
@@ -978,14 +994,21 @@ export type Implementation<Model, Message, OutMessage = never> = Readonly<{
       }['step']
     >
   >
+  /** Subscription entries owned directly by this Block. */
   subscriptions?: Subscription.Subscriptions<Model, Message, any>
+  /** ManagedResource entries owned directly by this Block. */
   managedResources?: Readonly<
     Record<
       string,
       ManagedResource.Entry<Model, Message, any, any, any, any, any, any>
     >
   >
+  /** The complete local handler recipe for this Block. Child Bindings contribute
+   * their recipes automatically. Ordinary Service requirements remain for the
+   * application root to provide. */
   EffectsLayer: Layer.Layer<never, any, any> | Layer.Layer<any, any, any>
+  /** Handler service contracts intentionally left for the host to provide before
+   * the Block is bound into a runnable application. */
   hostHandlers?: ReadonlyArray<unknown>
 }>
 
@@ -1187,7 +1210,8 @@ type ViewProperty<View, Key extends PropertyKey> = Key extends keyof View
   ? View[Key]
   : never
 
-/** @internal Compact authored-view contract used by implementation overloads. */
+/** The authored-view contract accepted by this Definition's completion
+ * overloads. */
 export type DefinitionAuthoredView<
   OwnerValue,
   Model,
@@ -1203,7 +1227,8 @@ export type DefinitionAuthoredView<
     }>
   }>
 
-/** @internal Authored-view contract derived from one Block definition. */
+/** The authored-view contract derived from one Block Definition and its
+ * registered composition graph. */
 export type DefinitionView<
   OwnerValue,
   ModelSchema extends AnySchema,
@@ -1499,17 +1524,26 @@ export type Block<
 > = Readonly<{
   /** @internal Runtime identity bridge used while lowering child bindings. */
   owner: OwnerValue
+  /** Schema for this Block's Model. */
   Model: ModelSchema
+  /** Schema for facts handled by this Block's update function. */
   Message: MessageSchema
+  /** Local and descendant Mount definitions available when the Block is bound. */
   mounts: readonly [
     ...Mounts,
     ...ReadonlyArray<InspectionOfBinding<Children[number]>['mounts'][number]>,
   ]
   /** @internal Retains the exact Mount definitions owned by this block. */
   [LocalMountsTypeId]: Mounts
+  /** Child Bindings registered in this Block's Composition. */
   children: Children
+  /** Creates the initial child Model and any Commands. A parent calls this
+   * through its Binding and decides where to store the returned Model. */
   init: ImplementationValue['init']
+  /** Produces the next child Model and any Commands or OutMessage for one child
+   * Message. Parents invoke this through their Binding's `fold` method. */
   update: ImplementationValue['update']
+  /** Parent-driven named operations exposed through each Binding. */
   expose: ImplementationValue extends Readonly<{
     expose: infer ExposedOperations extends Readonly<
       Record<string, (...args: ReadonlyArray<any>) => any>
@@ -1517,6 +1551,8 @@ export type Block<
   }>
     ? ExposedOperations
     : Readonly<Record<never, never>>
+  /** Local and descendant Subscription registrations. A Runtime starts them for
+   * active occurrences. */
   subscriptions: (ImplementationValue extends Readonly<{
     subscriptions: infer Subscriptions extends Subscription.Subscriptions<
       any,
@@ -1527,6 +1563,8 @@ export type Block<
     ? Subscriptions
     : Readonly<Record<never, never>>) &
     AggregatedChildren<Children>['subscriptions']
+  /** Local and descendant ManagedResource registrations. A Runtime acquires
+   * them for active occurrences. */
   managedResources: (ImplementationValue extends Readonly<{
     managedResources: infer ManagedResources extends Readonly<
       Record<
@@ -1538,6 +1576,8 @@ export type Block<
     ? ManagedResources
     : Readonly<Record<never, never>>) &
     AggregatedChildren<Children>['managedResources']
+  /** Local and descendant handler recipes. Constructing the Block does not build
+   * this Layer; the application Runtime builds the composed graph. */
   EffectsLayer: Layer.Layer<
     Layer.Success<
       | ImplementationValue['EffectsLayer']
@@ -1560,6 +1600,8 @@ export type Block<
     ImplementationHostHandlers<ImplementationValue>,
     Children
   >
+  /** Handler contracts intentionally left for a host to provide before this
+   * Block is bound into a runnable application. */
   hostHandlers: ImplementationValue extends Readonly<{
     hostHandlers: infer HostHandlers extends ReadonlyArray<unknown>
   }>
@@ -1584,7 +1626,8 @@ export type Block<
     ImplementationValue
   >
 
-/** @internal Nameable declaration boundary for a completed Block. */
+/** Names the passive completed Block contract without expanding its full
+ * composition graph in a published declaration. */
 export type CompletedBlock<
   OwnerValue extends Owner<string>,
   ModelSchema extends Schema.Codec<any, any, any, any>,
@@ -1793,9 +1836,11 @@ type PublicToBlockImplementation<
   CheckedImplementationValue<ImplementationValue>
 >
 
-/**
- * Completes an owned Block definition with its implementation channels.
- */
+/** Completes a Composition with its implementation channels and returns a
+ * passive Block. Completion does not build Layers, run init, or start lifecycle
+ * work. `EffectsLayer` contains the Block's local handler recipes; child
+ * Bindings contribute their recipes automatically, and ordinary Service
+ * requirements remain for the application root to provide. */
 export interface ToBlock<
   OwnerValue extends Owner<string>,
   ModelSchema extends Schema.Codec<any, any, any, any>,
@@ -2514,8 +2559,9 @@ export interface ToBlock<
 }
 
 /**
- * The builder supplied by an authored definition. Use this type when extracted
- * view helpers render that definition's registered children or local Mounts.
+ * The builder supplied by a Block or Application Composition. Use this type
+ * when an extracted view helper renders that Composition's registered children
+ * or local Mounts.
  */
 export type HtmlBuilderOf<DefinitionValue> =
   DefinitionValue extends Readonly<{
@@ -2527,9 +2573,9 @@ export type HtmlBuilderOf<DefinitionValue> =
     ? HtmlBuilder<Message, DefinitionViewRequirements<Mounts, Children>>
     : never
 
-/**
- * The authoring contract created by `Block.define`.
- */
+/** The passive typed authoring contract created by `Block.define`. A Definition
+ * owns local identities and Schemas; call `toComposition` to register child and
+ * Mount capabilities before completing the Block. */
 export type Definition<
   OwnerValue extends Owner<string>,
   ModelSchema extends Schema.Codec<any, any, any, any>,
@@ -2540,21 +2586,30 @@ export type Definition<
 > = Readonly<{
   /** @internal Runtime identity shared by the definition and completed block. */
   owner: OwnerValue
+  /** Schema for this Block's Model. */
   Model: ModelSchema
+  /** Schema for facts handled by this Block's update function. */
   Message: MessageSchema
+  /** Mount definitions available after local Mounts and child Bindings are
+   * registered in the Composition. */
   mounts: readonly [
     ...Mounts,
     ...ReadonlyArray<InspectionOfBinding<Children[number]>['mounts'][number]>,
   ]
   /** @internal Retains the exact Mount definitions owned by this definition. */
   [LocalMountsTypeId]: Mounts
+  /** Child Bindings registered in this Definition's composition graph. */
   children: Children
+  /** Authors a view against this Definition's Model, Message, local Mounts, and
+   * registered child Bindings. */
   view: DefineView<
     OwnerValue,
     ModelSchema['Type'],
     MessageSchema['Type'],
     DefinitionViewRequirements<Mounts, Children>
   >
+  /** Authors the Block's primary update function with exact Command service and
+   * OutMessage inference. */
   update: DefineUpdate<
     ModelSchema['Type'],
     MessageSchema['Type'],
@@ -2562,6 +2617,8 @@ export type Definition<
       ? OutMessageSchema['Type']
       : never
   >
+  /** Authors a parent-driven operation that can be exposed by the completed
+   * Block. */
   step: DefineStep<
     ModelSchema['Type'],
     MessageSchema['Type'],
@@ -2569,17 +2626,23 @@ export type Definition<
       ? OutMessageSchema['Type']
       : never
   >
+  /** Defines Subscription entries owned directly by this Block. */
   subscriptions: DefineSubscriptions<
     OwnerValue['id'],
     ModelSchema['Type'],
     MessageSchema['Type']
   >
+  /** Defines ManagedResource entries owned directly by this Block. */
   managedResources: DefineManagedResources<
     OwnerValue['id'],
     ModelSchema['Type'],
     MessageSchema['Type']
   >
+  /** Creates child Bindings fixed to this Definition's parent Model, Message,
+   * and OutMessage contracts. */
   bindChild: BindChild<ModelSchema, MessageSchema, OutMessageSchema>
+  /** Registers the child and Mount graph and returns the Composition used to
+   * author its view and complete its Block. */
   toComposition: ToComposition<
     OwnerValue,
     ModelSchema,
@@ -2591,9 +2654,9 @@ export type Definition<
     ? Readonly<{ OutMessage: OutMessageSchema }>
     : Readonly<{ OutMessage?: never }>)
 
-/**
- * Registered graph capabilities together with the established typed authoring helpers.
- */
+/** A passive Definition with its child and Mount graph registered. A Composition
+ * supplies graph-aware view authoring and Block completion; it does not build
+ * Layers or start child lifecycle work. */
 export type Composition<
   OwnerValue extends Owner<string>,
   ModelSchema extends AnySchema,
@@ -2625,11 +2688,8 @@ export type Composition<
   | 'bindChild'
 > &
   Readonly<{
-    render: DefineRender<
-      ModelSchema['Type'],
-      MessageSchema['Type'],
-      DefinitionViewRequirements<Mounts, Children>
-    >
+    /** Completes this Composition with its implementation channels and returns
+     * a passive Block. */
     toBlock: ToBlock<
       OwnerValue,
       ModelSchema,
@@ -2640,9 +2700,8 @@ export type Composition<
     >
   }>
 
-/**
- * Establishes the child and Mount graph after the Block's typed operations are authored.
- */
+/** Registers the child and Mount graph after the Block's typed operations are
+ * authored. Both fields default to empty collections. */
 export interface ToComposition<
   OwnerValue extends Owner<string>,
   ModelSchema extends AnySchema,
@@ -2663,7 +2722,11 @@ export interface ToComposition<
     const Children extends ReadonlyArray<AnyBinding> = readonly [],
   >(
     config: Readonly<{
+      /** Mount definitions owned directly by this Block. Omitted Mounts default
+       * to an empty registry. */
       mounts?: Mounts & Mount.PreciseMountRegistry<Mounts>
+      /** Child Bindings registered in this Block's composition graph. Omitted
+       * children default to an empty tuple. */
       children?: Children
     }> &
       ValidateChildBindings<
@@ -2682,10 +2745,8 @@ export interface ToComposition<
   >
 }
 
-/**
- * Typed authoring helpers established before the child and Mount graph.
- * Every Definition proceeds through `toComposition`, including an empty graph.
- */
+/** Typed authoring helpers established before the child and Mount graph. Every
+ * Definition proceeds through `toComposition`, including an empty graph. */
 export type Base<
   OwnerValue extends Owner<string>,
   ModelSchema extends AnySchema,
@@ -2700,9 +2761,8 @@ export type Base<
   readonly []
 >
 
-/**
- * Establishes Model, Message and optional OutMessage contracts for Block authoring.
- */
+/** Establishes Model, Message, and optional OutMessage contracts for Block
+ * authoring. */
 export interface DefineBlock<OwnerValue extends Owner<string>> {
   <
     const ModelSchema extends AnySchema,
@@ -2710,8 +2770,11 @@ export interface DefineBlock<OwnerValue extends Owner<string>> {
     const OutMessageSchema extends AnySchema,
   >(
     config: Readonly<{
+      /** Schema for the Block's Model. */
       Model: ModelSchema
+      /** Schema for facts the Block's update function handles. */
       Message: MessageSchema
+      /** Schema for facts the Block can report to a parent. */
       OutMessage: OutMessageSchema
       mounts?: never
       children?: never
@@ -2719,7 +2782,9 @@ export interface DefineBlock<OwnerValue extends Owner<string>> {
   ): Base<OwnerValue, ModelSchema, MessageSchema, OutMessageSchema>
   <const ModelSchema extends AnySchema, const MessageSchema extends AnySchema>(
     config: Readonly<{
+      /** Schema for the Block's Model. */
       Model: ModelSchema
+      /** Schema for facts the Block's update function handles. */
       Message: MessageSchema
       OutMessage?: never
       mounts?: never
@@ -3037,11 +3102,6 @@ export const makeDefinition = (
   const mounts = mergeMounts(localMounts, childChannels.mounts)
 
   const defineView = makeDefineView(owner, children)
-  const defineRender = makeDefineRender<
-    typeof config.Model.Type,
-    typeof config.Message.Type,
-    DefinitionViewRequirements<typeof localMounts, typeof children>
-  >()
   const defineUpdate = authoring?.update ?? makeDefineUpdate()
   const defineStep = authoring?.step ?? makeDefineStep()
   const defineSubscriptions =
@@ -3182,7 +3242,6 @@ export const makeDefinition = (
     [LocalMountsTypeId]: localMounts,
     children,
     view: defineView,
-    render: defineRender,
     update: defineUpdate,
     step: defineStep,
     subscriptions: defineSubscriptions,
@@ -3224,7 +3283,6 @@ export const makeBaseDefinition = (
       subscriptions: base.subscriptions,
       managedResources: base.managedResources,
       view: composition.view,
-      render: composition.render,
       bindChild: base.bindChild,
       toBlock: composition.toBlock,
     }

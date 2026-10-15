@@ -9,7 +9,7 @@ import { subscriptions } from './lifecycle'
 import { ApiReference, Example } from './page'
 import { Flags, init, update } from './root'
 import { urlToApplicationRoute } from './route'
-import { view } from './view/application'
+import { view } from './view/view'
 
 type SourcesBySlug = Readonly<globalThis.Record<string, Example.ExampleSources>>
 

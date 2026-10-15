@@ -1,37 +1,9 @@
-import { Option, Schema } from 'effect'
-import { Block, Update } from 'foldkit'
-import {
-  Field,
-  NotValidated,
-  allValid,
-  anyInvalid,
-  makeRules,
-  validate,
-} from 'foldkit/fieldValidation'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { Field } from 'foldkit/fieldValidation'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { Listbox } from '@foldkit/ui'
-
-import { revealFieldErrors } from '../../validation'
-
-// FIELD VALIDATION
-
-export const schoolRules = makeRules({
-  required: 'School is required',
-})
-
-export const degreeRules = makeRules({
-  required: 'Degree is required',
-})
-
-export const fieldOfStudyRules = makeRules({
-  required: 'Field of study is required',
-})
-
-const validateSchool = validate(schoolRules)
-const validateDegree = validate(degreeRules)
-const validateFieldOfStudy = validate(fieldOfStudyRules)
 
 export const GraduationYearListbox = Listbox.create()
 
@@ -65,90 +37,8 @@ export type OutMessage = typeof OutMessage.Type
 
 export type Removed = typeof OutMessage.Removed.Type
 
-export const init = (entryId: string): Model => ({
-  id: entryId,
-  school: NotValidated({ value: '' }),
-  degree: NotValidated({ value: '' }),
-  fieldOfStudy: NotValidated({ value: '' }),
-  maybeGraduationYear: Option.none(),
-  graduationYearListbox: GraduationYearListbox.init({
-    id: `${entryId}-graduation-year`,
-  }).model,
-  isCurrentlyEnrolled: false,
-})
-
-const foldGraduationYearListboxOutMessage =
-  GraduationYearListbox.OutMessage.match<Update.Step<Model, Message>>({
-    Selected:
-      ({ value }) =>
-      model => ({
-        model: modifyFields(model, {
-          maybeGraduationYear: () => Option.some(value),
-        }),
-      }),
-  })
-
-const EducationEntry = Block.define('EducationEntry', {
+export const EducationEntry = Block.define('EducationEntry', {
   Model,
   Message,
   OutMessage,
 })
-
-export const graduationYearListbox = EducationEntry.bindChild(
-  GraduationYearListbox,
-  {
-    field: 'graduationYearListbox',
-    parentMessage: Message.GotGraduationYearListboxMessage,
-    outMessage: { fold: foldGraduationYearListboxOutMessage },
-  },
-)
-
-export const EducationEntryComposition = EducationEntry.toComposition({
-  children: [graduationYearListbox],
-})
-
-export const update = EducationEntry.update((model, message) =>
-  Message.match(message, {
-    UpdatedSchool: ({ value }) => ({
-      model: modifyFields(model, { school: () => validateSchool(value) }),
-    }),
-
-    UpdatedDegree: ({ value }) => ({
-      model: modifyFields(model, { degree: () => validateDegree(value) }),
-    }),
-
-    UpdatedFieldOfStudy: ({ value }) => ({
-      model: modifyFields(model, {
-        fieldOfStudy: () => validateFieldOfStudy(value),
-      }),
-    }),
-
-    GotGraduationYearListboxMessage: ({ message }) =>
-      graduationYearListbox.fold(model, message),
-
-    ToggledCurrentlyEnrolled: ({ isChecked }) => ({
-      model: modifyFields(model, { isCurrentlyEnrolled: () => isChecked }),
-    }),
-
-    ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
-  }),
-)
-
-// VALIDATION SUMMARY
-
-export const hasErrors = (entry: Model): boolean =>
-  anyInvalid([entry.school, entry.degree, entry.fieldOfStudy])
-
-export const isComplete = (entry: Model): boolean =>
-  allValid([
-    [entry.school, schoolRules],
-    [entry.degree, degreeRules],
-    [entry.fieldOfStudy, fieldOfStudyRules],
-  ])
-
-export const revealErrors = (entry: Model): Model =>
-  modifyFields(entry, {
-    school: revealFieldErrors(schoolRules),
-    degree: revealFieldErrors(degreeRules),
-    fieldOfStudy: revealFieldErrors(fieldOfStudyRules),
-  })

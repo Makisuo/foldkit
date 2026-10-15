@@ -1,8 +1,7 @@
-import { Block, Block as AliasedBlock } from 'foldkit'
+import { Block, Block as AliasedBlock, defineApplication } from 'foldkit'
 import * as Foldkit from 'foldkit'
 import { define as aliasedDefine, define } from 'foldkit/block'
 import * as BlockModule from 'foldkit/block'
-import { define as defineApplication } from 'foldkit/application'
 
 const WrongRoot = Block.define('Root')
 const WrongAliasedRoot = AliasedBlock.define('AliasedRoot')

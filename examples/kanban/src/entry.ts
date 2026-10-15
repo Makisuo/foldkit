@@ -14,7 +14,7 @@ export const ApplicationLayer = Layer.mergeAll(
   BrowserKeyValueStore.layerLocalStorage,
 )
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

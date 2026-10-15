@@ -18,10 +18,13 @@ import {
   resolveMountBoundaryDispatch,
 } from './boundary.js'
 
-/** Synchronous message dispatcher provided to view-time element constructors. */
+/** Synchronous Message dispatcher provided to view-time element constructors.
+ * The optional guard suppresses dispatch after its captured occurrence is no
+ * longer current. */
 export type DispatchSync = (message: unknown, isCurrent?: () => boolean) => void
 
-/** Identifies which kind of render acquired a Mount. */
+/** Identifies whether a Mount was acquired by the live view or a historical
+ * test replay. */
 export type MountRenderOwner = 'Live' | 'Replay'
 
 /** Resolves the render-owned dispatcher for a Mount at insertion time. */

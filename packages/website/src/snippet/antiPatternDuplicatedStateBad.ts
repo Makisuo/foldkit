@@ -1,7 +1,6 @@
-// ❌ Bad: visibleItems can stop matching items and query.
-
 import { Schema } from 'effect'
-import { define as defineApplication } from 'foldkit/application'
+// ❌ Bad: visibleItems can stop matching items and query.
+import { defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 

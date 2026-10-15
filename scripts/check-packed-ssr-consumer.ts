@@ -295,7 +295,7 @@ const writeConsumerProject = (
 // them whether or not the barrel re-exports them.
 //
 // The fixture also sets `declaration`, so it covers a consumer that exports a
-// program whose type comes from `makeElement` or `makeApplication`, or a
+// program whose type comes from `toElement` or `toApplication`, or a
 // Machine Edge built with `to` or `when`. If a type that foldkit exports has a
 // key the consumer cannot write, that consumer cannot write its own `.d.ts`
 // file at all, and TypeScript reports TS4023.
@@ -310,7 +310,7 @@ const assertPackedTypesResolve = (projectDir: string): void => {
     result.status === 0,
     'a consumer cannot compile against the packed declarations. It imports ' +
       'the documented types from `foldkit/experimental/server`, exports a ' +
-      'program built with `makeElement` or `makeApplication`, or exports a ' +
+      'program built with `toElement` or `toApplication`, or exports a ' +
       'Machine Edge built with `to` or `when`:' +
       `\n${result.stdout}${result.stderr}`,
   )

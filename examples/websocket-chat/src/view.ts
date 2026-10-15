@@ -1,14 +1,12 @@
 import { Array, DateTime, String } from 'effect'
-import type { HtmlBuilderOf } from 'foldkit/application'
 import { Html } from 'foldkit/html'
 
 import { Button, Input } from '@foldkit/ui'
 
 import { ApplicationComposition } from './application'
+import type { ViewBuilder } from './application'
 import { Message } from './message'
 import { type ChatMessage, ConnectionState } from './model'
-
-type ViewBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 export const view = ApplicationComposition.view((model, h) => ({
   title: 'WebSocket Chat',

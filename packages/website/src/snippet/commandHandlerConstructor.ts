@@ -1,5 +1,5 @@
 import { HttpClient } from 'effect/http'
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 
 import { Message, Model, fetchCount } from './counterHttpCommand'
 

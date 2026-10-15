@@ -79,7 +79,7 @@ const encodeKey = <A, I>(schema: Schema.Codec<A, I, never, never>) => {
     encodeJsonString(canonicalizeJson(encodeJson(value)))
 }
 
-/** Definition fields for a KeyedQuery. */
+/** Schemas, identity, and cache-key policy used to define a KeyedQuery. */
 export type KeyedQueryConfig<
   Name extends string,
   A,
@@ -88,10 +88,16 @@ export type KeyedQueryConfig<
   EI,
   Fields extends SyncFields,
 > = Readonly<{
+  /** Block identity and prefix for the KeyedQuery's Fetch Command. */
   name: Name
+  /** Schema for successfully fetched data. */
   data: Schema.Codec<A, AI, never, never>
+  /** Schema for expected fetch failures retained in AsyncData. */
   error: Schema.Codec<E, EI, never, never>
+  /** Schema fields for each fetch argument. */
   args: Fields
+  /** Derives a stable cache key from decoded arguments. By default Foldkit
+   * canonically JSON-encodes the declared argument Schema. */
   toKey?: (args: Schema.Schema.Type<Schema.Struct<Fields>>) => string
   execute?: never
 }>
@@ -482,10 +488,13 @@ type KeyedQueryExposedOperations<
   EI,
   Fields extends SyncFields,
 > = Readonly<{
+  /** Clears every cached entry without starting a fetch. */
   reset: Update.Step<
     KeyedQueryModelType<A, AI, E, EI, Fields>,
     KeyedQueryMessageType<A, AI, E, EI, Fields>
   >
+  /** Starts a fetch for `Success` or `Stale` data at the selected key while
+   * retaining that data. Other states and a missing entry remain unchanged. */
   revalidate: (
     model: KeyedQueryModelType<A, AI, E, EI, Fields>,
     args: KeyedArgs<Fields>,
@@ -494,6 +503,8 @@ type KeyedQueryExposedOperations<
     KeyedQueryMessageType<A, AI, E, EI, Fields>,
     KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>
   >
+  /** Revalidates retained data and starts an initial or retry fetch when the
+   * selected key has no successful data. */
   revalidateOrLoad: (
     model: KeyedQueryModelType<A, AI, E, EI, Fields>,
     args: KeyedArgs<Fields>,
@@ -502,6 +513,8 @@ type KeyedQueryExposedOperations<
     KeyedQueryMessageType<A, AI, E, EI, Fields>,
     KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>
   >
+  /** Starts a fetch when the selected key has no cache entry or is in
+   * `Failure`. Loaded and pending entries remain unchanged. */
   loadIfMissing: (
     model: KeyedQueryModelType<A, AI, E, EI, Fields>,
     args: KeyedArgs<Fields>,
@@ -545,11 +558,16 @@ type KeyedQueryConveniences<
   EI,
   Fields extends SyncFields,
 > = Readonly<{
+  /** Fetch Command definition owned by this KeyedQuery Block. */
   Fetch: KeyedQueryFetchDefinition<Name, A, AI, E, EI, Fields>
+  /** Reads AsyncData for one argument key without exposing the Query Model
+   * shape. A missing key returns Idle. */
   read: (
     model: KeyedQueryModelType<A, AI, E, EI, Fields>,
     args: KeyedArgs<Fields>,
   ) => AsyncData.AsyncData<A, E>
+  /** Runs the fetch handler directly for one set of arguments and returns
+   * settled AsyncData. */
   run: (
     args: KeyedArgs<Fields>,
   ) => Effect.Effect<
@@ -557,23 +575,32 @@ type KeyedQueryConveniences<
     never,
     KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>
   >
+  /** Builds a handler Layer from an Effect that constructs the keyed fetch
+   * function. */
   toLayer: KeyedQueryToLayer<Name, A, AI, E, EI, Fields>
+  /** Clears every cached entry without starting a fetch. */
   reset: Update.Step<
     KeyedQueryModelType<A, AI, E, EI, Fields>,
     KeyedQueryMessageType<A, AI, E, EI, Fields>
   >
+  /** Starts a fetch for `Success` or `Stale` data at the selected key while
+   * retaining that data. Other states and a missing entry remain unchanged. */
   revalidate: Update.Fold<
     KeyedQueryModelType<A, AI, E, EI, Fields>,
     KeyedQueryMessageType<A, AI, E, EI, Fields>,
     KeyedArgs<Fields>,
     KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>
   >
+  /** Revalidates retained data or starts an initial or retry fetch for the
+   * selected key. */
   revalidateOrLoad: Update.Fold<
     KeyedQueryModelType<A, AI, E, EI, Fields>,
     KeyedQueryMessageType<A, AI, E, EI, Fields>,
     KeyedArgs<Fields>,
     KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>
   >
+  /** Starts a fetch when the selected key has no cache entry or is in
+   * `Failure`. Loaded and pending entries remain unchanged. */
   loadIfMissing: Update.Fold<
     KeyedQueryModelType<A, AI, E, EI, Fields>,
     KeyedQueryMessageType<A, AI, E, EI, Fields>,
@@ -642,6 +669,7 @@ export type KeyedQuery<
 > &
   KeyedQueryConveniences<Name, A, AI, E, EI, Fields> &
   Readonly<{
+    /** Replaces the KeyedQuery's complete local fetch handler recipe. */
     replaceEffectsLayer: <SelectedEffectsLayer extends AnyLayer>(
       EffectsLayer: SelectedEffectsLayer &
         NoInfer<
@@ -668,6 +696,8 @@ export type KeyedQuery<
       SelectedEffectsLayer,
       HostHandlers
     >
+    /** Supplies the host-provided Fetch handler and returns a complete
+     * KeyedQuery. */
     provideHandlers: HostHandlers extends readonly [
       KeyedQueryFetchDefinition<Name, A, AI, E, EI, Fields>,
     ]

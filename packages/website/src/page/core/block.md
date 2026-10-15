@@ -78,7 +78,11 @@ settings/
 └── index.ts         # explicit public barrel
 ```
 
-Keep small features together. Add `subscription.ts`, `mount.ts`, or `managedResource.ts` when that concern makes a separate file easier to navigate. Extract `layer.ts` for substantial or reused Layer composition, and `childBindings.ts` for substantial parent-owned child integration. Keep the Definition separate from the completed feature when implementation files import its helpers. They must not import their own completed barrel: completion depends on those implementation files.
+Keep small features together. Add `subscription.ts`, `mount.ts`, or `managedResource.ts` when that concern makes a separate file easier to navigate. Extract `layer.ts` for substantial or reused Layer composition. Keep straightforward child Bindings together in `childBindings.ts`. When one child needs substantial parent policy, move that policy to `childBindings/<child>.ts`. Once that directory exists, its `childBindings.ts` holds the remaining straightforward Bindings and exports the complete `children` tuple with `as const`; its explicit `index.ts` exports the individual named Bindings and `children`. Do not group Bindings into arbitrary directories such as `pages` or `controls`: the files are organized by the parent policy they own. Keep the Definition separate from the completed feature when implementation files import its helpers. They must not import their own completed barrel: completion depends on those implementation files.
+
+Keep `definition.ts` focused on early contracts needed by implementation files. Substantial unsplit feature behavior can live in a file named for the folder, such as `workHistory/workHistory.ts`. Retain focused `init.ts`, `update.ts`, and `command.ts` files when they improve navigation. The view imports its Composition and Bindings from the implementation; final `block.ts` imports both. This keeps the dependency graph directed without creating one file per API stage. A root follows the same principle: `application.ts` owns composition and application behavior, `view.ts` owns substantial presentation, and `entry.ts` completes and runs it. Compact examples can keep these pieces together.
+
+A split root may need an early `definition.ts` so its Commands and child Bindings can import `Application` without loading the Composition that depends on them. Root `application.ts` imports and re-exports that contract and assembles `ApplicationComposition`. See [Project Organization](/patterns/project-organization) for the complete file and barrel conventions.
 
 Export `block` and the intended structural pieces from the feature barrel. Export the feature as a namespace from the parent barrel. The namespace supplies context for `Settings.Model`, `Settings.Message`, and `Settings.OutMessage.match`:
 
@@ -90,7 +94,9 @@ Call the parent Definition's `bindChild` method with the completed child Block. 
 
 ::Snippet{name="blockProfile" label="Binding and embedding a Block"}
 
-For a required direct Struct field, pass `field` instead of read/write functions. The parent Definition already establishes the parent Model. Use `parentMessage: Message.GotSettingsMessage` when the wrapper contains only `{ message }`; Foldkit constructs that parent Message for every child Message, including Command results and lifecycle emissions. Use `toParentMessage` for custom mappings, and supply exactly one mapping field.
+For a child stored directly in an exact Struct field, pass `field` instead of read/write functions. The field may hold the child Model itself or `Option<ChildModel>`. Both forms use the field name as their default placement. An Option field makes the child absent while it is `None`; a fold or exposed operation does not create a missing child. The parent Definition already establishes the parent Model. Use `parentMessage: Message.GotSettingsMessage` when the wrapper contains only `{ message }`; Foldkit constructs that parent Message for every child Message, including Command results and lifecycle emissions. Use `toParentMessage` for custom mappings, and supply exactly one mapping field.
+
+Foldkit validates direct storage from the decoded Schema shape. Reuse the same Schema instance when the child Model uses an opaque declaration. Use explicit `read` and `write` when parent storage deliberately uses another opaque declaration whose decoded shape cannot be compared.
 
 Placement defaults to `field` for this shorthand and to the child's Block ID for accessor Bindings. An explicit `placement` overrides either default. Two different fields therefore identify two different occurrences. Keep an override when composition identity should differ from storage location:
 
@@ -168,7 +174,7 @@ Thread `h` through view functions and render callbacks. Do not store a builder i
 
 ## Optional Children
 
-`read` returns `Option` because a routed or conditional child may be absent. When it returns `None`:
+An exact `Option<ChildModel>` field declares an optional child without a manual accessor. When the field is `None`:
 
 - connected folds leave the parent Model unchanged;
 - that occurrence's Subscription Streams stop;
@@ -177,9 +183,15 @@ Thread `h` through view functions and render callbacks. Do not store a builder i
 
 When the child reappears, Foldkit creates a new occurrence with new lifecycle scopes. A Command already running for the old occurrence keeps application lifetime, but its result is discarded if that occurrence is no longer current. This preserves Command interruption semantics while preventing a stale result from updating a replacement child.
 
+Use `presentWhen` with a direct field when parent policy controls the whole child's presence independently of storage. The predicate applies to folds, exposed operations, Subscriptions, ManagedResources, and Mounts. A false result behaves like an absent Option field and never clears or replaces the stored child Model.
+
+::Snippet{name="blockPresenceGate" label="Gating a child occurrence"}
+
+Use explicit `read` and `write` for nested storage, tagged parent variants, or a custom write that updates more than the child field. The accessor's `None` result already determines presence, so accessor Bindings do not also take `presentWhen`.
+
 Resource cleanup owns work that requires a live resource handle. See [operations using a handle](/core/managed-resources#operations-using-a-handle) for coordinating that lifetime with a running Command.
 
-Use `subscriptions.when` for additional activation policy while the child remains present:
+Use `subscriptions.when` when only child Streams need additional activation policy while the child remains present:
 
 ::Snippet{name="blockSubscriptionGate" label="Gating a child Subscription"}
 
@@ -199,19 +211,31 @@ Build an OutMessage fold directly from the child's exhaustive matcher:
 
 The child does not know who embeds it. The parent decides what the reported fact means at that boundary.
 
-The parent configures integration policy in its child Binding. That policy executes during the pure child fold or exposed operation. The flow is parent update → child fold or operation → parent OutMessage handling → parent result. Keep a substantial policy in a named parent fold near the Binding or the parent transition that uses it. An OutMessage fold receives `FoldContext` when it needs to lift a child Command or compare the transition with parent state from before the child update. `modelBeforeUpdate` is that previous parent Model. The Step returned by the fold still receives the parent Model after the next child Model has been written, so policy can deliberately use either side of the transition without reconstructing the fold by hand.
+The parent configures integration policy in its child Binding. That policy executes during the pure child fold or exposed operation. The flow is parent update → child fold or operation → parent OutMessage handling → parent result. Keep a substantial policy in a named parent fold beside that child's Binding, moving both to `childBindings/<child>.ts` when the parent has enough Binding code to warrant a directory. An OutMessage fold receives `FoldContext` when it needs to lift a child Command or compare the transition with parent state from before the child update. `modelBeforeUpdate` is that previous parent Model. The Step returned by the fold still receives the parent Model after the next child Model has been written, so policy can deliberately use either side of the transition without reconstructing the fold by hand.
 
 ## Keyed Collections {#fold-child-at}
 
-Use `bindChild` with `readAll` and `key` when one parent owns a dynamic collection of the same Block. The Binding declares collection enumeration and stable identity once.
+When a parent field is an array of child Models and each child has its stable key in a direct field, pass both field names:
 
-::Snippet{name="blockMultipleInstances" label="Binding a keyed collection" class="mb-4"}
+::Snippet{name="blockDirectCollection" label="Binding a direct child collection" class="mb-4"}
+
+This shorthand requires a child Model Schema that exposes Struct fields. Use the general keyed form for union, suspended, or other Schema declarations whose fields are opaque, even when every decoded variant has the same key field.
+
+Use the general keyed form when collection items wrap the child Model or writing one child requires custom parent logic. `readAll` enumerates the items, `key` selects stable identity, `read` selects the child Model, and `writeAt` stores its next value.
+
+::Snippet{name="blockMultipleInstances" label="Binding a wrapped child collection" class="mb-4"}
 
 Each active key gets independent Subscription, ManagedResource, and Mount scopes. `fold`, exposed operations, `init`, and `embedView` take the key first. The key must be a stable string or finite number and must be unique in the current collection.
 
 Removing a key synchronously makes its dispatchers stale and starts lifecycle cleanup. Reusing the same key later creates a new occurrence; results and callbacks captured by the earlier occurrence cannot update it.
 
-Keyed Bindings do not reconcile the collection itself. Application update remains responsible for adding, removing, and ordering items in the parent Model.
+Keyed Bindings do not reconcile the collection itself. Application update remains responsible for adding, removing, and ordering items in the parent Model. In the direct field form, `init(key, ...)` must return a child Model with that key, and a child fold or operation cannot change it. The parent changes occurrence identity by removing one child Model and adding another under its own update logic.
+
+A keyed Binding can also represent one optional child whose domain identity changes. Enumerate zero or one item from an `Option`, and store its ID beside the child Model.
+
+For example, in [Typing Terminal](/example-apps/typing-terminal), the Room Binding captures `roomId` in `GotRoomMessage` for views, Command results, and Subscription emissions. Navigating to another room replaces the keyed occurrence and initializes a fresh Room Model. A delayed result keeps its original room ID; the parent does not infer its origin from the current Route. Local child Messages such as `ChangedUserText` need no additional room ID.
+
+Discarding a Command result does not undo its external writes. Scope persistent data by the same domain ID when a completed write from one occurrence must not overwrite another occurrence's data.
 
 ## Reading Parent State
 
@@ -237,13 +261,13 @@ Use reflection only for silent synchronization. If the transition should emit Co
 
 ## Complete the Application
 
-Import `define as defineApplication` from `foldkit/application` and export the early typed value as `Application`. Its owned methods author root Commands, updates, Steps, views, and lifecycle declarations. Create `ApplicationComposition` with the root child Bindings and Mounts, then call its `make` or `makeElement` in `entry.ts` with explicitly listed implementation pieces and browser inputs. A graphless root still calls `Application.toComposition()`. An Application cannot be bound as a child:
+Import `defineApplication` from `foldkit` and export the early typed value as `Application`. Its owned methods author root Commands, updates, Steps, views, and lifecycle declarations. Create `ApplicationComposition` with the root child Bindings and Mounts, then call its `toApplication` or `toElement` in `entry.ts` with explicitly listed implementation pieces and browser inputs. A graphless root still calls `Application.toComposition()`. An Application cannot be bound as a child:
 
 ::Snippet{name="blockApplicationCompletion" label="Completing the Application"}
 
 The Application Composition carries the child graph. Its completion config supplies local handler recipes and lifecycle definitions. `ApplicationLayer` supplies ordinary application services. It does not re-merge each feature's `EffectsLayer`.
 
-`ApplicationComposition.make` validates the concrete composition before the Runtime starts. Missing handlers, incompatible child Bindings, and unavailable Mount requirements fail before a user interaction.
+`ApplicationComposition.toApplication` validates the concrete composition before the Runtime starts. Missing handlers, incompatible child Bindings, and unavailable Mount requirements fail before a user interaction.
 
 Server rendering uses the same root:
 
@@ -324,7 +348,7 @@ For shared definitions specialized by a generic factory, `Block.define(id)` supp
 
 ### Parent.bindChild
 
-`Parent.bindChild(block, config)` creates one static, optional, or keyed Binding in the established parent Model and Message context. Supply explicit `read`/`write`, or `field` for a required direct Struct field. Supply exactly one of `parentMessage` and `toParentMessage`. A keyed Binding requires `readAll`, `key`, `read`, and `writeAt`. An explicit placement overrides the field or Block ID default. Subscription gates and OutMessage handling are parent policies.
+`Parent.bindChild(block, config)` creates one static, optional, or keyed Binding in the established parent Model and Message context. Use `field` for an exact direct Struct field containing the child Model or `Option<ChildModel>`; `presentWhen` can add whole-child presence policy to that direct form. Use explicit `read`/`write` for custom access. A direct child-Model array uses string-valued `field` and `key` when the child Model Schema exposes Struct fields; union, suspended, and other opaque child Schemas use the general keyed form with `readAll`, function-valued `key`, `read`, and `writeAt`. Supply exactly one of `parentMessage` and `toParentMessage` for a static Binding; keyed Message mappings receive both the key and child Message. An explicit placement overrides the field or Block ID default. `subscriptions.when` gates only Streams. OutMessage handling is parent policy.
 
 ### Feature.step
 

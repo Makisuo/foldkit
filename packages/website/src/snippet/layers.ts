@@ -1,7 +1,6 @@
 import { Context, Effect, Layer, Schema } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
-import { Http } from 'foldkit'
-import { define as defineApplication } from 'foldkit/application'
+import { Http, defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const User = Schema.Struct({ id: Schema.String, name: Schema.String })

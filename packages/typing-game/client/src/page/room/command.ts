@@ -12,6 +12,9 @@ import { Room } from './definition'
 import { Message } from './message'
 import { RoomPlayerSession, RoomPlayerSessionJsonString } from './model'
 
+const roomPlayerSessionKey = (roomId: string) =>
+  `${ROOM_PLAYER_SESSION_KEY}:${roomId}`
+
 export const FetchRoom = Room.command('FetchRoom', {
   args: { roomId: Schema.String },
   messages: [Message.SucceededFetchRoom, Message.FailedFetchRoom],
@@ -34,14 +37,15 @@ export const LoadSession = Room.command('LoadSession', {
 
     return ({ roomId }) =>
       Effect.gen(function* () {
-        const maybeSessionJson = yield* store.get(ROOM_PLAYER_SESSION_KEY)
-
-        const sessionJson = yield* Effect.fromOption(
-          Option.fromNullishOr(maybeSessionJson),
+        const scopedSessionJson = yield* store.get(roomPlayerSessionKey(roomId))
+        const sessionJson =
+          scopedSessionJson ?? (yield* store.get(ROOM_PLAYER_SESSION_KEY))
+        const storedSessionJson = yield* Effect.fromOption(
+          Option.fromNullishOr(sessionJson),
         )
         const decodeSession = Schema.decodeEffect(RoomPlayerSessionJsonString)
 
-        return yield* decodeSession(sessionJson).pipe(
+        return yield* decodeSession(storedSessionJson).pipe(
           Effect.map(session =>
             Message.CompletedLoadSession({
               maybeSession: Option.liftPredicate(
@@ -172,7 +176,7 @@ export const SavePlayerSession = Room.command('SavePlayerSession', {
       Effect.gen(function* () {
         const encodeSession = Schema.encodeEffect(RoomPlayerSessionJsonString)
         const sessionJson = yield* encodeSession(session)
-        yield* store.set(ROOM_PLAYER_SESSION_KEY, sessionJson)
+        yield* store.set(roomPlayerSessionKey(session.roomId), sessionJson)
         return Message.CompletedSavePlayerSession()
       }).pipe(
         Effect.catch(() =>
@@ -183,13 +187,31 @@ export const SavePlayerSession = Room.command('SavePlayerSession', {
 })
 
 export const ClearSession = Room.command('ClearSession', {
+  args: { roomId: Schema.String },
   messages: [Message.CompletedClearSession],
   handler: function* () {
     const store = yield* KeyValueStore.KeyValueStore
 
-    return () =>
-      store.remove(ROOM_PLAYER_SESSION_KEY).pipe(
-        Effect.as(Message.CompletedClearSession()),
+    return ({ roomId }) =>
+      Effect.gen(function* () {
+        yield* store.remove(roomPlayerSessionKey(roomId))
+
+        const maybeLegacySessionJson = Option.fromNullishOr(
+          yield* store.get(ROOM_PLAYER_SESSION_KEY),
+        )
+
+        if (Option.isSome(maybeLegacySessionJson)) {
+          const session = yield* Schema.decodeEffect(
+            RoomPlayerSessionJsonString,
+          )(maybeLegacySessionJson.value)
+
+          if (session.roomId === roomId) {
+            yield* store.remove(ROOM_PLAYER_SESSION_KEY)
+          }
+        }
+
+        return Message.CompletedClearSession()
+      }).pipe(
         Effect.catch(() => Effect.succeed(Message.CompletedClearSession())),
       )
   },

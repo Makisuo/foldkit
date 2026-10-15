@@ -2,56 +2,56 @@
 
 ## Overview
 
-A small Foldkit application can start in two files. `src/application.ts` exports the typed `Application`, `ApplicationComposition`, Model and Message contracts, and implementation pieces. `src/entry.ts` chooses browser inputs, assembles a small `ApplicationLayer`, calls owned `make` or `makeElement`, and starts the Runtime. Extract root `layer.ts` only when provider composition is substantial or reused. Importing application pieces in a test does not start the Runtime.
+A small Foldkit application can start in two files. `src/application.ts` exports the typed `Application`, `ApplicationComposition`, Model and Message contracts, and implementation pieces. `src/entry.ts` chooses browser inputs, assembles a small `ApplicationLayer`, calls owned `toApplication` or `toElement`, and starts the Runtime. Extract root `layer.ts` only when provider composition is substantial or reused. Importing application pieces in a test does not start the Runtime.
 
 The Runtime API makes two independent choices:
 
-- `ApplicationComposition.make` or `ApplicationComposition.makeElement` decides what the app owns. An application owns the page; an Element owns only its container.
+- `ApplicationComposition.toApplication` or `ApplicationComposition.toElement` decides what the app owns. An application owns the page; an Element owns only its container.
 - `Runtime.run` or `Runtime.embed` decides who owns the runtime lifetime. `run` starts it for the page lifetime; `embed` returns a handle the host disposes.
 
-The Application Composition carries the handler requirements for its Commands, Subscriptions, Mounts, and ManagedResources into `make` or `makeElement`. Call `application.provide(layer)` or `element.provide(layer)` until the remaining service requirements are satisfied, then pass the runnable program to `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` as appropriate. Each call returns a new passive program. The assembly config has no `resources` field, and the Runtime builds the supplied Layers only when it starts that program.
+The Application Composition carries the handler requirements for its Commands, Subscriptions, Mounts, and ManagedResources into `toApplication` or `toElement`. Call `application.provide(layer)` or `element.provide(layer)` until the remaining service requirements are satisfied, then pass the runnable program to `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` as appropriate. Each call returns a new passive program. The assembly config has no `resources` field, and the Runtime builds the supplied Layers only when it starts that program.
 
-For a larger application, each completed child Block is bound and included in its parent's `children`. This carries the handler and lifecycle graph to the Application without root-level handler lists. A feature may provide business services it owns while leaving HTTP, storage, RPC, and browser requirements open. The application root combines those external providers in `ApplicationLayer`; `ApplicationComposition.make({ init, update, view, ... })` already has the handlers. [Project Organization](/patterns/project-organization#composing-handler-layers) shows the complete file structure.
+For a larger application, each completed child Block is bound and included in its parent's `children`. This carries the handler and lifecycle graph to the Application without root-level handler lists. A feature may provide business services it owns while leaving HTTP, storage, RPC, and browser requirements open. The application root combines those external providers in `ApplicationLayer`; `ApplicationComposition.toApplication({ init, update, view, ... })` already has the handlers. [Project Organization](/patterns/project-organization#composing-handler-layers) shows the complete file structure.
 
-Create the typed Application with `define as defineApplication` from `foldkit/application`, bind children through that Application, then call `toComposition`. Its completion methods capture the Model, Message, and composed graph; callers supply implementation pieces and host inputs. The returned lowercase `application` carries its unsatisfied requirements and supplies ordinary Services through `application.provide(layer)`.
+Create the typed Application with `defineApplication` from `foldkit`, bind children through that Application, then call `toComposition`. Its completion methods capture the Model, Message, and composed graph; callers supply implementation pieces and host inputs. The returned lowercase `application` carries its unsatisfied requirements and supplies ordinary Services through `application.provide(layer)`.
 
 The `provide` method adds the supplied Layer recipe and returns a new passive program. The Runtime builds that application Layer once for each start and releases its Scope when that start stops. Command lookup, Subscription restarts, Mount insertions, and ManagedResource reacquisitions reuse the resulting application-scoped handlers and providers.
 
 ::Snippet{name="runLayers" label="Providing application services"}
 
-## ApplicationComposition.make {#make-application}
+## ApplicationComposition.toApplication {#to-application}
 
-`ApplicationComposition.make` creates a Foldkit program for an app that owns the page. It supports both apps that leave the URL alone and apps that manage routing. The difference is whether you provide a `routing` config. To scope an app to one node without owning the page, use `ApplicationComposition.makeElement`.
+`ApplicationComposition.toApplication` creates a Foldkit program for an app that owns the page. It supports both apps that leave the URL alone and apps that manage routing. The difference is whether you provide a `routing` config. To scope an app to one node without owning the page, use `ApplicationComposition.toElement`.
 
 ### Without routing
 
 Without a `routing` config, the program doesn't manage the URL bar.
 
-::Snippet{name="runMakeApplication" label="Application without routing"}
+::Snippet{name="runToApplication" label="Application without routing"}
 
 ### With routing
 
 With a `routing` config, the program manages the URL bar. The init function receives the current URL and can use it to set the initial route.
 
-::Snippet{name="runMakeApplicationRouting" label="Application with routing"}
+::Snippet{name="runToApplicationRouting" label="Application with routing"}
 
 The `routing` config has two handlers. `onUrlRequest` turns a clicked link into a Message, giving update the choice between internal and external navigation. `onUrlChange` turns the new URL into a Message so update can store the corresponding route in the Model. See [Routing & Navigation](/core/routing-and-navigation) for the full walkthrough.
 
-The view returns a `Document` rather than bare HTML. A `Document` contains the body plus the document-level state that `ApplicationComposition.make` reapplies on every render. The tab title, the `<html>` language and direction, and the canonical and og\:url tags therefore stay in sync with the Model. [The Document](/core/view#the-document) lists every field.
+The view returns a `Document` rather than bare HTML. A `Document` contains the body plus the document-level state that `ApplicationComposition.toApplication` reapplies on every render. The tab title, the `<html>` language and direction, and the canonical and og\:url tags therefore stay in sync with the Model. [The Document](/core/view#the-document) lists every field.
 
-## makeElement {#make-element}
+## ApplicationComposition.toElement {#to-element}
 
 ### Page Ownership
 
-`ApplicationComposition.make` assumes it owns the page. That is correct for an app that owns its tab, but not for a widget on a page controlled by another application, where document updates would overwrite the host page metadata.
+`ApplicationComposition.toApplication` assumes it owns the page. That is correct for an app that owns its tab, but not for a widget on a page controlled by another application, where document updates would overwrite the host page metadata.
 
-Use `ApplicationComposition.makeElement` to scope a Foldkit app to its container. Its root view returns `Html` directly, and the runtime never touches the document `<head>` or the `<html>` element. The same Model, init, update, Command, Subscription, ManagedResource, and crash-handling architecture remains available. Element-scoped apps do not own the URL bar, so `ApplicationComposition.makeElement` has no `routing` config. Supply its remaining service requirements with `element.provide(layer)` before starting it.
+Use `ApplicationComposition.toElement` to scope a Foldkit app to its container. Its root view returns `Html` directly, and the runtime never touches the document `<head>` or the `<html>` element. The same Model, init, update, Command, Subscription, ManagedResource, and crash-handling architecture remains available. Element-scoped apps do not own the URL bar, so `ApplicationComposition.toElement` has no `routing` config. Supply its remaining service requirements with `element.provide(layer)` before starting it.
 
 ### Flags
 
-Flags still resolve before init, but their wiring follows the ownership boundary. A page-owning application receives its Flags Effect when `Runtime.run` starts it. A self-contained Element receives its Flags Effect in the `ApplicationComposition.makeElement` config, and that Effect's requirements join the Element's requirements.
+Flags still resolve before init, but their wiring follows the ownership boundary. A page-owning application receives its Flags Effect when `Runtime.run` starts it. A self-contained Element receives its Flags Effect in the `ApplicationComposition.toElement` config, and that Effect's requirements join the Element's requirements.
 
-::Snippet{name="runMakeElement" label="Using ApplicationComposition.makeElement"}
+::Snippet{name="runToElement" label="Using ApplicationComposition.toElement"}
 
 ## embed
 

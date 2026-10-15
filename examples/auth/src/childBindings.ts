@@ -8,7 +8,6 @@ import {
 } from './command'
 import { Application } from './definition'
 import { Message } from './message'
-import { Model } from './model'
 import { LoggedIn, LoggedOut } from './page'
 import { ApplicationRoute } from './route'
 
@@ -21,7 +20,7 @@ const foldLoggedOutOutMessage = LoggedOut.OutMessage.match({
 })
 
 export const loggedOut = Application.bindChild(LoggedOut.block, {
-  read: (model: Model) =>
+  read: model =>
     Match.value(model).pipe(
       Match.tagsExhaustive({
         LoggedOut: loggedOutModel => Option.some(loggedOutModel),
@@ -42,7 +41,7 @@ const foldLoggedInOutMessage = LoggedIn.OutMessage.match({
 })
 
 export const loggedIn = Application.bindChild(LoggedIn.block, {
-  read: (model: Model) =>
+  read: model =>
     Match.value(model).pipe(
       Match.tagsExhaustive({
         LoggedOut: () => Option.none(),

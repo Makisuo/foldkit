@@ -1,9 +1,9 @@
 import { Array, Match, Option } from 'effect'
-import type { HtmlBuilderOf } from 'foldkit/application'
 import { Html } from 'foldkit/html'
 import { Transition } from 'foldkit/route'
 
 import { ApplicationComposition } from './application'
+import type { ViewBuilder } from './application'
 import { type Painting, findPaintingWithIndex, paintings } from './data'
 import { Message } from './message'
 import {
@@ -19,8 +19,6 @@ import {
   studioRouter,
 } from './route'
 import type { AppTransition } from './transition'
-
-type ViewBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 const routeLabel = (route: ApplicationRoute): string =>
   ApplicationRoute.match(route, {

@@ -64,11 +64,22 @@ export const registerBindingParentContract = (
 export const assertBindingParentContracts = (
   parentContract: RuntimeParentContract,
   parentId: string,
-  children: ReadonlyArray<object>,
+  children: ReadonlyArray<Readonly<{ placement: string }>>,
 ): void => {
-  for (const child of children) {
+  const placementIndexes = new Map<string, number>()
+
+  for (const [index, child] of children.entries()) {
     const runtime = runtimeBindingOf(child)
     const bindingParent = runtime.parentContract
+    const previousIndex = placementIndexes.get(child.placement)
+
+    if (previousIndex !== undefined) {
+      throw new Error(
+        `[foldkit] Block "${parentId}" child Bindings at indexes ${previousIndex} and ${index} both resolve to placement "${child.placement}". Give each sibling Binding a unique placement.`,
+      )
+    }
+
+    placementIndexes.set(child.placement, index)
 
     if (
       bindingParent !== undefined &&
@@ -78,7 +89,7 @@ export const assertBindingParentContracts = (
         bindingParent.OutMessage !== parentContract.OutMessage)
     ) {
       throw new Error(
-        `[foldkit] Child Binding "${Reflect.get(child, 'placement')}" belongs to a different parent Definition contract. Create it through the exact "${parentId}" Definition.bindChild method.`,
+        `[foldkit] Child Binding "${child.placement}" belongs to a different parent Definition contract. Create it through the exact "${parentId}" Definition.bindChild method.`,
       )
     }
   }

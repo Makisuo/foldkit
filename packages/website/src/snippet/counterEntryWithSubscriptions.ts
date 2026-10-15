@@ -10,7 +10,7 @@ import {
 } from './application'
 import { ApplicationLayer } from './layer'
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

@@ -3,9 +3,10 @@ import { AsyncData } from 'foldkit'
 
 import * as Button from '@foldkit/ui/button'
 
-import { ApplicationComposition } from '../application'
+import type { ViewBuilder } from '../application'
 import type { Stats } from '../data'
 import { Message } from '../message'
+import type { Model } from '../model'
 import { statsQuery } from '../query'
 import {
   errorPanel,
@@ -15,7 +16,7 @@ import {
   toolbarButtonClassName,
 } from './shared'
 
-export const statsTabView = ApplicationComposition.render((model, h) => {
+export const statsTabView = (model: Model, h: ViewBuilder) => {
   const statsAsyncData = statsQuery.read(model.stats)
   const isPending = AsyncData.isPending(statsAsyncData)
 
@@ -76,11 +77,16 @@ export const statsTabView = ApplicationComposition.render((model, h) => {
       }),
     ],
   )
-})
+}
 
-export const statsCards = ApplicationComposition.render.withInput<
-  Readonly<{ stats: Stats; fetchedAt: number; isRefreshing: boolean }>
->()(({ stats, fetchedAt, isRefreshing }, h) =>
+export const statsCards = (
+  {
+    stats,
+    fetchedAt,
+    isRefreshing,
+  }: Readonly<{ stats: Stats; fetchedAt: number; isRefreshing: boolean }>,
+  h: ViewBuilder,
+) =>
   h.div(
     [h.Class('flex flex-col gap-3')],
     [
@@ -116,5 +122,4 @@ export const statsCards = ApplicationComposition.render.withInput<
         ],
       ),
     ],
-  ),
-)
+  )

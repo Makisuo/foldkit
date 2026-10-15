@@ -33,9 +33,9 @@ const foldTabsOutMessage = OutMessage.match<Update.Step<Model, Message>>({
 })
 
 const tabs = TabsScene.bindChild(block, {
-  read: (model: Model) => Option.some(model),
-  write: (_model: Model, nextTabs: Model) => nextTabs,
-  toParentMessage: (message: Message): Message => message,
+  read: model => Option.some(model),
+  write: (_model, nextTabs) => nextTabs,
+  toParentMessage: message => message,
   outMessage: { fold: foldTabsOutMessage },
 })
 

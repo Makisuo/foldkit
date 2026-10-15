@@ -1,4 +1,4 @@
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 import { Effect, Schema } from 'effect'
 import { Query } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'

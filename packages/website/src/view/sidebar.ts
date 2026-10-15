@@ -1,12 +1,13 @@
 import { clsx } from 'clsx'
 import { Array, Equal, Option, pipe } from 'effect'
-import { Html, type HtmlBuilder, createKeyedLazy } from 'foldkit/html'
+import { Html, createKeyedLazy } from 'foldkit/html'
 import apiModuleIndex from 'virtual:api-module-index'
 
 import { Disclosure } from '@foldkit/ui'
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
-import { type ViewRequirements, mobileMenuDialog } from '../childBindings'
+import type { ViewBuilder } from '../application'
+import { mobileMenuDialog } from '../childBindings'
 import { Shared } from '../component'
 import {
   DOCS_SIDEBAR_NAV_ID,
@@ -55,7 +56,7 @@ const sidebarGroup = (
     children: Html
     isLocked: boolean
   }>,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html => {
   const buttonClassName = clsx(
     'w-full flex items-center justify-between transition',
@@ -135,7 +136,7 @@ const navLink = (
   href: string,
   isActive: boolean,
   label: string,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ) =>
   h.li(
     [],
@@ -162,7 +163,7 @@ const getStartedClass = (isActive: boolean) =>
 const getStartedNavItem = (
   route: Model['route'],
   maybeExampleSlug: Option.Option<string>,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html => {
   const isActive = isNavPageActive(
     route._tag,
@@ -192,7 +193,7 @@ const computeNavLinks = (
   idPrefix: string,
   route: Model['route'],
   sidebarGroups: SidebarGroups,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html => {
   const isOnApiModulePage = route._tag === 'ApiModule'
   const maybeExampleSlug = pipe(
@@ -298,7 +299,7 @@ const computeNavLinks = (
 
 const lazyNavLinks = createKeyedLazy()
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
+export const view = (model: Model, h: ViewBuilder): Html => {
   const desktopNavLinks = lazyNavLinks(DESKTOP_ID_PREFIX, computeNavLinks, [
     DESKTOP_ID_PREFIX,
     model.route,
@@ -326,10 +327,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-export const mobileView = (
-  model: Model,
-  h: HtmlBuilder<Message, ViewRequirements>,
-): Html => {
+export const mobileView = (model: Model, h: ViewBuilder): Html => {
   const mobileNavLinks = lazyNavLinks(MOBILE_ID_PREFIX, computeNavLinks, [
     MOBILE_ID_PREFIX,
     model.route,
@@ -425,7 +423,7 @@ export const mobileView = (
       model: model.mobileMenuDialog,
       viewInputs: {
         hasDescription: true,
-        toView: (renderInfo: DialogRenderInfo) =>
+        toView: renderInfo =>
           h.dialog(
             [...renderInfo.dialog, h.Class('md:hidden')],
             renderInfo.isVisible

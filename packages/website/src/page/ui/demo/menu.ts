@@ -6,7 +6,8 @@ import { type AnchorConfig, buttonId } from '@foldkit/ui/menu'
 
 import { Icon } from '../../../icon'
 import { menuAnimatedDemo, menuBasicDemo } from '../update'
-import type { ViewBuilder } from '../viewBuilder'
+import type { ViewBuilder } from '../update'
+import { type MenuItem } from './components'
 
 // DEMO CONTENT
 
@@ -25,10 +26,6 @@ const wrapperClassName = 'relative inline-block'
 const headingClassName = 'demo-option-heading'
 
 const ICON_SIZE = 'w-4 h-4'
-
-export type MenuItem = 'Edit' | 'Duplicate' | 'Archive' | 'Move' | 'Delete'
-
-export const DemoMenu = Menu.create<MenuItem>()
 
 const MENU_ITEMS: ReadonlyArray<MenuItem> = [
   'Edit',

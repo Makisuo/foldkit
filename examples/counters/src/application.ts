@@ -1,8 +1,6 @@
-import { Array, Schema } from 'effect'
-import {
-  type HtmlBuilderOf,
-  define as defineApplication,
-} from 'foldkit/application'
+import { Array, Number, Schema } from 'effect'
+import { defineApplication } from 'foldkit'
+import type { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -11,21 +9,23 @@ import { Button } from '@foldkit/ui'
 
 import * as Counter from './counter'
 
-const Row = Schema.Struct({
+const INITIAL_COUNTER_COUNT = 3
+
+const CounterInstance = Schema.Struct({
   id: Schema.String,
   counter: Counter.Model,
 })
-type Row = typeof Row.Type
+type CounterInstance = typeof CounterInstance.Type
 
 export const Model = Schema.Struct({
-  rows: Schema.Array(Row),
-  nextRowId: Schema.Number,
+  counters: Schema.Array(CounterInstance),
+  nextCounterId: Schema.Number,
 })
 export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
-  ClickedAddRow: {},
-  ClickedRemoveRow: { id: Schema.String },
+  ClickedAddCounter: {},
+  ClickedRemoveCounter: { id: Schema.String },
   GotCounterMessage: {
     id: Schema.String,
     message: Counter.Message,
@@ -37,23 +37,18 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 
 const counters = Application.bindChild(Counter.block, {
-  readAll: (model: Model) => model.rows,
-  key: row => row.id,
-  read: row => row.counter,
-  writeAt: (
-    model: Model,
-    id: string,
-    nextCounter: typeof Counter.Model.Type,
-  ): Model =>
+  readAll: ({ counters }) => counters,
+  key: ({ id }) => id,
+  read: ({ counter }) => counter,
+  writeAt: (model, id, nextCounter) =>
     modifyFields(model, {
-      rows: Array.map((row): Row =>
-        row.id === id ? modifyFields(row, { counter: () => nextCounter }) : row,
+      counters: Array.map(counterInstance =>
+        counterInstance.id === id
+          ? modifyFields(counterInstance, { counter: () => nextCounter })
+          : counterInstance,
       ),
     }),
-  toParentMessage: (
-    id: string,
-    message: typeof Counter.Message.Type,
-  ): Message => Message.GotCounterMessage({ id, message }),
+  toParentMessage: (id, message) => Message.GotCounterMessage({ id, message }),
 })
 
 export const ApplicationComposition = Application.toComposition({
@@ -62,40 +57,58 @@ export const ApplicationComposition = Application.toComposition({
 
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
-    ClickedAddRow: () => ({
-      model: modifyFields(model, {
-        rows: Array.append({
-          id: `counter-${model.nextRowId}`,
-          counter: counters.init(`counter-${model.nextRowId}`).model,
+    ClickedAddCounter: () => {
+      const id = `counter-${model.nextCounterId}`
+      const counterInit = counters.init(id)
+
+      return {
+        model: modifyFields(model, {
+          counters: Array.append({ id, counter: counterInit.model }),
+          nextCounterId: Number.increment,
         }),
-        nextRowId: nextRowId => nextRowId + 1,
-      }),
-    }),
-    ClickedRemoveRow: ({ id }) => ({
+        commands: counterInit.commands,
+      }
+    },
+    ClickedRemoveCounter: ({ id }) => ({
       model: modifyFields(model, {
-        rows: Array.filter(row => row.id !== id),
+        counters: Array.filter(counterInstance => counterInstance.id !== id),
       }),
     }),
     GotCounterMessage: ({ id, message }) => counters.fold(model, id, message),
   }),
 )
 
-export const init = () => ({
-  model: {
-    rows: [
-      { id: 'counter-0', counter: counters.init('counter-0').model },
-      { id: 'counter-1', counter: counters.init('counter-1').model },
-      { id: 'counter-2', counter: counters.init('counter-2').model },
-    ],
-    nextRowId: 3,
-  },
-})
+export const init = () => {
+  const counterInits = Array.makeBy(INITIAL_COUNTER_COUNT, counterId => {
+    const id = `counter-${counterId}`
+    const counterInit = counters.init(id)
 
-type ViewBuilder = HtmlBuilderOf<typeof ApplicationComposition>
+    return { id, counterInit }
+  })
 
-const rowView = (row: Row, h: ViewBuilder): Html =>
+  return {
+    model: {
+      counters: Array.map(counterInits, ({ id, counterInit }) => ({
+        id,
+        counter: counterInit.model,
+      })),
+      nextCounterId: INITIAL_COUNTER_COUNT,
+    },
+    commands: Array.flatMap(
+      counterInits,
+      ({ counterInit }) => counterInit.commands ?? [],
+    ),
+  }
+}
+
+type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+
+const counterInstanceView = (
+  counterInstance: CounterInstance,
+  h: ViewBuilder,
+): Html =>
   h.keyed('div')(
-    row.id,
+    counterInstance.id,
     [h.Class('flex items-center gap-2')],
     [
       h.div(
@@ -103,16 +116,16 @@ const rowView = (row: Row, h: ViewBuilder): Html =>
         [
           h.block(
             counters.embedView({
-              key: row.id,
-              slotId: row.id,
-              model: row.counter,
+              key: counterInstance.id,
+              slotId: counterInstance.id,
+              model: counterInstance.counter,
             }),
           ),
         ],
       ),
       Button.view(
         {
-          onClick: Message.ClickedRemoveRow({ id: row.id }),
+          onClick: Message.ClickedRemoveCounter({ id: counterInstance.id }),
           toView: attributes =>
             h.button(
               [
@@ -130,7 +143,7 @@ const rowView = (row: Row, h: ViewBuilder): Html =>
   )
 
 export const view = ApplicationComposition.view((model, h) => ({
-  title: `Counters (${model.rows.length})`,
+  title: `Counters (${model.counters.length})`,
   body: h.div(
     [
       h.Class(
@@ -142,16 +155,18 @@ export const view = ApplicationComposition.view((model, h) => ({
       h.p(
         [h.Class('text-sm text-gray-500 max-w-md text-center')],
         [
-          'Each row is a Counter Block. The parent has no awareness of Counter internals; it just embeds the Block via h.block and routes dispatched messages back to the right row via the GotCounterMessage wrapper.',
+          'Each instance is a Counter Block. The parent has no awareness of Counter internals; it just embeds the Block via h.block and routes dispatched messages back to the corresponding instance via the GotCounterMessage wrapper.',
         ],
       ),
       h.div(
         [h.Class('flex flex-col gap-3 w-full max-w-md')],
-        model.rows.map(row => rowView(row, h)),
+        model.counters.map(counterInstance =>
+          counterInstanceView(counterInstance, h),
+        ),
       ),
       Button.view(
         {
-          onClick: Message.ClickedAddRow(),
+          onClick: Message.ClickedAddCounter(),
           toView: attributes =>
             h.button(
               [

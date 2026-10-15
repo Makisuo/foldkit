@@ -725,6 +725,49 @@ describe('completed Block bindings', () => {
     ],
   })
 
+  const directEntriesBinding = (keyPropertyName = 'key') =>
+    Testing.varDecl('const', 'entries', {
+      type: 'CallExpression',
+      callee: {
+        type: 'MemberExpression',
+        object: Testing.id('Application'),
+        property: Testing.id('bindChild'),
+        computed: false,
+      },
+      arguments: [
+        Testing.id('Entry'),
+        objectExpression([
+          property('field', Testing.strLiteral('entries')),
+          property(keyPropertyName, Testing.strLiteral('id')),
+          property('toParentMessage', Testing.arrowFn(Testing.id('message'))),
+        ]),
+      ],
+    })
+
+  const updateEntriesManually = () =>
+    modifyFields(
+      'model',
+      objectExpression([
+        property(
+          'entries',
+          Testing.callOfMember('Array', 'map', [
+            Testing.arrowFn(
+              modifyFields(
+                'entry',
+                objectExpression([
+                  property(
+                    'theme',
+                    Testing.arrowFn(Testing.strLiteral('Light')),
+                  ),
+                ]),
+              ),
+              [Testing.id('entry')],
+            ),
+          ]),
+        ),
+      ]),
+    )
+
   it('tracks a parent Model dispatched through binding.fold', () => {
     const result = runRule([
       settingsBinding,
@@ -765,6 +808,41 @@ describe('completed Block bindings', () => {
     ])
 
     expect(result).toHaveLength(1)
+  })
+
+  it('tracks direct keyed fields through named Binding operations', () => {
+    const result = runRule([
+      directEntriesBinding(),
+      Testing.callOfMember('Update', 'combine', [
+        Testing.id('model'),
+        {
+          type: 'ArrayExpression',
+          elements: [
+            Testing.callOfMember('entries', 'setTheme', [
+              Testing.strLiteral('first'),
+              Testing.strLiteral('Light'),
+            ]),
+          ],
+        },
+      ]),
+      updateEntriesManually(),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('does not recognize keyField as direct keyed shorthand', () => {
+    const result = runRule([
+      directEntriesBinding('keyField'),
+      Testing.callOfMember('entries', 'fold', [
+        Testing.id('model'),
+        Testing.strLiteral('first'),
+        Testing.id('message'),
+      ]),
+      updateEntriesManually(),
+    ])
+
+    expect(result).toHaveLength(0)
   })
 
   it('does not attribute an unrelated Model to a binding', () => {

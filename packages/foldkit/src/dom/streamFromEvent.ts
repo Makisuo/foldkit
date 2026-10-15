@@ -143,8 +143,8 @@ type PreventDefaultEventListenerOptions = Omit<
  * those events, or reach for `streamFromEventFilterMapPreventDefault`, which does
  * so for you.
  *
- * The output type is inferred from the mapper; the owning definition's
- * A Block definition's `subscriptions` method checks that the final Stream emits the application's
+ * The output type is inferred from the mapper. A Block definition's
+ * `subscriptions` method checks that the final Stream emits the Block's
  * Message type.
  */
 export type StreamFromEventConfig<
@@ -152,9 +152,14 @@ export type StreamFromEventConfig<
   Type extends EventTypeOf<Target>,
   Output,
 > = Readonly<{
+  /** Event source, or a thunk resolved when the Stream's scope opens. */
   target: Target | (() => Target)
+  /** Event name accepted by the target's declared or native event map. */
   type: Type
+  /** Maps each event synchronously to the value emitted by the Stream. */
   mapEvent: (event: EventOf<Target, Type>) => Output
+  /** Native listener options passed to both `addEventListener` and
+   * `removeEventListener`. */
   options?: AddEventListenerOptions
 }>
 
@@ -180,8 +185,8 @@ export type StreamFromEventConfig<
  * `options: { passive: false }` explicitly when cancelling those events, or
  * reach for `streamFromEventFilterMapPreventDefault`, which does so for you.
  *
- * The output type is inferred from the mapper; the owning definition's
- * A Block definition's `subscriptions` method checks that the final Stream emits the application's
+ * The output type is inferred from the mapper. A Block definition's
+ * `subscriptions` method checks that the final Stream emits the Block's
  * Message type.
  */
 export type StreamFromEventFilterMapConfig<
@@ -189,9 +194,15 @@ export type StreamFromEventFilterMapConfig<
   Type extends EventTypeOf<Target>,
   Output,
 > = Readonly<{
+  /** Event source, or a thunk resolved when the Stream's scope opens. */
   target: Target | (() => Target)
+  /** Event name accepted by the target's declared or native event map. */
   type: Type
+  /** Maps an event to `Some(value)` to emit it, or `None` to ignore it. The
+   * mapper runs synchronously during event dispatch. */
   filterMapEvent: (event: EventOf<Target, Type>) => Option.Option<Output>
+  /** Native listener options passed to both `addEventListener` and
+   * `removeEventListener`. */
   options?: AddEventListenerOptions
 }>
 
@@ -256,8 +267,8 @@ const listen = <EventType extends Event, Output>(
  * rejects `passive: true`; the runtime guard also throws for unchecked
  * JavaScript inputs.
  *
- * The output type is inferred from the mapper; the owning definition's
- * A Block definition's `subscriptions` method checks that the final Stream emits the application's
+ * The output type is inferred from the mapper. A Block definition's
+ * `subscriptions` method checks that the final Stream emits the Block's
  * Message type.
  */
 export type StreamFromEventFilterMapPreventDefaultConfig<
@@ -265,9 +276,15 @@ export type StreamFromEventFilterMapPreventDefaultConfig<
   Type extends EventTypeOf<Target>,
   Output,
 > = Readonly<{
+  /** Event source, or a thunk resolved when the Stream's scope opens. */
   target: Target | (() => Target)
+  /** Event name accepted by the target's declared or native event map. */
   type: Type
+  /** Maps an event to `Some(value)` to emit and cancel its default action, or
+   * `None` to ignore it. */
   filterMapEvent: (event: EventOf<Target, Type>) => Option.Option<Output>
+  /** Native listener options. `passive` defaults to `false` and cannot be
+   * `true`, because handled events call `preventDefault()`. */
   options?: PreventDefaultEventListenerOptions
 }>
 

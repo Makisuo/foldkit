@@ -42,9 +42,9 @@ const ComboboxMountRequirements = Block.define('ComboboxMountRequirements', {
 })
 
 const combobox = ComboboxMountRequirements.bindChild(Combobox.block, {
-  read: (model: Combobox.Model) => Option.some(model),
-  write: (_model: Combobox.Model, nextCombobox: Combobox.Model) => nextCombobox,
-  toParentMessage: (message: Combobox.Message): Combobox.Message => message,
+  read: model => Option.some(model),
+  write: (_model, nextCombobox) => nextCombobox,
+  toParentMessage: message => message,
   outMessage: { fold: foldComboboxOutMessage },
 })
 
@@ -73,9 +73,9 @@ const ListboxMountRequirements = Block.define('ListboxMountRequirements', {
 })
 
 const listbox = ListboxMountRequirements.bindChild(Listbox.block, {
-  read: (model: Listbox.Model) => Option.some(model),
-  write: (_model: Listbox.Model, nextListbox: Listbox.Model) => nextListbox,
-  toParentMessage: (message: Listbox.Message): Listbox.Message => message,
+  read: model => Option.some(model),
+  write: (_model, nextListbox) => nextListbox,
+  toParentMessage: message => message,
   outMessage: { fold: foldListboxOutMessage },
 })
 
@@ -103,9 +103,9 @@ const MenuMountRequirements = Block.define('MenuMountRequirements', {
 })
 
 const menu = MenuMountRequirements.bindChild(Menu.block, {
-  read: (model: Menu.Model) => Option.some(model),
-  write: (_model: Menu.Model, nextMenu: Menu.Model) => nextMenu,
-  toParentMessage: (message: Menu.Message): Menu.Message => message,
+  read: model => Option.some(model),
+  write: (_model, nextMenu) => nextMenu,
+  toParentMessage: message => message,
   outMessage: { fold: foldMenuOutMessage },
 })
 

@@ -21,7 +21,4 @@ import { Settings } from './page'
 Settings.Model
 Settings.Message
 Settings.OutMessage.match
-Application.bindChild(Settings.block, {
-  field: 'settings',
-  parentMessage: Message.GotSettingsMessage,
-})
+Settings.block

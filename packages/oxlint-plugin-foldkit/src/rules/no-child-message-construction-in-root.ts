@@ -279,12 +279,99 @@ const applicationViewDefinitionPath = (
     return { source: path.source, members }
   })
 
-const aliasedApplicationViewDefinitionPath = (
+const compositionHtmlBuilderDefinitionPath = (
+  references: WeakMap<ESTree.Node, Reference>,
+  builderType: unknown,
+): Option.Option<ImportedMessagePath> => {
+  if (!isTypeReference(builderType)) {
+    return Option.none()
+  }
+
+  const isCompositionHtmlBuilder = Option.exists(
+    resolveFoldkitApiPath(references, builderType.typeName),
+    path => {
+      const [namespace, typeName, extraMember] = path
+      return (
+        namespace === 'Block' &&
+        typeName === 'HtmlBuilderOf' &&
+        extraMember === undefined
+      )
+    },
+  )
+  if (!isCompositionHtmlBuilder) {
+    return Option.none()
+  }
+
+  return Option.gen(function* () {
+    const typeArguments = yield* Option.fromNullishOr(builderType.typeArguments)
+    if (Array.length(typeArguments.params) !== 1) {
+      return yield* Option.none()
+    }
+
+    const compositionType = yield* Array.head(typeArguments.params)
+    if (!isTypeQuery(compositionType)) {
+      return yield* Option.none()
+    }
+
+    const path = yield* resolveImportedPathThroughConst(
+      references,
+      compositionType.exprName,
+    )
+    if (Array.isReadonlyArrayEmpty(path.members)) {
+      return yield* Option.none()
+    }
+
+    return { source: path.source, members: path.members }
+  })
+}
+
+const directOwnedBuilderDefinitionPath = (
+  references: WeakMap<ESTree.Node, Reference>,
+  typeAnnotation: unknown,
+): Option.Option<ImportedMessagePath> => {
+  const applicationViewPath = applicationViewDefinitionPath(
+    references,
+    typeAnnotation,
+  )
+  if (Option.isSome(applicationViewPath)) {
+    return applicationViewPath
+  }
+
+  return compositionHtmlBuilderDefinitionPath(references, typeAnnotation)
+}
+
+const importedViewBuilderDefinitionPath = (
   references: WeakMap<ESTree.Node, Reference>,
   typeAnnotation: unknown,
 ): Option.Option<ImportedMessagePath> => {
   if (!isTypeReference(typeAnnotation)) {
     return Option.none()
+  }
+
+  return Option.gen(function* () {
+    const path = yield* resolveImportedPath(references, typeAnnotation.typeName)
+    if (!Option.contains(Array.last(path.members), 'ViewBuilder')) {
+      return yield* Option.none()
+    }
+
+    return { source: path.source, members: path.members.slice(0, -1) }
+  })
+}
+
+const aliasedOwnedBuilderDefinitionPath = (
+  references: WeakMap<ESTree.Node, Reference>,
+  typeAnnotation: unknown,
+): Option.Option<ImportedMessagePath> => {
+  if (!isTypeReference(typeAnnotation)) {
+    return Option.none()
+  }
+
+  const importedViewBuilderPath = importedViewBuilderDefinitionPath(
+    references,
+    typeAnnotation,
+  )
+  if (Option.isSome(importedViewBuilderPath)) {
+    return importedViewBuilderPath
   }
 
   return Option.gen(function* () {
@@ -301,7 +388,7 @@ const aliasedApplicationViewDefinitionPath = (
       return yield* Option.none()
     }
 
-    return yield* applicationViewDefinitionPath(
+    return yield* directOwnedBuilderDefinitionPath(
       references,
       definition.node.typeAnnotation,
     )
@@ -311,18 +398,41 @@ const aliasedApplicationViewDefinitionPath = (
 type DefinitionOperation = Readonly<{
   importedDefinitionPath: ImportedMessagePath | undefined
   members: ReadonlyArray<string>
-  operation: 'step' | 'view'
+  operation:
+    | 'bindChild'
+    | 'command'
+    | 'managedResources'
+    | 'mount'
+    | 'mountStream'
+    | 'render'
+    | 'resource'
+    | 'step'
+    | 'subscriptions'
+    | 'update'
+    | 'view'
   root: ESTree.IdentifierReference
 }>
 
 const definitionOperationName = (
   method: string,
   maybePreviousMethod: Option.Option<string>,
-): 'step' | 'view' | undefined => {
+): DefinitionOperation['operation'] | undefined => {
   if (method === 'withInputs' && Option.contains(maybePreviousMethod, 'view')) {
     return 'view'
   }
-  if (method === 'view' || method === 'step') {
+  if (
+    method === 'bindChild' ||
+    method === 'command' ||
+    method === 'managedResources' ||
+    method === 'mount' ||
+    method === 'mountStream' ||
+    method === 'render' ||
+    method === 'resource' ||
+    method === 'step' ||
+    method === 'subscriptions' ||
+    method === 'update' ||
+    method === 'view'
+  ) {
     return method
   }
   return undefined
@@ -424,7 +534,26 @@ const importedDefinitionOwnsMessage = (
   definitionPath: ImportedMessagePath,
   messagePath: ImportedMessagePath,
 ): boolean => {
-  if (definitionPath.source !== messagePath.source) {
+  const normalizedLocalSource = (
+    source: string,
+  ): Option.Option<ReadonlyArray<string>> => {
+    const pathSegments = source.split('/')
+    if (!source.startsWith('./') || pathSegments.includes('..')) {
+      return Option.none()
+    }
+
+    return Option.some(
+      pathSegments.filter(segment => segment !== '.').map(moduleSegmentName),
+    )
+  }
+  const isSameSource =
+    definitionPath.source === messagePath.source ||
+    Option.exists(normalizedLocalSource(definitionPath.source), definition =>
+      Option.exists(normalizedLocalSource(messagePath.source), message =>
+        sameSegments(definition, message),
+      ),
+    )
+  if (!isSameSource) {
     return false
   }
 
@@ -437,10 +566,75 @@ const importedDefinitionOwnsMessage = (
   return sameSegments(messagePath.members, ['Message'])
 }
 
+const isLocalSiblingModule = (source: string, moduleName: string): boolean => {
+  const pathSegments = source.split('/')
+  if (pathSegments.includes('..')) {
+    return false
+  }
+
+  const sourceSegments = pathSegments.filter(segment => segment !== '.')
+
+  return (
+    source.startsWith('./') &&
+    Array.length(sourceSegments) === 1 &&
+    Option.exists(
+      Array.head(sourceSegments),
+      segment => moduleSegmentName(segment) === moduleName,
+    )
+  )
+}
+
+const currentDirectoryName = (filename: string): Option.Option<string> => {
+  const filenameSegments = filename.split(/[\\/]/)
+
+  return Array.get(filenameSegments, Array.length(filenameSegments) - 2)
+}
+
+const importedCompositionOwnsDefinitionMessage = (
+  compositionPath: ImportedMessagePath,
+  messagePath: ImportedMessagePath,
+  filename: string,
+): boolean => {
+  const compositionName = Option.getOrUndefined(
+    Array.last(compositionPath.members),
+  )
+  const directoryName = Option.getOrUndefined(currentDirectoryName(filename))
+
+  return (
+    compositionName !== undefined &&
+    compositionName.endsWith('Composition') &&
+    directoryName !== undefined &&
+    isLocalSiblingModule(compositionPath.source, directoryName) &&
+    isLocalSiblingModule(messagePath.source, 'definition') &&
+    sameSegments(messagePath.members, ['Message'])
+  )
+}
+
+const importedViewBuilderOwnsDefinitionMessage = (
+  implementationPath: ImportedMessagePath,
+  messagePath: ImportedMessagePath,
+  filename: string,
+): boolean =>
+  Array.isReadonlyArrayEmpty(implementationPath.members) &&
+  Option.exists(currentDirectoryName(filename), directoryName =>
+    isLocalSiblingModule(implementationPath.source, directoryName),
+  ) &&
+  isLocalSiblingModule(messagePath.source, 'definition') &&
+  sameSegments(messagePath.members, ['Message'])
+
+const importedOwnerOwnsMessage = (
+  ownerPath: ImportedMessagePath,
+  messagePath: ImportedMessagePath,
+  filename: string,
+): boolean =>
+  importedDefinitionOwnsMessage(ownerPath, messagePath) ||
+  importedCompositionOwnsDefinitionMessage(ownerPath, messagePath, filename)
+
 const definitionOperationOwnsMessage = (
   references: WeakMap<ESTree.Node, Reference>,
   functionNode: ESTree.ArrowFunctionExpression | ESTree.Function,
   messagePath: ImportedMessagePath,
+  filename: string,
 ): boolean =>
   Option.exists(definitionOperation(references, functionNode), operation => {
     const ownsLocalMessage = Option.exists(
@@ -453,11 +647,11 @@ const definitionOperationOwnsMessage = (
     }
 
     return (
-      operation.operation === 'view' &&
       operation.importedDefinitionPath !== undefined &&
-      importedDefinitionOwnsMessage(
+      importedOwnerOwnsMessage(
         operation.importedDefinitionPath,
         messagePath,
+        filename,
       )
     )
   })
@@ -466,6 +660,7 @@ const annotatedBuilderOwnsMessage = (
   references: WeakMap<ESTree.Node, Reference>,
   parameter: unknown,
   messagePath: ImportedMessagePath,
+  filename: string,
 ): boolean => {
   if (!isTypeAnnotatedIdentifier(parameter)) {
     return false
@@ -484,38 +679,68 @@ const annotatedBuilderOwnsMessage = (
     return true
   }
 
-  const directDefinitionPath = applicationViewDefinitionPath(
+  const importedViewBuilderPath = importedViewBuilderDefinitionPath(
+    references,
+    typeAnnotation,
+  )
+  if (
+    Option.exists(importedViewBuilderPath, path =>
+      importedViewBuilderOwnsDefinitionMessage(path, messagePath, filename),
+    )
+  ) {
+    return true
+  }
+
+  const directDefinitionPath = directOwnedBuilderDefinitionPath(
     references,
     typeAnnotation,
   )
   const definitionPath = Option.isSome(directDefinitionPath)
     ? directDefinitionPath
-    : aliasedApplicationViewDefinitionPath(references, typeAnnotation)
+    : aliasedOwnedBuilderDefinitionPath(references, typeAnnotation)
 
   return Option.exists(definitionPath, path =>
-    importedDefinitionOwnsMessage(path, messagePath),
+    importedOwnerOwnsMessage(path, messagePath, filename),
   )
 }
 
-const completionOwnsMessage = (
+const importedOperationOwnsMessage = (
   references: WeakMap<ESTree.Node, Reference>,
-  completion: ESTree.CallExpression,
+  operationCall: ESTree.CallExpression,
   messagePath: ImportedMessagePath,
+  filename: string,
 ): boolean =>
   Option.exists(
-    resolveImportedPathThroughConst(references, completion.callee),
+    resolveImportedPathThroughConst(references, operationCall.callee),
     path => {
       const operation = Option.getOrUndefined(Array.last(path.members))
-      if (operation !== 'make' && operation !== 'makeElement') {
+      const previousOperation = Option.getOrUndefined(
+        Array.get(path.members, Array.length(path.members) - 2),
+      )
+      const isViewWithInputs =
+        operation === 'withInputs' && previousOperation === 'view'
+      const isDefinitionOperation =
+        operation !== undefined &&
+        definitionOperationName(
+          operation,
+          Option.fromNullishOr(previousOperation),
+        ) !== undefined
+      const isCompletion =
+        operation === 'toApplication' ||
+        operation === 'toBlock' ||
+        operation === 'toElement'
+      if (!isDefinitionOperation && !isViewWithInputs && !isCompletion) {
         return false
       }
 
-      const members = path.members.slice(0, -1)
+      const suffixLength = isViewWithInputs ? 2 : 1
+      const members = path.members.slice(0, -suffixLength)
       return (
         Array.isReadonlyArrayNonEmpty(members) &&
-        importedDefinitionOwnsMessage(
+        importedOwnerOwnsMessage(
           { source: path.source, members },
           messagePath,
+          filename,
         )
       )
     },
@@ -525,6 +750,7 @@ const isOwnedByEnclosingOperation = (
   node: ESTree.Node,
   references: WeakMap<ESTree.Node, Reference>,
   messagePath: ImportedMessagePath,
+  filename: string,
 ): boolean => {
   const ownsMessage = (
     ancestor: ESTree.Node | null | undefined,
@@ -536,21 +762,37 @@ const isOwnedByEnclosingOperation = (
 
     if (isFunction(ancestor)) {
       const ownsAnnotatedBuilder = ancestor.params.some(parameter =>
-        annotatedBuilderOwnsMessage(references, parameter, messagePath),
+        annotatedBuilderOwnsMessage(
+          references,
+          parameter,
+          messagePath,
+          filename,
+        ),
       )
       if (ownsAnnotatedBuilder) {
         return true
       }
 
-      if (definitionOperationOwnsMessage(references, ancestor, messagePath)) {
+      if (
+        definitionOperationOwnsMessage(
+          references,
+          ancestor,
+          messagePath,
+          filename,
+        )
+      ) {
         return true
       }
     }
 
     if (
       isCallExpression(ancestor) &&
-      ancestor.arguments.some(argument => argument === descendant) &&
-      completionOwnsMessage(references, ancestor, messagePath)
+      ancestor.arguments.some(
+        argument =>
+          argument === descendant &&
+          (isFunction(descendant) || isObjectExpression(descendant)),
+      ) &&
+      importedOperationOwnsMessage(references, ancestor, messagePath, filename)
     ) {
       return true
     }
@@ -576,6 +818,10 @@ const isTopLevelRootAlias = (source: string): boolean => {
 }
 
 const isRootMessageModule = (source: string): boolean => {
+  if (isLocalSiblingModule(source, 'definition')) {
+    return true
+  }
+
   const sourceSegments = relativeModuleSegments(source)
   const [lastSourceSegment] = sourceSegments.slice(-1)
   const [parentSourceSegment] = sourceSegments.slice(-2, -1)
@@ -744,7 +990,12 @@ export const noChildMessageConstructionInRoot = Rule.define({
               if (
                 references !== undefined &&
                 messagePath !== undefined &&
-                isOwnedByEnclosingOperation(node, references, messagePath)
+                isOwnedByEnclosingOperation(
+                  node,
+                  references,
+                  messagePath,
+                  ctx.filename,
+                )
               ) {
                 return Effect.void
               }

@@ -300,18 +300,14 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     })
 
   const entryAnimation = Toast.bindChild(Animation.block, {
-    readAll: (model: Model) => model.entries,
-    key: (entry: Entry) => entry.id,
-    read: (entry: Entry) => entry.animation,
-    writeAt: (
-      model: Model,
-      entryId: string,
-      nextAnimation: Entry['animation'],
-    ) =>
+    readAll: model => model.entries,
+    key: entry => entry.id,
+    read: entry => entry.animation,
+    writeAt: (model, entryId, nextAnimation) =>
       updateEntry(model, entryId, entry =>
         modifyFields(entry, { animation: () => nextAnimation }),
       ),
-    toParentMessage: (entryId: string, message: AnimationMessage): Message =>
+    toParentMessage: (entryId, message) =>
       MessageSchema.GotAnimationMessage({ entryId, message }),
     outMessage: { fold: foldEntryAnimationOutMessage },
   })

@@ -1,6 +1,5 @@
 import { Duration, Effect, Layer, Schema, Stream } from 'effect'
-import { Port } from 'foldkit'
-import { define as defineApplication } from 'foldkit/application'
+import { Port, defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 

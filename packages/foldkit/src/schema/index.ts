@@ -1,4 +1,12 @@
-import { Array, Cause, Match, Schema, SchemaAST, Types } from 'effect'
+import {
+  Array,
+  Cause,
+  Match,
+  Predicate,
+  Schema,
+  SchemaAST,
+  Types,
+} from 'effect'
 
 /** A `TaggedStruct` schema that can be called directly as a constructor: `Foo({ count: 1 })` instead of `Foo.make({ count: 1 })`. */
 export type CallableTaggedStruct<
@@ -98,6 +106,12 @@ const getDirectPropertyNames = (
   return names
 }
 
+const callableTaggedStructs = new WeakSet<object>()
+
+/** @internal Recognizes callable tagged constructors created by Foldkit. */
+export const isCallableTaggedStruct = (value: unknown): boolean =>
+  Predicate.isFunction(value) && callableTaggedStructs.has(value)
+
 const makeCallable = <Tag extends string, Fields extends Schema.Struct.Fields>(
   tag: Tag,
   fields: Fields,
@@ -151,7 +165,7 @@ const makeCallable = <Tag extends string, Fields extends Schema.Struct.Fields>(
       : make
 
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  return new Proxy(function () {} as unknown as object, {
+  const callable = new Proxy(function () {} as unknown as object, {
     apply(_target, _thisArg, argumentsList) {
       return construct(argumentsList[0])
     },
@@ -165,6 +179,9 @@ const makeCallable = <Tag extends string, Fields extends Schema.Struct.Fields>(
       return Reflect.getPrototypeOf(schema)
     },
   }) as unknown as CallableTaggedStruct<Tag, Fields>
+
+  callableTaggedStructs.add(callable)
+  return callable
 }
 
 type TaggedUnionProperty = keyof Schema.TaggedUnion<{}>

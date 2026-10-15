@@ -1,5 +1,5 @@
 import { Effect, Fiber, Layer, Option, Schema } from 'effect'
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
@@ -28,8 +28,8 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
 })
 
 const dialog = Application.bindChild(Dialog.block, {
-  read: (model: Model) => Option.some(model),
-  write: (_model: Model, nextDialog: Dialog.Model) => nextDialog,
+  read: model => Option.some(model),
+  write: (_model, nextDialog) => nextDialog,
   parentMessage: RuntimeMessage.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
@@ -72,7 +72,7 @@ const view = ApplicationComposition.view((model, h) =>
 const init = () => dialog.open()(dialog.init({ id: dialogId }).model)
 
 const makeDialogProgram = (container: HTMLElement) =>
-  ApplicationComposition.makeElement({
+  ApplicationComposition.toElement({
     container,
     init,
     update,

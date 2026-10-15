@@ -8,10 +8,8 @@ import {
   Option,
   Schema,
 } from 'effect'
-import {
-  type HtmlBuilderOf,
-  define as defineApplication,
-} from 'foldkit/application'
+import { defineApplication } from 'foldkit'
+import type { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
@@ -42,7 +40,7 @@ const ComputeEngineLayer: Layer.Layer<
       const crypto = yield* Crypto.Crypto
       const id = yield* Effect.orDie(crypto.randomUUIDv4)
       const engineId = `engine-${id.slice(0, 8)}`
-      return { engineId, square: (value: number) => value * value }
+      return { engineId, square: value => value * value }
     }),
     ({ engineId }) => Effect.log(`Tore down ${engineId}`),
   ),
@@ -80,7 +78,7 @@ export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
 
-type ViewBuilder = HtmlBuilderOf<typeof Application>
+type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 const Engine = Application.resource<ComputeEngine>()('ComputeEngine')
 

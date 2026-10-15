@@ -2,7 +2,7 @@
 'foldkit': minor
 ---
 
-Remove `Runtime.makeApplication` and `Runtime.makeElement`, including their `resources` configuration field. Establish `Application` with `defineApplication` from `foldkit/application`, then create `ApplicationComposition` with `Application.toComposition(...)`. Complete it through `ApplicationComposition.make` or `makeElement`, then supply application-lifetime Services through `application.provide(layer)` or `element.provide(layer)` before calling `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed`.
+Remove `Runtime.makeApplication` and `Runtime.makeElement`, including their `resources` configuration field. Establish `Application` with `defineApplication` from `foldkit`, then create `ApplicationComposition` with `Application.toComposition(...)`. Complete it through `ApplicationComposition.toApplication` or `ApplicationComposition.toElement`, then supply application-lifetime Services through `application.provide(layer)` or `element.provide(layer)` before calling `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed`.
 
 The Composition captures Model, Message, child Bindings, and Mount capabilities. Pass local init, update, view, lifecycle declarations, and handler recipes to completion. Remaining Service requirements must be satisfied before the program can start.
 

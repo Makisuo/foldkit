@@ -15,7 +15,7 @@ import { view } from './view'
 
 export const ApplicationLayer = BrowserKeyValueStore.layerLocalStorage
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

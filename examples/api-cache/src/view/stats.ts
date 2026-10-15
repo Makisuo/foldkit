@@ -3,15 +3,16 @@ import { AsyncData } from 'foldkit'
 
 import * as Button from '@foldkit/ui/button'
 
-import { ApplicationComposition } from '../application'
+import type { ViewBuilder } from '../application'
 import type { Stats } from '../data'
 import { Message } from '../message'
+import type { Model } from '../model'
 import { errorPanel, loadingPanel, toolbarButtonClassName } from './shared'
 
 const formatFetchedAt = (fetchedAt: number): string =>
   new Date(fetchedAt).toLocaleTimeString()
 
-export const statsTabView = ApplicationComposition.render((model, h) => {
+export const statsTabView = (model: Model, h: ViewBuilder) => {
   const isPending = AsyncData.isPending(model.stats)
 
   return h.div(
@@ -72,7 +73,7 @@ export const statsTabView = ApplicationComposition.render((model, h) => {
       }),
     ],
   )
-})
+}
 
 type StatsCardsInput = Readonly<{
   stats: Stats
@@ -80,61 +81,57 @@ type StatsCardsInput = Readonly<{
   isRefreshing: boolean
 }>
 
-const statsCards = ApplicationComposition.render.withInput<StatsCardsInput>()(
-  ({ stats, fetchedAt, isRefreshing }, h) =>
-    h.div(
-      [h.Class('flex flex-col gap-3')],
-      [
-        h.div(
-          [h.Class('grid grid-cols-3 gap-4')],
-          [
-            statCard(
-              { label: 'Active users', value: `${stats.activeUsers}` },
-              h,
-            ),
-            statCard(
-              {
-                label: 'Requests per second',
-                value: `${stats.requestsPerSecond}`,
-              },
-              h,
-            ),
-            statCard(
-              {
-                label: 'Cache hit rate',
-                value: `${stats.cacheHitRatePercent}%`,
-              },
-              h,
-            ),
-          ],
-        ),
-        h.div(
-          [h.Class('flex items-center gap-3 text-sm text-slate-500')],
-          [
-            h.span([], [`Updated at ${formatFetchedAt(fetchedAt)}`]),
-            ...(isRefreshing
-              ? [
-                  h.span(
-                    [h.Class('text-indigo-600 font-semibold')],
-                    ['Refreshing'],
-                  ),
-                ]
-              : []),
-          ],
-        ),
-      ],
-    ),
-)
+const statsCards = (
+  { stats, fetchedAt, isRefreshing }: StatsCardsInput,
+  h: ViewBuilder,
+) =>
+  h.div(
+    [h.Class('flex flex-col gap-3')],
+    [
+      h.div(
+        [h.Class('grid grid-cols-3 gap-4')],
+        [
+          statCard({ label: 'Active users', value: `${stats.activeUsers}` }, h),
+          statCard(
+            {
+              label: 'Requests per second',
+              value: `${stats.requestsPerSecond}`,
+            },
+            h,
+          ),
+          statCard(
+            {
+              label: 'Cache hit rate',
+              value: `${stats.cacheHitRatePercent}%`,
+            },
+            h,
+          ),
+        ],
+      ),
+      h.div(
+        [h.Class('flex items-center gap-3 text-sm text-slate-500')],
+        [
+          h.span([], [`Updated at ${formatFetchedAt(fetchedAt)}`]),
+          ...(isRefreshing
+            ? [
+                h.span(
+                  [h.Class('text-indigo-600 font-semibold')],
+                  ['Refreshing'],
+                ),
+              ]
+            : []),
+        ],
+      ),
+    ],
+  )
 
 type StatCardInput = Readonly<{ label: string; value: string }>
 
-const statCard = ApplicationComposition.render.withInput<StatCardInput>()(
-  ({ label, value }, h) =>
-    h.div(
-      [h.Class('bg-white rounded-xl shadow p-4 flex flex-col gap-1')],
-      [
-        h.div([h.Class('text-sm text-slate-500')], [label]),
-        h.div([h.Class('text-2xl font-bold text-slate-900')], [value]),
-      ],
-    ),
-)
+const statCard = ({ label, value }: StatCardInput, h: ViewBuilder) =>
+  h.div(
+    [h.Class('bg-white rounded-xl shadow p-4 flex flex-col gap-1')],
+    [
+      h.div([h.Class('text-sm text-slate-500')], [label]),
+      h.div([h.Class('text-2xl font-bold text-slate-900')], [value]),
+    ],
+  )

@@ -1,5 +1,4 @@
 import { Array, Match, Option, pipe } from 'effect'
-import type { Block } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
 import {
@@ -7,10 +6,9 @@ import {
   virtualListDemo,
   virtualListVariableDemo,
 } from '../childBindings'
+import type { ViewBuilder } from '../childBindings'
 import { Message } from '../message'
 import { type Activity, ROW_COUNT } from '../virtualList'
-
-type HtmlBuilder = Block.HtmlBuilderOf<typeof UiComposition>
 
 const actorNames = [
   'Sarah Chen',
@@ -202,7 +200,7 @@ const variableArtifactClassName =
 
 const subsectionHeadingClassName = 'text-lg font-semibold text-gray-900 mt-2'
 
-const shortRow = UiComposition.render.withInput<Activity>()((row, h) => {
+const shortRow = (row: Activity, h: ViewBuilder) => {
   return h.div(
     [h.Class(rowClassName)],
     [
@@ -220,9 +218,9 @@ const shortRow = UiComposition.render.withInput<Activity>()((row, h) => {
       h.div([h.Class(timeAgoClassName)], [row.timeAgo]),
     ],
   )
-})
+}
 
-const tallRow = (row: Activity, summary: Summary, h: HtmlBuilder): Html => {
+const tallRow = (row: Activity, summary: Summary, h: ViewBuilder): Html => {
   return h.div(
     [h.Class(variableTallRowClassName)],
     [

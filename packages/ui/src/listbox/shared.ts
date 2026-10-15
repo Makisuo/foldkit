@@ -878,7 +878,7 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
     } = viewInputs
 
     const itemToValue =
-      viewInputs.itemToValue ?? ((item: unknown) => globalThis.String(item))
+      viewInputs.itemToValue ?? (item => globalThis.String(item))
     const isValueSelected = (itemValue: string): boolean =>
       Array.contains(selectedValues, itemValue)
     const itemToSearchText =

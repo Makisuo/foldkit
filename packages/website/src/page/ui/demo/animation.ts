@@ -2,7 +2,7 @@ import { Animation } from '@foldkit/ui'
 
 import { Message } from '../message'
 import { animationDemo } from '../update'
-import type { ViewBuilder } from '../viewBuilder'
+import type { ViewBuilder } from '../update'
 
 // DEMO CONTENT
 

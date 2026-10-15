@@ -6,7 +6,7 @@ import {
   proficiencyRadioGroup,
   proficiencyRadioGroupId,
   update,
-} from './definition'
+} from './entry'
 import { view } from './view'
 
 export const block = SkillsEntryComposition.toBlock({

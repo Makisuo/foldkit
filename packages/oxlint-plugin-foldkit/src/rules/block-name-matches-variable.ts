@@ -44,16 +44,20 @@ const isApplicationDefineCall = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
   if (references === undefined) {
-    return AST.isCallOf(node, 'Application', 'define')
+    return (
+      AST.isCallOf(node, 'Application', 'define') ||
+      isIdentifier(node.callee, 'defineApplication')
+    )
   }
 
   return Option.exists(resolveFoldkitApiPath(references, node.callee), path => {
     const [namespace, methodName, extraMember] = path
 
     return (
-      namespace === 'Application' &&
-      methodName === 'define' &&
-      extraMember === undefined
+      (namespace === 'defineApplication' && methodName === undefined) ||
+      (namespace === 'Application' &&
+        methodName === 'define' &&
+        extraMember === undefined)
     )
   })
 }

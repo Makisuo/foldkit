@@ -220,7 +220,7 @@ describe('registered Application composition completion', () => {
           }),
       ),
     )
-    const application = composition.makeElement({
+    const application = composition.toElement({
       container,
       init,
       update,
@@ -400,7 +400,7 @@ describe('registered Application composition completion', () => {
     container.id = 'nested-command-root'
     document.body.append(container)
     const handle = embed(
-      nestedComposition.makeElement({
+      nestedComposition.toElement({
         container,
         init: nestedInit,
         update: nestedUpdate,
@@ -568,7 +568,7 @@ describe('registered Application composition completion', () => {
     document.body.append(container)
     const handle = embed(
       serviceComposition
-        .makeElement({
+        .toElement({
           container,
           init: serviceInit,
           update: serviceUpdate,
@@ -734,7 +734,7 @@ describe('registered Application composition completion', () => {
     container.id = 'mounted-root'
     document.body.append(container)
     const handle = embed(
-      rootComposition.makeElement({
+      rootComposition.toElement({
         container,
         init: rootInit,
         update: rootUpdate,
@@ -756,7 +756,7 @@ describe('registered Application composition completion', () => {
 })
 
 const checkAssemblyTypes = (container: HTMLElement) => {
-  const application = composition.makeElement({
+  const application = composition.toElement({
     container,
     init,
     update,
@@ -765,8 +765,8 @@ const checkAssemblyTypes = (container: HTMLElement) => {
   })
   // @ts-expect-error Shared Service requirements must be provided before running.
   run(application)
-  // @ts-expect-error Application.make requires a Document view.
-  composition.make({
+  // @ts-expect-error ApplicationComposition.toApplication requires a Document view.
+  composition.toApplication({
     container,
     init,
     update,
@@ -775,14 +775,14 @@ const checkAssemblyTypes = (container: HTMLElement) => {
   })
 
   // @ts-expect-error Root completion requires inherited host handlers to be supplied first.
-  unresolvedHostComposition.makeElement({
+  unresolvedHostComposition.toElement({
     container,
     init: unresolvedHostInit,
     update: unresolvedHostUpdate,
     view: unresolvedHostView,
     EffectsLayer: Layer.empty,
   })
-  const hostApplication = resolvedHostComposition.makeElement({
+  const hostApplication = resolvedHostComposition.toElement({
     container,
     init: resolvedHostInit,
     update: resolvedHostUpdate,

@@ -1,12 +1,12 @@
 import { clsx } from 'clsx'
 import { Array, Match, Option, Order, String, pipe } from 'effect'
-import type { HtmlBuilderOf } from 'foldkit/application'
 import { Html, childAttributes } from 'foldkit/html'
 
 import { Button, Input } from '@foldkit/ui'
 import { AnchorConfig, type ItemConfig } from '@foldkit/ui/listbox'
 
 import { ApplicationComposition } from './application'
+import type { ViewBuilder } from './application'
 import { dietListbox, periodListbox } from './childBindings'
 import { type Dinosaur, dinosaurs } from './data'
 import { Message } from './message'
@@ -22,17 +22,12 @@ import {
   routeToBrowseFields,
 } from './route'
 
-type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
-
 const columnOrders: Record<SortColumn, Order.Order<Dinosaur>> = {
-  Name: Order.mapInput(Order.String, ({ name }: Dinosaur) => name),
-  Period: Order.mapInput(Order.String, ({ period }: Dinosaur) => period),
-  Diet: Order.mapInput(Order.String, ({ diet }: Dinosaur) => diet),
-  Length: Order.mapInput(
-    Order.Number,
-    ({ lengthMeters }: Dinosaur) => lengthMeters,
-  ),
-  Weight: Order.mapInput(Order.Number, ({ weightKg }: Dinosaur) => weightKg),
+  Name: Order.mapInput(Order.String, ({ name }) => name),
+  Period: Order.mapInput(Order.String, ({ period }) => period),
+  Diet: Order.mapInput(Order.String, ({ diet }) => diet),
+  Length: Order.mapInput(Order.Number, ({ lengthMeters }) => lengthMeters),
+  Weight: Order.mapInput(Order.Number, ({ weightKg }) => weightKg),
 }
 
 const filterWhenSome =
@@ -103,7 +98,7 @@ const headerButtonClass =
 
 const bodyCellClass = 'px-4 py-3 text-sm text-gray-700'
 
-const dinosaurRowView = (dinosaur: Dinosaur, h: HtmlBuilder): Html =>
+const dinosaurRowView = (dinosaur: Dinosaur, h: ViewBuilder): Html =>
   h.keyed('tr')(
     dinosaur.name,
     [h.Class('border-b border-gray-100 hover:bg-gray-50 transition')],
@@ -157,7 +152,7 @@ const sortableColumnHeader = (
   displayLabel: string,
   fields: BrowseFields,
   isRightAligned: boolean,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html => {
   const indicator = h.span(
     [h.Class(clsx(SORT_INDICATOR_WIDTH, 'inline-block text-center'))],
@@ -207,7 +202,7 @@ const listboxBackdropClassName = 'fixed inset-0 z-0'
 
 const listboxWrapperClassName = 'relative inline-block'
 
-const filterItemConfig = (label: string, h: HtmlBuilder): ItemConfig => {
+const filterItemConfig = (label: string, h: ViewBuilder): ItemConfig => {
   return {
     className: listboxItemClassName,
     content: h.div(
@@ -227,7 +222,7 @@ const filterItemConfig = (label: string, h: HtmlBuilder): ItemConfig => {
   }
 }
 
-const chevronDown = (className: string, h: HtmlBuilder): Html =>
+const chevronDown = (className: string, h: ViewBuilder): Html =>
   h.svg(
     [
       h.AriaHidden(true),
@@ -247,7 +242,7 @@ const chevronDown = (className: string, h: HtmlBuilder): Html =>
     ],
   )
 
-const filterButtonContent = (label: string, h: HtmlBuilder): Html =>
+const filterButtonContent = (label: string, h: ViewBuilder): Html =>
   h.div(
     [h.Class('flex w-full items-center justify-between gap-4')],
     [h.span([], [label]), chevronDown('w-4 h-4 text-gray-400', h)],
@@ -272,7 +267,7 @@ const periodLabel = (item: string): string =>
 const browseView = (
   model: Model,
   route: typeof ApplicationRoute.Browse.Type,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html => {
   const fields = routeToBrowseFields(route)
   const results = filterAndSort(fields)
@@ -458,7 +453,7 @@ const browseView = (
   )
 }
 
-const notFoundView = (path: string, h: HtmlBuilder): Html =>
+const notFoundView = (path: string, h: ViewBuilder): Html =>
   h.div(
     [h.Class('max-w-4xl mx-auto px-4 text-center')],
     [

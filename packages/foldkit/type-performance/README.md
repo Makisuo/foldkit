@@ -4,7 +4,7 @@ This harness measures deterministic TypeScript diagnostics for completed Block
 composition through Foldkit's published declarations. Each checked-in fixture
 imports public `foldkit` package entry points, completes its Block graph, and
 finishes with `Application.update`,
-`ApplicationComposition.makeElement`, and the completed program’s
+`ApplicationComposition.toElement`, and the completed program’s
 `.provide(...)` method.
 
 The shared baseline contains the imports and warmup expressions repeated by
@@ -65,23 +65,44 @@ cost in the deep and Command fixtures. Exact parent Message evidence prevents
 the 100-child fixture from repeating the complete parent Message union in every
 Binding, so its instantiation count decreases.
 
-| Fixture                    | Baseline instantiations (`11e8ca60e6dd`) | Current instantiations | Baseline types (`11e8ca60e6dd`) | Current types |
-| -------------------------- | ---------------------------------------: | ---------------------: | ------------------------------: | ------------: |
-| `deep-composition-8`       |                                1,126,164 |              1,152,618 |                          49,591 |        55,845 |
-| `wide-composition-100`     |                                3,132,298 |              3,013,262 |                         211,029 |       215,421 |
-| `command-requirements-200` |                                2,616,095 |              2,659,415 |                         382,863 |       389,462 |
+| Fixture                    | Baseline instantiations (`11e8ca60e6dd`) | After staging instantiations | Baseline types (`11e8ca60e6dd`) | After staging types |
+| -------------------------- | ---------------------------------------: | ---------------------------: | ------------------------------: | ------------------: |
+| `deep-composition-8`       |                                1,126,164 |                    1,152,618 |                          49,591 |              55,843 |
+| `wide-composition-100`     |                                3,132,298 |                    3,013,262 |                         211,029 |             215,419 |
+| `command-requirements-200` |                                2,616,095 |                    2,659,415 |                         382,863 |             389,460 |
 
 Two bounded counterfactuals isolate ordinary Composition helpers from the
-mandatory staging cost. Removing `Composition.render` changed no
-instantiations and removed two types from each fixture. Removing
-`Composition.bindChild` changed neither gated metric. Both helpers remain in
-the public API.
+mandatory staging cost. Removing the former `Composition.render` helper
+changed no instantiations and removed two types from each fixture. Removing
+`Composition.bindChild` changed neither gated metric. `Composition.bindChild`
+remains in the public API.
 
 Separate process-cold compiler runs on the same TypeScript 7.0.2 installation
 showed no material wall-time regression after the filesystem cache was warm.
-Baseline `11e8ca60e6dd` versus current check times were 0.429s versus 0.416s for
+Baseline `11e8ca60e6dd` versus staged Composition check times were 0.429s versus 0.416s for
 deep composition, 1.266s versus 1.294s for wide composition, and 0.948s versus
 0.926s for Command requirements. Peak reported memory changed from 142,236K to
 146,147K, 280,586K to 283,343K, and 293,411K to 296,906K respectively. The
 checked-in ceilings continue to gate deterministic instantiation and type
 counts rather than timing or memory, which vary with host and cache state.
+
+## Exact child Binding adapters
+
+Required and Option fields, `presentWhen`, exact keyed arrays, constructor checks,
+and duplicate sibling validation retain the existing 8/100/200 fixture widths
+and budgets. The adapter and keyed callback inference measurements are:
+
+| Fixture                    | Instantiations delta | Types delta |
+| -------------------------- | -------------------: | ----------: |
+| `deep-composition-8`       |            1,126,656 |      52,564 |
+| `wide-composition-100`     |            3,021,829 |     215,407 |
+| `command-requirements-200` |            2,632,385 |     386,042 |
+
+The duplicate check projects placements once and maps each placement to tuple
+indexes. An index union identifies a duplicate without recursively copying the
+remaining child tuples. Binding overloads check ordinary relationships before
+keyed adapters, and exact field/key eligibility is checked at the configuration
+properties. Shared conditional overloads preserve required OutMessage policies
+and callback inference while avoiding duplicate signature shapes. Deferred
+handler validation checks the existing owner evidence directly. Accepted,
+rejected, and downstream declaration fixtures verify these changes together.

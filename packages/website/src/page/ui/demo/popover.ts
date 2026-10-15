@@ -10,7 +10,7 @@ import {
   popoverNestedChildDemo,
   popoverNestedParentDemo,
 } from '../update'
-import type { ViewBuilder } from '../viewBuilder'
+import type { ViewBuilder } from '../update'
 
 // DEMO CONTENT
 

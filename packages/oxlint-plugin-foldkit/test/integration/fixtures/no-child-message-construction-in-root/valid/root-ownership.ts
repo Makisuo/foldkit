@@ -9,7 +9,7 @@ type RootHtmlBuilder = Parameters<
 const rootViewHelper = (h: RootHtmlBuilder) =>
   h.button([h.OnClick(Message.ClickedContinue())])
 
-export const page = RootApplication.make({
+export const page = RootApplication.toApplication({
   routing: {
     onUrlRequest: request =>
       RootApplication.Message.ClickedLink({ request }),
@@ -17,7 +17,7 @@ export const page = RootApplication.make({
   },
 })
 
-export const element = RootApplication.makeElement({
+export const element = RootApplication.toElement({
   view: (_model, h) =>
     h.div(
       [h.OnClick(RootApplication.Message.ClickedElement())],

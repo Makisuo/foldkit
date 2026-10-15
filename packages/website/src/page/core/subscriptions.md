@@ -95,7 +95,7 @@ When `isAutoCounting` changes to `true`, the new Stream starts ticking. When it 
 
 ### Completing the Block
 
-Include the record when completing its owning Block. The completed value carries the Subscription registrations and their handler recipes through parent Bindings to the root. The typed root owns `make`; the entry supplies the implementation and container, calls `application.provide(layer)` when shared Services remain, and then starts the program:
+Include the record when completing its owning Block. The completed value carries the Subscription registrations and their handler recipes through parent Bindings to the root. The typed root owns `toApplication`; the entry supplies the implementation and container, calls `application.provide(layer)` when shared Services remain, and then starts the program:
 
 ::Snippet{name="counterEntryWithSubscriptions" label="Subscription application entry"}
 
@@ -157,14 +157,16 @@ Most entries should use the first `dependencies` argument directly. Reach for `r
 
 ## Lifting Subscriptions
 
-When a parent embeds a Block with Subscriptions, its Binding lifts the child's Messages into the parent Message type and applies the same `read` policy used by update. Returning `None` stops every child Stream without reading child dependencies.
+When a parent embeds a Block with Subscriptions, its Binding lifts the child's Messages into the parent Message type and applies the same presence policy used by update. `None` in a direct Option field, `false` from `presentWhen`, or `None` from a custom `read` stops every child Stream without reading child dependencies.
 
-`Parent.bindChild(child, { read, write, parentMessage, ... })` performs that lift once. Include the Binding in the parent's `children` list, and the parent collects the lifted entries under placement-qualified keys. The Application Composition installs the collected graph through its owned `make({ init, update, view, ... })` method.
+`Parent.bindChild(child, { field, parentMessage, ... })` performs that lift once for a direct child field. Custom storage uses `read` and `write`. Include the Binding in the parent's `children` list, and the parent collects the lifted entries under placement-qualified keys. The Application Composition installs the collected graph through `toApplication({ init, update, view, ... })`.
 
 ### Gating Child Subscriptions
 
-The optional `when` field lets the parent add a condition the child cannot see, such as whether the child's page is the active route. One predicate can gate the whole record, or a map can gate selected entries. Put the policy under `subscriptions.when` in the Binding. The gate controls Stream lifetime only: it does not make the child Model absent and does not prevent `binding.fold` from running when `read` returns `Some`.
+The optional `when` field lets the parent add a Stream condition the child cannot see. One predicate can gate the whole record, or a map can gate selected entries. Put the policy under `subscriptions.when` in the Binding. This gate controls Stream lifetime only: it does not make the child absent, stop ManagedResources or Mounts, or prevent `binding.fold` from running.
 
-The child continues to own its dependency projection. Use `bindChild` with `readAll` and `key` for keyed children; Foldkit starts one independently scoped Stream set per active key. See [Subscription Organization](/patterns/subscription-organization) for the full composition pattern.
+Use direct-field `presentWhen` when the condition governs the whole child rather than its Streams. That predicate makes the Binding absent for updates and every lifecycle channel. A custom accessor expresses the same policy by returning `None` from `read`.
+
+The child continues to own its dependency projection. For a direct array of child Models with declared Struct key fields, use `bindChild` with `field`, a string-valued `key`, and `toParentMessage`. Wrapped items and custom storage retain general keyed accessors; Foldkit starts one independently scoped Stream set per active key. See [Subscription Organization](/patterns/subscription-organization) for the full composition pattern.
 
 The application now has state transitions, one-shot Commands, element-scoped Mounts, and ongoing Subscriptions. The remaining question is where the first Model and startup Commands come from. [Init & Flags](/core/init-and-flags) defines that boundary.

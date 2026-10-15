@@ -1,7 +1,7 @@
 import { ApplicationComposition, init, update, view } from './counterFlagsRoot'
 import { Flags } from './flagsDefinition'
 
-export const application = ApplicationComposition.make({
+export const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

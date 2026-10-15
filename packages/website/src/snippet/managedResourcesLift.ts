@@ -1,6 +1,5 @@
 import { Effect, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
 
 import { init } from './init'
 import { Message } from './message'
@@ -14,9 +13,8 @@ const Call = Block.define('Call', { Model, Message })
 const SignalingSocket = Call.resource<WebSocket>()('SignalingSocket')
 
 const videoCall = Call.bindChild(VideoCall.block, {
-  read: (model: Model) => model.videoCall,
-  write: (model, nextVideoCall) =>
-    modifyFields(model, { videoCall: () => Option.some(nextVideoCall) }),
+  placement: 'VideoCall',
+  field: 'videoCall',
   parentMessage: Message.GotVideoCallMessage,
 })
 

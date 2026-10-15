@@ -1,4 +1,5 @@
 import { Effect } from 'effect'
+import { defineApplication } from 'foldkit'
 import { Block, Command } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'

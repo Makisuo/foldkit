@@ -317,7 +317,7 @@ const foldChildFieldsByNamespace = (
       ),
     )
 
-    if (Option.contains(bindingMethod, 'Static')) {
+    if (Option.isSome(bindingMethod)) {
       const field = Array.findFirst(configuration.properties, property =>
         isObjectProperty(property) &&
         Option.contains(staticPropertyName(property), 'field')

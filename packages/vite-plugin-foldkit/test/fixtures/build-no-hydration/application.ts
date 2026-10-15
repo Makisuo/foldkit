@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 export const Model = Schema.Struct({ count: Schema.Number })

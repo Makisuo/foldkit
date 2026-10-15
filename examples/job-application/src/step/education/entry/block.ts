@@ -5,7 +5,7 @@ import {
   graduationYearListbox,
   init,
   update,
-} from './definition'
+} from './entry'
 import { view } from './view'
 
 export const block = EducationEntryComposition.toBlock({

@@ -1,5 +1,5 @@
 import { Layer, Schema } from 'effect'
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 import type { Document } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -22,7 +22,7 @@ const applicationView = ApplicationComposition.view((model, h): Document => ({
 const EffectsLayer = Layer.empty
 
 export const makeInferredElement = (container: HTMLElement) =>
-  ApplicationComposition.makeElement({
+  ApplicationComposition.toElement({
     init,
     update,
     EffectsLayer,
@@ -31,7 +31,7 @@ export const makeInferredElement = (container: HTMLElement) =>
   })
 
 export const makeInferredApplication = (container: HTMLElement | null) =>
-  ApplicationComposition.make({
+  ApplicationComposition.toApplication({
     init,
     update,
     EffectsLayer,

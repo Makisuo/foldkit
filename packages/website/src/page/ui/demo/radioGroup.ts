@@ -1,10 +1,6 @@
-import { RadioGroup } from '@foldkit/ui'
-
 import { type Model, type Plan } from '../model'
 import { horizontalRadioGroupDemo, verticalRadioGroupDemo } from '../update'
-import type { ViewBuilder } from '../viewBuilder'
-
-export const PlanRadioGroup = RadioGroup.create<Plan>()
+import type { ViewBuilder } from '../update'
 
 // DEMO CONTENT
 

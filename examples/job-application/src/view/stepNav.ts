@@ -1,17 +1,14 @@
 import clsx from 'clsx'
 import { Equal, HashSet, Match, Number, flow } from 'effect'
-import type { HtmlBuilderOf } from 'foldkit/application'
 import type { Html } from 'foldkit/html'
 
 import type { TabInfo } from '@foldkit/ui/tabs'
 
-import { ApplicationComposition } from '../application'
+import type { ViewBuilder } from '../application'
 import { stepMenu as stepMenuBinding } from '../childBindings'
 import { Step } from '../domain'
 import { type Model } from '../model'
 import * as Icon from './icon'
-
-type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 type StepStatus = 'Current' | 'Completed' | 'Upcoming'
 
@@ -44,7 +41,7 @@ const stepMarker = (
   status: StepStatus,
   index: number,
   needsAttention: boolean,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   h.span(
     [
@@ -90,7 +87,7 @@ export const stepTabButton = (
   tab: TabInfo<Step.Step>,
   currentStep: Step.Step,
   stepsNeedingAttention: HashSet.HashSet<Step.Step>,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html => {
   const status = stepToStatus(tab.value, currentStep)
   const needsAttention = HashSet.has(stepsNeedingAttention, tab.value)
@@ -105,35 +102,33 @@ export const stepTabButton = (
   )
 }
 
-const stepMenuTrigger = ApplicationComposition.render.withInput<Step.Step>()(
-  (currentStep, h) =>
-    h.div(
-      [h.Class('flex items-center justify-between w-full gap-3')],
-      [
-        h.div(
-          [h.Class('flex items-center gap-2 min-w-0')],
-          [
-            h.span(
-              [h.Class('text-xs font-medium text-gray-500 shrink-0')],
-              [
-                `Step ${Number.increment(Step.indexOf(currentStep))} of ${Step.all.length}`,
-              ],
-            ),
-            h.span(
-              [h.Class('text-sm font-semibold text-gray-900 truncate')],
-              [Step.show(currentStep)],
-            ),
-          ],
-        ),
-        h.span([h.Class('text-gray-400 shrink-0')], [Icon.chevronDown()]),
-      ],
-    ),
-)
+const stepMenuTrigger = (currentStep: Step.Step, h: ViewBuilder) =>
+  h.div(
+    [h.Class('flex items-center justify-between w-full gap-3')],
+    [
+      h.div(
+        [h.Class('flex items-center gap-2 min-w-0')],
+        [
+          h.span(
+            [h.Class('text-xs font-medium text-gray-500 shrink-0')],
+            [
+              `Step ${Number.increment(Step.indexOf(currentStep))} of ${Step.all.length}`,
+            ],
+          ),
+          h.span(
+            [h.Class('text-sm font-semibold text-gray-900 truncate')],
+            [Step.show(currentStep)],
+          ),
+        ],
+      ),
+      h.span([h.Class('text-gray-400 shrink-0')], [Icon.chevronDown()]),
+    ],
+  )
 
 export const stepMenu = (
   model: Model,
   stepsNeedingAttention: HashSet.HashSet<Step.Step>,
-  h: HtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   h.block(
     stepMenuBinding.embedView({

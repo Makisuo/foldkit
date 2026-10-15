@@ -1,11 +1,11 @@
 import clsx from 'clsx'
 import { Array, Equal, Option, String } from 'effect'
-import type { HtmlBuilderOf } from 'foldkit/application'
 import type { Html } from 'foldkit/html'
 
 import { Button, Input } from '@foldkit/ui'
 
 import { ApplicationComposition } from './application'
+import type { ViewBuilder } from './application'
 import { SEARCH_INPUT_ID } from './command'
 import { type Location } from './locations'
 import { Message } from './message'
@@ -13,8 +13,6 @@ import { type Bounds, GeolocateState, type Model } from './model'
 import { MountMap } from './mount'
 
 const HOST_ID = 'map-host-1'
-
-type MapHtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 const filterLocations = (
   locations: ReadonlyArray<Location>,
@@ -45,7 +43,7 @@ export const view = ApplicationComposition.view((model, h) => ({
   ),
 }))
 
-const sidebarView = (model: Model, h: MapHtmlBuilder): Html => {
+const sidebarView = (model: Model, h: ViewBuilder): Html => {
   const visible = filterLocations(model.locations, model.searchQuery)
   return h.aside(
     [
@@ -104,7 +102,7 @@ const sidebarView = (model: Model, h: MapHtmlBuilder): Html => {
   )
 }
 
-const emptySidebarView = (searchQuery: string, h: MapHtmlBuilder): Html =>
+const emptySidebarView = (searchQuery: string, h: ViewBuilder): Html =>
   h.li(
     [h.Class('px-5 py-6 text-sm text-slate-500')],
     [
@@ -116,7 +114,7 @@ const emptySidebarView = (searchQuery: string, h: MapHtmlBuilder): Html =>
 
 const locationListItemView =
   (maybeSelectedId: Option.Option<string>) =>
-  (location: Location, h: MapHtmlBuilder): Html => {
+  (location: Location, h: ViewBuilder): Html => {
     const isSelected = Option.exists(maybeSelectedId, Equal.equals(location.id))
     return h.li(
       [],
@@ -153,7 +151,7 @@ const locationListItemView =
     )
   }
 
-const footerView = (model: Model, h: MapHtmlBuilder): Html => {
+const footerView = (model: Model, h: ViewBuilder): Html => {
   const isLocating = model.geolocateState._tag === 'Locating'
   return h.div(
     [h.Class('border-t border-slate-200 px-5 py-3 space-y-2')],
@@ -187,7 +185,7 @@ const footerView = (model: Model, h: MapHtmlBuilder): Html => {
   )
 }
 
-const mapPaneView = (model: Model, h: MapHtmlBuilder): Html =>
+const mapPaneView = (model: Model, h: ViewBuilder): Html =>
   h.main(
     [h.Class('flex-1 relative')],
     [
@@ -203,7 +201,7 @@ const mapPaneView = (model: Model, h: MapHtmlBuilder): Html =>
 
 const mapErrorBannerView = (
   maybeReason: Option.Option<string>,
-  h: MapHtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   Option.match(maybeReason, {
     onNone: () => h.empty,
@@ -224,7 +222,7 @@ const mapErrorBannerView = (
 
 const boundsBadgeView = (
   maybeBounds: Option.Option<Bounds>,
-  h: MapHtmlBuilder,
+  h: ViewBuilder,
 ): Html =>
   Option.match(maybeBounds, {
     onNone: () => h.empty,
@@ -244,7 +242,7 @@ const boundsBadgeView = (
       ),
   })
 
-const geolocateOverlayView = (state: GeolocateState, h: MapHtmlBuilder): Html =>
+const geolocateOverlayView = (state: GeolocateState, h: ViewBuilder): Html =>
   GeolocateState.match(state, {
     Idle: () => h.empty,
     Locating: () =>
@@ -253,7 +251,7 @@ const geolocateOverlayView = (state: GeolocateState, h: MapHtmlBuilder): Html =>
       geolocateOverlayShellView(geolocateFailedContentView(reason, h), h),
   })
 
-const geolocateOverlayShellView = (content: Html, h: MapHtmlBuilder): Html =>
+const geolocateOverlayShellView = (content: Html, h: ViewBuilder): Html =>
   h.div(
     [
       h.Class(
@@ -264,7 +262,7 @@ const geolocateOverlayShellView = (content: Html, h: MapHtmlBuilder): Html =>
     [content],
   )
 
-const geolocateLocatingContentView = (h: MapHtmlBuilder): Html =>
+const geolocateLocatingContentView = (h: ViewBuilder): Html =>
   h.article(
     [
       h.Class(
@@ -281,7 +279,7 @@ const geolocateLocatingContentView = (h: MapHtmlBuilder): Html =>
     ],
   )
 
-const geolocateFailedContentView = (reason: string, h: MapHtmlBuilder): Html =>
+const geolocateFailedContentView = (reason: string, h: ViewBuilder): Html =>
   h.article(
     [
       h.Class(
@@ -313,7 +311,7 @@ const geolocateFailedContentView = (reason: string, h: MapHtmlBuilder): Html =>
     ],
   )
 
-const spinnerView = (h: MapHtmlBuilder): Html =>
+const spinnerView = (h: ViewBuilder): Html =>
   h.div(
     [h.Class('flex justify-center mt-4')],
     [

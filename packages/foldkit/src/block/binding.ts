@@ -1,4 +1,4 @@
-import { Context, Layer, Option, Record } from 'effect'
+import { Context, Layer, Option, Record, type Schema } from 'effect'
 
 import { type Command, mapMessages } from '../command/index.js'
 import type {
@@ -78,16 +78,21 @@ type AnyProducer = (model: any, ...args: ReadonlyArray<any>) => AnyUpdateReturn
 declare const ConnectionEvidenceTypeId: unique symbol
 declare const ParentBindingContractTypeId: unique symbol
 
-/** Lifecycle registrations and Layer metadata retained by a Binding. */
+/** Lifecycle registrations and Layer recipe retained by a Binding for
+ * composition and tooling. */
 export type BindingInspection<
   Subscriptions,
   ManagedResources,
   Mounts,
   EffectsLayer,
 > = Readonly<{
+  /** Child Subscriptions lifted into the parent Model and Message context. */
   subscriptions: Subscriptions
+  /** Child ManagedResources lifted into the parent Model and Message context. */
   managedResources: ManagedResources
+  /** Mount definitions available to views that embed this Binding. */
   mounts: Mounts
+  /** The child's local and descendant handler recipes qualified by placement. */
   EffectsLayer: EffectsLayer
 }>
 
@@ -233,7 +238,8 @@ type DefinitionViewMountRequirements<BlockValue> =
       ? RequirementsOfBindings<Children>
       : never)
 
-/** @internal Checks an alternate embedded view against its declared child graph. */
+/** Validates that an alternate embedded view uses only Mount and child
+ * capabilities registered by its Block's Composition. */
 export type ValidateEmbeddedViewMounts<
   BlockValue,
   View extends AnyBlockView,
@@ -257,9 +263,7 @@ type BlockMessage<
   BlockValue extends Readonly<{ Message: Readonly<{ Type: any }> }>,
 > = BlockValue['Message']['Type']
 
-/** The explicit parent policy for every OutMessage a bound child can emit.
- * `fold` handles the union locally. `forward` lifts at least one variant into
- * the parent's OutMessage union and may be paired with a local fold. */
+/** Defines how a parent handles every OutMessage from a bound child. */
 export type OutMessagePolicy<
   ParentModel,
   ChildMessage,
@@ -267,6 +271,8 @@ export type OutMessagePolicy<
   ChildOutMessage,
 > =
   | Readonly<{
+      /** Handles each child OutMessage in the parent. The returned Step receives
+       * the parent Model after Foldkit has written the next child Model. */
       fold: (
         outMessage: ChildOutMessage,
         context: Update.FoldContext<ChildMessage, ParentMessage, ParentModel>,
@@ -274,7 +280,11 @@ export type OutMessagePolicy<
       forward?: never
     }>
   | Readonly<{
+      /** Maps selected child OutMessages into the parent's OutMessage union.
+       * Return `undefined` for a named variant that stops at this parent. */
       forward: (outMessage: ChildOutMessage) => unknown | undefined
+      /** Also handles child OutMessages locally. A parent OutMessage returned by
+       * this Step takes precedence over the value returned by `forward`. */
       fold?: (
         outMessage: ChildOutMessage,
         context: Update.FoldContext<ChildMessage, ParentMessage, ParentModel>,
@@ -320,30 +330,42 @@ type SubscriptionWhen<BlockValue extends BindableBlock, ParentModel> =
       >
     >
 
-/** @internal Shared placement and lifecycle policy for Binding forms. */
+/** Declares how one child Block is stored in a parent Model and how its
+ * Messages and lifecycle work cross the parent boundary. */
 export type BindingBaseConfig<
   BlockValue extends BindableBlock,
   ParentModel,
   ParentMessage,
   Placement extends string,
 > = Readonly<{
+  /** Identifies this Binding within the parent's composition graph. It defaults
+   * to `field` for a direct field and to the child Block ID for an
+   * accessor Binding. */
   placement?: Placement
+  /** Reads the current child Model. Returning `None` makes the occurrence absent:
+   * folds leave the parent Model unchanged and Foldkit stops its lifecycle work. */
   read: (model: ParentModel) => Option.Option<BlockModel<BlockValue>>
+  /** Writes the next child Model into the parent Model after a child update or
+   * exposed operation. */
   write: (
     model: ParentModel,
     nextChildModel: BlockModel<BlockValue>,
   ) => ParentModel
+  /** Maps child Messages into the parent Message type for views, Commands,
+   * Subscriptions, ManagedResources, and Mounts. */
   toParentMessage: (message: BlockMessage<BlockValue>) => ParentMessage
   parentMessage?: never
+  /** Adds optional activation gates for child Subscriptions while the child is
+   * present. Gates do not disable updates or other lifecycle channels. */
   subscriptions?: Readonly<{
+    /** Enables every child Subscription with one predicate, or selected named
+     * Subscriptions with a partial record. Unspecified entries default to
+     * enabled. */
     when?: SubscriptionWhen<BlockValue, ParentModel>
   }>
 }>
 
-/** The one-time placement and parent policy used to bind a complete Block
- * block into a parent Model and Message context. Subscription gates are
- * lifecycle policy only; they never change whether the update fold can read
- * the child. */
+/** The complete placement and parent policy used to bind one child Block. */
 export type BindingConfig<
   BlockValue extends Readonly<{
     Model: Readonly<{ Type: any }>
@@ -355,14 +377,27 @@ export type BindingConfig<
   Placement extends string,
   Policy = never,
 > = Readonly<{
+  /** Identifies this Binding within the parent's composition graph. It defaults
+   * to the child Block ID. */
   placement?: Placement
+  /** Reads the current child Model. Returning `None` makes the occurrence absent:
+   * folds leave the parent Model unchanged and Foldkit stops its lifecycle work. */
   read: (model: ParentModel) => Option.Option<BlockValue['Model']['Type']>
+  /** Writes the next child Model into the parent Model after a child update or
+   * exposed operation. */
   write: (
     model: ParentModel,
     nextChildModel: BlockValue['Model']['Type'],
   ) => ParentModel
+  /** Maps child Messages into the parent Message type for views, Commands, and
+   * lifecycle channels. */
   toParentMessage: (message: BlockValue['Message']['Type']) => ParentMessage
+  /** Adds optional activation gates for child Subscriptions while the child is
+   * present. */
   subscriptions?: Readonly<{
+    /** Enables every child Subscription with one predicate, or selected named
+     * Subscriptions with a partial record. Unspecified entries default to
+     * enabled. */
     when?:
       | ((model: ParentModel) => boolean)
       | Readonly<
@@ -375,6 +410,12 @@ export type BindingConfig<
         >
   }>
 }> &
+  Readonly<{
+    /** Handles every child OutMessage locally, forwards selected variants, or
+     * does both. This property is required exactly when the child declares an
+     * OutMessage type. */
+    outMessage?: Policy
+  }> &
   (BlockValue extends Readonly<{
     OutMessage: Readonly<{ Type: infer ChildOutMessage }>
     Message: Readonly<{ Type: infer ChildMessage }>
@@ -590,9 +631,9 @@ type BoundExposedOperations<
     : never
 }>
 
-/**
- * A complete static Block placement lowered into its parent context.
- */
+/** A registered static or optional child Block in its parent Model and Message
+ * context. The Binding is passive until a Runtime starts the composed
+ * application. */
 export type Binding<
   BlockValue extends Readonly<{
     Model: Readonly<{ Type: any }>
@@ -701,8 +742,10 @@ export type Binding<
     >,
     false
   >
+  /** The stable identity of this child placement in the composition graph. */
   placement: Placement
-  /** Initializes child state while scoping and lifting its Commands. */
+  /** Initializes child state and lifts its Commands to the parent Message type.
+   * The parent remains responsible for storing the returned child Model. */
   init: (
     ...args: Parameters<BlockValue['init']>
   ) => Update.WithRegistrationEvidence<
@@ -713,6 +756,9 @@ export type Binding<
     >,
     BindingRequirement<Placement, BlockValue>
   >
+  /** Runs the child update, writes the next child Model, lifts Commands, and
+   * applies the OutMessage policy. If `read` returns `None`, the returned parent
+   * Model is unchanged. */
   fold: (
     model: ParentModel,
     ...args: [
@@ -734,6 +780,8 @@ export type Binding<
     BlockId<BlockValue>,
     BindingRequirement<Placement, BlockValue>
   >
+  /** Builds the `h.block` config for this placement. The config carries the
+   * Message mapping, composition identity, and Mount evidence. */
   embedView: BlockValue extends Readonly<{
     [DefaultViewTypeId]: infer CanonicalView extends AnyBlockView
   }>
@@ -819,17 +867,41 @@ export type Binding<
     ContractOutMessage
   >
 
-/** The parent-owned Binding constructor for a complete child Block. Parent
- * types come from the owning Definition. */
-/** @internal Exactly one static parent Message adapter or wrapper constructor. */
+type ValidateParentMessageConstructor<
+  BlockValue extends BindableBlock,
+  Mapper,
+> = Mapper extends Schema.Constraint &
+  Readonly<{
+    fields: Readonly<{
+      _tag: unknown
+      message: Readonly<{ Type: infer Message }>
+    }>
+  }>
+  ? Exclude<keyof Mapper['fields'], '_tag' | 'message'> extends never
+    ? IsAny<Message> extends true
+      ? never
+      : [Message, BlockValue['Message']['Type']] extends [
+            BlockValue['Message']['Type'],
+            Message,
+          ]
+        ? unknown
+        : never
+    : never
+  : never
+
+/** Selects exactly one child-to-parent Message mapping for a static Binding. */
 export type MessageMapping<BlockValue extends BindableBlock, Mapper> =
   | Readonly<{
+      /** Maps each child Message into the parent Message union. */
       toParentMessage: Mapper &
         NoInfer<(message: BlockValue['Message']['Type']) => unknown>
       parentMessage?: never
     }>
   | Readonly<{
+      /** Constructs a parent wrapper Message whose only field is the child
+       * `message`. */
       parentMessage: Mapper &
+        ValidateParentMessageConstructor<BlockValue, Mapper> &
         NoInfer<
           (
             fields: Readonly<{ message: BlockValue['Message']['Type'] }>,
@@ -905,7 +977,7 @@ type AccessorBind<BlockValue extends BindableBlock> =
 export type Bind<BlockValue extends BindableBlock> = AccessorBind<BlockValue> &
   DirectConnection<BlockValue>
 
-/** Structural bound for a child binding stored by a parent block.
+/** Structural bound for any child Binding stored by a parent Block.
  * @inline */
 export type AnyBinding = Readonly<{
   [ConnectionEvidenceTypeId]: ConnectionEvidence<
@@ -920,7 +992,8 @@ export type AnyBinding = Readonly<{
   embedView: AnyFunction
 }>
 
-/** @internal Evidence that an embedded view belongs to a registered binding. */
+/** Type-level evidence that an embedded view belongs to one registered Binding
+ * placement. */
 export type BindingRequirement<
   Placement extends string,
   BlockValue,
@@ -957,9 +1030,7 @@ export type BindingBlockEvidence<
   IsKeyed extends boolean = false,
 > = BindingEvidence<BlockValue, HandlerRequirements, Inspection, IsKeyed>
 
-/**
- * @internal Recovers the block type retained by a binding.
- */
+/** Recovers the completed Block type retained by a Binding. */
 export type BlockOfBinding<BindingValue> =
   BindingValue extends Readonly<{
     [ConnectionEvidenceTypeId]: Readonly<{ block: infer BlockValue }>
@@ -991,7 +1062,7 @@ export type WithoutBindingEvidence<BindingValue> = Omit<
   typeof ConnectionEvidenceTypeId
 >
 
-/** @internal Recovers the registered graph requirement for one binding. */
+/** Recovers the registered view capability requirement for one Binding. */
 export type RequirementOfBinding<BindingValue> =
   BindingValue extends Readonly<{
     placement: infer Placement extends string
@@ -1000,7 +1071,7 @@ export type RequirementOfBinding<BindingValue> =
     ? BindingRequirement<Placement, BlockValue>
     : never
 
-/** @internal Collects the registered graph requirements for child bindings. */
+/** Collects the registered view capability requirements of child Bindings. */
 export type RequirementsOfBindings<Bindings extends ReadonlyArray<unknown>> =
   RequirementOfBinding<Bindings[number]>
 
@@ -1036,7 +1107,7 @@ type RuntimeBindingConfig = Readonly<{
   write: (model: any, nextChildModel: any) => any
   toParentMessage: (message: any) => any
   subscriptions?: Readonly<{ when?: any }>
-  outMessage?: RuntimeOutMessagePolicy
+  outMessage?: RuntimeOutMessagePolicy | undefined
 }>
 
 const toChildFold = (producer: AnyProducer, config: RuntimeBindingConfig) => ({

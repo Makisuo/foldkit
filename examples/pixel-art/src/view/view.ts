@@ -1,11 +1,11 @@
 import clsx from 'clsx'
 import { Array, Option, pipe } from 'effect'
-import type { HtmlBuilderOf } from 'foldkit/application'
 import { type Html, createLazy } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
 import { ApplicationComposition } from '../application'
+import type { ViewBuilder } from '../application'
 import { isGridEmpty } from '../grid'
 import { Message } from '../message'
 import type { Model } from '../model'
@@ -15,9 +15,7 @@ import { errorDialogView, gridSizeConfirmDialogView } from './dialog'
 import { historyPanelView } from './history'
 import { toolPanelView } from './toolbar'
 
-type HtmlBuilder = HtmlBuilderOf<typeof ApplicationComposition>
-
-const downloadIcon = (className: string, h: HtmlBuilder): Html =>
+const downloadIcon = (className: string, h: ViewBuilder): Html =>
   h.svg(
     [
       h.AriaHidden(true),
@@ -69,7 +67,7 @@ export const view = ApplicationComposition.view((model, h) => ({
   ),
 }))
 
-const headerView = (h: HtmlBuilder): Html =>
+const headerView = (h: ViewBuilder): Html =>
   h.div(
     [
       h.Class(
@@ -139,7 +137,7 @@ const headerView = (h: HtmlBuilder): Html =>
     ],
   )
 
-const contentView = (model: Model, h: HtmlBuilder): Html => {
+const contentView = (model: Model, h: ViewBuilder): Html => {
   const theme = currentPaletteTheme(model)
 
   return h.div(

@@ -1,11 +1,11 @@
 import clsx from 'clsx'
 import { Array, Match, Option } from 'effect'
-import type { HtmlBuilderOf } from 'foldkit/application'
 import { Html } from 'foldkit/html'
 
 import { Button, Checkbox, Input } from '@foldkit/ui'
 
 import { ApplicationComposition } from './application'
+import type { ViewBuilder } from './application'
 import { Message } from './message'
 import {
   EditingState,
@@ -14,8 +14,6 @@ import {
   type Todo,
   type Todos,
 } from './model'
-
-type ViewBuilder = HtmlBuilderOf<typeof ApplicationComposition>
 
 const editingTextFor = (
   editing: EditingState,

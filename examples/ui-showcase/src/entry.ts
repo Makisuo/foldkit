@@ -6,7 +6,7 @@ import { Message } from './message'
 import { update } from './update'
 import { view } from './view'
 
-const application = ApplicationComposition.make({
+const application = ApplicationComposition.toApplication({
   init,
   update,
   view,

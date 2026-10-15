@@ -46,25 +46,23 @@ const joinedRoom: typeof Room.Model.Type = {
   exitCountdownSecondsLeft: 0,
 }
 
-const givenHomeRoute = () =>
-  given<Model>({
-    route: ApplicationRoute.Home(),
-    home: selectActionHome,
-    room: joinedRoom,
-  })
+const givenHomeRoute = given<Model>({
+  route: ApplicationRoute.Home(),
+  home: selectActionHome,
+  maybeRoomInstance: Option.none(),
+})
 
-const givenRoomRoute = () =>
-  given<Model>({
-    route: ApplicationRoute.Room({ roomId: 'r1' }),
-    home: selectActionHome,
-    room: joinedRoom,
-  })
+const givenRoomRoute = given<Model>({
+  route: ApplicationRoute.Room({ roomId: 'r1' }),
+  home: selectActionHome,
+  maybeRoomInstance: Option.some({ roomId: 'r1', model: joinedRoom }),
+})
 
 describe('key presses on the Home route', () => {
   test('a Home key press moves the home selection and leaves the room alone', () => {
     story(
       update,
-      givenHomeRoute(),
+      givenHomeRoute,
       message(
         Message.GotHomeMessage({
           message: HomeMessage.PressedKey({ key: 'ArrowDown' }),
@@ -75,7 +73,7 @@ describe('key presses on the Home route', () => {
           _tag: 'SelectAction',
           selectedAction: 'JoinRoom',
         })
-        expect(model.room).toEqual(joinedRoom)
+        expect(model.maybeRoomInstance).toEqual(Option.none())
       }),
       Command.expectNone(),
     )
@@ -84,14 +82,15 @@ describe('key presses on the Home route', () => {
   test('a Room key press does nothing', () => {
     story(
       update,
-      givenHomeRoute(),
+      givenHomeRoute,
       message(
         Message.GotRoomMessage({
+          roomId: 'r1',
           message: RoomMessage.PressedKey({ key: 'Enter' }),
         }),
       ),
       model(model => {
-        expect(model.room).toEqual(joinedRoom)
+        expect(model.maybeRoomInstance).toEqual(Option.none())
       }),
       Command.expectNone(),
     )
@@ -102,9 +101,10 @@ describe('key presses on the Room route', () => {
   test('a Room key press starts the game and leaves home alone', () => {
     story(
       update,
-      givenRoomRoute(),
+      givenRoomRoute,
       message(
         Message.GotRoomMessage({
+          roomId: 'r1',
           message: RoomMessage.PressedKey({ key: 'Enter' }),
         }),
       ),

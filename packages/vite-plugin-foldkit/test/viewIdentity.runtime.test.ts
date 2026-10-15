@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { Effect, Fiber, Layer, Schema } from 'effect'
-import { define as defineApplication } from 'foldkit/application'
+import { defineApplication } from 'foldkit'
 import { brandViewResult } from 'foldkit/brand'
 import { type Html, inertHtml } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -175,7 +175,7 @@ const withRunningApp = async (
   view: View,
   run: () => Promise<void>,
 ): Promise<void> => {
-  const element = ApplicationComposition.makeElement({
+  const element = ApplicationComposition.toElement({
     init,
     update,
     view: Application.view(model => view(model)),

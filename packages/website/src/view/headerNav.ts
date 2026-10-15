@@ -1,9 +1,9 @@
 import { Match, Schema } from 'effect'
-import { Html, type HtmlBuilder } from 'foldkit/html'
+import { Html } from 'foldkit/html'
 
 import { Nav } from '@foldkit/ui'
 
-import { type Message } from '../message'
+import type { ViewBuilder } from '../application'
 import {
   type ApplicationRoute,
   blogRouter,
@@ -40,7 +40,7 @@ const linkClassName =
 export const view = (
   route: ApplicationRoute,
   className: string,
-  h: HtmlBuilder<Message>,
+  h: ViewBuilder,
 ): Html =>
   Nav.view<HeaderSection>({
     items: headerSections,

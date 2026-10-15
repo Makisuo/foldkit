@@ -4,8 +4,9 @@ import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import { Message, type Model, update } from './application'
+import { update } from './application'
 import { products } from './data/products'
+import { Message, type Model } from './definition'
 import { Products } from './page'
 import { ApplicationRoute } from './route'
 

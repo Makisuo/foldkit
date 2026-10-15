@@ -586,7 +586,7 @@ export const assertExactCommands = (
         matchers,
         Array.map(matcher => formatMatcher(matcher)),
         Array.sort(Order.String),
-        Array.map((line): CommandMatcher => ({ name: line })),
+        Array.map(line => ({ name: line })),
       ),
     )
     const actual = formatCommandList(
@@ -594,7 +594,7 @@ export const assertExactCommands = (
         commands,
         Array.map(command => formatCommand(command)),
         Array.sort(Order.String),
-        Array.map((line): AnyCommand => ({ name: line })),
+        Array.map(line => ({ name: line })),
       ),
     )
 

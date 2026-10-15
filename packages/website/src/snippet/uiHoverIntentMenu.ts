@@ -14,18 +14,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const init = () => {
-  const hoverMenuInit = hoverMenu.init()
-
-  return {
-    model: {
-      hoverMenu: hoverMenuInit.model,
-      // ...your other fields
-    },
-    commands: hoverMenuInit.commands,
-  }
-}
-
 const Message = defineMessageUnion({
   GotHoverMenuMessage: { message: HoverIntent.Message },
   ClickedHoverMenuItem: {},
@@ -48,6 +36,18 @@ const hoverMenu = HoverMenu.bindChild(HoverIntent.block, {
   field: 'hoverMenu',
   parentMessage: Message.GotHoverMenuMessage,
   outMessage: { fold: foldHoverMenuOutMessage },
+})
+
+const init = HoverMenu.init(() => {
+  const hoverMenuInit = hoverMenu.init()
+
+  return {
+    model: {
+      hoverMenu: hoverMenuInit.model,
+      // ...your other fields
+    },
+    commands: hoverMenuInit.commands,
+  }
 })
 
 const HoverMenuComposition = HoverMenu.toComposition({

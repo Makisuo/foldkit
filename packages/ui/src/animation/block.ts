@@ -162,7 +162,7 @@ export const view = AnimationComposition.view.withInputs<ViewInputs>(
 
 /** Complete Animation Block definition for connecting to a parent. */
 export const block = AnimationComposition.toBlock({
-  init: (config: InitConfig) => ({ model: init(config) }),
+  init: Animation.init((config: InitConfig) => ({ model: init(config) })),
   update,
   view,
   expose: { show, hide, finish, toggle, resume },

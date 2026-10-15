@@ -77,7 +77,9 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
-type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.ViewBuilderFor<
+  typeof ApplicationComposition
+>
 
 const Engine = Application.resource<ComputeEngine>()('ComputeEngine')
 
@@ -140,13 +142,13 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-export const init = () => ({
+export const init = Application.init(() => ({
   model: {
     engine: EngineState.Off(),
     computeCount: 0,
     maybeSquareResult: Option.none(),
   },
-})
+}))
 
 // MANAGED RESOURCE
 

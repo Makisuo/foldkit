@@ -40,7 +40,9 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
-type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.ViewBuilderFor<
+  typeof ApplicationComposition
+>
 
 export const DetermineStartTime = Application.command('DetermineStartTime', {
   args: { elapsedMs: Schema.Number },
@@ -117,13 +119,13 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-export const init = () => ({
+export const init = Application.init(() => ({
   model: {
     elapsedMs: 0,
     isRunning: false,
     startTime: 0,
   },
-})
+}))
 
 export const subscriptions = Application.subscriptions(entry => ({
   stopwatchTicks: entry(

@@ -20,19 +20,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize the Animation Block with a unique id:
-const init = () => {
-  const animationInit = animation.init({ id: 'content' })
-
-  return {
-    model: {
-      animation: animationInit.model,
-      // ...your other fields
-    },
-    commands: animationInit.commands,
-  }
-}
-
 // Embed the Animation Message in your parent Message:
 const Message = defineMessageUnion({
   GotAnimationMessage: { message: Animation.Message },
@@ -87,6 +74,19 @@ const animation = AnimationExample.bindChild(Animation.block, {
   field: 'animation',
   parentMessage: Message.GotAnimationMessage,
   outMessage: { fold: foldAnimationOutMessage },
+})
+
+// In your init function, initialize the Animation Block with a unique id:
+const init = AnimationExample.init(() => {
+  const animationInit = animation.init({ id: 'content' })
+
+  return {
+    model: {
+      animation: animationInit.model,
+      // ...your other fields
+    },
+    commands: animationInit.commands,
+  }
 })
 
 const AnimationExampleComposition = AnimationExample.toComposition({

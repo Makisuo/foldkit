@@ -33,25 +33,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize it. Swipe is opt-in: omit
-// swipeToDismiss to leave it disabled, or pass {} for the default rightward
-// 40px gesture. Set threshold to customize the dismissal distance:
-const init = () => {
-  const toastInit = toast.init({
-    id: 'app-toast',
-    swipeToDismiss: {},
-  })
-
-  return {
-    model: {
-      toast: toastInit.model,
-      maybeLastDismissedBody: Option.none(),
-      // ...your other fields
-    },
-    commands: toastInit.commands,
-  }
-}
-
 // Embed the Toast Message in your parent Message, plus any domain Messages
 // that should push a toast:
 const Message = defineMessageUnion({
@@ -86,6 +67,25 @@ const toast = Notifications.bindChild(Toast, {
   field: 'toast',
   parentMessage: Message.GotToastMessage,
   outMessage: { fold: foldToastOutMessage },
+})
+
+// In your init function, initialize it. Swipe is opt-in: omit
+// swipeToDismiss to leave it disabled, or pass {} for the default rightward
+// 40px gesture. Set threshold to customize the dismissal distance:
+const init = Notifications.init(() => {
+  const toastInit = toast.init({
+    id: 'app-toast',
+    swipeToDismiss: {},
+  })
+
+  return {
+    model: {
+      toast: toastInit.model,
+      maybeLastDismissedBody: Option.none(),
+      // ...your other fields
+    },
+    commands: toastInit.commands,
+  }
 })
 
 const NotificationsComposition = Notifications.toComposition({

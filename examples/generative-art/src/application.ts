@@ -60,7 +60,7 @@ export const EffectsLayer = Layer.mergeAll(
   subscriptions.animationFrameTicks.layer,
 )
 
-export const init = () => ({
+export const init = Application.init(() => ({
   model: {
     particles: [],
     nextId: 0,
@@ -95,11 +95,11 @@ export const init = () => ({
   commands: Array.makeBy(INITIAL_PARTICLE_COUNT, () =>
     GenerateAmbientParticle(),
   ),
-})
+}))
 
 export const ApplicationComposition = Application.toComposition({
   children: [flowStrengthSlider, noiseScaleSlider],
 })
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >

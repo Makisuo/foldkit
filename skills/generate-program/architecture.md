@@ -177,7 +177,9 @@ const update = Feature.update((model, message) =>
 
 `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is the Block counterpart, adding an optional `outMessage` field.
 
-Update, init, boot, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, they return it directly without checking whether it is empty. Never write the literal `commands: []`.
+Update, init, Step, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, they return it directly without checking whether it is empty. Never write the literal `commands: []`.
+
+Init constructs the baseline Model and may return initial Commands. Author it through the owning Definition as `Application.init(fn)` or `Feature.init(fn)`. The Definition checks the returned Model and Command result Messages while preserving the callback's exact arguments, return type, requirements, and child evidence. Give it one concrete function signature; optional, default, and rest parameters are supported. Wrap an overloaded helper or callable object in a concretely typed callback. A generic Block factory closes over its type parameters outside init. Composition has no `init`; completion receives the Definition-owned function and checks it with Flags, routing, final child evidence, and handler registration. Optional `boot` helpers are ordinary initial Steps called through a Binding after the child Model exists; Foldkit has no special Runtime boot phase, and a feature need not define both init and `boot` helpers. When an existing domain operation such as `open` or `restore` already describes the transition, expose that Step instead. Do not manufacture a Message only to trigger startup behavior. Preserve Commands from child init results when accumulating the startup Step results. Call one Step directly and use `Update.combine` only for two or more sequential Steps.
 
 Inside `Feature.update`, let the outer helper infer the Command requirement channel through `Message.match(message, handlers)`. An explicit `Message.match<Update.Return<Model, Message>>` fixes that channel to `never` and discards the handler requirements the application must provide. When helpers or other matchers need a reusable return alias and any branch returns Commands, include the relevant requirements. Derive them with `Update.RequirementsOf<typeof update>` when the update contract is available, rather than from `EffectsLayer`, which may also contain lifecycle handlers that update never returns. Do not repeat the alias on the update function when the match already constrains its branches.
 
@@ -215,9 +217,13 @@ SucceededUpdateNote: ({ note }) =>
 When the initial Model needs data from a side effect (current time, localStorage, browser APIs), use Flags, not module-level constants:
 
 ```ts
+const Application = defineApplication({ Model, Message })
+
 // WRONG: module-level side effect (non-deterministic and untestable)
 const now = Date.now()
-const init = () => ({ model: { createdAt: now } })
+const unsafeInit = Application.init(() => ({
+  model: Model({ createdAt: now }),
+}))
 
 // RIGHT: Flags run as an Effect before init, result passed in
 const Flags = Schema.Struct({
@@ -229,9 +235,9 @@ const flags = Effect.gen(function* () {
   return Flags({ createdAt: now })
 })
 
-const init = (flags: Flags) => ({
+const init = Application.init((flags: Flags) => ({
   model: Model({ createdAt: flags.createdAt }),
-})
+}))
 ```
 
 For a fresh browser boot, Flags are produced by an `Effect<Flags>`. The runtime executes it once before init and passes the result in. This keeps init pure while still allowing side effects to populate the initial Model. Common uses:
@@ -380,7 +386,7 @@ export const mounts = [MeasurePanel]
 export const EffectsLayer = MeasurePanel.layer
 ```
 
-The view uses `h.OnMount(MeasurePanel())`. Put the Mount in `Feature.toComposition({ mounts })` and author the canonical view through that Composition; its builder receives the capability automatically. Immediately after the Composition, declare `type FeatureViewBuilder = Block.HtmlBuilderOf<typeof FeatureComposition>` for ordinary feature-local helpers on the same mounted or child embedding path. Export it only when another file uses it. Give each helper only its meaningful Model, domain, or context parameters plus `h: FeatureViewBuilder`. Reusable helpers independent of one owner keep the general `HtmlBuilder<Message>`. Use `Feature.mountStream` when the element supplies an ongoing event Stream; keep listener or observer acquisition and cleanup inside the returned Stream so each element owns its own scope.
+The view uses `h.OnMount(MeasurePanel())`. Put the Mount in `Feature.toComposition({ mounts })` and author the canonical view through that Composition; its builder receives the capability automatically. Immediately after the Composition, declare `type FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` for ordinary feature-local helpers on the same mounted or child embedding path. Export it only when another file uses it. Give each helper only its meaningful Model, domain, or context parameters plus `h: FeatureViewBuilder`. Reusable helpers independent of one owner keep the general `HtmlBuilder<Message>`. Use `Feature.mountStream` when the element supplies an ongoing event Stream; keep listener or observer acquisition and cleanup inside the returned Stream so each element owns its own scope.
 
 The owner-specific `FeatureViewBuilder` alias preserves its Composition's Message, child, and Mount evidence and creates no runtime value. Its owner prefix is the exception to the standard `Model`, `Message`, and `OutMessage` names because a plain builder type import must identify the Composition whose capabilities it carries. Reusable helpers retain the framework's general `HtmlBuilder<Message>`.
 
@@ -396,6 +402,8 @@ const Child = Block.define('Child', {
   Message,
   OutMessage,
 })
+
+const init = Child.init(() => ({ model: Model.make({}) }))
 
 const ChildComposition = Child.toComposition({
   children,
@@ -413,7 +421,7 @@ export const block = ChildComposition.toBlock({
 })
 ```
 
-Definition establishes contracts and authors behavior. The named Composition fixes child Bindings and Mount capabilities and authors the primary view. Block completion uses that same Composition to check the implementation and handler graph. `children` and `mounts` are independently optional, so a pure feature still creates `const ChildComposition = Child.toComposition()` before authoring its view and calling `ChildComposition.toBlock(...)`. Use the name-only `Block.define('Combobox')` form only for a generic factory that shares definitions before specializing contracts with `.define(...)`.
+Definition establishes contracts and authors behavior, including init. `Child.init` checks its Model and Command result Messages without changing the callback's exact type. The named Composition fixes child Bindings and Mount capabilities and authors the primary view; it does not expose `init`. Block completion uses that same Composition to check the implementation and handler graph. `children` and `mounts` are independently optional, so a pure feature still creates `const ChildComposition = Child.toComposition()` before authoring its view and calling `ChildComposition.toBlock(...)`. Use the name-only `Block.define('Combobox')` form only for a generic factory that shares definitions before specializing contracts with `.define(...)`.
 
 Split features keep early contracts in `definition.ts`; `composition.ts` owns Bindings, the complete children/Mount registration, the Composition and optional owner-specific ViewBuilder alias. Mount-only features use the same home; shared Mount definitions belong in `mount.ts`, imported by both Composition and view. Substantial policy may move to `composition/<child>.ts`; then `composition/composition.ts` is the single assembly point and `composition/index.ts` is an explicit barrel. A split graphless feature exports its named empty Composition beside the Definition in `definition.ts`; view and `block.ts` import that same value. A compact graphless feature keeps it beside its cohesive implementation. Root `application.ts` owns the full root graph and imports substantial root policies directly. Do not add a childBindings file, duplicate children list, arbitrary Binding categories, or a root composition wrapper. Cohesive generic factories can retain local assembly. Keep substantive behavior in focused files or a folder-named implementation, and complete the feature in `block.ts`. Composition must not import the primary view, update matcher or completed Block. Put policy-dependent pure Steps in leaf modules when needed. Explicit barrels export the completed `block`, contracts and intended domain helpers. Import an extracted Binding policy as a namespace such as `HomeBinding` when using several related exports, so its factory or Binding and parent-owned Commands remain visibly grouped. Keep named imports for a single Binding or helper. Keep child feature namespaces distinct from parent-owned Binding policies.
 
@@ -458,7 +466,7 @@ The Binding carries Command scoping, Message lifting, handler requirements, plac
 
 ### View Delegation
 
-Author the canonical completed view through `ParentComposition.view` or `view.withInputs` and let the primary view's builder parameter infer. Ordinary parent-local helpers are plain functions whose builder parameter uses `type ParentViewBuilder = Block.HtmlBuilderOf<typeof ParentComposition>`, declared immediately after the Composition. Give each helper only the Model, domain value, or context it uses. Plain reusable helpers remain generic over the caller's general `HtmlBuilder`.
+Author the canonical completed view through `ParentComposition.view` or `view.withInputs` and let the primary view's builder parameter infer. Ordinary parent-local helpers are plain functions whose builder parameter uses `type ParentViewBuilder = Block.ViewBuilderFor<typeof ParentComposition>`, declared immediately after the Composition. Give each helper only the Model, domain value, or context it uses. Plain reusable helpers remain generic over the caller's general `HtmlBuilder`.
 
 Embed the child through the same Binding:
 
@@ -601,7 +609,7 @@ Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, o
 
 ## With and Without URL Routing
 
-`const Application = defineApplication({ Model, Message })` establishes root contracts. Every root then creates `ApplicationComposition = Application.toComposition({ children?, mounts? })`; use `toComposition()` for a graphless app. Complete only the Composition, with explicit implementation fields.
+`const Application = defineApplication({ Model, Message })` establishes root contracts. Author init through `Application.init(fn)`. Every root then creates `ApplicationComposition = Application.toComposition({ children?, mounts? })`; use `toComposition()` for a graphless app. Complete only the Composition, with the Definition-owned init and other implementation fields listed explicitly.
 
 ### Without Routing
 

@@ -36,6 +36,6 @@ export const ExampleDetailComposition = ExampleDetail.toComposition({
   children: [sourceFileTabs],
   mounts,
 })
-export type ExampleDetailViewBuilder = Block.HtmlBuilderOf<
+export type ExampleDetailViewBuilder = Block.ViewBuilderFor<
   typeof ExampleDetailComposition
 >

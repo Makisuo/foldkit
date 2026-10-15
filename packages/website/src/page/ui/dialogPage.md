@@ -58,7 +58,7 @@ When `isAnimated` is true, enter/leave animations flow through the [Animation](/
 
 ## Starting with an Open Dialog
 
-When a Dialog should be open at application startup, call the Binding’s `init` so the parent receives the Dialog Model and lifted Commands, then apply `dialog.open()` after the parent Model exists. The open operation emits `Opened` through the Binding’s OutMessage policy.
+When a Dialog should be open at application startup, call the Binding’s `init` to obtain the Dialog Model and lifted Commands, then apply `dialog.open()` after the parent Model exists. The open operation returns a result containing a `ShowDialog` Command and emits `Opened` through the Binding’s OutMessage policy. Return its Commands along with any Commands from init. The Runtime executes them after root init returns.
 
 ::Snippet{name="uiDialogInitiallyOpen" label="Starting with an open Dialog"}
 
@@ -96,10 +96,6 @@ Configuration object passed to `Dialog.init()`.
 | `id`            | `string`  | —       | Unique ID for the dialog instance.                                                                                                                                                                                                                                                                   |
 | `isAnimated`    | `boolean` | `false` | Enables animation coordination for open/close animations.                                                                                                                                                                                                                                            |
 | `focusSelector` | `string`  | —       | CSS selector for the element that receives focus when the dialog opens. A selector-based override of the `initialFocus` marker, for an element whose id you do not own or a descendant selector. Takes precedence over `initialFocus`; with neither set, focus falls to the first focusable element. |
-
-### boot
-
-`boot(config)`, imported from `@foldkit/ui/dialog`, accepts the same configuration as `Dialog.init(config)` and returns `Update.ReturnWithOutMessage<Dialog.Model, Dialog.Message, Dialog.OutMessage>`. Its Model is open, its Commands contain `ShowDialog`, and its OutMessage is `Opened`.
 
 ### ViewInputs {#view-config}
 

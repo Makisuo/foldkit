@@ -1,9 +1,13 @@
+import { Block } from 'foldkit'
+
 const OutMessage = defineMessageUnion({
   SelectedEndDate: { date: Schema.String },
   CompletedRange: { startDate: Schema.String, endDate: Schema.String },
 })
 
-const endDatePicker = Application.bindChild(DatePicker.block, {
+const DateRange = Block.define('DateRange', { Model, Message, OutMessage })
+
+const endDatePicker = DateRange.bindChild(DatePicker.block, {
   field: 'endDatePicker',
   parentMessage: Message.GotEndDateMessage,
   outMessage: {
@@ -14,13 +18,4 @@ const endDatePicker = Application.bindChild(DatePicker.block, {
   },
 })
 
-const init = (maybeStartDate: Option.Option<string>) => {
-  const datePickerInit = endDatePicker.init()
-  const model = Model.make({
-    endDatePicker: datePickerInit.model,
-    maybeStartDate,
-    maybeEndDate: Option.none(),
-  })
-
-  return endDatePicker.restore()(model)
-}
+const restoreEndDate = (model: Model) => endDatePicker.restore()(model)

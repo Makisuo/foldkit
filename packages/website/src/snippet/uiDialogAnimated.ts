@@ -15,19 +15,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, set isAnimated: true to coordinate CSS transitions:
-const init = () => {
-  const dialogInit = dialog.init({ id: 'confirm', isAnimated: true })
-
-  return {
-    model: {
-      dialog: dialogInit.model,
-      // ...your other fields
-    },
-    commands: dialogInit.commands,
-  }
-}
-
 // Embed the Dialog Message in your parent Message and delegate to
 // the Dialog update (open from a trigger with a fact and `dialog.open()`, as in
 // the basic Dialog example):
@@ -52,6 +39,19 @@ const dialog = AnimatedDialogExample.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
+})
+
+// In your init function, set isAnimated: true to coordinate CSS transitions:
+const init = AnimatedDialogExample.init(() => {
+  const dialogInit = dialog.init({ id: 'confirm', isAnimated: true })
+
+  return {
+    model: {
+      dialog: dialogInit.model,
+      // ...your other fields
+    },
+    commands: dialogInit.commands,
+  }
 })
 
 const AnimatedDialogExampleComposition = AnimatedDialogExample.toComposition({

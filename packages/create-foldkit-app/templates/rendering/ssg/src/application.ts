@@ -33,9 +33,9 @@ export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
 
-export const init = (url: Url) => ({
+export const init = Application.init((url: Url) => ({
   model: { route: urlToApplicationRoute(url), count: 0 },
-})
+}))
 
 const NavigateInternal = Application.command('NavigateInternal', {
   args: { url: Schema.String },

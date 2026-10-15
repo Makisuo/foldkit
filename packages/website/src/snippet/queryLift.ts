@@ -22,12 +22,12 @@ const ApplicationComposition = Application.toComposition({
   children: [posts],
 })
 
-const init = () => {
+const init = Application.init(() => {
   const model = Model.make({ posts: posts.init().model })
 
   // Return the Loading Model state and the first FetchPosts Command.
   return posts.loadIfMissing()(model)
-}
+})
 
 const update = Application.update((model, message) =>
   Message.match(message, {

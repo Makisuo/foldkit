@@ -9,7 +9,7 @@ Replace manual Block wiring and child-owned connection factories with checked De
 
 ## Complete every Block through a Composition
 
-A Definition establishes the Model, Message, and optional OutMessage contracts and authors behavior such as update and Steps. A named Composition fixes the child Binding and Mount graph and authors the primary view. `toBlock` uses that same Composition to bring the implementation together and check handler completeness.
+A Definition establishes the Model, Message, and optional OutMessage contracts and authors behavior through `init`, `update`, and Steps. A named Composition fixes the child Binding and Mount graph and authors the primary view. `toBlock` uses that same Composition to bring the implementation together and check handler completeness.
 
 Before:
 
@@ -68,7 +68,7 @@ export * as Home from './home'
 
 Parents import the Home namespace from the parent barrel and bind `Home.block`.
 
-`children` and `mounts` are independently optional. Use `toComposition()`, `toComposition({ children })`, `toComposition({ mounts })`, or `toComposition({ children, mounts })`. Omitted registrations grant no capabilities. Name the returned Composition, author the primary view through its `view` or `view.withInputs` method, and complete that same value. Direct `Definition.view` authoring is removed. A completed Block retains its distinct `view` helper for alternate embeds against its already fixed graph. Keep update, Steps, and operations required by child policy on the Definition.
+`children` and `mounts` are independently optional. Use `toComposition()`, `toComposition({ children })`, `toComposition({ mounts })`, or `toComposition({ children, mounts })`. Omitted registrations grant no capabilities. Name the returned Composition, author the primary view through its `view` or `view.withInputs` method, and complete that same value. Direct `Definition.view` authoring is removed. A completed Block retains its distinct `view` helper for alternate embeds against its already fixed graph. Keep init, update, Steps, and operations required by child policy on the Definition.
 
 Use the one-argument `Block.define('Feature')` form only for a generic factory that shares definitions before specializing several contracts with `.define(...)`. Ordinary features establish their contracts in the first call.
 
@@ -320,7 +320,7 @@ export const ApplicationComposition = Application.toComposition({
   children: [home],
   mounts,
 })
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 ```
@@ -345,7 +345,33 @@ export const articleList = (model: Model, h: ApplicationViewBuilder) =>
   )
 ```
 
-`Block.HtmlBuilderOf<typeof ApplicationComposition>` carries the root Message type plus its registered child and Mount capabilities. It is a type alias and constructs no runtime builder. Name the alias for its owner, declare it immediately after the Composition with no blank line, and export it only when another file uses it. The owner prefix identifies one Composition's capabilities at the plain import site. Structural contracts keep the standard names `Model`, `Message`, and `OutMessage` because they normally travel through the feature namespace. A helper takes only the Model, domain value, or context it actually reads; TypeScript infers one `Html` result or an array. Keep the framework's general `HtmlBuilder<Message>` for functions genuinely shared across owners.
+`Block.ViewBuilderFor<typeof ApplicationComposition>` carries the root Message type plus its registered child and Mount capabilities. It is a type alias and constructs no runtime builder. Name the alias for its owner, declare it immediately after the Composition with no blank line, and export it only when another file uses it. The owner prefix identifies one Composition's capabilities at the plain import site. Structural contracts keep the standard names `Model`, `Message`, and `OutMessage` because they normally travel through the feature namespace. A helper takes only the Model, domain value, or context it actually reads; TypeScript infers one `Html` result or an array. Keep the framework's general `HtmlBuilder<Message>` for functions genuinely shared across owners.
+
+## Rename the Composition view helper type
+
+Replace `Block.HtmlBuilderOf` with `Block.ViewBuilderFor`. The argument is the Composition's type; the result retains its Message, registered child, and Mount capabilities for extracted view helpers. The underlying `HtmlBuilder` and view behavior are unchanged. The old public name is removed.
+
+Before:
+
+```ts
+import type { Block } from 'foldkit'
+
+import { SearchComposition } from './composition'
+
+export type SearchViewBuilder = Block.HtmlBuilderOf<typeof SearchComposition>
+```
+
+After:
+
+```ts
+import type { Block } from 'foldkit'
+
+import { SearchComposition } from './composition'
+
+export type SearchViewBuilder = Block.ViewBuilderFor<typeof SearchComposition>
+```
+
+Use `Block.ViewBuilderFor` for both Block and Application Compositions. Keep owner-specific alias names such as `SearchViewBuilder` and `ApplicationViewBuilder`; define the alias immediately after the Composition when they share a file.
 
 ## Name and organize the final roles
 
@@ -445,7 +471,7 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-export const init = () => ({ model: { count: 0 } })
+export const init = Application.init(() => ({ model: { count: 0 } }))
 
 export const ApplicationComposition = Application.toComposition()
 

@@ -23,7 +23,6 @@ export {
   ReleaseDialogResources,
   mounts,
   update,
-  boot,
   titleId,
   descriptionId,
   type RenderInfo,

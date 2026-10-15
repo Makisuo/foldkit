@@ -16,7 +16,7 @@ import type { Url } from '../url/index.js'
 import type {
   Application as ApplicationProgram,
   Element as ElementProgram,
-  HtmlBuilderOf,
+  ViewBuilderFor,
 } from './applicationPublic.js'
 import { define as defineApplication } from './applicationPublic.js'
 import * as ModelPreservationBridge from './modelPreservationBridge.js'
@@ -87,13 +87,14 @@ const childBinding = Application.bindChild(childBlock, {
   parentMessage: Message.GotChildMessage,
 })
 const composition = Application.toComposition({ children: [childBinding] })
-const init = () => {
+const initSource = () => {
   const childInit = childBinding.init()
 
   return {
     model: { rootValue: 'pending', child: childInit.model },
   }
 }
+const init = Application.init(initSource)
 const update = Application.update((model, message) =>
   Message.match(message, {
     ClickedReadRootValue: () => ({
@@ -108,7 +109,7 @@ const update = Application.update((model, message) =>
 )
 const rootBody = (
   model: typeof Model.Type,
-  h: HtmlBuilderOf<typeof composition>,
+  h: ViewBuilderFor<typeof composition>,
 ) =>
   h.div(
     [],
@@ -141,6 +142,8 @@ const noMessageElementView = NoMessageComposition.view((_model, h) => h.empty)
 const typecheckRootCompletion = (): void => {
   // @ts-expect-error An Application Definition does not author the primary view.
   Application.view
+  // @ts-expect-error An Application Composition does not expose the Definition-only init helper.
+  composition.init
 
   Application.command('AcceptedCommand', {
     messages: [Message.CompletedReadRootValue],
@@ -380,6 +383,9 @@ describe('Application authoring', () => {
     expect(composition.step).toBe(Application.step)
     expect(composition.subscriptions).toBe(Application.subscriptions)
     expect(composition.managedResources).toBe(Application.managedResources)
+    expect(Application.init).toBeTypeOf('function')
+    expect(init).toBe(initSource)
+    expect(composition).not.toHaveProperty('init')
     expect(Application).not.toHaveProperty('view')
     expect(graphlessComposition).toHaveProperty('view')
 

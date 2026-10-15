@@ -40,7 +40,9 @@ Declare the Schemas, then call `Block.define('Settings', { Model, Message, OutMe
 
 ::Snippet{name="blockDefinition" label="Defining a typed Block"}
 
-The returned Definition supplies `command`, `mount`, `mountStream`, `resource`, `update`, `step`, `subscriptions`, and `managedResources`. It provides the owning identity and precise contextual types, while retaining inferred Command and Service requirements. Keep this value in one module and import it; creating another definition with the same readable ID does not reuse the original definition.
+The returned Definition supplies `command`, `mount`, `mountStream`, `resource`, `init`, `update`, `step`, `subscriptions`, and `managedResources`. Author init as `Settings.init(fn)`. The helper checks its Model and Command result Messages while preserving the function's exact arguments, return type, requirements, and child registration evidence. It provides the owning identity and precise contextual types. Completion uses the preserved evidence to validate the final child and handler graph. Keep this value in one module and import it; creating another definition with the same readable ID does not reuse the original definition.
+
+`Settings.init` accepts one concrete function signature, including optional, default, and rest parameters. Adapt an overloaded helper or callable object with a concretely typed callback. A generic Block factory captures its type parameters outside the initializer instead of making the initializer generic.
 
 Commands and lifecycle handlers declare local names such as `SaveTheme`. Foldkit derives the full runtime path from composition. Settings connected under Profile becomes `Profile/Settings/SaveTheme`; the feature remains reusable under another parent.
 
@@ -129,7 +131,9 @@ The parent decides how several initial Models combine. Call `binding.init(...arg
 
 ::Snippet{name="blockFoldChildInit" label="Initializing a connected child"}
 
-Block init cannot emit an OutMessage. When startup must perform an ordinary transition that can surface a fact, expose a public API operation such as `boot` and apply it after the initial Model exists.
+Block init cannot emit an OutMessage. Author it through the Block Definition, then pass that same `init` function to `FeatureComposition.toBlock`. Composition owns graph-aware view authoring and completion; it has no `init` method. An optional `boot` helper is an ordinary initial Step applied through the Binding after the child Model exists; Foldkit has no special Runtime boot phase, and a feature need not define both init and `boot` helpers. When an existing domain operation such as `restore` or `open` already describes the transition, expose that Step instead. The same operation may run later from update. Do not create a Message only to trigger startup behavior.
+
+The Binding's `outMessage.fold` policy can handle a fact from that initial Step against the complete parent Model. Parent init cannot forward an OutMessage, so a startup Step used there must finish with a plain update result.
 
 ### Embed the child view {#wiring-the-view}
 
@@ -345,7 +349,7 @@ Name wrapper Messages `Got<Child>Message`. DevTools uses that convention to grou
 
 ### Block.define
 
-`Block.define(id, { Model, Message, OutMessage? })` creates a local identity and typed behavior authoring methods. `id` is a nonempty segment without `/` or `::`. Name the returned value `<Id>`, such as `Settings` for the ID `Settings`. Name the result of `toComposition({ mounts?, children? })` `<Id>Composition`; it adds the primary view and completion capabilities for that fixed graph.
+`Block.define(id, { Model, Message, OutMessage? })` creates a local identity and typed behavior authoring methods, including `init`. `id` is a nonempty segment without `/` or `::`. Name the returned value `<Id>`, such as `Settings` for the ID `Settings`. Name the result of `toComposition({ mounts?, children? })` `<Id>Composition`; it adds the primary view and completion capabilities for that fixed graph, without copying the Definition-only `init` helper.
 
 For shared definitions specialized by a generic factory, `Block.define(id)` supplies the primitive methods and `.define(contracts)` establishes each later typed contract. Both forms are passive configuration.
 

@@ -18,7 +18,7 @@ import {
   urlToApplicationRoute,
 } from './route'
 
-export const init = (url: Url) => {
+export const init = Application.init((url: Url) => {
   return {
     model: {
       route: urlToApplicationRoute(url),
@@ -28,7 +28,7 @@ export const init = (url: Url) => {
       productsPage: Products.init(products).model,
     },
   }
-}
+})
 
 const NavigateInternal = Application.command('NavigateInternal', {
   args: { url: Schema.String },
@@ -82,7 +82,9 @@ export const productsPage = Application.bindChild(Products.block, {
 export const ApplicationComposition = Application.toComposition({
   children: [productsPage],
 })
-type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.ViewBuilderFor<
+  typeof ApplicationComposition
+>
 
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {

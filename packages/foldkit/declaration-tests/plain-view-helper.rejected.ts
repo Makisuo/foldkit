@@ -1,20 +1,20 @@
 import { Layer } from 'effect'
 
-import { defineApplication, Block, Message } from '../src/index.js'
+import { Block, Message, defineApplication } from '../src/index.js'
 import {
   ApplicationComposition,
   ChildComposition,
   ChildModel,
   ObserveParent,
   Parent,
-  ParentModel,
   ParentMessage,
+  ParentModel,
   child,
   childViewHelper,
 } from './plain-view-helper.accepted.js'
 
 const OmittedParentComposition = Parent.toComposition()
-type OmittedParentViewBuilder = Block.HtmlBuilderOf<
+type OmittedParentViewBuilder = Block.ViewBuilderFor<
   typeof OmittedParentComposition
 >
 
@@ -64,7 +64,7 @@ const Application = defineApplication({
   Message: ParentMessage,
 })
 const OmittedApplicationComposition = Application.toComposition()
-type OmittedApplicationViewBuilder = Block.HtmlBuilderOf<
+type OmittedApplicationViewBuilder = Block.ViewBuilderFor<
   typeof OmittedApplicationComposition
 >
 const applicationViewHelper = (
@@ -102,7 +102,9 @@ OmittedApplicationComposition.toElement({
   view: applicationViewHelper,
 })
 
-type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.ViewBuilderFor<
+  typeof ApplicationComposition
+>
 const applicationHelperWithForeignMessage = (h: ApplicationViewBuilder) =>
   h.button([
     // @ts-expect-error Application helpers retain the root Message exactly.

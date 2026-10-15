@@ -705,7 +705,7 @@ const MenuComposition = Menu.toComposition({
   mounts,
   children: [animation],
 })
-type MenuViewBuilder = Block.HtmlBuilderOf<typeof MenuComposition>
+type MenuViewBuilder = Block.ViewBuilderFor<typeof MenuComposition>
 
 /** Processes a Menu Message and returns the next Model, optional Commands, and
  *  an optional OutMessage. */
@@ -1272,7 +1272,7 @@ type RefineOutMessage<Return, OutMessage> = Return extends unknown
 
 /** Complete default Menu Block definition. */
 export const block = MenuComposition.toBlock({
-  init: (config: InitConfig) => ({ model: init(config) }),
+  init: Menu.init((config: InitConfig) => ({ model: init(config) })),
   update,
   view,
   expose,
@@ -1329,7 +1329,7 @@ const makeBlock = <Item extends string>() => {
     refinedUpdate(model, Message.SelectedItem({ index, item })),
   )
   return MenuComposition.toBlock({
-    init: (config: InitConfig) => ({ model: init(config) }),
+    init: Menu.init((config: InitConfig) => ({ model: init(config) })),
     update: refinedUpdate,
     view,
     expose: { open, close, selectItem },

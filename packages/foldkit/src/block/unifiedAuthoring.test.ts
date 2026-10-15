@@ -31,6 +31,18 @@ const Save = Search.command('Save', {
       storage.save(value).pipe(Effect.as(Message.CompletedSave()))
   },
 })
+const ForeignInitCommand = Command.define('ForeignInitCommand', {
+  messages: [ForeignMessage.ForeignCompleted],
+})
+
+type SearchInitReturn = Readonly<{ model: typeof Model.Type }>
+
+function overloadedSearchInit(value: number): SearchInitReturn
+function overloadedSearchInit(value: string): SearchInitReturn
+function overloadedSearchInit(_value: number | string): SearchInitReturn {
+  return { model: Model.make({ value: '' }) }
+}
+
 const TrackPointer = Search.mountStream('TrackPointer', {
   messages: [Message.CompletedSave],
   handler: function* () {
@@ -120,8 +132,22 @@ it('preserves typed and primitive helpers after composition', () => {
   expect(search.step).toBe(Search.step)
   expect(search.subscriptions).toBe(Search.subscriptions)
   expect(search.managedResources).toBe(Search.managedResources)
+  expect(search).not.toHaveProperty('init')
 })
 if (false) {
+  // @ts-expect-error A Composition does not expose the Definition-only init helper.
+  search.init
+
+  // @ts-expect-error Block init must return the Block Model.
+  Search.init(() => ({ model: { value: 1 } }))
+  Search.init(() => ({
+    model: Model.make({ value: '' }),
+    // @ts-expect-error Every Block init Command must return the Block Message.
+    commands: [ForeignInitCommand()],
+  }))
+  // @ts-expect-error Initializers require one concrete call signature.
+  Search.init(overloadedSearchInit)
+
   Search.command('AcceptedCommand', {
     messages: [Message.CompletedSave],
   })

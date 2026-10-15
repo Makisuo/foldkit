@@ -18,13 +18,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const init = () => ({
-  model: Model.make({
-    maybeCity: Option.none(),
-    combobox: combobox.init({ id: 'city' }).model,
-  }),
-})
-
 const Message = defineMessageUnion({
   GotComboboxMessage: { message: CityCombobox.Message },
 })
@@ -51,6 +44,13 @@ const combobox = CityPicker.bindChild(CityCombobox, {
 })
 
 // Including the Binding collects its lifecycle and handler graph.
+
+const init = CityPicker.init(() => ({
+  model: Model.make({
+    maybeCity: Option.none(),
+    combobox: combobox.init({ id: 'city' }).model,
+  }),
+}))
 
 const CityPickerComposition = CityPicker.toComposition({
   children: [combobox],

@@ -698,7 +698,7 @@ export const view = PopoverComposition.view.withInputs<ViewInputs>(
 
 /** Complete Popover Block definition. */
 export const block = PopoverComposition.toBlock({
-  init: (config: InitConfig) => ({ model: init(config) }),
+  init: Popover.init((config: InitConfig) => ({ model: init(config) })),
   update,
   view,
   expose: { open, close },

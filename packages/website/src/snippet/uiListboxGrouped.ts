@@ -31,20 +31,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize the Listbox Block with a unique id:
-const init = () => {
-  const listboxInit = characterListbox.init({ id: 'character' })
-
-  return {
-    model: {
-      maybeCharacter: Option.none(),
-      listbox: listboxInit.model,
-      // ...your other fields
-    },
-    commands: listboxInit.commands,
-  }
-}
-
 // Wrap Listbox's Messages so they can flow through your update:
 const Message = defineMessageUnion({
   GotListboxMessage: { message: CharacterListbox.Message },
@@ -78,6 +64,20 @@ const characterListbox = CharacterPicker.bindChild(CharacterListbox, {
   field: 'listbox',
   parentMessage: Message.GotListboxMessage,
   outMessage: { fold: foldListboxOutMessage },
+})
+
+// In your init function, initialize the Listbox Block with a unique id:
+const init = CharacterPicker.init(() => {
+  const listboxInit = characterListbox.init({ id: 'character' })
+
+  return {
+    model: {
+      maybeCharacter: Option.none(),
+      listbox: listboxInit.model,
+      // ...your other fields
+    },
+    commands: listboxInit.commands,
+  }
 })
 
 const CharacterPickerComposition = CharacterPicker.toComposition({

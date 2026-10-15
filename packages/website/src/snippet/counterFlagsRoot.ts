@@ -18,12 +18,12 @@ export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
 
-export const init = (flags: Flags) => ({
+export const init = Application.init((flags: Flags) => ({
   model: Model.make({
     count: Option.getOrElse(flags.savedCount, () => 0),
     startingCount: flags.savedCount,
   }),
-})
+}))
 
 export const update = Application.update((model, message) =>
   Message.match(message, {

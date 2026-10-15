@@ -355,7 +355,7 @@ export const view = HoverIntentComposition.view.withInputs<ViewInputs>(
 
 /** Complete HoverIntent Block definition for connecting to a parent. */
 export const block = HoverIntentComposition.toBlock({
-  init: (config?: InitConfig) => ({ model: init(config) }),
+  init: HoverIntent.init((config?: InitConfig) => ({ model: init(config) })),
   update,
   view,
   expose: { close },

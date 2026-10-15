@@ -1,12 +1,13 @@
 import { modifyFields } from 'foldkit/struct'
 
 import { EducationEntryComposition, graduationYearListbox } from './composition'
+import { EducationEntry } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
 export const block = EducationEntryComposition.toBlock({
-  init: (entryId: string) => {
+  init: EducationEntry.init((entryId: string) => {
     const graduationYearInit = graduationYearListbox.init({
       id: `${entryId}-graduation-year`,
     })
@@ -17,7 +18,7 @@ export const block = EducationEntryComposition.toBlock({
       }),
       commands: graduationYearInit.commands,
     }
-  },
+  }),
   update,
   view,
 })

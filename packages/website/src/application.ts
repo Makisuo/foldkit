@@ -113,7 +113,7 @@ export const ApplicationComposition = Application.toComposition({
     uiPages,
   ],
 })
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 

@@ -4,10 +4,11 @@ import {
   notePlayerDemo,
   playgroundMenu,
 } from './composition'
+import { Home } from './definition'
 import * as DemoTab from './demoTab'
 import { Model } from './model'
 
-export const init = () => {
+export const init = Home.init(() => {
   const activeDemoTab: DemoTab.Tab = 'Architecture'
   const asyncCounterDemoInit = asyncCounterDemo.init()
   const notePlayerDemoInit = notePlayerDemo.init()
@@ -34,4 +35,4 @@ export const init = () => {
       ...(playgroundMenuInit.commands ?? []),
     ],
   }
-}
+})

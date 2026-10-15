@@ -1,4 +1,6 @@
-const init = (username: string, savedTheme: Settings.Theme) => {
+import { Profile } from './definition'
+
+const init = Profile.init((username: string, savedTheme: Settings.Theme) => {
   const settingsInit = settings.init({ theme: savedTheme })
 
   return {
@@ -8,4 +10,4 @@ const init = (username: string, savedTheme: Settings.Theme) => {
     }),
     commands: settingsInit.commands,
   }
-}
+})

@@ -1,6 +1,6 @@
 import { Effect, Layer, Schema } from 'effect'
 
-import { defineApplication, Block, type Html, Message } from '../src/index.js'
+import { Block, type Html, Message, defineApplication } from '../src/index.js'
 
 export const ChildModel = Schema.Struct({ value: Schema.String })
 const ChildMessage = Message.defineMessageUnion({ ClickedChild: {} })
@@ -9,7 +9,7 @@ const Child = Block.define('DeclarationViewHelperChild', {
   Message: ChildMessage,
 })
 export const ChildComposition = Child.toComposition()
-type ChildViewBuilder = Block.HtmlBuilderOf<typeof ChildComposition>
+type ChildViewBuilder = Block.ViewBuilderFor<typeof ChildComposition>
 export const childViewHelper = (
   model: typeof ChildModel.Type,
   h: ChildViewBuilder,
@@ -45,7 +45,7 @@ export const ParentComposition = Parent.toComposition({
   children: [child],
   mounts: [ObserveParent],
 })
-export type ParentViewBuilder = Block.HtmlBuilderOf<typeof ParentComposition>
+export type ParentViewBuilder = Block.ViewBuilderFor<typeof ParentComposition>
 
 export const parentModelViewHelper = (
   model: typeof ParentModel.Type,
@@ -86,7 +86,7 @@ export const ApplicationComposition = Application.toComposition({
   children: [child],
   mounts: [ObserveParent],
 })
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 

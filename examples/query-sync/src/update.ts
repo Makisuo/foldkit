@@ -9,6 +9,7 @@ import {
   periodListbox,
 } from './application'
 import { LoadExternal, NavigateInternal, ReplaceFilters } from './command'
+import { Application } from './definition'
 import { Message } from './message'
 import { DietListbox, PeriodListbox } from './model'
 import {
@@ -17,7 +18,7 @@ import {
   urlToApplicationRoute,
 } from './route'
 
-export const init = (url: Url) => {
+export const init = Application.init((url: Url) => {
   const route = urlToApplicationRoute(url)
 
   return {
@@ -27,7 +28,7 @@ export const init = (url: Url) => {
       periodListbox: PeriodListbox.init({ id: 'period-filter' }).model,
     },
   }
-}
+})
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),

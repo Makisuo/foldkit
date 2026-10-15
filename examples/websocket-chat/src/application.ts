@@ -11,7 +11,7 @@ import { managedResources } from './managedResource'
 import { subscriptions } from './subscription'
 
 export const ApplicationComposition = Application.toComposition()
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 

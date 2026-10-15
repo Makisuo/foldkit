@@ -164,12 +164,27 @@ const homeOptionalInputsView = HomeComposition.view.withInputs<
 
 let homeInitCalls = 0
 
-const homeInit = () => {
+const homeInit = home.init(() => {
   homeInitCalls += 1
   return {
     model: HomeModel.make({ status: 'Idle', joinedCount: 0 }),
   }
-}
+})
+
+const parameterizedHomeInitSource = (
+  value: string,
+  joinedCount = 0,
+  ...suffixes: ReadonlyArray<string>
+) => ({
+  model: HomeModel.make({
+    status: 'Idle',
+    joinedCount: joinedCount + suffixes.length,
+  }),
+  value,
+})
+const parameterizedHomeInit = home.init(parameterizedHomeInitSource)
+expectTypeOf(parameterizedHomeInit).toEqualTypeOf(parameterizedHomeInitSource)
+expect(parameterizedHomeInit).toBe(parameterizedHomeInitSource)
 
 const homeUpdate = home.update((model, message) =>
   HomeMessage.match(message, {

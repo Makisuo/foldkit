@@ -5,7 +5,7 @@
 // Model and init are unchanged from the basic example. Pass any
 // `rowHeightPx` to `init`; fixed and known-variable views still use their
 // respective exact heights:
-const init = () => {
+const init = ActivityListExample.init(() => {
   const activityListInit = activityList.init({
     id: 'activity-list',
     rowHeightPx: 56,
@@ -18,7 +18,7 @@ const init = () => {
     },
     commands: activityListInit.commands,
   }
-}
+})
 
 // Provide an `itemToRowHeightPx` callback on `view`. Each row wrapper is
 // sized to the height the callback returns for that item. Slice and spacer

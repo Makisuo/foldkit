@@ -142,7 +142,9 @@ const counter = Application.bindChild(Counter.block, {
 export const ApplicationComposition = Application.toComposition({
   children: [counter],
 })
-type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.ViewBuilderFor<
+  typeof ApplicationComposition
+>
 
 const postView = (
   model: Model,

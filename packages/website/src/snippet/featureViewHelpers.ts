@@ -12,7 +12,7 @@ const Message = defineMessageUnion({ ClickedArticle: { id: Schema.String } })
 
 const Articles = Block.define('Articles', { Model, Message })
 const ArticlesComposition = Articles.toComposition()
-type ArticlesViewBuilder = Block.HtmlBuilderOf<typeof ArticlesComposition>
+type ArticlesViewBuilder = Block.ViewBuilderFor<typeof ArticlesComposition>
 
 const headerView = (h: ArticlesViewBuilder) => h.h2([], ['Articles'])
 

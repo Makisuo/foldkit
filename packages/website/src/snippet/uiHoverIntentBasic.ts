@@ -15,19 +15,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// Initialize it. This behavior primitive owns no DOM id:
-const init = () => {
-  const hoverIntentInit = hoverIntent.init({ openDelay: 200, closeDelay: 300 })
-
-  return {
-    model: {
-      hoverIntent: hoverIntentInit.model,
-      // ...your other fields
-    },
-    commands: hoverIntentInit.commands,
-  }
-}
-
 // Embed child Messages in your parent Message:
 const Message = defineMessageUnion({
   GotHoverIntentMessage: { message: HoverIntent.Message },
@@ -50,6 +37,19 @@ const hoverIntent = HoverIntentExample.bindChild(HoverIntent.block, {
   field: 'hoverIntent',
   parentMessage: Message.GotHoverIntentMessage,
   outMessage: { fold: foldHoverIntentOutMessage },
+})
+
+// Initialize it. This behavior primitive owns no DOM id:
+const init = HoverIntentExample.init(() => {
+  const hoverIntentInit = hoverIntent.init({ openDelay: 200, closeDelay: 300 })
+
+  return {
+    model: {
+      hoverIntent: hoverIntentInit.model,
+      // ...your other fields
+    },
+    commands: hoverIntentInit.commands,
+  }
 })
 
 const HoverIntentExampleComposition = HoverIntentExample.toComposition({

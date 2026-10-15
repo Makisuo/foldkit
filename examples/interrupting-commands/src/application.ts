@@ -11,7 +11,7 @@ import {
 } from './definition'
 
 export const ApplicationComposition = Application.toComposition()
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
@@ -20,9 +20,9 @@ export const initialModel: Model = {
   uploads: [],
 }
 
-export const init = () => ({
+export const init = Application.init(() => ({
   model: initialModel,
-})
+}))
 
 // FAKE FILES
 

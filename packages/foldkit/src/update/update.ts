@@ -1905,9 +1905,14 @@ type InitFoldRegistrationEvidence<Fold> =
       : never
     : never
 
-/** Builds a parent Model from a child's init or boot result, lifts the child's
- *  Commands through `toParentMessage`, and handles any child OutMessage.
- *  Call it data-first with the completed child result and the parent adapters.
+/** Builds a parent Model from a completed child initialization result and lifts
+ *  its Commands through `toParentMessage`. Call it data-first with the child
+ *  result and parent adapters.
+ *
+ *  For connected Blocks, prefer the Binding's `init` and exposed operations.
+ *  Construct the parent Model from init results, then apply any startup Steps
+ *  to that Model. A boot Step takes an existing Model; it does not construct
+ *  a child initialization result for this helper.
  *
  *  `toParentModel` constructs the complete parent Model before `foldOutMessage`
  *  runs. The fold receives the same {@link FoldContext} as {@link foldChild},
@@ -1915,22 +1920,11 @@ type InitFoldRegistrationEvidence<Fold> =
  *  and service requirements include both the child's mapped Commands and the
  *  OutMessage Step's Commands.
  *
- *  For example, a parent can initialize a search Block that requests its
- *  first query during boot:
- *
  *  ```ts
- *  const foldSearchOutMessage = Search.OutMessage.match<Update.Step<Model, Message>>({
- *    RequestedSearch: ({ query }) => model => ({
- *      model: modifyFields(model, { results: () => AsyncData.Loading() }),
- *      commands: [FetchResults({ query })],
- *    }),
- *  })
- *
- *  const init = (): Update.Return<Model, Message> =>
- *    Update.foldChildInit(Search.boot({ query: '' }), {
- *      toParentModel: search => Model.make({ search, results: AsyncData.Idle() }),
- *      toParentMessage: toGotSearchMessage,
- *      foldOutMessage: foldSearchOutMessage,
+ *  const init = () =>
+ *    Update.foldChildInit(Search.init(), {
+ *      toParentModel: search => Model.make({ search }),
+ *      toParentMessage: message => Message.GotSearchMessage({ message }),
  *    })
  *  ```
  *
@@ -2334,7 +2328,7 @@ type InitResolution<Folds> = unknown extends Folds[keyof Folds]
     ? { resolveOutMessage?: never }
     : { resolveOutMessage: unknown }
 
-/** Builds a complete parent Model from named child init or boot results before
+/** Builds a complete parent Model from named child initialization results before
  *  handling any of their OutMessages. Call this function data-first.
  *
  *  `toParentModel` receives the record of child Models and runs exactly once.

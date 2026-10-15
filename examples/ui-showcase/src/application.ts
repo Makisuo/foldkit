@@ -18,7 +18,7 @@ export const ui = Application.bindChild(Ui.block, {
 export const ApplicationComposition = Application.toComposition({
   children: [ui],
 })
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
@@ -43,7 +43,7 @@ export const LoadExternal = ApplicationComposition.command('LoadExternal', {
   },
 })
 
-export const init = (flags: Flags, url: Url) => {
+export const init = Application.init((flags: Flags, url: Url) => {
   const uiInit = ui.init(flags.today)
 
   return {
@@ -53,7 +53,7 @@ export const init = (flags: Flags, url: Url) => {
     }),
     commands: uiInit.commands,
   }
-}
+})
 
 export const EffectsLayer = Layer.merge(
   NavigateInternal.layer,

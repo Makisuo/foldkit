@@ -10,6 +10,7 @@ import { Server } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Port from 'foldkit/port'
 import * as Update from 'foldkit/update'
+import type { Url } from 'foldkit/url'
 
 type Equal<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends <
@@ -28,6 +29,7 @@ const DeclarationTestsChild = Block.define('DeclarationTestsChild')
 
 // eslint-disable-next-line foldkit/block-name-matches-variable
 const SingleColonOwner = Block.define('DeclarationTests:SingleColon')
+// eslint-disable-next-line foldkit/block-name-matches-variable
 export const SingleColonBlock = SingleColonOwner.define({
   Model: Schema.Struct({ value: Schema.Number }),
   Message: defineMessageUnion({ RequestedWork: {} }),
@@ -69,14 +71,16 @@ export const Measure = DeclarationTestsChild.mount('Measure', {
   },
 })
 
+// eslint-disable-next-line foldkit/block-name-matches-variable
 const Child = DeclarationTestsChild.define({
   Model: ChildModel,
   Message: ChildMessage,
 })
 export const ChildDefinition = Child
-export const ChildComposition = Child.toComposition({
+const DeclarationTestsChildComposition = Child.toComposition({
   mounts: [Measure],
 })
+export const ChildComposition = DeclarationTestsChildComposition
 
 const childView = ChildComposition.view((model, h) =>
   h.div([h.OnMount(Measure())], [globalThis.String(model.value)]),
@@ -112,8 +116,65 @@ export type ChildLayerAssertions = [
   CompletedChildIsExact,
 ]
 
+const childParameterizedInitSource = (
+  value: number,
+  offset = 0,
+  ...increments: ReadonlyArray<number>
+) => ({
+  model: ChildModel.make({
+    value: value + offset + increments.length,
+  }),
+  value,
+})
+
+const makeChildInitSource =
+  <Value extends number>(value: Value) =>
+  (offset = 0, ...increments: ReadonlyArray<number>) => ({
+    model: ChildModel.make({
+      value: value + offset + increments.length,
+    }),
+    value,
+  })
+
+const childLiteralInitSource = makeChildInitSource(1)
+
+function overloadedChildInitSource(value: number): { model: ChildModel }
+function overloadedChildInitSource(value: string): { model: ChildModel }
+function overloadedChildInitSource(_value: number | string) {
+  return { model: ChildModel.make({ value: 0 }) }
+}
+
+export const childParameterizedInit = Child.init(childParameterizedInitSource)
+export const childLiteralInit = Child.init(childLiteralInitSource)
+export const wrappedOverloadedChildInit = Child.init((value: string) =>
+  overloadedChildInitSource(value),
+)
+export const childInit = Child.init(() => ({
+  model: ChildModel.make({ value: 0 }),
+  commands: [ReadCount()],
+}))
+
+type ChildInitIsExact = Expect<
+  Equal<typeof childParameterizedInit, typeof childParameterizedInitSource>
+>
+type ChildLiteralInitIsExact = Expect<
+  Equal<typeof childLiteralInit, typeof childLiteralInitSource>
+>
+type ChildLiteralInitValueIsExact = Expect<
+  Equal<ReturnType<typeof childLiteralInit>['value'], 1>
+>
+type WrappedOverloadedChildInitParametersAreExact = Expect<
+  Equal<Parameters<typeof wrappedOverloadedChildInit>, [value: string]>
+>
+type ChildInitRequirementsAreExact = Expect<
+  Equal<
+    Update.RequirementsOf<typeof childInit>,
+    Command.HandlerOf<typeof ReadCount>
+  >
+>
+
 const childImplementation = {
-  init: () => ({ model: ChildModel.make({ value: 0 }) }),
+  init: childInit,
   update: childUpdate,
   view: childView,
   expose: { refresh },
@@ -128,6 +189,14 @@ export type CompletedChild = Block.Completed<
 export const ChildBlock = ChildComposition.toBlock(childImplementation)
 
 type CompletedChildIsExact = Expect<Equal<CompletedChild, typeof ChildBlock>>
+
+export type ChildInitAssertions = [
+  ChildInitIsExact,
+  ChildLiteralInitIsExact,
+  ChildLiteralInitValueIsExact,
+  WrappedOverloadedChildInitParametersAreExact,
+  ChildInitRequirementsAreExact,
+]
 
 export const DirectModel = Schema.Struct({ value: Schema.Number })
 export type DirectModel = typeof DirectModel.Type
@@ -198,7 +267,9 @@ export const refreshDirectValue = DeclarationTestsDirectComposition.step(
 )
 
 export const Direct = DeclarationTestsDirectComposition.toBlock({
-  init: () => ({ model: DirectModel.make({ value: 0 }) }),
+  init: DeclarationTestsDirect.init(() => ({
+    model: DirectModel.make({ value: 0 }),
+  })),
   update: directUpdate,
   expose: { refreshDirectValue },
   EffectsLayer: ReadDirectValue.layer,
@@ -209,9 +280,12 @@ const DeclarationTestsPure = Block.define('DeclarationTestsPure', {
   Message: DirectMessage,
 })
 export const PureDefinition = DeclarationTestsPure
-export const PureComposition = DeclarationTestsPure.toComposition()
+const DeclarationTestsPureComposition = DeclarationTestsPure.toComposition()
+export const PureComposition = DeclarationTestsPureComposition
 const pureImplementation = {
-  init: () => ({ model: DirectModel.make({ value: 0 }) }),
+  init: DeclarationTestsPure.init(() => ({
+    model: DirectModel.make({ value: 0 }),
+  })),
   update: DeclarationTestsPure.update((model, _message) => ({
     model,
   })),
@@ -237,6 +311,48 @@ export const ParentMessage = defineMessageUnion({
   RequestedRefresh: {},
 })
 export type ParentMessage = typeof ParentMessage.Type
+
+const DeclarationTestsDirectInit = Block.define('DeclarationTestsDirectInit', {
+  Model: ChildModel,
+  Message: ParentMessage,
+})
+export const directInitChild = DeclarationTestsDirectInit.bindChild(
+  ChildBlock,
+  {
+    placement: 'direct-init-child',
+    read: model => Option.some(model),
+    write: (_model, nextChild) => nextChild,
+    parentMessage: ParentMessage.GotChildMessage,
+  },
+)
+export const directResultInit = DeclarationTestsDirectInit.init(
+  directInitChild.init,
+)
+const directInitUpdate = DeclarationTestsDirectInit.update(model => ({ model }))
+export const DirectInitBlock = DeclarationTestsDirectInit.toComposition({
+  children: [directInitChild],
+}).toBlock({
+  init: directResultInit,
+  update: directInitUpdate,
+})
+
+type DirectResultInitEvidenceIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<typeof directResultInit>>,
+    Block.BindingRequirement<'direct-init-child', typeof ChildBlock>
+  >
+>
+type DirectResultInitRequirementsAreExact = Expect<
+  Equal<
+    Update.RequirementsOf<typeof directResultInit>,
+    Block.Scoped<'direct-init-child', Command.HandlerOf<typeof ReadCount>>
+  >
+>
+
+export type DirectResultInitAssertions = [
+  DirectResultInitEvidenceIsExact,
+  DirectResultInitRequirementsAreExact,
+]
 
 const DeclarationTestsParent = Block.define('DeclarationTestsParent').define({
   Model: ParentModel,
@@ -295,11 +411,12 @@ export const ObserveParent = DeclarationTestsParent.mount('ObserveParent', {
     return () => Effect.succeed(ParentMessage.RequestedRefresh())
   },
 })
-export const ParentComposition = DeclarationTestsParent.toComposition({
+const DeclarationTestsParentComposition = DeclarationTestsParent.toComposition({
   children: [child],
   mounts: [ObserveParent],
 })
-export type ParentViewBuilder = Block.HtmlBuilderOf<typeof ParentComposition>
+export const ParentComposition = DeclarationTestsParentComposition
+export type ParentViewBuilder = Block.ViewBuilderFor<typeof ParentComposition>
 
 export const ParentDefinition = DeclarationTestsParent
 export const parentView = ParentComposition.view((model, h) =>
@@ -352,14 +469,14 @@ export const contextualRefreshChild = DeclarationTestsParent.step(
 )
 
 export const Parent = ParentComposition.toBlock({
-  init: () => {
+  init: DeclarationTestsParent.init(() => {
     const childInit = child.init()
 
     return {
       model: ParentModel.make({ child: childInit.model }),
       commands: childInit.commands,
     }
-  },
+  }),
   update: parentUpdate,
   view: parentView,
   expose: { refreshChild },
@@ -394,6 +511,7 @@ const makeChoiceParts = <const Values extends ReadonlyArray<string>>(
   const Model = Schema.Struct({ value: Value })
   const Message = Schema.TaggedStruct('SelectedValue', { value: Value })
   const OutMessage = Schema.TaggedStruct('SelectedValue', { value: Value })
+  // eslint-disable-next-line foldkit/block-name-matches-variable
   const definition = DeclarationTestsChoice.define({
     Model,
     Message,
@@ -452,11 +570,15 @@ type CompletedChoiceIsExact = Expect<
 
 const ChoiceParentModel = Schema.Struct({ choice: RefinedChoice.Model })
 type ChoiceParentModel = typeof ChoiceParentModel.Type
-const ChoiceParent = Block.define('DeclarationTestsChoiceParent', {
-  Model: ChoiceParentModel,
-  Message: RefinedChoice.Message,
-  OutMessage: RefinedChoice.OutMessage,
-})
+const DeclarationTestsChoiceParent = Block.define(
+  'DeclarationTestsChoiceParent',
+  {
+    Model: ChoiceParentModel,
+    Message: RefinedChoice.Message,
+    OutMessage: RefinedChoice.OutMessage,
+  },
+)
+const ChoiceParent = DeclarationTestsChoiceParent
 
 export const refinedChoice = ChoiceParent.bindChild(RefinedChoice, {
   placement: 'refined-choice',
@@ -537,9 +659,9 @@ const wrappedPureUpdate = preserveFunction(
     return { model }
   },
 )
-const pureInit = () => ({
+export const pureInit = PureApplication.init(() => ({
   model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
-})
+}))
 const pureElementView = PureApplicationComposition.view((_model, h) =>
   h.main([]),
 )
@@ -589,7 +711,7 @@ export const StreamApplicationValue = Application.mountStream(
 export const ApplicationComposition = Application.toComposition({
   children: [directChild],
 })
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 const applicationElementView = ApplicationComposition.view((model, h) =>
@@ -628,14 +750,29 @@ const applicationUpdate = Application.update((model, message) =>
   }),
 )
 
-const applicationInit = () => {
+type ApplicationInitReturn = Update.ReturnWithRegistrationEvidence<
+  ParentModel,
+  ParentMessage,
+  never,
+  Block.Scoped<'child', Command.HandlerOf<typeof ReadCount>>,
+  Block.BindingRequirement<'child', typeof ChildBlock>
+>
+
+const applicationInit = Application.init((): ApplicationInitReturn => {
   const childInit = directChild.init()
 
   return {
     model: ParentModel.make({ child: childInit.model }),
     commands: childInit.commands,
   }
-}
+})
+
+type ApplicationInitEvidenceIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<typeof applicationInit>>,
+    Block.BindingRequirement<'child', typeof ChildBlock>
+  >
+>
 
 const applicationImplementation = {
   init: applicationInit,
@@ -643,17 +780,25 @@ const applicationImplementation = {
   EffectsLayer: Layer.empty,
 }
 
+export const provisionRoutingInit = PureApplication.init(
+  (flags: ProvisionFlags, _url: Url) => ({
+    model: ParentModel.make({
+      child: ChildBlock.Model.make({ value: flags.initialValue }),
+    }),
+  }),
+)
+
 const makeInferredProvisionPageAwaitingDependency = (
   container: HTMLElement | null,
 ) =>
   PureApplicationComposition.toApplication({
     Flags: ProvisionFlags,
     container,
-    init: ({ initialValue }: typeof ProvisionFlags.Type) => ({
+    init: PureApplication.init(({ initialValue }: ProvisionFlags) => ({
       model: ParentModel.make({
         child: ChildBlock.Model.make({ value: initialValue }),
       }),
-    }),
+    })),
     ports: provisionPorts,
     update: PureApplication.update(wrappedPureUpdate.fn),
     view: pureDocumentView,
@@ -722,9 +867,24 @@ export const makePageProgram = (container: HTMLElement | null) =>
     view: applicationDocumentView,
   }).provide(ClockLayer)
 
+export const makeRoutedFlagsPage = (container: HTMLElement | null) =>
+  PureApplicationComposition.toApplication({
+    Flags: ProvisionFlags,
+    container,
+    init: provisionRoutingInit,
+    routing: {
+      onUrlRequest: () => ParentMessage.RequestedRefresh(),
+      onUrlChange: () => ParentMessage.RequestedRefresh(),
+    },
+    update: PureApplication.update(wrappedPureUpdate.fn),
+    view: pureDocumentView,
+  })
+
 export const renderPage = () =>
   Server.renderToString(
     ApplicationComposition,
     { ...applicationImplementation, view: applicationDocumentView },
     { isHydratable: false },
   )
+
+export type ApplicationInitAssertions = [ApplicationInitEvidenceIsExact]

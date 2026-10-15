@@ -1,7 +1,9 @@
 import { Match, Option } from 'effect'
-import { Command, Runtime } from 'foldkit'
+import { Command } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { Url } from 'foldkit/url'
+
+import { Application } from './definition'
 
 // Route-driven Commands live in one helper...
 const commandsForRoute = (
@@ -16,10 +18,10 @@ const commandsForRoute = (
   )
 
 // ...which init calls for the cold load...
-const init: Runtime.RoutingApplicationInit<Model, Message> = (url: Url) => {
+const init = Application.init((url: Url) => {
   const route = urlToApplicationRoute(url)
   return { model: { route }, commands: commandsForRoute(route) }
-}
+})
 
 // ...and the ChangedUrl handler calls for in-app navigation:
 ChangedUrl: ({ url }) => {

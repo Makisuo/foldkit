@@ -2,13 +2,13 @@ import { Option } from 'effect'
 import type { Block } from 'foldkit'
 
 import {
-  ChildMessage,
   CallableModel,
-  callableRequired,
-  callableOptional,
+  ChildMessage,
   Model,
   ParentMessage,
   arrayChild,
+  callableOptional,
+  callableRequired,
   composition,
   customIgnoredMessage,
   initial,
@@ -52,7 +52,7 @@ export type OperationArgs = Assert<
 >
 const result = optional.setCount(2)(initial)
 export type ParentReturn = Assert<Equal<typeof result.model, typeof Model.Type>>
-export type Builder = Block.HtmlBuilderOf<typeof composition>
+export type Builder = Block.ViewBuilderFor<typeof composition>
 optional.fold(initial, ChildMessage.UpdatedCount({ count: 3 }))
 optional.setCount(4)(initial)
 suspendedOptional.fold(initial, ChildMessage.UpdatedCount({ count: 3 }))

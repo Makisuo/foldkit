@@ -16,23 +16,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const init = () => {
-  const settingsDialogInit = settingsDialog.init({ id: 'settings' })
-  const confirmDialogInit = confirmDialog.init({ id: 'confirm-delete' })
-
-  return {
-    model: {
-      settingsDialog: settingsDialogInit.model,
-      confirmDialog: confirmDialogInit.model,
-      // ...your other fields
-    },
-    commands: [
-      ...(settingsDialogInit.commands ?? []),
-      ...(confirmDialogInit.commands ?? []),
-    ],
-  }
-}
-
 // Embed each Dialog Message in your parent Message and delegate each to its
 // own Dialog.update (see the basic Dialog example for the delegation).
 const Message = defineMessageUnion({
@@ -65,6 +48,23 @@ const confirmDialog = ProjectDialogs.bindChild(Dialog.block, {
   field: 'confirmDialog',
   parentMessage: Message.GotConfirmDialogMessage,
   outMessage: { fold: foldConfirmDialogOutMessage },
+})
+
+const init = ProjectDialogs.init(() => {
+  const settingsDialogInit = settingsDialog.init({ id: 'settings' })
+  const confirmDialogInit = confirmDialog.init({ id: 'confirm-delete' })
+
+  return {
+    model: {
+      settingsDialog: settingsDialogInit.model,
+      confirmDialog: confirmDialogInit.model,
+      // ...your other fields
+    },
+    commands: [
+      ...(settingsDialogInit.commands ?? []),
+      ...(confirmDialogInit.commands ?? []),
+    ],
+  }
 })
 
 const ProjectDialogsComposition = ProjectDialogs.toComposition({

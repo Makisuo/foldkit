@@ -7,12 +7,13 @@ import {
   availableDatePicker,
   pronounsListbox,
 } from './composition'
+import { PersonalInfo } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
 export const block = PersonalInfoComposition.toBlock({
-  init: (today: CalendarDate) => {
+  init: PersonalInfo.init((today: CalendarDate) => {
     const pronounsInit = pronounsListbox.init({ id: 'pronouns' })
     const availableDateInit = availableDatePicker.init({
       id: 'available-date',
@@ -30,7 +31,7 @@ export const block = PersonalInfoComposition.toBlock({
         ...(availableDateInit.commands ?? []),
       ],
     }
-  },
+  }),
   update,
   view,
   EffectsLayer,

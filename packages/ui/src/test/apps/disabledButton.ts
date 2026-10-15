@@ -29,13 +29,6 @@ const DisabledButtonTest = Block.define('DisabledButtonTest', {
   Message,
 })
 
-// INIT
-
-export const initialModel: Model = {
-  isEnabled: false,
-  dialog: Dialog.boot({ id: 'test-dialog' }).model,
-}
-
 // UPDATE
 
 const foldDialogOutMessage = Dialog.OutMessage.match<
@@ -53,6 +46,30 @@ const dialog = DisabledButtonTest.bindChild(Dialog.block, {
 
 const DisabledButtonTestComposition = DisabledButtonTest.toComposition({
   children: [dialog],
+})
+
+// INIT
+
+const makeInitialModel = (): Model => ({
+  isEnabled: false,
+  dialog: Dialog.init({ id: 'test-dialog' }),
+})
+
+const init = DisabledButtonTest.init(() => {
+  const dialogInit = dialog.init({ id: 'test-dialog' })
+  const dialogOpen = dialog.open()({
+    isEnabled: false,
+    dialog: dialogInit.model,
+  })
+
+  return {
+    ...dialogOpen,
+    commands: [...(dialogInit.commands ?? []), ...(dialogOpen.commands ?? [])],
+  }
+})
+
+export const initialModel = modifyFields(makeInitialModel(), {
+  dialog: dialog => modifyFields(dialog, { isOpen: () => true }),
 })
 
 export const update = DisabledButtonTest.update((model, message) =>
@@ -122,7 +139,7 @@ export const viewWithDialog = DisabledButtonTestComposition.view((model, h) => {
 })
 
 export const block = DisabledButtonTestComposition.toBlock({
-  init: () => ({ model: initialModel }),
+  init,
   update,
   view: viewWithDialog,
   EffectsLayer: Layer.empty,

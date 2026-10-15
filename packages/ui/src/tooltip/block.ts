@@ -366,7 +366,7 @@ export const view = TooltipComposition.view.withInputs<ViewInputs>(
 
 /** Complete Tooltip Block definition for connecting to a parent. */
 export const block = TooltipComposition.toBlock({
-  init: (config: InitConfig) => ({ model: init(config) }),
+  init: Tooltip.init((config: InitConfig) => ({ model: init(config) })),
   update,
   view,
   EffectsLayer,

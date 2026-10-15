@@ -19,26 +19,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, seed the value (snapped to the range) and initialize
-// the Slider Block with min / max / step and a unique id:
-const init = () => {
-  const sliderInit = slider.init({
-    id: 'rating',
-    min: 0,
-    max: 10,
-    step: 1,
-  })
-
-  return {
-    model: {
-      ratingValue: SliderSnapAndClamp(3, 0, 10, 1),
-      ratingDemo: sliderInit.model,
-      // ...your other fields
-    },
-    commands: sliderInit.commands,
-  }
-}
-
 // Embed the Slider Message in your parent Message:
 const Message = defineMessageUnion({
   GotSliderMessage: { message: Slider.Message },
@@ -72,6 +52,26 @@ const slider = VolumeSlider.bindChild(Slider.block, {
   field: 'ratingDemo',
   parentMessage: Message.GotSliderMessage,
   outMessage: { fold: foldSliderOutMessage },
+})
+
+// In your init function, seed the value (snapped to the range) and initialize
+// the Slider Block with min / max / step and a unique id:
+const init = VolumeSlider.init(() => {
+  const sliderInit = slider.init({
+    id: 'rating',
+    min: 0,
+    max: 10,
+    step: 1,
+  })
+
+  return {
+    model: {
+      ratingValue: SliderSnapAndClamp(3, 0, 10, 1),
+      ratingDemo: sliderInit.model,
+      // ...your other fields
+    },
+    commands: sliderInit.commands,
+  }
 })
 
 const VolumeSliderComposition = VolumeSlider.toComposition({

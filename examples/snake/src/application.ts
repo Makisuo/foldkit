@@ -50,9 +50,11 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
-type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.ViewBuilderFor<
+  typeof ApplicationComposition
+>
 
-export const init = () => {
+export const init = Application.init(() => {
   const snake = Snake.create(GAME.INITIAL_POSITION)
 
   return {
@@ -67,7 +69,7 @@ export const init = () => {
     }),
     commands: [GenerateApplePosition({ snake })],
   }
-}
+})
 
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {

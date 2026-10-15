@@ -12,7 +12,7 @@ import { Application, Message, type Model, Submission } from './definition'
 import { isFormValid, validateEmail, validateName } from './validation'
 
 export const ApplicationComposition = Application.toComposition()
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
@@ -23,9 +23,9 @@ export const initialModel: Model = {
   submission: Submission.NotSubmitted(),
 }
 
-export const init = () => ({
+export const init = Application.init(() => ({
   model: initialModel,
-})
+}))
 
 // FIELD VALIDATION
 

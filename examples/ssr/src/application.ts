@@ -34,7 +34,9 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
-type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.ViewBuilderFor<
+  typeof ApplicationComposition
+>
 
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
@@ -74,13 +76,13 @@ export const PersistCount = Application.command('PersistCount', {
 
 export const EffectsLayer = PersistCount.layer
 
-export const init = (flags: Flags) => ({
+export const init = Application.init((flags: Flags) => ({
   model: {
     count: flags.initialCount,
     renderedAt: flags.renderedAt,
     renderedOn: flags.renderedOn,
   },
-})
+}))
 
 export const view = ApplicationComposition.view((model, h) => ({
   title: `Count ${model.count}`,

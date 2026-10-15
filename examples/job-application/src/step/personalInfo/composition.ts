@@ -54,6 +54,6 @@ export const availableDatePicker = PersonalInfo.bindChild(DatePicker.block, {
 export const PersonalInfoComposition = PersonalInfo.toComposition({
   children: [pronounsListbox, availableDatePicker],
 })
-export type PersonalInfoViewBuilder = Block.HtmlBuilderOf<
+export type PersonalInfoViewBuilder = Block.ViewBuilderFor<
   typeof PersonalInfoComposition
 >

@@ -1,5 +1,5 @@
 import { Effect, Redacted, Schema } from 'effect'
-import { Command } from 'foldkit'
+import { Command, defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const accessTokenLabel = 'access token'
@@ -18,14 +18,16 @@ const makeAccessToken = (accessToken: string): AccessToken =>
 const Model = Schema.Struct({ accessToken: AccessToken })
 type Model = typeof Model.Type
 
-const init = (accessToken: string) => ({
-  model: { accessToken: makeAccessToken(accessToken) },
-})
-
 const Message = defineMessageUnion({
   CompletedFetchProfile: {},
   FailedFetchProfile: {},
 })
+
+const Application = defineApplication({ Model, Message })
+
+const init = Application.init((accessToken: string) => ({
+  model: { accessToken: makeAccessToken(accessToken) },
+}))
 
 const FetchProfile = Command.define('FetchProfile', {
   // 3. Require a Redacted value because DevTools records Command arguments.

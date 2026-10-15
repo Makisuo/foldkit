@@ -8,8 +8,11 @@ import { Menu } from '@foldkit/ui'
 // Only init and view differ from the basic menu: init adds isAnimated, the
 // view uses data-[closed] selectors for enter/leave transitions.
 
+// The parent Definition, Composition, and child Binding below come from the
+// basic walkthrough.
+
 // In your init function, set isAnimated: true to coordinate CSS transitions:
-const init = () => {
+const init = ActionMenuExample.init(() => {
   const menuInit = menu.init({ id: 'actions', isAnimated: true })
 
   return {
@@ -19,7 +22,7 @@ const init = () => {
     },
     commands: menuInit.commands,
   }
-}
+})
 
 // Embed the Menu Message in your parent Message:
 // Pair view and update behind a single Item-typed factory at module scope:
@@ -30,7 +33,6 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-// The parent Composition and child Binding below come from the basic walkthrough.
 // Inside your view function, use data-[closed] for enter/leave transitions:
 const view = ActionMenuExampleComposition.view((model, h) =>
   h.block(

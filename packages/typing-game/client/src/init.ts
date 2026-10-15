@@ -2,10 +2,11 @@ import { Option } from 'effect'
 import { Url } from 'foldkit'
 
 import { home, room } from './application'
+import { Application } from './definition'
 import { Model, RoomInstance } from './model'
 import { ApplicationRoute, urlToApplicationRoute } from './route'
 
-export const init = (url: Url.Url) => {
+export const init = Application.init((url: Url.Url) => {
   const route = urlToApplicationRoute(url)
   const homeInit = home.init()
 
@@ -40,4 +41,4 @@ export const init = (url: Url.Url) => {
       }),
     }),
   })
-}
+})

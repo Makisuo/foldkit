@@ -63,7 +63,7 @@ export const EffectsLayer = Layer.mergeAll(
   ObserveExampleUrlMessages.layer,
 )
 
-export const init = () => {
+export const init = ExampleDetail.init(() => {
   const sourceFileTabsInit = sourceFileTabs.init({ id: 'source-file-tabs' })
 
   return {
@@ -76,13 +76,60 @@ export const init = () => {
     }),
     commands: sourceFileTabsInit.commands ?? [],
   }
-}
+})
 
 const isSourceAvailable = (slug: string): boolean =>
   Option.match(findBySlug(slug), {
     onNone: () => true,
     onSome: meta => meta.livePreview !== 'Unavailable',
   })
+
+const startLoadingExampleSources = ExampleDetail.step((model, slug: string) => {
+  const sourceFileTabsInit = sourceFileTabs.init({
+    id: 'source-file-tabs',
+  })
+
+  return {
+    model: modifyFields(model, {
+      sourceFileTabs: () => sourceFileTabsInit.model,
+      maybeActiveSourceFilePath: () => Option.none(),
+      maybeExampleUrl: () => Option.none(),
+      currentSources: () => CurrentSourcesAsyncData.Loading(),
+    }),
+    commands: [
+      ...(sourceFileTabsInit.commands ?? []),
+      LoadExampleSources({ slug }),
+    ],
+  }
+})
+
+const showExampleSources = ExampleDetail.step(
+  (model, sources: typeof ExampleSources.Type) => ({
+    model: modifyFields(model, {
+      maybeActiveSourceFilePath: () =>
+        pipe(
+          sources.files,
+          Array.head,
+          Option.map(file => file.path),
+        ),
+      currentSources: () => CurrentSourcesAsyncData.Success({ data: sources }),
+    }),
+  }),
+)
+
+const clearExampleSources = ExampleDetail.step(model => {
+  const sourceFileTabsInit = sourceFileTabs.init({ id: 'source-file-tabs' })
+
+  return {
+    model: modifyFields(model, {
+      sourceFileTabs: () => sourceFileTabsInit.model,
+      maybeActiveSourceFilePath: () => Option.none(),
+      maybeExampleUrl: () => Option.none(),
+      currentSources: () => CurrentSourcesAsyncData.Idle(),
+    }),
+    commands: sourceFileTabsInit.commands ?? [],
+  }
+})
 
 export const boot = ExampleDetail.step(
   (
@@ -92,17 +139,18 @@ export const boot = ExampleDetail.step(
       typeof ExampleSources.Type
     > = Option.none(),
   ) => {
-    return Option.match(maybeExampleSources, {
-      onNone: () =>
-        Option.match(maybeInitialSlug, {
-          onNone: () => ({ model }),
-          onSome: slug =>
-            isSourceAvailable(slug)
-              ? update(model, Message.RequestedExampleSources({ slug }))
-              : { model },
-        }),
-      onSome: sources =>
-        update(model, Message.SucceededLoadExampleSources({ sources })),
+    return Option.match(maybeInitialSlug, {
+      onNone: () => ({ model }),
+      onSome: slug => {
+        if (!isSourceAvailable(slug)) {
+          return { model }
+        }
+
+        return Option.match(maybeExampleSources, {
+          onNone: () => startLoadingExampleSources(model, slug),
+          onSome: sources => showExampleSources(model, sources),
+        })
+      },
     })
   },
 )
@@ -118,37 +166,8 @@ export const update = ExampleDetail.update((model, message) =>
       model: modifyFields(model, { isLivePreviewOpen: () => isOpen }),
     }),
 
-    RequestedExampleSources: ({ slug }) => {
-      const sourceFileTabsInit = sourceFileTabs.init({
-        id: 'source-file-tabs',
-      })
-
-      return {
-        model: modifyFields(model, {
-          sourceFileTabs: () => sourceFileTabsInit.model,
-          maybeActiveSourceFilePath: () => Option.none(),
-          maybeExampleUrl: () => Option.none(),
-          currentSources: () => CurrentSourcesAsyncData.Loading(),
-        }),
-        commands: [
-          ...(sourceFileTabsInit.commands ?? []),
-          LoadExampleSources({ slug }),
-        ],
-      }
-    },
-
-    SucceededLoadExampleSources: ({ sources }) => ({
-      model: modifyFields(model, {
-        maybeActiveSourceFilePath: () =>
-          pipe(
-            sources.files,
-            Array.head,
-            Option.map(file => file.path),
-          ),
-        currentSources: () =>
-          CurrentSourcesAsyncData.Success({ data: sources }),
-      }),
-    }),
+    SucceededLoadExampleSources: ({ sources }) =>
+      showExampleSources(model, sources),
 
     FailedLoadExampleSources: ({ error }) => ({
       model: modifyFields(model, {
@@ -160,19 +179,10 @@ export const update = ExampleDetail.update((model, message) =>
 
 export const informRouteChanged = ExampleDetail.step((model, slug: string) => {
   if (isSourceAvailable(slug)) {
-    return update(model, Message.RequestedExampleSources({ slug }))
+    return startLoadingExampleSources(model, slug)
   }
 
-  const sourceFileTabsInit = sourceFileTabs.init({ id: 'source-file-tabs' })
-  return {
-    model: modifyFields(model, {
-      sourceFileTabs: () => sourceFileTabsInit.model,
-      maybeActiveSourceFilePath: () => Option.none(),
-      maybeExampleUrl: () => Option.none(),
-      currentSources: () => CurrentSourcesAsyncData.Idle(),
-    }),
-    commands: sourceFileTabsInit.commands ?? [],
-  }
+  return clearExampleSources(model)
 })
 
 const featureTag = (text: string): Html =>

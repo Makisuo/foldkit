@@ -1,5 +1,5 @@
 import { Array, Option } from 'effect'
-import { Calendar, Update } from 'foldkit'
+import { Calendar } from 'foldkit'
 
 import { ScrollTarget } from '@foldkit/ui/virtualList'
 
@@ -44,14 +44,11 @@ import {
   virtualListDemo,
   virtualListVariableDemo,
 } from './composition'
-import type { Message } from './message'
+import { Ui } from './definition'
 import {
-  type Model,
   type VirtualListChatMessage,
   VirtualListChatStartProximity,
 } from './model'
-
-export type InitReturn = Update.Return<Model, Message>
 
 const chatBodies = [
   'Can you review the latest build?',
@@ -72,7 +69,7 @@ const initialVirtualListChatMessages: ReadonlyArray<VirtualListChatMessage> =
     isExpanded: index % 7 === 0,
   }))
 
-export const init = (today: Calendar.CalendarDate): InitReturn => {
+export const init = Ui.init((today: Calendar.CalendarDate) => {
   const calendarBasicDemoInit = calendarBasicDemo.init({
     id: 'calendar-basic-demo',
     today,
@@ -338,4 +335,4 @@ export const init = (today: Calendar.CalendarDate): InitReturn => {
       ...(virtualListChatDemoInit.commands ?? []),
     ],
   }
-}
+})

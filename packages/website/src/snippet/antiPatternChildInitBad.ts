@@ -3,21 +3,25 @@
 
 // application.ts
 
-const init = (username: string, savedTheme: Settings.Theme) => {
-  const settingsInit = Settings.init()
-  const settingsRestore = Settings.restore(settingsInit.model, savedTheme)
-  const commands = Command.mapMessages(settingsRestore.commands, message =>
-    Message.GotSettingsMessage({ message }),
-  )
+import { Application } from './definition'
 
-  // ❌ The parent keeps the Model and Commands but drops
-  // settingsRestore.outMessage.
-  return {
-    model: Model.make({
-      username,
-      settings: settingsRestore.model,
-      maybeRestoredTheme: Option.none(),
-    }),
-    commands,
-  }
-}
+const init = Application.init(
+  (username: string, savedTheme: Settings.Theme) => {
+    const settingsInit = Settings.init()
+    const settingsRestore = Settings.restore(settingsInit.model, savedTheme)
+    const commands = Command.mapMessages(settingsRestore.commands, message =>
+      Message.GotSettingsMessage({ message }),
+    )
+
+    // ❌ The parent keeps the Model and Commands but drops
+    // settingsRestore.outMessage.
+    return {
+      model: Model.make({
+        username,
+        settings: settingsRestore.model,
+        maybeRestoredTheme: Option.none(),
+      }),
+      commands,
+    }
+  },
+)

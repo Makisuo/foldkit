@@ -384,7 +384,7 @@ const internalView = TabsComposition.view.withInputs<ViewInputs>(
 
 /** Complete Tabs Block definition. */
 export const block = TabsComposition.toBlock({
-  init: (config: InitConfig) => ({ model: init(config) }),
+  init: Tabs.init((config: InitConfig) => ({ model: init(config) })),
   update,
   view: internalView,
   EffectsLayer,
@@ -424,7 +424,7 @@ const makeBlock = <Value extends string>() => {
     (model, viewInputs, h) => refinedView(model, viewInputs, h),
   )
   return TabsComposition.toBlock({
-    init: (config: InitConfig) => ({ model: init(config) }),
+    init: Tabs.init((config: InitConfig) => ({ model: init(config) })),
     update: refinedUpdate,
     view,
     EffectsLayer,

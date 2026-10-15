@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import { Calendar, Update } from 'foldkit'
+import { Calendar } from 'foldkit'
 
 import {
   Animation,
@@ -20,13 +20,10 @@ import {
   VirtualList,
 } from '@foldkit/ui'
 
-import type { Message } from './message'
-import type { Model } from './model'
+import { Ui } from './definition'
 import { Toast } from './toast'
 
-type InitReturn = Update.Return<Model, Message>
-
-export const init = (today: Calendar.CalendarDate): InitReturn => ({
+export const init = Ui.init((today: Calendar.CalendarDate) => ({
   model: {
     mobileMenuDialog: Dialog.init({ id: 'mobile-menu' }),
     buttonClickCount: 0,
@@ -186,4 +183,4 @@ export const init = (today: Calendar.CalendarDate): InitReturn => ({
       rowHeightPx: 56,
     }),
   },
-})
+}))

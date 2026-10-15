@@ -112,7 +112,7 @@ Runtime.run(application)
 
 A feature follows the same staged flow. Define its contracts as `Feature` with `Block.define('Feature', { Model, Message, OutMessage })` and author its behavior through that Definition. Name `FeatureComposition = Feature.toComposition({ children, mounts })`, using `Feature.toComposition()` for an empty graph, then author the primary view and export the completed Block through that same Composition. A parent imports the `Feature` namespace, creates a Binding with `Parent.bindChild(Feature.block, config)`, and includes that Binding in its Composition's child graph.
 
-When local view helpers need the Composition's exact builder capabilities, declare `type FeatureViewBuilder = Block.HtmlBuilderOf<typeof FeatureComposition>` immediately after the Composition and export it only for cross-file use. The owner prefix identifies that specific Composition; structural contracts keep the standard `Model`, `Message`, and `OutMessage` names and normally travel through the feature namespace.
+When local view helpers need the Composition's exact builder capabilities, declare `type FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` immediately after the Composition and export it only for cross-file use. The owner prefix identifies that specific Composition; structural contracts keep the standard `Model`, `Message`, and `OutMessage` names and normally travel through the feature namespace.
 
 Ordinary Effect services stay in `ApplicationLayer`. Keep a small provider composition in `entry.ts`, and extract `layer.ts` only when it is substantial or reused. Supply that Layer after the Application is complete:
 

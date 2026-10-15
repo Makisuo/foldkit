@@ -26,7 +26,7 @@ export const editionRadioGroup = Application.bindChild(EditionRadioGroup, {
 export const ApplicationComposition = Application.toComposition({
   children: [editionRadioGroup],
 })
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 

@@ -11,11 +11,12 @@ import {
   USER_LOCATION_ZOOM,
   UnlockBodyScroll,
 } from './command'
+import { Application } from './definition'
 import { type Location, featuredLocations } from './locations'
 import { Message } from './message'
 import { GeolocateState, type Model } from './model'
 
-export const init = () => ({
+export const init = Application.init(() => ({
   model: {
     locations: featuredLocations,
     searchQuery: '',
@@ -27,7 +28,7 @@ export const init = () => ({
     geolocateState: GeolocateState.Idle(),
   },
   commands: [FocusSearchInput()],
-})
+}))
 const findLocation = (
   model: Model,
   locationId: string,

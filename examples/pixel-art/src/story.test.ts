@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
-import { CloseDialog, ShowDialog, boot as bootDialog } from '@foldkit/ui/dialog'
+import { CloseDialog, ShowDialog } from '@foldkit/ui/dialog'
 
 import { ExportPng, SaveCanvas } from './command'
 import { createEmptyGrid } from './grid'
@@ -314,18 +314,21 @@ describe('grid size', () => {
   })
 
   test('confirming grid size change resets canvas and history', () => {
-    const modelWithPending: Model = modifyFields(emptyModel, {
-      maybePendingGridSize: () => Option.some(8),
-      gridSizeConfirmDialog: () =>
-        bootDialog({
-          id: 'grid-size-confirm-dialog',
-        }).model,
+    const paintedModel: Model = modifyFields(emptyModel, {
+      grid: () =>
+        createEmptyGrid(4).map((row, y) =>
+          row.map((cell, x) =>
+            x === 0 && y === 0 ? Option.some<PaletteIndex>(0) : cell,
+          ),
+        ),
       undoStack: () => [createEmptyGrid(4)],
     })
 
     story(
       update,
-      given(modelWithPending),
+      given(paintedModel),
+      message(Message.SelectedGridSize({ size: 8 })),
+      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
       message(Message.ConfirmedGridSizeChange()),
       Command.resolve(CloseDialog, Dialog.Message.CompletedCloseDialog()),
       Command.resolve(SaveCanvas, Message.CompletedSaveCanvas()),

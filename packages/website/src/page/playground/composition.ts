@@ -29,6 +29,6 @@ export const PlaygroundComposition = Playground.toComposition({
   mounts: [MountPlaygroundEditor],
   children: [fileTabs],
 })
-export type PlaygroundViewBuilder = Block.HtmlBuilderOf<
+export type PlaygroundViewBuilder = Block.ViewBuilderFor<
   typeof PlaygroundComposition
 >

@@ -58,4 +58,4 @@ export const notePlayerDemo = Home.bindChild(NotePlayerDemo.block, {
 export const HomeComposition = Home.toComposition({
   children: [asyncCounterDemo, demoTabs, notePlayerDemo, playgroundMenu],
 })
-export type HomeViewBuilder = Block.HtmlBuilderOf<typeof HomeComposition>
+export type HomeViewBuilder = Block.ViewBuilderFor<typeof HomeComposition>

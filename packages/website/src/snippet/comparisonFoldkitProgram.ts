@@ -1,6 +1,8 @@
 // src/init.ts
 
-export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
+import { Application } from './definition'
+
+export const init = Application.init((flags: Flags) => ({
   model: {
     grid: Option.match(flags.maybeSavedCanvas, {
       onNone: () => createEmptyGrid(DEFAULT_GRID_SIZE),
@@ -16,7 +18,7 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
     themeListbox: Listbox.init({ id: 'theme-picker' }),
     // remaining fields elided for brevity
   },
-})
+}))
 
 // src/entry.ts
 
@@ -24,6 +26,7 @@ import { Runtime } from 'foldkit'
 
 import { ApplicationComposition, update, view, Flags } from './application'
 import { flags } from './flags'
+import { init } from './init'
 
 const application = ApplicationComposition.toApplication({
   init,

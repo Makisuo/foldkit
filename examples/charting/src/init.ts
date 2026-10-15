@@ -1,6 +1,7 @@
 import { Option } from 'effect'
 
 import { FetchTelemetry } from './command'
+import { Application } from './definition'
 import { Model, TelemetryAsyncData } from './model'
 import {
   CHART_MODE_RADIO_GROUP_ID,
@@ -11,7 +12,7 @@ import {
   PeriodRadioGroup,
 } from './radioGroups'
 
-export const init = () => ({
+export const init = Application.init(() => ({
   model: Model.make({
     telemetry: TelemetryAsyncData.Loading(),
     chartMode: 'Adoption',
@@ -31,4 +32,4 @@ export const init = () => ({
     maybeSelectedDatumId: Option.none(),
   }),
   commands: [FetchTelemetry()],
-})
+}))

@@ -6,6 +6,7 @@ import { type Url, toString as urlToString } from 'foldkit/url'
 
 import { ApplicationComposition } from './application'
 import { LoadExternal, NavigateInternal } from './command'
+import { Application } from './definition'
 import { Message } from './message'
 import { Model, PaintingStatus } from './model'
 import { urlToApplicationRoute } from './route'
@@ -63,7 +64,7 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-export const init = (url: Url) => {
+export const init = Application.init((url: Url) => {
   const route = urlToApplicationRoute(url)
   const initialModel = Model.make({
     route,
@@ -74,4 +75,4 @@ export const init = (url: Url) => {
     maybeSavedDraft: Option.none(),
   })
   return handleTransition(initialModel, Transition.coldLoad(route))
-}
+})

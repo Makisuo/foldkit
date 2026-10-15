@@ -38,26 +38,6 @@ const flags = Effect.gen(function* () {
   return { today /* ...your other flags */ }
 })
 
-// In your init function, pass the flags-resolved today into UiCalendar.init.
-// `initialViewDate` seeds the month the calendar opens onto (pass your
-// initial selection to open on it). The parent owns the selection itself:
-const init = (flags: Flags) => {
-  const calendarInit = calendar.init({
-    id: 'calendar-demo',
-    today: flags.today,
-    initialViewDate: flags.today,
-  })
-
-  return {
-    model: {
-      calendarDemo: calendarInit.model,
-      maybeSelectedDate: Option.none(),
-      // ...your other fields
-    },
-    commands: calendarInit.commands,
-  }
-}
-
 // Embed the Calendar Message in your parent Message for navigation and
 // keyboard routing:
 const Message = defineMessageUnion({
@@ -105,10 +85,30 @@ const calendar = CalendarExample.bindChild(UiCalendar.block, {
   outMessage: { fold: foldCalendarOutMessage },
 })
 
+// In your init function, pass the flags-resolved today into UiCalendar.init.
+// `initialViewDate` seeds the month the calendar opens onto (pass your
+// initial selection to open on it). The parent owns the selection itself:
+const init = CalendarExample.init((flags: Flags) => {
+  const calendarInit = calendar.init({
+    id: 'calendar-demo',
+    today: flags.today,
+    initialViewDate: flags.today,
+  })
+
+  return {
+    model: {
+      calendarDemo: calendarInit.model,
+      maybeSelectedDate: Option.none(),
+      // ...your other fields
+    },
+    commands: calendarInit.commands,
+  }
+})
+
 const CalendarExampleComposition = CalendarExample.toComposition({
   children: [calendar],
 })
-type CalendarExampleViewBuilder = Block.HtmlBuilderOf<
+type CalendarExampleViewBuilder = Block.ViewBuilderFor<
   typeof CalendarExampleComposition
 >
 

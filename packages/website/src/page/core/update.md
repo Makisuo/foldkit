@@ -1,8 +1,8 @@
 # Update
 
-## One Function Defines Every Transition {#overview}
+## Update Defines Message Reactions {#overview}
 
-The update function receives the current Model and a Message, then returns the next Model and any Commands for the runtime to execute. It is the only place application state changes.
+The update function defines how the application reacts to incoming Messages. It receives the current Model and a Message, then returns the next Model and any Commands for the runtime to execute. Shared pure transitions can also be expressed as Steps and applied by parent startup operations.
 
 Update is pure. Given the same Model and Message, it returns the same result. It does not mutate state, call browser APIs, start timers, or make requests. That makes a transition direct to test: pass in the inputs and assert on the returned values.
 
@@ -44,13 +44,13 @@ Return Commands beside the next Model from the Message branch that requests the 
 
 ### Omitting Commands
 
-An update, init, boot, or component helper that statically creates no Commands omits `commands`. When it computes a Commands collection, it returns that collection directly without checking whether it is empty. The [`foldkit/no-empty-commands-array`](/tooling/oxlint-plugin#no-empty-commands-array) lint rule rejects only a literal `commands: []` property.
+An update, init, Step, or component helper that statically creates no Commands omits `commands`. When it computes a Commands collection, it returns that collection directly without checking whether it is empty. The [`foldkit/no-empty-commands-array`](/tooling/oxlint-plugin#no-empty-commands-array) lint rule rejects only a literal `commands: []` property.
 
 ## Composing Results
 
 ### Keeping Results Together
 
-Fold a child `init` or `boot` result into the parent instead of unpacking its Model and Commands:
+Keep a child init result together while constructing the parent Model so its Commands remain attached to that operation:
 
 ::Snippet{name="updateResultInit" label="Composing an init result"}
 
@@ -96,17 +96,17 @@ Use `Update.combine` when two or more operations transform the same Model and a 
 
 Do not wrap one Step in `Update.combine`; call that operation directly.
 
-### Combining Child Initialization Results {#combining-independent-results}
+### Combining Child Initialization and Startup Steps {#combining-independent-results}
 
-Initialize each child through its Binding. Each result already carries parent Messages and qualified Command origins, so parent init can construct their Models and concrete Command collections directly.
+Initialize each child through its Binding. Each result already carries parent Messages and qualified Command origins, so the parent Definition's `init` can construct their Models and concrete Command collections directly.
 
-For example, a Workspace Block contains Search and Editor Blocks. The Search Block's boot result can report a prepared document, and the Editor Block's can report an opened document. The Workspace Block handles both locally:
+For example, a Workspace Block contains Search and Editor Blocks. Their init results construct the baseline Workspace Model. The Search and Editor restoration operations are ordinary Steps applied after that Model exists:
 
 ::Snippet{name="updateIndependentInits" label="Initializing Search and Editor Blocks"}
 
 #### Parent Construction and Fold Order
 
-`Model.make` combines the Search and Editor Models with the Workspace Block's own fields. The Binding results retain each child's optional Commands; combine them only where parent init needs one concrete collection.
+`Model.make` combines the Search and Editor Models with the Workspace Block's own fields. The final result keeps each child's optional init Commands alongside the Commands returned by the restoration Steps.
 
 #### Step Order
 
@@ -116,25 +116,13 @@ The Step array determines the order of Model transitions. In this example, the S
 
 The Step order applies to Model changes. Commands run independently; a later child's Commands do not wait for an earlier child's Commands to finish.
 
-### Initializing Children with OutMessages
+### Handling OutMessages from Startup Steps
 
-#### Combining Child Facts
+A restoration Step may emit a child OutMessage after the complete parent Model exists. Configure `outMessage.fold` on the Binding to handle that fact locally. The fold can update the parent Model and return Commands, and those Commands join the startup result.
 
-A parent can translate facts from several children into its own OutMessage. For example, Application contains a Workspace Block, which contains Search and Editor Blocks. Their public restoration Steps report `RestoredQuery` and `RestoredDraft` after the complete Workspace Model exists.
+Parent init cannot emit an OutMessage. A Binding used from init therefore handles the initial fact locally instead of forwarding it to another parent:
 
-#### Translating Child Facts
-
-Each child Binding uses `outMessage.forward` to translate selected facts into Workspace OutMessages. The same policy applies whether a restoration Step runs during startup or in a later update:
-
-::Snippet{name="updateInitOutMessages" label="Forwarding child restoration OutMessages"}
-
-#### Several Child Facts
-
-`Update.combine` returns at most one parent OutMessage. When several Steps emit one, the later result wins. Run restorations as separate updates when every fact must reach the next parent, or derive one combined parent fact after the Steps from the final Model.
-
-#### Deriving from the Final Model
-
-When the final Model contains everything needed for the parent's OutMessage, attach that OutMessage afterward with [`Update.withOutMessage`](#returning-an-outmessage).
+::Snippet{name="updateInitOutMessages" label="Handling startup OutMessages"}
 
 ### Deriving an OutMessage in a Local Fold
 

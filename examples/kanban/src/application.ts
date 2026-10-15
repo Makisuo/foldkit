@@ -35,7 +35,7 @@ export const flags = Effect.gen(function* () {
   ),
 )
 
-export const init = (flags: Flags) => {
+export const init = Application.init((flags: Flags) => {
   const columns = Option.match(flags.maybeSavedBoard, {
     onNone: () => DEFAULT_COLUMNS,
     onSome: ({ columns }) => columns,
@@ -50,11 +50,11 @@ export const init = (flags: Flags) => {
       announcement: '',
     },
   }
-}
+})
 
 export const ApplicationComposition = Application.toComposition({
   children: [dragAndDrop],
 })
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >

@@ -90,8 +90,7 @@ export type InitConfig = Readonly<{
   focusSelector?: string
 }>
 
-/** Creates a closed dialog model from a config. Use `boot` when the Dialog
- *  should open as the application starts. */
+/** Creates a closed dialog model from a config. */
 export const init = (config: InitConfig): Model => ({
   id: config.id,
   isOpen: false,
@@ -421,13 +420,6 @@ export const update = Dialog.update((model, message) =>
   }),
 )
 
-/** Creates a Dialog and opens it through the normal update path. Use the
- *  returned Model and Commands during application initialization so the
- *  initially visible Dialog acquires modal isolation, scroll locking, focus
- *  management, stack registration, and runtime-owned cleanup. */
-export const boot = (config: InitConfig) =>
-  update(init(config), Message.RequestedOpen())
-
 /** Programmatically opens the Dialog. */
 const open = Dialog.step(model => update(model, Message.RequestedOpen()))
 
@@ -631,7 +623,7 @@ export const view = DialogComposition.view.withInputs<ViewInputs>(
 
 /** Complete Dialog Block definition. */
 export const block = DialogComposition.toBlock({
-  init: (config: InitConfig) => ({ model: init(config) }),
+  init: Dialog.init((config: InitConfig) => ({ model: init(config) })),
   update,
   view,
   expose: { open, close },

@@ -75,11 +75,13 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
-type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.ViewBuilderFor<
+  typeof ApplicationComposition
+>
 
-export const init = () => ({
+export const init = Application.init(() => ({
   model: Model.make({ balls: [], nextId: 0, isRunning: true }),
-})
+}))
 
 export const GenerateBall = Application.command('GenerateBall', {
   args: { x: Schema.Number, y: Schema.Number },

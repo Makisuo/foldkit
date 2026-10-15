@@ -209,7 +209,7 @@ export const flags = Effect.gen(function* () {
   ),
 )
 
-export const init = (flags: Flags) => ({
+export const init = Application.init((flags: Flags) => ({
   model: Model.make({
     grid: Option.match(flags.maybeSavedCanvas, {
       onNone: () => createEmptyGrid(DEFAULT_GRID_SIZE),
@@ -242,7 +242,7 @@ export const init = (flags: Flags) => ({
     gridSizeRadioGroup: RadioGroup.init({ id: GRID_SIZE_RADIO_GROUP_ID }),
     paletteRadioGroup: RadioGroup.init({ id: PALETTE_RADIO_GROUP_ID }),
   }),
-})
+}))
 
 export const ApplicationComposition = Application.toComposition({
   children: [
@@ -254,6 +254,6 @@ export const ApplicationComposition = Application.toComposition({
     paletteRadioGroup,
   ],
 })
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >

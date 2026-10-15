@@ -96,7 +96,7 @@ export type OutMessage = typeof OutMessage.Type
 const Slider = Block.define('Slider', { Model, Message, OutMessage })
 
 const SliderComposition = Slider.toComposition()
-type SliderViewBuilder = Block.HtmlBuilderOf<typeof SliderComposition>
+type SliderViewBuilder = Block.ViewBuilderFor<typeof SliderComposition>
 
 // INIT
 
@@ -842,7 +842,7 @@ const EffectsLayer = Layer.mergeAll(
 
 /** Complete Slider Block definition. */
 export const block = SliderComposition.toBlock({
-  init: (config: InitConfig) => ({ model: init(config) }),
+  init: Slider.init((config: InitConfig) => ({ model: init(config) })),
   update,
   view,
   subscriptions,
@@ -871,7 +871,7 @@ export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
     subscriptions.dragEscape.layer,
   )
   return SliderComposition.toBlock({
-    init: (config: InitConfig) => ({ model: init(config) }),
+    init: Slider.init((config: InitConfig) => ({ model: init(config) })),
     update: rootUpdate,
     view: rootView,
     subscriptions,

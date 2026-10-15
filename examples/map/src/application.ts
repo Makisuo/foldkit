@@ -14,7 +14,7 @@ import { MountMap } from './mount'
 export const ApplicationComposition = Application.toComposition({
   mounts: [MountMap],
 })
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 

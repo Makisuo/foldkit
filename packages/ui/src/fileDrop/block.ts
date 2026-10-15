@@ -162,7 +162,7 @@ export const view = FileDropComposition.view.withInputs<ViewInputs>(
 
 /** Complete FileDrop Block definition for connecting to a parent. */
 export const block = FileDropComposition.toBlock({
-  init: (config: InitConfig) => ({ model: init(config) }),
+  init: FileDrop.init((config: InitConfig) => ({ model: init(config) })),
   update,
   view,
   EffectsLayer: Layer.empty,

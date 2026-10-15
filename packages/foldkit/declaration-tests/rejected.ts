@@ -1,11 +1,13 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect'
 import { defineApplication } from 'foldkit'
+import type * as ApplicationTypes from 'foldkit/application'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
 import { Server } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Runtime from 'foldkit/runtime'
 import * as Update from 'foldkit/update'
+import type { Url } from 'foldkit/url'
 
 import {
   ChildBlock,
@@ -31,7 +33,15 @@ const InvalidApplication = (() => {
   return Application
 })()
 const InvalidApplicationComposition = InvalidApplication.toComposition()
-type InvalidApplicationViewBuilder = Block.HtmlBuilderOf<
+// @ts-expect-error The previous public builder helper is no longer exported.
+export type RemovedBlockBuilder = Block.HtmlBuilderOf<
+  typeof InvalidApplicationComposition
+>
+// @ts-expect-error The application subpath also removes the previous helper name.
+export type RemovedApplicationBuilder = ApplicationTypes.HtmlBuilderOf<
+  typeof InvalidApplicationComposition
+>
+type InvalidApplicationViewBuilder = Block.ViewBuilderFor<
   typeof InvalidApplicationComposition
 >
 const invalidApplicationImplementation = {
@@ -51,6 +61,144 @@ const invalidDocumentView = InvalidApplicationComposition.view((model, h) => ({
 
 // @ts-expect-error An Application Definition does not author the primary view.
 InvalidApplication.view
+// @ts-expect-error An Application Composition does not expose Definition-only init authoring.
+InvalidApplicationComposition.init
+
+const InvalidInitMessage = defineMessageUnion({ CompletedForeignInit: {} })
+const DeclarationTestsValidInit = Command.define('DeclarationTestsValidInit', {
+  messages: [ParentMessage.RequestedRefresh],
+})
+const DeclarationTestsForeignInit = Command.define(
+  'DeclarationTestsForeignInit',
+  {
+    messages: [InvalidInitMessage.CompletedForeignInit],
+  },
+)
+const invalidModelInit = () => ({
+  model: ChildBlock.Model.make({ value: 0 }),
+})
+const invalidCommandInit = () => ({
+  model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
+  commands: [DeclarationTestsValidInit(), DeclarationTestsForeignInit()],
+})
+const invalidOutMessageInit = () => ({
+  model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
+  outMessage: ParentMessage.RequestedRefresh(),
+})
+const invalidUnionInit = (isValid: boolean) =>
+  isValid
+    ? {
+        model: ParentModel.make({
+          child: ChildBlock.Model.make({ value: 0 }),
+        }),
+      }
+    : { commands: [DeclarationTestsValidInit()] }
+
+type ValidInitReturn = Readonly<{ model: ParentModel }>
+type InvalidInitReturn = Readonly<{ model: ChildModel }>
+
+function validOverloadedInit(value: number): ValidInitReturn
+function validOverloadedInit(value: string): ValidInitReturn
+function validOverloadedInit(_value: number | string): ValidInitReturn {
+  return {
+    model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
+  }
+}
+
+interface EarlyInvalidDuplicateTrailingInit {
+  (value: boolean): InvalidInitReturn
+  (value: number): ValidInitReturn
+  (value: string): ValidInitReturn
+  (value: string): ValidInitReturn
+}
+
+interface MiddleForeignCommandInit {
+  (value: boolean): ValidInitReturn
+  (value: number): ReturnType<typeof invalidCommandInit>
+  (value: string): ValidInitReturn
+}
+
+interface BroadInvalidEarlierInit {
+  (value: number): ValidInitReturn | InvalidInitReturn
+  (value: string | number): ValidInitReturn
+}
+
+type GenericLastInit = ((value: string) => InvalidInitReturn) &
+  (<Value extends number>(value: Value) => ValidInitReturn & { value: Value })
+
+declare const earlyInvalidDuplicateTrailingInit: EarlyInvalidDuplicateTrailingInit
+declare const middleForeignCommandInit: MiddleForeignCommandInit
+declare const broadInvalidEarlierInit: BroadInvalidEarlierInit
+declare const genericLastInit: GenericLastInit
+
+const genericInit = <Value extends number>(value: Value) => ({
+  model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
+  value,
+})
+
+const callableMetadataInit = Object.assign(
+  () => ({
+    model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
+  }),
+  { description: 'Initial parent Model' },
+)
+
+InvalidApplication.init(() => callableMetadataInit())
+// @ts-expect-error Initializers accept plain functions; adapt callable metadata through a concrete callback.
+InvalidApplication.init(callableMetadataInit)
+
+// @ts-expect-error Application init must return the Application Model.
+InvalidApplication.init(invalidModelInit)
+// @ts-expect-error Every Application init Command must return the Application Message.
+InvalidApplication.init(invalidCommandInit)
+// @ts-expect-error Application init cannot emit an OutMessage.
+InvalidApplication.init(invalidOutMessageInit)
+// @ts-expect-error Every Application init result branch must contain the Application Model.
+InvalidApplication.init(invalidUnionInit)
+// @ts-expect-error Initializers require one concrete call signature.
+InvalidApplication.init(validOverloadedInit)
+// @ts-expect-error Initializers require one concrete call signature.
+InvalidApplication.init(earlyInvalidDuplicateTrailingInit)
+// @ts-expect-error Initializers require one concrete call signature.
+InvalidApplication.init(middleForeignCommandInit)
+// @ts-expect-error Initializers require one concrete call signature.
+InvalidApplication.init(broadInvalidEarlierInit)
+// @ts-expect-error Initializers require one concrete call signature.
+InvalidApplication.init(genericLastInit)
+// @ts-expect-error Initializers require one concrete call signature.
+InvalidApplication.init(genericInit)
+
+const DeclarationTestsInvalidBlockInit = Block.define(
+  'DeclarationTestsInvalidBlockInit',
+  {
+    Model: ParentModel,
+    Message: ParentMessage,
+  },
+)
+const InvalidBlockInit = DeclarationTestsInvalidBlockInit
+// @ts-expect-error Block init must return the Block Model.
+InvalidBlockInit.init(invalidModelInit)
+// @ts-expect-error Every Block init Command must return the Block Message.
+InvalidBlockInit.init(invalidCommandInit)
+// @ts-expect-error Block init cannot emit an OutMessage.
+InvalidBlockInit.init(invalidOutMessageInit)
+// @ts-expect-error A Block Composition does not expose Definition-only init authoring.
+InvalidBlockInit.toComposition().init
+
+const InitFlags = Schema.Struct({ value: Schema.Number })
+const flagsRoutingInit = InvalidApplication.init(
+  (_flags: typeof InitFlags.Type, _url: Url) => ({
+    model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
+  }),
+)
+
+// @ts-expect-error Completion requires the Flags and routing inputs declared by init.
+InvalidApplicationComposition.toApplication({
+  container: null,
+  init: flagsRoutingInit,
+  update: invalidApplicationImplementation.update,
+  view: invalidDocumentView,
+})
 
 const DeclarationTestsViewHelper = Block.define('DeclarationTestsViewHelper', {
   Model: ParentModel,
@@ -62,8 +210,10 @@ const ObserveViewHelper = DeclarationTestsViewHelper.mount(
     messages: [ParentMessage.RequestedRefresh],
   },
 )
-const ViewHelperComposition = DeclarationTestsViewHelper.toComposition()
-type ViewHelperViewBuilder = Block.HtmlBuilderOf<typeof ViewHelperComposition>
+const DeclarationTestsViewHelperComposition =
+  DeclarationTestsViewHelper.toComposition()
+const ViewHelperComposition = DeclarationTestsViewHelperComposition
+type ViewHelperViewBuilder = Block.ViewBuilderFor<typeof ViewHelperComposition>
 const viewHelper = (model: ParentModel, h: ViewHelperViewBuilder) =>
   h.main([], [globalThis.String(model.child.value)])
 
@@ -107,7 +257,7 @@ ViewHelperComposition.view((_model, h) =>
 ViewHelperComposition.view.withInputs<void>((_model, _inputs, h) => h.empty)
 
 // @ts-expect-error any cannot erase a Composition's ViewInputs contract.
-ViewHelperComposition.view.withInputs<any>((_model, _inputs, h) => h.empty)
+ViewHelperComposition.view.withInputs<any>((_model, _inputs, h) => h.empty) // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const viewHelperWithForeignMessage = (h: ViewHelperViewBuilder) =>
   h.button([
@@ -391,10 +541,14 @@ const WrongChildParentMessage = defineMessageUnion({
   GotChildMessage: { message: Schema.String },
 })
 
-const ForeignParent = Block.define('DeclarationTestsForeignParent', {
-  Model: ParentModel,
-  Message: ForeignParentMessage,
-})
+const DeclarationTestsForeignParent = Block.define(
+  'DeclarationTestsForeignParent',
+  {
+    Model: ParentModel,
+    Message: ForeignParentMessage,
+  },
+)
+const ForeignParent = DeclarationTestsForeignParent
 const foreignChild = ForeignParent.bindChild(ChildBlock, {
   placement: 'foreign-child',
   read: model => Option.some(model.child),
@@ -402,10 +556,14 @@ const foreignChild = ForeignParent.bindChild(ChildBlock, {
   toParentMessage: () => ForeignParentMessage.ReceivedChildMessage(),
 })
 
-const BindingParent = Block.define('DeclarationTestsBindingParent', {
-  Model: ParentModel,
-  Message: ParentMessage,
-})
+const DeclarationTestsBindingParent = Block.define(
+  'DeclarationTestsBindingParent',
+  {
+    Model: ParentModel,
+    Message: ParentMessage,
+  },
+)
+const BindingParent = DeclarationTestsBindingParent
 
 BindingParent.bindChild(ChildBlock, {
   // @ts-expect-error Invalid Message mapping prevents the direct overload.
@@ -417,10 +575,14 @@ BindingParent.bindChild(ChildBlock, {
     ParentMessage.GotChildMessage({ message }),
 })
 
-const WrongChildParent = Block.define('DeclarationTestsWrongChildParent', {
-  Model: ParentModel,
-  Message: WrongChildParentMessage,
-})
+const DeclarationTestsWrongChildParent = Block.define(
+  'DeclarationTestsWrongChildParent',
+  {
+    Model: ParentModel,
+    Message: WrongChildParentMessage,
+  },
+)
+const WrongChildParent = DeclarationTestsWrongChildParent
 WrongChildParent.bindChild(ChildBlock, {
   // @ts-expect-error Invalid Message mapping prevents the direct overload.
   field: 'child',
@@ -428,10 +590,14 @@ WrongChildParent.bindChild(ChildBlock, {
   parentMessage: WrongChildParentMessage.GotChildMessage,
 })
 
-const ExtraParent = Block.define('DeclarationTestsExtraParent', {
-  Model: ParentModel,
-  Message: ExtraParentMessage,
-})
+const DeclarationTestsExtraParent = Block.define(
+  'DeclarationTestsExtraParent',
+  {
+    Model: ParentModel,
+    Message: ExtraParentMessage,
+  },
+)
+const ExtraParent = DeclarationTestsExtraParent
 ExtraParent.bindChild(ChildBlock, {
   // @ts-expect-error Invalid Message mapping prevents the direct overload.
   field: 'child',
@@ -491,6 +657,33 @@ DeclarationTestsOmittedChild.toComposition().toBlock({
   }),
   update: omittedChildUpdate,
   // @ts-expect-error A Block implementation cannot use an unregistered child operation.
+  EffectsLayer: Layer.empty,
+})
+
+const DeclarationTestsOmittedInitChild = Block.define(
+  'DeclarationTestsOmittedInitChild',
+  {
+    Model: ChildBlock.Model,
+    Message: ParentMessage,
+  },
+)
+const omittedInitChild = DeclarationTestsOmittedInitChild.bindChild(
+  ChildBlock,
+  {
+    placement: 'omitted-init-child',
+    read: model => Option.some(model),
+    write: (_model, nextChild) => nextChild,
+    parentMessage: ParentMessage.GotChildMessage,
+  },
+)
+const omittedChildInit = DeclarationTestsOmittedInitChild.init(
+  omittedInitChild.init,
+)
+
+DeclarationTestsOmittedInitChild.toComposition().toBlock({
+  init: omittedChildInit,
+  update: DeclarationTestsOmittedInitChild.update(model => ({ model })),
+  // @ts-expect-error A Block initializer cannot use an unregistered child Binding.
   EffectsLayer: Layer.empty,
 })
 

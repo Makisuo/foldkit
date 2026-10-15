@@ -19,6 +19,7 @@ import {
   uiPages,
 } from './application'
 import * as Command from './command'
+import { Application } from './definition'
 import { type Deployment, isTelemetryEnabled } from './deployment'
 import { type Flags } from './flags'
 import { type ResolvedTheme, type ThemePreference } from './message'
@@ -47,7 +48,7 @@ const initialScrollCommands = (url: Url) => [
   }),
 ]
 
-export const init = (flags: Flags, url: Url) => {
+export const init = Application.init((flags: Flags, url: Url) => {
   const initialRoute = urlToApplicationRoute(url)
   const initialTransition = Transition.coldLoad(initialRoute)
   const maybeInitialExampleSlug = maybeExampleSlugForRoute(initialRoute)
@@ -137,4 +138,4 @@ export const init = (flags: Flags, url: Url) => {
       ...initialScrollCommands(url),
     ],
   }
-}
+})

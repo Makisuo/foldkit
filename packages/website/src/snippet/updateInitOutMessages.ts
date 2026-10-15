@@ -1,31 +1,62 @@
-const OutMessage = defineMessageUnion({
-  RestoredSearch: { query: Schema.String },
-  RestoredEditor: { documentId: Schema.String },
+import { Application } from './definition'
+
+const foldSearchOutMessage = Search.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  RestoredQuery:
+    ({ query }) =>
+    model => ({
+      model: modifyFields(model, {
+        maybeRestoredQuery: () => Option.some(query),
+      }),
+    }),
+})
+
+const foldEditorOutMessage = Editor.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  RestoredDraft:
+    ({ documentId }) =>
+    model => ({
+      model: modifyFields(model, {
+        maybeRestoredDocumentId: () => Option.some(documentId),
+      }),
+    }),
 })
 
 const search = Application.bindChild(Search.block, {
   field: 'search',
   parentMessage: Message.GotSearchMessage,
-  outMessage: {
-    forward: Search.OutMessage.match({
-      RestoredQuery: ({ query }) => OutMessage.RestoredSearch({ query }),
-    }),
-  },
+  outMessage: { fold: foldSearchOutMessage },
 })
 
 const editor = Application.bindChild(Editor.block, {
   field: 'editor',
   parentMessage: Message.GotEditorMessage,
-  outMessage: {
-    forward: Editor.OutMessage.match({
-      RestoredDraft: ({ documentId }) =>
-        OutMessage.RestoredEditor({ documentId }),
-    }),
-  },
+  outMessage: { fold: foldEditorOutMessage },
 })
 
-const searchInit = search.init()
-const editorInit = editor.init()
-const model = Model.make({ search: searchInit.model, editor: editorInit.model })
+const init = Application.init(() => {
+  const searchInit = search.init()
+  const editorInit = editor.init()
+  const initialModel = Model.make({
+    search: searchInit.model,
+    editor: editorInit.model,
+    maybeRestoredQuery: Option.none(),
+    maybeRestoredDocumentId: Option.none(),
+  })
 
-return Update.combine(model, [search.restore(), editor.restore()])
+  const startup = Update.combine(initialModel, [
+    search.restore(),
+    editor.restore(),
+  ])
+
+  return {
+    model: startup.model,
+    commands: [
+      ...(searchInit.commands ?? []),
+      ...(editorInit.commands ?? []),
+      ...(startup.commands ?? []),
+    ],
+  }
+})

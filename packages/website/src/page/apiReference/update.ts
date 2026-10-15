@@ -1,18 +1,14 @@
-import { Array, Effect, Option, Record, Schema, pipe } from 'effect'
+import { Effect, Option, Record, Result, Schema } from 'effect'
 import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { ApiReference } from './definition'
-import {
-  ParsedApiReference,
-  SIGNATURE_COLLAPSE_THRESHOLD,
-  scopedId,
-  signaturesLength,
-} from './domain'
+import { ParsedApiReference } from './domain'
 import { Message } from './message'
-import { type ApiData, ApiDataAsyncData, type Disclosures } from './model'
+import { ApiDataAsyncData, disclosuresForApiData } from './model'
 
-const LoadApiData = ApiReference.command('LoadApiData', {
+/** Loads the complete reference, including modules omitted from hydration data. */
+export const LoadApiData = ApiReference.command('LoadApiData', {
   messages: [Message.SucceededLoadApiData, Message.FailedLoadApiData],
   handler: function* () {
     return () =>
@@ -52,46 +48,38 @@ const LoadApiData = ApiReference.command('LoadApiData', {
 
 export const EffectsLayer = LoadApiData.layer
 
-const disclosuresForApiData = (apiData: ApiData): Disclosures =>
-  pipe(
-    apiData.parsedApi.modules,
-    Array.flatMap(module =>
-      pipe(
-        module.functions,
-        Array.filter(
-          apiFunction =>
-            signaturesLength(apiFunction) > SIGNATURE_COLLAPSE_THRESHOLD,
-        ),
-        Array.map(apiFunction => {
-          const id = scopedId('function', module.name, apiFunction.name)
-          return [id, false] as const
-        }),
-      ),
-    ),
-    Record.fromEntries,
-  )
+export const informRouteChanged = ApiReference.step(model =>
+  Option.match(
+    AsyncData.isStale(model.apiData)
+      ? AsyncData.revalidate(model.apiData)
+      : AsyncData.loadIfMissing(model.apiData),
+    {
+      onNone: () => ({ model }),
+      onSome: apiData => ({
+        model: modifyFields(model, { apiData: () => apiData }),
+        commands: [LoadApiData()],
+      }),
+    },
+  ),
+)
 
 export const update = ApiReference.update((model, message) =>
   Message.match(message, {
-    RequestedApiData: () =>
-      Option.match(AsyncData.loadIfMissing(model.apiData), {
-        onNone: () => ({ model }),
-        onSome: apiData => ({
-          model: modifyFields(model, { apiData: () => apiData }),
-          commands: [LoadApiData()],
-        }),
-      }),
-
     SucceededLoadApiData: ({ apiData }) => ({
       model: modifyFields(model, {
         apiData: () => ApiDataAsyncData.Success({ data: apiData }),
-        disclosures: () => disclosuresForApiData(apiData),
+        disclosures: disclosures =>
+          Record.union(
+            disclosures,
+            disclosuresForApiData(apiData),
+            isOpen => isOpen,
+          ),
       }),
     }),
 
     FailedLoadApiData: ({ error }) => ({
       model: modifyFields(model, {
-        apiData: () => ApiDataAsyncData.Failure({ error }),
+        apiData: apiData => AsyncData.settle(apiData, Result.fail(error)),
       }),
     }),
 
@@ -101,8 +89,4 @@ export const update = ApiReference.update((model, message) =>
       }),
     }),
   }),
-)
-
-export const informRouteChanged = ApiReference.step(model =>
-  update(model, Message.RequestedApiData()),
 )

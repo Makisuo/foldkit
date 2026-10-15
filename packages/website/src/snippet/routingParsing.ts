@@ -1,6 +1,8 @@
-import { Route, Runtime } from 'foldkit'
+import { Route } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { Url } from 'foldkit/url'
+
+import { Application } from './definition'
 
 // Combine routers. A route matches only when it consumes the whole URL.
 const routeParser = Route.oneOf(
@@ -16,9 +18,9 @@ const urlToApplicationRoute = Route.parseUrlWithFallback(
 )
 
 // In your init function, parse the initial URL:
-const init: Runtime.RoutingApplicationInit<Model, Message> = (url: Url) => {
+const init = Application.init((url: Url) => {
   return { model: { route: urlToApplicationRoute(url) } }
-}
+})
 
 // In your update function, handle URL changes:
 ChangedUrl: ({ url }) => ({

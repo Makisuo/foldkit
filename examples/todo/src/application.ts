@@ -5,7 +5,7 @@ import { GenerateTodo, SaveTodos } from './command'
 import { Application } from './definition'
 
 export const ApplicationComposition = Application.toComposition()
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 

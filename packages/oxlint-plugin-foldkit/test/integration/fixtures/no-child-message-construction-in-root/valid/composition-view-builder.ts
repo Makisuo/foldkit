@@ -6,7 +6,7 @@ import {
   type ApplicationViewBuilder as ImportedApplicationViewBuilder,
 } from './rootApplication'
 
-type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.ViewBuilderFor<typeof ApplicationComposition>
 
 export const localAliasButton = (h: ApplicationViewBuilder) =>
   h.button([h.OnClick(Message.ClickedFromLocalViewBuilder())])

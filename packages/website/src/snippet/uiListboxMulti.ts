@@ -28,20 +28,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize the Listbox Block with a unique id:
-const init = () => {
-  const listboxInit = peopleListbox.init({ id: 'people' })
-
-  return {
-    model: {
-      selectedPeople: [],
-      listboxMulti: listboxInit.model,
-      // ...your other fields
-    },
-    commands: listboxInit.commands,
-  }
-}
-
 // Wrap Listbox's Messages so they can flow through your update:
 const Message = defineMessageUnion({
   GotListboxMultiMessage: { message: PeopleListbox.Message },
@@ -81,6 +67,20 @@ const peopleListbox = PeoplePicker.bindChild(PeopleListbox, {
   field: 'listboxMulti',
   parentMessage: Message.GotListboxMultiMessage,
   outMessage: { fold: foldListboxMultiOutMessage },
+})
+
+// In your init function, initialize the Listbox Block with a unique id:
+const init = PeoplePicker.init(() => {
+  const listboxInit = peopleListbox.init({ id: 'people' })
+
+  return {
+    model: {
+      selectedPeople: [],
+      listboxMulti: listboxInit.model,
+      // ...your other fields
+    },
+    commands: listboxInit.commands,
+  }
 })
 
 const PeoplePickerComposition = PeoplePicker.toComposition({

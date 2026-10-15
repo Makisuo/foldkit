@@ -457,7 +457,7 @@ const internalView = RadioGroupComposition.view.withInputs<ViewInputs>(
 
 /** Complete RadioGroup Block definition. */
 export const block = RadioGroupComposition.toBlock({
-  init: (config: InitConfig) => ({ model: init(config) }),
+  init: RadioGroup.init((config: InitConfig) => ({ model: init(config) })),
   update,
   view: internalView,
   EffectsLayer,
@@ -498,7 +498,7 @@ const makeBlock = <Value extends string>() => {
   )
 
   return RadioGroupComposition.toBlock({
-    init: (config: InitConfig) => ({ model: init(config) }),
+    init: RadioGroup.init((config: InitConfig) => ({ model: init(config) })),
     update: refinedUpdate,
     view,
     EffectsLayer,

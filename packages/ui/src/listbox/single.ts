@@ -125,7 +125,7 @@ const makeBlock = <Item, Value extends string>() => {
   )
   const expose = { open, close, selectItem }
   return ListboxComposition.toBlock({
-    init: (config: InitConfig) => ({ model: init(config) }),
+    init: Listbox.init((config: InitConfig) => ({ model: init(config) })),
     update,
     view,
     expose,

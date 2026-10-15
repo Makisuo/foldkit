@@ -925,7 +925,7 @@ export const maybeDropTarget = (
 const DragAndDropComposition = DragAndDrop.toComposition()
 
 export const block = DragAndDropComposition.toBlock({
-  init: (config: InitConfig) => ({ model: init(config) }),
+  init: DragAndDrop.init((config: InitConfig) => ({ model: init(config) })),
   update,
   subscriptions,
   EffectsLayer,

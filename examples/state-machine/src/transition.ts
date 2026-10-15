@@ -3,6 +3,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { RadioGroup } from '@foldkit/ui'
 
+import { Application } from './definition'
 import { checkoutMachine } from './machine'
 import { type Message } from './message'
 import { EDITION_RADIO_GROUP_ID, Model, type TransitionLogEntry } from './model'
@@ -14,9 +15,9 @@ export const initialModel = Model.make({
   nextTransitionLogId: 0,
 })
 
-export const init = () => ({
+export const init = Application.init(() => ({
   model: initialModel,
-})
+}))
 
 export const TRANSITION_LOG_LIMIT = 20
 

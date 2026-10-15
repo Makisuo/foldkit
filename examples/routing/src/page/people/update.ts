@@ -12,7 +12,7 @@ import {
   routeSearchText,
 } from './model'
 
-export const init = (route: PeopleRoute) => {
+export const init = People.init((route: PeopleRoute) => {
   const searchText = routeSearchText(route)
   return {
     model: Model.make({
@@ -22,7 +22,7 @@ export const init = (route: PeopleRoute) => {
     }),
     commands: [FetchPeople({ searchText })],
   }
-}
+})
 export const update = People.update((model, message) =>
   Message.match(message, {
     ChangedSearchInput: ({ value }) => ({

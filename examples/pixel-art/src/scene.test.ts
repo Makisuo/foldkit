@@ -13,12 +13,7 @@ import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
-import {
-  AcquireResources,
-  CloseDialog,
-  ShowDialog,
-  boot as bootDialog,
-} from '@foldkit/ui/dialog'
+import { AcquireResources, CloseDialog, ShowDialog } from '@foldkit/ui/dialog'
 import { FocusOption } from '@foldkit/ui/radioGroup'
 
 import { ExportPng, SaveCanvas } from './command'
@@ -232,18 +227,16 @@ describe('grid size change', () => {
   })
 
   test('confirming grid size change closes dialog and saves canvas', () => {
-    const modelWithPendingResize: Model = modifyFields(createTestModel(), {
-      maybePendingGridSize: () => Option.some(8),
-      gridSizeConfirmDialog: () =>
-        bootDialog({
-          id: 'grid-size-confirm-dialog',
-        }).model,
+    const paintedModel = modifyFields(createPaintedModel(), {
       undoStack: () => [createEmptyGrid(4)],
     })
 
     scene(
       { update, view },
-      given(modelWithPendingResize),
+      given(paintedModel),
+      click(role('radio', { name: '8' })),
+      resolveFocusOption,
+      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
       resolveDialogResources,
       expect(text('Change to 8\u00d78?')).toExist(),
       click(role('button', { name: 'Clear and Resize' })),
@@ -255,17 +248,12 @@ describe('grid size change', () => {
   })
 
   test('cancelling grid size change keeps current size', () => {
-    const modelWithPendingResize: Model = modifyFields(createTestModel(), {
-      maybePendingGridSize: () => Option.some(8),
-      gridSizeConfirmDialog: () =>
-        bootDialog({
-          id: 'grid-size-confirm-dialog',
-        }).model,
-    })
-
     scene(
       { update, view },
-      given(modelWithPendingResize),
+      given(createPaintedModel()),
+      click(role('radio', { name: '8' })),
+      resolveFocusOption,
+      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
       resolveDialogResources,
       expect(text('Change to 8\u00d78?')).toExist(),
       click(role('button', { name: 'Cancel' })),

@@ -16,30 +16,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// The parent uses contentFocus so focus can move into its nested trigger
-// instead of staying on the panel:
-const init = () => {
-  const accountPopoverInit = accountPopover.init({
-    id: 'account-popover',
-    contentFocus: true,
-  })
-  const accountDetailsPopoverInit = accountDetailsPopover.init({
-    id: 'account-details-popover',
-  })
-
-  return {
-    model: {
-      accountPopover: accountPopoverInit.model,
-      accountDetailsPopover: accountDetailsPopoverInit.model,
-      // ...your other fields
-    },
-    commands: [
-      ...(accountPopoverInit.commands ?? []),
-      ...(accountDetailsPopoverInit.commands ?? []),
-    ],
-  }
-}
-
 // Embed each Popover Message in your parent Message:
 const Message = defineMessageUnion({
   GotAccountPopoverMessage: { message: Popover.Message },
@@ -69,6 +45,30 @@ const accountDetailsPopover = AccountMenu.bindChild(Popover.block, {
   field: 'accountDetailsPopover',
   parentMessage: Message.GotAccountDetailsPopoverMessage,
   outMessage: { fold: foldPopoverOutMessage },
+})
+
+// The parent uses contentFocus so focus can move into its nested trigger
+// instead of staying on the panel:
+const init = AccountMenu.init(() => {
+  const accountPopoverInit = accountPopover.init({
+    id: 'account-popover',
+    contentFocus: true,
+  })
+  const accountDetailsPopoverInit = accountDetailsPopover.init({
+    id: 'account-details-popover',
+  })
+
+  return {
+    model: {
+      accountPopover: accountPopoverInit.model,
+      accountDetailsPopover: accountDetailsPopoverInit.model,
+      // ...your other fields
+    },
+    commands: [
+      ...(accountPopoverInit.commands ?? []),
+      ...(accountDetailsPopoverInit.commands ?? []),
+    ],
+  }
 })
 
 const AccountMenuComposition = AccountMenu.toComposition({

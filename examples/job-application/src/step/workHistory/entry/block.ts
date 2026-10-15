@@ -6,12 +6,13 @@ import {
   endDatePicker,
   startDatePicker,
 } from './composition'
+import { WorkHistoryEntry } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
 export const block = WorkHistoryEntryComposition.toBlock({
-  init: (entryId: string, today: CalendarDate) => {
+  init: WorkHistoryEntry.init((entryId: string, today: CalendarDate) => {
     const startDateInit = startDatePicker.init({
       id: `${entryId}-start`,
       today,
@@ -28,7 +29,7 @@ export const block = WorkHistoryEntryComposition.toBlock({
         ...(endDateInit.commands ?? []),
       ],
     }
-  },
+  }),
   update,
   view,
 })

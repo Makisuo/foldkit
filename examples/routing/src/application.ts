@@ -15,7 +15,7 @@ export const peoplePage = Application.bindChild(People.block, {
 export const ApplicationComposition = Application.toComposition({
   children: [peoplePage],
 })
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 

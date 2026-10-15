@@ -24,11 +24,11 @@ const clampResetSeconds = (seconds: number): number =>
   })
 
 export const AsyncCounterDemoComposition = AsyncCounterDemo.toComposition()
-type AsyncCounterDemoViewBuilder = Block.HtmlBuilderOf<
+type AsyncCounterDemoViewBuilder = Block.ViewBuilderFor<
   typeof AsyncCounterDemoComposition
 >
 
-export const init = () => ({
+export const init = AsyncCounterDemo.init(() => ({
   model: Model.make({
     count: 0,
     isResetting: false,
@@ -37,7 +37,7 @@ export const init = () => ({
     generation: 0,
     messageLog: [],
   }),
-})
+}))
 
 export const DelayAdvanceAsyncCounterPhase = AsyncCounterDemo.command(
   'DelayAdvanceAsyncCounterPhase',

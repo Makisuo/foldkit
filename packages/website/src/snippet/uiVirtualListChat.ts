@@ -25,7 +25,17 @@ type Message = typeof Message.Type
 
 const initialMessages: ReadonlyArray<typeof ChatMessage.Type> = []
 
-const init = () => {
+const MessageListExample = Block.define('MessageListExample', {
+  Model,
+  Message,
+})
+
+const messageList = MessageListExample.bindChild(MessageList, {
+  field: 'messageList',
+  parentMessage: Message.GotMessageListMessage,
+})
+
+const init = MessageListExample.init(() => {
   const messageListInit = messageList.init({
     id: 'message-list',
     rowHeightPx: 64,
@@ -40,16 +50,6 @@ const init = () => {
     },
     commands: messageListInit.commands,
   }
-}
-
-const MessageListExample = Block.define('MessageListExample', {
-  Model,
-  Message,
-})
-
-const messageList = MessageListExample.bindChild(MessageList, {
-  field: 'messageList',
-  parentMessage: Message.GotMessageListMessage,
 })
 
 const MessageListExampleComposition = MessageListExample.toComposition({

@@ -15,19 +15,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize the Dialog Block with a unique id:
-const init = () => {
-  const dialogInit = dialog.init({ id: 'confirm' })
-
-  return {
-    model: {
-      dialog: dialogInit.model,
-      // ...your other fields
-    },
-    commands: dialogInit.commands,
-  }
-}
-
 // A fact for the trigger, plus the Dialog Message embedded in your parent
 // Message for the block delegation:
 const Message = defineMessageUnion({
@@ -54,6 +41,19 @@ const dialog = DialogExample.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
+})
+
+// In your init function, initialize the Dialog Block with a unique id:
+const init = DialogExample.init(() => {
+  const dialogInit = dialog.init({ id: 'confirm' })
+
+  return {
+    model: {
+      dialog: dialogInit.model,
+      // ...your other fields
+    },
+    commands: dialogInit.commands,
+  }
 })
 
 const DialogExampleComposition = DialogExample.toComposition({

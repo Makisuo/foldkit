@@ -2,6 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Schema } from 'effect'
+import { Block } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -14,19 +15,20 @@ const Model = Schema.Struct({
   // ...your other fields
 })
 
-// In your init function, start it unchecked:
-const init = () => ({
-  model: {
-    acceptedTerms: false,
-    // ...your other fields
-  },
-})
-
 // A verb-first, past-tense Message carries the new checked state:
 
 const Message = defineMessageUnion({
   ToggledTerms: { isChecked: Schema.Boolean },
 })
+
+const TermsForm = Block.define('TermsForm', { Model, Message })
+// In your init function, start it unchecked:
+const init = TermsForm.init(() => ({
+  model: {
+    acceptedTerms: false,
+    // ...your other fields
+  },
+}))
 
 // In the corresponding Message.match handler, store the value.
 // This is the moment to fire analytics, validate a form, or push the value

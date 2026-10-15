@@ -30,24 +30,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const init = () => {
-  const dialogInit = dialog.init({ id: 'edit-filters' })
-  const comboboxInit = combobox.init({ id: 'city' })
-
-  return {
-    model: {
-      dialog: dialogInit.model,
-      combobox: comboboxInit.model,
-      maybeCity: Option.none(),
-      // ...your other fields
-    },
-    commands: [
-      ...(dialogInit.commands ?? []),
-      ...(comboboxInit.commands ?? []),
-    ],
-  }
-}
-
 // Embed each block's Message in your parent Message and delegate both to
 // their own update (see the Dialog and Combobox examples for the delegation).
 const Message = defineMessageUnion({
@@ -89,6 +71,24 @@ const combobox = FilterDialog.bindChild(CityCombobox, {
   field: 'combobox',
   parentMessage: Message.GotComboboxMessage,
   outMessage: { fold: foldComboboxOutMessage },
+})
+
+const init = FilterDialog.init(() => {
+  const dialogInit = dialog.init({ id: 'edit-filters' })
+  const comboboxInit = combobox.init({ id: 'city' })
+
+  return {
+    model: {
+      dialog: dialogInit.model,
+      combobox: comboboxInit.model,
+      maybeCity: Option.none(),
+      // ...your other fields
+    },
+    commands: [
+      ...(dialogInit.commands ?? []),
+      ...(comboboxInit.commands ?? []),
+    ],
+  }
 })
 
 const FilterDialogComposition = FilterDialog.toComposition({

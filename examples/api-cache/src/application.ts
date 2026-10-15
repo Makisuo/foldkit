@@ -75,11 +75,11 @@ export const tabs = Application.bindChild(AppTabs, {
 export const ApplicationComposition = Application.toComposition({
   children: [tabs],
 })
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-export const init = () => ({
+export const init = Application.init(() => ({
   model: Model.make({
     tabs: AppTabs.init({ id: TABS_ID }).model,
     activeTab: 'Posts',
@@ -89,7 +89,7 @@ export const init = () => ({
     stats: StatsData.Idle(),
   }),
   commands: [FetchPosts()],
-})
+}))
 
 export const EffectsLayer = Layer.mergeAll(
   FetchPosts.layer,

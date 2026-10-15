@@ -5,7 +5,7 @@ export type { Application, Element } from './application.js'
 export type {
   Composition,
   Definition,
-  HtmlBuilderOf,
+  ViewBuilderFor,
 } from './applicationAuthoring.js'
 
 /**

@@ -8,7 +8,7 @@ import {
 
 const Message = ProfileMessage
 
-type ProfileViewBuilder = Block.HtmlBuilderOf<typeof ProfileComposition>
+type ProfileViewBuilder = Block.ViewBuilderFor<typeof ProfileComposition>
 
 const saveButton = (h: ProfileViewBuilder) =>
   h.button([h.OnClick(Message.ClickedSave())])

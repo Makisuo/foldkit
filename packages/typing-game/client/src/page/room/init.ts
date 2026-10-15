@@ -1,9 +1,10 @@
 import { Array, Option, pipe } from 'effect'
 
 import { FetchRoom, LoadSession } from './command'
+import { Room } from './definition'
 import { Model, RoomAsyncData } from './model'
 
-export const init = (maybeRoomId: Option.Option<string>) => {
+export const init = Room.init((maybeRoomId: Option.Option<string>) => {
   const commands = pipe(
     maybeRoomId,
     Option.map(roomId => [LoadSession({ roomId }), FetchRoom({ roomId })]),
@@ -22,4 +23,4 @@ export const init = (maybeRoomId: Option.Option<string>) => {
     }),
     commands,
   }
-}
+})

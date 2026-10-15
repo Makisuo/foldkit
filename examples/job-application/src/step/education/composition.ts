@@ -29,6 +29,6 @@ export const entries = Education.bindChild(Entry.block, {
 export const EducationComposition = Education.toComposition({
   children: [entries],
 })
-export type EducationViewBuilder = Block.HtmlBuilderOf<
+export type EducationViewBuilder = Block.ViewBuilderFor<
   typeof EducationComposition
 >

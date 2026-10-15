@@ -18,19 +18,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize the Menu Block with a unique id:
-const init = () => {
-  const menuInit = menu.init({ id: 'actions' })
-
-  return {
-    model: {
-      menu: menuInit.model,
-      // ...your other fields
-    },
-    commands: menuInit.commands,
-  }
-}
-
 // Embed the Menu Message in your parent Message:
 const Message = defineMessageUnion({
   GotMenuMessage: { message: ActionMenu.Message },
@@ -68,6 +55,19 @@ const menu = ActionMenuExample.bindChild(ActionMenu, {
   field: 'menu',
   parentMessage: Message.GotMenuMessage,
   outMessage: { fold: foldMenuOutMessage },
+})
+
+// In your init function, initialize the Menu Block with a unique id:
+const init = ActionMenuExample.init(() => {
+  const menuInit = menu.init({ id: 'actions' })
+
+  return {
+    model: {
+      menu: menuInit.model,
+      // ...your other fields
+    },
+    commands: menuInit.commands,
+  }
 })
 
 const ActionMenuExampleComposition = ActionMenuExample.toComposition({

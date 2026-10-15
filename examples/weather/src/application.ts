@@ -5,7 +5,7 @@ import { FetchWeather } from './command'
 import { Application, Message, Model, WeatherAsyncData } from './definition'
 
 export const ApplicationComposition = Application.toComposition()
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
@@ -43,9 +43,9 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-export const init = () => ({
+export const init = Application.init(() => ({
   model: Model.make({
     zipCodeInput: '',
     weather: WeatherAsyncData.Idle(),
   }),
-})
+}))

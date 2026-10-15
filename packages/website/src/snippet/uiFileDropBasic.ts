@@ -17,20 +17,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// Initialize both fields:
-const init = () => {
-  const fileDropInit = fileDrop.init({ id: 'uploader' })
-
-  return {
-    model: {
-      uploader: fileDropInit.model,
-      uploadedFiles: [],
-      // ...your other fields
-    },
-    commands: fileDropInit.commands,
-  }
-}
-
 // Embed FileDrop's Message in your parent Message:
 const Message = defineMessageUnion({
   GotFileDropMessage: { message: FileDrop.Message },
@@ -68,6 +54,20 @@ const fileDrop = FileDropExample.bindChild(FileDrop.block, {
   field: 'uploader',
   parentMessage: Message.GotFileDropMessage,
   outMessage: { fold: foldFileDropOutMessage },
+})
+
+// Initialize both fields:
+const init = FileDropExample.init(() => {
+  const fileDropInit = fileDrop.init({ id: 'uploader' })
+
+  return {
+    model: {
+      uploader: fileDropInit.model,
+      uploadedFiles: [],
+      // ...your other fields
+    },
+    commands: fileDropInit.commands,
+  }
 })
 
 const FileDropExampleComposition = FileDropExample.toComposition({

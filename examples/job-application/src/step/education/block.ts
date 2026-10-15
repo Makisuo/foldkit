@@ -3,12 +3,13 @@ import { modifyFields } from 'foldkit/struct'
 
 import { EffectsLayer } from './command'
 import { EducationComposition, entries } from './composition'
+import { Education } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
 export const block = EducationComposition.toBlock({
-  init: (today: CalendarDate, initialEntryId: string) => {
+  init: Education.init((today: CalendarDate, initialEntryId: string) => {
     const entryInit = entries.init(initialEntryId, initialEntryId)
 
     return {
@@ -17,7 +18,7 @@ export const block = EducationComposition.toBlock({
       }),
       commands: entryInit.commands,
     }
-  },
+  }),
   update,
   view,
   EffectsLayer,

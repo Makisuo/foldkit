@@ -294,7 +294,7 @@ const compositionHtmlBuilderDefinitionPath = (
       const [namespace, typeName, extraMember] = path
       return (
         namespace === 'Block' &&
-        typeName === 'HtmlBuilderOf' &&
+        typeName === 'ViewBuilderFor' &&
         extraMember === undefined
       )
     },

@@ -27,20 +27,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize the Listbox Block with a unique id:
-const init = () => {
-  const listboxInit = planListbox.init({ id: 'plan' })
-
-  return {
-    model: {
-      maybePlan: Option.none(),
-      listbox: listboxInit.model,
-      // ...your other fields
-    },
-    commands: listboxInit.commands,
-  }
-}
-
 // Wrap Listbox's Messages so they can flow through your update:
 const Message = defineMessageUnion({
   GotListboxMessage: { message: PlanListbox.Message },
@@ -74,6 +60,20 @@ const planListbox = PlanPicker.bindChild(PlanListbox, {
   field: 'listbox',
   parentMessage: Message.GotListboxMessage,
   outMessage: { fold: foldListboxOutMessage },
+})
+
+// In your init function, initialize the Listbox Block with a unique id:
+const init = PlanPicker.init(() => {
+  const listboxInit = planListbox.init({ id: 'plan' })
+
+  return {
+    model: {
+      maybePlan: Option.none(),
+      listbox: listboxInit.model,
+      // ...your other fields
+    },
+    commands: listboxInit.commands,
+  }
 })
 
 const PlanPickerComposition = PlanPicker.toComposition({

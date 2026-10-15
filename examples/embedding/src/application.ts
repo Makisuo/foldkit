@@ -34,9 +34,9 @@ export const ports = {
 export const Flags = Schema.Struct({ initialCount: Schema.Number })
 export type Flags = typeof Flags.Type
 
-export const init = (flags: Flags) => ({
+export const init = Application.init((flags: Flags) => ({
   model: Model.make({ count: flags.initialCount, step: 1 }),
-})
+}))
 
 export const ReportCount = Application.command('ReportCount', {
   args: { count: Schema.Number },

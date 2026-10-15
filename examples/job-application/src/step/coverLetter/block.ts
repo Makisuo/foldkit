@@ -96,7 +96,7 @@ export const view = CoverLetterComposition.view((model, h) => {
 })
 
 export const block = CoverLetterComposition.toBlock({
-  init: () => ({ model: init() }),
+  init: CoverLetter.init(() => ({ model: init() })),
   update,
   view,
 })

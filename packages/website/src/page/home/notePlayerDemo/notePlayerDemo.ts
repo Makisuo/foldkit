@@ -97,7 +97,7 @@ const parseNotes = (value: string) =>
   )
 const INITIAL_NOTE_SEQUENCE = 'CDEFGABC'
 
-export const init = () => {
+export const init = NotePlayerDemo.init(() => {
   const noteDurationRadioGroupInit = noteDurationRadioGroup.init({
     id: NOTE_DURATION_RADIO_GROUP_ID,
   })
@@ -115,7 +115,7 @@ export const init = () => {
     }),
     commands: noteDurationRadioGroupInit.commands,
   }
-}
+})
 
 const DelayAdvanceNotePlayerPhase = NotePlayerDemo.command(
   'DelayAdvanceNotePlayerPhase',

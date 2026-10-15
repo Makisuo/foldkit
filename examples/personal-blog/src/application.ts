@@ -16,16 +16,16 @@ export const counter = Application.bindChild(Counter.block, {
 export const ApplicationComposition = Application.toComposition({
   children: [counter],
 })
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-export const init = (url: Url) => ({
+export const init = Application.init((url: Url) => ({
   model: {
     route: Route.urlToApplicationRoute(url),
     counter: counter.init().model,
   },
-})
+}))
 
 const NavigateInternal = ApplicationComposition.command('NavigateInternal', {
   args: { url: Schema.String },

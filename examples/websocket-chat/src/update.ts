@@ -7,6 +7,7 @@ import {
   TimestampReceivedMessage,
   TimestampSentMessage,
 } from './command'
+import { Application } from './definition'
 import { Message } from './message'
 import { ChatMessage, ConnectionState } from './model'
 
@@ -97,10 +98,10 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-export const init = () => ({
+export const init = Application.init(() => ({
   model: {
     connection: ConnectionState.Disconnected(),
     messages: [],
     messageInput: '',
   },
-})
+}))

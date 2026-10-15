@@ -29,7 +29,7 @@ export const ApplicationComposition = Application.toComposition({
   children: [settings],
 })
 
-export const init = () => {
+export const init = Application.init(() => {
   const settingsInit = settings.init()
 
   return {
@@ -40,7 +40,7 @@ export const init = () => {
     }),
     commands: settingsInit.commands,
   }
-}
+})
 
 export const update = Application.update((model, message) =>
   Message.match(message, {

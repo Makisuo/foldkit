@@ -5,12 +5,13 @@ import {
   additionalFilesDrop,
   resumeDrop,
 } from './composition'
+import { Attachments } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
 export const block = AttachmentsComposition.toBlock({
-  init: () => {
+  init: Attachments.init(() => {
     const resumeDropInit = resumeDrop.init({ id: 'attachments-resume' })
     const additionalFilesDropInit = additionalFilesDrop.init({
       id: 'attachments-additional',
@@ -26,7 +27,7 @@ export const block = AttachmentsComposition.toBlock({
         ...(additionalFilesDropInit.commands ?? []),
       ],
     }
-  },
+  }),
   update,
   view,
 })

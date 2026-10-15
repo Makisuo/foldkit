@@ -15,19 +15,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize the Tooltip Block with a unique id:
-const init = () => {
-  const tooltipInit = tooltip.init({ id: 'save-button' })
-
-  return {
-    model: {
-      tooltip: tooltipInit.model,
-      // ...your other fields
-    },
-    commands: tooltipInit.commands,
-  }
-}
-
 // Embed the Tooltip Message in your parent Message:
 const Message = defineMessageUnion({
   GotTooltipMessage: { message: Tooltip.Message },
@@ -63,6 +50,19 @@ const tooltip = TooltipExample.bindChild(Tooltip.block, {
   field: 'tooltip',
   parentMessage: Message.GotTooltipMessage,
   outMessage: { fold: foldTooltipOutMessage },
+})
+
+// In your init function, initialize the Tooltip Block with a unique id:
+const init = TooltipExample.init(() => {
+  const tooltipInit = tooltip.init({ id: 'save-button' })
+
+  return {
+    model: {
+      tooltip: tooltipInit.model,
+      // ...your other fields
+    },
+    commands: tooltipInit.commands,
+  }
 })
 
 const TooltipExampleComposition = TooltipExample.toComposition({

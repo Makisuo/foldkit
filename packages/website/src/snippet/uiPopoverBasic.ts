@@ -16,19 +16,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize the Popover Block with a unique id:
-const init = () => {
-  const popoverInit = popover.init({ id: 'info' })
-
-  return {
-    model: {
-      popover: popoverInit.model,
-      // ...your other fields
-    },
-    commands: popoverInit.commands,
-  }
-}
-
 // Embed the Popover Message in your parent Message:
 const Message = defineMessageUnion({
   GotPopoverMessage: { message: Popover.Message },
@@ -65,6 +52,19 @@ const popover = PopoverExample.bindChild(Popover.block, {
   field: 'popover',
   parentMessage: Message.GotPopoverMessage,
   outMessage: { fold: foldPopoverOutMessage },
+})
+
+// In your init function, initialize the Popover Block with a unique id:
+const init = PopoverExample.init(() => {
+  const popoverInit = popover.init({ id: 'info' })
+
+  return {
+    model: {
+      popover: popoverInit.model,
+      // ...your other fields
+    },
+    commands: popoverInit.commands,
+  }
 })
 
 const PopoverExampleComposition = PopoverExample.toComposition({

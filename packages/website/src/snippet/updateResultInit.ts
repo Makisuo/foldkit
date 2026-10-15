@@ -1,6 +1,10 @@
-const homeInit = home.init()
+import { Application } from './definition'
 
-return {
-  model: { home: homeInit.model },
-  commands: homeInit.commands,
-}
+const init = Application.init(() => {
+  const homeInit = home.init()
+
+  return {
+    model: { home: homeInit.model },
+    commands: homeInit.commands,
+  }
+})

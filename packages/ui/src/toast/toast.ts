@@ -1,7 +1,7 @@
 import { Match, Option, Schema } from 'effect'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 
-import { type InitConfig, Position, SwipeState, Variant } from './schema.js'
+import { Position, SwipeState, Variant } from './schema.js'
 import { isSwipeExcludedTarget } from './swipeTarget.js'
 import { makeRuntime } from './update.js'
 
@@ -153,7 +153,8 @@ const LEFT_MOUSE_BUTTON = 0
 /** @internal Builds a completed Toast Block and exposes its definitions to package tests. */
 export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const runtime = makeRuntime(payloadSchema)
-  const { ToastComposition, entryAnimation, ...toastRuntime } = runtime
+  const { ToastComposition, entryAnimation, blockInit, ...toastRuntime } =
+    runtime
   type Entry = typeof toastRuntime.Entry.Type
 
   type ToastMessage = typeof toastRuntime.Message.Type
@@ -321,7 +322,7 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   )
 
   const block = ToastComposition.toBlock({
-    init: (config: InitConfig) => ({ model: toastRuntime.init(config) }),
+    init: blockInit,
     update: toastRuntime.update,
     view,
     expose: toastRuntime.expose,

@@ -103,6 +103,48 @@ describe('application', () => {
     ])
   })
 
+  test('prerendered API startup retains its slice through failure and route retry', () => {
+    const seededData = ApiReference.ApiData.make({
+      parsedApi: { modules: [] },
+      highlights: {},
+    })
+    const initialization = init(
+      { ...flags, maybeApiData: Option.some(seededData) },
+      commandApiUrl,
+    )
+
+    expect(initialization.model.apiReference.apiData).toEqual(
+      ApiReference.ApiDataAsyncData.Refreshing({ data: seededData }),
+    )
+    expect(initialization.commands.map(command => command.name)).toContain(
+      'apiReference/LoadApiData',
+    )
+
+    const failedLoad = update(
+      initialization.model,
+      Message.GotApiReferenceMessage({
+        message: ApiReference.Message.FailedLoadApiData({ error: 'Offline' }),
+      }),
+    )
+    const routeChange = update(
+      failedLoad.model,
+      Message.ChangedUrl({ url: updateApiUrl }),
+    )
+
+    expect(failedLoad.model.apiReference.apiData).toEqual(
+      ApiReference.ApiDataAsyncData.Stale({
+        data: seededData,
+        error: 'Offline',
+      }),
+    )
+    expect(routeChange.model.apiReference.apiData).toEqual(
+      ApiReference.ApiDataAsyncData.Refreshing({ data: seededData }),
+    )
+    expect(routeChange.commands?.map(command => command.name)).toContain(
+      'apiReference/LoadApiData',
+    )
+  })
+
   test('remaining on a Playground slug preserves its Model', () => {
     const initialModel = initAt(playgroundCounterUrl)
     const initialPlayground = Option.getOrThrow(initialModel.playground)

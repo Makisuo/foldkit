@@ -28,14 +28,14 @@ export type ParentModelParameters = Expect<
     Parameters<typeof parentModelViewHelper>,
     [
       model: typeof ParentModel.Type,
-      h: Block.HtmlBuilderOf<typeof ParentComposition>,
+      h: Block.ViewBuilderFor<typeof ParentComposition>,
     ]
   >
 >
 export type ParentBuilderParameters = Expect<
   Equal<
     Parameters<typeof parentBuilderViewHelper>,
-    [h: Block.HtmlBuilderOf<typeof ParentComposition>]
+    [h: Block.ViewBuilderFor<typeof ParentComposition>]
   >
 >
 export type ParentInputParameters = Expect<
@@ -43,7 +43,7 @@ export type ParentInputParameters = Expect<
     Parameters<typeof parentInputViewHelper>,
     [
       input: typeof ChildModel.Type,
-      h: Block.HtmlBuilderOf<typeof ParentComposition>,
+      h: Block.ViewBuilderFor<typeof ParentComposition>,
     ]
   >
 >
@@ -55,7 +55,7 @@ export type ParentArrayOutput = Expect<
 export type ParentSharedParameters = Expect<
   Equal<
     Parameters<typeof parentSharedViewHelper>,
-    [h: Block.HtmlBuilderOf<typeof ParentComposition>]
+    [h: Block.ViewBuilderFor<typeof ParentComposition>]
   >
 >
 export type ApplicationModelParameters = Expect<
@@ -63,20 +63,20 @@ export type ApplicationModelParameters = Expect<
     Parameters<typeof applicationModelViewHelper>,
     [
       model: typeof ParentModel.Type,
-      h: Block.HtmlBuilderOf<typeof ApplicationComposition>,
+      h: Block.ViewBuilderFor<typeof ApplicationComposition>,
     ]
   >
 >
 export type ApplicationBuilderParameters = Expect<
   Equal<
     Parameters<typeof applicationBuilderViewHelper>,
-    [h: Block.HtmlBuilderOf<typeof ApplicationComposition>]
+    [h: Block.ViewBuilderFor<typeof ApplicationComposition>]
   >
 >
 export type ApplicationInputParameters = Expect<
   Equal<
     Parameters<typeof applicationInputViewHelper>,
-    [input: string, h: Block.HtmlBuilderOf<typeof ApplicationComposition>]
+    [input: string, h: Block.ViewBuilderFor<typeof ApplicationComposition>]
   >
 >
 export type ApplicationArrayOutput = Expect<

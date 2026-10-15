@@ -1,6 +1,5 @@
 export {
   init,
-  boot,
   update,
   view,
   titleId,

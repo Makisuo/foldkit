@@ -37,6 +37,6 @@ export const noteDurationRadioGroup = NotePlayerDemo.bindChild(
 export const NotePlayerDemoComposition = NotePlayerDemo.toComposition({
   children: [noteDurationRadioGroup],
 })
-export type NotePlayerDemoViewBuilder = Block.HtmlBuilderOf<
+export type NotePlayerDemoViewBuilder = Block.ViewBuilderFor<
   typeof NotePlayerDemoComposition
 >

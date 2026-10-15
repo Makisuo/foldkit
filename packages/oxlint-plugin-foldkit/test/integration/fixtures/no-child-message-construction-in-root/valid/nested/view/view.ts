@@ -10,7 +10,7 @@ import {
 } from '../composition/index.js'
 import { Message } from '../definition.js'
 
-type NestedViewBuilder = Block.HtmlBuilderOf<typeof NestedComposition>
+type NestedViewBuilder = Block.ViewBuilderFor<typeof NestedComposition>
 
 const localButton = (h: NestedViewBuilder) =>
   h.button([h.OnClick(Message.ClickedSave())])

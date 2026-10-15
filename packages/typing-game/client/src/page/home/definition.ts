@@ -10,4 +10,4 @@ export const Home = Block.define('Home', {
 })
 
 export const HomeComposition = Home.toComposition()
-export type HomeViewBuilder = Block.HtmlBuilderOf<typeof HomeComposition>
+export type HomeViewBuilder = Block.ViewBuilderFor<typeof HomeComposition>

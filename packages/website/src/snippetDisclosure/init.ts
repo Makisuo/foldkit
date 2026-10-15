@@ -1,8 +1,10 @@
 import { HashMap, HashSet } from 'effect'
 
-export const init = () => ({
+import { SnippetDisclosure } from './definition'
+
+export const init = SnippetDisclosure.init(() => ({
   model: {
     openDisclosureIds: HashSet.empty(),
     snippetSizes: HashMap.empty(),
   },
-})
+}))

@@ -14,7 +14,7 @@ export const home = HomeBinding.bindHome({ informJoined: room.informJoined })
 export const ApplicationComposition = Application.toComposition({
   children: [home, room],
 })
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 

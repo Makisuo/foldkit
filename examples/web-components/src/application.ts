@@ -28,19 +28,21 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
-type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.ViewBuilderFor<
+  typeof ApplicationComposition
+>
 
 const DEFAULT_CONTENT = 'https://foldkit.dev'
 const DEFAULT_FILL_COLOR = '#1e1b4b'
 const DEFAULT_BACKGROUND_COLOR = '#fef3c7'
 
-export const init = () => ({
+export const init = Application.init(() => ({
   model: {
     content: DEFAULT_CONTENT,
     fillColor: DEFAULT_FILL_COLOR,
     backgroundColor: DEFAULT_BACKGROUND_COLOR,
   },
-})
+}))
 
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {

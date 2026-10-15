@@ -49,8 +49,12 @@ const view = PanelComposition.view((model, h) => ({
   ),
 }))
 
+const init = Panel.init(() => ({
+  model: Model.make({ panelHeight: Option.none() }),
+}))
+
 export const block = PanelComposition.toBlock({
-  init: () => ({ model: Model.make({ panelHeight: Option.none() }) }),
+  init,
   update,
   view,
   EffectsLayer: MeasurePanel.layer,

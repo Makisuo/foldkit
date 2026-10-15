@@ -22,24 +22,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize the DragAndDrop Block with a unique id:
-const init = () => {
-  const dragAndDropInit = dragAndDrop.init({ id: 'sortable-list' })
-
-  return {
-    model: {
-      items: [
-        { id: '1', label: 'First' },
-        { id: '2', label: 'Second' },
-        { id: '3', label: 'Third' },
-      ],
-      dragAndDrop: dragAndDropInit.model,
-      // ...your other fields
-    },
-    commands: dragAndDropInit.commands,
-  }
-}
-
 // Embed the DragAndDrop Message in your parent Message:
 const Message = defineMessageUnion({
   GotDragAndDropMessage: { message: DragAndDrop.Message },
@@ -85,6 +67,24 @@ const dragAndDrop = SortableList.bindChild(DragAndDrop.block, {
   field: 'dragAndDrop',
   parentMessage: Message.GotDragAndDropMessage,
   outMessage: { fold: foldDragAndDropOutMessage },
+})
+
+// In your init function, initialize the DragAndDrop Block with a unique id:
+const init = SortableList.init(() => {
+  const dragAndDropInit = dragAndDrop.init({ id: 'sortable-list' })
+
+  return {
+    model: {
+      items: [
+        { id: '1', label: 'First' },
+        { id: '2', label: 'Second' },
+        { id: '3', label: 'Third' },
+      ],
+      dragAndDrop: dragAndDropInit.model,
+      // ...your other fields
+    },
+    commands: dragAndDropInit.commands,
+  }
 })
 
 const SortableListComposition = SortableList.toComposition({

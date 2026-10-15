@@ -358,6 +358,9 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       })),
     ),
   })
+  const blockInit = Toast.init((config: InitConfig) => ({
+    model: init(config),
+  }))
 
   /** Processes a Toast Message and returns the next Model, optional Commands,
    *  and an optional `DismissedToast` OutMessage emitted once an entry has
@@ -734,6 +737,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     Added,
     DismissedToast,
     init,
+    blockInit,
     update,
     show,
     dismiss,

@@ -19,7 +19,7 @@ import { requireDispatch } from '../html/runtimeSingleton.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import {
-  type HtmlBuilderOf,
+  type ViewBuilderFor,
   define as defineApplication,
 } from './applicationPublic.js'
 import * as ModelPreservationBridge from './modelPreservationBridge.js'
@@ -242,7 +242,7 @@ const lazyEntries = createKeyedLazy()
 const entryRenderCounts = new Map<number, number>()
 const renderEntry = (
   entry: typeof ItemModel.Type,
-  h: HtmlBuilderOf<typeof root>,
+  h: ViewBuilderFor<typeof root>,
 ) => {
   entryRenderCounts.set(entry.id, (entryRenderCounts.get(entry.id) ?? 0) + 1)
   return h.block(

@@ -29,9 +29,9 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-export const init = () => ({
+export const init = Application.init(() => ({
   model: { count: 0 },
-})
+}))
 
 export const ApplicationComposition = Application.toComposition()
 

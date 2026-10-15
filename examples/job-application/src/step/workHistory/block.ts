@@ -3,12 +3,13 @@ import { modifyFields } from 'foldkit/struct'
 
 import { EffectsLayer } from './command'
 import { WorkHistoryComposition, entries } from './composition'
+import { WorkHistory } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
 export const block = WorkHistoryComposition.toBlock({
-  init: (today: CalendarDate, initialEntryId: string) => {
+  init: WorkHistory.init((today: CalendarDate, initialEntryId: string) => {
     const entryInit = entries.init(initialEntryId, initialEntryId, today)
 
     return {
@@ -17,7 +18,7 @@ export const block = WorkHistoryComposition.toBlock({
       }),
       commands: entryInit.commands,
     }
-  },
+  }),
   update,
   view,
   EffectsLayer,

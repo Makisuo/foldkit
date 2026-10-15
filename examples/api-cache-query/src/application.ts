@@ -47,11 +47,11 @@ export const tabs = Application.bindChild(AppTabs, {
 export const ApplicationComposition = Application.toComposition({
   children: [tabs, posts, stats, postDetails],
 })
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-export const init = () => {
+export const init = Application.init(() => {
   const model = Model.make({
     tabs: tabs.init({ id: TABS_ID }).model,
     activeTab: 'Posts',
@@ -62,6 +62,6 @@ export const init = () => {
   })
 
   return posts.revalidateOrLoad()(model)
-}
+})
 
 export const EffectsLayer = subscriptions.statsRefreshTicks.layer

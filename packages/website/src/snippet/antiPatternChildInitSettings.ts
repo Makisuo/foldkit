@@ -1,5 +1,7 @@
 // settings.ts
 
+import { Settings } from './definition'
+
 export const Theme = Schema.Literals(['Light', 'Dark'])
 export type Theme = typeof Theme.Type
 
@@ -12,7 +14,9 @@ export const OutMessage = defineMessageUnion({
   RestoredTheme: { theme: Theme },
 })
 
-export const init = () => ({ model: Model.make({ theme: 'Light' }) })
+export const init = Settings.init(() => ({
+  model: Model.make({ theme: 'Light' }),
+}))
 
 export const update = Settings.update((model, message) =>
   Message.match(message, {

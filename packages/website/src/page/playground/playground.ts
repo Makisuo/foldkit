@@ -65,26 +65,25 @@ const initialActiveFile = (files: Readonly<Record<string, string>>): string =>
 
 const FILE_TABS_ID = 'playground-files'
 
-export const init = (
-  slug: string,
-  maybeIsSupported: Option.Option<boolean> = Option.none(),
-) => {
-  const files = Option.getOrElse(maybeFilesForSlug(slug), () => ({}))
-  const fileTabsInit = fileTabs.init({ id: FILE_TABS_ID })
-  return {
-    model: Model.make({
-      slug,
-      state: PlaygroundState.Booting(),
-      files,
-      fileTabs: fileTabsInit.model,
-      activeFilePath: initialActiveFile(files),
-      dirtyPaths: [],
-      lastWriteError: Option.none(),
-      maybeIsSupported,
-    }),
-    commands: fileTabsInit.commands,
-  }
-}
+export const init = Playground.init(
+  (slug: string, maybeIsSupported: Option.Option<boolean> = Option.none()) => {
+    const files = Option.getOrElse(maybeFilesForSlug(slug), () => ({}))
+    const fileTabsInit = fileTabs.init({ id: FILE_TABS_ID })
+    return {
+      model: Model.make({
+        slug,
+        state: PlaygroundState.Booting(),
+        files,
+        fileTabs: fileTabsInit.model,
+        activeFilePath: initialActiveFile(files),
+        dirtyPaths: [],
+        lastWriteError: Option.none(),
+        maybeIsSupported,
+      }),
+      commands: fileTabsInit.commands,
+    }
+  },
+)
 
 // MANAGED RESOURCE
 

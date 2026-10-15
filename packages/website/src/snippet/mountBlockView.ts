@@ -25,7 +25,7 @@ const PanelComposition = Panel.toComposition({
   mounts: [MeasurePanel],
 })
 
-const init = () => ({ model: Model.make({ label: 'Panel' }) })
+const init = Panel.init(() => ({ model: Model.make({ label: 'Panel' }) }))
 const update = Panel.update(model => ({ model }))
 const view = PanelComposition.view((model, h) =>
   h.div([h.OnMount(MeasurePanel())], [model.label]),

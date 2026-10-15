@@ -331,6 +331,46 @@ export interface DefineView<
   >
 }
 
+type Equal<Left, Right> =
+  (<Value>() => Value extends Left ? 1 : 2) extends <
+    Value,
+  >() => Value extends Right ? 1 : 2
+    ? (<Value>() => Value extends Right ? 1 : 2) extends <
+        Value,
+      >() => Value extends Left ? 1 : 2
+      ? true
+      : false
+    : false
+
+type NormalizedFunction<Function extends AnyFunction> = (
+  ...args: Parameters<Function>
+) => ReturnType<Function>
+
+type ValidateSingleInitSignature<Init extends AnyFunction> =
+  Equal<Init, NormalizedFunction<Init>> extends true
+    ? unknown
+    : Readonly<{
+        'Initializers require one concrete call signature': Init
+      }>
+
+/**
+ * Authors a Block initializer. Every return must contain the Block Model, and
+ * every returned Command must produce the Block Message. An initializer cannot
+ * emit an OutMessage. The helper returns the same function without invoking it
+ * and preserves its exact parameter and return types. Initializers are plain
+ * functions with one concrete call signature; close over a generic factory's
+ * values or wrap an overloaded helper in a concrete function.
+ */
+export interface DefineInit<Model, Message> {
+  <
+    const Init extends (
+      ...args: ReadonlyArray<any>
+    ) => OwnedReturn<Model, Message, never>,
+  >(
+    init: Init & NoInfer<ValidateSingleInitSignature<Init>>,
+  ): Init
+}
+
 /**
  * Defines the primary update function of an owned Block.
  */
@@ -2559,13 +2599,19 @@ export interface ToBlock<
 }
 
 /**
- * The builder supplied by a Block or Application Composition. Declare a
- * feature-local alias immediately after its Composition and name it for that
- * owner, such as `CounterViewBuilder` for `CounterComposition`. Use this type
- * when an extracted view helper renders that Composition's registered children
- * or local Mounts.
+ * The `HtmlBuilder` type supplied by a Block or Application Composition.
+ * Pass `typeof SearchComposition` to retain that Composition's Message,
+ * registered child, and Mount capabilities in extracted view helpers. This
+ * type constructs nothing at runtime.
+ *
+ * Declare an owner-specific alias immediately after the Composition, such as
+ * `SearchViewBuilder` for `SearchComposition`, and export it only when another
+ * file uses it. The primary Composition view infers its builder parameter.
+ *
+ * @typeParam CompositionValue - The type of the Composition returned by a Block
+ * or Application Definition's `toComposition` method.
  */
-export type HtmlBuilderOf<CompositionValue> =
+export type ViewBuilderFor<CompositionValue> =
   CompositionValue extends Readonly<{
     Message: Readonly<{ Type: infer Message }>
     [LocalMountsTypeId]: infer Mounts extends
@@ -2602,6 +2648,13 @@ export type Definition<
   [LocalMountsTypeId]: Mounts
   /** Child Bindings registered in this Definition's composition graph. */
   children: Children
+  /** Authors the Block's initializer. The helper checks its returned Model and
+   * every Command result Message, rejects OutMessages, and returns the same
+   * function without invoking it. It preserves exact arguments, return type,
+   * Command requirements, and child registration evidence. Completion checks
+   * preserved child registration evidence against the Composition. An
+   * initializer is a plain function with one concrete call signature. */
+  init: DefineInit<ModelSchema['Type'], MessageSchema['Type']>
   /** Authors the Block's primary update function with exact Command service and
    * OutMessage inference. */
   update: DefineUpdate<
@@ -2901,6 +2954,11 @@ const makeDefineView = <
   return defineView
 }
 
+const makeDefineInit =
+  <Model, Message>(): DefineInit<Model, Message> =>
+  init =>
+    init
+
 const makeDefineUpdate = <Model, Message, OutMessage>(): DefineUpdate<
   Model,
   Message,
@@ -3081,6 +3139,7 @@ export const makeDefinition = (
     children?: ReadonlyArray<AnyBinding>
   }>,
   authoring?: Readonly<{
+    init: AnyFunction
     update: AnyFunction
     step: AnyFunction
     subscriptions: AnyFunction
@@ -3103,6 +3162,7 @@ export const makeDefinition = (
   const mounts = mergeMounts(localMounts, childChannels.mounts)
 
   const defineView = makeDefineView(owner, localMounts, children)
+  const defineInit = authoring?.init ?? makeDefineInit()
   const defineUpdate = authoring?.update ?? makeDefineUpdate()
   const defineStep = authoring?.step ?? makeDefineStep()
   const defineSubscriptions =
@@ -3243,6 +3303,7 @@ export const makeDefinition = (
     [LocalMountsTypeId]: localMounts,
     children,
     view: defineView,
+    init: defineInit,
     update: defineUpdate,
     step: defineStep,
     subscriptions: defineSubscriptions,
@@ -3297,6 +3358,7 @@ export const makeBaseDefinition = (
     mounts: base.mounts,
     [LocalMountsTypeId]: base[LocalMountsTypeId],
     children: base.children,
+    init: base.init,
     update: base.update,
     step: base.step,
     subscriptions: base.subscriptions,

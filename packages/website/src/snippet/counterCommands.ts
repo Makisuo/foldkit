@@ -29,9 +29,9 @@ export const WaitBeforeReset = Application.command('WaitBeforeReset', {
 
 export const EffectsLayer = WaitBeforeReset.layer
 
-export const init = () => ({
+export const init = Application.init(() => ({
   model: Model.make({ count: 0 }),
-})
+}))
 
 export const update = Application.update((model, message) =>
   Message.match(message, {

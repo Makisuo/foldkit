@@ -57,7 +57,7 @@ export const EffectsLayer = Layer.mergeAll(
   RedirectToHome.layer,
 )
 
-export const init = (flags: Flags, url: Url) => {
+export const init = Application.init((flags: Flags, url: Url) => {
   const route = urlToApplicationRoute(url)
 
   return Option.match(flags.maybeSession, {
@@ -83,4 +83,4 @@ export const init = (flags: Flags, url: Url) => {
         })),
       ),
   })
-}
+})

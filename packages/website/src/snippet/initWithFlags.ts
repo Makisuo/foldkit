@@ -1,4 +1,5 @@
 import { Option, Schema } from 'effect'
+import { defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Model = Schema.Struct({
@@ -17,9 +18,11 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const init = (flags: Flags) => ({
+const Application = defineApplication({ Model, Message })
+
+const init = Application.init((flags: Flags) => ({
   model: {
     count: Option.getOrElse(flags.savedCount, () => 0),
     startingCount: flags.savedCount,
   },
-})
+}))

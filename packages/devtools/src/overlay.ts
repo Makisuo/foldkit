@@ -478,7 +478,9 @@ const getDevToolsShadowRoot = (): ShadowRoot => {
 const scrubberSlider = Slider.forRoot(getDevToolsShadowRoot)
 const [bindings, ApplicationComposition] =
   makeApplicationComposition(scrubberSlider)
-type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.ViewBuilderFor<
+  typeof ApplicationComposition
+>
 type OverlayBindings = typeof bindings
 
 class StoreService extends Context.Service<StoreService, DevToolsStore>()(
@@ -775,7 +777,7 @@ const EffectsLayer = Layer.mergeAll(
   subscriptions.mobileBreakpointChanges.layer,
 )
 
-const init = (flags: typeof Flags.Type) => {
+const init = Application.init((flags: typeof Flags.Type) => {
   const { isFlattened, ...displayFlags } = flags
   const sliderMax = flags.entries.length
   const initialSliderValue = flags.isPaused
@@ -825,7 +827,7 @@ const init = (flags: typeof Flags.Type) => {
       ...Option.toArray(maybeLockScroll(flags.isOpen, flags.isMobile)),
     ],
   }
-}
+})
 
 const makeUpdate = (bindings: OverlayBindings) =>
   ApplicationComposition.update((model, message) =>

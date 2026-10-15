@@ -86,7 +86,7 @@ Freezing typing removes an open path along with it. An interactive Combobox open
 
 ### Displaying an Existing Selection
 
-A read-only single-select Combobox whose parent holds a preloaded selection renders an empty input until an open and close cycle happens, since `model.inputValue` starts empty and only becomes the selection's display text through a selection or a close. Read-only removes the user's usual recovery path, since they cannot type to surface it. Seed the Model at boot with `selectItem`, which sets `inputValue` to the display text; the `boot()` convention is the idiomatic place for that.
+A read-only single-select Combobox whose parent holds a preloaded selection renders an empty input until an open and close cycle happens, since `model.inputValue` starts empty and only becomes the selection's display text through a selection or a close. Read-only removes the user's usual recovery path, since they cannot type to surface it. After initializing the child and assembling its parent Model, apply the Binding's `selectItem` Step with the preloaded selection. This sets `inputValue` to the display text. A feature can expose this startup transition as a `boot` Step when it is useful to its parent; see [startup Steps](/core/init-and-flags#startup-steps).
 
 Seeding interacts with filtering. You derive `items` from `model.inputValue`, so a read-only Combobox seeded with its selection opens showing only the items matching that text, often just the one. Filter on a separate field, or skip filtering while read-only, when the full list should stay visible.
 

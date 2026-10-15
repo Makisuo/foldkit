@@ -26,23 +26,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, give the list a unique id and a row height in
-// pixels. All rows share this height:
-const init = () => {
-  const activityListInit = activityList.init({
-    id: 'activity-list',
-    rowHeightPx: 56,
-  })
-
-  return {
-    model: {
-      activityList: activityListInit.model,
-      activities: [],
-    },
-    commands: activityListInit.commands,
-  }
-}
-
 // Embed the VirtualList Message in your parent Message:
 const Message = defineMessageUnion({
   ClickedScrollActivityListToMiddle: {},
@@ -58,6 +41,23 @@ const ActivityListExample = Block.define('ActivityListExample', {
 const activityList = ActivityListExample.bindChild(ActivityList, {
   field: 'activityList',
   parentMessage: Message.GotActivityListMessage,
+})
+
+// In your init function, give the list a unique id and a row height in
+// pixels. All rows share this height:
+const init = ActivityListExample.init(() => {
+  const activityListInit = activityList.init({
+    id: 'activity-list',
+    rowHeightPx: 56,
+  })
+
+  return {
+    model: {
+      activityList: activityListInit.model,
+      activities: [],
+    },
+    commands: activityListInit.commands,
+  }
 })
 
 const ActivityListExampleComposition = ActivityListExample.toComposition({

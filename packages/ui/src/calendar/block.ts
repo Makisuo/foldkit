@@ -1380,7 +1380,7 @@ const buildYearsAttributes = (
 }
 
 const CalendarComposition = Calendar.toComposition()
-type CalendarViewBuilder = Block.HtmlBuilderOf<typeof CalendarComposition>
+type CalendarViewBuilder = Block.ViewBuilderFor<typeof CalendarComposition>
 
 /** Renders an accessible Calendar. Publishes mode-specific ARIA attribute
  *  bundles + derived cell data, then delegates layout to the consumer's
@@ -1401,7 +1401,7 @@ export const view = CalendarComposition.view.withInputs<ViewInputs>(
 
 /** Complete Calendar Block definition for connecting to a parent. */
 export const block = CalendarComposition.toBlock({
-  init: (config: InitConfig) => ({ model: init(config) }),
+  init: Calendar.init((config: InitConfig) => ({ model: init(config) })),
   update,
   view,
   expose: { selectDate },

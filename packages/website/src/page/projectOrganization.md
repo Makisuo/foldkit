@@ -8,7 +8,7 @@ Keep each feature's behavior together and give its registered children and Mount
 
 ## Starting Simple
 
-The smallest application keeps Model, Message, init, update, view, and its typed Application definition in `application.ts`. A separate `entry.ts` chooses the browser container and startup inputs, supplies shared services, and starts the Runtime. Tests and server tooling can import the application pieces without starting a browser Runtime.
+The smallest application keeps Model, Message, Definition-owned init, update, view, and its typed Application definition in `application.ts`. A separate `entry.ts` chooses the browser container and startup inputs, supplies shared services, passes init to completion, and starts the Runtime. Tests and server tooling can import the application pieces without starting a browser Runtime.
 
 Add `story.test.ts` and `scene.test.ts` beside the behavior they test. The [Counter example](/example-apps/counter) shows a compact root.
 
@@ -76,11 +76,11 @@ When an extracted policy supplies several related exports, import it as a namesp
 
 ### Views, Behavior, and Import Direction
 
-Author the primary view through `FeatureComposition.view` or `view.withInputs`, leaving its `h` parameter inferred. When local helpers need its builder type, declare `type FeatureViewBuilder = Block.HtmlBuilderOf<typeof FeatureComposition>` immediately after the Composition with no blank line. Export the alias only when another file uses it. Ordinary view helpers receive that builder and the Model, domain value, or context they use. The alias retains Message, child, and Mount capabilities without constructing anything at runtime.
+Author the primary view through `FeatureComposition.view` or `view.withInputs`, leaving its `h` parameter inferred. When local helpers need its builder type, declare `type FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` immediately after the Composition with no blank line. Export the alias only when another file uses it. Ordinary view helpers receive that builder and the Model, domain value, or context they use. The alias retains Message, child, and Mount capabilities without constructing anything at runtime.
 
 The owner prefix distinguishes a builder derived from one Composition at a plain type import site. `Model`, `Message`, and `OutMessage` keep their standard architecture names because they normally travel through a feature namespace such as `Search.Model` or `Search.Message`. Helpers shared across features use the general `HtmlBuilder` type instead of an owner-specific alias.
 
-Keep substantial behavior in `init.ts`, `update.ts`, or a folder-named implementation file such as `workHistory/workHistory.ts`. A substantial `update/` directory uses `index.ts` as its explicit barrel and `update.ts` as the Message matcher. Extract substantial handlers by behavior; keep trivial child forwards and unchanged results in the matcher. The same rule gives a view directory `view/index.ts` and `view/view.ts`.
+Keep substantial behavior in `init.ts`, `update.ts`, or a folder-named implementation file such as `workHistory/workHistory.ts`. An extracted `init.ts` imports the early Definition and exports `const init = Feature.init(fn)`; it does not import the Composition or completed feature. A substantial `update/` directory uses `index.ts` as its explicit barrel and `update.ts` as the Message matcher. Extract substantial handlers by behavior; keep trivial child forwards and unchanged results in the matcher. The same rule gives a view directory `view/index.ts` and `view/view.ts`.
 
 Dependencies point from contracts to local declarations and policies, then to Composition, view, and completed Block. An update or view can import a Binding from Composition. Composition must not import the update matcher, primary view, or completed Block in return. If child policy needs a parent Step, define the policy beside the Binding or extract the pure operation into a leaf module that does not depend on Composition.
 

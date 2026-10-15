@@ -67,7 +67,7 @@ export const periodListbox = Application.bindChild(PeriodListbox, {
 export const ApplicationComposition = Application.toComposition({
   children: [dietListbox, periodListbox],
 })
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 

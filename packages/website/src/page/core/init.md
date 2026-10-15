@@ -2,19 +2,37 @@
 
 ## The First Model {#init}
 
-`init` constructs the first Model and returns any Commands that should run when the application starts. It returns `Update.Return<Model, Message>`, the same type as update.
+`init` constructs the first Model and returns any Commands that should run when the application starts. Author it through the root Definition as `Application.init(fn)`. The helper returns the same function with its exact arguments, return shape, Command requirements, and child registration evidence. It checks the returned Model and Command result Messages against the Application contracts where the initializer is declared.
+
+Give `Application.init` one concrete function signature. Optional, default, and rest parameters are supported. When an overloaded domain helper or callable object supplies the startup logic, wrap that call in one concretely typed callback. A generic Block factory closes over its type parameters and keeps the initializer itself concrete, so the Definition can check one unambiguous Model and Message contract.
 
 The counter starts at zero and has no startup work:
 
 ::Snippet{name="initSimple" label="Using init"}
 
-A non-routing application or element calls `init` with no arguments. A routing application passes the current URL, so its first Model can reflect the route. When the application declares Flags, they become the first argument in either form.
+A non-routing application or element calls `init` with no arguments. A routing application passes the current URL, so its first Model can reflect the route. When the application declares Flags, they become the first argument in either form. The Definition preserves that parameter list without deciding which case it represents. `ApplicationComposition.toApplication` or `toElement` still receives `init` explicitly and checks its arguments against the completion's Flags and routing configuration, along with the registered child and handler graph. Composition has no `init` authoring method.
+
+## Compose Startup Steps {#startup-steps}
+
+Definition-owned `init` is the application startup boundary. Foldkit does not run a special Runtime boot phase after it.
+
+Start each child with its Binding's `init`, then build the complete parent Model. Child init may return Commands, so keep those Commands when applying any initial transitions.
+
+An optional `boot` helper is an ordinary exposed Step called through the Binding after the child Model is stored. It may accept Flags, the current URL, or prerendered data, and it returns the normal next Model and Commands through that Binding. A feature need not define both init and `boot` helpers.
+
+When an existing domain operation such as `restore` or `open` already describes the transition, expose that Step instead. Do not create a Message only to trigger startup behavior.
+
+The following excerpt assumes `settings` and `session` are registered child Bindings, and that both expose a startup operation. The two Steps are sequential, so `Update.combine` passes the Model returned by `settings.restore` to `session.resume`. The final result retains Commands from both child init calls and both Steps:
+
+::Snippet{name="initBootSteps" label="Composing startup Steps"}
+
+Call a single initial Step directly. Use `Update.combine` only when two or more Steps must receive the Model produced by the preceding Step.
 
 ## Startup Data from Flags {#flags}
 
 Flags carry data from outside the application into `init`. Typical sources include persisted state, runtime configuration, and request-specific data supplied during server rendering.
 
-Define the boundary with a Flags Schema. For a fresh client boot, also define an Effect that obtains a value matching that Schema:
+Define the boundary with a Flags Schema. For a fresh client start, also define an Effect that obtains a value matching that Schema:
 
 ::Snippet{name="flagsDefinition" label="Flags definition"}
 
@@ -22,7 +40,7 @@ Define the boundary with a Flags Schema. For a fresh client boot, also define an
 
 ::Snippet{name="initWithFlags" label="Using init with Flags"}
 
-### Fresh Client Boot
+### Fresh Client Start
 
 In application.ts, create the graphless root with `Application.toComposition()`. The entry imports that Composition and passes the Schema to its owned `toApplication` method as `Flags`. The Counter Application uses the `init` above.
 
@@ -46,7 +64,7 @@ Server rendering provides Flags from the request or build instead of running a c
 
 #### Handoff Validation
 
-A hydrating entry does not provide a client Flags Effect. Missing or invalid handoff data fails startup instead of silently booting a different Model. The [Server Rendering](/core/server-rendering#flags-and-what-only-the-browser-knows) guide explains which data is safe and reproducible across that boundary.
+A hydrating entry does not provide a client Flags Effect. Missing or invalid handoff data fails startup instead of silently constructing a different Model. The [Server Rendering](/core/server-rendering#flags-and-what-only-the-browser-knows) guide explains which data is safe and reproducible across that boundary.
 
 #### Block Decomposition
 

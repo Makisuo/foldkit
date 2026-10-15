@@ -1,7 +1,9 @@
 import { HashSet } from 'effect'
 
-export const init = () => ({
+import { SnippetCopy } from './definition'
+
+export const init = SnippetCopy.init(() => ({
   model: {
     copiedSnippetIds: HashSet.empty(),
   },
-})
+}))

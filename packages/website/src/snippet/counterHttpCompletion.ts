@@ -1,6 +1,12 @@
-import { ApplicationComposition, type Model } from './counterHttpCommand'
+import {
+  Application,
+  ApplicationComposition,
+  type Model,
+} from './counterHttpCommand'
 
-export const init = (): Readonly<{ model: Model }> => ({ model: { count: 0 } })
+export const init = Application.init((): Readonly<{ model: Model }> => ({
+  model: { count: 0 },
+}))
 
 export const view = ApplicationComposition.view((model, h) => ({
   title: `Count: ${model.count}`,

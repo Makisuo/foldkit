@@ -475,7 +475,7 @@ export const view = DatePickerComposition.view.withInputs<ViewInputs>(
 
 /** Complete DatePicker Block definition. */
 export const block = DatePickerComposition.toBlock({
-  init: (config: InitConfig) => ({ model: init(config) }),
+  init: DatePicker.init((config: InitConfig) => ({ model: init(config) })),
   update,
   view,
   expose: { open, close, selectDate, clear },

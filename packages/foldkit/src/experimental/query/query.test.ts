@@ -703,7 +703,9 @@ describe('Query Block binding', () => {
     }),
   )
   const Parent = Composition.toBlock({
-    init: () => ({ model: Model.make({ notes: notes.init().model }) }),
+    init: Definition.init(() => ({
+      model: Model.make({ notes: notes.init().model }),
+    })),
     update,
     EffectsLayer: Layer.empty,
   })

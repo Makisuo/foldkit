@@ -33,11 +33,13 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
-type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.ViewBuilderFor<
+  typeof ApplicationComposition
+>
 
-export const init = (url: Url) => ({
+export const init = Application.init((url: Url) => ({
   model: { route: urlToApplicationRoute(url), count: 0 },
-})
+}))
 
 const NavigateInternal = Application.command('NavigateInternal', {
   args: { url: Schema.String },

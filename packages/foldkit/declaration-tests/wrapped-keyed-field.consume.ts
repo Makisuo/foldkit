@@ -8,8 +8,8 @@ import {
   ChoiceService,
   ParentModel,
   TextMessage,
-  choices,
   choiceInspection,
+  choices,
   composition,
   firstChoiceId,
   initialParentModel,
@@ -116,7 +116,7 @@ export type InspectionServices = Expect<
 export type InspectionError = Expect<
   Equal<Layer.Error<typeof choiceInspection.EffectsLayer>, ChoiceBuildFailure>
 >
-export type Builder = Block.HtmlBuilderOf<typeof composition>
+export type Builder = Block.ViewBuilderFor<typeof composition>
 
 const literalPayloadParent = makePayloadParent(
   Schema.Literals(['Primary', 'Secondary']),

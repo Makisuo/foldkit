@@ -10,13 +10,14 @@ import { define as defineBlock } from '../block/define.js'
 import {
   type Definition as BlockDefinition,
   type CompletedForValidation,
+  type DefineInit,
   type DefineManagedResources,
   type DefineStep,
   type DefineSubscriptions,
   type DefineUpdate,
   type DefineView,
-  type ValidateChildBindings,
   LocalMountsTypeId,
+  type ValidateChildBindings,
   makeDefinition,
 } from '../block/definition.js'
 import {
@@ -86,6 +87,23 @@ type AuthoringHelpers<
     MessageSchema['Type']
   >
 }>
+
+type DefinitionHelpers<
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+> = AuthoringHelpers<ModelSchema, MessageSchema> &
+  Readonly<{
+    /**
+     * Authors the root initializer. The helper checks its returned Model and
+     * every Command result Message, rejects OutMessages, and returns the same
+     * function without invoking it. It preserves exact Flags and routing
+     * arguments, return type, Command requirements, and child registration
+     * evidence. Completion checks Flags and routing configuration and preserved
+     * child registration evidence against the Composition. An initializer is
+     * a plain function with one concrete call signature.
+     */
+    init: DefineInit<ModelSchema['Type'], MessageSchema['Type']>
+  }>
 
 declare const CompositionTypeId: unique symbol
 
@@ -268,12 +286,18 @@ export type Composition<
   CompletionHelpers<ModelSchema, MessageSchema, Mounts, Children>
 
 /**
- * The builder supplied by an Application Composition. Declare a feature-local
- * alias immediately after its Composition and name it for that owner, such as
- * `ApplicationViewBuilder` for `ApplicationComposition`. Use this type when an
- * extracted root view helper renders registered children or local Mounts.
+ * The `HtmlBuilder` type supplied by an Application Composition. Pass
+ * `typeof ApplicationComposition` to retain its Message, registered child,
+ * and Mount capabilities when authoring extracted root view helpers.
+ *
+ * Declare an owner-specific alias such as `ApplicationViewBuilder` immediately
+ * after the Composition. This type constructs nothing at runtime; the primary
+ * Composition view infers its builder parameter.
+ *
+ * @typeParam CompositionValue - The type of the Composition returned by an
+ * Application Definition's `toComposition` method.
  */
-export type HtmlBuilderOf<CompositionValue> =
+export type ViewBuilderFor<CompositionValue> =
   CompositionValue extends AnyComposition
     ? HtmlBuilder<
         MessageSchemaOf<CompositionValue>['Type'],
@@ -382,7 +406,7 @@ export type Definition<
    */
   toComposition: ToComposition<ModelSchema, MessageSchema>
 }> &
-  AuthoringHelpers<ModelSchema, MessageSchema>
+  DefinitionHelpers<ModelSchema, MessageSchema>
 
 /**
  * Defines a passive root authoring value from its Model and Message Schemas.
@@ -436,8 +460,8 @@ const makeComposition = (
     step: definition.step,
     subscriptions: definition.subscriptions,
     managedResources: definition.managedResources,
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     toApplication: (config: any) =>
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       completion.toApplication(composition as never, config),
     toElement: (config: any) =>
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -504,6 +528,7 @@ export const makeDefine =
       mount: primitives.mount,
       mountStream: primitives.mountStream,
       resource: primitives.resource,
+      init: base.init,
       update: base.update,
       step: base.step,
       subscriptions: base.subscriptions,

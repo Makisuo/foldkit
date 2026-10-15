@@ -39,26 +39,6 @@ const flags = Effect.gen(function* () {
   return { today /* ...your other flags */ }
 })
 
-// In your init function, pass the flags-resolved today into DatePicker.init.
-// Optional: constrain the selectable range with minDate / maxDate.
-const init = (flags: Flags) => {
-  const datePickerInit = datePicker.init({
-    id: 'date-picker-demo',
-    today: flags.today,
-    minDate: flags.today,
-    maxDate: Calendar.addMonths(flags.today, 3),
-  })
-
-  return {
-    model: {
-      datePickerDemo: datePickerInit.model,
-      maybeSelectedDate: Option.none(),
-      // ...your other fields
-    },
-    commands: datePickerInit.commands,
-  }
-}
-
 // Embed the DatePicker Message in your parent Message. DatePicker handles
 // Calendar + Popover routing internally. You only need one wrapper:
 const Message = defineMessageUnion({
@@ -112,10 +92,30 @@ const datePicker = DatePickerExample.bindChild(DatePicker.block, {
   outMessage: { fold: foldDatePickerOutMessage },
 })
 
+// In your init function, pass the flags-resolved today into DatePicker.init.
+// Optional: constrain the selectable range with minDate / maxDate.
+const init = DatePickerExample.init((flags: Flags) => {
+  const datePickerInit = datePicker.init({
+    id: 'date-picker-demo',
+    today: flags.today,
+    minDate: flags.today,
+    maxDate: Calendar.addMonths(flags.today, 3),
+  })
+
+  return {
+    model: {
+      datePickerDemo: datePickerInit.model,
+      maybeSelectedDate: Option.none(),
+      // ...your other fields
+    },
+    commands: datePickerInit.commands,
+  }
+})
+
 const DatePickerExampleComposition = DatePickerExample.toComposition({
   children: [datePicker],
 })
-type DatePickerExampleViewBuilder = Block.HtmlBuilderOf<
+type DatePickerExampleViewBuilder = Block.ViewBuilderFor<
   typeof DatePickerExampleComposition
 >
 

@@ -148,7 +148,7 @@ const makeBlock = <Item extends string>(Item: ItemSchema<Item>) => {
   const expose = { open, close, selectItem }
   return ComboboxComposition.toBlock({
     view,
-    init: (config: InitConfig) => ({ model: init(config) }),
+    init: Combobox.init((config: InitConfig) => ({ model: init(config) })),
     update,
     expose,
     EffectsLayer,

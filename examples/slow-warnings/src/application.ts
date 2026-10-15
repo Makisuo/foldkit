@@ -30,7 +30,7 @@ const MAX_WARNING_COUNT = 8
 const SLOW_WARNING_EVENT = 'foldkit:slow-warning'
 
 export const ApplicationComposition = Application.toComposition()
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
@@ -155,7 +155,7 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-export const init = () => ({
+export const init = Application.init(() => ({
   model: Model.make({
     activeWorkload: 'Idle',
     nextWarningId: 1,
@@ -163,7 +163,7 @@ export const init = () => ({
     patchRows: 0,
     patchRun: 0,
   }),
-})
+}))
 
 export const subscriptions = Application.subscriptions(entry => ({
   slowWarningReports: entry('SlowWarningReports', {

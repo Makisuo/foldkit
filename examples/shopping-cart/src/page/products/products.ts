@@ -6,9 +6,9 @@ import { Item } from '../../domain'
 import { productsRouter } from '../../route'
 import { Message, Model, OutMessage, Products } from './definition'
 
-export const init = (products: ReadonlyArray<Item.Item>) => ({
+export const init = Products.init((products: ReadonlyArray<Item.Item>) => ({
   model: Model.make({ products, searchText: '' }),
-})
+}))
 
 export const ReplaceSearchUrl = Products.command('ReplaceSearchUrl', {
   args: { url: Schema.String },

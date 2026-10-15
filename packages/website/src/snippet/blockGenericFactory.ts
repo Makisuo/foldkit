@@ -59,8 +59,12 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
       ),
   )
 
+  const init = RefinedPicker.init(() => ({
+    model: Model.make({ selected: Option.none() }),
+  }))
+
   return RefinedPickerComposition.toBlock({
-    init: () => ({ model: Model.make({ selected: Option.none() }) }),
+    init,
     update,
     view,
     expose: { select },

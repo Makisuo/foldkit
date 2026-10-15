@@ -364,7 +364,9 @@ Never mutate the model directly. **Never use spread syntax for updates.** `modif
 
 ## Update Results
 
-Update, init, boot, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, return it directly without checking whether it is empty. Never write the literal `commands: []`.
+Update, init, Step, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, return it directly without checking whether it is empty. Never write the literal `commands: []`.
+
+Init constructs the baseline Model and may return initial Commands. Author it through the owning Definition with `Feature.init(fn)`. This checks its Model and Command result Messages while preserving the exact arguments, return type, requirements, and child evidence. Composition has no `init`; pass the Definition-owned function to completion, where Flags, routing, child registration, and handlers are checked together. Optional `boot` helpers are ordinary initial Steps called through a Binding after the child Model exists; Foldkit has no special Runtime boot phase, and a feature need not define both init and `boot` helpers. When an existing domain operation such as `open` or `restore` already describes the transition, expose that Step instead. Do not manufacture a Message only to trigger startup behavior. Preserve Commands from child init results when accumulating the startup Step results. Call one Step directly and use `Update.combine` only for two or more sequential Steps.
 
 Initialize a child through its Binding so Message mapping, origin scope, and Commands stay attached:
 

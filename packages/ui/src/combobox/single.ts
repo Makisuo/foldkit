@@ -216,7 +216,7 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
     composition: ComboboxComposition,
     implementation: {
       view,
-      init: (config: InitConfig) => ({ model: init(config) }),
+      init: Combobox.init((config: InitConfig) => ({ model: init(config) })),
       update,
       expose: { open, close, selectItem },
       EffectsLayer,

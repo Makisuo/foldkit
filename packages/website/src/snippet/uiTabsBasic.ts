@@ -24,21 +24,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize the Tabs Block with a unique id and
-// pick the starting active tab:
-const init = () => {
-  const tabsInit = tabs.init({ id: 'framework-tabs' })
-
-  return {
-    model: {
-      tabs: tabsInit.model,
-      activeFramework: 'Foldkit',
-      // ...your other fields
-    },
-    commands: tabsInit.commands,
-  }
-}
-
 // Embed the Tabs Message in your parent Message:
 const Message = defineMessageUnion({
   GotTabsMessage: { message: FrameworkTabs.Message },
@@ -83,6 +68,21 @@ const tabs = TabsExample.bindChild(FrameworkTabs, {
   field: 'tabs',
   parentMessage: Message.GotTabsMessage,
   outMessage: { fold: foldTabsOutMessage },
+})
+
+// In your init function, initialize the Tabs Block with a unique id and
+// pick the starting active tab:
+const init = TabsExample.init(() => {
+  const tabsInit = tabs.init({ id: 'framework-tabs' })
+
+  return {
+    model: Model.make({
+      tabs: tabsInit.model,
+      activeFramework: 'Foldkit',
+      // ...your other fields
+    }),
+    commands: tabsInit.commands,
+  }
 })
 
 const TabsExampleComposition = TabsExample.toComposition({

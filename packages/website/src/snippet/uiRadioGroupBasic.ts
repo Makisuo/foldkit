@@ -24,21 +24,6 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize the RadioGroup Block with a unique
-// id and start with nothing selected:
-const init = () => {
-  const radioGroupInit = planRadioGroup.init({ id: 'plan' })
-
-  return {
-    model: {
-      planRadioGroup: radioGroupInit.model,
-      maybePlan: Option.none(),
-      // ...your other fields
-    },
-    commands: radioGroupInit.commands,
-  }
-}
-
 // Embed the RadioGroup Message in your parent Message:
 const Message = defineMessageUnion({
   GotPlanRadioGroupMessage: { message: PlanRadioGroup.Message },
@@ -79,6 +64,21 @@ const planRadioGroup = PlanPicker.bindChild(PlanRadioGroup, {
   field: 'planRadioGroup',
   parentMessage: Message.GotPlanRadioGroupMessage,
   outMessage: { fold: foldPlanRadioGroupOutMessage },
+})
+
+// In your init function, initialize the RadioGroup Block with a unique
+// id and start with nothing selected:
+const init = PlanPicker.init(() => {
+  const radioGroupInit = planRadioGroup.init({ id: 'plan' })
+
+  return {
+    model: {
+      planRadioGroup: radioGroupInit.model,
+      maybePlan: Option.none(),
+      // ...your other fields
+    },
+    commands: radioGroupInit.commands,
+  }
 })
 
 const PlanPickerComposition = PlanPicker.toComposition({

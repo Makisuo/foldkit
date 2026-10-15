@@ -43,7 +43,9 @@ const counters = Application.bindChild(Counter.block, {
 export const ApplicationComposition = Application.toComposition({
   children: [counters],
 })
-type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.ViewBuilderFor<
+  typeof ApplicationComposition
+>
 
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
@@ -68,7 +70,7 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-export const init = () => {
+export const init = Application.init(() => {
   const counterInits = Array.makeBy(INITIAL_COUNTER_COUNT, counterId => {
     const id = `counter-${counterId}`
     const counterInit = counters.init(id)
@@ -89,7 +91,7 @@ export const init = () => {
       ({ counterInit }) => counterInit.commands ?? [],
     ),
   }
-}
+})
 
 const counterInstanceView = (
   counterInstance: CounterInstance,

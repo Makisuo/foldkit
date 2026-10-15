@@ -751,13 +751,14 @@ const makeHostKeyedQuery = <
     messages: [Message.CompletedFetch],
   })
   const api = makeKeyedQueryApi(config, Args, Model, Message, Fetch)
+  const init = Query.init(api.init)
   const reset = Query.step(api.reset)
   const revalidate = defineKeyedStep(Query.step, api.revalidate)
   const revalidateOrLoad = defineKeyedStep(Query.step, api.revalidateOrLoad)
   const loadIfMissing = defineKeyedStep(Query.step, api.loadIfMissing)
   const QueryComposition = Query.toComposition()
   const block = QueryComposition.toBlock({
-    init: api.init,
+    init,
     update: Query.update(api.update),
     expose: { reset, revalidate, revalidateOrLoad, loadIfMissing },
     EffectsLayer: Layer.empty,
@@ -821,13 +822,14 @@ const makeCanonicalKeyedQuery = <
     messages: [Message.CompletedFetch],
   })
   const api = makeKeyedQueryApi(config, Args, Model, Message, Fetch)
+  const init = Query.init(api.init)
   const reset = Query.step(api.reset)
   const revalidate = defineKeyedStep(Query.step, api.revalidate)
   const revalidateOrLoad = defineKeyedStep(Query.step, api.revalidateOrLoad)
   const loadIfMissing = defineKeyedStep(Query.step, api.loadIfMissing)
   const QueryComposition = Query.toComposition()
   const block = QueryComposition.toBlock({
-    init: api.init,
+    init,
     update: Query.update(api.update),
     expose: { reset, revalidate, revalidateOrLoad, loadIfMissing },
     EffectsLayer: api.toLayer(handler),

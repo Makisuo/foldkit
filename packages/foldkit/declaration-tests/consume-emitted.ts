@@ -7,6 +7,8 @@ import * as Runtime from 'foldkit/runtime'
 import * as Update from 'foldkit/update'
 
 import {
+  ApplicationComposition,
+  ApplicationDefinition,
   ChildBlock,
   ChildComposition,
   ChildDefinition,
@@ -18,6 +20,7 @@ import {
   type CompletedChoice,
   type CompletedPure,
   Direct,
+  DirectInitBlock,
   DirectModel,
   Measure,
   ObserveParent,
@@ -36,27 +39,32 @@ import {
   RefinedChoice,
   type RefinedChoiceOutMessage,
   type RefreshContext,
-  child,
-  childInspection,
-  contextualRefreshChild,
-  directChild,
   applicationBuilderViewHelper,
   applicationInputViewHelper,
   applicationModelViewHelper,
-  ApplicationComposition,
-  ApplicationDefinition,
+  child,
+  childInit,
+  childInspection,
+  childLiteralInit,
+  childParameterizedInit,
+  contextualRefreshChild,
+  directChild,
+  directResultInit,
   makePageProgram,
   makeProgram,
   makeProvisionElement,
   makeProvisionPageAwaitingDependency,
-  provisionPorts,
+  makeRoutedFlagsPage,
   parentArrayViewHelper,
   parentBuilderViewHelper,
   parentInputViewHelper,
   parentModelViewHelper,
   parentView,
+  provisionPorts,
+  provisionRoutingInit,
   refreshDirectValue,
   renderPage,
+  wrappedOverloadedChildInit,
 } from './accepted.js'
 
 type Equal<Left, Right> =
@@ -68,7 +76,7 @@ type Equal<Left, Right> =
 type Expect<Value extends true> = Value
 type CommandMessageOfReturn<Value> =
   Value extends Readonly<{
-    commands?: Update.Commands<infer Message, any> | undefined
+    commands?: Update.Commands<infer Message, infer _Requirements> | undefined
   }>
     ? Message
     : never
@@ -83,6 +91,19 @@ ChildDefinition.view
 ParentDefinition.view
 // @ts-expect-error An emitted Application Definition does not author the primary view.
 ApplicationDefinition.view
+// @ts-expect-error An emitted Block Composition does not expose Definition-only init authoring.
+ChildComposition.init
+// @ts-expect-error An emitted Application Composition does not expose Definition-only init authoring.
+ApplicationComposition.init
+
+const emittedChildInit = ChildDefinition.init(() => ({
+  model: ChildModel.make({ value: 1 }),
+}))
+const emittedParameterizedInit = childParameterizedInit(1, 2, 3, 4)
+const emittedLiteralInit = childLiteralInit(2, 3, 4)
+const emittedWrappedOverloadedInit = wrappedOverloadedChildInit('value')
+const emittedDirectResultInit = directResultInit()
+const emittedRoutedInit = provisionRoutingInit
 
 const emittedGraphlessBlockView = PureComposition.view((model, h) =>
   h.div([], [globalThis.String(model.value)]),
@@ -134,6 +155,10 @@ export const refinedSelection = RefinedChoice.OutMessage.make({ value: 'Two' })
 export const program = makeProgram(document.createElement('div'))
 export const pageProgram = makePageProgram(document.createElement('div'))
 export const renderedPage = renderPage()
+export const routedFlagsPage = makeRoutedFlagsPage(
+  document.createElement('div'),
+)
+void emittedRoutedInit
 
 const provisionPageAwaitingDependency = makeProvisionPageAwaitingDependency(
   document.createElement('div'),
@@ -167,6 +192,48 @@ type EmittedServicesAreExact = Expect<
 >
 type EmittedErrorIsExact = Expect<
   Equal<Layer.Error<typeof ChildEffectsLayer>, 'HandlerUnavailable'>
+>
+type EmittedChildInitIsExact = Expect<
+  Equal<
+    Parameters<typeof childParameterizedInit>,
+    [value: number, offset?: number, ...increments: ReadonlyArray<number>]
+  >
+>
+type EmittedChildInitReturnIsExact = Expect<
+  Equal<typeof emittedParameterizedInit.value, number>
+>
+type EmittedLiteralInitReturnIsExact = Expect<
+  Equal<typeof emittedLiteralInit.value, 1>
+>
+type EmittedWrappedOverloadedInitParametersAreExact = Expect<
+  Equal<Parameters<typeof wrappedOverloadedChildInit>, [value: string]>
+>
+type EmittedWrappedOverloadedInitModelIsExact = Expect<
+  Equal<typeof emittedWrappedOverloadedInit.model, ChildModel>
+>
+type EmittedChildInitRequirementsAreExact = Expect<
+  Equal<
+    Update.RequirementsOf<typeof childInit>,
+    Command.HandlerOf<typeof ReadCount>
+  >
+>
+type EmittedDirectInitEvidenceIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<typeof emittedDirectResultInit>,
+    Block.BindingRequirement<'direct-init-child', typeof ChildBlock>
+  >
+>
+type EmittedDirectInitRequirementsAreExact = Expect<
+  Equal<
+    Update.RequirementsOf<typeof directResultInit>,
+    Block.Scoped<'direct-init-child', Command.HandlerOf<typeof ReadCount>>
+  >
+>
+type EmittedDirectInitBlockModelIsExact = Expect<
+  Equal<ReturnType<typeof DirectInitBlock.init>['model'], ChildModel>
+>
+type EmittedOwnedInitReturnIsExact = Expect<
+  Equal<ReturnType<typeof emittedChildInit>['model'], ChildModel>
 >
 type EmittedBoundRequirementsAreExact = Expect<
   Equal<
@@ -247,13 +314,13 @@ type EmittedCompletedChildMountsAreExact = Expect<
 type EmittedParentModelViewHelperParametersAreExact = Expect<
   Equal<
     Parameters<typeof parentModelViewHelper>,
-    [model: ParentModel, h: Block.HtmlBuilderOf<typeof ParentComposition>]
+    [model: ParentModel, h: Block.ViewBuilderFor<typeof ParentComposition>]
   >
 >
 type EmittedParentBuilderViewHelperParametersAreExact = Expect<
   Equal<
     Parameters<typeof parentBuilderViewHelper>,
-    [h: Block.HtmlBuilderOf<typeof ParentComposition>]
+    [h: Block.ViewBuilderFor<typeof ParentComposition>]
   >
 >
 type EmittedParentInputViewHelperParametersAreExact = Expect<
@@ -261,7 +328,7 @@ type EmittedParentInputViewHelperParametersAreExact = Expect<
     Parameters<typeof parentInputViewHelper>,
     [
       input: typeof ChildModel.Type,
-      h: Block.HtmlBuilderOf<typeof ParentComposition>,
+      h: Block.ViewBuilderFor<typeof ParentComposition>,
     ]
   >
 >
@@ -280,13 +347,13 @@ type EmittedParentArrayViewHelperOutputIsHtmlArray = Expect<
 type EmittedApplicationModelViewHelperParametersAreExact = Expect<
   Equal<
     Parameters<typeof applicationModelViewHelper>,
-    [model: ParentModel, h: Block.HtmlBuilderOf<typeof ApplicationComposition>]
+    [model: ParentModel, h: Block.ViewBuilderFor<typeof ApplicationComposition>]
   >
 >
 type EmittedApplicationBuilderViewHelperParametersAreExact = Expect<
   Equal<
     Parameters<typeof applicationBuilderViewHelper>,
-    [h: Block.HtmlBuilderOf<typeof ApplicationComposition>]
+    [h: Block.ViewBuilderFor<typeof ApplicationComposition>]
   >
 >
 type EmittedApplicationInputViewHelperParametersAreExact = Expect<
@@ -294,7 +361,7 @@ type EmittedApplicationInputViewHelperParametersAreExact = Expect<
     Parameters<typeof applicationInputViewHelper>,
     [
       input: typeof ChildModel.Type,
-      h: Block.HtmlBuilderOf<typeof ApplicationComposition>,
+      h: Block.ViewBuilderFor<typeof ApplicationComposition>,
     ]
   >
 >
@@ -302,6 +369,16 @@ type EmittedApplicationInputViewHelperParametersAreExact = Expect<
 export type EmittedAssertions = [
   EmittedServicesAreExact,
   EmittedErrorIsExact,
+  EmittedChildInitIsExact,
+  EmittedChildInitReturnIsExact,
+  EmittedLiteralInitReturnIsExact,
+  EmittedWrappedOverloadedInitParametersAreExact,
+  EmittedWrappedOverloadedInitModelIsExact,
+  EmittedChildInitRequirementsAreExact,
+  EmittedDirectInitEvidenceIsExact,
+  EmittedDirectInitRequirementsAreExact,
+  EmittedDirectInitBlockModelIsExact,
+  EmittedOwnedInitReturnIsExact,
   EmittedBoundRequirementsAreExact,
   EmittedBoundEvidenceIsExact,
   EmittedAccessorMappedMessageIsExact,

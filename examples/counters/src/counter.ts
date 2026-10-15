@@ -9,16 +9,16 @@ export const Model = Schema.Struct({
   count: Schema.Number,
 })
 
-export const init = () => ({
-  model: Model.make({ count: 0 }),
-})
-
 export const Message = defineMessageUnion({
   ClickedDecrement: {},
   ClickedIncrement: {},
 })
 
 const Counter = Block.define('Counter', { Model, Message })
+
+export const init = Counter.init(() => ({
+  model: Model.make({ count: 0 }),
+}))
 
 const CounterComposition = Counter.toComposition()
 

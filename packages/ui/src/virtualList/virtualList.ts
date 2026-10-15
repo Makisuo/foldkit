@@ -1496,7 +1496,7 @@ const expose = {
 
 /** Complete VirtualList Block definition using an unknown item type. */
 export const block = VirtualListComposition.toBlock({
-  init: (config: InitConfig) => ({ model: init(config) }),
+  init: VirtualList.init((config: InitConfig) => ({ model: init(config) })),
   update,
   view: viewImpl,
   expose,
@@ -1508,7 +1508,7 @@ export const create = <Item>() => {
   const refinedView = view<Item>()
 
   return VirtualListComposition.toBlock({
-    init: (config: InitConfig) => ({ model: init(config) }),
+    init: VirtualList.init((config: InitConfig) => ({ model: init(config) })),
     update,
     view: refinedView,
     expose,

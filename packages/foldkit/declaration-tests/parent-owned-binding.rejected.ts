@@ -1,6 +1,6 @@
 import { Layer, Option, Schema } from 'effect'
 
-import { defineApplication, Block, Message } from '../src/index.js'
+import { Block, Message, defineApplication } from '../src/index.js'
 import {
   ChildBlock,
   ParentOutMessage,

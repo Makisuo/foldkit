@@ -166,7 +166,7 @@ export const payloadParent = makePayloadParent(
   Schema.Struct({ label: Schema.String }),
 )
 
-export const firstChoiceId = Schema.decodeUnknownSync(ChoiceId)('first')
+export const firstChoiceId = Schema.decodeSync(ChoiceId)('first')
 
 export const toChoiceMessage = (
   id: typeof ChoiceId.Type,

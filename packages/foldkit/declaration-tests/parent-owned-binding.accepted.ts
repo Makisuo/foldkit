@@ -1,11 +1,11 @@
 import { Array, Context, Effect, Layer, Option, Schema, Stream } from 'effect'
 
 import {
-  defineApplication,
   Block,
   Message,
   Struct,
   Update,
+  defineApplication,
 } from '../src/index.js'
 
 export class ChildClock extends Context.Service<

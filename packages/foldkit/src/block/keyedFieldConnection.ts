@@ -366,6 +366,7 @@ const wrappedStorageOf = (
     ) ||
     !hasSameDecodedSchemaShape(
       itemSchema,
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       Schema.Struct(itemFields as Schema.Struct.Fields),
     )
   ) {
@@ -672,9 +673,11 @@ export const normalizeKeyedFieldConfig = (config: unknown): unknown => {
             }
 
             readWrappedChild(item, childField)
-            return modifyFields(item as globalThis.Record<string, unknown>, {
-              [childField]: () => nextChildModel,
-            })
+            return modifyFields(
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              item as globalThis.Record<string, unknown>,
+              { [childField]: () => nextChildModel },
+            )
           })
         },
       })

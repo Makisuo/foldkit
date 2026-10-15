@@ -6,6 +6,7 @@ export const ChildModel = Schema.Struct({ count: Schema.Number })
 export const ChildMessage = Message.defineMessageUnion({
   UpdatedCount: { count: Schema.Number },
 })
+// eslint-disable-next-line foldkit/block-name-matches-variable
 const Child = Block.define('DeclaredDirectFieldChild', {
   Model: ChildModel,
   Message: ChildMessage,
@@ -19,6 +20,7 @@ export const childBlock = Child.toComposition().toBlock({
   expose: { setCount },
 })
 export const NestedOptionChildModel = Schema.Option(ChildModel)
+// eslint-disable-next-line foldkit/block-name-matches-variable
 const NestedOptionChild = Block.define('DeclaredNestedOptionChild', {
   Model: NestedOptionChildModel,
   Message: ChildMessage,
@@ -30,6 +32,7 @@ export const nestedOptionChildBlock = NestedOptionChild.toComposition().toBlock(
   },
 )
 export const ArrayChildModel = Schema.Array(Schema.String)
+// eslint-disable-next-line foldkit/block-name-matches-variable
 const ArrayChild = Block.define('DeclaredArrayChild', {
   Model: ArrayChildModel,
   Message: ChildMessage,
@@ -48,13 +51,16 @@ export const Model = Schema.Struct({
   route: Schema.Literals(['Home', 'Away']),
 })
 export const ParentMessage = Message.defineMessageUnion({
+  // eslint-disable-next-line foldkit/got-prefix-requires-block-payload
   GotChildMessage: { message: ChildMessage },
   IgnoredChildMessage: {},
+  // eslint-disable-next-line foldkit/got-prefix-requires-block-payload
   GotOptionalExtraMessage: {
     message: ChildMessage,
     requestId: Schema.optionalKey(Schema.String),
   },
 })
+// eslint-disable-next-line foldkit/block-name-matches-variable
 export const Parent = Block.define('DeclaredDirectFieldParent', {
   Model,
   Message: ParentMessage,
@@ -89,6 +95,7 @@ export const customIgnoredMessage = Parent.bindChild(childBlock, {
   field: 'child',
   toParentMessage: () => ParentMessage.IgnoredChildMessage(),
 })
+// eslint-disable-next-line foldkit/block-name-matches-variable
 export const composition = Parent.toComposition({
   children: [
     required,
@@ -126,6 +133,7 @@ export const CallableModel = taggedStruct('DeclaredCallableParent', {
   child: ChildModel,
   maybeChild: Schema.Option(ChildModel),
 })
+// eslint-disable-next-line foldkit/block-name-matches-variable
 const CallableParent = Block.define('DeclaredCallableFieldParent', {
   Model: CallableModel,
   Message: ParentMessage,
@@ -138,6 +146,7 @@ export const callableOptional = CallableParent.bindChild(childBlock, {
   field: 'maybeChild',
   parentMessage: ParentMessage.GotChildMessage,
 })
+// eslint-disable-next-line foldkit/block-name-matches-variable
 export const callableComposition = CallableParent.toComposition({
   children: [callableRequired, callableOptional],
 })

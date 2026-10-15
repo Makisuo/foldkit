@@ -34,6 +34,7 @@ const InvalidModel = Schema.Struct({
   arrayChildren: Schema.Array(ArrayChildModel),
   wrongArrayChild: Schema.Array(Schema.Number),
 })
+// eslint-disable-next-line foldkit/block-name-matches-variable
 const Invalid = Block.define('DeclaredInvalidFieldParent', {
   Model: InvalidModel,
   Message: ParentMessage,
@@ -96,7 +97,9 @@ Parent.bindChild(childBlock, { field: 'child', presentWhen: () => 'Home', parent
 // oxfmt-ignore
 Parent.bindChild(childBlock, { field: 'maybeChild', parentMessage: ParentMessage.GotChildMessage, toParentMessage: message => ParentMessage.GotChildMessage({ message }) })
 const Foreign = Message.defineMessageUnion({
+  // eslint-disable-next-line foldkit/got-prefix-requires-block-payload
   GotChildMessage: { message: Schema.String },
+  // eslint-disable-next-line foldkit/got-prefix-requires-block-payload
   GotExtraMessage: { message: ChildMessage, id: Schema.String },
 })
 // @ts-expect-error The wrapper constructor must accept exactly this child Message.
@@ -109,6 +112,7 @@ Parent.bindChild(childBlock, { field: 'maybeChild', parentMessage: Foreign.GotEx
 // oxfmt-ignore
 Parent.bindChild(childBlock, { field: 'maybeChild', toParentMessage: () => Foreign.GotChildMessage({ message: 'wrong' }) })
 
+// eslint-disable-next-line foldkit/block-name-matches-variable
 const ConstructorParent = Block.define('DeclaredConstructorParent', {
   Model,
   Message: ParentMessage,

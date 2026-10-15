@@ -679,6 +679,7 @@ export const makeBindChild = <
     OutMessage: ParentOutMessageSchema
   }>,
 ): BindChild<ParentModelSchema, ParentMessageSchema, ParentOutMessageSchema> =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   ((block: BindableBlock, config: unknown) => {
     if (Predicate.isObject(config) && Object.hasOwn(config, 'field')) {
       for (const field of ['Model', 'ChildModel']) {
@@ -693,7 +694,11 @@ export const makeBindChild = <
     if (Predicate.isObject(config) && Object.hasOwn(config, 'readAll')) {
       assertGeneralKeyedConfig(config)
 
-      const binding = bindEach(block, config as never)
+      const binding = bindEach(
+        block,
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        config as never,
+      )
       registerBindingParentContract(binding, parentContract)
       return Object.freeze(binding)
     }
@@ -714,7 +719,11 @@ export const makeBindChild = <
         Model: parentContract.Model,
         ChildModel: block.Model,
       })
-      const binding = bindEach(block, normalized as never)
+      const binding = bindEach(
+        block,
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        normalized as never,
+      )
       registerBindingParentContract(binding, parentContract)
       return Object.freeze(binding)
     }
@@ -734,7 +743,11 @@ export const makeBindChild = <
             parentContract.Message,
           )
 
-    const binding = bind(block, normalized as never)
+    const binding = bind(
+      block,
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      normalized as never,
+    )
     registerBindingParentContract(binding, parentContract)
     return Object.freeze(binding)
   }) as BindChild<

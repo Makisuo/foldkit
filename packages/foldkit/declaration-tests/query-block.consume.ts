@@ -5,10 +5,10 @@ import type * as Block from '../src/block/public.js'
 import type * as Command from '../src/command/public.js'
 import type * as Update from '../src/update/public.js'
 import {
-  CanonicalNotes,
-  CanonicalNotesTestLayer,
   CanonicalNoteById,
   CanonicalNoteByIdTestLayer,
+  CanonicalNotes,
+  CanonicalNotesTestLayer,
   ForeignCanonicalNoteByIdLayer,
   ForeignCanonicalNotesLayer,
   NoteById,

@@ -2,8 +2,8 @@ import { Array, Context, Effect, Layer, Option, Schema } from 'effect'
 
 import {
   Block,
-  Message,
   Schema as FoldkitSchema,
+  Message,
   Struct,
   Update,
 } from '../src/index.js'
@@ -73,7 +73,7 @@ const RefinedKeyChild = Block.define('DeclarationRefinedKeyChild', {
 export const RefinedKeyBlock = RefinedKeyChild.toComposition().toBlock({
   init: () => ({
     model: RefinedKeyModel.make({
-      id: Schema.decodeUnknownSync(RefinedId)('initial'),
+      id: Schema.decodeSync(RefinedId)('initial'),
       kind: 'Child',
       count: 0,
     }),
@@ -309,14 +309,14 @@ export const initialParentModel = ParentModel.make({
   suspendedEntries: [ChildModel.make({ id: 'suspended', count: 1 })],
   brandedEntries: [
     RefinedKeyModel.make({
-      id: Schema.decodeUnknownSync(RefinedId)('branded'),
+      id: Schema.decodeSync(RefinedId)('branded'),
       kind: 'Child',
       count: 1,
     }),
   ],
   literalEntries: [
     RefinedKeyModel.make({
-      id: Schema.decodeUnknownSync(RefinedId)('literal'),
+      id: Schema.decodeSync(RefinedId)('literal'),
       kind: 'Child',
       count: 1,
     }),

@@ -7,8 +7,8 @@ import { modifyFields } from '../struct/index.js'
 import { hasSameDecodedSchemaShape } from './decodedSchemaShape.js'
 import { define } from './define.js'
 import {
-  type RequiredKeyedField,
   type RequiredKeyField,
+  type RequiredKeyedField,
   normalizeKeyedFieldConfig,
 } from './keyedFieldConnection.js'
 

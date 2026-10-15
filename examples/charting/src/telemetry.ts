@@ -1,4 +1,13 @@
-import { Array, Clock, Effect, Option, Order, Record, pipe } from 'effect'
+import {
+  Array,
+  Clock,
+  DateTime,
+  Effect,
+  Option,
+  Order,
+  Record,
+  pipe,
+} from 'effect'
 
 import {
   ContributorSummary,
@@ -208,18 +217,17 @@ export const weeklyStars = (
   pipe(
     sumByWeek(
       Array.flatMap(starHistory, ({ week, days }) => {
-        const date = new Date(week * MILLISECONDS_PER_SECOND)
-        const daysUntilSunday =
-          (DAYS_PER_WEEK - date.getUTCDay()) % DAYS_PER_WEEK
-        const sundayMilliseconds = Date.UTC(
-          date.getUTCFullYear(),
-          date.getUTCMonth(),
-          date.getUTCDate() + daysUntilSunday,
+        const sunday = pipe(
+          DateTime.fromEpochSeconds(week),
+          DateTime.nearest('week', { weekStartsOn: 0 }),
         )
 
         return Array.map(days, (count, dayIndex) => ({
-          weekStart: weekStartForMilliseconds(
-            sundayMilliseconds + (dayIndex === 0 ? 0 : MILLISECONDS_PER_DAY),
+          weekStart: pipe(
+            sunday,
+            DateTime.add({ days: dayIndex }),
+            DateTime.startOf('week', { weekStartsOn: 1 }),
+            DateTime.formatIsoDateUtc,
           ),
           count,
         }))

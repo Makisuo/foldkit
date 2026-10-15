@@ -2,7 +2,7 @@
 
 ## Overview
 
-Keep each feature's behavior together and give its registered children and Mounts one visible assembly point. A split feature uses `composition.ts`; the application root uses `application.ts`. Both files put straightforward child Bindings beside the `toComposition` call that registers them.
+Keep each feature's behavior together and give its registered children and Mounts one visible assembly point. A split feature without a composition directory uses `composition.ts`. When `composition/` exists, `composition/composition.ts` constructs the Composition and `composition/index.ts` exports it. A compact application root without `composition/` uses `application.ts`; a root with `composition/` keeps meaningful root behavior in `application.ts` and the complete graph in `composition/composition.ts`.
 
 `bindChild` configures a relationship: Model access, Message mapping, OutMessage handling, and lifecycle policy. It returns passive configuration. Including that Binding in `toComposition({ children })` registers the child. Neither operation constructs Layers or starts effects; the Runtime does that later.
 
@@ -70,9 +70,9 @@ The directory barrel exports the intended assembly surface explicitly:
 
 ::Snippet{name="organizationCompositionBarrel" label="Explicit Composition barrel"}
 
-Do not create arbitrary groups such as pages or controls, a second children list, or a global list of Bindings. At the root, supporting files can use the same `composition/<child>.ts` path, but `application.ts` remains the assembly point; it imports those policies directly.
+Do not create arbitrary groups such as pages or controls, a second children list, or a global list of Bindings. The root follows the same directory layout: `composition/composition.ts` owns graph assembly and `composition/index.ts` exports it. External consumers import from `composition.ts` or that barrel, never a policy or assembly implementation path. The barrel namespaces every extracted policy module by child name, for example `export * as Home from './home'; export * as Room from './room'`; consumers then import `{ Home, Room }` from `./composition`. Factories remain named within those namespaces, so consumers call `Home.bind(...)`; already constructed Binding values remain values such as `Room.room`. Keep flat named exports for the main Composition assembly surface and straightforward local Bindings, while internal implementation modules may use direct relative sibling imports to avoid barrel cycles.
 
-When an extracted policy supplies several related exports, import it as a namespace such as `HomeBinding`. This keeps the relationship visible at assembly: `HomeBinding.bindHome` creates the Binding, and `HomeBinding.NavigateToRoom.layer` supplies its parent-owned Command handler. Keep named imports for a single Binding or helper. Use a distinct namespace for the child feature itself; its Block and the parent's integration policy have different owners.
+Expose each extracted policy under its child-name namespace, even when it exports a single Binding. `Home.bind` constructs a Binding when the policy needs configuration, and `Home.NavigateToRoom.layer` supplies its parent-owned Command handler. Keep the child Block import inside the policy module so assembly can use `Home` for its composition policy. Main assembly exports such as `ApplicationComposition` and straightforward local Bindings remain explicit named exports.
 
 ### Views, Behavior, and Import Direction
 
@@ -88,9 +88,9 @@ Keep route policy shared by init and navigation outside `update/`, for example i
 
 ## Root Application Assembly
 
-`application.ts` owns the complete root child and Mount graph, `ApplicationComposition`, and the root-local handler bundle. Put straightforward root Bindings directly beside the `Application.toComposition` call. Extract substantial policies to files such as `composition/home.ts`; do not add another root `composition.ts` around the assembly.
+When `composition/` exists, `composition/composition.ts` owns the complete root child and Mount graph and `ApplicationComposition`. Put straightforward root Bindings directly beside its `Application.toComposition` call. Extract substantial policies to files such as `composition/home.ts`, expose them through the explicit `composition/index.ts` barrel, and import those policies directly from sibling modules inside `composition/composition.ts`; `application.ts` retains meaningful root behavior and does not forward the Composition or its builder. A compact root without `composition/` may keep this assembly in `application.ts`.
 
-::Snippet{name="applicationRegistrations" label="Root child graph and local handlers"}
+::Snippet{name="applicationRegistrations" label="Root child graph"}
 
 For a compact root, define `Application` there too. When root Commands, Subscriptions, or policies need its helpers before graph assembly, keep the early Definition in `definition.ts`. `application.ts` imports and intentionally re-exports `Application`. Model and Message Schemas remain in their own files when substantial.
 

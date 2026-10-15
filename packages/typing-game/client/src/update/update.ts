@@ -1,8 +1,8 @@
 import { Url } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
 
-import { ApplicationComposition, home, room } from '../application'
 import { LoadExternal, NavigateInternal } from '../command'
+import { ApplicationComposition, home, room } from '../composition'
 import { Message } from '../message'
 import { ApplicationRoute } from '../route'
 import { changeRoute } from './changeRoute'

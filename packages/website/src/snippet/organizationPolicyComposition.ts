@@ -2,9 +2,7 @@ import * as Counter from '../../counter'
 import { Editor } from '../definition'
 import { Message } from '../message'
 import { FocusEditor } from '../mount'
-import { dialog } from './dialog'
-
-export { dialog } from './dialog'
+import * as Dialog from './dialog'
 
 export const counter = Editor.bindChild(Counter.block, {
   field: 'counter',
@@ -12,6 +10,6 @@ export const counter = Editor.bindChild(Counter.block, {
 })
 
 export const EditorComposition = Editor.toComposition({
-  children: [counter, dialog],
+  children: [counter, Dialog.dialog],
   mounts: [FocusEditor],
 })

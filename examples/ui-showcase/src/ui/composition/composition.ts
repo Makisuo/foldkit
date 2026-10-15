@@ -23,8 +23,8 @@ import { PlanRadioGroup } from '../radioGroup'
 import { DemoTabs } from '../tabs'
 import { Toast } from '../toast'
 import { ActivityVirtualList } from '../virtualList'
-import { animationDemo } from './animation'
-import { dragAndDropDemo } from './dragAndDrop'
+import * as Animation from './animation'
+import * as DragAndDrop from './dragAndDrop'
 
 const foldDialogOutMessage = Dialog.OutMessage.match<
   Update.Step<Model, Message>
@@ -545,7 +545,7 @@ export const UiComposition = Ui.toComposition({
     nestedDialogChildDemo,
     calendarBasicDemo,
     datePickerBasicDemo,
-    dragAndDropDemo,
+    DragAndDrop.dragAndDropDemo,
     fileDropBasicDemo,
     listboxDemo,
     listboxMultiDemo,
@@ -566,7 +566,7 @@ export const UiComposition = Ui.toComposition({
     tooltipBasicDemo,
     tooltipNoDelayDemo,
     hoverIntentDemo,
-    animationDemo,
+    Animation.animationDemo,
     virtualListDemo,
     virtualListVariableDemo,
   ],

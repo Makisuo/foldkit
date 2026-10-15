@@ -12,7 +12,7 @@ import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import { Tabs } from '@foldkit/ui'
 
-import { exampleDetail } from '../../application'
+import { exampleDetail } from '../../composition'
 import { Deployment } from '../../deployment'
 import { init as initApplication } from '../../init'
 import type { Message as ApplicationMessage } from '../../message'

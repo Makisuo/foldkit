@@ -4,8 +4,8 @@ import { Transition } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
 import { type Url } from 'foldkit/url'
 
-import { mobileMenuDialog, search, themeMenu } from '../application'
 import * as Command from '../command'
+import { mobileMenuDialog, search, themeMenu } from '../composition'
 import { type Model } from '../model'
 import { urlToApplicationRoute } from '../route'
 import {

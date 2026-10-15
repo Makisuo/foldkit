@@ -1,6 +1,7 @@
 import { Runtime } from 'foldkit'
 
-import { ApplicationComposition, EffectsLayer } from './application'
+import { EffectsLayer } from './application'
+import { ApplicationComposition } from './composition'
 import { init } from './init'
 import { Message } from './message'
 import { ApplicationLayer } from './services'

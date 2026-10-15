@@ -8,10 +8,7 @@ import { Message } from './message'
 import { Model } from './model'
 import { MountChart } from './mount'
 import {
-  CHART_MODE_RADIO_GROUP_ID,
   ChartModeRadioGroup,
-  PACKAGE_RADIO_GROUP_ID,
-  PERIOD_RADIO_GROUP_ID,
   PackageRadioGroup,
   PeriodRadioGroup,
 } from './radioGroups'
@@ -75,7 +72,6 @@ const foldChartModeRadioGroupOutMessage = ChartModeRadioGroup.OutMessage.match({
 })
 
 export const chartModeRadioGroup = Application.bindChild(ChartModeRadioGroup, {
-  placement: CHART_MODE_RADIO_GROUP_ID,
   field: 'chartModeRadioGroup',
   parentMessage: Message.GotChartModeRadioGroupMessage,
   outMessage: { fold: foldChartModeRadioGroupOutMessage },
@@ -87,7 +83,6 @@ const foldPeriodRadioGroupOutMessage = PeriodRadioGroup.OutMessage.match({
 })
 
 export const periodRadioGroup = Application.bindChild(PeriodRadioGroup, {
-  placement: PERIOD_RADIO_GROUP_ID,
   field: 'periodRadioGroup',
   parentMessage: Message.GotPeriodRadioGroupMessage,
   outMessage: { fold: foldPeriodRadioGroupOutMessage },
@@ -99,7 +94,6 @@ const foldPackageRadioGroupOutMessage = PackageRadioGroup.OutMessage.match({
 })
 
 export const packageRadioGroup = Application.bindChild(PackageRadioGroup, {
-  placement: PACKAGE_RADIO_GROUP_ID,
   field: 'packageRadioGroup',
   parentMessage: Message.GotPackageRadioGroupMessage,
   outMessage: { fold: foldPackageRadioGroupOutMessage },

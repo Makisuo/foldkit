@@ -41,7 +41,7 @@ Three pieces connect the work to update:
 
 The typed definition's `update` method infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
 
-`application.ts` exports the typed `Application`, its graphless `ApplicationComposition`, its update/view, and the local handler recipe. `entry.ts` passes those pieces to `ApplicationComposition.toApplication`, supplies any remaining Services through `application.provide(layer)`, and starts the Runtime:
+`application.ts` exports the typed `Application`, its graphless `ApplicationComposition`, its update/view, and the local handler recipe when no `composition/` directory exists. A root with `composition/` exports `ApplicationComposition` from `composition/composition.ts`. `entry.ts` passes those pieces to `ApplicationComposition.toApplication`, supplies any remaining Services through `application.provide(layer)`, and starts the Runtime:
 
 ::Snippet{name="counterCommandsEntry" label="Starting the counter"}
 
@@ -146,7 +146,7 @@ A handler can own execution bookkeeping, such as a resource pool or worker respo
 
 ### Naming and Composition
 
-Compose `FetchCount.layer` directly in the feature's local `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` composition. Pass a feature's local bundle to `toBlock`; child Bindings carry its handler recipe to the Application Composition. Root `application.ts` exports `Application` and `ApplicationComposition`. The entry imports implementation pieces from their real owners, lists them explicitly in `ApplicationComposition.toApplication`, and then calls `application.provide(ApplicationLayer)`. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
+Compose `FetchCount.layer` directly in the feature's local `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` composition. Pass a feature's local bundle to `toBlock`; child Bindings carry its handler recipe to the Application Composition. A compact root without `composition/` exports `Application` and `ApplicationComposition` from `application.ts`; when `composition/` exists, `application.ts` exports `Application` and `composition/composition.ts` exports `ApplicationComposition`. The entry imports implementation pieces from their real owners, lists them explicitly in `ApplicationComposition.toApplication`, and then calls `application.provide(ApplicationLayer)`. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
 
 Command names are local to their named Block. Two features can both declare `FetchCount`; their owners keep the definitions distinct. Names must be unique within one owner, and composition derives readable paths for each Binding placement. A Command's handler requirement includes that owned name, its decoded args, and its declared result Messages. `FeatureComposition.toBlock` checks that the feature's `EffectsLayer` supplies each local requirement or that the definition appears in `hostHandlers`.
 

@@ -1,15 +1,15 @@
 import { Array, Option, String } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { ApplicationComposition } from './application'
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
-import { dragAndDrop } from './composition/dragAndDrop'
+import { ApplicationComposition, DragAndDrop } from './composition'
 import { Column } from './domain'
 import { Message } from './message'
 
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
-    GotDragAndDropMessage: ({ message }) => dragAndDrop.fold(model, message),
+    GotDragAndDropMessage: ({ message }) =>
+      DragAndDrop.dragAndDrop.fold(model, message),
 
     ClickedAddCard: ({ columnId }) => ({
       model: modifyFields(model, {

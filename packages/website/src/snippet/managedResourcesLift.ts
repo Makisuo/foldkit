@@ -13,7 +13,6 @@ const Call = Block.define('Call', { Model, Message })
 const SignalingSocket = Call.resource<WebSocket>()('SignalingSocket')
 
 const videoCall = Call.bindChild(VideoCall.block, {
-  placement: 'VideoCall',
   field: 'videoCall',
   parentMessage: Message.GotVideoCallMessage,
 })

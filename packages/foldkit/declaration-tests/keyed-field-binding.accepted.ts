@@ -278,7 +278,6 @@ export const wrappedRows = Parent.bindChild(ChildBlock, {
 })
 
 export const room = Parent.bindChild(ChildBlock, {
-  placement: 'room',
   readAll: model => Option.toArray(model.maybeRoom),
   key: child => child.id,
   read: child => child,

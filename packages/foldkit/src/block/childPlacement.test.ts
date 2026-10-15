@@ -77,13 +77,66 @@ const entriesAtOptional = Parent.bindChild(ChildBlock, {
   toParentMessage: (_id, message) => message,
 })
 
+const defaultAccessor = Parent.bindChild(ChildBlock, {
+  read: model => model.maybeChild,
+  write: (model, nextChild) =>
+    modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
+  toParentMessage: message => message,
+})
+
+const defaultEntriesById = Parent.bindChild(ChildBlock, {
+  readAll: model => model.entries,
+  key: entry => entry.id,
+  read: entry => entry.child,
+  writeAt: model => model,
+  toParentMessage: (_id, message) => message,
+})
+
+const defaultEntriesByIdLength = Parent.bindChild(ChildBlock, {
+  readAll: model => model.entries,
+  key: entry => entry.id.length,
+  read: entry => entry.child,
+  writeAt: model => model,
+  toParentMessage: (_idLength, message) => message,
+})
+
+const entriesById = Parent.bindChild(ChildBlock, {
+  placement: 'entriesById',
+  readAll: model => model.entries,
+  key: entry => entry.id,
+  read: entry => entry.child,
+  writeAt: model => model,
+  toParentMessage: (_id, message) => message,
+})
+
+const entriesByIdLength = Parent.bindChild(ChildBlock, {
+  placement: 'entriesByIdLength',
+  readAll: model => model.entries,
+  key: entry => entry.id.length,
+  read: entry => entry.child,
+  writeAt: model => model,
+  toParentMessage: (_idLength, message) => message,
+})
+
 const composition = Parent.toComposition({
   children: [primary, secondary, optional, entries],
+})
+
+const defaultPlacementComposition = Parent.toComposition({
+  children: [defaultAccessor, entriesById, entriesByIdLength],
 })
 
 const dynamicChildren: ReadonlyArray<
   typeof primary | typeof secondaryAtPrimary
 > = [primary, secondaryAtPrimary]
+
+const dynamicDefaultMixedChildren: ReadonlyArray<
+  typeof defaultAccessor | typeof defaultEntriesById
+> = [defaultAccessor, defaultEntriesById]
+
+const dynamicDefaultKeyedChildren: ReadonlyArray<
+  typeof defaultEntriesById | typeof defaultEntriesByIdLength
+> = [defaultEntriesById, defaultEntriesByIdLength]
 
 if (false) {
   // @ts-expect-error Direct field defaults and explicit placements cannot resolve to the same sibling placement.
@@ -91,6 +144,14 @@ if (false) {
 
   // @ts-expect-error Static and keyed Bindings cannot resolve to the same sibling placement.
   Parent.toComposition({ children: [optional, entriesAtOptional] })
+
+  // @ts-expect-error Default accessor and keyed Bindings of the same child Block resolve to the same placement.
+  Parent.toComposition({ children: [defaultAccessor, defaultEntriesById] })
+
+  // @ts-expect-error Keyed occurrence keys do not distinguish sibling Binding placements.
+  Parent.toComposition({
+    children: [defaultEntriesById, defaultEntriesByIdLength],
+  })
 }
 
 it('accepts distinct resolved sibling placements', () => {
@@ -100,10 +161,24 @@ it('accepts distinct resolved sibling placements', () => {
     'optional',
     'entries',
   ])
+  expect(
+    defaultPlacementComposition.children.map(child => child.placement),
+  ).toEqual(['ChildPlacementChild', 'entriesById', 'entriesByIdLength'])
 })
 
 it('rejects duplicate placements in a widened child list before completion', () => {
   expect(() => Parent.toComposition({ children: dynamicChildren })).toThrow(
     '[foldkit] Block "ChildPlacementParent" child Bindings at indexes 0 and 1 both resolve to placement "primary". Give each sibling Binding a unique placement.',
   )
+})
+
+it('rejects widened default placements before completion', () => {
+  for (const children of [
+    dynamicDefaultMixedChildren,
+    dynamicDefaultKeyedChildren,
+  ]) {
+    expect(() => Parent.toComposition({ children })).toThrow(
+      '[foldkit] Block "ChildPlacementParent" child Bindings at indexes 0 and 1 both resolve to placement "ChildPlacementChild". Give each sibling Binding a unique placement.',
+    )
+  }
 })

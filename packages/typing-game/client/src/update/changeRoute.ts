@@ -2,7 +2,7 @@ import { Option } from 'effect'
 import { Url } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { room } from '../application'
+import { room } from '../composition'
 import { type Model, RoomInstance } from '../model'
 import { ApplicationRoute, urlToApplicationRoute } from '../route'
 

@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import { Url } from 'foldkit'
 
-import { home, room } from './application'
+import { home, room } from './composition'
 import { Application } from './definition'
 import { Model, RoomInstance } from './model'
 import { ApplicationRoute, urlToApplicationRoute } from './route'

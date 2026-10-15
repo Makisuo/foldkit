@@ -2,8 +2,8 @@ import { Array, Option, pipe } from 'effect'
 
 import { ghostStyle, maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 
-import { ApplicationComposition } from '../application'
-import type { ApplicationViewBuilder } from '../application'
+import { ApplicationComposition } from '../composition'
+import type { ApplicationViewBuilder } from '../composition'
 import type { Model } from '../model'
 import { ghostCardView } from './card'
 import { columnView } from './column'

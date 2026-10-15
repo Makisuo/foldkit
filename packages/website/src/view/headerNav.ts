@@ -3,7 +3,7 @@ import { Html } from 'foldkit/html'
 
 import { Nav } from '@foldkit/ui'
 
-import type { ApplicationViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../composition'
 import {
   type ApplicationRoute,
   blogRouter,

@@ -8,7 +8,6 @@ import { Room } from '../page'
 import { ApplicationRoute } from '../route'
 
 export const room = Application.bindChild(Room.block, {
-  placement: 'room',
   readAll: model => Option.toArray(model.maybeRoomInstance),
   key: roomInstance => roomInstance.roomId,
   read: roomInstance => roomInstance.model,

@@ -4,6 +4,7 @@ import { UrlRequest } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
+import * as Command from '../command'
 import {
   apiReference,
   comingFromReact,
@@ -17,8 +18,7 @@ import {
   snippetDisclosure,
   themeMenu,
   uiPages,
-} from '../application'
-import * as Command from '../command'
+} from '../composition'
 import { Application } from '../definition'
 import { Message } from '../message'
 import { isPlaygroundRoute, urlToApplicationRoute } from '../route'

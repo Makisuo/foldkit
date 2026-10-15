@@ -5,8 +5,7 @@ import { describe, expect, test } from 'vitest'
 
 import * as Shared from '@typing-game/shared'
 
-import { home, room } from './application'
-import { NavigateToRoom } from './composition/home'
+import { Home, home, room } from './composition'
 import { init } from './init'
 import { Message } from './message'
 import { Model, RoomInstance } from './model'
@@ -66,7 +65,7 @@ const getRoomInstance = (model: Model): RoomInstance =>
   pipe(model.maybeRoomInstance, Option.getOrThrow)
 
 const keyedRoomCommandName = (roomId: string, commandName: string): string =>
-  commandName.replace('Room', `room[${JSON.stringify(roomId)}]`)
+  commandName.replace('Room', `Room[${JSON.stringify(roomId)}]`)
 
 const dirtyRoomModel = (roomId: string) => {
   const roomInit = room.init(roomId, Option.none())
@@ -374,7 +373,7 @@ describe('Home Room preparation', () => {
         name: keyedRoomCommandName(ROOM_A, SavePlayerSession.name),
         args: { session: { roomId: ROOM_A, player: playerA } },
       },
-      { name: NavigateToRoom.name, args: { roomId: ROOM_A } },
+      { name: Home.NavigateToRoom.name, args: { roomId: ROOM_A } },
     ])
 
     const navigated = update(

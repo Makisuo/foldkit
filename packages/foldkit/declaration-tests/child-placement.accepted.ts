@@ -64,8 +64,39 @@ export const entries = Parent.bindChild(ChildBlock, {
   toParentMessage: (_id, message) => message,
 })
 
+export const defaultAccessor = Parent.bindChild(ChildBlock, {
+  read: model => model.maybeChild,
+  write: (model, nextChild) =>
+    Struct.modifyFields(model, {
+      maybeChild: () => Option.some(nextChild),
+    }),
+  toParentMessage: message => message,
+})
+
+export const entriesById = Parent.bindChild(ChildBlock, {
+  placement: 'entriesById',
+  readAll: model => model.entries,
+  key: entry => entry.id,
+  read: entry => entry.child,
+  writeAt: model => model,
+  toParentMessage: (_id, message) => message,
+})
+
+export const entriesByIdLength = Parent.bindChild(ChildBlock, {
+  placement: 'entriesByIdLength',
+  readAll: model => model.entries,
+  key: entry => entry.id.length,
+  read: entry => entry.child,
+  writeAt: model => model,
+  toParentMessage: (_idLength, message) => message,
+})
+
 export const ParentComposition = Parent.toComposition({
   children: [primary, secondary, optional, entries],
+})
+
+export const DefaultPlacementComposition = Parent.toComposition({
+  children: [defaultAccessor, entriesById, entriesByIdLength],
 })
 
 export const composeDynamicChildren = (

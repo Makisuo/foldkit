@@ -3,7 +3,7 @@ import { Update } from 'foldkit'
 import { Transition } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
 
-import { apiReference, exampleDetail, home, playground } from './application'
+import { apiReference, exampleDetail, home, playground } from './composition'
 import { Application } from './definition'
 import { findActiveSectionKey } from './docsNav'
 import { type Model } from './model'

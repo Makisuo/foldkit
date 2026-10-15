@@ -18,7 +18,6 @@ const foldEntryOutMessage = (
   })
 
 export const entries = WorkHistory.bindChild(Entry.block, {
-  placement: 'WorkHistoryEntry',
   field: 'entries',
   key: 'id',
   toParentMessage: (entryId, message) =>

@@ -1,14 +1,14 @@
 import { Match, Option } from 'effect'
 
-import { ApplicationComposition } from '../application'
-import type { ApplicationViewBuilder } from '../application'
+import { Shared } from '../component'
+import { ApplicationComposition } from '../composition'
+import type { ApplicationViewBuilder } from '../composition'
 import {
   home,
   playground,
   snippetCopy,
   snippetDisclosure,
-} from '../application'
-import { Shared } from '../component'
+} from '../composition'
 import { Deployment } from '../deployment'
 import { Docs, Marketing } from '../layout'
 import { type Model } from '../model'

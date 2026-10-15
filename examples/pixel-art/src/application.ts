@@ -89,7 +89,6 @@ const foldToolRadioGroupOutMessage = ToolRadioGroup.OutMessage.match<
 })
 
 export const toolRadioGroup = Application.bindChild(ToolRadioGroup, {
-  placement: TOOL_RADIO_GROUP_ID,
   field: 'toolRadioGroup',
   parentMessage: Message.GotToolRadioGroupMessage,
   outMessage: { fold: foldToolRadioGroupOutMessage },
@@ -135,7 +134,6 @@ const foldGridSizeRadioGroupOutMessage = GridSizeRadioGroup.OutMessage.match<
 })
 
 export const gridSizeRadioGroup = Application.bindChild(GridSizeRadioGroup, {
-  placement: GRID_SIZE_RADIO_GROUP_ID,
   field: 'gridSizeRadioGroup',
   parentMessage: Message.GotGridSizeRadioGroupMessage,
   outMessage: { fold: foldGridSizeRadioGroupOutMessage },
@@ -154,7 +152,6 @@ const foldPaletteRadioGroupOutMessage = PaletteRadioGroup.OutMessage.match<
 })
 
 export const paletteRadioGroup = Application.bindChild(PaletteRadioGroup, {
-  placement: PALETTE_RADIO_GROUP_ID,
   field: 'paletteRadioGroup',
   parentMessage: Message.GotPaletteRadioGroupMessage,
   outMessage: { fold: foldPaletteRadioGroupOutMessage },

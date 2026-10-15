@@ -17,8 +17,8 @@ import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import * as Shared from '@typing-game/shared'
 
-import { ApplicationComposition, EffectsLayer } from './application'
-import { home, room } from './application'
+import { EffectsLayer } from './application'
+import { ApplicationComposition, home, room } from './composition'
 import { Application } from './definition'
 import { Message } from './message'
 import { Model, RoomInstance } from './model'

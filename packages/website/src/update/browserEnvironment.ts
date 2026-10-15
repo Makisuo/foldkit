@@ -2,7 +2,7 @@ import { Option } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { playground, uiPages } from '../application'
+import { playground, uiPages } from '../composition'
 import {
   type Message,
   type ResolvedTheme,

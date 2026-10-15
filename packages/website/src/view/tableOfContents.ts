@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { Array, Option } from 'effect'
 import { type Html } from 'foldkit/html'
 
-import type { ApplicationViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../composition'
 import { Icon } from '../icon'
 import { Message } from '../message'
 import { type TableOfContentsEntry } from '../tableOfContentsEntry'

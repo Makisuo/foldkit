@@ -1,11 +1,9 @@
 import { Effect, Layer, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import type { Block } from 'foldkit'
 
-import { DragAndDrop } from '@foldkit/ui'
+import { init as initDragAndDrop } from '@foldkit/ui/dragAndDrop'
 
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
-import { dragAndDrop } from './composition/dragAndDrop'
 import { DEFAULT_COLUMNS, STORAGE_KEY } from './constant'
 import { Application } from './definition'
 import { SavedBoard, SavedBoardJsonString } from './model'
@@ -44,17 +42,10 @@ export const init = Application.init((flags: Flags) => {
   return {
     model: {
       columns,
-      dragAndDrop: DragAndDrop.init({ id: 'kanban' }),
+      dragAndDrop: initDragAndDrop({ id: 'kanban' }),
       maybeNewCardColumnId: Option.none(),
       newCardTitle: '',
       announcement: '',
     },
   }
 })
-
-export const ApplicationComposition = Application.toComposition({
-  children: [dragAndDrop],
-})
-export type ApplicationViewBuilder = Block.ViewBuilderFor<
-  typeof ApplicationComposition
->

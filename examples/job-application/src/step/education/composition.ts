@@ -18,7 +18,6 @@ const foldEntryOutMessage = (
   })
 
 export const entries = Education.bindChild(Entry.block, {
-  placement: 'EducationEntry',
   field: 'entries',
   key: 'id',
   toParentMessage: (entryId, message) =>

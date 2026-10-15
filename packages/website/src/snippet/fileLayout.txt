@@ -1,8 +1,10 @@
 src/
 +-- definition.ts          Early Application contract, when imports need it
-+-- application.ts         Root Bindings, complete registrations, Composition
++-- application.ts         Root behavior and local EffectsLayer
 +-- composition/
-|   +-- home.ts            Substantial root-owned Home policy, if needed
+|   +-- composition.ts     Complete root graph and ApplicationComposition
+|   +-- index.ts            Explicit root Composition barrel
+|   +-- home.ts             Substantial root-owned Home policy, if needed
 +-- services.ts            ApplicationLayer service providers
 +-- model.ts
 +-- message.ts

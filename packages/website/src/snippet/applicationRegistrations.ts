@@ -1,9 +1,6 @@
-import * as Command from './command'
-import { Application } from './definition'
-import { Message } from './message'
-import { Home, Products } from './page'
-
-export { Application } from './definition'
+import { Application } from '../definition'
+import { Message } from '../message'
+import { Home, Products } from '../page'
 
 export const home = Application.bindChild(Home.block, {
   field: 'home',
@@ -18,5 +15,3 @@ export const products = Application.bindChild(Products.block, {
 export const ApplicationComposition = Application.toComposition({
   children: [home, products],
 })
-
-export const EffectsLayer = Command.EffectsLayer

@@ -6,7 +6,7 @@ import {
   type ApplicationViewBuilder,
   home,
   room,
-} from '../application'
+} from '../composition'
 import { Model } from '../model'
 import { ApplicationRoute } from '../route'
 

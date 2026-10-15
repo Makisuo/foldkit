@@ -7,13 +7,13 @@ import { describe, expect, test } from 'vitest'
 import { Dialog, Menu } from '@foldkit/ui'
 import { ShowDialog } from '@foldkit/ui/dialog'
 
-import { LoadPlayground, home } from './application'
 import { ScrollSidebarActiveLinkIntoView, ScrollToTop } from './command'
+import { Home, home } from './composition'
 import { Deployment } from './deployment'
 import { init } from './init'
 import { Message } from './message'
 import { type Model } from './model'
-import { ApiReference, ExampleDetail, Home } from './page'
+import { ApiReference, ExampleDetail, Home as HomePage } from './page'
 import * as NotePlayerDemo from './page/home/notePlayerDemo'
 import * as Search from './search'
 import { FocusSearchInput } from './search/update'
@@ -71,7 +71,7 @@ const expectHomeAbsent = (model: Model): void => {
   ).toBe(true)
 }
 
-const expectDefaultHome = (home: typeof Home.Model.Type): void => {
+const expectDefaultHome = (home: typeof HomePage.Model.Type): void => {
   expect(home.activeDemoTab).toBe('Architecture')
   expect(home.asyncCounterDemo.count).toBe(0)
   expect(home.notePlayerDemo.noteInput.value).toBe('CDEFGABC')
@@ -284,7 +284,7 @@ describe('application', () => {
       given(initAt(homeUrl)),
       message(
         Message.GotHomeMessage({
-          message: Home.Message.GotNotePlayerDemoMessage({
+          message: HomePage.Message.GotNotePlayerDemoMessage({
             message: NotePlayerDemo.Message.ChangedNoteInput({ value: 'ABC' }),
           }),
         }),
@@ -311,7 +311,7 @@ describe('application', () => {
       given(initAt(newsletterUrl)),
       message(
         Message.GotHomeMessage({
-          message: Home.Message.GotNotePlayerDemoMessage({
+          message: HomePage.Message.GotNotePlayerDemoMessage({
             message: NotePlayerDemo.Message.ChangedNoteInput({ value: 'ABC' }),
           }),
         }),
@@ -329,7 +329,7 @@ describe('application', () => {
       given(initAt(homeUrl)),
       message(
         Message.GotHomeMessage({
-          message: Home.Message.GotPlaygroundMenuMessage({
+          message: HomePage.Message.GotPlaygroundMenuMessage({
             message: Menu.Message.SelectedItem({
               index: 0,
               item: 'counter',
@@ -337,7 +337,7 @@ describe('application', () => {
           }),
         }),
       ),
-      Command.resolve(LoadPlayground, Message.CompletedLoadPlayground()),
+      Command.resolve(Home.LoadPlayground, Message.CompletedLoadPlayground()),
     )
   })
 

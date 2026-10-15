@@ -2,7 +2,8 @@ import { Array, Number, Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import {
-  animationDemo,
+  Animation,
+  DragAndDrop,
   calendarBasicDemo,
   comboboxDemo,
   comboboxMultiDemo,
@@ -12,7 +13,6 @@ import {
   datePickerBasicDemo,
   dialogAnimatedDemo,
   dialogDemo,
-  dragAndDropDemo,
   fileDropBasicDemo,
   horizontalRadioGroupDemo,
   horizontalTabsDemo,
@@ -173,7 +173,7 @@ export const update = Ui.update((model, message) =>
       datePickerBasicDemo.fold(model, message),
 
     GotDragAndDropDemoMessage: ({ message }) =>
-      dragAndDropDemo.fold(model, message),
+      DragAndDrop.dragAndDropDemo.fold(model, message),
 
     GotFileDropBasicDemoMessage: ({ message }) =>
       fileDropBasicDemo.fold(model, message),
@@ -299,12 +299,12 @@ export const update = Ui.update((model, message) =>
       hoverIntentDemo.fold(model, message),
 
     GotAnimationDemoMessage: ({ message }) =>
-      animationDemo.fold(model, message),
+      Animation.animationDemo.fold(model, message),
 
     ToggledAnimationDemo: () =>
       model.animationDemo.isShowing
-        ? animationDemo.hide()(model)
-        : animationDemo.show()(model),
+        ? Animation.animationDemo.hide()(model)
+        : Animation.animationDemo.show()(model),
 
     GotVirtualListDemoMessage: ({ message }) =>
       virtualListDemo.fold(model, message),

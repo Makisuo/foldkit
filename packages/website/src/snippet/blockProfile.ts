@@ -19,7 +19,6 @@ const foldSettingsOutMessage = Settings.OutMessage.match<
 const Application = defineApplication({ Model, Message })
 
 export const settings = Application.bindChild(Settings.block, {
-  placement: 'Settings',
   field: 'maybeSettings',
   parentMessage: Message.GotSettingsMessage,
   outMessage: { fold: foldSettingsOutMessage },

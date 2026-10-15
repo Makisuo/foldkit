@@ -1,8 +1,8 @@
 import { clsx } from 'clsx'
 import { Html } from 'foldkit/html'
 
-import type { ApplicationViewBuilder } from '../application'
-import { search } from '../application'
+import type { ApplicationViewBuilder } from '../composition'
+import { search } from '../composition'
 import { Icon } from '../icon'
 import { Message } from '../message'
 import { type Model } from '../model'

@@ -3,7 +3,6 @@ import { UrlRequest } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
-import { ApplicationComposition } from './application'
 import {
   LoadExternal,
   LogError,
@@ -11,8 +10,7 @@ import {
   RedirectToDashboard,
   RedirectToLogin,
 } from './command'
-import { loggedIn } from './composition/loggedIn'
-import { loggedOut } from './composition/loggedOut'
+import { ApplicationComposition, LoggedIn, LoggedOut } from './composition'
 import { Message } from './message'
 import { urlToApplicationRoute } from './route'
 
@@ -67,9 +65,10 @@ export const update = ApplicationComposition.update((model, message) =>
       commands: [LogError({ entries: ['Failed to clear session:', error] })],
     }),
 
-    GotLoggedOutMessage: ({ message }) => loggedOut.fold(model, message),
+    GotLoggedOutMessage: ({ message }) =>
+      LoggedOut.loggedOut.fold(model, message),
 
-    GotLoggedInMessage: ({ message }) => loggedIn.fold(model, message),
+    GotLoggedInMessage: ({ message }) => LoggedIn.loggedIn.fold(model, message),
     CompletedNavigateInternal: () => ({ model }),
     CompletedRedirectToLogin: () => ({ model }),
     CompletedRedirectToDashboard: () => ({ model }),

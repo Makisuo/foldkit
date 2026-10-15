@@ -4,6 +4,7 @@ import { Transition } from 'foldkit/route'
 import { type Url } from 'foldkit/url'
 import { githubStarCount } from 'virtual:landing-data'
 
+import * as Command from './command'
 import {
   apiReference,
   comingFromReact,
@@ -17,8 +18,7 @@ import {
   snippetDisclosure,
   themeMenu,
   uiPages,
-} from './application'
-import * as Command from './command'
+} from './composition'
 import { Application } from './definition'
 import { type Deployment, isTelemetryEnabled } from './deployment'
 import { type Flags } from './flags'

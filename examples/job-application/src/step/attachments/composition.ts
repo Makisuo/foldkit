@@ -21,7 +21,6 @@ const foldResumeDropOutMessage = FileDrop.OutMessage.match<
 })
 
 export const resumeDrop = Attachments.bindChild(FileDrop.block, {
-  placement: 'attachments-resume',
   field: 'resumeDrop',
   parentMessage: Message.GotResumeDropMessage,
   outMessage: { fold: foldResumeDropOutMessage },
@@ -41,7 +40,6 @@ const foldAdditionalFilesDropOutMessage = FileDrop.OutMessage.match<
 })
 
 export const additionalFilesDrop = Attachments.bindChild(FileDrop.block, {
-  placement: 'attachments-additional',
   field: 'additionalFilesDrop',
   parentMessage: Message.GotAdditionalFilesDropMessage,
   outMessage: { fold: foldAdditionalFilesDropOutMessage },

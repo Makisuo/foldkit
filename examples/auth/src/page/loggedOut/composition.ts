@@ -3,7 +3,6 @@ import { Message, OutMessage } from './message'
 import * as Login from './page/login'
 
 export const login = LoggedOut.bindChild(Login.block, {
-  placement: 'Login',
   field: 'loginModel',
   parentMessage: Message.GotLoginMessage,
   outMessage: {

@@ -39,6 +39,9 @@ export type Placement = Expect<Equal<typeof entries.placement, 'entries'>>
 export type CallablePlacement = Expect<
   Equal<typeof callableEntries.placement, 'entries'>
 >
+export type RoomPlacement = Expect<
+  Equal<typeof room.placement, 'DeclarationKeyedFieldChild'>
+>
 export type CallableParentModel = Expect<
   Equal<
     Parameters<typeof callableEntries.fold>[0],

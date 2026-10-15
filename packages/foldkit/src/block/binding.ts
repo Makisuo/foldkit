@@ -338,9 +338,12 @@ export type BindingBaseConfig<
   ParentMessage,
   Placement extends string,
 > = Readonly<{
-  /** Identifies this Binding within the parent's composition graph. It defaults
-   * to `field` for a direct field and to the child Block ID for an
-   * accessor Binding. */
+  /** Identifies this Binding within the parent's composition graph. It does not
+   * identify a DOM position or require the child to occupy a same-named Model
+   * field. Direct-field configs default to `field`; accessor configs default to
+   * the child Block ID. Child presence does not change the placement. Supply an
+   * override only to avoid a sibling default collision or preserve a deliberate
+   * stable identity. */
   placement?: Placement
   /** Reads the current child Model. Returning `None` makes the occurrence absent:
    * folds leave the parent Model unchanged and Foldkit stops its lifecycle work. */
@@ -377,8 +380,11 @@ export type BindingConfig<
   Placement extends string,
   Policy = never,
 > = Readonly<{
-  /** Identifies this Binding within the parent's composition graph. It defaults
-   * to the child Block ID. */
+  /** Identifies this accessor Binding within the parent's composition graph. It
+   * defaults to the child Block ID. It does not identify a DOM position or a
+   * Model field. Child presence does not change the placement. Supply an
+   * override only to avoid a sibling default collision or preserve a deliberate
+   * stable identity. */
   placement?: Placement
   /** Reads the current child Model. Returning `None` makes the occurrence absent:
    * folds leave the parent Model unchanged and Foldkit stops its lifecycle work. */
@@ -742,7 +748,8 @@ export type Binding<
     >,
     false
   >
-  /** The stable identity of this child placement in the composition graph. */
+  /** The stable identity of this Binding in the parent's composition graph. It
+   * is independent of DOM position and child presence. */
   placement: Placement
   /** Initializes child state and lifts its Commands to the parent Message type.
    * The parent remains responsible for storing the returned child Model. */

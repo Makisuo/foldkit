@@ -115,9 +115,11 @@ export const ApplicationComposition = Application.toComposition({
 })
 ```
 
-The direct field form infers the parent Model and child Model relationship for exact `ChildModel` and `Option<ChildModel>` fields. Both forms keep the field name as their default placement. `None` makes an optional field absent, and a fold or exposed operation never creates it. Add `presentWhen` when parent policy gates that whole direct child. Use explicit `read` and `write` for tagged, nested, or custom storage. Foldkit compares decoded built-in Schema shapes; reuse the same Schema instance for an opaque declaration or keep custom accessors. Use `toParentMessage` for a custom wrapper. Do not pass a redundant Model Schema.
+The direct field form infers the parent Model and child Model relationship for exact `ChildModel` and `Option<ChildModel>` fields. Both forms keep the field name as their default placement. `None` makes an optional field absent, and a fold or exposed operation never creates it. Optionality does not require a placement override. Add `presentWhen` when parent policy gates that whole direct child. Use explicit `read` and `write` for tagged, nested, or custom storage. Foldkit compares decoded built-in Schema shapes; reuse the same Schema instance for an opaque declaration or keep custom accessors. Use `toParentMessage` for a custom wrapper. Do not pass a redundant Model Schema.
 
-A split feature's `composition.ts` owns straightforward Bindings, its complete `toComposition({ children, mounts })` registration, Composition and an optional owner-specific ViewBuilder alias. Mount-only features use the same home, with definitions shared with the view in `mount.ts`. Extract a substantial policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. A split graphless feature exports its named empty Composition beside the Definition in `definition.ts`; view and completion import that same value without an empty `composition.ts`. A compact graphless feature keeps it beside its cohesive implementation. Root `application.ts` owns the root Bindings and complete graph; it imports substantial policies directly. `bindChild` only configures the relationship; including its result under `children` registers it. Neither step constructs Layers or starts effects. Import an extracted Binding policy as a namespace such as `HomeBinding` when using several related exports, so its factory or Binding and parent-owned Commands remain visibly grouped. Keep named imports for a single Binding or helper. Keep child feature namespaces distinct from parent-owned Binding policies.
+Placement identifies one child Binding within the parent's composition graph. It does not identify a DOM position and need not match a Model field. `readAll` selects the general keyed form and defaults placement to the child Block ID. Otherwise every `field` shorthand defaults to that field, including direct and wrapped keyed arrays; a static accessor config defaults to the child Block ID. For keyed Bindings, `key` identifies dynamic occurrences under that one placement. Supply an explicit placement only when sibling defaults collide or an established graph identity must deliberately remain different from the new default.
+
+A split feature without a `composition/` directory uses `composition.ts` for straightforward Bindings, its complete `toComposition({ children, mounts })` registration, Composition and an optional owner-specific ViewBuilder alias. When `composition/` exists, `composition/composition.ts` owns that assembly and `composition/index.ts` exports it. Mount-only features use the same home, with definitions shared with the view in `mount.ts`. Extract a substantial policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. External consumers import from `composition.ts` or that barrel, never from a policy or assembly implementation path. The barrel exports each extracted policy as a child-named namespace, such as `Home` and `Room`. Consumers import `{ Home, Room }` from `./composition`. Keep flat named exports for the main Composition assembly surface and straightforward local Bindings. Name policy factories `bind`, so namespace callers use `Home.bind(...)`. Internal implementation modules may use direct relative sibling imports to avoid barrel cycles. A split graphless feature exports its named empty Composition beside the Definition in `definition.ts`; view and completion import that same value without an empty `composition.ts`. A compact graphless feature keeps it beside its cohesive implementation. When `composition/` exists, `composition/composition.ts` owns the root Bindings and complete graph and imports extracted policies from sibling modules; a compact root without `composition/` keeps that assembly in `application.ts`. `bindChild` only configures the relationship; including its result under `children` registers it. Neither step constructs Layers or starts effects. Import every extracted policy through its child-name namespace, such as `Home` or `Room`, so factories and constructed Binding values remain visibly grouped. Keep flat named imports for the main Composition assembly surface and straightforward local Bindings. Keep child feature namespaces distinct from parent-owned Binding policies.
 
 The Binding projects `init`, `fold`, `embedView`, and operations selected under `expose`:
 
@@ -157,7 +159,7 @@ export const home = Application.bindChild(Home.block, {
 
 `outMessage.fold` handles variants locally. Add an exhaustive `outMessage.forward` only when at least one variant continues through the current Block's OutMessage. A derived OutMessage takes precedence over forwarding for the same dispatch; local handling still runs.
 
-A keyed Binding uses the same parent-owned method. When a field is an array of child Models, a string-valued `key` names their stable identity field:
+A keyed Binding uses the same parent-owned method. When a field is an array of child Models, a string-valued `key` names their stable identity field. This migration example retains the former general keyed Binding's Block-ID placement explicitly:
 
 ```ts
 import { Block } from 'foldkit'
@@ -181,7 +183,7 @@ export const TableComposition = Table.toComposition({
 })
 ```
 
-The child Schema must expose its declared Struct fields. Use the general keyed form for a union Model or a Schema without declared fields. The shorthand otherwise defaults placement to `field`. Keep the previous Block-ID placement explicitly when migrating an existing general keyed Binding whose resolved identity differs, as above. The child Model returned by `init(key, ...)` must contain that key, and child folds and operations cannot change it. Parent update owns collection membership, so it replaces identity by removing one Model and adding another.
+The child Schema must expose its declared Struct fields. Use the general keyed form for a union Model or a Schema without declared fields. The shorthand defaults placement to `field`; `placement: 'Row'` above deliberately preserves the previous general keyed default. The child Model returned by `init(key, ...)` must contain that key, and child folds and operations cannot change it. Parent update owns collection membership, so it replaces identity by removing one Model and adding another.
 
 A required `Schema.Array` field on a parent Struct can store closed Struct wrappers around child Models. Add `childField` when `key` belongs to the wrapper.
 
@@ -208,7 +210,7 @@ export const applicants = Application.bindChild(Applicant.block, {
 })
 ```
 
-After:
+After, preserving the former general keyed Binding's `Applicant` placement:
 
 ```ts
 export const applicants = Application.bindChild(Applicant.block, {
@@ -221,7 +223,7 @@ export const applicants = Application.bindChild(Applicant.block, {
 })
 ```
 
-`key` must name a required string or finite-number wrapper field, and `childField` must name a different required field whose Schema has exactly the same decoded shape as the child Model. The child Model may be a primitive or union because its identity stays on the wrapper. A child write replaces only the matching wrapper's child field, preserving its metadata, array position, and every unmatched wrapper reference. It does not insert a wrapper after parent update has removed that key. Placement defaults to `field`; retain the old Block-ID placement explicitly if the existing Binding's resolved identity must stay the same.
+`key` must name a required string or finite-number wrapper field, and `childField` must name a different required field whose Schema has exactly the same decoded shape as the child Model. The child Model may be a primitive or union because its identity stays on the wrapper. A child write replaces only the matching wrapper's child field, preserving its metadata, array position, and every unmatched wrapper reference. It does not insert a wrapper after parent update has removed that key. Placement defaults to `field`; `placement: 'Applicant'` above deliberately preserves the general keyed Binding's former Block-ID default.
 
 Use `readAll`, function-valued `key`, `read`, and `writeAt` for custom parent writes, opaque, union, or open/index-signature wrappers, and collections such as `Option<RoomInstance>` that enumerate zero or one child. These explicit accessors continue to define application-specific storage and enumeration policy.
 
@@ -380,13 +382,13 @@ Use `Foo`, `FooComposition`, and `block`. Use `Application`, `ApplicationComposi
 - `definition.ts`: early Model, Message, OutMessage, and Block authoring contracts when split implementation files need them; for a graphless split feature, the named empty Composition also lives here.
 - A folder-named implementation file, such as `workHistory/workHistory.ts`: substantial feature logic that does not warrant separate init/update/command files.
 - `block.ts`: completed feature assembly.
-- `composition.ts`: a split feature's Bindings, complete child/Mount registration, Composition and optional owner-specific ViewBuilder alias. A substantial policy may use `composition/<child>.ts` with `composition/composition.ts` as assembly and an explicit barrel. Mount-only features use the same home; graphless features need no empty scaffolding.
-- `application.ts`: the complete root graph and local handler assembly, including straightforward Bindings. Import substantial policies directly from `composition/<child>.ts`; no separate root composition wrapper.
+- `composition.ts`: a split feature without `composition/`, with Bindings, complete child/Mount registration, Composition and optional owner-specific ViewBuilder alias. A substantial policy may use `composition/<child>.ts` with `composition/composition.ts` as assembly and an explicit barrel; external consumers import from the composition barrel rather than either implementation path. Mount-only features use the same home; graphless features need no empty scaffolding.
+- `composition/composition.ts`: when `composition/` exists, the complete root graph, including straightforward Bindings. Import policy siblings directly inside the assembly module; external consumers import the explicit `composition/index.ts` barrel; external consumers do not deep-import `composition/<child>.ts` or `composition/composition.ts`. A compact root without `composition/` keeps this assembly in `application.ts`.
 - `entry.ts`: container, startup inputs, completion, and Runtime startup.
 - `services.ts`: root `ApplicationLayer` service providers.
 - `layer.ts`: substantial or reused Layer composition at that directory boundary.
 
-A compact root defines `Application` directly in `application.ts`. When split root Commands, Subscriptions, or child Bindings need that authoring value before Composition assembly, put its early contract in `definition.ts`. Those modules import the contract there; `application.ts` imports and re-exports `Application` and exports `ApplicationComposition`. Entry completion still imports each implementation field from its real owner.
+A compact root defines `Application` directly in `application.ts`. When split root Commands, Subscriptions, or child Bindings need that authoring value before Composition assembly, put its early contract in `definition.ts`. Those modules import the contract there; `application.ts` imports and re-exports `Application`. When `composition/` exists, `composition/composition.ts` imports `Application` and exports `ApplicationComposition`; a compact root without `composition/` may export both from `application.ts`. Entry completion still imports each implementation field from its real owner.
 
 Keep final completion in `block.ts` when the view imports its Composition from `composition.ts` or, for a split graphless feature, `definition.ts`. The final assembly imports that same Composition and the view, so neither module depends on the completed Block. Do not create one file per API stage. Keep small examples compact. Use explicit barrels for intended feature contracts and import private implementations directly in tests.
 

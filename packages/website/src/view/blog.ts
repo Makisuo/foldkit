@@ -1,13 +1,13 @@
 import { Match, Option } from 'effect'
 import { Html, createKeyedLazy, inertHtml as ih } from 'foldkit/html'
 
-import type { ApplicationViewBuilder } from '../application'
+import { Shared } from '../component'
+import type { ApplicationViewBuilder } from '../composition'
 import {
   snippetCopy as snippetCopyBinding,
   snippetDisclosure as snippetDisclosureBinding,
   uiPages as uiPagesBinding,
-} from '../application'
-import { Shared } from '../component'
+} from '../composition'
 import { Docs } from '../layout'
 import { docPage } from '../markdown'
 import { Message } from '../message'

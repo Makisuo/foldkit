@@ -13,9 +13,9 @@ import type {
   BindableBlock,
   Binding,
   BindingEvidence,
+  BindingInspection,
   BindingRequirement,
   BindingReturn,
-  BindingInspection,
   HandlerRequirementsOfBinding,
   ParentBindingContract,
   ValidateEmbeddedViewMounts,
@@ -160,8 +160,12 @@ export type KeyedBindingBaseConfig<
   Key extends InstanceKey,
   Placement extends string,
 > = Readonly<{
-  /** Identifies this Binding within the parent's composition graph. It defaults
-   * to the child Block ID and must be unique among the parent's Bindings. */
+  /** Identifies this Binding within the parent's composition graph. A general
+   * keyed config defaults to the child Block ID; field array shorthands default
+   * to their `field`. It does not identify a DOM position or one dynamic child
+   * occurrence. Every occurrence shares the placement, and `key` distinguishes
+   * occurrences under it. Supply an override only to avoid a sibling default
+   * collision or preserve a deliberate stable identity. */
   placement?: Placement
   /** Enumerates the current collection from the parent Model. The returned keys
    * determine which child occurrences have active Subscription,
@@ -367,8 +371,9 @@ export type KeyedBinding<
   > &
   Readonly<{
     /** The stable identity of this child Binding in the parent Block's
-     * composition graph. Every keyed occurrence shares this placement; `key`
-     * distinguishes the occurrence within it. */
+     * composition graph. It is independent of DOM position. Every keyed
+     * occurrence shares this placement; `key` distinguishes the occurrence
+     * within it. */
     placement: Placement
     /** Initializes one child occurrence and lifts its Commands to the parent
      * Message type. The parent remains responsible for inserting the returned

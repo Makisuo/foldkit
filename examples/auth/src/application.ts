@@ -12,16 +12,11 @@ import {
   RedirectToLogin,
   SaveSession,
 } from './command'
-import { loggedIn } from './composition/loggedIn'
-import { loggedOut } from './composition/loggedOut'
+import { LoggedIn, LoggedOut } from './composition'
 import { SESSION_STORAGE_KEY } from './constant'
 import { Application } from './definition'
 import { Session, SessionJsonString } from './domain/session'
 import { ApplicationRoute, urlToApplicationRoute } from './route'
-
-export const ApplicationComposition = Application.toComposition({
-  children: [loggedOut, loggedIn],
-})
 
 export const Flags = Schema.Struct({
   maybeSession: Schema.Option(Session),
@@ -64,10 +59,10 @@ export const init = Application.init((flags: Flags, url: Url) => {
     onNone: () =>
       Match.value(route).pipe(
         Match.tag('Home', 'Login', 'NotFound', route => ({
-          model: loggedOut.init(route).model,
+          model: LoggedOut.loggedOut.init(route).model,
         })),
         Match.orElse(() => ({
-          model: loggedOut.init(ApplicationRoute.Login()).model,
+          model: LoggedOut.loggedOut.init(ApplicationRoute.Login()).model,
           commands: [RedirectToLogin()],
         })),
       ),
@@ -75,10 +70,11 @@ export const init = Application.init((flags: Flags, url: Url) => {
     onSome: session =>
       Match.value(route).pipe(
         Match.tag('Dashboard', 'Settings', 'NotFound', route => ({
-          model: loggedIn.init(route, session).model,
+          model: LoggedIn.loggedIn.init(route, session).model,
         })),
         Match.orElse(() => ({
-          model: loggedIn.init(ApplicationRoute.Dashboard(), session).model,
+          model: LoggedIn.loggedIn.init(ApplicationRoute.Dashboard(), session)
+            .model,
           commands: [RedirectToDashboard()],
         })),
       ),

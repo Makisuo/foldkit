@@ -4,8 +4,8 @@ import { type Html, childAttributes, inertHtml as ih } from 'foldkit/html'
 import { Menu } from '@foldkit/ui'
 import type { AnchorConfig as MenuAnchorConfig } from '@foldkit/ui/menu'
 
-import type { ApplicationViewBuilder } from '../application'
-import { themeMenu } from '../application'
+import type { ApplicationViewBuilder } from '../composition'
+import { themeMenu } from '../composition'
 import { Icon } from '../icon'
 import { type ThemePreference } from '../themePreference'
 

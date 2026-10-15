@@ -300,7 +300,6 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     })
 
   const entryAnimation = Toast.bindChild(Animation.block, {
-    placement: 'Animation',
     field: 'entries',
     key: 'id',
     childField: 'animation',

@@ -3,7 +3,8 @@ import { Match, Option, String } from 'effect'
 import { AsyncData } from 'foldkit'
 import { Html, createLazy, inertHtml as ih } from 'foldkit/html'
 
-import type { ApplicationViewBuilder } from '../application'
+import { type CodeBlock, Shared } from '../component'
+import type { ApplicationViewBuilder } from '../composition'
 import {
   apiReference,
   comingFromReact,
@@ -12,8 +13,7 @@ import {
   snippetCopy as snippetCopyBinding,
   snippetDisclosure as snippetDisclosureBinding,
   uiPages,
-} from '../application'
-import { type CodeBlock, Shared } from '../component'
+} from '../composition'
 import { pageNeighbors } from '../docsNav'
 import { Icon } from '../icon'
 import { Link } from '../link'

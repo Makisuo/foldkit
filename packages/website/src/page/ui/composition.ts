@@ -369,21 +369,18 @@ export const comboboxSelectOnFocusDemo = Ui.bindChild(CityCombobox, {
 })
 
 export const dialogDemo = Ui.bindChild(Dialog.block, {
-  placement: 'dialog-demo',
   field: 'dialogDemo',
   parentMessage: Message.GotDialogDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
 export const dialogAnimatedDemo = Ui.bindChild(Dialog.block, {
-  placement: 'dialog-animated-demo',
   field: 'dialogAnimatedDemo',
   parentMessage: Message.GotDialogAnimatedDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
 export const overlayDialogDemo = Ui.bindChild(Dialog.block, {
-  placement: 'overlay-dialog-demo',
   field: 'overlayDialogDemo',
   parentMessage: Message.GotOverlayDialogDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
@@ -410,14 +407,12 @@ export const overlayComboboxDemo = Ui.bindChild(CityCombobox, {
 })
 
 export const nestedDialogParentDemo = Ui.bindChild(Dialog.block, {
-  placement: 'nested-dialog-parent-demo',
   field: 'nestedDialogParentDemo',
   parentMessage: Message.GotNestedDialogParentDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
 export const nestedDialogChildDemo = Ui.bindChild(Dialog.block, {
-  placement: 'nested-dialog-child-demo',
   field: 'nestedDialogChildDemo',
   parentMessage: Message.GotNestedDialogChildDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
@@ -621,7 +616,6 @@ export const hoverIntentCardDemo = Ui.bindChild(HoverIntent.block, {
 })
 
 export const hoverIntentMenuDemo = Ui.bindChild(HoverIntent.block, {
-  placement: 'hover-intent-menu-demo',
   field: 'hoverIntentMenuDemo',
   parentMessage: Message.GotHoverIntentMenuDemoMessage,
   outMessage: { fold: foldHoverIntentOutMessage },
@@ -640,7 +634,6 @@ const foldToastDemoOutMessage = Toast.OutMessage.match<
 })
 
 export const toastDemo = Ui.bindChild(Toast, {
-  placement: 'toast-demo',
   field: 'toastDemo',
   parentMessage: Message.GotToastDemoMessage,
   outMessage: { fold: foldToastDemoOutMessage },
@@ -731,7 +724,6 @@ const foldDragAndDropDemoOutMessage = DragAndDrop.OutMessage.match<
 })
 
 export const dragAndDropDemo = Ui.bindChild(DragAndDrop.block, {
-  placement: 'drag-and-drop-demo',
   read: model => Option.some(model.dragAndDropDemo),
   write: (model, nextDragAndDropDemo) =>
     modifyFields(model, {

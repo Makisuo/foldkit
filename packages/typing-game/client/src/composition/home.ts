@@ -10,7 +10,7 @@ import { Message } from '../message'
 import { Model, RoomInstance } from '../model'
 import { Home } from '../page'
 import { ApplicationRoute, roomRouter } from '../route'
-import { room } from './room'
+import * as Room from './room'
 
 export const NavigateToRoom = Application.command('NavigateToRoom', {
   args: { roomId: Schema.String },
@@ -23,16 +23,16 @@ export const NavigateToRoom = Application.command('NavigateToRoom', {
   },
 })
 
-export const bindHome = ({
+export const bind = ({
   informJoined,
-}: Readonly<{ informJoined: typeof room.informJoined }>) => {
+}: Readonly<{ informJoined: typeof Room.room.informJoined }>) => {
   const navigateToRoom = (roomId: string) => (model: Model) => ({
     model,
     commands: [NavigateToRoom({ roomId })],
   })
 
   const enterJoinedRoom = (roomId: string, player: Shared.Player) => {
-    const roomInit = room.init(roomId, Option.none())
+    const roomInit = Room.room.init(roomId, Option.none())
 
     return Update.combine([
       model => ({

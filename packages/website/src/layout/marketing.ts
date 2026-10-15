@@ -1,7 +1,7 @@
 import { type Html, inertHtml as ih } from 'foldkit/html'
 
-import type { ApplicationViewBuilder } from '../application'
 import { Shared } from '../component'
+import type { ApplicationViewBuilder } from '../composition'
 import { Icon } from '../icon'
 import { Link } from '../link'
 import { Message } from '../message'

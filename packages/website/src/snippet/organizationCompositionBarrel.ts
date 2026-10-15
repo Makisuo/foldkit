@@ -1,1 +1,2 @@
-export { EditorComposition, counter, dialog } from './composition'
+export * as Dialog from './dialog'
+export { EditorComposition, counter } from './composition'

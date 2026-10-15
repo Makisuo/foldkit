@@ -83,7 +83,7 @@ Keep small features together. In a split feature with children or Mounts, `compo
 
 Keep `definition.ts` focused on early contracts needed by implementation files, plus the empty Composition when a split feature is graphless. Substantial behavior belongs in `init.ts`, `update.ts`, or a folder-named implementation file such as `workHistory/workHistory.ts`. Views import their Composition and Bindings from the assembly module; final `block.ts` imports that same Composition and the implementation pieces. Composition must not import the primary view, update matcher, or completed Block. Put shared Mount definitions in `mount.ts` so Composition and view can import them without a cycle. Root `application.ts` assembles its complete graph and root-local handlers; `entry.ts` completes and runs it.
 
-A split root may need an early `definition.ts` so its Commands and child Bindings can import `Application` without loading the Composition that depends on them. Root `application.ts` imports and re-exports that contract and assembles `ApplicationComposition`. See [Project Organization](/patterns/project-organization) for the complete file and barrel conventions.
+A split root may need an early `definition.ts` so its Commands and child Bindings can import `Application` without loading the Composition that depends on them. Root `application.ts` imports and re-exports that contract. A compact root without `composition/` assembles `ApplicationComposition` there; when `composition/` exists, `composition/composition.ts` assembles and exports it. See [Project Organization](/patterns/project-organization) for the complete file and barrel conventions.
 
 Export `block` and the intended structural pieces from the feature barrel. Export the feature as a namespace from the parent barrel. The namespace supplies context for `Settings.Model`, `Settings.Message`, and `Settings.OutMessage.match`:
 
@@ -91,7 +91,7 @@ Export `block` and the intended structural pieces from the feature barrel. Expor
 
 ## Bind a Child {#embedding}
 
-Call the parent Definition's `bindChild` method with the completed child Block. The Binding records the child's placement in the parent Model and Message context.
+Call the parent Definition's `bindChild` method with the completed child Block. The Binding records one child relationship in the parent's composition graph.
 
 ::Snippet{name="blockProfile" label="Binding and embedding a Block"}
 
@@ -99,9 +99,11 @@ For a child stored directly in an exact Struct field, pass `field` instead of re
 
 Foldkit validates direct storage from the decoded Schema shape. Reuse the same Schema instance when the child Model uses an opaque declaration. Use explicit `read` and `write` when parent storage deliberately uses another opaque declaration whose decoded shape cannot be compared.
 
-Placement defaults to `field` for this shorthand and to the child's Block ID for accessor Bindings. An explicit `placement` overrides either default. Two different fields therefore identify two different occurrences. Keep an override when composition identity should differ from storage location:
+Placement identifies that Binding within the parent graph. It does not describe where the child renders, and it need not match a Model field. Every field shorthand defaults placement to `field`, including static children, optional children, direct child arrays, and wrapped child arrays. Static accessor and general `readAll` keyed configs default to the child Block ID.
 
-::Snippet{name="blockStaticPlacements" label="Binding two static placements"}
+A keyed Binding's `key` identifies one dynamic occurrence under the Binding's placement. A direct `Option` field uses the same field default whether it is `Some` or `None`; optionality needs no placement override. Set `placement` only when a default would collide with a sibling Binding or when the graph deliberately needs a different stable identity. For example, two accessor Bindings of the same Composer Block would both default to `Composer`, so the second needs another placement:
+
+::Snippet{name="blockStaticPlacements" label="Resolving an accessor placement collision"}
 
 `bindChild` only configures the parent-child relationship. Register each selected Binding in the parent's Composition; this declaration still constructs no Layers and starts no effects:
 
@@ -214,7 +216,7 @@ Build an OutMessage fold directly from the child's exhaustive matcher:
 
 The child does not know who embeds it. The parent decides what the reported fact means at that boundary.
 
-The parent configures integration policy in its child Binding. That policy executes during the pure child fold or exposed operation. The flow is parent update → child fold or operation → parent OutMessage handling → parent result. Keep a substantial policy in a named parent fold beside that child's Binding, extracting both to `composition/<child>.ts` when the policy becomes substantial. An OutMessage fold receives `FoldContext` when it needs to lift a child Command or compare the transition with parent state from before the child update. `modelBeforeUpdate` is that previous parent Model. The Step returned by the fold still receives the parent Model after the next child Model has been written, so policy can deliberately use either side of the transition without reconstructing the fold by hand.
+The parent configures integration policy in its child Binding. That policy executes during the pure child fold or exposed operation. The flow is parent update → child fold or operation → parent OutMessage handling → parent result. Keep a substantial policy in a named parent fold beside that child's Binding, extracting both to `composition/<child>.ts` when the policy becomes substantial and exposing them through `composition/index.ts`. External consumers import from `composition.ts` or that explicit barrel, never the policy implementation path; internal siblings may use direct relative imports to avoid barrel cycles. An OutMessage fold receives `FoldContext` when it needs to lift a child Command or compare the transition with parent state from before the child update. `modelBeforeUpdate` is that previous parent Model. The Step returned by the fold still receives the parent Model after the next child Model has been written, so policy can deliberately use either side of the transition without reconstructing the fold by hand.
 
 ## Keyed Collections {#fold-child-at}
 
@@ -228,7 +230,7 @@ When each array item wraps the child Model, add `childField`:
 
 ::Snippet{name="blockMultipleInstances" label="Binding a wrapped child collection" class="mb-4"}
 
-This form requires an exact parent Struct whose `field` is a required `Schema.Array` of closed Struct wrapper records. `key` must name a required string or finite-number field on each wrapper. `childField` must name a different required field whose Schema has exactly the same decoded shape as the child Model. The child Model itself may be a primitive or union because the wrapper owns the key. Placement defaults to `field`.
+This form requires an exact parent Struct whose `field` is a required `Schema.Array` of closed Struct wrapper records. `key` must name a required string or finite-number field on each wrapper. `childField` must name a different required field whose Schema has exactly the same decoded shape as the child Model. The child Model itself may be a primitive or union because the wrapper owns the key. Like the direct child array shorthand, this form defaults placement to `field`.
 
 When Foldkit writes a child result, it replaces only `childField` in the matching wrapper. It preserves array order, wrapper metadata, and every unmatched wrapper reference. If the key has been removed, it leaves the array unchanged instead of inserting a wrapper.
 
@@ -337,9 +339,9 @@ This preserves invariants, Commands, OutMessages, effect requirements, and the c
 
 ## Boundary Identity and Model Identity {#boundary-id-and-model-identity}
 
-A Block Definition identifies a reusable feature. A Binding identifies one placement in its parent. `slotId` identifies one render position, and a keyed Binding's key identifies one dynamic occurrence. These values serve different jobs and should all remain stable.
+A Block Definition identifies a reusable feature. A Binding's placement identifies that one Binding in its parent's composition graph. `slotId` identifies one render position, and a keyed Binding's key identifies one dynamic occurrence under the Binding. These values serve different jobs and should all remain stable.
 
-The child Model may have its own domain ID. Foldkit does not infer runtime placement from that field. State identity and composition identity often coincide, but keeping the relationship explicit avoids hidden routing rules.
+The Binding may read a same-named Model field, another field, or custom storage. The child Model may also have its own domain ID. Foldkit does not infer graph placement from either storage or domain identity.
 
 ## Debugging in DevTools
 
@@ -363,7 +365,7 @@ For shared definitions specialized by a generic factory, `Block.define(id)` supp
 
 ### Parent.bindChild
 
-`Parent.bindChild(block, config)` creates one static, optional, or keyed Binding in the established parent Model and Message context. Use `field` for an exact direct Struct field containing the child Model or `Option<ChildModel>`; `presentWhen` can add whole-child presence policy to that direct form. Use explicit `read`/`write` for custom access. A direct child-Model array uses string-valued `field` and `key` when the child Model Schema exposes Struct fields. A required `Schema.Array` field on a parent Struct containing closed wrappers adds a distinct `childField`; its key is a required string or finite-number wrapper field, while `childField` is a required field with exactly the same decoded shape as the child Model. Both array forms default placement to `field`. Union, suspended, and other opaque direct child Schemas, opaque, union, or open/index-signature wrappers, optional collections, and custom writes use the general keyed form with `readAll`, function-valued `key`, `read`, and `writeAt`. Supply exactly one of `parentMessage` and `toParentMessage` for a static Binding; keyed Message mappings receive both the key and child Message. An explicit placement overrides the field or Block ID default. `subscriptions.when` gates only Streams. OutMessage handling is parent policy.
+`Parent.bindChild(block, config)` creates one static, optional, or keyed Binding in the established parent Model and Message context. Use `field` for an exact direct Struct field containing the child Model or `Option<ChildModel>`; `presentWhen` can add whole-child presence policy to that direct form. Use explicit `read`/`write` for custom access. A direct child-Model array uses string-valued `field` and `key` when the child Model Schema exposes Struct fields. A required `Schema.Array` field on a parent Struct containing closed wrappers adds a distinct `childField`; its key is a required string or finite-number wrapper field, while `childField` is a required field with exactly the same decoded shape as the child Model. Every field shorthand defaults placement to `field`, including both array forms. Static accessor and general `readAll` keyed configs default to the child Block ID. A keyed occurrence's `key` is nested under that Binding placement. Union, suspended, and other opaque direct child Schemas, opaque, union, or open/index-signature wrappers, optional collections, and custom writes use the general keyed form with `readAll`, function-valued `key`, `read`, and `writeAt`. Supply exactly one of `parentMessage` and `toParentMessage` for a static Binding; keyed Message mappings receive both the key and child Message. Use an explicit placement only to resolve a sibling default collision or retain a deliberately different stable graph identity. `subscriptions.when` gates only Streams. OutMessage handling is parent policy.
 
 ### Feature.step
 

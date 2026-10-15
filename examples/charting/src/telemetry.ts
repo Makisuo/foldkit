@@ -1,13 +1,4 @@
-import {
-  Array,
-  Clock,
-  DateTime,
-  Effect,
-  Option,
-  Order,
-  Record,
-  pipe,
-} from 'effect'
+import { Array, DateTime, Effect, Option, Order, Record, pipe } from 'effect'
 
 import {
   ContributorSummary,
@@ -38,23 +29,18 @@ import type {
 } from './npmApi'
 import { NpmApi } from './npmApi'
 import {
+  LAST_YEAR_WEEKS,
   type WeeklyCount,
   countByWeek,
   countForWeek,
-  dateStringToMilliseconds,
   sumByWeek,
   valueForWeek,
-  weekStartForMilliseconds,
+  weekStartForDateTime,
   weekStartsForLastYear,
 } from './weeks'
 
 // CONSTANT
 
-const MILLISECONDS_PER_SECOND = 1_000
-const MILLISECONDS_PER_DAY = 24 * 60 * 60 * MILLISECONDS_PER_SECOND
-const DAYS_PER_WEEK = 7
-const MILLISECONDS_PER_WEEK = DAYS_PER_WEEK * MILLISECONDS_PER_DAY
-const LAST_YEAR_MILLISECONDS = 52 * MILLISECONDS_PER_WEEK
 const TOP_CONTRIBUTOR_COUNT = 6
 
 // MODEL
@@ -88,7 +74,7 @@ const weeklyDownloads = (
   const weeklySums = sumByWeek(
     downloads.downloads,
     weekStarts,
-    ({ day }) => weekStartForMilliseconds(dateStringToMilliseconds(day)),
+    ({ day }) => weekStartForDateTime(DateTime.makeUnsafe(day)),
     ({ downloads: dayDownloads }) => dayDownloads,
   )
 
@@ -223,11 +209,8 @@ export const weeklyStars = (
         )
 
         return Array.map(days, (count, dayIndex) => ({
-          weekStart: pipe(
-            sunday,
-            DateTime.add({ days: dayIndex }),
-            DateTime.startOf('week', { weekStartsOn: 1 }),
-            DateTime.formatIsoDateUtc,
+          weekStart: weekStartForDateTime(
+            DateTime.add(sunday, { days: dayIndex }),
           ),
           count,
         }))
@@ -280,7 +263,7 @@ const commitCountForWeek =
       activity,
       Array.findFirst(
         item =>
-          weekStartForMilliseconds(item.week * MILLISECONDS_PER_SECOND) ===
+          weekStartForDateTime(DateTime.fromEpochSeconds(item.week)) ===
           weekStart,
       ),
       Option.match({
@@ -307,13 +290,12 @@ export const weeklyReleaseTotals = (
   releases: ReadonlyArray<typeof GitHubReleaseResponse.Type>,
   weekStarts: ReadonlyArray<string>,
 ): ReadonlyArray<WeeklyCount> =>
-  countByWeek(
-    Array.filter(releases, release => Option.isSome(release.published_at)),
-    weekStarts,
-    release =>
-      Option.map(release.published_at, publishedAt =>
-        weekStartForMilliseconds(Date.parse(publishedAt)),
-      ),
+  countByWeek(releases, weekStarts, release =>
+    pipe(
+      release.published_at,
+      Option.flatMap(DateTime.make),
+      Option.map(weekStartForDateTime),
+    ),
   )
 
 export const makeWeeklyTelemetry = (
@@ -349,10 +331,10 @@ export const fetchRawTelemetry: Effect.Effect<
 > = Effect.gen(function* () {
   const github = yield* GitHubApi
   const npm = yield* NpmApi
-  const fetchedAt = yield* Clock.currentTimeMillis
+  const fetchedAt = yield* DateTime.now
 
   const repository = yield* github.fetchRepository
-  const yearCutoff = fetchedAt - LAST_YEAR_MILLISECONDS
+  const yearCutoff = DateTime.subtract(fetchedAt, { weeks: LAST_YEAR_WEEKS })
   const [contributors, issues, pullRequests, releases] = yield* Effect.all(
     [
       github.fetchContributors,
@@ -378,7 +360,7 @@ export const fetchRawTelemetry: Effect.Effect<
   )
 
   return {
-    fetchedAt,
+    fetchedAt: DateTime.toEpochMillis(fetchedAt),
     repository,
     contributors,
     issues,
@@ -393,7 +375,7 @@ export const fetchRawTelemetry: Effect.Effect<
 export const transformTelemetry = (
   raw: RawTelemetry,
 ): typeof Telemetry.Type => {
-  const weekStarts = weekStartsForLastYear(raw.fetchedAt)
+  const weekStarts = weekStartsForLastYear(DateTime.makeUnsafe(raw.fetchedAt))
 
   const packageResults = Array.map(
     raw.packageData,

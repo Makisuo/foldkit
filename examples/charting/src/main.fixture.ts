@@ -1,4 +1,4 @@
-import { Option } from 'effect'
+import { DateTime, Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { RadioGroup } from '@foldkit/ui'
@@ -20,7 +20,9 @@ import {
 } from './radioGroups'
 
 export const sampleTelemetry = Telemetry.make({
-  fetchedAt: Date.UTC(2026, 5, 22, 12, 0, 0),
+  fetchedAt: DateTime.toEpochMillis(
+    DateTime.makeUnsafe('2026-06-22T12:00:00Z'),
+  ),
   repository: RepositorySnapshot.make({
     stars: 342,
     forks: 18,

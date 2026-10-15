@@ -2,12 +2,14 @@ import {
   Array,
   Context,
   Data,
+  DateTime,
   Effect,
   Layer,
   Number,
   Option,
   Schedule,
   Schema,
+  pipe,
 } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
 
@@ -18,7 +20,6 @@ import { fetchJson, isSuccessfulStatus, makeUrl } from './http'
 const GITHUB_REPOSITORY_API = 'https://api.github.com/repos/foldkit/foldkit'
 const HTTP_ACCEPTED = 202
 const STAR_HISTORY_PAGE_SIZE = 30
-const MILLISECONDS_PER_SECOND = 1_000
 const STAT_MAX_RETRIES = 1
 const STAT_RETRY_DELAY = '2 seconds' as const
 const RELEASE_PAGE_SIZE = 100
@@ -86,10 +87,10 @@ type GitHubApiShape = Readonly<{
     Error
   >
   fetchReleases: (
-    yearCutoffMilliseconds: number,
+    yearCutoff: DateTime.Utc,
   ) => Effect.Effect<ReadonlyArray<typeof GitHubReleaseResponse.Type>, Error>
   fetchStarHistory: (
-    yearCutoffMilliseconds: number,
+    yearCutoff: DateTime.Utc,
   ) => Effect.Effect<
     ReadonlyArray<typeof GitHubStarHistoryResponse.Type>,
     Error
@@ -201,7 +202,7 @@ export const GitHubApiLive: Layer.Layer<
           per_page: '100',
         }),
       ),
-      fetchReleases: (yearCutoffMilliseconds: number) => {
+      fetchReleases: (yearCutoff: DateTime.Utc) => {
         const fetchPage = (page: number) =>
           fetch_(Schema.Array(GitHubReleaseResponse))(
             makeUrl(`${GITHUB_REPOSITORY_API}/releases`, {
@@ -223,10 +224,12 @@ export const GitHubApiLive: Layer.Layer<
                 onEmpty: () => Effect.succeed(accumulated),
                 onNonEmpty: releases => {
                   const withinYear = Array.filter(releases, release =>
-                    Option.exists(
+                    pipe(
                       release.published_at,
-                      publishedAt =>
-                        Date.parse(publishedAt) >= yearCutoffMilliseconds,
+                      Option.flatMap(DateTime.make),
+                      Option.exists(
+                        DateTime.isGreaterThanOrEqualTo(yearCutoff),
+                      ),
                     ),
                   )
 
@@ -249,7 +252,7 @@ export const GitHubApiLive: Layer.Layer<
 
         return fetchFrom(1, [])
       },
-      fetchStarHistory: (yearCutoffMilliseconds: number) => {
+      fetchStarHistory: (yearCutoff: DateTime.Utc) => {
         const fetchFrom = (
           page: number,
           accumulated: ReadonlyArray<typeof GitHubStarHistoryResponse.Type>,
@@ -266,10 +269,11 @@ export const GitHubApiLive: Layer.Layer<
             Effect.flatMap(history => {
               const nextAccumulated = Array.appendAll(accumulated, history)
               const isLastPage = Array.length(history) < STAR_HISTORY_PAGE_SIZE
-              const isCutoffReached = Array.some(
-                history,
-                ({ week }) =>
-                  week * MILLISECONDS_PER_SECOND <= yearCutoffMilliseconds,
+              const isCutoffReached = Array.some(history, ({ week }) =>
+                DateTime.isLessThanOrEqualTo(
+                  DateTime.fromEpochSeconds(week),
+                  yearCutoff,
+                ),
               )
 
               if (isLastPage || isCutoffReached) {

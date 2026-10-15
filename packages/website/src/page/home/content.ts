@@ -196,7 +196,7 @@ const heroSection = (
               ),
             ],
             [
-              'Foldkit is a TypeScript frontend framework built on Effect. It makes state, side effects, and the services your application needs explicit, so your team and AI agents can build features, trace behavior, and test changes.',
+              'Foldkit is a TypeScript frontend framework built on Effect. It makes state, side effects, and the services your application needs explicit, so your team and AI agents can build features faster, trace behavior, and test changes with confidence.',
             ],
           ),
           h.div(

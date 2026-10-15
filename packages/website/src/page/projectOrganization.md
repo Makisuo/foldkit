@@ -2,13 +2,15 @@
 
 ## Overview
 
-Keep each feature's behavior together and give its registered children and Mounts one visible assembly point. A split feature without a composition directory uses `composition.ts`. When `composition/` exists, `composition/composition.ts` constructs the Composition and `composition/index.ts` exports it. A compact application root without `composition/` uses `application.ts`; a root with `composition/` keeps meaningful root behavior in `application.ts` and the complete graph in `composition/composition.ts`.
+Keep each feature's behavior together and give its registered children and Mounts one visible assembly point. A split feature without a composition directory uses `composition.ts`. When `composition/` exists, `composition/composition.ts` constructs the Composition and `composition/index.ts` exports it. A root is either fully compact in `application.ts` or consistently split across files named for their responsibilities. A split root moves every structural piece out of `application.ts`. Remove the file when no distinct implementation remains; use `index.ts` for a barrel.
 
 `bindChild` configures a relationship: Model access, Message mapping, OutMessage handling, and lifecycle policy. It returns passive configuration. Including that Binding in `toComposition({ children })` registers the child. Neither operation constructs Layers or starts effects; the Runtime does that later.
 
 ## Starting Simple
 
-The smallest application keeps Model, Message, Definition-owned init, update, view, and its typed Application definition in `application.ts`. A separate `entry.ts` chooses the browser container and startup inputs, supplies shared services, passes init to completion, and starts the Runtime. Tests and server tooling can import the application pieces without starting a browser Runtime.
+The smallest application keeps Model, Message, Definition-owned init, update, view, `Application`, and `ApplicationComposition` together in `application.ts`. A separate `entry.ts` chooses the browser container and startup inputs, completes the Application, supplies shared services, and starts the Runtime. Tests and server tooling can import the application pieces without starting a browser Runtime.
+
+Once one root responsibility moves out of `application.ts`, split the rest consistently. Put Model, Message, init, update, view, and optional Flags in their named files. `definition.ts` imports Model and Message and exports the early `Application` contract. `composition.ts` owns Bindings, OutMessage folds, complete child and Mount registration, `ApplicationComposition`, and an optional `ApplicationViewBuilder`. Use `composition/composition.ts` and an explicit `composition/index.ts` barrel when substantial Binding policies need their own modules. Even a graphless split root has a `composition.ts`. Remove the emptied `application.ts` instead of retaining it as a forwarding barrel.
 
 Add `story.test.ts` and `scene.test.ts` beside the behavior they test. The [Counter example](/example-apps/counter) shows a compact root.
 
@@ -80,7 +82,7 @@ Author the primary view through `FeatureComposition.view` or `view.withInputs`, 
 
 The owner prefix distinguishes a builder derived from one Composition at a plain type import site. `Model`, `Message`, and `OutMessage` keep their standard architecture names because they normally travel through a feature namespace such as `Search.Model` or `Search.Message`. Helpers shared across features use the general `HtmlBuilder` type instead of an owner-specific alias.
 
-Keep substantial behavior in `init.ts`, `update.ts`, or a folder-named implementation file such as `workHistory/workHistory.ts`. An extracted `init.ts` imports the early Definition and exports `const init = Feature.init(fn)`; it does not import the Composition or completed feature. A substantial `update/` directory uses `index.ts` as its explicit barrel and `update.ts` as the Message matcher. Extract substantial handlers by behavior; keep trivial child forwards and unchanged results in the matcher. The same rule gives a view directory `view/index.ts` and `view/view.ts`.
+Keep substantial behavior in `init.ts`, `update.ts`, or a folder-named implementation file such as `workHistory/workHistory.ts`. An extracted `init.ts` imports the early Definition and exports `const init = Feature.init(fn)`. When initialization uses registered child Bindings, it may also import them from Composition; Composition must not import init in return. Init never imports the completed feature. A substantial `update/` directory uses `index.ts` as its explicit barrel and `update.ts` as the Message matcher. Extract substantial handlers by behavior; keep trivial child forwards and unchanged results in the matcher. The same rule gives a view directory `view/index.ts` and `view/view.ts`.
 
 Dependencies point from contracts to local declarations and policies, then to Composition, view, and completed Block. An update or view can import a Binding from Composition. Composition must not import the update matcher, primary view, or completed Block in return. If child policy needs a parent Step, define the policy beside the Binding or extract the pure operation into a leaf module that does not depend on Composition.
 
@@ -88,11 +90,11 @@ Keep route policy shared by init and navigation outside `update/`, for example i
 
 ## Root Application Assembly
 
-When `composition/` exists, `composition/composition.ts` owns the complete root child and Mount graph and `ApplicationComposition`. Put straightforward root Bindings directly beside its `Application.toComposition` call. Extract substantial policies to files such as `composition/home.ts`, expose them through the explicit `composition/index.ts` barrel, and import those policies directly from sibling modules inside `composition/composition.ts`; `application.ts` retains meaningful root behavior and does not forward the Composition or its builder. A compact root without `composition/` may keep this assembly in `application.ts`.
+In a split root, `composition.ts` owns the complete child and Mount graph and `ApplicationComposition`. Put straightforward root Bindings and their OutMessage folds directly beside its `Application.toComposition` call. Extract substantial policies to files such as `composition/home.ts`; then `composition/composition.ts` owns assembly, `composition/index.ts` is an explicit barrel, and the assembly module imports those policies directly from sibling modules. Composition depends on `definition.ts`, completed children, and local policy declarations. It never imports root init, update, or view.
 
 ::Snippet{name="applicationRegistrations" label="Root child graph"}
 
-For a compact root, define `Application` there too. When root Commands, Subscriptions, or policies need its helpers before graph assembly, keep the early Definition in `definition.ts`. `application.ts` imports and intentionally re-exports `Application`. Model and Message Schemas remain in their own files when substantial.
+`definition.ts` imports the split root's Model and Message Schemas and exports `Application`. Root Commands, Subscriptions, init, update, and composition import that contract directly. A simple root `EffectsLayer` stays with its Command definitions in `command.ts`; extract `layer.ts` only when Layer composition is substantial or reused.
 
 Root `services.ts` composes `ApplicationLayer`. The entry imports it and each completion field from its real owner, chooses browser inputs, and invokes the Runtime:
 
@@ -112,7 +114,7 @@ Products supplies `ProductCatalogLayer` beneath its local handlers. The catalog'
 
 ### Local Handlers and the Complete Graph
 
-A module named `command.ts` exports `Command.EffectsLayer` for the Command handlers owned by that module. At the root, this bundle contains root-owned Commands only. `application.ts` combines it with other root-local handler bundles, such as Subscription handlers.
+At a split root, `command.ts` owns the root Command definitions and exports `EffectsLayer` when those recipes are the complete root-local handler bundle. The entry imports that value directly. When the root combines Command recipes with other local handler bundles and the aggregate is substantial or reused, `layer.ts` owns the final `EffectsLayer` instead. Neither file imports or relists child handlers.
 
 Registered child Blocks contribute their own selected `EffectsLayer` recursively. Completing the Application includes that transitive handler graph automatically. Do not manually import or relist every child Command at root, and do not merge a registered child's handler bundle a second time.
 

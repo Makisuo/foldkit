@@ -2,13 +2,12 @@ import { Option } from 'effect'
 import { UrlRequest } from 'foldkit/navigation'
 import { Transition } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
-import { type Url, toString as urlToString } from 'foldkit/url'
+import { toString as urlToString } from 'foldkit/url'
 
-import { ApplicationComposition } from './application'
 import { LoadExternal, NavigateInternal } from './command'
-import { Application } from './definition'
+import { ApplicationComposition } from './composition'
 import { Message } from './message'
-import { Model, PaintingStatus } from './model'
+import { PaintingStatus } from './model'
 import { urlToApplicationRoute } from './route'
 import { handleTransition } from './transition'
 
@@ -63,16 +62,3 @@ export const update = ApplicationComposition.update((model, message) =>
     }),
   }),
 )
-
-export const init = Application.init((url: Url) => {
-  const route = urlToApplicationRoute(url)
-  const initialModel = Model.make({
-    route,
-    transitionLog: [],
-    catalogStatus: 'Idle',
-    paintingStatus: PaintingStatus.Idle(),
-    studioDraft: '',
-    maybeSavedDraft: Option.none(),
-  })
-  return handleTransition(initialModel, Transition.coldLoad(route))
-})

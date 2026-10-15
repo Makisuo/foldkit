@@ -2,8 +2,9 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
-import { update } from './application'
-import { Message, type Model } from './definition'
+import { Message } from './message'
+import type { Model } from './model'
+import { update } from './update'
 
 const initialModel: Model = {
   activeWorkload: 'Idle',

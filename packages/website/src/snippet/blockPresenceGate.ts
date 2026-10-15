@@ -1,4 +1,4 @@
-import { Application } from './application'
+import { Application } from './definition'
 import { Message } from './message'
 import * as Room from './room'
 import { ApplicationRoute } from './route'

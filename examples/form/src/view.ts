@@ -9,8 +9,9 @@ import { Button, Input, Textarea } from '@foldkit/ui'
 import {
   ApplicationComposition,
   type ApplicationViewBuilder,
-} from './application'
-import { Message, Submission } from './definition'
+} from './composition'
+import { Message } from './message'
+import { Submission } from './model'
 import { isFormValid } from './validation'
 
 const LABEL_CLASS = 'text-sm font-medium text-gray-700'

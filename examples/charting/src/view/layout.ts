@@ -4,7 +4,7 @@ import type { Html } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
-import type { ApplicationViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../composition'
 import type { Telemetry } from '../domain'
 import { Message } from '../message'
 import type { Model } from '../model'

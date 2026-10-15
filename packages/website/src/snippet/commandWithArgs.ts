@@ -1,17 +1,18 @@
+// application.ts
 import { Duration, Effect, Schema } from 'effect'
 import { defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { Model } from './application'
-
-const Application = defineApplication({ Model, Message })
+const Model = Schema.Struct({ count: Schema.Number })
 
 const Message = defineMessageUnion({
   ClickedResetAfterDelay: { delayMs: Schema.Number },
   CompletedWaitBeforeReset: {},
 })
 type Message = typeof Message.Type
+
+const Application = defineApplication({ Model, Message })
 
 const WaitBeforeReset = Application.command('WaitBeforeReset', {
   args: { delayMs: Schema.Number },

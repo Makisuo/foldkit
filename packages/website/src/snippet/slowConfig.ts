@@ -3,9 +3,12 @@ import { Runtime } from 'foldkit'
 
 import * as Sentry from '@sentry/browser'
 
-import { ApplicationComposition, init, update, view } from './application'
+import { ApplicationComposition } from './composition'
+import { init } from './init'
 import type { Message } from './message'
 import type { Model } from './model'
+import { update } from './update'
+import { view } from './view'
 
 const handleSlow = (context: Runtime.SlowContext<Model, Message>): void => {
   const summary = Match.value(context).pipe(

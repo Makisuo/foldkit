@@ -3,11 +3,12 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import { update } from './application'
-import { Message, Model } from './definition'
 import { Counter } from './island'
 import { Message as CounterMessage } from './island/counter'
+import { Message } from './message'
+import { Model } from './model'
 import { ApplicationRoute } from './route'
+import { update } from './update'
 
 const home = Model.make({
   route: ApplicationRoute.Home(),

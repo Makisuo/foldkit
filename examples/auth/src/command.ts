@@ -1,4 +1,4 @@
-import { Console, Effect, Schema } from 'effect'
+import { Console, Effect, Layer, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
 
@@ -99,3 +99,14 @@ export const RedirectToHome = Application.command('RedirectToHome', {
       )
   },
 })
+
+export const EffectsLayer = Layer.mergeAll(
+  SaveSession.layer,
+  ClearSession.layer,
+  LogError.layer,
+  NavigateInternal.layer,
+  LoadExternal.layer,
+  RedirectToLogin.layer,
+  RedirectToDashboard.layer,
+  RedirectToHome.layer,
+)

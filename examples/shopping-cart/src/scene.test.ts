@@ -3,11 +3,12 @@ import { click, expect, given, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import { update, view } from './application'
 import { products } from './data/products'
-import { type Model } from './definition'
+import type { Model } from './model'
 import { Products } from './page'
 import { ApplicationRoute } from './route'
+import { update } from './update'
+import { view } from './view'
 
 const apple = { id: '1', name: 'Apple', price: 1.5 }
 const banana = { id: '2', name: 'Banana', price: 0.75 }

@@ -4,9 +4,9 @@ import type { Html } from 'foldkit/html'
 
 import { Button, Input } from '@foldkit/ui'
 
-import { ApplicationComposition } from './application'
-import type { ApplicationViewBuilder } from './application'
 import { SEARCH_INPUT_ID } from './command'
+import { ApplicationComposition } from './composition'
+import type { ApplicationViewBuilder } from './composition'
 import { type Location } from './locations'
 import { Message } from './message'
 import { type Bounds, GeolocateState, type Model } from './model'

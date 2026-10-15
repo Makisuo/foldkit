@@ -8,10 +8,10 @@ import {
   ApplicationComposition,
   type ApplicationViewBuilder,
   counter,
-} from './application'
+} from './composition'
 import { Post, about, findPost, posts } from './content'
-import type { Model } from './definition'
 import { islandAttributes } from './island'
+import type { Model } from './model'
 import { proseView } from './prose'
 import * as Route from './route'
 

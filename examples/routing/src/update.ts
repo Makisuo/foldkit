@@ -2,11 +2,10 @@ import { Match, Option } from 'effect'
 import { Update } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
-import { type Url, toString as urlToString } from 'foldkit/url'
+import { toString as urlToString } from 'foldkit/url'
 
-import { ApplicationComposition, peoplePage } from './application'
 import { LoadExternal, NavigateInternal } from './command'
-import { Application } from './definition'
+import { ApplicationComposition, peoplePage } from './composition'
 import { Message, type NavigationShortcut } from './message'
 import { Model } from './model'
 import {
@@ -17,22 +16,6 @@ import {
   peopleRouter,
   urlToApplicationRoute,
 } from './route'
-
-export const init = Application.init((url: Url) => {
-  const route = urlToApplicationRoute(url)
-
-  const initialPeopleRoute = Match.value(route).pipe(
-    Match.tag('People', peopleRoute => peopleRoute),
-    Match.orElse(() => ApplicationRoute.People({ searchText: Option.none() })),
-  )
-
-  const peopleInit = peoplePage.init(initialPeopleRoute)
-
-  return {
-    model: Model.make({ route, peoplePage: peopleInit.model }),
-    commands: peopleInit.commands,
-  }
-})
 
 const navigationUrlByShortcut: Readonly<
   Record<NavigationShortcut, () => string>

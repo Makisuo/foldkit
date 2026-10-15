@@ -1,6 +1,6 @@
 import { Option } from 'effect'
 
-import { Application } from './application'
+import { Application } from './definition'
 import { Message } from './message'
 import type { Model } from './model'
 import * as SignedIn from './signedIn'

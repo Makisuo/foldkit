@@ -5,8 +5,9 @@ import { Html } from 'foldkit/html'
 import {
   ApplicationComposition,
   type ApplicationViewBuilder,
-} from './application'
-import { Message, type Upload, type UploadStatus } from './definition'
+} from './composition'
+import { Message } from './message'
+import { type Upload, type UploadStatus } from './model'
 
 const badgeClass = (status: UploadStatus): string =>
   Match.value(status).pipe(

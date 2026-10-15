@@ -1,5 +1,3 @@
-import { ApplicationComposition, Message } from './application'
-
 const view = ApplicationComposition.view((model, h) => ({
   title: `Counter: ${model.count}`,
   body: h.div(

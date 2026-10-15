@@ -14,7 +14,7 @@ import {
   skills,
   stepTabs,
   workHistory,
-} from '../application'
+} from '../composition'
 import { Step } from '../domain'
 import { Message } from '../message'
 import { type Model } from '../model'

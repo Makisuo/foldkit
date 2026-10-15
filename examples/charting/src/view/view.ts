@@ -1,4 +1,4 @@
-import { ApplicationComposition } from '../application'
+import { ApplicationComposition } from '../composition'
 import { headerView, telemetryStateView } from './layout'
 
 export const view = ApplicationComposition.view((model, h) => ({

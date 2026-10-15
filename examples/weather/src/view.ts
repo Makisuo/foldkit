@@ -6,8 +6,9 @@ import { Button, Input } from '@foldkit/ui'
 import {
   ApplicationComposition,
   type ApplicationViewBuilder,
-} from './application'
-import { Message, type WeatherData } from './definition'
+} from './composition'
+import { Message } from './message'
+import type { WeatherData } from './model'
 
 export const view = ApplicationComposition.view((model, h) => ({
   title: 'Weather',

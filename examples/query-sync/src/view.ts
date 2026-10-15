@@ -7,10 +7,10 @@ import { AnchorConfig, type ItemConfig } from '@foldkit/ui/listbox'
 
 import {
   ApplicationComposition,
+  type ApplicationViewBuilder,
   dietListbox,
   periodListbox,
-} from './application'
-import type { ApplicationViewBuilder } from './application'
+} from './composition'
 import { type Dinosaur, dinosaurs } from './data'
 import { Message } from './message'
 import { type Model, dietFilterItems, periodFilterItems } from './model'

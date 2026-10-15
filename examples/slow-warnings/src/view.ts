@@ -4,14 +4,14 @@ import { type Html, createLazy } from 'foldkit/html'
 import {
   ApplicationComposition,
   type ApplicationViewBuilder,
-} from './application'
+} from './composition'
+import { Message } from './message'
 import {
-  Message,
   type Model,
   type SlowPhase,
   type SlowWarning,
   type Workload,
-} from './definition'
+} from './model'
 import { VIEW_WORK_MS, burnCpu } from './workload'
 
 const phaseLabel = (phase: SlowPhase): string =>

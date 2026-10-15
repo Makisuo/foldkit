@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
 
 import { Application } from './definition'
@@ -38,3 +38,9 @@ export const LoadExternal = Application.command('LoadExternal', {
       load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
   },
 })
+
+export const EffectsLayer = Layer.mergeAll(
+  ReplaceFilters.layer,
+  NavigateInternal.layer,
+  LoadExternal.layer,
+)

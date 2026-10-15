@@ -137,7 +137,7 @@ AsyncData.match(model.notes, {
 })
 ```
 
-`onRefreshing`, `onFailure`, and `onSuccess` each take one bare value. `onStale` takes `{ error, data }` because it carries both. `onIdle` and `onLoading` take nothing at all, since there is no payload in those states. Destructuring `({ data })` in `onSuccess` or `onRefreshing` is the easy mistake. Read `foldkit/asyncData`'s `public.d.ts` for the full surface. `repos/foldkit/examples/weather/src/definition.ts` declares the AsyncData contract; its `application.ts` demonstrates state transitions.
+`onRefreshing`, `onFailure`, and `onSuccess` each take one bare value. `onStale` takes `{ error, data }` because it carries both. `onIdle` and `onLoading` take nothing at all, since there is no payload in those states. Destructuring `({ data })` in `onSuccess` or `onRefreshing` is the easy mistake. Read `foldkit/asyncData`'s `public.d.ts` for the full surface. `repos/foldkit/examples/weather/src/model.ts` declares the AsyncData contract; its `update.ts` demonstrates state transitions.
 
 ### 5. Messages Are Facts, Not Commands
 
@@ -210,7 +210,7 @@ SucceededUpdateNote: ({ note }) =>
   ])
 ```
 
-`repos/foldkit/examples/route-transitions/src/application.ts` uses both.
+`repos/foldkit/examples/route-transitions/src/update.ts` uses both.
 
 ## Flags: Side Effects That Seed the Initial Model
 
@@ -296,14 +296,15 @@ export const EffectsLayer = Layer.mergeAll(
 )
 ```
 
-Pass this local recipe to `FeatureComposition.toBlock(...)`; `Feature.toComposition({ children, mounts })` supplies the graph. Export the completed value as `block`. At a compact root with no `composition/` directory, `application.ts` defines `Application` and produces `ApplicationComposition`. When `composition/` exists, `composition/composition.ts` constructs `ApplicationComposition` and owns the complete root graph. When substantial split root modules need the authoring value, `definition.ts` may own only that early contract; `application.ts` imports and intentionally re-exports `Application`; when `composition/` exists, `composition/composition.ts` exports `ApplicationComposition` and `application.ts` does not forward it. `entry.ts` imports each completion field from its real owner, chooses host inputs, and calls owned completion:
+Pass this local recipe to `FeatureComposition.toBlock(...)`; `Feature.toComposition({ children, mounts })` supplies the graph. Export the completed value as `block`. A genuinely compact root keeps Model, Message, init, update, view, `Application`, `ApplicationComposition`, and any small local handler bundle together in `application.ts`. Once one of those responsibilities is extracted, `definition.ts` owns `Application`; `composition.ts` or `composition/composition.ts` owns Bindings, OutMessage folds, the complete graph, `ApplicationComposition`, and an optional `ApplicationViewBuilder`; and the split root removes the emptied `application.ts`. Even a graphless split root has `composition.ts`. A simple root `EffectsLayer` stays with its Command definitions in `command.ts`; use `layer.ts` only for substantial or reused composition. `entry.ts` imports each completion field from its real owner, chooses host inputs, and calls owned completion:
 
 ```ts
 import { Runtime } from 'foldkit'
-import { ApplicationComposition } from './application'
+import { EffectsLayer } from './command'
+import { ApplicationComposition } from './composition'
 import { ApplicationLayer } from './services'
 import { init } from './init'
-import { EffectsLayer, update } from './update'
+import { update } from './update'
 import { view } from './view'
 
 const application = ApplicationComposition.toApplication({
@@ -363,7 +364,7 @@ Handlers and services may own mutable execution bookkeeping, such as worker avai
 
 Whole-application execution tests compose the same handler Layers with deterministic providers for external services before building the application Layer. Keep any business service Layer whose decoding, retries, or policy the test should cover, and replace its lower HTTP or RPC transport. That keeps Command result mapping, Subscription Stream transformation, Mount element lifecycle, and ManagedResource acquire and release behavior under test. Replacing a complete handler is a narrower way to orchestrate a result path, and does not test the replaced handler. Use Effect Layers directly for substitution rather than introducing a testing DSL.
 
-The implementation Layer graph does not replace the Composition graph. A completed child Block collects `subscriptions`, `managedResources`, and `mounts` through the same Bindings that supply handler Layers. Root `application.ts` creates `Application` with `defineApplication`. A compact root without `composition/` exports `ApplicationComposition` from `toComposition`; when `composition/` exists, `composition/composition.ts` creates and exports it. The entry imports that Composition and the implementation fields from their actual owners, chooses the container, and calls `toApplication` or `toElement` with explicit fields. It provides `ApplicationLayer` to the completed program and starts the Runtime.
+The implementation Layer graph does not replace the Composition graph. A completed child Block collects `subscriptions`, `managedResources`, and `mounts` through the same Bindings that supply handler Layers. A compact root creates `Application` and `ApplicationComposition` in its all-in-one `application.ts`. A split root creates `Application` in `definition.ts` and `ApplicationComposition` in `composition.ts` or `composition/composition.ts`, with no aggregation file between them. The entry imports that Composition and the implementation fields from their actual owners, chooses the container, and calls `toApplication` or `toElement` with explicit fields. It provides `ApplicationLayer` to the completed program and starts the Runtime.
 
 ## Mounts
 
@@ -423,7 +424,7 @@ export const block = ChildComposition.toBlock({
 
 Definition establishes contracts and authors behavior, including init. `Child.init` checks its Model and Command result Messages without changing the callback's exact type. The named Composition fixes child Bindings and Mount capabilities and authors the primary view; it does not expose `init`. Block completion uses that same Composition to check the implementation and handler graph. `children` and `mounts` are independently optional, so a pure feature still creates `const ChildComposition = Child.toComposition()` before authoring its view and calling `ChildComposition.toBlock(...)`. Use the name-only `Block.define('Combobox')` form only for a generic factory that shares definitions before specializing contracts with `.define(...)`.
 
-Split features keep early contracts in `definition.ts`; `composition.ts` owns Bindings, the complete children/Mount registration, the Composition and optional owner-specific ViewBuilder alias. Mount-only features use the same home; shared Mount definitions belong in `mount.ts`, imported by both Composition and view. Substantial policy may move to `composition/<child>.ts`; then `composition/composition.ts` is the single assembly point and `composition/index.ts` is an explicit barrel. A split graphless feature exports its named empty Composition beside the Definition in `definition.ts`; view and `block.ts` import that same value. A compact graphless feature keeps it beside its cohesive implementation. When `composition/` exists, `composition/composition.ts` owns the root graph and imports extracted policies from sibling modules; external consumers import the explicit composition barrel. A compact root without that directory may assemble its graph in `application.ts`. Do not add a childBindings file, duplicate children list, arbitrary Binding categories, or duplicate assembly wrappers. Cohesive generic factories can retain local assembly. Keep substantive behavior in focused files or a folder-named implementation, and complete the feature in `block.ts`. Composition must not import the primary view, update matcher or completed Block. Put policy-dependent pure Steps in leaf modules when needed. Explicit barrels export the completed `block`, contracts and intended domain helpers. Import each extracted Binding policy through its child-name namespace, such as `Home`, so its factory or Binding and parent-owned Commands remain visibly grouped. Keep extracted policy modules under their child-name namespaces even when a module exports only one value. Keep flat named imports for the main Composition assembly surface and straightforward local Bindings. Keep child feature namespaces distinct from parent-owned policy namespaces. Keep the child Block import inside the policy module so assembly can use `Home` for its composition policy.
+Split features keep early contracts in `definition.ts`; `composition.ts` owns Bindings, the complete children/Mount registration, the Composition and optional owner-specific ViewBuilder alias. Mount-only features use the same home; shared Mount definitions belong in `mount.ts`, imported by both Composition and view. Substantial policy may move to `composition/<child>.ts`; then `composition/composition.ts` is the single assembly point and `composition/index.ts` is an explicit barrel. A split graphless feature exports its named empty Composition beside the Definition in `definition.ts`; view and `block.ts` import that same value. A compact graphless feature keeps it beside its cohesive implementation. A split root always uses `composition.ts` or `composition/composition.ts`, including when graphless; the assembly imports extracted policies from sibling modules and never imports root init, update, or view. A genuinely compact root may assemble its graph in its all-in-one `application.ts`. Do not add a childBindings file, duplicate children list, arbitrary Binding categories, or duplicate assembly wrappers. Cohesive generic factories can retain local assembly. Keep substantive behavior in focused files or a folder-named implementation, and complete the feature in `block.ts`. Composition must not import the primary view, update matcher or completed Block. Put policy-dependent pure Steps in leaf modules when needed. Explicit barrels export the completed `block`, contracts and intended domain helpers. Import each extracted Binding policy through its child-name namespace, such as `Home`, so its factory or Binding and parent-owned Commands remain visibly grouped. Keep extracted policy modules under their child-name namespaces even when a module exports only one value. Keep flat named imports for the main Composition assembly surface and straightforward local Bindings. Keep child feature namespaces distinct from parent-owned policy namespaces. Keep the child Block import inside the policy module so assembly can use `Home` for its composition policy.
 
 Declare only intentional parent-driven operations in `expose`. Bindings expose them directly as parent Steps. Forward received child Messages through `binding.fold(model, message)`; do not manufacture child Messages to initiate changes. Select an alternate local handler bundle with `block.replaceEffectsLayer(...)` before binding. A host completes entries listed in `hostHandlers` with `block.provideHandlers(...)` before binding.
 
@@ -535,7 +536,7 @@ Canonical live examples:
 
 - **Always-active keyboard input**: `repos/foldkit/examples/snake/src/application.ts`
 - **Animation-frame-driven game tick**: `repos/foldkit/examples/canvas-art/src/application.ts`
-- **Conditional WebSocket connection** (active only when a session exists): `repos/foldkit/examples/websocket-chat/src/application.ts`
+- **Conditional WebSocket connection** (active only when a session exists): `repos/foldkit/examples/websocket-chat/src/managedResource.ts`
 - **Production multi-stream pattern**: `repos/foldkit/packages/typing-game/client/src/page/room/subscription.ts`
 
 ## View Identity and Keys
@@ -700,7 +701,7 @@ With `toElement`, the runtime does not manage the title or document metadata.
 
 `onUrlRequest` fires when the user clicks a link. The Message receives a `UrlRequest` (a tagged union from the `Navigation` namespace) which you handle in update by matching on its `_tag`. `onUrlChange` fires when the browser URL changes (back/forward buttons); the handler updates the route from the new URL.
 
-For the canonical update-handler shapes (the exact `UrlRequest` tag names, how to dispatch `pushUrl` vs an external load Command, and how to derive the route from a `Url`), see `repos/foldkit/examples/routing/src/application.ts`.
+For the canonical update-handler shapes (the exact `UrlRequest` tag names, how to dispatch `pushUrl` vs an external load Command, and how to derive the route from a `Url`), see `repos/foldkit/examples/routing/src/update.ts`.
 
 ### How to Choose
 

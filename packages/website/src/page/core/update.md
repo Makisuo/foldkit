@@ -10,7 +10,7 @@ Update is pure. Given the same Model and Message, it returns the same result. It
 
 Use `Message.match` to handle the Message union. If you add a Message and omit its branch, TypeScript reports the missing case. No `default` branch silently absorbs a new variant.
 
-Use a `defineTaggedUnion` or `defineRouteUnion` namespace's `match` for exhaustive matching and `matchOrElse` for selected variants with a fallback. Use [Effect's `Match`](https://effect.website/docs/code-style/pattern-matching/) when one handler matches several tags, for Message partial matching, or for unions without their own matcher.
+Use a `defineTaggedUnion` or `defineRouteUnion` namespace's `match` for exhaustive matching and `matchOrElse` for selected variants with a fallback. Use [Effect's `Match`](https://effect.website/docs/code-style/pattern-matching/) when one handler matches several tags, for Message partial matching, or for unions without their own matcher. This excerpt remains in the compact Counter's `application.ts` after its Application declaration.
 
 ::Snippet{name="counterUpdate" label="Using update"}
 

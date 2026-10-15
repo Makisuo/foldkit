@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { postDetails, posts, stats, tabs } from './application'
+import { postDetails, posts, stats, tabs } from './composition'
 import { Application } from './definition'
 import { Message } from './message'
 

@@ -1,7 +1,7 @@
 // view.ts (parent)
 import { Array } from 'effect'
 
-import { ApplicationComposition, commandMenu } from './application'
+import { ApplicationComposition, commandMenu } from './composition'
 
 const MENU_ITEMS: ReadonlyArray<string> = ['Open', 'Rename', 'Archive']
 

@@ -1,7 +1,7 @@
 // ❌ Bad: running the child Step directly and copying selected fields drops
 // the RestoredTheme OutMessage.
 
-// application.ts
+// init.ts
 
 import { Application } from './definition'
 

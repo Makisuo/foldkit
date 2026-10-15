@@ -1,20 +1,10 @@
 import { Array, Option, String } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { ApplicationComposition } from './application'
 import { GenerateTodo, SaveTodos } from './command'
-import { Application } from './definition'
+import { ApplicationComposition } from './composition'
 import { Message } from './message'
-import { EditingState, type Flags, Model, type Todo } from './model'
-
-export const init = Application.init((flags: Flags) => ({
-  model: Model.make({
-    todos: Option.getOrElse(flags.todos, () => []),
-    newTodoText: '',
-    filter: 'All',
-    editing: EditingState.NotEditing(),
-  }),
-}))
+import { EditingState, type Todo } from './model'
 
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {

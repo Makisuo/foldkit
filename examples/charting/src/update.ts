@@ -9,7 +9,7 @@ import {
   periodRadioGroup,
   refetchTelemetry,
   syncChart,
-} from './application'
+} from './composition'
 import { Message } from './message'
 import { TelemetryAsyncData } from './model'
 

@@ -2,7 +2,7 @@ import { DateTime } from 'effect'
 
 import * as Button from '@foldkit/ui/button'
 
-import type { ApplicationViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../composition'
 import { Message } from '../message'
 
 export const formatFetchedAt = (fetchedAt: number): string =>

@@ -1,0 +1,53 @@
+import { Option } from 'effect'
+
+import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
+
+import {
+  GRID_SIZE_RADIO_GROUP_ID,
+  PALETTE_RADIO_GROUP_ID,
+  TOOL_RADIO_GROUP_ID,
+} from './components'
+import {
+  DEFAULT_COLOR_INDEX,
+  DEFAULT_GRID_SIZE,
+  DEFAULT_PALETTE_THEME_INDEX,
+} from './constant'
+import { Application } from './definition'
+import type { Flags } from './flags'
+import { createEmptyGrid } from './grid'
+import { Model } from './model'
+
+export const init = Application.init((flags: Flags) => ({
+  model: Model.make({
+    grid: Option.match(flags.maybeSavedCanvas, {
+      onNone: () => createEmptyGrid(DEFAULT_GRID_SIZE),
+      onSome: ({ grid }) => grid,
+    }),
+    undoStack: [],
+    redoStack: [],
+    selectedColorIndex: Option.match(flags.maybeSavedCanvas, {
+      onNone: () => DEFAULT_COLOR_INDEX,
+      onSome: ({ selectedColorIndex }) => selectedColorIndex,
+    }),
+    gridSize: Option.match(flags.maybeSavedCanvas, {
+      onNone: () => DEFAULT_GRID_SIZE,
+      onSome: ({ gridSize }) => gridSize,
+    }),
+    tool: 'Brush',
+    mirrorMode: 'None',
+    isDrawing: false,
+    maybeHoveredCell: Option.none(),
+    errorDialog: Dialog.init({ id: 'export-error-dialog' }),
+    maybeExportError: Option.none(),
+    paletteThemeIndex: Option.match(flags.maybeSavedCanvas, {
+      onNone: () => DEFAULT_PALETTE_THEME_INDEX,
+      onSome: ({ paletteThemeIndex }) => paletteThemeIndex,
+    }),
+    gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
+    maybePendingGridSize: Option.none(),
+    themeListbox: Listbox.init({ id: 'theme-picker' }),
+    toolRadioGroup: RadioGroup.init({ id: TOOL_RADIO_GROUP_ID }),
+    gridSizeRadioGroup: RadioGroup.init({ id: GRID_SIZE_RADIO_GROUP_ID }),
+    paletteRadioGroup: RadioGroup.init({ id: PALETTE_RADIO_GROUP_ID }),
+  }),
+}))

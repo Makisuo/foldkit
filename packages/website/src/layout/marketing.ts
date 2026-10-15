@@ -93,7 +93,7 @@ const footerView = (currentYear: number): Html =>
           'Built with ',
           ih.a(
             [
-              ih.Href(`${Link.websiteSource}/src/application.ts`),
+              ih.Href(`${Link.websiteSource}/src/composition/composition.ts`),
               ih.Class('link-accent'),
             ],
             ['Foldkit'],

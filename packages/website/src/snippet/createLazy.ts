@@ -3,7 +3,7 @@ import { createLazy } from 'foldkit/html'
 import {
   ApplicationComposition,
   type ApplicationViewBuilder,
-} from './application'
+} from './composition'
 
 // Define the view function at module level for a stable reference.
 // If defined inside the view, a new function is created each render,

@@ -1,6 +1,6 @@
 import { Rule, allValid, makeRules, validate } from 'foldkit/fieldValidation'
 
-import type { Model } from './definition'
+import type { Model } from './model'
 
 const nameRules = makeRules({
   rules: [Rule.minLength(2, 'Name must be at least 2 characters')],

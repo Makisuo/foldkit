@@ -160,6 +160,10 @@ The Flags Effect consumes the session client supplied by that Layer:
 
 ::Snippet{name="layersFlags" label="Flags consuming a service"}
 
+The entry completes the split Application from each implementation owner, then supplies the same Layer to the Application and Flags Effect:
+
+::Snippet{name="layersFlagsEntry" label="Entry resolving Flags"}
+
 If the service Layer fails to build, startup cannot reach init or the first render. There is no Model for a crash view yet. A service used only by one Flags Effect may be private to that Effect when the application should never select or share it. Shared services stay exposed from the root Layer with `Layer.provideMerge` so Flags and handlers receive the same instance.
 
 `ApplicationComposition.toApplication` carries requirements from init, update, Subscriptions, composed Mounts, and ManagedResources. `Runtime.run` requires those requirements to be supplied. A Flags Effect can use a service produced by a Layer passed to `application.provide(layer)`, as shown above.
@@ -172,7 +176,7 @@ An owned Block passes its local handler bundle to `FeatureComposition.toBlock({ 
 
 Do not merge a registered child's bundle a second time. `bindChild` configures the relationship; including the returned Binding in `toComposition({ children })` contributes its recipes for static, optional, and keyed placements. Composition checks the exact handler contracts supplied by the graph and reports a missing or conflicting provider before the Runtime starts.
 
-At the root, `application.ts` shows the complete child/Mount registration and combines root-local handler bundles. A `command.ts` namespace's `Command.EffectsLayer` includes only the Command handlers owned by that module. Registered child Blocks contribute their own handlers recursively through the completed graph; root code does not relist them.
+At a split root, `composition.ts` or `composition/composition.ts` shows the complete child/Mount registration. A `command.ts` namespace's `Command.EffectsLayer` includes only the Command handlers owned by that module. Keep a simple root `EffectsLayer` with those Command definitions in `command.ts`; extract `layer.ts` only when the local Layer composition is substantial or reused. Registered child Blocks contribute their own handlers recursively through the completed graph; root code does not relist them.
 
 There is no flattened, human-readable handler inventory today. To inspect an Application's handlers, follow its registered children into each completed Block and local `EffectsLayer`. Do not maintain a second global list.
 
@@ -180,7 +184,7 @@ At the root, the Application Composition contains the local handlers and compose
 
 When a feature needs a different local handler implementation, choose it with `block.replaceEffectsLayer(localRecipe)` before binding the feature. The replacement preserves the selected descendant recipes and remains passive until application startup. Use the original definitions' `toLayer` methods to retain their protocol and runtime identity. See [Selecting a local handler recipe](/core/block#select-a-local-handler-recipe).
 
-Use `Layer.mergeAll` to combine a feature's local recipes in `EffectsLayer`. A feature may provide a business service it owns beneath that bundle. Leave concrete environment providers as requirements for the root to choose. The composed graph preserves those ordinary service requirements through every parent; the root `ApplicationLayer` supplies them once for the whole runtime. A compact root without `composition/` exports `Application` and `ApplicationComposition` from `application.ts`; when `composition/` exists, `application.ts` exports `Application` and `composition/composition.ts` exports `ApplicationComposition`. Each implementation piece stays with its real owner, and `entry.ts` imports those fields explicitly for `ApplicationComposition.toApplication`. Root `services.ts` composes `ApplicationLayer`, and the entry imports it.
+Use `Layer.mergeAll` to combine a feature's local recipes in `EffectsLayer`. A feature may provide a business service it owns beneath that bundle. Leave concrete environment providers as requirements for the root to choose. The composed graph preserves those ordinary service requirements through every parent; the root `ApplicationLayer` supplies them once for the whole runtime. A compact root exports `Application` and `ApplicationComposition` from its all-in-one `application.ts`. A split root exports `Application` from `definition.ts` and `ApplicationComposition` from `composition.ts` or its composition barrel, with no root `application.ts` aggregation file. Each implementation piece stays with its real owner, and `entry.ts` imports those fields explicitly for `ApplicationComposition.toApplication`. Root `services.ts` composes `ApplicationLayer`, and the entry imports it.
 
 ::Snippet{name="layersMultiple" label="Multiple shared services"}
 

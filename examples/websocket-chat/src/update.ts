@@ -1,13 +1,12 @@
 import { Match, String } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { ApplicationComposition } from './application'
 import {
   SendMessage,
   TimestampReceivedMessage,
   TimestampSentMessage,
 } from './command'
-import { Application } from './definition'
+import { ApplicationComposition } from './composition'
 import { Message } from './message'
 import { ChatMessage, ConnectionState } from './model'
 
@@ -97,11 +96,3 @@ export const update = ApplicationComposition.update((model, message) =>
     },
   }),
 )
-
-export const init = Application.init(() => ({
-  model: {
-    connection: ConnectionState.Disconnected(),
-    messages: [],
-    messageInput: '',
-  },
-}))

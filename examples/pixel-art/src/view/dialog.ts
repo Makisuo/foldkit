@@ -7,7 +7,7 @@ import {
   type ApplicationViewBuilder,
   errorDialog as errorDialogBinding,
   gridSizeConfirmDialog as gridSizeConfirmDialogBinding,
-} from '../application'
+} from '../composition'
 import { Message } from '../message'
 
 const dialogClassName =

@@ -3,7 +3,7 @@ import { AsyncData } from 'foldkit'
 
 import * as Button from '@foldkit/ui/button'
 
-import type { ApplicationViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../composition'
 import type { Post, PostDetail } from '../data'
 import { Message } from '../message'
 import type { Model } from '../model'

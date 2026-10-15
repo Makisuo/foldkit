@@ -1,3 +1,4 @@
+import { Layer } from 'effect'
 import { Duration, Effect, Schema } from 'effect'
 import { load, pushUrl } from 'foldkit/navigation'
 
@@ -57,3 +58,11 @@ export const SaveDraft = Application.command('SaveDraft', {
       )
   },
 })
+
+export const EffectsLayer = Layer.mergeAll(
+  NavigateInternal.layer,
+  LoadExternal.layer,
+  LoadCatalog.layer,
+  LoadPainting.layer,
+  SaveDraft.layer,
+)

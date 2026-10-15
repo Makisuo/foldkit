@@ -1,4 +1,4 @@
-import { settings } from './application'
+import { settings } from './composition'
 import { Application } from './definition'
 import { Message } from './message'
 

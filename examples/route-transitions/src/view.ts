@@ -2,8 +2,8 @@ import { Array, Match, Option } from 'effect'
 import { Html } from 'foldkit/html'
 import { Transition } from 'foldkit/route'
 
-import { ApplicationComposition } from './application'
-import type { ApplicationViewBuilder } from './application'
+import { ApplicationComposition } from './composition'
+import type { ApplicationViewBuilder } from './composition'
 import { type Painting, findPaintingWithIndex, paintings } from './data'
 import { Message } from './message'
 import {

@@ -7,7 +7,7 @@ import type { TabInfo } from '@foldkit/ui/tabs'
 import {
   type ApplicationViewBuilder,
   stepMenu as stepMenuBinding,
-} from '../application'
+} from '../composition'
 import { Step } from '../domain'
 import { type Model } from '../model'
 import * as Icon from './icon'

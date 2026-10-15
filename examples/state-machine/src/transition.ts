@@ -1,23 +1,9 @@
 import { Array, Match, Number, flow } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { RadioGroup } from '@foldkit/ui'
-
-import { Application } from './definition'
 import { checkoutMachine } from './machine'
 import { type Message } from './message'
-import { EDITION_RADIO_GROUP_ID, Model, type TransitionLogEntry } from './model'
-
-export const initialModel = Model.make({
-  checkout: checkoutMachine.initial,
-  editionRadioGroup: RadioGroup.init({ id: EDITION_RADIO_GROUP_ID }),
-  transitionLog: [],
-  nextTransitionLogId: 0,
-})
-
-export const init = Application.init(() => ({
-  model: initialModel,
-}))
+import type { Model, TransitionLogEntry } from './model'
 
 export const TRANSITION_LOG_LIMIT = 20
 

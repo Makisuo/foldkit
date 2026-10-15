@@ -31,3 +31,5 @@ export const subscriptions = Application.subscriptions(entry => ({
     },
   ),
 }))
+
+export const EffectsLayer = subscriptions.statsRefreshTicks.layer

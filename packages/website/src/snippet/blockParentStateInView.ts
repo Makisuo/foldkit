@@ -1,4 +1,4 @@
-import { settings } from './application'
+import { settings } from './composition'
 import { SettingsComposition } from './definition'
 import type { User } from './user'
 

@@ -1,4 +1,4 @@
-import { ApplicationComposition } from './application'
+import { ApplicationComposition } from './composition'
 import { Message } from './message'
 
 // ✅ Keep view pure

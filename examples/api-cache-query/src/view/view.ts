@@ -2,8 +2,11 @@ import { Array, Match, pipe } from 'effect'
 
 import type { RenderInfo } from '@foldkit/ui/tabs'
 
-import { ApplicationComposition, tabs } from '../application'
-import type { ApplicationViewBuilder } from '../application'
+import {
+  ApplicationComposition,
+  type ApplicationViewBuilder,
+  tabs,
+} from '../composition'
 import { type Model, TABS_ID, Tab } from '../model'
 import { postsTabView } from './posts'
 import { statsTabView } from './stats'

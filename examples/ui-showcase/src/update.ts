@@ -3,12 +3,8 @@ import { UrlRequest } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
-import {
-  ApplicationComposition,
-  LoadExternal,
-  NavigateInternal,
-  ui,
-} from './application'
+import { LoadExternal, NavigateInternal } from './command'
+import { ApplicationComposition, ui } from './composition'
 import { Message } from './message'
 import { urlToApplicationRoute } from './route'
 

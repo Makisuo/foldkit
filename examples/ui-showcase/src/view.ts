@@ -4,8 +4,8 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Nav } from '@foldkit/ui'
 
-import { ApplicationComposition, ui } from './application'
-import type { ApplicationViewBuilder } from './application'
+import { ApplicationComposition, ui } from './composition'
+import type { ApplicationViewBuilder } from './composition'
 import * as Icon from './icon'
 import { Message } from './message'
 import { Model } from './model'

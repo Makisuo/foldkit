@@ -1,8 +1,8 @@
 import { Array, Match, Option } from 'effect'
 import { Html } from 'foldkit/html'
 
-import { ApplicationComposition, peoplePage } from './application'
-import type { ApplicationViewBuilder } from './application'
+import { ApplicationComposition, peoplePage } from './composition'
+import type { ApplicationViewBuilder } from './composition'
 import {
   type File,
   type FileTreeEntry,

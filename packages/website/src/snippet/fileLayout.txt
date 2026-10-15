@@ -1,15 +1,16 @@
 src/
-+-- definition.ts          Early Application contract, when imports need it
-+-- application.ts         Root behavior and local EffectsLayer
++-- definition.ts          Early Application contract
 +-- composition/
 |   +-- composition.ts     Complete root graph and ApplicationComposition
 |   +-- index.ts            Explicit root Composition barrel
 |   +-- home.ts             Substantial root-owned Home policy, if needed
 +-- services.ts            ApplicationLayer service providers
-+-- model.ts
-+-- message.ts
-+-- flags.ts
-+-- init.ts
++-- model.ts               Root Model
++-- message.ts             Root Message
++-- flags.ts               Startup Flags, when used
++-- init.ts                Root initialization
++-- command.ts             Root Commands and a small EffectsLayer
++-- layer.ts               Substantial mixed or reused EffectsLayer
 +-- routePolicy.ts          Route policy shared by init and navigation
 +-- update/
 |   +-- index.ts            Explicit barrel
@@ -18,7 +19,7 @@ src/
 +-- view/
 |   +-- index.ts
 |   +-- view.ts             Primary Application view
-+-- entry.ts                Browser completion and Runtime.run
++-- entry.ts                Browser completion, container, and Runtime.run
 +-- story.test.ts
 +-- scene.test.ts
 |

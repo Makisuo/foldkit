@@ -1,4 +1,4 @@
-import { Application } from './application'
+import { Application } from './definition'
 import { Message } from './message'
 import { Model } from './model'
 import * as Room from './room'

@@ -1,4 +1,4 @@
-import { ApplicationComposition } from './application'
+import { ApplicationComposition } from './composition'
 
 // ❌ Don't do this in view
 const view = ApplicationComposition.view((model, h) => {

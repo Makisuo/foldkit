@@ -1,3 +1,3 @@
-import { dialog } from './application'
+import { dialog } from './composition'
 
 export const closeDialog = dialog.close()

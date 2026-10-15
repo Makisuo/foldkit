@@ -16,3 +16,5 @@ export const SubmitApplication = Application.command('SubmitApplication', {
       })
   },
 })
+
+export const EffectsLayer = SubmitApplication.layer

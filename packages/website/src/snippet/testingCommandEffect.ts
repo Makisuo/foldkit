@@ -2,7 +2,7 @@ import { Effect, Layer, Match, String } from 'effect'
 import { HttpClient, HttpClientResponse } from 'effect/http'
 import { expect, test } from 'vitest'
 
-import { FetchWeather } from './application'
+import { FetchWeather } from './command'
 
 test('the FetchWeather handler returns a success Message from HTTP responses', async () => {
   const testClient = HttpClient.make(request =>

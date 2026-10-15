@@ -4,8 +4,8 @@ import { type Html, createLazy } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
-import { ApplicationComposition } from '../application'
-import type { ApplicationViewBuilder } from '../application'
+import { ApplicationComposition } from '../composition'
+import type { ApplicationViewBuilder } from '../composition'
 import { isGridEmpty } from '../grid'
 import { Message } from '../message'
 import type { Model } from '../model'

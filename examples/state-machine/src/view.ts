@@ -1,4 +1,4 @@
-import { ApplicationComposition } from './application'
+import { ApplicationComposition } from './composition'
 import { analysisView } from './view/analysis'
 import { checkoutPanelView, orderSummaryView } from './view/checkout'
 import { pageHeaderView, progressView } from './view/header'

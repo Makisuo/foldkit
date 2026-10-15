@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import type { ApplicationViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../composition'
 import type { Telemetry } from '../domain'
 import { selectedDatumLabel } from '../echarts'
 import type { Model } from '../model'

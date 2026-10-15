@@ -1,6 +1,6 @@
 import { Match } from 'effect'
 
-import { ApplicationComposition, editionRadioGroup } from './application'
+import { ApplicationComposition, editionRadioGroup } from './composition'
 import { stepMachine } from './transition'
 
 export const update = ApplicationComposition.update((model, message) =>

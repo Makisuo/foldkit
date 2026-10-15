@@ -122,6 +122,8 @@ export { default as layersPerCommandHttpRaw } from './layersPerCommandHttp.ts?ra
 export { default as layersPerCommandHttpHighlighted } from './layersPerCommandHttp.ts?highlighted'
 export { default as layersFlagsRaw } from './layersFlags.ts?raw'
 export { default as layersFlagsHighlighted } from './layersFlags.ts?highlighted'
+export { default as layersFlagsEntryRaw } from './layersFlagsEntry.ts?raw'
+export { default as layersFlagsEntryHighlighted } from './layersFlagsEntry.ts?highlighted'
 export { default as managedResourcesDefinitionRaw } from './managedResourcesDefinition.ts?raw'
 export { default as managedResourcesDefinitionHighlighted } from './managedResourcesDefinition.ts?highlighted'
 export { default as managedResourcesRaw } from './managedResources.ts?raw'

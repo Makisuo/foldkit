@@ -1,11 +1,13 @@
 import { Runtime } from 'foldkit'
 
-import { ApplicationComposition, EffectsLayer } from './application'
+import { ApplicationComposition } from './composition'
+import { init } from './init'
+import { EffectsLayer } from './layer'
 import { managedResources } from './managedResource'
 import { Message } from './message'
 import { ApplicationLayer } from './services'
 import { subscriptions } from './subscription'
-import { init, update } from './update'
+import { update } from './update'
 import { view } from './view'
 
 const application = ApplicationComposition.toApplication({

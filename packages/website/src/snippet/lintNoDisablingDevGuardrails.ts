@@ -1,4 +1,7 @@
-import { ApplicationComposition, init, update, view } from './application'
+import { ApplicationComposition } from './composition'
+import { init } from './init'
+import { update } from './update'
+import { view } from './view'
 
 // ❌ Bad
 // Turning off freezeModel silences the dev warning instead of fixing the

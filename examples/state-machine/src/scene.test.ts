@@ -15,8 +15,8 @@ import { RadioGroup } from '@foldkit/ui'
 import { FocusOption } from '@foldkit/ui/radioGroup'
 
 import { PlaceOrder } from './command'
+import { initialModel } from './init'
 import { Message } from './message'
-import { initialModel } from './transition'
 import { update } from './update'
 import { view } from './view'
 

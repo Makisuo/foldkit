@@ -4,11 +4,12 @@ import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import { update } from './application'
 import { products } from './data/products'
-import { Message, type Model } from './definition'
+import { Message } from './message'
+import type { Model } from './model'
 import { Products } from './page'
 import { ApplicationRoute } from './route'
+import { update } from './update'
 
 const apple = { id: '1', name: 'Apple', price: 1.5 }
 const banana = { id: '2', name: 'Banana', price: 0.75 }

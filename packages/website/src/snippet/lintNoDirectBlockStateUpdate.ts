@@ -1,6 +1,6 @@
 import { modifyFields } from 'foldkit/struct'
 
-import { Application } from './application'
+import { Application } from './definition'
 import { Message } from './message'
 import { Model } from './model'
 import * as Settings from './settings'

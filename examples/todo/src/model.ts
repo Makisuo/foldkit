@@ -32,7 +32,3 @@ export const Model = Schema.Struct({
   editing: EditingState,
 })
 export type Model = typeof Model.Type
-export const Flags = Schema.Struct({
-  todos: Schema.Option(Todos),
-})
-export type Flags = typeof Flags.Type

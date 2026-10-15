@@ -2,7 +2,7 @@ import { Schema, String, pipe } from 'effect'
 import { Route } from 'foldkit'
 import { defineRouteUnion, int, literal, slash } from 'foldkit/route'
 
-import { ApplicationComposition } from './application'
+import { ApplicationComposition } from './composition'
 
 // ROUTE
 

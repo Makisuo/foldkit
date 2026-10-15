@@ -1,4 +1,4 @@
-import { ApplicationComposition } from './application'
+import { ApplicationComposition } from './composition'
 
 const view = ApplicationComposition.view((model, h) => {
   const routeContent = ApplicationRoute.match(model.route, {

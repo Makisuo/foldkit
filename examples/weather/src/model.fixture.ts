@@ -1,4 +1,4 @@
-import { type Model, WeatherAsyncData, type WeatherData } from './definition'
+import { type Model, WeatherAsyncData, type WeatherData } from './model'
 
 export const weatherModel: Model = {
   zipCodeInput: '90210',

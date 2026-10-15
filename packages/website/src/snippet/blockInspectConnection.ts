@@ -1,6 +1,6 @@
 import { Block } from 'foldkit'
 
-import { Application } from './application'
+import { Application } from './definition'
 import { Message } from './message'
 import { Model } from './model'
 import { Room } from './page'

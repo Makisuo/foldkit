@@ -1,6 +1,6 @@
 import { Array, Match, pipe } from 'effect'
 
-import { ApplicationComposition, tabs } from '../application'
+import { ApplicationComposition, tabs } from '../composition'
 import { TABS_ID, tabValues } from '../model'
 import { postsTabView } from './posts'
 import { headerView } from './shared'

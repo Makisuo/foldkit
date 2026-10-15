@@ -194,7 +194,9 @@ export const footerView = (
               'Built with ',
               h.a(
                 [
-                  h.Href(`${Link.websiteSource}/src/application.ts`),
+                  h.Href(
+                    `${Link.websiteSource}/src/composition/composition.ts`,
+                  ),
                   h.Class('link-accent'),
                 ],
                 ['Foldkit'],

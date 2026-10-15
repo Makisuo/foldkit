@@ -1,6 +1,6 @@
 import type { TextDirection } from 'foldkit/html'
 
-import { ApplicationComposition } from './application'
+import { ApplicationComposition } from './composition'
 
 // TRANSLATION
 

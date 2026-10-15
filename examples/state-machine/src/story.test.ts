@@ -3,9 +3,10 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
 import { PlaceOrder } from './command'
+import { initialModel } from './init'
 import { Message } from './message'
 import { CheckoutState, type Model, Promo } from './model'
-import { TRANSITION_LOG_LIMIT, initialModel } from './transition'
+import { TRANSITION_LOG_LIMIT } from './transition'
 import { update } from './update'
 
 const maybeLatestTransitionSummary = (model: Model): Option.Option<string> =>

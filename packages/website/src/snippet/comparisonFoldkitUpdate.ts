@@ -1,4 +1,4 @@
-import { Application } from './application'
+import { Application } from './definition'
 
 export const update = Application.update((model, message) =>
   Message.match(message, {

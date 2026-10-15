@@ -1,12 +1,11 @@
-import { Effect } from 'effect'
+// application.ts
+import { Effect, Schema } from 'effect'
 import { defineApplication } from 'foldkit'
 import { Block, Command } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { Model } from './application'
-
-const Application = defineApplication({ Model, Message })
+const Model = Schema.Struct({ count: Schema.Number })
 
 export const Message = defineMessageUnion({
   ClickedResetAfterDelay: {},
@@ -17,6 +16,8 @@ export const Message = defineMessageUnion({
   },
 })
 export type Message = typeof Message.Type
+
+const Application = defineApplication({ Model, Message })
 
 export const WaitBeforeReset = Application.command('WaitBeforeReset', {
   messages: [Message.CompletedWaitBeforeReset],

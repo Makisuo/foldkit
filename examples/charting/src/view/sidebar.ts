@@ -7,7 +7,7 @@ import {
   chartModeRadioGroup,
   packageRadioGroup,
   periodRadioGroup,
-} from '../application'
+} from '../composition'
 import {
   type Telemetry,
   chartModes,

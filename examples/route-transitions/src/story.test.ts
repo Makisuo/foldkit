@@ -5,10 +5,11 @@ import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { LoadCatalog, LoadPainting, SaveDraft } from './command'
+import { init } from './init'
 import { Message } from './message'
 import { Model, PaintingStatus } from './model'
 import { ApplicationRoute } from './route'
-import { init, update } from './update'
+import { update } from './update'
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(

@@ -13,10 +13,11 @@ import {
 } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { update } from './application'
 import { FetchWeather } from './command'
-import { Message, WeatherAsyncData } from './definition'
+import { Message } from './message'
+import { WeatherAsyncData } from './model'
 import { weatherData, weatherModel } from './model.fixture'
+import { update } from './update'
 import { view } from './view'
 
 describe('view', () => {

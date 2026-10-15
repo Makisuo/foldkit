@@ -1,7 +1,9 @@
 import { Array, Effect, Match, Option, Schema, String } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
 
-import { Application, Message, WeatherData } from './definition'
+import { Application } from './definition'
+import { Message } from './message'
+import { WeatherData } from './model'
 
 const GEOCODING_API = 'https://geocoding-api.open-meteo.com/v1/search'
 const WEATHER_API = 'https://api.open-meteo.com/v1/forecast'

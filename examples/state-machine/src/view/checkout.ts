@@ -3,7 +3,7 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { RadioGroup } from '@foldkit/ui'
 
-import type { ApplicationViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../composition'
 import * as Icon from '../icon'
 import { Message } from '../message'
 import { CheckoutState, editionName } from '../model'

@@ -1,5 +1,5 @@
 // view.ts (parent)
-import { ApplicationComposition, settings } from './application'
+import { ApplicationComposition, settings } from './composition'
 
 export const view = ApplicationComposition.view((model, h) => ({
   title: 'My App',

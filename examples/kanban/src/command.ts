@@ -1,4 +1,4 @@
-import { Crypto, Effect, Schema } from 'effect'
+import { Crypto, Effect, Layer, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 import { Dom } from 'foldkit'
 
@@ -50,3 +50,9 @@ export const FocusAddCardInput = Application.command('FocusAddCardInput', {
       )
   },
 })
+
+export const EffectsLayer = Layer.mergeAll(
+  GenerateCardId.layer,
+  SaveBoard.layer,
+  FocusAddCardInput.layer,
+)

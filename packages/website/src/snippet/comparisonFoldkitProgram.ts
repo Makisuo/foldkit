@@ -24,9 +24,11 @@ export const init = Application.init((flags: Flags) => ({
 
 import { Runtime } from 'foldkit'
 
-import { ApplicationComposition, update, view, Flags } from './application'
-import { flags } from './flags'
+import { ApplicationComposition } from './composition'
+import { Flags, flags } from './flags'
 import { init } from './init'
+import { update } from './update'
+import { view } from './view'
 
 const application = ApplicationComposition.toApplication({
   init,

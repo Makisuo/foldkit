@@ -1,34 +1,20 @@
 import { Option, String } from 'effect'
 import { UrlRequest } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
-import { type Url, toString as urlToString } from 'foldkit/url'
+import { toString as urlToString } from 'foldkit/url'
 
+import { LoadExternal, NavigateInternal, ReplaceFilters } from './command'
 import {
   ApplicationComposition,
   dietListbox,
   periodListbox,
-} from './application'
-import { LoadExternal, NavigateInternal, ReplaceFilters } from './command'
-import { Application } from './definition'
+} from './composition'
 import { Message } from './message'
-import { DietListbox, PeriodListbox } from './model'
 import {
   nextSorting,
   routeToBrowseFields,
   urlToApplicationRoute,
 } from './route'
-
-export const init = Application.init((url: Url) => {
-  const route = urlToApplicationRoute(url)
-
-  return {
-    model: {
-      route,
-      dietListbox: DietListbox.init({ id: 'diet-filter' }).model,
-      periodListbox: PeriodListbox.init({ id: 'period-filter' }).model,
-    },
-  }
-})
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),

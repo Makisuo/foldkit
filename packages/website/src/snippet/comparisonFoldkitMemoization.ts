@@ -1,7 +1,7 @@
 import { Array, Option, pipe } from 'effect'
 import { createKeyedLazy, createLazy } from 'foldkit/html'
 
-import { ApplicationComposition } from './application'
+import { ApplicationComposition } from './composition'
 import { isGridEmpty } from './grid'
 import { currentPaletteTheme } from './palette'
 import { canvasView } from './view/canvas'

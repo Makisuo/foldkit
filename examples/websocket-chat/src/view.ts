@@ -3,8 +3,10 @@ import { Html } from 'foldkit/html'
 
 import { Button, Input } from '@foldkit/ui'
 
-import { ApplicationComposition } from './application'
-import type { ApplicationViewBuilder } from './application'
+import {
+  ApplicationComposition,
+  type ApplicationViewBuilder,
+} from './composition'
 import { Message } from './message'
 import { type ChatMessage, ConnectionState } from './model'
 

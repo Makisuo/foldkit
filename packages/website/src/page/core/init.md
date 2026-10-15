@@ -42,7 +42,7 @@ Define the boundary with a Flags Schema. For a fresh client start, also define a
 
 ### Fresh Client Start
 
-In application.ts, create the graphless root with `Application.toComposition()`. The entry imports that Composition and passes the Schema to its owned `toApplication` method as `Flags`. The Counter Application uses the `init` above.
+This compact Counter keeps the graphless root in `application.ts` with its Model, Message, init, update, and view. It creates `ApplicationComposition` with `Application.toComposition()`. The entry imports that Composition and passes the Schema to its owned `toApplication` method as `Flags`.
 
 ::Snippet{name="counterApplicationWithFlags" label="Application configuration with Flags"}
 

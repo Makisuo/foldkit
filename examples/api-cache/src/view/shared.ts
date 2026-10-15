@@ -1,6 +1,6 @@
 import * as Button from '@foldkit/ui/button'
 
-import type { ApplicationViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../composition'
 import type { Message } from '../message'
 
 export const toolbarButtonClassName =

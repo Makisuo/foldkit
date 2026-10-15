@@ -1,5 +1,8 @@
-import { ApplicationComposition, init, update, view } from './application'
+import { ApplicationComposition } from './composition'
+import { init } from './init'
 import { Message } from './message'
+import { update } from './update'
+import { view } from './view'
 ApplicationComposition.toApplication({
   init,
   update,

@@ -1,4 +1,4 @@
-import { Clock, Effect, Random, Schema } from 'effect'
+import { Clock, Effect, Layer, Random, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 
 import { Application } from './definition'
@@ -38,3 +38,5 @@ export const SaveTodos = Application.command('SaveTodos', {
       }).pipe(Effect.catch(() => Effect.succeed(Message.FailedSaveTodos())))
   },
 })
+
+export const EffectsLayer = Layer.mergeAll(GenerateTodo.layer, SaveTodos.layer)

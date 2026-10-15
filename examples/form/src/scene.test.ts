@@ -13,8 +13,10 @@ import {
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import { SubmitForm, ValidateEmail, initialModel, update } from './application'
-import { Message } from './definition'
+import { SubmitForm, ValidateEmail } from './command'
+import { initialModel } from './init'
+import { Message } from './message'
+import { update } from './update'
 import { view } from './view'
 
 describe('view', () => {

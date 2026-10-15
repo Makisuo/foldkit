@@ -2,6 +2,7 @@ import { Array, Match, Option } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { ExportPng, saveCanvas } from './command'
 import {
   ApplicationComposition,
   applyGridSizeChange,
@@ -14,8 +15,7 @@ import {
   selectTool,
   themeListbox,
   toolRadioGroup,
-} from './application'
-import { ExportPng, saveCanvas } from './command'
+} from './composition'
 import {
   createEmptyGrid,
   erasePixels,

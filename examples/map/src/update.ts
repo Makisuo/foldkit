@@ -1,34 +1,19 @@
 import { Array, Equal, Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { ApplicationComposition } from './application'
 import {
   FlyTo,
-  FocusSearchInput,
   Geolocate,
   LockBodyScroll,
   SELECTED_LOCATION_ZOOM,
   USER_LOCATION_ZOOM,
   UnlockBodyScroll,
 } from './command'
-import { Application } from './definition'
-import { type Location, featuredLocations } from './locations'
+import { ApplicationComposition } from './composition'
+import type { Location } from './locations'
 import { Message } from './message'
 import { GeolocateState, type Model } from './model'
 
-export const init = Application.init(() => ({
-  model: {
-    locations: featuredLocations,
-    searchQuery: '',
-    maybeMapHostId: Option.none(),
-    maybeMapError: Option.none(),
-    maybeBounds: Option.none(),
-    maybeSelectedLocationId: Option.none(),
-    maybeUserLocation: Option.none(),
-    geolocateState: GeolocateState.Idle(),
-  },
-  commands: [FocusSearchInput()],
-}))
 const findLocation = (
   model: Model,
   locationId: string,

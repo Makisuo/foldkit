@@ -119,7 +119,7 @@ The direct field form infers the parent Model and child Model relationship for e
 
 Placement identifies one child Binding within the parent's composition graph. It does not identify a DOM position and need not match a Model field. `readAll` selects the general keyed form and defaults placement to the child Block ID. Otherwise every `field` shorthand defaults to that field, including direct and wrapped keyed arrays; a static accessor config defaults to the child Block ID. For keyed Bindings, `key` identifies dynamic occurrences under that one placement. Supply an explicit placement only when sibling defaults collide or an established graph identity must deliberately remain different from the new default.
 
-A split feature without a `composition/` directory uses `composition.ts` for straightforward Bindings, its complete `toComposition({ children, mounts })` registration, Composition and an optional owner-specific ViewBuilder alias. When `composition/` exists, `composition/composition.ts` owns that assembly and `composition/index.ts` exports it. Mount-only features use the same home, with definitions shared with the view in `mount.ts`. Extract a substantial policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. External consumers import from `composition.ts` or that barrel, never from a policy or assembly implementation path. The barrel exports each extracted policy as a child-named namespace, such as `Home` and `Room`. Consumers import `{ Home, Room }` from `./composition`. Keep flat named exports for the main Composition assembly surface and straightforward local Bindings. Name policy factories `bind`, so namespace callers use `Home.bind(...)`. Internal implementation modules may use direct relative sibling imports to avoid barrel cycles. A split graphless feature exports its named empty Composition beside the Definition in `definition.ts`; view and completion import that same value without an empty `composition.ts`. A compact graphless feature keeps it beside its cohesive implementation. When `composition/` exists, `composition/composition.ts` owns the root Bindings and complete graph and imports extracted policies from sibling modules; a compact root without `composition/` keeps that assembly in `application.ts`. `bindChild` only configures the relationship; including its result under `children` registers it. Neither step constructs Layers or starts effects. Import every extracted policy through its child-name namespace, such as `Home` or `Room`, so factories and constructed Binding values remain visibly grouped. Keep flat named imports for the main Composition assembly surface and straightforward local Bindings. Keep child feature namespaces distinct from parent-owned Binding policies.
+A split feature without a `composition/` directory uses `composition.ts` for straightforward Bindings, its complete `toComposition({ children, mounts })` registration, Composition and an optional owner-specific ViewBuilder alias. When `composition/` exists, `composition/composition.ts` owns that assembly and `composition/index.ts` exports it. Mount-only features use the same home, with definitions shared with the view in `mount.ts`. Extract a substantial policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. External consumers import from `composition.ts` or that barrel, never from a policy or assembly implementation path. The barrel exports each extracted policy as a child-named namespace, such as `Home` and `Room`. Consumers import `{ Home, Room }` from `./composition`. Keep flat named exports for the main Composition assembly surface and straightforward local Bindings. Name policy factories `bind`, so namespace callers use `Home.bind(...)`. Internal implementation modules may use direct relative sibling imports to avoid barrel cycles. A split graphless feature exports its named empty Composition beside the Definition in `definition.ts`; view and completion import that same value without an empty `composition.ts`. A compact graphless feature keeps it beside its cohesive implementation. A genuinely compact root keeps Model, Message, init, update, view, `Application`, and `ApplicationComposition` together in `application.ts`. A split root always uses `composition.ts` or `composition/composition.ts`, including when graphless, and removes the emptied `application.ts`. `bindChild` only configures the relationship; including its result under `children` registers it. Neither step constructs Layers or starts effects. Import every extracted policy through its child-name namespace, such as `Home` or `Room`, so factories and constructed Binding values remain visibly grouped. Keep flat named imports for the main Composition assembly surface and straightforward local Bindings. Keep child feature namespaces distinct from parent-owned Binding policies.
 
 The Binding projects `init`, `fold`, `embedView`, and operations selected under `expose`:
 
@@ -303,15 +303,13 @@ import { Model } from './model'
 
 export const Application = defineApplication({ Model, Message })
 
-// application.ts
+// composition.ts
 import type { Block } from 'foldkit'
 
 import { Home } from './page'
 import { Message } from './message'
 import { Application } from './definition'
 import { mounts } from './mount'
-
-export { Application } from './definition'
 
 export const home = Application.bindChild(Home.block, {
   field: 'home',
@@ -331,7 +329,7 @@ Then in the feature's helper module:
 
 ```ts
 import type { Article } from './article'
-import type { ApplicationViewBuilder } from './application'
+import type { ApplicationViewBuilder } from './composition'
 import type { Model } from './model'
 
 export const headerView = (h: ApplicationViewBuilder) =>
@@ -382,17 +380,18 @@ Use `Foo`, `FooComposition`, and `block`. Use `Application`, `ApplicationComposi
 - `definition.ts`: early Model, Message, OutMessage, and Block authoring contracts when split implementation files need them; for a graphless split feature, the named empty Composition also lives here.
 - A folder-named implementation file, such as `workHistory/workHistory.ts`: substantial feature logic that does not warrant separate init/update/command files.
 - `block.ts`: completed feature assembly.
-- `composition.ts`: a split feature without `composition/`, with Bindings, complete child/Mount registration, Composition and optional owner-specific ViewBuilder alias. A substantial policy may use `composition/<child>.ts` with `composition/composition.ts` as assembly and an explicit barrel; external consumers import from the composition barrel rather than either implementation path. Mount-only features use the same home; graphless features need no empty scaffolding.
-- `composition/composition.ts`: when `composition/` exists, the complete root graph, including straightforward Bindings. Import policy siblings directly inside the assembly module; external consumers import the explicit `composition/index.ts` barrel; external consumers do not deep-import `composition/<child>.ts` or `composition/composition.ts`. A compact root without `composition/` keeps this assembly in `application.ts`.
+- `composition.ts`: a split feature without `composition/`, with Bindings, complete child/Mount registration, Composition and optional owner-specific ViewBuilder alias. A substantial policy may use `composition/<child>.ts` with `composition/composition.ts` as assembly and an explicit barrel; external consumers import from the composition barrel rather than either implementation path. Mount-only features use the same home; graphless features need no empty scaffolding. A split root uses `composition.ts` even when graphless.
+- `composition/composition.ts`: the complete root graph when substantial policies need a directory, including straightforward Bindings and OutMessage folds. Import policy siblings directly inside the assembly module; external consumers import the explicit `composition/index.ts` barrel; external consumers do not deep-import `composition/<child>.ts` or `composition/composition.ts`.
 - `entry.ts`: container, startup inputs, completion, and Runtime startup.
 - `services.ts`: root `ApplicationLayer` service providers.
+- `command.ts`: root Command definitions and a small root `EffectsLayer`.
 - `layer.ts`: substantial or reused Layer composition at that directory boundary.
 
-A compact root defines `Application` directly in `application.ts`. When split root Commands, Subscriptions, or child Bindings need that authoring value before Composition assembly, put its early contract in `definition.ts`. Those modules import the contract there; `application.ts` imports and re-exports `Application`. When `composition/` exists, `composition/composition.ts` imports `Application` and exports `ApplicationComposition`; a compact root without `composition/` may export both from `application.ts`. Entry completion still imports each implementation field from its real owner.
+A genuinely compact root defines Model, Message, init, update, view, `Application`, and `ApplicationComposition` together in `application.ts`. Once any root responsibility is extracted, put `Application` in `definition.ts`, the complete graph and `ApplicationComposition` in `composition.ts` or `composition/composition.ts`, and every standard implementation in its named file. Remove the emptied `application.ts` instead of retaining a partial implementation or re-export barrel. Composition imports the Definition and child or Mount declarations, never root init, update, or view. Entry completion imports each implementation field from its real owner.
 
 Keep final completion in `block.ts` when the view imports its Composition from `composition.ts` or, for a split graphless feature, `definition.ts`. The final assembly imports that same Composition and the view, so neither module depends on the completed Block. Do not create one file per API stage. Keep small examples compact. Use explicit barrels for intended feature contracts and import private implementations directly in tests.
 
-`EffectsLayer` supplies implementations of declared Commands, Subscriptions, Mounts, ManagedResources, and Query Fetch Commands. `ApplicationLayer` supplies ordinary Services required by those handlers and startup Effects. Compose a small feature `EffectsLayer` in `block.ts`; use feature `layer.ts` when substantial. Compose root `ApplicationLayer` in `services.ts`, separate from browser startup in `entry.ts`.
+`EffectsLayer` supplies implementations of declared Commands, Subscriptions, Mounts, ManagedResources, and Query Fetch Commands. `ApplicationLayer` supplies ordinary Services required by those handlers and startup Effects. Compose a small feature `EffectsLayer` in `block.ts`; use feature `layer.ts` when substantial. Keep a simple root `EffectsLayer` with its Command definitions in `command.ts`; use root `layer.ts` only when the composition is substantial or reused. Compose root `ApplicationLayer` in `services.ts`, separate from browser startup in `entry.ts`.
 
 ## Complete the root through ApplicationComposition
 
@@ -510,7 +509,7 @@ Server rendering receives the same passive Composition and explicit implementati
 ```ts
 import { Server } from 'foldkit/experimental'
 
-import { ApplicationComposition } from './application'
+import { ApplicationComposition } from './composition'
 import { Flags } from './flags'
 import { init } from './init'
 import { update } from './update'

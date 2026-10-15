@@ -1,12 +1,12 @@
 import { Array, Number, Option, Result } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
+import { GenerateAmbientParticle, GenerateBurstParticle } from './command'
 import {
   ApplicationComposition,
   flowStrengthSlider,
   noiseScaleSlider,
-} from './application'
-import { GenerateAmbientParticle, GenerateBurstParticle } from './command'
+} from './composition'
 import {
   BURST_BOOST_DURATION_MS,
   BURST_HUE_ANCHOR_DRIFT_DEG_PER_SECOND,

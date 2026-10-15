@@ -11,7 +11,7 @@ import {
   paletteRadioGroup as paletteRadioGroupBinding,
   themeListbox as themeListboxBinding,
   toolRadioGroup as toolRadioGroupBinding,
-} from '../application'
+} from '../composition'
 import { EMPTY_COLOR, GRID_SIZE_STRINGS } from '../constant'
 import { Message } from '../message'
 import { type MirrorMode, type PaletteIndex, type Tool } from '../model'

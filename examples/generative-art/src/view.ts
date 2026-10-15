@@ -10,7 +10,7 @@ import {
   type ApplicationViewBuilder,
   flowStrengthSlider,
   noiseScaleSlider,
-} from './application'
+} from './composition'
 import {
   BACKGROUND_COLOR_TOP,
   CANVAS_HEIGHT,

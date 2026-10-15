@@ -1,7 +1,7 @@
 import { Effect } from 'effect'
 import { Server } from 'foldkit/experimental'
 
-import { ApplicationComposition } from './application'
+import { ApplicationComposition } from './composition'
 import { readCountCookie } from './cookie'
 import { Flags } from './flags'
 import { init } from './init'

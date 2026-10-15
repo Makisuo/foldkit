@@ -1,10 +1,10 @@
 import { expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { update } from './application'
-import { Model } from './definition'
 import { Counter } from './island'
+import { Model } from './model'
 import { ApplicationRoute } from './route'
+import { update } from './update'
 import { view } from './view'
 
 const home = Model.make({

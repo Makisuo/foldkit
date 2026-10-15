@@ -33,6 +33,7 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 export const Application = defineApplication({ Model, Message })
+export const ApplicationComposition = Application.toComposition()
 
 // CONSTANTS
 
@@ -116,7 +117,7 @@ const blurbStyle = 'text-sm text-neutral-600 mb-3'
 const rowStyle = 'flex items-center gap-3'
 const stateStyle = 'text-sm text-neutral-700'
 
-export const view = Application.view((model, h) => {
+export const view = ApplicationComposition.view((model, h) => {
   const { div, button, h1, h2, p, code, Class, OnClick } = h
 
   return {

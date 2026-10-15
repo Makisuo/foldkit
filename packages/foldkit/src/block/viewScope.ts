@@ -12,6 +12,7 @@ export const withViewIdentity = <
   View extends (...args: ReadonlyArray<any>) => any,
 >(
   owner: NamedIdentity,
+  mounts: ReadonlyArray<object>,
   children: ReadonlyArray<object>,
   view: View,
 ): View => {
@@ -27,13 +28,21 @@ export const withViewIdentity = <
     }
     if (
       frame.viewIdentity !== undefined &&
+      mounts.some(mount => !frame.viewIdentity!.mounts.includes(mount))
+    ) {
+      throw new Error(
+        '[foldkit] This view uses Mounts that are not registered in its selected Block.',
+      )
+    }
+    if (
+      frame.viewIdentity !== undefined &&
       children.some(child => !frame.viewIdentity!.children.includes(child))
     ) {
       throw new Error(
         '[foldkit] This view uses child bindings that are not registered in its selected Block.',
       )
     }
-    pushFrame({ ...frame, viewIdentity: { owner, children } })
+    pushFrame({ ...frame, viewIdentity: { owner, mounts, children } })
     try {
       return view(...args)
     } finally {

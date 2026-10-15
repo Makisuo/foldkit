@@ -3,10 +3,10 @@ import { modifyFields } from 'foldkit/struct'
 import {
   AttachmentsComposition,
   additionalFilesDrop,
-  init,
   resumeDrop,
-  update,
-} from './attachments'
+} from './composition'
+import { init } from './init'
+import { update } from './update'
 import { view } from './view'
 
 export const block = AttachmentsComposition.toBlock({

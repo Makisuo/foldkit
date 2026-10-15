@@ -1,14 +1,14 @@
 import type { CalendarDate } from 'foldkit/calendar'
 import { modifyFields } from 'foldkit/struct'
 
+import { EffectsLayer } from './command'
 import {
-  EffectsLayer,
   PersonalInfoComposition,
   availableDatePicker,
-  init,
   pronounsListbox,
-  update,
-} from './personalInfo'
+} from './composition'
+import { init } from './init'
+import { update } from './update'
 import { view } from './view'
 
 export const block = PersonalInfoComposition.toBlock({

@@ -1,4 +1,4 @@
-import { dialog } from './childBindings'
+import { dialog } from './composition'
 import { Model, SearchState } from './model'
 
 export const init = () => {

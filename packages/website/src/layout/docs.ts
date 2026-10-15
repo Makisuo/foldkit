@@ -12,7 +12,7 @@ import {
   snippetCopy as snippetCopyBinding,
   snippetDisclosure as snippetDisclosureBinding,
   uiPages,
-} from '../childBindings'
+} from '../application'
 import { type CodeBlock, Shared } from '../component'
 import { pageNeighbors } from '../docsNav'
 import { Icon } from '../icon'

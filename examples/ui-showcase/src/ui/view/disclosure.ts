@@ -4,8 +4,8 @@ import type { Html } from 'foldkit/html'
 import { Disclosure } from '@foldkit/ui'
 
 import * as Icon from '../../icon'
-import { UiComposition } from '../childBindings'
-import type { ViewBuilder } from '../childBindings'
+import { UiComposition } from '../composition'
+import type { ViewBuilder } from '../composition'
 import { Message } from '../message'
 
 const DISCLOSURE_BASIC_DEMO_ID = 'disclosure-basic-demo'

@@ -1,6 +1,5 @@
 // view.ts (parent)
-import { ApplicationComposition } from './application'
-import { settings } from './childBindings'
+import { ApplicationComposition, settings } from './application'
 
 export const view = ApplicationComposition.view((model, h) => ({
   title: 'My App',

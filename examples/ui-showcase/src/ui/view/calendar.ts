@@ -10,8 +10,8 @@ import type {
 } from '@foldkit/ui/calendar'
 
 import * as Icon from '../../icon'
-import { UiComposition, calendarBasicDemo } from '../childBindings'
-import type { ViewBuilder } from '../childBindings'
+import { UiComposition, calendarBasicDemo } from '../composition'
+import type { ViewBuilder } from '../composition'
 
 const containerClassName =
   'inline-flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm select-none min-w-[304px] min-h-[324px]'

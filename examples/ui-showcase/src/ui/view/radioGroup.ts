@@ -6,8 +6,8 @@ import {
   UiComposition,
   horizontalRadioGroupDemo,
   verticalRadioGroupDemo,
-} from '../childBindings'
-import type { ViewBuilder } from '../childBindings'
+} from '../composition'
+import type { ViewBuilder } from '../composition'
 import type { Plan } from '../model'
 
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']

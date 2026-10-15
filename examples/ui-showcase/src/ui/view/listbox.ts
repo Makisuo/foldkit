@@ -10,8 +10,8 @@ import {
   listboxDemo,
   listboxGroupedDemo,
   listboxMultiDemo,
-} from '../childBindings'
-import type { ViewBuilder } from '../childBindings'
+} from '../composition'
+import type { ViewBuilder } from '../composition'
 import type { Character } from '../listbox'
 import type { ListboxItem } from '../model'
 

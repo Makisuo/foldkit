@@ -1,5 +1,5 @@
 import type { LoggedOutRoute } from '../../route'
-import { LoggedOutComposition } from './definition'
+import { LoggedOutComposition } from './composition'
 import { init } from './model'
 import { update } from './update'
 import { view } from './view'

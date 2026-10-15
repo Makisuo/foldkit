@@ -7,7 +7,7 @@ import {
   playground,
   snippetCopy,
   snippetDisclosure,
-} from '../childBindings'
+} from '../application'
 import { Shared } from '../component'
 import { Deployment } from '../deployment'
 import { Docs, Marketing } from '../layout'

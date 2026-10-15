@@ -4,8 +4,8 @@ import type { Html } from 'foldkit/html'
 import type { EntryHandlers, Variant } from '@foldkit/ui/toast'
 
 import * as Icon from '../../icon'
-import { UiComposition, toastDemo } from '../childBindings'
-import type { ViewBuilder } from '../childBindings'
+import { UiComposition, toastDemo } from '../composition'
+import type { ViewBuilder } from '../composition'
 import { Message } from '../message'
 import { Toast } from '../toast'
 

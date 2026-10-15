@@ -2,7 +2,7 @@ import type { Html } from 'foldkit/html'
 
 import type { RenderInfo } from '@foldkit/ui/hoverIntent'
 
-import { UiComposition, hoverIntentDemo } from '../childBindings'
+import { UiComposition, hoverIntentDemo } from '../composition'
 
 const triggerClassName =
   'inline-flex cursor-pointer items-center rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600'

@@ -1,22 +1,11 @@
-import { Layer } from 'effect'
 import { Runtime } from 'foldkit'
 
-import { BrowserKeyValueStore } from '@effect/platform-browser'
-
-import {
-  ApplicationComposition,
-  EffectsLayer,
-  init,
-  update,
-} from './application'
+import { ApplicationComposition, EffectsLayer } from './application'
+import { init } from './init'
 import { Message } from './message'
-import { RoomsClientLayer } from './rpc'
+import { ApplicationLayer } from './services'
+import { update } from './update'
 import { view } from './view'
-
-const ApplicationLayer = Layer.mergeAll(
-  RoomsClientLayer,
-  BrowserKeyValueStore.layerSessionStorage,
-)
 
 const application = ApplicationComposition.toApplication({
   init,

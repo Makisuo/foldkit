@@ -4,8 +4,8 @@ import type { Block } from 'foldkit'
 
 import { DragAndDrop } from '@foldkit/ui'
 
-import { children } from './childBindings'
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
+import { dragAndDrop } from './composition/dragAndDrop'
 import { DEFAULT_COLUMNS, STORAGE_KEY } from './constant'
 import { Application } from './definition'
 import { SavedBoard, SavedBoardJsonString } from './model'
@@ -53,7 +53,7 @@ export const init = (flags: Flags) => {
 }
 
 export const ApplicationComposition = Application.toComposition({
-  children,
+  children: [dragAndDrop],
 })
 
 export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>

@@ -1,17 +1,16 @@
-import { defineApplication } from 'foldkit'
-
+import * as Command from './command'
+import { Application } from './definition'
 import { Message } from './message'
-import { Model } from './model'
 import { Home, Products } from './page'
 
-export const Application = defineApplication({ Model, Message })
+export { Application } from './definition'
 
-const home = Application.bindChild(Home.block, {
+export const home = Application.bindChild(Home.block, {
   field: 'home',
   parentMessage: Message.GotHomeMessage,
 })
 
-const products = Application.bindChild(Products.block, {
+export const products = Application.bindChild(Products.block, {
   field: 'products',
   parentMessage: Message.GotProductsMessage,
 })
@@ -19,3 +18,5 @@ const products = Application.bindChild(Products.block, {
 export const ApplicationComposition = Application.toComposition({
   children: [home, products],
 })
+
+export const EffectsLayer = Command.EffectsLayer

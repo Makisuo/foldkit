@@ -2,7 +2,7 @@ import type { Html } from 'foldkit/html'
 
 import { Textarea } from '@foldkit/ui'
 
-import { UiComposition } from '../childBindings'
+import { UiComposition } from '../composition'
 import { Message } from '../message'
 
 const textareaClassName =

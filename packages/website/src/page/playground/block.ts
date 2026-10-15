@@ -1,6 +1,6 @@
+import { PlaygroundComposition } from './composition'
 import {
   EffectsLayer,
-  PlaygroundComposition,
   informSupport,
   init,
   managedResources,

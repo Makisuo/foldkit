@@ -1,88 +1,136 @@
 # Project Organization
 
-Start a Foldkit application in one module. Split it when a feature becomes easier to understand as its own state machine.
+## Overview
+
+Keep each feature's behavior together and give its registered children and Mounts one visible assembly point. A split feature uses `composition.ts`; the application root uses `application.ts`. Both files put straightforward child Bindings beside the `toComposition` call that registers them.
+
+`bindChild` configures a relationship: Model access, Message mapping, OutMessage handling, and lifecycle policy. It returns passive configuration. Including that Binding in `toComposition({ children })` registers the child. Neither operation constructs Layers or starts effects; the Runtime does that later.
 
 ## Starting Simple
 
-The smallest application keeps Model, Message, init, update, view, and its typed Application definition in `application.ts`. A separate `entry.ts` chooses the browser container and startup inputs, supplies shared services, and starts the Runtime. Tests and server tooling can then import `application.ts` without booting the application or reading browser globals as a side effect.
+The smallest application keeps Model, Message, init, update, view, and its typed Application definition in `application.ts`. A separate `entry.ts` chooses the browser container and startup inputs, supplies shared services, and starts the Runtime. Tests and server tooling can import the application pieces without starting a browser Runtime.
 
-Add `story.test.ts` and `scene.test.ts` beside it. The [Counter example](/example-apps/counter) shows this layout.
+Add `story.test.ts` and `scene.test.ts` beside the behavior they test. The [Counter example](/example-apps/counter) shows a compact root.
+
+A small feature with no children or Mounts can stay in `counter/block.ts`. Keep its empty Composition beside completion rather than creating a separate `composition.ts`:
+
+::Snippet{name="organizationGraphlessBlock" label="Small graphless feature"}
 
 ## File Layout
 
-When one file becomes hard to navigate, separate the root pieces and give each [Block](/core/block) its own feature folder.
+Split a module when separate responsibilities make it easier to navigate. The following structure shows optional homes for those responsibilities; do not create empty files to match it.
 
-::Snippet{name="fileLayout" label="Recommended application structure"}
+::Snippet{name="fileLayout" label="Application and feature file structure"}
 
-### Give Each Feature Its Own Files
+Use standard structural names within each feature: `Model`, `Message`, `OutMessage`, `Flags`, `init`, `update`, `view`, `subscriptions`, `managedResources`, `mounts`, and `EffectsLayer`. The feature namespace supplies context in parent code, such as `Home.Model` and `Home.Message`. Domain Schemas and individual effects retain descriptive names such as `Person`, `FetchPeople`, and `FocusSearchInput`.
 
-Each feature folder owns its Model, Message, update, view, Commands, Subscriptions, Mounts, ManagedResources, handler Layers, and tests. Do not create empty files only to match the diagram. Add a file when the feature has that concern.
+### Early Contracts and Local Effects
 
-In the diagram, `products/catalog.ts` owns the feature's `ProductCatalogLayer` business service. The feature's local `EffectsLayer` provides it beneath the product handlers. Root `environment.ts` owns concrete HTTP, RPC, and browser provider Layers. Root `storage.ts` defines separate `LocalStorage` and `SessionStorage` service tags and binds them to their platform providers. Applications that do not need those concerns omit the files.
+Keep `definition.ts` focused on the early typed Definition and its Model, Message, and OutMessage contracts. Split implementation files import that Definition without loading the completed feature. A compact feature need not extract it.
 
-Keep Commands within the feature whose update returns them. Small features can declare them alongside update; extract a feature-local `command.ts` when several definitions or substantial handlers make a separate file easier to navigate. A feature that fetches its own data owns that Command instead of importing it from a root Command collection. Extract `message.ts` when a Command needs to import its result Message constructors without creating a cycle.
+Commands belong to the feature whose update returns them. Keep small definitions beside update; extract `command.ts` when several definitions or substantial handlers make a separate file useful. Extract `message.ts` when handlers need result constructors and importing the update would create a cycle.
 
-A feature that declares Subscriptions can own `subscription.ts`. Put its early typed authoring value in `definition.ts` when split implementation files need it: `export const Home = Block.define('Home', { Model, Message })`. Produce the completed Home Block in `home/block.ts`, export it as `block` from `home/index.ts`, and export the folder as `Home` from `page/index.ts`. A parent imports that namespace and calls `Parent.bindChild(Home.block, config)`. Including the resulting Binding under `children` adds the child's lifecycle records automatically. See [Defining a Block](/core/block#child-block).
+Put shared local Mount definitions in `mount.ts`. Both Composition and view import them from that module. Defining a Mount inside `view.ts` would make Composition import the view that already imports Composition.
 
-Keep `definition.ts` focused on early Model, Message, OutMessage, and Block authoring contracts. Substantial feature behavior belongs in a folder-named file such as `workHistory/workHistory.ts`, or in focused `init.ts`, `update.ts`, and `command.ts` files when those make navigation easier. The view imports its Composition and Bindings from the implementation. The small final `block.ts` imports both the implementation and view; keeping completion there prevents the implementation from importing the view that already depends on it. Internal contract files can import a child's early contracts without loading its completed barrel. Compact features can stay together; do not create one file per API stage.
+### A Feature with a Child
 
-Keep straightforward parent-owned child Bindings together in `childBindings.ts`. A Binding also owns the parent's integration policy for that child. This includes a custom `write` or `writeAt`, an OutMessage fold whose Step returns parent Commands, and any `FoldContext` lifters that fold uses. When one child's policy becomes substantial, replace the single file with a `childBindings/` directory:
+For a split feature, `composition.ts` owns its child Bindings, complete child and Mount registration lists, and single `FeatureComposition` value. A new straightforward Binding goes immediately beside that `toComposition` call. For example, `dashboard/composition.ts` connects a Counter:
 
-- `childBindings/<child>.ts` owns that child's Binding and parent policy.
-- `childBindings/childBindings.ts` owns the remaining straightforward Bindings and exports the complete `children` tuple with `as const` in composition order.
-- `childBindings/index.ts` is an explicit barrel for the intended individual Bindings and collections.
+::Snippet{name="organizationChildComposition" label="Child Binding and registration"}
 
-Do not divide Bindings into arbitrary groups such as `pages` or `controls`. The files follow the parent policy they own.
+An update can import `counter` to forward its Messages or invoke its exposed operations. The view imports `DashboardComposition`. Including `counter` under `children` also includes the completed child's handler graph and lifecycle declarations.
 
-Use standard structural names within each feature: `Model`, `Message`, `OutMessage`, `Flags`, `init`, `update`, `view`, `subscriptions`, `managedResources`, `mounts`, `EffectsLayer`, and `expose`. The feature namespace supplies context in parent code: `Home.Model` and `Home.Message`. Domain Schemas and individual effects keep descriptive names such as `Person`, `FetchPeople`, and `FocusSearchInput`.
+`block.ts` imports the Composition, init, update, view, and local `EffectsLayer`, then calls `DashboardComposition.toBlock`. Its explicit `index.ts` exports `block`, public contracts, and intentional domain helpers. Internal implementation files do not import their own completed barrel.
 
-Create the canonical owned view with `FeatureComposition.view` or `view.withInputs`. After establishing `FeatureComposition`, export one `type ViewBuilder = Block.HtmlBuilderOf<typeof FeatureComposition>` beside it. Ordinary feature-local view helpers import that alias for their `h` parameter and take only the Model, domain value, or context they actually use. The alias carries the feature's Message type and registered child and Mount capabilities without constructing a runtime builder. Keep the general `HtmlBuilder<Message, Requirements>` type for functions intentionally shared across Compositions.
+### A Feature with Mounts Only
 
-### Split a Feature When It Grows
+A split Mount-only feature also uses `composition.ts`. The Composition assembles capabilities whether or not it has children. For example, `panel/composition.ts` registers the Mount from `panel/mount.ts`:
 
-Split a large feature again only when its own files become difficult to navigate. The [Typing Terminal room source](https://github.com/foldkit/foldkit/tree/main/packages/typing-game/client/src/page/room) has `view/` and `update/` subfolders inside one Room feature.
+::Snippet{name="organizationMountComposition" label="Mount-only Composition"}
 
-## Composing Handler Layers
+The view imports both the Composition and the local Mount definition:
 
-Keep each handler attached to the Command, Subscription, Mount, or ManagedResource definition it implements. Compose `LoadProducts.layer` or `subscriptions.productUpdates.layer` directly in the feature's `EffectsLayer`. Name a standalone binding `LoadProductsLayer` only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly, and name an external alternate `LoadProductsTestLayer`. The handler owns the translation from Foldkit args or dependencies into an Effect or Stream. External clients stay in its Effect requirements.
+::Snippet{name="organizationMountView" label="View using its registered Mount"}
 
-Compose a small local `EffectsLayer` directly in `block.ts`. Extract `layer.ts` when that Layer composition is substantial or independently reused. Pass this local bundle to `HomeComposition.toBlock`; child Bindings contribute their selected handler graphs. A feature may provide business services that it owns while leaving concrete HTTP, storage, RPC, and browser providers open for the application root. Import Effect's module as `Layer`; the bundle has a different name, so no alias is needed.
+Registration grants the view permission to use the Mount. Completion supplies its handler recipe through the local `EffectsLayer`:
 
-Root `application.ts` owns graph assembly through `Application` and `ApplicationComposition`. Small root Bindings can stay there; substantial integration moves to `childBindings.ts` or `childBindings/`. `entry.ts` imports each completion field from its real owner, handles browser startup, selects the container and startup inputs, and calls `Runtime.run`. Keep a small `ApplicationLayer` there; extract `layer.ts` when the provider composition is substantial or reused. Keep substantial Model, Message, update, and view logic in their respective files. This layout keeps application imports from starting a browser Runtime.
+::Snippet{name="organizationMountBlock" label="Mount handler at Block completion"}
 
-Define `Application` directly in `application.ts` for a compact root. When root Commands, Subscriptions, or child Bindings need its helpers before the Composition can be assembled, put the early typed contract in `definition.ts`. Those implementation modules import from `definition.ts`; `application.ts` imports and re-exports `Application`, then exports `ApplicationComposition`. Do not forward unrelated implementation exports through it: `entry.ts` still imports init, update, view, and other completion fields from their owners.
+### Substantial Binding Policy
 
-The feature Layer contains only handlers owned at that boundary. Child Bindings contribute their own graphs, including keyed Bindings.
+A Binding also contains the parent's integration policy for its child. Extract a supporting file when that policy includes substantial OutMessage handling, custom Model writes, or Command lifting. For example, an Editor's Dialog policy may save the draft when the Dialog closes:
 
-::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}
+::Snippet{name="organizationDialogPolicy" label="Extracted Dialog integration policy"}
 
-Products provides `ProductCatalogLayer` privately inside its `EffectsLayer` bundle. The catalog's external dependencies stay open for the root's production or test providers.
+Put that policy in `editor/composition/dialog.ts`. The single assembly point becomes `editor/composition/composition.ts`, with an explicit `composition/index.ts` barrel. Straightforward Bindings remain in the assembly file alongside the complete registrations:
 
-The root Composition receives top-level feature Bindings under `children`, so their handler graphs arrive through composition. The root's local `EffectsLayer` contains only handlers it owns. Keep a small `ApplicationLayer` that chooses concrete service providers in `entry.ts`; extract root `layer.ts` only when that provider composition is substantial or reused.
+::Snippet{name="organizationPolicyComposition" label="Feature assembly with an extracted policy"}
 
-::Snippet{name="applicationRootLayer" label="Root service Layer composition"}
+The directory barrel exports the intended assembly surface explicitly:
 
-`LocalStorageLayer` and `SessionStorageLayer` implement distinct application service tags, so both stores can coexist without changing the platform `KeyValueStore` identity inside either provider. `ApplicationLayer` provides production Services; `ApplicationTestLayer` provides deterministic alternatives beneath the same handler graph carried by the root Application definition.
+::Snippet{name="organizationCompositionBarrel" label="Explicit Composition barrel"}
 
-In this example, the substantial provider composition lives in root `layer.ts`, so the entry imports `ApplicationLayer` with the root Composition and implementation. It completes the Composition with `.toApplication`, calls `application.provide(ApplicationLayer)`, and starts the result. The DOM container, routing callbacks, DevTools configuration, and startup Flags remain visible in `entry.ts`; `application.ts` stays portable for tests and server rendering.
+Do not create arbitrary groups such as pages or controls, a second children list, or a global list of Bindings. At the root, supporting files can use the same `composition/<child>.ts` path, but `application.ts` remains the assembly point; it imports those policies directly.
+
+### Views, Behavior, and Import Direction
+
+Author the primary view through `FeatureComposition.view` or `view.withInputs`. When extracted helpers need its builder type, export `type ViewBuilder = Block.HtmlBuilderOf<typeof FeatureComposition>` beside the Composition. Ordinary view helpers receive that builder and the Model, domain value, or context they use. The alias retains Message, child, and Mount capabilities without constructing anything at runtime. Helpers shared across features can use the general `HtmlBuilder` type.
+
+Keep substantial behavior in `init.ts`, `update.ts`, or a folder-named implementation file such as `workHistory/workHistory.ts`. A substantial `update/` directory uses `index.ts` as its explicit barrel and `update.ts` as the Message matcher. Extract substantial handlers by behavior; keep trivial child forwards and unchanged results in the matcher. The same rule gives a view directory `view/index.ts` and `view/view.ts`.
+
+Dependencies point from contracts to local declarations and policies, then to Composition, view, and completed Block. An update or view can import a Binding from Composition. Composition must not import the update matcher, primary view, or completed Block in return. If child policy needs a parent Step, define the policy beside the Binding or extract the pure operation into a leaf module that does not depend on Composition.
+
+Keep route policy shared by init and navigation outside `update/`, for example in `routePolicy.ts`. `Transition.coldLoad(route)` and `Transition.make(previousRoute, nextRoute)` can share enter, exit, and stay decisions. Keep optional child Models and the choice of init Commands explicit. Browser environment setup, link handling, and scrolling have separate responsibilities.
+
+## Root Application Assembly
+
+`application.ts` owns the complete root child and Mount graph, `ApplicationComposition`, and the root-local handler bundle. Put straightforward root Bindings directly beside the `Application.toComposition` call. Extract substantial policies to files such as `composition/home.ts`; do not add another root `composition.ts` around the assembly.
+
+::Snippet{name="applicationRegistrations" label="Root child graph and local handlers"}
+
+For a compact root, define `Application` there too. When root Commands, Subscriptions, or policies need its helpers before graph assembly, keep the early Definition in `definition.ts`. `application.ts` imports and intentionally re-exports `Application`. Model and Message Schemas remain in their own files when substantial.
+
+Root `services.ts` composes `ApplicationLayer`. The entry imports it and each completion field from its real owner, chooses browser inputs, and invokes the Runtime:
 
 ::Snippet{name="applicationEntryPoint" label="Browser application entry point"}
 
-Adding another handler changes the owning feature's local `EffectsLayer`; changing an environment provider changes the root service Layer. Neither adds another provision step to `entry.ts`. A test root supplies alternate Services beneath the same handler graph, so whole-application execution keeps the real handlers. See [Providing application services](/core/runtime#overview) for the entry code.
+Keep browser container lookup, routing callbacks, DevTools configuration, and startup Flags visible in `entry.ts`. Tests and server entries import the passive Composition and implementation pieces without starting the browser Runtime. Do not collect unrelated root behavior in `root.ts` or aggregate Subscriptions in a vague `lifecycle.ts`; use `subscription.ts` or `subscription/subscription.ts`.
+
+## Composing Handler Layers
+
+Keep canonical handlers attached to their Command, Subscription, Mount, and ManagedResource definitions. Compose attached recipes such as `LoadProducts.layer` in the feature's local `EffectsLayer`. Name a standalone `LoadProductsLayer` only when that individual provider is intentionally public or independently reused, and an external alternative `LoadProductsTestLayer`.
+
+Compose a small local bundle in `block.ts`. Extract `layer.ts` when the composition is substantial or independently reused. Pass the local bundle to `FeatureComposition.toBlock`. A feature can provide business services that it owns while leaving HTTP, storage, RPC, and browser providers open for the root.
+
+::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}
+
+Products supplies `ProductCatalogLayer` beneath its local handlers. The catalog's external dependencies remain requirements of the root's production or test provider.
+
+### Local Handlers and the Complete Graph
+
+A module named `command.ts` exports `Command.EffectsLayer` for the Command handlers owned by that module. At the root, this bundle contains root-owned Commands only. `application.ts` combines it with other root-local handler bundles, such as Subscription handlers.
+
+Registered child Blocks contribute their own selected `EffectsLayer` recursively. Completing the Application includes that transitive handler graph automatically. Do not manually import or relist every child Command at root, and do not merge a registered child's handler bundle a second time.
+
+There is no flattened, human-readable list of every Command Layer in an Application today. To inspect the handlers, follow `ApplicationComposition`'s registered children into each completed Block and its local `EffectsLayer`. Keep that graph as the source of truth rather than maintaining a second global list.
+
+### Ordinary Service Providers
+
+Root `services.ts` chooses concrete HTTP, storage, RPC, and browser providers and exports `ApplicationLayer`:
+
+::Snippet{name="applicationRootLayer" label="Root service Layer composition"}
+
+`LocalStorageLayer` and `SessionStorageLayer` implement distinct application service tags, so both stores coexist. `ApplicationTestLayer` supplies deterministic alternatives beneath the same real handler graph. Adding a feature handler changes its local `EffectsLayer`; changing a provider changes `ApplicationLayer`. Neither requires another provision call in `entry.ts`.
 
 ## Composing Runtime Behavior
 
-Handler Layers and lifecycle declarations have different jobs. A feature's `EffectsLayer` supplies implementations. Its Subscriptions, ManagedResources, and Mounts say which behavior Foldkit manages. The root `Application.toComposition` call collects those graphs through child Bindings while preserving the root's update, step, Subscription, ManagedResource, Command, Mount, and Resource authoring helpers.
+A feature's `EffectsLayer` supplies handlers. Its Subscriptions, ManagedResources, and Mounts declare the lifecycle work Foldkit manages. The root `Application.toComposition` call includes the child graphs through their registered Bindings.
 
-::Snippet{name="applicationRegistrations" label="Root runtime composition"}
+The Binding's storage and Message mapping connect child work to the parent. A direct Option field containing `None`, a false `presentWhen`, or a custom reader returning `None` stops that child's lifecycle work. A keyed Binding creates independent scopes for active keys. The same Binding supplies update folding and `embedView`.
 
-The Binding's storage and Message mapping connect every child lifecycle to the parent. Direct fields use `field` and `parentMessage`; custom relationships use accessors. An Option field containing `None`, a false `presentWhen`, or a custom reader returning `None` stops the child's lifecycle work. A keyed Binding creates independent scopes for every active key. The same Binding also owns update folding and `embedView`, so these channels cannot drift apart.
+Stateful UI components compose in the same way. Include a component Binding in `children` to collect its handlers, lifecycle declarations, and Mount evidence. View-only components need no Binding.
 
-The Application Composition owns `.toApplication` and `.toElement`. `entry.ts` imports that Composition and the portable implementation, adds browser host configuration, supplies `ApplicationLayer`, and starts the application. It does not import feature Commands, Subscription handlers, Mount handlers, ManagedResource handlers, or leaf `EffectsLayer` bundles.
-
-The same propagation applies to stateful UI components. Include a component Binding, such as a bound Combobox, in the parent's `children`; the parent collects its handlers, lifecycle declarations, and Mount evidence. View-only components need no Binding.
-
-When a parent update needs an explicit requirement union, derive each child branch from `Update.RequirementsOf<typeof Child.update>` and include other Command-producing helpers. Do not derive it from `Layer.Success<typeof Child.EffectsLayer>`: a feature effect bundle may also implement Subscriptions, Mounts, or ManagedResources that the update never returns.
+When a parent update needs an explicit requirement union, derive it from the child update and Command-producing helpers. Do not derive update requirements from `Layer.Success<typeof Child.EffectsLayer>`: that bundle may also implement lifecycle handlers the update never requests.
 
 ## Where Tests Live
 

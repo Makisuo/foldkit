@@ -1,9 +1,9 @@
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
+import { UiComposition } from './composition'
 import raw from './datePickerPage.md'
 import * as DatePicker from './demo/datePicker'
-import { UiComposition } from './update'
 
 const { tableOfContents, view: renderPage } = slotDocPage<'basic'>(
   raw,

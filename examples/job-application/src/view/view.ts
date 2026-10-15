@@ -4,9 +4,9 @@ import type { ChildAttribute, Html } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
-import { ApplicationComposition } from '../application'
-import type { ViewBuilder } from '../application'
 import {
+  ApplicationComposition,
+  type ViewBuilder,
   attachments,
   coverLetter,
   education,
@@ -14,7 +14,7 @@ import {
   skills,
   stepTabs,
   workHistory,
-} from '../childBindings'
+} from '../application'
 import { Step } from '../domain'
 import { Message } from '../message'
 import { type Model } from '../model'

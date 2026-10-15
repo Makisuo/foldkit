@@ -6,7 +6,7 @@ import {
   snippetCopy as snippetCopyBinding,
   snippetDisclosure as snippetDisclosureBinding,
   uiPages as uiPagesBinding,
-} from '../childBindings'
+} from '../application'
 import { Shared } from '../component'
 import { Docs } from '../layout'
 import { docPage } from '../markdown'

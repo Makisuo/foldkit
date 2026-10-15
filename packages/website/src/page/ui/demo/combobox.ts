@@ -11,15 +11,15 @@ import {
 
 import { Icon } from '../../../icon'
 import { CityCombobox, CityMultiCombobox } from '../combobox'
-import type { City } from '../model'
 import {
   comboboxDemo,
   comboboxMultiDemo,
   comboboxNullableDemo,
   comboboxPlacementLockDemo,
   comboboxSelectOnFocusDemo,
-} from '../update'
-import type { ViewBuilder } from '../update'
+} from '../composition'
+import type { ViewBuilder } from '../composition'
+import type { City } from '../model'
 
 // DEMO CONTENT
 

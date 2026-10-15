@@ -1,4 +1,4 @@
-import { settings } from './childBindings'
+import { settings } from './application'
 import { Application } from './definition'
 import { Message } from './message'
 

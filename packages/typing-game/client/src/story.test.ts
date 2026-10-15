@@ -4,7 +4,6 @@ import { describe, expect, test } from 'vitest'
 
 import * as Shared from '@typing-game/shared'
 
-import { update } from './application'
 import { Message } from './message'
 import { Model } from './model'
 import { Home, Room } from './page'
@@ -14,6 +13,7 @@ import { StartGame } from './page/room/command'
 import { Message as RoomMessage } from './page/room/message'
 import { RoomAsyncData } from './page/room/model'
 import { ApplicationRoute } from './route'
+import { update } from './update'
 
 const alice = { id: 'p1', username: 'alice' }
 

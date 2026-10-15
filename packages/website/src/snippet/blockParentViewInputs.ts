@@ -1,7 +1,6 @@
 // view.ts (parent)
 
-import { ApplicationComposition } from './application'
-import { commandMenu } from './childBindings'
+import { ApplicationComposition, commandMenu } from './application'
 
 const MENU_ITEMS: ReadonlyArray<string> = ['Open', 'Rename', 'Archive']
 

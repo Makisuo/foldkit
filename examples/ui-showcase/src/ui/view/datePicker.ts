@@ -12,8 +12,8 @@ import { triggerId } from '@foldkit/ui/datePicker'
 import type { AnchorConfig } from '@foldkit/ui/popover'
 
 import * as Icon from '../../icon'
-import { UiComposition, datePickerBasicDemo } from '../childBindings'
-import type { ViewBuilder } from '../childBindings'
+import { UiComposition, datePickerBasicDemo } from '../composition'
+import type { ViewBuilder } from '../composition'
 
 const triggerClassName =
   'inline-flex items-center justify-between gap-2 min-w-48 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'

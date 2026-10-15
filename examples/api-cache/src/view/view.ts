@@ -1,7 +1,6 @@
 import { Array, Match, pipe } from 'effect'
 
-import { ApplicationComposition } from '../application'
-import { tabs } from '../childBindings'
+import { ApplicationComposition, tabs } from '../application'
 import { TABS_ID, tabValues } from '../model'
 import { postsTabView } from './posts'
 import { headerView } from './shared'

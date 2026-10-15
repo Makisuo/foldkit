@@ -3,8 +3,11 @@ import { UrlRequest } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { type Url, toString as urlToString } from 'foldkit/url'
 
-import { ApplicationComposition } from './application'
-import { dietListbox, periodListbox } from './childBindings'
+import {
+  ApplicationComposition,
+  dietListbox,
+  periodListbox,
+} from './application'
 import { LoadExternal, NavigateInternal, ReplaceFilters } from './command'
 import { Message } from './message'
 import { DietListbox, PeriodListbox } from './model'

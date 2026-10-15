@@ -9,7 +9,7 @@ import {
   AttachmentsComposition,
   additionalFilesDrop,
   resumeDrop,
-} from './attachments'
+} from './composition'
 import { Message } from './definition'
 
 const BYTES_PER_KB = 1024

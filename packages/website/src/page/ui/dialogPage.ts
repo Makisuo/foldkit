@@ -1,9 +1,9 @@
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
+import { UiComposition } from './composition'
 import * as Dialog from './demo/dialog'
 import raw from './dialogPage.md'
-import { UiComposition } from './update'
 
 const { tableOfContents, view: renderPage } = slotDocPage<
   'dialog' | 'animated' | 'overlay' | 'nested'

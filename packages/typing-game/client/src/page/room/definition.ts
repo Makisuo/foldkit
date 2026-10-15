@@ -1,10 +1,9 @@
 import { Block } from 'foldkit'
+import type { HtmlBuilder } from 'foldkit/html'
 
 import { Message } from './message'
 import { Model } from './model'
 
 export const Room = Block.define('Room', { Model, Message })
 
-export const RoomComposition = Room.toComposition()
-
-export type ViewBuilder = Block.HtmlBuilderOf<typeof RoomComposition>
+export type ViewBuilder = HtmlBuilder<Message>

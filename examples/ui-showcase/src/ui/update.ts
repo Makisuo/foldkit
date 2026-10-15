@@ -40,7 +40,7 @@ import {
   verticalTabsDemo,
   virtualListDemo,
   virtualListVariableDemo,
-} from './childBindings'
+} from './composition'
 import { Ui } from './definition'
 import { Message } from './message'
 import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './virtualList'

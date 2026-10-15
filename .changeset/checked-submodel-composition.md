@@ -112,7 +112,7 @@ export const ApplicationComposition = Application.toComposition({
 
 The direct field form infers the parent Model and child Model relationship for exact `ChildModel` and `Option<ChildModel>` fields. Both forms keep the field name as their default placement. `None` makes an optional field absent, and a fold or exposed operation never creates it. Add `presentWhen` when parent policy gates that whole direct child. Use explicit `read` and `write` for tagged, nested, or custom storage. Foldkit compares decoded built-in Schema shapes; reuse the same Schema instance for an opaque declaration or keep custom accessors. Use `toParentMessage` for a custom wrapper. Do not pass a redundant Model Schema.
 
-Keep straightforward parent Bindings together in `childBindings.ts`. Small wiring can stay in `application.ts` or the parent `block.ts`. When one child needs substantial parent policy, put that Binding and policy in `childBindings/<child>.ts`. In that layout, `childBindings/childBindings.ts` exports the complete `children` tuple with `as const`, while the explicit `childBindings/index.ts` exports the named Bindings and `children`. Do not divide Bindings into arbitrary groups such as `pages` or `controls`.
+A split feature's `composition.ts` owns straightforward Bindings, its complete `toComposition({ children, mounts })` registration, Composition and optional ViewBuilder. Mount-only features use the same home, with definitions shared with the view in `mount.ts`. Extract a substantial policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. Root `application.ts` owns the root Bindings and complete graph; it imports substantial policies directly. Graphless features can keep the empty Composition beside completion. `bindChild` only configures the relationship; including its result under `children` registers it. Neither step constructs Layers or starts effects.
 
 The Binding projects `init`, `fold`, `embedView`, and operations selected under `expose`:
 
@@ -299,14 +299,20 @@ export const Application = defineApplication({ Model, Message })
 // application.ts
 import type { Block } from 'foldkit'
 
-import { children } from './childBindings'
+import { Home } from './page'
+import { Message } from './message'
 import { Application } from './definition'
 import { mounts } from './mount'
 
 export { Application } from './definition'
 
+export const home = Application.bindChild(Home.block, {
+  field: 'home',
+  parentMessage: Message.GotHomeMessage,
+})
+
 export const ApplicationComposition = Application.toComposition({
-  children,
+  children: [home],
   mounts,
 })
 export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
@@ -340,16 +346,17 @@ Use `Foo`, `FooComposition`, and `block`. Use `Application`, `ApplicationComposi
 - `definition.ts`: early Model, Message, OutMessage, and Block authoring contracts when split implementation files need them.
 - A folder-named implementation file, such as `workHistory/workHistory.ts`: substantial feature logic that does not warrant separate init/update/command files.
 - `block.ts`: completed feature assembly.
-- `childBindings.ts`: straightforward parent-owned child Bindings; use `childBindings/<child>.ts` for an individual substantial policy.
-- `application.ts`: root Application graph, Composition, and cohesive root behavior. Small root Bindings can stay here; extract substantial integration to `childBindings.ts` or `childBindings/`.
-- `entry.ts`: container, startup inputs, root Service providers, and Runtime startup.
+- `composition.ts`: a split feature's Bindings, complete child/Mount registration, Composition and optional ViewBuilder. A substantial policy may use `composition/<child>.ts` with `composition/composition.ts` as assembly and an explicit barrel. Mount-only features use the same home; graphless features need no empty scaffolding.
+- `application.ts`: the complete root graph and local handler assembly, including straightforward Bindings. Import substantial policies directly from `composition/<child>.ts`; no separate root composition wrapper.
+- `entry.ts`: container, startup inputs, completion, and Runtime startup.
+- `services.ts`: root `ApplicationLayer` service providers.
 - `layer.ts`: substantial or reused Layer composition at that directory boundary.
 
 A compact root defines `Application` directly in `application.ts`. When split root Commands, Subscriptions, or child Bindings need that authoring value before Composition assembly, put its early contract in `definition.ts`. Those modules import the contract there; `application.ts` imports and re-exports `Application` and exports `ApplicationComposition`. Entry completion still imports each implementation field from its real owner.
 
-Keep final completion in `block.ts` when the view imports its Composition and Bindings from the implementation. The final assembly imports both modules, so the implementation never needs to import a view that depends on it. Do not create one file per API stage. Keep small examples compact. Use explicit barrels for intended feature contracts and import private implementations directly in tests.
+Keep final completion in `block.ts` when the view imports its Composition and Bindings from `composition.ts`. The final assembly imports both modules, so the implementation never needs to import a view that depends on it. Do not create one file per API stage. Keep small examples compact. Use explicit barrels for intended feature contracts and import private implementations directly in tests.
 
-`EffectsLayer` supplies implementations of declared Commands, Subscriptions, Mounts, ManagedResources, and Query Fetch Commands. `ApplicationLayer` supplies ordinary Services required by those handlers and startup Effects. Compose a small feature `EffectsLayer` in `block.ts`; use feature `layer.ts` when substantial. Keep a small `ApplicationLayer` in `entry.ts`; use root `layer.ts` when substantial or reused. Remove `services.ts` files that only rename or merge a tiny provider bundle.
+`EffectsLayer` supplies implementations of declared Commands, Subscriptions, Mounts, ManagedResources, and Query Fetch Commands. `ApplicationLayer` supplies ordinary Services required by those handlers and startup Effects. Compose a small feature `EffectsLayer` in `block.ts`; use feature `layer.ts` when substantial. Compose root `ApplicationLayer` in `services.ts`, separate from browser startup in `entry.ts`.
 
 ## Complete the root through ApplicationComposition
 

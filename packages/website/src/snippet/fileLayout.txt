@@ -1,49 +1,60 @@
 src/
-+-- entry.ts              Runtime input completion, browser inputs, Runtime.run
-+-- application.ts        Application export, ApplicationComposition, root behavior
-+-- definition.ts         Early Application contract, only when imports need it
-+-- childBindings.ts      Root Bindings and children tuple, when wiring is separate
-+-- layer.ts              Substantial or reused provider composition
-+-- environment.ts        Concrete HTTP, RPC, and browser providers
-+-- storage.ts            LocalStorage and SessionStorage implementations
-+-- flags.ts
++-- definition.ts          Early Application contract, when imports need it
++-- application.ts         Root Bindings, complete registrations, Composition
++-- composition/
+|   +-- home.ts            Substantial root-owned Home policy, if needed
++-- services.ts            ApplicationLayer service providers
 +-- model.ts
 +-- message.ts
++-- flags.ts
 +-- init.ts
-+-- update.ts
-+-- view.ts
++-- routePolicy.ts          Route policy shared by init and navigation
++-- update/
+|   +-- index.ts            Explicit barrel
+|   +-- update.ts           Root Message matcher
+|   +-- changedUrl.ts       Substantial navigation handler
++-- view/
+|   +-- index.ts
+|   +-- view.ts             Primary Application view
++-- entry.ts                Browser completion and Runtime.run
 +-- story.test.ts
 +-- scene.test.ts
 |
 +-- page/
-|   +-- index.ts          Exports Home and Products namespaces
-|   +-- home/
-|   |   +-- index.ts      Explicit public barrel
-|   |   +-- definition.ts Early contracts for split implementation files
-|   |   +-- home.ts       Feature logic, Bindings, and HomeComposition
-|   |   +-- block.ts      Completed Block and small EffectsLayer bundle
-|   |   +-- model.ts
-|   |   +-- message.ts
-|   |   +-- view.ts       Imports HomeComposition from home.ts
-|   |   +-- story.test.ts
-|   |   +-- scene.test.ts
-|   +-- products/
+|   +-- index.ts            Feature namespaces
+|   +-- counter/
+|   |   +-- index.ts        Explicit public barrel
+|   |   +-- block.ts        Small graphless feature and completion
+|   +-- dashboard/
+|   |   +-- index.ts
+|   |   +-- definition.ts   Early Model/Message contract and Definition
+|   |   +-- composition.ts  Bindings, complete registrations, ViewBuilder
+|   |   +-- init.ts
+|   |   +-- update.ts
+|   |   +-- view.ts
+|   |   +-- block.ts        Completed Block and small EffectsLayer
+|   +-- panel/
+|   |   +-- definition.ts
+|   |   +-- mount.ts        Local Mount definitions and handlers
+|   |   +-- composition.ts  Mount-only registration and ViewBuilder
+|   |   +-- view.ts
+|   |   +-- block.ts
+|   |   +-- index.ts
+|   +-- editor/
 |       +-- index.ts
 |       +-- definition.ts
-|       +-- block.ts
-|       +-- childBindings/
-|       |   +-- index.ts          Explicit Binding barrel
-|       |   +-- childBindings.ts Bindings, complete children, Composition, ViewBuilder
-|       |   +-- filters.ts       Substantial parent-owned Filter policy
-|       +-- layer.ts      Substantial or reused handler composition
-|       +-- catalog.ts    ProductCatalog business service and Layer
-|       +-- subscription.ts
+|       +-- composition/
+|       |   +-- index.ts       Explicit barrel
+|       |   +-- composition.ts Bindings, complete registrations, ViewBuilder
+|       |   +-- dialog.ts      Substantial Dialog policy
+|       +-- command.ts
 |       +-- mount.ts
-|       +-- managedResource.ts
+|       +-- init.ts
 |       +-- update.ts
 |       +-- view.ts
+|       +-- layer.ts         Substantial or reused local handler bundle
+|       +-- block.ts
 |
 +-- domain/
-    +-- index.ts          Re-exports domain namespaces
-    +-- cart.ts           Cart Schema and pure operations
-    +-- item.ts           Item Schema and pure operations
+    +-- index.ts             Domain namespaces
+    +-- cart.ts              Cart Schema and pure operations

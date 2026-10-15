@@ -78,9 +78,9 @@ settings/
 └── index.ts         # explicit public barrel
 ```
 
-Keep small features together. Add `subscription.ts`, `mount.ts`, or `managedResource.ts` when that concern makes a separate file easier to navigate. Extract `layer.ts` for substantial or reused Layer composition. Keep straightforward child Bindings together in `childBindings.ts`. When one child needs substantial parent policy, move that policy to `childBindings/<child>.ts`. Once that directory exists, its `childBindings.ts` holds the remaining straightforward Bindings and exports the complete `children` tuple with `as const`; its explicit `index.ts` exports the individual named Bindings and `children`. Do not group Bindings into arbitrary directories such as `pages` or `controls`: the files are organized by the parent policy they own. Keep the Definition separate from the completed feature when implementation files import its helpers. They must not import their own completed barrel: completion depends on those implementation files.
+Keep small features together. In a split feature, `composition.ts` owns child Bindings, the complete `children` and `mounts` lists passed to `toComposition`, the feature's Composition, and its optional `ViewBuilder` alias. A Mount-only feature uses the same file. A graphless feature can keep the empty Composition beside completion in `block.ts`. Extract a substantial child policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. Straightforward Bindings stay beside `toComposition`. Extract `layer.ts` for a substantial or reused local handler bundle.
 
-Keep `definition.ts` focused on early contracts needed by implementation files. Substantial unsplit feature behavior can live in a file named for the folder, such as `workHistory/workHistory.ts`. Retain focused `init.ts`, `update.ts`, and `command.ts` files when they improve navigation. The view imports its Composition and Bindings from the implementation; final `block.ts` imports both. This keeps the dependency graph directed without creating one file per API stage. A root follows the same principle: `application.ts` owns composition and application behavior, `view.ts` owns substantial presentation, and `entry.ts` completes and runs it. Compact examples can keep these pieces together.
+Keep `definition.ts` focused on early contracts needed by implementation files. Substantial behavior belongs in `init.ts`, `update.ts`, or a folder-named implementation file such as `workHistory/workHistory.ts`. Views import their Composition and Bindings from `composition.ts`; final `block.ts` imports Composition and the implementation pieces. Composition must not import the primary view, update matcher, or completed Block. Put shared Mount definitions in `mount.ts` so Composition and view can import them without a cycle. Root `application.ts` assembles its complete graph and root-local handlers; `entry.ts` completes and runs it.
 
 A split root may need an early `definition.ts` so its Commands and child Bindings can import `Application` without loading the Composition that depends on them. Root `application.ts` imports and re-exports that contract and assembles `ApplicationComposition`. See [Project Organization](/patterns/project-organization) for the complete file and barrel conventions.
 
@@ -102,7 +102,7 @@ Placement defaults to `field` for this shorthand and to the child's Block ID for
 
 ::Snippet{name="blockStaticPlacements" label="Binding two static placements"}
 
-Include every Binding in the parent's Composition:
+`bindChild` only configures the parent-child relationship. Register each selected Binding in the parent's Composition; this declaration still constructs no Layers and starts no effects:
 
 ::Snippet{name="blockRegisterChildren" label="Composing child Bindings"}
 
@@ -211,7 +211,7 @@ Build an OutMessage fold directly from the child's exhaustive matcher:
 
 The child does not know who embeds it. The parent decides what the reported fact means at that boundary.
 
-The parent configures integration policy in its child Binding. That policy executes during the pure child fold or exposed operation. The flow is parent update → child fold or operation → parent OutMessage handling → parent result. Keep a substantial policy in a named parent fold beside that child's Binding, moving both to `childBindings/<child>.ts` when the parent has enough Binding code to warrant a directory. An OutMessage fold receives `FoldContext` when it needs to lift a child Command or compare the transition with parent state from before the child update. `modelBeforeUpdate` is that previous parent Model. The Step returned by the fold still receives the parent Model after the next child Model has been written, so policy can deliberately use either side of the transition without reconstructing the fold by hand.
+The parent configures integration policy in its child Binding. That policy executes during the pure child fold or exposed operation. The flow is parent update → child fold or operation → parent OutMessage handling → parent result. Keep a substantial policy in a named parent fold beside that child's Binding, extracting both to `composition/<child>.ts` when the policy becomes substantial. An OutMessage fold receives `FoldContext` when it needs to lift a child Command or compare the transition with parent state from before the child update. `modelBeforeUpdate` is that previous parent Model. The Step returned by the fold still receives the parent Model after the next child Model has been written, so policy can deliberately use either side of the transition without reconstructing the fold by hand.
 
 ## Keyed Collections {#fold-child-at}
 
@@ -268,6 +268,12 @@ Use reflection only for silent synchronization. If the transition should emit Co
 ## Complete the Application
 
 Import `defineApplication` from `foldkit` and export the early typed value as `Application`. Its owned methods author root Commands, updates, Steps, views, and lifecycle declarations. Create `ApplicationComposition` with the root child Bindings and Mounts, then call its `toApplication` or `toElement` in `entry.ts` with explicitly listed implementation pieces and browser inputs. A graphless root still calls `Application.toComposition()`. An Application cannot be bound as a child:
+
+Root `services.ts` supplies the shared store required by the child handler:
+
+::Snippet{name="blockApplicationServices" label="Application settings provider"}
+
+The entry completes and starts the Application:
 
 ::Snippet{name="blockApplicationCompletion" label="Completing the Application"}
 

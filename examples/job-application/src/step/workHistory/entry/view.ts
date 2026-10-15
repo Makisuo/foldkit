@@ -1,12 +1,12 @@
 import { Button } from '@foldkit/ui'
 
 import { DatePicker, Field } from '../../../view'
-import { Message } from './definition'
 import {
   WorkHistoryEntryComposition,
   endDatePicker,
   startDatePicker,
-} from './entry'
+} from './composition'
+import { Message } from './definition'
 
 const ANCHOR = { placement: 'bottom-start' as const, gap: 4, padding: 8 }
 

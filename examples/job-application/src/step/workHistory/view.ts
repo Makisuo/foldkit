@@ -1,7 +1,7 @@
 import { Button } from '@foldkit/ui'
 
+import { WorkHistoryComposition, entries } from './composition'
 import { Message } from './definition'
-import { WorkHistoryComposition, entries } from './workHistory'
 
 export const view = WorkHistoryComposition.view((model, h) =>
   h.div(

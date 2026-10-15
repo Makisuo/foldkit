@@ -9,8 +9,8 @@ import {
   popoverBasicDemo,
   popoverNestedChildDemo,
   popoverNestedParentDemo,
-} from '../childBindings'
-import type { ViewBuilder } from '../childBindings'
+} from '../composition'
+import type { ViewBuilder } from '../composition'
 
 const triggerClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'

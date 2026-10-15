@@ -19,8 +19,8 @@ import { SyncChart } from './command'
 import { Message } from './message'
 import { TelemetryAsyncData } from './model'
 import { loadingModel, readyModel, sampleTelemetry } from './model.fixture'
+import { CHART_HOST_ID, MountChart } from './mount'
 import { update } from './update'
-import { CHART_HOST_ID, MountChart } from './view/chart'
 import { view } from './view/index'
 
 const acknowledgeChartMount = Mount.resolve(

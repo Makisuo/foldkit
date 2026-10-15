@@ -22,7 +22,7 @@ import { Room } from '../definition'
 import { Message } from '../message'
 import { Model, RoomAsyncData } from '../model'
 import { validateUserTextInput } from '../userGameText'
-import { handleRoomUpdated } from './handleRoomUpdates'
+import { handleRoomUpdated } from './handleRoomUpdated'
 
 export const NavigateHome = Room.command('NavigateHome', {
   messages: [Message.CompletedNavigateHome],

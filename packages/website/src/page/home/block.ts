@@ -1,4 +1,4 @@
-import { HomeComposition } from './childBindings'
+import { HomeComposition } from './composition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'

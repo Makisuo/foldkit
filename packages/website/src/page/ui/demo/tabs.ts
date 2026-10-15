@@ -2,9 +2,9 @@ import { Match } from 'effect'
 
 import { Tabs } from '@foldkit/ui'
 
+import { horizontalTabsDemo, verticalTabsDemo } from '../composition'
+import type { ViewBuilder } from '../composition'
 import type { DemoTab } from '../model'
-import { horizontalTabsDemo, verticalTabsDemo } from '../update'
-import type { ViewBuilder } from '../update'
 
 // DEMO CONTENT
 

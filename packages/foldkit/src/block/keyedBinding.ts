@@ -24,7 +24,11 @@ import type {
 import { assertValidBindingOperationNames } from './binding.js'
 import { registerBinding } from './composition.js'
 import { type DefaultViewTypeId, defaultViewOf } from './defaultView.js'
-import { ViewScopeTypeId, hostIdentitiesOf } from './identity.js'
+import {
+  LocalMountsTypeId,
+  ViewScopeTypeId,
+  hostIdentitiesOf,
+} from './identity.js'
 import type { InstanceKey } from './instanceContext.js'
 import {
   assertRegisteredBinding,
@@ -737,7 +741,11 @@ export const bindEach = <const BlockValue extends BindableBlock>(
           placement,
           binding,
           key,
-          identity: { owner: block.owner, children: block.children },
+          identity: {
+            owner: block.owner,
+            mounts: block[LocalMountsTypeId],
+            children: block.children,
+          },
         },
       } as unknown as BoundBlockConfig<View, any>
       return boundConfig

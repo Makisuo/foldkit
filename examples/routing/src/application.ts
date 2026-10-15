@@ -1,10 +1,16 @@
 import { Layer } from 'effect'
 import type { Block } from 'foldkit'
 
-import { peoplePage } from './childBindings'
 import { LoadExternal, NavigateInternal } from './command'
 import { Application } from './definition'
+import { Message } from './message'
+import { People } from './page'
 import { subscriptions } from './subscription'
+
+export const peoplePage = Application.bindChild(People.block, {
+  field: 'peoplePage',
+  parentMessage: Message.GotPeopleMessage,
+})
 
 export const ApplicationComposition = Application.toComposition({
   children: [peoplePage],

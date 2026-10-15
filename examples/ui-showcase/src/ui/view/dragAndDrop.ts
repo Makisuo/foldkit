@@ -13,8 +13,8 @@ import {
   sortable,
 } from '@foldkit/ui/dragAndDrop'
 
-import { UiComposition } from '../childBindings'
-import type { ViewBuilder } from '../childBindings'
+import { UiComposition } from '../composition'
+import type { ViewBuilder } from '../composition'
 import { Message } from '../message'
 import type { DemoCard, DemoColumn } from '../model'
 

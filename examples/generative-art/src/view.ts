@@ -5,8 +5,11 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 import { Button } from '@foldkit/ui'
 import type { ViewInputs as SliderViewInputs } from '@foldkit/ui/slider'
 
-import { ApplicationComposition } from './application'
-import { flowStrengthSlider, noiseScaleSlider } from './childBindings'
+import {
+  ApplicationComposition,
+  flowStrengthSlider,
+  noiseScaleSlider,
+} from './application'
 import {
   BACKGROUND_COLOR_TOP,
   CANVAS_HEIGHT,

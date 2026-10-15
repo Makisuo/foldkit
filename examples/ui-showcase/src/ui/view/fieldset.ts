@@ -2,8 +2,8 @@ import type { Html } from 'foldkit/html'
 
 import { Checkbox, Fieldset, Input, Textarea } from '@foldkit/ui'
 
-import { UiComposition } from '../childBindings'
-import type { ViewBuilder } from '../childBindings'
+import { UiComposition } from '../composition'
+import type { ViewBuilder } from '../composition'
 import { Message } from '../message'
 import type { Model } from '../model'
 

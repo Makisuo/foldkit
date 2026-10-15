@@ -3,14 +3,14 @@ import { childAttributes } from 'foldkit/html'
 
 import { VirtualList } from '@foldkit/ui'
 
-import { Message } from '../message'
-import type { VirtualListChatMessage } from '../model'
 import {
   virtualListChatDemo as virtualListChatDemoBinding,
   virtualListDemo,
   virtualListVariableDemo as virtualListVariableDemoBinding,
-} from '../update'
-import type { ViewBuilder } from '../update'
+} from '../composition'
+import type { ViewBuilder } from '../composition'
+import { Message } from '../message'
+import type { VirtualListChatMessage } from '../model'
 import { type Activity, ROW_COUNT } from './virtualListData'
 
 // SAMPLE DATA

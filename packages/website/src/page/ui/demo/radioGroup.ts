@@ -1,6 +1,9 @@
+import {
+  horizontalRadioGroupDemo,
+  verticalRadioGroupDemo,
+} from '../composition'
+import type { ViewBuilder } from '../composition'
 import { type Model, type Plan } from '../model'
-import { horizontalRadioGroupDemo, verticalRadioGroupDemo } from '../update'
-import type { ViewBuilder } from '../update'
 
 // DEMO CONTENT
 

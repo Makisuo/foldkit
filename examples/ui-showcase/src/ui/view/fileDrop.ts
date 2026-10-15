@@ -4,7 +4,7 @@ import type { Html } from 'foldkit/html'
 
 import type { FileDropAttributes } from '@foldkit/ui/fileDrop'
 
-import { UiComposition, fileDropBasicDemo } from '../childBindings'
+import { UiComposition, fileDropBasicDemo } from '../composition'
 import { Message } from '../message'
 
 const dropZoneClassName =

@@ -12,8 +12,8 @@ import {
   nestedDialogParentDemo,
   overlayComboboxDemo,
   overlayDialogDemo,
-} from '../childBindings'
-import type { ViewBuilder } from '../childBindings'
+} from '../composition'
+import type { ViewBuilder } from '../composition'
 import { Message } from '../message'
 import type { City } from '../model'
 import { comboboxInputs } from './combobox'

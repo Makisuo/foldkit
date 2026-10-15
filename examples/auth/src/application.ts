@@ -2,7 +2,6 @@ import { Effect, Layer, Match, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 import { Url } from 'foldkit/url'
 
-import { loggedIn, loggedOut } from './childBindings'
 import {
   ClearSession,
   LoadExternal,
@@ -13,6 +12,8 @@ import {
   RedirectToLogin,
   SaveSession,
 } from './command'
+import { loggedIn } from './composition/loggedIn'
+import { loggedOut } from './composition/loggedOut'
 import { SESSION_STORAGE_KEY } from './constant'
 import { Application } from './definition'
 import { Session, SessionJsonString } from './domain/session'

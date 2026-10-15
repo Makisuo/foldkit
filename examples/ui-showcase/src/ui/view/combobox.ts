@@ -16,8 +16,8 @@ import {
   comboboxNullableDemo,
   comboboxPlacementLockDemo,
   comboboxSelectOnFocusDemo,
-} from '../childBindings'
-import type { ViewBuilder } from '../childBindings'
+} from '../composition'
+import type { ViewBuilder } from '../composition'
 import type { City } from '../model'
 
 const CITIES: ReadonlyArray<City> = [

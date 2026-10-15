@@ -2,8 +2,8 @@ import { type Html } from 'foldkit/html'
 
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
-import type { ViewBuilder } from '../childBindings'
-import { UiComposition, mobileMenuDialog } from '../childBindings'
+import type { ViewBuilder } from '../composition'
+import { UiComposition, mobileMenuDialog } from '../composition'
 
 export type ViewInputs = Readonly<{
   renderContent: (

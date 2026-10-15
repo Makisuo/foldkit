@@ -295,7 +295,7 @@ Pass this local recipe to `FeatureComposition.toBlock(...)`; `Feature.toComposit
 ```ts
 import { Runtime } from 'foldkit'
 import { ApplicationComposition } from './application'
-import { ApplicationLayer } from './layer'
+import { ApplicationLayer } from './services'
 import { init } from './init'
 import { EffectsLayer, update } from './update'
 import { view } from './view'
@@ -311,7 +311,7 @@ const application = ApplicationComposition.toApplication({
 Runtime.run(application.provide(ApplicationLayer))
 ```
 
-Keep a small `ApplicationLayer` in `entry.ts`; extract root `layer.ts` only when its provider composition is substantial or reused. Tests and server entries import the passive Composition and implementation pieces without selecting a browser container or starting the Runtime. `ApplicationLayer` supplies the ordinary Services still required by the completed application.
+Keep root `ApplicationLayer` composition in `services.ts`; `entry.ts` imports it and starts the completed application. Tests and server entries import the passive Composition and implementation pieces without selecting a browser container or starting the Runtime. `ApplicationLayer` supplies the ordinary Services still required by the completed application.
 
 If an owning module's handler Layers need a business service defined by that module, provide it beneath that module's `EffectsLayer`. Leave concrete HTTP, storage, RPC, and browser requirements open for the application root. The root chooses those providers and uses `Layer.provideMerge` when their outputs must remain available to Flags or another application consumer. Keep handler-by-handler imports out of the entry point. Calls such as `application.provide(firstLayer).provide(secondLayer)` can be chained when one Layer leaves requirements for a later Layer, but a composed `ApplicationLayer` keeps ordinary application wiring at module granularity.
 
@@ -415,7 +415,7 @@ export const block = ChildComposition.toBlock({
 
 Definition establishes contracts and typed authoring helpers. Composition establishes child Bindings and Mount capabilities. Block completion checks the implementation and handler graph. `children` and `mounts` are independently optional, so a pure feature still completes through `Child.toComposition().toBlock(...)`. Use the name-only `Block.define('Combobox')` form only for a generic factory that shares definitions before specializing contracts with `.define(...)`.
 
-Split features put early contracts in `definition.ts` only when implementation files need them, completed assembly and a small local `EffectsLayer` in `block.ts`, straightforward parent Bindings in `childBindings.ts`, and substantial or reused handler Layer composition in `layer.ts`. When one child needs substantial parent policy, put its Binding and policy in `childBindings/<child>.ts`; `childBindings/childBindings.ts` exports the complete `children` tuple with `as const`, and an explicit `childBindings/index.ts` exports the named Bindings and `children`. Do not create arbitrary Binding groups such as `pages` or `controls`. Keep `definition.ts` focused on early contracts. Put substantial unsplit behavior in a folder-named implementation file, such as `workHistory/workHistory.ts`, or retain focused init, update, and command files. Views import their Composition and Bindings from the implementation; the small final `block.ts` imports both. Keep compact features together and avoid one file per API stage. Implementation and view files import early contracts or the folder-named implementation, never the completed feature barrel. An explicit feature `index.ts` exports `block`, Model, Message, OutMessage, and intentional domain helpers; its parent barrel exports `* as Feature from './feature'`.
+Split features keep early contracts in `definition.ts`; `composition.ts` owns Bindings, the complete children/Mount registration, the Composition and optional `ViewBuilder` alias. Mount-only features use the same home; shared Mount definitions belong in `mount.ts`, imported by both Composition and view. Substantial policy may move to `composition/<child>.ts`; then `composition/composition.ts` is the single assembly point and `composition/index.ts` is an explicit barrel. Root `application.ts` owns the full root graph and imports substantial root policies directly. Do not add a childBindings file, duplicate children list, arbitrary Binding categories, or a root composition wrapper. Graphless features keep empty composition beside completion; cohesive generic factories can retain local assembly. Keep substantive behavior in focused files or a folder-named implementation, and complete the feature in `block.ts`. Composition must not import the primary view, update matcher or completed Block. Put policy-dependent pure Steps in leaf modules when needed. Explicit barrels export the completed `block`, contracts and intended domain helpers.
 
 Declare only intentional parent-driven operations in `expose`. Bindings expose them directly as parent Steps. Forward received child Messages through `binding.fold(model, message)`; do not manufacture child Messages to initiate changes. Select an alternate local handler bundle with `block.replaceEffectsLayer(...)` before binding. A host completes entries listed in `hostHandlers` with `block.provideHandlers(...)` before binding.
 
@@ -597,7 +597,7 @@ Use these directly from the `effect` package for non-DOM concerns. No Foldkit wr
 | UUID                  | `yield* Effect.orDie(crypto.randomUUIDv4)` after `const crypto = yield* Crypto.Crypto`; provide `BrowserCrypto.layer` at the application root |
 | Delay                 | `yield* Effect.sleep(Duration.millis(500))`                                                                                                   |
 
-Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`. They compose naturally inside a Command's attached handler. For canonical wiring, see `repos/foldkit/examples/kanban/src/command.ts` (`FocusAddCardInput` wraps `Dom.focus`, `GenerateCardId` requires `Crypto.Crypto`) and `repos/foldkit/examples/kanban/src/entry.ts` (the root supplies `BrowserCrypto.layer`). `repos/foldkit/examples/stopwatch/src/application.ts` shows `Clock.currentTimeMillis` inside an `Effect.gen`.
+Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`. They compose naturally inside a Command's attached handler. For canonical wiring, see `repos/foldkit/examples/kanban/src/command.ts` (`FocusAddCardInput` wraps `Dom.focus`, `GenerateCardId` requires `Crypto.Crypto`), `repos/foldkit/examples/kanban/src/services.ts` (the root composes `BrowserCrypto.layer`), and `repos/foldkit/examples/kanban/src/entry.ts` (the entry supplies `ApplicationLayer`). `repos/foldkit/examples/stopwatch/src/application.ts` shows `Clock.currentTimeMillis` inside an `Effect.gen`.
 
 ## With and Without URL Routing
 

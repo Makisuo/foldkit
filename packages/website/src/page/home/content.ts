@@ -33,7 +33,7 @@ import {
   examples as exampleMetas,
 } from '../example'
 import { exampleAppCount } from '../examples'
-import type { ViewBuilder } from './childBindings'
+import type { ViewBuilder } from './composition'
 
 // CONTENT CONSTANTS
 

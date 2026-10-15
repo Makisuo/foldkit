@@ -1,12 +1,8 @@
 import { modifyFields } from 'foldkit/struct'
 
-import {
-  SkillsEntryComposition,
-  init,
-  proficiencyRadioGroup,
-  proficiencyRadioGroupId,
-  update,
-} from './entry'
+import { SkillsEntryComposition, proficiencyRadioGroup } from './composition'
+import { init, proficiencyRadioGroupId } from './init'
+import { update } from './update'
 import { view } from './view'
 
 export const block = SkillsEntryComposition.toBlock({

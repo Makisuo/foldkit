@@ -1,7 +1,8 @@
 import { Match } from 'effect'
 
 import { ApplicationComposition } from './application'
-import { loggedIn, loggedOut } from './childBindings'
+import { loggedIn } from './composition/loggedIn'
+import { loggedOut } from './composition/loggedOut'
 import { Model } from './model'
 
 const title = (model: Model): string =>

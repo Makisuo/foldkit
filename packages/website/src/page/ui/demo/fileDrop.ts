@@ -2,10 +2,10 @@ import { Array } from 'effect'
 import { File } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
+import { fileDropBasicDemo } from '../composition'
+import type { ViewBuilder } from '../composition'
 import { Message } from '../message'
 import type { Model } from '../model'
-import { fileDropBasicDemo } from '../update'
-import type { ViewBuilder } from '../update'
 
 // DEMO CONTENT
 

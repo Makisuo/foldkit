@@ -5,8 +5,8 @@ import { Menu } from '@foldkit/ui'
 import { type AnchorConfig, buttonId } from '@foldkit/ui/menu'
 
 import { Icon } from '../../../icon'
-import { menuAnimatedDemo, menuBasicDemo } from '../update'
-import type { ViewBuilder } from '../update'
+import { menuAnimatedDemo, menuBasicDemo } from '../composition'
+import type { ViewBuilder } from '../composition'
 import { type MenuItem } from './components'
 
 // DEMO CONTENT

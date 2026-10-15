@@ -1,8 +1,8 @@
 import { Animation } from '@foldkit/ui'
 
+import { animationDemo } from '../composition'
+import type { ViewBuilder } from '../composition'
 import { Message } from '../message'
-import { animationDemo } from '../update'
-import type { ViewBuilder } from '../update'
 
 // DEMO CONTENT
 

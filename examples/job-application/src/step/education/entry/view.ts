@@ -5,8 +5,8 @@ import { type CalendarDate } from 'foldkit/calendar'
 import { Button } from '@foldkit/ui'
 
 import { Field, Icon } from '../../../view'
+import { EducationEntryComposition, graduationYearListbox } from './composition'
 import { Message } from './definition'
-import { EducationEntryComposition, graduationYearListbox } from './entry'
 
 const GRADUATION_YEAR_WINDOW_SIZE = 30
 const GRADUATION_YEAR_FORWARD_OFFSET = 6

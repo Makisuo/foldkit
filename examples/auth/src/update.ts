@@ -4,7 +4,6 @@ import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
 import { ApplicationComposition } from './application'
-import { loggedIn, loggedOut } from './childBindings'
 import {
   LoadExternal,
   LogError,
@@ -12,6 +11,8 @@ import {
   RedirectToDashboard,
   RedirectToLogin,
 } from './command'
+import { loggedIn } from './composition/loggedIn'
+import { loggedOut } from './composition/loggedOut'
 import { Message } from './message'
 import { urlToApplicationRoute } from './route'
 

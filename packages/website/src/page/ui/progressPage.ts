@@ -1,9 +1,9 @@
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
+import { UiComposition } from './composition'
 import * as Progress from './demo/progress'
 import raw from './progressPage.md'
-import { UiComposition } from './update'
 
 const { tableOfContents, view: renderPage } = slotDocPage<
   'basic' | 'indeterminate'

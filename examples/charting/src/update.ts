@@ -2,14 +2,14 @@ import { Option, Result } from 'effect'
 import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { ApplicationComposition } from './application'
 import {
+  ApplicationComposition,
   chartModeRadioGroup,
   packageRadioGroup,
   periodRadioGroup,
   refetchTelemetry,
   syncChart,
-} from './childBindings'
+} from './application'
 import { Message } from './message'
 import { TelemetryAsyncData } from './model'
 

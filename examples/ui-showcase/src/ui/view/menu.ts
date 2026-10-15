@@ -4,12 +4,8 @@ import { type Html, childAttributes } from 'foldkit/html'
 import { type GroupHeading, buttonId } from '@foldkit/ui/menu'
 
 import * as Icon from '../../icon'
-import {
-  UiComposition,
-  menuAnimatedDemo,
-  menuBasicDemo,
-} from '../childBindings'
-import type { ViewBuilder } from '../childBindings'
+import { UiComposition, menuAnimatedDemo, menuBasicDemo } from '../composition'
+import type { ViewBuilder } from '../composition'
 import type { MenuItem } from '../menu'
 
 const triggerClassName =

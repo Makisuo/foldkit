@@ -12,7 +12,7 @@ import {
   String,
   pipe,
 } from 'effect'
-import { Block, FieldValidation, Update } from 'foldkit'
+import { FieldValidation, Update } from 'foldkit'
 import { Html, inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
 import notePlayerDemoCodeHtml from 'virtual:note-player-demo-code'
@@ -22,16 +22,21 @@ import { Button, Input } from '@foldkit/ui'
 import { Icon } from '../../../icon'
 import * as DemoView from '../../demoView'
 import {
+  NotePlayerDemoComposition,
+  type ViewBuilder,
+  noteDurationRadioGroup,
+} from './composition'
+import {
   AudioState,
   Message,
   Model,
   Note,
   NoteDuration,
-  NoteDurationRadioGroup,
   NoteHighlightPhase,
   NotePlayerDemo,
   PlaybackState,
 } from './definition'
+import { prependToLog } from './messageLog'
 
 // CONSTANTS
 
@@ -55,7 +60,6 @@ const GAIN_ATTACK_TIME = 0.01
 const GAIN_RELEASE_TIME = 0.02
 const GAIN_NEAR_SILENT = 0.001
 const PHASE_DURATION: Duration.Input = '150 millis'
-const MAX_LOG_ENTRIES = 50
 const MIN_NOTES = 2
 const MAX_NOTES = 8
 const NOTE_DURATION_RADIO_GROUP_ID = 'note-duration'
@@ -113,11 +117,6 @@ export const init = () => {
   }
 }
 
-const prependToLog =
-  (entry: string) =>
-  (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
-    Array.take([entry, ...messageLog], MAX_LOG_ENTRIES)
-
 const DelayAdvanceNotePlayerPhase = NotePlayerDemo.command(
   'DelayAdvanceNotePlayerPhase',
   {
@@ -157,36 +156,6 @@ const enterNoteCommandPhase = (
     }),
   ],
 })
-
-const foldNoteDurationRadioGroupOutMessage =
-  NoteDurationRadioGroup.OutMessage.match<
-    Update.Step<Model, Message>,
-    typeof NoteDurationRadioGroup.OutMessage.Type
-  >({
-    Selected:
-      ({ value }) =>
-      model => ({
-        model: modifyFields(model, {
-          noteDuration: () => value,
-          messageLog: prependToLog(`Selected(${value})`),
-        }),
-      }),
-  })
-
-const noteDurationRadioGroup = NotePlayerDemo.bindChild(
-  NoteDurationRadioGroup,
-  {
-    field: 'noteDurationRadioGroup',
-    parentMessage: Message.GotNoteDurationMessage,
-    outMessage: { fold: foldNoteDurationRadioGroupOutMessage },
-  },
-)
-
-export const NotePlayerDemoComposition = NotePlayerDemo.toComposition({
-  children: [noteDurationRadioGroup],
-})
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof NotePlayerDemoComposition>
 
 export const update = NotePlayerDemo.update((model, message) =>
   Message.match(message, {

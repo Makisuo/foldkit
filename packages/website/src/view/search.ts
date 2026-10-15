@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { Html } from 'foldkit/html'
 
 import type { ViewBuilder } from '../application'
-import { search } from '../childBindings'
+import { search } from '../application'
 import { Icon } from '../icon'
 import { Message } from '../message'
 import { type Model } from '../model'

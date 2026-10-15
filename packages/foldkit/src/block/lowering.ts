@@ -5,7 +5,12 @@ import type { BindableBlock } from './binding.js'
 import { runtimeBindingOf } from './composition.js'
 import { requireDefaultView } from './defaultView.js'
 import type { AnyBlock } from './definition.js'
-import { copyIdentity, definitionsOf, hostIdentitiesOf } from './identity.js'
+import {
+  LocalMountsTypeId,
+  copyIdentity,
+  definitionsOf,
+  hostIdentitiesOf,
+} from './identity.js'
 import { withOperationGraph } from './operationGraph.js'
 import {
   qualifyCommand,
@@ -81,6 +86,7 @@ export const lowerBlock = (
       ),
     view: scopeView(segment, requireDefaultView(block), {
       owner: block.owner,
+      mounts: block[LocalMountsTypeId],
       children: block.children,
     }),
     mounts: block.mounts,

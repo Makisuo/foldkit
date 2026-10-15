@@ -4,7 +4,7 @@ import { Message as ProfileMessage } from './definition'
 import {
   ProfileComposition,
   type ViewBuilder as ImportedViewBuilder,
-} from './profile'
+} from './composition'
 
 const Message = ProfileMessage
 

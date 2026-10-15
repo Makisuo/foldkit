@@ -24,11 +24,15 @@ Define the boundary with a Flags Schema. For a fresh client boot, also define an
 
 ### Fresh Client Boot
 
-In the entry, create the graphless root with `Application.toComposition()`, then pass the Schema to the Composition's owned `toApplication` method as `Flags`. The Counter Application uses the `init` above.
+In application.ts, create the graphless root with `Application.toComposition()`. The entry imports that Composition and passes the Schema to its owned `toApplication` method as `Flags`. The Counter Application uses the `init` above.
 
 ::Snippet{name="counterApplicationWithFlags" label="Application configuration with Flags"}
 
-The entry defines this one small provider beside application startup, chooses the container and passes the Flags Effect to `Runtime.run`. The runtime resolves the Effect before calling `init`. If the configuration omits the Schema, `init` takes no Flags argument and the compiler rejects mismatched wiring.
+Define the browser storage provider in `services.ts`:
+
+::Snippet{name="counterServices" label="Application storage provider"}
+
+The entry imports `ApplicationLayer`, chooses the container and passes the Flags Effect to `Runtime.run`. The runtime resolves the Effect before calling `init`. If the configuration omits the Schema, `init` takes no Flags argument and the compiler rejects mismatched wiring.
 
 ::Snippet{name="counterEntryWithFlags" label="Flags wiring"}
 

@@ -2,7 +2,7 @@ import type { Html } from 'foldkit/html'
 
 import { Meter } from '@foldkit/ui'
 
-import { UiComposition } from '../childBindings'
+import { UiComposition } from '../composition'
 import type { Message } from '../message'
 
 const rowClassName = 'flex flex-col gap-2 w-full max-w-sm'

@@ -31,6 +31,11 @@ const blockHostIdentities = new WeakMap<
 const handlerKeys = new Set<string>()
 const resourceKeys = new Set<string>()
 
+/** Property key retaining the Mount definitions owned directly by a Block.
+ * Composition uses it to distinguish local registrations from descendant
+ * Mounts collected through child Bindings. */
+export const LocalMountsTypeId = Symbol('foldkit/Block/LocalMounts')
+
 /** @internal Preserves an operation's definition identity through Message lifts. */
 export const InvocationIdentityTypeId = Symbol('foldkit/Operation/Identity')
 
@@ -51,6 +56,7 @@ export type ViewScope = Readonly<{
 /** @internal The graph declared by the Block authoring a view. */
 export type ViewIdentity = Readonly<{
   owner: NamedIdentity
+  mounts: ReadonlyArray<object>
   children: ReadonlyArray<object>
 }>
 

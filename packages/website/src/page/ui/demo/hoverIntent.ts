@@ -3,12 +3,12 @@ import type { Html } from 'foldkit/html'
 import { HoverIntent } from '@foldkit/ui'
 import type { RenderInfo as HoverIntentRenderInfo } from '@foldkit/ui/hoverIntent'
 
-import { Message } from '../message'
 import {
   hoverIntentCardDemo as hoverIntentCardDemoBinding,
   hoverIntentMenuDemo as hoverIntentMenuDemoBinding,
-} from '../update'
-import type { ViewBuilder } from '../update'
+} from '../composition'
+import type { ViewBuilder } from '../composition'
+import { Message } from '../message'
 
 const triggerClassName =
   'button-accent inline-flex cursor-pointer items-center rounded-lg px-4 py-2 text-sm shadow-sm'

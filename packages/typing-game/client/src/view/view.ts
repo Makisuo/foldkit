@@ -1,8 +1,12 @@
 import { Option } from 'effect'
 import { Html } from 'foldkit/html'
 
-import { ApplicationComposition, type ViewBuilder } from '../application'
-import { home, room } from '../childBindings'
+import {
+  ApplicationComposition,
+  type ViewBuilder,
+  home,
+  room,
+} from '../application'
 import { Model } from '../model'
 import { ApplicationRoute } from '../route'
 

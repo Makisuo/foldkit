@@ -4,9 +4,9 @@ import type { Html } from 'foldkit/html'
 import type { EntryHandlers, Variant } from '@foldkit/ui/toast'
 
 import { Icon } from '../../../icon'
+import { toastDemo } from '../composition'
+import type { ViewBuilder } from '../composition'
 import { Message } from '../message'
-import { toastDemo } from '../update'
-import type { ViewBuilder } from '../update'
 import { Toast } from './toastModule'
 
 type Model = typeof Toast.Model.Type

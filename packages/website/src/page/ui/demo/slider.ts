@@ -1,7 +1,7 @@
 import { Slider } from '@foldkit/ui'
 
-import { sliderRatingDemo, sliderVolumeDemo } from '../update'
-import type { ViewBuilder } from '../update'
+import { sliderRatingDemo, sliderVolumeDemo } from '../composition'
+import type { ViewBuilder } from '../composition'
 
 // SHARED STYLES
 

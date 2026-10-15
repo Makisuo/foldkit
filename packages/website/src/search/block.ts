@@ -1,4 +1,4 @@
-import { SearchComposition } from './childBindings'
+import { SearchComposition } from './composition'
 import { init } from './init'
 import { EffectsLayer } from './layer'
 import { informRouteChanged, open, update } from './update'

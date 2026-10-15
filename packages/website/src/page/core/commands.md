@@ -112,11 +112,15 @@ This tutorial names the individual provider `FetchCountLayer` because the direct
 
 ### Providing the HTTP Client
 
-Supply the HTTP provider at the application root:
+Define the HTTP provider in root `services.ts`:
+
+::Snippet{name="commandHttpServices" label="Application HTTP provider"}
+
+The entry imports that provider:
 
 ::Snippet{name="commandHttpLayer" label="Providing the HTTP service"}
 
-The graphless root passes `FetchCountLayer` to `ApplicationComposition.toApplication` as its local `EffectsLayer`. Its remaining `HttpClient` requirement reaches the entry, where `ApplicationLayer` supplies `Http.layer`. `application.provide(ApplicationLayer)` satisfies that ordinary Service requirement, and `Runtime.run` requires a runnable application.
+The graphless root passes `FetchCountLayer` to `ApplicationComposition.toApplication` as its local `EffectsLayer`. Its remaining `HttpClient` requirement is supplied by `ApplicationLayer` from `services.ts`. `application.provide(ApplicationLayer)` satisfies that ordinary Service requirement, and `Runtime.run` requires a runnable application.
 
 `Http.layer` is Foldkit's Fetch-backed client. The [Http guide](/core/http) explains its browser tracing defaults and customization. Keep the concrete provider at the root so the application and execution tests can select it, and so Commands share the same client.
 

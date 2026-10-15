@@ -6,7 +6,7 @@ import {
   UiComposition,
   sliderRatingDemo,
   sliderVolumeDemo,
-} from '../childBindings'
+} from '../composition'
 
 const horizontalRowClassName = 'flex flex-col gap-2 w-full max-w-sm'
 

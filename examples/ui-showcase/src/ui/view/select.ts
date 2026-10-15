@@ -3,7 +3,7 @@ import type { Html } from 'foldkit/html'
 import { Select } from '@foldkit/ui'
 
 import * as Icon from '../../icon'
-import { UiComposition } from '../childBindings'
+import { UiComposition } from '../composition'
 import { Message } from '../message'
 
 const selectClassName =

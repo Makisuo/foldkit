@@ -4,9 +4,9 @@ import { triggerId } from '@foldkit/ui/datePicker'
 import type { AnchorConfig } from '@foldkit/ui/popover'
 
 import { Icon } from '../../../icon'
+import { datePickerBasicDemo } from '../composition'
+import type { ViewBuilder } from '../composition'
 import type { Model } from '../model'
-import { datePickerBasicDemo } from '../update'
-import type { ViewBuilder } from '../update'
 import { calendarView } from './calendarView'
 
 // DEMO CONTENT

@@ -2,12 +2,12 @@ import clsx from 'clsx'
 import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import type { ViewBuilder } from '../application'
 import {
+  type ViewBuilder,
   chartModeRadioGroup,
   packageRadioGroup,
   periodRadioGroup,
-} from '../childBindings'
+} from '../application'
 import {
   type Telemetry,
   chartModes,

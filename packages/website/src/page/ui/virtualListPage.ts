@@ -1,8 +1,8 @@
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
+import { UiComposition } from './composition'
 import * as VirtualList from './demo/virtualList'
-import { UiComposition } from './update'
 import raw from './virtualListPage.md'
 
 const { tableOfContents, view: renderPage } = slotDocPage<

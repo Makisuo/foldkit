@@ -23,9 +23,8 @@ import {
   demoTabs,
   notePlayerDemo,
   playgroundMenu,
-} from './childBindings'
-import { HomeComposition } from './childBindings'
-import type { ViewBuilder } from './childBindings'
+} from './composition'
+import { HomeComposition, type ViewBuilder } from './composition'
 import { contentView } from './content'
 import * as DemoTab from './demoTab'
 import * as NotePlayerDemo from './notePlayerDemo'

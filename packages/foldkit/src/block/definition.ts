@@ -43,6 +43,7 @@ import {
 import { type DefaultViewTypeId, registerDefaultView } from './defaultView.js'
 import {
   type DefinitionIdentity,
+  LocalMountsTypeId,
   identityOf,
   registerBlockHostIdentities,
   registerDefinition,
@@ -83,10 +84,7 @@ type ValidateHandlerConstruction<
 /** @internal Identifies the local Layer recipe before child aggregation. */
 export const LocalEffectsLayerTypeId = Symbol('foldkit/Block/LocalEffectsLayer')
 
-/** Property key retaining the Mount definitions owned directly by a Block.
- * Composition uses it to distinguish local registrations from descendant
- * Mounts collected through child Bindings. */
-export const LocalMountsTypeId = Symbol('foldkit/Block/LocalMounts')
+export { LocalMountsTypeId } from './identity.js'
 
 type LocalChannels = Readonly<{
   subscriptions: Subscription.Subscriptions<any, any, any>
@@ -2800,6 +2798,7 @@ const makeDefineView = <
   RequiredViewRequirements,
 >(
   owner: OwnerValue,
+  mounts: ReadonlyArray<Mount.LayeredMountDefinition>,
   children: ReadonlyArray<AnyBinding>,
 ): DefineView<OwnerValue, Model, Message, RequiredViewRequirements> => {
   function defineView(
@@ -2846,7 +2845,7 @@ const makeDefineView = <
         Message,
         RequiredViewRequirements
       > {
-    const ownedView = withViewIdentity(owner, children, view)
+    const ownedView = withViewIdentity(owner, mounts, children, view)
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     return defineHtmlView(ownedView as any) as
       | OwnedAuthoredView<
@@ -2879,7 +2878,7 @@ const makeDefineView = <
     Message,
     RequiredViewRequirements
   > => {
-    const ownedView = withViewIdentity(owner, children, view)
+    const ownedView = withViewIdentity(owner, mounts, children, view)
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     return defineHtmlView(ownedView as any) as OwnedAuthoredView<
       BlockView<
@@ -3101,7 +3100,7 @@ export const makeDefinition = (
   const childChannels = aggregateChildren(children)
   const mounts = mergeMounts(localMounts, childChannels.mounts)
 
-  const defineView = makeDefineView(owner, children)
+  const defineView = makeDefineView(owner, localMounts, children)
   const defineUpdate = authoring?.update ?? makeDefineUpdate()
   const defineStep = authoring?.step ?? makeDefineStep()
   const defineSubscriptions =

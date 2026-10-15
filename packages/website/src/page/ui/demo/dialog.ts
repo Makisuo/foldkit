@@ -4,8 +4,6 @@ import type { Html } from 'foldkit/html'
 import { Combobox, Dialog } from '@foldkit/ui'
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
-import { Message } from '../message'
-import type { City } from '../model'
 import {
   dialogAnimatedDemo as dialogAnimatedDemoBinding,
   dialogDemo,
@@ -13,8 +11,10 @@ import {
   nestedDialogParentDemo,
   overlayComboboxDemo,
   overlayDialogDemo as overlayDialogDemoBinding,
-} from '../update'
-import type { ViewBuilder } from '../update'
+} from '../composition'
+import type { ViewBuilder } from '../composition'
+import { Message } from '../message'
+import type { City } from '../model'
 import { comboboxViewInputs } from './combobox'
 
 // DEMO CONTENT

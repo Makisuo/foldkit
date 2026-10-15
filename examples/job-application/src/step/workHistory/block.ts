@@ -1,14 +1,11 @@
 import type { CalendarDate } from 'foldkit/calendar'
 import { modifyFields } from 'foldkit/struct'
 
+import { EffectsLayer } from './command'
+import { WorkHistoryComposition, entries } from './composition'
+import { init } from './init'
+import { update } from './update'
 import { view } from './view'
-import {
-  EffectsLayer,
-  WorkHistoryComposition,
-  entries,
-  init,
-  update,
-} from './workHistory'
 
 export const block = WorkHistoryComposition.toBlock({
   init: (today: CalendarDate, initialEntryId: string) => {

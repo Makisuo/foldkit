@@ -167,7 +167,7 @@ If the app uses UI components, **always read the ui-showcase example first** to 
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/model.ts`: how component Models are composed
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/update.ts`: how component updates are delegated
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/ui.ts`: completed Showcase Block and local handler recipe
-- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/childBindings.ts`: parent-owned component Binding policies and automatic lifecycle composition
+- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/composition/composition.ts`: parent-owned component Binding policies and automatic lifecycle composition
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/toast.ts`: read when using `Toast`. `Toast.make(PayloadSchema)` returns a completed Block with its refined payload type, Subscriptions, and `EffectsLayer`
 
 Directory names under `examples/ui-showcase/src/` have moved before. List the directory rather than trusting these paths blind.
@@ -195,7 +195,7 @@ A common mistake (because kanban colocates `SavedBoard` in `model.ts`): putting 
 ```
 src/application.ts  ← Application, ApplicationComposition, and compact root behavior
 src/entry.ts        ← Explicit completion fields, browser inputs, and Runtime.run
-src/layer.ts        ← Optional; substantial or reused ApplicationLayer composition only
+src/services.ts     ← ApplicationLayer providers, when ordinary Services are required
 ```
 
 **Split application** (Tier 3-5):
@@ -204,7 +204,7 @@ src/layer.ts        ← Optional; substantial or reused ApplicationLayer composi
 src/definition.ts   ← Optional early Application contract for split-file imports
 src/application.ts  ← Re-exported Application, ApplicationComposition, cohesive root behavior
 src/entry.ts        ← Explicit completion fields, container, inputs, and Runtime.run
-src/layer.ts        ← Optional; substantial or reused ApplicationLayer composition only
+src/services.ts     ← ApplicationLayer providers, when ordinary Services are required
 src/model.ts
 src/message.ts
 src/update.ts       ← Commands colocated with the update that returns them
@@ -223,10 +223,10 @@ src/page/
   search/
     index.ts        ← Explicit public barrel
     definition.ts   ← Optional early contracts when split-file imports need them
-    search.ts       ← Substantial cohesive implementation, Composition, and Bindings
+    search.ts       ← Substantial cohesive behavior, if not in focused files
     block.ts        ← Final completed Block and small local EffectsLayer
-    view.ts         ← Canonical view importing Composition and Bindings from search.ts
-    childBindings.ts ← Straightforward parent-owned Bindings
+    composition.ts  ← Bindings, complete registrations, Composition, ViewBuilder
+    view.ts         ← Canonical view importing Composition
     layer.ts        ← Optional; substantial or reused local EffectsLayer composition
     model.ts        ← Optional focused contract module
     message.ts      ← Optional focused contract module
@@ -236,9 +236,9 @@ src/page/
     ...
 ```
 
-The tree shows available seams, not required files. Organize around responsibilities, not one file per construction stage. Keep compact features together. Use `definition.ts` only for early Model, Message, OutMessage, and authoring contracts that split implementation files must import. Put substantial cohesive behavior in the folder-named implementation file, let the view import its Composition and Bindings from that implementation, and let the small final `block.ts` import both so neither implementation nor view imports the completed barrel. Retain focused init, update, command, and contract files when each improves navigation. Compose a small local `EffectsLayer` in `block.ts`; use `layer.ts` only when that composition is substantial or reused. Export `block` and intentional contracts from the explicit feature barrel, then `export * as Search from './search'` from the parent barrel. Parents import the `Search` namespace and pass `Search.block` to their own Definition's `bindChild` method.
+The tree shows available seams, not required files. Organize around responsibilities, not one file per construction stage. Keep compact features together. Use `definition.ts` only for early Model, Message, OutMessage, and authoring contracts that split implementation files must import. Put substantial cohesive behavior in the folder-named implementation file, let the view import its Composition and Bindings from composition.ts, and let the small final `block.ts` import both so neither implementation nor view imports the completed barrel. Retain focused init, update, command, and contract files when each improves navigation. Compose a small local `EffectsLayer` in `block.ts`; use `layer.ts` only when that composition is substantial or reused. Export `block` and intentional contracts from the explicit feature barrel, then `export * as Search from './search'` from the parent barrel. Parents import the `Search` namespace and pass `Search.block` to their own Definition's `bindChild` method.
 
-When one child needs substantial parent policy, replace `childBindings.ts` with a `childBindings/` directory. Put that child's Binding and policy in `childBindings/<child>.ts`. Keep the straightforward Bindings in `childBindings/childBindings.ts`, exporting the complete `children` tuple with `as const` from that file. Use an explicit `childBindings/index.ts` to export the individual named Bindings and `children`. Do not invent intermediate groups such as `pages` or `controls`; split only for a substantial policy owned by one child.
+A split feature's `composition.ts` owns straightforward Bindings and the complete `toComposition({ children, mounts })` call. Use it for Mount-only features too, with local Mount definitions in `mount.ts`. Extract a substantial child policy to `composition/<child>.ts`; then `composition/composition.ts` stays the single assembly point, with an explicit `composition/index.ts` barrel. Root `application.ts` remains the root assembly point and imports substantial policies directly. Do not create arbitrary Binding categories or duplicate children lists. A graphless feature keeps its empty Composition beside completion rather than adding an empty file. Composition must not import the primary view, update matcher or completed Block; extract a policy-dependent parent Step into a leaf module when needed. `bindChild` only configures the relationship; registering it under `children` adds the graph, and Runtime starts effects later.
 
 Use standard local structural names: Model, Message, OutMessage, Flags, init, update, view, subscriptions, managedResources, mounts, EffectsLayer, and expose. The feature namespace supplies context in parent code, such as `Search.Model` and `Search.OutMessage.match`. Domain Schemas and individual effects retain descriptive names.
 
@@ -538,7 +538,7 @@ Every message must carry meaning. No `NoOp`.
 - Name each Command for the effect its handler performs, not the later Model transition caused when update handles its result. A timer that only waits before update starts a dismissal is `WaitBeforeDismissal`, not `DismissAfter`
 - Commands that can't meaningfully fail return `Completed*` Messages named from the Command, payload-carrying ones included: `DetermineStartTime` → `CompletedDetermineStartTime`, not `DeterminedStartTime`
 - Use Foldkit's `Dom` module for DOM operations (`Dom.focus`, `Dom.scrollIntoView`, `Dom.showDialog`, `Dom.lockScroll`, etc.) and Effect built-ins for everything else (`Clock.currentTimeMillis`, `Random.nextIntBetween`, `Effect.sleep(Duration.millis(...))`). For UUIDs, use the `Crypto.Crypto` service's `randomUUIDv4` with a platform Crypto layer. See DOM and Effect Helpers in [architecture.md](architecture.md)
-- For HTTP requests, use `HttpClient` and `HttpClientRequest` from `effect/http`. Leave the client in the handler's requirements and provide `Http.layer` from `foldkit` at the application root. See `examples/weather/src/command.ts` and `examples/weather/src/entry.ts` for the handler and root composition
+- For HTTP requests, use `HttpClient` and `HttpClientRequest` from `effect/http`. Leave the client in the handler's requirements and provide `Http.layer` from `foldkit` at the application root. See `examples/weather/src/command.ts` for the handler, `examples/weather/src/services.ts` for the root provider, and `examples/weather/src/entry.ts` for application provision
 - Let the child Binding re-tag child Commands through its parent Message mapping. Use `Command.mapMessages` directly only for lower-level operations outside a composed Block.
 
 ### Form Validation
@@ -614,7 +614,7 @@ For file uploads (resumes, images, attachments):
 - See the With and Without URL Routing section in [architecture.md](architecture.md) for the full pattern
 - Include `ClickedLink` and `ChangedUrl` Messages for programs with routing, with proper `UrlRequest.Internal` / `UrlRequest.External` handling in update
 - Each Block passes its local `EffectsLayer` to `FeatureComposition.toBlock`. Bindings in `children` add their handler graphs and lifecycle registrations automatically. Export the completed `block` for parent composition instead of forwarding its methods or aggregate `EffectsLayer`. Keep the barrel limited to intentional public contracts and domain helpers. Scene, Story, and focused lifecycle tests can deep-import private implementation owners without expanding the public barrel. The root remains a passive `ApplicationComposition`. `ApplicationComposition.toApplication({ init, update, view, ... })` carries its handler graph, while `ApplicationLayer` contains ordinary Services and enters through `application.provide(ApplicationLayer)`. There is no `resources` field on `toApplication` or `toElement`.
-- Root `application.ts` exports `Application` and `ApplicationComposition` for the root graph. `entry.ts` imports that Composition and completion fields from their real owners, chooses the container and startup inputs, lists every field explicitly in the owned `toApplication`, supplies `ApplicationLayer` through `application.provide(ApplicationLayer)`, and calls `Runtime.run`. Do not create an implementation bundle or forward implementation exports through `application.ts`. Tests and server entries import the definition and pieces they need without starting the browser Runtime.
+- Root `application.ts` exports `Application` and `ApplicationComposition` for the root graph. `entry.ts` imports that Composition and completion fields from their real owners, chooses the container and startup inputs, lists every field explicitly in the owned `toApplication`, imports `ApplicationLayer` from root `services.ts`, supplies it through `application.provide(ApplicationLayer)`, and calls `Runtime.run`. Do not create an implementation bundle or forward implementation exports through `application.ts`. Tests and server entries import the definition and pieces they need without starting the browser Runtime.
 - `application.provide(layer)` and `element.provide(layer)` return new passive programs. The supplied Layers build once when a Runtime starts the resulting program, including a restored-Model start, before a fresh Flags Effect, init, or the first render. Command lookup, Subscription restart, Mount insertion, and ManagedResource reacquisition reuse those app-scoped handlers and providers. `Runtime.hydrate` validates the server handoff before acquiring Layers. A Layer construction failure stops startup before the first render. The runtime releases the Layer Scope when that start stops
 - Give definitions distinct local handler names within one named Block. Different named Blocks may reuse a local name because ownership keeps their contracts separate. `FeatureComposition.toBlock` checks the local `EffectsLayer` and declared `hostHandlers`, and parent composition carries those checked contracts to the root. When an explicit type annotation is needed, derive the complete contract with `Command.HandlerOf<typeof Definition>`, `Subscription.HandlerOf<typeof subscriptions.entry>`, `Mount.RequirementsOf<typeof Definition>`, or `ManagedResource.HandlerOf<typeof managedResources.entry>`; never write a name-only `Handler<Name>`. An alternate implementation uses the original definition's `toLayer`.
 - Keep four lifetimes distinct: application services such as RPC clients last for one Runtime start; one Command Effect lasts for one dispatch; Subscription Streams and ManagedResource handles follow Model conditions; Mount acquisition follows one DOM element. Keep the `ManagedResource` name for the Model-scoped handle primitive

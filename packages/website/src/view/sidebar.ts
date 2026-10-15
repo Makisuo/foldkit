@@ -7,7 +7,7 @@ import { Disclosure } from '@foldkit/ui'
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
 import type { ViewBuilder } from '../application'
-import { mobileMenuDialog } from '../childBindings'
+import { mobileMenuDialog } from '../application'
 import { Shared } from '../component'
 import {
   DOCS_SIDEBAR_NAV_ID,

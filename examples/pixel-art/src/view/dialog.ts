@@ -3,11 +3,11 @@ import type { Html } from 'foldkit/html'
 
 import { Button, Dialog } from '@foldkit/ui'
 
-import type { ViewBuilder } from '../application'
 import {
+  type ViewBuilder,
   errorDialog as errorDialogBinding,
   gridSizeConfirmDialog as gridSizeConfirmDialogBinding,
-} from '../childBindings'
+} from '../application'
 import { Message } from '../message'
 
 const dialogClassName =

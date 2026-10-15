@@ -1,4 +1,4 @@
-import { Http, Runtime } from 'foldkit'
+import { Runtime } from 'foldkit'
 
 import {
   ApplicationComposition,
@@ -7,8 +7,7 @@ import {
   update,
 } from './counterHttpCommand'
 import { init, view } from './counterHttpCompletion'
-
-export const ApplicationLayer = Http.layer
+import { ApplicationLayer } from './services'
 
 const application = ApplicationComposition.toApplication({
   init,

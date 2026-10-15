@@ -3,9 +3,9 @@ import type { Url } from 'foldkit/url'
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
+import { UiComposition } from './composition'
 import * as Nav from './demo/nav'
 import raw from './navPage.md'
-import { UiComposition } from './update'
 
 const { tableOfContents, view: renderPage } = slotDocPage<'basic'>(
   raw,

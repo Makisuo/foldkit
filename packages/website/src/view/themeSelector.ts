@@ -5,7 +5,7 @@ import { Menu } from '@foldkit/ui'
 import type { AnchorConfig as MenuAnchorConfig } from '@foldkit/ui/menu'
 
 import type { ViewBuilder } from '../application'
-import { themeMenu } from '../childBindings'
+import { themeMenu } from '../application'
 import { Icon } from '../icon'
 import { type ThemePreference } from '../themePreference'
 

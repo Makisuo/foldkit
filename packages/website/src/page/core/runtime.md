@@ -2,7 +2,7 @@
 
 ## Overview
 
-A small Foldkit application can start in two files. `src/application.ts` exports the typed `Application`, `ApplicationComposition`, Model and Message contracts, and implementation pieces. `src/entry.ts` chooses browser inputs, assembles a small `ApplicationLayer`, calls owned `toApplication` or `toElement`, and starts the Runtime. Extract root `layer.ts` only when provider composition is substantial or reused. Importing application pieces in a test does not start the Runtime.
+A small Foldkit application can start in two files. `src/application.ts` exports the typed `Application`, `ApplicationComposition`, Model and Message contracts, and implementation pieces. `src/entry.ts` chooses browser inputs, calls owned `toApplication` or `toElement`, and starts the Runtime. When handlers or startup Effects require ordinary Services, `services.ts` composes their providers as `ApplicationLayer`. Importing application pieces in a test does not start the Runtime.
 
 The Runtime API makes two independent choices:
 
@@ -13,7 +13,7 @@ The Application Composition carries the handler requirements for its Commands, S
 
 For a larger application, each completed child Block is bound and included in its parent's `children`. This carries the handler and lifecycle graph to the Application without root-level handler lists. A feature may provide business services it owns while leaving HTTP, storage, RPC, and browser requirements open. The application root combines those external providers in `ApplicationLayer`; `ApplicationComposition.toApplication({ init, update, view, ... })` already has the handlers. [Project Organization](/patterns/project-organization#composing-handler-layers) shows the complete file structure.
 
-Create the typed Application with `defineApplication` from `foldkit`, bind children through that Application, then call `toComposition`. Its completion methods capture the Model, Message, and composed graph; callers supply implementation pieces and host inputs. The returned lowercase `application` carries its unsatisfied requirements and supplies ordinary Services through `application.provide(layer)`.
+Create the typed Application with `defineApplication` from `foldkit`. In root `application.ts`, configure child relationships with `bindChild` and register the returned Bindings in the complete `toComposition({ children, mounts })` call. Extract substantial policies into `composition/<child>.ts`; keep the root assembly in `application.ts`. Binding and registration are passive configuration. Its completion methods capture the Model, Message, and composed graph; callers supply implementation pieces and host inputs. The returned lowercase `application` carries its unsatisfied requirements and supplies ordinary Services through `application.provide(layer)`.
 
 The `provide` method adds the supplied Layer recipe and returns a new passive program. The Runtime builds that application Layer once for each start and releases its Scope when that start stops. Command lookup, Subscription restarts, Mount insertions, and ManagedResource reacquisitions reuse the resulting application-scoped handlers and providers.
 

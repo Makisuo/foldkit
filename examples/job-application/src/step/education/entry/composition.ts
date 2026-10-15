@@ -1,0 +1,34 @@
+import { Option } from 'effect'
+import { type Update } from 'foldkit'
+import { modifyFields } from 'foldkit/struct'
+
+import {
+  EducationEntry,
+  GraduationYearListbox,
+  Message,
+  type Model,
+} from './definition'
+
+const foldGraduationYearListboxOutMessage =
+  GraduationYearListbox.OutMessage.match<Update.Step<Model, Message>>({
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, {
+          maybeGraduationYear: () => Option.some(value),
+        }),
+      }),
+  })
+
+export const graduationYearListbox = EducationEntry.bindChild(
+  GraduationYearListbox,
+  {
+    field: 'graduationYearListbox',
+    parentMessage: Message.GotGraduationYearListboxMessage,
+    outMessage: { fold: foldGraduationYearListboxOutMessage },
+  },
+)
+
+export const EducationEntryComposition = EducationEntry.toComposition({
+  children: [graduationYearListbox],
+})

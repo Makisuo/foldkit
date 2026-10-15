@@ -2,8 +2,8 @@ import { Array, Option, String } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { ApplicationComposition } from './application'
-import { dragAndDrop } from './childBindings'
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
+import { dragAndDrop } from './composition/dragAndDrop'
 import { Column } from './domain'
 import { Message } from './message'
 

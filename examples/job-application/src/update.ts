@@ -1,8 +1,8 @@
 import { Array, Option, pipe } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { ApplicationComposition } from './application'
 import {
+  ApplicationComposition,
   attachments,
   coverLetter,
   education,
@@ -11,7 +11,7 @@ import {
   stepMenu,
   stepTabs,
   workHistory,
-} from './childBindings'
+} from './application'
 import { SubmitApplication } from './command'
 import { Step } from './domain'
 import { Message } from './message'

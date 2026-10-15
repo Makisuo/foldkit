@@ -448,19 +448,23 @@ const foldScrubberSliderOutMessage = Slider.OutMessage.match<
 
 type DevToolsScrubber = typeof scrubberSlider
 
-const makeBindings = (scrubberSlider: DevToolsScrubber) => {
+const makeApplicationComposition = (scrubberSlider: DevToolsScrubber) => {
   const scrubber = Application.bindChild(scrubberSlider, {
     field: 'scrubberSlider',
     parentMessage: Message.GotScrubberSliderMessage,
     outMessage: { fold: foldScrubberSliderOutMessage },
   })
 
-  return {
+  const bindings = {
     inspectorTabs,
     blockFilterListbox,
     scrubber,
-    children: Tuple.make(inspectorTabs, blockFilterListbox, scrubber),
   }
+  const ApplicationComposition = Application.toComposition({
+    children: Tuple.make(inspectorTabs, blockFilterListbox, scrubber),
+  })
+
+  return Tuple.make(bindings, ApplicationComposition)
 }
 
 const getDevToolsShadowRoot = (): ShadowRoot => {
@@ -472,11 +476,9 @@ const getDevToolsShadowRoot = (): ShadowRoot => {
 }
 
 const scrubberSlider = Slider.forRoot(getDevToolsShadowRoot)
-const bindings = makeBindings(scrubberSlider)
+const [bindings, ApplicationComposition] =
+  makeApplicationComposition(scrubberSlider)
 type OverlayBindings = typeof bindings
-const ApplicationComposition = Application.toComposition({
-  children: bindings.children,
-})
 
 type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 

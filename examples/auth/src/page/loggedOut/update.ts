@@ -1,4 +1,5 @@
-import { LoggedOut, login } from './definition'
+import { login } from './composition'
+import { LoggedOut } from './definition'
 import { Message } from './message'
 
 export const update = LoggedOut.update((model, message) =>

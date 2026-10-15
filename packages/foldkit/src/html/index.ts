@@ -18,6 +18,7 @@ import {
   InvocationNameTypeId,
   type ViewScope,
   ViewScopeTypeId,
+  identityOf,
   invocationIdentity,
   invocationName,
   ownerOfInvocation,
@@ -5609,6 +5610,15 @@ const htmlAttributes = <Message, AllowedMountRequirements>(): HtmlAttributes<
     ) {
       throw new Error(
         `[foldkit] Mount "${action.name}" belongs to a different Block. Render it through that Block's binding.`,
+      )
+    }
+    if (
+      owned !== undefined &&
+      viewIdentity !== undefined &&
+      !viewIdentity.mounts.some(mount => identityOf(mount) === owned.identity)
+    ) {
+      throw new Error(
+        `[foldkit] Mount "${action.name}" is not registered in this view's Mounts.`,
       )
     }
     const name =

@@ -7,8 +7,8 @@ import {
   UiComposition,
   horizontalTabsDemo,
   verticalTabsDemo,
-} from '../childBindings'
-import type { ViewBuilder } from '../childBindings'
+} from '../composition'
+import type { ViewBuilder } from '../composition'
 import type { DemoTab } from '../model'
 
 const demoTabs: ReadonlyArray<DemoTab> = ['Foldkit', 'React', 'Elm']

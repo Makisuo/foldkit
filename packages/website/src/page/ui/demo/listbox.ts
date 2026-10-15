@@ -5,9 +5,13 @@ import { Listbox } from '@foldkit/ui'
 import { type AnchorConfig, buttonId } from '@foldkit/ui/listbox'
 
 import { Icon } from '../../../icon'
+import {
+  listboxDemo,
+  listboxGroupedDemo,
+  listboxMultiDemo,
+} from '../composition'
+import type { ViewBuilder } from '../composition'
 import type { ListboxItem } from '../model'
-import { listboxDemo, listboxGroupedDemo, listboxMultiDemo } from '../update'
-import type { ViewBuilder } from '../update'
 import { type Character } from './components'
 
 // DEMO CONTENT

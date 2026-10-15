@@ -2,7 +2,7 @@ import { Match } from 'effect'
 
 import { notFoundView } from '../../notFoundView'
 import { homeRouter } from '../../route'
-import { LoggedOutComposition, login } from './definition'
+import { LoggedOutComposition, login } from './composition'
 import * as Home from './page/home'
 
 export const view = LoggedOutComposition.view((model, h) =>

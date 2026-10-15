@@ -6,7 +6,7 @@ import { twMerge } from 'tailwind-merge'
 import { Disclosure } from '@foldkit/ui'
 
 import { type CodeBlock } from '../component'
-import { SnippetDisclosure } from './definition'
+import { SnippetDisclosureComposition } from './composition'
 import { Message } from './message'
 import { type Model, SnippetSize } from './model'
 import {
@@ -17,10 +17,6 @@ import {
 
 const CODE_LINE_HEIGHT_PX = 24
 const CODE_VERTICAL_PADDING_PX = 32
-
-export const SnippetDisclosureComposition = SnippetDisclosure.toComposition({
-  mounts: [MeasureSnippetHeight],
-})
 
 export type ViewInputs = Readonly<{
   id: string

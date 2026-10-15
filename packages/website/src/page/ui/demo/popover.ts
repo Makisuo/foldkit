@@ -9,8 +9,8 @@ import {
   popoverBasicDemo,
   popoverNestedChildDemo,
   popoverNestedParentDemo,
-} from '../update'
-import type { ViewBuilder } from '../update'
+} from '../composition'
+import type { ViewBuilder } from '../composition'
 
 // DEMO CONTENT
 

@@ -2,8 +2,8 @@ import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import raw from './comboboxPage.md'
+import { UiComposition } from './composition'
 import * as Combobox from './demo/combobox'
-import { UiComposition } from './update'
 
 const { tableOfContents, view: renderPage } = slotDocPage<
   | 'single-select'

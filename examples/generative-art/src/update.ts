@@ -1,8 +1,11 @@
 import { Array, Number, Option, Result } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { ApplicationComposition } from './application'
-import { flowStrengthSlider, noiseScaleSlider } from './childBindings'
+import {
+  ApplicationComposition,
+  flowStrengthSlider,
+  noiseScaleSlider,
+} from './application'
 import { GenerateAmbientParticle, GenerateBurstParticle } from './command'
 import {
   BURST_BOOST_DURATION_MS,

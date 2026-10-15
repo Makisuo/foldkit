@@ -5,10 +5,11 @@ import { fromString as urlFromString } from 'foldkit/url'
 
 import { ApplicationComposition, EffectsLayer } from './application'
 import { deployment } from './deployment'
-import { subscriptions } from './lifecycle'
+import { Flags } from './flags'
+import { init } from './init'
 import { ApiReference, Example } from './page'
-import { Flags, init, update } from './root'
-import { urlToApplicationRoute } from './route'
+import { ApplicationRoute, urlToApplicationRoute } from './route'
+import { update } from './update'
 import { view } from './view/view'
 
 type SourcesBySlug = Readonly<globalThis.Record<string, Example.ExampleSources>>
@@ -77,7 +78,7 @@ const flagsForRequest = (
     ...baseFlags,
     maybeApiData: Option.liftPredicate(
       route,
-      candidate => candidate._tag === 'ApiModule',
+      ApplicationRoute.guards.ApiModule,
     ).pipe(
       Option.flatMap(({ moduleSlug }) =>
         ApiReference.sliceApiDataToModule(apiData, moduleSlug),
@@ -85,7 +86,7 @@ const flagsForRequest = (
     ),
     maybeExampleSources: Option.liftPredicate(
       route,
-      candidate => candidate._tag === 'ExampleDetail',
+      ApplicationRoute.guards.ExampleDetail,
     ).pipe(
       Option.flatMap(({ exampleSlug }) =>
         Record.get(sourcesBySlug, exampleSlug),
@@ -137,7 +138,7 @@ export const renderPage = (request: Request): Promise<Server.EntryResult> =>
     return Effect.runPromise(
       Server.renderToString(
         ApplicationComposition,
-        { init, update, view, subscriptions, EffectsLayer, Flags, routing: {} },
+        { init, update, view, EffectsLayer, Flags, routing: {} },
         {
           url: request.url,
           flags: requestFlags,

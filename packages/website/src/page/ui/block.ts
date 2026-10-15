@@ -1,5 +1,6 @@
+import { UiComposition } from './composition'
 import { init } from './init'
-import { UiComposition, update } from './update'
+import { update } from './update'
 
 export const block = UiComposition.toBlock({
   init,

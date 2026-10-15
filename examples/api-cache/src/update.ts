@@ -2,11 +2,7 @@ import { HashMap, Option } from 'effect'
 import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import {
-  applyPostsTransition,
-  applyStatsTransition,
-  tabs,
-} from './childBindings'
+import { applyPostsTransition, applyStatsTransition, tabs } from './application'
 import { FetchPostDetail } from './command'
 import { Application } from './definition'
 import { Message } from './message'

@@ -5,9 +5,12 @@ import { Html, childAttributes } from 'foldkit/html'
 import { Button, Input } from '@foldkit/ui'
 import { AnchorConfig, type ItemConfig } from '@foldkit/ui/listbox'
 
-import { ApplicationComposition } from './application'
+import {
+  ApplicationComposition,
+  dietListbox,
+  periodListbox,
+} from './application'
 import type { ViewBuilder } from './application'
-import { dietListbox, periodListbox } from './childBindings'
 import { type Dinosaur, dinosaurs } from './data'
 import { Message } from './message'
 import { type Model, dietFilterItems, periodFilterItems } from './model'

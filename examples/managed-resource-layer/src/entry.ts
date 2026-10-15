@@ -1,7 +1,5 @@
 import { Runtime } from 'foldkit'
 
-import { BrowserCrypto } from '@effect/platform-browser'
-
 import {
   ApplicationComposition,
   EffectsLayer,
@@ -11,8 +9,7 @@ import {
   update,
   view,
 } from './application'
-
-export const ApplicationLayer = BrowserCrypto.layer
+import { ApplicationLayer } from './services'
 
 const application = ApplicationComposition.toApplication({
   init,

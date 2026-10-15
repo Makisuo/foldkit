@@ -5,8 +5,8 @@ import {
   UiComposition,
   virtualListDemo,
   virtualListVariableDemo,
-} from '../childBindings'
-import type { ViewBuilder } from '../childBindings'
+} from '../composition'
+import type { ViewBuilder } from '../composition'
 import { Message } from '../message'
 import { type Activity, ROW_COUNT } from '../virtualList'
 

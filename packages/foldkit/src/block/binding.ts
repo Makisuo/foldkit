@@ -18,10 +18,10 @@ import * as Subscription from '../subscription/subscription.js'
 import * as Update from '../update/index.js'
 import { registerBinding, runtimeBindingOf } from './composition.js'
 import { type DefaultViewTypeId, defaultViewOf } from './defaultView.js'
-import type { LocalMountsTypeId } from './definition.js'
 import type { DirectConnection } from './directConnection.js'
 import {
   type DefinitionIdentity,
+  LocalMountsTypeId,
   ViewScopeTypeId,
   copyIdentity,
   hostIdentitiesOf,
@@ -1356,7 +1356,11 @@ const bindRuntime = <
       [ViewScopeTypeId]: {
         placement,
         binding,
-        identity: { owner: block.owner, children: block.children },
+        identity: {
+          owner: block.owner,
+          mounts: block[LocalMountsTypeId],
+          children: block.children,
+        },
       },
       toParentMessage: config.toParentMessage,
     }) as unknown as BoundBlockConfig<

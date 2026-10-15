@@ -17,8 +17,8 @@ import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import * as Shared from '@typing-game/shared'
 
-import { ApplicationComposition, EffectsLayer, update } from './application'
-import { home, room } from './childBindings'
+import { ApplicationComposition, EffectsLayer } from './application'
+import { home, room } from './application'
 import { Application } from './definition'
 import { Message } from './message'
 import { Model, RoomInstance } from './model'
@@ -27,6 +27,7 @@ import { Message as RoomMessage } from './page/room/message'
 import { RoomAsyncData } from './page/room/model'
 import { ApplicationRoute } from './route'
 import { RoomsClient } from './rpc'
+import { update } from './update'
 
 const ROOM_A = 'room-a'
 const ROOM_B = 'room-b'

@@ -3,8 +3,8 @@ import type { Html } from 'foldkit/html'
 
 import { Switch } from '@foldkit/ui'
 
-import { UiComposition } from '../childBindings'
-import type { ViewBuilder } from '../childBindings'
+import { UiComposition } from '../composition'
+import type { ViewBuilder } from '../composition'
 import { Message } from '../message'
 
 const SWITCH_DEMO_ID = 'switch-demo'

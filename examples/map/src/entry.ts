@@ -1,8 +1,8 @@
 import { Runtime } from 'foldkit'
 
 import { ApplicationComposition, EffectsLayer } from './application'
-import { MapRegistryLayer } from './mapRegistry'
 import { Message } from './message'
+import { ApplicationLayer } from './services'
 import { init, update } from './update'
 import { view } from './view'
 
@@ -15,4 +15,4 @@ const application = ApplicationComposition.toApplication({
   devTools: { Message },
 })
 
-Runtime.run(application.provide(MapRegistryLayer))
+Runtime.run(application.provide(ApplicationLayer))

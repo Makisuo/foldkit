@@ -1,4 +1,4 @@
-import { UiComposition } from './childBindings'
+import { UiComposition } from './composition'
 import { init } from './init'
 import { closeMobileMenu, openMobileMenu, update } from './update'
 

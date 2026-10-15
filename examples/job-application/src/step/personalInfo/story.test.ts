@@ -4,8 +4,10 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
+import { ValidateEmailAsync } from './command'
 import { Message } from './definition'
-import { ValidateEmailAsync, init, update } from './personalInfo'
+import { init } from './init'
+import { update } from './update'
 
 const today = Calendar.make(2026, 4, 16)
 const givenInitial = given(init(today))

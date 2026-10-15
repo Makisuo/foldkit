@@ -64,7 +64,7 @@ Portal-to-body is a small example. When an overlay enters the DOM, its Mount mov
 
 ### Handler Layers
 
-A Mount starts when its element enters the DOM and stops when that element leaves. Include its definition in the owning Composition's `mounts`, include its handler recipe in the local `EffectsLayer`, and complete that Composition with `toBlock`. Composition declares a Mount the view may render; a conditional Mount need not appear in every render.
+A Mount starts when its element enters the DOM and stops when that element leaves. In a split feature, `mount.ts` owns the definition and handler, while `composition.ts` owns its registration, including when the feature has no children. Both Composition and view import the definition from `mount.ts`, avoiding a Composition/view cycle. Include its definition in the owning Composition's `mounts`, include its handler recipe in the local `EffectsLayer`, and complete that Composition with `toBlock`. Composition declares a Mount the view may render; a conditional Mount need not appear in every render.
 
 ::Snippet{name="mountHandlerLayers" label="Registering a Mount handler Layer"}
 

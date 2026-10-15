@@ -8,7 +8,7 @@ import {
   update,
   view,
 } from './application'
-import { ApplicationLayer } from './layer'
+import { ApplicationLayer } from './services'
 
 // Each Port carries a Schema. The host works with the Schema's Encoded
 // side, the app with the decoded Type. Record keys name the ports on the

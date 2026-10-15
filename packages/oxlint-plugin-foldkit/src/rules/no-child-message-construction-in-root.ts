@@ -584,11 +584,116 @@ const isLocalSiblingModule = (source: string, moduleName: string): boolean => {
   )
 }
 
-const currentDirectoryName = (filename: string): Option.Option<string> => {
-  const filenameSegments = filename.split(/[\\/]/)
+const resolvedLocalModuleSegments = (
+  filename: string,
+  source: string,
+): Option.Option<ReadonlyArray<string>> => {
+  if (!source.startsWith('./') && !source.startsWith('../')) {
+    return Option.none()
+  }
 
-  return Array.get(filenameSegments, Array.length(filenameSegments) - 2)
+  const containingDirectory = filename.split(/[\\/]/).slice(0, -1)
+  const resolved = source.split('/').reduce<Option.Option<Array<string>>>(
+    (maybeSegments, segment) =>
+      Option.flatMap(maybeSegments, segments => {
+        if (segment === '.') {
+          return Option.some(segments)
+        }
+
+        if (segment === '..') {
+          return Array.isReadonlyArrayNonEmpty(segments)
+            ? Option.some(segments.slice(0, -1))
+            : Option.none()
+        }
+
+        return Option.some([...segments, segment])
+      }),
+    Option.some(containingDirectory),
+  )
+
+  return Option.map(resolved, segments =>
+    segments.map((segment, index) =>
+      index === segments.length - 1 ? moduleSegmentName(segment) : segment,
+    ),
+  )
 }
+
+const featureDefinitionDirectory = (
+  messagePath: ImportedMessagePath,
+  filename: string,
+): Option.Option<ReadonlyArray<string>> => {
+  if (!sameSegments(messagePath.members, ['Message'])) {
+    return Option.none()
+  }
+
+  return Option.gen(function* () {
+    const messageModule = yield* resolvedLocalModuleSegments(
+      filename,
+      messagePath.source,
+    )
+    if (!Option.contains(Array.last(messageModule), 'definition')) {
+      return yield* Option.none()
+    }
+
+    const definitionDirectory = messageModule.slice(0, -1)
+    const currentDirectory = filename.split(/[\\/]/).slice(0, -1)
+    const implementationDirectory = Option.getOrUndefined(
+      Array.last(currentDirectory),
+    )
+    const isFeatureImplementationDirectory =
+      implementationDirectory !== undefined &&
+      Array.contains(
+        ['composition', 'update', 'view'],
+        implementationDirectory,
+      ) &&
+      sameSegments(currentDirectory.slice(0, -1), definitionDirectory)
+
+    if (
+      !sameSegments(currentDirectory, definitionDirectory) &&
+      !isFeatureImplementationDirectory
+    ) {
+      return yield* Option.none()
+    }
+
+    return definitionDirectory
+  })
+}
+
+const isFeatureCompositionModule = (
+  compositionPath: ImportedMessagePath,
+  definitionDirectory: ReadonlyArray<string>,
+  filename: string,
+): boolean =>
+  Option.exists(
+    resolvedLocalModuleSegments(filename, compositionPath.source),
+    compositionModule => {
+      const normalizedCompositionModule = Option.contains(
+        Array.last(compositionModule),
+        'index',
+      )
+        ? compositionModule.slice(0, -1)
+        : compositionModule
+      const featureName = Option.getOrUndefined(Array.last(definitionDirectory))
+      const directComposition = [...definitionDirectory, 'composition']
+      const nestedComposition = [
+        ...definitionDirectory,
+        'composition',
+        'composition',
+      ]
+      const legacyFeatureModule =
+        featureName === undefined
+          ? Option.none<ReadonlyArray<string>>()
+          : Option.some([...definitionDirectory, featureName])
+
+      return (
+        sameSegments(normalizedCompositionModule, directComposition) ||
+        sameSegments(normalizedCompositionModule, nestedComposition) ||
+        Option.exists(legacyFeatureModule, legacyModule =>
+          sameSegments(normalizedCompositionModule, legacyModule),
+        )
+      )
+    },
+  )
 
 const importedCompositionOwnsDefinitionMessage = (
   compositionPath: ImportedMessagePath,
@@ -598,15 +703,19 @@ const importedCompositionOwnsDefinitionMessage = (
   const compositionName = Option.getOrUndefined(
     Array.last(compositionPath.members),
   )
-  const directoryName = Option.getOrUndefined(currentDirectoryName(filename))
 
   return (
     compositionName !== undefined &&
     compositionName.endsWith('Composition') &&
-    directoryName !== undefined &&
-    isLocalSiblingModule(compositionPath.source, directoryName) &&
-    isLocalSiblingModule(messagePath.source, 'definition') &&
-    sameSegments(messagePath.members, ['Message'])
+    Option.exists(
+      featureDefinitionDirectory(messagePath, filename),
+      definitionDirectory =>
+        isFeatureCompositionModule(
+          compositionPath,
+          definitionDirectory,
+          filename,
+        ),
+    )
   )
 }
 
@@ -616,10 +725,15 @@ const importedViewBuilderOwnsDefinitionMessage = (
   filename: string,
 ): boolean =>
   Array.isReadonlyArrayEmpty(implementationPath.members) &&
-  Option.exists(currentDirectoryName(filename), directoryName =>
-    isLocalSiblingModule(implementationPath.source, directoryName),
+  Option.exists(
+    featureDefinitionDirectory(messagePath, filename),
+    definitionDirectory =>
+      isFeatureCompositionModule(
+        implementationPath,
+        definitionDirectory,
+        filename,
+      ),
   ) &&
-  isLocalSiblingModule(messagePath.source, 'definition') &&
   sameSegments(messagePath.members, ['Message'])
 
 const importedOwnerOwnsMessage = (

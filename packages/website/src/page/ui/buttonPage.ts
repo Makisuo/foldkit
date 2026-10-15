@@ -2,8 +2,8 @@ import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import raw from './buttonPage.md'
+import { UiComposition } from './composition'
 import * as Button from './demo/button'
-import { UiComposition } from './update'
 
 const { tableOfContents, view: renderPage } = slotDocPage<'basic' | 'disabled'>(
   raw,

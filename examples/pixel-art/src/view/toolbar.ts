@@ -5,13 +5,13 @@ import { type Html, childAttributes } from 'foldkit/html'
 import { Button, Listbox, RadioGroup, Switch } from '@foldkit/ui'
 import type { AnchorConfig } from '@foldkit/ui/listbox'
 
-import type { ViewBuilder } from '../application'
 import {
+  type ViewBuilder,
   gridSizeRadioGroup as gridSizeRadioGroupBinding,
   paletteRadioGroup as paletteRadioGroupBinding,
   themeListbox as themeListboxBinding,
   toolRadioGroup as toolRadioGroupBinding,
-} from '../childBindings'
+} from '../application'
 import { EMPTY_COLOR, GRID_SIZE_STRINGS } from '../constant'
 import { Message } from '../message'
 import { type MirrorMode, type PaletteIndex, type Tool } from '../model'

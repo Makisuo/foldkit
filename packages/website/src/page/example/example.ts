@@ -1,15 +1,6 @@
-import {
-  Array,
-  Effect,
-  Layer,
-  Option,
-  Queue,
-  Schema,
-  Stream,
-  pipe,
-} from 'effect'
-import { AsyncData, Block, type Mount } from 'foldkit'
-import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
+import { Array, Effect, Layer, Option, Schema, pipe } from 'effect'
+import { AsyncData } from 'foldkit'
+import { Html, inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
 
 import { Disclosure, Tabs } from '@foldkit/ui'
@@ -24,11 +15,16 @@ import {
   playgroundRouter,
 } from '../../route'
 import type { TableOfContentsEntry } from '../../tableOfContentsEntry'
-import { sourceFileTabs } from './childBindings'
+import {
+  ExampleDetailComposition,
+  type ViewBuilder,
+  sourceFileTabs,
+} from './composition'
 import { ExampleDetail } from './definition'
 import { Message } from './message'
 import { type ExampleMeta, findBySlug } from './meta'
 import { CurrentSourcesAsyncData, Model } from './model'
+import { ObserveExampleUrlMessages } from './mount'
 import {
   type ExampleSourceFile,
   ExampleSources,
@@ -60,74 +56,6 @@ export const LoadExampleSources = ExampleDetail.command('LoadExampleSources', {
         ),
       )
   },
-})
-
-const BRIDGE_MESSAGE_TYPE = 'foldkit-example-url'
-
-type ExampleUrlBridgeMessage = Readonly<{
-  type: typeof BRIDGE_MESSAGE_TYPE
-  url: string
-}>
-
-const isExampleUrlMessageFromIframe = (
-  event: MessageEvent,
-  iframe: HTMLIFrameElement,
-): event is MessageEvent<ExampleUrlBridgeMessage> =>
-  event.source === iframe.contentWindow &&
-  event.origin === window.location.origin &&
-  event.data &&
-  typeof event.data === 'object' &&
-  event.data.type === BRIDGE_MESSAGE_TYPE &&
-  typeof event.data.url === 'string'
-
-const observeExampleUrlMessages = (element: Element) => {
-  if (!(element instanceof HTMLIFrameElement)) {
-    return Stream.empty
-  }
-
-  return Stream.callback<typeof Message.ChangedExampleUrl.Type>(queue =>
-    Effect.acquireRelease(
-      Effect.sync(() => {
-        const handler = (event: MessageEvent) => {
-          if (!isExampleUrlMessageFromIframe(event, element)) {
-            return
-          }
-
-          Queue.offerUnsafe(
-            queue,
-            Message.ChangedExampleUrl({ url: event.data.url }),
-          )
-        }
-
-        window.addEventListener('message', handler)
-        return handler
-      }),
-      handler =>
-        Effect.sync(() => window.removeEventListener('message', handler)),
-    ).pipe(Effect.flatMap(() => Effect.never)),
-  )
-}
-
-const ObserveExampleUrlMessages = ExampleDetail.mountStream(
-  'ObserveExampleUrlMessages',
-  {
-    messages: [Message.ChangedExampleUrl],
-    handler: function* () {
-      return ({ element }) => observeExampleUrlMessages(element)
-    },
-  },
-)
-
-export const mounts = [ObserveExampleUrlMessages]
-const children = [sourceFileTabs] as const
-
-type ViewRequirements =
-  | Mount.RequirementsOf<typeof mounts>
-  | Block.RequirementsOfBindings<typeof children>
-
-export const ExampleDetailComposition = ExampleDetail.toComposition({
-  mounts,
-  children,
 })
 
 export const EffectsLayer = Layer.mergeAll(
@@ -398,7 +326,7 @@ const livePreviewDisclosureView = (
   meta: ExampleMeta,
   slug: string,
   maybeExampleUrl: Option.Option<string>,
-  h: HtmlBuilder<Message, ViewRequirements>,
+  h: ViewBuilder,
 ): Html =>
   Disclosure.view(
     {
@@ -484,7 +412,7 @@ const sourceCodeView = (
   activeSourceFilePath: string,
   isNarrowViewport: boolean,
   renderSnippet: CodeBlock.RenderSnippet,
-  h: HtmlBuilder<Message, ViewRequirements>,
+  h: ViewBuilder,
 ): Html => {
   const filePaths = Array.map(files, file => file.path)
 
@@ -639,7 +567,7 @@ const availableExampleContentView = (
   slug: string,
   isNarrowViewport: boolean,
   renderSnippet: CodeBlock.RenderSnippet,
-  h: HtmlBuilder<Message, ViewRequirements>,
+  h: ViewBuilder,
 ): ReadonlyArray<Html> => [
   meta.livePreview === 'PlaygroundOnly'
     ? playgroundOnlyNotice(meta)

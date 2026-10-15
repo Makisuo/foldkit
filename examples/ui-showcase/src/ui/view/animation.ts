@@ -1,4 +1,4 @@
-import { UiComposition, animationDemo } from '../childBindings'
+import { UiComposition, animationDemo } from '../composition'
 import { Message } from '../message'
 
 const triggerClassName =

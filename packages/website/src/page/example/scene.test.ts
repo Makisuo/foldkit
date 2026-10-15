@@ -16,9 +16,10 @@ import { Tabs } from '@foldkit/ui'
 import { FocusTab } from '@foldkit/ui/tabs'
 
 import { Deployment } from '../../deployment'
-import { init, update } from '../../root'
+import { init } from '../../init'
 import * as SnippetDisclosure from '../../snippetDisclosure'
 import { MeasureSnippetHeight } from '../../snippetDisclosure/mount'
+import { update } from '../../update'
 import { view } from '../../view/view'
 import { type ExampleSources } from './sources'
 

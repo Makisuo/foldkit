@@ -4,7 +4,7 @@ import * as Dom from 'foldkit/dom'
 import { pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 
-import { dialog } from './childBindings'
+import { dialog } from './composition'
 import { Search } from './definition'
 import { Message, SearchResult } from './message'
 import { SearchState, resultsFromState } from './model'

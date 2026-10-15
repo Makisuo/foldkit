@@ -1,6 +1,6 @@
+import { ExampleDetailComposition } from './composition'
 import {
   EffectsLayer,
-  ExampleDetailComposition,
   boot,
   informRouteChanged,
   init,
@@ -17,11 +17,11 @@ export {
   boot,
   informRouteChanged,
   init,
-  mounts,
   tableOfContents,
   update,
   view,
 } from './example'
+export { mounts } from './composition'
 
 export const block = ExampleDetailComposition.toBlock({
   init,

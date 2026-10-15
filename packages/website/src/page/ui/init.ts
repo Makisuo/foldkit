@@ -3,12 +3,6 @@ import { Calendar, Update } from 'foldkit'
 
 import { ScrollTarget } from '@foldkit/ui/virtualList'
 
-import type { Message } from './message'
-import {
-  type Model,
-  type VirtualListChatMessage,
-  VirtualListChatStartProximity,
-} from './model'
 import {
   animationDemo,
   calendarBasicDemo,
@@ -49,7 +43,13 @@ import {
   virtualListChatDemo,
   virtualListDemo,
   virtualListVariableDemo,
-} from './update'
+} from './composition'
+import type { Message } from './message'
+import {
+  type Model,
+  type VirtualListChatMessage,
+  VirtualListChatStartProximity,
+} from './model'
 
 export type InitReturn = Update.Return<Model, Message>
 

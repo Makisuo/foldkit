@@ -7,7 +7,7 @@ import {
   update,
   view,
 } from './application'
-import { ApplicationLayer } from './layer'
+import { ApplicationLayer } from './services'
 
 const application = ApplicationComposition.toApplication({
   init,

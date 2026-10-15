@@ -1,6 +1,6 @@
+import { NotePlayerDemoComposition } from './composition'
 import {
   EffectsLayer,
-  NotePlayerDemoComposition,
   init,
   managedResources,
   update,

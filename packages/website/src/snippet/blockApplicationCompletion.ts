@@ -1,7 +1,5 @@
-import { Effect, Layer } from 'effect'
 import { Runtime } from 'foldkit'
 
-import { SettingsStore } from './blockDefinition'
 import {
   ApplicationComposition,
   init,
@@ -9,14 +7,7 @@ import {
   update,
   view,
 } from './blockProfile'
-
-export const ApplicationLayer = Layer.succeed(SettingsStore, {
-  saveTheme: theme =>
-    Effect.try({
-      try: () => localStorage.setItem('theme', theme),
-      catch: cause => new Error('Unable to save theme', { cause }),
-    }),
-})
+import { ApplicationLayer } from './services'
 
 const application = ApplicationComposition.toApplication({
   init,

@@ -7,14 +7,14 @@ import { describe, expect, test } from 'vitest'
 import { Dialog, Menu } from '@foldkit/ui'
 import { ShowDialog } from '@foldkit/ui/dialog'
 
-import { LoadPlayground, home } from './childBindings'
+import { LoadPlayground, home } from './application'
 import { ScrollSidebarActiveLinkIntoView, ScrollToTop } from './command'
 import { Deployment } from './deployment'
+import { init } from './init'
 import { Message } from './message'
 import { type Model } from './model'
-import { Home } from './page'
+import { ApiReference, ExampleDetail, Home } from './page'
 import * as NotePlayerDemo from './page/home/notePlayerDemo'
-import { init, update } from './root'
 import * as Search from './search'
 import { FocusSearchInput } from './search/update'
 import * as SnippetCopy from './snippetCopy'
@@ -23,12 +23,21 @@ import {
   WaitBeforeHidingCopiedIndicator,
 } from './snippetCopy/update'
 import * as SnippetDisclosure from './snippetDisclosure'
+import { update } from './update'
 
 const parseUrl = (value: string): Url.Url =>
   pipe(Url.fromString(value), Option.getOrThrow)
 
 const homeUrl = parseUrl('https://foldkit.dev/')
 const newsletterUrl = parseUrl('https://foldkit.dev/newsletter')
+const playgroundCounterUrl = parseUrl('https://foldkit.dev/playground/counter')
+const playgroundCountersUrl = parseUrl(
+  'https://foldkit.dev/playground/counters',
+)
+const counterExampleUrl = parseUrl('https://foldkit.dev/example-apps/counter')
+const countersExampleUrl = parseUrl('https://foldkit.dev/example-apps/counters')
+const commandApiUrl = parseUrl('https://foldkit.dev/api-reference/command')
+const updateApiUrl = parseUrl('https://foldkit.dev/api-reference/update')
 
 const flags = {
   currentYear: 2026,
@@ -78,6 +87,116 @@ const resolvePathChangeCommands = () => [
 ]
 
 describe('application', () => {
+  test('cold startup preserves the established Command ordering', () => {
+    const initialization = init(
+      { ...flags, deployment: Deployment.Production() },
+      counterExampleUrl,
+    )
+
+    expect(initialization.commands.map(command => command.name)).toEqual([
+      'Application/LoadBrowserEnvironment',
+      'Application/InjectAnalytics',
+      'Application/InjectSpeedInsights',
+      'apiReference/LoadApiData',
+      'exampleDetail/LoadExampleSources',
+      'Application/ScrollSidebarActiveLinkIntoView',
+    ])
+  })
+
+  test('remaining on a Playground slug preserves its Model', () => {
+    const initialModel = initAt(playgroundCounterUrl)
+    const initialPlayground = Option.getOrThrow(initialModel.playground)
+    const urlWithHash = parseUrl(
+      'https://foldkit.dev/playground/counter#src/application.ts',
+    )
+
+    const routeChange = update(
+      initialModel,
+      Message.ChangedUrl({
+        url: urlWithHash,
+      }),
+    )
+
+    expect(Option.getOrThrow(routeChange.model.playground)).toBe(
+      initialPlayground,
+    )
+    expect(routeChange.commands?.map(command => command.name)).toEqual([
+      'Application/ScrollToAnchor',
+    ])
+  })
+
+  test('changing Playground slugs initializes a fresh Model', () => {
+    const initialModel = initAt(playgroundCounterUrl)
+    const initialPlayground = Option.getOrThrow(initialModel.playground)
+
+    const routeChange = update(
+      initialModel,
+      Message.ChangedUrl({ url: playgroundCountersUrl }),
+    )
+    const nextPlayground = Option.getOrThrow(routeChange.model.playground)
+
+    expect(nextPlayground).not.toBe(initialPlayground)
+    expect(nextPlayground.slug).toBe('counters')
+  })
+
+  test('entering and exiting Playground adds and removes its Model', () => {
+    const enteredPlayground = update(
+      initAt(newsletterUrl),
+      Message.ChangedUrl({ url: playgroundCounterUrl }),
+    )
+
+    expect(Option.getOrThrow(enteredPlayground.model.playground).slug).toBe(
+      'counter',
+    )
+
+    const exitedPlayground = update(
+      enteredPlayground.model,
+      Message.ChangedUrl({ url: newsletterUrl }),
+    )
+
+    expect(Option.isNone(exitedPlayground.model.playground)).toBe(true)
+  })
+
+  test('changing API module slugs retries missing API data', () => {
+    const failedLoad = update(
+      initAt(commandApiUrl),
+      Message.GotApiReferenceMessage({
+        message: ApiReference.Message.FailedLoadApiData({ error: 'failed' }),
+      }),
+    )
+
+    const routeChange = update(
+      failedLoad.model,
+      Message.ChangedUrl({ url: updateApiUrl }),
+    )
+
+    expect(routeChange.model.apiReference.apiData._tag).toBe('Loading')
+    expect(routeChange.commands?.map(command => command.name)).toContain(
+      'apiReference/LoadApiData',
+    )
+  })
+
+  test('changing example slugs requests the next example sources', () => {
+    const failedLoad = update(
+      initAt(counterExampleUrl),
+      Message.GotExampleDetailMessage({
+        message: ExampleDetail.Message.FailedLoadExampleSources({
+          error: 'failed',
+        }),
+      }),
+    )
+
+    const routeChange = update(
+      failedLoad.model,
+      Message.ChangedUrl({ url: countersExampleUrl }),
+    )
+
+    expect(routeChange.model.exampleDetail.currentSources._tag).toBe('Loading')
+    expect(routeChange.commands?.map(command => command.name)).toContain(
+      'exampleDetail/LoadExampleSources',
+    )
+  })
+
   test('entering Home initializes fresh state', () => {
     story(
       update,

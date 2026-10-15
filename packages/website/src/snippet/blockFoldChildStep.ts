@@ -1,3 +1,3 @@
-import { dialog } from './childBindings'
+import { dialog } from './application'
 
 export const closeDialog = dialog.close()

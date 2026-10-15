@@ -140,6 +140,10 @@ Use a private provider only when the operation deliberately owns that provider a
 
 When an application needs localStorage and sessionStorage at the same time, define distinct application service tags such as `LocalStorage` and `SessionStorage`. Bind each tag to its platform `KeyValueStore` Layer at the root. The tags preserve both identities without hiding either provider inside a Command.
 
+Define `ApplicationLayer` in root `services.ts`, then import it in the entry:
+
+::Snippet{name="layersPerCommandHttpServices" label="Shared HTTP service provider"}
+
 ::Snippet{name="layersPerCommandHttp" label="HTTP provider at the application root"}
 
 Foldkit’s `Http.layer` uses Effect’s Fetch-backed client with trace-header propagation disabled. Browser `traceparent` headers can turn otherwise CORS-simple requests into preflighted requests against plain APIs and development proxies. The application root provides it to the Application composition’s handler graph; a test root can provide `HttpTestLayer` to the same handlers.
@@ -147,6 +151,12 @@ Foldkit’s `Http.layer` uses Effect’s Fetch-backed client with trace-header p
 ## Services in Flags
 
 Flags remain startup Effects rather than handler definitions. The Flags Effect can require services too. `Runtime.run` resolves Flags before calling init, so an application Layer that supplies a Flags dependency must build during startup.
+
+The root `services.ts` defines the session client and combines its provider with `Http.layer`:
+
+::Snippet{name="layersFlagsServices" label="Session service and application provider"}
+
+The Flags Effect consumes the session client supplied by that Layer:
 
 ::Snippet{name="layersFlags" label="Flags consuming a service"}
 
@@ -160,13 +170,17 @@ Import Effect's `Layer` module as `Layer`. Compose a small feature's attached re
 
 An owned Block passes its local handler bundle to `FeatureComposition.toBlock({ EffectsLayer })`. A parent that includes the child Binding in `Parent.toComposition({ children: [child] })` receives the child's complete `EffectsLayer` automatically, including its descendants. The parent composes only its own local handler recipes. Repeating this at each Block boundary produces one root graph without making the entry point import every leaf implementation.
 
-Do not merge a bound child's bundle a second time. `bindChild` contributes the child's recipes for static, optional, and keyed placements. Composition checks the exact handler contracts supplied by the graph and reports a missing or conflicting provider before the Runtime starts.
+Do not merge a registered child's bundle a second time. `bindChild` configures the relationship; including the returned Binding in `toComposition({ children })` contributes its recipes for static, optional, and keyed placements. Composition checks the exact handler contracts supplied by the graph and reports a missing or conflicting provider before the Runtime starts.
+
+At the root, `application.ts` shows the complete child/Mount registration and combines root-local handler bundles. A `command.ts` namespace's `Command.EffectsLayer` includes only the Command handlers owned by that module. Registered child Blocks contribute their own handlers recursively through the completed graph; root code does not relist them.
+
+There is no flattened, human-readable handler inventory today. To inspect an Application's handlers, follow its registered children into each completed Block and local `EffectsLayer`. Do not maintain a second global list.
 
 At the root, the Application Composition contains the local handlers and composed child graphs. `ServicesLayer` combines concrete HTTP, storage, RPC, and browser providers. `ApplicationLayer` contains those ordinary service providers. `ApplicationComposition.toApplication({ init, update, view, ... })` or `.toElement(...)` packages the handler graph into the passive runtime input, and `application.provide(ApplicationLayer)` supplies its remaining service requirements. An `ApplicationTestLayer` can provide alternate services to the same handlers.
 
 When a feature needs a different local handler implementation, choose it with `block.replaceEffectsLayer(localRecipe)` before binding the feature. The replacement preserves the selected descendant recipes and remains passive until application startup. Use the original definitions' `toLayer` methods to retain their protocol and runtime identity. See [Selecting a local handler recipe](/core/block#select-a-local-handler-recipe).
 
-Use `Layer.mergeAll` to combine a feature's local recipes in `EffectsLayer`. A feature may provide a business service it owns beneath that bundle. Leave concrete environment providers as requirements for the root to choose. The composed graph preserves those ordinary service requirements through every parent; the root `ApplicationLayer` supplies them once for the whole runtime. Root `application.ts` exports `Application` and `ApplicationComposition`. Each implementation piece stays with its real owner, and `entry.ts` imports those fields explicitly for `ApplicationComposition.toApplication`. Keep a small `ApplicationLayer` there; extract root `layer.ts` only when provider composition is substantial or reused.
+Use `Layer.mergeAll` to combine a feature's local recipes in `EffectsLayer`. A feature may provide a business service it owns beneath that bundle. Leave concrete environment providers as requirements for the root to choose. The composed graph preserves those ordinary service requirements through every parent; the root `ApplicationLayer` supplies them once for the whole runtime. Root `application.ts` exports `Application` and `ApplicationComposition`. Each implementation piece stays with its real owner, and `entry.ts` imports those fields explicitly for `ApplicationComposition.toApplication`. Root `services.ts` composes `ApplicationLayer`, and the entry imports it.
 
 ::Snippet{name="layersMultiple" label="Multiple shared services"}
 

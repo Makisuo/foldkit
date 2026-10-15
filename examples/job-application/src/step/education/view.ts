@@ -3,8 +3,8 @@ import { type Html, createKeyedLazy } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
+import { EducationComposition, type ViewBuilder, entries } from './composition'
 import { Message } from './definition'
-import { EducationComposition, type ViewBuilder, entries } from './education'
 import * as Entry from './entry'
 
 const lazyEntry = createKeyedLazy()

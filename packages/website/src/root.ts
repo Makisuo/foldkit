@@ -88,7 +88,7 @@ export const init = (flags: Flags, url: Url) => {
   const initialRoute = urlToApplicationRoute(url)
   const maybeHomeInit = pipe(
     initialRoute,
-    Option.liftPredicate(route => route._tag === 'Home'),
+    Option.liftPredicate(ApplicationRoute.guards.Home),
     Option.map(() => home.init()),
   )
   const maybeHome = Option.map(maybeHomeInit, homeInit => homeInit.model)

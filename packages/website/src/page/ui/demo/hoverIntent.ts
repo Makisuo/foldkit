@@ -7,7 +7,7 @@ import {
   hoverIntentCardDemo as hoverIntentCardDemoBinding,
   hoverIntentMenuDemo as hoverIntentMenuDemoBinding,
 } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 
 const triggerClassName =
@@ -29,7 +29,7 @@ const MENU_PANEL_ID = 'hover-intent-menu-panel'
 
 const hoverCard = (
   { trigger, panel, isVisible }: HoverIntentRenderInfo,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html =>
   h.div(
     [h.Class('relative')],
@@ -75,7 +75,7 @@ const hoverCard = (
 
 export const hoverCardDemo = (
   hoverIntentCardDemo: typeof HoverIntent.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): ReadonlyArray<Html> => [
   h.div(
     [h.Class('flex min-h-32 w-full items-center justify-center')],
@@ -96,7 +96,7 @@ export const hoverCardDemo = (
 
 const hoverMenu = (
   { trigger, panel, isVisible }: HoverIntentRenderInfo,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html =>
   h.div(
     [h.Class('relative')],
@@ -150,7 +150,7 @@ const hoverMenu = (
 
 export const hoverMenuDemo = (
   hoverIntentMenuDemo: typeof HoverIntent.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): ReadonlyArray<Html> => [
   h.div(
     [h.Class('flex min-h-32 w-full items-center justify-center')],

@@ -75,8 +75,7 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 export const init = () => ({
   model: Model.make({ balls: [], nextId: 0, isRunning: true }),
@@ -214,7 +213,7 @@ const sceneShapes = (model: Model): ReadonlyArray<Canvas.Shape> => [
   ...Array.map(model.balls, ballShape),
 ]
 
-const controlsView = (model: Model, h: ViewBuilder): Html =>
+const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('flex gap-3 mt-4')],
     [

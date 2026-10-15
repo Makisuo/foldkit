@@ -34,8 +34,7 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
@@ -143,7 +142,7 @@ export const view = ApplicationComposition.view((model, h) => ({
 // after a <pre> or <textarea> start tag that assigning `innerHTML` would keep.
 // The e2e suite loads this page once with scripting off and once hydrated, and
 // requires the two readings to agree.
-const parseEquivalenceView = (h: ViewBuilder): Html =>
+const parseEquivalenceView = (h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Id('parse-equivalence'), h.Class('hidden')],
     [

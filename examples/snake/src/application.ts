@@ -50,8 +50,7 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 export const init = () => {
   const snake = Snake.create(GAME.INITIAL_POSITION)
@@ -300,7 +299,7 @@ const cellClass = (x: number, y: number, model: Model): string => {
   )
 }
 
-const gridView = (model: Model, h: ViewBuilder): Html =>
+const gridView = (model: Model, h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('inline-block border-2 border-gray-600')],
     Array.makeBy(GAME.GRID_SIZE, y =>
@@ -322,7 +321,7 @@ const gameStateView = (gameState: GameState): string =>
     Match.exhaustive,
   )
 
-const instructionsView = (h: ViewBuilder): Html =>
+const instructionsView = (h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('mt-4 text-sm text-gray-400')],
     [

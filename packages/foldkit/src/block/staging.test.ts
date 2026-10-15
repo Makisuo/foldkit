@@ -39,8 +39,13 @@ const childBase = ChildOwner.define({
   Model: ChildModel,
   Message: ChildMessage,
 })
+const graphlessComposition = childBase.toComposition()
 const observeComposition = childBase.toComposition({ mounts: [Observe] })
 const measureComposition = childBase.toComposition({ mounts: [Measure] })
+
+const graphlessView = graphlessComposition.view((model, h) =>
+  h.div([], [model.value]),
+)
 
 const defaultView = observeComposition.view.withInputs<
   Readonly<{ label: string }>
@@ -98,20 +103,33 @@ const alternateEmbed = directChild.embedView({
 })
 
 if (false) {
-  childBase.view((_model, h) =>
+  // @ts-expect-error A Definition does not author the primary view.
+  childBase.view
+
+  graphlessComposition.view((_model, h) =>
     h.div([
-      // @ts-expect-error A graphless Base cannot use an unregistered Mount.
+      // @ts-expect-error A graphless Composition cannot use an unregistered Mount.
       h.OnMount(Observe()),
     ]),
   )
 
-  childBase.toComposition().toBlock({
+  graphlessComposition.toBlock({
     init: Child.init,
     update: Child.update,
-    // @ts-expect-error A graphless Base cannot complete a Mount-capable view.
+    // @ts-expect-error A graphless Composition cannot complete a Mount-capable view.
     view: defaultView,
     EffectsLayer: Observe.layer,
   })
+
+  graphlessComposition.view((_model, h) =>
+    h.button([
+      // @ts-expect-error A view accepts only its Composition's Message.
+      h.OnClick({ _tag: 'ForeignMessage' }),
+    ]),
+  )
+
+  // @ts-expect-error void cannot describe usable per-render ViewInputs.
+  graphlessComposition.view.withInputs<void>((_model, _inputs, h) => h.empty)
 
   // @ts-expect-error A Composition cannot establish another graph.
   observeComposition.toComposition({ mounts: [Measure] })
@@ -142,6 +160,9 @@ if (false) {
 
 it('creates independent immutable graphs from one typed Base', () => {
   expect(childBase.mounts).toEqual([])
+  expect(childBase).not.toHaveProperty('view')
+  expect(graphlessComposition.view).toBeTypeOf('function')
+  void graphlessView
   expect(observeComposition.owner).toBe(childBase.owner)
   expect(observeComposition.update).toBe(childBase.update)
   expect(observeComposition.step).toBe(childBase.step)

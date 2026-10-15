@@ -6,7 +6,7 @@ import { type AnchorConfig, buttonId } from '@foldkit/ui/menu'
 
 import { Icon } from '../../../icon'
 import { menuAnimatedDemo, menuBasicDemo } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import { type MenuItem } from './components'
 
 // DEMO CONTENT
@@ -95,7 +95,7 @@ const menuViewConfig = (itemsClassName: string) => {
 
 export const basicDemo = (
   menuModel: typeof Menu.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   return [
     h.div(
@@ -126,7 +126,7 @@ export const basicDemo = (
 
 export const animatedDemo = (
   menuModel: typeof Menu.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   return [
     h.div(

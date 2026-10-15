@@ -14,8 +14,9 @@ import { MountMap } from './mount'
 export const ApplicationComposition = Application.toComposition({
   mounts: [MountMap],
 })
-
-export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>
 
 export const EffectsLayer = Layer.mergeAll(
   FlyTo.layer,

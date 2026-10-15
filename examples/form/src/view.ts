@@ -1,17 +1,17 @@
 import clsx from 'clsx'
 import { Array } from 'effect'
 import { FieldValidation } from 'foldkit'
-import type { Block } from 'foldkit'
 import { Field } from 'foldkit/fieldValidation'
 import { type Attribute, Html } from 'foldkit/html'
 
 import { Button, Input, Textarea } from '@foldkit/ui'
 
-import { ApplicationComposition } from './application'
+import {
+  ApplicationComposition,
+  type ApplicationViewBuilder,
+} from './application'
 import { Message, Submission } from './definition'
 import { isFormValid } from './validation'
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 const LABEL_CLASS = 'text-sm font-medium text-gray-700'
 const DESCRIPTION_CLASS = 'text-sm mt-1'
@@ -30,7 +30,10 @@ const inputClassName = (field: Field<string>): string =>
     borderClass(field),
   )
 
-const statusIndicator = (field: Field<string>, h: ViewBuilder): Html =>
+const statusIndicator = (
+  field: Field<string>,
+  h: ApplicationViewBuilder,
+): Html =>
   FieldValidation.match(field, {
     onNotValidated: () => h.empty,
     onValidating: () =>
@@ -42,7 +45,7 @@ const statusIndicator = (field: Field<string>, h: ViewBuilder): Html =>
 const descriptionView = (
   field: Field<string>,
   descriptionAttributes: ReadonlyArray<Attribute<Message>>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   FieldValidation.match(field, {
     onNotValidated: () => h.empty,
@@ -71,7 +74,7 @@ const inputFieldView = (
   field: Field<string>,
   onUpdate: (value: string) => Message,
   type: string,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   Input.view(
     {
@@ -108,7 +111,7 @@ const textareaFieldView = (
   labelText: string,
   field: Field<string>,
   onUpdate: (value: string) => Message,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   Textarea.view(
     {

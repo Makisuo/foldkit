@@ -1,5 +1,3 @@
-import type { Block } from 'foldkit'
-
 import * as Counter from '../../counter'
 import { Editor } from '../definition'
 import { Message } from '../message'
@@ -17,5 +15,3 @@ export const EditorComposition = Editor.toComposition({
   children: [counter, dialog],
   mounts: [FocusEditor],
 })
-
-export type ViewBuilder = Block.HtmlBuilderOf<typeof EditorComposition>

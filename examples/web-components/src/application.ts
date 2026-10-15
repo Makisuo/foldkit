@@ -28,8 +28,7 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 const DEFAULT_CONTENT = 'https://foldkit.dev'
 const DEFAULT_FILL_COLOR = '#1e1b4b'
@@ -99,10 +98,10 @@ export const view = ApplicationComposition.view((model, h) => ({
   ),
 }))
 
-const codeView = (text: string, h: ViewBuilder): Html =>
+const codeView = (text: string, h: ApplicationViewBuilder): Html =>
   h.code([h.Class('px-1 py-0.5 rounded bg-slate-200 text-[0.8em]')], [text])
 
-const headerView = (h: ViewBuilder): Html =>
+const headerView = (h: ApplicationViewBuilder): Html =>
   h.header(
     [h.Class('flex flex-col gap-2')],
     [
@@ -143,7 +142,7 @@ const FIELD_LABEL_CLASS =
 const FIELD_CONTROL_CLASS =
   'px-3 py-2 text-sm rounded-md border border-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200'
 
-const designerView = (model: Model, h: ViewBuilder): Html =>
+const designerView = (model: Model, h: ApplicationViewBuilder): Html =>
   h.div(
     [
       h.Class(
@@ -153,7 +152,7 @@ const designerView = (model: Model, h: ViewBuilder): Html =>
     [controlsView(model, h), previewView(model, h)],
   )
 
-const controlsView = (model: Model, h: ViewBuilder): Html =>
+const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('flex flex-col gap-5')],
     [
@@ -179,7 +178,7 @@ const controlsView = (model: Model, h: ViewBuilder): Html =>
     ],
   )
 
-const contentFieldView = (model: Model, h: ViewBuilder): Html =>
+const contentFieldView = (model: Model, h: ApplicationViewBuilder): Html =>
   Input.view(
     {
       id: 'qr-content',
@@ -214,7 +213,7 @@ const colorFieldView = (
     value: string
     onChange: (value: string) => Message
   }>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const colorPicker = hexColorPicker.withMessage(h)
 
@@ -265,7 +264,7 @@ const swatchClass = (isActive: boolean): string =>
 const swatchRow = (
   active: string,
   onChange: (value: string) => Message,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.div(
     [h.Class('flex flex-wrap gap-1.5 max-w-[10rem]')],
@@ -291,7 +290,7 @@ const swatchRow = (
 
 const QR_SIZE = 220
 
-const previewView = (model: Model, h: ViewBuilder): Html => {
+const previewView = (model: Model, h: ApplicationViewBuilder): Html => {
   const qr = qrCode.withMessage(h)
 
   return h.div(

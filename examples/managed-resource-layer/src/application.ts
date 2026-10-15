@@ -77,8 +77,7 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 const Engine = Application.resource<ComputeEngine>()('ComputeEngine')
 
@@ -189,7 +188,7 @@ const primaryButton = (
   message: Message,
   colorClassName: string,
   isDisabled: boolean,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   Button.view(
     {
@@ -207,7 +206,10 @@ const primaryButton = (
     h,
   )
 
-const engineStatusView = (engine: EngineState, h: ViewBuilder): Html => {
+const engineStatusView = (
+  engine: EngineState,
+  h: ApplicationViewBuilder,
+): Html => {
   const status = EngineState.match(engine, {
     Off: () => ({
       colorClassName: 'text-gray-500',
@@ -230,7 +232,10 @@ const engineStatusView = (engine: EngineState, h: ViewBuilder): Html => {
   return h.p([h.Class(status.colorClassName)], [status.text])
 }
 
-const engineControlsView = (engine: EngineState, h: ViewBuilder): Html => {
+const engineControlsView = (
+  engine: EngineState,
+  h: ApplicationViewBuilder,
+): Html => {
   const controls = Match.value(engine).pipe(
     Match.tag('Booting', 'Ready', () => ({
       label: 'Stop engine',
@@ -261,7 +266,7 @@ const engineControlsView = (engine: EngineState, h: ViewBuilder): Html => {
 
 const squareResultView = (
   maybeSquareResult: Option.Option<number>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const text = Option.match(maybeSquareResult, {
     onNone: () => 'No result yet.',

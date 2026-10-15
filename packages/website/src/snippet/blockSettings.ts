@@ -7,6 +7,7 @@ import {
   OutMessage,
   SaveTheme,
   Settings,
+  SettingsComposition,
   Theme,
 } from './blockDefinition'
 
@@ -32,9 +33,11 @@ const reset = Settings.step(model => ({
   model: modifyFields(model, { theme: () => 'System' }),
 }))
 
-const view = Settings.view((model, h) => h.p([], [`Theme: ${model.theme}`]))
+const view = SettingsComposition.view((model, h) =>
+  h.p([], [`Theme: ${model.theme}`]),
+)
 
-export const block = Settings.toComposition().toBlock({
+export const block = SettingsComposition.toBlock({
   init: () => ({ model: Model.make({ theme: 'System' }) }),
   update,
   view,

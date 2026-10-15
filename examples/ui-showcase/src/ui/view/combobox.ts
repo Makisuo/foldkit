@@ -17,7 +17,7 @@ import {
   comboboxPlacementLockDemo,
   comboboxSelectOnFocusDemo,
 } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import type { City } from '../model'
 
 const CITIES: ReadonlyArray<City> = [
@@ -76,7 +76,7 @@ export const comboboxInputs = (
     anchor?: AnchorConfig
     wrapperClass?: string
   }>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Omit<ComboboxViewInputs<City>, 'maybeSelectedValue'> => {
   const filteredCities = filterCities(inputValue)
 

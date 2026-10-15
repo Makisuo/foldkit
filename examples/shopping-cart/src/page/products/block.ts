@@ -1,8 +1,8 @@
-import { Products } from './definition'
+import { ProductsComposition } from './definition'
 import { ReplaceSearchUrl, init, update } from './products'
 import { view } from './view'
 
-export const block = Products.toComposition().toBlock({
+export const block = ProductsComposition.toBlock({
   init,
   update,
   view,

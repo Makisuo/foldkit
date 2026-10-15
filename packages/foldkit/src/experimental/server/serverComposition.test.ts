@@ -102,7 +102,7 @@ const FlagsComposition = FlagsApplication.toComposition()
 const flagsImplementation = {
   init: (flags: ServerFlags) => ({ model: { title: flags.title } }),
   update: FlagsApplication.update(model => ({ model })),
-  view: FlagsApplication.view((model, h) => ({
+  view: FlagsComposition.view((model, h) => ({
     title: model.title,
     body: h.main([], [model.title]),
   })),
@@ -117,7 +117,7 @@ const RoutingComposition = RoutingApplication.toComposition()
 const routingImplementation = {
   init: (url: Url) => ({ model: { title: url.pathname } }),
   update: RoutingApplication.update(model => ({ model })),
-  view: RoutingApplication.view((model, h) => ({
+  view: RoutingComposition.view((model, h) => ({
     title: model.title,
     body: h.main([], [model.title]),
   })),
@@ -134,7 +134,7 @@ const routingFlagsImplementation = {
     model: { title: `${flags.title}${url.pathname}` },
   }),
   update: RoutingFlagsApplication.update(model => ({ model })),
-  view: RoutingFlagsApplication.view((model, h) => ({
+  view: RoutingFlagsComposition.view((model, h) => ({
     title: model.title,
     body: h.main([], [model.title]),
   })),
@@ -160,7 +160,7 @@ const HtmlComposition = HtmlApplication.toComposition()
 const htmlImplementation = {
   init: () => ({ model: { title: 'html' } }),
   update: HtmlApplication.update(model => ({ model })),
-  view: HtmlApplication.view((model, h) => h.main([], [model.title])),
+  view: HtmlComposition.view((model, h) => h.main([], [model.title])),
   EffectsLayer: Layer.empty,
 }
 

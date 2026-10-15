@@ -5,7 +5,7 @@ import type { EntryHandlers, Variant } from '@foldkit/ui/toast'
 
 import * as Icon from '../../icon'
 import { UiComposition, toastDemo } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 import { Toast } from '../toast'
 
@@ -29,7 +29,7 @@ const entryClassName =
 const renderToastEntry = (
   entry: Entry,
   handlers: EntryHandlers,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html => {
   return h.div(
     [

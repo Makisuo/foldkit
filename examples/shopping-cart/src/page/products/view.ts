@@ -4,13 +4,13 @@ import { Button, Input } from '@foldkit/ui'
 
 import { Cart } from '../../domain'
 import { cartRouter } from '../../route'
-import { Message, Products } from './definition'
+import { Message, ProductsComposition } from './definition'
 
 export type ViewInputs = Readonly<{
   cart: Cart.Cart
 }>
 
-export const view = Products.view.withInputs<ViewInputs>(
+export const view = ProductsComposition.view.withInputs<ViewInputs>(
   (model, { cart }, h) => {
     const filteredProducts = model.searchText
       ? model.products.filter(product =>

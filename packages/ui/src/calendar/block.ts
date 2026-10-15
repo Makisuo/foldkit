@@ -917,7 +917,7 @@ const isYearDisabled = (model: Model, year: number): boolean =>
 const buildDaysAttributes = (
   model: Model,
   viewInputs: ViewInputs,
-  h: ViewBuilder,
+  h: CalendarViewBuilder,
 ): DaysModeAttributes => {
   const {
     id,
@@ -1119,7 +1119,7 @@ const buildDaysAttributes = (
 const buildMonthsAttributes = (
   model: Model,
   viewInputs: ViewInputs,
-  h: ViewBuilder,
+  h: CalendarViewBuilder,
 ): MonthsModeAttributes => {
   const {
     id,
@@ -1252,7 +1252,7 @@ const buildMonthsAttributes = (
 const buildYearsAttributes = (
   model: Model,
   viewInputs: ViewInputs,
-  h: ViewBuilder,
+  h: CalendarViewBuilder,
 ): YearsModeAttributes => {
   const { id, viewYear, maybeFocusedDate, today, isGridFocused } = model
 
@@ -1379,11 +1379,14 @@ const buildYearsAttributes = (
   }
 }
 
+const CalendarComposition = Calendar.toComposition()
+type CalendarViewBuilder = Block.HtmlBuilderOf<typeof CalendarComposition>
+
 /** Renders an accessible Calendar. Publishes mode-specific ARIA attribute
  *  bundles + derived cell data, then delegates layout to the consumer's
  *  `toView` callback. The variant of `CalendarAttributes` passed to
  *  `toView` matches `model.viewMode`. */
-export const view = Calendar.view.withInputs<ViewInputs>(
+export const view = CalendarComposition.view.withInputs<ViewInputs>(
   (model, viewInputs, h) =>
     viewInputs.toView(
       Match.value(model.viewMode).pipe(
@@ -1397,10 +1400,6 @@ export const view = Calendar.view.withInputs<ViewInputs>(
 )
 
 /** Complete Calendar Block definition for connecting to a parent. */
-const CalendarComposition = Calendar.toComposition()
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof CalendarComposition>
-
 export const block = CalendarComposition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),
   update,

@@ -10,7 +10,7 @@ import {
   popoverNestedChildDemo,
   popoverNestedParentDemo,
 } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 
 // DEMO CONTENT
 
@@ -71,7 +71,7 @@ const panelContent = (): Html =>
 
 const popoverViewInputs = (
   panelVariant: PanelVariant,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Parameters<typeof popoverBasicDemo.embedView>[0]['viewInputs'] => {
   const isArrowDrawn = panelVariant === 'Arrow'
 
@@ -136,7 +136,7 @@ const popoverViewInputs = (
 const labeledPopoverDemo = (
   popoverModel: typeof Popover.Model.Type,
   content: Html,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Array<Html> => [
   h.div(
     [h.Class('demo-field')],
@@ -152,7 +152,7 @@ const labeledPopoverDemo = (
 
 export const basicDemo = (
   popoverModel: typeof Popover.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Array<Html> =>
   labeledPopoverDemo(
     popoverModel,
@@ -168,7 +168,7 @@ export const basicDemo = (
 
 export const animatedDemo = (
   popoverModel: typeof Popover.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Array<Html> =>
   labeledPopoverDemo(
     popoverModel,
@@ -184,7 +184,7 @@ export const animatedDemo = (
 
 export const arrowDemo = (
   popoverModel: typeof Popover.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Array<Html> =>
   labeledPopoverDemo(
     popoverModel,
@@ -200,7 +200,7 @@ export const arrowDemo = (
 
 const nestedChildPopover = (
   childPopoverModel: typeof Popover.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html =>
   h.block(
     popoverNestedChildDemo.embedView({
@@ -250,7 +250,7 @@ const nestedChildPopover = (
 export const nestedDemo = (
   parentPopoverModel: typeof Popover.Model.Type,
   childPopoverModel: typeof Popover.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   return [
     h.div(

@@ -1,24 +1,24 @@
-import { Application as ImportedApplication } from './rootApplication'
+import { ApplicationComposition as ImportedApplicationComposition } from './rootApplication'
 
 import { Child } from './child'
 
-const RootApplication = ImportedApplication
+const RootApplicationComposition = ImportedApplicationComposition
 
 type RootHtmlBuilder = Parameters<
-  Parameters<typeof RootApplication.view>[0]
+  Parameters<typeof RootApplicationComposition.view>[0]
 >[1]
 
 const childViewHelper = (h: RootHtmlBuilder) =>
   h.button([h.OnClick(Child.Message.ClickedFromRootViewHelper())])
 
-export const page = RootApplication.toApplication({
+export const page = RootApplicationComposition.toApplication({
   routing: {
-    onUrlRequest: () => RootApplication.Message.ClickedOwnLink(),
+    onUrlRequest: () => RootApplicationComposition.Message.ClickedOwnLink(),
     onUrlChange: () => Child.Message.ClickedFromRootCompletion(),
   },
 })
 
-export const element = RootApplication.toElement({
+export const element = RootApplicationComposition.toElement({
   view: (_model, h) =>
     h.div(
       [h.OnClick(Child.Message.ClickedFromElementCompletion())],

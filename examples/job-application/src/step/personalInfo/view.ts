@@ -9,14 +9,11 @@ import { PronounOption } from '../../domain'
 import { DatePicker, Field, Icon } from '../../view'
 import {
   PersonalInfoComposition,
+  type PersonalInfoViewBuilder,
   availableDatePicker,
   pronounsListbox,
 } from './composition'
 import { Message } from './definition'
-
-type PersonalInfoHtmlBuilder = Parameters<
-  Parameters<typeof PersonalInfoComposition.view>[0]
->[1]
 
 export const view = PersonalInfoComposition.view((model, h) => {
   const {
@@ -190,7 +187,7 @@ export const view = PersonalInfoComposition.view((model, h) => {
 const availableDatePickerView = (
   model: typeof UiDatePicker.Model.Type,
   maybeSelectedDate: Option.Option<CalendarDate>,
-  h: PersonalInfoHtmlBuilder,
+  h: PersonalInfoViewBuilder,
 ): Html =>
   h.div(
     [h.Class('space-y-1')],

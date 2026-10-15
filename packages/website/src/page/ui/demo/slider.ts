@@ -1,7 +1,7 @@
 import { Slider } from '@foldkit/ui'
 
 import { sliderRatingDemo, sliderVolumeDemo } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 
 // SHARED STYLES
 
@@ -48,7 +48,7 @@ const volumeFormatted = (value: number): string =>
 export const horizontalDemo = (
   ratingModel: typeof Slider.Model.Type,
   ratingValue: number,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   return [
     h.block(
@@ -101,7 +101,7 @@ export const horizontalDemo = (
 export const verticalDemo = (
   volumeModel: typeof Slider.Model.Type,
   volumeValue: number,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   return [
     h.block(

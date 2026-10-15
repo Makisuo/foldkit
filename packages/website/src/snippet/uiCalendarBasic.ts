@@ -108,8 +108,9 @@ const calendar = CalendarExample.bindChild(UiCalendar.block, {
 const CalendarExampleComposition = CalendarExample.toComposition({
   children: [calendar],
 })
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof CalendarExampleComposition>
+type CalendarExampleViewBuilder = Block.HtmlBuilderOf<
+  typeof CalendarExampleComposition
+>
 
 const update = CalendarExample.update((model, message) =>
   Message.match(message, {
@@ -152,7 +153,7 @@ const monthYearButtonClassName =
 const navButton = (
   attributes: ReadonlyArray<ChildAttribute>,
   label: string,
-  h: ViewBuilder,
+  h: CalendarExampleViewBuilder,
 ): Html => h.button([...attributes, h.Class(navButtonClassName)], [label])
 
 // The heading is a button: clicking it drills one level deeper (Days into
@@ -161,7 +162,7 @@ const navButton = (
 const headingButton = (
   heading: UiCalendarDaysModeAttributes['heading'],
   attributes: ReadonlyArray<ChildAttribute>,
-  h: ViewBuilder,
+  h: CalendarExampleViewBuilder,
 ): Html =>
   h.button(
     [h.Id(heading.id), ...attributes, h.Class(headingButtonClassName)],
@@ -170,7 +171,7 @@ const headingButton = (
 
 // Each Week carries its own row attributes and seven day cells, and each cell
 // is a gridcell wrapping a button.
-const weekRow = (week: UiCalendarWeek, h: ViewBuilder): Html =>
+const weekRow = (week: UiCalendarWeek, h: CalendarExampleViewBuilder): Html =>
   h.div(
     [...week.attributes, h.Class(rowClassName)],
     week.cells.map(cell =>
@@ -188,7 +189,10 @@ const weekRow = (week: UiCalendarWeek, h: ViewBuilder): Html =>
 
 // One view function per view mode. Each receives the attribute group for its
 // own grid, so the fields it reads are exactly the fields that exist.
-const daysView = (days: UiCalendarDaysModeAttributes, h: ViewBuilder): Html =>
+const daysView = (
+  days: UiCalendarDaysModeAttributes,
+  h: CalendarExampleViewBuilder,
+): Html =>
   h.div(
     [...days.root, h.Class(panelClassName)],
     [
@@ -222,7 +226,7 @@ const daysView = (days: UiCalendarDaysModeAttributes, h: ViewBuilder): Html =>
 // drills further into the years grid.
 const monthsView = (
   months: UiCalendarMonthsModeAttributes,
-  h: ViewBuilder,
+  h: CalendarExampleViewBuilder,
 ): Html =>
   h.div(
     [...months.root, h.Class(panelClassName)],
@@ -253,7 +257,7 @@ const monthsView = (
 // year. Years is terminal, so its heading is text rather than a button.
 const yearsView = (
   years: UiCalendarYearsModeAttributes,
-  h: ViewBuilder,
+  h: CalendarExampleViewBuilder,
 ): Html =>
   h.div(
     [...years.root, h.Class(panelClassName)],

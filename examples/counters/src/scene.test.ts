@@ -12,7 +12,9 @@ import {
 } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { type Model, update, view } from './application'
+import { Model as ModelSchema, update, view } from './application'
+
+type Model = typeof ModelSchema.Type
 
 const initialModel: Model = {
   counters: [

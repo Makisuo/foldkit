@@ -13,7 +13,7 @@ import type { AnchorConfig } from '@foldkit/ui/popover'
 
 import * as Icon from '../../icon'
 import { UiComposition, datePickerBasicDemo } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 
 const triggerClassName =
   'inline-flex items-center justify-between gap-2 min-w-48 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -64,20 +64,20 @@ const monthYearButtonClassName =
 const navButton = (
   attributes: ReadonlyArray<ChildAttribute>,
   icon: Html,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html => h.button([...attributes, h.Class(navButtonClassName)], [icon])
 
 const headingButton = (
   heading: DaysModeAttributes['heading'],
   attributes: ReadonlyArray<ChildAttribute>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html =>
   h.button(
     [h.Id(heading.id), ...attributes, h.Class(headingButtonClassName)],
     [heading.text, Icon.chevronDown('w-3 h-3')],
   )
 
-const weekRow = (week: Week, h: ViewBuilder) =>
+const weekRow = (week: Week, h: UiViewBuilder) =>
   h.div(
     [...week.attributes, h.Class(rowClassName)],
     week.cells.map(cell =>
@@ -95,7 +95,7 @@ const weekRow = (week: Week, h: ViewBuilder) =>
 
 // MODES
 
-const daysView = (days: DaysModeAttributes, h: ViewBuilder) =>
+const daysView = (days: DaysModeAttributes, h: UiViewBuilder) =>
   h.div(
     [...days.root, h.Class(calendarWrapperClassName)],
     [
@@ -125,7 +125,7 @@ const daysView = (days: DaysModeAttributes, h: ViewBuilder) =>
     ],
   )
 
-const monthsView = (months: MonthsModeAttributes, h: ViewBuilder) =>
+const monthsView = (months: MonthsModeAttributes, h: UiViewBuilder) =>
   h.div(
     [...months.root, h.Class(calendarWrapperClassName)],
     [
@@ -150,7 +150,7 @@ const monthsView = (months: MonthsModeAttributes, h: ViewBuilder) =>
     ],
   )
 
-const yearsView = (years: YearsModeAttributes, h: ViewBuilder) =>
+const yearsView = (years: YearsModeAttributes, h: UiViewBuilder) =>
   h.div(
     [...years.root, h.Class(calendarWrapperClassName)],
     [
@@ -199,7 +199,7 @@ const triggerContent = (
   maybeDate: Option.Option<
     Readonly<{ year: number; month: number; day: number }>
   >,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   return h.div(
     [h.Class(triggerContentClassName)],

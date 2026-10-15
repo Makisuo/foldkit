@@ -86,7 +86,7 @@ For a direct array of child Models with declared Struct key fields, use `Parent.
 
 ### Mount Requirements in Reusable Views
 
-An owned view receives a builder whose allowed Mounts are inferred from its Composition. After establishing `NameComposition`, derive one feature-local `ViewBuilder` type with `Block.HtmlBuilderOf<typeof NameComposition>` and use it for ordinary helpers on the same mounted or child embedding path. The alias retains the Composition's Message, local Mounts, and child Bindings without constructing a runtime builder. `NameComposition.view` remains the canonical owned view:
+An owned view receives a builder whose allowed Mounts are inferred from its Composition. Immediately after establishing `NameComposition`, derive `NameViewBuilder` with `Block.HtmlBuilderOf<typeof NameComposition>` and use it for ordinary helpers on the same mounted or child embedding path. Keep it private unless another file uses it. The alias retains the Composition's Message, local Mounts, and child Bindings without constructing a runtime builder. `NameComposition.view` remains the canonical owned view and leaves its `h` parameter inferred:
 
 ::Snippet{name="mountBlockView" label="Preserving a Block view's Mount requirements"}
 

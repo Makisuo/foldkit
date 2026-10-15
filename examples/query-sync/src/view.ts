@@ -10,7 +10,7 @@ import {
   dietListbox,
   periodListbox,
 } from './application'
-import type { ViewBuilder } from './application'
+import type { ApplicationViewBuilder } from './application'
 import { type Dinosaur, dinosaurs } from './data'
 import { Message } from './message'
 import { type Model, dietFilterItems, periodFilterItems } from './model'
@@ -101,7 +101,7 @@ const headerButtonClass =
 
 const bodyCellClass = 'px-4 py-3 text-sm text-gray-700'
 
-const dinosaurRowView = (dinosaur: Dinosaur, h: ViewBuilder): Html =>
+const dinosaurRowView = (dinosaur: Dinosaur, h: ApplicationViewBuilder): Html =>
   h.keyed('tr')(
     dinosaur.name,
     [h.Class('border-b border-gray-100 hover:bg-gray-50 transition')],
@@ -155,7 +155,7 @@ const sortableColumnHeader = (
   displayLabel: string,
   fields: BrowseFields,
   isRightAligned: boolean,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const indicator = h.span(
     [h.Class(clsx(SORT_INDICATOR_WIDTH, 'inline-block text-center'))],
@@ -205,7 +205,10 @@ const listboxBackdropClassName = 'fixed inset-0 z-0'
 
 const listboxWrapperClassName = 'relative inline-block'
 
-const filterItemConfig = (label: string, h: ViewBuilder): ItemConfig => {
+const filterItemConfig = (
+  label: string,
+  h: ApplicationViewBuilder,
+): ItemConfig => {
   return {
     className: listboxItemClassName,
     content: h.div(
@@ -225,7 +228,7 @@ const filterItemConfig = (label: string, h: ViewBuilder): ItemConfig => {
   }
 }
 
-const chevronDown = (className: string, h: ViewBuilder): Html =>
+const chevronDown = (className: string, h: ApplicationViewBuilder): Html =>
   h.svg(
     [
       h.AriaHidden(true),
@@ -245,7 +248,7 @@ const chevronDown = (className: string, h: ViewBuilder): Html =>
     ],
   )
 
-const filterButtonContent = (label: string, h: ViewBuilder): Html =>
+const filterButtonContent = (label: string, h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('flex w-full items-center justify-between gap-4')],
     [h.span([], [label]), chevronDown('w-4 h-4 text-gray-400', h)],
@@ -270,7 +273,7 @@ const periodLabel = (item: string): string =>
 const browseView = (
   model: Model,
   route: typeof ApplicationRoute.Browse.Type,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const fields = routeToBrowseFields(route)
   const results = filterAndSort(fields)
@@ -456,7 +459,7 @@ const browseView = (
   )
 }
 
-const notFoundView = (path: string, h: ViewBuilder): Html =>
+const notFoundView = (path: string, h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('max-w-4xl mx-auto px-4 text-center')],
     [

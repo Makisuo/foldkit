@@ -3,7 +3,7 @@ import { Match, Option, String } from 'effect'
 import { AsyncData } from 'foldkit'
 import { Html, createLazy, inertHtml as ih } from 'foldkit/html'
 
-import type { ViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../application'
 import {
   apiReference,
   comingFromReact,
@@ -72,7 +72,7 @@ const LlmIgnore = ih.DataAttribute('llm-ignore', '')
 
 // DOCS HEADER
 
-export const headerView = (model: Model, h: ViewBuilder) =>
+export const headerView = (model: Model, h: ApplicationViewBuilder) =>
   h.header(
     [
       h.Class(
@@ -160,7 +160,10 @@ export const headerView = (model: Model, h: ViewBuilder) =>
 
 // DOCS FOOTER
 
-export const footerView = (currentYear: number, h: ViewBuilder): Html =>
+export const footerView = (
+  currentYear: number,
+  h: ApplicationViewBuilder,
+): Html =>
   h.footer(
     [
       h.Class(
@@ -215,7 +218,7 @@ const neighborLink = (
     page: NavPage
     direction: 'Previous' | 'Next'
   }>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ) =>
   h.a(
     [
@@ -255,7 +258,7 @@ const neighborLink = (
     ],
   )
 
-const pageNavigationView = (tag: string, h: ViewBuilder) => {
+const pageNavigationView = (tag: string, h: ApplicationViewBuilder) => {
   const { maybePrevious, maybeNext } = pageNeighbors(tag)
 
   if (Option.isNone(maybePrevious) && Option.isNone(maybeNext)) {
@@ -345,7 +348,7 @@ const renderApiReference = (
   apiReferenceModel: typeof ApiReference.Model.Type,
   module: ApiReference.ApiModule,
   highlights: ApiReference.ApiData['highlights'],
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.block(
     apiReference.embedView({
@@ -374,7 +377,7 @@ const renderDocContent = (
   pageView: DocPageView,
   snippetCopy: SnippetCopy.Model,
   snippetDisclosure: SnippetDisclosure.Model,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const renderCopyButton = SnippetCopy.renderer(snippetCopy, config =>
     h.block(snippetCopyBinding.embedView(config)),
@@ -389,7 +392,10 @@ const renderDocContent = (
   )
 }
 
-const renderProseContent = (pageView: ProseDocPageView, h: ViewBuilder): Html =>
+const renderProseContent = (
+  pageView: ProseDocPageView,
+  h: ApplicationViewBuilder,
+): Html =>
   pageView(
     Prose.renderHeadingLink(hash => Message.ClickedCopyLink({ hash }), h),
   )
@@ -400,7 +406,7 @@ const memoizedProseContent = createLazy()
 type DocContentArgs = readonly [
   SnippetCopy.Model,
   SnippetDisclosure.Model,
-  ViewBuilder,
+  ApplicationViewBuilder,
 ]
 
 const lazyDocsContent = (view: DocPageView, args: DocContentArgs): Html =>
@@ -408,13 +414,17 @@ const lazyDocsContent = (view: DocPageView, args: DocContentArgs): Html =>
 
 const lazyProseContent = (
   view: ProseDocPageView,
-  args: readonly [ViewBuilder],
+  args: readonly [ApplicationViewBuilder],
 ): Html => memoizedProseContent(renderProseContent, [view, ...args])
 
 const lazyApiReference = createLazy()
 const lazyApiReferenceSkeleton = createLazy()
 
-export const view = (model: Model, docsRoute: DocsRoute, h: ViewBuilder) => {
+export const view = (
+  model: Model,
+  docsRoute: DocsRoute,
+  h: ApplicationViewBuilder,
+) => {
   const renderCopyButton = SnippetCopy.renderer(model.snippetCopy, config =>
     h.block(snippetCopyBinding.embedView(config)),
   )

@@ -9,7 +9,7 @@ import { slotDocPage } from '../../../markdown'
 import { type RenderHeadingLink, inlineCode } from '../../../prose'
 import * as Snippet from '../../../snippet'
 import raw from '../block.md'
-import { BlockPage } from './definition'
+import { BlockPageComposition } from './definition'
 import { Message } from './message'
 import { type Model } from './model'
 
@@ -107,7 +107,7 @@ const { tableOfContents, view: renderPage } =
 
 export { tableOfContents }
 
-export const view = BlockPage.view.withInputs<ViewInputs>(
+export const view = BlockPageComposition.view.withInputs<ViewInputs>(
   (model, viewInputs, h) =>
     renderPage({
       demos: {

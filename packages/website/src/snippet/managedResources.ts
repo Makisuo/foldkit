@@ -3,7 +3,7 @@ import { Effect, Layer, Option, Schema, pipe } from 'effect'
 import { TakePhoto } from './command'
 import { init } from './init'
 import { Message } from './message'
-import { Camera, CameraStream } from './resource'
+import { Camera, CameraComposition, CameraStream } from './resource'
 import { update } from './update'
 import { view } from './view'
 
@@ -39,7 +39,7 @@ const managedResources = Camera.managedResources(entry => ({
   ),
 }))
 
-export const block = Camera.toComposition().toBlock({
+export const block = CameraComposition.toBlock({
   init,
   update,
   view,

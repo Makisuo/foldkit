@@ -21,6 +21,7 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 const Counter = Block.define('Counter', { Model, Message })
+const CounterComposition = Counter.toComposition()
 
 const subscriptions = Counter.subscriptions(entry => ({
   gameClockTicks: entry(
@@ -64,7 +65,7 @@ const update = Counter.update((model, message) =>
   }),
 )
 
-const view = Counter.view((model, h) => ({
+const view = CounterComposition.view((model, h) => ({
   title: `Count: ${model.count}`,
   body: h.div(
     [],

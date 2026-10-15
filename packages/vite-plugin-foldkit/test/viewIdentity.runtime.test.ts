@@ -178,7 +178,7 @@ const withRunningApp = async (
   const element = ApplicationComposition.toElement({
     init,
     update,
-    view: Application.view(model => view(model)),
+    view: ApplicationComposition.view(model => view(model)),
     EffectsLayer: Layer.empty,
     container,
   })

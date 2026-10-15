@@ -33,8 +33,7 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 export const init = (url: Url) => ({
   model: { route: urlToApplicationRoute(url), count: 0 },
@@ -94,7 +93,7 @@ const routeTitle = (route: ApplicationRoute): string =>
     NotFound: () => 'Not Found | Static Generation | Foldkit',
   })
 
-const navigationView = (h: ViewBuilder): Html =>
+const navigationView = (h: ApplicationViewBuilder): Html =>
   h.nav(
     [h.Class('flex gap-4')],
     [
@@ -103,7 +102,7 @@ const navigationView = (h: ViewBuilder): Html =>
     ],
   )
 
-const pageView = (model: Model, h: ViewBuilder): Html =>
+const pageView = (model: Model, h: ApplicationViewBuilder): Html =>
   ApplicationRoute.match(model.route, {
     Home: () =>
       h.section(

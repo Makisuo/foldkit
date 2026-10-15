@@ -3,11 +3,13 @@ import { CommandPalette } from '@foldkit/ui'
 import { child, Message } from './split-child'
 import { picker } from './picker'
 
-export const splitView = child.view((_model, h) =>
+const ChildComposition = child.toComposition()
+
+export const splitView = ChildComposition.view((_model, h) =>
   h.button([h.OnClick(Message.ClickedSave())]),
 )
 
-export const splitViewWithInputs = child.view.withInputs<unknown>(
+export const splitViewWithInputs = ChildComposition.view.withInputs<unknown>(
   (_model, _viewInputs, h) =>
     h.button([h.OnClick(Message.ClickedSaveWithInputs())]),
 )

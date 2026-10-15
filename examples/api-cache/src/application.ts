@@ -75,8 +75,9 @@ export const tabs = Application.bindChild(AppTabs, {
 export const ApplicationComposition = Application.toComposition({
   children: [tabs],
 })
-
-export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>
 
 export const init = () => ({
   model: Model.make({

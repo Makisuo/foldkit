@@ -10,7 +10,7 @@ import {
   popoverNestedChildDemo,
   popoverNestedParentDemo,
 } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 
 const triggerClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -31,7 +31,7 @@ const POPOVER_ANCHOR = {
   padding: 8,
 }
 
-const popoverPanelContent = (h: ViewBuilder) => {
+const popoverPanelContent = (h: UiViewBuilder) => {
   return h.div(
     [],
     [
@@ -47,7 +47,7 @@ const popoverPanelContent = (h: ViewBuilder) => {
 const makePopoverView =
   (
     panelClassNameValue: string,
-    h: ViewBuilder,
+    h: UiViewBuilder,
   ): ((renderInfo: RenderInfo) => Html) =>
   ({ button, panel, backdrop, isVisible }) =>
     h.div(
@@ -79,7 +79,7 @@ const nestedChildButtonSelector = '#popover-nested-child-demo-button'
 
 const nestedChildPopover = (
   childPopoverModel: typeof Popover.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   const childPopoverView = ({
     button,
@@ -133,7 +133,7 @@ const nestedChildPopover = (
 const nestedDemo = (
   parentPopoverModel: typeof Popover.Model.Type,
   childPopoverModel: typeof Popover.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html => {
   const parentPopoverView = ({
     button,

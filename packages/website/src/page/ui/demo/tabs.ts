@@ -3,7 +3,7 @@ import { Match } from 'effect'
 import { Tabs } from '@foldkit/ui'
 
 import { horizontalTabsDemo, verticalTabsDemo } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import type { DemoTab } from '../model'
 
 // DEMO CONTENT
@@ -25,7 +25,7 @@ const verticalPanelClassName =
 export const horizontalDemo = (
   tabsModel: typeof Tabs.Model.Type,
   selectedTab: DemoTab,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   const foldkitPanel = h.div(
     [],
@@ -142,7 +142,7 @@ export const horizontalDemo = (
 export const verticalDemo = (
   tabsModel: typeof Tabs.Model.Type,
   selectedTab: DemoTab,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   const foldkitPanel = h.div(
     [],

@@ -27,6 +27,7 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
     Message,
     OutMessage,
   })
+  const RefinedPickerComposition = RefinedPicker.toComposition()
 
   const update = RefinedPicker.update((model, message) =>
     Message.match(message, {
@@ -41,7 +42,7 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
     update(model, Message.SelectedValue({ value })),
   )
 
-  const view = RefinedPicker.view.withInputs<ViewInputs<Value>>(
+  const view = RefinedPickerComposition.view.withInputs<ViewInputs<Value>>(
     (model, { values }, h) =>
       h.div(
         [],
@@ -58,7 +59,7 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
       ),
   )
 
-  return RefinedPicker.toComposition().toBlock({
+  return RefinedPickerComposition.toBlock({
     init: () => ({ model: Model.make({ selected: Option.none() }) }),
     update,
     view,

@@ -14,7 +14,7 @@ import {
 } from '@foldkit/ui/dragAndDrop'
 
 import { UiComposition } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 import type { DemoCard, DemoColumn } from '../model'
 
@@ -41,7 +41,7 @@ const cardView = (
   index: number,
   containerId: string,
   dragAndDropModel: typeof DragAndDrop.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html => {
   const maybeItemId = maybeDraggedItemId(dragAndDropModel)
   const isBeingDragged = Option.exists(maybeItemId, id => id === card.id)
@@ -77,7 +77,7 @@ const cardView = (
   )
 }
 
-const dropPlaceholder = (h: ViewBuilder) => {
+const dropPlaceholder = (h: UiViewBuilder) => {
   return h.keyed('div')('drop-placeholder', [
     h.Class('rounded-lg border-2 border-dashed border-accent-400/50 h-9'),
   ])
@@ -87,7 +87,7 @@ const renderColumn = (
   column: DemoColumn,
   dragAndDropModel: typeof DragAndDrop.Model.Type,
   children: ReadonlyArray<Html>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html => {
   const maybeTarget = maybeDropTarget(dragAndDropModel)
   const isDropTarget =
@@ -128,7 +128,7 @@ const columnView = (
   columns: ReadonlyArray<DemoColumn>,
   column: DemoColumn,
   dragAndDropModel: typeof DragAndDrop.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html => {
   const maybeItemId = maybeDraggedItemId(dragAndDropModel)
   const maybeTarget = maybeDropTarget(dragAndDropModel)
@@ -180,7 +180,7 @@ const columnView = (
 const ghostView = (
   columns: ReadonlyArray<DemoColumn>,
   dragAndDropModel: typeof DragAndDrop.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html => {
   const maybeItemId = maybeDraggedItemId(dragAndDropModel)
 

@@ -3,7 +3,7 @@ import { File } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
 import { fileDropBasicDemo } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 import type { Model } from '../model'
 
@@ -43,7 +43,7 @@ const formatFileSize = (bytes: number): string => {
 
 export const basicDemo = (
   model: Model,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): ReadonlyArray<Html> => {
   return [
     h.div(

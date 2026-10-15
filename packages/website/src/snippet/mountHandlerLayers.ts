@@ -26,7 +26,7 @@ const PanelComposition = Panel.toComposition({
   mounts: [MeasurePanel],
 })
 
-const update = PanelComposition.update((model, message) =>
+const update = Panel.update((model, message) =>
   Message.match(message, {
     CompletedMeasurePanel: ({ height }) => ({
       model: modifyFields(model, {

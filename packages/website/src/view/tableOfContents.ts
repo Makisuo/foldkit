@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { Array, Option } from 'effect'
 import { type Html } from 'foldkit/html'
 
-import type { ViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../application'
 import { Icon } from '../icon'
 import { Message } from '../message'
 import { type TableOfContentsEntry } from '../tableOfContentsEntry'
@@ -10,7 +10,7 @@ import { type TableOfContentsEntry } from '../tableOfContentsEntry'
 const tableOfContentsEntryView = (
   entry: TableOfContentsEntry,
   isActive: boolean,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.keyed('li')(
     entry.id,
@@ -44,7 +44,7 @@ const tableOfContentsEntryView = (
 export const view = (
   entries: ReadonlyArray<TableOfContentsEntry>,
   maybeActiveSectionId: Option.Option<string>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ) =>
   h.aside(
     [
@@ -85,7 +85,7 @@ export const mobileView = (
   entries: ReadonlyArray<TableOfContentsEntry>,
   maybeActiveSectionId: Option.Option<string>,
   isOpen: boolean,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ) => {
   const firstEntryText = Array.head(entries).pipe(
     Option.match({

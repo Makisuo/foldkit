@@ -162,5 +162,6 @@ export const ApplicationComposition = Application.toComposition({
     stepTabs,
   ],
 })
-
-export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>

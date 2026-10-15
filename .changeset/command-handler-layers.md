@@ -320,7 +320,7 @@ Use `h.OnMount(MeasurePanel())` in the view as before. Include `MeasurePanel` in
 
 ### Views that use Mounts
 
-Define every application view through its owning Block definition. Register Mounts once on that definition; `view` gives the view its checked builder without repeated requirement types.
+Author each primary Block or Application view through its owning Composition. Register local Mounts in that Composition's `mounts`; its `view` method supplies the checked builder without repeated requirement types.
 
 **Before**
 
@@ -351,14 +351,11 @@ export const PanelComposition = Panel.toComposition({
 export const view = PanelComposition.view((model, h) =>
   h.div([h.OnMount(MeasurePanel())], [model.label]),
 )
-
-// Extracted helpers on this mounted view path use one derived alias.
-export type ViewBuilder = Block.HtmlBuilderOf<typeof PanelComposition>
 ```
 
 A child with `ViewInputs` uses its Composition's `view.withInputs<ViewInputs>` and receives the builder third. A parent Binding carries the child's Mounts and handler recipe automatically. TypeScript checks that the parent Composition includes the Binding before `h.block(binding.embedView(...))` can embed it.
 
-The Composition's `view` or `view.withInputs` defines its canonical owned view. Ordinary feature-local helpers are plain functions whose `h` parameter uses a `ViewBuilder` alias derived with `Block.HtmlBuilderOf<typeof FeatureComposition>`. That alias retains the feature Message, child, and Mount requirements without constructing a runtime builder. Give each helper only the Model, domain, or context parameters it uses. Functions genuinely shared across owners keep the general `HtmlBuilder<Message>`.
+The Composition's `view` or `view.withInputs` defines its canonical owned view and infers the primary `h` parameter. Ordinary feature-local helpers are plain functions whose `h` parameter uses an owner-specific alias such as `FeatureViewBuilder`, derived with `Block.HtmlBuilderOf<typeof FeatureComposition>`. Declare that alias immediately after its Composition with no blank line and export it only for cross-file use. The alias retains the feature Message, child, and Mount requirements without constructing a runtime builder. Its owner prefix identifies one Composition's capabilities at a plain type import site; structural contracts keep the standard names `Model`, `Message`, and `OutMessage`. Give each helper only the Model, domain, or context parameters it uses. Functions genuinely shared across owners keep the general `HtmlBuilder<Message>`.
 
 Let TypeScript infer Mount registration arrays and composed spreads. An annotation such as `ReadonlyArray<Mount.LayeredMountDefinition>` erases the definition contracts and is rejected at application assembly. If forwarded attribute arrays need an explicit type, preserve the requirements as `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>`. `childAttributes` and `CustomElement.withMessage(h)` preserve the requirements automatically.
 

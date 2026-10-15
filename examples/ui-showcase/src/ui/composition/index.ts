@@ -33,7 +33,7 @@ export {
   tooltipBasicDemo,
   tooltipNoDelayDemo,
   UiComposition,
-  type ViewBuilder,
+  type UiViewBuilder,
   verticalRadioGroupDemo,
   verticalTabsDemo,
   virtualListDemo,

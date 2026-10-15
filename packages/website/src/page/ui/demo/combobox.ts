@@ -18,7 +18,7 @@ import {
   comboboxPlacementLockDemo,
   comboboxSelectOnFocusDemo,
 } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import type { City } from '../model'
 
 // DEMO CONTENT
@@ -114,7 +114,7 @@ export const comboboxViewInputs = ({
 export const view = (
   comboboxModel: typeof Combobox.Model.Type,
   maybeSelectedCity: Option.Option<City>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   return [
     h.div(
@@ -153,7 +153,7 @@ export const view = (
 export const nullableDemo = (
   comboboxNullableModel: typeof Combobox.Model.Type,
   maybeSelectedCity: Option.Option<City>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   return [
     h.div(
@@ -192,7 +192,7 @@ export const nullableDemo = (
 export const selectOnFocusDemo = (
   comboboxSelectOnFocusModel: typeof Combobox.Model.Type,
   maybeSelectedCity: Option.Option<City>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   return [
     h.div(
@@ -234,7 +234,7 @@ export const selectOnFocusDemo = (
 export const placementLockDemo = (
   comboboxPlacementLockModel: typeof Combobox.Model.Type,
   maybeSelectedCity: Option.Option<City>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => [
   h.div(
     [
@@ -294,7 +294,7 @@ const emptyTagClassName = 'text-sm py-0.5 text-gray-700 dark:text-gray-400'
 export const multiDemo = (
   comboboxMultiModel: typeof Combobox.Multi.Model.Type,
   selectedCities: ReadonlyArray<City>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   return [
     h.div(

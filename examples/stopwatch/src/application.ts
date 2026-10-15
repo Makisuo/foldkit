@@ -40,8 +40,7 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 export const DetermineStartTime = Application.command('DetermineStartTime', {
   args: { elapsedMs: Schema.Number },
@@ -212,7 +211,10 @@ export const view = ApplicationComposition.view((model, h) => ({
   ),
 }))
 
-const startStopButton = (isRunning: boolean, h: ViewBuilder): Html =>
+const startStopButton = (
+  isRunning: boolean,
+  h: ApplicationViewBuilder,
+): Html =>
   isRunning
     ? Button.view(
         {

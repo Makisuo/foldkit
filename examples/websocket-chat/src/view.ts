@@ -4,7 +4,7 @@ import { Html } from 'foldkit/html'
 import { Button, Input } from '@foldkit/ui'
 
 import { ApplicationComposition } from './application'
-import type { ViewBuilder } from './application'
+import type { ApplicationViewBuilder } from './application'
 import { Message } from './message'
 import { type ChatMessage, ConnectionState } from './model'
 
@@ -64,7 +64,7 @@ export const view = ApplicationComposition.view((model, h) => ({
 
 const connectionStatusView = (
   connection: ConnectionState,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.div(
     [h.Class('flex items-center gap-2')],
@@ -90,7 +90,7 @@ const connectionStatusView = (
 
 const messagesView = (
   messages: ReadonlyArray<ChatMessage>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   Array.match(messages, {
     onEmpty: () =>
@@ -160,7 +160,7 @@ const messagesView = (
       ),
   })
 
-const connectButtonView = (h: ViewBuilder): Html =>
+const connectButtonView = (h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('p-6 border-t border-gray-200 flex items-center justify-center')],
     [
@@ -183,13 +183,16 @@ const connectButtonView = (h: ViewBuilder): Html =>
     ],
   )
 
-const connectingView = (h: ViewBuilder): Html =>
+const connectingView = (h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('p-6 border-t border-gray-200 flex items-center justify-center')],
     [h.div([h.Class('text-gray-600 font-semibold')], ['Connecting...'])],
   )
 
-const messageInputView = (messageInput: string, h: ViewBuilder): Html =>
+const messageInputView = (
+  messageInput: string,
+  h: ApplicationViewBuilder,
+): Html =>
   h.form(
     [
       h.Class('p-6 border-t border-gray-200'),
@@ -237,7 +240,7 @@ const messageInputView = (messageInput: string, h: ViewBuilder): Html =>
     ],
   )
 
-const errorView = (error: string, h: ViewBuilder): Html =>
+const errorView = (error: string, h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('p-6 border-t border-gray-200')],
     [

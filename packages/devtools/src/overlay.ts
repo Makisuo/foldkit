@@ -478,9 +478,8 @@ const getDevToolsShadowRoot = (): ShadowRoot => {
 const scrubberSlider = Slider.forRoot(getDevToolsShadowRoot)
 const [bindings, ApplicationComposition] =
   makeApplicationComposition(scrubberSlider)
+type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 type OverlayBindings = typeof bindings
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 class StoreService extends Context.Service<StoreService, DevToolsStore>()(
   'foldkit/DevToolsStore',
@@ -1144,7 +1143,7 @@ const PANEL_POSITION_CLASS: Record<DevToolsPosition, string> = {
 // runtime's process-wide singleton.
 const makeView = (
   bindings: OverlayBindings,
-): ((model: Model, h: ViewBuilder) => Html) => {
+): ((model: Model, h: ApplicationViewBuilder) => Html) => {
   const views = new WeakMap<ShadowRoot, (model: Model) => Html>()
 
   return (model, h) => {
@@ -1176,7 +1175,7 @@ const buildOverlayView = (
   shadow: ShadowRoot,
   maybeBanner: Option.Option<string>,
   bindings: OverlayBindings,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): ((model: Model) => Html) => {
   const lazyTreeNode = createKeyedLazy()
   const lazyMessageRow = createKeyedLazy()

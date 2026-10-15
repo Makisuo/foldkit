@@ -5,7 +5,7 @@ import { type GroupHeading, buttonId } from '@foldkit/ui/menu'
 
 import * as Icon from '../../icon'
 import { UiComposition, menuAnimatedDemo, menuBasicDemo } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import type { MenuItem } from '../menu'
 
 const triggerClassName =
@@ -57,7 +57,7 @@ const itemGroupKey = (item: MenuItem): string =>
 
 const groupToHeading = (
   groupKey: string,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): GroupHeading | undefined => {
   return Match.value(groupKey).pipe(
     Match.when('Danger', () => ({
@@ -74,7 +74,7 @@ const MENU_ANCHOR = {
   padding: 8,
 }
 
-const menuViewConfig = (itemsClassNameValue: string, h: ViewBuilder) => {
+const menuViewConfig = (itemsClassNameValue: string, h: UiViewBuilder) => {
   return {
     anchor: MENU_ANCHOR,
     items: MENU_ITEMS,

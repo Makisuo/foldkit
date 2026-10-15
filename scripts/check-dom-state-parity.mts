@@ -28,7 +28,7 @@ const makeParityImplementation = (
 ) => ({
   init: () => ({ model: null }),
   update: Application.update(model => ({ model })),
-  view: Application.view(view),
+  view: ApplicationComposition.view(view),
   EffectsLayer: Layer.empty,
 })
 

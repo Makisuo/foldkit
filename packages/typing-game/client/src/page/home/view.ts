@@ -2,11 +2,11 @@ import { Array, Option } from 'effect'
 import { Html } from 'foldkit/html'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../constant'
-import { Home, type ViewBuilder } from './definition'
+import { HomeComposition, type HomeViewBuilder } from './definition'
 import { Message } from './message'
 import { HOME_ACTIONS, HomeAction, HomeStep, homeActionToLabel } from './model'
 
-export const view = Home.view((model, h) => {
+export const view = HomeComposition.view((model, h) => {
   const maybeUsername = HomeStep.match(model.homeStep, {
     EnterUsername: () => Option.none(),
     SelectAction: ({ username }) => Option.some(username),
@@ -37,7 +37,7 @@ export const view = Home.view((model, h) => {
 
 const enterUsername = (
   { username }: typeof HomeStep.EnterUsername.Type,
-  h: ViewBuilder,
+  h: HomeViewBuilder,
 ): Html =>
   h.form(
     [h.OnSubmit(Message.SubmittedUsernameForm())],
@@ -73,7 +73,7 @@ const enterUsername = (
 
 const selectAction = (
   { selectedAction }: typeof HomeStep.SelectAction.Type,
-  h: ViewBuilder,
+  h: HomeViewBuilder,
 ): Html =>
   h.div(
     [h.Class('space-y-4')],
@@ -87,7 +87,7 @@ const selectAction = (
   )
 
 const action =
-  (selectedAction: HomeAction, h: ViewBuilder) =>
+  (selectedAction: HomeAction, h: HomeViewBuilder) =>
   (homeAction: HomeAction): Html =>
     h.div(
       [h.Class('whitespace-pre-wrap')],
@@ -99,7 +99,7 @@ const action =
 
 const enterRoomId = (
   { roomId }: typeof HomeStep.EnterRoomId.Type,
-  h: ViewBuilder,
+  h: HomeViewBuilder,
 ): Html =>
   h.form(
     [h.OnSubmit(Message.SubmittedJoinRoomForm())],
@@ -135,7 +135,7 @@ const enterRoomId = (
 
 const maybeErrorMessage = (
   maybeRoomFormError: Option.Option<string>,
-  h: ViewBuilder,
+  h: HomeViewBuilder,
 ): Html =>
   Option.match(maybeRoomFormError, {
     onNone: () => h.empty,

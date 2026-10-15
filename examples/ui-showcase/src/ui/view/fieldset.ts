@@ -3,7 +3,7 @@ import type { Html } from 'foldkit/html'
 import { Checkbox, Fieldset, Input, Textarea } from '@foldkit/ui'
 
 import { UiComposition } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 import type { Model } from '../model'
 
@@ -41,10 +41,10 @@ const sectionHeadingClassName = 'text-lg font-semibold text-gray-900 mt-8 mb-4'
 
 // FIELDS
 
-const checkmark = (h: ViewBuilder) =>
+const checkmark = (h: UiViewBuilder) =>
   h.span([h.Class('text-white text-xs')], ['✓'])
 
-const nameInput = (value: string, h: ViewBuilder) => {
+const nameInput = (value: string, h: UiViewBuilder) => {
   const nameInputView = (attributes: Input.InputAttributes<Message>): Html =>
     h.div(
       [h.Class(fieldClassName)],
@@ -72,7 +72,7 @@ const nameInput = (value: string, h: ViewBuilder) => {
   )
 }
 
-const bioTextarea = (value: string, h: ViewBuilder) => {
+const bioTextarea = (value: string, h: UiViewBuilder) => {
   const bioTextareaView = (
     attributes: Textarea.TextareaAttributes<Message>,
   ): Html =>
@@ -103,7 +103,7 @@ const bioTextarea = (value: string, h: ViewBuilder) => {
   )
 }
 
-const termsCheckbox = (isChecked: boolean, h: ViewBuilder) => {
+const termsCheckbox = (isChecked: boolean, h: UiViewBuilder) => {
   const termsCheckboxView = (
     attributes: Checkbox.CheckboxAttributes<Message>,
   ): Html =>
@@ -145,7 +145,7 @@ const termsCheckbox = (isChecked: boolean, h: ViewBuilder) => {
 
 // DISABLED FIELDS
 
-const disabledNameInput = (h: ViewBuilder) => {
+const disabledNameInput = (h: UiViewBuilder) => {
   const disabledNameInputView = (
     attributes: Input.InputAttributes<Message>,
   ): Html =>
@@ -168,7 +168,7 @@ const disabledNameInput = (h: ViewBuilder) => {
   )
 }
 
-const disabledBioTextarea = (h: ViewBuilder) => {
+const disabledBioTextarea = (h: UiViewBuilder) => {
   const disabledBioTextareaView = (
     attributes: Textarea.TextareaAttributes<Message>,
   ): Html =>
@@ -193,7 +193,7 @@ const disabledBioTextarea = (h: ViewBuilder) => {
   )
 }
 
-const disabledTermsCheckbox = (h: ViewBuilder) => {
+const disabledTermsCheckbox = (h: UiViewBuilder) => {
   const disabledTermsCheckboxView = (
     attributes: Checkbox.CheckboxAttributes<Message>,
   ): Html =>
@@ -225,7 +225,7 @@ const disabledTermsCheckbox = (h: ViewBuilder) => {
 
 // DEMOS
 
-const basicDemo = (model: Model, h: ViewBuilder) => {
+const basicDemo = (model: Model, h: UiViewBuilder) => {
   const basicFieldsetView = (
     attributes: Fieldset.FieldsetAttributes<Message>,
   ): Html =>
@@ -261,7 +261,7 @@ const basicDemo = (model: Model, h: ViewBuilder) => {
   )
 }
 
-const disabledDemo = (h: ViewBuilder) => {
+const disabledDemo = (h: UiViewBuilder) => {
   const disabledFieldsetView = (
     attributes: Fieldset.FieldsetAttributes<Message>,
   ): Html =>

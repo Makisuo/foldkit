@@ -12,6 +12,8 @@ Event attributes complete the loop. They produce Messages for the runtime to dis
 
 In the [restaurant analogy](/core/architecture#the-restaurant-analogy), view is the meal on the table. The Model records the current facts; view presents them.
 
+The Counter's named `ApplicationComposition` supplies the primary view builder, so the view's Model, Message, child, and Mount capabilities come from the same Composition that the entry completes.
+
 ::Snippet{name="counterView" label="Using view"}
 
 :::Info{label="No hook rules"}
@@ -85,7 +87,7 @@ Every view receives `h`, an `HtmlBuilder` typed to the application's Message uni
 
 ::Snippet{name="htmlHelpers" label="HTML helpers"}
 
-The Message type follows the builder. If `h.OnClick` receives a Message outside the application union, TypeScript rejects it. The root Runtime supplies its builder, and each Block definition's `view` supplies one for its child view.
+The Message type follows the builder. If `h.OnClick` receives a Message outside the application union, TypeScript rejects it. The root Runtime supplies its builder, and each Block Composition's `view` supplies one for its child view.
 
 The builder also carries the Mount definitions and child Blocks the view may render. A Composition infers them from its local Mounts and child Bindings, and `ApplicationComposition.toApplication` installs the root Composition's complete registry. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
 
@@ -95,7 +97,11 @@ Element builders that accept children take attributes first and optional childre
 
 #### Builder Ownership
 
-Application code cannot construct a builder. The canonical owned view enters through `Composition.view` or `view.withInputs`, which checks the complete view contract when the Block or Application is completed. Ordinary feature-local helpers remain plain functions. After establishing `FeatureComposition`, export `type ViewBuilder = Block.HtmlBuilderOf<typeof FeatureComposition>` beside it and use that alias for each helper's `h` parameter. The alias carries the owner's Message type and its registered child and Mount capabilities; it creates no runtime value. Give a helper only the other parameters it uses: a heading helper can take only `h`, a card helper can take its domain value and `h`, and a list helper can take the Model and `h`. Let TypeScript infer whether the helper returns one `Html` value or an array.
+Application code cannot construct a builder. The canonical owned view enters through `Composition.view` or `view.withInputs`, which checks the complete view contract when the Block or Application is completed. Let that primary view's `h` parameter infer. A completed Block retains `block.view` for authoring an alternate embed view against that already fixed graph; it cannot change the graph or complete another Block.
+
+Ordinary feature-local helpers remain plain functions. After establishing `FeatureComposition`, declare `type FeatureViewBuilder = Block.HtmlBuilderOf<typeof FeatureComposition>` on the next line with no blank line and use that alias for each helper's `h` parameter. Export it only when another file uses it. The alias carries the owner's Message type and its registered child and Mount capabilities; it creates no runtime value.
+
+The owner prefix identifies the specific Composition at a plain type import site. Structural contracts keep the standard names `Model`, `Message`, and `OutMessage` because consumers normally qualify them through the feature namespace. Give a helper only the other parameters it uses: a heading helper can take only `h`, a card helper can take its domain value and `h`, and a list helper can take the Model and `h`. Let TypeScript infer whether the helper returns one `Html` value or an array.
 
 ::Snippet{name="featureViewHelpers" label="View helpers within a feature"}
 

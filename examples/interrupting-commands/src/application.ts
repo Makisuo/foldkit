@@ -1,5 +1,5 @@
 import { Array, Duration, Effect, Number, Option, Schema, pipe } from 'effect'
-import { Command } from 'foldkit'
+import { type Block, Command } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import {
@@ -11,6 +11,9 @@ import {
 } from './definition'
 
 export const ApplicationComposition = Application.toComposition()
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>
 
 export const initialModel: Model = {
   uploadId: 0,

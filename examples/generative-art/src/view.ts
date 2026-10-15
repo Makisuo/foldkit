@@ -7,6 +7,7 @@ import type { ViewInputs as SliderViewInputs } from '@foldkit/ui/slider'
 
 import {
   ApplicationComposition,
+  type ApplicationViewBuilder,
   flowStrengthSlider,
   noiseScaleSlider,
 } from './application'
@@ -33,10 +34,6 @@ import {
 } from './constant'
 import { Message } from './message'
 import type { Model, Particle, Point } from './model'
-
-type GenerativeArtHtmlBuilder = Parameters<
-  Parameters<typeof ApplicationComposition.view>[0]
->[1]
 
 const fadeAlpha = (particle: Particle): number => {
   const remainingMs = particle.lifespanMs - particle.ageMs
@@ -351,7 +348,7 @@ const controlButton = (
     h,
   )
 
-const controlsView = (model: Model, h: GenerativeArtHtmlBuilder): Html =>
+const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
   h.div(
     [
       h.Class(

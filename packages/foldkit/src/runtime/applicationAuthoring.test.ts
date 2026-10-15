@@ -33,12 +33,13 @@ const ChildMessage = defineMessageUnion({
   UpdatedChildValue: { value: Schema.String },
 })
 const child = Child.define({ Model: ChildModel, Message: ChildMessage })
-const childBlock = child.toComposition().toBlock({
+const ChildComposition = child.toComposition()
+const childBlock = ChildComposition.toBlock({
   init: () => ({ model: { value: 'child' } }),
   update: child.update((model, { value }) => ({
     model: modifyFields(model, { value: () => value }),
   })),
-  view: child.view((model, h) => h.span([], [model.value])),
+  view: ChildComposition.view((model, h) => h.span([], [model.value])),
 })
 
 const Model = Schema.Struct({
@@ -52,6 +53,7 @@ const Message = defineMessageUnion({
 })
 const ForeignMessage = defineMessageUnion({ ForeignCompleted: {} })
 const Application = defineApplication({ Model, Message })
+const graphlessComposition = Application.toComposition()
 const ReadRootValue = Application.command('ReadRootValue', {
   messages: [Message.CompletedReadRootValue],
   handler: function* () {
@@ -61,11 +63,11 @@ const ReadRootValue = Application.command('ReadRootValue', {
       Effect.succeed(Message.CompletedReadRootValue({ value: source.value }))
   },
 })
-const documentView = Application.view((model, h) => ({
+const documentView = graphlessComposition.view((model, h) => ({
   title: model.rootValue,
   body: h.div([], [model.rootValue]),
 }))
-const graphlessElementView = Application.view((model, h) =>
+const graphlessElementView = graphlessComposition.view((model, h) =>
   h.div([], [model.rootValue]),
 )
 const ObserveRoot = Application.mount('ObserveRoot', {
@@ -130,13 +132,16 @@ const NoMessageApplication = defineApplication({
 const NoMessageComposition = NoMessageApplication.toComposition()
 const noMessageInit = () => ({ model: null })
 const noMessageUpdate = NoMessageApplication.update(model => ({ model }))
-const noMessageDocumentView = NoMessageApplication.view((_model, h) => ({
+const noMessageDocumentView = NoMessageComposition.view((_model, h) => ({
   title: 'No messages',
   body: h.empty,
 }))
-const noMessageElementView = NoMessageApplication.view((_model, h) => h.empty)
+const noMessageElementView = NoMessageComposition.view((_model, h) => h.empty)
 
 const typecheckRootCompletion = (): void => {
+  // @ts-expect-error An Application Definition does not author the primary view.
+  Application.view
+
   Application.command('AcceptedCommand', {
     messages: [Message.CompletedReadRootValue],
   })
@@ -164,7 +169,7 @@ const typecheckRootCompletion = (): void => {
     messages: [ForeignMessage.ForeignCompleted],
   })
 
-  Application.toComposition().toElement({
+  graphlessComposition.toElement({
     container: null,
     init,
     update,
@@ -219,7 +224,7 @@ const typecheckRootCompletion = (): void => {
     EffectsLayer: ReadRootValue.layer,
   })
 
-  // @ts-expect-error the graphless definition has not registered the child used by this view.
+  // @ts-expect-error The graphless Composition has not registered the child used by this view.
   Application.toComposition().toElement({
     container: null,
     init,
@@ -228,7 +233,7 @@ const typecheckRootCompletion = (): void => {
     EffectsLayer: ReadRootValue.layer,
   })
 
-  // @ts-expect-error the graphless definition has not registered the Mount used by this view.
+  // @ts-expect-error The graphless Composition has not registered the Mount used by this view.
   Application.toComposition().toElement({
     container: null,
     init,
@@ -375,6 +380,8 @@ describe('Application authoring', () => {
     expect(composition.step).toBe(Application.step)
     expect(composition.subscriptions).toBe(Application.subscriptions)
     expect(composition.managedResources).toBe(Application.managedResources)
+    expect(Application).not.toHaveProperty('view')
+    expect(graphlessComposition).toHaveProperty('view')
 
     // @ts-expect-error an application root is not a reusable Block.
     void Application.bind

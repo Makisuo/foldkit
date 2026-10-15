@@ -11,13 +11,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({ ClickedArticle: { id: Schema.String } })
 
 const Articles = Block.define('Articles', { Model, Message })
-const ArticlesComposition = Articles.toComposition({})
+const ArticlesComposition = Articles.toComposition()
+type ArticlesViewBuilder = Block.HtmlBuilderOf<typeof ArticlesComposition>
 
-type ViewBuilder = Block.HtmlBuilderOf<typeof ArticlesComposition>
+const headerView = (h: ArticlesViewBuilder) => h.h2([], ['Articles'])
 
-const headerView = (h: ViewBuilder) => h.h2([], ['Articles'])
-
-const articleCard = (article: Article, h: ViewBuilder) =>
+const articleCard = (article: Article, h: ArticlesViewBuilder) =>
   h.keyed('li')(
     article.id,
     [],
@@ -29,7 +28,7 @@ const articleCard = (article: Article, h: ViewBuilder) =>
     ],
   )
 
-const articleItems = (model: Model, h: ViewBuilder) =>
+const articleItems = (model: Model, h: ArticlesViewBuilder) =>
   model.articles.map(article => articleCard(article, h))
 
 export const view = ArticlesComposition.view((model, h) =>

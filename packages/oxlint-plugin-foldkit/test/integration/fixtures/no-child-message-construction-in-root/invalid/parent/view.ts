@@ -1,6 +1,6 @@
 import { Message as ChildMessage } from '../child/definition'
 import { Message as EntryMessage } from './entry/definition'
-import type { ViewBuilder as EntryViewBuilder } from './entry/entry'
+import type { EntryViewBuilder } from './entry/entry'
 import { ParentComposition } from './composition'
 
 const AliasedEntryMessage = EntryMessage

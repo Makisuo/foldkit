@@ -3,7 +3,7 @@ import { Html } from 'foldkit/html'
 
 import {
   ApplicationComposition,
-  type ViewBuilder,
+  type ApplicationViewBuilder,
   home,
   room,
 } from '../application'
@@ -74,7 +74,7 @@ export const view = ApplicationComposition.view((model, h) => {
 
 const notFound = (
   { path }: typeof ApplicationRoute.NotFound.Type,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.section(
     [h.Class('max-w-4xl')],

@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import { type Update } from 'foldkit'
+import type { Block, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { DatePicker } from '@foldkit/ui'
@@ -54,3 +54,6 @@ export const availableDatePicker = PersonalInfo.bindChild(DatePicker.block, {
 export const PersonalInfoComposition = PersonalInfo.toComposition({
   children: [pronounsListbox, availableDatePicker],
 })
+export type PersonalInfoViewBuilder = Block.HtmlBuilderOf<
+  typeof PersonalInfoComposition
+>

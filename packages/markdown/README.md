@@ -142,13 +142,12 @@ const counter = Application.bindChild(Counter.block, {
 export const ApplicationComposition = Application.toComposition({
   children: [counter],
 })
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 const postView = (
   model: Model,
   post: Markdown.MarkdownDocument,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   Markdown.view(post, {
     islands: Markdown.islandsFor(islandAttributes, {

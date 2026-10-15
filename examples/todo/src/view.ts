@@ -5,7 +5,7 @@ import { Html } from 'foldkit/html'
 import { Button, Checkbox, Input } from '@foldkit/ui'
 
 import { ApplicationComposition } from './application'
-import type { ViewBuilder } from './application'
+import type { ApplicationViewBuilder } from './application'
 import { Message } from './message'
 import {
   EditingState,
@@ -27,14 +27,18 @@ const editingTextFor = (
 const todoItemView = (
   todo: Todo,
   maybeEditingText: Option.Option<string>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   Option.match(maybeEditingText, {
     onNone: () => nonEditingTodoView(todo, h),
     onSome: text => editingTodoView(todo, text, h),
   })
 
-const editingTodoView = (todo: Todo, text: string, h: ViewBuilder): Html =>
+const editingTodoView = (
+  todo: Todo,
+  text: string,
+  h: ApplicationViewBuilder,
+): Html =>
   h.keyed('li')(
     todo.id,
     [h.Class('flex items-center gap-3 p-3 bg-gray-50 rounded-lg')],
@@ -96,7 +100,7 @@ const checkboxBoxClassName = (isChecked: boolean): string =>
     isChecked ? 'border-blue-600 bg-blue-600' : 'border-gray-300',
   )
 
-const nonEditingTodoView = (todo: Todo, h: ViewBuilder): Html =>
+const nonEditingTodoView = (todo: Todo, h: ApplicationViewBuilder): Html =>
   h.keyed('li')(
     todo.id,
     [h.Class('flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg group')],
@@ -156,7 +160,7 @@ const nonEditingTodoView = (todo: Todo, h: ViewBuilder): Html =>
 
 const filterButtonView =
   (model: Model) =>
-  (filter: Filter, label: string, h: ViewBuilder): Html =>
+  (filter: Filter, label: string, h: ApplicationViewBuilder): Html =>
     Button.view(
       {
         onClick: Message.SelectedFilter({ filter }),
@@ -182,7 +186,7 @@ const footerView = (
   model: Model,
   activeCount: number,
   completedCount: number,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   Array.match(model.todos, {
     onEmpty: () => h.empty,

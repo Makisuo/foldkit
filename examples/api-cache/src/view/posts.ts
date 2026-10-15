@@ -3,7 +3,7 @@ import { AsyncData } from 'foldkit'
 
 import * as Button from '@foldkit/ui/button'
 
-import type { ViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../application'
 import type { Post, PostDetail } from '../data'
 import { Message } from '../message'
 import { type Model, PostDetailData } from '../model'
@@ -12,14 +12,14 @@ import { errorPanel, loadingPanel, toolbarButtonClassName } from './shared'
 const formatFetchedAt = (fetchedAt: number): string =>
   new Date(fetchedAt).toLocaleTimeString()
 
-export const postsTabView = (model: Model, h: ViewBuilder) =>
+export const postsTabView = (model: Model, h: ApplicationViewBuilder) =>
   Option.match(model.maybeSelectedPostId, {
     onNone: () =>
       h.section([h.Class('flex flex-col gap-4')], [postsListView(model, h)]),
     onSome: postId => postDetailSection({ model, postId }, h),
   })
 
-const postsListView = (model: Model, h: ViewBuilder) => {
+const postsListView = (model: Model, h: ApplicationViewBuilder) => {
   const isPending = AsyncData.isPending(model.posts)
 
   return h.div(
@@ -98,7 +98,7 @@ type PostListItemsInput = Readonly<{
 
 const postListItems = (
   { posts, postDetailById }: PostListItemsInput,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ) =>
   Array.map(posts, post =>
     h.keyed('li')(
@@ -153,7 +153,7 @@ type PostDetailInput = Readonly<{ model: Model; postId: string }>
 
 const postDetailSection = (
   { model, postId }: PostDetailInput,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ) =>
   h.keyed('section')(
     postId,
@@ -161,7 +161,10 @@ const postDetailSection = (
     [postDetailView({ model, postId }, h)],
   )
 
-const postDetailView = ({ model, postId }: PostDetailInput, h: ViewBuilder) => {
+const postDetailView = (
+  { model, postId }: PostDetailInput,
+  h: ApplicationViewBuilder,
+) => {
   const postDetailData = Option.getOrElse(
     HashMap.get(model.postDetailById, postId),
     () => PostDetailData.Idle(),
@@ -230,7 +233,7 @@ type PostDetailCardInput = Readonly<{
 
 const postDetailCard = (
   { detail, fetchedAt }: PostDetailCardInput,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ) =>
   h.article(
     [h.Class('bg-white rounded-xl shadow p-6 flex flex-col gap-3')],

@@ -67,8 +67,9 @@ export const periodListbox = Application.bindChild(PeriodListbox, {
 export const ApplicationComposition = Application.toComposition({
   children: [dietListbox, periodListbox],
 })
-
-export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>
 
 export const EffectsLayer = Layer.mergeAll(
   ReplaceFilters.layer,

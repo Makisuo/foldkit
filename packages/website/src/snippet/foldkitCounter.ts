@@ -17,7 +17,7 @@ const Application = defineApplication({ Model, Message })
 
 const ApplicationComposition = Application.toComposition()
 
-const update = ApplicationComposition.update((model, message) =>
+const update = Application.update((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + 1 }),

@@ -5,7 +5,7 @@ import { type Html, createLazy } from 'foldkit/html'
 import { Button } from '@foldkit/ui'
 
 import { ApplicationComposition } from '../application'
-import type { ViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../application'
 import { isGridEmpty } from '../grid'
 import { Message } from '../message'
 import type { Model } from '../model'
@@ -15,7 +15,7 @@ import { errorDialogView, gridSizeConfirmDialogView } from './dialog'
 import { historyPanelView } from './history'
 import { toolPanelView } from './toolbar'
 
-const downloadIcon = (className: string, h: ViewBuilder): Html =>
+const downloadIcon = (className: string, h: ApplicationViewBuilder): Html =>
   h.svg(
     [
       h.AriaHidden(true),
@@ -67,7 +67,7 @@ export const view = ApplicationComposition.view((model, h) => ({
   ),
 }))
 
-const headerView = (h: ViewBuilder): Html =>
+const headerView = (h: ApplicationViewBuilder): Html =>
   h.div(
     [
       h.Class(
@@ -137,7 +137,7 @@ const headerView = (h: ViewBuilder): Html =>
     ],
   )
 
-const contentView = (model: Model, h: ViewBuilder): Html => {
+const contentView = (model: Model, h: ApplicationViewBuilder): Html => {
   const theme = currentPaletteTheme(model)
 
   return h.div(

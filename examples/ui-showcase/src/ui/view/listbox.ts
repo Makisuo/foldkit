@@ -11,7 +11,7 @@ import {
   listboxGroupedDemo,
   listboxMultiDemo,
 } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import type { Character } from '../listbox'
 import type { ListboxItem } from '../model'
 
@@ -77,19 +77,19 @@ const LISTBOX_ANCHOR = {
 
 // PIECES
 
-const itemContent = (label: string, h: ViewBuilder) =>
+const itemContent = (label: string, h: UiViewBuilder) =>
   h.div(
     [h.Class('flex items-center gap-2')],
     [Icon.check(checkIconClassName), h.span([], [label])],
   )
 
-const buttonContent = (label: string, h: ViewBuilder) =>
+const buttonContent = (label: string, h: UiViewBuilder) =>
   h.div(
     [h.Class(buttonContentClassName)],
     [h.span([], [label]), Icon.chevronDown('w-4 h-4')],
   )
 
-const chromeAttributes = (h: ViewBuilder) => ({
+const chromeAttributes = (h: UiViewBuilder) => ({
   buttonAttributes: childAttributes([h.Class(triggerClassName)]),
   itemsAttributes: childAttributes([h.Class(itemsClassName)]),
   backdropAttributes: childAttributes([h.Class(backdropClassName)]),
@@ -100,7 +100,7 @@ const field = (
   buttonId: string,
   label: string,
   listbox: Html,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html =>
   h.div(
     [h.Class(fieldClassName)],
@@ -115,7 +115,7 @@ const field = (
 const singleSelectDemo = (
   listboxModel: typeof Listbox.Model.Type,
   maybeSelectedItem: Option.Option<ListboxItem>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html => {
   const buttonLabel = Option.getOrElse(
     maybeSelectedItem,
@@ -149,7 +149,7 @@ const singleSelectDemo = (
 const multiSelectDemo = (
   listboxModel: typeof Listbox.Multi.Model.Type,
   selectedItems: ReadonlyArray<ListboxItem>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html => {
   const buttonLabel = Array.match(selectedItems, {
     onEmpty: () => 'Select Bluths',
@@ -186,7 +186,7 @@ const multiSelectDemo = (
 const groupedDemo = (
   listboxModel: typeof Listbox.Model.Type,
   maybeSelectedItem: Option.Option<string>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html => {
   const buttonLabel = Option.getOrElse(
     maybeSelectedItem,

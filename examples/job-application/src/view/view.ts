@@ -6,7 +6,7 @@ import { Button } from '@foldkit/ui'
 
 import {
   ApplicationComposition,
-  type ViewBuilder,
+  type ApplicationViewBuilder,
   attachments,
   coverLetter,
   education,
@@ -66,7 +66,7 @@ const stepsNeedingAttention = (model: Model): ReadonlyArray<Step.Step> =>
 const stepContent = (
   model: Model,
   attentionSteps: ReadonlyArray<Step.Step>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   Match.value(model.currentStep).pipe(
     Match.when('PersonalInfo', () =>
@@ -127,7 +127,7 @@ const isFirstStep = (model: Model): boolean =>
 const isLastStep = (model: Model): boolean =>
   pipe(Step.all, Array.last, Option.exists(Equal.equals(model.currentStep)))
 
-const navigationButtons = (model: Model, h: ViewBuilder) =>
+const navigationButtons = (model: Model, h: ApplicationViewBuilder) =>
   h.div(
     [h.Class('flex justify-between pt-6 mt-8 border-t border-gray-200')],
     [
@@ -174,7 +174,7 @@ const navigationButtons = (model: Model, h: ViewBuilder) =>
     ],
   )
 
-const pageHeader = (h: ViewBuilder) =>
+const pageHeader = (h: ApplicationViewBuilder) =>
   h.div(
     [h.Class('mb-6')],
     [
@@ -193,7 +193,7 @@ const stepContentPanel = (
   model: Model,
   attentionSteps: ReadonlyArray<Step.Step>,
   panelAttributes: ReadonlyArray<ChildAttribute>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.div(
     [...panelAttributes, h.Class('flex-1 min-w-0')],
@@ -214,7 +214,7 @@ const stepTabsLayout = (
   model: Model,
   attentionSteps: ReadonlyArray<Step.Step>,
   attentionStepSet: HashSet.HashSet<Step.Step>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.block(
     stepTabs.embedView({
@@ -268,7 +268,7 @@ const stepTabsLayout = (
     }),
   )
 
-const desktopPreviewSidebar = (model: Model, h: ViewBuilder) =>
+const desktopPreviewSidebar = (model: Model, h: ApplicationViewBuilder) =>
   h.div(
     [h.Class('hidden w-80 shrink-0 xl:block')],
     [
@@ -297,7 +297,7 @@ const desktopPreviewSidebar = (model: Model, h: ViewBuilder) =>
     ],
   )
 
-const mobilePreviewToggle = (model: Model, h: ViewBuilder) =>
+const mobilePreviewToggle = (model: Model, h: ApplicationViewBuilder) =>
   h.div(
     [h.Class('fixed top-4 right-4 xl:hidden')],
     [
@@ -325,7 +325,7 @@ const mobilePreviewToggle = (model: Model, h: ViewBuilder) =>
     ],
   )
 
-const mobilePreviewOverlay = (model: Model, h: ViewBuilder) =>
+const mobilePreviewOverlay = (model: Model, h: ApplicationViewBuilder) =>
   h.div(
     [
       h.Class(

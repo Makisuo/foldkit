@@ -5,7 +5,7 @@ import type { EntryHandlers, Variant } from '@foldkit/ui/toast'
 
 import { Icon } from '../../../icon'
 import { toastDemo } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 import { Toast } from './toastModule'
 
@@ -48,7 +48,7 @@ const buttonClassName =
 export const demo = (
   toastModel: typeof Toast.Model.Type,
   maybeLastDismissedTitle: Option.Option<string>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): ReadonlyArray<Html> => {
   const renderToastEntry = (entry: Entry, handlers: EntryHandlers): Html =>
     h.div(

@@ -33,7 +33,7 @@ import {
   examples as exampleMetas,
 } from '../example'
 import { exampleAppCount } from '../examples'
-import type { ViewBuilder } from './composition'
+import type { HomeViewBuilder } from './composition'
 
 // CONTENT CONSTANTS
 
@@ -74,7 +74,7 @@ export const contentView = (
   maybeGitHubStarCount: Option.Option<number>,
   resolvedTheme: ResolvedTheme,
   isBrowserEnvironmentLoaded: boolean,
-  h: ViewBuilder,
+  h: HomeViewBuilder,
 ): Html => {
   return h.div(
     [h.Class('isolate overflow-x-clip')],
@@ -163,7 +163,7 @@ const heroSection = (
   renderCopyButton: CodeBlock.RenderCopyButton,
   playgroundMenuView: Html,
   maybeGitHubStarCount: Option.Option<number>,
-  h: ViewBuilder,
+  h: HomeViewBuilder,
 ): Html => {
   return h.section(
     [

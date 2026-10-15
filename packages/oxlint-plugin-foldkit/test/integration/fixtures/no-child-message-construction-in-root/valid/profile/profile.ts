@@ -47,8 +47,7 @@ export const child = Profile.bindChild(Child.block, {
 export const ProfileComposition = Profile.toComposition({
   children: [child],
 })
-
-export type ViewBuilder = Block.HtmlBuilderOf<typeof ProfileComposition>
+export type ProfileViewBuilder = Block.HtmlBuilderOf<typeof ProfileComposition>
 
 export const update = Profile.update((model, message) =>
   Message.match(message, {

@@ -147,7 +147,7 @@ describe('real-oxlint rule fixtures', () => {
 
     expect(diagnostics.map(reportedCalleeLabel).sort()).toEqual(
       [
-        'Application.Message.ClickedFromShadowedParameters',
+        'ApplicationComposition.Message.ClickedFromShadowedParameters',
         'Child.Message.ClickedAliasSave',
         'Child.Message.ClickedBarrelSave',
         'Child.Message.ClickedDirectBarrelSave',
@@ -161,6 +161,7 @@ describe('real-oxlint rule fixtures', () => {
         'Child.Message.ClickedImportedParentViewSave',
         'Child.Message.ClickedParentStepSave',
         'Child.Message.ClickedParentViewSave',
+        'Child.Message.ClickedTypedParentViewSave',
         'Child.Message.ClickedWorkspaceSave',
         'Child.Message.ClickedWorkspaceAliasSave',
         'Child.server.Message.ClickedServerChildSave',

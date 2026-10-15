@@ -8,7 +8,7 @@ import {
   virtualListDemo,
   virtualListVariableDemo as virtualListVariableDemoBinding,
 } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 import type { VirtualListChatMessage } from '../model'
 import { type Activity, ROW_COUNT } from './virtualListData'
@@ -139,7 +139,10 @@ const secondaryButtonClassName =
 const headerClassName =
   'flex flex-wrap items-center justify-between gap-3 text-sm text-gray-700 dark:text-gray-400'
 
-export const view = (model: typeof VirtualList.Model.Type, h: ViewBuilder) => {
+export const view = (
+  model: typeof VirtualList.Model.Type,
+  h: UiViewBuilder,
+) => {
   return [
     h.div(
       [h.Class('flex flex-col gap-4 w-full')],
@@ -269,7 +272,7 @@ const variableArtifactClassName =
 
 export const virtualListVariableDemo = (
   model: typeof VirtualList.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   const variableTallRow = (row: Activity, summary: Summary) =>
     h.div(
@@ -381,7 +384,7 @@ const chatMessageDetailClassName =
 const COLLAPSED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX = 48
 const EXPANDED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX = 80
 
-const chatMessageView = (message: VirtualListChatMessage, h: ViewBuilder) => {
+const chatMessageView = (message: VirtualListChatMessage, h: UiViewBuilder) => {
   const isSentMessage = message.id % 2 !== 0
 
   return h.div(
@@ -427,7 +430,7 @@ const chatMessageView = (message: VirtualListChatMessage, h: ViewBuilder) => {
 export const virtualListChatDemo = (
   model: typeof VirtualList.Model.Type,
   messages: ReadonlyArray<VirtualListChatMessage>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => [
   h.div(
     [h.Class('flex w-full flex-col gap-4')],

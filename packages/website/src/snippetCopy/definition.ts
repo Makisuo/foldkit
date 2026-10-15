@@ -7,3 +7,5 @@ export const SnippetCopy = Block.define('SnippetCopy', {
   Model,
   Message,
 })
+
+export const SnippetCopyComposition = SnippetCopy.toComposition()

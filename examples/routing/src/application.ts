@@ -15,8 +15,9 @@ export const peoplePage = Application.bindChild(People.block, {
 export const ApplicationComposition = Application.toComposition({
   children: [peoplePage],
 })
-
-export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>
 
 export const EffectsLayer = Layer.mergeAll(
   NavigateInternal.layer,

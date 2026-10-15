@@ -1,6 +1,1 @@
-export {
-  EditorComposition,
-  counter,
-  dialog,
-  type ViewBuilder,
-} from './composition'
+export { EditorComposition, counter, dialog } from './composition'

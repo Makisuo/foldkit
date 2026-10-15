@@ -2,8 +2,10 @@ import { Array, Option } from 'effect'
 import { given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
-import { Message, type Model, init, update } from './application'
+import { Message, Model as ModelSchema, init, update } from './application'
 import { Message as CounterMessage } from './counter'
+
+type Model = typeof ModelSchema.Type
 
 const initialModel: Model = {
   counters: [

@@ -5,7 +5,7 @@ import { Disclosure } from '@foldkit/ui'
 
 import * as Icon from '../../icon'
 import { UiComposition } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 
 const DISCLOSURE_BASIC_DEMO_ID = 'disclosure-basic-demo'
@@ -16,25 +16,25 @@ const COLLAPSED_PREVIEW_HEIGHT = '6rem'
 const PANEL_TEXT =
   'Foldkit is an Elm-inspired UI framework powered by Effect. It brings the Model-View-Update architecture to TypeScript with Schema-typed state, explicit side effects via commands, and composable headless UI components.'
 
-const chevron = (isOpen: boolean, h: ViewBuilder) => {
+const chevron = (isOpen: boolean, h: UiViewBuilder) => {
   return h.span(
     [h.Class(clsx('text-gray-600', { 'rotate-180': isOpen }))],
     [Icon.chevronDown('w-4 h-4')],
   )
 }
 
-const buttonContent = (isOpen: boolean, h: ViewBuilder) => {
+const buttonContent = (isOpen: boolean, h: UiViewBuilder) => {
   return h.div(
     [h.Class('flex items-center justify-between w-full')],
     [h.span([], ['What is Foldkit?']), chevron(isOpen, h)],
   )
 }
 
-const panelText = (h: ViewBuilder) => {
+const panelText = (h: UiViewBuilder) => {
   return h.p([h.Class('text-gray-800')], [PANEL_TEXT])
 }
 
-const collapsedPreviewPanel = (h: ViewBuilder) =>
+const collapsedPreviewPanel = (h: UiViewBuilder) =>
   h.div(
     [h.Class('space-y-3 text-base leading-6 text-gray-800')],
     [
@@ -59,7 +59,7 @@ const collapsedPreviewPanel = (h: ViewBuilder) =>
     ],
   )
 
-const subheading = (text: string, h: ViewBuilder) => {
+const subheading = (text: string, h: UiViewBuilder) => {
   return h.h3(
     [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
     [text],

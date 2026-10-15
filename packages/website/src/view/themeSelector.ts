@@ -4,7 +4,7 @@ import { type Html, childAttributes, inertHtml as ih } from 'foldkit/html'
 import { Menu } from '@foldkit/ui'
 import type { AnchorConfig as MenuAnchorConfig } from '@foldkit/ui/menu'
 
-import type { ViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../application'
 import { themeMenu } from '../application'
 import { Icon } from '../icon'
 import { type ThemePreference } from '../themePreference'
@@ -34,7 +34,7 @@ const preferenceIcon = (preference: ThemePreference, className: string): Html =>
 export const view = (
   menu: typeof Menu.Model.Type,
   maybeActivePreference: Option.Option<ThemePreference>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const activePreference: ThemePreference = Option.getOrElse(
     maybeActivePreference,

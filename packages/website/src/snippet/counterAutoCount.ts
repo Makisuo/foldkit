@@ -19,7 +19,7 @@ export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
 
-export const subscriptions = ApplicationComposition.subscriptions(entry => ({
+export const subscriptions = Application.subscriptions(entry => ({
   gameClockTicks: entry(
     'GameClockTicks',
     { isAutoCounting: Schema.Boolean },

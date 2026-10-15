@@ -254,5 +254,6 @@ export const ApplicationComposition = Application.toComposition({
     paletteRadioGroup,
   ],
 })
-
-export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>

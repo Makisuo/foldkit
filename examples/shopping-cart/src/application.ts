@@ -82,6 +82,7 @@ export const productsPage = Application.bindChild(Products.block, {
 export const ApplicationComposition = Application.toComposition({
   children: [productsPage],
 })
+type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
@@ -149,12 +150,10 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
-
 const navigationView = (
   currentRoute: ApplicationRoute,
   cartCount: number,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const navLinkClassName = (isActive: boolean) =>
     `hover:bg-blue-600 font-medium px-3 py-1 rounded transition ${isActive ? 'bg-blue-700 bg-opacity-50' : ''}`
@@ -207,7 +206,7 @@ const navigationView = (
   )
 }
 
-const productsView = (model: Model, h: ViewBuilder): Html =>
+const productsView = (model: Model, h: ApplicationViewBuilder): Html =>
   h.block(
     productsPage.embedView({
       slotId: 'products',
@@ -216,13 +215,13 @@ const productsView = (model: Model, h: ViewBuilder): Html =>
     }),
   )
 
-const cartView = (model: Model, h: ViewBuilder): Html =>
+const cartView = (model: Model, h: ApplicationViewBuilder): Html =>
   CartPage.view(model.cart, h)
 
-const checkoutView = (model: Model, h: ViewBuilder): Html =>
+const checkoutView = (model: Model, h: ApplicationViewBuilder): Html =>
   Checkout.view(model.cart, model.deliveryInstructions, model.orderPlaced, h)
 
-const notFoundView = (path: string, h: ViewBuilder): Html =>
+const notFoundView = (path: string, h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('max-w-4xl mx-auto px-4 text-center')],
     [

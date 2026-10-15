@@ -4,7 +4,10 @@ import type { Html } from 'foldkit/html'
 
 import type { TabInfo } from '@foldkit/ui/tabs'
 
-import { type ViewBuilder, stepMenu as stepMenuBinding } from '../application'
+import {
+  type ApplicationViewBuilder,
+  stepMenu as stepMenuBinding,
+} from '../application'
 import { Step } from '../domain'
 import { type Model } from '../model'
 import * as Icon from './icon'
@@ -40,7 +43,7 @@ const stepMarker = (
   status: StepStatus,
   index: number,
   needsAttention: boolean,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.span(
     [
@@ -86,7 +89,7 @@ export const stepTabButton = (
   tab: TabInfo<Step.Step>,
   currentStep: Step.Step,
   stepsNeedingAttention: HashSet.HashSet<Step.Step>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const status = stepToStatus(tab.value, currentStep)
   const needsAttention = HashSet.has(stepsNeedingAttention, tab.value)
@@ -101,7 +104,7 @@ export const stepTabButton = (
   )
 }
 
-const stepMenuTrigger = (currentStep: Step.Step, h: ViewBuilder) =>
+const stepMenuTrigger = (currentStep: Step.Step, h: ApplicationViewBuilder) =>
   h.div(
     [h.Class('flex items-center justify-between w-full gap-3')],
     [
@@ -127,7 +130,7 @@ const stepMenuTrigger = (currentStep: Step.Step, h: ViewBuilder) =>
 export const stepMenu = (
   model: Model,
   stepsNeedingAttention: HashSet.HashSet<Step.Step>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.block(
     stepMenuBinding.embedView({

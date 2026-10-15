@@ -4,7 +4,9 @@ export const setTheme = Settings.step((model, theme: Theme) =>
   update(model, Message.ChangedTheme({ theme })),
 )
 
-export const block = Settings.toComposition().toBlock({
+const SettingsComposition = Settings.toComposition()
+
+export const block = SettingsComposition.toBlock({
   init,
   update,
   expose: { setTheme },

@@ -3,7 +3,7 @@ import type { Html } from 'foldkit/html'
 import { Checkbox } from '@foldkit/ui'
 
 import { UiComposition } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 import type { Model } from '../model'
 
@@ -80,7 +80,7 @@ export const view = UiComposition.view((model, h) => {
   )
 })
 
-const indeterminateDemo = (model: Model, h: ViewBuilder) => {
+const indeterminateDemo = (model: Model, h: UiViewBuilder) => {
   const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
   const indeterminateMark = h.span([h.Class('text-white text-xs')], ['—'])
 

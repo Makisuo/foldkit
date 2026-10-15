@@ -12,7 +12,7 @@ import {
   overlayComboboxDemo,
   overlayDialogDemo as overlayDialogDemoBinding,
 } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 import type { City } from '../model'
 import { comboboxViewInputs } from './combobox'
@@ -63,7 +63,7 @@ const OVERLAY_COMBOBOX_ANCHOR = {
 
 // PANEL CONTENT
 
-const trigger = (label: string, message: Message, h: ViewBuilder) =>
+const trigger = (label: string, message: Message, h: UiViewBuilder) =>
   h.div(
     [h.Class('flex gap-3')],
     [h.button([h.Class(triggerClassName), h.OnClick(message)], [label])],
@@ -74,7 +74,7 @@ const confirmContent = (
   description: DialogRenderInfo['description'],
   closeButton: DialogRenderInfo['closeButton'],
   descriptionText: string,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html =>
   h.div(
     [],
@@ -102,7 +102,7 @@ const editFiltersContent = (
   description: DialogRenderInfo['description'],
   comboboxModel: typeof Combobox.Model.Type,
   maybeSelectedCity: Option.Option<City>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html =>
   h.div(
     [],
@@ -136,7 +136,7 @@ const projectSettingsContent = (
   title: DialogRenderInfo['title'],
   description: DialogRenderInfo['description'],
   closeButton: DialogRenderInfo['closeButton'],
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html =>
   h.div(
     [],
@@ -168,7 +168,7 @@ const deleteProjectContent = (
   title: DialogRenderInfo['title'],
   description: DialogRenderInfo['description'],
   closeButton: DialogRenderInfo['closeButton'],
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html =>
   h.div(
     [],
@@ -196,7 +196,10 @@ const deleteProjectContent = (
     ],
   )
 
-export const view = (dialogModel: typeof Dialog.Model.Type, h: ViewBuilder) => {
+export const view = (
+  dialogModel: typeof Dialog.Model.Type,
+  h: UiViewBuilder,
+) => {
   return [
     trigger('Open Dialog', Message.ClickedOpenDialog(), h),
     h.block(
@@ -244,7 +247,7 @@ export const overlayDialogDemo = (
   dialogModel: typeof Dialog.Model.Type,
   comboboxModel: typeof Combobox.Model.Type,
   maybeSelectedCity: Option.Option<City>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   return [
     trigger('Edit filters', Message.ClickedEditFilters(), h),
@@ -291,7 +294,7 @@ export const overlayDialogDemo = (
 export const nestedDialogDemo = (
   parentDialogModel: typeof Dialog.Model.Type,
   childDialogModel: typeof Dialog.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   return [
     trigger('Open project settings', Message.ClickedOpenProjectSettings(), h),
@@ -374,7 +377,7 @@ export const nestedDialogDemo = (
 
 export const dialogAnimatedDemo = (
   dialogModel: typeof Dialog.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   return [
     trigger('Open Animated Dialog', Message.ClickedOpenAnimatedDialog(), h),

@@ -22,7 +22,7 @@ const CallComposition = Call.toComposition({
   children: [videoCall],
 })
 
-export const managedResources = CallComposition.managedResources(entry => ({
+export const managedResources = Call.managedResources(entry => ({
   signalingSocket: entry('ManageSignalingSocket', Schema.Option(Schema.Null), {
     resource: SignalingSocket,
     modelToMaybeRequirements: model => Option.as(model.videoCall, null),

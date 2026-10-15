@@ -18,8 +18,9 @@ export const ui = Application.bindChild(Ui.block, {
 export const ApplicationComposition = Application.toComposition({
   children: [ui],
 })
-
-export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>
 
 export const NavigateInternal = ApplicationComposition.command(
   'NavigateInternal',

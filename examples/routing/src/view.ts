@@ -2,7 +2,7 @@ import { Array, Match, Option } from 'effect'
 import { Html } from 'foldkit/html'
 
 import { ApplicationComposition, peoplePage } from './application'
-import type { ViewBuilder } from './application'
+import type { ApplicationViewBuilder } from './application'
 import {
   type File,
   type FileTreeEntry,
@@ -23,7 +23,7 @@ import {
 
 const navigationView = (
   currentRoute: ApplicationRoute,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const navLinkClassName = (isActive: boolean) =>
     `hover:bg-blue-600 font-medium px-3 py-1 rounded transition ${isActive ? 'bg-blue-700 bg-opacity-50' : ''}`
@@ -98,7 +98,7 @@ const navigationView = (
   )
 }
 
-const homeView = (h: ViewBuilder): Html =>
+const homeView = (h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [
@@ -116,7 +116,7 @@ const homeView = (h: ViewBuilder): Html =>
     ],
   )
 
-const nestedView = (h: ViewBuilder): Html =>
+const nestedView = (h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [
@@ -131,7 +131,7 @@ const nestedView = (h: ViewBuilder): Html =>
     ],
   )
 
-const personView = (personId: number, h: ViewBuilder): Html => {
+const personView = (personId: number, h: ApplicationViewBuilder): Html => {
   const person = findPerson(personId)
 
   return Option.match(person, {
@@ -234,7 +234,7 @@ const entryCountLabel = (count: number): string =>
 const entryListView = (
   parentPath: ReadonlyArray<string>,
   entries: ReadonlyArray<FileTreeEntry>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.ul(
     [h.Class('divide-y divide-gray-200 border border-gray-200 rounded-lg')],
@@ -273,7 +273,7 @@ const entryListView = (
 
 const breadcrumbView = (
   path: Array.NonEmptyReadonlyArray<string>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const lastSegmentIndex = path.length - 1
 
@@ -312,7 +312,7 @@ const breadcrumbView = (
   )
 }
 
-const fileDetailView = (file: File, h: ViewBuilder): Html =>
+const fileDetailView = (file: File, h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('bg-gray-50 border border-gray-200 rounded-lg p-6')],
     [
@@ -323,7 +323,7 @@ const fileDetailView = (file: File, h: ViewBuilder): Html =>
 
 const missingEntryView = (
   path: Array.NonEmptyReadonlyArray<string>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.div(
     [],
@@ -340,7 +340,7 @@ const missingEntryView = (
     ],
   )
 
-const filesIndexView = (h: ViewBuilder): Html =>
+const filesIndexView = (h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [
@@ -357,7 +357,7 @@ const filesIndexView = (h: ViewBuilder): Html =>
 
 const filesView = (
   path: Array.NonEmptyReadonlyArray<string>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const maybeEntry = findEntry(path)
 
@@ -378,7 +378,7 @@ const filesView = (
   )
 }
 
-const notFoundView = (path: string, h: ViewBuilder): Html =>
+const notFoundView = (path: string, h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [

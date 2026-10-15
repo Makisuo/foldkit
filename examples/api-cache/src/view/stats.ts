@@ -3,7 +3,7 @@ import { AsyncData } from 'foldkit'
 
 import * as Button from '@foldkit/ui/button'
 
-import type { ViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../application'
 import type { Stats } from '../data'
 import { Message } from '../message'
 import type { Model } from '../model'
@@ -12,7 +12,7 @@ import { errorPanel, loadingPanel, toolbarButtonClassName } from './shared'
 const formatFetchedAt = (fetchedAt: number): string =>
   new Date(fetchedAt).toLocaleTimeString()
 
-export const statsTabView = (model: Model, h: ViewBuilder) => {
+export const statsTabView = (model: Model, h: ApplicationViewBuilder) => {
   const isPending = AsyncData.isPending(model.stats)
 
   return h.div(
@@ -83,7 +83,7 @@ type StatsCardsInput = Readonly<{
 
 const statsCards = (
   { stats, fetchedAt, isRefreshing }: StatsCardsInput,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ) =>
   h.div(
     [h.Class('flex flex-col gap-3')],
@@ -127,7 +127,7 @@ const statsCards = (
 
 type StatCardInput = Readonly<{ label: string; value: string }>
 
-const statCard = ({ label, value }: StatCardInput, h: ViewBuilder) =>
+const statCard = ({ label, value }: StatCardInput, h: ApplicationViewBuilder) =>
   h.div(
     [h.Class('bg-white rounded-xl shadow p-4 flex flex-col gap-1')],
     [

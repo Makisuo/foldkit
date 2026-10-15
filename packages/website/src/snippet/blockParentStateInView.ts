@@ -1,12 +1,12 @@
 import { settings } from './application'
-import { Settings } from './definition'
+import { SettingsComposition } from './definition'
 import type { User } from './user'
 
 type ViewInputs = Readonly<{
   currentUser: User
 }>
 
-export const view = Settings.view.withInputs<ViewInputs>(
+export const view = SettingsComposition.view.withInputs<ViewInputs>(
   (model, { currentUser }, h) =>
     h.div([], [h.h2([], [`Settings for ${currentUser.name}`])]),
 )

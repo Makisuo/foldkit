@@ -33,7 +33,7 @@ export const init = () => ({
   model: Model.make({ count: 0 }),
 })
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = Application.update((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: Number.increment }),

@@ -23,7 +23,7 @@ import { Icon } from '../../../icon'
 import * as DemoView from '../../demoView'
 import {
   NotePlayerDemoComposition,
-  type ViewBuilder,
+  type NotePlayerDemoViewBuilder,
   noteDurationRadioGroup,
 } from './composition'
 import {
@@ -495,7 +495,7 @@ export const view = NotePlayerDemoComposition.view((model, h) =>
   ),
 )
 
-const appPanel = (model: Model, h: ViewBuilder): Html => {
+const appPanel = (model: Model, h: NotePlayerDemoViewBuilder): Html => {
   const isPlaying = model.playbackState._tag === 'Playing'
   const isPaused = model.playbackState._tag === 'Paused'
   const isInputLocked = isPlaying || isPaused
@@ -536,7 +536,7 @@ const appPanel = (model: Model, h: ViewBuilder): Html => {
 const noteInputView = (
   model: Model,
   isInputLocked: boolean,
-  h: ViewBuilder,
+  h: NotePlayerDemoViewBuilder,
 ): Html =>
   Input.view(
     {
@@ -608,7 +608,7 @@ const noteDurations: ReadonlyArray<NoteDuration> = ['Short', 'Medium', 'Long']
 const durationSelectorView = (
   model: Model,
   isInputLocked: boolean,
-  h: ViewBuilder,
+  h: NotePlayerDemoViewBuilder,
 ): Html =>
   h.div(
     [h.Class('flex flex-col gap-1.5')],
@@ -659,7 +659,7 @@ const durationSelectorView = (
 const playbackControlView = (
   model: Model,
   canPlay: boolean,
-  h: ViewBuilder,
+  h: NotePlayerDemoViewBuilder,
 ): Html => {
   const isPlaying = model.playbackState._tag === 'Playing'
   const isActive = isPlaying || model.playbackState._tag === 'Paused'

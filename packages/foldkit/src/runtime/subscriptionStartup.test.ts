@@ -143,7 +143,7 @@ describe('Subscription startup supervision', () => {
           GotChildMessage: ({ message }) => child.fold(model, message),
         }),
       ),
-      view: Application.view((_model, h) =>
+      view: ApplicationComposition.view((_model, h) =>
         h.button(
           [h.Id('activate-child'), h.OnClick(Message.ClickedActivateChild())],
           ['Activate child'],

@@ -1,9 +1,9 @@
-import { ApiReference } from './definition'
+import { ApiReferenceComposition } from './definition'
 import { boot, init } from './init'
 import { EffectsLayer, informRouteChanged, update } from './update'
 import { view } from './view'
 
-export const block = ApiReference.toComposition().toBlock({
+export const block = ApiReferenceComposition.toBlock({
   init,
   update,
   view,

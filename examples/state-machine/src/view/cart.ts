@@ -5,7 +5,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { Button, RadioGroup } from '@foldkit/ui'
 import type { OptionInfo } from '@foldkit/ui/radioGroup'
 
-import { type ViewBuilder, editionRadioGroup } from '../application'
+import { type ApplicationViewBuilder, editionRadioGroup } from '../application'
 import * as Icon from '../icon'
 import { Message } from '../message'
 import { CheckoutState, EDITIONS, editionName } from '../model'
@@ -107,7 +107,7 @@ export const cancelCheckoutButton = (h: HtmlBuilder<Message>): Html =>
 export const cartView = (
   state: typeof CheckoutState.Cart.Type,
   editionRadioGroupModel: typeof RadioGroup.Model.Type,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const continueLabel = state.isShippingRequired
     ? 'Continue to delivery'

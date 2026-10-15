@@ -24,7 +24,7 @@ export const ApplicationComposition = Application.toComposition({
   children: [dialog, menu],
 })
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = Application.update((model, message) =>
   Message.match(message, {
     GotDialogMessage: ({ message }) => dialog.fold(model, message),
     GotMenuMessage: ({ message }) => menu.fold(model, message),

@@ -1,4 +1,4 @@
 export {
   ProfileComposition,
-  type ViewBuilder,
+  type ProfileViewBuilder,
 } from './profile.js'

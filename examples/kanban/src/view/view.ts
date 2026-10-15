@@ -3,7 +3,7 @@ import { Array, Option, pipe } from 'effect'
 import { ghostStyle, maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 
 import { ApplicationComposition } from '../application'
-import type { ViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../application'
 import type { Model } from '../model'
 import { ghostCardView } from './card'
 import { columnView } from './column'
@@ -21,7 +21,7 @@ const findDraggedCard = (model: Model) =>
     ),
   )
 
-const ghostElement = (model: Model, h: ViewBuilder) =>
+const ghostElement = (model: Model, h: ApplicationViewBuilder) =>
   pipe(
     ghostStyle(model.dragAndDrop),
     Option.flatMap(ghostStyle =>

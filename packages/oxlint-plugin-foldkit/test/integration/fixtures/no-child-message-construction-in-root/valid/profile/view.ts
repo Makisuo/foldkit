@@ -3,17 +3,17 @@ import { Block } from 'foldkit'
 import { Message as ProfileMessage } from './definition'
 import {
   ProfileComposition,
-  type ViewBuilder as ImportedViewBuilder,
+  type ProfileViewBuilder as ImportedProfileViewBuilder,
 } from './composition'
 
 const Message = ProfileMessage
 
-type ViewBuilder = Block.HtmlBuilderOf<typeof ProfileComposition>
+type ProfileViewBuilder = Block.HtmlBuilderOf<typeof ProfileComposition>
 
-const saveButton = (h: ViewBuilder) =>
+const saveButton = (h: ProfileViewBuilder) =>
   h.button([h.OnClick(Message.ClickedSave())])
 
-const importedBuilderSaveButton = (h: ImportedViewBuilder) =>
+const importedBuilderSaveButton = (h: ImportedProfileViewBuilder) =>
   h.button([h.OnClick(Message.ClickedSaveFromImportedBuilder())])
 
 export const view = ProfileComposition.view((_model, h) =>

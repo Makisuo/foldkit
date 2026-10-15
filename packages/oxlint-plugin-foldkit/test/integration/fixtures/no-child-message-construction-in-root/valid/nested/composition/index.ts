@@ -1,4 +1,4 @@
 export {
   NestedComposition,
-  type ViewBuilder,
+  type NestedViewBuilder,
 } from './composition.js'

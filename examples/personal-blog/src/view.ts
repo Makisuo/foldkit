@@ -1,20 +1,24 @@
 import { clsx } from 'clsx'
 import { Option } from 'effect'
-import type { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 
 import * as Markdown from '@foldkit/markdown'
 
-import { ApplicationComposition, counter } from './application'
+import {
+  ApplicationComposition,
+  type ApplicationViewBuilder,
+  counter,
+} from './application'
 import { Post, about, findPost, posts } from './content'
 import type { Model } from './definition'
 import { islandAttributes } from './island'
 import { proseView } from './prose'
 import * as Route from './route'
 
-type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
-
-const islandViews = (model: Model, h: ViewBuilder): Markdown.Islands =>
+const islandViews = (
+  model: Model,
+  h: ApplicationViewBuilder,
+): Markdown.Islands =>
   Markdown.islandsFor(islandAttributes, {
     Counter: ({ label }, _content, occurrenceIndex) =>
       h.div(
@@ -53,7 +57,7 @@ const navLinkClassName = ({ isActive }: { isActive: boolean }): string =>
 
 const headerView = (
   currentRoute: Route.ApplicationRoute,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.header(
     [h.Class('border-b border-stone-200')],
@@ -119,10 +123,10 @@ const headerView = (
     ],
   )
 
-const homeView = (model: Model, h: ViewBuilder): Html =>
+const homeView = (model: Model, h: ApplicationViewBuilder): Html =>
   proseView(about, islandViews(model, h))
 
-const postCardView = (post: Post, h: ViewBuilder): Html =>
+const postCardView = (post: Post, h: ApplicationViewBuilder): Html =>
   h.keyed('li')(
     post.slug,
     [],
@@ -145,7 +149,7 @@ const postCardView = (post: Post, h: ViewBuilder): Html =>
     ],
   )
 
-const postsView = (h: ViewBuilder): Html =>
+const postsView = (h: ApplicationViewBuilder): Html =>
   h.div(
     [],
     [
@@ -157,7 +161,7 @@ const postsView = (h: ViewBuilder): Html =>
     ],
   )
 
-const missingPostView = (slug: string, h: ViewBuilder): Html =>
+const missingPostView = (slug: string, h: ApplicationViewBuilder): Html =>
   h.div(
     [],
     [
@@ -169,7 +173,11 @@ const missingPostView = (slug: string, h: ViewBuilder): Html =>
     ],
   )
 
-const postView = (slug: string, model: Model, h: ViewBuilder): Html => {
+const postView = (
+  slug: string,
+  model: Model,
+  h: ApplicationViewBuilder,
+): Html => {
   const maybePost = findPost(slug)
 
   const contentKey = Option.match(maybePost, {
@@ -210,7 +218,7 @@ const postView = (slug: string, model: Model, h: ViewBuilder): Html => {
   )
 }
 
-const notFoundView = (path: string, h: ViewBuilder): Html =>
+const notFoundView = (path: string, h: ApplicationViewBuilder): Html =>
   h.div(
     [],
     [

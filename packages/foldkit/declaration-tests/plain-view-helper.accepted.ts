@@ -45,11 +45,11 @@ export const ParentComposition = Parent.toComposition({
   children: [child],
   mounts: [ObserveParent],
 })
-export type ViewBuilder = Block.HtmlBuilderOf<typeof ParentComposition>
+export type ParentViewBuilder = Block.HtmlBuilderOf<typeof ParentComposition>
 
 export const parentModelViewHelper = (
   model: typeof ParentModel.Type,
-  h: ViewBuilder,
+  h: ParentViewBuilder,
 ) =>
   h.div(
     [
@@ -59,24 +59,24 @@ export const parentModelViewHelper = (
     [h.block(child.embedView({ slotId: 'child', model: model.child }))],
   )
 
-export const parentBuilderViewHelper = (h: ViewBuilder) =>
+export const parentBuilderViewHelper = (h: ParentViewBuilder) =>
   h.div([h.OnMount(ObserveParent())])
 
 export const parentInputViewHelper = (
   childModel: typeof ChildModel.Type,
-  h: ViewBuilder,
+  h: ParentViewBuilder,
 ) => h.block(child.embedView({ slotId: 'child-input', model: childModel }))
 
 export const parentArrayViewHelper = (
   labels: ReadonlyArray<string>,
-  h: ViewBuilder,
+  h: ParentViewBuilder,
 ) => labels.map(label => h.span([], [label]))
 
 const sharedDivider = <SharedMessage, SharedRequirements>(
   h: Html.HtmlBuilder<SharedMessage, SharedRequirements>,
 ) => h.div([h.Class('divider')])
 
-export const parentSharedViewHelper = (h: ViewBuilder) => sharedDivider(h)
+export const parentSharedViewHelper = (h: ParentViewBuilder) => sharedDivider(h)
 
 const Application = defineApplication({
   Model: ParentModel,

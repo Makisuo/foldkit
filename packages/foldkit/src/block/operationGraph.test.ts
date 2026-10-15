@@ -28,8 +28,9 @@ const Child = ChildOwner.define({ Model: ChildModel, Message })
 const reset = Child.step(_model => ({
   model: ChildModel.make({ count: 0 }),
 }))
-const ChildBlock = Child.toComposition().toBlock({
-  view: Child.view((_model, h) => h.div([])),
+const ChildComposition = Child.toComposition()
+const ChildBlock = ChildComposition.toBlock({
+  view: ChildComposition.view((_model, h) => h.div([])),
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
   update: Child.update(model => ({
     model: modifyFields(model, { count: count => count + 1 }),
@@ -50,8 +51,9 @@ const omittedChild = omittedParent.bindChild(ChildBlock, {
   toParentMessage: (message: Message) => message,
 })
 
-const OmittedParent = omittedParent.toComposition().toBlock({
-  view: omittedParent.view((_model, h) => h.div([])),
+const omittedParentComposition = omittedParent.toComposition()
+const OmittedParent = omittedParentComposition.toBlock({
+  view: omittedParentComposition.view((_model, h) => h.div([])),
   init: () => ({
     model: modifyFields(initialModel, {
       primary: () => omittedChild.init().model,
@@ -126,8 +128,9 @@ const policy = PolicyOwner.define({
   Message,
   OutMessage: PolicyOutMessage,
 })
-const PolicyChild = policy.toComposition().toBlock({
-  view: policy.view((_model, h) => h.div([])),
+const policyComposition = policy.toComposition()
+const PolicyChild = policyComposition.toBlock({
+  view: policyComposition.view((_model, h) => h.div([])),
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
   update: model => ({
     model,

@@ -16,7 +16,7 @@ export const init = () => ({ model: Model.make({ count: 0 }) })
 
 export const update = Application.update(model => ({ model }))
 
-export const view = Application.view((model, h) => ({
+export const view = ApplicationComposition.view((model, h) => ({
   title: 'Client only',
   body: h.main([], [model.count.toString()]),
 }))

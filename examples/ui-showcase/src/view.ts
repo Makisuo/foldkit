@@ -5,7 +5,7 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 import { Nav } from '@foldkit/ui'
 
 import { ApplicationComposition, ui } from './application'
-import type { ViewBuilder } from './application'
+import type { ApplicationViewBuilder } from './application'
 import * as Icon from './icon'
 import { Message } from './message'
 import { Model } from './model'
@@ -155,7 +155,10 @@ const mobileNavLinkClassName = (isActive: boolean): string =>
       : 'text-gray-700 hover:bg-gray-200',
   )
 
-const sidebarView = (currentRoute: ApplicationRoute, h: ViewBuilder) => {
+const sidebarView = (
+  currentRoute: ApplicationRoute,
+  h: ApplicationViewBuilder,
+) => {
   const sidebarNavView = ({ nav, items }: Nav.RenderInfo): Html =>
     h.nav(
       [
@@ -248,7 +251,7 @@ const mobileMenuContent =
     )
   }
 
-const mobileHeaderView = (model: Model, h: ViewBuilder) =>
+const mobileHeaderView = (model: Model, h: ApplicationViewBuilder) =>
   h.header(
     [
       h.Class(
@@ -288,7 +291,7 @@ const mobileHeaderView = (model: Model, h: ViewBuilder) =>
     ],
   )
 
-const mobileMenuView = (model: Model, h: ViewBuilder) =>
+const mobileMenuView = (model: Model, h: ApplicationViewBuilder) =>
   h.block(
     ui.embedView({
       slotId: 'mobile-menu',
@@ -298,7 +301,7 @@ const mobileMenuView = (model: Model, h: ViewBuilder) =>
     }),
   )
 
-const homeView = (h: ViewBuilder) =>
+const homeView = (h: ApplicationViewBuilder) =>
   h.div(
     [h.Class('max-w-2xl')],
     [
@@ -321,7 +324,7 @@ const homeView = (h: ViewBuilder) =>
     ],
   )
 
-const notFoundView = (path: string, h: ViewBuilder) =>
+const notFoundView = (path: string, h: ApplicationViewBuilder) =>
   h.div(
     [h.Class('max-w-2xl')],
     [
@@ -340,7 +343,7 @@ const notFoundView = (path: string, h: ViewBuilder) =>
     ],
   )
 
-const contentView = (model: Model, h: ViewBuilder) => {
+const contentView = (model: Model, h: ApplicationViewBuilder) => {
   const embedUi = (id: string, view: typeof Ui.View.button): Html =>
     h.block(
       ui.embedView({

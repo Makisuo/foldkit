@@ -3,13 +3,13 @@ import { Block } from 'foldkit'
 import {
   ApplicationComposition,
   Message,
-  type ViewBuilder as ImportedViewBuilder,
+  type ApplicationViewBuilder as ImportedApplicationViewBuilder,
 } from './rootApplication'
 
-type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
-export const localAliasButton = (h: ViewBuilder) =>
+export const localAliasButton = (h: ApplicationViewBuilder) =>
   h.button([h.OnClick(Message.ClickedFromLocalViewBuilder())])
 
-export const importedAliasButton = (h: ImportedViewBuilder) =>
+export const importedAliasButton = (h: ImportedApplicationViewBuilder) =>
   h.button([h.OnClick(Message.ClickedFromImportedViewBuilder())])

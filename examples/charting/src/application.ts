@@ -115,5 +115,6 @@ export const ApplicationComposition = Application.toComposition({
   mounts: [MountChart],
   children: [chartModeRadioGroup, periodRadioGroup, packageRadioGroup],
 })
-
-export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>

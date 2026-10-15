@@ -7,7 +7,7 @@ import {
   horizontalRadioGroupDemo,
   verticalRadioGroupDemo,
 } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import type { Plan } from '../model'
 
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
@@ -40,7 +40,7 @@ const descriptionClassName = 'text-sm text-gray-600'
 
 const priceClassName = 'text-sm font-semibold text-accent-600'
 
-const checkIcon = (h: ViewBuilder) => {
+const checkIcon = (h: UiViewBuilder) => {
   return h.svg(
     [h.ViewBox('0 0 24 24'), h.Fill('none'), h.Class('size-5 text-accent-600')],
     [
@@ -55,7 +55,7 @@ const checkIcon = (h: ViewBuilder) => {
   )
 }
 
-const checkPlaceholder = (h: ViewBuilder) => {
+const checkPlaceholder = (h: UiViewBuilder) => {
   return h.div([h.Class('size-5')])
 }
 

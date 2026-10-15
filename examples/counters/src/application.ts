@@ -21,7 +21,6 @@ export const Model = Schema.Struct({
   counters: Schema.Array(CounterInstance),
   nextCounterId: Schema.Number,
 })
-export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedAddCounter: {},
@@ -31,8 +30,6 @@ export const Message = defineMessageUnion({
     message: Counter.Message,
   },
 })
-
-export type Message = typeof Message.Type
 
 export const Application = defineApplication({ Model, Message })
 
@@ -46,6 +43,7 @@ const counters = Application.bindChild(Counter.block, {
 export const ApplicationComposition = Application.toComposition({
   children: [counters],
 })
+type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
@@ -93,11 +91,9 @@ export const init = () => {
   }
 }
 
-type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
-
 const counterInstanceView = (
   counterInstance: CounterInstance,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.keyed('div')(
     counterInstance.id,

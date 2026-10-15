@@ -127,7 +127,9 @@ const homeManagedResources = home.managedResources(entry => ({
   }),
 }))
 
-const homeView = home.view((model, h) =>
+const HomeComposition = home.toComposition()
+
+const homeView = HomeComposition.view((model, h) =>
   h.button(
     [h.OnClick(HomeMessage.ClickedCreateRoom())],
     [`${model.status}:${model.joinedCount}`],
@@ -138,14 +140,15 @@ type HomeViewInputs = Readonly<{ label: string }>
 
 let renderedHomeLabel = ''
 
-const homeViewWithDefaultInputs = home.view.withInputs<HomeViewInputs>(
-  (_model, { label } = { label: 'Default' }, _h) => {
-    renderedHomeLabel = label
-    return null
-  },
-)
+const homeViewWithDefaultInputs =
+  HomeComposition.view.withInputs<HomeViewInputs>(
+    (_model, { label } = { label: 'Default' }, _h) => {
+      renderedHomeLabel = label
+      return null
+    },
+  )
 
-const homeRestTupleView = home.view.withInputs<HomeViewInputs>(
+const homeRestTupleView = HomeComposition.view.withInputs<HomeViewInputs>(
   (
     ...[_model, { label }, h]: [
       HomeModel,
@@ -155,9 +158,9 @@ const homeRestTupleView = home.view.withInputs<HomeViewInputs>(
   ) => h.div([], [label]),
 )
 
-const homeOptionalInputsView = home.view.withInputs<HomeViewInputs | undefined>(
-  (_model, inputs, h) => h.div([], [inputs?.label ?? 'Missing']),
-)
+const homeOptionalInputsView = HomeComposition.view.withInputs<
+  HomeViewInputs | undefined
+>((_model, inputs, h) => h.div([], [inputs?.label ?? 'Missing']))
 
 let homeInitCalls = 0
 
@@ -190,7 +193,6 @@ const homeInformJoined = home.step((model, joinedCount: number) => ({
   model: modifyFields(model, { joinedCount: () => joinedCount }),
 }))
 
-const HomeComposition = home.toComposition()
 const Home = HomeComposition.toBlock({
   view: homeView,
   init: homeInit,
@@ -208,10 +210,11 @@ const noMessage = NoMessageOwner.define({
   Message: Schema.Never,
 })
 const noMessageUpdate = noMessage.update(model => ({ model }))
-const NoMessage = noMessage.toComposition().toBlock({
+const NoMessageComposition = noMessage.toComposition()
+const NoMessage = NoMessageComposition.toBlock({
   init: () => ({ model: null }),
   update: noMessageUpdate,
-  view: noMessage.view((_model, h) => ({
+  view: NoMessageComposition.view((_model, h) => ({
     title: 'No Messages',
     body: h.empty,
   })),
@@ -252,11 +255,12 @@ const makeGenericAuthoring = <const Id extends string, Item, Value>(id: Id) => {
     Model: GenericModel,
     Message: GenericMessage,
   })
-  const view = definition.view.withInputs<
+  const composition = definition.toComposition()
+  const view = composition.view.withInputs<
     GenericAuthoringViewInputs<Item, Value>
   >((model, _viewInputs, h) => h.div([], [model.value]))
 
-  return definition.toComposition().toBlock({
+  return composition.toBlock({
     view,
     init: () => ({ model: GenericModel.make({ value: '' }) }),
     update: definition.update((model, message) =>
@@ -403,9 +407,9 @@ const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
     Message,
     OutMessage,
   })
-  const definition = base.toComposition({ mounts: [ObserveChoice] })
+  const composition = base.toComposition({ mounts: [ObserveChoice] })
 
-  const view = definition.view.withInputs<Readonly<{ label: string }>>(
+  const view = composition.view.withInputs<Readonly<{ label: string }>>(
     (model, { label }, h) =>
       h.button(
         [
@@ -432,7 +436,7 @@ const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
     outMessage: OutMessage.make({ value }),
   }))
 
-  return definition.toBlock({
+  return composition.toBlock({
     view,
     init: (value: Value) => ({ model: Model.make({ value }) }),
     update,
@@ -966,12 +970,12 @@ if (false) {
     messages: [HomeMessage.CompletedCreateRoom],
   })
 
-  home.view(
+  HomeComposition.view(
     // @ts-expect-error Views use the Model fixed by the Block definition.
     (_model: Readonly<{ foreign: true }>, h) => h.div([]),
   )
 
-  home.view((_model, h) =>
+  HomeComposition.view((_model, h) =>
     h.div([
       // @ts-expect-error The view may use only Mounts registered by its definition or children.
       h.OnMount(ObserveChoice()),
@@ -1038,8 +1042,9 @@ if (false) {
     Message: HomeMessage,
     OutMessage: HomeOutMessage,
   })
-  const foreignHomeView = foreignHome.view((_model, h) => h.div([]))
-  home.toComposition().toBlock({
+  const foreignHomeComposition = foreignHome.toComposition()
+  const foreignHomeView = foreignHomeComposition.view((_model, h) => h.div([]))
+  HomeComposition.toBlock({
     init: homeInit,
     update: (model, _message) => ({ model }),
     // @ts-expect-error A completed Block must use a view authored by its own definition.
@@ -1051,10 +1056,11 @@ if (false) {
     Model: RoomModel,
     Message: RoomMessage,
   })
-  const sameOwnerDifferentView = sameOwnerDifferent.view((_model, h) =>
-    h.div([]),
+  const sameOwnerDifferentComposition = sameOwnerDifferent.toComposition()
+  const sameOwnerDifferentView = sameOwnerDifferentComposition.view(
+    (_model, h) => h.div([]),
   )
-  home.toComposition().toBlock({
+  HomeComposition.toBlock({
     init: homeInit,
     update: (model, _message) => ({ model }),
     // @ts-expect-error Owner identity cannot substitute for the definition's Model and Message view channels.
@@ -1064,14 +1070,14 @@ if (false) {
 
   const erasedHomeView: any = homeView
   // @ts-expect-error any cannot erase an implementation's authored view contract.
-  home.toComposition().toBlock({
+  HomeComposition.toBlock({
     init: homeInit,
     update: (model, _message) => ({ model }),
     view: erasedHomeView,
     EffectsLayer: Layer.empty,
   })
 
-  home.toComposition().toBlock({
+  HomeComposition.toBlock({
     // @ts-expect-error Specialized implementation shapes retain the definition Model returned by init.
     init: () => ({
       model: RoomModel.make({ roomId: 'foreign', joinedCount: 0 }),
@@ -1082,7 +1088,7 @@ if (false) {
     EffectsLayer: Layer.empty,
   })
 
-  home.toComposition().toBlock({
+  HomeComposition.toBlock({
     init: () => ({
       // @ts-expect-error Specialized implementation shapes with Subscriptions retain the definition Model returned by init.
       model: RoomModel.make({ roomId: 'foreign', joinedCount: 0 }),
@@ -1095,13 +1101,13 @@ if (false) {
   })
 
   // @ts-expect-error void would collapse the three-argument view to two arguments.
-  home.view.withInputs<void>((_model, _inputs, h) => h.div([]))
+  HomeComposition.view.withInputs<void>((_model, _inputs, h) => h.div([]))
   // @ts-expect-error undefined would collapse the three-argument view to two arguments.
-  home.view.withInputs<undefined>((_model, _inputs, h) => h.div([]))
+  HomeComposition.view.withInputs<undefined>((_model, _inputs, h) => h.div([]))
   // @ts-expect-error never cannot describe a usable viewInputs value.
-  home.view.withInputs<never>((_model, _inputs, h) => h.div([]))
+  HomeComposition.view.withInputs<never>((_model, _inputs, h) => h.div([]))
   // @ts-expect-error any would erase the viewInputs contract.
-  home.view.withInputs<any>((_model, _inputs, h) => h.div([]))
+  HomeComposition.view.withInputs<any>((_model, _inputs, h) => h.div([]))
 
   policyParentComposition.view((model, h) => {
     const config = choiceWithPolicyCommand.embedView({

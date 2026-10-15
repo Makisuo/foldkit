@@ -4,7 +4,7 @@ import type { Html } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
-import type { ViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../application'
 import { Step } from '../domain'
 import { Message } from '../message'
 import { type Model, Submission } from '../model'
@@ -15,7 +15,11 @@ import { isComplete as isSkillsComplete } from '../step/skills'
 import { isComplete as isWorkHistoryComplete } from '../step/workHistory'
 import { employmentRange, pluralize } from './format'
 
-const reviewSection = (title: string, content: Html, h: ViewBuilder): Html =>
+const reviewSection = (
+  title: string,
+  content: Html,
+  h: ApplicationViewBuilder,
+): Html =>
   h.section(
     [h.Class('rounded-lg border border-gray-200 p-4')],
     [
@@ -24,7 +28,11 @@ const reviewSection = (title: string, content: Html, h: ViewBuilder): Html =>
     ],
   )
 
-const fieldRow = (label: string, value: string, h: ViewBuilder): Html =>
+const fieldRow = (
+  label: string,
+  value: string,
+  h: ApplicationViewBuilder,
+): Html =>
   value
     ? h.div(
         [h.Class('flex justify-between py-1')],
@@ -38,7 +46,7 @@ const fieldRow = (label: string, value: string, h: ViewBuilder): Html =>
 const personalInfoSection = (
   personalInfo: Model['personalInfo'],
   pronounLabel: string,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   reviewSection(
     'Personal Information',
@@ -61,7 +69,7 @@ const personalInfoSection = (
 
 const workEntryReview = (
   entry: typeof WorkHistoryEntry.Model.Type,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const title = entry.company.value
     ? `${entry.title.value} at ${entry.company.value}`
@@ -93,7 +101,7 @@ const workEntryReview = (
 
 const workHistorySection = (
   workHistory: Model['workHistory'],
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   reviewSection(
     `Work History (${pluralize(workHistory.entries.length, 'position', 'positions')})`,
@@ -116,7 +124,7 @@ const educationTimeline = (entry: typeof EducationEntry.Model.Type): string => {
 
 const educationEntryReview = (
   entry: typeof EducationEntry.Model.Type,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const title = entry.fieldOfStudy.value
     ? `${entry.degree.value} in ${entry.fieldOfStudy.value}`
@@ -137,7 +145,7 @@ const educationEntryReview = (
 
 const educationSection = (
   education: Model['education'],
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   reviewSection(
     `Education (${pluralize(education.entries.length, 'entry', 'entries')})`,
@@ -148,7 +156,10 @@ const educationSection = (
     h,
   )
 
-const skillsSection = (skills: Model['skills'], h: ViewBuilder): Html =>
+const skillsSection = (
+  skills: Model['skills'],
+  h: ApplicationViewBuilder,
+): Html =>
   reviewSection(
     `Skills (${skills.entries.length})`,
     h.div(
@@ -172,7 +183,7 @@ const skillsSection = (skills: Model['skills'], h: ViewBuilder): Html =>
 
 const coverLetterSection = (
   coverLetter: Model['coverLetter'],
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   reviewSection(
     'Cover Letter',
@@ -190,7 +201,7 @@ const coverLetterSection = (
 
 const attachmentsSection = (
   attachments: Model['attachments'],
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   reviewSection(
     'Attachments',
@@ -238,7 +249,7 @@ const blockedNoticeText = (attentionSteps: ReadonlyArray<Step.Step>): string =>
 
 const blockedNotice = (
   attentionSteps: ReadonlyArray<Step.Step>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.p(
     [h.Class('text-sm text-red-600 text-center')],
@@ -249,7 +260,7 @@ const submissionSection = (
   submission: Model['submission'],
   shouldShowBlockedNotice: boolean,
   attentionSteps: ReadonlyArray<Step.Step>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   Submission.match(submission, {
     NotSubmitted: () =>
@@ -346,7 +357,7 @@ const submissionSection = (
 export const review = (
   model: Model,
   attentionSteps: ReadonlyArray<Step.Step>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const pronounLabel = Option.match(model.personalInfo.maybeSelectedPronoun, {
     onNone: () => '',

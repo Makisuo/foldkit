@@ -8,7 +8,7 @@ import {
   horizontalTabsDemo,
   verticalTabsDemo,
 } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import type { DemoTab } from '../model'
 
 const demoTabs: ReadonlyArray<DemoTab> = ['Foldkit', 'React', 'Elm']
@@ -25,7 +25,7 @@ const verticalButtonClassName =
 const verticalPanelClassName =
   'flex-1 p-6 bg-white rounded-r-lg rounded-bl-lg border border-gray-200'
 
-const foldkitPanel = (h: ViewBuilder) => {
+const foldkitPanel = (h: UiViewBuilder) => {
   return h.div(
     [],
     [
@@ -46,7 +46,7 @@ const foldkitPanel = (h: ViewBuilder) => {
   )
 }
 
-const reactPanel = (h: ViewBuilder) => {
+const reactPanel = (h: UiViewBuilder) => {
   return h.div(
     [],
     [
@@ -67,7 +67,7 @@ const reactPanel = (h: ViewBuilder) => {
   )
 }
 
-const elmPanel = (h: ViewBuilder) => {
+const elmPanel = (h: UiViewBuilder) => {
   return h.div(
     [],
     [
@@ -88,7 +88,7 @@ const elmPanel = (h: ViewBuilder) => {
   )
 }
 
-const panelFor = (tab: DemoTab, h: ViewBuilder) =>
+const panelFor = (tab: DemoTab, h: UiViewBuilder) =>
   Match.value(tab).pipe(
     Match.when('Foldkit', () => foldkitPanel(h)),
     Match.when('React', () => reactPanel(h)),

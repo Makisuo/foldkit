@@ -3,7 +3,7 @@ import { Html } from 'foldkit/html'
 import { Transition } from 'foldkit/route'
 
 import { ApplicationComposition } from './application'
-import type { ViewBuilder } from './application'
+import type { ApplicationViewBuilder } from './application'
 import { type Painting, findPaintingWithIndex, paintings } from './data'
 import { Message } from './message'
 import {
@@ -31,7 +31,7 @@ const routeLabel = (route: ApplicationRoute): string =>
 
 const navigationView = (
   currentRoute: ApplicationRoute,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const navLinkClassName = (isActive: boolean) =>
     `font-medium px-3 py-1 rounded transition hover:bg-indigo-500 ${isActive ? 'bg-indigo-700' : ''}`
@@ -89,7 +89,7 @@ const navigationView = (
   )
 }
 
-const homeView = (h: ViewBuilder): Html =>
+const homeView = (h: ApplicationViewBuilder): Html =>
   h.div(
     [],
     [
@@ -136,7 +136,7 @@ const homeView = (h: ViewBuilder): Html =>
     ],
   )
 
-const loadingView = (label: string, h: ViewBuilder): Html =>
+const loadingView = (label: string, h: ApplicationViewBuilder): Html =>
   h.div(
     [
       h.Class(
@@ -146,7 +146,7 @@ const loadingView = (label: string, h: ViewBuilder): Html =>
     [label],
   )
 
-const paintingGridView = (h: ViewBuilder): Html =>
+const paintingGridView = (h: ApplicationViewBuilder): Html =>
   h.ul(
     [h.Class('grid gap-4 sm:grid-cols-2 list-none')],
     Array.map(paintings, painting =>
@@ -180,7 +180,10 @@ const paintingGridView = (h: ViewBuilder): Html =>
     ),
   )
 
-const galleryView = (catalogStatus: CatalogStatus, h: ViewBuilder): Html => {
+const galleryView = (
+  catalogStatus: CatalogStatus,
+  h: ApplicationViewBuilder,
+): Html => {
   const isCatalogReady = catalogStatus === 'Ready'
 
   return h.div(
@@ -203,7 +206,7 @@ const galleryView = (catalogStatus: CatalogStatus, h: ViewBuilder): Html => {
 const neighborView = (
   label: string,
   maybeNeighbor: Option.Option<Painting>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   Option.match(maybeNeighbor, {
     onNone: () => h.span([h.Class('text-gray-300')], [label]),
@@ -217,7 +220,10 @@ const neighborView = (
       ),
   })
 
-const paintingNeighborsView = (paintingIndex: number, h: ViewBuilder): Html =>
+const paintingNeighborsView = (
+  paintingIndex: number,
+  h: ApplicationViewBuilder,
+): Html =>
   h.div(
     [h.Class('flex items-center justify-between mt-6')],
     [
@@ -230,7 +236,10 @@ const paintingNeighborsView = (paintingIndex: number, h: ViewBuilder): Html =>
     ],
   )
 
-const missingPaintingView = (paintingId: number, h: ViewBuilder): Html =>
+const missingPaintingView = (
+  paintingId: number,
+  h: ApplicationViewBuilder,
+): Html =>
   h.div(
     [],
     [
@@ -253,7 +262,7 @@ const foundPaintingView = (
   painting: Painting,
   paintingIndex: number,
   paintingStatus: PaintingStatus,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const isPaintingReady =
     paintingStatus._tag === 'Ready' && paintingStatus.paintingId === painting.id
@@ -294,7 +303,7 @@ const foundPaintingView = (
 const paintingView = (
   paintingId: number,
   paintingStatus: PaintingStatus,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   Option.match(findPaintingWithIndex(paintingId), {
     onNone: () => missingPaintingView(paintingId, h),
@@ -305,7 +314,7 @@ const paintingView = (
 const studioView = (
   studioDraft: string,
   maybeSavedDraft: Option.Option<string>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.div(
     [],
@@ -352,7 +361,7 @@ const studioView = (
     ],
   )
 
-const notFoundView = (path: string, h: ViewBuilder): Html =>
+const notFoundView = (path: string, h: ApplicationViewBuilder): Html =>
   h.div(
     [],
     [
@@ -371,7 +380,11 @@ const notFoundView = (path: string, h: ViewBuilder): Html =>
     ],
   )
 
-const badgeView = (className: string, label: string, h: ViewBuilder): Html =>
+const badgeView = (
+  className: string,
+  label: string,
+  h: ApplicationViewBuilder,
+): Html =>
   h.span(
     [
       h.Class(
@@ -383,7 +396,7 @@ const badgeView = (className: string, label: string, h: ViewBuilder): Html =>
 
 const logEntryBadges = (
   transition: AppTransition,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): ReadonlyArray<Html> => {
   const coldLoadBadges = Option.match(transition.maybePreviousRoute, {
     onNone: () => [badgeView('bg-violet-100 text-violet-700', 'Cold load', h)],
@@ -424,7 +437,10 @@ const logEntryBadges = (
   })
 }
 
-const logEntryView = (entry: LoggedTransition, h: ViewBuilder): Html => {
+const logEntryView = (
+  entry: LoggedTransition,
+  h: ApplicationViewBuilder,
+): Html => {
   const sourceLabel = Option.match(entry.maybePreviousRoute, {
     onNone: () => 'Cold load',
     onSome: routeLabel,
@@ -447,7 +463,7 @@ const logEntryView = (entry: LoggedTransition, h: ViewBuilder): Html => {
 
 const transitionLogView = (
   transitionLog: ReadonlyArray<LoggedTransition>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.aside(
     [h.Class('bg-white rounded-lg shadow p-4 h-fit lg:sticky lg:top-8')],

@@ -2,7 +2,7 @@ import {
   horizontalRadioGroupDemo,
   verticalRadioGroupDemo,
 } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import { type Model, type Plan } from '../model'
 
 // DEMO CONTENT
@@ -38,7 +38,7 @@ const descriptionClassName = 'text-sm text-gray-700 dark:text-gray-300'
 const priceClassName =
   'text-sm font-semibold text-accent-700 dark:text-accent-400'
 
-export const verticalDemo = (model: Model, h: ViewBuilder) => {
+export const verticalDemo = (model: Model, h: UiViewBuilder) => {
   const checkIcon = h.svg(
     [
       h.ViewBox('0 0 24 24'),
@@ -117,7 +117,7 @@ export const verticalDemo = (model: Model, h: ViewBuilder) => {
   ]
 }
 
-export const horizontalDemo = (model: Model, h: ViewBuilder) => {
+export const horizontalDemo = (model: Model, h: UiViewBuilder) => {
   const checkIcon = h.svg(
     [
       h.ViewBox('0 0 24 24'),

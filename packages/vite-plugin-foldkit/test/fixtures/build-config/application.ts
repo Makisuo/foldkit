@@ -30,7 +30,7 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-export const view = Application.view((model, h) => ({
+export const view = ApplicationComposition.view((model, h) => ({
   title: `Count ${model.count}`,
   body: h.main([h.Id('counter')], [model.count.toString()]),
 }))

@@ -10,7 +10,7 @@ import {
   listboxGroupedDemo,
   listboxMultiDemo,
 } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import type { ListboxItem } from '../model'
 import { type Character } from './components'
 
@@ -65,7 +65,7 @@ const LISTBOX_ANCHOR: AnchorConfig = {
 export const basicDemo = (
   listboxModel: typeof Listbox.Model.Type,
   maybeSelectedItem: Option.Option<ListboxItem>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   const buttonLabel = Option.getOrElse(
     maybeSelectedItem,
@@ -128,7 +128,7 @@ export const basicDemo = (
 export const multiSelectDemo = (
   listboxModel: typeof Listbox.Multi.Model.Type,
   selectedItems: ReadonlyArray<ListboxItem>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   const buttonLabel = Array.match(selectedItems, {
     onEmpty: () => 'Select Bluths',
@@ -194,7 +194,7 @@ export const multiSelectDemo = (
 export const groupedDemo = (
   listboxModel: typeof Listbox.Model.Type,
   maybeSelectedItem: Option.Option<string>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   const buttonLabel = Option.getOrElse(
     maybeSelectedItem,

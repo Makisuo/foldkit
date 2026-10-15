@@ -68,7 +68,7 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 export const ApplicationComposition = Application.toComposition()
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = Application.update((model, message) =>
   Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: count => count - 1 }),

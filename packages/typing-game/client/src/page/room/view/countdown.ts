@@ -1,12 +1,12 @@
 import { Option } from 'effect'
 import { Html } from 'foldkit/html'
 
-import type { ViewBuilder } from '../definition'
+import type { RoomViewBuilder } from '../definition'
 
 export const countdown = (
   secondsLeft: number,
   maybeGameText: Option.Option<string>,
-  h: ViewBuilder,
+  h: RoomViewBuilder,
 ): Html =>
   h.div(
     [h.Class('space-y-6')],

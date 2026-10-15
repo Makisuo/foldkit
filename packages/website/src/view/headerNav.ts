@@ -3,7 +3,7 @@ import { Html } from 'foldkit/html'
 
 import { Nav } from '@foldkit/ui'
 
-import type { ViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../application'
 import {
   type ApplicationRoute,
   blogRouter,
@@ -40,7 +40,7 @@ const linkClassName =
 export const view = (
   route: ApplicationRoute,
   className: string,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   Nav.view<HeaderSection>({
     items: headerSections,

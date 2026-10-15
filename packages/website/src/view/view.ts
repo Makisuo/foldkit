@@ -1,7 +1,7 @@
 import { Match, Option } from 'effect'
 
 import { ApplicationComposition } from '../application'
-import type { ViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../application'
 import {
   home,
   playground,
@@ -24,7 +24,10 @@ type HomeViewInput = Readonly<{
   homeModel: typeof Home.Model.Type
 }>
 
-const homeView = ({ model, homeModel }: HomeViewInput, h: ViewBuilder) => {
+const homeView = (
+  { model, homeModel }: HomeViewInput,
+  h: ApplicationViewBuilder,
+) => {
   const renderCopyButton = SnippetCopy.renderer(model.snippetCopy, config =>
     h.block(snippetCopy.embedView(config)),
   )
@@ -58,7 +61,7 @@ const homeView = ({ model, homeModel }: HomeViewInput, h: ViewBuilder) => {
   )
 }
 
-const newsletterView = (model: Model, h: ViewBuilder) =>
+const newsletterView = (model: Model, h: ApplicationViewBuilder) =>
   Marketing.view(
     model,
     {

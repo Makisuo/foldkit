@@ -6,7 +6,7 @@ import apiModuleIndex from 'virtual:api-module-index'
 import { Disclosure } from '@foldkit/ui'
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
-import type { ViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../application'
 import { mobileMenuDialog } from '../application'
 import { Shared } from '../component'
 import {
@@ -56,7 +56,7 @@ const sidebarGroup = (
     children: Html
     isLocked: boolean
   }>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const buttonClassName = clsx(
     'w-full flex items-center justify-between transition',
@@ -136,7 +136,7 @@ const navLink = (
   href: string,
   isActive: boolean,
   label: string,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ) =>
   h.li(
     [],
@@ -163,7 +163,7 @@ const getStartedClass = (isActive: boolean) =>
 const getStartedNavItem = (
   route: Model['route'],
   maybeExampleSlug: Option.Option<string>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const isActive = isNavPageActive(
     route._tag,
@@ -193,7 +193,7 @@ const computeNavLinks = (
   idPrefix: string,
   route: Model['route'],
   sidebarGroups: SidebarGroups,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const isOnApiModulePage = route._tag === 'ApiModule'
   const maybeExampleSlug = pipe(
@@ -299,7 +299,7 @@ const computeNavLinks = (
 
 const lazyNavLinks = createKeyedLazy()
 
-export const view = (model: Model, h: ViewBuilder): Html => {
+export const view = (model: Model, h: ApplicationViewBuilder): Html => {
   const desktopNavLinks = lazyNavLinks(DESKTOP_ID_PREFIX, computeNavLinks, [
     DESKTOP_ID_PREFIX,
     model.route,
@@ -327,7 +327,7 @@ export const view = (model: Model, h: ViewBuilder): Html => {
   )
 }
 
-export const mobileView = (model: Model, h: ViewBuilder): Html => {
+export const mobileView = (model: Model, h: ApplicationViewBuilder): Html => {
   const mobileNavLinks = lazyNavLinks(MOBILE_ID_PREFIX, computeNavLinks, [
     MOBILE_ID_PREFIX,
     model.route,

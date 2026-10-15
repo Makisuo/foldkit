@@ -1,8 +1,10 @@
 import { Array, Match } from 'effect'
-import type { Block } from 'foldkit'
 import { type Html, createLazy } from 'foldkit/html'
 
-import { ApplicationComposition } from './application'
+import {
+  ApplicationComposition,
+  type ApplicationViewBuilder,
+} from './application'
 import {
   Message,
   type Model,
@@ -11,8 +13,6 @@ import {
   type Workload,
 } from './definition'
 import { VIEW_WORK_MS, burnCpu } from './workload'
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 const phaseLabel = (phase: SlowPhase): string =>
   Match.value(phase).pipe(
@@ -67,7 +67,7 @@ const scenarioCard = (
     buttonText: string
     message: Message
   }>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.article(
     [h.Class(`rounded-lg border p-4 shadow-sm ${phaseAccentClass(phase)}`)],
@@ -95,7 +95,7 @@ const scenarioCard = (
     ],
   )
 
-const warningView = (warning: SlowWarning, h: ViewBuilder): Html =>
+const warningView = (warning: SlowWarning, h: ApplicationViewBuilder): Html =>
   h.keyed('li')(
     warning.id.toString(),
     [
@@ -126,7 +126,7 @@ const warningView = (warning: SlowWarning, h: ViewBuilder): Html =>
 
 const warningsView = (
   warnings: ReadonlyArray<SlowWarning>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.section(
     [h.Class('rounded-lg border border-zinc-200 bg-white p-4 shadow-sm')],
@@ -179,7 +179,7 @@ const warningsView = (
 const patchRowsView = (
   rowCount: number,
   patchRun: number,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   if (rowCount === 0) {
     return h.div(
@@ -212,7 +212,7 @@ const patchRowsView = (
   }
 }
 
-const patchSurfaceView = (model: Model, h: ViewBuilder): Html =>
+const patchSurfaceView = (model: Model, h: ApplicationViewBuilder): Html =>
   h.section(
     [h.Class('rounded-lg border border-zinc-200 bg-white p-4 shadow-sm')],
     [

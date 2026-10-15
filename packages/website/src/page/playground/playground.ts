@@ -28,7 +28,7 @@ import {
 } from '../playgroundWebContainer'
 import {
   PlaygroundComposition,
-  type ViewBuilder,
+  type PlaygroundViewBuilder,
   fileTabs,
 } from './composition'
 import { Message, Model, Playground, PlaygroundState } from './definition'
@@ -458,7 +458,7 @@ const editorPanelContent = (
   path: string,
   content: string,
   files: Readonly<Record<string, string>>,
-  h: ViewBuilder,
+  h: PlaygroundViewBuilder,
 ): Html =>
   h.div(
     [h.Class('flex-1 min-w-0 min-h-0 flex flex-col bg-[#1e1e1e] text-sm')],
@@ -472,7 +472,10 @@ const editorPanelContent = (
     ],
   )
 
-const previewPaneView = (state: PlaygroundState, h: ViewBuilder): Html =>
+const previewPaneView = (
+  state: PlaygroundState,
+  h: PlaygroundViewBuilder,
+): Html =>
   h.div(
     [
       h.Class(
@@ -556,7 +559,7 @@ const tooNarrowMessageView = (): Html =>
     ],
   )
 
-const responsiveEditorView = (model: Model, h: ViewBuilder): Html =>
+const responsiveEditorView = (model: Model, h: PlaygroundViewBuilder): Html =>
   h.div(
     [h.Class('flex-1 min-h-0 flex flex-col')],
     [
@@ -568,7 +571,7 @@ const responsiveEditorView = (model: Model, h: ViewBuilder): Html =>
     ],
   )
 
-const editorLayoutView = (model: Model, h: ViewBuilder): Html => {
+const editorLayoutView = (model: Model, h: PlaygroundViewBuilder): Html => {
   const paths = sortedPaths(model.files)
   return h.div(
     [h.Class('flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden')],

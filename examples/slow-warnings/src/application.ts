@@ -8,7 +8,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { Dom, Runtime } from 'foldkit'
+import { type Block, Dom, Runtime } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import {
@@ -30,6 +30,9 @@ const MAX_WARNING_COUNT = 8
 const SLOW_WARNING_EVENT = 'foldkit:slow-warning'
 
 export const ApplicationComposition = Application.toComposition()
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>
 
 const slowWarningTarget: Dom.TypedEventTarget<{
   [SLOW_WARNING_EVENT]: CustomEvent<SlowWarningReport>

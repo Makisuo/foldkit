@@ -28,7 +28,7 @@ src/
 |   +-- dashboard/
 |   |   +-- index.ts
 |   |   +-- definition.ts   Early Model/Message contract and Definition
-|   |   +-- composition.ts  Bindings, complete registrations, ViewBuilder
+|   |   +-- composition.ts  Bindings and complete registrations
 |   |   +-- init.ts
 |   |   +-- update.ts
 |   |   +-- view.ts
@@ -36,7 +36,7 @@ src/
 |   +-- panel/
 |   |   +-- definition.ts
 |   |   +-- mount.ts        Local Mount definitions and handlers
-|   |   +-- composition.ts  Mount-only registration and ViewBuilder
+|   |   +-- composition.ts  Mount-only registration
 |   |   +-- view.ts
 |   |   +-- block.ts
 |   |   +-- index.ts
@@ -45,7 +45,7 @@ src/
 |       +-- definition.ts
 |       +-- composition/
 |       |   +-- index.ts       Explicit barrel
-|       |   +-- composition.ts Bindings, complete registrations, ViewBuilder
+|       |   +-- composition.ts Bindings and complete registrations
 |       |   +-- dialog.ts      Substantial Dialog policy
 |       +-- command.ts
 |       +-- mount.ts

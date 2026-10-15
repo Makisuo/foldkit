@@ -2,7 +2,7 @@ import { Effect, Function, Option } from 'effect'
 import { Runtime } from 'foldkit'
 
 import {
-  Application,
+  ApplicationComposition,
   EffectsLayer,
   Flags,
   Message,
@@ -74,7 +74,7 @@ export const startHost = (): void => {
   const widgetSlot = getElement('widget-slot')
 
   const flags: Flags = { initialCount: INITIAL_COUNT }
-  const element = Application.toComposition().toElement({
+  const element = ApplicationComposition.toElement({
     init,
     update,
     view,

@@ -1,8 +1,8 @@
-import { Login } from './definition'
+import { LoginComposition } from './definition'
 import { EffectsLayer, initModel, update } from './login'
 import { view } from './view'
 
-export const block = Login.toComposition().toBlock({
+export const block = LoginComposition.toBlock({
   init: () => ({ model: initModel() }),
   update,
   view,

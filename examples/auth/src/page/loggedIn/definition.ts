@@ -8,3 +8,5 @@ export const LoggedIn = Block.define('LoggedIn', {
   Message,
   OutMessage,
 })
+
+export const LoggedInComposition = LoggedIn.toComposition()

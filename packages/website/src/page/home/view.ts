@@ -24,7 +24,7 @@ import {
   notePlayerDemo,
   playgroundMenu,
 } from './composition'
-import { HomeComposition, type ViewBuilder } from './composition'
+import { HomeComposition, type HomeViewBuilder } from './composition'
 import { contentView } from './content'
 import * as DemoTab from './demoTab'
 import * as NotePlayerDemo from './notePlayerDemo'
@@ -39,7 +39,7 @@ const demoTabPanelClassName =
 
 const renderAsyncCounterDemo = (
   model: AsyncCounterDemo.Model,
-  h: ViewBuilder,
+  h: HomeViewBuilder,
 ) =>
   h.block(
     asyncCounterDemo.embedView({
@@ -48,7 +48,10 @@ const renderAsyncCounterDemo = (
     }),
   )
 
-const renderNotePlayerDemo = (model: NotePlayerDemo.Model, h: ViewBuilder) =>
+const renderNotePlayerDemo = (
+  model: NotePlayerDemo.Model,
+  h: HomeViewBuilder,
+) =>
   h.block(
     notePlayerDemo.embedView({
       slotId: 'note-player-demo',
@@ -116,7 +119,7 @@ type PlaygroundMenuViewInput = Readonly<{
 
 const playgroundMenuView = (
   { model, slugs }: PlaygroundMenuViewInput,
-  h: ViewBuilder,
+  h: HomeViewBuilder,
 ) =>
   h.block(
     playgroundMenu.embedView({

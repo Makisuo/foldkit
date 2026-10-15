@@ -4,7 +4,7 @@ import { type Block, Update } from 'foldkit'
 import { Dialog } from '@foldkit/ui'
 
 import * as Command from './command'
-import { LoadPlayground, home } from './composition/home'
+import * as HomeBinding from './composition/home'
 import { Application } from './definition'
 import { Message } from './message'
 import { Model } from './model'
@@ -103,7 +103,7 @@ export const ApplicationComposition = Application.toComposition({
     comingFromReact,
     coreBlockPage,
     exampleDetail,
-    home,
+    HomeBinding.home,
     mobileMenuDialog,
     playground,
     search,
@@ -113,11 +113,12 @@ export const ApplicationComposition = Application.toComposition({
     uiPages,
   ],
 })
-
-export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>
 
 export const EffectsLayer = Layer.mergeAll(
   Command.EffectsLayer,
-  LoadPlayground.layer,
+  HomeBinding.LoadPlayground.layer,
   Subscription.EffectsLayer,
 )

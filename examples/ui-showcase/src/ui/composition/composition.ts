@@ -571,5 +571,4 @@ export const UiComposition = Ui.toComposition({
     virtualListVariableDemo,
   ],
 })
-
-export type ViewBuilder = Block.HtmlBuilderOf<typeof UiComposition>
+export type UiViewBuilder = Block.HtmlBuilderOf<typeof UiComposition>

@@ -25,7 +25,7 @@ export const init = (flags: Flags) => ({
   }),
 })
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = Application.update((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + 1 }),

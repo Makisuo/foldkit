@@ -1,5 +1,5 @@
 import { Array, Layer, Option } from 'effect'
-import { Update } from 'foldkit'
+import { type Block, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { Slider } from '@foldkit/ui'
@@ -100,3 +100,6 @@ export const init = () => ({
 export const ApplicationComposition = Application.toComposition({
   children: [flowStrengthSlider, noiseScaleSlider],
 })
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>

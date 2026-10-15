@@ -7,3 +7,5 @@ export const ApiReference = Block.define('ApiReference', {
   Model,
   Message,
 })
+
+export const ApiReferenceComposition = ApiReference.toComposition()

@@ -1,4 +1,5 @@
 import { Array, Duration, Effect, Layer, Random, Schema } from 'effect'
+import type { Block } from 'foldkit'
 import {
   Invalid,
   NotValidated,
@@ -11,6 +12,9 @@ import { Application, Message, type Model, Submission } from './definition'
 import { isFormValid, validateEmail, validateName } from './validation'
 
 export const ApplicationComposition = Application.toComposition()
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>
 
 export const initialModel: Model = {
   name: NotValidated({ value: '' }),

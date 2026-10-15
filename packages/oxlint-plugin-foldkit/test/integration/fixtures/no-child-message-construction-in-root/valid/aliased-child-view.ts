@@ -10,6 +10,8 @@ const childView = AliasedChildView.define({
   Message: Child.Message,
 })
 
-export const view = childView.view((_model, h) =>
+const AliasedChildViewComposition = childView.toComposition()
+
+export const view = AliasedChildViewComposition.view((_model, h) =>
   h.button([h.OnClick(save())]),
 )

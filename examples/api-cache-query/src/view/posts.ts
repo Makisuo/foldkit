@@ -3,7 +3,7 @@ import { AsyncData } from 'foldkit'
 
 import * as Button from '@foldkit/ui/button'
 
-import type { ViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../application'
 import type { Post, PostDetail } from '../data'
 import { Message } from '../message'
 import type { Model } from '../model'
@@ -20,7 +20,7 @@ const isPostCached = (
   postId: string,
 ): boolean => AsyncData.hasData(postQuery.read(postDetails, { postId }))
 
-export const postsTabView = (model: Model, h: ViewBuilder) =>
+export const postsTabView = (model: Model, h: ApplicationViewBuilder) =>
   Option.match(model.maybeSelectedPostId, {
     onNone: () =>
       h.section([h.Class('flex flex-col gap-4')], [postsListView(model, h)]),
@@ -32,7 +32,7 @@ export const postsTabView = (model: Model, h: ViewBuilder) =>
       ),
   })
 
-export const postsListView = (model: Model, h: ViewBuilder) => {
+export const postsListView = (model: Model, h: ApplicationViewBuilder) => {
   const postsAsyncData = postsQuery.read(model.posts)
   const isPending = AsyncData.isPending(postsAsyncData)
 
@@ -103,7 +103,7 @@ export const postListItems = (
     posts: ReadonlyArray<Post>
     postDetails: Model['postDetails']
   }>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ) =>
   Array.map(posts, post =>
     h.keyed('li')(
@@ -156,7 +156,7 @@ export const postListItems = (
 
 export const postDetailView = (
   { model, postId }: Readonly<{ model: Model; postId: string }>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ) => {
   const postAsyncData = postQuery.read(model.postDetails, { postId })
 
@@ -212,7 +212,7 @@ export const postDetailView = (
 
 export const postCard = (
   { post, fetchedAt }: Readonly<{ post: PostDetail; fetchedAt: number }>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ) =>
   h.article(
     [h.Class('bg-white rounded-xl shadow p-6 flex flex-col gap-3')],

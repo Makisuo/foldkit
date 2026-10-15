@@ -42,7 +42,7 @@ export const init = () => {
   }
 }
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = Application.update((model, message) =>
   Message.match(message, {
     GotSettingsMessage: ({ message }) =>
       settings.fold(model, message, model.currentUser),

@@ -3,7 +3,11 @@ import { type Html, createKeyedLazy } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
-import { EducationComposition, type ViewBuilder, entries } from './composition'
+import {
+  EducationComposition,
+  type EducationViewBuilder,
+  entries,
+} from './composition'
 import { Message } from './definition'
 import * as Entry from './entry'
 
@@ -12,7 +16,7 @@ const lazyEntry = createKeyedLazy()
 const entryView = (
   entry: typeof Entry.Model.Type,
   today: CalendarDate,
-  h: ViewBuilder,
+  h: EducationViewBuilder,
 ): Html =>
   h.block(
     entries.embedView({

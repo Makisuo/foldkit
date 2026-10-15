@@ -705,8 +705,7 @@ const MenuComposition = Menu.toComposition({
   mounts,
   children: [animation],
 })
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof MenuComposition>
+type MenuViewBuilder = Block.HtmlBuilderOf<typeof MenuComposition>
 
 /** Processes a Menu Message and returns the next Model, optional Commands, and
  *  an optional OutMessage. */
@@ -815,7 +814,11 @@ const internalView = <Item extends string>() =>
 
 type MenuInputs = ViewInputs<string>
 
-const menuViewImpl = (model: Model, viewInputs: MenuInputs, h: ViewBuilder) => {
+const menuViewImpl = (
+  model: Model,
+  viewInputs: MenuInputs,
+  h: MenuViewBuilder,
+) => {
   const {
     id,
     isOpen,

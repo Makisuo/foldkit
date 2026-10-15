@@ -55,5 +55,6 @@ export const init = (flags: Flags) => {
 export const ApplicationComposition = Application.toComposition({
   children: [dragAndDrop],
 })
-
-export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>

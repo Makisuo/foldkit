@@ -1,8 +1,8 @@
 // page/settings/view.ts
-import { Settings } from './definition'
+import { SettingsComposition } from './definition'
 import { Message } from './message'
 
-export const view = Settings.view((model, h) =>
+export const view = SettingsComposition.view((model, h) =>
   h.div(
     [h.Class('flex flex-col gap-4')],
     [

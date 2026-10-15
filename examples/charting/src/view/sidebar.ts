@@ -3,7 +3,7 @@ import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
 import {
-  type ViewBuilder,
+  type ApplicationViewBuilder,
   chartModeRadioGroup,
   packageRadioGroup,
   periodRadioGroup,
@@ -26,7 +26,7 @@ export const sidebarView = (
   model: Model,
   telemetry: Telemetry,
   maybeBanner: Option.Option<string>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.aside(
     [h.Class('flex flex-col gap-4')],
@@ -50,7 +50,10 @@ export const sidebarView = (
     ],
   )
 
-export const summaryGridView = (telemetry: Telemetry, h: ViewBuilder): Html => {
+export const summaryGridView = (
+  telemetry: Telemetry,
+  h: ApplicationViewBuilder,
+): Html => {
   const summaries = [
     {
       id: 'stars',
@@ -106,7 +109,10 @@ const radioOptionClassName = (isSelected: boolean): string =>
       : 'text-zinc-600 hover:text-zinc-950',
   )
 
-export const controlPanelView = (model: Model, h: ViewBuilder): Html =>
+export const controlPanelView = (
+  model: Model,
+  h: ApplicationViewBuilder,
+): Html =>
   h.section(
     [h.Class('rounded-md border border-zinc-200 bg-white p-3')],
     [
@@ -189,7 +195,7 @@ export const controlPanelView = (model: Model, h: ViewBuilder): Html =>
 export const packagePanelView = (
   model: Model,
   telemetry: Telemetry,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.section(
     [h.Class('rounded-md border border-zinc-200 bg-white p-3')],
@@ -257,7 +263,10 @@ export const packagePanelView = (
     ],
   )
 
-export const contributorsView = (telemetry: Telemetry, h: ViewBuilder): Html =>
+export const contributorsView = (
+  telemetry: Telemetry,
+  h: ApplicationViewBuilder,
+): Html =>
   h.section(
     [h.Class('rounded-md border border-zinc-200 bg-white p-3')],
     [

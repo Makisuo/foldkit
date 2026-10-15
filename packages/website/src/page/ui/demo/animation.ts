@@ -1,7 +1,7 @@
 import { Animation } from '@foldkit/ui'
 
 import { animationDemo } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 
 // DEMO CONTENT
@@ -13,7 +13,7 @@ const contentClassName =
 
 export const view = (
   animationModel: typeof Animation.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => [
   h.div(
     [h.Class('flex flex-col items-center')],

@@ -95,6 +95,9 @@ export type OutMessage = typeof OutMessage.Type
 
 const Slider = Block.define('Slider', { Model, Message, OutMessage })
 
+const SliderComposition = Slider.toComposition()
+type SliderViewBuilder = Block.HtmlBuilderOf<typeof SliderComposition>
+
 // INIT
 
 /** Configuration for creating a Slider Model with `init`. */
@@ -594,7 +597,7 @@ export type ViewInputs = Readonly<{
 const renderView = (
   model: Model,
   viewInputs: ViewInputs,
-  h: ViewBuilder,
+  h: SliderViewBuilder,
 ): Html => {
   const {
     value,
@@ -741,7 +744,7 @@ const renderView = (
 }
 
 /** Renders an accessible Slider with the supplied value and view callback. */
-export const view = Slider.view.withInputs<ViewInputs>(renderView)
+export const view = SliderComposition.view.withInputs<ViewInputs>(renderView)
 
 const defineSubscriptionsForRoot = <Id extends string>(
   defineSubscriptions: Block.DefineSubscriptions<Id, Model, Message>,
@@ -838,10 +841,6 @@ const EffectsLayer = Layer.mergeAll(
 )
 
 /** Complete Slider Block definition. */
-const SliderComposition = Slider.toComposition()
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof SliderComposition>
-
 export const block = SliderComposition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),
   update,
@@ -860,8 +859,9 @@ export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
     Message,
     OutMessage,
   })
+  const SliderComposition = Slider.toComposition()
   const rootUpdate = Slider.update(update)
-  const rootView = Slider.view.withInputs<ViewInputs>(renderView)
+  const rootView = SliderComposition.view.withInputs<ViewInputs>(renderView)
   const subscriptions = defineSubscriptionsForRoot(
     Slider.subscriptions,
     getTrackRoot,
@@ -870,8 +870,6 @@ export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
     subscriptions.dragPointer.layer,
     subscriptions.dragEscape.layer,
   )
-  const SliderComposition = Slider.toComposition()
-
   return SliderComposition.toBlock({
     init: (config: InitConfig) => ({ model: init(config) }),
     update: rootUpdate,

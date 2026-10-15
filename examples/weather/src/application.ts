@@ -1,10 +1,13 @@
-import { AsyncData } from 'foldkit'
+import { AsyncData, type Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { FetchWeather } from './command'
 import { Application, Message, Model, WeatherAsyncData } from './definition'
 
 export const ApplicationComposition = Application.toComposition()
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>
 
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {

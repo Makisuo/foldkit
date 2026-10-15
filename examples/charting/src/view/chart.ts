@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import type { ViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../application'
 import type { Telemetry } from '../domain'
 import { selectedDatumLabel } from '../echarts'
 import type { Model } from '../model'
@@ -11,7 +11,7 @@ import { formatInteger } from './format'
 export const chartPanelView = (
   model: Model,
   telemetry: Telemetry,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.section(
     [
@@ -32,7 +32,7 @@ export const chartPanelView = (
 export const chartFooterView = (
   model: Model,
   telemetry: Telemetry,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.div(
     [
@@ -67,7 +67,10 @@ export const chartFooterLabel = (model: Model, telemetry: Telemetry): string =>
       )} open pull requests`,
   )
 
-export const chartStatusView = (model: Model, h: ViewBuilder): Html =>
+export const chartStatusView = (
+  model: Model,
+  h: ApplicationViewBuilder,
+): Html =>
   Option.match(model.maybeChartError, {
     onNone: () =>
       h.div([h.Class('text-xs font-medium text-emerald-700')], ['Chart ready']),

@@ -6,7 +6,7 @@ import { Button, Listbox, RadioGroup, Switch } from '@foldkit/ui'
 import type { AnchorConfig } from '@foldkit/ui/listbox'
 
 import {
-  type ViewBuilder,
+  type ApplicationViewBuilder,
   gridSizeRadioGroup as gridSizeRadioGroupBinding,
   paletteRadioGroup as paletteRadioGroupBinding,
   themeListbox as themeListboxBinding,
@@ -36,7 +36,7 @@ export const THEME_LISTBOX_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-const sectionLabel = (text: string, h: ViewBuilder): Html =>
+const sectionLabel = (text: string, h: ApplicationViewBuilder): Html =>
   h.div(
     [
       h.Class(
@@ -46,7 +46,7 @@ const sectionLabel = (text: string, h: ViewBuilder): Html =>
     [text],
   )
 
-const trashIcon = (className: string, h: ViewBuilder): Html =>
+const trashIcon = (className: string, h: ApplicationViewBuilder): Html =>
   h.svg(
     [
       h.AriaHidden(true),
@@ -68,7 +68,7 @@ const trashIcon = (className: string, h: ViewBuilder): Html =>
     ],
   )
 
-const chevronDownIcon = (className: string, h: ViewBuilder): Html =>
+const chevronDownIcon = (className: string, h: ApplicationViewBuilder): Html =>
   h.svg(
     [
       h.AriaHidden(true),
@@ -100,7 +100,7 @@ export const toolPanelView = (
   toolRadioGroup: typeof RadioGroup.Model.Type,
   gridSizeRadioGroup: typeof RadioGroup.Model.Type,
   paletteRadioGroup: typeof RadioGroup.Model.Type,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.div(
     [h.Class('w-full md:w-44 flex flex-col gap-5 flex-shrink-0')],
@@ -123,7 +123,7 @@ export const toolPanelView = (
 const toolSectionView = (
   selectedTool: Tool,
   toolRadioGroup: typeof RadioGroup.Model.Type,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.div(
     [],
@@ -172,7 +172,10 @@ const toolSectionView = (
     ],
   )
 
-const mirrorSectionView = (mirrorMode: MirrorMode, h: ViewBuilder): Html => {
+const mirrorSectionView = (
+  mirrorMode: MirrorMode,
+  h: ApplicationViewBuilder,
+): Html => {
   const isMirrorHorizontal =
     mirrorMode === 'Horizontal' || mirrorMode === 'Both'
   const isMirrorVertical = mirrorMode === 'Vertical' || mirrorMode === 'Both'
@@ -258,7 +261,7 @@ const mirrorSectionView = (mirrorMode: MirrorMode, h: ViewBuilder): Html => {
 const sizeSectionView = (
   gridSize: number,
   gridSizeRadioGroup: typeof RadioGroup.Model.Type,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.div(
     [],
@@ -307,7 +310,7 @@ const paletteSectionView = (
   paletteThemeIndex: number,
   themeListbox: typeof Listbox.Model.Type,
   paletteRadioGroup: typeof RadioGroup.Model.Type,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html => {
   const paletteIndexStrings = theme.colors.map((_, index) => index.toString())
   const selectedHexColor = theme.colors[selectedColorIndex] ?? EMPTY_COLOR
@@ -367,7 +370,7 @@ const themeListboxView = (
   themeListbox: typeof Listbox.Model.Type,
   theme: PaletteTheme,
   paletteThemeIndex: number,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.block(
     themeListboxBinding.embedView({
@@ -419,7 +422,10 @@ const themeListboxView = (
     }),
   )
 
-const clearCanvasView = (isCanvasEmpty: boolean, h: ViewBuilder): Html =>
+const clearCanvasView = (
+  isCanvasEmpty: boolean,
+  h: ApplicationViewBuilder,
+): Html =>
   Button.view(
     {
       onClick: Message.ClickedClear(),

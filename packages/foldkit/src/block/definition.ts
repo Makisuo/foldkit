@@ -960,14 +960,14 @@ type ImplementationHostHandlers<Implementation> =
     : readonly []
 
 /**
- * The channels supplied to a Block definition's `toBlock` method. The
+ * The channels supplied to a Block Composition's `toBlock` method. The
  * block retains the exact types of the supplied functions,
  * registrations, and local Layer recipe. Check an implementation with
  * `satisfies Implementation<Model, Message, OutMessage>` to retain its inferred
  * service requirements; annotating it with this broad type erases them.
  */
 export type Implementation<Model, Message, OutMessage = never> = Readonly<{
-  /** Default view authored by the same Definition. Omit it for a headless Block
+  /** Default view authored by the same Composition. Omit it for a headless Block
    * or when every parent supplies an alternate authored view. */
   view?: AnyAuthoredView
   /** Creates the initial child Model and optional Commands. Block init cannot
@@ -1208,7 +1208,7 @@ type ViewProperty<View, Key extends PropertyKey> = Key extends keyof View
   ? View[Key]
   : never
 
-/** The authored-view contract accepted by this Definition's completion
+/** The authored-view contract accepted by a Composition's completion
  * overloads. */
 export type DefinitionAuthoredView<
   OwnerValue,
@@ -1432,6 +1432,8 @@ interface BlockOperations<
     EffectsLayer: AnyLayer
   }>,
 > {
+  /** Authors an alternate embedded view against this completed Block's fixed
+   * child and Mount graph. Parents can select it through a Binding. */
   readonly view: DefineView<
     OwnerValue,
     ModelSchema['Type'],
@@ -1649,7 +1651,7 @@ export type CompletedBlock<
 >
 
 /**
- * The completed Block produced by an authored definition's `toBlock` method.
+ * The completed Block produced by a Composition's `toBlock` method.
  * This compact alias lets published component packages name an inferred
  * block without expanding its full child graph into their declarations.
  */
@@ -2557,12 +2559,14 @@ export interface ToBlock<
 }
 
 /**
- * The builder supplied by a Block or Application Composition. Use this type
+ * The builder supplied by a Block or Application Composition. Declare a
+ * feature-local alias immediately after its Composition and name it for that
+ * owner, such as `CounterViewBuilder` for `CounterComposition`. Use this type
  * when an extracted view helper renders that Composition's registered children
  * or local Mounts.
  */
-export type HtmlBuilderOf<DefinitionValue> =
-  DefinitionValue extends Readonly<{
+export type HtmlBuilderOf<CompositionValue> =
+  CompositionValue extends Readonly<{
     Message: Readonly<{ Type: infer Message }>
     [LocalMountsTypeId]: infer Mounts extends
       ReadonlyArray<Mount.LayeredMountDefinition>
@@ -2598,14 +2602,6 @@ export type Definition<
   [LocalMountsTypeId]: Mounts
   /** Child Bindings registered in this Definition's composition graph. */
   children: Children
-  /** Authors a view against this Definition's Model, Message, local Mounts, and
-   * registered child Bindings. */
-  view: DefineView<
-    OwnerValue,
-    ModelSchema['Type'],
-    MessageSchema['Type'],
-    DefinitionViewRequirements<Mounts, Children>
-  >
   /** Authors the Block's primary update function with exact Command service and
    * OutMessage inference. */
   update: DefineUpdate<
@@ -2682,21 +2678,27 @@ export type Composition<
   | 'step'
   | 'subscriptions'
   | 'managedResources'
-  | 'view'
   | 'bindChild'
-> &
-  Readonly<{
-    /** Completes this Composition with its implementation channels and returns
-     * a passive Block. */
-    toBlock: ToBlock<
-      OwnerValue,
-      ModelSchema,
-      MessageSchema,
-      OutMessageSchema,
-      Mounts,
-      Children
-    >
-  }>
+> & {
+  /** Authors a view against this Composition's Model, Message, local Mounts,
+   * and registered child Bindings. */
+  readonly view: DefineView<
+    OwnerValue,
+    ModelSchema['Type'],
+    MessageSchema['Type'],
+    DefinitionViewRequirements<Mounts, Children>
+  >
+  /** Completes this Composition with its implementation channels and returns
+   * a passive Block. */
+  readonly toBlock: ToBlock<
+    OwnerValue,
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    Mounts,
+    Children
+  >
+}
 
 /** Registers the child and Mount graph after the Block's typed operations are
  * authored. Both fields default to empty collections. */
@@ -3299,7 +3301,6 @@ export const makeBaseDefinition = (
     step: base.step,
     subscriptions: base.subscriptions,
     managedResources: base.managedResources,
-    view: base.view,
     bindChild: base.bindChild,
     toComposition,
   }

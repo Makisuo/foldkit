@@ -5,7 +5,7 @@ import type { AnchorConfig } from '@foldkit/ui/popover'
 
 import { Icon } from '../../../icon'
 import { datePickerBasicDemo } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import type { Model } from '../model'
 import { calendarView } from './calendarView'
 
@@ -39,7 +39,7 @@ const formatTriggerLabel = (
 ) =>
   `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`
 
-export const basicDemo = (model: Model, h: ViewBuilder) => {
+export const basicDemo = (model: Model, h: UiViewBuilder) => {
   const triggerContent = (
     maybeDate: Option.Option<
       Readonly<{ year: number; month: number; day: number }>

@@ -2,7 +2,7 @@ import { Tooltip } from '@foldkit/ui'
 import { type AnchorConfig, triggerId } from '@foldkit/ui/tooltip'
 
 import { tooltipDemo } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 
 // DEMO CONTENT
 
@@ -21,7 +21,7 @@ const TOOLTIP_ANCHOR: AnchorConfig = {
 
 export const demo = (
   tooltipModel: typeof Tooltip.Model.Type,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ) => {
   return [
     h.div(

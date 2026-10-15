@@ -136,6 +136,8 @@ const RadioGroup = SharedRadioGroup.define({
   OutMessage,
 })
 
+const RadioGroupComposition = RadioGroup.toComposition()
+
 /** Processes a RadioGroup Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. `Selected` fires when an option is
  *  committed via click or keyboard; the parent stores the new value and passes
@@ -226,7 +228,7 @@ export type ViewInputs<Value extends string = string> = Readonly<{
   name?: string
 }>
 
-const internalView = RadioGroup.view.withInputs<ViewInputs>(
+const internalView = RadioGroupComposition.view.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const { id, maybeFocusedIndex } = model
     const {
@@ -454,8 +456,6 @@ const internalView = RadioGroup.view.withInputs<ViewInputs>(
 )
 
 /** Complete RadioGroup Block definition. */
-const RadioGroupComposition = RadioGroup.toComposition()
-
 export const block = RadioGroupComposition.toBlock({
   init: (config: InitConfig) => ({ model: init(config) }),
   update,
@@ -482,6 +482,7 @@ const makeBlock = <Value extends string>() => {
     Message,
     OutMessage: RefinedOutMessage,
   })
+  const RadioGroupComposition = RadioGroup.toComposition()
   const refinedUpdate = RadioGroup.update((model, message) =>
     castReturn(update(model, message)),
   )
@@ -492,10 +493,9 @@ const makeBlock = <Value extends string>() => {
       viewInputs: ViewInputs<Value>,
       h: Parameters<typeof internalView>[2],
     ) => Html
-  const view = RadioGroup.view.withInputs<ViewInputs<Value>>(
+  const view = RadioGroupComposition.view.withInputs<ViewInputs<Value>>(
     (model, viewInputs, h) => refinedView(model, viewInputs, h),
   )
-  const RadioGroupComposition = RadioGroup.toComposition()
 
   return RadioGroupComposition.toBlock({
     init: (config: InitConfig) => ({ model: init(config) }),

@@ -1,12 +1,12 @@
-import { Application } from './rootApplication'
+import { ApplicationComposition } from './rootApplication'
 
 type Parameters<Value> = Value
 
 type PretendRootHtmlBuilder = Parameters<
-  Parameters<typeof Application.view>[0]
+  Parameters<typeof ApplicationComposition.view>[0]
 >[1]
 
 export const pretendRootView = (h: PretendRootHtmlBuilder) =>
   h.button([
-    h.OnClick(Application.Message.ClickedFromShadowedParameters()),
+    h.OnClick(ApplicationComposition.Message.ClickedFromShadowedParameters()),
   ])

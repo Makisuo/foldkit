@@ -30,6 +30,8 @@ const HoverIntent = Block.define('HoverIntent', {
   OutMessage,
 })
 
+const HoverIntentComposition = HoverIntent.toComposition()
+
 const DEFAULT_OPEN_DELAY = Duration.millis(200)
 const DEFAULT_CLOSE_DELAY = Duration.millis(300)
 
@@ -304,7 +306,7 @@ export type ViewInputs = Readonly<{
 }>
 
 /** Renders headless HoverIntent event bundles. It owns no markup, ARIA semantics, positioning, or styling. */
-export const view = HoverIntent.view.withInputs<ViewInputs>(
+export const view = HoverIntentComposition.view.withInputs<ViewInputs>(
   (model, { focusTriggerSelector, toView }, h) => {
     const toPressedEscape =
       (source: 'Trigger' | 'Panel') =>
@@ -352,8 +354,6 @@ export const view = HoverIntent.view.withInputs<ViewInputs>(
 )
 
 /** Complete HoverIntent Block definition for connecting to a parent. */
-const HoverIntentComposition = HoverIntent.toComposition()
-
 export const block = HoverIntentComposition.toBlock({
   init: (config?: InitConfig) => ({ model: init(config) }),
   update,

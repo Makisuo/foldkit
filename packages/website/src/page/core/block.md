@@ -6,14 +6,13 @@ Build applications from Blocks. Fold their updates into a single application Mod
 
 A Block packages a composable part of a Foldkit application: its Model, Messages, init and update, optional view, lifecycle effects, handler recipes, and public operations. Its parent binds it to the parent Model, drives its public API, and handles its OutMessages.
 
-The composition flow has six phases:
+The Block itself has three stages:
 
-1. Define the Block's contracts with `Block.define`.
-2. Author its behavior through the returned Definition.
-3. Create a Composition with its child Bindings and Mounts.
-4. Produce its completed Block with `toBlock`.
-5. Bind the completed Block to its parent.
-6. Complete the root Application as a runtime input.
+1. Create a Definition for the Block's contracts and behavior.
+2. Create a named Composition for its child and Mount graph and primary view.
+3. Complete that same Composition with `toBlock`.
+
+After completion, a parent can bind the Block. The root follows the same Definition and Composition stages, then completes its Composition as a passive runtime input.
 
 Definition, Composition, Block production, Binding, and Application completion are passive configuration. The Runtime constructs Layers and performs effects only after `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` starts that input.
 
@@ -41,15 +40,15 @@ Declare the Schemas, then call `Block.define('Settings', { Model, Message, OutMe
 
 ::Snippet{name="blockDefinition" label="Defining a typed Block"}
 
-The returned value supplies `command`, `mount`, `mountStream`, `resource`, `update`, `step`, `view`, `subscriptions`, and `managedResources`. It provides the owning identity and precise contextual types, while retaining inferred Command and Service requirements. Keep this value in one module and import it; creating another definition with the same readable ID does not reuse the original definition.
+The returned Definition supplies `command`, `mount`, `mountStream`, `resource`, `update`, `step`, `subscriptions`, and `managedResources`. It provides the owning identity and precise contextual types, while retaining inferred Command and Service requirements. Keep this value in one module and import it; creating another definition with the same readable ID does not reuse the original definition.
 
 Commands and lifecycle handlers declare local names such as `SaveTheme`. Foldkit derives the full runtime path from composition. Settings connected under Profile becomes `Profile/Settings/SaveTheme`; the feature remains reusable under another parent.
 
 ### Define the Composition
 
-Call `toComposition({ children, mounts })` after defining the child Bindings and parent policies. It checks that graph and supplies the view capabilities available while authoring the view and producing the Block. Both fields are optional and default to empty collections. The returned Composition preserves the established primitive and typed helpers.
+Call `toComposition({ children, mounts })` after defining the child Bindings and parent policies. Name the returned value `<Feature>Composition`. It fixes that graph and supplies the capabilities available while authoring the primary view and producing the Block. Both fields are optional and default to empty collections.
 
-Chain `Block.define(...).toComposition(...)` when the child policies do not depend on earlier parent operations. Otherwise, keep `Settings`, author the parent Steps and Bindings, then create `SettingsComposition`. This ordering breaks the inference cycle between a parent Step, the child policy that uses it, and the graph containing that policy. Nesting depth does not determine whether separate statements are needed.
+Keep the Definition and Composition as separate named values. Author behavior such as update and public Steps through `Settings`, define its child Bindings and policies, then create `SettingsComposition`. Author the primary view through `SettingsComposition.view` or `view.withInputs`. This ordering also breaks the inference cycle between a parent Step, the child policy that uses it, and the graph containing that policy.
 
 Features without children or Mounts still call `toComposition()`. Composition configures capabilities; it does not build Layers or start child behavior.
 
@@ -78,9 +77,9 @@ settings/
 └── index.ts         # explicit public barrel
 ```
 
-Keep small features together. In a split feature, `composition.ts` owns child Bindings, the complete `children` and `mounts` lists passed to `toComposition`, the feature's Composition, and its optional `ViewBuilder` alias. A Mount-only feature uses the same file. A graphless feature can keep the empty Composition beside completion in `block.ts`. Extract a substantial child policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. Straightforward Bindings stay beside `toComposition`. Extract `layer.ts` for a substantial or reused local handler bundle.
+Keep small features together. In a split feature with children or Mounts, `composition.ts` owns child Bindings, the complete `children` and `mounts` lists passed to `toComposition`, the feature's Composition, and its optional owner-specific ViewBuilder alias such as `SettingsViewBuilder`. A Mount-only feature uses the same file. A split graphless feature exports its named empty Composition beside the Definition in `definition.ts`; `view.ts` and `block.ts` import that same value. A compact graphless feature keeps the named Composition beside its cohesive implementation. Extract a substantial child policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. Straightforward Bindings stay beside `toComposition`. Extract `layer.ts` for a substantial or reused local handler bundle.
 
-Keep `definition.ts` focused on early contracts needed by implementation files. Substantial behavior belongs in `init.ts`, `update.ts`, or a folder-named implementation file such as `workHistory/workHistory.ts`. Views import their Composition and Bindings from `composition.ts`; final `block.ts` imports Composition and the implementation pieces. Composition must not import the primary view, update matcher, or completed Block. Put shared Mount definitions in `mount.ts` so Composition and view can import them without a cycle. Root `application.ts` assembles its complete graph and root-local handlers; `entry.ts` completes and runs it.
+Keep `definition.ts` focused on early contracts needed by implementation files, plus the empty Composition when a split feature is graphless. Substantial behavior belongs in `init.ts`, `update.ts`, or a folder-named implementation file such as `workHistory/workHistory.ts`. Views import their Composition and Bindings from the assembly module; final `block.ts` imports that same Composition and the implementation pieces. Composition must not import the primary view, update matcher, or completed Block. Put shared Mount definitions in `mount.ts` so Composition and view can import them without a cycle. Root `application.ts` assembles its complete graph and root-local handlers; `entry.ts` completes and runs it.
 
 A split root may need an early `definition.ts` so its Commands and child Bindings can import `Application` without loading the Composition that depends on them. Root `application.ts` imports and re-exports that contract and assembles `ApplicationComposition`. See [Project Organization](/patterns/project-organization) for the complete file and barrel conventions.
 
@@ -267,7 +266,7 @@ Use reflection only for silent synchronization. If the transition should emit Co
 
 ## Complete the Application
 
-Import `defineApplication` from `foldkit` and export the early typed value as `Application`. Its owned methods author root Commands, updates, Steps, views, and lifecycle declarations. Create `ApplicationComposition` with the root child Bindings and Mounts, then call its `toApplication` or `toElement` in `entry.ts` with explicitly listed implementation pieces and browser inputs. A graphless root still calls `Application.toComposition()`. An Application cannot be bound as a child:
+Import `defineApplication` from `foldkit` and export the early typed value as `Application`. Its owned methods author root Commands, updates, Steps, and lifecycle declarations. Create `ApplicationComposition` with the root child Bindings and Mounts, author the primary view through that Composition, then call its `toApplication` or `toElement` in `entry.ts` with explicitly listed implementation pieces and browser inputs. A graphless root still calls `Application.toComposition()`. An Application cannot be bound as a child:
 
 Root `services.ts` supplies the shared store required by the child handler:
 
@@ -346,7 +345,7 @@ Name wrapper Messages `Got<Child>Message`. DevTools uses that convention to grou
 
 ### Block.define
 
-`Block.define(id, { Model, Message, OutMessage? })` creates a local identity and typed authoring methods. `id` is a nonempty segment without `/` or `::`. Name the returned value `<Id>`, such as `Settings` for the ID `Settings`. `toComposition({ mounts?, children? })` adds graph-aware view and completion capabilities while retaining the established helpers.
+`Block.define(id, { Model, Message, OutMessage? })` creates a local identity and typed behavior authoring methods. `id` is a nonempty segment without `/` or `::`. Name the returned value `<Id>`, such as `Settings` for the ID `Settings`. Name the result of `toComposition({ mounts?, children? })` `<Id>Composition`; it adds the primary view and completion capabilities for that fixed graph.
 
 For shared definitions specialized by a generic factory, `Block.define(id)` supplies the primitive methods and `.define(contracts)` establishes each later typed contract. Both forms are passive configuration.
 

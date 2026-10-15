@@ -4,7 +4,7 @@ import type { Html } from 'foldkit/html'
 import { Switch } from '@foldkit/ui'
 
 import { UiComposition } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 
 const SWITCH_DEMO_ID = 'switch-demo'
@@ -19,7 +19,7 @@ const labelClassName =
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-const knob = (isChecked: boolean, h: ViewBuilder) => {
+const knob = (isChecked: boolean, h: UiViewBuilder) => {
   return h.span([
     h.Class(
       clsx(

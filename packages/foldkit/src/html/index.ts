@@ -5742,8 +5742,8 @@ type CheckedBlockConfig<
  * A builder cannot be constructed by application code. The runtime supplies
  * it to each view alongside the model, typed by the Message universe of the
  * frame that view renders in: the app's Message for the root view, the
- * Block's own Message inside a view authored through its definition's
- * `defineView`. Used in the frame that supplied it, a handler built with it
+ * Block's own Message inside a view authored through its Composition's
+ * `view` method. Used in the frame that supplied it, a handler built with it
  * carries exactly the Messages that frame's dispatcher can route, so a Message
  * from another universe (the classic case: a shared helper building an
  * app-level Message inside a Block) is a compile error at the handler call

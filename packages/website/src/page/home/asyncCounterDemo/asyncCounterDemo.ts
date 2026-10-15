@@ -24,8 +24,9 @@ const clampResetSeconds = (seconds: number): number =>
   })
 
 export const AsyncCounterDemoComposition = AsyncCounterDemo.toComposition()
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof AsyncCounterDemoComposition>
+type AsyncCounterDemoViewBuilder = Block.HtmlBuilderOf<
+  typeof AsyncCounterDemoComposition
+>
 
 export const init = () => ({
   model: Model.make({
@@ -287,7 +288,7 @@ const phaseColorClass = (phase: AnimationPhase): string =>
     Match.exhaustive,
   )
 
-export const view = AsyncCounterDemo.view((model, h) =>
+export const view = AsyncCounterDemoComposition.view((model, h) =>
   DemoView.shell(
     DemoView.codePanel(
       'demo-code-panel',
@@ -299,7 +300,7 @@ export const view = AsyncCounterDemo.view((model, h) =>
   ),
 )
 
-const appPanel = (model: Model, h: ViewBuilder): Html =>
+const appPanel = (model: Model, h: AsyncCounterDemoViewBuilder): Html =>
   h.div(
     [h.Class('relative')],
     [
@@ -352,7 +353,7 @@ const stepperButton = (
   label: string,
   symbol: string,
   delta: number,
-  h: ViewBuilder,
+  h: AsyncCounterDemoViewBuilder,
 ): Html => {
   const nextSeconds = clampResetSeconds(model.resetDuration + delta)
   const isDisabled = model.isResetting || nextSeconds === model.resetDuration
@@ -375,7 +376,10 @@ const stepperButton = (
   )
 }
 
-const viewAndControlsView = (model: Model, h: ViewBuilder): Html =>
+const viewAndControlsView = (
+  model: Model,
+  h: AsyncCounterDemoViewBuilder,
+): Html =>
   h.div(
     [h.Class('flex flex-col gap-3')],
     [

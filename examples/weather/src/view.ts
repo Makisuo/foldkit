@@ -1,13 +1,13 @@
 import { AsyncData } from 'foldkit'
-import type { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 
 import { Button, Input } from '@foldkit/ui'
 
-import { ApplicationComposition } from './application'
+import {
+  ApplicationComposition,
+  type ApplicationViewBuilder,
+} from './application'
 import { Message, type WeatherData } from './definition'
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 export const view = ApplicationComposition.view((model, h) => ({
   title: 'Weather',
@@ -92,7 +92,7 @@ export const view = ApplicationComposition.view((model, h) => ({
   ),
 }))
 
-const weatherView = (weather: WeatherData, h: ViewBuilder): Html =>
+const weatherView = (weather: WeatherData, h: ApplicationViewBuilder): Html =>
   h.article(
     [h.Class('bg-white rounded-xl shadow-lg p-8 w-full')],
     [

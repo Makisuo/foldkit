@@ -1,4 +1,5 @@
 import { Effect, Layer, Schema } from 'effect'
+import type { Block } from 'foldkit'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
@@ -15,6 +16,9 @@ export const counter = Application.bindChild(Counter.block, {
 export const ApplicationComposition = Application.toComposition({
   children: [counter],
 })
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>
 
 export const init = (url: Url) => ({
   model: {

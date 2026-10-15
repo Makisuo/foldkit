@@ -11,7 +11,7 @@ import type {
 
 import * as Icon from '../../icon'
 import { UiComposition, calendarBasicDemo } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 
 const containerClassName =
   'inline-flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm select-none min-w-[304px] min-h-[324px]'
@@ -49,20 +49,20 @@ const monthYearButtonClassName =
 const navButton = (
   attributes: ReadonlyArray<ChildAttribute>,
   icon: Html,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html => h.button([...attributes, h.Class(navButtonClassName)], [icon])
 
 const headingButton = (
   heading: DaysModeAttributes['heading'],
   attributes: ReadonlyArray<ChildAttribute>,
-  h: ViewBuilder,
+  h: UiViewBuilder,
 ): Html =>
   h.button(
     [h.Id(heading.id), ...attributes, h.Class(headingButtonClassName)],
     [heading.text, Icon.chevronDown('w-3 h-3')],
   )
 
-const weekRow = (week: Week, h: ViewBuilder) =>
+const weekRow = (week: Week, h: UiViewBuilder) =>
   h.div(
     [...week.attributes, h.Class(rowClassName)],
     week.cells.map(cell =>
@@ -80,7 +80,7 @@ const weekRow = (week: Week, h: ViewBuilder) =>
 
 // MODES
 
-const daysView = (days: DaysModeAttributes, h: ViewBuilder) =>
+const daysView = (days: DaysModeAttributes, h: UiViewBuilder) =>
   h.div(
     [...days.root, h.Class(containerClassName)],
     [
@@ -110,7 +110,7 @@ const daysView = (days: DaysModeAttributes, h: ViewBuilder) =>
     ],
   )
 
-const monthsView = (months: MonthsModeAttributes, h: ViewBuilder) =>
+const monthsView = (months: MonthsModeAttributes, h: UiViewBuilder) =>
   h.div(
     [...months.root, h.Class(containerClassName)],
     [
@@ -135,7 +135,7 @@ const monthsView = (months: MonthsModeAttributes, h: ViewBuilder) =>
     ],
   )
 
-const yearsView = (years: YearsModeAttributes, h: ViewBuilder) =>
+const yearsView = (years: YearsModeAttributes, h: UiViewBuilder) =>
   h.div(
     [...years.root, h.Class(containerClassName)],
     [

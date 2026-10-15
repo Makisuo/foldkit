@@ -37,8 +37,7 @@ export type Message = typeof Message.Type
 export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
-
-type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
 
 export const init = (url: Url) => ({
   model: Model.make({ route: urlToApplicationRoute(url), filterText: '' }),
@@ -143,7 +142,7 @@ const filteredArtworks = (filterText: string): ReadonlyArray<Artwork> => {
   }
 }
 
-const artworkCardView = (artwork: Artwork, h: ViewBuilder): Html =>
+const artworkCardView = (artwork: Artwork, h: ApplicationViewBuilder): Html =>
   h.keyed('a')(
     `artwork-${artwork.id}`,
     [h.Href(artworkRouter({ artworkId: artwork.id })), h.Class('group block')],
@@ -159,19 +158,19 @@ const artworkCardView = (artwork: Artwork, h: ViewBuilder): Html =>
     ],
   )
 
-const emptyGalleryView = (h: ViewBuilder): Html =>
+const emptyGalleryView = (h: ApplicationViewBuilder): Html =>
   h.p([h.Class('text-gray-500')], ['No artworks match the filter.'])
 
 const artworkGridView = (
   matchedArtworks: ReadonlyArray<Artwork>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.div(
     [h.Class('grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4')],
     Array.map(matchedArtworks, artwork => artworkCardView(artwork, h)),
   )
 
-const galleryView = (filterText: string, h: ViewBuilder): Html =>
+const galleryView = (filterText: string, h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('mx-auto max-w-5xl px-6')],
     [
@@ -191,7 +190,10 @@ const galleryView = (filterText: string, h: ViewBuilder): Html =>
     ],
   )
 
-const missingArtworkView = (artworkId: number, h: ViewBuilder): Html =>
+const missingArtworkView = (
+  artworkId: number,
+  h: ApplicationViewBuilder,
+): Html =>
   h.div(
     [],
     [
@@ -218,7 +220,7 @@ const missingArtworkView = (artworkId: number, h: ViewBuilder): Html =>
 // square growing into a wider box visibly stretches mid-flight. Matching the
 // ratio makes the morph a pure scale and translate, which is the one case the
 // browser renders cleanly.
-const foundArtworkView = (artwork: Artwork, h: ViewBuilder): Html =>
+const foundArtworkView = (artwork: Artwork, h: ApplicationViewBuilder): Html =>
   h.div(
     [],
     [
@@ -261,7 +263,10 @@ const foundArtworkView = (artwork: Artwork, h: ViewBuilder): Html =>
     ],
   )
 
-const artworkDetailView = (artworkId: number, h: ViewBuilder): Html =>
+const artworkDetailView = (
+  artworkId: number,
+  h: ApplicationViewBuilder,
+): Html =>
   h.div(
     [h.Class('mx-auto max-w-5xl px-6')],
     [
@@ -272,7 +277,7 @@ const artworkDetailView = (artworkId: number, h: ViewBuilder): Html =>
     ],
   )
 
-const notFoundView = (path: string, h: ViewBuilder): Html =>
+const notFoundView = (path: string, h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('mx-auto max-w-3xl px-6')],
     [

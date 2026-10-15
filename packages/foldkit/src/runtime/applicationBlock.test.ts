@@ -36,12 +36,13 @@ const ReadValue = Child.command('ReadValue', {
   },
 })
 const child = Child.define({ Model: ChildModel, Message: ChildMessage })
-const childBlock = child.toComposition().toBlock({
+const childComposition = child.toComposition()
+const childBlock = childComposition.toBlock({
   init: (label: string) => ({ model: { label }, commands: [ReadValue()] }),
   update: child.update((model, { value }) => ({
     model: modifyFields(model, { label: () => value }),
   })),
-  view: child.view((model, h) => h.span([], [model.label])),
+  view: childComposition.view((model, h) => h.span([], [model.label])),
   EffectsLayer: ReadValue.layer,
 })
 
@@ -105,12 +106,13 @@ const hostChild = HostChild.define({
   Model: HostChildModel,
   Message: HostChildMessage,
 })
-const unresolvedHostChild = hostChild.toComposition().toBlock({
+const hostChildComposition = hostChild.toComposition()
+const unresolvedHostChild = hostChildComposition.toBlock({
   init: () => ({ model: { value: '' }, commands: [ReadHostValue()] }),
   update: hostChild.update((model, { value }) => ({
     model: modifyFields(model, { value: () => value }),
   })),
-  view: hostChild.view((model, h) => h.span([], [model.value])),
+  view: hostChildComposition.view((model, h) => h.span([], [model.value])),
   EffectsLayer: Layer.empty,
   hostHandlers: [ReadHostValue],
 })
@@ -289,7 +291,8 @@ describe('registered Application composition completion', () => {
         },
       }),
     }))
-    const leafBlock = leaf.toComposition().toBlock({
+    const leafComposition = leaf.toComposition()
+    const leafBlock = leafComposition.toBlock({
       init: () => ({ model: { value: 'pending' } }),
       update: leaf.update((model, message) =>
         LeafMessage.match(message, {
@@ -303,7 +306,7 @@ describe('registered Application composition completion', () => {
           FailedAcquireValue: () => ({ model }),
         }),
       ),
-      view: leaf.view((model, h) =>
+      view: leafComposition.view((model, h) =>
         h.div(
           [],
           [
@@ -469,7 +472,8 @@ describe('registered Application composition completion', () => {
       Model: ServiceChildModel,
       Message: ServiceChildMessage,
     })
-    const serviceChildBlock = serviceChild.toComposition().toBlock({
+    const serviceChildComposition = serviceChild.toComposition()
+    const serviceChildBlock = serviceChildComposition.toBlock({
       init: () => ({
         model: { value: 'pending' },
         commands: [ReadSharedValue()],
@@ -477,7 +481,7 @@ describe('registered Application composition completion', () => {
       update: serviceChild.update((model, { value }) => ({
         model: modifyFields(model, { value: () => value }),
       })),
-      view: serviceChild.view((model, h) =>
+      view: serviceChildComposition.view((model, h) =>
         h.span([h.Id('service-child-value')], [model.value]),
       ),
       EffectsLayer: ReadSharedValue.layer,

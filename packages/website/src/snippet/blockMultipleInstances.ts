@@ -19,7 +19,7 @@ const ApplicationComposition = Application.toComposition({
   children: [applicants],
 })
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = Application.update((model, message) =>
   Message.match(message, {
     GotApplicantMessage: ({ applicantId, message }) =>
       applicants.fold(model, applicantId, message),

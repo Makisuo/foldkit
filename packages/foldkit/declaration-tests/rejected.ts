@@ -30,6 +30,10 @@ const InvalidApplication = (() => {
 
   return Application
 })()
+const InvalidApplicationComposition = InvalidApplication.toComposition()
+type InvalidApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof InvalidApplicationComposition
+>
 const invalidApplicationImplementation = {
   init: () => ({
     model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
@@ -37,13 +41,16 @@ const invalidApplicationImplementation = {
   update: InvalidApplication.update(model => ({ model })),
   EffectsLayer: Layer.empty,
 }
-const invalidElementView = InvalidApplication.view((model, h) =>
+const invalidElementView = InvalidApplicationComposition.view((model, h) =>
   h.main([], [globalThis.String(model.child.value)]),
 )
-const invalidDocumentView = InvalidApplication.view((model, h) => ({
+const invalidDocumentView = InvalidApplicationComposition.view((model, h) => ({
   title: 'Invalid application fixture',
   body: h.main([], [globalThis.String(model.child.value)]),
 }))
+
+// @ts-expect-error An Application Definition does not author the primary view.
+InvalidApplication.view
 
 const DeclarationTestsViewHelper = Block.define('DeclarationTestsViewHelper', {
   Model: ParentModel,
@@ -56,17 +63,20 @@ const ObserveViewHelper = DeclarationTestsViewHelper.mount(
   },
 )
 const ViewHelperComposition = DeclarationTestsViewHelper.toComposition()
-type ViewBuilder = Block.HtmlBuilderOf<typeof ViewHelperComposition>
-const viewHelper = (model: ParentModel, h: ViewBuilder) =>
+type ViewHelperViewBuilder = Block.HtmlBuilderOf<typeof ViewHelperComposition>
+const viewHelper = (model: ParentModel, h: ViewHelperViewBuilder) =>
   h.main([], [globalThis.String(model.child.value)])
 
-const viewHelperWithOmittedChild = (model: ParentModel, h: ViewBuilder) =>
+const viewHelperWithOmittedChild = (
+  model: ParentModel,
+  h: ViewHelperViewBuilder,
+) =>
   h.block(
     // @ts-expect-error An extracted view helper cannot use a child absent from its Composition.
     child.embedView({ slotId: 'omitted-child', model: model.child }),
   )
 
-const viewHelperWithOmittedMount = (h: ViewBuilder) =>
+const viewHelperWithOmittedMount = (h: ViewHelperViewBuilder) =>
   h.main([
     // @ts-expect-error An extracted view helper cannot use a Mount absent from its Composition.
     h.OnMount(ObserveViewHelper()),
@@ -76,7 +86,30 @@ const ForeignViewHelperMessage = defineMessageUnion({
   ClickedForeignViewHelper: {},
 })
 
-const viewHelperWithForeignMessage = (h: ViewBuilder) =>
+// @ts-expect-error A Block Definition does not author the primary view.
+DeclarationTestsViewHelper.view
+
+ViewHelperComposition.view((_model, h) =>
+  h.main([
+    // @ts-expect-error A Composition view cannot use an unregistered Mount.
+    h.OnMount(ObserveViewHelper()),
+  ]),
+)
+
+ViewHelperComposition.view((_model, h) =>
+  h.button([
+    // @ts-expect-error A Composition view preserves its exact Message.
+    h.OnClick(ForeignViewHelperMessage.ClickedForeignViewHelper()),
+  ]),
+)
+
+// @ts-expect-error void cannot describe usable per-render ViewInputs.
+ViewHelperComposition.view.withInputs<void>((_model, _inputs, h) => h.empty)
+
+// @ts-expect-error any cannot erase a Composition's ViewInputs contract.
+ViewHelperComposition.view.withInputs<any>((_model, _inputs, h) => h.empty)
+
+const viewHelperWithForeignMessage = (h: ViewHelperViewBuilder) =>
   h.button([
     // @ts-expect-error An extracted view helper accepts only its Composition's Message.
     h.OnClick(ForeignViewHelperMessage.ClickedForeignViewHelper()),
@@ -93,12 +126,21 @@ ViewHelperComposition.toBlock({
   EffectsLayer: Layer.empty,
 })
 
-const InvalidApplicationComposition = InvalidApplication.toComposition()
-type ApplicationViewBuilder = Block.HtmlBuilderOf<
-  typeof InvalidApplicationComposition
->
-const applicationViewHelper = (model: ParentModel, h: ApplicationViewBuilder) =>
-  h.main([], [globalThis.String(model.child.value)])
+const applicationViewHelper = (
+  model: ParentModel,
+  h: InvalidApplicationViewBuilder,
+) => h.main([], [globalThis.String(model.child.value)])
+
+const applicationInputView = InvalidApplicationComposition.view.withInputs<
+  Readonly<{ label: string }>
+>((_model, { label }, h) => h.main([], [label]))
+
+// @ts-expect-error An Application's primary view cannot require parent-supplied inputs.
+InvalidApplicationComposition.toElement({
+  ...invalidApplicationImplementation,
+  container: null,
+  view: applicationInputView,
+})
 
 // @ts-expect-error Application Composition no longer carries a render helper.
 InvalidApplicationComposition.render

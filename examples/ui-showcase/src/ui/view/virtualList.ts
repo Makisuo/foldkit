@@ -6,7 +6,7 @@ import {
   virtualListDemo,
   virtualListVariableDemo,
 } from '../composition'
-import type { ViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 import { type Activity, ROW_COUNT } from '../virtualList'
 
@@ -200,7 +200,7 @@ const variableArtifactClassName =
 
 const subsectionHeadingClassName = 'text-lg font-semibold text-gray-900 mt-2'
 
-const shortRow = (row: Activity, h: ViewBuilder) => {
+const shortRow = (row: Activity, h: UiViewBuilder) => {
   return h.div(
     [h.Class(rowClassName)],
     [
@@ -220,7 +220,7 @@ const shortRow = (row: Activity, h: ViewBuilder) => {
   )
 }
 
-const tallRow = (row: Activity, summary: Summary, h: ViewBuilder): Html => {
+const tallRow = (row: Activity, summary: Summary, h: UiViewBuilder): Html => {
   return h.div(
     [h.Class(variableTallRowClassName)],
     [

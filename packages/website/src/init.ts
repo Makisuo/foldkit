@@ -1,4 +1,5 @@
 import { Option, pipe } from 'effect'
+import { Update } from 'foldkit'
 import { Transition } from 'foldkit/route'
 import { type Url } from 'foldkit/url'
 import { githubStarCount } from 'virtual:landing-data'
@@ -18,7 +19,7 @@ import {
   uiPages,
 } from './application'
 import * as Command from './command'
-import { isTelemetryEnabled } from './deployment'
+import { type Deployment, isTelemetryEnabled } from './deployment'
 import { type Flags } from './flags'
 import { type ResolvedTheme, type ThemePreference } from './message'
 import { Model } from './model'
@@ -31,6 +32,21 @@ import {
 } from './routePolicy'
 import { initialSidebarGroups } from './sidebarStorage'
 
+const browserStartupCommands = (deployment: Deployment) => [
+  Command.LoadBrowserEnvironment(),
+  ...(isTelemetryEnabled(deployment)
+    ? [Command.InjectAnalytics(), Command.InjectSpeedInsights()]
+    : []),
+]
+
+const initialScrollCommands = (url: Url) => [
+  Command.ScrollSidebarActiveLinkIntoView(),
+  ...Option.match(url.hash, {
+    onNone: () => [],
+    onSome: hash => [Command.ScrollToAnchor({ hash })],
+  }),
+]
+
 export const init = (flags: Flags, url: Url) => {
   const initialRoute = urlToApplicationRoute(url)
   const initialTransition = Transition.coldLoad(initialRoute)
@@ -40,12 +56,6 @@ export const init = (flags: Flags, url: Url) => {
     maybeHomeRouteToInitialize(initialTransition),
     Option.map(() => home.init()),
   )
-  const maybeHome = Option.map(maybeHomeInit, homeInit => homeInit.model)
-  const homeCommands = Option.match(maybeHomeInit, {
-    onNone: () => [],
-    onSome: homeInit => homeInit.commands ?? [],
-  })
-
   const searchInit = search.init()
   const exampleDetailInit = exampleDetail.init()
   const uiPagesInit = uiPages.init(flags.today)
@@ -53,14 +63,6 @@ export const init = (flags: Flags, url: Url) => {
     maybePlaygroundRouteToInitialize(initialTransition),
     Option.map(({ exampleSlug }) => playground.init(exampleSlug)),
   )
-  const maybePlayground = Option.map(
-    maybePlaygroundInit,
-    playgroundInit => playgroundInit.model,
-  )
-  const playgroundCommands = Option.match(maybePlaygroundInit, {
-    onNone: () => [],
-    onSome: playgroundInit => playgroundInit.commands ?? [],
-  })
   const snippetCopyInit = snippetCopy.init()
   const snippetDisclosureInit = snippetDisclosure.init()
   const coreBlockPageInit = coreBlockPage.init()
@@ -83,10 +85,13 @@ export const init = (flags: Flags, url: Url) => {
     mobileMenuDialog: mobileMenuDialogInit.model,
     isMobileTableOfContentsOpen: false,
     activeSection: Option.none(),
-    maybeHome,
+    maybeHome: Option.map(maybeHomeInit, homeInit => homeInit.model),
     isNarrowViewport: false,
     maybeIsPlaygroundSupported: Option.none(),
-    playground: maybePlayground,
+    playground: Option.map(
+      maybePlaygroundInit,
+      playgroundInit => playgroundInit.model,
+    ),
     sidebarGroups: initialSidebarGroups(
       Option.none(),
       maybeActiveSectionKeyForRoute(initialRoute),
@@ -103,23 +108,19 @@ export const init = (flags: Flags, url: Url) => {
     search: searchInit.model,
   })
 
-  const apiReferenceBoot = apiReference.boot(flags.maybeApiData)(initialModel)
-
-  const exampleDetailBoot = exampleDetail.boot(
-    maybeInitialExampleSlug,
-    flags.maybeExampleSources,
-  )(apiReferenceBoot.model)
-
-  const analyticsCommands = isTelemetryEnabled(flags.deployment)
-    ? [Command.InjectAnalytics(), Command.InjectSpeedInsights()]
-    : []
+  const initialBoot = Update.combine(initialModel, [
+    apiReference.boot(flags.maybeApiData),
+    exampleDetail.boot(maybeInitialExampleSlug, flags.maybeExampleSources),
+  ])
 
   return {
-    model: exampleDetailBoot.model,
+    model: initialBoot.model,
     commands: [
-      Command.LoadBrowserEnvironment(),
-      ...analyticsCommands,
-      ...homeCommands,
+      ...browserStartupCommands(flags.deployment),
+      ...Option.match(maybeHomeInit, {
+        onNone: () => [],
+        onSome: homeInit => homeInit.commands ?? [],
+      }),
       ...(searchInit.commands ?? []),
       ...(exampleDetailInit.commands ?? []),
       ...(uiPagesInit.commands ?? []),
@@ -128,14 +129,12 @@ export const init = (flags: Flags, url: Url) => {
       ...(apiReferenceInit.commands ?? []),
       ...(mobileMenuDialogInit.commands ?? []),
       ...(themeMenuInit.commands ?? []),
-      ...(apiReferenceBoot.commands ?? []),
-      ...(exampleDetailBoot.commands ?? []),
-      ...playgroundCommands,
-      Command.ScrollSidebarActiveLinkIntoView(),
-      ...Option.match(url.hash, {
+      ...(initialBoot.commands ?? []),
+      ...Option.match(maybePlaygroundInit, {
         onNone: () => [],
-        onSome: hash => [Command.ScrollToAnchor({ hash })],
+        onSome: playgroundInit => playgroundInit.commands ?? [],
       }),
+      ...initialScrollCommands(url),
     ],
   }
 }

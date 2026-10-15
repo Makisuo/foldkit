@@ -39,6 +39,7 @@ const second = MountRegistration.toComposition({ mounts: [ObserveSecond] })
 const both = MountRegistration.toComposition({
   mounts: [ObserveFirst, ObserveSecond],
 })
+const graphless = MountRegistration.toComposition()
 const init = () => ({ model: Model.make({ count: 0 }) })
 const update = MountRegistration.update(model => ({ model }))
 const firstView = first.view((_model, h) => h.div([h.OnMount(ObserveFirst())]))
@@ -137,7 +138,7 @@ describe('captured local Mount registrations', () => {
   })
 
   it('rejects an undeclared Mount in a graphless exported Scene view', () => {
-    const view = MountRegistration.view((_model, h) =>
+    const view = graphless.view((_model, h) =>
       h.div([
         // @ts-expect-error A graphless view has no Mount capabilities.
         h.OnMount(ObserveFirst()),

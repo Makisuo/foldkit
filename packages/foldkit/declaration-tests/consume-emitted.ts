@@ -2,12 +2,16 @@ import { Effect, Layer } from 'effect'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
 import type { Html } from 'foldkit/html'
+import * as Mount from 'foldkit/mount'
 import * as Runtime from 'foldkit/runtime'
 import * as Update from 'foldkit/update'
 
 import {
   ChildBlock,
+  ChildComposition,
+  ChildDefinition,
   ChildEffectsLayer,
+  ChildMessage,
   ChildModel,
   Clock,
   type CompletedChild,
@@ -16,13 +20,17 @@ import {
   Direct,
   DirectModel,
   Measure,
+  ObserveParent,
   Parent,
   ParentComposition,
+  ParentDefinition,
   ParentMessage,
   ParentModel,
   ProvisionDependencyLayer,
   ProvisionExtra,
   Pure,
+  PureApplicationComposition,
+  PureComposition,
   ReadCount,
   ReadDirectValue,
   RefinedChoice,
@@ -36,6 +44,7 @@ import {
   applicationInputViewHelper,
   applicationModelViewHelper,
   ApplicationComposition,
+  ApplicationDefinition,
   makePageProgram,
   makeProgram,
   makeProvisionElement,
@@ -45,6 +54,7 @@ import {
   parentBuilderViewHelper,
   parentInputViewHelper,
   parentModelViewHelper,
+  parentView,
   refreshDirectValue,
   renderPage,
 } from './accepted.js'
@@ -66,6 +76,54 @@ type CommandMessageOfReturn<Value> =
 const childModel = ChildModel.make({ value: 1 })
 const directModel = DirectModel.make({ value: 1 })
 const parentModel = ParentModel.make({ child: childModel })
+
+// @ts-expect-error An emitted Block Definition does not author the primary view.
+ChildDefinition.view
+// @ts-expect-error An emitted graphful Block Definition does not author the primary view.
+ParentDefinition.view
+// @ts-expect-error An emitted Application Definition does not author the primary view.
+ApplicationDefinition.view
+
+const emittedGraphlessBlockView = PureComposition.view((model, h) =>
+  h.div([], [globalThis.String(model.value)]),
+)
+const emittedGraphfulBlockView = ParentComposition.view((model, h) =>
+  h.div(
+    [],
+    [h.block(child.embedView({ slotId: 'emitted', model: model.child }))],
+  ),
+)
+const emittedGraphlessApplicationView = PureApplicationComposition.view(
+  (_model, h) => h.main([]),
+)
+const emittedGraphfulApplicationView = ApplicationComposition.view((model, h) =>
+  h.main(
+    [],
+    [h.block(child.embedView({ slotId: 'emitted-root', model: model.child }))],
+  ),
+)
+
+PureComposition.view((_model, h) =>
+  h.div([
+    // @ts-expect-error Emitted graphless Composition views reject unregistered Mounts.
+    h.OnMount(Measure()),
+  ]),
+)
+
+ParentComposition.view((_model, h) =>
+  h.button([
+    // @ts-expect-error Emitted Composition views preserve the exact Message.
+    h.OnClick(ChildMessage.RequestedRead()),
+  ]),
+)
+
+// @ts-expect-error Emitted Composition views reject unusable ViewInputs.
+ChildComposition.view.withInputs<void>((_model, _inputs, h) => h.empty)
+
+void emittedGraphlessBlockView
+void emittedGraphfulBlockView
+void emittedGraphlessApplicationView
+void emittedGraphfulApplicationView
 
 export const childRefresh = ChildBlock.expose.refresh(childModel)
 export const directRefresh = Direct.expose.refreshDirectValue(directModel)
@@ -207,6 +265,13 @@ type EmittedParentInputViewHelperParametersAreExact = Expect<
     ]
   >
 >
+type EmittedParentViewRequirementsAreExact = Expect<
+  Equal<
+    Block.ViewMountRequirementsOf<typeof parentView>,
+    | Mount.RequirementsOf<typeof ObserveParent>
+    | Block.RequirementsOfBindings<readonly [typeof child]>
+  >
+>
 type EmittedParentArrayViewHelperOutputIsHtmlArray = Expect<
   ReturnType<typeof parentArrayViewHelper> extends ReadonlyArray<Html>
     ? true
@@ -257,6 +322,7 @@ export type EmittedAssertions = [
   EmittedParentModelViewHelperParametersAreExact,
   EmittedParentBuilderViewHelperParametersAreExact,
   EmittedParentInputViewHelperParametersAreExact,
+  EmittedParentViewRequirementsAreExact,
   EmittedParentArrayViewHelperOutputIsHtmlArray,
   EmittedApplicationModelViewHelperParametersAreExact,
   EmittedApplicationBuilderViewHelperParametersAreExact,

@@ -10,16 +10,17 @@ const Model = Schema.Struct({ count: Schema.Number })
 type Model = typeof Model.Type
 const Message = defineMessageUnion({ ClickedIncrement: {} })
 const ConnectionViewsChild = define('ConnectionViewsChild', { Model, Message })
+const ConnectionViewsChildComposition = ConnectionViewsChild.toComposition()
 const ViewInputs = Schema.Struct({ label: Schema.String })
 type ViewInputs = typeof ViewInputs.Type
-const view = ConnectionViewsChild.view.withInputs<ViewInputs>(
+const view = ConnectionViewsChildComposition.view.withInputs<ViewInputs>(
   (model, inputs, h) =>
     h.button(
       [h.OnClick(Message.ClickedIncrement())],
       [inputs.label, globalThis.String(model.count)],
     ),
 )
-const block = ConnectionViewsChild.toComposition().toBlock({
+const block = ConnectionViewsChildComposition.toBlock({
   init: () => ({ model: Model.make({ count: 0 }) }),
   update: ConnectionViewsChild.update(model => ({
     model: modifyFields(model, { count: count => count + 1 }),
@@ -68,7 +69,8 @@ const ConnectionViewsForeign = define('ConnectionViewsForeign', {
   Model,
   Message: ForeignMessage,
 })
-const foreignView = ConnectionViewsForeign.view((model, h) =>
+const ConnectionViewsForeignComposition = ConnectionViewsForeign.toComposition()
+const foreignView = ConnectionViewsForeignComposition.view((model, h) =>
   h.button(
     [h.OnClick(ForeignMessage.ClickedForeignButton())],
     [globalThis.String(model.count)],

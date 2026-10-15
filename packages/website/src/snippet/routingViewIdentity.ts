@@ -1,6 +1,6 @@
-import type { Document, HtmlBuilder } from 'foldkit/html'
+import { ApplicationComposition } from './application'
 
-const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+const view = ApplicationComposition.view((model, h) => {
   const routeContent = ApplicationRoute.match(model.route, {
     Products: () => productsView(model, h),
     Cart: () => cartView(model, h),
@@ -18,4 +18,4 @@ const view = (model: Model, h: HtmlBuilder<Message>): Document => {
       ],
     ),
   }
-}
+})

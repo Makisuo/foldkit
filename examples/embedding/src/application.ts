@@ -22,6 +22,8 @@ export type Message = typeof Message.Type
 
 export const Application = defineApplication({ Model, Message })
 
+export const ApplicationComposition = Application.toComposition()
+
 // PORT
 
 export const ports = {
@@ -96,7 +98,7 @@ export const EffectsLayer = Layer.mergeAll(
   subscriptions.hostStepChanges.layer,
 )
 
-export const view = Application.view((model, h) =>
+export const view = ApplicationComposition.view((model, h) =>
   h.div(
     [
       h.Class(

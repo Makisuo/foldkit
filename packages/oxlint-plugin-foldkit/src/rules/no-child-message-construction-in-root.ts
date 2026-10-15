@@ -10,6 +10,7 @@ import {
 
 import {
   type ImportedPath,
+  type StaticMemberPath,
   indexReferences,
   isCallExpression,
   isIdentifier,
@@ -350,7 +351,11 @@ const importedViewBuilderDefinitionPath = (
 
   return Option.gen(function* () {
     const path = yield* resolveImportedPath(references, typeAnnotation.typeName)
-    if (!Option.contains(Array.last(path.members), 'ViewBuilder')) {
+    if (
+      !Option.exists(Array.last(path.members), name =>
+        name.endsWith('ViewBuilder'),
+      )
+    ) {
       return yield* Option.none()
     }
 
@@ -438,6 +443,57 @@ const definitionOperationName = (
   return undefined
 }
 
+const compositionDefinitionPath = (
+  references: WeakMap<ESTree.Node, Reference>,
+  path: StaticMemberPath,
+  visited: ReadonlySet<Variable> = new Set(),
+): StaticMemberPath => {
+  if (Array.isReadonlyArrayNonEmpty(path.members)) {
+    return path
+  }
+
+  return Option.gen(function* () {
+    const variable = yield* resolvedVariable(references, path.root)
+    if (visited.has(variable) || Array.length(variable.defs) !== 1) {
+      return yield* Option.none()
+    }
+
+    const [definition] = variable.defs
+    if (
+      definition === undefined ||
+      definition.type !== 'Variable' ||
+      !isVariableDeclarator(definition.node) ||
+      !isVariableDeclaration(definition.node.parent) ||
+      definition.node.parent.kind !== 'const'
+    ) {
+      return yield* Option.none()
+    }
+
+    const initializer = yield* Option.fromNullishOr(definition.node.init)
+    const nextVisited = new Set([...visited, variable])
+    if (!isCallExpression(initializer)) {
+      const aliasPath = yield* staticMemberPath(initializer)
+      return compositionDefinitionPath(references, aliasPath, nextVisited)
+    }
+
+    const compositionCall = yield* staticMemberPath(initializer.callee)
+    if (
+      !Option.contains(Array.last(compositionCall.members), 'toComposition')
+    ) {
+      return yield* Option.none()
+    }
+
+    return compositionDefinitionPath(
+      references,
+      {
+        root: compositionCall.root,
+        members: compositionCall.members.slice(0, -1),
+      },
+      nextVisited,
+    )
+  }).pipe(Option.getOrElse(() => path))
+}
+
 const definitionOperation = (
   references: WeakMap<ESTree.Node, Reference>,
   functionNode: ESTree.ArrowFunctionExpression | ESTree.Function,
@@ -462,20 +518,23 @@ const definitionOperation = (
     }
 
     const suffixLength = isViewWithInputs ? 2 : 1
-    const members = calleePath.members.slice(0, -suffixLength)
+    const definitionPath = compositionDefinitionPath(references, {
+      root: calleePath.root,
+      members: calleePath.members.slice(0, -suffixLength),
+    })
     const importedDefinitionPath = Option.map(
-      resolveImportedPath(references, parent.callee),
+      resolveImportedPathThroughConst(references, definitionPath.root),
       path => ({
         source: path.source,
-        members: path.members.slice(0, -suffixLength),
+        members: [...path.members, ...definitionPath.members],
       }),
     )
 
     return {
       importedDefinitionPath: Option.getOrUndefined(importedDefinitionPath),
-      members,
+      members: definitionPath.members,
       operation,
-      root: calleePath.root,
+      root: definitionPath.root,
     }
   })
 }
@@ -511,7 +570,7 @@ const localDefinitionMessagePath = (
       return yield* Option.none()
     }
 
-    const [config] = defineCall.arguments
+    const config = yield* Array.last(defineCall.arguments)
     if (!isObjectExpression(config)) {
       return yield* Option.none()
     }

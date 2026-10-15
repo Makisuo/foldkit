@@ -14,18 +14,20 @@ import {
 } from './plain-view-helper.accepted.js'
 
 const OmittedParentComposition = Parent.toComposition()
-type OmittedViewBuilder = Block.HtmlBuilderOf<typeof OmittedParentComposition>
+type OmittedParentViewBuilder = Block.HtmlBuilderOf<
+  typeof OmittedParentComposition
+>
 
 const helperWithOmittedChild = (
   model: Readonly<{ child: typeof ChildModel.Type }>,
-  h: OmittedViewBuilder,
+  h: OmittedParentViewBuilder,
 ) =>
   h.block(
     // @ts-expect-error The child Binding is absent from this Composition.
     child.embedView({ slotId: 'child', model: model.child }),
   )
 
-const helperWithOmittedMount = (h: OmittedViewBuilder) =>
+const helperWithOmittedMount = (h: OmittedParentViewBuilder) =>
   h.div([
     // @ts-expect-error The Mount is absent from this Composition.
     h.OnMount(ObserveParent()),
@@ -33,7 +35,7 @@ const helperWithOmittedMount = (h: OmittedViewBuilder) =>
 
 const ForeignMessage = Message.defineMessageUnion({ ClickedForeign: {} })
 
-const helperWithForeignMessage = (h: OmittedViewBuilder) =>
+const helperWithForeignMessage = (h: OmittedParentViewBuilder) =>
   h.button([
     // @ts-expect-error Plain helpers accept only the Composition's Message.
     h.OnClick(ForeignMessage.ClickedForeign()),
@@ -62,24 +64,24 @@ const Application = defineApplication({
   Message: ParentMessage,
 })
 const OmittedApplicationComposition = Application.toComposition()
-type ApplicationViewBuilder = Block.HtmlBuilderOf<
+type OmittedApplicationViewBuilder = Block.HtmlBuilderOf<
   typeof OmittedApplicationComposition
 >
 const applicationViewHelper = (
   model: typeof ParentModel.Type,
-  h: ApplicationViewBuilder,
+  h: OmittedApplicationViewBuilder,
 ) => h.main([], [model.child.value])
 
 const applicationHelperWithOmittedChild = (
   model: typeof ParentModel.Type,
-  h: ApplicationViewBuilder,
+  h: OmittedApplicationViewBuilder,
 ) =>
   h.block(
     // @ts-expect-error The child Binding is absent from this Application Composition.
     child.embedView({ slotId: 'child', model: model.child }),
   )
 
-const applicationHelperWithOmittedMount = (h: ApplicationViewBuilder) =>
+const applicationHelperWithOmittedMount = (h: OmittedApplicationViewBuilder) =>
   h.div([
     // @ts-expect-error The Mount is absent from this Application Composition.
     h.OnMount(ObserveParent()),
@@ -100,12 +102,8 @@ OmittedApplicationComposition.toElement({
   view: applicationViewHelper,
 })
 
-type ApplicationRegisteredViewBuilder = Block.HtmlBuilderOf<
-  typeof ApplicationComposition
->
-const applicationHelperWithForeignMessage = (
-  h: ApplicationRegisteredViewBuilder,
-) =>
+type ApplicationViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+const applicationHelperWithForeignMessage = (h: ApplicationViewBuilder) =>
   h.button([
     // @ts-expect-error Application helpers retain the root Message exactly.
     h.OnClick(ForeignMessage.ClickedForeign()),

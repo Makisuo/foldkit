@@ -9,7 +9,7 @@ Replace manual Block wiring and child-owned connection factories with checked De
 
 ## Complete every Block through a Composition
 
-A Definition establishes the Model, Message, and optional OutMessage contracts. A Composition establishes child Bindings and Mount capabilities. `toBlock` brings the implementation together and checks handler completeness.
+A Definition establishes the Model, Message, and optional OutMessage contracts and authors behavior such as update and Steps. A named Composition fixes the child Binding and Mount graph and authors the primary view. `toBlock` uses that same Composition to bring the implementation together and check handler completeness.
 
 Before:
 
@@ -42,13 +42,18 @@ export const Home = Block.define('Home', {
   OutMessage,
 })
 
+export const HomeComposition = Home.toComposition()
+
+// view.ts
+import { HomeComposition } from './definition'
+
+export const view = HomeComposition.view((_model, h) => h.div([]))
+
 // block.ts
-import { Home } from './definition'
+import { HomeComposition } from './definition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
-
-const HomeComposition = Home.toComposition()
 
 export const block = HomeComposition.toBlock({ init, update, view })
 
@@ -63,7 +68,7 @@ export * as Home from './home'
 
 Parents import the Home namespace from the parent barrel and bind `Home.block`.
 
-`children` and `mounts` are independently optional. Use `toComposition()`, `toComposition({ children })`, `toComposition({ mounts })`, or `toComposition({ children, mounts })`. Omitted registrations grant no capabilities. Keep operations required by child policy on the authoring value; the Composition retains the established authoring helpers.
+`children` and `mounts` are independently optional. Use `toComposition()`, `toComposition({ children })`, `toComposition({ mounts })`, or `toComposition({ children, mounts })`. Omitted registrations grant no capabilities. Name the returned Composition, author the primary view through its `view` or `view.withInputs` method, and complete that same value. Direct `Definition.view` authoring is removed. A completed Block retains its distinct `view` helper for alternate embeds against its already fixed graph. Keep update, Steps, and operations required by child policy on the Definition.
 
 Use the one-argument `Block.define('Feature')` form only for a generic factory that shares definitions before specializing several contracts with `.define(...)`. Ordinary features establish their contracts in the first call.
 
@@ -112,12 +117,12 @@ export const ApplicationComposition = Application.toComposition({
 
 The direct field form infers the parent Model and child Model relationship for exact `ChildModel` and `Option<ChildModel>` fields. Both forms keep the field name as their default placement. `None` makes an optional field absent, and a fold or exposed operation never creates it. Add `presentWhen` when parent policy gates that whole direct child. Use explicit `read` and `write` for tagged, nested, or custom storage. Foldkit compares decoded built-in Schema shapes; reuse the same Schema instance for an opaque declaration or keep custom accessors. Use `toParentMessage` for a custom wrapper. Do not pass a redundant Model Schema.
 
-A split feature's `composition.ts` owns straightforward Bindings, its complete `toComposition({ children, mounts })` registration, Composition and optional ViewBuilder. Mount-only features use the same home, with definitions shared with the view in `mount.ts`. Extract a substantial policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. Root `application.ts` owns the root Bindings and complete graph; it imports substantial policies directly. Graphless features can keep the empty Composition beside completion. `bindChild` only configures the relationship; including its result under `children` registers it. Neither step constructs Layers or starts effects.
+A split feature's `composition.ts` owns straightforward Bindings, its complete `toComposition({ children, mounts })` registration, Composition and an optional owner-specific ViewBuilder alias. Mount-only features use the same home, with definitions shared with the view in `mount.ts`. Extract a substantial policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. A split graphless feature exports its named empty Composition beside the Definition in `definition.ts`; view and completion import that same value without an empty `composition.ts`. A compact graphless feature keeps it beside its cohesive implementation. Root `application.ts` owns the root Bindings and complete graph; it imports substantial policies directly. `bindChild` only configures the relationship; including its result under `children` registers it. Neither step constructs Layers or starts effects. Import an extracted Binding policy as a namespace such as `HomeBinding` when using several related exports, so its factory or Binding and parent-owned Commands remain visibly grouped. Keep named imports for a single Binding or helper. Keep child feature namespaces distinct from parent-owned Binding policies.
 
 The Binding projects `init`, `fold`, `embedView`, and operations selected under `expose`:
 
 ```ts
-export const update = ApplicationComposition.update((model, message) =>
+export const update = Application.update((model, message) =>
   Message.match(message, {
     GotHomeMessage: ({ message }) => home.fold(model, message),
     ClickedRefresh: () => home.refresh()(model),
@@ -315,38 +320,41 @@ export const ApplicationComposition = Application.toComposition({
   children: [home],
   mounts,
 })
-export type ViewBuilder = Block.HtmlBuilderOf<typeof ApplicationComposition>
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>
 ```
 
 Then in the feature's helper module:
 
 ```ts
 import type { Article } from './article'
-import type { ViewBuilder } from './application'
+import type { ApplicationViewBuilder } from './application'
 import type { Model } from './model'
 
-export const headerView = (h: ViewBuilder) => h.header([], ['Articles'])
+export const headerView = (h: ApplicationViewBuilder) =>
+  h.header([], ['Articles'])
 
-export const articleCard = (article: Article, h: ViewBuilder) =>
+export const articleCard = (article: Article, h: ApplicationViewBuilder) =>
   h.article([], [article.title])
 
-export const articleList = (model: Model, h: ViewBuilder) =>
+export const articleList = (model: Model, h: ApplicationViewBuilder) =>
   h.ul(
     [],
     model.articles.map(article => h.li([], [article.title])),
   )
 ```
 
-`Block.HtmlBuilderOf<typeof ApplicationComposition>` carries the root Message type plus its registered child and Mount capabilities. It is a type alias and constructs no runtime builder. A helper takes only the Model, domain value, or context it actually reads; TypeScript infers one `Html` result or an array. Keep the framework's general `HtmlBuilder<Message>` for functions genuinely shared across owners.
+`Block.HtmlBuilderOf<typeof ApplicationComposition>` carries the root Message type plus its registered child and Mount capabilities. It is a type alias and constructs no runtime builder. Name the alias for its owner, declare it immediately after the Composition with no blank line, and export it only when another file uses it. The owner prefix identifies one Composition's capabilities at the plain import site. Structural contracts keep the standard names `Model`, `Message`, and `OutMessage` because they normally travel through the feature namespace. A helper takes only the Model, domain value, or context it actually reads; TypeScript infers one `Html` result or an array. Keep the framework's general `HtmlBuilder<Message>` for functions genuinely shared across owners.
 
 ## Name and organize the final roles
 
 Use `Foo`, `FooComposition`, and `block`. Use `Application`, `ApplicationComposition`, and lowercase `application` or `element` at the root.
 
-- `definition.ts`: early Model, Message, OutMessage, and Block authoring contracts when split implementation files need them.
+- `definition.ts`: early Model, Message, OutMessage, and Block authoring contracts when split implementation files need them; for a graphless split feature, the named empty Composition also lives here.
 - A folder-named implementation file, such as `workHistory/workHistory.ts`: substantial feature logic that does not warrant separate init/update/command files.
 - `block.ts`: completed feature assembly.
-- `composition.ts`: a split feature's Bindings, complete child/Mount registration, Composition and optional ViewBuilder. A substantial policy may use `composition/<child>.ts` with `composition/composition.ts` as assembly and an explicit barrel. Mount-only features use the same home; graphless features need no empty scaffolding.
+- `composition.ts`: a split feature's Bindings, complete child/Mount registration, Composition and optional owner-specific ViewBuilder alias. A substantial policy may use `composition/<child>.ts` with `composition/composition.ts` as assembly and an explicit barrel. Mount-only features use the same home; graphless features need no empty scaffolding.
 - `application.ts`: the complete root graph and local handler assembly, including straightforward Bindings. Import substantial policies directly from `composition/<child>.ts`; no separate root composition wrapper.
 - `entry.ts`: container, startup inputs, completion, and Runtime startup.
 - `services.ts`: root `ApplicationLayer` service providers.
@@ -354,7 +362,7 @@ Use `Foo`, `FooComposition`, and `block`. Use `Application`, `ApplicationComposi
 
 A compact root defines `Application` directly in `application.ts`. When split root Commands, Subscriptions, or child Bindings need that authoring value before Composition assembly, put its early contract in `definition.ts`. Those modules import the contract there; `application.ts` imports and re-exports `Application` and exports `ApplicationComposition`. Entry completion still imports each implementation field from its real owner.
 
-Keep final completion in `block.ts` when the view imports its Composition and Bindings from `composition.ts`. The final assembly imports both modules, so the implementation never needs to import a view that depends on it. Do not create one file per API stage. Keep small examples compact. Use explicit barrels for intended feature contracts and import private implementations directly in tests.
+Keep final completion in `block.ts` when the view imports its Composition from `composition.ts` or, for a split graphless feature, `definition.ts`. The final assembly imports that same Composition and the view, so neither module depends on the completed Block. Do not create one file per API stage. Keep small examples compact. Use explicit barrels for intended feature contracts and import private implementations directly in tests.
 
 `EffectsLayer` supplies implementations of declared Commands, Subscriptions, Mounts, ManagedResources, and Query Fetch Commands. `ApplicationLayer` supplies ordinary Services required by those handlers and startup Effects. Compose a small feature `EffectsLayer` in `block.ts`; use feature `layer.ts` when substantial. Compose root `ApplicationLayer` in `services.ts`, separate from browser startup in `entry.ts`.
 
@@ -363,20 +371,51 @@ Keep final completion in `block.ts` when the view imports its Composition and Bi
 Before:
 
 ```ts
+// main.ts
+import { Schema } from 'effect'
+import { Runtime, type Update } from 'foldkit'
+import type { Document, HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
+
+export const Model = Schema.Struct({ count: Schema.Number })
+export type Model = typeof Model.Type
+
+export const Message = defineMessageUnion({ ClickedIncrement: {} })
+export type Message = typeof Message.Type
+
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedIncrement: () => ({
+      model: modifyFields(model, { count: count => count + 1 }),
+    }),
+  })
+
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: { count: 0 },
+})
+
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+  title: `Count: ${model.count}`,
+  body: h.div(
+    [],
+    [
+      h.p([], [`Count: ${model.count}`]),
+      h.button([h.OnClick(Message.ClickedIncrement())], ['Increment']),
+    ],
+  ),
+})
+
+// entry.ts
 import { Runtime } from 'foldkit'
 
-import { Model } from './model'
-import { AppLayer } from './resources'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+import { Model, init, update, view } from './main'
 
 const application = Runtime.makeApplication({
   Model,
   init,
   update,
   view,
-  resources: AppLayer,
   container: document.getElementById('root'),
 })
 
@@ -387,21 +426,44 @@ After:
 
 ```ts
 // application.ts
+import { Schema } from 'effect'
 import { defineApplication } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
 
-import { Message } from './message'
-import { Model } from './model'
+export const Model = Schema.Struct({ count: Schema.Number })
+
+export const Message = defineMessageUnion({ ClickedIncrement: {} })
 
 export const Application = defineApplication({ Model, Message })
+
+export const update = Application.update((model, message) =>
+  Message.match(message, {
+    ClickedIncrement: () => ({
+      model: modifyFields(model, { count: count => count + 1 }),
+    }),
+  }),
+)
+
+export const init = () => ({ model: { count: 0 } })
+
 export const ApplicationComposition = Application.toComposition()
+
+export const view = ApplicationComposition.view((model, h) => ({
+  title: `Count: ${model.count}`,
+  body: h.div(
+    [],
+    [
+      h.p([], [`Count: ${model.count}`]),
+      h.button([h.OnClick(Message.ClickedIncrement())], ['Increment']),
+    ],
+  ),
+}))
 
 // entry.ts
 import { Runtime } from 'foldkit'
 
-import { ApplicationComposition } from './application'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
+import { ApplicationComposition, init, update, view } from './application'
 
 const application = ApplicationComposition.toApplication({
   init,

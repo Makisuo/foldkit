@@ -7,3 +7,5 @@ export const ComingFromReact = Block.define('ComingFromReact', {
   Model,
   Message,
 })
+
+export const ComingFromReactComposition = ComingFromReact.toComposition()

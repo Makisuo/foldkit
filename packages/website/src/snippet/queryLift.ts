@@ -29,7 +29,7 @@ const init = () => {
   return posts.loadIfMissing()(model)
 }
 
-const update = ApplicationComposition.update((model, message) =>
+const update = Application.update((model, message) =>
   Message.match(message, {
     // Run Query's update, then write its Model back into the parent.
     GotPostsMessage: ({ message }) => posts.fold(model, message),

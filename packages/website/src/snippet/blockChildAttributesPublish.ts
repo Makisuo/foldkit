@@ -2,7 +2,7 @@
 import { Array, Option } from 'effect'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 
-import { CommandMenu } from './definition'
+import { CommandMenuComposition } from './definition'
 import { Message } from './message'
 import { buttonId, itemId, menuId } from './model'
 
@@ -25,7 +25,7 @@ type ViewInputs = Readonly<{
   toView: (slot: Slot) => Html
 }>
 
-export const view = CommandMenu.view.withInputs<ViewInputs>(
+export const view = CommandMenuComposition.view.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const toggleMessage = model.isOpen
       ? Message.ClosedMenu()

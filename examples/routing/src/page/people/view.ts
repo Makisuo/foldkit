@@ -4,7 +4,7 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 import { Button, Input } from '@foldkit/ui'
 
 import { personRouter } from '../../route'
-import { People } from './definition'
+import { PeopleComposition } from './definition'
 import { Message } from './message'
 import { type Person, SearchResults } from './model'
 
@@ -63,7 +63,7 @@ const personListItemView = (person: Person, h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-export const view = People.view((model, h) =>
+export const view = PeopleComposition.view((model, h) =>
   h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [

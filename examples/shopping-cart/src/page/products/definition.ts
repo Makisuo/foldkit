@@ -37,3 +37,5 @@ export const Products = Block.define('Products', {
   Message,
   OutMessage,
 })
+
+export const ProductsComposition = Products.toComposition()

@@ -1,5 +1,5 @@
 // page/settings/block.ts
-export const block = Settings.toComposition().toBlock({
+export const block = SettingsComposition.toBlock({
   init,
   update,
   view,

@@ -4,7 +4,7 @@ import { Html } from 'foldkit/html'
 
 import * as Shared from '@typing-game/shared'
 
-import type { ViewBuilder } from '../definition'
+import type { RoomViewBuilder } from '../definition'
 import { RoomPlayerSession } from '../model'
 
 const byHighestWpm = pipe(
@@ -16,7 +16,7 @@ const byHighestWpm = pipe(
 const scoreboardView = (
   scoreboard: Shared.Scoreboard,
   hostId: string,
-  h: ViewBuilder,
+  h: RoomViewBuilder,
 ): Html => {
   const sortedScoreboard = Array.sort(scoreboard, byHighestWpm)
 
@@ -136,7 +136,7 @@ export const finished = (
   maybeScoreboard: Option.Option<Shared.Scoreboard>,
   hostId: string,
   maybeSession: Option.Option<RoomPlayerSession>,
-  h: ViewBuilder,
+  h: RoomViewBuilder,
 ): Html => {
   const isLocalPlayerHost = Option.exists(
     maybeSession,

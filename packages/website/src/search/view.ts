@@ -3,7 +3,11 @@ import { Array, Match, Option, String, pipe } from 'effect'
 import { Html, inertHtml as ih } from 'foldkit/html'
 
 import { Icon } from '../icon'
-import { SearchComposition, type ViewBuilder, dialog } from './composition'
+import {
+  SearchComposition,
+  type SearchViewBuilder,
+  dialog,
+} from './composition'
 import { Message, type SearchResult } from './message'
 import type { Model } from './model'
 import { SearchState, resultsFromState } from './model'
@@ -43,7 +47,7 @@ const handleSearchInputKeyDown = (
     Match.orElse(() => Option.none()),
   )
 
-const searchInputView = (model: Model, h: ViewBuilder): Html => {
+const searchInputView = (model: Model, h: SearchViewBuilder): Html => {
   const isListboxVisible =
     model.searchState._tag === 'Ok' || model.searchState._tag === 'Loading'
 
@@ -103,7 +107,7 @@ const resultItemView = (
   result: typeof SearchResult.Type,
   index: number,
   isActive: boolean,
-  h: ViewBuilder,
+  h: SearchViewBuilder,
 ): Html =>
   h.a(
     [
@@ -175,7 +179,7 @@ const noResultsView = (query: string): Html =>
 const resultListView = (
   results: ReadonlyArray<typeof SearchResult.Type>,
   activeResultIndex: number,
-  h: ViewBuilder,
+  h: SearchViewBuilder,
 ): Html =>
   Array.match(results, {
     onEmpty: () => h.empty,
@@ -193,7 +197,7 @@ const resultListView = (
       ),
   })
 
-const resultsListView = (model: Model, h: ViewBuilder): Html =>
+const resultsListView = (model: Model, h: SearchViewBuilder): Html =>
   SearchState.match<Html>(model.searchState, {
     Idle: () => emptyPrompt,
     Loading: ({ results }) =>

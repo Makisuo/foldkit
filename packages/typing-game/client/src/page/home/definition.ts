@@ -1,5 +1,4 @@
 import { Block } from 'foldkit'
-import type { HtmlBuilder } from 'foldkit/html'
 
 import { Message, OutMessage } from './message'
 import { Model } from './model'
@@ -10,4 +9,5 @@ export const Home = Block.define('Home', {
   OutMessage,
 })
 
-export type ViewBuilder = HtmlBuilder<Message>
+export const HomeComposition = Home.toComposition()
+export type HomeViewBuilder = Block.HtmlBuilderOf<typeof HomeComposition>

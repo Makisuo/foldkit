@@ -3,7 +3,7 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { RadioGroup } from '@foldkit/ui'
 
-import type { ViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../application'
 import * as Icon from '../icon'
 import { Message } from '../message'
 import { CheckoutState, editionName } from '../model'
@@ -25,7 +25,7 @@ import { cancelledView, confirmedView, placingView } from './status'
 export const checkoutContentView = (
   state: typeof CheckoutState.Type,
   editionRadioGroup: typeof RadioGroup.Model.Type,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   CheckoutState.match(state, {
     Cart: cartState => cartView(cartState, editionRadioGroup, h),
@@ -40,7 +40,7 @@ export const checkoutContentView = (
 export const checkoutPanelView = (
   state: typeof CheckoutState.Type,
   editionRadioGroup: typeof RadioGroup.Model.Type,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.section(
     [

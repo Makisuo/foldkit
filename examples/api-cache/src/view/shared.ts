@@ -1,12 +1,12 @@
 import * as Button from '@foldkit/ui/button'
 
-import type { ViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../application'
 import type { Message } from '../message'
 
 export const toolbarButtonClassName =
   'px-3 py-1.5 bg-white text-slate-700 text-sm font-semibold rounded-md shadow hover:bg-slate-50 transition cursor-pointer data-[disabled]:opacity-50 data-[disabled]:cursor-default data-[disabled]:hover:bg-white'
 
-export const headerView = (h: ViewBuilder) =>
+export const headerView = (h: ApplicationViewBuilder) =>
   h.header(
     [h.Class('flex flex-col gap-1')],
     [
@@ -20,7 +20,7 @@ export const headerView = (h: ViewBuilder) =>
     ],
   )
 
-export const loadingPanel = (text: string, h: ViewBuilder) =>
+export const loadingPanel = (text: string, h: ApplicationViewBuilder) =>
   h.div(
     [h.Class('bg-white rounded-lg shadow p-6 text-center text-slate-500')],
     [text],
@@ -33,7 +33,7 @@ type ErrorPanelInput = Readonly<{
 
 export const errorPanel = (
   { error, retryMessage }: ErrorPanelInput,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ) =>
   h.div(
     [

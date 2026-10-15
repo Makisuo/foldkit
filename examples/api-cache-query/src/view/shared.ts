@@ -2,7 +2,7 @@ import { DateTime } from 'effect'
 
 import * as Button from '@foldkit/ui/button'
 
-import type { ViewBuilder } from '../application'
+import type { ApplicationViewBuilder } from '../application'
 import { Message } from '../message'
 
 export const formatFetchedAt = (fetchedAt: number): string =>
@@ -19,7 +19,7 @@ export const toolbarButtonClassName =
 
 export const statCard = (
   { label, value }: Readonly<{ label: string; value: string }>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ) =>
   h.div(
     [h.Class('bg-white rounded-xl shadow p-4 flex flex-col gap-1')],
@@ -29,7 +29,7 @@ export const statCard = (
     ],
   )
 
-export const loadingPanel = (text: string, h: ViewBuilder) =>
+export const loadingPanel = (text: string, h: ApplicationViewBuilder) =>
   h.div(
     [h.Class('bg-white rounded-lg shadow p-6 text-center text-slate-500')],
     [text],
@@ -37,7 +37,7 @@ export const loadingPanel = (text: string, h: ViewBuilder) =>
 
 export const errorPanel = (
   { error, retryMessage }: Readonly<{ error: string; retryMessage: Message }>,
-  h: ViewBuilder,
+  h: ApplicationViewBuilder,
 ) =>
   h.div(
     [

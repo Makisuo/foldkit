@@ -7,7 +7,7 @@ import { type Html, type HtmlBuilder } from 'foldkit/html'
 import { Button, Input } from '@foldkit/ui'
 
 import { homeRouter } from '../../../../route'
-import { Login, Message } from './definition'
+import { LoginComposition, Message } from './definition'
 import { isFormValid } from './login'
 
 const fieldToBorderClass = (field: Field<string>) =>
@@ -86,7 +86,7 @@ const fieldView = (
   )
 }
 
-export const view = Login.view((model, h) => {
+export const view = LoginComposition.view((model, h) => {
   const canSubmit = isFormValid(model) && !model.isSubmitting
 
   return h.div(

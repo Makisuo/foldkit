@@ -12,7 +12,7 @@ The smallest application keeps Model, Message, init, update, view, and its typed
 
 Add `story.test.ts` and `scene.test.ts` beside the behavior they test. The [Counter example](/example-apps/counter) shows a compact root.
 
-A small feature with no children or Mounts can stay in `counter/block.ts`. Keep its empty Composition beside completion rather than creating a separate `composition.ts`:
+A compact feature with no children or Mounts can stay in one file. Name its empty Composition before authoring the primary view, then complete that same value. A split graphless feature exports the named Composition beside its Definition in `definition.ts`, so `view.ts` and `block.ts` can import it without adding an empty `composition.ts`:
 
 ::Snippet{name="organizationGraphlessBlock" label="Small graphless feature"}
 
@@ -26,7 +26,7 @@ Use standard structural names within each feature: `Model`, `Message`, `OutMessa
 
 ### Early Contracts and Local Effects
 
-Keep `definition.ts` focused on the early typed Definition and its Model, Message, and OutMessage contracts. Split implementation files import that Definition without loading the completed feature. A compact feature need not extract it.
+Keep `definition.ts` focused on the early typed Definition and its Model, Message, and OutMessage contracts. For a split graphless feature, export its named empty Composition there too. Split implementation files import those authoring values without loading the completed feature. A compact feature need not extract them.
 
 Commands belong to the feature whose update returns them. Keep small definitions beside update; extract `command.ts` when several definitions or substantial handlers make a separate file useful. Extract `message.ts` when handlers need result constructors and importing the update would create a cycle.
 
@@ -72,9 +72,13 @@ The directory barrel exports the intended assembly surface explicitly:
 
 Do not create arbitrary groups such as pages or controls, a second children list, or a global list of Bindings. At the root, supporting files can use the same `composition/<child>.ts` path, but `application.ts` remains the assembly point; it imports those policies directly.
 
+When an extracted policy supplies several related exports, import it as a namespace such as `HomeBinding`. This keeps the relationship visible at assembly: `HomeBinding.bindHome` creates the Binding, and `HomeBinding.NavigateToRoom.layer` supplies its parent-owned Command handler. Keep named imports for a single Binding or helper. Use a distinct namespace for the child feature itself; its Block and the parent's integration policy have different owners.
+
 ### Views, Behavior, and Import Direction
 
-Author the primary view through `FeatureComposition.view` or `view.withInputs`. When extracted helpers need its builder type, export `type ViewBuilder = Block.HtmlBuilderOf<typeof FeatureComposition>` beside the Composition. Ordinary view helpers receive that builder and the Model, domain value, or context they use. The alias retains Message, child, and Mount capabilities without constructing anything at runtime. Helpers shared across features can use the general `HtmlBuilder` type.
+Author the primary view through `FeatureComposition.view` or `view.withInputs`, leaving its `h` parameter inferred. When local helpers need its builder type, declare `type FeatureViewBuilder = Block.HtmlBuilderOf<typeof FeatureComposition>` immediately after the Composition with no blank line. Export the alias only when another file uses it. Ordinary view helpers receive that builder and the Model, domain value, or context they use. The alias retains Message, child, and Mount capabilities without constructing anything at runtime.
+
+The owner prefix distinguishes a builder derived from one Composition at a plain type import site. `Model`, `Message`, and `OutMessage` keep their standard architecture names because they normally travel through a feature namespace such as `Search.Model` or `Search.Message`. Helpers shared across features use the general `HtmlBuilder` type instead of an owner-specific alias.
 
 Keep substantial behavior in `init.ts`, `update.ts`, or a folder-named implementation file such as `workHistory/workHistory.ts`. A substantial `update/` directory uses `index.ts` as its explicit barrel and `update.ts` as the Message matcher. Extract substantial handlers by behavior; keep trivial child forwards and unchanged results in the matcher. The same rule gives a view directory `view/index.ts` and `view/view.ts`.
 

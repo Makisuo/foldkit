@@ -17,7 +17,7 @@ import {
 import type { TableOfContentsEntry } from '../../tableOfContentsEntry'
 import {
   ExampleDetailComposition,
-  type ViewBuilder,
+  type ExampleDetailViewBuilder,
   sourceFileTabs,
 } from './composition'
 import { ExampleDetail } from './definition'
@@ -326,7 +326,7 @@ const livePreviewDisclosureView = (
   meta: ExampleMeta,
   slug: string,
   maybeExampleUrl: Option.Option<string>,
-  h: ViewBuilder,
+  h: ExampleDetailViewBuilder,
 ): Html =>
   Disclosure.view(
     {
@@ -412,7 +412,7 @@ const sourceCodeView = (
   activeSourceFilePath: string,
   isNarrowViewport: boolean,
   renderSnippet: CodeBlock.RenderSnippet,
-  h: ViewBuilder,
+  h: ExampleDetailViewBuilder,
 ): Html => {
   const filePaths = Array.map(files, file => file.path)
 
@@ -567,7 +567,7 @@ const availableExampleContentView = (
   slug: string,
   isNarrowViewport: boolean,
   renderSnippet: CodeBlock.RenderSnippet,
-  h: ViewBuilder,
+  h: ExampleDetailViewBuilder,
 ): ReadonlyArray<Html> => [
   meta.livePreview === 'PlaygroundOnly'
     ? playgroundOnlyNotice(meta)

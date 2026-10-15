@@ -14,12 +14,14 @@ const foldThemeMenuOutMessage = ThemeMenu.OutMessage.match<
 export const Settings = Block.define('Settings', {
   Model,
   Message,
-}).toComposition({
-  children: [themeMenu],
 })
 
 const themeMenu = Settings.bindChild(ThemeMenu.block, {
   field: 'themeMenu',
   parentMessage: Message.GotThemeMenuMessage,
   outMessage: { fold: foldThemeMenuOutMessage },
+})
+
+export const SettingsComposition = Settings.toComposition({
+  children: [themeMenu],
 })

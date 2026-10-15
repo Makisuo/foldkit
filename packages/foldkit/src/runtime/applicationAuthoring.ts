@@ -268,17 +268,18 @@ export type Composition<
   CompletionHelpers<ModelSchema, MessageSchema, Mounts, Children>
 
 /**
- * The builder supplied by an application Definition or Composition. Use it
- * when an extracted root view helper renders registered
- * children or local Mounts.
+ * The builder supplied by an Application Composition. Declare a feature-local
+ * alias immediately after its Composition and name it for that owner, such as
+ * `ApplicationViewBuilder` for `ApplicationComposition`. Use this type when an
+ * extracted root view helper renders registered children or local Mounts.
  */
-export type HtmlBuilderOf<ApplicationValue> =
-  ApplicationValue extends AnyComposition
+export type HtmlBuilderOf<CompositionValue> =
+  CompositionValue extends AnyComposition
     ? HtmlBuilder<
-        MessageSchemaOf<ApplicationValue>['Type'],
-        ViewRequirementsOf<ApplicationValue>
+        MessageSchemaOf<CompositionValue>['Type'],
+        ViewRequirementsOf<CompositionValue>
       >
-    : ApplicationValue extends Readonly<{
+    : CompositionValue extends Readonly<{
           Message: Readonly<{ Type: infer Message }>
           toComposition: (...args: ReadonlyArray<any>) => unknown
         }>
@@ -374,11 +375,6 @@ export type Definition<
    * The parent selects storage, Message mapping and OutMessage policy.
    */
   bindChild: BindChild<ModelSchema, MessageSchema>
-  /**
-   * Authors a root view before graph registration. Views using child Bindings
-   * or Mounts must use the registered Composition's view helper.
-   */
-  view: DefineView<RootOwner, ModelSchema['Type'], MessageSchema['Type'], never>
   /**
    * Establishes the child and Mount graph and returns the root Composition.
    * Omitted registries are empty. This step validates passive configuration;
@@ -504,7 +500,6 @@ export const makeDefine =
       mounts: base.mounts,
       children: base.children,
       bindChild: base.bindChild,
-      view: base.view,
       command: primitives.command,
       mount: primitives.mount,
       mountStream: primitives.mountStream,

@@ -73,7 +73,8 @@ const Child = DeclarationTestsChild.define({
   Model: ChildModel,
   Message: ChildMessage,
 })
-const ChildComposition = Child.toComposition({
+export const ChildDefinition = Child
+export const ChildComposition = Child.toComposition({
   mounts: [Measure],
 })
 
@@ -207,7 +208,8 @@ const DeclarationTestsPure = Block.define('DeclarationTestsPure', {
   Model: DirectModel,
   Message: DirectMessage,
 })
-const DeclarationTestsPureComposition = DeclarationTestsPure.toComposition()
+export const PureDefinition = DeclarationTestsPure
+export const PureComposition = DeclarationTestsPure.toComposition()
 const pureImplementation = {
   init: () => ({ model: DirectModel.make({ value: 0 }) }),
   update: DeclarationTestsPure.update((model, _message) => ({
@@ -216,11 +218,11 @@ const pureImplementation = {
 }
 
 export type CompletedPure = Block.Completed<
-  typeof DeclarationTestsPureComposition,
+  typeof PureComposition,
   typeof pureImplementation
 >
 
-export const Pure = DeclarationTestsPureComposition.toBlock(pureImplementation)
+export const Pure = PureComposition.toBlock(pureImplementation)
 
 type CompletedPureIsExact = Expect<Equal<CompletedPure, typeof Pure>>
 
@@ -297,15 +299,15 @@ export const ParentComposition = DeclarationTestsParent.toComposition({
   children: [child],
   mounts: [ObserveParent],
 })
+export type ParentViewBuilder = Block.HtmlBuilderOf<typeof ParentComposition>
 
-const parentView = ParentComposition.view((model, h) =>
+export const ParentDefinition = DeclarationTestsParent
+export const parentView = ParentComposition.view((model, h) =>
   h.div(
     [h.OnMount(ObserveParent())],
     [h.block(child.embedView({ slotId: 'child', model: model.child }))],
   ),
 )
-
-export type ParentViewBuilder = Block.HtmlBuilderOf<typeof ParentComposition>
 
 export const parentModelViewHelper = (
   model: ParentModel,
@@ -521,7 +523,8 @@ const Application = defineApplication({
   Message: ParentMessage,
 })
 const PureApplication = Application
-const PureApplicationComposition = PureApplication.toComposition()
+export const ApplicationDefinition = Application
+export const PureApplicationComposition = PureApplication.toComposition()
 const preserveFunction = <Args extends ReadonlyArray<unknown>, ReturnValue>(
   fn: (...args: Args) => ReturnValue,
 ) => ({ fn })
@@ -537,8 +540,10 @@ const wrappedPureUpdate = preserveFunction(
 const pureInit = () => ({
   model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
 })
-const pureElementView = PureApplication.view((_model, h) => h.main([]))
-const pureDocumentView = PureApplication.view((_model, h) => ({
+const pureElementView = PureApplicationComposition.view((_model, h) =>
+  h.main([]),
+)
+const pureDocumentView = PureApplicationComposition.view((_model, h) => ({
   title: 'Pure application',
   body: h.main([]),
 }))
@@ -584,6 +589,9 @@ export const StreamApplicationValue = Application.mountStream(
 export const ApplicationComposition = Application.toComposition({
   children: [directChild],
 })
+export type ApplicationViewBuilder = Block.HtmlBuilderOf<
+  typeof ApplicationComposition
+>
 const applicationElementView = ApplicationComposition.view((model, h) =>
   h.block(directChild.embedView({ slotId: 'child', model: model.child })),
 )
@@ -591,9 +599,6 @@ const applicationDocumentView = ApplicationComposition.view((model, h) => ({
   title: 'Declaration test',
   body: h.block(directChild.embedView({ slotId: 'child', model: model.child })),
 }))
-export type ApplicationViewBuilder = Block.HtmlBuilderOf<
-  typeof ApplicationComposition
->
 export const applicationModelViewHelper = (
   model: ParentModel,
   h: ApplicationViewBuilder,

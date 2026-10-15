@@ -23,5 +23,4 @@ export const dialog = Search.bindChild(Dialog.block, {
 export const SearchComposition = Search.toComposition({
   children: [dialog],
 })
-
-export type ViewBuilder = Block.HtmlBuilderOf<typeof SearchComposition>
+export type SearchViewBuilder = Block.HtmlBuilderOf<typeof SearchComposition>

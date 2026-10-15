@@ -37,25 +37,27 @@ const SUBMODEL_MOUNT_REQUIREMENTS_BRAND = '__blockMountRequirements'
 
 /**
  * A child view branded with its Model, Message, and registered capabilities.
- * Define it through the Block being authored:
+ * Author the primary view through a named Composition, including an empty graph:
  *
  * ```ts
- * export const view = counter.view((model, h) =>
+ * export const CounterComposition = Counter.toComposition()
+ *
+ * export const view = CounterComposition.view((model, h) =>
  *   h.button([h.OnClick(Message.ClickedIncrement())], [globalThis.String(model.count)]),
  * )
  * ```
  *
- * Use `defineView.withInputs` for data supplied at the embedding site:
+ * Use `view.withInputs` for data supplied at the embedding site:
  *
  * ```ts
- * export const view = counter.view.withInputs<ViewInputs>(
+ * export const view = CounterComposition.view.withInputs<ViewInputs>(
  *   (model, viewInputs, h) =>
  *     h.button([h.OnClick(Message.ClickedIncrement())], [viewInputs.label, globalThis.String(model.count)]),
  * )
  * ```
  *
- * Include the view in the completed Block, then embed it through a
- * registered binding. Plain functions cannot enter `h.block` directly.
+ * Complete that Composition with the view, then embed the Block through a
+ * registered Binding. Plain functions cannot enter `h.block` directly.
  */
 export type BlockView<
   Model,

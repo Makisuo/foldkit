@@ -44,6 +44,7 @@ const leaf = MountCapabilityMiddle.bindChild(leafBlock, {
 const middleRegistered = MountCapabilityMiddle.toComposition({
   children: [leaf],
 })
+const middleGraphless = MountCapabilityMiddle.toComposition()
 const middleView = middleRegistered.view((model, h) =>
   h.block(
     leaf.embedView({
@@ -77,6 +78,7 @@ const middle = MountCapabilityRoot.bindChild(middleBlock, {
   parentMessage: RootMessage.GotMiddleMessage,
 })
 const rootRegistered = MountCapabilityRoot.toComposition({ children: [middle] })
+const rootGraphless = MountCapabilityRoot.toComposition()
 const rootView = rootRegistered.view((model, h) =>
   h.block(
     middle.embedView({
@@ -107,14 +109,14 @@ const ObserveSibling = MountCapabilitySibling.mount('ObserveSibling', {
 })
 
 if (false) {
-  MountCapabilityMiddle.view((model, h) =>
+  middleGraphless.view((model, h) =>
     h.block(
       // @ts-expect-error The leaf binding is absent from this graph.
       leaf.embedView({ slotId: 'omitted-leaf', model: model.leaf }),
     ),
   )
 
-  MountCapabilityRoot.view((model, h) =>
+  rootGraphless.view((model, h) =>
     h.block(
       // @ts-expect-error The nested middle binding is absent from this graph.
       middle.embedView({ slotId: 'omitted-middle', model: model.middle }),

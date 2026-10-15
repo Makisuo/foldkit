@@ -2,23 +2,23 @@ import { Block } from 'foldkit'
 
 import {
   NestedComposition as DirectNestedComposition,
-  type ViewBuilder as DirectViewBuilder,
+  type NestedViewBuilder as DirectNestedViewBuilder,
 } from '../composition/composition.js'
 import {
   NestedComposition,
-  type ViewBuilder as BarrelViewBuilder,
+  type NestedViewBuilder as BarrelNestedViewBuilder,
 } from '../composition/index.js'
 import { Message } from '../definition.js'
 
-type LocalViewBuilder = Block.HtmlBuilderOf<typeof NestedComposition>
+type NestedViewBuilder = Block.HtmlBuilderOf<typeof NestedComposition>
 
-const localButton = (h: LocalViewBuilder) =>
+const localButton = (h: NestedViewBuilder) =>
   h.button([h.OnClick(Message.ClickedSave())])
 
-const barrelButton = (h: BarrelViewBuilder) =>
+const barrelButton = (h: BarrelNestedViewBuilder) =>
   h.button([h.OnClick(Message.ClickedSave())])
 
-const directButton = (h: DirectViewBuilder) =>
+const directButton = (h: DirectNestedViewBuilder) =>
   h.button([h.OnClick(Message.ClickedSave())])
 
 export const view = DirectNestedComposition.view((_model, h) =>

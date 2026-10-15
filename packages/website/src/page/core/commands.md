@@ -138,6 +138,8 @@ An update that returns `FetchCount()` requires the `FetchCount` handler. Adding 
 
 When a handler has no dependencies or setup, return it directly from `function* () { return handler }`.
 
+An existing Effect can keep its service requirements open. Return it from the invocation function; the handler Layer includes those requirements at assembly and supplies its captured Context when the Command runs. There is no need to yield services solely to provide the same instances back to that Effect. Invocation-specific services take precedence for contextual lookups.
+
 Omit `handler` when the definition is a contract whose implementation belongs to an external host. That definition has no `.layer`. The host calls `toLayer` with its implementation Effect at its assembly boundary. [Host implementations for reusable features](/core/layers#host-implementations-for-reusable-features) shows an editor declaring a save operation that its host implements. It also accepts an alternative handler when a focused test deliberately replaces the entire handler. Most execution tests keep `.layer` and replace the HTTP, storage, RPC, clock, or browser service beneath it.
 
 Keep changing values inside the invocation. Command args, the current time, and an active ManagedResource handle belong to the operation that uses them. Capturing a value in the constructor gives it application lifetime. [Layers](/core/layers) explains acquisition and provider lifetimes in depth.

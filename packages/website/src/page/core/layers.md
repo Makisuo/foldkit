@@ -22,6 +22,8 @@ The handler generator runs once when the Runtime builds the application Layer, i
 
 Use `function* ()` to capture services, then return the invocation function. Foldkit applies `Effect.gen` around the generator. When construction has no work to perform, return the handler directly from the generator. The consistent shape makes application dependencies visible in the Layer graph even for a small handler.
 
+If an existing Effect or Stream already declares its service requirements, return it from the invocation function. The handler Layer carries those requirements to application assembly and captures the supplied Context. Contextual lookups use the invocation Context over the construction Context. Yield a service when the returned function needs to call the captured object directly; yielding it solely to re-provide the same instance to an existing operation adds unnecessary plumbing.
+
 Do not capture current time, Command args, Subscription dependencies, a Mount's element, or an active ManagedResource handle. Those values belong to the shorter-lived operation or lifecycle that supplies them. Looking up a service in the constructor retrieves the instance built for the application; the lookup does not construct its provider again.
 
 ## Handler and Service Requirements

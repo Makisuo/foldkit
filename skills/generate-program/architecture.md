@@ -326,6 +326,8 @@ Setting `config.handler` creates the definition's `.layer` recipe; it does not b
 
 Every attached implementation is `config.handler`, a generator constructor. Use `function* ()` to capture services and return the invocation function; Foldkit applies `Effect.gen`. A constructor that yields nothing keeps the same shape: `handler: function* () { return args => effect }`. Each invocation receives the current Command args, Subscription dependencies, Mount element, or ManagedResource requirements.
 
+When an existing Effect or Stream already declares Services, return it from the invocation function without re-providing the constructor's instances. The handler Layer retains those requirements. Contextual lookups prefer the invocation Context, while a captured object remains fixed.
+
 Omit `handler` only at an external host boundary. The definition then has `toLayer` but no `.layer`, and the host supplies the constructor Effect:
 
 ```ts

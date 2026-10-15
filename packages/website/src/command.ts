@@ -1,4 +1,4 @@
-import { Clock, DateTime, Effect, Layer, Option, Schema } from 'effect'
+import { DateTime, Effect, Layer, Option, Schema } from 'effect'
 import { Calendar, Dom } from 'foldkit'
 import { load, pushUrl } from 'foldkit/navigation'
 
@@ -88,16 +88,7 @@ export const LoadBrowserEnvironment = Application.command(
   {
     messages: [Message.CompletedLoadBrowserEnvironment],
     handler: function* () {
-      const localStorage = yield* LocalStorage
-      const sessionStorage = yield* SessionStorage
-      const clock = yield* Clock.Clock
-
-      return () =>
-        loadBrowserEnvironment.pipe(
-          Effect.provideService(LocalStorage, localStorage),
-          Effect.provideService(SessionStorage, sessionStorage),
-          Effect.provideService(Clock.Clock, clock),
-        )
+      return () => loadBrowserEnvironment
     },
   },
 )

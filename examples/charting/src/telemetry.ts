@@ -18,7 +18,7 @@ import type {
   GitHubPullRequestResponse,
   GitHubReleaseResponse,
   GitHubRepositoryResponse,
-  GitHubStargazerResponse,
+  GitHubStarHistoryResponse,
   GitHubStatResult,
 } from './githubApi'
 import { GitHubApi } from './githubApi'
@@ -42,7 +42,9 @@ import {
 // CONSTANT
 
 const MILLISECONDS_PER_SECOND = 1_000
-const MILLISECONDS_PER_WEEK = 7 * 24 * 60 * 60 * MILLISECONDS_PER_SECOND
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * MILLISECONDS_PER_SECOND
+const DAYS_PER_WEEK = 7
+const MILLISECONDS_PER_WEEK = DAYS_PER_WEEK * MILLISECONDS_PER_DAY
 const LAST_YEAR_MILLISECONDS = 52 * MILLISECONDS_PER_WEEK
 const TOP_CONTRIBUTOR_COUNT = 6
 
@@ -61,7 +63,7 @@ export type RawTelemetry = Readonly<{
   issues: ReadonlyArray<typeof GitHubIssueResponse.Type>
   pullRequests: ReadonlyArray<typeof GitHubPullRequestResponse.Type>
   releases: ReadonlyArray<typeof GitHubReleaseResponse.Type>
-  stargazers: ReadonlyArray<typeof GitHubStargazerResponse.Type>
+  starHistory: ReadonlyArray<typeof GitHubStarHistoryResponse.Type>
   commitActivity: GitHubStatResult<
     ReadonlyArray<typeof GitHubCommitActivityResponse.Type>
   >
@@ -200,20 +202,38 @@ export const packageSnapshotFromResponses = (
 }
 
 export const weeklyStars = (
-  stargazers: ReadonlyArray<typeof GitHubStargazerResponse.Type>,
+  starHistory: ReadonlyArray<typeof GitHubStarHistoryResponse.Type>,
   weekStarts: ReadonlyArray<string>,
 ): ReadonlyArray<WeeklyCount> =>
-  countByWeek(stargazers, weekStarts, ({ starred_at }) =>
-    pipe(
-      Date.parse(starred_at),
-      Option.liftPredicate(Number.isFinite),
-      Option.map(weekStartForMilliseconds),
+  pipe(
+    sumByWeek(
+      Array.flatMap(starHistory, ({ week, days }) => {
+        const date = new Date(week * MILLISECONDS_PER_SECOND)
+        const daysUntilSunday =
+          (DAYS_PER_WEEK - date.getUTCDay()) % DAYS_PER_WEEK
+        const sundayMilliseconds = Date.UTC(
+          date.getUTCFullYear(),
+          date.getUTCMonth(),
+          date.getUTCDate() + daysUntilSunday,
+        )
+
+        return Array.map(days, (count, dayIndex) => ({
+          weekStart: weekStartForMilliseconds(
+            sundayMilliseconds + (dayIndex === 0 ? 0 : MILLISECONDS_PER_DAY),
+          ),
+          count,
+        }))
+      }),
+      weekStarts,
+      ({ weekStart }) => weekStart,
+      ({ count }) => count,
     ),
+    Array.map(({ weekStart, amount }) => ({ weekStart, count: amount })),
   )
 
 export const cumulativeStarsByWeek = (
   currentStars: number,
-  stargazers: ReadonlyArray<typeof GitHubStargazerResponse.Type>,
+  starHistory: ReadonlyArray<typeof GitHubStarHistoryResponse.Type>,
   weekStarts: ReadonlyArray<string>,
 ): ReadonlyArray<WeeklyCount> => {
   const emptyWeeks: ReadonlyArray<WeeklyCount> = []
@@ -221,7 +241,7 @@ export const cumulativeStarsByWeek = (
     weekStart,
     count: 0,
   }))
-  const weekly = weeklyStars(stargazers, weekStarts)
+  const weekly = weeklyStars(starHistory, weekStarts)
   const fetchedStars = Array.reduce(
     weekly,
     0,
@@ -334,7 +354,7 @@ export const fetchRawTelemetry: Effect.Effect<
     ],
     { concurrency: 'unbounded' },
   )
-  const stargazers = yield* github.fetchStargazers(repository.stargazers_count)
+  const starHistory = yield* github.fetchStarHistory(yearCutoff)
   const commitActivity = yield* github.fetchCommitActivity
   const packageData = yield* Effect.forEach(
     packageSpecs,
@@ -356,7 +376,7 @@ export const fetchRawTelemetry: Effect.Effect<
     issues,
     pullRequests,
     releases,
-    stargazers,
+    starHistory,
     commitActivity,
     packageData,
   }
@@ -390,7 +410,7 @@ export const transformTelemetry = (
   )
   const cumulativeStars = cumulativeStarsByWeek(
     raw.repository.stargazers_count,
-    raw.stargazers,
+    raw.starHistory,
     weekStarts,
   )
   const warnings = raw.commitActivity.warnings

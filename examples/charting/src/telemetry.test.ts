@@ -9,7 +9,47 @@ import {
   mockNpmPackument,
 } from './main.fixture'
 import { NpmApiLive } from './npmApi'
-import { fetchRawTelemetry, transformTelemetry } from './telemetry'
+import {
+  cumulativeStarsByWeek,
+  fetchRawTelemetry,
+  transformTelemetry,
+  weeklyStars,
+} from './telemetry'
+
+test.each([
+  '2026-06-13T10:00:00Z',
+  '2026-06-13T23:00:00Z',
+  '2026-06-14T00:00:00Z',
+  '2026-06-14T12:00:00Z',
+])(
+  'aligns star history starting at %s with Monday-based chart weeks',
+  latestWeekStart => {
+    const latestWeek = Date.parse(latestWeekStart) / 1_000
+    const secondsPerWeek = 7 * 24 * 60 * 60
+    const starHistory = [
+      {
+        week: latestWeek,
+        total: 8,
+        days: [3, 5, 0, 0, 0, 0, 0],
+      },
+      {
+        week: latestWeek - secondsPerWeek,
+        total: 6,
+        days: [2, 4, 0, 0, 0, 0, 0],
+      },
+    ]
+    const weekStarts = ['2026-06-08', '2026-06-15']
+
+    expect(weeklyStars(starHistory, weekStarts)).toEqual([
+      { weekStart: '2026-06-08', count: 7 },
+      { weekStart: '2026-06-15', count: 5 },
+    ])
+    expect(cumulativeStarsByWeek(20, starHistory, weekStarts)).toEqual([
+      { weekStart: '2026-06-08', count: 15 },
+      { weekStart: '2026-06-15', count: 20 },
+    ])
+  },
+)
 
 test('folds public API responses into a Telemetry value', async () => {
   const mockClient = HttpClient.make(request =>
@@ -31,8 +71,8 @@ test('folds public API responses into a Telemetry value', async () => {
             draft: false,
           },
         ]),
-        Match.when(String.includes('/stargazers'), () => [
-          { starred_at: '2026-06-15T12:00:00Z' },
+        Match.when(String.includes('/stargazers/history'), () => [
+          { week: 1781395200, total: 1, days: [0, 1, 0, 0, 0, 0, 0] },
         ]),
         Match.when(String.includes('/stats/commit_activity'), () => [
           { week: 1781481600, total: 5 },

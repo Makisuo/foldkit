@@ -72,7 +72,7 @@ test('the CLI fails when a real fixture exceeds a mutated budget', context => {
           ...budgets.fixtures,
           'deep-composition-8': {
             ...fixture,
-            maxInstantiationsDelta: fixture.maxInstantiationsDelta - 1,
+            maxInstantiationsDelta: 0,
           },
         },
       },

@@ -69,10 +69,7 @@ for (const component of components) {
       `"./${component}" in ${UI_PACKAGE} must point at ${expectedTypes} and ${expectedImport}`,
     )
   }
-  const expectedExport =
-    component === 'toast'
-      ? 'makeToast'
-      : component.charAt(0).toUpperCase() + component.slice(1)
+  const expectedExport = component.charAt(0).toUpperCase() + component.slice(1)
   if (!rootExports.get(component)?.has(expectedExport)) {
     problems.push(
       `${UI_INDEX} must export ${expectedExport} from ./${component}/public.js`,

@@ -406,6 +406,7 @@ export const makeUpdate = <
   const AnimationBinding = bindChild(Animation.block, {
     field: 'animation',
     parentMessage: Message.GotAnimationMessage,
+    init: false,
     outMessage: { fold: foldAnimationOutMessage },
   })
 

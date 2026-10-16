@@ -1,5 +1,4 @@
 import { Array, Match, Option, String } from 'effect'
-import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { optionWhen } from '../../../optionWhen'
@@ -116,5 +115,3 @@ export const update = HomeComposition.update((model, message) =>
     }),
   }),
 )
-
-export type UpdateRequirements = Update.RequirementsOf<typeof update>

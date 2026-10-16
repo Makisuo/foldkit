@@ -36,7 +36,7 @@ If a section only renders parent state, use a view function. A card that receive
 
 ### Establish the feature boundary
 
-Declare the Schemas, then call `Block.define('Settings', { Model, Message, OutMessage })`. This creates the local identity and typed authoring helpers together. The ID is local to the feature; do not include ancestors or filesystem paths. Name the returned value `Settings`; export the completed Block as `block`, and name the graph-aware value `SettingsComposition`.
+Declare the Schemas, then call `Block.define('Settings', { Model, Message, OutMessage })`. Add an optional `Startup` Schema when child startup selectors share input. This creates the local identity and typed authoring helpers together. The ID is local to the feature; do not include ancestors or filesystem paths. Name the returned value `Settings`; export the completed Block as `block`, and name the graph-aware value `SettingsComposition`.
 
 ::Snippet{name="blockDefinition" label="Defining a typed Block"}
 
@@ -131,13 +131,15 @@ Binding operations retain the exact argument types, Command requirements, and Ou
 
 ### Initialize the child
 
-Declare a direct child's startup inputs with `init` on its Binding. Use `true` for a valid zero-argument init call, or `{ args }` with Effect's `Tuple.make(...)` to return the child's argument tuple. `FeatureComposition.init` accepts parent-owned Model fields and optional shared `startup` input. The Composition calls configured child initializers, places their Models, and collects their lifted Commands automatically.
+For a child stored in an exact required direct field, omit `init` when its initializer can be called without arguments. The Composition initializes it automatically. Use `init: { args }` when it requires arguments, or `init: false` when the parent owns the initial field and supplies it in the init plan's `model`. Ordinary tuple literals in `args` retain the child's exact parameter types.
+
+Optional, keyed, and accessor Bindings remain parent-owned when `init` is omitted. Choose automatic optional presence through `init.args`, and initial keyed membership through `init.occurrences`. A `Startup` Schema on the parent Definition contextually types selectors that share startup input; the Composition init plan carries that decoded value as `startup` when a selector uses it.
 
 This Profile's Settings child accepts a theme configuration at init. The parent supplies its saved theme and owns the username:
 
 ::Snippet{name="blockFoldChildInit" label="Assembling an initial child Model"}
 
-A Binding without an init policy is not initialized by the Composition. This lets the parent choose optional presence and initial collection membership explicitly. For custom storage, explicit Command ordering, or children created later in update, call the registered Binding's `init` with `{ args, toParentModel }`, plus `key` for a keyed Binding and optional parent `commands`. `toParentModel` constructs the complete parent Model from the initialized child. The result includes every lifted child init Command before the optional parent Commands and retains the graph evidence checked by completion.
+For custom storage, explicit Command ordering, or children created later in update, call the registered Binding's `init` with `{ args, toParentModel }`, plus `key` for a keyed Binding and optional parent `commands`. `toParentModel` constructs the complete parent Model from the initialized child. The result includes every lifted child init Command before the optional parent Commands and retains the graph evidence checked by completion.
 
 Execute explicit Binding init only within the exact registered graph: in Composition init or update, through a completed Block's exposed operation, or through the operation projected onto its parent Binding. The compiler checks the exact key, argument tuple, parent Model, Command requirements, and graph evidence. The Runtime verifies that the selected child is schema-equivalent to the initialized child and, for a keyed Binding, that the result contains exactly one occurrence with the requested key. Ordinary Model construction is still available when no connected child operation is needed. See [Init & Flags](/core/init#child-initialization) for optional startup policies, Command order, and initial Steps.
 
@@ -226,7 +228,11 @@ The child does not know who embeds it. The parent decides what the reported fact
 
 The parent configures integration policy in its child Binding. That policy executes during the pure child fold or exposed operation. The flow is parent update → child fold or operation → parent OutMessage handling → parent result. Keep a substantial policy in a named parent fold beside that child's Binding, extracting both to `composition/<child>.ts` when the policy becomes substantial. An OutMessage fold receives `FoldContext` when it needs to lift a child Command or compare the transition with parent state from before the child update. `modelBeforeUpdate` is that previous parent Model. The Step returned by the fold still receives the parent Model after the next child Model has been written.
 
-A policy may return a parent Step that calls a registered sibling Binding operation. This supports parent-owned coordination in either direction: one child's OutMessage can initialize, update, or remove another child while preserving both boundaries. `toComposition` validates the policy's captured output and confirms that every sibling Binding used by the policy is registered in `childBindings`. Keep the chain synchronous and finite; one policy may invoke another Binding policy before the original update returns.
+A policy may return a parent Step that calls a registered sibling Binding operation. This supports parent-owned coordination in either direction: one child's OutMessage can initialize, update, or remove another child while preserving both boundaries. Keep reciprocal policies together in the same parent `composition.ts` or `composition/composition.ts`, and defer each sibling call through its policy callback. The callback may close over a Binding declared later in that module. `toComposition` validates the policy's captured output and confirms that every sibling Binding used by the policy is registered in `childBindings`. Keep the chain synchronous and finite; one policy may invoke another Binding policy before the original update returns.
+
+This parent opens the selected Room when Home reports `SelectedRoom`. When Room later reports `SavedRoom`, the parent marks that Room as saved in Home. The omitted child contracts expose both operations: `RoomBinding.open` returns a pure Step, while `HomeBinding.markRoomSaved` returns a Step with a persistence Command. Neither operation emits another sibling OutMessage:
+
+::Snippet{name="blockSiblingCoordination" label="Coordinating sibling Blocks in both directions"}
 
 ## Keyed Collections {#fold-child-at}
 

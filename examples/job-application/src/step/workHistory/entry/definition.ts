@@ -43,4 +43,5 @@ export const WorkHistoryEntry = Block.define('WorkHistoryEntry', {
   Model,
   Message,
   OutMessage,
+  Startup: Schema.Struct({ entryId: Schema.String, today: CalendarDate }),
 })

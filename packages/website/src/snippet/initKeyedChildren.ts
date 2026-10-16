@@ -1,4 +1,4 @@
-import { Array, Number, Option, Tuple } from 'effect'
+import { Array, Number, Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import * as Counter from './counter'
@@ -21,7 +21,7 @@ const CountersBinding = Application.bindChild(Counter.block, {
     occurrences: () =>
       Array.makeBy(INITIAL_COUNTER_COUNT, counterId => ({
         key: `counter-${counterId}`,
-        args: Tuple.make(),
+        args: [],
       })),
     toItem: ({ key }, counter) => CounterInstance.make({ id: key, counter }),
   },

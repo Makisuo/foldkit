@@ -1,5 +1,5 @@
 import { Array, Effect, Match, Number, Option, String, pipe } from 'effect'
-import { AsyncData, Update } from 'foldkit'
+import { AsyncData } from 'foldkit'
 import { pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 
@@ -20,7 +20,7 @@ import {
 } from '../command'
 import { Room, RoomComposition } from '../definition'
 import { Message } from '../message'
-import { Model, RoomAsyncData } from '../model'
+import { Model, RoomAsyncData, RoomPlayerSession } from '../model'
 import { validateUserTextInput } from '../userGameText'
 import { handleRoomUpdated } from './handleRoomUpdated'
 
@@ -182,7 +182,11 @@ export const update = RoomComposition.update(
       },
 
       SucceededJoinRoom: ({ player }) => {
-        const session = { roomId: context.roomId, player }
+        const session = RoomPlayerSession.make({
+          roomId: context.roomId,
+          player,
+        })
+
         return {
           model: modifyFields(model, {
             maybeSession: () => Option.some(session),
@@ -269,5 +273,3 @@ export const informJoined = Room.step(
   (model, player: Shared.Player, context: Context) =>
     update(model, Message.SucceededJoinRoom({ player }), context),
 )
-
-export type UpdateRequirements = Update.RequirementsOf<typeof update>

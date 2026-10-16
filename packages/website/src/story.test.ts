@@ -8,7 +8,7 @@ import { Dialog, Menu } from '@foldkit/ui'
 import { ShowDialog } from '@foldkit/ui/dialog'
 
 import { ScrollSidebarActiveLinkIntoView, ScrollToTop } from './command'
-import { Home, HomeBinding } from './composition'
+import { HomeBinding, LoadPlayground } from './composition'
 import { Deployment } from './deployment'
 import { init } from './init'
 import { Message } from './message'
@@ -337,7 +337,7 @@ describe('application', () => {
           }),
         }),
       ),
-      Command.resolve(Home.LoadPlayground, Message.CompletedLoadPlayground()),
+      Command.resolve(LoadPlayground, Message.CompletedLoadPlayground()),
     )
   })
 

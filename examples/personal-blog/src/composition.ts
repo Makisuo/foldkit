@@ -7,7 +7,6 @@ import { Message } from './message'
 export const CounterBinding = Application.bindChild(Counter.block, {
   field: 'counter',
   parentMessage: Message.GotCounterMessage,
-  init: true,
 })
 
 export const ApplicationComposition = Application.toComposition({

@@ -1,3 +1,3 @@
 export { ApplicationComposition } from './composition'
-export * as LoggedIn from './loggedIn'
-export * as LoggedOut from './loggedOut'
+export { LoggedInBinding } from './loggedIn'
+export { LoggedOutBinding } from './loggedOut'

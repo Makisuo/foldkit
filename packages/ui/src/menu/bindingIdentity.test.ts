@@ -31,6 +31,7 @@ const GenericMenuBindingIdentity = Block.define('GenericMenuBindingIdentity', {
 const MenuBinding = GenericMenuBindingIdentity.bindChild(RefinedMenu, {
   field: 'menu',
   parentMessage: Message.GotMenuMessage,
+  init: false,
   outMessage: {
     fold: RefinedMenu.OutMessage.match<
       Update.StepWithOutMessage<Model, Message, OutMessage>

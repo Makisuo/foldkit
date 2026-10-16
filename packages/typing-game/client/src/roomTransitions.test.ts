@@ -5,7 +5,7 @@ import { describe, expect, test } from 'vitest'
 
 import * as Shared from '@typing-game/shared'
 
-import { Home } from './composition'
+import { NavigateToRoom } from './composition'
 import { init } from './init'
 import { Message } from './message'
 import { Model, RoomInstance } from './model'
@@ -374,7 +374,7 @@ describe('Home Room preparation', () => {
         name: keyedRoomCommandName(ROOM_A, SavePlayerSession.name),
         args: { session: { roomId: ROOM_A, player: playerA } },
       },
-      { name: Home.NavigateToRoom.name, args: { roomId: ROOM_A } },
+      { name: NavigateToRoom.name, args: { roomId: ROOM_A } },
     ])
 
     const navigated = update(

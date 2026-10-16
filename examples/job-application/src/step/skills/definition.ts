@@ -25,4 +25,5 @@ export type Message = typeof Message.Type
 export const Skills = Block.define('Skills', {
   Model,
   Message,
+  Startup: Schema.String,
 })

@@ -1,2 +1,2 @@
-export * as Dialog from './dialog'
-export { EditorComposition, counter } from './composition'
+export { DialogBinding } from './dialog'
+export { CounterBinding, EditorComposition } from './composition'

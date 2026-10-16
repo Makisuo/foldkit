@@ -1,4 +1,4 @@
-import { Animation, UiComposition } from '../composition'
+import { AnimationDemoBinding, UiComposition } from '../composition'
 import { Message } from '../message'
 
 const triggerClassName =
@@ -28,7 +28,7 @@ export const view = UiComposition.view((model, h) => {
         [h.Class('mt-4')],
         [
           h.block(
-            Animation.AnimationDemoBinding.embedView({
+            AnimationDemoBinding.embedView({
               slotId: model.animationDemo.id,
               model: model.animationDemo,
               viewInputs: {

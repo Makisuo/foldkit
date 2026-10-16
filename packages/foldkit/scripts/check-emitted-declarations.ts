@@ -481,6 +481,12 @@ const checks: ReadonlyArray<
     rejected: ['schema-match.rejected.ts'],
     consumers: ['schema-match.consume.ts'],
   },
+  {
+    name: 'startup-defaults',
+    accepted: ['startup-defaults.accepted.ts'],
+    rejected: ['startup-defaults.rejected.ts'],
+    consumers: ['startup-defaults.consume.ts'],
+  },
 ]
 
 const main = async (): Promise<void> => {

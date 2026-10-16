@@ -1,12 +1,9 @@
 import { Array, Option } from 'effect'
 import { type Update } from 'foldkit'
-import type { CalendarDate } from 'foldkit/calendar'
 import { modifyFields } from 'foldkit/struct'
 
 import { Message, type Model, WorkHistory } from './definition'
 import * as Entry from './entry'
-
-type Startup = Readonly<{ today: CalendarDate; initialEntryId: string }>
 
 const foldEntryOutMessage = (
   entryId: string,
@@ -30,7 +27,7 @@ export const EntriesBinding = WorkHistory.bindChild(Entry.block, {
     args: (_model, { entryId, message }) => Option.some([entryId, message]),
   },
   init: {
-    occurrences: ({ today, initialEntryId }: Startup) => [
+    occurrences: ({ today, initialEntryId }) => [
       { key: initialEntryId, args: [initialEntryId, today] },
     ],
     toItem: (_occurrence, entry) => entry,

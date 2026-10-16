@@ -38,4 +38,5 @@ export const SkillsEntry = Block.define('SkillsEntry', {
   Model,
   Message,
   OutMessage,
+  Startup: Schema.String,
 })

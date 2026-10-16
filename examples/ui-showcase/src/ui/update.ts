@@ -2,7 +2,7 @@ import { Array, Number, Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import {
-  Animation,
+  AnimationDemoBinding,
   DialogAnimatedDemoBinding,
   DialogDemoBinding,
   MobileMenuDialogBinding,
@@ -173,8 +173,8 @@ export const update = UiComposition.update((model, message) =>
 
     ToggledAnimationDemo: () =>
       model.animationDemo.isShowing
-        ? Animation.AnimationDemoBinding.hide()(model)
-        : Animation.AnimationDemoBinding.show()(model),
+        ? AnimationDemoBinding.hide()(model)
+        : AnimationDemoBinding.show()(model),
 
     ClickedVirtualListScrollToMiddle: () =>
       VirtualListDemoBinding.scrollToIndex(

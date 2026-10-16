@@ -6,5 +6,4 @@ export {
   update,
   view,
 } from './asyncCounterDemo'
-export type { UpdateRequirements } from './asyncCounterDemo'
 export { block } from './block'

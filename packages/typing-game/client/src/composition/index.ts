@@ -1,8 +1,6 @@
 export {
   ApplicationComposition,
-  HomeBinding,
-  RoomBinding,
   type ApplicationViewBuilder,
 } from './composition'
-export * as Home from './home'
-export * as Room from './room'
+export { HomeBinding, NavigateToRoom } from './home'
+export { RoomBinding } from './room'

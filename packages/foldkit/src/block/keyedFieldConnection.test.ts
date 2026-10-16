@@ -112,6 +112,7 @@ const ArrayChildBinding = Parent.bindChild(arrayChildBlock, {
   field: 'arrayChild',
   toParentMessage: message => ParentMessage.GotArrayChildMessage({ message }),
   fromParentMessage: false,
+  init: false,
 })
 const ParentComposition = Parent.toComposition({
   childBindings: [ChildrenBinding, ArrayChildBinding],

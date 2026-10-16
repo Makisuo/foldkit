@@ -54,7 +54,7 @@ The `data` and `error` values must be Schema Codecs that require no encoding or 
 
 #### Returned Definition
 
-The returned `postsQuery` is a completed viewless Block with a Model Schema, a Message union, and exposed operations. Put `postsQuery.Model` in the parent Model Schema, bind it through the parent Definition, and declare `init: true` on the Binding. Put `PostsBinding.loadIfMissing()` in the Composition init plan's `steps` array to begin the first request after the Query Model exists.
+The returned `postsQuery` is a completed viewless Block with a Model Schema, a Message union, and exposed operations. Put `postsQuery.Model` in the parent Model Schema and bind it through the parent Definition. Its zero-argument initializer starts the required direct field automatically. Put `PostsBinding.loadIfMissing()` in the Composition init plan's `steps` array to begin the first request after the Query Model exists.
 
 ### Bind the Query to Its Parent
 

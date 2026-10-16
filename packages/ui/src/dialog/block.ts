@@ -294,6 +294,7 @@ const foldAnimationOutMessage = (
 const AnimationBinding = Dialog.bindChild(Animation.block, {
   field: 'animation',
   parentMessage: Message.GotAnimationMessage,
+  init: false,
   outMessage: { fold: foldAnimationOutMessage },
 })
 

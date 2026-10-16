@@ -364,6 +364,7 @@ const foldAnimationOutMessage =
 const AnimationBinding = Menu.bindChild(Animation.block, {
   field: 'animation',
   parentMessage: Message.GotAnimationMessage,
+  init: false,
   outMessage: { fold: foldAnimationOutMessage },
 })
 
@@ -1302,6 +1303,7 @@ const makeBlock = <Item extends string>() => {
   const ItemAnimationBinding = Menu.bindChild(Animation.block, {
     field: 'animation',
     parentMessage: Message.GotAnimationMessage,
+    init: false,
     outMessage: { fold: foldAnimationOutMessage },
   })
   const MenuComposition = Menu.toComposition({

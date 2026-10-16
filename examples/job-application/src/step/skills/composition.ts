@@ -27,7 +27,7 @@ export const EntriesBinding = Skills.bindChild(Entry.block, {
     args: (_model, { entryId, message }) => Option.some([entryId, message]),
   },
   init: {
-    occurrences: (initialEntryId: string) => [
+    occurrences: initialEntryId => [
       { key: initialEntryId, args: [initialEntryId] },
     ],
     toItem: (_occurrence, entry) => entry,

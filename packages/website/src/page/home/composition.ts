@@ -53,13 +53,11 @@ export const PlaygroundMenuBinding = Home.bindChild(PlaygroundMenu, {
 export const AsyncCounterDemoBinding = Home.bindChild(AsyncCounterDemo.block, {
   field: 'asyncCounterDemo',
   parentMessage: Message.GotAsyncCounterDemoMessage,
-  init: true,
 })
 
 export const NotePlayerDemoBinding = Home.bindChild(NotePlayerDemo.block, {
   field: 'notePlayerDemo',
   parentMessage: Message.GotNotePlayerDemoMessage,
-  init: true,
 })
 
 export const HomeComposition = Home.toComposition({

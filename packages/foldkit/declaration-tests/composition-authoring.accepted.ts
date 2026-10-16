@@ -432,6 +432,7 @@ export const FirstManualStatusBinding = Parent.bindChild(StatusBlock, {
   placement: 'firstManualStatus',
   parentMessage: ParentMessage.GotStatusMessage,
   fromParentMessage: false,
+  init: false,
 })
 
 export const SecondManualStatusBinding = Parent.bindChild(StatusBlock, {
@@ -439,6 +440,7 @@ export const SecondManualStatusBinding = Parent.bindChild(StatusBlock, {
   placement: 'secondManualStatus',
   parentMessage: ParentMessage.GotStatusMessage,
   fromParentMessage: false,
+  init: false,
 })
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable

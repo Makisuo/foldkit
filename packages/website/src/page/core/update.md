@@ -98,9 +98,9 @@ Do not wrap one Step in `Update.combine`; call that operation directly.
 
 ### Combining Child Initialization and Startup Steps {#combining-independent-results}
 
-Declare init policies beside the Bindings and author the parent initializer through its Composition. The plan supplies only parent-owned fields and lists any startup Steps; the Composition assembles initialized child fields and lifted Commands.
+Declare child startup ownership beside the Bindings and author the parent initializer through its Composition. The plan supplies only parent-owned fields and lists any startup Steps; the Composition assembles initialized child fields and lifted Commands.
 
-For example, a Workspace Block contains Search and Editor Blocks. Both Bindings use `init: true`. The Search and Editor restoration operations are ordinary Steps listed after the parent-owned fields:
+For example, a Workspace Block contains Search and Editor Blocks. Their required direct fields use the automatic zero-argument startup policy. The Search and Editor restoration operations are ordinary Steps listed after the parent-owned fields:
 
 ::Snippet{name="updateIndependentInits" label="Initializing Search and Editor Blocks"}
 

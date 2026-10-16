@@ -1,6 +1,5 @@
 import { Option } from 'effect'
 import type { Block, Update } from 'foldkit'
-import type { CalendarDate } from 'foldkit/calendar'
 import { modifyFields } from 'foldkit/struct'
 
 import { DatePicker } from '@foldkit/ui'
@@ -53,9 +52,7 @@ export const AvailableDatePickerBinding = PersonalInfo.bindChild(
     field: 'availableDate',
     parentMessage: Message.GotAvailableDateMessage,
     init: {
-      args: (today: CalendarDate) => [
-        { id: 'available-date', today, minDate: today },
-      ],
+      args: today => [{ id: 'available-date', today, minDate: today }],
     },
     outMessage: { fold: foldAvailableDateOutMessage },
   },

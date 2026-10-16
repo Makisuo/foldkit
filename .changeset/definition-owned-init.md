@@ -54,9 +54,9 @@ The helper neither calls the initializer nor starts effects. The Runtime invokes
 
 ## Initialize children in their registered graph
 
-Declare ordinary startup with the Binding's `init` policy. For dynamic children or custom storage, `Binding.init` now constructs the complete parent result. Supply the child arguments, the keyed occurrence's `key` when applicable, and `toParentModel` to store the initialized child. Foldkit retains and lifts its Commands automatically.
+For a required exact direct field, omit `init` when the child's initializer can be called without arguments. Use `init: { args }` for required inputs, or `init: false` when the parent supplies that required field. Optional, keyed, and accessor storage remains parent-owned when `init` is omitted; explicit `init.args` or `init.occurrences` chooses automatic presence. For dynamic children or custom storage, `Binding.init` constructs the complete parent result. Supply the child arguments, the keyed occurrence's `key` when applicable, and `toParentModel` to store the initialized child. Foldkit retains and lifts its Commands automatically.
 
-Earlier Binding form:
+Earlier interim Binding prototype:
 
 ```ts
 import { Array, Number } from 'effect'

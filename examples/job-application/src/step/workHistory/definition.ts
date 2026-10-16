@@ -26,4 +26,8 @@ export type Message = typeof Message.Type
 export const WorkHistory = Block.define('WorkHistory', {
   Model,
   Message,
+  Startup: Schema.Struct({
+    today: Calendar.CalendarDate,
+    initialEntryId: Schema.String,
+  }),
 })

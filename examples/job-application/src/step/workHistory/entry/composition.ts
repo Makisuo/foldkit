@@ -1,14 +1,11 @@
 import { Option } from 'effect'
 import type { Update } from 'foldkit'
-import type { CalendarDate } from 'foldkit/calendar'
 import { modifyFields } from 'foldkit/struct'
 
 import { DatePicker } from '@foldkit/ui'
 import { reflectMaxDate, reflectMinDate } from '@foldkit/ui/datePicker'
 
 import { Message, type Model, WorkHistoryEntry } from './definition'
-
-type Startup = Readonly<{ entryId: string; today: CalendarDate }>
 
 const foldStartDateOutMessage = DatePicker.OutMessage.match<
   Update.Step<Model, Message>
@@ -36,9 +33,7 @@ export const StartDatePickerBinding = WorkHistoryEntry.bindChild(
     field: 'startDate',
     parentMessage: Message.GotStartDateMessage,
     init: {
-      args: ({ entryId, today }: Startup) => [
-        { id: `${entryId}-start`, today },
-      ],
+      args: ({ entryId, today }) => [{ id: `${entryId}-start`, today }],
     },
     outMessage: { fold: foldStartDateOutMessage },
   },
@@ -70,7 +65,7 @@ export const EndDatePickerBinding = WorkHistoryEntry.bindChild(
     field: 'endDate',
     parentMessage: Message.GotEndDateMessage,
     init: {
-      args: ({ entryId, today }: Startup) => [{ id: `${entryId}-end`, today }],
+      args: ({ entryId, today }) => [{ id: `${entryId}-end`, today }],
     },
     outMessage: { fold: foldEndDateOutMessage },
   },

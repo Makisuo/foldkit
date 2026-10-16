@@ -79,6 +79,7 @@ const FruitComboboxBinding = FruitComboboxTest.bindChild(FruitCombobox, {
   field: 'combobox',
   toParentMessage: message => message,
   fromParentMessage: false,
+  init: false,
   outMessage: { fold: foldFruitComboboxOutMessage },
 })
 

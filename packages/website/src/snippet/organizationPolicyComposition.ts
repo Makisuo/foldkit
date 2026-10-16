@@ -2,7 +2,7 @@ import * as Counter from '../../counter'
 import { Editor } from '../definition'
 import { Message } from '../message'
 import { FocusEditor } from '../mount'
-import * as Dialog from './dialog'
+import { DialogBinding } from './dialog'
 
 export const CounterBinding = Editor.bindChild(Counter.block, {
   field: 'counter',
@@ -10,6 +10,6 @@ export const CounterBinding = Editor.bindChild(Counter.block, {
 })
 
 export const EditorComposition = Editor.toComposition({
-  childBindings: [CounterBinding, Dialog.DialogBinding],
+  childBindings: [CounterBinding, DialogBinding],
   mounts: [FocusEditor],
 })

@@ -124,6 +124,7 @@ const foldPopoverOutMessage = Popover.OutMessage.match<
 const PopoverBinding = DatePicker.bindChild(Popover.block, {
   field: 'popover',
   parentMessage: Message.GotPopoverMessage,
+  init: false,
   outMessage: { fold: foldPopoverOutMessage },
 })
 
@@ -141,6 +142,7 @@ const toDatePickerOutMessage = UiCalendar.OutMessage.match<OutMessage>({
 const CalendarBinding = DatePicker.bindChild(UiCalendar.block, {
   field: 'calendar',
   parentMessage: Message.GotCalendarMessage,
+  init: false,
   outMessage: {
     forward: toDatePickerOutMessage,
     fold: foldCalendarOutMessage,

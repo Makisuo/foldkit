@@ -4,7 +4,6 @@ export {
   ComingFromReactBinding,
   CoreBlockPageBinding,
   ExampleDetailBinding,
-  HomeBinding,
   MobileMenuDialogBinding,
   PlaygroundBinding,
   SearchBinding,
@@ -14,4 +13,4 @@ export {
   UiPagesBinding,
   type ApplicationViewBuilder,
 } from './composition'
-export * as Home from './home'
+export { HomeBinding, LoadPlayground } from './home'

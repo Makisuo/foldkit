@@ -1,4 +1,4 @@
-import { pipe, Option } from 'effect'
+import { Option, pipe } from 'effect'
 import { type Block, Update } from 'foldkit'
 
 import { Dialog } from '@foldkit/ui'
@@ -18,23 +18,18 @@ import { ApplicationRoute } from '../route'
 import * as Search from '../search'
 import * as SnippetCopy from '../snippetCopy'
 import * as SnippetDisclosure from '../snippetDisclosure'
-import { type Startup } from '../startup'
 import { selectThemePreference } from '../theme'
 import { ThemeMenu } from '../view/themeMenu'
-import * as Home from './home'
-
-export const HomeBinding = Home.HomeBinding
+import { HomeBinding } from './home'
 
 export const SearchBinding = Application.bindChild(Search.block, {
   field: 'search',
   parentMessage: Message.GotSearchMessage,
-  init: true,
 })
 
 export const SnippetCopyBinding = Application.bindChild(SnippetCopy.block, {
   field: 'snippetCopy',
   parentMessage: Message.GotSnippetCopyMessage,
-  init: true,
 })
 
 export const SnippetDisclosureBinding = Application.bindChild(
@@ -42,21 +37,19 @@ export const SnippetDisclosureBinding = Application.bindChild(
   {
     field: 'snippetDisclosure',
     parentMessage: Message.GotSnippetDisclosureMessage,
-    init: true,
   },
 )
 
 export const ExampleDetailBinding = Application.bindChild(ExampleDetail.block, {
   field: 'exampleDetail',
   parentMessage: Message.GotExampleDetailMessage,
-  init: true,
 })
 
 export const PlaygroundBinding = Application.bindChild(Playground.block, {
   field: 'playground',
   parentMessage: Message.GotPlaygroundMessage,
   init: {
-    args: ({ route }: Startup) =>
+    args: ({ route }) =>
       pipe(
         route,
         Option.liftPredicate(ApplicationRoute.guards.Playground),
@@ -68,13 +61,12 @@ export const PlaygroundBinding = Application.bindChild(Playground.block, {
 export const UiPagesBinding = Application.bindChild(Ui.block, {
   field: 'uiPages',
   parentMessage: Message.GotUiPageMessage,
-  init: { args: ({ today }: Startup) => [today] },
+  init: { args: ({ today }) => [today] },
 })
 
 export const ApiReferenceBinding = Application.bindChild(ApiReference.block, {
   field: 'apiReference',
   parentMessage: Message.GotApiReferenceMessage,
-  init: true,
 })
 
 export const ComingFromReactBinding = Application.bindChild(
@@ -82,14 +74,12 @@ export const ComingFromReactBinding = Application.bindChild(
   {
     field: 'comingFromReact',
     parentMessage: Message.GotComingFromReactMessage,
-    init: true,
   },
 )
 
 export const CoreBlockPageBinding = Application.bindChild(CoreBlockPage.block, {
   field: 'coreBlockPage',
   parentMessage: Message.GotCoreBlockPageMessage,
-  init: true,
 })
 
 const foldMobileMenuDialogOutMessage = Dialog.OutMessage.match<
@@ -123,7 +113,7 @@ export const ApplicationComposition = Application.toComposition({
     ComingFromReactBinding,
     CoreBlockPageBinding,
     ExampleDetailBinding,
-    Home.HomeBinding,
+    HomeBinding,
     MobileMenuDialogBinding,
     PlaygroundBinding,
     SearchBinding,

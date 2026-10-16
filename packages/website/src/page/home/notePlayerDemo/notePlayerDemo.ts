@@ -12,7 +12,7 @@ import {
   String,
   pipe,
 } from 'effect'
-import { FieldValidation, Update } from 'foldkit'
+import { FieldValidation } from 'foldkit'
 import { Html, inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
 import notePlayerDemoCodeHtml from 'virtual:note-player-demo-code'
@@ -123,8 +123,6 @@ const DelayAdvanceNotePlayerPhase = NotePlayerDemo.command(
     },
   },
 )
-
-export type UpdateRequirements = Update.RequirementsOf<typeof update>
 
 const enterNoteCommandPhase = (
   model: Model,

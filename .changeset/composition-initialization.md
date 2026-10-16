@@ -5,13 +5,13 @@
 
 Declare child startup inputs beside their Bindings and assemble their initial Models and Commands through the owning Composition. A completed Block already carries its initializer; the parent now supplies the startup policy without repeating Model placement and Command collection.
 
-Use `init: true` when the child's init accepts no arguments. Use `init: { args }` when it needs inputs. The callback returns the exact child init argument tuple through Effect's `Tuple.make(...)`. An optional field returns `Option<tuple>` so the parent can select absence without calling child init.
+A required exact direct field initializes automatically when the child's initializer can be called without arguments. Use `init: { args }` when it needs inputs, or `init: false` when the parent supplies the initial field. Optional, keyed, and accessor storage remains parent-owned when `init` is omitted. Select automatic optional presence with `Option<tuple>` and initial keyed membership with `init.occurrences`. Ordinary tuple literals retain the child's exact contextual argument types.
 
-Author the complete startup plan with `ApplicationComposition.init` or `FeatureComposition.init`. The callback supplies shared child input through `startup`, returns fields owned by the parent, and may list Commands and startup Steps. It does not construct Layers or execute Commands.
+Author the complete startup plan with `ApplicationComposition.init` or `FeatureComposition.init`. Add a `Startup` Schema to the parent Definition when Binding selectors share decoded input. The callback supplies that value through `startup`, returns fields owned by the parent, and may list Commands and startup Steps. This remains the existing Composition startup boundary; it does not add a Runtime phase, construct Layers, or execute Commands.
 
 ## Declare startup beside the Binding
 
-Before, manually initialize a registered child, put its Model into the parent, and retain its Commands:
+An interim Binding prototype manually initialized a registered child, put its Model into the parent, and retained its Commands:
 
 ```ts
 import { SettingsBinding } from './composition'
@@ -32,13 +32,26 @@ export const init = Application.init((flags: Flags) => {
 })
 ```
 
-After, declare those inputs with the Binding in composition.ts:
+After, give the Application Definition its shared startup contract:
 
 ```ts
-import { Tuple } from 'effect'
+import { defineApplication } from 'foldkit'
 
+import { Flags } from './flags'
+import { Message } from './message'
+import { Model } from './model'
+
+export const Application = defineApplication({
+  Model,
+  Message,
+  Startup: Flags,
+})
+```
+
+Then declare the child inputs with the Binding in composition.ts. The Definition's `Startup` Schema contextually types the selector:
+
+```ts
 import { Application } from './definition'
-import type { Flags } from './flags'
 import { Message } from './message'
 import * as Settings from './settings'
 
@@ -46,7 +59,7 @@ export const SettingsBinding = Application.bindChild(Settings.block, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
   init: {
-    args: (flags: Flags) => Tuple.make({ theme: flags.savedTheme }),
+    args: flags => [{ theme: flags.savedTheme }],
   },
 })
 
@@ -73,14 +86,23 @@ The assembler calls selected child initializers once in `childBindings` order an
 
 The final Model determines active occurrences. Init Commands for children absent or gated by `presentWhen` are omitted. `subscriptions.when` only gates Subscription Streams. A boot Step may update initialized child state without discarding its init Commands.
 
-A Binding without an `init` policy leaves its Model field under parent ownership. Use that form for custom storage and dynamic children created later in update.
+When a child initializer takes no arguments, a required direct field needs no `init` property:
+
+```ts
+const SearchBinding = Application.bindChild(Search.block, {
+  field: 'search',
+  parentMessage: Message.GotSearchMessage,
+})
+```
+
+Use `init: false` when that required direct field is parent-owned at startup. Omit `init` for parent-owned optional, keyed, and accessor storage. Use the explicit selector forms when Composition should choose optional presence or keyed occurrences automatically.
 
 ## Select initial keyed instances
 
 A keyed-array Binding can select its initial instances with `init.occurrences` and construct its stored items with `init.toItem`. Each occurrence has a stable key and the exact child init argument tuple. The assembler calls child init once per occurrence and lifts its Commands through that key. For a direct array, `toItem` returns the exact initialized child Model with the planned key. For a wrapped array, it returns the parent-owned wrapper containing that exact child Model and key.
 
 ```ts
-import { Array, Option, Tuple } from 'effect'
+import { Array, Option } from 'effect'
 
 import { Application } from './definition'
 import { Message } from './message'
@@ -102,7 +124,7 @@ const CountersBinding = Application.bindChild(Counter.block, {
     occurrences: () =>
       Array.makeBy(INITIAL_COUNTER_COUNT, counterId => ({
         key: `counter-${counterId}`,
-        args: Tuple.make(),
+        args: [],
       })),
     toItem: ({ key }, counter) => CounterInstance.make({ id: key, counter }),
   },
@@ -119,8 +141,8 @@ const init = ApplicationComposition.init(() => ({
 }))
 ```
 
-The occurrence plan is validated before any child initializes. Duplicate keys, non-array `args`, and wrappers that change their planned key are rejected at runtime. Tuple length and element types are checked by the compiler; init arguments are not decoded at runtime. `Option.none()` from `fromParentMessage.args` ignores a stale or inactive keyed Message without changing the Model. General keyed accessor storage remains explicit; this adapter does not add HashMap initialization.
+The occurrence plan is validated before any child initializes. Duplicate keys, non-array `args`, and wrappers that change their planned key are rejected at runtime. TypeScript checks tuple length and element types. JavaScript runtime metadata cannot reconstruct which initializer parameters were required, optional, defaulted, or rest parameters. `Option.none()` from `fromParentMessage.args` ignores a stale or inactive keyed Message without changing the Model. General keyed accessor storage remains explicit; this adapter does not add HashMap initialization.
 
 ## Name child Bindings explicitly
 
-Register child Bindings under `childBindings` rather than `children`. Name constructed values `SettingsBinding`, `HomeBinding`, and similar PascalCase names. Model and DOM fields named `children` are unaffected. Feature and extracted policy namespaces keep their feature names, such as `Home`; an extracted factory remains `Home.bind(...)`.
+Register child Bindings under `childBindings` rather than `children`. Name constructed values `SettingsBinding`, `HomeBinding`, and similar PascalCase names. Model and DOM fields named `children` are unaffected. Assembly modules import extracted policies directly by those names, and Composition barrels re-export the actual values. Use a factory only when the caller supplies configuration needed to construct the Binding.

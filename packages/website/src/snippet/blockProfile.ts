@@ -26,7 +26,7 @@ export const SettingsBinding = Application.bindChild(Settings.block, {
     args: (model, { message }) => Option.some([message, model.currentUser]),
   },
   outMessage: { fold: foldSettingsOutMessage },
-  init: true,
+  init: { args: () => Option.some([]) },
 })
 
 export const ApplicationComposition = Application.toComposition({

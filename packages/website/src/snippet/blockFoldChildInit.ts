@@ -1,6 +1,6 @@
-import { Schema, Tuple } from 'effect'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
-import { Profile } from './definition'
 import { Message } from './message'
 import { Model } from './model'
 import * as Settings from './settings'
@@ -11,11 +11,13 @@ const Startup = Schema.Struct({
 })
 type Startup = typeof Startup.Type
 
+const Profile = Block.define('Profile', { Model, Message, Startup })
+
 const SettingsBinding = Profile.bindChild(Settings.block, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
   init: {
-    args: ({ savedTheme }: Startup) => Tuple.make({ theme: savedTheme }),
+    args: ({ savedTheme }) => [{ theme: savedTheme }],
   },
 })
 

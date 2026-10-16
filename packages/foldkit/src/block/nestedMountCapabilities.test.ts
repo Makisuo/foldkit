@@ -40,6 +40,7 @@ const MountCapabilityMiddle = define('MountCapabilityMiddle', {
 const LeafBinding = MountCapabilityMiddle.bindChild(leafBlock, {
   field: 'leaf',
   parentMessage: MiddleMessage.GotLeafMessage,
+  init: false,
 })
 const middleRegistered = MountCapabilityMiddle.toComposition({
   childBindings: [LeafBinding],
@@ -75,6 +76,7 @@ const MountCapabilityRoot = define('MountCapabilityRoot', {
 const MiddleBinding = MountCapabilityRoot.bindChild(middleBlock, {
   field: 'middle',
   parentMessage: RootMessage.GotMiddleMessage,
+  init: false,
 })
 const rootRegistered = MountCapabilityRoot.toComposition({
   childBindings: [MiddleBinding],

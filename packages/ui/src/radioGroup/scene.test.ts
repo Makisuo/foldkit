@@ -59,6 +59,7 @@ const foldRadioGroupOutMessage = RadioGroupOutMessage.match<
 const RadioGroupBinding = RadioGroupScene.bindChild(TestRadioGroup, {
   field: 'radioGroup',
   parentMessage: Message.GotRadioGroupMessage,
+  init: false,
   outMessage: { fold: foldRadioGroupOutMessage },
 })
 

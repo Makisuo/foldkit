@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Duration, Effect, Match, Number, Schema, pipe } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { Html, inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
 import demoCodeHtml from 'virtual:counter-demo-code'
@@ -56,8 +56,6 @@ export const DelayAdvanceAsyncCounterPhase = AsyncCounterDemo.command(
 )
 
 export const EffectsLayer = DelayAdvanceAsyncCounterPhase.layer
-
-export type UpdateRequirements = Update.RequirementsOf<typeof update>
 
 const prependToLog =
   (entry: string) =>

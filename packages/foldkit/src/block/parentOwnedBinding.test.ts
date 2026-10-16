@@ -122,6 +122,7 @@ const DirectChildBinding = Parent.bindChild(ChildBlock, {
   fromParentMessage: false,
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
+  init: false,
   outMessage: { fold: foldChildOutMessage },
 })
 
@@ -271,6 +272,7 @@ const GenericParent = define('ParentOwnedGenericParent', {
 const GenericChoiceBinding = GenericParent.bindChild(GenericChoice.block, {
   field: 'choice',
   parentMessage: GenericParentMessage.GotChoiceMessage,
+  init: false,
   outMessage: {
     fold: outMessage =>
       GenericChoice.OutMessage.match<

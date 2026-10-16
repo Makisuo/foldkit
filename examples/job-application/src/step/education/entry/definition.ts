@@ -41,4 +41,5 @@ export const EducationEntry = Block.define('EducationEntry', {
   Model,
   Message,
   OutMessage,
+  Startup: Schema.String,
 })

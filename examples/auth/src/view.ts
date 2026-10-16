@@ -1,6 +1,10 @@
 import { Match } from 'effect'
 
-import { ApplicationComposition, LoggedIn, LoggedOut } from './composition'
+import {
+  ApplicationComposition,
+  LoggedInBinding,
+  LoggedOutBinding,
+} from './composition'
 import { Model } from './model'
 
 const title = (model: Model): string =>
@@ -18,14 +22,14 @@ export const view = ApplicationComposition.view((model, h) => ({
         Match.tagsExhaustive({
           LoggedOut: loggedOutModel =>
             h.block(
-              LoggedOut.LoggedOutBinding.embedView({
+              LoggedOutBinding.embedView({
                 slotId: 'logged-out',
                 model: loggedOutModel,
               }),
             ),
           LoggedIn: loggedInModel =>
             h.block(
-              LoggedIn.LoggedInBinding.embedView({
+              LoggedInBinding.embedView({
                 slotId: 'logged-in',
                 model: loggedInModel,
               }),

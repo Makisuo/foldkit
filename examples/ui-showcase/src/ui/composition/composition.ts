@@ -1,6 +1,5 @@
 import { Array, Option } from 'effect'
-import { Calendar as FoldkitCalendar, type Block, Update } from 'foldkit'
-import type { CalendarDate } from 'foldkit/calendar'
+import { type Block, Calendar as FoldkitCalendar, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import {
@@ -24,8 +23,8 @@ import { PlanRadioGroup } from '../radioGroup'
 import { DemoTabs } from '../tabs'
 import { Toast } from '../toast'
 import { ActivityVirtualList } from '../virtualList'
-import * as Animation from './animation'
-import * as DragAndDrop from './dragAndDrop'
+import { AnimationDemoBinding } from './animation'
+import { DragAndDropDemoBinding } from './dragAndDrop'
 
 const foldDialogOutMessage = Dialog.OutMessage.match<
   Update.Step<Model, Message>
@@ -265,7 +264,7 @@ export const CalendarBasicDemoBinding = Ui.bindChild(Calendar.block, {
   field: 'calendarBasicDemo',
   parentMessage: Message.GotCalendarBasicDemoMessage,
   init: {
-    args: (today: CalendarDate) => [
+    args: today => [
       {
         id: 'calendar-basic-demo',
         today,
@@ -299,7 +298,7 @@ export const DatePickerBasicDemoBinding = Ui.bindChild(DatePicker.block, {
   field: 'datePickerBasicDemo',
   parentMessage: Message.GotDatePickerBasicDemoMessage,
   init: {
-    args: (today: CalendarDate) => [
+    args: today => [
       {
         id: 'date-picker-basic-demo',
         today,
@@ -578,7 +577,6 @@ export const TooltipNoDelayDemoBinding = Ui.bindChild(Tooltip.block, {
 export const HoverIntentDemoBinding = Ui.bindChild(HoverIntent.block, {
   field: 'hoverIntentDemo',
   parentMessage: Message.GotHoverIntentDemoMessage,
-  init: true,
   outMessage: { fold: foldHoverIntentOutMessage },
 })
 
@@ -615,7 +613,7 @@ export const UiComposition = Ui.toComposition({
     NestedDialogChildDemoBinding,
     CalendarBasicDemoBinding,
     DatePickerBasicDemoBinding,
-    DragAndDrop.DragAndDropDemoBinding,
+    DragAndDropDemoBinding,
     FileDropBasicDemoBinding,
     ListboxDemoBinding,
     ListboxMultiDemoBinding,
@@ -636,7 +634,7 @@ export const UiComposition = Ui.toComposition({
     TooltipBasicDemoBinding,
     TooltipNoDelayDemoBinding,
     HoverIntentDemoBinding,
-    Animation.AnimationDemoBinding,
+    AnimationDemoBinding,
     VirtualListDemoBinding,
     VirtualListVariableDemoBinding,
   ],

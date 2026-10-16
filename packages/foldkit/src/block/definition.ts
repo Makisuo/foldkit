@@ -56,6 +56,7 @@ import {
 } from './identity.js'
 import type {
   CompositionInit,
+  ValidateChildStartup,
   ValidateUniqueInitialFields,
 } from './initialization.js'
 import { makeInit } from './initializationRuntime.js'
@@ -2595,6 +2596,7 @@ export type Definition<
   OutMessageSchema extends Schema.Codec<any, any, any, any> | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
+  StartupSchema extends AnySchema | undefined = undefined,
 > = Readonly<{
   /** @internal Runtime identity shared by the definition and completed block. */
   owner: OwnerValue
@@ -2635,16 +2637,28 @@ export type Definition<
   >
   /** Creates child Bindings fixed to this Definition's parent Model, Message,
    * and OutMessage contracts. */
-  bindChild: BindChild<ModelSchema, MessageSchema, OutMessageSchema>
+  bindChild: BindChild<
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    StartupSchema extends AnySchema ? StartupSchema['Type'] : never
+  >
   /** Registers the child and Mount graph and returns the Composition used to
    * author its view and complete its Block. */
   toComposition: ToComposition<
     OwnerValue,
     ModelSchema,
     MessageSchema,
-    OutMessageSchema
+    OutMessageSchema,
+    StartupSchema
   >
 }> &
+  (StartupSchema extends AnySchema
+    ? Readonly<{
+        /** Schema establishing the shared input type for Binding startup selectors. */
+        Startup: StartupSchema
+      }>
+    : unknown) &
   (OutMessageSchema extends Schema.Codec<any, any, any, any>
     ? Readonly<{ OutMessage: OutMessageSchema }>
     : NoOutMessage)
@@ -2721,6 +2735,7 @@ export interface ToComposition<
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
+  StartupSchema extends AnySchema | undefined = undefined,
 > {
   (): Composition<
     OwnerValue,
@@ -2743,6 +2758,10 @@ export interface ToComposition<
        * childBindings default to an empty tuple. */
       childBindings?: Children
     }> &
+      ValidateChildStartup<
+        Children,
+        StartupSchema extends AnySchema ? StartupSchema['Type'] : never
+      > &
       ValidateChildBindings<
         Children,
         ModelSchema['Type'],
@@ -2766,13 +2785,15 @@ export type Base<
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
+  StartupSchema extends AnySchema | undefined = undefined,
 > = Definition<
   OwnerValue,
   ModelSchema,
   MessageSchema,
   OutMessageSchema,
   readonly [],
-  readonly []
+  readonly [],
+  StartupSchema
 >
 
 /** Establishes Model, Message, and optional OutMessage contracts for Block
@@ -2782,6 +2803,7 @@ export interface DefineBlock<OwnerValue extends Owner<string>> {
     const ModelSchema extends AnySchema,
     const MessageSchema extends AnySchema,
     const OutMessageSchema extends AnySchema,
+    const StartupSchema extends AnySchema | undefined = undefined,
   >(
     config: Readonly<{
       /** Schema for the Block's Model. */
@@ -2790,21 +2812,35 @@ export interface DefineBlock<OwnerValue extends Owner<string>> {
       Message: MessageSchema
       /** Schema for facts the Block can report to a parent. */
       OutMessage: OutMessageSchema
+      /** Shared input Schema for Binding init selectors; this value is not stored in the Model. */
+      Startup?: StartupSchema
       mounts?: never
       childBindings?: never
     }>,
-  ): Base<OwnerValue, ModelSchema, MessageSchema, OutMessageSchema>
-  <const ModelSchema extends AnySchema, const MessageSchema extends AnySchema>(
+  ): Base<
+    OwnerValue,
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    StartupSchema
+  >
+  <
+    const ModelSchema extends AnySchema,
+    const MessageSchema extends AnySchema,
+    const StartupSchema extends AnySchema | undefined = undefined,
+  >(
     config: Readonly<{
       /** Schema for the Block's Model. */
       Model: ModelSchema
       /** Schema for facts the Block's update function handles. */
       Message: MessageSchema
+      /** Shared input Schema for Binding init selectors; this value is not stored in the Model. */
+      Startup?: StartupSchema
       OutMessage?: never
       mounts?: never
       childBindings?: never
     }>,
-  ): Base<OwnerValue, ModelSchema, MessageSchema, undefined>
+  ): Base<OwnerValue, ModelSchema, MessageSchema, undefined, StartupSchema>
 }
 
 const makeDefineView = <
@@ -3065,6 +3101,7 @@ export const makeDefinition = (
     Model: AnySchema
     Message: AnySchema
     OutMessage?: AnySchema
+    Startup?: AnySchema
     mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
     childBindings?: ReadonlyArray<AnyBinding>
   }>,
@@ -3084,6 +3121,7 @@ export const makeDefinition = (
     Model: config.Model,
     Message: config.Message,
     OutMessage: config.OutMessage,
+    Startup: config.Startup,
   }
 
   assertBindingParentContracts(parentContract, owner.id, childBindings)
@@ -3250,6 +3288,7 @@ export const makeDefinition = (
     owner,
     Model: config.Model,
     Message: config.Message,
+    ...(config.Startup === undefined ? {} : { Startup: config.Startup }),
     ...(config.OutMessage === undefined
       ? {}
       : { OutMessage: config.OutMessage }),
@@ -3273,6 +3312,7 @@ export const makeBaseDefinition = (
     Model: AnySchema
     Message: AnySchema
     OutMessage?: AnySchema
+    Startup?: AnySchema
   }>,
 ): any => {
   const base = makeDefinition(owner, config)
@@ -3305,6 +3345,7 @@ export const makeBaseDefinition = (
     owner: base.owner,
     Model: base.Model,
     Message: base.Message,
+    ...(base.Startup === undefined ? {} : { Startup: base.Startup }),
     ...(base.OutMessage === undefined ? {} : { OutMessage: base.OutMessage }),
     mounts: base.mounts,
     [LocalMountsTypeId]: base[LocalMountsTypeId],

@@ -14,9 +14,11 @@ A non-routing application or element calls `init` with no arguments. A routing a
 
 ## Assemble Child Models {#child-initialization}
 
-A completed Block carries its `init`. Declare how a child starts beside its Binding, then let the Composition call that initializer, place its Model, and collect its Commands.
+A completed Block carries its `init`. For a child stored in an exact required direct field, omit `init` when its initializer can be called without arguments. The Composition calls that initializer without arguments, places its Model, and collects its Commands automatically. When the initializer requires arguments, provide `init: { args }`. The callback is contextually typed and ordinary tuple literals preserve the child's exact init parameters.
 
-Use `init: true` when the child can initialize without arguments. Use `init: { args }` when it needs inputs. The `args` callback returns the child's exact init argument tuple. Build it with Effect's `Tuple.make(...)`, which preserves each argument's type through the Binding's overloaded forms. Ordinary array literals widen in this callback. A callback that reads shared startup input declares that input's type.
+Use `init: false` when the parent owns the required field at startup and supplies it in the init plan's `model`. For an exact `Option` field, omission also leaves presence with the parent. Choose automatic presence explicitly by returning `Option.none()` or `Option.some(args)` from `init.args`. Keyed and accessor Bindings likewise remain parent-owned when `init` is omitted; use `init.occurrences` or `init.args` when Composition should initialize them.
+
+When several selectors read the same startup input, add a `Startup` Schema to the parent Definition. `Block.define` and `defineApplication` use that Schema to contextually type each owned `init.args` and `init.occurrences` callback. Put the decoded value in the Composition init plan's `startup` field when a selector uses it. A plan with no startup-dependent selector does not need that field.
 
 The following Profile gives its Settings child a saved theme. The Binding selects the child inputs from `startup`, while the init plan supplies only the parent-owned username:
 
@@ -26,7 +28,7 @@ The following Profile gives its Settings child a saved theme. The Binding select
 
 Parent Commands appear first in the returned collection, followed by retained child init Commands and Step Commands. The Runtime executes Commands independently, so collection order does not sequence their completion.
 
-An exact Option field can select absence by returning `Option.none()` from `init.args`, or presence with `Option.some(args)`. The resulting field is `None` or `Some(childModel)`. Registration alone does not choose whether a child exists at startup.
+An exact Option field can select absence by returning `Option.none()` from `init.args`, or presence with `Option.some(args)`. The resulting field is `None` or `Some(childModel)`.
 
 The final parent Model determines which initialized occurrences are active. Init Commands for absent or `presentWhen`-inactive children are omitted. A `subscriptions.when` policy only gates Subscription Streams; it does not suppress child init Commands. Initial Steps may change the child Model without discarding its init Commands.
 
@@ -44,13 +46,13 @@ This Counter application starts three instances. Its Model declares `counters: S
 
 ::Snippet{name="initKeyedChildren" label="Initializing keyed child instances"}
 
-The assembler validates the entire occurrence plan before calling child init. Duplicate keys, invalid keys, and non-array `args` fail with a configuration error. The compiler checks tuple length and argument types; the Runtime does not decode init arguments. Each wrapper must retain its planned key. Only keys present in the final parent Model retain their init Commands; initial Steps may change their child state.
+The assembler validates the entire occurrence plan before calling child init. Duplicate keys, invalid keys, and non-array `args` fail with a configuration error. TypeScript checks tuple length and argument types. At a JavaScript boundary, the Runtime cannot reconstruct which initializer parameters were required, optional, defaulted, or rest parameters. Each wrapper must retain its planned key. Only keys present in the final parent Model retain their init Commands; initial Steps may change their child state.
 
 This startup adapter applies to exact `field` / `key` keyed arrays, with or without `childField`. General keyed accessors keep explicit initialization so their custom storage and write policy remain visible.
 
 ## Compose Startup Steps {#startup-steps}
 
-Composition-owned `init` is the application startup boundary. Foldkit does not run a special Runtime boot phase after it.
+Composition-owned `init` is the application startup boundary. The plan's `startup` value is decoded input used while assembling that boundary; it does not create a separate Runtime phase. Foldkit does not run a special Runtime boot phase after it.
 
 Put initial Steps in the plan's `steps` array. The Composition assembles the complete parent Model first, then passes each Step the Model returned by the preceding Step. It retains the child init Commands and adds the Commands returned by those Steps.
 

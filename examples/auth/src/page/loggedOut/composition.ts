@@ -5,7 +5,6 @@ import * as Login from './page/login'
 export const LoginBinding = LoggedOut.bindChild(Login.block, {
   field: 'loginModel',
   parentMessage: Message.GotLoginMessage,
-  init: true,
   outMessage: {
     forward: Login.OutMessage.match<OutMessage>({
       SucceededLogin: ({ session }) => OutMessage.SucceededLogin({ session }),

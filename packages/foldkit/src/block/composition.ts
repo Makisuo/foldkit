@@ -9,6 +9,7 @@ type RuntimeParentContract = Readonly<{
   Model: Schema.Top
   Message: Schema.Top
   OutMessage: Schema.Top | undefined
+  Startup?: Schema.Top | undefined
 }>
 
 /** @internal Direct child initialization policy retained outside the public Binding. */
@@ -174,7 +175,8 @@ export const assertBindingParentContracts = (
       (bindingParent.ownerToken !== parentContract.ownerToken ||
         bindingParent.Model !== parentContract.Model ||
         bindingParent.Message !== parentContract.Message ||
-        bindingParent.OutMessage !== parentContract.OutMessage)
+        bindingParent.OutMessage !== parentContract.OutMessage ||
+        bindingParent.Startup !== parentContract.Startup)
     ) {
       throw new Error(
         `[foldkit] Child Binding "${childBinding.placement}" belongs to a different parent Definition contract. Create it through the exact "${parentId}" Definition.bindChild method.`,

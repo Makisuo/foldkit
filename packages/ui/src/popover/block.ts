@@ -309,6 +309,7 @@ const foldAnimationOutMessage =
 const AnimationBinding = Popover.bindChild(Animation.block, {
   field: 'animation',
   parentMessage: Message.GotAnimationMessage,
+  init: false,
   outMessage: { fold: foldAnimationOutMessage },
 })
 

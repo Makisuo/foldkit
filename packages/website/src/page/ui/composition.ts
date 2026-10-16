@@ -230,7 +230,7 @@ export const CalendarBasicDemoBinding = Ui.bindChild(UiCalendar.block, {
   parentMessage: Message.GotCalendarBasicDemoMessage,
   outMessage: { fold: foldCalendarBasicDemoOutMessage },
   init: {
-    args: (today: Calendar.CalendarDate) =>
+    args: today =>
       Tuple.make({
         id: 'calendar-basic-demo',
         today,
@@ -263,7 +263,7 @@ export const DatePickerBasicDemoBinding = Ui.bindChild(DatePicker.block, {
   parentMessage: Message.GotDatePickerBasicDemoMessage,
   outMessage: { fold: foldDatePickerBasicDemoOutMessage },
   init: {
-    args: (today: Calendar.CalendarDate) =>
+    args: today =>
       Tuple.make({
         id: 'date-picker-basic-demo',
         today,
@@ -681,14 +681,12 @@ export const HoverIntentCardDemoBinding = Ui.bindChild(HoverIntent.block, {
   field: 'hoverIntentCardDemo',
   parentMessage: Message.GotHoverIntentCardDemoMessage,
   outMessage: { fold: foldHoverIntentOutMessage },
-  init: true,
 })
 
 export const HoverIntentMenuDemoBinding = Ui.bindChild(HoverIntent.block, {
   field: 'hoverIntentMenuDemo',
   parentMessage: Message.GotHoverIntentMenuDemoMessage,
   outMessage: { fold: foldHoverIntentOutMessage },
-  init: true,
 })
 
 const foldToastDemoOutMessage = Toast.OutMessage.match<

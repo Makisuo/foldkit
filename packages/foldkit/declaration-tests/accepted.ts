@@ -381,6 +381,7 @@ export const DirectChildBinding = DeclarationTestsParent.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
   fromParentMessage: false,
+  init: false,
 })
 
 export const childInspection = Block.inspectBinding(ChildBinding)

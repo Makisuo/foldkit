@@ -173,6 +173,7 @@ export const StableProjectedBinding = CompositionSafetyParent.bindChild(
 export const PlainBinding = CompositionSafetyParent.bindChild(PlainBlock, {
   field: 'plain',
   parentMessage: ParentMessage.RoutedPlainMessage,
+  init: false,
 })
 export const ParentCommandsBinding = CompositionSafetyParent.bindChild(
   PlainBlock,

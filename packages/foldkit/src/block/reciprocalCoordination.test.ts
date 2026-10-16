@@ -135,6 +135,7 @@ const HomeBinding = Application.bindChild(HomeBlock, {
   field: 'home',
   presentWhen: model => model.route._tag === 'Home',
   parentMessage: Message.GotHomeMessage,
+  init: false,
   outMessage: {
     fold: HomeOutMessage.match({
       JoinedRoom: ({ roomId, username }) =>

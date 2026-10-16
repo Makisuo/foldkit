@@ -43,4 +43,5 @@ export type Message = typeof Message.Type
 export const PersonalInfo = Block.define('PersonalInfo', {
   Model,
   Message,
+  Startup: CalendarDate,
 })

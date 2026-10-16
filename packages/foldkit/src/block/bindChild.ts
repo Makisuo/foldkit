@@ -362,11 +362,14 @@ type ValidateInitialContext<Context> = [Context] extends [never]
 
 type InitialResolverContext<
   Resolver extends (...args: ReadonlyArray<any>) => any,
+  Startup,
 > =
   Parameters<Resolver> extends readonly []
     ? never
     : Parameters<Resolver> extends readonly [infer Context]
-      ? Context
+      ? [Startup] extends [never]
+        ? Context
+        : Startup
       : never
 
 type ValidateInitialResolver<
@@ -478,57 +481,51 @@ type DirectBindingResult<
   Policy,
   Initial,
   FromParentMessage,
-> =
-  Initial extends Readonly<{ init: true }>
-    ? InitializedBinding<
-        DirectBindingReturn<
-          BlockValue,
-          ParentModelSchema,
-          ParentMessageSchema,
-          ParentOutMessageSchema,
-          Mapper,
-          Placement,
-          Policy,
-          FromParentMessage
-        >,
-        BlockValue,
-        ParentModelSchema['Type'],
-        Field,
-        Placement,
-        never
-      >
+  Startup,
+> = (
+  Initial extends Readonly<{ init: false }>
+    ? false
     : Initial extends Readonly<{
-          init: Readonly<{
-            args: infer Resolver extends (...args: ReadonlyArray<any>) => any
-          }>
+          init: true | Readonly<{ args: (...args: ReadonlyArray<any>) => any }>
         }>
-      ? InitializedBinding<
-          DirectBindingReturn<
-            BlockValue,
-            ParentModelSchema,
-            ParentMessageSchema,
-            ParentOutMessageSchema,
-            Mapper,
-            Placement,
-            Policy,
-            FromParentMessage
-          >,
-          BlockValue,
-          ParentModelSchema['Type'],
-          Field,
-          Placement,
-          InitialResolverContext<Resolver>
-        >
-      : DirectBindingReturn<
-          BlockValue,
-          ParentModelSchema,
-          ParentMessageSchema,
-          ParentOutMessageSchema,
-          Mapper,
-          Placement,
-          Policy,
-          FromParentMessage
-        >
+      ? true
+      : [Initial] extends [undefined]
+        ? Equal<ParentModelSchema['Type'][Field], BlockValue['Model']['Type']>
+        : false
+) extends true
+  ? InitializedBinding<
+      DirectBindingReturn<
+        BlockValue,
+        ParentModelSchema,
+        ParentMessageSchema,
+        ParentOutMessageSchema,
+        Mapper,
+        Placement,
+        Policy,
+        FromParentMessage
+      >,
+      BlockValue,
+      ParentModelSchema['Type'],
+      Field,
+      Placement,
+      Initial extends Readonly<{
+        init: Readonly<{
+          args: infer Resolver extends (...args: ReadonlyArray<any>) => any
+        }>
+      }>
+        ? InitialResolverContext<Resolver, Startup>
+        : never
+    >
+  : DirectBindingReturn<
+      BlockValue,
+      ParentModelSchema,
+      ParentMessageSchema,
+      ParentOutMessageSchema,
+      Mapper,
+      Placement,
+      Policy,
+      FromParentMessage
+    >
 
 type AccessorBindingResult<
   BlockValue extends BindableBlock,
@@ -541,6 +538,7 @@ type AccessorBindingResult<
   Policy,
   Resolver extends (...args: ReadonlyArray<any>) => any,
   FromParentMessage,
+  Startup,
 > = InitializedBinding<
   AccessorBindingReturn<
     BlockValue,
@@ -559,7 +557,7 @@ type AccessorBindingResult<
     keyof ParentModelSchema['Type'] & string
   >,
   Placement,
-  InitialResolverContext<Resolver>
+  InitialResolverContext<Resolver, Startup>
 >
 
 /** @internal One keyed child occurrence assembled during initialization. */
@@ -601,13 +599,14 @@ type InitializedKeyedBinding<
   Field extends keyof ParentModel & string,
   Placement extends string,
   Occurrences extends (...args: ReadonlyArray<any>) => any,
+  Startup,
 > = InitializedBinding<
   BindingValue,
   BlockValue,
   ParentModel,
   Field,
   Placement,
-  InitialResolverContext<Occurrences>
+  InitialResolverContext<Occurrences, Startup>
 >
 
 type CanonicalParentMessageConstructors<
@@ -710,9 +709,9 @@ type ValidateFromParentMessageConstructor<
               : InvalidBindChildConfig<'fromParentMessage.parentMessage must be a parent Message constructor'>
     : readonly []
 
-type ValidateInitialKeys<Config> =
-  Config extends Readonly<{ init: infer Initial }>
-    ? Initial extends true
+type ValidateInitialKeys<Config> = 'init' extends keyof Config
+  ? Config extends Readonly<{ init: infer Initial }>
+    ? Initial extends boolean
       ? readonly []
       : Exclude<
             keyof Initial,
@@ -727,7 +726,8 @@ type ValidateInitialKeys<Config> =
               >
             }>
           >
-    : readonly []
+    : InvalidBindChildConfig<'Binding init must be one required, concrete policy'>
+  : readonly []
 
 type ValidateProjectedInitialModel<ParentModel, Config> =
   Config extends Readonly<{
@@ -918,31 +918,52 @@ type ValidateStaticInitialPolicy<
     ? ValidationResult<
         ValidateInitialResolver<Occurrences> & ValidateWrappedToItem<ToItem>
       >
-    : Config extends Readonly<{
-          field: infer Field extends keyof ParentModel & string
-          init: unknown
-        }>
-      ? ValidationResult<
-          ValidateDirectInitialPolicy<
-            Readonly<{ init: Config['init'] }>,
-            ParentModel,
-            Field,
-            BlockValue['Model']['Type']
-          >
-        >
+    : Config extends Readonly<{ key: unknown; init: unknown }>
+      ? InvalidBindChildConfig<'Keyed child initialization requires an occurrences policy'>
       : Config extends Readonly<{
-            init: Readonly<{
-              args: infer Resolver extends (...args: ReadonlyArray<any>) => any
-              model: (...args: ReadonlyArray<any>) => infer ProjectedModel
-            }>
+            field: infer Field extends keyof ParentModel & string
+            init: unknown
           }>
-        ? ValidationResult<
-            ValidateInitialResolver<Resolver> &
-              ValidateAccessorInitialProjection<ProjectedModel, ParentModel>
-          >
-        : Config extends Readonly<{ init: unknown }>
-          ? InvalidBindChildConfig<'Binding init policy does not match its storage mode'>
-          : readonly []
+        ? Config['init'] extends true
+          ? Equal<ParentModel[Field], BlockValue['Model']['Type']> extends true
+            ? [] extends Parameters<BlockValue['init']>
+              ? readonly []
+              : InvalidBindChildConfig<'A child requiring init arguments needs init.args or init: false'>
+            : InvalidBindChildConfig<'Optional child initialization requires an explicit presence policy'>
+          : ValidationResult<
+              ValidateDirectInitialPolicy<
+                Readonly<{ init: Config['init'] }>,
+                ParentModel,
+                Field,
+                BlockValue['Model']['Type']
+              >
+            >
+        : Config extends Readonly<{
+              init: Readonly<{
+                args: infer Resolver extends (
+                  ...args: ReadonlyArray<any>
+                ) => any
+                model: (...args: ReadonlyArray<any>) => infer ProjectedModel
+              }>
+            }>
+          ? ValidationResult<
+              ValidateInitialResolver<Resolver> &
+                ValidateAccessorInitialProjection<ProjectedModel, ParentModel>
+            >
+          : Config extends Readonly<{ init: unknown }>
+            ? InvalidBindChildConfig<'Binding init policy does not match its storage mode'>
+            : Config extends Readonly<{
+                  field: infer Field extends keyof ParentModel & string
+                }>
+              ? Equal<
+                  ParentModel[Field],
+                  BlockValue['Model']['Type']
+                > extends true
+                ? [] extends Parameters<BlockValue['init']>
+                  ? readonly []
+                  : InvalidBindChildConfig<'A child requiring init arguments needs init.args or init: false'>
+                : readonly []
+              : readonly []
 
 type ValidateOutMessagePolicyPresence<BlockValue extends BindableBlock, Keys> =
   BlockValue extends Readonly<{ OutMessage: Readonly<{ Type: unknown }> }>
@@ -1292,7 +1313,7 @@ interface BindChildConfigDocumentation {
   outMessage: unknown
   /** Optional activation gates that affect only child Subscriptions while the child is present. */
   subscriptions: unknown
-  /** Declares child startup inputs for Composition.init. Selectors run on initializer invocation; handlers execute later in the Runtime. */
+  /** Declares startup inputs or opts out with false. A required direct field initializes without arguments by default. Optional and keyed children need explicit presence/occurrence policies for automatic startup. Selectors run on initializer invocation; handlers execute later in the Runtime. */
   init: unknown
 }
 
@@ -1376,19 +1397,24 @@ type KeyedSubscriptionsContext<
 }>
 
 type InitialContext<
+  Keys,
   BlockValue extends BindableBlock,
   ParentModelSchema extends AnySchema,
   Field extends string,
   KeyField extends string,
   InitialArguments extends ReadonlyArray<unknown>,
+  Startup,
 > =
+  | ('field' extends Keys ? ('key' extends Keys ? never : false) : never)
   | ([] extends Parameters<BlockValue['init']>
       ? true & Readonly<{ args?: never }>
       : never)
   | Readonly<{
       /** Selects the exact child init tuple; an Option selector may leave direct optional storage absent. */
       args: (
-        ...context: ReadonlyArray<any>
+        ...context: [Startup] extends [never]
+          ? ReadonlyArray<any>
+          : [startup: Startup]
       ) =>
         | Readonly<Parameters<BlockValue['init']>>
         | Option.Option<Readonly<Parameters<BlockValue['init']>>>
@@ -1399,7 +1425,9 @@ type InitialContext<
   | Readonly<{
       /** Selects the exact child init tuple; an Option selector may leave direct optional storage absent. */
       args: (
-        ...context: ReadonlyArray<any>
+        ...context: [Startup] extends [never]
+          ? ReadonlyArray<any>
+          : [startup: Startup]
       ) => Readonly<Parameters<BlockValue['init']>>
       /** Projects the initialized child into exactly one declared parent storage field. */
       model: (
@@ -1414,7 +1442,9 @@ type InitialContext<
   | Readonly<{
       /** Selects initial keyed occurrences in their Command collection order. */
       occurrences: (
-        ...context: ReadonlyArray<any>
+        ...context: [Startup] extends [never]
+          ? ReadonlyArray<any>
+          : [startup: Startup]
       ) => ReadonlyArray<
         InitialWrappedOccurrence<
           BlockValue,
@@ -1505,6 +1535,7 @@ type BindChildContextualProperties<
   Mapper,
   Constructor,
   InitialArguments extends ReadonlyArray<unknown>,
+  Startup,
 > = {
   [
     Key in keyof Pick<BindChildConfigDocumentation, Keys>
@@ -1522,11 +1553,13 @@ type BindChildContextualProperties<
       >
     : Key extends 'init'
       ? InitialContext<
+          Keys,
           BlockValue,
           ParentModelSchema,
           Field,
           KeyField,
-          InitialArguments
+          InitialArguments,
+          Startup
         >
       : Key extends 'placement'
         ? string
@@ -1727,6 +1760,7 @@ type BindChildResultForConfig<
   ParentMessageSchema extends AnySchema,
   ParentOutMessageSchema extends AnySchema | undefined,
   Config,
+  Startup,
 > =
   Config extends Readonly<{
     readAll: (...args: ReadonlyArray<any>) => ReadonlyArray<unknown>
@@ -1763,7 +1797,8 @@ type BindChildResultForConfig<
             ParentModelSchema['Type'],
             Field,
             PlacementOfConfig<BlockValue, Config>,
-            OccurrencesOfConfig<Config>
+            OccurrencesOfConfig<Config>,
+            Startup
           >
         : KeyedBindingResultForConfig<
             BlockValue,
@@ -1796,7 +1831,8 @@ type BindChildResultForConfig<
               ParentModelSchema['Type'],
               Field,
               PlacementOfConfig<BlockValue, Config>,
-              OccurrencesOfConfig<Config>
+              OccurrencesOfConfig<Config>,
+              Startup
             >
           : KeyedBindingResultForConfig<
               BlockValue,
@@ -1820,7 +1856,8 @@ type BindChildResultForConfig<
               PlacementOfConfig<BlockValue, Config>,
               PolicyOfConfig<Config>,
               InitialOfConfig<Config>,
-              FromParentMessageOfConfig<Config>
+              FromParentMessageOfConfig<Config>,
+              Startup
             >
           : Config extends Readonly<{
                 init: Readonly<{
@@ -1837,7 +1874,8 @@ type BindChildResultForConfig<
                 PlacementOfConfig<BlockValue, Config>,
                 PolicyOfConfig<Config>,
                 ResolverOfConfig<Config>,
-                FromParentMessageOfConfig<Config>
+                FromParentMessageOfConfig<Config>,
+                Startup
               >
             : AccessorBindingReturn<
                 BlockValue,
@@ -1862,6 +1900,7 @@ export interface BindChild<
   ParentModelSchema extends AnySchema,
   ParentMessageSchema extends AnySchema,
   ParentOutMessageSchema extends AnySchema | undefined = undefined,
+  Startup = never,
 > {
   <
     const BlockValue extends BindableBlock,
@@ -1896,7 +1935,8 @@ export interface BindChild<
         ChildField,
         Mapper,
         Constructor,
-        InitialArguments
+        InitialArguments,
+        Startup
       > &
       Readonly<{
         readAll?: never
@@ -1965,7 +2005,8 @@ export interface BindChild<
     ParentModelSchema,
     ParentMessageSchema,
     ParentOutMessageSchema,
-    Source
+    Source,
+    Startup
   >
   <
     const BlockValue extends BindableBlock,
@@ -2254,11 +2295,6 @@ const registerDirectInitialPolicy = (
   parentModel: AnySchema,
   config: object,
 ): void => {
-  if (!Object.hasOwn(config, 'init')) {
-    return
-  }
-
-  const init = Reflect.get(config, 'init')
   const field = Reflect.get(config, 'field')
   if (!Predicate.isString(field)) {
     throw new Error(
@@ -2266,16 +2302,38 @@ const registerDirectInitialPolicy = (
     )
   }
 
+  const fields = Reflect.get(parentModel, 'fields')
+  const fieldSchema = Predicate.isObject(fields)
+    ? Reflect.get(fields, field)
+    : undefined
+  const isOptional = !hasSameDecodedSchemaShape(fieldSchema, block.Model)
+  const isExplicit = Object.hasOwn(config, 'init')
+
+  if (!isExplicit && isOptional) {
+    return
+  }
+
+  const init = isExplicit ? Reflect.get(config, 'init') : true
+  if (init === false) {
+    return
+  }
+
   if (init !== true && !Predicate.isObject(init)) {
     throw new Error(
-      `[foldkit] Direct Binding field "${field}" init must be true or an object with an args function.`,
+      `[foldkit] Direct Binding field "${field}" init must be false, true, or an object with an args function.`,
+    )
+  }
+
+  if (init === true && isOptional) {
+    throw new Error(
+      `[foldkit] Direct optional Binding field "${field}" requires an explicit init.args presence policy.`,
     )
   }
 
   const argumentResolver = init === true ? () => [] : Reflect.get(init, 'args')
   if (!Predicate.isFunction(argumentResolver)) {
     throw new Error(
-      `[foldkit] Direct Binding field "${field}" init must be true or an object with an args function.`,
+      `[foldkit] Direct Binding field "${field}" init must be false, true, or an object with an args function.`,
     )
   }
 
@@ -2288,12 +2346,6 @@ const registerDirectInitialPolicy = (
       }
     }
   }
-
-  const fields = Reflect.get(parentModel, 'fields')
-  const fieldSchema = Predicate.isObject(fields)
-    ? Reflect.get(fields, field)
-    : undefined
-  const isOptional = !hasSameDecodedSchemaShape(fieldSchema, block.Model)
 
   registerBindingInitialPolicy(binding, {
     kind: 'Direct',
@@ -2533,6 +2585,7 @@ export const makeBindChild = <
     Model: ParentModelSchema
     Message: ParentMessageSchema
     OutMessage: ParentOutMessageSchema
+    Startup?: AnySchema | undefined
   }>,
 ): BindChild<ParentModelSchema, ParentMessageSchema, ParentOutMessageSchema> =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */

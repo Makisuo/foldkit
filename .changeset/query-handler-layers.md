@@ -108,7 +108,6 @@ const Application = defineApplication({ Model, Message })
 const PostsBinding = Application.bindChild(postsQuery, {
   field: 'posts',
   parentMessage: Message.GotPostsMessage,
-  init: true,
 })
 
 export const ApplicationComposition = Application.toComposition({

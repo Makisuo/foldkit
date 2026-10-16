@@ -1,11 +1,8 @@
 import type { Block } from 'foldkit'
 
 import { Application } from '../definition'
-import * as Home from './home'
-import * as Room from './room'
-
-export const RoomBinding = Room.RoomBinding
-export const HomeBinding = Home.bind({ informJoined: RoomBinding.informJoined })
+import { HomeBinding } from './home'
+import { RoomBinding } from './room'
 
 export const ApplicationComposition = Application.toComposition({
   childBindings: [HomeBinding, RoomBinding],

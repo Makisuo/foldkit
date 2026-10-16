@@ -117,6 +117,7 @@ export const DirectChildBinding = Parent.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
   fromParentMessage: false,
+  init: false,
   outMessage: { fold: foldChildOutMessage },
 })
 export const directChildInspection = Block.inspectBinding(DirectChildBinding)

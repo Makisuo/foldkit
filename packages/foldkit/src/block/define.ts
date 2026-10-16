@@ -3,6 +3,7 @@ import type { Schema } from 'effect'
 import type * as Mount from '../mount/index.js'
 import type { AnyBinding } from './binding.js'
 import type { Base, Composition, ValidateChildBindings } from './definition.js'
+import type { ValidateChildStartup } from './initialization.js'
 import {
   type DefineCommand,
   type DefineMount,
@@ -34,6 +35,7 @@ export interface AuthoringToComposition<
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
   Concrete extends boolean = true,
+  StartupSchema extends AnySchema | undefined = undefined,
 > {
   (): Composition<
     Owner<Id, Concrete>,
@@ -56,6 +58,10 @@ export interface AuthoringToComposition<
        * childBindings default to an empty tuple. */
       childBindings?: Children
     }> &
+      ValidateChildStartup<
+        Children,
+        StartupSchema extends AnySchema ? StartupSchema['Type'] : never
+      > &
       ValidateChildBindings<
         Children,
         ModelSchema['Type'],
@@ -80,8 +86,15 @@ export type AuthoringDefinition<
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
   Concrete extends boolean = true,
+  StartupSchema extends AnySchema | undefined = undefined,
 > = Omit<
-  Base<Owner<Id, Concrete>, ModelSchema, MessageSchema, OutMessageSchema>,
+  Base<
+    Owner<Id, Concrete>,
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    StartupSchema
+  >,
   'toComposition'
 > &
   Primitives<Id, MessageSchema['Type']> &
@@ -93,7 +106,8 @@ export type AuthoringDefinition<
       ModelSchema,
       MessageSchema,
       OutMessageSchema,
-      Concrete
+      Concrete,
+      StartupSchema
     >
   }>
 
@@ -107,6 +121,7 @@ export interface DefineContracts<
     const ModelSchema extends AnySchema,
     const MessageSchema extends AnySchema,
     const OutMessageSchema extends AnySchema,
+    const StartupSchema extends AnySchema | undefined = undefined,
   >(
     config: Readonly<{
       /** Schema for the Block's Model. */
@@ -115,6 +130,8 @@ export interface DefineContracts<
       Message: MessageSchema
       /** Schema for facts the Block can report to a parent. */
       OutMessage: OutMessageSchema
+      /** Shared input Schema for Binding startup selectors, separate from Model state. */
+      Startup?: StartupSchema
       mounts?: never
       childBindings?: never
     }>,
@@ -123,19 +140,33 @@ export interface DefineContracts<
     ModelSchema,
     MessageSchema,
     OutMessageSchema,
-    Concrete
+    Concrete,
+    StartupSchema
   >
-  <const ModelSchema extends AnySchema, const MessageSchema extends AnySchema>(
+  <
+    const ModelSchema extends AnySchema,
+    const MessageSchema extends AnySchema,
+    const StartupSchema extends AnySchema | undefined = undefined,
+  >(
     config: Readonly<{
       /** Schema for the Block's Model. */
       Model: ModelSchema
       /** Schema for facts the Block's update function handles. */
       Message: MessageSchema
+      /** Shared input Schema for Binding startup selectors, separate from Model state. */
+      Startup?: StartupSchema
       OutMessage?: never
       mounts?: never
       childBindings?: never
     }>,
-  ): AuthoringDefinition<Id, ModelSchema, MessageSchema, undefined, Concrete>
+  ): AuthoringDefinition<
+    Id,
+    ModelSchema,
+    MessageSchema,
+    undefined,
+    Concrete,
+    StartupSchema
+  >
 }
 
 /** A Block identity whose owned effects can be declared before a generic
@@ -165,6 +196,7 @@ export function define<
   const ModelSchema extends AnySchema,
   const MessageSchema extends AnySchema,
   const OutMessageSchema extends AnySchema,
+  const StartupSchema extends AnySchema | undefined = undefined,
 >(
   id: (Id extends '' | `${string}/${string}` | `${string}::${string}`
     ? never
@@ -174,16 +206,26 @@ export function define<
     Model: ModelSchema
     Message: MessageSchema
     OutMessage: OutMessageSchema
+    /** Shared input Schema for Binding startup selectors, separate from Model state. */
+    Startup?: StartupSchema
     mounts?: never
     childBindings?: never
   }>,
-): AuthoringDefinition<Id, ModelSchema, MessageSchema, OutMessageSchema, true>
+): AuthoringDefinition<
+  Id,
+  ModelSchema,
+  MessageSchema,
+  OutMessageSchema,
+  true,
+  StartupSchema
+>
 /** Defines one Block's identity, Schemas, typed authoring helpers, and owned
  * effect declarations. The returned Definition is passive configuration. */
 export function define<
   const Id extends string,
   const ModelSchema extends AnySchema,
   const MessageSchema extends AnySchema,
+  const StartupSchema extends AnySchema | undefined = undefined,
 >(
   id: (Id extends '' | `${string}/${string}` | `${string}::${string}`
     ? never
@@ -192,11 +234,20 @@ export function define<
   config: Readonly<{
     Model: ModelSchema
     Message: MessageSchema
+    /** Shared input Schema for Binding startup selectors, separate from Model state. */
+    Startup?: StartupSchema
     OutMessage?: never
     mounts?: never
     childBindings?: never
   }>,
-): AuthoringDefinition<Id, ModelSchema, MessageSchema, undefined, true>
+): AuthoringDefinition<
+  Id,
+  ModelSchema,
+  MessageSchema,
+  undefined,
+  true,
+  StartupSchema
+>
 /** Defines one Block's identity, Schemas, typed authoring helpers, and owned
  * effect declarations. The returned Definition is passive configuration. */
 export function define<
@@ -204,6 +255,7 @@ export function define<
   const ModelSchema extends AnySchema,
   const MessageSchema extends AnySchema,
   const OutMessageSchema extends AnySchema,
+  const StartupSchema extends AnySchema | undefined = undefined,
 >(
   id: Id extends '' | `${string}/${string}` | `${string}::${string}`
     ? never
@@ -212,16 +264,26 @@ export function define<
     Model: ModelSchema
     Message: MessageSchema
     OutMessage: OutMessageSchema
+    /** Shared input Schema for Binding startup selectors, separate from Model state. */
+    Startup?: StartupSchema
     mounts?: never
     childBindings?: never
   }>,
-): AuthoringDefinition<Id, ModelSchema, MessageSchema, OutMessageSchema, false>
+): AuthoringDefinition<
+  Id,
+  ModelSchema,
+  MessageSchema,
+  OutMessageSchema,
+  false,
+  StartupSchema
+>
 /** Defines one Block's identity, Schemas, typed authoring helpers, and owned
  * effect declarations. The returned Definition is passive configuration. */
 export function define<
   const Id extends string,
   const ModelSchema extends AnySchema,
   const MessageSchema extends AnySchema,
+  const StartupSchema extends AnySchema | undefined = undefined,
 >(
   id: Id extends '' | `${string}/${string}` | `${string}::${string}`
     ? never
@@ -229,17 +291,27 @@ export function define<
   config: Readonly<{
     Model: ModelSchema
     Message: MessageSchema
+    /** Shared input Schema for Binding startup selectors, separate from Model state. */
+    Startup?: StartupSchema
     OutMessage?: never
     mounts?: never
     childBindings?: never
   }>,
-): AuthoringDefinition<Id, ModelSchema, MessageSchema, undefined, false>
+): AuthoringDefinition<
+  Id,
+  ModelSchema,
+  MessageSchema,
+  undefined,
+  false,
+  StartupSchema
+>
 export function define(
   id: string,
   config?: Readonly<{
     Model: AnySchema
     Message: AnySchema
     OutMessage?: AnySchema
+    Startup?: AnySchema
   }>,
 ): any {
   const authoring = makeAuthoringContext(id)
@@ -254,6 +326,7 @@ export function define(
       Model: AnySchema
       Message: AnySchema
       OutMessage?: AnySchema
+      Startup?: AnySchema
     }>,
   ) => {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */

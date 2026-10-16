@@ -30,7 +30,6 @@ return Update.foldChildInit(Dialog.boot({ id: 'confirm' }), {
 After, declare the initial inputs and register the Binding in composition.ts. The early Application Definition lives in definition.ts:
 
 ```ts
-import { Tuple } from 'effect'
 import { Dialog } from '@foldkit/ui'
 
 import { Application } from './definition'
@@ -41,7 +40,7 @@ export const DialogBinding = Application.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
-  init: { args: () => Tuple.make({ id: 'confirm' }) },
+  init: { args: () => [{ id: 'confirm' }] },
 })
 export const ApplicationComposition = Application.toComposition({
   childBindings: [DialogBinding],

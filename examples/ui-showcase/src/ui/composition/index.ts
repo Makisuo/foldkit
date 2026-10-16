@@ -1,4 +1,4 @@
-export * as Animation from './animation'
+export { AnimationDemoBinding } from './animation'
 export {
   CalendarBasicDemoBinding,
   ComboboxDemoBinding,
@@ -39,4 +39,4 @@ export {
   VirtualListDemoBinding,
   VirtualListVariableDemoBinding,
 } from './composition'
-export * as DragAndDrop from './dragAndDrop'
+export { DragAndDropDemoBinding } from './dragAndDrop'

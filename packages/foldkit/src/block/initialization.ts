@@ -78,6 +78,27 @@ type InitialStartup<ChildBindings extends ReadonlyArray<AnyBinding>> =
         : never
     : never
 
+/** @internal Checks shared selector inputs and an optional Definition startup contract. */
+export type ValidateChildStartup<
+  ChildBindings extends ReadonlyArray<AnyBinding>,
+  Startup,
+> = [InitialStartupFunctions<ChildBindings>] extends [never]
+  ? unknown
+  : [InitialStartup<ChildBindings>] extends [never]
+    ? Readonly<{
+        'Binding startup selectors must accept one compatible startup input': never
+      }>
+    : [Startup] extends [never]
+      ? unknown
+      : [Startup, InitialStartup<ChildBindings>] extends [
+            InitialStartup<ChildBindings>,
+            Startup,
+          ]
+        ? unknown
+        : Readonly<{
+            'Binding startup selectors must match the parent Definition Startup': InitialStartup<ChildBindings>
+          }>
+
 type InitialRequirements<ChildBindings extends ReadonlyArray<AnyBinding>> =
   HasInitialBindings<ChildBindings> extends true
     ? InitialEvidenceOfBindings<ChildBindings> extends infer Evidence
@@ -116,7 +137,7 @@ type ParentOwnedModel<
     }
 
 type StartupPlan<ChildBindings extends ReadonlyArray<AnyBinding>> = [
-  InitialStartup<ChildBindings>,
+  InitialStartupFunctions<ChildBindings>,
 ] extends [never]
   ? Readonly<{
       /**

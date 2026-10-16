@@ -19,7 +19,10 @@ import {
   makeDefinition,
 } from '../block/definition.js'
 import type { DefineCompositionUpdate } from '../block/delivery.js'
-import type { CompositionInit } from '../block/initialization.js'
+import type {
+  CompositionInit,
+  ValidateChildStartup,
+} from '../block/initialization.js'
 import {
   type DefineCommand,
   type DefineMount,
@@ -330,6 +333,7 @@ export type CompletedComposition<CompositionValue, Implementation> =
 export interface ToComposition<
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
+  StartupSchema extends AnySchema | undefined = undefined,
 > {
   (): Composition<ModelSchema, MessageSchema, readonly [], readonly []>
   <
@@ -350,6 +354,10 @@ export interface ToComposition<
        */
       childBindings?: Children
     }> &
+      ValidateChildStartup<
+        Children,
+        StartupSchema extends AnySchema ? StartupSchema['Type'] : never
+      > &
       ValidateChildBindings<
         Children,
         ModelSchema['Type'],
@@ -366,6 +374,7 @@ export interface ToComposition<
 export type Definition<
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
+  StartupSchema extends AnySchema | undefined = undefined,
 > = Readonly<{
   /**
    * The root Model Schema, shared by its authoring helpers.
@@ -387,14 +396,25 @@ export type Definition<
    * Creates a passive Binding with contextual root Model and Message types.
    * The parent selects storage, Message mapping and OutMessage policy.
    */
-  bindChild: BindChild<ModelSchema, MessageSchema>
+  bindChild: BindChild<
+    ModelSchema,
+    MessageSchema,
+    undefined,
+    StartupSchema extends AnySchema ? StartupSchema['Type'] : never
+  >
   /**
    * Establishes the child and Mount graph and returns the root Composition.
    * Omitted registries are empty. This step validates passive configuration;
    * it neither constructs Layers nor starts lifecycle work.
    */
-  toComposition: ToComposition<ModelSchema, MessageSchema>
+  toComposition: ToComposition<ModelSchema, MessageSchema, StartupSchema>
 }> &
+  (StartupSchema extends AnySchema
+    ? Readonly<{
+        /** Schema establishing the shared input type for Binding startup selectors. */
+        Startup: StartupSchema
+      }>
+    : unknown) &
   AuthoringHelpers<ModelSchema, MessageSchema>
 
 /**
@@ -403,14 +423,20 @@ export type Definition<
  * toApplication or toElement. The Runtime constructs Layers and runs effects.
  */
 export interface Define {
-  <const ModelSchema extends AnySchema, const MessageSchema extends AnySchema>(
+  <
+    const ModelSchema extends AnySchema,
+    const MessageSchema extends AnySchema,
+    const StartupSchema extends AnySchema | undefined = undefined,
+  >(
     config: Readonly<{
       /** The root Model Schema used to type init, update, views and bindings. */
       Model: ModelSchema
       /** The root Message Schema used by Commands, lifecycle work and dispatch. */
       Message: MessageSchema
+      /** Shared input Schema for Binding startup selectors, separate from Model state. */
+      Startup?: StartupSchema
     }>,
-  ): Definition<ModelSchema, MessageSchema>
+  ): Definition<ModelSchema, MessageSchema, StartupSchema>
 }
 
 const definitions = new WeakMap<
@@ -497,6 +523,7 @@ export const makeDefine =
     const definition = {
       Model: base.Model,
       Message: base.Message,
+      ...(config.Startup === undefined ? {} : { Startup: config.Startup }),
       mounts: base.mounts,
       childBindings: base.childBindings,
       bindChild: base.bindChild,

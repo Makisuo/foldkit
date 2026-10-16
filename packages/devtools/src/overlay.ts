@@ -391,7 +391,7 @@ const taggedPayload = (
 
 // UPDATE
 
-const Application = defineApplication({ Model, Message })
+const Application = defineApplication({ Model, Message, Startup: Flags })
 
 const foldInspectorTabsOutMessage = Tabs.OutMessage.match<
   Update.Step<Model, Message>,
@@ -454,7 +454,7 @@ const makeApplicationComposition = (scrubberSlider: DevToolsScrubber) => {
   const ScrubberBinding = Application.bindChild(scrubberSlider, {
     field: 'scrubberSlider',
     init: {
-      args: (flags: typeof Flags.Type) => [
+      args: flags => [
         {
           id: SCRUBBER_SLIDER_ID,
           min: 0,

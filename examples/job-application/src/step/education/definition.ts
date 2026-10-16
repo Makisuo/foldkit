@@ -26,4 +26,8 @@ export type Message = typeof Message.Type
 export const Education = Block.define('Education', {
   Model,
   Message,
+  Startup: Schema.Struct({
+    today: Calendar.CalendarDate,
+    initialEntryId: Schema.String,
+  }),
 })

@@ -529,6 +529,7 @@ it('runs initialization callbacks and Steps under the exact registered operation
     field: 'first',
     placement: 'foreignFirst',
     parentMessage: ParentMessage.GotFirstMessage,
+    init: false,
   })
   const SelectorBinding = Parent.bindChild(ChildBlock, {
     field: 'first',
@@ -559,6 +560,7 @@ it('runs initialization callbacks and Steps under the exact registered operation
     field: 'first',
     placement: 'foreignProjectedFirst',
     parentMessage: ParentMessage.GotFirstMessage,
+    init: false,
   })
   const ProjectedBinding = ProjectedParent.bindChild(ChildBlock, {
     placement: 'projectedSecond',

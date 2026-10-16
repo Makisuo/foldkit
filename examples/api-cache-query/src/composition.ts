@@ -10,19 +10,16 @@ import { postQuery, postsQuery, statsQuery } from './query'
 export const PostsBinding = Application.bindChild(postsQuery, {
   field: 'posts',
   parentMessage: Message.GotPostsMessage,
-  init: true,
 })
 
 export const StatsBinding = Application.bindChild(statsQuery, {
   field: 'stats',
   parentMessage: Message.GotStatsMessage,
-  init: true,
 })
 
 export const PostDetailsBinding = Application.bindChild(postQuery, {
   field: 'postDetails',
   parentMessage: Message.GotPostMessage,
-  init: true,
 })
 
 const activateTab = (tab: Tab) =>

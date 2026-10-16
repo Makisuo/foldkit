@@ -694,6 +694,7 @@ describe('Query Block binding', () => {
   const NotesChildBinding = Definition.bindChild(notes, {
     field: 'notes',
     parentMessage: Message.GotNotesMessage,
+    init: false,
   })
   const Composition = Definition.toComposition({
     childBindings: [NotesChildBinding],

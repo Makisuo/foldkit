@@ -12,8 +12,8 @@ import { modifyFields } from 'foldkit/struct'
 
 import { revealFieldErrors } from '../validation'
 import { ValidateEmailAsync } from './command'
-import { availableDatePicker, pronounsListbox } from './composition'
-import { Message, type Model, PersonalInfo } from './definition'
+import { PersonalInfoComposition } from './composition'
+import { Message, type Model } from './definition'
 
 const firstNameRules = makeRules({
   required: 'First name is required',
@@ -50,7 +50,7 @@ const validateEmail = validate(emailRules)
 const validatePhone = validate(phoneRules)
 const validatePortfolioUrl = validate(portfolioUrlRules)
 
-export const update = PersonalInfo.update((model, message) =>
+export const update = PersonalInfoComposition.update((model, message) =>
   Message.match(message, {
     UpdatedFirstName: ({ value }) => ({
       model: modifyFields(model, { firstName: () => validateFirstName(value) }),
@@ -91,8 +91,6 @@ export const update = PersonalInfo.update((model, message) =>
       model: modifyFields(model, { phone: () => validatePhone(value) }),
     }),
 
-    GotPronounsMessage: ({ message }) => pronounsListbox.fold(model, message),
-
     UpdatedCustomPronouns: ({ value }) => ({
       model: modifyFields(model, { customPronouns: () => value }),
     }),
@@ -102,9 +100,6 @@ export const update = PersonalInfo.update((model, message) =>
         portfolioUrl: () => validatePortfolioUrl(value),
       }),
     }),
-
-    GotAvailableDateMessage: ({ message }) =>
-      availableDatePicker.fold(model, message),
   }),
 )
 

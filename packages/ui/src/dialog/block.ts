@@ -291,21 +291,21 @@ const foldAnimationOutMessage = (
     TransitionedOut: () => foldTransitionedOut,
   })
 
-const animation = Dialog.bindChild(Animation.block, {
+const AnimationBinding = Dialog.bindChild(Animation.block, {
   field: 'animation',
   parentMessage: Message.GotAnimationMessage,
   outMessage: { fold: foldAnimationOutMessage },
 })
 
-const resumeAnimationAfterAcquisition = animation.resume()
+const resumeAnimationAfterAcquisition = AnimationBinding.resume()
 
 const DialogComposition = Dialog.toComposition({
   mounts,
-  children: [animation],
+  childBindings: [AnimationBinding],
 })
 
 /** Processes a Dialog Message and returns the next Model and optional Commands. */
-export const update = Dialog.update((model, message) =>
+export const update = DialogComposition.update((model, message) =>
   Message.match(message, {
     RequestedOpen: () => {
       const wasClosed = !model.isOpen
@@ -323,7 +323,7 @@ export const update = Dialog.update((model, message) =>
       const dialogOpen = model.isAnimated
         ? Update.combine(model, [
             stepModel => ({ model: stepModel, commands }),
-            animation.show(),
+            AnimationBinding.show(),
             stepModel => ({
               model: modifyFields(stepModel, { isOpen: () => true }),
             }),
@@ -346,7 +346,7 @@ export const update = Dialog.update((model, message) =>
           stepModel => ({
             model: modifyFields(stepModel, { isOpen: () => false }),
           }),
-          animation.hide(),
+          AnimationBinding.hide(),
         ])
 
         return wasOpen
@@ -368,9 +368,6 @@ export const update = Dialog.update((model, message) =>
         ? pipe(dialogClose, Update.withOutMessage(OutMessage.Closed()))
         : dialogClose
     },
-
-    GotAnimationMessage: ({ message: animationMessage }) =>
-      animation.fold(model, animationMessage),
 
     Unmounted: () => {
       if (isOpenOrAnimating(model)) {
@@ -623,7 +620,9 @@ export const view = DialogComposition.view.withInputs<ViewInputs>(
 
 /** Complete Dialog Block definition. */
 export const block = DialogComposition.toBlock({
-  init: Dialog.init((config: InitConfig) => ({ model: init(config) })),
+  init: DialogComposition.init((config: InitConfig) => ({
+    model: init(config),
+  })),
   update,
   view,
   expose: { open, close },

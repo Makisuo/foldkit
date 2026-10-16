@@ -25,8 +25,9 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 export const Settings = Block.define('Settings', { Model, Message })
+const SettingsComposition = Settings.toComposition()
 
-export const update = Settings.update((model, message) =>
+export const update = SettingsComposition.update((model, message) =>
   Message.match(message, {
     ChangedTheme: ({ theme }) => ({
       model: modifyFields(model, { theme: () => theme }),

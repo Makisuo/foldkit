@@ -708,7 +708,7 @@ const applyRowMeasurements = (
 }
 
 /** Processes a VirtualList Message and returns the next Model and optional Commands. */
-export const update = VirtualList.update((model, message) =>
+const updateImpl = (model: Model, message: Message) =>
   Message.match(message, {
     ObservedContainerScroll: snapshot => {
       const nextPendingScrollVersion = PendingScroll.match<number>(
@@ -758,8 +758,7 @@ export const update = VirtualList.update((model, message) =>
         }),
       })
     },
-  }),
-)
+  })
 
 type RowOffsets = Readonly<{
   startOffset: number
@@ -1288,6 +1287,8 @@ const VirtualListComposition = VirtualList.toComposition({
   mounts,
 })
 
+export const update = VirtualListComposition.update(updateImpl)
+
 /** Provides VirtualList's Command and Mount handlers. */
 export const EffectsLayer = Layer.mergeAll(
   ApplyScroll.layer,
@@ -1496,7 +1497,9 @@ const expose = {
 
 /** Complete VirtualList Block definition using an unknown item type. */
 export const block = VirtualListComposition.toBlock({
-  init: VirtualList.init((config: InitConfig) => ({ model: init(config) })),
+  init: VirtualListComposition.init((config: InitConfig) => ({
+    model: init(config),
+  })),
   update,
   view: viewImpl,
   expose,
@@ -1508,7 +1511,9 @@ export const create = <Item>() => {
   const refinedView = view<Item>()
 
   return VirtualListComposition.toBlock({
-    init: VirtualList.init((config: InitConfig) => ({ model: init(config) })),
+    init: VirtualListComposition.init((config: InitConfig) => ({
+      model: init(config),
+    })),
     update,
     view: refinedView,
     expose,

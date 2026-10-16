@@ -98,6 +98,9 @@ const Calendar = Block.define('Calendar', {
   OutMessage,
 })
 
+const CalendarComposition = Calendar.toComposition()
+type CalendarViewBuilder = Block.ViewBuilderFor<typeof CalendarComposition>
+
 // INIT
 
 /** Configuration for creating a calendar model with `init`. */
@@ -528,7 +531,7 @@ const applyYearsFocusShift = (model: Model, yearShift: number) => {
 
 /** Processes a Calendar Message and returns the next Model, optional Commands,
  *  and an optional OutMessage. */
-export const update = Calendar.update((model, message) =>
+export const update = CalendarComposition.update((model, message) =>
   Message.match(message, {
     ClickedDay: ({ date }) => selectDateTransition(model, date),
 
@@ -1379,9 +1382,6 @@ const buildYearsAttributes = (
   }
 }
 
-const CalendarComposition = Calendar.toComposition()
-type CalendarViewBuilder = Block.ViewBuilderFor<typeof CalendarComposition>
-
 /** Renders an accessible Calendar. Publishes mode-specific ARIA attribute
  *  bundles + derived cell data, then delegates layout to the consumer's
  *  `toView` callback. The variant of `CalendarAttributes` passed to
@@ -1401,7 +1401,9 @@ export const view = CalendarComposition.view.withInputs<ViewInputs>(
 
 /** Complete Calendar Block definition for connecting to a parent. */
 export const block = CalendarComposition.toBlock({
-  init: Calendar.init((config: InitConfig) => ({ model: init(config) })),
+  init: CalendarComposition.init((config: InitConfig) => ({
+    model: init(config),
+  })),
   update,
   view,
   expose: { selectDate },

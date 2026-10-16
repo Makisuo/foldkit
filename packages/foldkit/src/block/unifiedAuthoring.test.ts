@@ -76,7 +76,7 @@ const update = search.update((model, message) =>
     }),
   }),
 )
-const clear = search.step(model => ({
+const clear = Search.step(model => ({
   model: modifyFields(model, { value: () => '' }),
 }))
 const block = search.toBlock({
@@ -109,44 +109,48 @@ const Shared = Early.command('Shared', {
 })
 const first = Early.define({ Model, Message })
 const second = Early.define({ Model, Message })
-const firstBlock = first.toComposition().toBlock({
+const firstComposition = first.toComposition()
+const secondComposition = second.toComposition()
+const firstBlock = firstComposition.toBlock({
   init: () => ({ model: Model.make({ value: '' }) }),
-  update: first.update(model => ({ model, commands: [Shared()] })),
+  update: firstComposition.update(model => ({ model, commands: [Shared()] })),
   EffectsLayer: Shared.layer,
 })
-const secondBlock = second.toComposition().toBlock({
+const secondBlock = secondComposition.toBlock({
   init: () => ({ model: Model.make({ value: '' }) }),
-  update: second.update(model => ({ model, commands: [Shared()] })),
+  update: secondComposition.update(model => ({ model, commands: [Shared()] })),
   EffectsLayer: Shared.layer,
 })
 it('shares one owner across specialized contracts', () => {
   expect(firstBlock.owner).toBe(secondBlock.owner)
 })
 
-it('preserves typed and primitive helpers after composition', () => {
-  expect(search.command).toBe(Search.command)
-  expect(search.mount).toBe(Search.mount)
-  expect(search.mountStream).toBe(Search.mountStream)
-  expect(search.resource).toBe(Search.resource)
-  expect(search.update).toBe(Search.update)
-  expect(search.step).toBe(Search.step)
-  expect(search.subscriptions).toBe(Search.subscriptions)
-  expect(search.managedResources).toBe(Search.managedResources)
-  expect(search).not.toHaveProperty('init')
+it('keeps primitive helpers on the Definition after composition', () => {
+  expect(Search.command).toBeTypeOf('function')
+  expect(Search.mount).toBeTypeOf('function')
+  expect(Search.mountStream).toBeTypeOf('function')
+  expect(Search.resource).toBeTypeOf('function')
+  expect(search.update).toBeTypeOf('function')
+  expect(Search.step).toBeTypeOf('function')
+  expect(Search.subscriptions).toBeTypeOf('function')
+  expect(Search.managedResources).toBeTypeOf('function')
+  expect(search).not.toHaveProperty('command')
+  expect(search).not.toHaveProperty('step')
+  expect(search).toHaveProperty('init')
 })
 if (false) {
-  // @ts-expect-error A Composition does not expose the Definition-only init helper.
-  search.init
+  // @ts-expect-error A Definition does not expose the Composition-owned init helper.
+  Search.init
 
   // @ts-expect-error Block init must return the Block Model.
-  Search.init(() => ({ model: { value: 1 } }))
-  Search.init(() => ({
+  search.init(() => ({ model: { value: 1 } }))
+  search.init(() => ({
     model: Model.make({ value: '' }),
     // @ts-expect-error Every Block init Command must return the Block Message.
     commands: [ForeignInitCommand()],
   }))
   // @ts-expect-error Initializers require one concrete call signature.
-  Search.init(overloadedSearchInit)
+  search.init(overloadedSearchInit)
 
   Search.command('AcceptedCommand', {
     messages: [Message.CompletedSave],
@@ -170,10 +174,8 @@ if (false) {
     // @ts-expect-error Typed Block stream Mounts must produce the owner's Message.
     messages: [ForeignMessage.ForeignCompleted],
   })
-  search.command('RegisteredForeignCommand', {
-    // @ts-expect-error Composition preserves the typed primitive Message boundary.
-    messages: [ForeignMessage.ForeignCompleted],
-  })
+  // @ts-expect-error Primitive authoring remains on the Definition.
+  search.command
 
   const DeferredCommand = Early.command('DeferredCommand', {
     messages: [ForeignMessage.ForeignCompleted],
@@ -189,17 +191,21 @@ if (false) {
   // @ts-expect-error Typed helpers retain the declared Message payload.
   update(Model.make({ value: '' }), Message.RequestedSave({ value: 1 }))
   // @ts-expect-error Missing local handler remains rejected.
-  first.toComposition().toBlock({
+  firstComposition.toBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
-    update: first.update(model => ({ model, commands: [Shared()] })),
+    update: firstComposition.update(model => ({ model, commands: [Shared()] })),
   })
   const Foreign = Block.define('Foreign', { Model, Message })
   const ForeignShared = Foreign.command('Shared', {
     messages: [Message.CompletedSave],
   })
-  Foreign.toComposition().toBlock({
+  const ForeignComposition = Foreign.toComposition()
+  ForeignComposition.toBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
-    update: Foreign.update(model => ({ model, commands: [ForeignShared()] })),
+    update: ForeignComposition.update(model => ({
+      model,
+      commands: [ForeignShared()],
+    })),
     // @ts-expect-error A different owner cannot provide the local handler.
     EffectsLayer: Shared.layer,
   })

@@ -5,7 +5,7 @@ import { Message } from './message'
 import { Model } from './model'
 import * as Settings from './settings'
 
-const settings = Application.bindChild(Settings.block, {
+const SettingsBinding = Application.bindChild(Settings.block, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
 })
@@ -18,4 +18,4 @@ const badReset = (model: Model) => ({
 })
 
 // ✅ Good: the child decides the transition and the Binding preserves it.
-const goodReset = (model: Model) => settings.setTheme('Light')(model)
+const goodReset = (model: Model) => SettingsBinding.setTheme('Light')(model)

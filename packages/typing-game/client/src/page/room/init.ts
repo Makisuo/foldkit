@@ -1,26 +1,28 @@
 import { Array, Option, pipe } from 'effect'
 
 import { FetchRoom, LoadSession } from './command'
-import { Room } from './definition'
+import { RoomComposition } from './definition'
 import { Model, RoomAsyncData } from './model'
 
-export const init = Room.init((maybeRoomId: Option.Option<string>) => {
-  const commands = pipe(
-    maybeRoomId,
-    Option.map(roomId => [LoadSession({ roomId }), FetchRoom({ roomId })]),
-    Array.fromOption,
-    Array.flatten,
-  )
-  return {
-    model: Model.make({
-      roomAsyncData: RoomAsyncData.Idle(),
-      maybeSession: Option.none(),
-      userGameText: '',
-      charsTyped: 0,
-      username: '',
-      isRoomIdCopyIndicatorVisible: false,
-      exitCountdownSecondsLeft: 0,
-    }),
-    commands,
-  }
-})
+export const init = RoomComposition.init(
+  (maybeRoomId: Option.Option<string>) => {
+    const commands = pipe(
+      maybeRoomId,
+      Option.map(roomId => [LoadSession({ roomId }), FetchRoom({ roomId })]),
+      Array.fromOption,
+      Array.flatten,
+    )
+    return {
+      model: Model.make({
+        roomAsyncData: RoomAsyncData.Idle(),
+        maybeSession: Option.none(),
+        userGameText: '',
+        charsTyped: 0,
+        username: '',
+        isRoomIdCopyIndicatorVisible: false,
+        exitCountdownSecondsLeft: 0,
+      }),
+      commands,
+    }
+  },
+)

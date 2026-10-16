@@ -25,7 +25,7 @@ const WaitBeforeReset = Application.command('WaitBeforeReset', {
   },
 })
 
-const update = Application.update((model, message) =>
+const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedResetAfterDelay: ({ delayMs }) => ({
       model,

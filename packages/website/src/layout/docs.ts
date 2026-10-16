@@ -6,13 +6,13 @@ import { Html, createLazy, inertHtml as ih } from 'foldkit/html'
 import { type CodeBlock, Shared } from '../component'
 import type { ApplicationViewBuilder } from '../composition'
 import {
-  apiReference,
-  comingFromReact,
-  coreBlockPage,
-  exampleDetail,
-  snippetCopy as snippetCopyBinding,
-  snippetDisclosure as snippetDisclosureBinding,
-  uiPages,
+  ApiReferenceBinding,
+  ComingFromReactBinding,
+  CoreBlockPageBinding,
+  ExampleDetailBinding,
+  SnippetCopyBinding,
+  SnippetDisclosureBinding,
+  UiPagesBinding,
 } from '../composition'
 import { pageNeighbors } from '../docsNav'
 import { Icon } from '../icon'
@@ -353,7 +353,7 @@ const renderApiReference = (
   h: ApplicationViewBuilder,
 ): Html =>
   h.block(
-    apiReference.embedView({
+    ApiReferenceBinding.embedView({
       slotId: `api-reference-${module.name}`,
       model: apiReferenceModel,
       viewInputs: {
@@ -382,13 +382,13 @@ const renderDocContent = (
   h: ApplicationViewBuilder,
 ): Html => {
   const renderCopyButton = SnippetCopy.renderer(snippetCopy, config =>
-    h.block(snippetCopyBinding.embedView(config)),
+    h.block(SnippetCopyBinding.embedView(config)),
   )
 
   return pageView(
     renderCopyButton,
     SnippetDisclosure.renderer(snippetDisclosure, renderCopyButton, config =>
-      h.block(snippetDisclosureBinding.embedView(config)),
+      h.block(SnippetDisclosureBinding.embedView(config)),
     ),
     Prose.renderHeadingLink(hash => Message.ClickedCopyLink({ hash }), h),
   )
@@ -428,12 +428,12 @@ export const view = (
   h: ApplicationViewBuilder,
 ) => {
   const renderCopyButton = SnippetCopy.renderer(model.snippetCopy, config =>
-    h.block(snippetCopyBinding.embedView(config)),
+    h.block(SnippetCopyBinding.embedView(config)),
   )
   const renderSnippet = SnippetDisclosure.renderer(
     model.snippetDisclosure,
     renderCopyButton,
-    config => h.block(snippetDisclosureBinding.embedView(config)),
+    config => h.block(SnippetDisclosureBinding.embedView(config)),
   )
   const renderHeadingLink = Prose.renderHeadingLink(
     hash => Message.ClickedCopyLink({ hash }),
@@ -468,7 +468,7 @@ export const view = (
       ComingFromReact: () =>
         withTableOfContents(
           h.block(
-            comingFromReact.embedView({
+            ComingFromReactBinding.embedView({
               slotId: 'coming-from-react',
               model: model.comingFromReact,
               viewInputs: {
@@ -539,7 +539,7 @@ export const view = (
       ExampleDetail: ({ exampleSlug }) =>
         withoutTableOfContents(
           h.block(
-            exampleDetail.embedView({
+            ExampleDetailBinding.embedView({
               slotId: `example-detail-${exampleSlug}`,
               model: model.exampleDetail,
               viewInputs: {
@@ -751,7 +751,7 @@ export const view = (
       CoreBlock: () =>
         withTableOfContents(
           h.block(
-            coreBlockPage.embedView({
+            CoreBlockPageBinding.embedView({
               slotId: 'core-block-page',
               model: model.coreBlockPage,
               viewInputs: {
@@ -819,7 +819,7 @@ export const view = (
       UiHoverIntent: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-HoverIntent',
               model: model.uiPages,
               view: Ui.HoverIntentPage.view,
@@ -835,7 +835,7 @@ export const view = (
       UiButton: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Button',
               model: model.uiPages,
               view: Ui.ButtonPage.view,
@@ -851,7 +851,7 @@ export const view = (
       UiTabs: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Tabs',
               model: model.uiPages,
               view: Ui.TabsPage.view,
@@ -867,7 +867,7 @@ export const view = (
       UiNav: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Nav',
               model: model.uiPages,
               view: Ui.NavPage.view,
@@ -884,7 +884,7 @@ export const view = (
       UiDisclosure: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Disclosure',
               model: model.uiPages,
               view: Ui.DisclosurePage.view,
@@ -900,7 +900,7 @@ export const view = (
       UiDialog: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Dialog',
               model: model.uiPages,
               view: Ui.DialogPage.view,
@@ -916,7 +916,7 @@ export const view = (
       UiMenu: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Menu',
               model: model.uiPages,
               view: Ui.MenuPage.view,
@@ -932,7 +932,7 @@ export const view = (
       UiPopover: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Popover',
               model: model.uiPages,
               view: Ui.PopoverPage.view,
@@ -948,7 +948,7 @@ export const view = (
       UiTooltip: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Tooltip',
               model: model.uiPages,
               view: Ui.TooltipPage.view,
@@ -964,7 +964,7 @@ export const view = (
       UiToast: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Toast',
               model: model.uiPages,
               view: Ui.ToastPage.view,
@@ -980,7 +980,7 @@ export const view = (
       UiListbox: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Listbox',
               model: model.uiPages,
               view: Ui.ListboxPage.view,
@@ -996,7 +996,7 @@ export const view = (
       UiRadioGroup: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-RadioGroup',
               model: model.uiPages,
               view: Ui.RadioGroupPage.view,
@@ -1012,7 +1012,7 @@ export const view = (
       UiSlider: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Slider',
               model: model.uiPages,
               view: Ui.SliderPage.view,
@@ -1028,7 +1028,7 @@ export const view = (
       UiMeter: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Meter',
               model: model.uiPages,
               view: Ui.MeterPage.view,
@@ -1044,7 +1044,7 @@ export const view = (
       UiProgress: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Progress',
               model: model.uiPages,
               view: Ui.ProgressPage.view,
@@ -1060,7 +1060,7 @@ export const view = (
       UiSwitch: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Switch',
               model: model.uiPages,
               view: Ui.SwitchPage.view,
@@ -1076,7 +1076,7 @@ export const view = (
       UiCalendar: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Calendar',
               model: model.uiPages,
               view: Ui.CalendarPage.view,
@@ -1092,7 +1092,7 @@ export const view = (
       UiDatePicker: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-DatePicker',
               model: model.uiPages,
               view: Ui.DatePickerPage.view,
@@ -1108,7 +1108,7 @@ export const view = (
       UiCheckbox: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Checkbox',
               model: model.uiPages,
               view: Ui.CheckboxPage.view,
@@ -1124,7 +1124,7 @@ export const view = (
       UiCombobox: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Combobox',
               model: model.uiPages,
               view: Ui.ComboboxPage.view,
@@ -1140,7 +1140,7 @@ export const view = (
       UiInput: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Input',
               model: model.uiPages,
               view: Ui.InputPage.view,
@@ -1156,7 +1156,7 @@ export const view = (
       UiTextarea: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Textarea',
               model: model.uiPages,
               view: Ui.TextareaPage.view,
@@ -1172,7 +1172,7 @@ export const view = (
       UiFieldset: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Fieldset',
               model: model.uiPages,
               view: Ui.FieldsetPage.view,
@@ -1188,7 +1188,7 @@ export const view = (
       UiSelect: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Select',
               model: model.uiPages,
               view: Ui.SelectPage.view,
@@ -1204,7 +1204,7 @@ export const view = (
       UiDragAndDrop: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-DragAndDrop',
               model: model.uiPages,
               view: Ui.DragAndDropPage.view,
@@ -1220,7 +1220,7 @@ export const view = (
       UiFileDrop: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-FileDrop',
               model: model.uiPages,
               view: Ui.FileDropPage.view,
@@ -1236,7 +1236,7 @@ export const view = (
       UiAnimation: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-Animation',
               model: model.uiPages,
               view: Ui.AnimationPage.view,
@@ -1252,7 +1252,7 @@ export const view = (
       UiVirtualList: () =>
         withTableOfContents(
           h.block(
-            uiPages.embedView({
+            UiPagesBinding.embedView({
               slotId: 'ui-VirtualList',
               model: model.uiPages,
               view: Ui.VirtualListPage.view,

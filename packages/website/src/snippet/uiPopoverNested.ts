@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Schema } from 'effect'
+import { Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -35,54 +35,37 @@ const AccountMenu = Block.define('AccountMenu', {
   Message,
 })
 
-const accountPopover = AccountMenu.bindChild(Popover.block, {
+const AccountPopoverBinding = AccountMenu.bindChild(Popover.block, {
   field: 'accountPopover',
   parentMessage: Message.GotAccountPopoverMessage,
+  init: {
+    args: () => Tuple.make({ id: 'account-popover', contentFocus: true }),
+  },
   outMessage: { fold: foldPopoverOutMessage },
 })
 
-const accountDetailsPopover = AccountMenu.bindChild(Popover.block, {
+const AccountDetailsPopoverBinding = AccountMenu.bindChild(Popover.block, {
   field: 'accountDetailsPopover',
   parentMessage: Message.GotAccountDetailsPopoverMessage,
+  init: {
+    args: () => Tuple.make({ id: 'account-details-popover' }),
+  },
   outMessage: { fold: foldPopoverOutMessage },
+})
+
+const AccountMenuComposition = AccountMenu.toComposition({
+  childBindings: [AccountPopoverBinding, AccountDetailsPopoverBinding],
 })
 
 // The parent uses contentFocus so focus can move into its nested trigger
 // instead of staying on the panel:
-const init = AccountMenu.init(() => {
-  const accountPopoverInit = accountPopover.init({
-    id: 'account-popover',
-    contentFocus: true,
-  })
-  const accountDetailsPopoverInit = accountDetailsPopover.init({
-    id: 'account-details-popover',
-  })
+const init = AccountMenuComposition.init(() => ({
+  model: {
+    // ...your other fields
+  },
+}))
 
-  return {
-    model: {
-      accountPopover: accountPopoverInit.model,
-      accountDetailsPopover: accountDetailsPopoverInit.model,
-      // ...your other fields
-    },
-    commands: [
-      ...(accountPopoverInit.commands ?? []),
-      ...(accountDetailsPopoverInit.commands ?? []),
-    ],
-  }
-})
-
-const AccountMenuComposition = AccountMenu.toComposition({
-  children: [accountPopover, accountDetailsPopover],
-})
-
-const update = AccountMenu.update((model, message) =>
-  Message.match(message, {
-    GotAccountPopoverMessage: ({ message }) =>
-      accountPopover.fold(model, message),
-    GotAccountDetailsPopoverMessage: ({ message }) =>
-      accountDetailsPopover.fold(model, message),
-  }),
-)
+const update = AccountMenuComposition.update()
 
 // Inside your view function, render the child Popover inside the parent
 // panel. `focusSelector` points at the child trigger, which Popover derives
@@ -122,7 +105,7 @@ const view = AccountMenuComposition.view((model, h) => {
     )
 
   const detailsPopover = h.block(
-    accountDetailsPopover.embedView({
+    AccountDetailsPopoverBinding.embedView({
       slotId: 'account-details-popover',
       model: model.accountDetailsPopover,
       viewInputs: {
@@ -161,7 +144,7 @@ const view = AccountMenuComposition.view((model, h) => {
     )
 
   return h.block(
-    accountPopover.embedView({
+    AccountPopoverBinding.embedView({
       slotId: 'account-popover',
       model: model.accountPopover,
       viewInputs: {

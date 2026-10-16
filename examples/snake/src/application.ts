@@ -54,7 +54,7 @@ type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-export const init = Application.init(() => {
+export const init = ApplicationComposition.init(() => {
   const snake = Snake.create(GAME.INITIAL_POSITION)
 
   return {

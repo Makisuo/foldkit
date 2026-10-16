@@ -135,18 +135,26 @@ type ConflictingKeysForEntry<
   ? ConflictingPairKey<Left, Right>
   : never
 
-type ConflictingKeys<
-  Entries extends Readonly<{ key: string; contract: unknown }>,
-  AllEntries extends Readonly<{
-    key: string
-    contract: unknown
-  }> = Entries,
-> = Entries extends infer Left extends Readonly<{
-  key: string
-  contract: unknown
-}>
-  ? ConflictingKeysForEntry<Left, AllEntries>
+type HandlerEntryShape = Readonly<{ key: string; contract: unknown }>
+
+type EntriesByKey<Entries extends HandlerEntryShape> = {
+  [Entry in Entries as Entry['key']]: Entry
+}
+
+type ConflictingIndexedKeys<
+  Entries extends HandlerEntryShape,
+  Index,
+> = Entries extends infer Left extends HandlerEntryShape
+  ? Left['key'] extends keyof Index
+    ? ConflictingKeysForEntry<
+        Left,
+        Extract<Index[Left['key']], HandlerEntryShape>
+      >
+    : never
   : never
+
+type ConflictingKeys<Entries extends HandlerEntryShape> =
+  ConflictingIndexedKeys<Entries, EntriesByKey<Entries>>
 
 type ValidHandlerKindContracts<
   Requirements,

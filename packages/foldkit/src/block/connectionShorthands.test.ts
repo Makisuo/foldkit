@@ -72,7 +72,7 @@ const view = registered.view((model, h) =>
 )
 const block = registered.toBlock({
   init: () => ({ model: Model.make({ count: 0 }) }),
-  update: Child.update((model, message) =>
+  update: registered.update((model, message) =>
     Message.match(message, {
       RequestedRead: () => ({
         model,
@@ -125,24 +125,24 @@ const foldChildOutMessage = OutMessage.match<
     model: modifyFields(model, { requests: requests => requests + 1 }),
   }),
 })
-const primary = Parent.bindChild(block, {
+const PrimaryBinding = Parent.bindChild(block, {
   field: 'primary',
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
-const primaryInspection = inspectBinding(primary)
-const secondary = Parent.bindChild(block, {
+const primaryInspection = inspectBinding(PrimaryBinding)
+const SecondaryBinding = Parent.bindChild(block, {
   field: 'secondary',
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
-const overridden = Parent.bindChild(block, {
+const OverriddenBinding = Parent.bindChild(block, {
   field: 'secondary',
   placement: 'alternate',
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
-const accessor = Parent.bindChild(block, {
+const AccessorBinding = Parent.bindChild(block, {
   read: model => Option.some(model.primary),
   write: (model, nextPrimary) =>
     modifyFields(model, { primary: () => nextPrimary }),
@@ -150,7 +150,8 @@ const accessor = Parent.bindChild(block, {
   outMessage: { fold: foldChildOutMessage },
 })
 const entryKey = (entry: typeof Entry.Type): string => entry.id
-const keyed = Parent.bindChild(block, {
+const KeyedBinding = Parent.bindChild(block, {
+  fromParentMessage: false,
   placement: 'entries',
   readAll: (model: ParentModel) => model.entries,
   key: entryKey,
@@ -208,6 +209,7 @@ if (false) {
   Parent.bindChild(block, {
     // @ts-expect-error This invalid Binding configuration has no matching overload.
     read: (model: ParentModel) => Option.some(model.primary),
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     write: (model: ParentModel, nextPrimary: typeof Model.Type) =>
       modifyFields(model, { primary: () => nextPrimary }),
     // @ts-expect-error This invalid Binding configuration has no matching overload.
@@ -225,11 +227,13 @@ if (false) {
     parentMessage: ParentMessage.GotChildMessage,
   })
   Parent.bindChild(block, {
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     readAll: (model: ParentModel) => model.entries,
     // @ts-expect-error This invalid Binding configuration has no matching overload.
     key: (entry: typeof Entry.Type) => entry.id,
     // @ts-expect-error This invalid Binding configuration has no matching overload.
     read: (entry: typeof Entry.Type) => entry.child,
+    // @ts-expect-error This invalid Binding configuration has no matching overload.
     writeAt: (model: ParentModel) => model,
     // @ts-expect-error This invalid Binding configuration has no matching overload.
     parentMessage: ParentMessage.GotEntryMessage,
@@ -239,21 +243,21 @@ if (false) {
 }
 
 it('keeps exact placement literals and child operation arguments', () => {
-  expectTypeOf<Extract<keyof typeof primary, string>>().toEqualTypeOf<
+  expectTypeOf<Extract<keyof typeof PrimaryBinding, string>>().toEqualTypeOf<
     'placement' | 'init' | 'fold' | 'embedView' | 'read'
   >()
-  expectTypeOf(primary.placement).toEqualTypeOf<'primary'>()
-  expectTypeOf(secondary.placement).toEqualTypeOf<'secondary'>()
-  expectTypeOf(overridden.placement).toEqualTypeOf<'alternate'>()
-  expectTypeOf(accessor.placement).toEqualTypeOf<'Child'>()
-  expectTypeOf(keyed.placement).toEqualTypeOf<'entries'>()
+  expectTypeOf(PrimaryBinding.placement).toEqualTypeOf<'primary'>()
+  expectTypeOf(SecondaryBinding.placement).toEqualTypeOf<'secondary'>()
+  expectTypeOf(OverriddenBinding.placement).toEqualTypeOf<'alternate'>()
+  expectTypeOf(AccessorBinding.placement).toEqualTypeOf<'Child'>()
+  expectTypeOf(KeyedBinding.placement).toEqualTypeOf<'entries'>()
   expectTypeOf(
-    primary.fold(initial, Message.RequestedRead()).model,
+    PrimaryBinding.fold(initial, Message.RequestedRead()).model,
   ).toEqualTypeOf<ParentModel>()
-  expectTypeOf<Parameters<typeof primary.read>>().toEqualTypeOf<[]>()
-  expectTypeOf<Update.RequirementsOf<typeof primary.fold>>().toEqualTypeOf<
-    Qualify<'primary', Command.HandlerOf<typeof Read>>
-  >()
+  expectTypeOf<Parameters<typeof PrimaryBinding.read>>().toEqualTypeOf<[]>()
+  expectTypeOf<
+    Update.RequirementsOf<typeof PrimaryBinding.fold>
+  >().toEqualTypeOf<Qualify<'primary', Command.HandlerOf<typeof Read>>>()
   expectTypeOf<
     Layer.Services<typeof primaryInspection.EffectsLayer>
   >().toEqualTypeOf<ValueSource>()
@@ -263,36 +267,36 @@ it('keeps exact placement literals and child operation arguments', () => {
   expectTypeOf<(typeof primaryInspection.mounts)[number]>().toEqualTypeOf<
     typeof Observe
   >()
-  expect(primary.placement).toBe('primary')
-  expect(secondary.placement).toBe('secondary')
-  expect(overridden.placement).toBe('alternate')
-  expect(accessor.placement).toBe('Child')
-  expect(Object.keys(primary)).toEqual([
+  expect(PrimaryBinding.placement).toBe('primary')
+  expect(SecondaryBinding.placement).toBe('secondary')
+  expect(OverriddenBinding.placement).toBe('alternate')
+  expect(AccessorBinding.placement).toBe('Child')
+  expect(Object.keys(PrimaryBinding)).toEqual([
     'placement',
     'init',
     'fold',
     'embedView',
     'read',
   ])
-  expect(Object.keys(keyed)).toEqual([
+  expect(Object.keys(KeyedBinding)).toEqual([
     'placement',
     'init',
     'fold',
     'embedView',
     'read',
   ])
-  expect(inspectBinding(keyed).subscriptions).toEqual({})
-  expect(inspectBinding(keyed).managedResources).toEqual({})
+  expect(inspectBinding(KeyedBinding).subscriptions).toEqual({})
+  expect(inspectBinding(KeyedBinding).managedResources).toEqual({})
   expect(Array.head(primaryInspection.mounts)).toEqual(Option.some(Observe))
 })
 
 it('lifts real Command execution through the constructor and preserves OutMessage handling', async () => {
-  const result = primary.fold(initial, Message.RequestedRead())
+  const result = PrimaryBinding.fold(initial, Message.RequestedRead())
   const command = Option.getOrThrow(Array.head(result.commands!))
   const operation = Option.getOrThrow(
-    Array.head(primary.read()(initial).commands!),
+    Array.head(PrimaryBinding.read()(initial).commands!),
   )
-  const services = inspectBinding(primary).EffectsLayer.pipe(
+  const services = inspectBinding(PrimaryBinding).EffectsLayer.pipe(
     Layer.provide(Layer.succeed(ValueSource, { value: 42 })),
   )
   const completed = await Effect.runPromise(
@@ -313,7 +317,8 @@ it('lifts real Command execution through the constructor and preserves OutMessag
     }),
   )
   const updated = ParentMessage.match(completed, {
-    GotChildMessage: ({ message }) => primary.fold(result.model, message),
+    GotChildMessage: ({ message }) =>
+      PrimaryBinding.fold(result.model, message),
     GotEntryMessage: () => {
       throw new Error('Expected a static child Message')
     },
@@ -327,48 +332,52 @@ it('lifts real Command execution through the constructor and preserves OutMessag
 })
 
 it('uses one resolved occurrence placement for lifecycle registrations and mounted views', () => {
-  const graph = aggregateChildren([primary, secondary])
-  const primaryEmbed = primary.embedView({
+  const graph = aggregateChildren([PrimaryBinding, SecondaryBinding])
+  const primaryEmbed = PrimaryBinding.embedView({
     slotId: 'primary',
     model: initial.primary,
   })
-  const secondaryEmbed = secondary.embedView({
+  const secondaryEmbed = SecondaryBinding.embedView({
     slotId: 'secondary',
     model: initial.secondary,
   })
 
-  expect(inspectBinding(primary).subscriptions.ticks.name).toBe('primary/Ticks')
-  expect(inspectBinding(secondary).subscriptions.ticks.name).toBe(
+  expect(inspectBinding(PrimaryBinding).subscriptions.ticks.name).toBe(
+    'primary/Ticks',
+  )
+  expect(inspectBinding(SecondaryBinding).subscriptions.ticks.name).toBe(
     'secondary/Ticks',
   )
-  expect(inspectBinding(primary).managedResources.session.name).toBe(
+  expect(inspectBinding(PrimaryBinding).managedResources.session.name).toBe(
     'primary/ManageSession',
   )
-  expect(inspectBinding(secondary).managedResources.session.name).toBe(
+  expect(inspectBinding(SecondaryBinding).managedResources.session.name).toBe(
     'secondary/ManageSession',
   )
-  expect(inspectBinding(primary).managedResources.session.resource.key).toBe(
-    `primary/${Session.key}`,
-  )
   expect(
-    inspectBinding(secondary).managedResources.session.resource._tag.key,
-  ).not.toBe(inspectBinding(primary).managedResources.session.resource._tag.key)
+    inspectBinding(PrimaryBinding).managedResources.session.resource.key,
+  ).toBe(`primary/${Session.key}`)
+  expect(
+    inspectBinding(SecondaryBinding).managedResources.session.resource._tag.key,
+  ).not.toBe(
+    inspectBinding(PrimaryBinding).managedResources.session.resource._tag.key,
+  )
   expect(Reflect.get(primaryEmbed, ViewScopeTypeId).placement).toBe('primary')
   expect(Reflect.get(secondaryEmbed, ViewScopeTypeId).placement).toBe(
     'secondary',
   )
   expect(graph.subscriptions['primary/ticks']).toBe(
-    inspectBinding(primary).subscriptions.ticks,
+    inspectBinding(PrimaryBinding).subscriptions.ticks,
   )
   expect(graph.subscriptions['secondary/ticks']).toBe(
-    inspectBinding(secondary).subscriptions.ticks,
+    inspectBinding(SecondaryBinding).subscriptions.ticks,
   )
-  expect(() => aggregateChildren([primary, primary])).toThrow(
+  expect(() => aggregateChildren([PrimaryBinding, PrimaryBinding])).toThrow(
     /duplicate|Two child Blocks/,
   )
   expect(
-    keyed.fold(initial, 'first', Message.CompletedRead({ count: 9 })).model
-      .entries,
+    KeyedBinding.fold(initial, 'first', Message.CompletedRead({ count: 9 }))
+      .model.entries,
   ).toEqual([Entry.make({ id: 'first', child: Model.make({ count: 9 }) })])
 })
 

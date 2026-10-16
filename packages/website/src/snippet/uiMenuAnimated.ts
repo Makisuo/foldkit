@@ -1,42 +1,25 @@
-// Pseudocode walkthrough using the same Model, Messages, and update as
-// the basic menu; only init and view change. Each labeled block below is
-// an excerpt.
-import { defineMessageUnion } from 'foldkit/message'
+import { Tuple } from 'effect'
 
-import { Menu } from '@foldkit/ui'
-
-// Only init and view differ from the basic menu: init adds isAnimated, the
-// view uses data-[closed] selectors for enter/leave transitions.
-
-// The parent Definition, Composition, and child Binding below come from the
-// basic walkthrough.
-
-// In your init function, set isAnimated: true to coordinate CSS transitions:
-const init = ActionMenuExample.init(() => {
-  const menuInit = menu.init({ id: 'actions', isAnimated: true })
-
-  return {
-    model: {
-      menu: menuInit.model,
-      // ...your other fields
-    },
-    commands: menuInit.commands,
-  }
+// Use the basic example's Model, Messages, update and OutMessage fold.
+const MenuBinding = ActionMenuExample.bindChild(ActionMenu, {
+  field: 'menu',
+  parentMessage: Message.GotMenuMessage,
+  outMessage: { fold: foldMenuOutMessage },
+  init: {
+    args: () => Tuple.make({ id: 'actions', isAnimated: true }),
+  },
 })
 
-// Embed the Menu Message in your parent Message:
-// Pair view and update behind a single Item-typed factory at module scope:
-const ActionMenu = Menu.create<Action>()
-
-const Message = defineMessageUnion({
-  GotMenuMessage: { message: ActionMenu.Message },
+const ActionMenuExampleComposition = ActionMenuExample.toComposition({
+  childBindings: [MenuBinding],
 })
-type Message = typeof Message.Type
+
+const init = ActionMenuExampleComposition.init(() => ({ model: {} }))
 
 // Inside your view function, use data-[closed] for enter/leave transitions:
 const view = ActionMenuExampleComposition.view((model, h) =>
   h.block(
-    menu.embedView({
+    MenuBinding.embedView({
       slotId: 'menu',
       model: model.menu,
       viewInputs: {

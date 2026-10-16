@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Schema } from 'effect'
+import { Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -33,34 +33,27 @@ const HoverIntentExample = Block.define('HoverIntentExample', {
   Message,
 })
 
-const hoverIntent = HoverIntentExample.bindChild(HoverIntent.block, {
+const HoverIntentBinding = HoverIntentExample.bindChild(HoverIntent.block, {
   field: 'hoverIntent',
   parentMessage: Message.GotHoverIntentMessage,
+  init: {
+    args: () => Tuple.make({ openDelay: 200, closeDelay: 300 }),
+  },
   outMessage: { fold: foldHoverIntentOutMessage },
 })
 
-// Initialize it. This behavior primitive owns no DOM id:
-const init = HoverIntentExample.init(() => {
-  const hoverIntentInit = hoverIntent.init({ openDelay: 200, closeDelay: 300 })
-
-  return {
-    model: {
-      hoverIntent: hoverIntentInit.model,
-      // ...your other fields
-    },
-    commands: hoverIntentInit.commands,
-  }
-})
-
 const HoverIntentExampleComposition = HoverIntentExample.toComposition({
-  children: [hoverIntent],
+  childBindings: [HoverIntentBinding],
 })
 
-const update = HoverIntentExample.update((model, message) =>
-  Message.match(message, {
-    GotHoverIntentMessage: ({ message }) => hoverIntent.fold(model, message),
-  }),
-)
+// Initialize it. This behavior primitive owns no DOM id:
+const init = HoverIntentExampleComposition.init(() => ({
+  model: {
+    // ...your other fields
+  },
+}))
+
+const update = HoverIntentExampleComposition.update()
 
 // Spread each attribute bundle onto the element it names. HoverIntent owns the
 // interaction; this view owns the markup, semantics, positioning, and styles.
@@ -98,7 +91,7 @@ const view = HoverIntentExampleComposition.view((model, h) => {
     )
 
   return h.block(
-    hoverIntent.embedView({
+    HoverIntentBinding.embedView({
       slotId: 'more-information',
       model: model.hoverIntent,
       viewInputs: {

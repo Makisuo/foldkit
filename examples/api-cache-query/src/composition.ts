@@ -4,22 +4,25 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Application } from './definition'
 import { Message } from './message'
-import { AppTabs, type Tab } from './model'
+import { AppTabs, TABS_ID, type Tab } from './model'
 import { postQuery, postsQuery, statsQuery } from './query'
 
-export const posts = Application.bindChild(postsQuery, {
+export const PostsBinding = Application.bindChild(postsQuery, {
   field: 'posts',
   parentMessage: Message.GotPostsMessage,
+  init: true,
 })
 
-export const stats = Application.bindChild(statsQuery, {
+export const StatsBinding = Application.bindChild(statsQuery, {
   field: 'stats',
   parentMessage: Message.GotStatsMessage,
+  init: true,
 })
 
-export const postDetails = Application.bindChild(postQuery, {
+export const PostDetailsBinding = Application.bindChild(postQuery, {
   field: 'postDetails',
   parentMessage: Message.GotPostMessage,
+  init: true,
 })
 
 const activateTab = (tab: Tab) =>
@@ -27,8 +30,12 @@ const activateTab = (tab: Tab) =>
     const modelWithActiveTab = modifyFields(model, { activeTab: () => tab })
 
     return Match.value(tab).pipe(
-      Match.when('Posts', () => posts.loadIfMissing()(modelWithActiveTab)),
-      Match.when('Stats', () => stats.loadIfMissing()(modelWithActiveTab)),
+      Match.when('Posts', () =>
+        PostsBinding.loadIfMissing()(modelWithActiveTab),
+      ),
+      Match.when('Stats', () =>
+        StatsBinding.loadIfMissing()(modelWithActiveTab),
+      ),
       Match.exhaustive,
     )
   })
@@ -37,14 +44,15 @@ const foldTabsOutMessage = AppTabs.OutMessage.match({
   Selected: ({ value }) => activateTab(value),
 })
 
-export const tabs = Application.bindChild(AppTabs, {
+export const TabsBinding = Application.bindChild(AppTabs, {
   field: 'tabs',
   parentMessage: Message.GotTabsMessage,
+  init: { args: () => [{ id: TABS_ID }] },
   outMessage: { fold: foldTabsOutMessage },
 })
 
 export const ApplicationComposition = Application.toComposition({
-  children: [tabs, posts, stats, postDetails],
+  childBindings: [TabsBinding, PostsBinding, StatsBinding, PostDetailsBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition

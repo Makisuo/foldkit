@@ -77,17 +77,17 @@ export const lowerBlock = (
   return {
     Model: block.Model,
     init: (...args: ReadonlyArray<any>) =>
-      withOperationGraph(block.children, () =>
+      withOperationGraph(block.childBindings, () =>
         lowerReturn(block.init(...args)),
       ),
     update: (...args: ReadonlyArray<any>) =>
-      withOperationGraph(block.children, () =>
+      withOperationGraph(block.childBindings, () =>
         lowerReturn(block.update(...args)),
       ),
     view: scopeView(segment, requireDefaultView(block), {
       owner: block.owner,
       mounts: block[LocalMountsTypeId],
-      children: block.children,
+      childBindings: block.childBindings,
     }),
     mounts: block.mounts,
     subscriptions,
@@ -116,7 +116,7 @@ export const assertComposedHandlers = (
         )
       }
     }
-    for (const binding of block.children) {
+    for (const binding of block.childBindings) {
       check(runtimeBindingOf(binding).block, [...path, binding.placement])
     }
   }

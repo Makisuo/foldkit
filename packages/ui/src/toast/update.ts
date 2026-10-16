@@ -299,22 +299,28 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         ),
     })
 
-  const entryAnimation = Toast.bindChild(Animation.block, {
+  const EntryAnimationBinding = Toast.bindChild(Animation.block, {
     field: 'entries',
     key: 'id',
     childField: 'animation',
     toParentMessage: (entryId, message) =>
       MessageSchema.GotAnimationMessage({ entryId, message }),
+    fromParentMessage: {
+      parentMessage: MessageSchema.GotAnimationMessage,
+      args: (_model, { entryId, message }) => Option.some([entryId, message]),
+    },
     outMessage: { fold: foldEntryAnimationOutMessage },
   })
 
   const ToastComposition = Toast.toComposition({
-    children: [entryAnimation],
+    childBindings: [EntryAnimationBinding],
   })
 
-  const foldEntryAnimationShow = (entry: Entry) => entryAnimation.show(entry.id)
+  const foldEntryAnimationShow = (entry: Entry) =>
+    EntryAnimationBinding.show(entry.id)
 
-  const foldEntryAnimationHide = (entry: Entry) => entryAnimation.hide(entry.id)
+  const foldEntryAnimationHide = (entry: Entry) =>
+    EntryAnimationBinding.hide(entry.id)
 
   const createEntry = (model: Model, input: ShowInput<A>): Entry => {
     const entryId = `${model.id}-entry-${model.nextEntryKey}`
@@ -357,14 +363,14 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       })),
     ),
   })
-  const blockInit = Toast.init((config: InitConfig) => ({
+  const blockInit = ToastComposition.init((config: InitConfig) => ({
     model: init(config),
   }))
 
   /** Processes a Toast Message and returns the next Model, optional Commands,
    *  and an optional `DismissedToast` OutMessage emitted once an entry has
    *  finished its leave animation. */
-  const update = Toast.update((model, message) =>
+  const update = ToastComposition.update((model, message) =>
     MessageSchema.match(message, {
       Added: ({ entry }) => {
         return Update.combine(model, [
@@ -601,9 +607,6 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
             },
           },
         ),
-
-      GotAnimationMessage: ({ entryId, message: animationMessage }) =>
-        entryAnimation.fold(model, entryId, animationMessage),
     }),
   )
 
@@ -728,7 +731,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
   return {
     ToastComposition,
-    entryAnimation,
+    EntryAnimationBinding,
     Entry: EntrySchema,
     Model: ModelSchema,
     Message: MessageSchema,

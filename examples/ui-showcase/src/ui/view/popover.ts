@@ -4,11 +4,11 @@ import { Popover } from '@foldkit/ui'
 import { type RenderInfo, buttonId } from '@foldkit/ui/popover'
 
 import {
+  PopoverAnimatedDemoBinding,
+  PopoverBasicDemoBinding,
+  PopoverNestedChildDemoBinding,
+  PopoverNestedParentDemoBinding,
   UiComposition,
-  popoverAnimatedDemo,
-  popoverBasicDemo,
-  popoverNestedChildDemo,
-  popoverNestedParentDemo,
 } from '../composition'
 import type { UiViewBuilder } from '../composition'
 
@@ -118,7 +118,7 @@ const nestedChildPopover = (
     )
 
   return h.block(
-    popoverNestedChildDemo.embedView({
+    PopoverNestedChildDemoBinding.embedView({
       slotId: childPopoverModel.id,
       model: childPopoverModel,
       viewInputs: {
@@ -175,7 +175,7 @@ const nestedDemo = (
     [h.Class('relative')],
     [
       h.block(
-        popoverNestedParentDemo.embedView({
+        PopoverNestedParentDemoBinding.embedView({
           slotId: parentPopoverModel.id,
           model: parentPopoverModel,
           viewInputs: {
@@ -210,7 +210,7 @@ export const view = UiComposition.view((model, h) => {
         [h.Class('relative')],
         [
           h.block(
-            popoverBasicDemo.embedView({
+            PopoverBasicDemoBinding.embedView({
               slotId: model.popoverBasicDemo.id,
               model: model.popoverBasicDemo,
               viewInputs: {
@@ -237,7 +237,7 @@ export const view = UiComposition.view((model, h) => {
         [h.Class('relative')],
         [
           h.block(
-            popoverAnimatedDemo.embedView({
+            PopoverAnimatedDemoBinding.embedView({
               slotId: model.popoverAnimatedDemo.id,
               model: model.popoverAnimatedDemo,
               viewInputs: {

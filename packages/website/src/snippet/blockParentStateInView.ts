@@ -1,4 +1,4 @@
-import { settings } from './composition'
+import { SettingsBinding } from './composition'
 import { SettingsComposition } from './definition'
 import type { User } from './user'
 
@@ -12,7 +12,7 @@ export const view = SettingsComposition.view.withInputs<ViewInputs>(
 )
 
 h.block(
-  settings.embedView({
+  SettingsBinding.embedView({
     slotId: 'settings',
     model: model.settings,
     viewInputs: { currentUser: model.currentUser },

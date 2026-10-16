@@ -4,9 +4,9 @@ import { Html, inertHtml as ih } from 'foldkit/html'
 
 import { Icon } from '../icon'
 import {
+  DialogBinding,
   SearchComposition,
   type SearchViewBuilder,
-  dialog,
 } from './composition'
 import { Message, type SearchResult } from './message'
 import type { Model } from './model'
@@ -245,7 +245,7 @@ export const view = SearchComposition.view((model, h) =>
     [
       keyboardWarmupInput,
       h.block(
-        dialog.embedView({
+        DialogBinding.embedView({
           slotId: model.dialog.id,
           model: model.dialog,
           viewInputs: {

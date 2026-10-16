@@ -365,6 +365,13 @@ export const makeUpdate = <
     typeof Message,
     ParentOutMessageSchema
   >,
+  step: Block.DefineStep<
+    BaseModel,
+    Message,
+    ParentOutMessageSchema extends Schema.Top
+      ? ParentOutMessageSchema['Type']
+      : never
+  >,
   selectionBehavior: 'CloseWithFocus' | 'KeepOpen',
   handleSelectedItem: (
     model: BaseModel,
@@ -372,20 +379,21 @@ export const makeUpdate = <
   ) => HandlerReturn<BaseModel>,
 ) => {
   type Model = BaseModel
+  type RoutedMessage = Exclude<Message, typeof Message.GotAnimationMessage.Type>
 
-  const detectListboxMovementOrAnimationEnd =
-    (generation: number) => (model: Model) => ({
+  const detectListboxMovementOrAnimationEnd = (generation: number) =>
+    step(model => ({
       model,
       commands: [
         DetectListboxMovementOrAnimationEnd({ id: model.id, generation }),
       ],
-    })
+    }))
 
   type AnimationOutMessageStep = ReturnType<
     typeof detectListboxMovementOrAnimationEnd
   >
 
-  const ignoreTransitionedOut = (model: Model) => ({ model })
+  const ignoreTransitionedOut = step(model => ({ model }))
 
   const foldAnimationOutMessage = Animation.OutMessage.match<
     AnimationOutMessageStep | typeof ignoreTransitionedOut
@@ -395,13 +403,13 @@ export const makeUpdate = <
     TransitionedOut: () => ignoreTransitionedOut,
   })
 
-  const animation = bindChild(Animation.block, {
+  const AnimationBinding = bindChild(Animation.block, {
     field: 'animation',
     parentMessage: Message.GotAnimationMessage,
     outMessage: { fold: foldAnimationOutMessage },
   })
 
-  const internalUpdate = (model: Model, message: Message) => {
+  const internalUpdate = (model: Model, message: RoutedMessage) => {
     const maybeLockScroll = OptionExt.when(model.isModal, LockListboxScroll())
     const maybeUnlockScroll = OptionExt.when(
       model.isModal,
@@ -441,7 +449,7 @@ export const makeUpdate = <
             model: stepModel,
             commands: openCommands,
           }),
-          animation.show(),
+          AnimationBinding.show(),
           stepModel => ({
             model: modifyBaseFields(stepModel, { isOpen: () => true }),
           }),
@@ -467,7 +475,7 @@ export const makeUpdate = <
       if (baseModel.isAnimated) {
         return Update.combine(closed, [
           stepModel => ({ model: stepModel, commands }),
-          animation.hide(),
+          AnimationBinding.hide(),
         ])
       }
 
@@ -597,10 +605,7 @@ export const makeUpdate = <
       },
 
       CompletedDetectListboxMovementOrAnimationEnd: ({ generation }) =>
-        animation.finish(generation)(model),
-
-      GotAnimationMessage: ({ message: animationMessage }) =>
-        animation.fold(model, animationMessage),
+        AnimationBinding.finish(generation)(model),
 
       PressedPointerOnButton: ({ pointerType, button }) => {
         const withPointerType = modifyBaseFields(model, {
@@ -641,7 +646,7 @@ export const makeUpdate = <
     })
   }
 
-  return { update: internalUpdate, animation }
+  return { update: internalUpdate, AnimationBinding }
 }
 
 /**

@@ -5,7 +5,10 @@ import { Button } from '@foldkit/ui'
 
 import { ProficiencyLevel } from '../../../domain'
 import { Field } from '../../../view'
-import { SkillsEntryComposition, proficiencyRadioGroup } from './composition'
+import {
+  ProficiencyRadioGroupBinding,
+  SkillsEntryComposition,
+} from './composition'
 import { Message } from './definition'
 
 export const view = SkillsEntryComposition.view((model, h) => {
@@ -21,7 +24,7 @@ export const view = SkillsEntryComposition.view((model, h) => {
   )
 
   const proficiencyView = h.block(
-    proficiencyRadioGroup.embedView({
+    ProficiencyRadioGroupBinding.embedView({
       slotId: model.proficiencyRadioGroup.id,
       model: model.proficiencyRadioGroup,
       viewInputs: {

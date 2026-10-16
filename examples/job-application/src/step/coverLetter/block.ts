@@ -25,7 +25,7 @@ export const init = (): Model => ({
   content: '',
 })
 
-export const update = CoverLetter.update((model, message) =>
+export const update = CoverLetterComposition.update((model, message) =>
   Message.match(message, {
     UpdatedContent: ({ value }) => ({
       model: modifyFields(model, { content: () => value }),
@@ -96,7 +96,7 @@ export const view = CoverLetterComposition.view((model, h) => {
 })
 
 export const block = CoverLetterComposition.toBlock({
-  init: CoverLetter.init(() => ({ model: init() })),
+  init: CoverLetterComposition.init(() => ({ model: init() })),
   update,
   view,
 })

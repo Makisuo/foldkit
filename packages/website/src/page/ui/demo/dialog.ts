@@ -4,15 +4,15 @@ import type { Html } from 'foldkit/html'
 import { Combobox, Dialog } from '@foldkit/ui'
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
-import {
-  dialogAnimatedDemo as dialogAnimatedDemoBinding,
-  dialogDemo,
-  nestedDialogChildDemo,
-  nestedDialogParentDemo,
-  overlayComboboxDemo,
-  overlayDialogDemo as overlayDialogDemoBinding,
-} from '../composition'
 import type { UiViewBuilder } from '../composition'
+import {
+  DialogAnimatedDemoBinding,
+  DialogDemoBinding,
+  NestedDialogChildDemoBinding,
+  NestedDialogParentDemoBinding,
+  OverlayComboboxDemoBinding,
+  OverlayDialogDemoBinding,
+} from '../composition'
 import { Message } from '../message'
 import type { City } from '../model'
 import { comboboxViewInputs } from './combobox'
@@ -115,7 +115,7 @@ const editFiltersContent = (
         ],
       ),
       h.block(
-        overlayComboboxDemo.embedView({
+        OverlayComboboxDemoBinding.embedView({
           slotId: comboboxModel.id,
           model: comboboxModel,
           viewInputs: {
@@ -203,7 +203,7 @@ export const view = (
   return [
     trigger('Open Dialog', Message.ClickedOpenDialog(), h),
     h.block(
-      dialogDemo.embedView({
+      DialogDemoBinding.embedView({
         slotId: dialogModel.id,
         model: dialogModel,
         viewInputs: {
@@ -252,7 +252,7 @@ export const overlayDialogDemo = (
   return [
     trigger('Edit filters', Message.ClickedEditFilters(), h),
     h.block(
-      overlayDialogDemoBinding.embedView({
+      OverlayDialogDemoBinding.embedView({
         slotId: dialogModel.id,
         model: dialogModel,
         viewInputs: {
@@ -299,7 +299,7 @@ export const nestedDialogDemo = (
   return [
     trigger('Open project settings', Message.ClickedOpenProjectSettings(), h),
     h.block(
-      nestedDialogParentDemo.embedView({
+      NestedDialogParentDemoBinding.embedView({
         slotId: parentDialogModel.id,
         model: parentDialogModel,
         viewInputs: {
@@ -336,7 +336,7 @@ export const nestedDialogDemo = (
       }),
     ),
     h.block(
-      nestedDialogChildDemo.embedView({
+      NestedDialogChildDemoBinding.embedView({
         slotId: childDialogModel.id,
         model: childDialogModel,
         viewInputs: {
@@ -382,7 +382,7 @@ export const dialogAnimatedDemo = (
   return [
     trigger('Open Animated Dialog', Message.ClickedOpenAnimatedDialog(), h),
     h.block(
-      dialogAnimatedDemoBinding.embedView({
+      DialogAnimatedDemoBinding.embedView({
         slotId: dialogModel.id,
         model: dialogModel,
         viewInputs: {

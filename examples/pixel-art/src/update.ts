@@ -5,16 +5,12 @@ import { modifyFields } from 'foldkit/struct'
 import { ExportPng, saveCanvas } from './command'
 import {
   ApplicationComposition,
+  ErrorDialogBinding,
+  GridSizeConfirmDialogBinding,
   applyGridSizeChange,
-  errorDialog,
-  gridSizeConfirmDialog,
-  gridSizeRadioGroup,
-  paletteRadioGroup,
   requestGridSizeChange,
   selectColor,
   selectTool,
-  themeListbox,
-  toolRadioGroup,
 } from './composition'
 import {
   createEmptyGrid,
@@ -116,15 +112,6 @@ export const update = ApplicationComposition.update((model, message) =>
     SelectedTool: ({ tool }) => selectTool(model, tool),
 
     SelectedGridSize: ({ size }) => requestGridSizeChange(model, size),
-
-    GotToolRadioGroupMessage: ({ message }) =>
-      toolRadioGroup.fold(model, message),
-
-    GotGridSizeRadioGroupMessage: ({ message }) =>
-      gridSizeRadioGroup.fold(model, message),
-
-    GotPaletteRadioGroupMessage: ({ message }) =>
-      paletteRadioGroup.fold(model, message),
 
     ToggledMirrorHorizontal: () => {
       const nextMirrorMode = Match.value(model.mirrorMode).pipe(
@@ -254,12 +241,8 @@ export const update = ApplicationComposition.update((model, message) =>
             maybeExportError: () => Option.some(error),
           }),
         }),
-        errorDialog.open(),
+        ErrorDialogBinding.open(),
       ]),
-
-    GotErrorDialogMessage: ({ message }) => errorDialog.fold(model, message),
-
-    GotThemeListboxMessage: ({ message }) => themeListbox.fold(model, message),
 
     ConfirmedGridSizeChange: () =>
       Option.match(model.maybePendingGridSize, {
@@ -267,15 +250,12 @@ export const update = ApplicationComposition.update((model, message) =>
         onSome: pendingSize =>
           Update.combine(model, [
             stepModel => applyGridSizeChange(stepModel, pendingSize),
-            gridSizeConfirmDialog.close(),
+            GridSizeConfirmDialogBinding.close(),
             stepModel => ({
               model: stepModel,
               commands: [saveCanvas(stepModel)],
             }),
           ]),
       }),
-
-    GotGridSizeConfirmDialogMessage: ({ message }) =>
-      gridSizeConfirmDialog.fold(model, message),
   }),
 )

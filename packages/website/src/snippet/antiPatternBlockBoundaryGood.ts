@@ -13,8 +13,8 @@ export const block = SettingsComposition.toBlock({
   EffectsLayer,
 })
 
-const update = Parent.update((model, message) =>
+const update = ParentComposition.update((model, message) =>
   Message.match(message, {
-    ClickedResetSettings: () => settings.setTheme('Light')(model),
+    ClickedResetSettings: () => SettingsBinding.setTheme('Light')(model),
   }),
 )

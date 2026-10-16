@@ -11,8 +11,10 @@ export type Message = typeof Message.Type
 const Counter = Block.define('Counter', { Model, Message })
 const CounterComposition = Counter.toComposition()
 
-const init = Counter.init(() => ({ model: Model.make({ count: 0 }) }))
-const update = Counter.update((model, message) =>
+const init = CounterComposition.init(() => ({
+  model: Model.make({ count: 0 }),
+}))
+const update = CounterComposition.update((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: Number.increment }),

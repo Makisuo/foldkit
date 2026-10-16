@@ -1,17 +1,12 @@
 import { type Url } from 'foldkit/url'
 
-import { Application } from './definition'
-import { DietListbox, PeriodListbox } from './model'
+import { ApplicationComposition } from './composition'
 import { urlToApplicationRoute } from './route'
 
-export const init = Application.init((url: Url) => {
+export const init = ApplicationComposition.init((url: Url) => {
   const route = urlToApplicationRoute(url)
 
   return {
-    model: {
-      route,
-      dietListbox: DietListbox.init({ id: 'diet-filter' }).model,
-      periodListbox: PeriodListbox.init({ id: 'period-filter' }).model,
-    },
+    model: { route },
   }
 })

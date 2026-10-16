@@ -2,20 +2,20 @@ import { Option } from 'effect'
 import { Url } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { room } from '../composition'
+import { RoomBinding } from '../composition'
 import { type Model, RoomInstance } from '../model'
 import { ApplicationRoute, urlToApplicationRoute } from '../route'
 
-const initializeRoom = (model: Model, roomId: string) => {
-  const roomInit = room.init(roomId, Option.some(roomId))
-
-  return {
-    model: modifyFields(model, {
-      maybeRoomInstance: () =>
-        Option.some(RoomInstance.make({ roomId, model: roomInit.model })),
-    }),
-    commands: roomInit.commands,
-  }
+export const initializeRoom = (model: Model, roomId: string) => {
+  return RoomBinding.init({
+    key: roomId,
+    args: [Option.some(roomId)],
+    toParentModel: room =>
+      modifyFields(model, {
+        maybeRoomInstance: () =>
+          Option.some(RoomInstance.make({ roomId, model: room })),
+      }),
+  })
 }
 
 export const changeRoute = (model: Model, url: Url.Url) => {

@@ -5,7 +5,10 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { Button, RadioGroup } from '@foldkit/ui'
 import type { OptionInfo } from '@foldkit/ui/radioGroup'
 
-import { type ApplicationViewBuilder, editionRadioGroup } from '../composition'
+import {
+  type ApplicationViewBuilder,
+  EditionRadioGroupBinding,
+} from '../composition'
 import * as Icon from '../icon'
 import { Message } from '../message'
 import { CheckoutState, EDITIONS, editionName } from '../model'
@@ -158,7 +161,7 @@ export const cartView = (
             ['Choose an edition'],
           ),
           h.block(
-            editionRadioGroup.embedView({
+            EditionRadioGroupBinding.embedView({
               slotId: editionRadioGroupModel.id,
               model: editionRadioGroupModel,
               viewInputs: {

@@ -13,27 +13,25 @@ type Message = typeof Message.Type
 
 const Application = defineApplication({ Model, Message })
 
-const posts = Application.bindChild(postsQuery, {
+const PostsBinding = Application.bindChild(postsQuery, {
   field: 'posts',
   parentMessage: Message.GotPostsMessage,
+  init: true,
 })
 
 const ApplicationComposition = Application.toComposition({
-  children: [posts],
+  childBindings: [PostsBinding],
 })
 
-const init = Application.init(() => {
-  const model = Model.make({ posts: posts.init().model })
+const init = ApplicationComposition.init(() => ({
+  model: {},
+  // Start loading after the Query Model is stored in its parent.
+  steps: [PostsBinding.loadIfMissing()],
+}))
 
-  // Return the Loading Model state and the first FetchPosts Command.
-  return posts.loadIfMissing()(model)
-})
-
-const update = Application.update((model, message) =>
+const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
-    // Run Query's update, then write its Model back into the parent.
-    GotPostsMessage: ({ message }) => posts.fold(model, message),
     // Return the transition and Command for either missing or retained data.
-    ClickedRefreshPosts: () => posts.revalidateOrLoad()(model),
+    ClickedRefreshPosts: () => PostsBinding.revalidateOrLoad()(model),
   }),
 )

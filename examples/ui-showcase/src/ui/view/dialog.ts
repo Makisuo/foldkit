@@ -5,13 +5,13 @@ import { Combobox, Dialog } from '@foldkit/ui'
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
 import {
+  DialogAnimatedDemoBinding,
+  DialogDemoBinding,
+  NestedDialogChildDemoBinding,
+  NestedDialogParentDemoBinding,
+  OverlayComboboxDemoBinding,
+  OverlayDialogDemoBinding,
   UiComposition,
-  dialogAnimatedDemo,
-  dialogDemo,
-  nestedDialogChildDemo,
-  nestedDialogParentDemo,
-  overlayComboboxDemo,
-  overlayDialogDemo,
 } from '../composition'
 import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
@@ -121,7 +121,7 @@ const editFiltersContent = (
     ],
   ),
   h.block(
-    overlayComboboxDemo.embedView({
+    OverlayComboboxDemoBinding.embedView({
       slotId: comboboxModel.id,
       model: comboboxModel,
       viewInputs: {
@@ -222,7 +222,7 @@ const basicDemo = (dialogModel: typeof Dialog.Model.Type, h: UiViewBuilder) => {
     )
 
   return h.block(
-    dialogDemo.embedView({
+    DialogDemoBinding.embedView({
       slotId: dialogModel.id,
       model: dialogModel,
       viewInputs: {
@@ -249,7 +249,7 @@ const animatedDemo = (
     )
 
   return h.block(
-    dialogAnimatedDemo.embedView({
+    DialogAnimatedDemoBinding.embedView({
       slotId: dialogModel.id,
       model: dialogModel,
       viewInputs: {
@@ -287,7 +287,7 @@ const overlayDemo = (
     [
       trigger('Edit filters', Message.ClickedEditFilters(), h),
       h.block(
-        overlayDialogDemo.embedView({
+        OverlayDialogDemoBinding.embedView({
           slotId: dialogModel.id,
           model: dialogModel,
           viewInputs: {
@@ -340,7 +340,7 @@ const nestedDemo = (
     [
       trigger('Open project settings', Message.ClickedOpenProjectSettings(), h),
       h.block(
-        nestedDialogParentDemo.embedView({
+        NestedDialogParentDemoBinding.embedView({
           slotId: parentDialogModel.id,
           model: parentDialogModel,
           viewInputs: {
@@ -350,7 +350,7 @@ const nestedDemo = (
         }),
       ),
       h.block(
-        nestedDialogChildDemo.embedView({
+        NestedDialogChildDemoBinding.embedView({
           slotId: childDialogModel.id,
           model: childDialogModel,
           viewInputs: {

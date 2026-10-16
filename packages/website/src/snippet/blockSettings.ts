@@ -14,19 +14,20 @@ import {
 const CurrentUser = Schema.Struct({ accountId: Schema.String })
 export type CurrentUser = typeof CurrentUser.Type
 
-const update = Settings.update((model, message, currentUser: CurrentUser) =>
-  Message.match(message, {
-    ChangedTheme: ({ theme }) => ({
-      model: modifyFields(model, { theme: () => theme }),
-      commands: [SaveTheme({ theme })],
-      outMessage: OutMessage.ChangedTheme({
-        accountId: currentUser.accountId,
-        theme,
+const update = SettingsComposition.update(
+  (model, message, currentUser: CurrentUser) =>
+    Message.match(message, {
+      ChangedTheme: ({ theme }) => ({
+        model: modifyFields(model, { theme: () => theme }),
+        commands: [SaveTheme({ theme })],
+        outMessage: OutMessage.ChangedTheme({
+          accountId: currentUser.accountId,
+          theme,
+        }),
       }),
+      CompletedSaveTheme: () => ({ model }),
+      FailedSaveTheme: () => ({ model }),
     }),
-    CompletedSaveTheme: () => ({ model }),
-    FailedSaveTheme: () => ({ model }),
-  }),
 )
 
 const reset = Settings.step(model => ({
@@ -37,7 +38,7 @@ const view = SettingsComposition.view((model, h) =>
   h.p([], [`Theme: ${model.theme}`]),
 )
 
-const init = Settings.init(() => ({
+const init = SettingsComposition.init(() => ({
   model: Model.make({ theme: 'System' }),
 }))
 

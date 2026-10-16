@@ -1,10 +1,11 @@
 import { Effect, HashSet, Layer, Schema } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
+import { SnippetCopyComposition } from './definition'
 import { SnippetCopy } from './definition'
 import { Message } from './message'
 
-export const update = SnippetCopy.update((model, message) =>
+export const update = SnippetCopyComposition.update((model, message) =>
   Message.match(message, {
     ClickedCopySnippet: ({ snippetId, text }) => ({
       model,

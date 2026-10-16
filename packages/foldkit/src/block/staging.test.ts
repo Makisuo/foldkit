@@ -55,7 +55,7 @@ const defaultView = observeComposition.view.withInputs<
 
 const Child = observeComposition.toBlock({
   init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
-  update: childBase.update(model => ({ model })),
+  update: observeComposition.update(model => ({ model })),
   view: defaultView,
   EffectsLayer: Observe.layer,
 })
@@ -71,12 +71,12 @@ const Parent = define('StagedParent', {
   Message: ParentMessage,
 })
 
-const directChild = Parent.bindChild(Child, {
+const DirectChildBinding = Parent.bindChild(Child, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
 })
 
-const explicitChild = Parent.bindChild(Child, {
+const ExplicitChildBinding = Parent.bindChild(Child, {
   read: model => Option.some(model.child),
   write: (_model, child) => ParentModel.make({ child }),
   parentMessage: ParentMessage.GotChildMessage,
@@ -90,12 +90,12 @@ const alternateView = Child.view.withInputs<Readonly<{ prefix: string }>>(
 const initialParent = ParentModel.make({
   child: ChildModel.make({ value: 'initial' }),
 })
-const defaultEmbed = directChild.embedView({
+const defaultEmbed = DirectChildBinding.embedView({
   slotId: 'default-child',
   model: initialParent.child,
   viewInputs: { label: 'Default' },
 })
-const alternateEmbed = directChild.embedView({
+const alternateEmbed = DirectChildBinding.embedView({
   slotId: 'alternate-child',
   model: initialParent.child,
   view: alternateView,
@@ -134,7 +134,7 @@ if (false) {
   // @ts-expect-error A Composition cannot establish another graph.
   observeComposition.toComposition({ mounts: [Measure] })
 
-  directChild.embedView({
+  DirectChildBinding.embedView({
     slotId: 'missing-default-inputs',
     model: initialParent.child,
     // @ts-expect-error The completed Block retains its default ViewInputs.
@@ -147,7 +147,7 @@ if (false) {
     Message: ParentMessage,
   })
   // @ts-expect-error A child Binding must use the Composition's parent Model.
-  foreignModelBase.toComposition({ children: [directChild] })
+  foreignModelBase.toComposition({ childBindings: [DirectChildBinding] })
 
   const ForeignMessage = defineMessageUnion({ ReceivedForeign: {} })
   const foreignMessageBase = define('StagedForeignMessageParent').define({
@@ -155,7 +155,7 @@ if (false) {
     Message: ForeignMessage,
   })
   // @ts-expect-error A child Binding must use the Composition's parent Message.
-  foreignMessageBase.toComposition({ children: [directChild] })
+  foreignMessageBase.toComposition({ childBindings: [DirectChildBinding] })
 }
 
 it('creates independent immutable graphs from one typed Base', () => {
@@ -164,10 +164,10 @@ it('creates independent immutable graphs from one typed Base', () => {
   expect(graphlessComposition.view).toBeTypeOf('function')
   void graphlessView
   expect(observeComposition.owner).toBe(childBase.owner)
-  expect(observeComposition.update).toBe(childBase.update)
-  expect(observeComposition.step).toBe(childBase.step)
-  expect(observeComposition.subscriptions).toBe(childBase.subscriptions)
-  expect(observeComposition.managedResources).toBe(childBase.managedResources)
+  expect(observeComposition.update).toBeTypeOf('function')
+  expect(observeComposition).not.toHaveProperty('step')
+  expect(observeComposition).not.toHaveProperty('subscriptions')
+  expect(observeComposition).not.toHaveProperty('managedResources')
   expect(measureComposition.owner).toBe(childBase.owner)
   expect(observeComposition).not.toBe(measureComposition)
   expect(observeComposition.mounts).toEqual([Observe])
@@ -186,11 +186,11 @@ it('preserves completed view capabilities and default ViewInputs', () => {
 })
 
 it('matches required-field and explicit Binding behavior', () => {
-  const directUpdate = directChild.fold(
+  const directUpdate = DirectChildBinding.fold(
     initialParent,
     ChildMessage.CompletedObserve(),
   )
-  const explicitUpdate = explicitChild.fold(
+  const explicitUpdate = ExplicitChildBinding.fold(
     initialParent,
     ChildMessage.CompletedObserve(),
   )
@@ -213,7 +213,7 @@ it('retains contextual update and Step inference after registration', () => {
     expectTypeOf(message).toEqualTypeOf<ChildMessage>()
     return { model }
   })
-  const setValue = observeComposition.step((model, value: string) => {
+  const setValue = childBase.step((model, value: string) => {
     expectTypeOf(model).toEqualTypeOf<ChildModel>()
     return { model: modifyFields(model, { value: () => value }) }
   })

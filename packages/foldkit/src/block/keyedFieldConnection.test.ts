@@ -1,4 +1,4 @@
-import { Layer, Predicate, Schema } from 'effect'
+import { Layer, Option, Predicate, Schema } from 'effect'
 import { expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
@@ -53,9 +53,12 @@ const Child = define('KeyedFieldConnectionChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const childBlock = Child.toComposition().toBlock({
-  init: () => ({ model: ChildModel.make({ id: 'initial', count: 0 }) }),
-  update: Child.update((model, message) =>
+const ChildComposition = Child.toComposition()
+const childBlock = ChildComposition.toBlock({
+  init: ChildComposition.init(() => ({
+    model: ChildModel.make({ id: 'initial', count: 0 }),
+  })),
+  update: ChildComposition.update((model, message) =>
     ChildMessage.match(message, {
       UpdatedCount: ({ count }) => ({
         model: modifyFields(model, { count: () => count }),
@@ -72,9 +75,12 @@ const ArrayChild = define('KeyedFieldConnectionArrayChild', {
   Model: ArrayChildModel,
   Message: ArrayChildMessage,
 })
-const arrayChildBlock = ArrayChild.toComposition().toBlock({
-  init: () => ({ model: ArrayChildModel.make(['initial']) }),
-  update: ArrayChild.update(model => ({ model })),
+const ArrayChildComposition = ArrayChild.toComposition()
+const arrayChildBlock = ArrayChildComposition.toBlock({
+  init: ArrayChildComposition.init(() => ({
+    model: ArrayChildModel.make(['initial']),
+  })),
+  update: ArrayChildComposition.update(model => ({ model })),
   EffectsLayer: Layer.empty,
 })
 const keyedFieldCandidate: RequiredKeyedField<
@@ -92,17 +98,24 @@ const Parent = define('KeyedFieldConnectionParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const children = Parent.bindChild(childBlock, {
+const ChildrenBinding = Parent.bindChild(childBlock, {
   field: 'entries',
   key: 'id',
   toParentMessage: (id, message) =>
     ParentMessage.GotChildMessage({ id, message }),
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotChildMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
 })
-const arrayChild = Parent.bindChild(arrayChildBlock, {
+const ArrayChildBinding = Parent.bindChild(arrayChildBlock, {
   field: 'arrayChild',
   toParentMessage: message => ParentMessage.GotArrayChildMessage({ message }),
+  fromParentMessage: false,
 })
-Parent.toComposition({ children: [children, arrayChild] })
+const ParentComposition = Parent.toComposition({
+  childBindings: [ChildrenBinding, ArrayChildBinding],
+})
 
 const CallableChildModel = taggedStruct('CallableChild', {
   id: Schema.String,
@@ -112,9 +125,12 @@ const CallableChild = define('KeyedFieldConnectionCallableChild', {
   Model: CallableChildModel,
   Message: ChildMessage,
 })
-const callableChildBlock = CallableChild.toComposition().toBlock({
-  init: () => ({ model: CallableChildModel({ id: 'initial', count: 0 }) }),
-  update: CallableChild.update((model, message) =>
+const CallableChildComposition = CallableChild.toComposition()
+const callableChildBlock = CallableChildComposition.toBlock({
+  init: CallableChildComposition.init(() => ({
+    model: CallableChildModel({ id: 'initial', count: 0 }),
+  })),
+  update: CallableChildComposition.update((model, message) =>
     ChildMessage.match(message, {
       UpdatedCount: ({ count }) => ({
         model: modifyFields(model, { count: () => count }),
@@ -133,13 +149,17 @@ const CallableParent = define('KeyedFieldConnectionCallableParent', {
   Model: CallableParentModel,
   Message: ParentMessage,
 })
-const callableChildren = CallableParent.bindChild(callableChildBlock, {
+const CallableChildrenBinding = CallableParent.bindChild(callableChildBlock, {
   field: 'entries',
   key: 'id',
   toParentMessage: (id, message) =>
     ParentMessage.GotChildMessage({ id, message }),
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotChildMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
 })
-CallableParent.toComposition({ children: [callableChildren] })
+CallableParent.toComposition({ childBindings: [CallableChildrenBinding] })
 
 const normalize = (overrides: globalThis.Record<string, unknown> = {}) =>
   normalizeKeyedFieldConfig({
@@ -207,7 +227,7 @@ it('accepts callable tagged Struct schemas for parent and child Models', () => {
   const parent = CallableParentModel({ entries: [first] })
 
   expect(
-    callableChildren.fold(
+    CallableChildrenBinding.fold(
       parent,
       'first',
       ChildMessage.UpdatedCount({ count: 2 }),
@@ -259,19 +279,21 @@ it('uses the direct field shorthand through the shared keyed Binding', () => {
     child: first,
     arrayChild: ['initial'],
   })
-  const updated = children.fold(
+  const updated = ChildrenBinding.fold(
     parent,
     'first',
     ChildMessage.UpdatedCount({ count: 4 }),
   )
-  const absent = children.fold(
+  const absent = ChildrenBinding.fold(
     parent,
     'absent',
     ChildMessage.UpdatedCount({ count: 5 }),
   )
 
-  expectTypeOf(children.placement).toEqualTypeOf<'entries'>()
-  expectTypeOf<Parameters<typeof children.fold>[1]>().toEqualTypeOf<string>()
+  expectTypeOf(ChildrenBinding.placement).toEqualTypeOf<'entries'>()
+  expectTypeOf<
+    Parameters<typeof ChildrenBinding.fold>[1]
+  >().toEqualTypeOf<string>()
   expect(updated.model.entries).toEqual([
     ChildModel.make({ id: 'first', count: 4 }),
     second,
@@ -287,7 +309,10 @@ it('keeps an Array child Model in the static direct Binding path', () => {
     child,
     arrayChild: ['initial'],
   })
-  const updated = arrayChild.fold(parent, ArrayChildMessage.IgnoredValue())
+  const updated = ArrayChildBinding.fold(
+    parent,
+    ArrayChildMessage.IgnoredValue(),
+  )
 
   expect(updated.model).toEqual(parent)
 })
@@ -391,7 +416,21 @@ it('rejects invalid runtime storage and child key replacement', () => {
 })
 
 it('rejects an initialized child whose stable key differs from its occurrence', () => {
-  expect(() => children.init('requested')).toThrow(
+  const initializeMismatchedChild = ParentComposition.init(() =>
+    ChildrenBinding.init({
+      key: 'requested',
+      args: [],
+      toParentModel: child =>
+        ParentModel.make({
+          entries: [child],
+          otherEntries: [],
+          child,
+          arrayChild: ['initial'],
+        }),
+    }),
+  )
+
+  expect(() => initializeMismatchedChild()).toThrow(
     'cannot initialize or replace a child with a different key',
   )
 })
@@ -406,7 +445,11 @@ it('rejects a child update that changes its stable key', () => {
   })
 
   expect(() =>
-    children.fold(parent, 'first', ChildMessage.UpdatedId({ id: 'changed' })),
+    ChildrenBinding.fold(
+      parent,
+      'first',
+      ChildMessage.UpdatedId({ id: 'changed' }),
+    ),
   ).toThrow('cannot initialize or replace a child with a different key')
   expect(parent.entries).toEqual([first])
 })

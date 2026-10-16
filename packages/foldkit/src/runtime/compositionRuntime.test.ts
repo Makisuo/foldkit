@@ -73,9 +73,10 @@ const childManagedResources = child.managedResources(entry => ({
     },
   }),
 }))
-const childBlock = child.toComposition().toBlock({
+const childComposition = child.toComposition()
+const childBlock = childComposition.toBlock({
   init: (id: number) => ({ model: { id } }),
-  update: child.update(model => ({ model })),
+  update: childComposition.update(model => ({ model })),
   subscriptions,
   managedResources: childManagedResources,
   EffectsLayer: Layer.merge(
@@ -98,14 +99,16 @@ const rootBase = Root.define({
   Model: RootModel,
   Message: RootMessage,
 })
-const optionalChild = rootBase.bindChild(childBlock, {
+const OptionalChildBinding = rootBase.bindChild(childBlock, {
+  fromParentMessage: false,
   read: (model: RootModel) => model.maybeChild,
   write: (model, nextChild) =>
     modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
   parentMessage: RootMessage.GotChildMessage,
   subscriptions: { when: model => model.subscriptionState === 'Active' },
 })
-const entries = rootBase.bindChild(childBlock, {
+const EntriesBinding = rootBase.bindChild(childBlock, {
+  fromParentMessage: false,
   placement: 'Entries',
   readAll: (model: RootModel) => model.entries,
   key: entry => entry.id,
@@ -117,7 +120,9 @@ const entries = rootBase.bindChild(childBlock, {
     }),
   toParentMessage: (_key, message) => RootMessage.GotChildMessage({ message }),
 })
-const root = rootBase.toComposition({ children: [optionalChild, entries] })
+const root = rootBase.toComposition({
+  childBindings: [OptionalChildBinding, EntriesBinding],
+})
 const rootManagedResources = rootBase.managedResources(entry => ({
   value: entry('Value', Schema.Option(Schema.Null), {
     resource: RootValue,
@@ -143,7 +148,7 @@ const initialModel = RootModel.make({
 })
 const block = root.toBlock({
   init: () => ({ model: initialModel }),
-  update: rootBase.update(model => ({ model })),
+  update: root.update(model => ({ model })),
   managedResources: rootManagedResources,
   EffectsLayer: rootManagedResources.value.layer,
 })
@@ -161,7 +166,8 @@ const nestedParentBase = NestedParent.define({
   Model: NestedParentModel,
   Message: NestedParentMessage,
 })
-const nestedEntries = nestedParentBase.bindChild(childBlock, {
+const NestedEntriesBinding = nestedParentBase.bindChild(childBlock, {
+  fromParentMessage: false,
   placement: 'entries',
   readAll: (model: NestedParentModel) => model.entries,
   key: (entry): number => entry.id,
@@ -175,16 +181,16 @@ const nestedEntries = nestedParentBase.bindChild(childBlock, {
     NestedParentMessage.GotChildMessage({ id, message }),
 })
 const nestedParent = nestedParentBase.toComposition({
-  children: [nestedEntries],
+  childBindings: [NestedEntriesBinding],
 })
 const nestedParentBlock = nestedParent.toBlock({
   init: (id: number, entries: ReadonlyArray<typeof ChildModel.Type>) => ({
     model: { id, entries },
   }),
-  update: nestedParentBase.update((model, message) =>
+  update: nestedParent.update((model, message) =>
     NestedParentMessage.match(message, {
       GotChildMessage: ({ id, message }) =>
-        nestedEntries.fold(model, id, message),
+        NestedEntriesBinding.fold(model, id, message),
     }),
   ),
   EffectsLayer: Layer.empty,
@@ -201,7 +207,8 @@ const nestedRootBase = NestedRoot.define({
   Model: NestedRootModel,
   Message: NestedRootMessage,
 })
-const nestedParents = nestedRootBase.bindChild(nestedParentBlock, {
+const NestedParentsBinding = nestedRootBase.bindChild(nestedParentBlock, {
+  fromParentMessage: false,
   placement: 'parents',
   readAll: (model: NestedRootModel) => model.parents,
   key: (parent): number => parent.id,
@@ -214,16 +221,18 @@ const nestedParents = nestedRootBase.bindChild(nestedParentBlock, {
   toParentMessage: (id: number, message) =>
     NestedRootMessage.GotParentMessage({ id, message }),
 })
-const nestedRoot = nestedRootBase.toComposition({ children: [nestedParents] })
+const nestedRoot = nestedRootBase.toComposition({
+  childBindings: [NestedParentsBinding],
+})
 const nestedInitialModel = NestedRootModel.make({
   parents: [{ id: 1, entries: [{ id: 10 }] }],
 })
 const nestedBlock = nestedRoot.toBlock({
   init: () => ({ model: nestedInitialModel }),
-  update: nestedRootBase.update((model, message) =>
+  update: nestedRoot.update((model, message) =>
     NestedRootMessage.match(message, {
       GotParentMessage: ({ id, message }) =>
-        nestedParents.fold(model, id, message),
+        NestedParentsBinding.fold(model, id, message),
     }),
   ),
   EffectsLayer: Layer.empty,
@@ -410,7 +419,9 @@ describe('composed lifecycle reconciliation', () => {
     await withRuntime(async (runtime, { starts, stops }) => {
       await vi.waitFor(() => expect(starts).toEqual([1]))
       const before = Context.get(runtime.context, CurrentInstance)!.node
-      const optionalBefore = before.children.get(optionalChild)!.get(undefined)
+      const optionalBefore = before.children
+        .get(OptionalChildBinding)!
+        .get(undefined)
       const invalidKeyEntries = [true, {}, globalThis.BigInt(1), undefined].map(
         invalidKey => {
           const entry = { id: 1 }
@@ -432,15 +443,15 @@ describe('composed lifecycle reconciliation', () => {
             }),
           ),
         ).toThrow(/duplicate key|string or finite number keys/)
-        expect(before.children.get(optionalChild)!.get(undefined)).toBe(
+        expect(before.children.get(OptionalChildBinding)!.get(undefined)).toBe(
           optionalBefore,
         )
         expect(optionalBefore!.isActive).toBe(true)
-        expect(before.children.get(entries)!.size).toBe(0)
+        expect(before.children.get(EntriesBinding)!.size).toBe(0)
       }
       expect(starts).toEqual([1])
       expect(stops).toEqual([])
-      expect(runtimeBindingOf(entries).block).toBe(childBlock)
+      expect(runtimeBindingOf(EntriesBinding).block).toBe(childBlock)
     })
   })
 
@@ -550,12 +561,14 @@ describe('composed lifecycle reconciliation', () => {
   it('uses render-owned historical instances with unavailable resource slots', async () => {
     await withRuntime(async runtime => {
       const liveRoot = Context.get(runtime.context, CurrentInstance)!.node
-      const liveChild = liveRoot.children.get(optionalChild)!.get(undefined)!
+      const liveChild = liveRoot.children
+        .get(OptionalChildBinding)!
+        .get(undefined)!
       const liveRootContext = invocationContext(block.owner.id, runtime.context)
       const liveChildContext = invocationContext(
-        optionalChild.placement,
+        OptionalChildBinding.placement,
         runtime.context,
-        { binding: optionalChild },
+        { binding: OptionalChildBinding },
       )
 
       await vi.waitFor(async () => {
@@ -577,9 +590,9 @@ describe('composed lifecycle reconciliation', () => {
       const replayRoot = Context.get(replayContext, CurrentInstance)!.node
       const replayRootContext = invocationContext(block.owner.id, replayContext)
       const replayChildContext = invocationContext(
-        optionalChild.placement,
+        OptionalChildBinding.placement,
         replayContext,
-        { binding: optionalChild },
+        { binding: OptionalChildBinding },
         true,
       )
       const replayChild = Context.get(replayChildContext, CurrentInstance)!.node

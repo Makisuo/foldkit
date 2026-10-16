@@ -135,8 +135,8 @@ describe('real-oxlint rule fixtures', () => {
     ).toBe(5)
   })
 
-  it('traces direct and named data-last combine Steps', () => {
-    expect(countDiagnostics('no-direct-block-state-update', 'invalid')).toBe(10)
+  it('traces direct, named, and automatically routed child updates', () => {
+    expect(countDiagnostics('no-direct-block-state-update', 'invalid')).toBe(11)
   })
 
   it('reports direct child Message construction and local constructor aliases', () => {

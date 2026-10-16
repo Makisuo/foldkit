@@ -2,7 +2,7 @@
 '@foldkit/ui': minor
 ---
 
-Expose each stateful Foldkit UI component as a completed Block. The owning parent creates Bindings with `bindChild` and includes them under its Composition's `children`. Composition carries handler Layers, Mounts, Subscriptions, and ManagedResources to the application root.
+Expose each stateful Foldkit UI component as a completed Block. The owning parent creates Bindings with `bindChild` and includes them under its Composition's `childBindings`. Composition carries handler Layers, Mounts, Subscriptions, and ManagedResources to the application root.
 
 Before:
 
@@ -45,25 +45,25 @@ const AppTabs = Tabs.create<Tab>()
 
 const Panel = Block.define('Panel', { Model, Message })
 
-const menu = Panel.bindChild(AppMenu, {
+const MenuBinding = Panel.bindChild(AppMenu, {
   field: 'menu',
   parentMessage: Message.GotMenuMessage,
   outMessage: { fold: foldMenuOutMessage },
 })
 
-const tabs = Panel.bindChild(AppTabs, {
+const TabsBinding = Panel.bindChild(AppTabs, {
   field: 'tabs',
   parentMessage: Message.GotTabsMessage,
   outMessage: { fold: foldTabsOutMessage },
 })
 
 const PanelComposition = Panel.toComposition({
-  children: [menu, tabs],
+  childBindings: [MenuBinding, TabsBinding],
 })
 
 export const view = PanelComposition.view((model, h) =>
   h.block(
-    menu.embedView({
+    MenuBinding.embedView({
       slotId: model.menu.id,
       model: model.menu,
       viewInputs: menuViewInputs,
@@ -72,13 +72,13 @@ export const view = PanelComposition.view((model, h) =>
 )
 ```
 
-Register only the components the owner embeds. A Binding makes the parent-child relationship explicit once: update uses `binding.fold` for received child Messages and direct exposed operations such as `binding.open()` for parent-driven changes, while view uses `binding.embedView`.
+Register only the components the owner embeds. A Binding makes the parent-child relationship explicit once: the Composition routes received wrapper Messages through the Binding automatically, update uses exposed operations such as `binding.open()` for parent-driven changes, and view uses `binding.embedView`.
 
 Factories live on the component namespace: `Combobox.create`, `Combobox.Multi.create`, `Listbox.create`, `Listbox.Multi.create`, `Menu.create`, `Tabs.create`, `RadioGroup.create`, `VirtualList.create`, and `Toast.make`. Factory instances retain stable local names; Binding placement and keys distinguish occurrences. Schema-taking factories such as `Combobox.create(City)` preserve decoded Item payloads. Type-only factories such as `Tabs.create<Tab>()` preserve selected value types. Import ViewInputs and domain helpers from component subpaths; the completed value carries its Model, Message, and declared OutMessage matcher.
 
 ```ts
 import { Toast } from '@foldkit/ui'
-import { Schema } from 'effect'
+import { Option, Schema } from 'effect'
 import { defineApplication } from 'foldkit'
 
 import { foldToastOutMessage } from './outMessage'
@@ -90,7 +90,7 @@ const AppToast = Toast.make(ToastPayload)
 
 const Application = defineApplication({ Model, Message })
 
-const toast = Application.bindChild(AppToast, {
+const ToastBinding = Application.bindChild(AppToast, {
   field: 'toast',
   parentMessage: Message.GotToastMessage,
   outMessage: { fold: foldToastOutMessage },
@@ -112,7 +112,7 @@ import { Model } from './model'
 
 const Application = defineApplication({ Model, Message })
 
-const dialogs = Application.bindChild(Dialog.block, {
+const DialogsBinding = Application.bindChild(Dialog.block, {
   readAll: model => model.dialogs,
   key: dialog => dialog.id,
   read: dialog => dialog.model,
@@ -120,6 +120,10 @@ const dialogs = Application.bindChild(Dialog.block, {
     replaceDialog(model, dialogId, nextDialog),
   toParentMessage: (dialogId, message) =>
     Message.GotDialogMessage({ dialogId, message }),
+  fromParentMessage: {
+    parentMessage: Message.GotDialogMessage,
+    args: (_model, { dialogId, message }) => Option.some([dialogId, message]),
+  },
   outMessage: { fold: foldDialogOutMessage },
 })
 ```

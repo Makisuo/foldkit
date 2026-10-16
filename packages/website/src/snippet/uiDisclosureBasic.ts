@@ -26,7 +26,7 @@ const FrequentlyAskedQuestions = Block.define('FrequentlyAskedQuestions', {
   Message,
 })
 // In your init function, start it closed:
-const init = FrequentlyAskedQuestions.init(() => ({
+const init = FrequentlyAskedQuestionsComposition.init(() => ({
   model: {
     isFaqOpen: false,
     // ...your other fields

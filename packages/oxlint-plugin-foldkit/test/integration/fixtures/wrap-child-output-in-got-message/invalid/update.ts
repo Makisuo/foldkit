@@ -19,7 +19,7 @@ const InlineChild = Block.define('InlineChild', {
   })
 
 const Application = defineApplication({ Model, Message })
-export const inlineChild = Application.bindChild(InlineChild, {read: (model: Model) => Option.some(model.child),
+export const InlineChildBinding = Application.bindChild(InlineChild, {read: (model: Model) => Option.some(model.child),
 write: (model, child) => modifyFields(model, { child: () => child }),
 toParentMessage: message => ForwardedChildMessage({ message })})
 

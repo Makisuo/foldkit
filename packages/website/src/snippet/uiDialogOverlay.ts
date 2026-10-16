@@ -1,4 +1,4 @@
-import { Option, Schema } from 'effect'
+import { Option, Schema, Tuple } from 'effect'
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
@@ -61,46 +61,32 @@ const FilterDialog = Block.define('FilterDialog', {
   Message,
 })
 
-const dialog = FilterDialog.bindChild(Dialog.block, {
+const DialogBinding = FilterDialog.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
+  init: { args: () => Tuple.make({ id: 'edit-filters' }) },
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const combobox = FilterDialog.bindChild(CityCombobox, {
+const ComboboxBinding = FilterDialog.bindChild(CityCombobox, {
   field: 'combobox',
   parentMessage: Message.GotComboboxMessage,
+  init: { args: () => Tuple.make({ id: 'city' }) },
   outMessage: { fold: foldComboboxOutMessage },
 })
 
-const init = FilterDialog.init(() => {
-  const dialogInit = dialog.init({ id: 'edit-filters' })
-  const comboboxInit = combobox.init({ id: 'city' })
-
-  return {
-    model: {
-      dialog: dialogInit.model,
-      combobox: comboboxInit.model,
-      maybeCity: Option.none(),
-      // ...your other fields
-    },
-    commands: [
-      ...(dialogInit.commands ?? []),
-      ...(comboboxInit.commands ?? []),
-    ],
-  }
-})
-
 const FilterDialogComposition = FilterDialog.toComposition({
-  children: [dialog, combobox],
+  childBindings: [DialogBinding, ComboboxBinding],
 })
 
-const update = FilterDialog.update((model, message) =>
-  Message.match(message, {
-    GotDialogMessage: ({ message }) => dialog.fold(model, message),
-    GotComboboxMessage: ({ message }) => combobox.fold(model, message),
-  }),
-)
+const init = FilterDialogComposition.init(() => ({
+  model: {
+    maybeCity: Option.none(),
+    // ...your other fields
+  },
+}))
+
+const update = FilterDialogComposition.update()
 
 // Render the overlay inside the dialog panel. Its panel portals into the
 // dialog, so it renders above the dialog content with no extra anchor config.
@@ -128,7 +114,7 @@ const view = FilterDialogComposition.view((model, h) => {
               [
                 h.h2([...title], ['Edit filters']),
                 h.block(
-                  combobox.embedView({
+                  ComboboxBinding.embedView({
                     slotId: model.combobox.id,
                     model: model.combobox,
                     viewInputs: {
@@ -153,7 +139,7 @@ const view = FilterDialogComposition.view((model, h) => {
     )
 
   return h.block(
-    dialog.embedView({
+    DialogBinding.embedView({
       slotId: model.dialog.id,
       model: model.dialog,
       viewInputs: {

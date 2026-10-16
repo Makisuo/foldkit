@@ -142,7 +142,7 @@ const RadioGroupComposition = RadioGroup.toComposition()
  *  Commands, and an optional OutMessage. `Selected` fires when an option is
  *  committed via click or keyboard; the parent stores the new value and passes
  *  it back in as `selectedValue`. */
-export const update = RadioGroup.update((model, message) =>
+export const update = RadioGroupComposition.update((model, message) =>
   Message.match(message, {
     SelectedOption: ({ index, value }) => ({
       model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),
@@ -457,7 +457,9 @@ const internalView = RadioGroupComposition.view.withInputs<ViewInputs>(
 
 /** Complete RadioGroup Block definition. */
 export const block = RadioGroupComposition.toBlock({
-  init: RadioGroup.init((config: InitConfig) => ({ model: init(config) })),
+  init: RadioGroupComposition.init((config: InitConfig) => ({
+    model: init(config),
+  })),
   update,
   view: internalView,
   EffectsLayer,
@@ -483,7 +485,7 @@ const makeBlock = <Value extends string>() => {
     OutMessage: RefinedOutMessage,
   })
   const RadioGroupComposition = RadioGroup.toComposition()
-  const refinedUpdate = RadioGroup.update((model, message) =>
+  const refinedUpdate = RadioGroupComposition.update((model, message) =>
     castReturn(update(model, message)),
   )
   const refinedView =
@@ -498,7 +500,9 @@ const makeBlock = <Value extends string>() => {
   )
 
   return RadioGroupComposition.toBlock({
-    init: RadioGroup.init((config: InitConfig) => ({ model: init(config) })),
+    init: RadioGroupComposition.init((config: InitConfig) => ({
+      model: init(config),
+    })),
     update: refinedUpdate,
     view,
     EffectsLayer,

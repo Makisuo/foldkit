@@ -2,23 +2,21 @@ import { Array } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { GenerateSkillsEntryId } from './command'
-import { entries } from './composition'
-import { Message, type Model, Skills } from './definition'
+import { EntriesBinding, SkillsComposition } from './composition'
+import { Message, type Model } from './definition'
 import * as Entry from './entry'
 
-export const update = Skills.update((model, message) =>
+export const update = SkillsComposition.update((model, message) =>
   Message.match(message, {
     ClickedAddEntry: () => ({ model, commands: [GenerateSkillsEntryId()] }),
 
-    SucceededGenerateSkillsEntryId: ({ entryId }) => {
-      const entryInit = entries.init(entryId, entryId)
-      return {
-        model: modifyFields(model, {
-          entries: Array.append(entryInit.model),
-        }),
-        commands: entryInit.commands,
-      }
-    },
+    SucceededGenerateSkillsEntryId: ({ entryId }) =>
+      EntriesBinding.init({
+        key: entryId,
+        args: [entryId],
+        toParentModel: entry =>
+          modifyFields(model, { entries: Array.append(entry) }),
+      }),
 
     FailedGenerateSkillsEntryId: () => ({ model }),
 
@@ -27,9 +25,6 @@ export const update = Skills.update((model, message) =>
         entries: Array.filter(entry => entry.id !== entryId),
       }),
     }),
-
-    GotEntryMessage: ({ entryId, message }) =>
-      entries.fold(model, entryId, message),
   }),
 )
 

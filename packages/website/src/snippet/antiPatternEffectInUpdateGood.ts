@@ -15,7 +15,7 @@ const FocusSearchInput = Application.command('FocusSearchInput', {
   },
 })
 
-const update = Application.update((model, message) =>
+const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedOpenDialog: () => ({
       model: modifyFields(model, { dialogState: () => 'Open' }),

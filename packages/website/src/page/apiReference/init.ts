@@ -1,6 +1,7 @@
 import { Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
+import { ApiReferenceComposition } from './definition'
 import { ApiReference } from './definition'
 import {
   type ApiData,
@@ -10,14 +11,14 @@ import {
 } from './model'
 import { LoadApiData } from './update'
 
-export const init = ApiReference.init(() => ({
+export const init = ApiReferenceComposition.init(() => ({
   model: Model.make({
     apiData: ApiDataAsyncData.Idle(),
     disclosures: {},
   }),
 }))
 
-export const boot = ApiReference.step(
+export const loadInitialData = ApiReference.step(
   (model, maybeApiData: Option.Option<ApiData> = Option.none()) => {
     const nextModel = Option.match(maybeApiData, {
       onNone: () =>

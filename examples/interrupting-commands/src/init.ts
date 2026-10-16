@@ -1,6 +1,8 @@
-import { Application } from './definition'
+import { ApplicationComposition } from './composition'
 import type { Model } from './model'
 
 export const initialModel: Model = { uploadId: 0, uploads: [] }
 
-export const init = Application.init(() => ({ model: initialModel }))
+export const init = ApplicationComposition.init(() => ({
+  model: initialModel,
+}))

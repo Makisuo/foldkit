@@ -2,9 +2,9 @@ import { Button } from '@foldkit/ui'
 
 import { DatePicker, Field } from '../../../view'
 import {
+  EndDatePickerBinding,
+  StartDatePickerBinding,
   WorkHistoryEntryComposition,
-  endDatePicker,
-  startDatePicker,
 } from './composition'
 import { Message } from './definition'
 
@@ -21,7 +21,7 @@ export const view = WorkHistoryEntryComposition.view((model, h) => {
         ['Start Date'],
       ),
       h.block(
-        startDatePicker.embedView({
+        StartDatePickerBinding.embedView({
           slotId: model.startDate.id,
           model: model.startDate,
           viewInputs: {
@@ -48,7 +48,7 @@ export const view = WorkHistoryEntryComposition.view((model, h) => {
         ['End Date'],
       ),
       h.block(
-        endDatePicker.embedView({
+        EndDatePickerBinding.embedView({
           slotId: model.endDate.id,
           model: model.endDate,
           viewInputs: {

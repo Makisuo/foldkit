@@ -236,9 +236,23 @@ type TaggedUnionMatchCases<
   Input extends TaggedUnionType<CasesByTag>,
   Output,
 > = {
-  readonly [Tag in keyof CasesByTag & string]: (
-    value: Extract<Input, { readonly _tag: Tag }>,
-  ) => Output
+  readonly [
+    Tag in keyof CasesByTag & string as Extract<
+      Input,
+      { readonly _tag: Tag }
+    > extends never
+      ? never
+      : Tag
+  ]-?: (value: Extract<Input, { readonly _tag: Tag }>) => Output
+} & {
+  readonly [
+    Tag in keyof CasesByTag & string as Extract<
+      Input,
+      { readonly _tag: Tag }
+    > extends never
+      ? Tag
+      : never
+  ]?: never
 }
 
 type TaggedUnionMatchOrElseCases<
@@ -250,6 +264,60 @@ type TaggedUnionMatchOrElseCases<
     value: Extract<Input, { readonly _tag: Tag }>,
   ) => Output
 }
+
+type TaggedUnionExplicitMatchCases<
+  CasesByTag extends Record<string, Schema.Struct.Fields>,
+  Input extends TaggedUnionType<CasesByTag>,
+  Output,
+> = {
+  readonly [Tag in keyof CasesByTag & string]: (
+    value: Extract<Input, { readonly _tag: Tag }>,
+  ) => Output
+}
+
+declare const OmittedMatchOutputTypeId: unique symbol
+
+type OmittedMatchOutput = Readonly<{
+  [OmittedMatchOutputTypeId]: true
+}>
+
+type IsAny<Value> = 0 extends 1 & Value ? true : false
+
+type IsOmittedMatchOutput<Output> =
+  IsAny<Output> extends true
+    ? false
+    : [Output, OmittedMatchOutput] extends [OmittedMatchOutput, Output]
+      ? true
+      : false
+
+type ValidateExplicitMatchOutput<Output, Return> =
+  IsAny<Output> extends true
+    ? IsAny<Return> extends true
+      ? unknown
+      : never
+    : IsAny<Return> extends true
+      ? never
+      : [Output, Return] extends [Return, Output]
+        ? unknown
+        : never
+
+type TaggedUnionExplicitCases<
+  CasesByTag extends Record<string, Schema.Struct.Fields>,
+  Input extends TaggedUnionType<CasesByTag>,
+  Output,
+> =
+  IsOmittedMatchOutput<Output> extends true
+    ? never
+    : TaggedUnionExplicitMatchCases<CasesByTag, Input, NoInfer<Output>>
+
+type TaggedUnionExplicitMatchOrElseCases<
+  CasesByTag extends Record<string, Schema.Struct.Fields>,
+  Input extends TaggedUnionType<CasesByTag>,
+  Output,
+> =
+  IsOmittedMatchOutput<Output> extends true
+    ? never
+    : TaggedUnionMatchOrElseCases<CasesByTag, Input, NoInfer<Output>>
 
 type TaggedUnionCaseReturns<Cases> = {
   [Tag in keyof Cases]-?: NonNullable<Cases[Tag]> extends (
@@ -284,7 +352,7 @@ type TaggedUnionMatch<CasesByTag extends Record<string, Schema.Struct.Fields>> =
   {
     <
       Input extends TaggedUnionType<CasesByTag>,
-      const Cases extends TaggedUnionMatchCases<CasesByTag, Input, unknown>,
+      const Cases extends TaggedUnionMatchCases<CasesByTag, Input, any>,
     >(
       value: Input,
       cases: Cases & ValidateTaggedUnionCases<CasesByTag, Cases>,
@@ -293,24 +361,30 @@ type TaggedUnionMatch<CasesByTag extends Record<string, Schema.Struct.Fields>> =
       const Cases extends TaggedUnionMatchCases<
         CasesByTag,
         TaggedUnionType<CasesByTag>,
-        unknown
+        any
       >,
     >(
-      cases: Cases & ValidateTaggedUnionCases<CasesByTag, Cases>,
+      cases: Cases &
+        ValidateTaggedUnionCases<CasesByTag, Cases> &
+        (IsAny<Cases> extends true ? never : unknown),
     ): (value: TaggedUnionType<CasesByTag>) => TaggedUnionCaseReturns<Cases>
     <
-      Output,
+      Output = OmittedMatchOutput,
       Input extends TaggedUnionType<CasesByTag> = TaggedUnionType<CasesByTag>,
+      Return extends NoInfer<Output> = Output,
     >(
-      cases: TaggedUnionMatchCases<CasesByTag, Input, Output>,
-    ): (value: Input) => Output
+      cases: TaggedUnionExplicitCases<CasesByTag, Input, Output> &
+        ValidateExplicitMatchOutput<Output, Return>,
+    ): (value: Input) => Return
     <
-      Output,
+      Output = OmittedMatchOutput,
       Input extends TaggedUnionType<CasesByTag> = TaggedUnionType<CasesByTag>,
+      Return extends NoInfer<Output> = Output,
     >(
       value: Input,
-      cases: TaggedUnionMatchCases<CasesByTag, Input, Output>,
-    ): Output
+      cases: TaggedUnionExplicitCases<CasesByTag, Input, Output> &
+        ValidateExplicitMatchOutput<Output, Return>,
+    ): Return
   }
 
 type TaggedUnionMatchOrElse<
@@ -353,20 +427,24 @@ type TaggedUnionMatchOrElse<
     value: TaggedUnionType<CasesByTag>,
   ) => TaggedUnionMatchOrElseOutput<Cases, OrElse>
   <
-    Output,
+    Output = OmittedMatchOutput,
     Input extends TaggedUnionType<CasesByTag> = TaggedUnionType<CasesByTag>,
+    Return extends NoInfer<Output> = Output,
   >(
-    cases: TaggedUnionMatchOrElseCases<CasesByTag, Input, Output>,
-    orElse: (value: Input) => Output,
-  ): (value: Input) => Output
+    cases: TaggedUnionExplicitMatchOrElseCases<CasesByTag, Input, Output> &
+      ValidateExplicitMatchOutput<Output, Return>,
+    orElse: (value: Input) => NoInfer<Output>,
+  ): (value: Input) => Return
   <
-    Output,
+    Output = OmittedMatchOutput,
     Input extends TaggedUnionType<CasesByTag> = TaggedUnionType<CasesByTag>,
+    Return extends NoInfer<Output> = Output,
   >(
     value: Input,
-    cases: TaggedUnionMatchOrElseCases<CasesByTag, Input, Output>,
-    orElse: (value: Input) => Output,
-  ): Output
+    cases: TaggedUnionExplicitMatchOrElseCases<CasesByTag, Input, Output> &
+      ValidateExplicitMatchOutput<Output, Return>,
+    orElse: (value: Input) => NoInfer<Output>,
+  ): Return
 }
 
 interface UnionSchema<

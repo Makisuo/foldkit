@@ -7,8 +7,8 @@ import {
 import { modifyFields } from 'foldkit/struct'
 
 import { revealFieldErrors } from '../../validation'
-import { endDatePicker, startDatePicker } from './composition'
-import { Message, type Model, OutMessage, WorkHistoryEntry } from './definition'
+import { WorkHistoryEntryComposition } from './composition'
+import { Message, type Model, OutMessage } from './definition'
 
 // FIELD VALIDATION
 
@@ -23,7 +23,7 @@ export const titleRules = makeRules({
 const validateCompany = validate(companyRules)
 const validateTitle = validate(titleRules)
 
-export const update = WorkHistoryEntry.update((model, message) =>
+export const update = WorkHistoryEntryComposition.update((model, message) =>
   Message.match(message, {
     UpdatedCompany: ({ value }) => ({
       model: modifyFields(model, { company: () => validateCompany(value) }),
@@ -32,10 +32,6 @@ export const update = WorkHistoryEntry.update((model, message) =>
     UpdatedTitle: ({ value }) => ({
       model: modifyFields(model, { title: () => validateTitle(value) }),
     }),
-
-    GotStartDateMessage: ({ message }) => startDatePicker.fold(model, message),
-
-    GotEndDateMessage: ({ message }) => endDatePicker.fold(model, message),
 
     ToggledCurrentlyEmployed: ({ isChecked }) => ({
       model: modifyFields(model, { isCurrentlyEmployed: () => isChecked }),

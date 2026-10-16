@@ -26,6 +26,7 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 const Application = defineApplication({ Model, Message })
+const ApplicationComposition = Application.toComposition()
 
 const FetchUser = Application.command('FetchUser', {
   args: { userId: Schema.String },
@@ -46,7 +47,7 @@ const FetchUser = Application.command('FetchUser', {
   },
 })
 
-const update = Application.update((model, message) =>
+const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedFetchUser: ({ userId }) => ({
       model: modifyFields(model, { user: () => UserState.Loading() }),

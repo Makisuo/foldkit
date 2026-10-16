@@ -24,6 +24,7 @@ import {
   staticStringValue,
   blockBindingMethod,
   blockBindingConfiguration,
+  isOwnedDefinitionCall,
 } from '../guards.ts'
 
 const directBlockStateUpdateMessage = (fieldName: string): string =>
@@ -257,6 +258,57 @@ const isModifyFieldsCall = (
 
 type FoldKind = 'Fold' | 'Keyed' | 'Step'
 
+type DefinitionOwner = Readonly<{
+  fallbackRootName: string
+  members: ReadonlyArray<string>
+  variable?: Variable
+}>
+
+const definitionOwner = (
+  node: ESTree.CallExpression,
+  methodName: string,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): DefinitionOwner | undefined => {
+  const maybePath = staticMemberPath(node.callee)
+  if (Option.isNone(maybePath)) {
+    return undefined
+  }
+
+  const { root, members } = maybePath.value
+  if (members.at(-1) !== methodName) {
+    return undefined
+  }
+
+  return {
+    fallbackRootName: root.name,
+    members: members.slice(0, -1),
+    ...(references === undefined
+      ? {}
+      : Option.match(resolvedVariable(references, root), {
+          onNone: () => ({}),
+          onSome: variable => ({ variable }),
+        })),
+  }
+}
+
+const isSameDefinitionOwner = (
+  left: DefinitionOwner,
+  right: DefinitionOwner,
+): boolean => {
+  if (
+    left.members.length !== right.members.length ||
+    left.members.some((member, index) => member !== right.members[index])
+  ) {
+    return false
+  }
+
+  if (left.variable !== undefined || right.variable !== undefined) {
+    return left.variable !== undefined && left.variable === right.variable
+  }
+
+  return left.fallbackRootName === right.fallbackRootName
+}
+
 const foldKind = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
@@ -371,6 +423,7 @@ const callbackValue = (
 type FoldDefinition = Readonly<{
   childField: string
   kind: FoldKind
+  owner?: DefinitionOwner
   wrappedChildField?: string
 }>
 
@@ -464,6 +517,9 @@ const foldDefinitions = (
       }
 
       const bindingMethod = blockBindingMethod(declarator.init, references)
+      const owner = Option.isSome(bindingMethod)
+        ? definitionOwner(declarator.init, 'bindChild', references)
+        : undefined
       const directField =
         Option.isSome(bindingMethod) &&
         propertyValue(configuration, 'field') !== undefined
@@ -478,6 +534,7 @@ const foldDefinitions = (
         const definition = {
           childField: directField,
           kind,
+          ...(owner === undefined ? {} : { owner }),
           ...(wrappedChildField === undefined ? {} : { wrappedChildField }),
         }
         fallbackByName.set(declarator.id.name, definition)
@@ -521,7 +578,11 @@ const foldDefinitions = (
         continue
       }
 
-      const definition = { childField: readField, kind }
+      const definition = {
+        childField: readField,
+        kind,
+        ...(owner === undefined ? {} : { owner }),
+      }
       fallbackByName.set(declarator.id.name, definition)
       for (const scope of scopes ?? []) {
         for (const variable of scope.variables) {
@@ -534,6 +595,116 @@ const foldDefinitions = (
   }
 
   return { byVariable, fallbackByName, writeCallbacks }
+}
+
+type CompositionDefinition = Readonly<{
+  childBindings: ReadonlyArray<FoldDefinition>
+}>
+
+const compositionDefinitions = (
+  program: ESTree.Program,
+  scopes: ReadonlyArray<OxlintScope> | undefined,
+  definitions: Readonly<{
+    byVariable: WeakMap<Variable, FoldDefinition>
+    fallbackByName: ReadonlyMap<string, FoldDefinition>
+  }>,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Readonly<{
+  byVariable: WeakMap<Variable, CompositionDefinition>
+  fallbackByName: ReadonlyMap<string, CompositionDefinition>
+}> => {
+  const byVariable = new WeakMap<Variable, CompositionDefinition>()
+  const fallbackByName = new Map<string, CompositionDefinition>()
+
+  for (const statement of program.body) {
+    const declaration =
+      statement.type === 'ExportNamedDeclaration'
+        ? statement.declaration
+        : statement
+    if (declaration?.type !== 'VariableDeclaration') {
+      continue
+    }
+
+    for (const declarator of declaration.declarations) {
+      if (!isIdentifier(declarator.id) || !isCallExpression(declarator.init)) {
+        continue
+      }
+      if (
+        !isOwnedDefinitionCall(declarator.init, 'toComposition', references)
+      ) {
+        continue
+      }
+
+      const owner = definitionOwner(
+        declarator.init,
+        'toComposition',
+        references,
+      )
+      const [configuration] = declarator.init.arguments
+      if (owner === undefined || !isObjectExpression(configuration)) {
+        continue
+      }
+
+      const childBindings = propertyValue(configuration, 'childBindings')
+      if (!isArrayExpression(childBindings)) {
+        continue
+      }
+
+      const registeredBindings = childBindings.elements.flatMap(binding => {
+        if (!isIdentifierReference(binding)) {
+          return []
+        }
+        const definition = foldDefinitionFor(binding, definitions, references)
+        return definition?.owner !== undefined &&
+          isSameDefinitionOwner(definition.owner, owner)
+          ? [definition]
+          : []
+      })
+      if (registeredBindings.length === 0) {
+        continue
+      }
+
+      const definition = { childBindings: registeredBindings }
+      fallbackByName.set(declarator.id.name, definition)
+      for (const scope of scopes ?? []) {
+        for (const variable of scope.variables) {
+          if (variable.defs.some(candidate => candidate.node === declarator)) {
+            byVariable.set(variable, definition)
+          }
+        }
+      }
+    }
+  }
+
+  return { byVariable, fallbackByName }
+}
+
+const compositionDefinitionForUpdate = (
+  callee: unknown,
+  definitions: Readonly<{
+    byVariable: WeakMap<Variable, CompositionDefinition>
+    fallbackByName: ReadonlyMap<string, CompositionDefinition>
+  }>,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): CompositionDefinition | undefined => {
+  const maybePath = staticMemberPath(callee)
+  if (
+    Option.isNone(maybePath) ||
+    maybePath.value.members.length !== 1 ||
+    maybePath.value.members[0] !== 'update'
+  ) {
+    return undefined
+  }
+
+  const { root } = maybePath.value
+  if (references === undefined) {
+    return definitions.fallbackByName.get(root.name)
+  }
+  return Option.getOrUndefined(
+    Option.flatMap(resolvedVariable(references, root), variable =>
+      Option.fromNullishOr(definitions.byVariable.get(variable)),
+    ),
+  )
 }
 
 const foldDefinitionFor = (
@@ -813,7 +984,14 @@ const foldEvidence = (
   scopes: ReadonlyArray<OxlintScope> | undefined,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): FoldEvidence => {
+  const callbacks = moduleCallbacks(program)
   const definitions = foldDefinitions(program, scopes, references)
+  const compositions = compositionDefinitions(
+    program,
+    scopes,
+    definitions,
+    references,
+  )
   const stepDefinitions = combineStepDefinitions(
     program,
     scopes,
@@ -870,6 +1048,22 @@ const foldEvidence = (
   walk(program, (node, ancestors) => {
     if (!isCallExpression(node)) {
       return
+    }
+
+    const composition = compositionDefinitionForUpdate(
+      node.callee,
+      compositions,
+      references,
+    )
+    if (composition !== undefined) {
+      const [updateValue] = node.arguments
+      const update = callbackValue(updateValue, callbacks)
+      const [parentModel] = update?.params ?? []
+      if (isIdentifierReference(parentModel)) {
+        for (const childBinding of composition.childBindings) {
+          addEvidence(childBinding, parentModel)
+        }
+      }
     }
 
     const parentModelForCombine = isCombineCall(node, references)

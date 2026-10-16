@@ -159,7 +159,7 @@ const itemImplementation = {
   init: (id: number, source: string) => ({
     model: { id, source, maybeObserved: Option.none<string>() },
   }),
-  update: itemBase.update((model, message) =>
+  update: item.update((model, message) =>
     ItemMessage.match(message, {
       ClickedReadValue: () => ({ model, commands: [ReadValue()] }),
       CompletedReadValue: ({ value }) => ({
@@ -206,31 +206,37 @@ const rootBase = defineApplication({
   Model: RootModel,
   Message: RootMessage,
 })
-const entries = rootBase.bindChild(itemBlock, {
+const EntriesBinding = rootBase.bindChild(itemBlock, {
+  fromParentMessage: false,
   field: 'entries',
   key: 'id',
   toParentMessage: (id, message) => RootMessage.GotItemMessage({ id, message }),
 })
-const root = rootBase.toComposition({ children: [entries] })
-const firstEntry = entries.init(1, 1, 'old').model
+const root = rootBase.toComposition({ childBindings: [EntriesBinding] })
+const firstEntry = itemBlock.init(1, 'old').model
 const rootInit = () => ({
   model: {
-    entries: [firstEntry, entries.init(2, 2, 'other').model],
+    entries: [firstEntry, itemBlock.init(2, 'other').model],
   },
 })
-const rootUpdate = rootBase.update((model, message) =>
+const rootUpdate = root.update((model, message) =>
   RootMessage.match(message, {
-    GotItemMessage: ({ id, message }) => entries.fold(model, id, message),
+    GotItemMessage: ({ id, message }) =>
+      EntriesBinding.fold(model, id, message),
     ClickedRemoveFirst: () => ({
       model: modifyFields(model, {
         entries: Array.filter(entry => entry.id !== 1),
       }),
     }),
-    ClickedAddReplacement: () => ({
-      model: modifyFields(model, {
-        entries: current => [...current, entries.init(1, 1, 'new').model],
+    ClickedAddReplacement: () =>
+      EntriesBinding.init({
+        key: 1,
+        args: [1, 'new'],
+        toParentModel: entry =>
+          modifyFields(model, {
+            entries: Array.append(entry),
+          }),
       }),
-    }),
     ClickedRestoreFirst: () => ({
       model: modifyFields(model, {
         entries: current => [...current, firstEntry],
@@ -246,7 +252,7 @@ const renderEntry = (
 ) => {
   entryRenderCounts.set(entry.id, (entryRenderCounts.get(entry.id) ?? 0) + 1)
   return h.block(
-    entries.embedView({
+    EntriesBinding.embedView({
       key: entry.id,
       slotId: `${entry.id}`,
       model: entry,

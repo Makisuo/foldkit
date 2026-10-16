@@ -3,12 +3,12 @@ import { childAttributes } from 'foldkit/html'
 
 import { VirtualList } from '@foldkit/ui'
 
-import {
-  virtualListChatDemo as virtualListChatDemoBinding,
-  virtualListDemo,
-  virtualListVariableDemo as virtualListVariableDemoBinding,
-} from '../composition'
 import type { UiViewBuilder } from '../composition'
+import {
+  VirtualListChatDemoBinding,
+  VirtualListDemoBinding,
+  VirtualListVariableDemoBinding,
+} from '../composition'
 import { Message } from '../message'
 import type { VirtualListChatMessage } from '../model'
 import { type Activity, ROW_COUNT } from './virtualListData'
@@ -161,7 +161,7 @@ export const view = (
           ],
         ),
         h.block(
-          virtualListDemo.embedView({
+          VirtualListDemoBinding.embedView({
             slotId: model.id,
             model,
             viewInputs: {
@@ -343,7 +343,7 @@ export const virtualListVariableDemo = (
           ],
         ),
         h.block(
-          virtualListVariableDemoBinding.embedView({
+          VirtualListVariableDemoBinding.embedView({
             slotId: model.id,
             model,
             viewInputs: {
@@ -471,7 +471,7 @@ export const virtualListChatDemo = (
         ],
       ),
       h.block(
-        virtualListChatDemoBinding.embedView({
+        VirtualListChatDemoBinding.embedView({
           slotId: model.id,
           model,
           viewInputs: {

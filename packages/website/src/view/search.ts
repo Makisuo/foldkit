@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { Html } from 'foldkit/html'
 
 import type { ApplicationViewBuilder } from '../composition'
-import { search } from '../composition'
+import { SearchBinding } from '../composition'
 import { Icon } from '../icon'
 import { Message } from '../message'
 import { type Model } from '../model'
@@ -16,7 +16,7 @@ const onClickOpenSearch = (h: ApplicationViewBuilder) =>
   })
 
 export const dialogView = (model: Model, h: ApplicationViewBuilder): Html =>
-  h.block(search.embedView({ slotId: 'search', model: model.search }))
+  h.block(SearchBinding.embedView({ slotId: 'search', model: model.search }))
 
 export const triggerView = (
   className: string,

@@ -4,9 +4,9 @@ import { Html, createKeyedLazy, inertHtml as ih } from 'foldkit/html'
 import { Shared } from '../component'
 import type { ApplicationViewBuilder } from '../composition'
 import {
-  snippetCopy as snippetCopyBinding,
-  snippetDisclosure as snippetDisclosureBinding,
-  uiPages as uiPagesBinding,
+  SnippetCopyBinding,
+  SnippetDisclosureBinding,
+  UiPagesBinding,
 } from '../composition'
 import { Docs } from '../layout'
 import { docPage } from '../markdown'
@@ -32,13 +32,13 @@ const postView = (
   h: ApplicationViewBuilder,
 ): Html => {
   const renderCopyButton = SnippetCopy.renderer(snippetCopy, config =>
-    h.block(snippetCopyBinding.embedView(config)),
+    h.block(SnippetCopyBinding.embedView(config)),
   )
 
   const renderSnippet = SnippetDisclosure.renderer(
     snippetDisclosure,
     renderCopyButton,
-    config => h.block(snippetDisclosureBinding.embedView(config)),
+    config => h.block(SnippetDisclosureBinding.embedView(config)),
   )
   const renderHeadingLink = Prose.renderHeadingLink(
     hash => Message.ClickedCopyLink({ hash }),
@@ -48,7 +48,7 @@ const postView = (
   const content =
     post.slug === 'foldkit-0-167-0'
       ? h.block(
-          uiPagesBinding.embedView({
+          UiPagesBinding.embedView({
             slotId: 'blog-release-0167',
             model: uiPages,
             view: Release0167.view,

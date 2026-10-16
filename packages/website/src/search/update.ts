@@ -4,7 +4,8 @@ import * as Dom from 'foldkit/dom'
 import { pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 
-import { dialog } from './composition'
+import { SearchComposition } from './composition'
+import { DialogBinding } from './composition'
 import { Search } from './definition'
 import { Message, SearchResult } from './message'
 import { SearchState, resultsFromState } from './model'
@@ -92,7 +93,7 @@ export const FocusSearchInput = Search.command('FocusSearchInput', {
 
 export const open = Search.step(model =>
   Update.combine(model, [
-    dialog.open(),
+    DialogBinding.open(),
     stepModel => ({
       model: stepModel,
       commands: [FocusSearchInput()],
@@ -100,7 +101,7 @@ export const open = Search.step(model =>
   ]),
 )
 
-export const update = Search.update((model, message) =>
+export const update = SearchComposition.update((model, message) =>
   Message.match(message, {
     UpdatedSearchQuery: ({ query }) => {
       if (query === model.query) {
@@ -153,7 +154,7 @@ export const update = Search.update((model, message) =>
 
     GotSearchDialogMessage: ({ message }) =>
       Update.combine(model, [
-        stepModel => dialog.fold(stepModel, message),
+        stepModel => DialogBinding.fold(stepModel, message),
         stepModel =>
           message._tag === 'CompletedCloseDialog'
             ? {
@@ -207,6 +208,6 @@ export const update = Search.update((model, message) =>
 export const informRouteChanged = Search.step(model =>
   Update.combine(model, [
     stepModel => update(stepModel, Message.ClearedSearchQuery()),
-    dialog.close(),
+    DialogBinding.close(),
   ]),
 )

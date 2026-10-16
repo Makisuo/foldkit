@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit each into your own Model, init, Message,
 // update, subscriptions, and view definitions.
-import { Schema } from 'effect'
+import { Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -63,41 +63,33 @@ const SortableList = Block.define('SortableList', {
   Message,
 })
 
-const dragAndDrop = SortableList.bindChild(DragAndDrop.block, {
+const DragAndDropBinding = SortableList.bindChild(DragAndDrop.block, {
   field: 'dragAndDrop',
   parentMessage: Message.GotDragAndDropMessage,
+  init: { args: () => Tuple.make({ id: 'sortable-list' }) },
   outMessage: { fold: foldDragAndDropOutMessage },
 })
 
-// In your init function, initialize the DragAndDrop Block with a unique id:
-const init = SortableList.init(() => {
-  const dragAndDropInit = dragAndDrop.init({ id: 'sortable-list' })
-
-  return {
-    model: {
-      items: [
-        { id: '1', label: 'First' },
-        { id: '2', label: 'Second' },
-        { id: '3', label: 'Third' },
-      ],
-      dragAndDrop: dragAndDropInit.model,
-      // ...your other fields
-    },
-    commands: dragAndDropInit.commands,
-  }
-})
-
 const SortableListComposition = SortableList.toComposition({
-  children: [dragAndDrop],
+  childBindings: [DragAndDropBinding],
 })
 
-const update = SortableList.update((model, message) =>
-  Message.match(message, {
-    GotDragAndDropMessage: ({ message }) => dragAndDrop.fold(model, message),
-  }),
-)
+// Initialize the fields the parent owns. The Composition initializes the
+// bound DragAndDrop Model with the Binding's unique id.
+const init = SortableListComposition.init(() => ({
+  model: {
+    items: [
+      { id: '1', label: 'First' },
+      { id: '2', label: 'Second' },
+      { id: '3', label: 'Third' },
+    ],
+    // ...your other fields
+  },
+}))
 
-// Registering `dragAndDrop` in `children` collects its document-level Subscriptions.
+const update = SortableListComposition.update()
+
+// Registering `DragAndDropBinding` in `childBindings` collects its document-level Subscriptions.
 
 // Inside your view function, spread draggable() onto items and droppable()
 // onto containers:

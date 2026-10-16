@@ -1,4 +1,4 @@
-import { Array, Schema } from 'effect'
+import { Array, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -30,41 +30,38 @@ const MessageListExample = Block.define('MessageListExample', {
   Message,
 })
 
-const messageList = MessageListExample.bindChild(MessageList, {
+const MessageListBinding = MessageListExample.bindChild(MessageList, {
   field: 'messageList',
   parentMessage: Message.GotMessageListMessage,
-})
-
-const init = MessageListExample.init(() => {
-  const messageListInit = messageList.init({
-    id: 'message-list',
-    rowHeightPx: 64,
-    initialScroll: { target: VirtualListScrollTarget.End() },
-    followEnd: { thresholdPx: 8 },
-  })
-
-  return {
-    model: {
-      messages: initialMessages,
-      messageList: messageListInit.model,
-    },
-    commands: messageListInit.commands,
-  }
+  init: {
+    args: () =>
+      Tuple.make({
+        id: 'message-list',
+        rowHeightPx: 64,
+        initialScroll: { target: VirtualListScrollTarget.End() },
+        followEnd: { thresholdPx: 8 },
+      }),
+  },
 })
 
 const MessageListExampleComposition = MessageListExample.toComposition({
-  children: [messageList],
+  childBindings: [MessageListBinding],
 })
 
-const update = MessageListExample.update((model, message) =>
+const init = MessageListExampleComposition.init(() => ({
+  model: {
+    messages: initialMessages,
+  },
+}))
+
+const update = MessageListExampleComposition.update((model, message) =>
   Message.match(message, {
-    GotMessageListMessage: ({ message }) => messageList.fold(model, message),
     ReceivedMessage: ({ message }) => {
       const nextMessages = Array.append(model.messages, message)
       const nextModel = modifyFields(model, {
         messages: () => nextMessages,
       })
-      return messageList.informItemsChanged(
+      return MessageListBinding.informItemsChanged(
         Array.map(nextMessages, message => String(message.id)),
       )(nextModel)
     },
@@ -73,7 +70,7 @@ const update = MessageListExample.update((model, message) =>
 
 const view = MessageListExampleComposition.view((model, h) =>
   h.block(
-    messageList.embedView({
+    MessageListBinding.embedView({
       slotId: 'message-list',
       model: model.messageList,
       viewInputs: {

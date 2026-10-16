@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Schema } from 'effect'
+import { Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -70,39 +70,34 @@ const foldAnimationOutMessage = (
 // The Binding wires the completed child Block into the parent: it runs Animation.update,
 // writes the next Animation Model back, maps the Block's Commands into your
 // Message type, and hands any OutMessage to the OutMessage fold.
-const animation = AnimationExample.bindChild(Animation.block, {
+const AnimationBinding = AnimationExample.bindChild(Animation.block, {
   field: 'animation',
   parentMessage: Message.GotAnimationMessage,
+  init: { args: () => Tuple.make({ id: 'content' }) },
   outMessage: { fold: foldAnimationOutMessage },
 })
 
-// In your init function, initialize the Animation Block with a unique id:
-const init = AnimationExample.init(() => {
-  const animationInit = animation.init({ id: 'content' })
-
-  return {
-    model: {
-      animation: animationInit.model,
-      // ...your other fields
-    },
-    commands: animationInit.commands,
-  }
-})
-
 const AnimationExampleComposition = AnimationExample.toComposition({
-  children: [animation],
+  childBindings: [AnimationBinding],
 })
+
+// In your init function, specify the fields the parent owns. The Composition
+// initializes the bound Animation Model.
+const init = AnimationExampleComposition.init(() => ({
+  model: {
+    // ...your other fields
+  },
+}))
 
 // Bound public operations integrate the next child Model and Commands without
 // exposing the internal Showed or Hid Message constructors to the parent.
 
-const update = AnimationExample.update((model, message) =>
+const update = AnimationExampleComposition.update((model, message) =>
   Message.match(message, {
-    GotAnimationMessage: ({ message }) => animation.fold(model, message),
     ClickedToggleAnimation: () =>
       model.animation.isShowing
-        ? animation.hide()(model)
-        : animation.show()(model),
+        ? AnimationBinding.hide()(model)
+        : AnimationBinding.show()(model),
   }),
 )
 
@@ -120,7 +115,7 @@ const view = AnimationExampleComposition.view((model, h) =>
         [model.animation.isShowing ? 'Hide' : 'Show'],
       ),
       h.block(
-        animation.embedView({
+        AnimationBinding.embedView({
           slotId: 'content',
           model: model.animation,
           viewInputs: {

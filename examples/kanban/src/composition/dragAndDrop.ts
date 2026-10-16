@@ -134,7 +134,7 @@ const dragAndDropOutMessagePolicy = {
   ) => foldDragAndDropOutMessage(context.modelBeforeUpdate)(outMessage),
 }
 
-export const dragAndDrop = Application.bindChild(DragAndDrop.block, {
+export const DragAndDropBinding = Application.bindChild(DragAndDrop.block, {
   read: model => Option.some(model.dragAndDrop),
   write: (model, nextDragAndDrop) =>
     modifyFields(model, {
@@ -142,5 +142,13 @@ export const dragAndDrop = Application.bindChild(DragAndDrop.block, {
       announcement: () => announceKeyboardDrag(model, nextDragAndDrop),
     }),
   parentMessage: Message.GotDragAndDropMessage,
+  fromParentMessage: {
+    parentMessage: Message.GotDragAndDropMessage,
+    args: (_model, { message }) => Option.some([message]),
+  },
+  init: {
+    args: () => [{ id: 'kanban' }],
+    model: dragAndDrop => ({ dragAndDrop }),
+  },
   outMessage: dragAndDropOutMessagePolicy,
 })

@@ -1,13 +1,13 @@
 import { Match, Option } from 'effect'
 
 import { Shared } from '../component'
-import { ApplicationComposition } from '../composition'
 import type { ApplicationViewBuilder } from '../composition'
 import {
-  home,
-  playground,
-  snippetCopy,
-  snippetDisclosure,
+  ApplicationComposition,
+  HomeBinding,
+  PlaygroundBinding,
+  SnippetCopyBinding,
+  SnippetDisclosureBinding,
 } from '../composition'
 import { Deployment } from '../deployment'
 import { Docs, Marketing } from '../layout'
@@ -29,10 +29,10 @@ const homeView = (
   h: ApplicationViewBuilder,
 ) => {
   const renderCopyButton = SnippetCopy.renderer(model.snippetCopy, config =>
-    h.block(snippetCopy.embedView(config)),
+    h.block(SnippetCopyBinding.embedView(config)),
   )
   const content = h.block(
-    home.embedView({
+    HomeBinding.embedView({
       slotId: 'home',
       model: homeModel,
       viewInputs: {
@@ -40,7 +40,7 @@ const homeView = (
         renderSnippet: SnippetDisclosure.renderer(
           model.snippetDisclosure,
           renderCopyButton,
-          config => h.block(snippetDisclosure.embedView(config)),
+          config => h.block(SnippetDisclosureBinding.embedView(config)),
         ),
         isNarrowViewport: model.isNarrowViewport,
         maybeGitHubStarCount: model.maybeGitHubStarCount,
@@ -88,7 +88,7 @@ export const view = ApplicationComposition.view((model, h) => {
         onNone: () => h.empty,
         onSome: playgroundModel =>
           h.block(
-            playground.embedView({
+            PlaygroundBinding.embedView({
               slotId: `playground-${playgroundModel.slug}`,
               model: playgroundModel,
               viewInputs: {

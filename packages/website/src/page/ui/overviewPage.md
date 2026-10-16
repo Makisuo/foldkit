@@ -26,7 +26,7 @@ The Kind column below identifies each component category.
 
 ## Application Wiring
 
-Some components use Commands, Subscriptions, or Mounts for focus, positioning, animation, and other effects. Connect each stateful component’s completed `.block` value and include the Binding in the parent's `children`. The parent definition collects the component's handlers and lifecycle registrations.
+Some components use Commands, Subscriptions, or Mounts for focus, positioning, animation, and other effects. Connect each stateful component’s completed `.block` value and include the Binding in the parent's `childBindings`. The parent Composition collects the component's handlers and lifecycle registrations.
 
 The example below shows two component Bindings included by one owning Block. Assume its Model, Message, init, named OutMessage folds, and component ViewInputs are defined in the application's other modules. The feature includes its component Bindings with the typed Application; the final lines show the separate `entry.ts` startup through the root’s owned `toApplication` method. Supply external service providers through the root `ApplicationLayer` as described in [Layers](/core/layers).
 

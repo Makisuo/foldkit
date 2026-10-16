@@ -9,6 +9,7 @@ import * as Update from 'foldkit/update'
 import {
   ApplicationComposition,
   ApplicationDefinition,
+  ChildBinding,
   ChildBlock,
   ChildComposition,
   ChildDefinition,
@@ -20,6 +21,7 @@ import {
   type CompletedChoice,
   type CompletedPure,
   Direct,
+  DirectChildBinding,
   DirectInitBlock,
   DirectModel,
   Measure,
@@ -42,13 +44,11 @@ import {
   applicationBuilderViewHelper,
   applicationInputViewHelper,
   applicationModelViewHelper,
-  child,
   childInit,
   childInspection,
   childLiteralInit,
   childParameterizedInit,
   contextualRefreshChild,
-  directChild,
   directResultInit,
   makePageProgram,
   makeProgram,
@@ -91,12 +91,12 @@ ChildDefinition.view
 ParentDefinition.view
 // @ts-expect-error An emitted Application Definition does not author the primary view.
 ApplicationDefinition.view
-// @ts-expect-error An emitted Block Composition does not expose Definition-only init authoring.
-ChildComposition.init
-// @ts-expect-error An emitted Application Composition does not expose Definition-only init authoring.
-ApplicationComposition.init
+// @ts-expect-error An emitted Block Definition does not author init directly.
+ChildDefinition.init
+// @ts-expect-error An emitted Application Definition does not author init directly.
+ApplicationDefinition.init
 
-const emittedChildInit = ChildDefinition.init(() => ({
+const emittedChildInit = ChildComposition.init(() => ({
   model: ChildModel.make({ value: 1 }),
 }))
 const emittedParameterizedInit = childParameterizedInit(1, 2, 3, 4)
@@ -111,7 +111,11 @@ const emittedGraphlessBlockView = PureComposition.view((model, h) =>
 const emittedGraphfulBlockView = ParentComposition.view((model, h) =>
   h.div(
     [],
-    [h.block(child.embedView({ slotId: 'emitted', model: model.child }))],
+    [
+      h.block(
+        ChildBinding.embedView({ slotId: 'emitted', model: model.child }),
+      ),
+    ],
   ),
 )
 const emittedGraphlessApplicationView = PureApplicationComposition.view(
@@ -120,7 +124,11 @@ const emittedGraphlessApplicationView = PureApplicationComposition.view(
 const emittedGraphfulApplicationView = ApplicationComposition.view((model, h) =>
   h.main(
     [],
-    [h.block(child.embedView({ slotId: 'emitted-root', model: model.child }))],
+    [
+      h.block(
+        ChildBinding.embedView({ slotId: 'emitted-root', model: model.child }),
+      ),
+    ],
   ),
 )
 
@@ -148,8 +156,8 @@ void emittedGraphfulApplicationView
 
 export const childRefresh = ChildBlock.expose.refresh(childModel)
 export const directRefresh = Direct.expose.refreshDirectValue(directModel)
-export const boundRefresh = child.refresh()(parentModel)
-export const directBoundRefresh = directChild.refresh()(parentModel)
+export const boundRefresh = ChildBinding.refresh()(parentModel)
+export const directBoundRefresh = DirectChildBinding.refresh()(parentModel)
 export const parentRefresh = Parent.expose.refreshChild(parentModel)
 export const refinedSelection = RefinedChoice.OutMessage.make({ value: 'Two' })
 export const program = makeProgram(document.createElement('div'))
@@ -196,14 +204,18 @@ type EmittedErrorIsExact = Expect<
 type EmittedChildInitIsExact = Expect<
   Equal<
     Parameters<typeof childParameterizedInit>,
-    [value: number, offset?: number, ...increments: ReadonlyArray<number>]
+    [
+      value: number,
+      offset?: number | undefined,
+      ...increments: ReadonlyArray<number>,
+    ]
   >
 >
-type EmittedChildInitReturnIsExact = Expect<
-  Equal<typeof emittedParameterizedInit.value, number>
+type EmittedChildInitModelIsExact = Expect<
+  Equal<typeof emittedParameterizedInit.model, ChildModel>
 >
-type EmittedLiteralInitReturnIsExact = Expect<
-  Equal<typeof emittedLiteralInit.value, 1>
+type EmittedLiteralInitModelIsExact = Expect<
+  Equal<typeof emittedLiteralInit.model, ChildModel>
 >
 type EmittedWrappedOverloadedInitParametersAreExact = Expect<
   Equal<Parameters<typeof wrappedOverloadedChildInit>, [value: string]>
@@ -237,31 +249,33 @@ type EmittedOwnedInitReturnIsExact = Expect<
 >
 type EmittedBoundRequirementsAreExact = Expect<
   Equal<
-    Update.RequirementsOf<ReturnType<typeof child.refresh>>,
+    Update.RequirementsOf<ReturnType<typeof ChildBinding.refresh>>,
     Block.Scoped<'child', Command.HandlerOf<typeof ReadCount>>
   >
 >
 type EmittedBoundEvidenceIsExact = Expect<
   Equal<
-    Update.RegistrationEvidenceOf<ReturnType<ReturnType<typeof child.refresh>>>,
+    Update.RegistrationEvidenceOf<
+      ReturnType<ReturnType<typeof ChildBinding.refresh>>
+    >,
     Block.BindingRequirement<'child', typeof ChildBlock>
   >
 >
 type EmittedAccessorMappedMessageIsExact = Expect<
   Equal<
-    CommandMessageOfReturn<ReturnType<typeof child.fold>>,
+    CommandMessageOfReturn<ReturnType<typeof ChildBinding.fold>>,
     ReturnType<typeof ParentMessage.GotChildMessage>
   >
 >
 type EmittedDirectMappedMessageIsExact = Expect<
   Equal<
-    CommandMessageOfReturn<ReturnType<typeof directChild.fold>>,
+    CommandMessageOfReturn<ReturnType<typeof DirectChildBinding.fold>>,
     ReturnType<typeof ParentMessage.GotChildMessage>
   >
 >
 type EmittedBindingStringKeysAreExact = Expect<
   Equal<
-    Extract<keyof typeof child, string>,
+    Extract<keyof typeof ChildBinding, string>,
     'placement' | 'init' | 'fold' | 'embedView' | 'refresh'
   >
 >
@@ -277,7 +291,7 @@ type EmittedInspectionMountsAreExact = Expect<
 type EmittedProducerParametersAreExact = Expect<
   Equal<
     Parameters<typeof contextualRefreshChild>,
-    [model: ParentModel, context?: RefreshContext]
+    [model: ParentModel, context?: RefreshContext | undefined]
   >
 >
 type EmittedProducerRequirementsAreExact = Expect<
@@ -336,7 +350,7 @@ type EmittedParentViewRequirementsAreExact = Expect<
   Equal<
     Block.ViewMountRequirementsOf<typeof parentView>,
     | Mount.RequirementsOf<typeof ObserveParent>
-    | Block.RequirementsOfBindings<readonly [typeof child]>
+    | Block.RequirementsOfBindings<readonly [typeof ChildBinding]>
   >
 >
 type EmittedParentArrayViewHelperOutputIsHtmlArray = Expect<
@@ -370,8 +384,8 @@ export type EmittedAssertions = [
   EmittedServicesAreExact,
   EmittedErrorIsExact,
   EmittedChildInitIsExact,
-  EmittedChildInitReturnIsExact,
-  EmittedLiteralInitReturnIsExact,
+  EmittedChildInitModelIsExact,
+  EmittedLiteralInitModelIsExact,
   EmittedWrappedOverloadedInitParametersAreExact,
   EmittedWrappedOverloadedInitModelIsExact,
   EmittedChildInitRequirementsAreExact,

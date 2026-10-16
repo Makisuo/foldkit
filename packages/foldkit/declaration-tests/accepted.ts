@@ -86,7 +86,7 @@ const childView = ChildComposition.view((model, h) =>
   h.div([h.OnMount(Measure())], [globalThis.String(model.value)]),
 )
 
-const childUpdate = Child.update((model, message) =>
+const childUpdate = ChildComposition.update((model, message) =>
   ChildMessage.match(message, {
     RequestedRead: () => ({ model, commands: [ReadCount()] }),
     CompletedRead: ({ value }) => ({
@@ -144,24 +144,32 @@ function overloadedChildInitSource(_value: number | string) {
   return { model: ChildModel.make({ value: 0 }) }
 }
 
-export const childParameterizedInit = Child.init(childParameterizedInitSource)
-export const childLiteralInit = Child.init(childLiteralInitSource)
-export const wrappedOverloadedChildInit = Child.init((value: string) =>
-  overloadedChildInitSource(value),
+export const childParameterizedInit = ChildComposition.init(
+  childParameterizedInitSource,
 )
-export const childInit = Child.init(() => ({
+export const childLiteralInit = ChildComposition.init(childLiteralInitSource)
+export const wrappedOverloadedChildInit = ChildComposition.init(
+  (value: string) => overloadedChildInitSource(value),
+)
+export const childInit = ChildComposition.init(() => ({
   model: ChildModel.make({ value: 0 }),
   commands: [ReadCount()],
 }))
 
-type ChildInitIsExact = Expect<
-  Equal<typeof childParameterizedInit, typeof childParameterizedInitSource>
+type ChildInitParametersAreExact = Expect<
+  Equal<
+    Parameters<typeof childParameterizedInit>,
+    Parameters<typeof childParameterizedInitSource>
+  >
 >
-type ChildLiteralInitIsExact = Expect<
-  Equal<typeof childLiteralInit, typeof childLiteralInitSource>
+type ChildLiteralInitParametersAreExact = Expect<
+  Equal<
+    Parameters<typeof childLiteralInit>,
+    Parameters<typeof childLiteralInitSource>
+  >
 >
-type ChildLiteralInitValueIsExact = Expect<
-  Equal<ReturnType<typeof childLiteralInit>['value'], 1>
+type ChildLiteralInitModelIsExact = Expect<
+  Equal<ReturnType<typeof childLiteralInit>['model'], ChildModel>
 >
 type WrappedOverloadedChildInitParametersAreExact = Expect<
   Equal<Parameters<typeof wrappedOverloadedChildInit>, [value: string]>
@@ -191,9 +199,9 @@ export const ChildBlock = ChildComposition.toBlock(childImplementation)
 type CompletedChildIsExact = Expect<Equal<CompletedChild, typeof ChildBlock>>
 
 export type ChildInitAssertions = [
-  ChildInitIsExact,
-  ChildLiteralInitIsExact,
-  ChildLiteralInitValueIsExact,
+  ChildInitParametersAreExact,
+  ChildLiteralInitParametersAreExact,
+  ChildLiteralInitModelIsExact,
   WrappedOverloadedChildInitParametersAreExact,
   ChildInitRequirementsAreExact,
 ]
@@ -215,7 +223,7 @@ const DeclarationTestsDirectComposition = DeclarationTestsDirect.toComposition(
   {},
 )
 
-export const ReadDirectValue = DeclarationTestsDirectComposition.command(
+export const ReadDirectValue = DeclarationTestsDirect.command(
   'ReadDirectValue',
   {
     messages: [DirectMessage.CompletedReadDirectValue],
@@ -232,14 +240,14 @@ export const ReadDirectValue = DeclarationTestsDirectComposition.command(
   },
 )
 
-export const ObserveDirectValue = DeclarationTestsDirectComposition.mount(
+export const ObserveDirectValue = DeclarationTestsDirect.mount(
   'ObserveDirectValue',
   {
     messages: [DirectMessage.CompletedReadDirectValue],
   },
 )
 
-export const StreamDirectValue = DeclarationTestsDirectComposition.mountStream(
+export const StreamDirectValue = DeclarationTestsDirect.mountStream(
   'StreamDirectValue',
   {
     messages: [DirectMessage.CompletedReadDirectValue],
@@ -259,15 +267,13 @@ export const directUpdate = DeclarationTestsDirectComposition.update(
     }),
 )
 
-export const refreshDirectValue = DeclarationTestsDirectComposition.step(
-  model => ({
-    model,
-    commands: [ReadDirectValue()],
-  }),
-)
+export const refreshDirectValue = DeclarationTestsDirect.step(model => ({
+  model,
+  commands: [ReadDirectValue()],
+}))
 
 export const Direct = DeclarationTestsDirectComposition.toBlock({
-  init: DeclarationTestsDirect.init(() => ({
+  init: DeclarationTestsDirectComposition.init(() => ({
     model: DirectModel.make({ value: 0 }),
   })),
   update: directUpdate,
@@ -283,10 +289,10 @@ export const PureDefinition = DeclarationTestsPure
 const DeclarationTestsPureComposition = DeclarationTestsPure.toComposition()
 export const PureComposition = DeclarationTestsPureComposition
 const pureImplementation = {
-  init: DeclarationTestsPure.init(() => ({
+  init: DeclarationTestsPureComposition.init(() => ({
     model: DirectModel.make({ value: 0 }),
   })),
-  update: DeclarationTestsPure.update((model, _message) => ({
+  update: DeclarationTestsPureComposition.update((model, _message) => ({
     model,
   })),
 }
@@ -316,7 +322,7 @@ const DeclarationTestsDirectInit = Block.define('DeclarationTestsDirectInit', {
   Model: ChildModel,
   Message: ParentMessage,
 })
-export const directInitChild = DeclarationTestsDirectInit.bindChild(
+export const DirectInitChildBinding = DeclarationTestsDirectInit.bindChild(
   ChildBlock,
   {
     placement: 'direct-init-child',
@@ -325,13 +331,17 @@ export const directInitChild = DeclarationTestsDirectInit.bindChild(
     parentMessage: ParentMessage.GotChildMessage,
   },
 )
-export const directResultInit = DeclarationTestsDirectInit.init(
-  directInitChild.init,
+const DirectInitComposition = DeclarationTestsDirectInit.toComposition({
+  childBindings: [DirectInitChildBinding],
+})
+export const directResultInit = DirectInitComposition.init(() =>
+  DirectInitChildBinding.init({
+    args: [],
+    toParentModel: child => child,
+  }),
 )
-const directInitUpdate = DeclarationTestsDirectInit.update(model => ({ model }))
-export const DirectInitBlock = DeclarationTestsDirectInit.toComposition({
-  children: [directInitChild],
-}).toBlock({
+const directInitUpdate = DirectInitComposition.update(model => ({ model }))
+export const DirectInitBlock = DirectInitComposition.toBlock({
   init: directResultInit,
   update: directInitUpdate,
 })
@@ -359,39 +369,43 @@ const DeclarationTestsParent = Block.define('DeclarationTestsParent').define({
   Message: ParentMessage,
 })
 
-export const child = DeclarationTestsParent.bindChild(ChildBlock, {
+export const ChildBinding = DeclarationTestsParent.bindChild(ChildBlock, {
   placement: 'child',
   read: model => Option.some(model.child),
   write: (_model, nextChild) => ParentModel.make({ child: nextChild }),
   parentMessage: ParentMessage.GotChildMessage,
+  fromParentMessage: false,
 })
 
-export const directChild = DeclarationTestsParent.bindChild(ChildBlock, {
+export const DirectChildBinding = DeclarationTestsParent.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
+  fromParentMessage: false,
 })
 
-export const childInspection = Block.inspectBinding(child)
+export const childInspection = Block.inspectBinding(ChildBinding)
 
 type DirectPlacementIsExact = Expect<
-  Equal<typeof directChild.placement, 'child'>
+  Equal<typeof DirectChildBinding.placement, 'child'>
 >
 
 type BoundRefreshRequirementsAreExact = Expect<
   Equal<
-    Update.RequirementsOf<ReturnType<typeof child.refresh>>,
+    Update.RequirementsOf<ReturnType<typeof ChildBinding.refresh>>,
     Block.Scoped<'child', Command.HandlerOf<typeof ReadCount>>
   >
 >
 type BoundRefreshEvidenceIsExact = Expect<
   Equal<
-    Update.RegistrationEvidenceOf<ReturnType<ReturnType<typeof child.refresh>>>,
+    Update.RegistrationEvidenceOf<
+      ReturnType<ReturnType<typeof ChildBinding.refresh>>
+    >,
     Block.BindingRequirement<'child', typeof ChildBlock>
   >
 >
 type ChildBindingStringKeysAreExact = Expect<
   Equal<
-    Extract<keyof typeof child, string>,
+    Extract<keyof typeof ChildBinding, string>,
     'placement' | 'init' | 'fold' | 'embedView' | 'refresh'
   >
 >
@@ -412,7 +426,7 @@ export const ObserveParent = DeclarationTestsParent.mount('ObserveParent', {
   },
 })
 const DeclarationTestsParentComposition = DeclarationTestsParent.toComposition({
-  children: [child],
+  childBindings: [ChildBinding],
   mounts: [ObserveParent],
 })
 export const ParentComposition = DeclarationTestsParentComposition
@@ -422,7 +436,7 @@ export const ParentDefinition = DeclarationTestsParent
 export const parentView = ParentComposition.view((model, h) =>
   h.div(
     [h.OnMount(ObserveParent())],
-    [h.block(child.embedView({ slotId: 'child', model: model.child }))],
+    [h.block(ChildBinding.embedView({ slotId: 'child', model: model.child }))],
   ),
 )
 
@@ -432,7 +446,7 @@ export const parentModelViewHelper = (
 ) =>
   h.div(
     [h.OnClick(ParentMessage.RequestedRefresh()), h.OnMount(ObserveParent())],
-    [h.block(child.embedView({ slotId: 'child', model: model.child }))],
+    [h.block(ChildBinding.embedView({ slotId: 'child', model: model.child }))],
   )
 
 export const parentBuilderViewHelper = (h: ParentViewBuilder) =>
@@ -441,22 +455,23 @@ export const parentBuilderViewHelper = (h: ParentViewBuilder) =>
 export const parentInputViewHelper = (
   childModel: ChildModel,
   h: ParentViewBuilder,
-) => h.block(child.embedView({ slotId: 'child-input', model: childModel }))
+) =>
+  h.block(ChildBinding.embedView({ slotId: 'child-input', model: childModel }))
 
 export const parentArrayViewHelper = (
   labels: ReadonlyArray<string>,
   h: ParentViewBuilder,
 ) => labels.map(label => h.span([], [label]))
 
-export const parentUpdate = DeclarationTestsParent.update((model, message) =>
+export const parentUpdate = ParentComposition.update((model, message) =>
   ParentMessage.match(message, {
-    GotChildMessage: ({ message }) => child.fold(model, message),
-    RequestedRefresh: () => child.refresh()(model),
+    GotChildMessage: ({ message }) => ChildBinding.fold(model, message),
+    RequestedRefresh: () => ChildBinding.refresh()(model),
   }),
 )
 
 const refreshChild = DeclarationTestsParent.step(model =>
-  child.refresh()(model),
+  ChildBinding.refresh()(model),
 )
 
 export const RefreshContext = Schema.Struct({
@@ -465,18 +480,16 @@ export const RefreshContext = Schema.Struct({
 export type RefreshContext = typeof RefreshContext.Type
 
 export const contextualRefreshChild = DeclarationTestsParent.step(
-  (model, _context?: RefreshContext) => child.refresh()(model),
+  (model, _context?: RefreshContext) => ChildBinding.refresh()(model),
 )
 
 export const Parent = ParentComposition.toBlock({
-  init: DeclarationTestsParent.init(() => {
-    const childInit = child.init()
-
-    return {
-      model: ParentModel.make({ child: childInit.model }),
-      commands: childInit.commands,
-    }
-  }),
+  init: ParentComposition.init(() =>
+    ChildBinding.init({
+      args: [],
+      toParentModel: child => ParentModel.make({ child }),
+    }),
+  ),
   update: parentUpdate,
   view: parentView,
   expose: { refreshChild },
@@ -521,10 +534,13 @@ const makeChoiceParts = <const Values extends ReadonlyArray<string>>(
     model: Model.make({ value }),
     outMessage: OutMessage.make({ value }),
   }))
+  const composition = definition.toComposition()
 
   const implementation = {
-    init: (value: Values[number]) => ({ model: Model.make({ value }) }),
-    update: definition.update((_model, message) => ({
+    init: composition.init((value: Values[number]) => ({
+      model: Model.make({ value }),
+    })),
+    update: composition.update((_model, message) => ({
       model: Model.make({ value: message.value }),
       outMessage: OutMessage.make({ value: message.value }),
     })),
@@ -533,7 +549,7 @@ const makeChoiceParts = <const Values extends ReadonlyArray<string>>(
   }
 
   return {
-    composition: definition.toComposition(),
+    composition,
     implementation,
   }
 }
@@ -580,19 +596,20 @@ const DeclarationTestsChoiceParent = Block.define(
 )
 const ChoiceParent = DeclarationTestsChoiceParent
 
-export const refinedChoice = ChoiceParent.bindChild(RefinedChoice, {
+export const RefinedChoiceBinding = ChoiceParent.bindChild(RefinedChoice, {
   placement: 'refined-choice',
   read: model => Option.some(model.choice),
   write: (_model, nextChoice) => ChoiceParentModel.make({ choice: nextChoice }),
   toParentMessage: message => message,
+  fromParentMessage: false,
   outMessage: {
-    fold: outMessage => model => ({ model, outMessage }),
+    fold: outMessage => ChoiceParent.step(model => ({ model, outMessage })),
   },
 })
 
 type RefinedFoldIsExact = Expect<
   Equal<
-    ReturnType<typeof refinedChoice.fold>['outMessage'],
+    ReturnType<typeof RefinedChoiceBinding.fold>['outMessage'],
     RefinedChoiceOutMessage | undefined
   >
 >
@@ -659,7 +676,7 @@ const wrappedPureUpdate = preserveFunction(
     return { model }
   },
 )
-export const pureInit = PureApplication.init(() => ({
+export const pureInit = PureApplicationComposition.init(() => ({
   model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
 }))
 const pureElementView = PureApplicationComposition.view((_model, h) =>
@@ -673,7 +690,7 @@ const pureElementProgram: ElementProgram<undefined, never, never, never> =
   PureApplicationComposition.toElement({
     container: null,
     init: pureInit,
-    update: PureApplication.update(wrappedPureUpdate.fn),
+    update: PureApplicationComposition.update(wrappedPureUpdate.fn),
     view: pureElementView,
   })
 const purePageProgram: ApplicationProgram<
@@ -685,7 +702,7 @@ const purePageProgram: ApplicationProgram<
 > = PureApplicationComposition.toApplication({
   container: null,
   init: pureInit,
-  update: PureApplication.update(wrappedPureUpdate.fn),
+  update: PureApplicationComposition.update(wrappedPureUpdate.fn),
   view: pureDocumentView,
 })
 void pureElementProgram
@@ -709,24 +726,28 @@ export const StreamApplicationValue = Application.mountStream(
   },
 )
 export const ApplicationComposition = Application.toComposition({
-  children: [directChild],
+  childBindings: [DirectChildBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 const applicationElementView = ApplicationComposition.view((model, h) =>
-  h.block(directChild.embedView({ slotId: 'child', model: model.child })),
+  h.block(
+    DirectChildBinding.embedView({ slotId: 'child', model: model.child }),
+  ),
 )
 const applicationDocumentView = ApplicationComposition.view((model, h) => ({
   title: 'Declaration test',
-  body: h.block(directChild.embedView({ slotId: 'child', model: model.child })),
+  body: h.block(
+    DirectChildBinding.embedView({ slotId: 'child', model: model.child }),
+  ),
 }))
 export const applicationModelViewHelper = (
   model: ParentModel,
   h: ApplicationViewBuilder,
 ) =>
   h.block(
-    directChild.embedView({
+    DirectChildBinding.embedView({
       slotId: 'application-child',
       model: model.child,
     }),
@@ -738,15 +759,15 @@ export const applicationInputViewHelper = (
   h: ApplicationViewBuilder,
 ) =>
   h.block(
-    directChild.embedView({
+    DirectChildBinding.embedView({
       slotId: 'application-input-child',
       model: childModel,
     }),
   )
-const applicationUpdate = Application.update((model, message) =>
+const applicationUpdate = ApplicationComposition.update((model, message) =>
   ParentMessage.match(message, {
-    GotChildMessage: ({ message }) => directChild.fold(model, message),
-    RequestedRefresh: () => directChild.refresh()(model),
+    GotChildMessage: ({ message }) => DirectChildBinding.fold(model, message),
+    RequestedRefresh: () => DirectChildBinding.refresh()(model),
   }),
 )
 
@@ -758,14 +779,12 @@ type ApplicationInitReturn = Update.ReturnWithRegistrationEvidence<
   Block.BindingRequirement<'child', typeof ChildBlock>
 >
 
-const applicationInit = Application.init((): ApplicationInitReturn => {
-  const childInit = directChild.init()
-
-  return {
-    model: ParentModel.make({ child: childInit.model }),
-    commands: childInit.commands,
-  }
-})
+const applicationInit = ApplicationComposition.init((): ApplicationInitReturn =>
+  DirectChildBinding.init({
+    args: [],
+    toParentModel: child => ParentModel.make({ child }),
+  }),
+)
 
 type ApplicationInitEvidenceIsExact = Expect<
   Equal<
@@ -780,7 +799,7 @@ const applicationImplementation = {
   EffectsLayer: Layer.empty,
 }
 
-export const provisionRoutingInit = PureApplication.init(
+export const provisionRoutingInit = PureApplicationComposition.init(
   (flags: ProvisionFlags, _url: Url) => ({
     model: ParentModel.make({
       child: ChildBlock.Model.make({ value: flags.initialValue }),
@@ -794,13 +813,15 @@ const makeInferredProvisionPageAwaitingDependency = (
   PureApplicationComposition.toApplication({
     Flags: ProvisionFlags,
     container,
-    init: PureApplication.init(({ initialValue }: ProvisionFlags) => ({
-      model: ParentModel.make({
-        child: ChildBlock.Model.make({ value: initialValue }),
+    init: PureApplicationComposition.init(
+      ({ initialValue }: ProvisionFlags) => ({
+        model: ParentModel.make({
+          child: ChildBlock.Model.make({ value: initialValue }),
+        }),
       }),
-    })),
+    ),
     ports: provisionPorts,
-    update: PureApplication.update(wrappedPureUpdate.fn),
+    update: PureApplicationComposition.update(wrappedPureUpdate.fn),
     view: pureDocumentView,
   }).provide(ClockAndExtraLayer)
 
@@ -828,7 +849,7 @@ const makeInferredProvisionElement = (container: HTMLElement | null) =>
     container,
     init: pureInit,
     ports: provisionPorts,
-    update: PureApplication.update(wrappedPureUpdate.fn),
+    update: PureApplicationComposition.update(wrappedPureUpdate.fn),
     view: pureElementView,
   })
     .provide(ClockAndExtraLayer)
@@ -876,7 +897,7 @@ export const makeRoutedFlagsPage = (container: HTMLElement | null) =>
       onUrlRequest: () => ParentMessage.RequestedRefresh(),
       onUrlChange: () => ParentMessage.RequestedRefresh(),
     },
-    update: PureApplication.update(wrappedPureUpdate.fn),
+    update: PureApplicationComposition.update(wrappedPureUpdate.fn),
     view: pureDocumentView,
   })
 

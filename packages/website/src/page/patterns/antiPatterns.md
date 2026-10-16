@@ -222,7 +222,7 @@ Copying the child Model from an update result can silently drop its Commands and
 
 ::Snippet{name="antiPatternChildInitBad" label="❌ Manual assembly loses an initialization OutMessage" class="mb-4"}
 
-Initialize through the Binding, construct the complete parent Model, then invoke the exposed restoration Step. The Binding maps Commands and applies the exhaustive OutMessage policy declared at the composition boundary:
+Give `SettingsBinding` an `init: true` policy, then list the exposed restoration Step in the Composition init plan. The Composition assembles the complete parent Model and retains init Commands; the Binding maps restoration Commands and applies the exhaustive OutMessage policy declared at the composition boundary:
 
 ::Snippet{name="antiPatternChildInitGood" label="✅ Initialize and restore through the Binding"}
 
@@ -230,7 +230,7 @@ The restoration Step runs against the completed parent Model. The Runtime starts
 
 ### Initialize Several Children
 
-Build one complete parent Model from each Binding's `init` result, then run any public restoration Steps with `Update.combine`. Each Step receives the Model produced by the preceding Step, so later operations preserve earlier changes:
+Give the Search and Editor Bindings `init: true` policies. Return the parent's own fields from Composition init and list both public restoration operations in `steps`. Each Step receives the Model produced by the preceding Step, so later operations preserve earlier changes:
 
 ::Snippet{name="updateIndependentInits" label="✅ Initialize independent child Bindings together"}
 

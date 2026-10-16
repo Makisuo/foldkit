@@ -29,11 +29,11 @@ export const WaitBeforeReset = Application.command('WaitBeforeReset', {
 
 export const EffectsLayer = WaitBeforeReset.layer
 
-export const init = Application.init(() => ({
+export const init = ApplicationComposition.init(() => ({
   model: Model.make({ count: 0 }),
 }))
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: Number.increment }),

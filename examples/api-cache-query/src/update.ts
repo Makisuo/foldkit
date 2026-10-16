@@ -1,19 +1,18 @@
 import { Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { postDetails, posts, stats, tabs } from './composition'
-import { Application } from './definition'
+import {
+  ApplicationComposition,
+  PostDetailsBinding,
+  PostsBinding,
+  StatsBinding,
+} from './composition'
 import { Message } from './message'
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
-    GotTabsMessage: ({ message }) => tabs.fold(model, message),
-    GotPostsMessage: ({ message }) => posts.fold(model, message),
-    GotStatsMessage: ({ message }) => stats.fold(model, message),
-    GotPostMessage: ({ message }) => postDetails.fold(model, message),
-
     ClickedPost: ({ postId }) =>
-      postDetails.loadIfMissing({ postId })(
+      PostDetailsBinding.loadIfMissing({ postId })(
         modifyFields(model, {
           maybeSelectedPostId: () => Option.some(postId),
         }),
@@ -23,14 +22,14 @@ export const update = Application.update((model, message) =>
       model: modifyFields(model, { maybeSelectedPostId: () => Option.none() }),
     }),
 
-    ClickedRefreshPosts: () => posts.revalidateOrLoad()(model),
-    ClickedRetryPosts: () => posts.revalidateOrLoad()(model),
+    ClickedRefreshPosts: () => PostsBinding.revalidateOrLoad()(model),
+    ClickedRetryPosts: () => PostsBinding.revalidateOrLoad()(model),
 
     ClickedRetryPost: ({ postId }) =>
-      postDetails.revalidateOrLoad({ postId })(model),
+      PostDetailsBinding.revalidateOrLoad({ postId })(model),
 
-    ClickedRefreshStats: () => stats.revalidateOrLoad()(model),
-    ClickedRetryStats: () => stats.revalidateOrLoad()(model),
-    TickedStatsRefreshInterval: () => stats.revalidate()(model),
+    ClickedRefreshStats: () => StatsBinding.revalidateOrLoad()(model),
+    ClickedRetryStats: () => StatsBinding.revalidateOrLoad()(model),
+    TickedStatsRefreshInterval: () => StatsBinding.revalidate()(model),
   }),
 )

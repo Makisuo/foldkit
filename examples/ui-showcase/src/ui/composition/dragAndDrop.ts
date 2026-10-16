@@ -67,8 +67,9 @@ const foldDragAndDropDemoOutMessage = DragAndDrop.OutMessage.match<
   Cancelled: () => model => ({ model }),
 })
 
-export const dragAndDropDemo = Ui.bindChild(DragAndDrop.block, {
+export const DragAndDropDemoBinding = Ui.bindChild(DragAndDrop.block, {
   field: 'dragAndDropDemo',
   parentMessage: Message.GotDragAndDropDemoMessage,
+  init: { args: () => [{ id: 'drag-and-drop-demo' }] },
   outMessage: { fold: foldDragAndDropDemoOutMessage },
 })

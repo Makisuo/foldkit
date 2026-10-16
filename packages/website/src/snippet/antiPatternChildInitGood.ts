@@ -1,17 +1,12 @@
-// ✅ Good: initialize through the Binding, then invoke the public restoration
-// Step after the complete parent Model exists.
+// ✅ Good: assemble the initial child, then restore against the complete Model.
 
-import { Application } from './definition'
-
-const init = Application.init(
-  (username: string, savedTheme: Settings.Theme) => {
-    const settingsInit = settings.init()
-    const model = Model.make({
+import { ApplicationComposition, SettingsBinding } from './composition'
+const init = ApplicationComposition.init(
+  (username: string, savedTheme: Settings.Theme) => ({
+    model: {
       username,
-      settings: settingsInit.model,
       maybeRestoredTheme: Option.none(),
-    })
-
-    return settings.restore(savedTheme)(model)
-  },
+    },
+    steps: [SettingsBinding.restore(savedTheme)],
+  }),
 )

@@ -1,37 +1,27 @@
+import { Option } from 'effect'
 import type { CalendarDate } from 'foldkit/calendar'
-import { modifyFields } from 'foldkit/struct'
+import { NotValidated } from 'foldkit/fieldValidation'
 
 import { EffectsLayer } from './command'
-import {
-  PersonalInfoComposition,
-  availableDatePicker,
-  pronounsListbox,
-} from './composition'
-import { PersonalInfo } from './definition'
-import { init } from './init'
+import { PersonalInfoComposition } from './composition'
 import { update } from './update'
 import { view } from './view'
 
 export const block = PersonalInfoComposition.toBlock({
-  init: PersonalInfo.init((today: CalendarDate) => {
-    const pronounsInit = pronounsListbox.init({ id: 'pronouns' })
-    const availableDateInit = availableDatePicker.init({
-      id: 'available-date',
-      today,
-      minDate: today,
-    })
-
-    return {
-      model: modifyFields(init(today), {
-        pronouns: () => pronounsInit.model,
-        availableDate: () => availableDateInit.model,
-      }),
-      commands: [
-        ...(pronounsInit.commands ?? []),
-        ...(availableDateInit.commands ?? []),
-      ],
-    }
-  }),
+  init: PersonalInfoComposition.init((today: CalendarDate) => ({
+    startup: today,
+    model: {
+      firstName: NotValidated({ value: '' }),
+      lastName: NotValidated({ value: '' }),
+      email: NotValidated({ value: '' }),
+      emailValidationId: 0,
+      phone: NotValidated({ value: '' }),
+      maybeSelectedPronoun: Option.none(),
+      customPronouns: '',
+      portfolioUrl: NotValidated({ value: '' }),
+      maybeAvailableDate: Option.none(),
+    },
+  })),
   update,
   view,
   EffectsLayer,

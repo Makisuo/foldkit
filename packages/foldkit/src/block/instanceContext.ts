@@ -2,7 +2,8 @@ import { Array, Context, type Fiber, Option } from 'effect'
 import type { Effect as EffectType } from 'effect/Effect'
 
 /** A stable keyed Binding occurrence identity. Runtime keys must be strings or
- * finite numbers. */
+ * finite numbers. Numeric zero and negative zero identify the same occurrence,
+ * matching JavaScript Map and Set key equality. */
 export type InstanceKey = string | number
 
 /** @internal A logical step in the declared composition graph. */

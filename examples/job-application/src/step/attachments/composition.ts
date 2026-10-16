@@ -20,9 +20,10 @@ const foldResumeDropOutMessage = FileDrop.OutMessage.match<
   RejectedNonFiles: () => model => ({ model }),
 })
 
-export const resumeDrop = Attachments.bindChild(FileDrop.block, {
+export const ResumeDropBinding = Attachments.bindChild(FileDrop.block, {
   field: 'resumeDrop',
   parentMessage: Message.GotResumeDropMessage,
+  init: { args: () => [{ id: 'attachments-resume' }] },
   outMessage: { fold: foldResumeDropOutMessage },
 })
 
@@ -39,12 +40,16 @@ const foldAdditionalFilesDropOutMessage = FileDrop.OutMessage.match<
   RejectedNonFiles: () => model => ({ model }),
 })
 
-export const additionalFilesDrop = Attachments.bindChild(FileDrop.block, {
-  field: 'additionalFilesDrop',
-  parentMessage: Message.GotAdditionalFilesDropMessage,
-  outMessage: { fold: foldAdditionalFilesDropOutMessage },
-})
+export const AdditionalFilesDropBinding = Attachments.bindChild(
+  FileDrop.block,
+  {
+    field: 'additionalFilesDrop',
+    parentMessage: Message.GotAdditionalFilesDropMessage,
+    init: { args: () => [{ id: 'attachments-additional' }] },
+    outMessage: { fold: foldAdditionalFilesDropOutMessage },
+  },
+)
 
 export const AttachmentsComposition = Attachments.toComposition({
-  children: [resumeDrop, additionalFilesDrop],
+  childBindings: [ResumeDropBinding, AdditionalFilesDropBinding],
 })

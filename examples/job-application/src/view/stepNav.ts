@@ -6,7 +6,7 @@ import type { TabInfo } from '@foldkit/ui/tabs'
 
 import {
   type ApplicationViewBuilder,
-  stepMenu as stepMenuBinding,
+  StepMenuBinding as StepMenuBinding,
 } from '../composition'
 import { Step } from '../domain'
 import { type Model } from '../model'
@@ -133,7 +133,7 @@ export const stepMenu = (
   h: ApplicationViewBuilder,
 ): Html =>
   h.block(
-    stepMenuBinding.embedView({
+    StepMenuBinding.embedView({
       slotId: model.stepMenu.id,
       model: model.stepMenu,
       viewInputs: {

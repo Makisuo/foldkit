@@ -4,8 +4,8 @@ import type { Html } from 'foldkit/html'
 import type { EntryHandlers, Variant } from '@foldkit/ui/toast'
 
 import { Icon } from '../../../icon'
-import { toastDemo } from '../composition'
 import type { UiViewBuilder } from '../composition'
+import { ToastDemoBinding } from '../composition'
 import { Message } from '../message'
 import { Toast } from './toastModule'
 
@@ -148,7 +148,7 @@ export const demo = (
       ],
     }),
     h.block(
-      toastDemo.embedView({
+      ToastDemoBinding.embedView({
         slotId: toastModel.id,
         model: toastModel,
         viewInputs: {

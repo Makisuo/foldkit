@@ -53,9 +53,10 @@ const runLeaf = TypePerformanceDeepLeaf.step(model => ({
   model,
   commands: [RunLeaf()],
 }))
-const Leaf = TypePerformanceDeepLeaf.toComposition().toBlock({
-  init: () => ({ model: LeafModel.make({ value: 0 }) }),
-  update: TypePerformanceDeepLeaf.update((model, message) =>
+const LeafComposition = TypePerformanceDeepLeaf.toComposition()
+const Leaf = LeafComposition.toBlock({
+  init: LeafComposition.init(() => ({ model: LeafModel.make({ value: 0 }) })),
+  update: LeafComposition.update((model, message) =>
     LeafMessage.match(message, {
       RequestedRun: () => runLeaf(model),
       CompletedRun: () => ({ model }),
@@ -69,18 +70,21 @@ const TypePerformanceLevel001 = Block.define('TypePerformanceLevel001', {
   Model: LeafModel,
   Message: LeafMessage,
 })
-const child001 = TypePerformanceLevel001.bindChild(Leaf, {
+const Child001Binding = TypePerformanceLevel001.bindChild(Leaf, {
   placement: 'child001',
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
   toParentMessage: message => message,
+  fromParentMessage: false,
 })
 const TypePerformanceLevel001Composition =
-  TypePerformanceLevel001.toComposition({ children: [child001] })
+  TypePerformanceLevel001.toComposition({ childBindings: [Child001Binding] })
 const Level001 = TypePerformanceLevel001Composition.toBlock({
-  init: () => child001.init(),
-  update: TypePerformanceLevel001.update((model, message) =>
-    child001.fold(model, message),
+  init: TypePerformanceLevel001Composition.init(() =>
+    Child001Binding.init({ args: [], toParentModel: model => model }),
+  ),
+  update: TypePerformanceLevel001Composition.update((model, message) =>
+    Child001Binding.fold(model, message),
   ),
   EffectsLayer: Layer.empty,
 })
@@ -89,18 +93,21 @@ const TypePerformanceLevel002 = Block.define('TypePerformanceLevel002', {
   Model: LeafModel,
   Message: LeafMessage,
 })
-const child002 = TypePerformanceLevel002.bindChild(Level001, {
+const Child002Binding = TypePerformanceLevel002.bindChild(Level001, {
   placement: 'child002',
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
   toParentMessage: message => message,
+  fromParentMessage: false,
 })
 const TypePerformanceLevel002Composition =
-  TypePerformanceLevel002.toComposition({ children: [child002] })
+  TypePerformanceLevel002.toComposition({ childBindings: [Child002Binding] })
 const Level002 = TypePerformanceLevel002Composition.toBlock({
-  init: () => child002.init(),
-  update: TypePerformanceLevel002.update((model, message) =>
-    child002.fold(model, message),
+  init: TypePerformanceLevel002Composition.init(() =>
+    Child002Binding.init({ args: [], toParentModel: model => model }),
+  ),
+  update: TypePerformanceLevel002Composition.update((model, message) =>
+    Child002Binding.fold(model, message),
   ),
   EffectsLayer: Layer.empty,
 })
@@ -109,18 +116,21 @@ const TypePerformanceLevel003 = Block.define('TypePerformanceLevel003', {
   Model: LeafModel,
   Message: LeafMessage,
 })
-const child003 = TypePerformanceLevel003.bindChild(Level002, {
+const Child003Binding = TypePerformanceLevel003.bindChild(Level002, {
   placement: 'child003',
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
   toParentMessage: message => message,
+  fromParentMessage: false,
 })
 const TypePerformanceLevel003Composition =
-  TypePerformanceLevel003.toComposition({ children: [child003] })
+  TypePerformanceLevel003.toComposition({ childBindings: [Child003Binding] })
 const Level003 = TypePerformanceLevel003Composition.toBlock({
-  init: () => child003.init(),
-  update: TypePerformanceLevel003.update((model, message) =>
-    child003.fold(model, message),
+  init: TypePerformanceLevel003Composition.init(() =>
+    Child003Binding.init({ args: [], toParentModel: model => model }),
+  ),
+  update: TypePerformanceLevel003Composition.update((model, message) =>
+    Child003Binding.fold(model, message),
   ),
   EffectsLayer: Layer.empty,
 })
@@ -129,18 +139,21 @@ const TypePerformanceLevel004 = Block.define('TypePerformanceLevel004', {
   Model: LeafModel,
   Message: LeafMessage,
 })
-const child004 = TypePerformanceLevel004.bindChild(Level003, {
+const Child004Binding = TypePerformanceLevel004.bindChild(Level003, {
   placement: 'child004',
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
   toParentMessage: message => message,
+  fromParentMessage: false,
 })
 const TypePerformanceLevel004Composition =
-  TypePerformanceLevel004.toComposition({ children: [child004] })
+  TypePerformanceLevel004.toComposition({ childBindings: [Child004Binding] })
 const Level004 = TypePerformanceLevel004Composition.toBlock({
-  init: () => child004.init(),
-  update: TypePerformanceLevel004.update((model, message) =>
-    child004.fold(model, message),
+  init: TypePerformanceLevel004Composition.init(() =>
+    Child004Binding.init({ args: [], toParentModel: model => model }),
+  ),
+  update: TypePerformanceLevel004Composition.update((model, message) =>
+    Child004Binding.fold(model, message),
   ),
   EffectsLayer: Layer.empty,
 })
@@ -149,18 +162,21 @@ const TypePerformanceLevel005 = Block.define('TypePerformanceLevel005', {
   Model: LeafModel,
   Message: LeafMessage,
 })
-const child005 = TypePerformanceLevel005.bindChild(Level004, {
+const Child005Binding = TypePerformanceLevel005.bindChild(Level004, {
   placement: 'child005',
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
   toParentMessage: message => message,
+  fromParentMessage: false,
 })
 const TypePerformanceLevel005Composition =
-  TypePerformanceLevel005.toComposition({ children: [child005] })
+  TypePerformanceLevel005.toComposition({ childBindings: [Child005Binding] })
 const Level005 = TypePerformanceLevel005Composition.toBlock({
-  init: () => child005.init(),
-  update: TypePerformanceLevel005.update((model, message) =>
-    child005.fold(model, message),
+  init: TypePerformanceLevel005Composition.init(() =>
+    Child005Binding.init({ args: [], toParentModel: model => model }),
+  ),
+  update: TypePerformanceLevel005Composition.update((model, message) =>
+    Child005Binding.fold(model, message),
   ),
   EffectsLayer: Layer.empty,
 })
@@ -169,18 +185,21 @@ const TypePerformanceLevel006 = Block.define('TypePerformanceLevel006', {
   Model: LeafModel,
   Message: LeafMessage,
 })
-const child006 = TypePerformanceLevel006.bindChild(Level005, {
+const Child006Binding = TypePerformanceLevel006.bindChild(Level005, {
   placement: 'child006',
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
   toParentMessage: message => message,
+  fromParentMessage: false,
 })
 const TypePerformanceLevel006Composition =
-  TypePerformanceLevel006.toComposition({ children: [child006] })
+  TypePerformanceLevel006.toComposition({ childBindings: [Child006Binding] })
 const Level006 = TypePerformanceLevel006Composition.toBlock({
-  init: () => child006.init(),
-  update: TypePerformanceLevel006.update((model, message) =>
-    child006.fold(model, message),
+  init: TypePerformanceLevel006Composition.init(() =>
+    Child006Binding.init({ args: [], toParentModel: model => model }),
+  ),
+  update: TypePerformanceLevel006Composition.update((model, message) =>
+    Child006Binding.fold(model, message),
   ),
   EffectsLayer: Layer.empty,
 })
@@ -189,18 +208,21 @@ const TypePerformanceLevel007 = Block.define('TypePerformanceLevel007', {
   Model: LeafModel,
   Message: LeafMessage,
 })
-const child007 = TypePerformanceLevel007.bindChild(Level006, {
+const Child007Binding = TypePerformanceLevel007.bindChild(Level006, {
   placement: 'child007',
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
   toParentMessage: message => message,
+  fromParentMessage: false,
 })
 const TypePerformanceLevel007Composition =
-  TypePerformanceLevel007.toComposition({ children: [child007] })
+  TypePerformanceLevel007.toComposition({ childBindings: [Child007Binding] })
 const Level007 = TypePerformanceLevel007Composition.toBlock({
-  init: () => child007.init(),
-  update: TypePerformanceLevel007.update((model, message) =>
-    child007.fold(model, message),
+  init: TypePerformanceLevel007Composition.init(() =>
+    Child007Binding.init({ args: [], toParentModel: model => model }),
+  ),
+  update: TypePerformanceLevel007Composition.update((model, message) =>
+    Child007Binding.fold(model, message),
   ),
   EffectsLayer: Layer.empty,
 })
@@ -209,18 +231,21 @@ const TypePerformanceLevel008 = Block.define('TypePerformanceLevel008', {
   Model: LeafModel,
   Message: LeafMessage,
 })
-const child008 = TypePerformanceLevel008.bindChild(Level007, {
+const Child008Binding = TypePerformanceLevel008.bindChild(Level007, {
   placement: 'child008',
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
   toParentMessage: message => message,
+  fromParentMessage: false,
 })
 const TypePerformanceLevel008Composition =
-  TypePerformanceLevel008.toComposition({ children: [child008] })
+  TypePerformanceLevel008.toComposition({ childBindings: [Child008Binding] })
 const Level008 = TypePerformanceLevel008Composition.toBlock({
-  init: () => child008.init(),
-  update: TypePerformanceLevel008.update((model, message) =>
-    child008.fold(model, message),
+  init: TypePerformanceLevel008Composition.init(() =>
+    Child008Binding.init({ args: [], toParentModel: model => model }),
+  ),
+  update: TypePerformanceLevel008Composition.update((model, message) =>
+    Child008Binding.fold(model, message),
   ),
   EffectsLayer: Layer.empty,
 })
@@ -229,23 +254,26 @@ const Application = defineApplication({
   Model: LeafModel,
   Message: LeafMessage,
 })
-const child008Root = Application.bindChild(Level008, {
+const Child008RootBinding = Application.bindChild(Level008, {
   placement: 'child008Root',
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
   toParentMessage: message => message,
+  fromParentMessage: false,
 })
 const ApplicationComposition = Application.toComposition({
-  children: [child008Root],
+  childBindings: [Child008RootBinding],
 })
 const update = ApplicationComposition.update((model, message) =>
-  child008Root.fold(model, message),
+  Child008RootBinding.fold(model, message),
 )
 const view = ApplicationComposition.view((_model, h) => h.main([]))
 
 export const program = ApplicationComposition.toElement({
   container: null,
-  init: () => child008Root.init(),
+  init: ApplicationComposition.init(() =>
+    Child008RootBinding.init({ args: [], toParentModel: model => model }),
+  ),
   update,
   view,
   EffectsLayer: Layer.empty,

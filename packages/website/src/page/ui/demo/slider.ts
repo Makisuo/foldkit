@@ -1,7 +1,10 @@
 import { Slider } from '@foldkit/ui'
 
-import { sliderRatingDemo, sliderVolumeDemo } from '../composition'
 import type { UiViewBuilder } from '../composition'
+import {
+  SliderRatingDemoBinding,
+  SliderVolumeDemoBinding,
+} from '../composition'
 
 // SHARED STYLES
 
@@ -52,7 +55,7 @@ export const horizontalDemo = (
 ) => {
   return [
     h.block(
-      sliderRatingDemo.embedView({
+      SliderRatingDemoBinding.embedView({
         slotId: ratingModel.id,
         model: ratingModel,
         viewInputs: {
@@ -105,7 +108,7 @@ export const verticalDemo = (
 ) => {
   return [
     h.block(
-      sliderVolumeDemo.embedView({
+      SliderVolumeDemoBinding.embedView({
         slotId: volumeModel.id,
         model: volumeModel,
         viewInputs: {

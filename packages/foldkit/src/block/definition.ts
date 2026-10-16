@@ -5,6 +5,7 @@ import {
   Layer,
   type Option,
   Predicate,
+  Record,
   type Schema,
   type Scope,
   type Stream,
@@ -42,14 +43,26 @@ import {
 } from './composition.js'
 import { type DefaultViewTypeId, registerDefaultView } from './defaultView.js'
 import {
+  type DefineCompositionUpdate,
+  type ValidateCompositionDelivery,
+  makeCompositionUpdate,
+} from './delivery.js'
+import {
   type DefinitionIdentity,
   LocalMountsTypeId,
   identityOf,
   registerBlockHostIdentities,
   registerDefinition,
 } from './identity.js'
+import type {
+  CompositionInit,
+  ValidateUniqueInitialFields,
+} from './initialization.js'
+import { makeInit } from './initializationRuntime.js'
+import { withOperationGraph } from './operationGraph.js'
 import type { Owner } from './owner.js'
 import { makeOwnedName } from './ownerName.js'
+import type { ValidateBindingPolicies } from './policyEvidence.js'
 import type {
   HandlerEvidence,
   HandlerOfHostDefinition,
@@ -185,9 +198,9 @@ type ValidateAnnotatedContext<Context extends ReadonlyArray<unknown>> =
 export declare const DefinedUpdateSourceTypeId: unique symbol
 
 /** @internal Retains an Application update's source type for root completion. */
-export type DefinedUpdateSource<Source> = Readonly<{
-  [DefinedUpdateSourceTypeId]: Source
-}>
+export interface DefinedUpdateSource<Source> {
+  readonly [DefinedUpdateSourceTypeId]: Source
+}
 
 /** The exact update function returned by a Block's `update` authoring helper. */
 export type DefinedUpdate<
@@ -329,74 +342,6 @@ export interface DefineView<
     Message,
     RequiredViewRequirements
   >
-}
-
-type Equal<Left, Right> =
-  (<Value>() => Value extends Left ? 1 : 2) extends <
-    Value,
-  >() => Value extends Right ? 1 : 2
-    ? (<Value>() => Value extends Right ? 1 : 2) extends <
-        Value,
-      >() => Value extends Left ? 1 : 2
-      ? true
-      : false
-    : false
-
-type NormalizedFunction<Function extends AnyFunction> = (
-  ...args: Parameters<Function>
-) => ReturnType<Function>
-
-type ValidateSingleInitSignature<Init extends AnyFunction> =
-  Equal<Init, NormalizedFunction<Init>> extends true
-    ? unknown
-    : Readonly<{
-        'Initializers require one concrete call signature': Init
-      }>
-
-/**
- * Authors a Block initializer. Every return must contain the Block Model, and
- * every returned Command must produce the Block Message. An initializer cannot
- * emit an OutMessage. The helper returns the same function without invoking it
- * and preserves its exact parameter and return types. Initializers are plain
- * functions with one concrete call signature; close over a generic factory's
- * values or wrap an overloaded helper in a concrete function.
- */
-export interface DefineInit<Model, Message> {
-  <
-    const Init extends (
-      ...args: ReadonlyArray<any>
-    ) => OwnedReturn<Model, Message, never>,
-  >(
-    init: Init & NoInfer<ValidateSingleInitSignature<Init>>,
-  ): Init
-}
-
-/**
- * Defines the primary update function of an owned Block.
- */
-export interface DefineUpdate<
-  Model,
-  Message,
-  OutMessage,
-  PreserveSource extends boolean = false,
-> {
-  <
-    const Context extends ReadonlyArray<unknown>,
-    const Output extends OwnedReturn<Model, Message, OutMessage> &
-      ValidateAnnotatedContext<Context>,
-  >(
-    update: (model: Model, message: Message, ...context: Context) => Output,
-  ): DefinedUpdate<
-    Model,
-    Message,
-    Context,
-    OutMessageOfReturn<Output>,
-    CommandRequirements<Output>,
-    Update.RegistrationEvidenceOf<Output>
-  > &
-    ([PreserveSource] extends [true]
-      ? DefinedUpdateSource<readonly [Model, Message, Context, Output]>
-      : unknown)
 }
 
 /**
@@ -934,7 +879,15 @@ export type ValidateChildBindings<
   ParentModel,
   ParentMessage,
   ParentOutMessage,
-> = ValidateUniqueChildPlacements<Children> &
+> = ValidateBindingPolicies<
+  Children,
+  ParentModel,
+  ParentMessage,
+  ParentOutMessage
+> &
+  ValidateUniqueChildPlacements<Children> &
+  ValidateUniqueInitialFields<Children> &
+  ValidateCompositionDelivery<Children> &
   ([
     | InvalidChildParentModels<Children, ParentModel>
     | InvalidChildCommandMessages<Children, ParentMessage>
@@ -974,10 +927,18 @@ type DefinitionViewRequirements<
   Children extends ReadonlyArray<AnyBinding>,
 > = Mount.RequirementsOf<Mounts> | RequirementsOfBindings<Children>
 
+interface NoOutMessage {
+  readonly OutMessage?: never
+}
+
+interface NoDefaultView {
+  readonly [DefaultViewTypeId]?: never
+}
+
 type OutMessageSchemaField<OutMessageSchema> =
   OutMessageSchema extends AnySchema
     ? Readonly<{ OutMessage: OutMessageSchema }>
-    : Readonly<{ OutMessage?: never }>
+    : NoOutMessage
 
 type ImplementationExposedOperations<Implementation> =
   Implementation extends Readonly<{ expose: infer ExposedOperations }>
@@ -1380,7 +1341,7 @@ type ImplementationForValidation<
   Message: MessageSchema
   mounts: Mounts
   [LocalMountsTypeId]: Mounts
-  children: Children
+  childBindings: Children
   init: ImplementationValue['init']
   update: ImplementationValue['update']
   expose: ImplementationExposedOperations<ImplementationValue>
@@ -1576,14 +1537,17 @@ export type Block<
   /** @internal Retains the exact Mount definitions owned by this block. */
   [LocalMountsTypeId]: Mounts
   /** Child Bindings registered in this Block's Composition. */
-  children: Children
-  /** Creates the initial child Model and any Commands. A parent calls this
-   * through its Binding and decides where to store the returned Model. */
+  childBindings: Children
+  /** Creates the initial child Model and any Commands. A parent initializes a
+   * connected occurrence through its registered Binding's init operation,
+   * which constructs the parent Model and retains the lifted Commands. */
   init: ImplementationValue['init']
   /** Produces the next child Model and any Commands or OutMessage for one child
    * Message. Parents invoke this through their Binding's `fold` method. */
   update: ImplementationValue['update']
-  /** Parent-driven named operations exposed through each Binding. */
+  /** Parent-driven named operations exposed through each Binding. Calling an
+   * operation here activates this Block's checked child graph. A Binding also
+   * lifts its Model, Messages, Commands, and OutMessage policy into its parent. */
   expose: ImplementationValue extends Readonly<{
     expose: infer ExposedOperations extends Readonly<
       Record<string, (...args: ReadonlyArray<any>) => any>
@@ -1650,12 +1614,12 @@ export type Block<
 }> &
   (OutMessageSchema extends Schema.Codec<any, any, any, any>
     ? Readonly<{ OutMessage: OutMessageSchema }>
-    : Readonly<{ OutMessage?: never }>) &
+    : NoOutMessage) &
   (ImplementationValue extends Readonly<{
     view: infer View extends AnyAuthoredView
   }>
     ? Readonly<{ [DefaultViewTypeId]: View }>
-    : Readonly<{ [DefaultViewTypeId]?: never }>) &
+    : NoDefaultView) &
   BlockOperations<
     OwnerValue,
     ModelSchema,
@@ -1702,7 +1666,7 @@ export type Completed<DefinitionValue, ImplementationValue> =
     Message: infer MessageSchema extends AnySchema
     [LocalMountsTypeId]: infer Mounts extends
       ReadonlyArray<Mount.LayeredMountDefinition>
-    children: infer Children extends ReadonlyArray<AnyBinding>
+    childBindings: infer Children extends ReadonlyArray<AnyBinding>
   }>
     ? CompletedImplementationValue<ImplementationValue> extends infer CompletedImplementation extends
         Readonly<{
@@ -1738,7 +1702,7 @@ export type CompletedForValidation<DefinitionValue, ImplementationValue> =
     Message: infer MessageSchema extends AnySchema
     [LocalMountsTypeId]: infer Mounts extends
       ReadonlyArray<Mount.LayeredMountDefinition>
-    children: infer Children extends ReadonlyArray<AnyBinding>
+    childBindings: infer Children extends ReadonlyArray<AnyBinding>
   }>
     ? CompletedImplementationValue<ImplementationValue> extends infer CompletedImplementation extends
         Readonly<{
@@ -1771,7 +1735,7 @@ export type AnyBlock = Readonly<{
   Message: AnySchema
   mounts: ReadonlyArray<Mount.LayeredMountDefinition>
   [LocalMountsTypeId]: ReadonlyArray<Mount.LayeredMountDefinition>
-  children: ReadonlyArray<AnyBinding>
+  childBindings: ReadonlyArray<AnyBinding>
   init: AnyFunction
   update: AnyFunction
   expose: Readonly<Record<string, AnyFunction>>
@@ -2616,7 +2580,7 @@ export type ViewBuilderFor<CompositionValue> =
     Message: Readonly<{ Type: infer Message }>
     [LocalMountsTypeId]: infer Mounts extends
       ReadonlyArray<Mount.LayeredMountDefinition>
-    children: infer Children extends ReadonlyArray<AnyBinding>
+    childBindings: infer Children extends ReadonlyArray<AnyBinding>
   }>
     ? HtmlBuilder<Message, DefinitionViewRequirements<Mounts, Children>>
     : never
@@ -2647,23 +2611,7 @@ export type Definition<
   /** @internal Retains the exact Mount definitions owned by this definition. */
   [LocalMountsTypeId]: Mounts
   /** Child Bindings registered in this Definition's composition graph. */
-  children: Children
-  /** Authors the Block's initializer. The helper checks its returned Model and
-   * every Command result Message, rejects OutMessages, and returns the same
-   * function without invoking it. It preserves exact arguments, return type,
-   * Command requirements, and child registration evidence. Completion checks
-   * preserved child registration evidence against the Composition. An
-   * initializer is a plain function with one concrete call signature. */
-  init: DefineInit<ModelSchema['Type'], MessageSchema['Type']>
-  /** Authors the Block's primary update function with exact Command service and
-   * OutMessage inference. */
-  update: DefineUpdate<
-    ModelSchema['Type'],
-    MessageSchema['Type'],
-    OutMessageSchema extends Schema.Codec<any, any, any, any>
-      ? OutMessageSchema['Type']
-      : never
-  >
+  childBindings: Children
   /** Authors a parent-driven operation that can be exposed by the completed
    * Block. */
   step: DefineStep<
@@ -2699,7 +2647,7 @@ export type Definition<
 }> &
   (OutMessageSchema extends Schema.Codec<any, any, any, any>
     ? Readonly<{ OutMessage: OutMessageSchema }>
-    : Readonly<{ OutMessage?: never }>)
+    : NoOutMessage)
 
 /** A passive Definition with its child and Mount graph registered. A Composition
  * supplies graph-aware view authoring and Block completion; it does not build
@@ -2726,13 +2674,24 @@ export type Composition<
   | 'OutMessage'
   | 'mounts'
   | typeof LocalMountsTypeId
-  | 'children'
-  | 'update'
-  | 'step'
-  | 'subscriptions'
-  | 'managedResources'
-  | 'bindChild'
+  | 'childBindings'
 > & {
+  /** Authors startup for this registered graph. The callback supplies shared
+   * startup inputs and parent-owned fields; child initialization and ordinary
+   * startup Steps are assembled into the complete Model and lifted Commands. */
+  readonly init: CompositionInit<
+    ModelSchema['Type'],
+    MessageSchema['Type'],
+    Children
+  >
+  /** Authors parent transitions while registered child delivery policies route
+   * their wrapper Messages through the native Binding folds. */
+  readonly update: DefineCompositionUpdate<
+    ModelSchema['Type'],
+    MessageSchema['Type'],
+    OutMessageSchema extends AnySchema ? OutMessageSchema['Type'] : never,
+    Children
+  >
   /** Authors a view against this Composition's Model, Message, local Mounts,
    * and registered child Bindings. */
   readonly view: DefineView<
@@ -2754,7 +2713,9 @@ export type Composition<
 }
 
 /** Registers the child and Mount graph after the Block's typed operations are
- * authored. Both fields default to empty collections. */
+ * authored. Both fields default to empty collections. Child OutMessage policies
+ * must return this parent's Steps and declared OutMessages, and every sibling
+ * Binding used by a policy must be registered here. */
 export interface ToComposition<
   OwnerValue extends Owner<string>,
   ModelSchema extends AnySchema,
@@ -2779,8 +2740,8 @@ export interface ToComposition<
        * to an empty registry. */
       mounts?: Mounts & Mount.PreciseMountRegistry<Mounts>
       /** Child Bindings registered in this Block's composition graph. Omitted
-       * children default to an empty tuple. */
-      children?: Children
+       * childBindings default to an empty tuple. */
+      childBindings?: Children
     }> &
       ValidateChildBindings<
         Children,
@@ -2830,7 +2791,7 @@ export interface DefineBlock<OwnerValue extends Owner<string>> {
       /** Schema for facts the Block can report to a parent. */
       OutMessage: OutMessageSchema
       mounts?: never
-      children?: never
+      childBindings?: never
     }>,
   ): Base<OwnerValue, ModelSchema, MessageSchema, OutMessageSchema>
   <const ModelSchema extends AnySchema, const MessageSchema extends AnySchema>(
@@ -2841,7 +2802,7 @@ export interface DefineBlock<OwnerValue extends Owner<string>> {
       Message: MessageSchema
       OutMessage?: never
       mounts?: never
-      children?: never
+      childBindings?: never
     }>,
   ): Base<OwnerValue, ModelSchema, MessageSchema, undefined>
 }
@@ -2854,7 +2815,7 @@ const makeDefineView = <
 >(
   owner: OwnerValue,
   mounts: ReadonlyArray<Mount.LayeredMountDefinition>,
-  children: ReadonlyArray<AnyBinding>,
+  childBindings: ReadonlyArray<AnyBinding>,
 ): DefineView<OwnerValue, Model, Message, RequiredViewRequirements> => {
   function defineView(
     view: (
@@ -2900,7 +2861,7 @@ const makeDefineView = <
         Message,
         RequiredViewRequirements
       > {
-    const ownedView = withViewIdentity(owner, mounts, children, view)
+    const ownedView = withViewIdentity(owner, mounts, childBindings, view)
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     return defineHtmlView(ownedView as any) as
       | OwnedAuthoredView<
@@ -2933,7 +2894,7 @@ const makeDefineView = <
     Message,
     RequiredViewRequirements
   > => {
-    const ownedView = withViewIdentity(owner, mounts, children, view)
+    const ownedView = withViewIdentity(owner, mounts, childBindings, view)
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     return defineHtmlView(ownedView as any) as OwnedAuthoredView<
       BlockView<
@@ -2952,37 +2913,6 @@ const makeDefineView = <
   defineView.withInputs = withInputs
 
   return defineView
-}
-
-const makeDefineInit =
-  <Model, Message>(): DefineInit<Model, Message> =>
-  init =>
-    init
-
-const makeDefineUpdate = <Model, Message, OutMessage>(): DefineUpdate<
-  Model,
-  Message,
-  OutMessage
-> => {
-  function defineUpdate<
-    const Context extends ReadonlyArray<unknown>,
-    const Output extends OwnedReturn<Model, Message, OutMessage> &
-      ValidateAnnotatedContext<Context>,
-  >(
-    update: (model: Model, message: Message, ...context: Context) => Output,
-  ): DefinedUpdate<
-    Model,
-    Message,
-    Context,
-    OutMessageOfReturn<Output>,
-    CommandRequirements<Output>,
-    Update.RegistrationEvidenceOf<Output>
-  >
-  function defineUpdate(update: AnyFunction): AnyFunction {
-    return update
-  }
-
-  return defineUpdate
 }
 
 const makeDefineStep = <Model, Message, OutMessage>(): DefineStep<
@@ -3136,18 +3066,18 @@ export const makeDefinition = (
     Message: AnySchema
     OutMessage?: AnySchema
     mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
-    children?: ReadonlyArray<AnyBinding>
+    childBindings?: ReadonlyArray<AnyBinding>
   }>,
   authoring?: Readonly<{
-    init: AnyFunction
-    update: AnyFunction
     step: AnyFunction
     subscriptions: AnyFunction
     managedResources: AnyFunction
   }>,
 ): any => {
   const localMounts = Object.freeze(globalThis.Array.from(config.mounts ?? []))
-  const children = Object.freeze(globalThis.Array.from(config.children ?? []))
+  const childBindings = Object.freeze(
+    globalThis.Array.from(config.childBindings ?? []),
+  )
 
   const parentContract = {
     ownerToken: owner.token,
@@ -3156,14 +3086,14 @@ export const makeDefinition = (
     OutMessage: config.OutMessage,
   }
 
-  assertBindingParentContracts(parentContract, owner.id, children)
+  assertBindingParentContracts(parentContract, owner.id, childBindings)
 
-  const childChannels = aggregateChildren(children)
+  const childChannels = aggregateChildren(childBindings)
   const mounts = mergeMounts(localMounts, childChannels.mounts)
 
-  const defineView = makeDefineView(owner, localMounts, children)
-  const defineInit = authoring?.init ?? makeDefineInit()
-  const defineUpdate = authoring?.update ?? makeDefineUpdate()
+  const defineView = makeDefineView(owner, localMounts, childBindings)
+  const init = makeInit(config.Model, childBindings)
+  const update = makeCompositionUpdate(childBindings)
   const defineStep = authoring?.step ?? makeDefineStep()
   const defineSubscriptions =
     authoring?.subscriptions ?? makeDefineSubscriptions(owner)
@@ -3174,6 +3104,29 @@ export const makeDefinition = (
     typeof config.Message,
     typeof config.OutMessage
   >(parentContract)
+  const emptyExpose: Readonly<Record<string, AnyFunction>> = {}
+  const completedExposeBySource = new WeakMap<
+    Readonly<Record<string, AnyFunction>>,
+    Readonly<Record<string, AnyFunction>>
+  >()
+  const completeExpose = (
+    source: Readonly<Record<string, AnyFunction>>,
+  ): Readonly<Record<string, AnyFunction>> => {
+    const existing = completedExposeBySource.get(source)
+    if (existing !== undefined) {
+      return existing
+    }
+
+    const completed = Record.map(
+      source,
+      operation =>
+        (...args: ReadonlyArray<any>) =>
+          withOperationGraph(childBindings, () => operation(...args)),
+    )
+    completedExposeBySource.set(source, completed)
+
+    return completed
+  }
 
   function toBlock(
     implementation: {
@@ -3189,8 +3142,9 @@ export const makeDefinition = (
     retainedHostIdentities?: ReadonlyArray<DefinitionIdentity>,
     areHostHandlersProvided = false,
   ): AnyBlock {
-    const expose = implementation.expose ?? {}
-    assertValidBindingOperationNames(expose)
+    const exposeSource = implementation.expose ?? emptyExpose
+    assertValidBindingOperationNames(exposeSource)
+    const expose = completeExpose(exposeSource)
     const subscriptions = Subscription.aggregate(
       implementation.subscriptions ?? {},
       childChannels.subscriptions,
@@ -3223,7 +3177,7 @@ export const makeDefinition = (
     const localEffectsLayer = implementation.EffectsLayer ?? Layer.empty
     const selectedLayer = selectLayer(owner, localEffectsLayer, {
       allowedIdentities: hostIdentities,
-      descendantOwners: descendantOwnersOf(children),
+      descendantOwners: descendantOwnersOf(childBindings),
       ...(areHostHandlersProvided
         ? {
             requiredIdentities: new Set(
@@ -3232,7 +3186,7 @@ export const makeDefinition = (
           }
         : {}),
     })
-    const EffectsLayer = Array.isReadonlyArrayEmpty(children)
+    const EffectsLayer = Array.isReadonlyArrayEmpty(childBindings)
       ? selectedLayer
       : Layer.merge(selectedLayer, childChannels.EffectsLayer)
     const hostHandlers = implementation.hostHandlers ?? []
@@ -3269,7 +3223,7 @@ export const makeDefinition = (
       view: defineView,
       mounts,
       [LocalMountsTypeId]: localMounts,
-      children,
+      childBindings,
       init: implementation.init,
       update: implementation.update,
       expose,
@@ -3301,10 +3255,10 @@ export const makeDefinition = (
       : { OutMessage: config.OutMessage }),
     mounts,
     [LocalMountsTypeId]: localMounts,
-    children,
+    childBindings,
     view: defineView,
-    init: defineInit,
-    update: defineUpdate,
+    init,
+    update,
     step: defineStep,
     subscriptions: defineSubscriptions,
     managedResources: defineManagedResources,
@@ -3325,7 +3279,7 @@ export const makeBaseDefinition = (
   const toComposition = (
     graph: Readonly<{
       mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
-      children?: ReadonlyArray<AnyBinding>
+      childBindings?: ReadonlyArray<AnyBinding>
     }> = {},
   ) => {
     const composition = makeDefinition(owner, { ...config, ...graph }, base)
@@ -3339,13 +3293,10 @@ export const makeBaseDefinition = (
         : { OutMessage: composition.OutMessage }),
       mounts: composition.mounts,
       [LocalMountsTypeId]: composition[LocalMountsTypeId],
-      children: composition.children,
-      update: base.update,
-      step: base.step,
-      subscriptions: base.subscriptions,
-      managedResources: base.managedResources,
+      childBindings: composition.childBindings,
+      init: composition.init,
+      update: composition.update,
       view: composition.view,
-      bindChild: base.bindChild,
       toBlock: composition.toBlock,
     }
   }
@@ -3357,9 +3308,7 @@ export const makeBaseDefinition = (
     ...(base.OutMessage === undefined ? {} : { OutMessage: base.OutMessage }),
     mounts: base.mounts,
     [LocalMountsTypeId]: base[LocalMountsTypeId],
-    children: base.children,
-    init: base.init,
-    update: base.update,
+    childBindings: base.childBindings,
     step: base.step,
     subscriptions: base.subscriptions,
     managedResources: base.managedResources,

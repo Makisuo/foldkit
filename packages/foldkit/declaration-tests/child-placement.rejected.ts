@@ -2,68 +2,82 @@ import { Option } from 'effect'
 
 import {
   ChildBlock,
+  OptionalBinding,
   Parent,
-  optional,
-  primary,
+  PrimaryBinding,
 } from './child-placement.accepted.js'
 
-const directAtPrimary = Parent.bindChild(ChildBlock, {
+const DirectAtPrimaryBinding = Parent.bindChild(ChildBlock, {
   field: 'secondary',
   placement: 'primary',
   toParentMessage: message => message,
+  fromParentMessage: false,
 })
 
-const keyedAtOptional = Parent.bindChild(ChildBlock, {
+const KeyedAtOptionalBinding = Parent.bindChild(ChildBlock, {
   placement: 'optional',
   readAll: model => model.entries,
   key: entry => entry.id,
   read: entry => entry.child,
   writeAt: model => model,
   toParentMessage: (_id, message) => message,
+  fromParentMessage: false,
 })
 
-const accessorAtPrimary = Parent.bindChild(ChildBlock, {
+const AccessorAtPrimaryBinding = Parent.bindChild(ChildBlock, {
   placement: 'primary',
   read: model => Option.some(model.secondary),
   write: model => model,
   toParentMessage: message => message,
+  fromParentMessage: false,
 })
 
-const defaultAccessor = Parent.bindChild(ChildBlock, {
+const DefaultAccessorBinding = Parent.bindChild(ChildBlock, {
   read: model => model.maybeChild,
   write: model => model,
   toParentMessage: message => message,
+  fromParentMessage: false,
 })
 
-const defaultKeyedById = Parent.bindChild(ChildBlock, {
+const DefaultKeyedByIdBinding = Parent.bindChild(ChildBlock, {
   readAll: model => model.entries,
   key: entry => entry.id,
   read: entry => entry.child,
   writeAt: model => model,
   toParentMessage: (_id, message) => message,
+  fromParentMessage: false,
 })
 
-const defaultKeyedByIdLength = Parent.bindChild(ChildBlock, {
+const DefaultKeyedByIdLengthBinding = Parent.bindChild(ChildBlock, {
   readAll: model => model.entries,
   key: entry => entry.id.length,
   read: entry => entry.child,
   writeAt: model => model,
   toParentMessage: (_idLength, message) => message,
+  fromParentMessage: false,
 })
 
 // @ts-expect-error A direct field default and explicit placement cannot resolve to the same sibling placement.
-Parent.toComposition({ children: [primary, directAtPrimary] })
+Parent.toComposition({
+  childBindings: [PrimaryBinding, DirectAtPrimaryBinding],
+})
 
 // @ts-expect-error Static and keyed Bindings cannot resolve to the same sibling placement.
-Parent.toComposition({ children: [optional, keyedAtOptional] })
+Parent.toComposition({
+  childBindings: [OptionalBinding, KeyedAtOptionalBinding],
+})
 
 // @ts-expect-error Pure siblings cannot repeat a resolved placement.
-Parent.toComposition({ children: [primary, accessorAtPrimary] })
+Parent.toComposition({
+  childBindings: [PrimaryBinding, AccessorAtPrimaryBinding],
+})
 
 // @ts-expect-error Default accessor and keyed Bindings of the same child Block resolve to the same placement.
-Parent.toComposition({ children: [defaultAccessor, defaultKeyedById] })
+Parent.toComposition({
+  childBindings: [DefaultAccessorBinding, DefaultKeyedByIdBinding],
+})
 
 // @ts-expect-error Keyed occurrence keys do not distinguish sibling Binding placements.
 Parent.toComposition({
-  children: [defaultKeyedById, defaultKeyedByIdLength],
+  childBindings: [DefaultKeyedByIdBinding, DefaultKeyedByIdLengthBinding],
 })

@@ -1,6 +1,6 @@
-import { Option } from 'effect'
-import { Update } from 'foldkit'
+import { Option, Tuple } from 'effect'
 import type { Block } from 'foldkit'
+import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { Tabs } from '@foldkit/ui'
@@ -11,6 +11,7 @@ import { Model } from './model'
 import { ObserveExampleUrlMessages } from './mount'
 
 export const SourceFileTabs = Tabs.create()
+export const SOURCE_FILE_TABS_ID = 'source-file-tabs'
 
 const foldSourceFileTabsOutMessage = Tabs.OutMessage.match<
   Update.Step<Model, Message>
@@ -24,16 +25,17 @@ const foldSourceFileTabsOutMessage = Tabs.OutMessage.match<
     }),
 })
 
-export const sourceFileTabs = ExampleDetail.bindChild(SourceFileTabs, {
+export const SourceFileTabsBinding = ExampleDetail.bindChild(SourceFileTabs, {
   field: 'sourceFileTabs',
   parentMessage: Message.GotSourceFileTabsMessage,
   outMessage: { fold: foldSourceFileTabsOutMessage },
+  init: { args: () => Tuple.make({ id: SOURCE_FILE_TABS_ID }) },
 })
 
 export const mounts = [ObserveExampleUrlMessages]
 
 export const ExampleDetailComposition = ExampleDetail.toComposition({
-  children: [sourceFileTabs],
+  childBindings: [SourceFileTabsBinding],
   mounts,
 })
 export type ExampleDetailViewBuilder = Block.ViewBuilderFor<

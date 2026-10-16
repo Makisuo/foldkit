@@ -6,7 +6,7 @@ import { Button } from '@foldkit/ui'
 import {
   EducationComposition,
   type EducationViewBuilder,
-  entries,
+  EntriesBinding,
 } from './composition'
 import { Message } from './definition'
 import * as Entry from './entry'
@@ -19,7 +19,7 @@ const entryView = (
   h: EducationViewBuilder,
 ): Html =>
   h.block(
-    entries.embedView({
+    EntriesBinding.embedView({
       key: entry.id,
       slotId: entry.id,
       model: entry,

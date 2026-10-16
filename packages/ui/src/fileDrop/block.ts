@@ -66,7 +66,7 @@ export const init = (config: InitConfig): Model => ({
 
 /** Processes a file-drop Message and returns the next Model, optional Commands,
  *  and an optional OutMessage. */
-export const update = FileDrop.update((model, message) =>
+export const update = FileDropComposition.update((model, message) =>
   Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
     message,
     {
@@ -162,7 +162,9 @@ export const view = FileDropComposition.view.withInputs<ViewInputs>(
 
 /** Complete FileDrop Block definition for connecting to a parent. */
 export const block = FileDropComposition.toBlock({
-  init: FileDrop.init((config: InitConfig) => ({ model: init(config) })),
+  init: FileDropComposition.init((config: InitConfig) => ({
+    model: init(config),
+  })),
   update,
   view,
   EffectsLayer: Layer.empty,

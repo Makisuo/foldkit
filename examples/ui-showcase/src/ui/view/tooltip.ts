@@ -7,9 +7,9 @@ import {
 } from '@foldkit/ui/tooltip'
 
 import {
+  TooltipBasicDemoBinding,
+  TooltipNoDelayDemoBinding,
   UiComposition,
-  tooltipBasicDemo,
-  tooltipNoDelayDemo,
 } from '../composition'
 
 const triggerClassName =
@@ -89,7 +89,7 @@ export const view = UiComposition.view((model, h) => {
         [h.Class('relative')],
         [
           h.block(
-            tooltipBasicDemo.embedView({
+            TooltipBasicDemoBinding.embedView({
               slotId: model.tooltipBasicDemo.id,
               model: model.tooltipBasicDemo,
               viewInputs: {
@@ -116,7 +116,7 @@ export const view = UiComposition.view((model, h) => {
         [h.Class('relative')],
         [
           h.block(
-            tooltipNoDelayDemo.embedView({
+            TooltipNoDelayDemoBinding.embedView({
               slotId: model.tooltipNoDelayDemo.id,
               model: model.tooltipNoDelayDemo,
               viewInputs: {

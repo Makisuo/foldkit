@@ -73,7 +73,7 @@ const view = PopoverExampleComposition.view((model, h) => {
     )
 
   return h.block(
-    popover.embedView({
+    PopoverBinding.embedView({
       slotId: 'info',
       model: model.popover,
       viewInputs: {

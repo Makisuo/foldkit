@@ -1,6 +1,6 @@
 import { Layer, Schema } from 'effect'
+import { Block, Message } from 'foldkit'
 
-import { Block, Message } from '../src/index.js'
 import {
   ArrayChildBlock,
   ChildBlock,
@@ -20,6 +20,7 @@ const wrongModelConfig = {
   field: wrappedRowsField,
   key: idKey,
   toParentMessage: toEntryMessage,
+  fromParentMessage: false satisfies false,
 }
 // @ts-expect-error The selected field must be an exact child Model array.
 Parent.bindChild(ChildBlock, wrongModelConfig)
@@ -28,6 +29,7 @@ const missingFieldConfig = {
   field: missingField,
   key: idKey,
   toParentMessage: toEntryMessage,
+  fromParentMessage: false satisfies false,
 }
 // @ts-expect-error The selected field must name a parent Struct field.
 Parent.bindChild(ChildBlock, missingFieldConfig)
@@ -36,6 +38,7 @@ const missingKeyConfig = {
   field: entriesField,
   key: missingKey,
   toParentMessage: toEntryMessage,
+  fromParentMessage: false satisfies false,
 }
 // @ts-expect-error The key must name a field on the child Model.
 Parent.bindChild(ChildBlock, missingKeyConfig)
@@ -43,6 +46,7 @@ Parent.bindChild(ChildBlock, missingKeyConfig)
 const omittedKeyConfig = {
   field: entriesField,
   toParentMessage: toEntryMessage,
+  fromParentMessage: false satisfies false,
 }
 // @ts-expect-error A direct keyed Binding requires a child key field.
 Parent.bindChild(ChildBlock, omittedKeyConfig)
@@ -52,6 +56,7 @@ const conflictingReadAllConfig = {
   key: idKey,
   readAll: (model: typeof Parent.Model.Type) => model.entries,
   toParentMessage: toEntryMessage,
+  fromParentMessage: false satisfies false,
 }
 // @ts-expect-error A direct keyed Binding cannot supply collection accessors.
 Parent.bindChild(ChildBlock, conflictingReadAllConfig)
@@ -61,6 +66,7 @@ const conflictingPresenceConfig = {
   key: idKey,
   presentWhen: () => true,
   toParentMessage: toEntryMessage,
+  fromParentMessage: false satisfies false,
 }
 // @ts-expect-error presentWhen belongs to a static direct Binding.
 Parent.bindChild(ChildBlock, conflictingPresenceConfig)
@@ -70,6 +76,7 @@ const conflictingWriteConfig = {
   key: idKey,
   write: (model: typeof Parent.Model.Type) => model,
   toParentMessage: toEntryMessage,
+  fromParentMessage: false satisfies false,
 }
 // @ts-expect-error A direct keyed Binding cannot supply a custom write adapter.
 Parent.bindChild(ChildBlock, conflictingWriteConfig)
@@ -86,6 +93,7 @@ const unexpectedOutMessageConfig = {
   field: entriesField,
   key: idKey,
   toParentMessage: toEntryMessage,
+  fromParentMessage: false satisfies false,
   outMessage: { fold: () => undefined },
 }
 // @ts-expect-error A child without OutMessages cannot configure an OutMessage policy.
@@ -95,9 +103,26 @@ const foreignMappingConfig = {
   field: entriesField,
   key: idKey,
   toParentMessage: () => ({ _tag: 'ForeignMessage' }),
+  fromParentMessage: false satisfies false,
 }
 // @ts-expect-error A keyed mapper must return the established parent Message.
 Parent.bindChild(ChildBlock, foreignMappingConfig)
+
+Parent.bindChild(ChildBlock, {
+  // @ts-expect-error Keyed init must store the initialized child Model directly.
+  field: 'entries',
+  // @ts-expect-error Keyed init must store the initialized child Model directly.
+  key: 'id',
+  // @ts-expect-error Keyed init must store the initialized child Model directly.
+  toParentMessage: toEntryMessage,
+  // @ts-expect-error Keyed init must store the initialized child Model directly.
+  fromParentMessage: false,
+  // @ts-expect-error Keyed init must store the initialized child Model directly.
+  init: {
+    occurrences: () => [{ key: 'initial', args: [] }],
+    toItem: (_occurrence, child) => ({ child }),
+  },
+})
 
 const BooleanKeyModel = Schema.Struct({
   id: Schema.Boolean,
@@ -108,9 +133,12 @@ const BooleanKeyChild = Block.define('DeclarationBooleanKeyChild', {
   Model: BooleanKeyModel,
   Message: BooleanKeyMessage,
 })
-const BooleanKeyBlock = BooleanKeyChild.toComposition().toBlock({
-  init: () => ({ model: BooleanKeyModel.make({ id: false, count: 0 }) }),
-  update: BooleanKeyChild.update(model => ({ model })),
+const BooleanKeyComposition = BooleanKeyChild.toComposition()
+const BooleanKeyBlock = BooleanKeyComposition.toBlock({
+  init: BooleanKeyComposition.init(() => ({
+    model: BooleanKeyModel.make({ id: false, count: 0 }),
+  })),
+  update: BooleanKeyComposition.update(model => ({ model })),
   EffectsLayer: Layer.empty,
 })
 const BooleanKeyParentModel = Schema.Struct({
@@ -128,6 +156,7 @@ const booleanKeyConfig = {
   key: idKey,
   toParentMessage: (id: boolean, message: typeof BooleanKeyMessage.Type) =>
     BooleanKeyParentMessage.GotChildMessage({ id, message }),
+  fromParentMessage: false satisfies false,
 }
 // @ts-expect-error Child occurrence keys must be strings or numbers.
 BooleanKeyParent.bindChild(BooleanKeyBlock, booleanKeyConfig)
@@ -141,9 +170,12 @@ const OptionalKeyChild = Block.define('DeclarationOptionalKeyChild', {
   Model: OptionalKeyModel,
   Message: OptionalKeyMessage,
 })
-const OptionalKeyBlock = OptionalKeyChild.toComposition().toBlock({
-  init: () => ({ model: OptionalKeyModel.make({ count: 0 }) }),
-  update: OptionalKeyChild.update(model => ({ model })),
+const OptionalKeyComposition = OptionalKeyChild.toComposition()
+const OptionalKeyBlock = OptionalKeyComposition.toBlock({
+  init: OptionalKeyComposition.init(() => ({
+    model: OptionalKeyModel.make({ count: 0 }),
+  })),
+  update: OptionalKeyComposition.update(model => ({ model })),
   EffectsLayer: Layer.empty,
 })
 const OptionalKeyParentModel = Schema.Struct({
@@ -161,6 +193,7 @@ const optionalKeyConfig = {
   key: idKey,
   toParentMessage: (id: string, message: typeof OptionalKeyMessage.Type) =>
     OptionalKeyParentMessage.GotChildMessage({ id, message }),
+  fromParentMessage: false satisfies false,
 }
 // @ts-expect-error A child key field must be required.
 OptionalKeyParent.bindChild(OptionalKeyBlock, optionalKeyConfig)
@@ -181,6 +214,7 @@ const extendedFieldConfig = {
   field: entriesField,
   key: idKey,
   toParentMessage: toEntryMessage,
+  fromParentMessage: false satisfies false,
 }
 // @ts-expect-error The field element cannot have extra optional properties.
 ExtendedParent.bindChild(ChildBlock, extendedFieldConfig)
@@ -190,9 +224,10 @@ const PrimitiveChild = Block.define('DeclarationPrimitiveKeyChild', {
   Model: Schema.String,
   Message: PrimitiveMessage,
 })
-const PrimitiveBlock = PrimitiveChild.toComposition().toBlock({
-  init: () => ({ model: 'initial' }),
-  update: PrimitiveChild.update(model => ({ model })),
+const PrimitiveComposition = PrimitiveChild.toComposition()
+const PrimitiveBlock = PrimitiveComposition.toBlock({
+  init: PrimitiveComposition.init(() => ({ model: 'initial' })),
+  update: PrimitiveComposition.update(model => ({ model })),
   EffectsLayer: Layer.empty,
 })
 const PrimitiveParentModel = Schema.Struct({
@@ -210,6 +245,7 @@ const primitiveKeyConfig = {
   key: 'length',
   toParentMessage: (id: number, message: typeof PrimitiveMessage.Type) =>
     PrimitiveParentMessage.GotChildMessage({ id, message }),
+  fromParentMessage: false satisfies false,
 }
 // @ts-expect-error A keyed child Model must be an object Struct.
 PrimitiveParent.bindChild(PrimitiveBlock, primitiveKeyConfig)
@@ -231,15 +267,16 @@ const UnionKeyChild = Block.define('DeclarationUnionKeyChild', {
   Model: UnionKeyModel,
   Message: UnionKeyMessage,
 })
-const UnionKeyBlock = UnionKeyChild.toComposition().toBlock({
-  init: () => ({
+const UnionKeyComposition = UnionKeyChild.toComposition()
+const UnionKeyBlock = UnionKeyComposition.toBlock({
+  init: UnionKeyComposition.init(() => ({
     model: UnionKeyModel.make({
       _tag: 'Primary',
       id: 'initial',
       count: 0,
     }),
-  }),
-  update: UnionKeyChild.update(model => ({ model })),
+  })),
+  update: UnionKeyComposition.update(model => ({ model })),
   EffectsLayer: Layer.empty,
 })
 const UnionKeyParentModel = Schema.Struct({
@@ -257,6 +294,7 @@ const unionKeyConfig = {
   key: idKey,
   toParentMessage: (id: string, message: typeof UnionKeyMessage.Type) =>
     UnionKeyParentMessage.GotChildMessage({ id, message }),
+  fromParentMessage: false satisfies false,
 }
 // @ts-expect-error Direct keyed shorthand requires a Struct child Model schema.
 UnionKeyParent.bindChild(UnionKeyBlock, unionKeyConfig)
@@ -275,6 +313,7 @@ const arrayModelKeyConfig = {
     _length: number,
     message: typeof ArrayChildBlock.Message.Type,
   ) => ParentMessage.GotArrayChildMessage({ message }),
+  fromParentMessage: false satisfies false,
 }
 // @ts-expect-error An Array child Model has no Struct key fields.
 ArrayCollectionParent.bindChild(ArrayChildBlock, arrayModelKeyConfig)
@@ -290,11 +329,12 @@ const InvalidKeyChild = Block.define('DeclarationInvalidKeyChild', {
   Model: InvalidKeyModel,
   Message: InvalidKeyMessage,
 })
-const InvalidKeyBlock = InvalidKeyChild.toComposition().toBlock({
-  init: () => {
+const InvalidKeyComposition = InvalidKeyChild.toComposition()
+const InvalidKeyBlock = InvalidKeyComposition.toBlock({
+  init: InvalidKeyComposition.init(() => {
     throw new Error('Uninhabited declaration fixture')
-  },
-  update: InvalidKeyChild.update(model => ({ model })),
+  }),
+  update: InvalidKeyComposition.update(model => ({ model })),
   EffectsLayer: Layer.empty,
 })
 const InvalidKeyParentModel = Schema.Struct({
@@ -320,21 +360,25 @@ const nullKeyConfig = {
   field: entriesField,
   key: nullKey,
   toParentMessage: toInvalidKeyMessage,
+  fromParentMessage: false satisfies false,
 }
 const unknownKeyConfig = {
   field: entriesField,
   key: unknownKey,
   toParentMessage: toInvalidKeyMessage,
+  fromParentMessage: false satisfies false,
 }
 const neverKeyConfig = {
   field: entriesField,
   key: neverKey,
   toParentMessage: toInvalidKeyMessage,
+  fromParentMessage: false satisfies false,
 }
 const anyKeyConfig = {
   field: entriesField,
   key: anyKey,
   toParentMessage: toInvalidKeyMessage,
+  fromParentMessage: false satisfies false,
 }
 
 // @ts-expect-error Null is not an occurrence key type.
@@ -351,11 +395,13 @@ const repeatedModelConfig: Readonly<{
   key: 'id'
   Model: typeof Schema.String
   toParentMessage: typeof toEntryMessage
+  fromParentMessage: false
 }> = {
   field: entriesField,
   key: idKey,
   Model: Schema.String,
   toParentMessage: toEntryMessage,
+  fromParentMessage: false satisfies false,
 }
 // @ts-expect-error Assigned configs cannot override the owning Definition's Model.
 Parent.bindChild(ChildBlock, repeatedModelConfig)

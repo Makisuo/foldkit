@@ -2,9 +2,8 @@ import { Url } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
 
 import { LoadExternal, NavigateInternal } from '../command'
-import { ApplicationComposition, home, room } from '../composition'
+import { ApplicationComposition } from '../composition'
 import { Message } from '../message'
-import { ApplicationRoute } from '../route'
 import { changeRoute } from './changeRoute'
 
 export const update = ApplicationComposition.update((model, message) =>
@@ -21,21 +20,6 @@ export const update = ApplicationComposition.update((model, message) =>
         }),
       }),
     ChangedUrl: ({ url }) => changeRoute(model, url),
-    GotHomeMessage: ({ message }) =>
-      ApplicationRoute.match(model.route, {
-        Home: () => home.fold(model, message),
-        Room: () => ({ model }),
-        NotFound: () => ({ model }),
-      }),
-    GotRoomMessage: ({ roomId, message }) =>
-      ApplicationRoute.match(model.route, {
-        Home: () => ({ model }),
-        Room: route =>
-          route.roomId === roomId
-            ? room.fold(model, roomId, message, { roomId })
-            : { model },
-        NotFound: () => ({ model }),
-      }),
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
     CompletedNavigateToRoom: () => ({ model }),

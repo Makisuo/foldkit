@@ -1,7 +1,9 @@
+import { Tuple } from 'effect'
 import { type Block, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { Application } from './definition'
+import type { Flags } from './flags'
 import { Message } from './message'
 import { Model } from './model'
 import { StepMenu, StepTabs } from './navigationComponents'
@@ -14,34 +16,48 @@ import {
   WorkHistory,
 } from './step'
 
-export const personalInfo = Application.bindChild(PersonalInfo.block, {
+export const PersonalInfoBinding = Application.bindChild(PersonalInfo.block, {
   field: 'personalInfo',
   parentMessage: Message.GotPersonalInfoMessage,
+  init: { args: ({ today }: Flags) => Tuple.make(today) },
 })
 
-export const workHistory = Application.bindChild(WorkHistory.block, {
+export const WorkHistoryBinding = Application.bindChild(WorkHistory.block, {
   field: 'workHistory',
   parentMessage: Message.GotWorkHistoryMessage,
+  init: {
+    args: ({ today, initialWorkHistoryEntryId }: Flags) =>
+      Tuple.make(today, initialWorkHistoryEntryId),
+  },
 })
 
-export const education = Application.bindChild(Education.block, {
+export const EducationBinding = Application.bindChild(Education.block, {
   field: 'education',
   parentMessage: Message.GotEducationMessage,
+  init: {
+    args: ({ today, initialEducationEntryId }: Flags) =>
+      Tuple.make(today, initialEducationEntryId),
+  },
 })
 
-export const skills = Application.bindChild(Skills.block, {
+export const SkillsBinding = Application.bindChild(Skills.block, {
   field: 'skills',
   parentMessage: Message.GotSkillsMessage,
+  init: {
+    args: ({ initialSkillsEntryId }: Flags) => Tuple.make(initialSkillsEntryId),
+  },
 })
 
-export const coverLetter = Application.bindChild(CoverLetter.block, {
+export const CoverLetterBinding = Application.bindChild(CoverLetter.block, {
   field: 'coverLetter',
   parentMessage: Message.GotCoverLetterMessage,
+  init: true,
 })
 
-export const attachments = Application.bindChild(Attachments.block, {
+export const AttachmentsBinding = Application.bindChild(Attachments.block, {
   field: 'attachments',
   parentMessage: Message.GotAttachmentsMessage,
+  init: true,
 })
 
 const foldStepMenuOutMessage = StepMenu.OutMessage.match<
@@ -55,10 +71,11 @@ const foldStepMenuOutMessage = StepMenu.OutMessage.match<
     }),
 })
 
-export const stepMenu = Application.bindChild(StepMenu, {
+export const StepMenuBinding = Application.bindChild(StepMenu, {
   field: 'stepMenu',
   parentMessage: Message.GotStepMenuMessage,
   outMessage: { fold: foldStepMenuOutMessage },
+  init: { args: () => Tuple.make({ id: 'step-menu' }) },
 })
 
 const foldStepTabsOutMessage = StepTabs.OutMessage.match<
@@ -72,22 +89,23 @@ const foldStepTabsOutMessage = StepTabs.OutMessage.match<
     }),
 })
 
-export const stepTabs = Application.bindChild(StepTabs, {
+export const StepTabsBinding = Application.bindChild(StepTabs, {
   field: 'stepTabs',
   parentMessage: Message.GotStepTabsMessage,
   outMessage: { fold: foldStepTabsOutMessage },
+  init: { args: () => Tuple.make({ id: 'step-tabs' }) },
 })
 
 export const ApplicationComposition = Application.toComposition({
-  children: [
-    personalInfo,
-    workHistory,
-    education,
-    skills,
-    coverLetter,
-    attachments,
-    stepMenu,
-    stepTabs,
+  childBindings: [
+    PersonalInfoBinding,
+    WorkHistoryBinding,
+    EducationBinding,
+    SkillsBinding,
+    CoverLetterBinding,
+    AttachmentsBinding,
+    StepMenuBinding,
+    StepTabsBinding,
   ],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

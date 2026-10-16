@@ -4,9 +4,6 @@ import { modifyFields } from 'foldkit/struct'
 
 import {
   ApplicationComposition,
-  chartModeRadioGroup,
-  packageRadioGroup,
-  periodRadioGroup,
   refetchTelemetry,
   syncChart,
 } from './composition'
@@ -15,15 +12,6 @@ import { TelemetryAsyncData } from './model'
 
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
-    GotChartModeRadioGroupMessage: ({ message }) =>
-      chartModeRadioGroup.fold(model, message),
-
-    GotPeriodRadioGroupMessage: ({ message }) =>
-      periodRadioGroup.fold(model, message),
-
-    GotPackageRadioGroupMessage: ({ message }) =>
-      packageRadioGroup.fold(model, message),
-
     ClickedRefresh: () => refetchTelemetry(model),
 
     ClickedRetry: () => refetchTelemetry(model),

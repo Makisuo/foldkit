@@ -25,7 +25,7 @@ const makeGenericComplete = <const Id extends string>(id: Id) => {
 
   return composition.toBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
-    update: definition.update((model, message) =>
+    update: composition.update((model, message) =>
       Message.match(message, {
         RequestedWork: () => ({ model, commands: [Work()] }),
         CompletedWork: () => ({ model }),
@@ -48,7 +48,7 @@ const makeGenericMissing = <const Id extends string>(id: Id) => {
 
   return composition.toBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
-    update: definition.update((model, message) =>
+    update: composition.update((model, message) =>
       Message.match(message, {
         RequestedWork: () => ({ model, commands: [Work()] }),
         CompletedWork: () => ({ model }),
@@ -66,14 +66,15 @@ const CompleteParent = define('GenericCompleteParent', {
   Model: complete.Model,
   Message: complete.Message,
 })
-const completeBinding = CompleteParent.bindChild(complete, {
+const CompleteBinding = CompleteParent.bindChild(complete, {
+  fromParentMessage: false,
   read: (model: CompleteModel) => Option.some(model),
   write: (_model: CompleteModel, nextModel: CompleteModel) => nextModel,
   toParentMessage: (message: Message) => message,
 })
 
 it('keeps a complete generic Block connectable after literal instantiation', () => {
-  expectTypeOf(completeBinding.placement).toEqualTypeOf<'GenericComplete'>()
+  expectTypeOf(CompleteBinding.placement).toEqualTypeOf<'GenericComplete'>()
 })
 
 if (false) {
@@ -87,6 +88,7 @@ if (false) {
   MissingParent.bindChild(missing, {
     // @ts-expect-error Deferred generic handler coverage prevents accessor overload selection.
     read: (model: MissingModel) => Option.some(model),
+    // @ts-expect-error Concrete Bindings validate deferred generic handler coverage.
     write: (_model: MissingModel, nextModel: MissingModel) => nextModel,
     // @ts-expect-error Concrete Bindings validate deferred generic handler coverage.
     toParentMessage: (message: Message) => message,

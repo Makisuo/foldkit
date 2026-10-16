@@ -36,7 +36,7 @@ const CheckEmailAvailable = Application.command('CheckEmailAvailable', {
   },
 })
 
-const update = Application.update((model, message) =>
+const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ChangedEmail: ({ value }) => {
       const syncResult = validateEmail(value)

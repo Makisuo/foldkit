@@ -1,11 +1,14 @@
 import { Option } from 'effect'
 import type { Update } from 'foldkit'
+import type { CalendarDate } from 'foldkit/calendar'
 import { modifyFields } from 'foldkit/struct'
 
 import { DatePicker } from '@foldkit/ui'
 import { reflectMaxDate, reflectMinDate } from '@foldkit/ui/datePicker'
 
 import { Message, type Model, WorkHistoryEntry } from './definition'
+
+type Startup = Readonly<{ entryId: string; today: CalendarDate }>
 
 const foldStartDateOutMessage = DatePicker.OutMessage.match<
   Update.Step<Model, Message>
@@ -27,11 +30,19 @@ const foldStartDateOutMessage = DatePicker.OutMessage.match<
   }),
 })
 
-export const startDatePicker = WorkHistoryEntry.bindChild(DatePicker.block, {
-  field: 'startDate',
-  parentMessage: Message.GotStartDateMessage,
-  outMessage: { fold: foldStartDateOutMessage },
-})
+export const StartDatePickerBinding = WorkHistoryEntry.bindChild(
+  DatePicker.block,
+  {
+    field: 'startDate',
+    parentMessage: Message.GotStartDateMessage,
+    init: {
+      args: ({ entryId, today }: Startup) => [
+        { id: `${entryId}-start`, today },
+      ],
+    },
+    outMessage: { fold: foldStartDateOutMessage },
+  },
+)
 
 const foldEndDateOutMessage = DatePicker.OutMessage.match<
   Update.Step<Model, Message>
@@ -53,12 +64,18 @@ const foldEndDateOutMessage = DatePicker.OutMessage.match<
   }),
 })
 
-export const endDatePicker = WorkHistoryEntry.bindChild(DatePicker.block, {
-  field: 'endDate',
-  parentMessage: Message.GotEndDateMessage,
-  outMessage: { fold: foldEndDateOutMessage },
-})
+export const EndDatePickerBinding = WorkHistoryEntry.bindChild(
+  DatePicker.block,
+  {
+    field: 'endDate',
+    parentMessage: Message.GotEndDateMessage,
+    init: {
+      args: ({ entryId, today }: Startup) => [{ id: `${entryId}-end`, today }],
+    },
+    outMessage: { fold: foldEndDateOutMessage },
+  },
+)
 
 export const WorkHistoryEntryComposition = WorkHistoryEntry.toComposition({
-  children: [startDatePicker, endDatePicker],
+  childBindings: [StartDatePickerBinding, EndDatePickerBinding],
 })

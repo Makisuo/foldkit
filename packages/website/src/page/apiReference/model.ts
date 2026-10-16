@@ -20,7 +20,7 @@ export type ApiData = typeof ApiData.Type
  * Narrows a full ApiData to what one module's page renders: that module plus
  * only the highlight entries whose scoped ids belong to it. A prerendered
  * module page embeds this slice in its hydration Flags instead of the full
- * reference. The boot Step returns a Command that loads the full data after
+ * reference. The loadInitialData Step returns a Command that loads the full data after
  * hydration, allowing navigation to other modules.
  */
 export const sliceApiDataToModule = (

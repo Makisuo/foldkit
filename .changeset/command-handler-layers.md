@@ -19,7 +19,7 @@ Commands, Mounts, Subscription entries, and ManagedResource entries may omit `ha
 
 Each before/after pair shows the affected part of an existing module. Imports from `./message` and `./model` refer to the application's existing Message and Model Schemas. When several definitions belong to one Block or application module, compose their `.layer` recipes in that owner's local `EffectsLayer`.
 
-Completed Blocks collect child Bindings automatically. Pass only local handler recipes to `FeatureComposition.toBlock({ EffectsLayer })`, include Bindings through `Feature.toComposition({ children })`, and export the completed `block`. Define locally owned Commands through `Feature.command` so the composition path qualifies their protocol names.
+Completed Blocks collect child Bindings automatically. Pass only local handler recipes to `FeatureComposition.toBlock({ EffectsLayer })`, include Bindings through `Feature.toComposition({ childBindings })`, and export the completed `block`. Define locally owned Commands through `Feature.command` so the composition path qualifies their protocol names.
 
 ### Commands
 
@@ -55,8 +55,8 @@ export const StoreDraft = Command.define('StoreDraft', {
 import { Effect, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 
-import { Message } from './message'
 import { DraftEditor } from './definition'
+import { Message } from './message'
 
 const DRAFT_STORAGE_KEY = 'draft'
 
@@ -606,12 +606,12 @@ const update = (model: Model, message: Message) =>
 ```ts
 import { Update } from 'foldkit'
 
-import { DraftEditor } from './definition'
 import { StoreDraft } from './command'
+import { DraftEditorComposition } from './composition'
 import { Message } from './message'
 
 // Infer Command requirements from the returned Commands across all branches.
-const update = DraftEditor.update((model, message) =>
+const update = DraftEditorComposition.update((model, message) =>
   Message.match(message, {
     ClickedSaveDraft: () => ({
       model,
@@ -667,7 +667,7 @@ A Command-producing fold can infer its requirements through the owning definitio
 
 Keep definitions and handlers within the feature whose update returns them, alongside update or in a feature-local `command.ts`. Compose attached recipes directly as `Definition.layer` in each owning module's local `EffectsLayer`. When a recipe needs its own exported or reused binding, name it `FooLayer`; name an external alternative `FooTestLayer`. Pass the local bundle to `FeatureComposition.toBlock`; child Bindings included in the Composition contribute their recipes automatically. The typed Application Composition owns root completion and its graph. Completion through `ApplicationComposition.toApplication` or `.toElement` collects the handler recipes into a passive runtime input, while `ApplicationLayer` supplies ordinary Services. Import Effect's module as `Layer`; the bundle names avoid an alias.
 
-Foldkit UI components expose completed Blocks. Bind each component through the owning Definition and include it in the Composition's `children`; composition carries its Mounts, lifecycle registrations, and handler graph to the root. `Slider.forRoot(getTrackRoot)` and `Toast.make(payloadSchema)` return completed Blocks with refined Model, Message, and operation contracts.
+Foldkit UI components expose completed Blocks. Bind each component through the owning Definition and include it in the Composition's `childBindings`; composition carries its Mounts, lifecycle registrations, and handler graph to the root. `Slider.forRoot(getTrackRoot)` and `Toast.make(payloadSchema)` return completed Blocks with refined Model, Message, and operation contracts.
 
 ### Requirements and definition identities
 

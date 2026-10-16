@@ -1,16 +1,13 @@
-import { RadioGroup } from '@foldkit/ui'
-
-import { Application } from './definition'
+import { ApplicationComposition } from './composition'
 import { checkoutMachine } from './machine'
-import { EDITION_RADIO_GROUP_ID, Model } from './model'
+import { Model } from './model'
 
-export const initialModel = Model.make({
-  checkout: checkoutMachine.initial,
-  editionRadioGroup: RadioGroup.init({ id: EDITION_RADIO_GROUP_ID }),
-  transitionLog: [],
-  nextTransitionLogId: 0,
-})
-
-export const init = Application.init(() => ({
-  model: initialModel,
+export const init = ApplicationComposition.init(() => ({
+  model: {
+    checkout: checkoutMachine.initial,
+    transitionLog: [],
+    nextTransitionLogId: 0,
+  },
 }))
+
+export const initialModel: Model = init().model

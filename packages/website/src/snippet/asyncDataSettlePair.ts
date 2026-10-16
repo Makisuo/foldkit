@@ -12,7 +12,7 @@ const LoadAllNotes = Application.command('LoadAllNotes', {
   },
 })
 
-const update = Application.update((model, message) =>
+const update = ApplicationComposition.update((model, message) =>
   Match.value(message).pipe(
     Match.tagsExhaustive({
       SucceededLoadAllNotes: ({ notes }) => ({

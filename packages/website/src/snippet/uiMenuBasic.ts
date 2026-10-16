@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Schema } from 'effect'
+import { Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -51,34 +51,25 @@ const ActionMenuExample = Block.define('ActionMenuExample', {
   Message,
 })
 
-const menu = ActionMenuExample.bindChild(ActionMenu, {
+const MenuBinding = ActionMenuExample.bindChild(ActionMenu, {
   field: 'menu',
   parentMessage: Message.GotMenuMessage,
+  init: { args: () => Tuple.make({ id: 'actions' }) },
   outMessage: { fold: foldMenuOutMessage },
 })
 
-// In your init function, initialize the Menu Block with a unique id:
-const init = ActionMenuExample.init(() => {
-  const menuInit = menu.init({ id: 'actions' })
-
-  return {
-    model: {
-      menu: menuInit.model,
-      // ...your other fields
-    },
-    commands: menuInit.commands,
-  }
-})
-
 const ActionMenuExampleComposition = ActionMenuExample.toComposition({
-  children: [menu],
+  childBindings: [MenuBinding],
 })
 
-const update = ActionMenuExample.update((model, message) =>
-  Message.match(message, {
-    GotMenuMessage: ({ message }) => menu.fold(model, message),
-  }),
-)
+// In your init function, initialize the Menu Block with a unique id:
+const init = ActionMenuExampleComposition.init(() => ({
+  model: {
+    // ...your other fields
+  },
+}))
+
+const update = ActionMenuExampleComposition.update()
 
 // Inside your view function, render the menu via the factory's view. The
 // `buttonContent` below names the trigger. When the trigger is icon-only,
@@ -88,7 +79,7 @@ const update = ActionMenuExample.update((model, message) =>
 // the trigger never carries a dangling `aria-labelledby`.
 const view = ActionMenuExampleComposition.view((model, h) =>
   h.block(
-    menu.embedView({
+    MenuBinding.embedView({
       slotId: 'menu',
       model: model.menu,
       viewInputs: {

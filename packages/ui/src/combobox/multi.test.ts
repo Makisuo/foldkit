@@ -95,6 +95,33 @@ describe('Combobox.Multi', () => {
       )
       expect(closed.model.isOpen).toBe(false)
     })
+
+    it('routes Animation Messages for a generic multi Combobox', () => {
+      Story.story(
+        FruitCombobox.update,
+        Story.given(
+          FruitCombobox.init({ id: 'fruit-combobox', isAnimated: true }).model,
+        ),
+        Story.message(
+          FruitCombobox.Message.Opened({
+            maybeActiveItemIndex: Option.some(0),
+          }),
+        ),
+        Story.Command.resolveAll(
+          [
+            Animation.WaitForPaint,
+            Animation.Message.CompletedWaitForPaint({ generation: 1 }),
+          ],
+          [
+            Animation.WaitForAnimationSettled,
+            Animation.Message.EndedAnimation({ generation: 1 }),
+          ],
+        ),
+        Story.model(model => {
+          expect(model.animation.transitionState).toBe('Idle')
+        }),
+      )
+    })
   })
 
   describe('init', () => {

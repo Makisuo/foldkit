@@ -2,8 +2,8 @@ import { Array } from 'effect'
 import { File } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { fileDropBasicDemo } from '../composition'
 import type { UiViewBuilder } from '../composition'
+import { FileDropBasicDemoBinding } from '../composition'
 import { Message } from '../message'
 import type { Model } from '../model'
 
@@ -50,7 +50,7 @@ export const basicDemo = (
       [h.Class('flex flex-col gap-3 w-full max-w-md')],
       [
         h.block(
-          fileDropBasicDemo.embedView({
+          FileDropBasicDemoBinding.embedView({
             slotId: model.fileDropBasicDemo.id,
             model: model.fileDropBasicDemo,
             viewInputs: {

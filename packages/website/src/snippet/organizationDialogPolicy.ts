@@ -13,7 +13,7 @@ const foldDialogOutMessage = Dialog.OutMessage.match({
     })),
 })
 
-export const dialog = Editor.bindChild(Dialog.block, {
+export const DialogBinding = Editor.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },

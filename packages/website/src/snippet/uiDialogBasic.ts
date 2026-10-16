@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Schema } from 'effect'
+import { Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -37,33 +37,27 @@ const DialogExample = Block.define('DialogExample', {
   Message,
 })
 
-const dialog = DialogExample.bindChild(Dialog.block, {
+const DialogBinding = DialogExample.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
+  init: { args: () => Tuple.make({ id: 'confirm' }) },
   outMessage: { fold: foldDialogOutMessage },
 })
 
-// In your init function, initialize the Dialog Block with a unique id:
-const init = DialogExample.init(() => {
-  const dialogInit = dialog.init({ id: 'confirm' })
-
-  return {
-    model: {
-      dialog: dialogInit.model,
-      // ...your other fields
-    },
-    commands: dialogInit.commands,
-  }
-})
-
 const DialogExampleComposition = DialogExample.toComposition({
-  children: [dialog],
+  childBindings: [DialogBinding],
 })
 
-const update = DialogExample.update((model, message) =>
+// In your init function, initialize the Dialog Block with a unique id:
+const init = DialogExampleComposition.init(() => ({
+  model: {
+    // ...your other fields
+  },
+}))
+
+const update = DialogExampleComposition.update((model, message) =>
   Message.match(message, {
-    ClickedOpenDialog: () => dialog.open()(model),
-    GotDialogMessage: ({ message }) => dialog.fold(model, message),
+    ClickedOpenDialog: () => DialogBinding.open()(model),
   }),
 )
 
@@ -104,7 +98,7 @@ const view = DialogExampleComposition.view((model, h) => {
     [
       h.button([h.OnClick(Message.ClickedOpenDialog())], ['Open Dialog']),
       h.block(
-        dialog.embedView({
+        DialogBinding.embedView({
           slotId: model.dialog.id,
           model: model.dialog,
           viewInputs: {

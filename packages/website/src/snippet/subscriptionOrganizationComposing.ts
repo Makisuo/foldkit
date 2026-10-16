@@ -16,12 +16,12 @@ export const Settings = Block.define('Settings', {
   Message,
 })
 
-const themeMenu = Settings.bindChild(ThemeMenu.block, {
+const ThemeMenuBinding = Settings.bindChild(ThemeMenu.block, {
   field: 'themeMenu',
   parentMessage: Message.GotThemeMenuMessage,
   outMessage: { fold: foldThemeMenuOutMessage },
 })
 
 export const SettingsComposition = Settings.toComposition({
-  children: [themeMenu],
+  childBindings: [ThemeMenuBinding],
 })

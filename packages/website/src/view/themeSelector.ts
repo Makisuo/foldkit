@@ -5,7 +5,7 @@ import { Menu } from '@foldkit/ui'
 import type { AnchorConfig as MenuAnchorConfig } from '@foldkit/ui/menu'
 
 import type { ApplicationViewBuilder } from '../composition'
-import { themeMenu } from '../composition'
+import { ThemeMenuBinding } from '../composition'
 import { Icon } from '../icon'
 import { type ThemePreference } from '../themePreference'
 
@@ -42,7 +42,7 @@ export const view = (
   )
 
   return h.block(
-    themeMenu.embedView({
+    ThemeMenuBinding.embedView({
       slotId: 'theme-menu',
       model: menu,
       viewInputs: {

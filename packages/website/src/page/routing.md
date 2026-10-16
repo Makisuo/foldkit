@@ -174,7 +174,7 @@ Both code paths resolve a URL into a route, and both should produce the same rou
 
 ### Preserve the Block Boundary
 
-When the route-driven state lives in a Block, the same factoring follows the Block boundary instead of a shared helper: the Block’s `init(route)` seeds its state and returns the boot Commands for the cold load, and its `informRouteChanged` helper covers later transitions. [Informing Blocks](/patterns/informing-blocks) shows that shape, and the [Routing example](/example-apps/routing) runs on it.
+When the route-driven state lives in a Block, the same factoring follows the Block boundary instead of a shared helper: the Block Composition's `init(route)` seeds its state and returns the startup Commands for the cold load, and its exposed `informRouteChanged` Step covers later transitions. [Informing Blocks](/patterns/informing-blocks) shows that shape, and the [Routing example](/example-apps/routing) runs on it.
 
 ## Route Transitions
 

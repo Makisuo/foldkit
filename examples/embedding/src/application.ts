@@ -34,7 +34,7 @@ export const ports = {
 export const Flags = Schema.Struct({ initialCount: Schema.Number })
 export type Flags = typeof Flags.Type
 
-export const init = Application.init((flags: Flags) => ({
+export const init = ApplicationComposition.init((flags: Flags) => ({
   model: Model.make({ count: flags.initialCount, step: 1 }),
 }))
 
@@ -57,7 +57,7 @@ const advance = (model: Model) => {
   }
 }
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     Ticked: () => advance(model),
     ClickedAdvance: () => advance(model),

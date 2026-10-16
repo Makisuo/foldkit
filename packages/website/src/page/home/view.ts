@@ -19,12 +19,13 @@ import {
 } from '../example'
 import * as AsyncCounterDemo from './asyncCounterDemo'
 import {
-  asyncCounterDemo,
-  demoTabs,
-  notePlayerDemo,
-  playgroundMenu,
+  AsyncCounterDemoBinding,
+  DemoTabsBinding,
+  HomeComposition,
+  type HomeViewBuilder,
+  NotePlayerDemoBinding,
+  PlaygroundMenuBinding,
 } from './composition'
-import { HomeComposition, type HomeViewBuilder } from './composition'
 import { contentView } from './content'
 import * as DemoTab from './demoTab'
 import * as NotePlayerDemo from './notePlayerDemo'
@@ -42,7 +43,7 @@ const renderAsyncCounterDemo = (
   h: HomeViewBuilder,
 ) =>
   h.block(
-    asyncCounterDemo.embedView({
+    AsyncCounterDemoBinding.embedView({
       slotId: 'async-counter-demo',
       model,
     }),
@@ -53,7 +54,7 @@ const renderNotePlayerDemo = (
   h: HomeViewBuilder,
 ) =>
   h.block(
-    notePlayerDemo.embedView({
+    NotePlayerDemoBinding.embedView({
       slotId: 'note-player-demo',
       model,
     }),
@@ -122,7 +123,7 @@ const playgroundMenuView = (
   h: HomeViewBuilder,
 ) =>
   h.block(
-    playgroundMenu.embedView({
+    PlaygroundMenuBinding.embedView({
       slotId: model.id,
       model,
       viewInputs: {
@@ -210,7 +211,7 @@ export const view = HomeComposition.view.withInputs<ViewInputs>(
       )
 
     const demoTabsView = h.block(
-      demoTabs.embedView({
+      DemoTabsBinding.embedView({
         slotId: model.demoTabs.id,
         model: model.demoTabs,
         viewInputs: {

@@ -52,7 +52,7 @@ const childBase = Child.define({
 const child = childBase.toComposition({ mounts: [Observe] })
 const childImplementation = {
   init: (title: string) => ({ model: { title }, commands: [Prepare()] }),
-  update: childBase.update(model => ({ model })),
+  update: child.update(model => ({ model })),
   view: child.view((model, h) =>
     h.button(
       [h.OnMount(Observe()), h.OnClick(ChildMessage.ClickedPrepare())],
@@ -70,22 +70,27 @@ const RootApplication = defineApplication({
   Model: RootModel,
   Message: RootMessage,
 })
-const childBinding = RootApplication.bindChild(childBlock, {
+const ChildBinding = RootApplication.bindChild(childBlock, {
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
   parentMessage: RootMessage.GotChildMessage,
 })
 const RegisteredApplication = RootApplication.toComposition({
-  children: [childBinding],
+  childBindings: [ChildBinding],
 })
 const rootImplementation = {
-  init: () => childBinding.init('Server-rendered child'),
-  update: RootApplication.update(model => ({ model })),
+  init: RegisteredApplication.init(() =>
+    ChildBinding.init({
+      args: ['Server-rendered child'],
+      toParentModel: child => child,
+    }),
+  ),
+  update: RegisteredApplication.update(),
   view: RegisteredApplication.view((model, h) => ({
     title: model.title,
     body: h.div(
       [],
-      [h.block(childBinding.embedView({ slotId: 'child', model }))],
+      [h.block(ChildBinding.embedView({ slotId: 'child', model }))],
     ),
   })),
   EffectsLayer: Layer.empty,
@@ -101,7 +106,7 @@ const FlagsApplication = defineApplication({
 const FlagsComposition = FlagsApplication.toComposition()
 const flagsImplementation = {
   init: (flags: ServerFlags) => ({ model: { title: flags.title } }),
-  update: FlagsApplication.update(model => ({ model })),
+  update: FlagsComposition.update(model => ({ model })),
   view: FlagsComposition.view((model, h) => ({
     title: model.title,
     body: h.main([], [model.title]),
@@ -116,7 +121,7 @@ const RoutingApplication = defineApplication({
 const RoutingComposition = RoutingApplication.toComposition()
 const routingImplementation = {
   init: (url: Url) => ({ model: { title: url.pathname } }),
-  update: RoutingApplication.update(model => ({ model })),
+  update: RoutingComposition.update(model => ({ model })),
   view: RoutingComposition.view((model, h) => ({
     title: model.title,
     body: h.main([], [model.title]),
@@ -133,7 +138,7 @@ const routingFlagsImplementation = {
   init: (flags: ServerFlags, url: Url) => ({
     model: { title: `${flags.title}${url.pathname}` },
   }),
-  update: RoutingFlagsApplication.update(model => ({ model })),
+  update: RoutingFlagsComposition.update(model => ({ model })),
   view: RoutingFlagsComposition.view((model, h) => ({
     title: model.title,
     body: h.main([], [model.title]),
@@ -148,7 +153,7 @@ const DataApplication = defineApplication({
 const DataComposition = DataApplication.toComposition()
 const dataImplementation = {
   init: () => ({ model: { title: 'data' } }),
-  update: DataApplication.update(model => ({ model })),
+  update: DataComposition.update(model => ({ model })),
   EffectsLayer: Layer.empty,
 }
 
@@ -159,7 +164,7 @@ const HtmlApplication = defineApplication({
 const HtmlComposition = HtmlApplication.toComposition()
 const htmlImplementation = {
   init: () => ({ model: { title: 'html' } }),
-  update: HtmlApplication.update(model => ({ model })),
+  update: HtmlComposition.update(model => ({ model })),
   view: HtmlComposition.view((model, h) => h.main([], [model.title])),
   EffectsLayer: Layer.empty,
 }

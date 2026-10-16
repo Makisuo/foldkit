@@ -1,24 +1,18 @@
-import { modifyFields } from 'foldkit/struct'
+import { NotValidated } from 'foldkit/fieldValidation'
 
-import { SkillsEntryComposition, proficiencyRadioGroup } from './composition'
-import { SkillsEntry } from './definition'
-import { init, proficiencyRadioGroupId } from './init'
+import { SkillsEntryComposition } from './composition'
 import { update } from './update'
 import { view } from './view'
 
 export const block = SkillsEntryComposition.toBlock({
-  init: SkillsEntry.init((entryId: string) => {
-    const proficiencyInit = proficiencyRadioGroup.init({
-      id: proficiencyRadioGroupId(entryId),
-    })
-
-    return {
-      model: modifyFields(init(entryId), {
-        proficiencyRadioGroup: () => proficiencyInit.model,
-      }),
-      commands: proficiencyInit.commands,
-    }
-  }),
+  init: SkillsEntryComposition.init((entryId: string) => ({
+    startup: entryId,
+    model: {
+      id: entryId,
+      name: NotValidated({ value: '' }),
+      proficiency: 'Intermediate',
+    },
+  })),
   update,
   view,
 })

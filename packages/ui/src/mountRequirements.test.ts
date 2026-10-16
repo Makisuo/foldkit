@@ -27,13 +27,13 @@ type RequirementsOfView<View> =
 
 type RequirementsOfBlock<CompletedBlock extends Block.AnyBlock> =
   | Mount.RequirementsOf<CompletedBlock[typeof Block.LocalMountsTypeId]>
-  | Block.RequirementsOfBindings<CompletedBlock['children']>
+  | Block.RequirementsOfBindings<CompletedBlock['childBindings']>
 
 const foldComboboxOutMessage = Combobox.OutMessage.match<
   Update.Step<Combobox.Model, Combobox.Message>
 >({
-  Selected: () => model => ({ model }),
-  ClearedSelection: () => model => ({ model }),
+  Selected: () => ComboboxMountRequirements.step(model => ({ model })),
+  ClearedSelection: () => ComboboxMountRequirements.step(model => ({ model })),
 })
 
 const ComboboxMountRequirements = Block.define('ComboboxMountRequirements', {
@@ -41,14 +41,15 @@ const ComboboxMountRequirements = Block.define('ComboboxMountRequirements', {
   Message: Combobox.Message,
 })
 
-const combobox = ComboboxMountRequirements.bindChild(Combobox.block, {
+const ComboboxBinding = ComboboxMountRequirements.bindChild(Combobox.block, {
   read: model => Option.some(model),
   write: (_model, nextCombobox) => nextCombobox,
   toParentMessage: message => message,
+  fromParentMessage: false,
   outMessage: { fold: foldComboboxOutMessage },
 })
 
-const embeddedCombobox = combobox.embedView({
+const embeddedCombobox = ComboboxBinding.embedView({
   slotId: 'combobox',
   model: Combobox.init({ id: 'combobox' }),
   viewInputs: {
@@ -64,7 +65,7 @@ const embeddedCombobox = combobox.embedView({
 const foldListboxOutMessage = Listbox.OutMessage.match<
   Update.Step<Listbox.Model, Listbox.Message>
 >({
-  Selected: () => model => ({ model }),
+  Selected: () => ListboxMountRequirements.step(model => ({ model })),
 })
 
 const ListboxMountRequirements = Block.define('ListboxMountRequirements', {
@@ -72,14 +73,15 @@ const ListboxMountRequirements = Block.define('ListboxMountRequirements', {
   Message: Listbox.Message,
 })
 
-const listbox = ListboxMountRequirements.bindChild(Listbox.block, {
+const ListboxBinding = ListboxMountRequirements.bindChild(Listbox.block, {
   read: model => Option.some(model),
   write: (_model, nextListbox) => nextListbox,
   toParentMessage: message => message,
+  fromParentMessage: false,
   outMessage: { fold: foldListboxOutMessage },
 })
 
-const embeddedListbox = listbox.embedView({
+const embeddedListbox = ListboxBinding.embedView({
   slotId: 'listbox',
   model: Listbox.init({ id: 'listbox' }),
   viewInputs: {
@@ -94,7 +96,7 @@ const embeddedListbox = listbox.embedView({
 const foldMenuOutMessage = Menu.OutMessage.match<
   Update.Step<Menu.Model, Menu.Message>
 >({
-  Selected: () => model => ({ model }),
+  Selected: () => MenuMountRequirements.step(model => ({ model })),
 })
 
 const MenuMountRequirements = Block.define('MenuMountRequirements', {
@@ -102,14 +104,15 @@ const MenuMountRequirements = Block.define('MenuMountRequirements', {
   Message: Menu.Message,
 })
 
-const menu = MenuMountRequirements.bindChild(Menu.block, {
+const MenuBinding = MenuMountRequirements.bindChild(Menu.block, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
   toParentMessage: message => message,
+  fromParentMessage: false,
   outMessage: { fold: foldMenuOutMessage },
 })
 
-const embeddedMenu = menu.embedView({
+const embeddedMenu = MenuBinding.embedView({
   slotId: 'menu',
   model: Menu.init({ id: 'menu' }),
   viewInputs: {
@@ -139,20 +142,20 @@ it('carries each mounted component registry through its view type', () => {
   >()
   expectTypeOf<
     RequirementsOfView<typeof embeddedCombobox.view>
-  >().toEqualTypeOf<Block.RequirementOfBinding<typeof combobox>>()
+  >().toEqualTypeOf<Block.RequirementOfBinding<typeof ComboboxBinding>>()
   expectTypeOf<
     Mount.RequirementsOf<
       (typeof Combobox.block)[typeof Block.LocalMountsTypeId]
     >
   >().toEqualTypeOf<Mount.RequirementsOf<typeof Combobox.mounts>>()
   expectTypeOf<RequirementsOfView<typeof embeddedListbox.view>>().toEqualTypeOf<
-    Block.RequirementOfBinding<typeof listbox>
+    Block.RequirementOfBinding<typeof ListboxBinding>
   >()
   expectTypeOf<
     Mount.RequirementsOf<(typeof Listbox.block)[typeof Block.LocalMountsTypeId]>
   >().toEqualTypeOf<Mount.RequirementsOf<typeof Listbox.mounts>>()
   expectTypeOf<RequirementsOfView<typeof embeddedMenu.view>>().toEqualTypeOf<
-    Block.RequirementOfBinding<typeof menu>
+    Block.RequirementOfBinding<typeof MenuBinding>
   >()
   expectTypeOf<
     Mount.RequirementsOf<(typeof Menu.block)[typeof Block.LocalMountsTypeId]>

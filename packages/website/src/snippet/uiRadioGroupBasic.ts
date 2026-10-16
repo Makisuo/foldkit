@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Option, Schema } from 'effect'
+import { Option, Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -60,38 +60,27 @@ const PlanPicker = Block.define('PlanPicker', {
   Message,
 })
 
-const planRadioGroup = PlanPicker.bindChild(PlanRadioGroup, {
+const PlanRadioGroupBinding = PlanPicker.bindChild(PlanRadioGroup, {
   field: 'planRadioGroup',
   parentMessage: Message.GotPlanRadioGroupMessage,
+  init: { args: () => Tuple.make({ id: 'plan' }) },
   outMessage: { fold: foldPlanRadioGroupOutMessage },
+})
+
+const PlanPickerComposition = PlanPicker.toComposition({
+  childBindings: [PlanRadioGroupBinding],
 })
 
 // In your init function, initialize the RadioGroup Block with a unique
 // id and start with nothing selected:
-const init = PlanPicker.init(() => {
-  const radioGroupInit = planRadioGroup.init({ id: 'plan' })
+const init = PlanPickerComposition.init(() => ({
+  model: {
+    maybePlan: Option.none(),
+    // ...your other fields
+  },
+}))
 
-  return {
-    model: {
-      planRadioGroup: radioGroupInit.model,
-      maybePlan: Option.none(),
-      // ...your other fields
-    },
-    commands: radioGroupInit.commands,
-  }
-})
-
-const PlanPickerComposition = PlanPicker.toComposition({
-  children: [planRadioGroup],
-})
-
-// In the corresponding Message.match handler, call the fold:
-const update = PlanPicker.update((model, message) =>
-  Message.match(message, {
-    GotPlanRadioGroupMessage: ({ message }) =>
-      planRadioGroup.fold(model, message),
-  }),
-)
+const update = PlanPickerComposition.update()
 
 // Inside your view function, embed the radio group via h.block and pass
 // the parent-owned selection as selectedValue:
@@ -120,7 +109,7 @@ const view = PlanPickerComposition.view((model, h) => {
     )
 
   return h.block(
-    planRadioGroup.embedView({
+    PlanRadioGroupBinding.embedView({
       slotId: model.planRadioGroup.id,
       model: model.planRadioGroup,
       viewInputs: {

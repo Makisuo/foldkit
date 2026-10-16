@@ -378,6 +378,13 @@ export const makeUpdate = <
     ReturnType<typeof makeMessage<Item>>,
     ParentOutMessageSchema
   >,
+  step: Block.DefineStep<
+    BaseModel,
+    Message<Item>,
+    ParentOutMessageSchema extends Schema.Top
+      ? ParentOutMessageSchema['Type']
+      : never
+  >,
   Message: ReturnType<typeof makeMessage<Item>>,
   selectionBehavior: 'CloseWithFocus' | 'KeepOpen',
   handlers: Readonly<{
@@ -400,15 +407,15 @@ export const makeUpdate = <
 ) => {
   type Model = BaseModel
 
-  const detectMovementOrAnimationEnd =
-    (generation: number) => (model: Model) => ({
+  const detectMovementOrAnimationEnd = (generation: number) =>
+    step(model => ({
       model,
       commands: [DetectMovementOrAnimationEnd({ id: model.id, generation })],
-    })
+    }))
 
   type AnimationOutMessageStep = ReturnType<typeof detectMovementOrAnimationEnd>
 
-  const ignoreTransitionedOut = (model: Model) => ({ model })
+  const ignoreTransitionedOut = step(model => ({ model }))
 
   const foldAnimationOutMessage = Animation.OutMessage.match<
     AnimationOutMessageStep | typeof ignoreTransitionedOut
@@ -418,13 +425,18 @@ export const makeUpdate = <
     TransitionedOut: () => ignoreTransitionedOut,
   })
 
-  const animation = bindChild(Animation.block, {
+  const AnimationBinding = bindChild(Animation.block, {
     field: 'animation',
     parentMessage: Message.GotAnimationMessage,
     outMessage: { fold: foldAnimationOutMessage },
   })
 
-  const internalUpdate = (model: Model, message: Message<Item>) => {
+  type AuthoredMessage = Exclude<
+    Message<Item>,
+    ReturnType<typeof Message.GotAnimationMessage>
+  >
+
+  const internalUpdate = (model: Model, message: AuthoredMessage) => {
     const maybeLockScroll = OptionExt.when(model.isModal, LockScroll())
     const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockScroll())
     const maybeInertOthers = OptionExt.when(
@@ -460,7 +472,7 @@ export const makeUpdate = <
           nextModel,
           Update.combine([
             stepModel => ({ model: stepModel, commands }),
-            animation.hide(),
+            AnimationBinding.hide(),
           ]),
           Update.withOutMessage(outMessage),
         )
@@ -480,7 +492,7 @@ export const makeUpdate = <
             model: stepModel,
             commands: Array.getSomes([maybeLockScroll, maybeInertOthers]),
           }),
-          animation.show(),
+          AnimationBinding.show(),
           stepModel => ({
             model: modifyBaseFields(stepModel, { isOpen: () => true }),
           }),
@@ -510,7 +522,7 @@ export const makeUpdate = <
           comboboxClose.model,
           Update.combine([
             stepModel => ({ model: stepModel, commands }),
-            animation.hide(),
+            AnimationBinding.hide(),
           ]),
           Update.withOutMessage(comboboxClose.outMessage),
         )
@@ -527,197 +539,196 @@ export const makeUpdate = <
       }
     }
 
-    return Message.match(message, {
-      CompletedLockScroll: () => ({ model }),
-      CompletedUnlockScroll: () => ({ model }),
-      CompletedInertOthers: () => ({ model }),
-      CompletedRestoreInert: () => ({ model }),
-      CompletedFocusInput: () => ({ model }),
-      CompletedScrollItemIntoView: () => ({ model }),
-      CompletedClickItem: () => ({ model }),
-      SuppressedItemCommit: () => ({ model }),
-      SuppressedEmptyItemNavigation: () => ({ model }),
-      CompletedAnchor: () => ({ model }),
-      CompletedAttachPreventBlur: () => ({ model }),
-      CompletedAttachSelectOnFocus: () => ({ model }),
-      CompletedPortalBackdrop: () => ({ model }),
-      Opened: ({ maybeActiveItemIndex }) =>
-        openCombobox(
-          modifyBaseFields(model, {
-            maybeActiveItemIndex: () => maybeActiveItemIndex,
-            activationTrigger: () =>
-              Option.match(maybeActiveItemIndex, {
-                onNone: () => 'Pointer' as const,
-                onSome: () => 'Keyboard' as const,
-              }),
-            maybeLastPointerPosition: () => Option.none(),
-          }),
-        ),
+    return Match.value(message).pipe(
+      Match.tagsExhaustive({
+        CompletedLockScroll: () => ({ model }),
+        CompletedUnlockScroll: () => ({ model }),
+        CompletedInertOthers: () => ({ model }),
+        CompletedRestoreInert: () => ({ model }),
+        CompletedFocusInput: () => ({ model }),
+        CompletedScrollItemIntoView: () => ({ model }),
+        CompletedClickItem: () => ({ model }),
+        SuppressedItemCommit: () => ({ model }),
+        SuppressedEmptyItemNavigation: () => ({ model }),
+        CompletedAnchor: () => ({ model }),
+        CompletedAttachPreventBlur: () => ({ model }),
+        CompletedAttachSelectOnFocus: () => ({ model }),
+        CompletedPortalBackdrop: () => ({ model }),
+        Opened: ({ maybeActiveItemIndex }) =>
+          openCombobox(
+            modifyBaseFields(model, {
+              maybeActiveItemIndex: () => maybeActiveItemIndex,
+              activationTrigger: () =>
+                Option.match(maybeActiveItemIndex, {
+                  onNone: () => 'Pointer' as const,
+                  onSome: () => 'Keyboard' as const,
+                }),
+              maybeLastPointerPosition: () => Option.none(),
+            }),
+          ),
 
-      // NOTE: A blur Message can arrive after selection has already closed the
-      // Combobox. Ignore that stale Message so it cannot restore an old input
-      // value or emit ClearedSelection again.
-      Closed: ({ restingInputValue, isClearable }) =>
-        model.isOpen
-          ? closeCombobox(
+        // NOTE: A blur Message can arrive after selection has already closed the
+        // Combobox. Ignore that stale Message so it cannot restore an old input
+        // value or emit ClearedSelection again.
+        Closed: ({ restingInputValue, isClearable }) =>
+          model.isOpen
+            ? closeCombobox(
+                model,
+                closeWithFocusCommands,
+                restingInputValue,
+                isClearable,
+              )
+            : { model },
+
+        BlurredInput: ({ restingInputValue, isClearable }) =>
+          model.isOpen
+            ? closeCombobox(
+                model,
+                closeWithoutFocusCommands,
+                restingInputValue,
+                isClearable,
+              )
+            : { model },
+
+        ActivatedItem: ({
+          index,
+          activationTrigger,
+          maybeImmediateSelection,
+        }) => {
+          const highlightedModel = modifyBaseFields(model, {
+            maybeActiveItemIndex: () => Option.some(index),
+            activationTrigger: () => activationTrigger,
+          })
+
+          const skippedActivation: HandlerReturn<Model, Item> = {
+            model: highlightedModel,
+          }
+
+          const activation = Option.match(maybeImmediateSelection, {
+            onNone: () => skippedActivation,
+            onSome: ({ item }) =>
+              handlers.handleImmediateActivation(highlightedModel, item),
+          })
+
+          if (activationTrigger === 'Keyboard') {
+            return Update.withOutMessage(
+              {
+                model: activation.model,
+                commands: [ScrollItemIntoView({ id: model.id, index })],
+              },
+              activation.outMessage,
+            )
+          } else {
+            return activation
+          }
+        },
+
+        MovedPointerOverItem: ({ index, screenX, screenY }) => {
+          const isSamePosition = Option.exists(
+            model.maybeLastPointerPosition,
+            position =>
+              position.screenX === screenX && position.screenY === screenY,
+          )
+
+          if (isSamePosition) {
+            return { model }
+          }
+
+          return {
+            model: modifyBaseFields(model, {
+              maybeActiveItemIndex: () => Option.some(index),
+              activationTrigger: () => 'Pointer' as const,
+              maybeLastPointerPosition: () => Option.some({ screenX, screenY }),
+            }),
+          }
+        },
+
+        DeactivatedItem: () =>
+          model.activationTrigger === 'Pointer'
+            ? {
+                model: modifyBaseFields(model, {
+                  maybeActiveItemIndex: () => Option.none(),
+                }),
+              }
+            : { model },
+
+        SelectedItem: ({ item, displayText, wasSelected }) => {
+          const selection = handlers.handleSelectedItem(
+            model,
+            item,
+            displayText,
+            wasSelected,
+          )
+
+          if (selectionBehavior === 'CloseWithFocus') {
+            return closeSelectedItemWithFocus(
+              selection.model,
+              selection.outMessage,
+            )
+          } else {
+            return selection
+          }
+        },
+
+        RequestedItemClick: ({ index }) => ({
+          model,
+          commands: [ClickItem({ id: model.id, index })],
+        }),
+
+        UpdatedInputValue: ({ value }) => {
+          if (model.isOpen) {
+            return {
+              model: modifyBaseFields(model, {
+                inputValue: () => value,
+                maybeActiveItemIndex: () => Option.some(0),
+                activationTrigger: () => 'Keyboard' as const,
+              }),
+            }
+          }
+
+          return openCombobox(
+            modifyBaseFields(model, {
+              inputValue: () => value,
+              maybeActiveItemIndex: () => Option.some(0),
+              activationTrigger: () => 'Keyboard' as const,
+              maybeLastPointerPosition: () => Option.none(),
+            }),
+          )
+        },
+
+        PressedToggleButton: ({ restingInputValue, isClearable }) => {
+          if (model.isOpen) {
+            return closeCombobox(
               model,
               closeWithFocusCommands,
               restingInputValue,
               isClearable,
             )
-          : { model },
-
-      BlurredInput: ({ restingInputValue, isClearable }) =>
-        model.isOpen
-          ? closeCombobox(
-              model,
-              closeWithoutFocusCommands,
-              restingInputValue,
-              isClearable,
-            )
-          : { model },
-
-      ActivatedItem: ({
-        index,
-        activationTrigger,
-        maybeImmediateSelection,
-      }) => {
-        const highlightedModel = modifyBaseFields(model, {
-          maybeActiveItemIndex: () => Option.some(index),
-          activationTrigger: () => activationTrigger,
-        })
-
-        const skippedActivation: HandlerReturn<Model, Item> = {
-          model: highlightedModel,
-        }
-
-        const activation = Option.match(maybeImmediateSelection, {
-          onNone: () => skippedActivation,
-          onSome: ({ item }) =>
-            handlers.handleImmediateActivation(highlightedModel, item),
-        })
-
-        if (activationTrigger === 'Keyboard') {
-          return Update.withOutMessage(
-            {
-              model: activation.model,
-              commands: [ScrollItemIntoView({ id: model.id, index })],
-            },
-            activation.outMessage,
-          )
-        } else {
-          return activation
-        }
-      },
-
-      MovedPointerOverItem: ({ index, screenX, screenY }) => {
-        const isSamePosition = Option.exists(
-          model.maybeLastPointerPosition,
-          position =>
-            position.screenX === screenX && position.screenY === screenY,
-        )
-
-        if (isSamePosition) {
-          return { model }
-        }
-
-        return {
-          model: modifyBaseFields(model, {
-            maybeActiveItemIndex: () => Option.some(index),
-            activationTrigger: () => 'Pointer' as const,
-            maybeLastPointerPosition: () => Option.some({ screenX, screenY }),
-          }),
-        }
-      },
-
-      DeactivatedItem: () =>
-        model.activationTrigger === 'Pointer'
-          ? {
-              model: modifyBaseFields(model, {
-                maybeActiveItemIndex: () => Option.none(),
-              }),
-            }
-          : { model },
-
-      SelectedItem: ({ item, displayText, wasSelected }) => {
-        const selection = handlers.handleSelectedItem(
-          model,
-          item,
-          displayText,
-          wasSelected,
-        )
-
-        if (selectionBehavior === 'CloseWithFocus') {
-          return closeSelectedItemWithFocus(
-            selection.model,
-            selection.outMessage,
-          )
-        } else {
-          return selection
-        }
-      },
-
-      RequestedItemClick: ({ index }) => ({
-        model,
-        commands: [ClickItem({ id: model.id, index })],
-      }),
-
-      UpdatedInputValue: ({ value }) => {
-        if (model.isOpen) {
-          return {
-            model: modifyBaseFields(model, {
-              inputValue: () => value,
-              maybeActiveItemIndex: () => Option.some(0),
-              activationTrigger: () => 'Keyboard' as const,
-            }),
           }
-        }
 
-        return openCombobox(
-          modifyBaseFields(model, {
-            inputValue: () => value,
-            maybeActiveItemIndex: () => Option.some(0),
-            activationTrigger: () => 'Keyboard' as const,
-            maybeLastPointerPosition: () => Option.none(),
-          }),
-        )
-      },
-
-      PressedToggleButton: ({ restingInputValue, isClearable }) => {
-        if (model.isOpen) {
-          return closeCombobox(
-            model,
-            closeWithFocusCommands,
-            restingInputValue,
-            isClearable,
-          )
-        }
-
-        return Update.combine(
-          modifyBaseFields(model, {
-            maybeActiveItemIndex: () => Option.none(),
-            activationTrigger: () => 'Pointer' as const,
-            maybeLastPointerPosition: () => Option.none(),
-          }),
-          [
-            stepModel => ({
-              model: stepModel,
-              commands: [focusInput],
+          return Update.combine(
+            modifyBaseFields(model, {
+              maybeActiveItemIndex: () => Option.none(),
+              activationTrigger: () => 'Pointer' as const,
+              maybeLastPointerPosition: () => Option.none(),
             }),
-            openCombobox,
-          ],
-        )
-      },
+            [
+              stepModel => ({
+                model: stepModel,
+                commands: [focusInput],
+              }),
+              openCombobox,
+            ],
+          )
+        },
 
-      CompletedDetectMovementOrAnimationEnd: ({ generation }) =>
-        animation.finish(generation)(model),
-
-      GotAnimationMessage: ({ message: animationMessage }) =>
-        animation.fold(model, animationMessage),
-    })
+        CompletedDetectMovementOrAnimationEnd: ({ generation }) =>
+          AnimationBinding.finish(generation)(model),
+      }),
+    )
   }
 
-  return { update: internalUpdate, animation }
+  return { update: internalUpdate, AnimationBinding }
 }
 
 /** The anchor-positioning Mount this Combobox renders on its items panel.

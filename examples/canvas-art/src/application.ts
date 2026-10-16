@@ -79,7 +79,7 @@ type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-export const init = Application.init(() => ({
+export const init = ApplicationComposition.init(() => ({
   model: Model.make({ balls: [], nextId: 0, isRunning: true }),
 }))
 

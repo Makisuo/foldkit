@@ -10,16 +10,16 @@ import { define as defineBlock } from '../block/define.js'
 import {
   type Definition as BlockDefinition,
   type CompletedForValidation,
-  type DefineInit,
   type DefineManagedResources,
   type DefineStep,
   type DefineSubscriptions,
-  type DefineUpdate,
   type DefineView,
   LocalMountsTypeId,
   type ValidateChildBindings,
   makeDefinition,
 } from '../block/definition.js'
+import type { DefineCompositionUpdate } from '../block/delivery.js'
+import type { CompositionInit } from '../block/initialization.js'
 import {
   type DefineCommand,
   type DefineMount,
@@ -59,11 +59,6 @@ type AuthoringHelpers<
    */
   resource: DefineResource<'Application'>
   /**
-   * Authors a pure root update with contextual Model and Message types.
-   * Infers Command requirements and child registration evidence from its result.
-   */
-  update: DefineUpdate<ModelSchema['Type'], MessageSchema['Type'], never, true>
-  /**
    * Authors a pure transformation of the root Model with inferred arguments
    * and Command requirements. The Runtime executes returned Commands later.
    */
@@ -87,23 +82,6 @@ type AuthoringHelpers<
     MessageSchema['Type']
   >
 }>
-
-type DefinitionHelpers<
-  ModelSchema extends AnySchema,
-  MessageSchema extends AnySchema,
-> = AuthoringHelpers<ModelSchema, MessageSchema> &
-  Readonly<{
-    /**
-     * Authors the root initializer. The helper checks its returned Model and
-     * every Command result Message, rejects OutMessages, and returns the same
-     * function without invoking it. It preserves exact Flags and routing
-     * arguments, return type, Command requirements, and child registration
-     * evidence. Completion checks Flags and routing configuration and preserved
-     * child registration evidence against the Composition. An initializer is
-     * a plain function with one concrete call signature.
-     */
-    init: DefineInit<ModelSchema['Type'], MessageSchema['Type']>
-  }>
 
 declare const CompositionTypeId: unique symbol
 
@@ -259,12 +237,24 @@ export type Composition<
    * The registered child Bindings. Their handlers and lifecycle definitions
    * are included automatically at completion.
    */
-  children: Children
+  childBindings: Children
   /**
-   * Creates a passive child Binding in this root's Model and Message context.
-   * Include a used Binding in children when establishing the Composition.
+   * Authors root startup. The callback supplies parent-owned fields, optional
+   * shared startup inputs, Commands and ordinary Steps. The initializer
+   * assembles registered children before applying the Steps.
    */
-  bindChild: BindChild<ModelSchema, MessageSchema>
+  init: CompositionInit<ModelSchema['Type'], MessageSchema['Type'], Children>
+  /**
+   * Authors root transitions for Messages not claimed by child delivery
+   * policies. The returned update accepts the complete root Message union.
+   */
+  update: DefineCompositionUpdate<
+    ModelSchema['Type'],
+    MessageSchema['Type'],
+    never,
+    Children,
+    true
+  >
   /**
    * Authors the canonical root view with the registered child and Mount
    * capabilities. Application completion requires a view with no extra inputs.
@@ -282,7 +272,6 @@ export type Composition<
     Children
   >
 }> &
-  AuthoringHelpers<ModelSchema, MessageSchema> &
   CompletionHelpers<ModelSchema, MessageSchema, Mounts, Children>
 
 /**
@@ -351,7 +340,7 @@ export interface ToComposition<
     config: Readonly<{
       /**
        * Local Mount definitions permitted in owned views. Defaults to an empty
-       * registry; child Mounts are collected from children automatically.
+       * registry; child Mounts are collected from childBindings automatically.
        */
       mounts?: Mounts & Mount.PreciseMountRegistry<Mounts>
       /**
@@ -359,7 +348,7 @@ export interface ToComposition<
        * an empty tuple. The Composition snapshots this graph and includes its
        * handler recipes and occurrence lifecycle registrations at completion.
        */
-      children?: Children
+      childBindings?: Children
     }> &
       ValidateChildBindings<
         Children,
@@ -393,7 +382,7 @@ export type Definition<
   /**
    * An empty child graph before toComposition registers Bindings.
    */
-  children: readonly []
+  childBindings: readonly []
   /**
    * Creates a passive Binding with contextual root Model and Message types.
    * The parent selects storage, Message mapping and OutMessage policy.
@@ -406,7 +395,7 @@ export type Definition<
    */
   toComposition: ToComposition<ModelSchema, MessageSchema>
 }> &
-  DefinitionHelpers<ModelSchema, MessageSchema>
+  AuthoringHelpers<ModelSchema, MessageSchema>
 
 /**
  * Defines a passive root authoring value from its Model and Message Schemas.
@@ -436,12 +425,6 @@ type Completion = Readonly<{
 
 const makeComposition = (
   definition: globalThis.ReturnType<typeof makeDefinition>,
-  primitives: Readonly<{
-    command: DefineCommand<'Application'>
-    mount: DefineMount<'Application'>
-    mountStream: DefineMountStream<'Application'>
-    resource: DefineResource<'Application'>
-  }>,
   completion: Completion,
 ) => {
   const composition = {
@@ -449,17 +432,10 @@ const makeComposition = (
     Message: definition.Message,
     mounts: definition.mounts,
     [LocalMountsTypeId]: definition[LocalMountsTypeId],
-    children: definition.children,
-    bindChild: definition.bindChild,
-    view: definition.view,
-    command: primitives.command,
-    mount: primitives.mount,
-    mountStream: primitives.mountStream,
-    resource: primitives.resource,
+    childBindings: definition.childBindings,
+    init: definition.init,
     update: definition.update,
-    step: definition.step,
-    subscriptions: definition.subscriptions,
-    managedResources: definition.managedResources,
+    view: definition.view,
     toApplication: (config: any) =>
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       completion.toApplication(composition as never, config),
@@ -510,26 +486,24 @@ export const makeDefine =
     const toComposition = (
       graph: Readonly<{
         mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
-        children?: ReadonlyArray<AnyBinding>
+        childBindings?: ReadonlyArray<AnyBinding>
       }> = {},
     ) => {
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       const definition = base.toComposition(graph as never)
-      return makeComposition(definition, primitives, completion)
+      return makeComposition(definition, completion)
     }
 
     const definition = {
       Model: base.Model,
       Message: base.Message,
       mounts: base.mounts,
-      children: base.children,
+      childBindings: base.childBindings,
       bindChild: base.bindChild,
       command: primitives.command,
       mount: primitives.mount,
       mountStream: primitives.mountStream,
       resource: primitives.resource,
-      init: base.init,
-      update: base.update,
       step: base.step,
       subscriptions: base.subscriptions,
       managedResources: base.managedResources,

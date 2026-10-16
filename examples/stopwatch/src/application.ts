@@ -119,7 +119,7 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-export const init = Application.init(() => ({
+export const init = ApplicationComposition.init(() => ({
   model: {
     elapsedMs: 0,
     isRunning: false,

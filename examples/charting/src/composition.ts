@@ -8,7 +8,10 @@ import { Message } from './message'
 import { Model } from './model'
 import { MountChart } from './mount'
 import {
+  CHART_MODE_RADIO_GROUP_ID,
   ChartModeRadioGroup,
+  PACKAGE_RADIO_GROUP_ID,
+  PERIOD_RADIO_GROUP_ID,
   PackageRadioGroup,
   PeriodRadioGroup,
 } from './radioGroups'
@@ -71,20 +74,25 @@ const foldChartModeRadioGroupOutMessage = ChartModeRadioGroup.OutMessage.match({
     selectedControl(modifyFields({ chartMode: () => value })),
 })
 
-export const chartModeRadioGroup = Application.bindChild(ChartModeRadioGroup, {
-  field: 'chartModeRadioGroup',
-  parentMessage: Message.GotChartModeRadioGroupMessage,
-  outMessage: { fold: foldChartModeRadioGroupOutMessage },
-})
+export const ChartModeRadioGroupBinding = Application.bindChild(
+  ChartModeRadioGroup,
+  {
+    field: 'chartModeRadioGroup',
+    parentMessage: Message.GotChartModeRadioGroupMessage,
+    init: { args: () => [{ id: CHART_MODE_RADIO_GROUP_ID }] },
+    outMessage: { fold: foldChartModeRadioGroupOutMessage },
+  },
+)
 
 const foldPeriodRadioGroupOutMessage = PeriodRadioGroup.OutMessage.match({
   Selected: ({ value }) =>
     selectedControl(modifyFields({ period: () => value })),
 })
 
-export const periodRadioGroup = Application.bindChild(PeriodRadioGroup, {
+export const PeriodRadioGroupBinding = Application.bindChild(PeriodRadioGroup, {
   field: 'periodRadioGroup',
   parentMessage: Message.GotPeriodRadioGroupMessage,
+  init: { args: () => [{ id: PERIOD_RADIO_GROUP_ID }] },
   outMessage: { fold: foldPeriodRadioGroupOutMessage },
 })
 
@@ -93,15 +101,23 @@ const foldPackageRadioGroupOutMessage = PackageRadioGroup.OutMessage.match({
     selectedControl(modifyFields({ selectedPackageId: () => value })),
 })
 
-export const packageRadioGroup = Application.bindChild(PackageRadioGroup, {
-  field: 'packageRadioGroup',
-  parentMessage: Message.GotPackageRadioGroupMessage,
-  outMessage: { fold: foldPackageRadioGroupOutMessage },
-})
+export const PackageRadioGroupBinding = Application.bindChild(
+  PackageRadioGroup,
+  {
+    field: 'packageRadioGroup',
+    parentMessage: Message.GotPackageRadioGroupMessage,
+    init: { args: () => [{ id: PACKAGE_RADIO_GROUP_ID }] },
+    outMessage: { fold: foldPackageRadioGroupOutMessage },
+  },
+)
 
 export const ApplicationComposition = Application.toComposition({
   mounts: [MountChart],
-  children: [chartModeRadioGroup, periodRadioGroup, packageRadioGroup],
+  childBindings: [
+    ChartModeRadioGroupBinding,
+    PeriodRadioGroupBinding,
+    PackageRadioGroupBinding,
+  ],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition

@@ -14,7 +14,8 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 const Application = defineApplication({ Model, Message })
+const ApplicationComposition = Application.toComposition()
 
-const init = Application.init(() => ({
+const init = ApplicationComposition.init(() => ({
   model: { count: 0 },
 }))

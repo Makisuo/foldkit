@@ -1,6 +1,6 @@
 import { modifyFields } from 'foldkit/struct'
 
-const update = Application.update((model, message) =>
+const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: count => count - 1 }),

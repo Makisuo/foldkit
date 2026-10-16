@@ -1,5 +1,5 @@
 import { FetchPeople } from './informingBlocksCommand'
-import { People } from './informingBlocksDefinition'
+import { PeopleComposition } from './informingBlocksDefinition'
 import {
   Model,
   SearchResults,
@@ -8,7 +8,7 @@ import {
 } from './informingBlocksModel'
 import { type PeopleRoute } from './informingBlocksRoute'
 
-export const init = People.init((route: PeopleRoute) => {
+export const init = PeopleComposition.init((route: PeopleRoute) => {
   const searchText = routeSearchText(route.searchText)
 
   return {

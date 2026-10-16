@@ -8,10 +8,10 @@ import { DatePicker as UiDatePicker } from '@foldkit/ui'
 import { PronounOption } from '../../domain'
 import { DatePicker, Field, Icon } from '../../view'
 import {
+  AvailableDatePickerBinding,
   PersonalInfoComposition,
   type PersonalInfoViewBuilder,
-  availableDatePicker,
-  pronounsListbox,
+  PronounsListboxBinding,
 } from './composition'
 import { Message } from './definition'
 
@@ -94,7 +94,7 @@ export const view = PersonalInfoComposition.view((model, h) => {
             ['Pronouns (optional)'],
           ),
           h.block(
-            pronounsListbox.embedView({
+            PronounsListboxBinding.embedView({
               slotId: model.pronouns.id,
               model: model.pronouns,
               viewInputs: {
@@ -197,7 +197,7 @@ const availableDatePickerView = (
         ['Available Start Date (optional)'],
       ),
       h.block(
-        availableDatePicker.embedView({
+        AvailableDatePickerBinding.embedView({
           slotId: model.id,
           model,
           viewInputs: {

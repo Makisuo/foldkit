@@ -1,9 +1,9 @@
 import { Layer } from 'effect'
+import type * as AsyncData from 'foldkit/asyncData'
+import type * as Block from 'foldkit/block'
+import type * as Command from 'foldkit/command'
+import type * as Update from 'foldkit/update'
 
-import type * as AsyncData from '../src/asyncData/public.js'
-import type * as Block from '../src/block/public.js'
-import type * as Command from '../src/command/public.js'
-import type * as Update from '../src/update/public.js'
 import {
   CanonicalNoteById,
   CanonicalNoteByIdTestLayer,
@@ -13,6 +13,7 @@ import {
   ForeignCanonicalNotesLayer,
   NoteById,
   Notes,
+  NotesChildBinding,
   ProvidedNoteById,
   ProvidedNotes,
   QueryBuildFailure,
@@ -20,7 +21,6 @@ import {
   QueryExecutionService,
   ReplacedCanonicalNoteById,
   ReplacedCanonicalNotes,
-  notesChild,
 } from './query-block.accepted.js'
 
 // @ts-expect-error Emitted canonical Query declarations reject foreign Fetch Layers.
@@ -103,7 +103,7 @@ export type CanonicalKeyedReplacementFetch = Expect<
 >
 export type ChildOperationRequirements = Expect<
   Equal<
-    Update.RequirementsOf<ReturnType<typeof notesChild.loadIfMissing>>,
+    Update.RequirementsOf<ReturnType<typeof NotesChildBinding.loadIfMissing>>,
     Block.Scoped<'notes', Command.HandlerOf<typeof Notes.Fetch>>
   >
 >

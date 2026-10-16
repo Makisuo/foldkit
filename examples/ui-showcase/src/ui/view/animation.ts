@@ -28,7 +28,7 @@ export const view = UiComposition.view((model, h) => {
         [h.Class('mt-4')],
         [
           h.block(
-            Animation.animationDemo.embedView({
+            Animation.AnimationDemoBinding.embedView({
               slotId: model.animationDemo.id,
               model: model.animationDemo,
               viewInputs: {

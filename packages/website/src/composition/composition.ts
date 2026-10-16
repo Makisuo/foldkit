@@ -1,3 +1,4 @@
+import { pipe, Option } from 'effect'
 import { type Block, Update } from 'foldkit'
 
 import { Dialog } from '@foldkit/ui'
@@ -13,61 +14,82 @@ import {
   Playground,
   Ui,
 } from '../page'
+import { ApplicationRoute } from '../route'
 import * as Search from '../search'
 import * as SnippetCopy from '../snippetCopy'
 import * as SnippetDisclosure from '../snippetDisclosure'
+import { type Startup } from '../startup'
 import { selectThemePreference } from '../theme'
 import { ThemeMenu } from '../view/themeMenu'
 import * as Home from './home'
 
-export const home = Home.home
+export const HomeBinding = Home.HomeBinding
 
-export const search = Application.bindChild(Search.block, {
+export const SearchBinding = Application.bindChild(Search.block, {
   field: 'search',
   parentMessage: Message.GotSearchMessage,
+  init: true,
 })
 
-export const snippetCopy = Application.bindChild(SnippetCopy.block, {
+export const SnippetCopyBinding = Application.bindChild(SnippetCopy.block, {
   field: 'snippetCopy',
   parentMessage: Message.GotSnippetCopyMessage,
+  init: true,
 })
 
-export const snippetDisclosure = Application.bindChild(
+export const SnippetDisclosureBinding = Application.bindChild(
   SnippetDisclosure.block,
   {
     field: 'snippetDisclosure',
     parentMessage: Message.GotSnippetDisclosureMessage,
+    init: true,
   },
 )
 
-export const exampleDetail = Application.bindChild(ExampleDetail.block, {
+export const ExampleDetailBinding = Application.bindChild(ExampleDetail.block, {
   field: 'exampleDetail',
   parentMessage: Message.GotExampleDetailMessage,
+  init: true,
 })
 
-export const playground = Application.bindChild(Playground.block, {
+export const PlaygroundBinding = Application.bindChild(Playground.block, {
   field: 'playground',
   parentMessage: Message.GotPlaygroundMessage,
+  init: {
+    args: ({ route }: Startup) =>
+      pipe(
+        route,
+        Option.liftPredicate(ApplicationRoute.guards.Playground),
+        Option.map(route => [route.exampleSlug]),
+      ),
+  },
 })
 
-export const uiPages = Application.bindChild(Ui.block, {
+export const UiPagesBinding = Application.bindChild(Ui.block, {
   field: 'uiPages',
   parentMessage: Message.GotUiPageMessage,
+  init: { args: ({ today }: Startup) => [today] },
 })
 
-export const apiReference = Application.bindChild(ApiReference.block, {
+export const ApiReferenceBinding = Application.bindChild(ApiReference.block, {
   field: 'apiReference',
   parentMessage: Message.GotApiReferenceMessage,
+  init: true,
 })
 
-export const comingFromReact = Application.bindChild(ComingFromReact.block, {
-  field: 'comingFromReact',
-  parentMessage: Message.GotComingFromReactMessage,
-})
+export const ComingFromReactBinding = Application.bindChild(
+  ComingFromReact.block,
+  {
+    field: 'comingFromReact',
+    parentMessage: Message.GotComingFromReactMessage,
+    init: true,
+  },
+)
 
-export const coreBlockPage = Application.bindChild(CoreBlockPage.block, {
+export const CoreBlockPageBinding = Application.bindChild(CoreBlockPage.block, {
   field: 'coreBlockPage',
   parentMessage: Message.GotCoreBlockPageMessage,
+  init: true,
 })
 
 const foldMobileMenuDialogOutMessage = Dialog.OutMessage.match<
@@ -77,36 +99,38 @@ const foldMobileMenuDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-export const mobileMenuDialog = Application.bindChild(Dialog.block, {
+export const MobileMenuDialogBinding = Application.bindChild(Dialog.block, {
   field: 'mobileMenuDialog',
   parentMessage: Message.GotMobileMenuDialogMessage,
   outMessage: { fold: foldMobileMenuDialogOutMessage },
+  init: { args: () => [{ id: 'mobile-menu' }] },
 })
 
 const foldThemeMenuOutMessage = ThemeMenu.OutMessage.match({
   Selected: ({ value }) => selectThemePreference(value),
 })
 
-export const themeMenu = Application.bindChild(ThemeMenu, {
+export const ThemeMenuBinding = Application.bindChild(ThemeMenu, {
   field: 'themeMenu',
   parentMessage: Message.GotThemeMenuMessage,
   outMessage: { fold: foldThemeMenuOutMessage },
+  init: { args: () => [{ id: 'theme-menu' }] },
 })
 
 export const ApplicationComposition = Application.toComposition({
-  children: [
-    apiReference,
-    comingFromReact,
-    coreBlockPage,
-    exampleDetail,
-    Home.home,
-    mobileMenuDialog,
-    playground,
-    search,
-    snippetCopy,
-    snippetDisclosure,
-    themeMenu,
-    uiPages,
+  childBindings: [
+    ApiReferenceBinding,
+    ComingFromReactBinding,
+    CoreBlockPageBinding,
+    ExampleDetailBinding,
+    Home.HomeBinding,
+    MobileMenuDialogBinding,
+    PlaygroundBinding,
+    SearchBinding,
+    SnippetCopyBinding,
+    SnippetDisclosureBinding,
+    ThemeMenuBinding,
+    UiPagesBinding,
   ],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

@@ -1,10 +1,10 @@
 import { Option } from 'effect'
 
 import { FocusUsernameInput } from './command'
-import { Home } from './definition'
+import { HomeComposition } from './definition'
 import { HomeStep, Model } from './model'
 
-export const init = Home.init(() => ({
+export const init = HomeComposition.init(() => ({
   model: Model.make({
     homeStep: HomeStep.EnterUsername({ username: '' }),
     formError: Option.none(),

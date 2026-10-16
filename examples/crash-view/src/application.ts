@@ -22,7 +22,7 @@ export const update = ApplicationComposition.update((_model, _message) => {
   throw new Error('This is a simulated crash!')
 })
 
-export const init = Application.init(() => ({
+export const init = ApplicationComposition.init(() => ({
   model: null,
 }))
 

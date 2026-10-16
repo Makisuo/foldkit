@@ -5,12 +5,12 @@ import { Listbox } from '@foldkit/ui'
 import { type AnchorConfig, buttonId } from '@foldkit/ui/listbox'
 
 import { Icon } from '../../../icon'
-import {
-  listboxDemo,
-  listboxGroupedDemo,
-  listboxMultiDemo,
-} from '../composition'
 import type { UiViewBuilder } from '../composition'
+import {
+  ListboxDemoBinding,
+  ListboxGroupedDemoBinding,
+  ListboxMultiDemoBinding,
+} from '../composition'
 import type { ListboxItem } from '../model'
 import { type Character } from './components'
 
@@ -84,7 +84,7 @@ export const basicDemo = (
           [h.Class('relative')],
           [
             h.block(
-              listboxDemo.embedView({
+              ListboxDemoBinding.embedView({
                 slotId: 'listbox-basic',
                 model: listboxModel,
                 viewInputs: {
@@ -150,7 +150,7 @@ export const multiSelectDemo = (
           [h.Class('relative')],
           [
             h.block(
-              listboxMultiDemo.embedView({
+              ListboxMultiDemoBinding.embedView({
                 slotId: 'listbox-multi',
                 model: listboxModel,
                 viewInputs: {
@@ -213,7 +213,7 @@ export const groupedDemo = (
           [h.Class('relative')],
           [
             h.block(
-              listboxGroupedDemo.embedView({
+              ListboxGroupedDemoBinding.embedView({
                 slotId: 'listbox-grouped',
                 model: listboxModel,
                 viewInputs: {

@@ -6,10 +6,10 @@ import { buttonId } from '@foldkit/ui/listbox'
 
 import * as Icon from '../../icon'
 import {
+  ListboxDemoBinding,
+  ListboxGroupedDemoBinding,
+  ListboxMultiDemoBinding,
   UiComposition,
-  listboxDemo,
-  listboxGroupedDemo,
-  listboxMultiDemo,
 } from '../composition'
 import type { UiViewBuilder } from '../composition'
 import type { Character } from '../listbox'
@@ -126,7 +126,7 @@ const singleSelectDemo = (
     buttonId(listboxModel.id),
     'Family member',
     h.block(
-      listboxDemo.embedView({
+      ListboxDemoBinding.embedView({
         slotId: 'listbox-single',
         model: listboxModel,
         viewInputs: {
@@ -163,7 +163,7 @@ const multiSelectDemo = (
     buttonId(listboxModel.id),
     'Family members',
     h.block(
-      listboxMultiDemo.embedView({
+      ListboxMultiDemoBinding.embedView({
         slotId: 'listbox-multi',
         model: listboxModel,
         viewInputs: {
@@ -197,7 +197,7 @@ const groupedDemo = (
     buttonId(listboxModel.id),
     'Character',
     h.block(
-      listboxGroupedDemo.embedView({
+      ListboxGroupedDemoBinding.embedView({
         slotId: 'listbox-grouped',
         model: listboxModel,
         viewInputs: {

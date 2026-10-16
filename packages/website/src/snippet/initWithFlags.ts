@@ -19,8 +19,9 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 const Application = defineApplication({ Model, Message })
+const ApplicationComposition = Application.toComposition()
 
-const init = Application.init((flags: Flags) => ({
+const init = ApplicationComposition.init((flags: Flags) => ({
   model: {
     count: Option.getOrElse(flags.savedCount, () => 0),
     startingCount: flags.savedCount,

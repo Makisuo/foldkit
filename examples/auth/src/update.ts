@@ -10,7 +10,7 @@ import {
   RedirectToDashboard,
   RedirectToLogin,
 } from './command'
-import { ApplicationComposition, LoggedIn, LoggedOut } from './composition'
+import { ApplicationComposition } from './composition'
 import { Message } from './message'
 import { urlToApplicationRoute } from './route'
 
@@ -65,10 +65,6 @@ export const update = ApplicationComposition.update((model, message) =>
       commands: [LogError({ entries: ['Failed to clear session:', error] })],
     }),
 
-    GotLoggedOutMessage: ({ message }) =>
-      LoggedOut.loggedOut.fold(model, message),
-
-    GotLoggedInMessage: ({ message }) => LoggedIn.loggedIn.fold(model, message),
     CompletedNavigateInternal: () => ({ model }),
     CompletedRedirectToLogin: () => ({ model }),
     CompletedRedirectToDashboard: () => ({ model }),

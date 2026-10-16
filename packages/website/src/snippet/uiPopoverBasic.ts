@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Schema } from 'effect'
+import { Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -48,35 +48,25 @@ const PopoverExample = Block.define('PopoverExample', {
   Message,
 })
 
-const popover = PopoverExample.bindChild(Popover.block, {
+const PopoverBinding = PopoverExample.bindChild(Popover.block, {
   field: 'popover',
   parentMessage: Message.GotPopoverMessage,
+  init: { args: () => Tuple.make({ id: 'info' }) },
   outMessage: { fold: foldPopoverOutMessage },
 })
 
-// In your init function, initialize the Popover Block with a unique id:
-const init = PopoverExample.init(() => {
-  const popoverInit = popover.init({ id: 'info' })
-
-  return {
-    model: {
-      popover: popoverInit.model,
-      // ...your other fields
-    },
-    commands: popoverInit.commands,
-  }
-})
-
 const PopoverExampleComposition = PopoverExample.toComposition({
-  children: [popover],
+  childBindings: [PopoverBinding],
 })
 
-// In the corresponding Message.match handler, call the fold:
-const update = PopoverExample.update((model, message) =>
-  Message.match(message, {
-    GotPopoverMessage: ({ message }) => popover.fold(model, message),
-  }),
-)
+// In your init function, initialize the Popover Block with a unique id:
+const init = PopoverExampleComposition.init(() => ({
+  model: {
+    // ...your other fields
+  },
+}))
+
+const update = PopoverExampleComposition.update()
 
 // Inside your view function, embed the popover via h.block. Give the
 // trigger an accessible name: target the trigger id with
@@ -122,7 +112,7 @@ const view = PopoverExampleComposition.view((model, h) => {
     )
 
   return h.block(
-    popover.embedView({
+    PopoverBinding.embedView({
       slotId: 'info',
       model: model.popover,
       viewInputs: {

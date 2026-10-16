@@ -3,9 +3,9 @@
 
 // init.ts
 
-import { Application } from './definition'
+import { ApplicationComposition } from './composition'
 
-const init = Application.init(
+const init = ApplicationComposition.init(
   (username: string, savedTheme: Settings.Theme) => {
     const settingsInit = Settings.init()
     const settingsRestore = Settings.restore(settingsInit.model, savedTheme)

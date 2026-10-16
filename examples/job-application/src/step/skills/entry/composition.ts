@@ -7,6 +7,7 @@ import {
   ProficiencyRadioGroup,
   SkillsEntry,
 } from './definition'
+import { proficiencyRadioGroupId } from './init'
 
 const foldProficiencyRadioGroupOutMessage =
   ProficiencyRadioGroup.OutMessage.match<
@@ -20,15 +21,18 @@ const foldProficiencyRadioGroupOutMessage =
       }),
   })
 
-export const proficiencyRadioGroup = SkillsEntry.bindChild(
+export const ProficiencyRadioGroupBinding = SkillsEntry.bindChild(
   ProficiencyRadioGroup,
   {
     field: 'proficiencyRadioGroup',
     parentMessage: Message.GotProficiencyRadioGroupMessage,
+    init: {
+      args: (entryId: string) => [{ id: proficiencyRadioGroupId(entryId) }],
+    },
     outMessage: { fold: foldProficiencyRadioGroupOutMessage },
   },
 )
 
 export const SkillsEntryComposition = SkillsEntry.toComposition({
-  children: [proficiencyRadioGroup],
+  childBindings: [ProficiencyRadioGroupBinding],
 })

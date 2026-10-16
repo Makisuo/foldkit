@@ -11,14 +11,14 @@ import {
 
 import { Icon } from '../../../icon'
 import { CityCombobox, CityMultiCombobox } from '../combobox'
-import {
-  comboboxDemo,
-  comboboxMultiDemo,
-  comboboxNullableDemo,
-  comboboxPlacementLockDemo,
-  comboboxSelectOnFocusDemo,
-} from '../composition'
 import type { UiViewBuilder } from '../composition'
+import {
+  ComboboxDemoBinding,
+  ComboboxMultiDemoBinding,
+  ComboboxNullableDemoBinding,
+  ComboboxPlacementLockDemoBinding,
+  ComboboxSelectOnFocusDemoBinding,
+} from '../composition'
 import type { City } from '../model'
 
 // DEMO CONTENT
@@ -128,7 +128,7 @@ export const view = (
           [h.Class('relative')],
           [
             h.block(
-              comboboxDemo.embedView({
+              ComboboxDemoBinding.embedView({
                 slotId: comboboxModel.id,
                 model: comboboxModel,
                 viewInputs: {
@@ -167,7 +167,7 @@ export const nullableDemo = (
           [h.Class('relative')],
           [
             h.block(
-              comboboxNullableDemo.embedView({
+              ComboboxNullableDemoBinding.embedView({
                 slotId: comboboxNullableModel.id,
                 model: comboboxNullableModel,
                 viewInputs: {
@@ -209,7 +209,7 @@ export const selectOnFocusDemo = (
           [h.Class('relative')],
           [
             h.block(
-              comboboxSelectOnFocusDemo.embedView({
+              ComboboxSelectOnFocusDemoBinding.embedView({
                 slotId: comboboxSelectOnFocusModel.id,
                 model: comboboxSelectOnFocusModel,
                 viewInputs: {
@@ -257,7 +257,7 @@ export const placementLockDemo = (
             [h.Class('relative')],
             [
               h.block(
-                comboboxPlacementLockDemo.embedView({
+                ComboboxPlacementLockDemoBinding.embedView({
                   slotId: comboboxPlacementLockModel.id,
                   model: comboboxPlacementLockModel,
                   viewInputs: {
@@ -320,7 +320,7 @@ export const multiDemo = (
               }),
             ),
             h.block(
-              comboboxMultiDemo.embedView({
+              ComboboxMultiDemoBinding.embedView({
                 slotId: comboboxMultiModel.id,
                 model: comboboxMultiModel,
                 viewInputs: {

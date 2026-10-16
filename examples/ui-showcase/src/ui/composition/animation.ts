@@ -19,8 +19,9 @@ const foldAnimationDemoOutMessage = (
     TransitionedOut: () => Ui.step(model => ({ model })),
   })
 
-export const animationDemo = Ui.bindChild(Animation.block, {
+export const AnimationDemoBinding = Ui.bindChild(Animation.block, {
   field: 'animationDemo',
   parentMessage: Message.GotAnimationDemoMessage,
+  init: { args: () => [{ id: 'animation-demo' }] },
   outMessage: { fold: foldAnimationDemoOutMessage },
 })

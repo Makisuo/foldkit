@@ -2,6 +2,10 @@ import { Array, Predicate, Schema, SchemaAST } from 'effect'
 
 import { modifyFields } from '../struct/index.js'
 import type { BindableBlock } from './binding.js'
+import type {
+  RuntimeWrappedKeyedInitialOccurrence,
+  RuntimeWrappedKeyedInitialPolicy,
+} from './composition.js'
 import { hasSameDecodedSchemaShape } from './decodedSchemaShape.js'
 import type { InstanceKey } from './instanceContext.js'
 import type { KeyedBindingBaseConfig } from './keyedBinding.js'
@@ -469,6 +473,23 @@ const readInstanceKey = (
   return key
 }
 
+const readInitialOccurrenceKey = (
+  key: unknown,
+  field: string,
+  index: number,
+): InstanceKey => {
+  if (
+    !Predicate.isString(key) &&
+    !(Predicate.isNumber(key) && globalThis.Number.isFinite(key))
+  ) {
+    throw new Error(
+      `[foldkit] Wrapped keyed Binding field "${field}" init occurrence at index ${index} requires a string or finite number key.`,
+    )
+  }
+
+  return key
+}
+
 const assertMatchingChildKey = (
   key: InstanceKey,
   childModel: unknown,
@@ -509,6 +530,8 @@ export const normalizeKeyedFieldConfig = (config: unknown): unknown => {
     'writeAt',
     'presentWhen',
     'parentMessage',
+    'fromParentMessage',
+    'init',
   ])
   for (const configField of Reflect.ownKeys(config)) {
     if (!Predicate.isString(configField) || !allowedFields.has(configField)) {
@@ -605,6 +628,7 @@ export const normalizeKeyedFieldConfig = (config: unknown): unknown => {
     field: ___,
     key: ____,
     childField: _____,
+    init: ______,
     ...policy
   } = config
   const readAll = (model: object): ReadonlyArray<unknown> => {
@@ -682,5 +706,107 @@ export const normalizeKeyedFieldConfig = (config: unknown): unknown => {
         },
       })
     },
+  }
+}
+
+/** @internal Validates and lowers a keyed field initialization policy. */
+export const wrappedKeyedInitialPolicyOf = (
+  config: unknown,
+  normalizedConfig: unknown,
+): RuntimeWrappedKeyedInitialPolicy | undefined => {
+  if (!Predicate.isObject(config) || !Object.hasOwn(config, 'init')) {
+    return undefined
+  }
+
+  const field = Reflect.get(config, 'field')
+  if (!Predicate.isString(field)) {
+    throw new Error(
+      '[foldkit] A wrapped keyed init policy requires a string Model field.',
+    )
+  }
+
+  const init = Reflect.get(config, 'init')
+  if (!Predicate.isObject(init)) {
+    throw new Error(
+      `[foldkit] Keyed Binding field "${field}" init must be an object with occurrences and toItem functions.`,
+    )
+  }
+
+  for (const policyField of Reflect.ownKeys(init)) {
+    if (policyField !== 'occurrences' && policyField !== 'toItem') {
+      throw new Error(
+        `[foldkit] Keyed Binding field "${field}" init does not support the policy field "${globalThis.String(policyField)}".`,
+      )
+    }
+  }
+
+  const occurrences = Reflect.get(init, 'occurrences')
+  const toItem = Reflect.get(init, 'toItem')
+  if (!Predicate.isFunction(occurrences) || !Predicate.isFunction(toItem)) {
+    throw new Error(
+      `[foldkit] Keyed Binding field "${field}" init must supply occurrences and toItem functions.`,
+    )
+  }
+
+  const readItemKey = Predicate.isObject(normalizedConfig)
+    ? Reflect.get(normalizedConfig, 'key')
+    : undefined
+  if (!Predicate.isFunction(readItemKey)) {
+    throw new Error(
+      `[foldkit] Keyed Binding field "${field}" init requires its normalized key reader.`,
+    )
+  }
+
+  return {
+    kind: 'WrappedKeyed',
+    field,
+    resolveOccurrences: context => {
+      const values = Reflect.apply(occurrences, undefined, [context])
+      if (!globalThis.Array.isArray(values)) {
+        throw new Error(
+          `[foldkit] Keyed Binding field "${field}" init.occurrences must return an array.`,
+        )
+      }
+
+      const keys = new Set<InstanceKey>()
+      return Array.map(
+        values,
+        (occurrence, index): RuntimeWrappedKeyedInitialOccurrence => {
+          if (
+            !Predicate.isObject(occurrence) ||
+            !Object.hasOwn(occurrence, 'key') ||
+            !Object.hasOwn(occurrence, 'args')
+          ) {
+            throw new Error(
+              `[foldkit] Keyed Binding field "${field}" init occurrence at index ${index} must contain its own key and args fields.`,
+            )
+          }
+
+          const key = readInitialOccurrenceKey(
+            Reflect.get(occurrence, 'key'),
+            field,
+            index,
+          )
+          const args = Reflect.get(occurrence, 'args')
+          if (!globalThis.Array.isArray(args)) {
+            throw new Error(
+              `[foldkit] Keyed Binding field "${field}" init occurrence at index ${index} args must be a child init argument tuple.`,
+            )
+          }
+
+          if (keys.has(key)) {
+            throw new Error(
+              `[foldkit] Keyed Binding field "${field}" init.occurrences contains duplicate key "${globalThis.String(key)}".`,
+            )
+          }
+          keys.add(key)
+
+          return { occurrence, key, args }
+        },
+      )
+    },
+    toItem: (occurrence, childModel) =>
+      Reflect.apply(toItem, undefined, [occurrence, childModel]),
+    readItemKey: item => Reflect.apply(readItemKey, undefined, [item]),
   }
 }

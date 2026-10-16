@@ -16,12 +16,13 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 const Counter = Block.define('Counter', { Model, Message })
-
-export const init = Counter.init(() => ({ model: Model.make({ count: 0 }) }))
-
 const CounterComposition = Counter.toComposition()
 
-export const update = Counter.update((model, message) =>
+export const init = CounterComposition.init(() => ({
+  model: Model.make({ count: 0 }),
+}))
+
+export const update = CounterComposition.update((model, message) =>
   Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: count => count - 1 }),

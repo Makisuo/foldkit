@@ -28,7 +28,7 @@ type AsyncCounterDemoViewBuilder = Block.ViewBuilderFor<
   typeof AsyncCounterDemoComposition
 >
 
-export const init = AsyncCounterDemo.init(() => ({
+export const init = AsyncCounterDemoComposition.init(() => ({
   model: Model.make({
     count: 0,
     isResetting: false,
@@ -64,7 +64,7 @@ const prependToLog =
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     pipe([entry, ...messageLog], Array.take(MAX_LOG_ENTRIES))
 
-export const update = AsyncCounterDemo.update((model, message) =>
+export const update = AsyncCounterDemoComposition.update((model, message) =>
   Message.match(message, {
     ClickedDemoIncrement: () => {
       const nextModel = modifyFields(model, {

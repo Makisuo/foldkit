@@ -393,9 +393,9 @@ export const makeCompositionRuntime = <Model, Message>({
 
     type ReconciliationPlan = Readonly<{
       model: any
-      children: ReadonlyArray<
+      childBindings: ReadonlyArray<
         Readonly<{
-          binding: BindableBlock['children'][number]
+          binding: BindableBlock['childBindings'][number]
           occurrences: ReadonlyArray<
             Readonly<{
               key?: InstanceKey
@@ -411,7 +411,7 @@ export const makeCompositionRuntime = <Model, Message>({
       model: any,
     ): ReconciliationPlan => ({
       model,
-      children: block.children.map(binding => {
+      childBindings: block.childBindings.map(binding => {
         const policy = runtimeBindingOf(binding)
         const keys = new Set<InstanceKey | undefined>()
         const occurrences = policy.select(model).map(child => {
@@ -453,7 +453,7 @@ export const makeCompositionRuntime = <Model, Message>({
       ): void => {
         node.model = plan.model
         updated.push(node)
-        for (const { binding, occurrences } of plan.children) {
+        for (const { binding, occurrences } of plan.childBindings) {
           const policy = runtimeBindingOf(binding)
           const previous =
             node.children.get(binding) ??

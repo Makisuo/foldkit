@@ -1,6 +1,5 @@
-import { Context, Effect, Schema } from 'effect'
-
-import { Block, Message, Struct, Update } from '../src/index.js'
+import { Context, Effect, Layer, Option, Schema } from 'effect'
+import { Block, Message, Struct, Update } from 'foldkit'
 
 export class ChoiceService extends Context.Service<
   ChoiceService,
@@ -51,9 +50,13 @@ const makeChoice = <const Values extends ReadonlyArray<string>>(
     model,
     outMessage: ChoiceOutMessage.SelectedValue({ value: model.value }),
   }))
-  const block = Choice.toComposition().toBlock({
-    init: (value: Value) => ({ model: Model.make({ value }) }),
-    update: Choice.update((model, message) =>
+  const ChoiceComposition = Choice.toComposition()
+  const block = ChoiceComposition.toBlock({
+    init: ChoiceComposition.init((value: Value) => ({
+      model: Model.make({ value }),
+      commands: [ReadChoice()],
+    })),
+    update: ChoiceComposition.update((model, message) =>
       ChoiceMessage.match(message, {
         UpdatedValue: ({ value }) => setValue(model, value),
         CompletedRefresh: () => ({ model }),
@@ -77,9 +80,12 @@ const PlainChoice = Block.define('DeclarationWrappedKeyedFieldPlainChoice', {
   Model: Choice.block.Model,
   Message: Choice.Message,
 })
-export const PlainChoiceBlock = PlainChoice.toComposition().toBlock({
-  init: () => ({ model: Choice.block.Model.make({ value: 'One' }) }),
-  update: PlainChoice.update((model, message) =>
+const PlainChoiceComposition = PlainChoice.toComposition()
+export const PlainChoiceBlock = PlainChoiceComposition.toBlock({
+  init: PlainChoiceComposition.init(() => ({
+    model: Choice.block.Model.make({ value: 'One' }),
+  })),
+  update: PlainChoiceComposition.update((model, message) =>
     Choice.Message.match(message, {
       UpdatedValue: ({ value }) => ({
         model: Struct.modifyFields(model, { value: () => value }),
@@ -87,6 +93,7 @@ export const PlainChoiceBlock = PlainChoice.toComposition().toBlock({
       CompletedRefresh: () => ({ model }),
     }),
   ),
+  EffectsLayer: Layer.empty,
 })
 
 export const ChoiceId = Schema.String.pipe(
@@ -109,14 +116,36 @@ const Text = Block.define('DeclarationWrappedKeyedFieldText', {
   Model: Schema.String,
   Message: TextMessage,
 })
-export const TextBlock = Text.toComposition().toBlock({
-  init: () => ({ model: '' }),
-  update: Text.update((_model, { value }) => ({ model: value })),
+const TextComposition = Text.toComposition()
+export const TextBlock = TextComposition.toBlock({
+  init: TextComposition.init(() => ({ model: '' })),
+  update: TextComposition.update((_model, { value }) => ({ model: value })),
+  EffectsLayer: Layer.empty,
 })
 export const TextEntry = Schema.Struct({
   id: Schema.String,
   text: Schema.String,
 })
+
+type Expect<Value extends true> = Value
+type MutuallyAssignable<Left, Right> = [Left] extends [Right]
+  ? [Right] extends [Left]
+    ? true
+    : false
+  : false
+type IsAny<Value> = 0 extends 1 & Value ? true : false
+type IsUnknown<Value> =
+  IsAny<Value> extends true ? false : unknown extends Value ? true : false
+type NotAnyOrUnknownProof<Value> =
+  IsAny<Value> extends true
+    ? [error: never]
+    : IsUnknown<Value> extends true
+      ? [error: never]
+      : []
+declare const expectNotAnyOrUnknown: <Value>(
+  value: Value,
+  ...proof: NotAnyOrUnknownProof<Value>
+) => void
 
 export const ParentModel = Schema.Struct({
   choices: Schema.Array(ChoiceEntry),
@@ -151,15 +180,19 @@ export const makePayloadParent = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       Message: ParentMessage,
     },
   )
-  const binding = PayloadParent.bindChild(PlainChoiceBlock, {
+  const Binding = PayloadParent.bindChild(PlainChoiceBlock, {
     field: 'entries',
     key: 'id',
     childField: 'choice',
     toParentMessage: (id, message) =>
       ParentMessage.GotChoiceMessage({ id, message }),
+    fromParentMessage: {
+      parentMessage: ParentMessage.GotChoiceMessage,
+      args: (_model, { id, message }) => Option.some([id, message]),
+    },
   })
 
-  return { binding, Model }
+  return { Binding, Model }
 }
 
 export const payloadParent = makePayloadParent(
@@ -203,17 +236,50 @@ export const choiceOutMessagePolicy = {
   },
 }
 
-export const choices = Parent.bindChild(Choice.block, {
+export const ChoicesBinding = Parent.bindChild(Choice.block, {
   field: 'choices',
   key: 'id',
   childField: 'choice',
   toParentMessage: toChoiceMessage,
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotChoiceMessage,
+    args: (model, { id, message }) => {
+      expectNotAnyOrUnknown(model)
+      expectNotAnyOrUnknown(id)
+      expectNotAnyOrUnknown(message)
+      type ParentModelContextIsExact = Expect<
+        MutuallyAssignable<typeof model, typeof ParentModel.Type>
+      >
+      type KeyContextIsExact = Expect<
+        MutuallyAssignable<typeof id, typeof ChoiceId.Type>
+      >
+      type MessageContextIsExact = Expect<
+        MutuallyAssignable<typeof message, typeof Choice.Message.Type>
+      >
+      const parentModelContextIsExact: ParentModelContextIsExact = true
+      const keyContextIsExact: KeyContextIsExact = true
+      const messageContextIsExact: MessageContextIsExact = true
+      void parentModelContextIsExact
+      void keyContextIsExact
+      void messageContextIsExact
+
+      return Option.some([id, message])
+    },
+  },
   subscriptions: {
     when: (model, id) => {
-      const exactModel: typeof ParentModel.Type = model
-      const exactId: typeof ChoiceId.Type = id
-      void exactModel
-      void exactId
+      expectNotAnyOrUnknown(model)
+      expectNotAnyOrUnknown(id)
+      type ParentModelContextIsExact = Expect<
+        MutuallyAssignable<typeof model, typeof ParentModel.Type>
+      >
+      type KeyContextIsExact = Expect<
+        MutuallyAssignable<typeof id, typeof ChoiceId.Type>
+      >
+      const parentModelContextIsExact: ParentModelContextIsExact = true
+      const keyContextIsExact: KeyContextIsExact = true
+      void parentModelContextIsExact
+      void keyContextIsExact
 
       return true
     },
@@ -221,19 +287,166 @@ export const choices = Parent.bindChild(Choice.block, {
   outMessage: choiceOutMessagePolicy,
 })
 
-export const plainChoices = Parent.bindChild(PlainChoiceBlock, {
+export type InitializationContext = Readonly<{
+  id: typeof ChoiceId.Type
+  value: 'One' | 'Two'
+}>
+
+export const InitializedChoicesBinding = Parent.bindChild(Choice.block, {
+  field: 'choices',
+  key: 'id',
+  childField: 'choice',
+  toParentMessage: toChoiceMessage,
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotChoiceMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
+  outMessage: choiceOutMessagePolicy,
+  init: {
+    occurrences: (context: InitializationContext) => {
+      expectNotAnyOrUnknown(context)
+      type ContextIsExact = Expect<
+        MutuallyAssignable<typeof context, InitializationContext>
+      >
+      const contextIsExact: ContextIsExact = true
+      void contextIsExact
+
+      return [{ key: context.id, args: [context.value] }]
+    },
+    toItem: ({ key }, choice) => {
+      expectNotAnyOrUnknown(key)
+      expectNotAnyOrUnknown(choice)
+      type KeyContextIsExact = Expect<
+        MutuallyAssignable<typeof key, typeof ChoiceId.Type>
+      >
+      type ChildModelContextIsExact = Expect<
+        MutuallyAssignable<typeof choice, typeof Choice.block.Model.Type>
+      >
+      const keyContextIsExact: KeyContextIsExact = true
+      const childModelContextIsExact: ChildModelContextIsExact = true
+      void keyContextIsExact
+      void childModelContextIsExact
+
+      return ChoiceEntry.make({ id: key, choice })
+    },
+  },
+})
+
+export const LiteralInitializedChoicesBinding = Parent.bindChild(Choice.block, {
+  field: 'choices',
+  key: 'id',
+  childField: 'choice',
+  placement: 'literalInitializedChoices',
+  toParentMessage: toChoiceMessage,
+  fromParentMessage: false,
+  outMessage: choiceOutMessagePolicy,
+  init: {
+    occurrences: () => [{ key: firstChoiceId, args: ['One'] }],
+    toItem: ({ key, args }, choice) => {
+      expectNotAnyOrUnknown(key)
+      expectNotAnyOrUnknown(args)
+      expectNotAnyOrUnknown(choice)
+      type ArgumentsAreExact = Expect<
+        MutuallyAssignable<typeof args, readonly [value: 'One' | 'Two']>
+      >
+      const argumentsAreExact: ArgumentsAreExact = true
+      void argumentsAreExact
+
+      return ChoiceEntry.make({ id: key, choice })
+    },
+  },
+})
+
+export const GeneralChoicesBinding = Parent.bindChild(Choice.block, {
+  placement: 'generalChoices',
+  readAll: model => model.choices,
+  key: item => item.id,
+  read: item => item.choice,
+  writeAt: model => model,
+  toParentMessage: (id, message) =>
+    ParentMessage.GotChoiceMessage({ id, message }),
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotChoiceMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
+  outMessage: {
+    fold: (key, outMessage, context) => {
+      expectNotAnyOrUnknown(key)
+      expectNotAnyOrUnknown(outMessage)
+      expectNotAnyOrUnknown(context)
+      type KeyIsExact = Expect<
+        MutuallyAssignable<typeof key, typeof ChoiceId.Type>
+      >
+      type OutMessageIsExact = Expect<
+        MutuallyAssignable<typeof outMessage, typeof Choice.OutMessage.Type>
+      >
+      const keyIsExact: KeyIsExact = true
+      const outMessageIsExact: OutMessageIsExact = true
+      void keyIsExact
+      void outMessageIsExact
+
+      return Parent.step(model => ({
+        model,
+        commands: [context.liftCommand(Choice.ReadChoice())],
+      }))
+    },
+  },
+  subscriptions: {
+    when: (model, key) => {
+      expectNotAnyOrUnknown(model)
+      expectNotAnyOrUnknown(key)
+      type ModelIsExact = Expect<
+        MutuallyAssignable<typeof model, typeof ParentModel.Type>
+      >
+      type KeyIsExact = Expect<
+        MutuallyAssignable<typeof key, typeof ChoiceId.Type>
+      >
+      const modelIsExact: ModelIsExact = true
+      const keyIsExact: KeyIsExact = true
+      void modelIsExact
+      void keyIsExact
+
+      return true
+    },
+  },
+})
+
+export const GeneralExtractedPolicyChoicesBinding = Parent.bindChild(
+  Choice.block,
+  {
+    placement: 'generalExtractedPolicyChoices',
+    readAll: model => model.choices,
+    key: item => item.id,
+    read: item => item.choice,
+    writeAt: model => model,
+    toParentMessage: (id, message) =>
+      ParentMessage.GotChoiceMessage({ id, message }),
+    fromParentMessage: false,
+    outMessage: choiceOutMessagePolicy,
+  },
+)
+
+export const PlainChoicesBinding = Parent.bindChild(PlainChoiceBlock, {
   field: 'plainChoices',
   key: 'id',
   childField: 'choice',
   toParentMessage: toChoiceMessage,
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotChoiceMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
 })
 
-export const literalChoices = Parent.bindChild(Choice.block, {
+export const LiteralChoicesBinding = Parent.bindChild(Choice.block, {
   field: 'literalChoices',
   key: 'kind',
   childField: 'choice',
   toParentMessage: (kind, message) =>
     ParentMessage.GotLiteralChoiceMessage({ kind, message }),
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotLiteralChoiceMessage,
+    args: (_model, { kind, message }) => Option.some([kind, message]),
+  },
   outMessage: {
     fold: (kind, outMessage) => {
       const exactKind: 'Primary' | 'Secondary' = kind
@@ -241,23 +454,49 @@ export const literalChoices = Parent.bindChild(Choice.block, {
       void exactKind
       void exactOutMessage
 
-      return model => ({ model })
+      return Parent.step(model => ({ model }))
     },
   },
 })
 
-export const textEntries = Parent.bindChild(TextBlock, {
+export const TextEntriesBinding = Parent.bindChild(TextBlock, {
   field: 'textEntries',
   key: 'id',
   childField: 'text',
   toParentMessage: (id, message) =>
     ParentMessage.GotTextMessage({ id, message }),
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotTextMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
 })
 
-export const choiceInspection = Block.inspectBinding(choices)
+export const choiceInspection = Block.inspectBinding(ChoicesBinding)
 
 export const composition = Parent.toComposition({
-  children: [choices, plainChoices, literalChoices, textEntries],
+  childBindings: [ChoicesBinding, LiteralChoicesBinding, TextEntriesBinding],
+})
+
+// eslint-disable-next-line foldkit/block-name-matches-variable
+export const initialComposition = Parent.toComposition({
+  childBindings: [InitializedChoicesBinding],
+})
+
+export const initialize = initialComposition.init(
+  (context: InitializationContext) => ({
+    startup: context,
+    model: {
+      plainChoices: [],
+      literalChoices: [],
+      textEntries: [],
+    },
+  }),
+)
+
+export const initializedBlock = initialComposition.toBlock({
+  init: initialize,
+  update: initialComposition.update(model => ({ model })),
+  EffectsLayer: Layer.empty,
 })
 
 export const initialParentModel = ParentModel.make({
@@ -277,15 +516,34 @@ export const initialParentModel = ParentModel.make({
   textEntries: [TextEntry.make({ id: 'text', text: 'initial' })],
 })
 
-choices.fold(
+ChoicesBinding.fold(
   initialParentModel,
   firstChoiceId,
   Choice.Message.UpdatedValue({ value: 'Two' }),
 )
-choices.setValue(firstChoiceId, 'One')(initialParentModel)
-literalChoices.select('Primary')(initialParentModel)
-textEntries.fold(
+ChoicesBinding.setValue(firstChoiceId, 'One')(initialParentModel)
+LiteralChoicesBinding.select('Primary')(initialParentModel)
+TextEntriesBinding.fold(
   initialParentModel,
   'text',
   TextMessage.ReplacedText({ value: 'next' }),
 )
+
+const initializedModel = initialize({ id: firstChoiceId, value: 'Two' }).model
+type InitializedModelIsExact = Expect<
+  MutuallyAssignable<typeof initializedModel, typeof ParentModel.Type>
+>
+const initializedModelIsExact: InitializedModelIsExact = true
+void initializedModelIsExact
+
+export const unassembledInitialize = Parent.toComposition().init(() => ({
+  model: { choices: [], plainChoices: [], literalChoices: [], textEntries: [] },
+}))
+type UnassembledModelRemainsExact = Expect<
+  MutuallyAssignable<
+    ReturnType<typeof unassembledInitialize>['model']['choices'],
+    Array<never>
+  >
+>
+const unassembledModelRemainsExact: UnassembledModelRemainsExact = true
+void unassembledModelRemainsExact

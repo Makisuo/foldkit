@@ -1,9 +1,9 @@
 import { Array, Option } from 'effect'
 
-import { Slider } from '@foldkit/ui'
 import { snapAndClamp } from '@foldkit/ui/slider'
 
 import { GenerateAmbientParticle } from './command'
+import { ApplicationComposition } from './composition'
 import {
   FLOW_STRENGTH_MAX,
   FLOW_STRENGTH_MIN,
@@ -15,9 +15,8 @@ import {
   NOISE_SCALE_MIN_DIVISOR,
   NOISE_SCALE_STEP,
 } from './constant'
-import { Application } from './definition'
 
-export const init = Application.init(() => ({
+export const init = ApplicationComposition.init(() => ({
   model: {
     particles: [],
     nextId: 0,
@@ -30,24 +29,12 @@ export const init = Application.init(() => ({
       FLOW_STRENGTH_MAX,
       FLOW_STRENGTH_STEP,
     ),
-    flowStrengthSlider: Slider.init({
-      id: 'flow-strength-slider',
-      min: FLOW_STRENGTH_MIN,
-      max: FLOW_STRENGTH_MAX,
-      step: FLOW_STRENGTH_STEP,
-    }),
     noiseScale: snapAndClamp(
       INITIAL_NOISE_SCALE,
       NOISE_SCALE_MIN_DIVISOR,
       NOISE_SCALE_MAX_DIVISOR,
       NOISE_SCALE_STEP,
     ),
-    noiseScaleSlider: Slider.init({
-      id: 'noise-scale-slider',
-      min: NOISE_SCALE_MIN_DIVISOR,
-      max: NOISE_SCALE_MAX_DIVISOR,
-      step: NOISE_SCALE_STEP,
-    }),
   },
   commands: Array.makeBy(INITIAL_PARTICLE_COUNT, () =>
     GenerateAmbientParticle(),

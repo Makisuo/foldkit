@@ -1,4 +1,4 @@
-import { Array, Option, Schema } from 'effect'
+import { Array, Option, Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -37,30 +37,24 @@ const foldComboboxOutMessage = CityCombobox.OutMessage.match<
 
 const CityPicker = Block.define('CityPicker', { Model, Message })
 
-const combobox = CityPicker.bindChild(CityCombobox, {
+const ComboboxBinding = CityPicker.bindChild(CityCombobox, {
   field: 'combobox',
   parentMessage: Message.GotComboboxMessage,
+  init: { args: () => Tuple.make({ id: 'city' }) },
   outMessage: { fold: foldComboboxOutMessage },
 })
 
 // Including the Binding collects its lifecycle and handler graph.
 
-const init = CityPicker.init(() => ({
-  model: Model.make({
-    maybeCity: Option.none(),
-    combobox: combobox.init({ id: 'city' }).model,
-  }),
-}))
-
 const CityPickerComposition = CityPicker.toComposition({
-  children: [combobox],
+  childBindings: [ComboboxBinding],
 })
 
-const update = CityPicker.update((model, message) =>
-  Message.match(message, {
-    GotComboboxMessage: ({ message }) => combobox.fold(model, message),
-  }),
-)
+const init = CityPickerComposition.init(() => ({
+  model: { maybeCity: Option.none() },
+}))
+
+const update = CityPickerComposition.update()
 
 const cities: ReadonlyArray<City> = [
   'Johannesburg',
@@ -84,7 +78,7 @@ const view = CityPickerComposition.view((model, h) => {
     [
       h.label([h.Id(labelId), h.For(ComboboxInputId('city'))], ['City']),
       h.block(
-        combobox.embedView({
+        ComboboxBinding.embedView({
           slotId: 'city',
           model: model.combobox,
           viewInputs: {

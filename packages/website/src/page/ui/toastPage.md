@@ -32,7 +32,7 @@ Swipe is pointer-driven and opt-in. Pass `swipeToDismiss` to the Toast Binding�
 
 ### Track the Pointer
 
-With swipe enabled, Toast handles `pointerdown` on each entry. Connect the completed Block returned by `Toast.make` and include the Binding in the owning definition’s `children`; that one relationship carries the Toast instance’s pointer Subscriptions and handler recipes through application composition. The Subscriptions track `pointermove`, `pointerup`, and `pointercancel` even when the pointer leaves the entry. Without the Binding, the parent cannot embed the Toast view. Escape cancels active drags. While dragging, Toast prevents text selection and shows the grabbing cursor. The example above shows the Binding.
+With swipe enabled, Toast handles `pointerdown` on each entry. Connect the completed Block returned by `Toast.make` and include the Binding in the owning Composition’s `childBindings`; that one relationship carries the Toast instance’s pointer Subscriptions and handler recipes through application composition. The Subscriptions track `pointermove`, `pointerup`, and `pointercancel` even when the pointer leaves the entry. Without the Binding, the parent cannot embed the Toast view. Escape cancels active drags. While dragging, Toast prevents text selection and shows the grabbing cursor. The example above shows the Binding.
 
 ### Preserve Nested Interactions
 
@@ -116,7 +116,7 @@ Toast operations are public parent Steps. Call the Binding’s `show`, `dismiss`
 
 #### Lift Pointer Subscriptions
 
-Each completed Block returned by `Toast.make` can be bound once and included in the owner’s `children`; composition carries `swipePointer`, `swipeEscape`, and their handler recipes automatically. The source `subscriptions` registry remains available when a Scene test needs to call `Subscription.emit` for one of those entries. The stable factory name keeps separate Toast instances distinct. The [example above](#examples) shows the Binding alongside the Toast Model and Message.
+Each completed Block returned by `Toast.make` can be bound once and included in the owner’s `childBindings`; composition carries `swipePointer`, `swipeEscape`, and their handler recipes automatically. The source `subscriptions` registry remains available when a Scene test needs to call `Subscription.emit` for one of those entries. The stable factory name keeps separate Toast instances distinct. The [example above](#examples) shows the Binding alongside the Toast Model and Message.
 
 The composed Binding ensures `pointermove` and `pointerup` reach the Toast update after the initial `pointerdown`, even when the pointer leaves the entry.
 

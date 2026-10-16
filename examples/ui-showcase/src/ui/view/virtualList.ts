@@ -3,8 +3,8 @@ import type { Html } from 'foldkit/html'
 
 import {
   UiComposition,
-  virtualListDemo,
-  virtualListVariableDemo,
+  VirtualListDemoBinding,
+  VirtualListVariableDemoBinding,
 } from '../composition'
 import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
@@ -277,7 +277,7 @@ export const view = UiComposition.view((model, h) => {
                 ],
               ),
               h.block(
-                virtualListDemo.embedView({
+                VirtualListDemoBinding.embedView({
                   slotId: model.virtualListDemo.id,
                   model: model.virtualListDemo,
                   viewInputs: {
@@ -316,7 +316,7 @@ export const view = UiComposition.view((model, h) => {
                 ],
               ),
               h.block(
-                virtualListVariableDemo.embedView({
+                VirtualListVariableDemoBinding.embedView({
                   slotId: model.virtualListVariableDemo.id,
                   model: model.virtualListVariableDemo,
                   viewInputs: {

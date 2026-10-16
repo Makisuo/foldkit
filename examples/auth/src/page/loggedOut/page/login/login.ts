@@ -10,7 +10,13 @@ import {
 import { modifyFields } from 'foldkit/struct'
 
 import { type Session } from '../../../../domain/session'
-import { Login, Message, type Model, OutMessage } from './definition'
+import {
+  Login,
+  LoginComposition,
+  Message,
+  type Model,
+  OutMessage,
+} from './definition'
 
 export const initModel = (): Model => ({
   email: NotValidated({ value: '' }),
@@ -69,7 +75,7 @@ export const SimulateAuthRequest = Login.command('SimulateAuthRequest', {
 
 export const EffectsLayer = SimulateAuthRequest.layer
 
-export const update = Login.update((model, message) =>
+export const update = LoginComposition.update((model, message) =>
   Message.match(message, {
     ChangedEmail: ({ value }) => ({
       model: modifyFields(model, { email: () => validateEmail(value) }),

@@ -26,7 +26,7 @@ const NotificationSettings = Block.define('NotificationSettings', {
   Message,
 })
 // In your init function, start it off:
-const init = NotificationSettings.init(() => ({
+const init = NotificationSettingsComposition.init(() => ({
   model: {
     notificationsEnabled: false,
     // ...your other fields

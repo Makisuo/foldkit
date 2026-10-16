@@ -3,7 +3,12 @@ import { Update } from 'foldkit'
 import { Transition } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
 
-import { apiReference, exampleDetail, home, playground } from './composition'
+import {
+  ApiReferenceBinding,
+  ExampleDetailBinding,
+  HomeBinding,
+  PlaygroundBinding,
+} from './composition'
 import { Application } from './definition'
 import { findActiveSectionKey } from './docsNav'
 import { type Model } from './model'
@@ -45,14 +50,11 @@ export const maybePlaygroundRouteToInitialize = (
 
 const reconcileHome = (transition: ApplicationTransition) => (model: Model) => {
   if (Option.isSome(maybeHomeRouteToInitialize(transition))) {
-    const homeInit = home.init()
-    const nextModel = modifyFields(model, {
-      maybeHome: () => Option.some(homeInit.model),
+    return HomeBinding.init({
+      args: [],
+      toParentModel: home =>
+        modifyFields(model, { maybeHome: () => Option.some(home) }),
     })
-
-    return homeInit.commands === undefined
-      ? { model: nextModel }
-      : { model: nextModel, commands: homeInit.commands }
   }
 
   if (Option.isSome(Transition.exited(transition, 'Home'))) {
@@ -72,17 +74,13 @@ const reconcilePlayground =
   (model: Model) =>
     Option.match(maybePlaygroundRouteToInitialize(transition), {
       onSome: ({ exampleSlug }) => {
-        const playgroundInit = playground.init(
-          exampleSlug,
-          maybeIsPlaygroundSupported,
-        )
-        const nextModel = modifyFields(model, {
-          playground: () => Option.some(playgroundInit.model),
+        return PlaygroundBinding.init({
+          args: [exampleSlug, maybeIsPlaygroundSupported],
+          toParentModel: playground =>
+            modifyFields(model, {
+              playground: () => Option.some(playground),
+            }),
         })
-
-        return playgroundInit.commands === undefined
-          ? { model: nextModel }
-          : { model: nextModel, commands: playgroundInit.commands }
       },
       onNone: () =>
         ApplicationRoute.guards.Playground(transition.nextRoute)
@@ -132,12 +130,12 @@ const maybeExampleRouteToInform = (transition: ApplicationTransition) =>
 export const routeDataLoadingSteps = (transition: ApplicationTransition) => [
   ...Option.match(maybeApiModuleRouteToInform(transition), {
     onNone: () => [],
-    onSome: () => [apiReference.informRouteChanged()],
+    onSome: () => [ApiReferenceBinding.informRouteChanged()],
   }),
   ...Option.match(maybeExampleRouteToInform(transition), {
     onNone: () => [],
     onSome: ({ exampleSlug }) => [
-      exampleDetail.informRouteChanged(exampleSlug),
+      ExampleDetailBinding.informRouteChanged(exampleSlug),
     ],
   }),
 ]

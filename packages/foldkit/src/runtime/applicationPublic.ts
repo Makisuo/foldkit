@@ -1,7 +1,7 @@
 import { toApplication, toElement } from './application.js'
 import { makeDefine } from './applicationAuthoring.js'
 
-export type { Application, Element } from './application.js'
+export type { Application, Element, PendingApplication } from './application.js'
 export type {
   Composition,
   Definition,

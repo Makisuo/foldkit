@@ -33,7 +33,7 @@ export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
 
-export const init = Application.init((url: Url) => ({
+export const init = ApplicationComposition.init((url: Url) => ({
   model: { route: urlToApplicationRoute(url), count: 0 },
 }))
 

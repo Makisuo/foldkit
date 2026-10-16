@@ -188,6 +188,35 @@ describe('defineTaggedUnion', () => {
     expect(isFailed(Submission.NotSubmitted())).toBe(false)
   })
 
+  it('accepts never, unknown, and any as explicit partial outputs', () => {
+    const failSubmission = Submission.matchOrElse<never>(
+      {
+        Failed: () => {
+          throw new Error('failed')
+        },
+      },
+      () => {
+        throw new Error('pending')
+      },
+    )
+    const eraseSubmission = Submission.matchOrElse<unknown>(
+      { Failed: ({ error }) => error },
+      ({ _tag }) => _tag,
+    )
+    const uncheckedSubmission = Submission.matchOrElse<any>(
+      { Failed: ({ error }) => error },
+      ({ _tag }) => _tag,
+    )
+
+    expectTypeOf(failSubmission).toEqualTypeOf<
+      (submission: Submission) => never
+    >()
+    expectTypeOf(
+      eraseSubmission(Submission.NotSubmitted()),
+    ).toEqualTypeOf<unknown>()
+    expectTypeOf(uncheckedSubmission(Submission.NotSubmitted())).toBeAny()
+  })
+
   it('keeps possibly absent case handlers in the fallback type', () => {
     const maybeCases: Readonly<{
       Failed?: (submission: typeof Submission.Failed.Type) => string
@@ -292,15 +321,36 @@ describe('defineTaggedUnion', () => {
       Failed: () => 1,
     })
 
+    const namedPartialCasesWithUnknown = {
+      Failed: ({ error }: typeof Submission.Failed.Type) => `failed: ${error}`,
+      Unknown: () => 'unknown',
+    }
+
+    const contextualPartialResult: string = Submission.matchOrElse(
+      submissionForFullUnion(),
+      // @ts-expect-error Contextual output inference cannot admit unknown handlers.
+      namedPartialCasesWithUnknown,
+      () => 'pending',
+    )
+    void contextualPartialResult
+
+    Submission.matchOrElse<string, Submission, 'failed'>(
+      // @ts-expect-error An explicit Return cannot narrow the declared output.
+      { Failed: () => 'failed' },
+      () => 'pending',
+    )
+
+    // @ts-expect-error An exhaustive match accepts only declared variants
     Submission.match({
       NotSubmitted: () => 'not submitted',
       Submitting: () => 'submitting',
       Failed: () => 'failed',
-      // @ts-expect-error An exhaustive match accepts only declared variants
       Unknown: () => 'unknown',
     })
   }
 })
+
+const submissionForFullUnion = (): Submission => Submission.NotSubmitted()
 
 describe('subsets', () => {
   const Settled = Submission.subset(['NotSubmitted', 'Failed'])

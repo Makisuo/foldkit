@@ -4,7 +4,7 @@ import { Application } from '../definition'
 import * as DragAndDrop from './dragAndDrop'
 
 export const ApplicationComposition = Application.toComposition({
-  children: [DragAndDrop.dragAndDrop],
+  childBindings: [DragAndDrop.DragAndDropBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition

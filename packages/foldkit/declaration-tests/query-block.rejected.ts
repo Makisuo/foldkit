@@ -1,8 +1,7 @@
 import { Effect, Layer, Schema } from 'effect'
-
-import * as Block from '../src/block/public.js'
-import * as Query from '../src/experimental/query/index.js'
-import * as Message from '../src/message/public.js'
+import * as Block from 'foldkit/block'
+import * as Query from 'foldkit/experimental/query'
+import * as Message from 'foldkit/message'
 
 const Notes = Query.define({
   name: 'RejectedDeclarationNotes',

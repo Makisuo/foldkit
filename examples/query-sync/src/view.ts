@@ -8,8 +8,8 @@ import { AnchorConfig, type ItemConfig } from '@foldkit/ui/listbox'
 import {
   ApplicationComposition,
   type ApplicationViewBuilder,
-  dietListbox,
-  periodListbox,
+  DietListboxBinding,
+  PeriodListboxBinding,
 } from './composition'
 import { type Dinosaur, dinosaurs } from './data'
 import { Message } from './message'
@@ -312,7 +312,7 @@ const browseView = (
             h,
           ),
           h.block(
-            dietListbox.embedView({
+            DietListboxBinding.embedView({
               slotId: model.dietListbox.id,
               model: model.dietListbox,
               viewInputs: {
@@ -339,7 +339,7 @@ const browseView = (
             }),
           ),
           h.block(
-            periodListbox.embedView({
+            PeriodListboxBinding.embedView({
               slotId: model.periodListbox.id,
               model: model.periodListbox,
               viewInputs: {

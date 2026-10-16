@@ -26,8 +26,7 @@ export type Primitives<Id extends string, Message = unknown> = Readonly<{
   resource: DefineResource<Id>
 }>
 
-/** Registers the child and Mount graph while retaining the Block's authoring
- * methods. This step only records composition; it does not construct Layers or
+/** Registers the child and Mount graph for init, update and view authoring. This step only records composition; it does not construct Layers or
  * start lifecycle work. */
 export interface AuthoringToComposition<
   Id extends string,
@@ -43,8 +42,7 @@ export interface AuthoringToComposition<
     OutMessageSchema,
     readonly [],
     readonly []
-  > &
-    Primitives<Id, MessageSchema['Type']>
+  >
   <
     const Mounts extends ReadonlyArray<Mount.LayeredMountDefinition> =
       readonly [],
@@ -55,8 +53,8 @@ export interface AuthoringToComposition<
        * to an empty registry. */
       mounts?: Mounts & Mount.PreciseMountRegistry<Mounts>
       /** Child Bindings registered in this Block's composition graph. Omitted
-       * children default to an empty tuple. */
-      children?: Children
+       * childBindings default to an empty tuple. */
+      childBindings?: Children
     }> &
       ValidateChildBindings<
         Children,
@@ -71,8 +69,7 @@ export interface AuthoringToComposition<
     OutMessageSchema,
     Mounts,
     Children
-  > &
-    Primitives<Id, MessageSchema['Type']>
+  >
 }
 
 /** Typed authoring helpers and owned effect declarations before graph
@@ -119,7 +116,7 @@ export interface DefineContracts<
       /** Schema for facts the Block can report to a parent. */
       OutMessage: OutMessageSchema
       mounts?: never
-      children?: never
+      childBindings?: never
     }>,
   ): AuthoringDefinition<
     Id,
@@ -136,7 +133,7 @@ export interface DefineContracts<
       Message: MessageSchema
       OutMessage?: never
       mounts?: never
-      children?: never
+      childBindings?: never
     }>,
   ): AuthoringDefinition<Id, ModelSchema, MessageSchema, undefined, Concrete>
 }
@@ -178,7 +175,7 @@ export function define<
     Message: MessageSchema
     OutMessage: OutMessageSchema
     mounts?: never
-    children?: never
+    childBindings?: never
   }>,
 ): AuthoringDefinition<Id, ModelSchema, MessageSchema, OutMessageSchema, true>
 /** Defines one Block's identity, Schemas, typed authoring helpers, and owned
@@ -197,7 +194,7 @@ export function define<
     Message: MessageSchema
     OutMessage?: never
     mounts?: never
-    children?: never
+    childBindings?: never
   }>,
 ): AuthoringDefinition<Id, ModelSchema, MessageSchema, undefined, true>
 /** Defines one Block's identity, Schemas, typed authoring helpers, and owned
@@ -216,7 +213,7 @@ export function define<
     Message: MessageSchema
     OutMessage: OutMessageSchema
     mounts?: never
-    children?: never
+    childBindings?: never
   }>,
 ): AuthoringDefinition<Id, ModelSchema, MessageSchema, OutMessageSchema, false>
 /** Defines one Block's identity, Schemas, typed authoring helpers, and owned
@@ -234,7 +231,7 @@ export function define<
     Message: MessageSchema
     OutMessage?: never
     mounts?: never
-    children?: never
+    childBindings?: never
   }>,
 ): AuthoringDefinition<Id, ModelSchema, MessageSchema, undefined, false>
 export function define(
@@ -264,10 +261,10 @@ export function define(
     const toComposition = (
       graph: Readonly<{
         mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
-        children?: ReadonlyArray<AnyBinding>
+        childBindings?: ReadonlyArray<AnyBinding>
       }> = {},
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    ) => ({ ...base.toComposition(graph as never), ...primitives })
+    ) => base.toComposition(graph as never)
 
     return { ...base, ...primitives, toComposition }
   }

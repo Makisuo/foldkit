@@ -1,31 +1,25 @@
 import { Array, Option, pipe } from 'effect'
 import { Calendar, Command, Update } from 'foldkit'
+import type { StorySimulation } from 'foldkit/story'
 import {
   Command as StoryCommand,
   model as expectModel,
   given,
   story,
 } from 'foldkit/story'
-import type { StorySimulation } from 'foldkit/story'
 import * as Url from 'foldkit/url'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import { Tabs } from '@foldkit/ui'
 
-import { exampleDetail } from '../../composition'
+import { ExampleDetailBinding } from '../../composition'
 import { Deployment } from '../../deployment'
 import { init as initApplication } from '../../init'
 import type { Message as ApplicationMessage } from '../../message'
 import type { Model as ApplicationModel } from '../../model'
 import { update as updateApplication } from '../../update'
-import {
-  LoadExampleSources,
-  Message,
-  boot,
-  informRouteChanged,
-  init,
-  update,
-} from './example'
+import { block } from './block'
+import { LoadExampleSources, Message, init, update } from './example'
 import type { ExampleSources } from './sources'
 
 const sources: ExampleSources = {
@@ -41,23 +35,31 @@ const sources: ExampleSources = {
 const initialModel = () => init().model
 
 const commandNames = (
-  commands: ReturnType<typeof boot>['commands'],
+  commands: ReturnType<typeof block.expose.loadInitialSources>['commands'],
 ): ReadonlyArray<string> =>
   pipe(
     commands ?? [],
     Array.map(command => command.name),
   )
 
-describe('example detail boot', () => {
+describe('example detail initial sources', () => {
   test('preserves the initialized Model when there is no initial slug', () => {
     const model = initialModel()
-    const unseededBoot = boot(model, Option.none(), Option.none())
-    const seededBoot = boot(model, Option.none(), Option.some(sources))
+    const unseededSourcesLoad = block.expose.loadInitialSources(
+      model,
+      Option.none(),
+      Option.none(),
+    )
+    const seededSourcesLoad = block.expose.loadInitialSources(
+      model,
+      Option.none(),
+      Option.some(sources),
+    )
 
-    expect(unseededBoot.model).toBe(model)
-    expect(unseededBoot.commands).toBeUndefined()
-    expect(seededBoot.model).toBe(model)
-    expect(seededBoot.commands).toBeUndefined()
+    expect(unseededSourcesLoad.model).toBe(model)
+    expect(unseededSourcesLoad.commands).toBeUndefined()
+    expect(seededSourcesLoad.model).toBe(model)
+    expect(seededSourcesLoad.commands).toBeUndefined()
   })
 
   test('starts loading an available unseeded example from clean child state', () => {
@@ -76,60 +78,66 @@ describe('example detail boot', () => {
       Message.ChangedExampleUrl({ url: 'https://example.test' }),
     )
 
-    const unseededBoot = boot(
+    const unseededSourcesLoad = block.expose.loadInitialSources(
       withExampleUrl.model,
       Option.some('counter'),
       Option.none(),
     )
 
-    expect(unseededBoot.model.currentSources._tag).toBe('Loading')
-    expect(unseededBoot.model.maybeActiveSourceFilePath).toEqual(Option.none())
-    expect(unseededBoot.model.maybeExampleUrl).toEqual(Option.none())
-    expect(unseededBoot.model.sourceFileTabs).toEqual(
+    expect(unseededSourcesLoad.model.currentSources._tag).toBe('Loading')
+    expect(unseededSourcesLoad.model.maybeActiveSourceFilePath).toEqual(
+      Option.none(),
+    )
+    expect(unseededSourcesLoad.model.maybeExampleUrl).toEqual(Option.none())
+    expect(unseededSourcesLoad.model.sourceFileTabs).toEqual(
       Tabs.init({ id: 'source-file-tabs' }),
     )
-    expect(commandNames(unseededBoot.commands)).toEqual([
+    expect(commandNames(unseededSourcesLoad.commands)).toEqual([
       'ExampleDetail/LoadExampleSources',
     ])
-    expectTypeOf<Update.RequirementsOf<typeof boot>>().toEqualTypeOf<
-      Command.HandlerOf<typeof LoadExampleSources>
-    >()
+    expectTypeOf<
+      Update.RequirementsOf<typeof block.expose.loadInitialSources>
+    >().toEqualTypeOf<Command.HandlerOf<typeof LoadExampleSources>>()
   })
 
   test('shows supplied sources without fetching them', () => {
-    const seededBoot = boot(
+    const seededSourcesLoad = block.expose.loadInitialSources(
       initialModel(),
       Option.some('counter'),
       Option.some(sources),
     )
 
-    expect(seededBoot.model.currentSources).toEqual({
+    expect(seededSourcesLoad.model.currentSources).toEqual({
       _tag: 'Success',
       data: sources,
     })
-    expect(seededBoot.model.maybeActiveSourceFilePath).toEqual(
+    expect(seededSourcesLoad.model.maybeActiveSourceFilePath).toEqual(
       Option.some('src/application.ts'),
     )
-    expect(seededBoot.commands).toBeUndefined()
+    expect(seededSourcesLoad.commands).toBeUndefined()
   })
 
   test('leaves unavailable examples unchanged with or without supplied sources', () => {
     const model = initialModel()
-    const unseededBoot = boot(model, Option.some('livestore'), Option.none())
-    const seededBoot = boot(
+    const unseededSourcesLoad = block.expose.loadInitialSources(
+      model,
+      Option.some('livestore'),
+      Option.none(),
+    )
+    const seededSourcesLoad = block.expose.loadInitialSources(
       model,
       Option.some('livestore'),
       Option.some(sources),
     )
 
-    expect(unseededBoot.model).toBe(model)
-    expect(unseededBoot.commands).toBeUndefined()
-    expect(seededBoot.model).toBe(model)
-    expect(seededBoot.commands).toBeUndefined()
+    expect(unseededSourcesLoad.model).toBe(model)
+    expect(unseededSourcesLoad.commands).toBeUndefined()
+    expect(seededSourcesLoad.model).toBe(model)
+    expect(seededSourcesLoad.commands).toBeUndefined()
   })
 
   test('clears existing sources when routing to an unavailable example', () => {
-    const loaded = boot(
+    const loaded = block.expose.loadInitialSources(
       initialModel(),
       Option.some('counter'),
       Option.some(sources),
@@ -139,7 +147,10 @@ describe('example detail boot', () => {
       Message.ChangedExampleUrl({ url: 'https://example.test' }),
     )
 
-    const routeChange = informRouteChanged(withExampleUrl.model, 'livestore')
+    const routeChange = block.expose.informRouteChanged(
+      withExampleUrl.model,
+      'livestore',
+    )
 
     expect(routeChange.model.currentSources._tag).toBe('Idle')
     expect(routeChange.model.maybeActiveSourceFilePath).toEqual(Option.none())
@@ -166,7 +177,7 @@ describe('example detail boot', () => {
       url,
     )
 
-    const applicationBoot = exampleDetail.boot(
+    const applicationBoot = ExampleDetailBinding.loadInitialSources(
       Option.some('counter'),
       Option.none(),
     )(applicationInit.model)

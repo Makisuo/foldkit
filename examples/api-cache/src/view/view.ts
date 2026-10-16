@@ -1,6 +1,6 @@
 import { Array, Match, pipe } from 'effect'
 
-import { ApplicationComposition, tabs } from '../composition'
+import { ApplicationComposition, TabsBinding } from '../composition'
 import { TABS_ID, tabValues } from '../model'
 import { postsTabView } from './posts'
 import { headerView } from './shared'
@@ -19,7 +19,7 @@ export const view = ApplicationComposition.view((model, h) => ({
         [
           headerView(h),
           h.block(
-            tabs.embedView({
+            TabsBinding.embedView({
               slotId: TABS_ID,
               model: model.tabs,
               viewInputs: {

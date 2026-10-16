@@ -1,0 +1,301 @@
+import { Layer, Option } from 'effect'
+import * as Block from 'foldkit/block'
+import * as Update from 'foldkit/update'
+
+import {
+  Application,
+  ApplicationModel,
+  ApplicationMessage,
+  DirectReciprocalApplication,
+  DraftStore,
+  HomeBinding,
+  HomeBlock,
+  HomeOutMessage,
+  KeyedReciprocalApplication,
+  LeftHomeBinding,
+  LeftKeyedHomeBinding,
+  RoomBinding,
+  RoomBlock,
+  RoomContext,
+  RightHomeBinding,
+  RightKeyedHomeBinding,
+  applicationUpdate,
+} from './reciprocal-coordination.accepted.js'
+
+type Equal<Left, Right> =
+  (<Value>() => Value extends Left ? 1 : 2) extends <
+    Value,
+  >() => Value extends Right ? 1 : 2
+    ? (<Value>() => Value extends Right ? 1 : 2) extends <
+        Value,
+      >() => Value extends Left ? 1 : 2
+      ? true
+      : false
+    : false
+type Expect<Value extends true> = Value
+type ReturnOutMessage<Output> = Output extends unknown
+  ? 'outMessage' extends keyof Output
+    ? Output extends Readonly<{ outMessage?: infer OutMessage }>
+      ? Exclude<OutMessage, undefined>
+      : never
+    : never
+  : never
+
+type HomeReset = ReturnType<typeof HomeBinding.resetJoinForm>
+type HomeRequestJoin = ReturnType<typeof HomeBinding.requestJoin>
+type HomeFold = ReturnType<typeof HomeBinding.fold>
+type RoomInform = ReturnType<typeof RoomBinding.informJoined>
+type RoomFold = ReturnType<typeof RoomBinding.fold>
+type HomeLayerServicesAreExact = Expect<
+  Equal<Layer.Services<typeof HomeBlock.EffectsLayer>, DraftStore>
+>
+type HomeLayerErrorIsExact = Expect<
+  Equal<Layer.Error<typeof HomeBlock.EffectsLayer>, never>
+>
+
+export const emittedRequestJoinStep = HomeBinding.requestJoin('room-1', 'alice')
+
+type HomeArgumentsAreExact = Expect<
+  Equal<Parameters<typeof HomeBinding.resetJoinForm>, [username: string]>
+>
+type HomeRequestArgumentsAreExact = Expect<
+  Equal<
+    Parameters<typeof HomeBinding.requestJoin>,
+    [roomId: string, username: string]
+  >
+>
+type RoomArgumentsAreExact = Expect<
+  Equal<
+    Parameters<typeof RoomBinding.informJoined>,
+    [key: string, username: string, _context: typeof RoomContext.Type]
+  >
+>
+type RoomInitConfig = Parameters<typeof RoomBinding.init>[0]
+type RoomInitKeyIsExact = Expect<Equal<RoomInitConfig['key'], string>>
+type RoomInitArgumentsAreExact = Expect<
+  Equal<RoomInitConfig['args'], [maybeUsername: Option.Option<string>]>
+>
+type HomeRequirementsAreExact = Expect<
+  Equal<
+    Update.RequirementsOf<HomeReset>,
+    Block.Scoped<
+      'home',
+      Update.RequirementsOf<typeof HomeBlock.expose.resetJoinForm>
+    >
+  >
+>
+type RoomRequirementsAreExact = Expect<
+  Equal<Update.RequirementsOf<RoomInform>, never>
+>
+type RoomFoldRequirementsAreExact = Expect<
+  Equal<
+    Update.RequirementsOf<typeof RoomBinding.fold>,
+    Block.Scoped<
+      'home',
+      Update.RequirementsOf<typeof HomeBlock.expose.resetJoinForm>
+    >
+  >
+>
+type HomeRequestRequirementsAreExact = Expect<
+  Equal<
+    Update.RequirementsOf<HomeRequestJoin>,
+    Block.Scoped<
+      'home',
+      Update.RequirementsOf<typeof HomeBlock.expose.requestJoin>
+    >
+  >
+>
+type HomeOutMessageIsExact = Expect<
+  Equal<ReturnOutMessage<ReturnType<HomeReset>>, never>
+>
+type RoomOutMessageIsExact = Expect<
+  Equal<ReturnOutMessage<ReturnType<RoomInform>>, never>
+>
+type RoomFoldOutMessageIsConsumed = Expect<
+  Equal<ReturnOutMessage<RoomFold>, never>
+>
+type HomeRequestOutMessageIsConsumed = Expect<
+  Equal<ReturnOutMessage<ReturnType<HomeRequestJoin>>, never>
+>
+type HomeRegistrationIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<HomeReset>>,
+    Block.BindingRequirement<'home', typeof HomeBlock>
+  >
+>
+type RoomRegistrationIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<RoomInform>>,
+    Block.BindingRequirement<'DeclarationReciprocalRoom', typeof RoomBlock>
+  >
+>
+type HomeRequestRegistrationIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<HomeRequestJoin>>,
+    | Block.BindingRequirement<'home', typeof HomeBlock>
+    | Block.BindingRequirement<'DeclarationReciprocalRoom', typeof RoomBlock>
+  >
+>
+type HomeFoldRegistrationIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<HomeFold>,
+    Block.BindingRequirement<'home', typeof HomeBlock>
+  >
+>
+type RoomFoldRegistrationIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<RoomFold>,
+    | Block.BindingRequirement<'home', typeof HomeBlock>
+    | Block.BindingRequirement<'DeclarationReciprocalRoom', typeof RoomBlock>
+  >
+>
+type ApplicationRequirementsAreExact = Expect<
+  Equal<
+    Update.RequirementsOf<typeof applicationUpdate>,
+    Block.Scoped<
+      'home',
+      Update.RequirementsOf<typeof HomeBlock.expose.resetJoinForm>
+    >
+  >
+>
+type ApplicationRegistrationIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<typeof applicationUpdate>>,
+    | Block.BindingRequirement<'home', typeof HomeBlock>
+    | Block.BindingRequirement<'DeclarationReciprocalRoom', typeof RoomBlock>
+  >
+>
+
+type LeftHomeRequest = ReturnType<typeof LeftHomeBinding.requestJoin>
+type LeftHomeArgumentsAreExact = Expect<
+  Equal<
+    Parameters<typeof LeftHomeBinding.requestJoin>,
+    [roomId: string, username: string]
+  >
+>
+type LeftHomeRequirementsAreExact = Expect<
+  Equal<
+    Update.RequirementsOf<LeftHomeRequest>,
+    | Block.Scoped<
+        'leftHome',
+        Update.RequirementsOf<typeof HomeBlock.expose.requestJoin>
+      >
+    | Block.Scoped<
+        'rightHome',
+        Update.RequirementsOf<typeof HomeBlock.expose.resetJoinForm>
+      >
+  >
+>
+type LeftHomeRegistrationIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<LeftHomeRequest>>,
+    | Block.BindingRequirement<'leftHome', typeof HomeBlock>
+    | Block.BindingRequirement<'rightHome', typeof HomeBlock>
+  >
+>
+type LeftKeyedHomeRequest = ReturnType<typeof LeftKeyedHomeBinding.requestJoin>
+type LeftKeyedHomeArgumentsAreExact = Expect<
+  Equal<
+    Parameters<typeof LeftKeyedHomeBinding.requestJoin>,
+    [key: string, roomId: string, username: string]
+  >
+>
+type LeftKeyedHomeRequirementsAreExact = Expect<
+  Equal<
+    Update.RequirementsOf<LeftKeyedHomeRequest>,
+    | Block.Scoped<
+        'leftHomes',
+        Update.RequirementsOf<typeof HomeBlock.expose.requestJoin>
+      >
+    | Block.Scoped<
+        'rightHomes',
+        Update.RequirementsOf<typeof HomeBlock.expose.resetJoinForm>
+      >
+  >
+>
+type LeftKeyedHomeRegistrationIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<LeftKeyedHomeRequest>>,
+    | Block.BindingRequirement<'leftHomes', typeof HomeBlock>
+    | Block.BindingRequirement<'rightHomes', typeof HomeBlock>
+  >
+>
+
+// @ts-expect-error Emitted Room policy retains its Home Binding registration.
+const MissingHomeComposition = Application.toComposition({
+  childBindings: [RoomBinding],
+})
+// @ts-expect-error Emitted Room policy retains its Home Binding registration.
+MissingHomeComposition.update()
+
+// @ts-expect-error Emitted Home policy retains its Room Binding registration.
+const MissingRoomComposition = Application.toComposition({
+  childBindings: [HomeBinding],
+})
+// @ts-expect-error Emitted Home policy retains its Room Binding registration.
+MissingRoomComposition.update()
+
+// @ts-expect-error Emitted direct policy retains its sibling registration.
+DirectReciprocalApplication.toComposition({
+  childBindings: [LeftHomeBinding],
+})
+// @ts-expect-error Emitted direct policy retains its sibling registration.
+DirectReciprocalApplication.toComposition({
+  childBindings: [RightHomeBinding],
+})
+// @ts-expect-error Emitted keyed policy retains its sibling registration.
+KeyedReciprocalApplication.toComposition({
+  childBindings: [LeftKeyedHomeBinding],
+})
+// @ts-expect-error Emitted keyed policy retains its sibling registration.
+KeyedReciprocalApplication.toComposition({
+  childBindings: [RightKeyedHomeBinding],
+})
+
+// @ts-expect-error Emitted resetJoinForm requires one username.
+HomeBinding.resetJoinForm()
+// @ts-expect-error Emitted informJoined requires its Room context.
+RoomBinding.informJoined('room-1', 'alice')
+
+// @ts-expect-error Emitted OutMessage children still require a policy.
+// oxfmt-ignore
+Application.bindChild(HomeBlock, { field: 'home', parentMessage: ApplicationMessage.GotHomeMessage })
+
+// @ts-expect-error Emitted keyed OutMessage children still require a policy.
+// oxfmt-ignore
+Application.bindChild(RoomBlock, { readAll: model => Option.toArray(model.maybeRoomInstance), key: instance => instance.roomId, read: instance => instance.model, writeAt: model => model, toParentMessage: (roomId, message) => ApplicationMessage.GotRoomMessage({ roomId, message }), fromParentMessage: false })
+
+// @ts-expect-error Emitted static policies must accept every refined child OutMessage.
+// oxfmt-ignore
+Application.bindChild(HomeBlock, { field: 'home', parentMessage: ApplicationMessage.GotHomeMessage, outMessage: { fold: (_outMessage: Extract<typeof HomeOutMessage.Type, Readonly<{ username: 'alice' }>>) => Application.step(model => ({ model })) } })
+
+export type EmittedReciprocalCoordinationAssertions = [
+  HomeLayerServicesAreExact,
+  HomeLayerErrorIsExact,
+  HomeArgumentsAreExact,
+  HomeRequestArgumentsAreExact,
+  RoomArgumentsAreExact,
+  RoomInitKeyIsExact,
+  RoomInitArgumentsAreExact,
+  HomeRequirementsAreExact,
+  RoomRequirementsAreExact,
+  RoomFoldRequirementsAreExact,
+  HomeRequestRequirementsAreExact,
+  HomeOutMessageIsExact,
+  RoomOutMessageIsExact,
+  RoomFoldOutMessageIsConsumed,
+  HomeRequestOutMessageIsConsumed,
+  HomeRegistrationIsExact,
+  RoomRegistrationIsExact,
+  HomeRequestRegistrationIsExact,
+  HomeFoldRegistrationIsExact,
+  RoomFoldRegistrationIsExact,
+  ApplicationRequirementsAreExact,
+  ApplicationRegistrationIsExact,
+  LeftHomeArgumentsAreExact,
+  LeftHomeRequirementsAreExact,
+  LeftHomeRegistrationIsExact,
+  LeftKeyedHomeArgumentsAreExact,
+  LeftKeyedHomeRequirementsAreExact,
+  LeftKeyedHomeRegistrationIsExact,
+]

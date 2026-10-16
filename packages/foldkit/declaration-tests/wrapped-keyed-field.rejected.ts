@@ -1,15 +1,18 @@
-import { Schema } from 'effect'
+import { Option, Schema } from 'effect'
+import { Block, Message } from 'foldkit'
 
-import { Block, Message } from '../src/index.js'
 import {
   Choice,
   ChoiceEntry,
   ChoiceId,
+  InitializedChoicesBinding,
   Parent,
   ParentMessage,
   PlainChoiceBlock,
   TextBlock,
+  choiceOutMessagePolicy,
   firstChoiceId,
+  initialize,
   toChoiceMessage,
 } from './wrapped-keyed-field.accepted.js'
 
@@ -121,6 +124,7 @@ const opaqueConfig = {
   field: opaqueChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error Wrapped keyed shorthand requires a Struct item schema.
@@ -130,6 +134,7 @@ const unionConfig = {
   field: unionChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error Wrapped keyed shorthand does not accept union item schemas.
@@ -139,6 +144,7 @@ const indexConfig = {
   field: indexChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error Wrapped keyed shorthand requires a closed Struct item schema.
@@ -148,6 +154,7 @@ const optionalCollectionConfig = {
   field: optionalChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error The parent collection field must be required.
@@ -157,6 +164,7 @@ const optionCollectionConfig = {
   field: optionChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error The parent collection must be an Array, not an Option.
@@ -166,6 +174,7 @@ const mapCollectionConfig = {
   field: mapChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error The parent collection must be an Array, not a HashMap.
@@ -175,6 +184,7 @@ const tupleCollectionConfig = {
   field: tupleChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error The parent collection must be an Array, not a tuple.
@@ -184,6 +194,7 @@ const missingCollectionConfig = {
   field: missingChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error Wrapped keyed shorthand requires an existing parent field.
@@ -193,6 +204,7 @@ const optionalKeyConfig = {
   field: optionalKeyChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toIgnoredChoiceMessage,
 }
 // @ts-expect-error The wrapper key field must be required.
@@ -202,6 +214,7 @@ const missingKeyConfig = {
   field: missingKeyChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toIgnoredChoiceMessage,
 }
 // @ts-expect-error The key must name a wrapper field.
@@ -211,6 +224,7 @@ const booleanKeyConfig = {
   field: booleanKeyChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toIgnoredChoiceMessage,
 }
 // @ts-expect-error Wrapper occurrence keys must be strings or numbers.
@@ -220,6 +234,7 @@ const optionalChildConfig = {
   field: optionalChildChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error The wrapper child field must be required.
@@ -229,6 +244,7 @@ const missingChildConfig = {
   field: missingChildChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error The child field must name a wrapper field.
@@ -238,6 +254,7 @@ const incompatibleChildConfig = {
   field: incompatibleChildChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error The wrapper child field must store the exact child Model.
@@ -247,6 +264,7 @@ const widerChildConfig = {
   field: widerChildChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error A wider wrapper child field is not exact storage.
@@ -256,6 +274,7 @@ const narrowerChildConfig = {
   field: narrowerChildChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error A narrower wrapper child field cannot store every transition.
@@ -264,6 +283,7 @@ InvalidParent.bindChild(PlainChoiceBlock, narrowerChildConfig)
 const missingKeySelectorConfig = {
   field: plainChoicesField,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error Wrapped keyed shorthand requires a key field.
@@ -272,6 +292,7 @@ Parent.bindChild(PlainChoiceBlock, missingKeySelectorConfig)
 const missingChildSelectorConfig = {
   field: plainChoicesField,
   key: idKey,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error Wrapped keyed shorthand requires a child field.
@@ -282,6 +303,7 @@ const dynamicFieldConfig = {
   field: selectParentField(),
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error Wrapped keyed shorthand requires one literal parent field.
@@ -292,6 +314,7 @@ const dynamicKeyConfig = {
   field: plainChoicesField,
   key: selectEntryField(),
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error Wrapped keyed shorthand requires one literal key field.
@@ -301,6 +324,7 @@ const dynamicChildConfig = {
   field: plainChoicesField,
   key: idKey,
   childField: selectEntryField(),
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error Wrapped keyed shorthand requires one literal child field.
@@ -311,6 +335,7 @@ const readAllConflict = {
   key: idKey,
   childField: choiceChildField,
   readAll: (model: typeof Parent.Model.Type) => model.plainChoices,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error Field shorthand cannot also provide readAll.
@@ -321,6 +346,7 @@ const readConflict = {
   key: idKey,
   childField: choiceChildField,
   read: (entry: typeof ChoiceEntry.Type) => entry.choice,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error Field shorthand cannot also provide a custom reader.
@@ -331,6 +357,7 @@ const writeConflict = {
   key: idKey,
   childField: choiceChildField,
   write: (model: typeof Parent.Model.Type) => model,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error Field shorthand cannot also provide a static writer.
@@ -345,6 +372,7 @@ const writeAtConflict = {
     _id: typeof ChoiceId.Type,
     _nextChoice: typeof Choice.block.Model.Type,
   ) => model,
+  fromParentMessage: false satisfies false,
   toParentMessage: toChoiceMessage,
 }
 // @ts-expect-error Field shorthand cannot also provide a keyed writer.
@@ -355,6 +383,7 @@ const wrongChildMapping = {
   field: plainChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: (
     id: typeof ChoiceId.Type,
     _message: typeof WrongChildMessage.Type,
@@ -374,6 +403,7 @@ const wrongParentMapping = {
   field: plainChoicesField,
   key: idKey,
   childField: choiceChildField,
+  fromParentMessage: false satisfies false,
   toParentMessage: (
     _id: typeof ChoiceId.Type,
     message: typeof Choice.Message.Type,
@@ -396,8 +426,111 @@ const sameFieldConfig = {
   field: valuesField,
   key: valueField,
   childField: valueField,
+  fromParentMessage: false satisfies false,
   toParentMessage: (id: string, message: typeof TextBlock.Message.Type) =>
     ParentMessage.GotTextMessage({ id, message }),
 }
 // @ts-expect-error The wrapper key and child fields must be different fields.
 SameFieldParent.bindChild(TextBlock, sameFieldConfig)
+
+// @ts-expect-error Wrapped occurrence arguments must match the child init tuple.
+// oxfmt-ignore
+Parent.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: false, outMessage: choiceOutMessagePolicy, init: { occurrences: () => [{ key: firstChoiceId, args: [1] }], toItem: ({ key }, choice) => ChoiceEntry.make({ id: key, choice }) } })
+
+// @ts-expect-error Wrapped toItem must return the exact parent collection item.
+// oxfmt-ignore
+Parent.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: false, outMessage: choiceOutMessagePolicy, init: { occurrences: () => [{ key: firstChoiceId, args: ['One'] }], toItem: (_occurrence, choice) => choice } })
+
+// @ts-expect-error Wrapped occurrence resolver context cannot be never.
+// oxfmt-ignore
+Parent.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: false, outMessage: choiceOutMessagePolicy, init: { occurrences: (_context: never) => [{ key: firstChoiceId, args: ['One'] }], toItem: ({ key }, choice) => ChoiceEntry.make({ id: key, choice }) } })
+
+const DuplicateInitializedChoicesBinding = Parent.bindChild(Choice.block, {
+  field: 'choices',
+  key: 'id',
+  childField: 'choice',
+  placement: 'duplicateInitializedChoices',
+  toParentMessage: toChoiceMessage,
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotChoiceMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
+  outMessage: choiceOutMessagePolicy,
+  init: {
+    occurrences: () => [{ key: firstChoiceId, args: ['One'] }],
+    toItem: ({ key }, choice) => ChoiceEntry.make({ id: key, choice }),
+  },
+})
+// @ts-expect-error Initialized child fields must be unique across the graph.
+Parent.toComposition({
+  childBindings: [
+    InitializedChoicesBinding,
+    DuplicateInitializedChoicesBinding,
+  ],
+})
+
+const UnregisteredComposition = Parent.toComposition()
+UnregisteredComposition.toBlock({
+  init: initialize,
+  update: UnregisteredComposition.update(model => ({ model })),
+  // @ts-expect-error An initializer retains registration evidence for its initialized child graph.
+  EffectsLayer: Choice.ReadChoice.layer,
+})
+
+// @ts-expect-error Wrapped occurrence arguments preserve the child initializer's literal domain.
+// oxfmt-ignore
+Parent.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: false, outMessage: choiceOutMessagePolicy, init: { occurrences: () => [{ key: firstChoiceId, args: ['Three'] }], toItem: ({ key }, choice) => ChoiceEntry.make({ id: key, choice }) } })
+
+// @ts-expect-error Wrapped occurrence arguments preserve the child initializer's tuple arity.
+// oxfmt-ignore
+Parent.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: false, outMessage: choiceOutMessagePolicy, init: { occurrences: () => [{ key: firstChoiceId, args: ['One', 'Two'] }], toItem: ({ key }, choice) => ChoiceEntry.make({ id: key, choice }) } })
+
+// @ts-expect-error Extracted keyed policies must accept every key in the collection.
+// oxfmt-ignore
+Parent.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, read: item => item.choice, writeAt: model => model, toParentMessage: (id, message) => ParentMessage.GotChoiceMessage({ id, message }), fromParentMessage: false, outMessage: { fold: (_key: 'other', _outMessage: typeof Choice.OutMessage.Type) => Parent.step(model => ({ model })) } })
+
+// @ts-expect-error Extracted keyed policies must accept every refined OutMessage payload.
+// oxfmt-ignore
+Parent.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, read: item => item.choice, writeAt: model => model, toParentMessage: (id, message) => ParentMessage.GotChoiceMessage({ id, message }), fromParentMessage: false, outMessage: { fold: (_key: typeof ChoiceId.Type, _outMessage: Readonly<{ _tag: 'SelectedValue'; value: 'One' }>) => Parent.step(model => ({ model })) } })
+
+// @ts-expect-error Wrapped keyed policies must accept every collection key.
+// oxfmt-ignore
+Parent.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: false, outMessage: { fold: (_key: 'other', _outMessage: typeof Choice.OutMessage.Type) => Parent.step(model => ({ model })) } })
+
+const wrongModelPolicy = {
+  fold:
+    (_key: typeof ChoiceId.Type, _outMessage: typeof Choice.OutMessage.Type) =>
+    (_model: typeof Parent.Model.Type) => ({
+      model: Choice.block.Model.make({ value: 'One' }),
+    }),
+}
+// oxfmt-ignore
+const WrongModelPolicyBinding = Parent.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, read: item => item.choice, writeAt: model => model, toParentMessage: (id, message) => ParentMessage.GotChoiceMessage({ id, message }), fromParentMessage: false, outMessage: wrongModelPolicy })
+// @ts-expect-error An extracted keyed policy Step must return the parent Model.
+Parent.toComposition({ childBindings: [WrongModelPolicyBinding] })
+
+const foreignMessagePolicy = {
+  fold:
+    (_key: typeof ChoiceId.Type, _outMessage: typeof Choice.OutMessage.Type) =>
+    (model: typeof Parent.Model.Type) => ({
+      model,
+      commands: [Choice.ReadChoice()],
+    }),
+}
+// oxfmt-ignore
+const ForeignMessagePolicyBinding = Parent.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, read: item => item.choice, writeAt: model => model, toParentMessage: (id, message) => ParentMessage.GotChoiceMessage({ id, message }), fromParentMessage: false, outMessage: foreignMessagePolicy })
+// @ts-expect-error An extracted keyed policy Command must produce a parent Message.
+Parent.toComposition({ childBindings: [ForeignMessagePolicyBinding] })
+
+const undeclaredOutMessagePolicy = {
+  fold:
+    (_key: typeof ChoiceId.Type, _outMessage: typeof Choice.OutMessage.Type) =>
+    (model: typeof Parent.Model.Type) => ({
+      model,
+      outMessage: Choice.OutMessage.SelectedValue({ value: 'One' }),
+    }),
+}
+// oxfmt-ignore
+const UndeclaredOutMessagePolicyBinding = Parent.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, read: item => item.choice, writeAt: model => model, toParentMessage: (id, message) => ParentMessage.GotChoiceMessage({ id, message }), fromParentMessage: false, outMessage: undeclaredOutMessagePolicy })
+// @ts-expect-error An extracted keyed policy cannot emit an undeclared parent OutMessage.
+Parent.toComposition({ childBindings: [UndeclaredOutMessagePolicyBinding] })

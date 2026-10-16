@@ -5,7 +5,10 @@ import { type CalendarDate } from 'foldkit/calendar'
 import { Button } from '@foldkit/ui'
 
 import { Field, Icon } from '../../../view'
-import { EducationEntryComposition, graduationYearListbox } from './composition'
+import {
+  EducationEntryComposition,
+  GraduationYearListboxBinding,
+} from './composition'
 import { Message } from './definition'
 
 const GRADUATION_YEAR_WINDOW_SIZE = 30
@@ -35,7 +38,7 @@ export const view = EducationEntryComposition.view.withInputs<ViewInputs>(
           ['Graduation Year'],
         ),
         h.block(
-          graduationYearListbox.embedView({
+          GraduationYearListboxBinding.embedView({
             slotId: model.graduationYearListbox.id,
             model: model.graduationYearListbox,
             viewInputs: {

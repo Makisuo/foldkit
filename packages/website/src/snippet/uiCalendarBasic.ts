@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Effect, Match, Option, Schema } from 'effect'
+import { Effect, Match, Option, Schema, Tuple } from 'effect'
 import { Block, Calendar, Update } from 'foldkit'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -79,44 +79,38 @@ const CalendarExample = Block.define('CalendarExample', {
   Message,
 })
 
-const calendar = CalendarExample.bindChild(UiCalendar.block, {
+const CalendarBinding = CalendarExample.bindChild(UiCalendar.block, {
   field: 'calendarDemo',
   parentMessage: Message.GotCalendarMessage,
+  init: {
+    args: (flags: Flags) =>
+      Tuple.make({
+        id: 'calendar-demo',
+        today: flags.today,
+        initialViewDate: flags.today,
+      }),
+  },
   outMessage: { fold: foldCalendarOutMessage },
 })
 
-// In your init function, pass the flags-resolved today into UiCalendar.init.
-// `initialViewDate` seeds the month the calendar opens onto (pass your
-// initial selection to open on it). The parent owns the selection itself:
-const init = CalendarExample.init((flags: Flags) => {
-  const calendarInit = calendar.init({
-    id: 'calendar-demo',
-    today: flags.today,
-    initialViewDate: flags.today,
-  })
-
-  return {
-    model: {
-      calendarDemo: calendarInit.model,
-      maybeSelectedDate: Option.none(),
-      // ...your other fields
-    },
-    commands: calendarInit.commands,
-  }
-})
-
 const CalendarExampleComposition = CalendarExample.toComposition({
-  children: [calendar],
+  childBindings: [CalendarBinding],
 })
 type CalendarExampleViewBuilder = Block.ViewBuilderFor<
   typeof CalendarExampleComposition
 >
 
-const update = CalendarExample.update((model, message) =>
-  Message.match(message, {
-    GotCalendarMessage: ({ message }) => calendar.fold(model, message),
-  }),
-)
+// Pass the flags-resolved date through the startup input. `initialViewDate`
+// seeds the month the calendar opens onto. The parent owns the selection.
+const init = CalendarExampleComposition.init((flags: Flags) => ({
+  startup: flags,
+  model: {
+    maybeSelectedDate: Option.none(),
+    // ...your other fields
+  },
+}))
+
+const update = CalendarExampleComposition.update()
 
 // Class names live at module scope, and each view mode gets its own view
 // function below.
@@ -304,7 +298,7 @@ const view = CalendarExampleComposition.view((model, h) => {
   )
 
   return h.block(
-    calendar.embedView({
+    CalendarBinding.embedView({
       slotId: model.calendarDemo.id,
       model: model.calendarDemo,
       viewInputs: {

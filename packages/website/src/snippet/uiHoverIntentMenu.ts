@@ -32,35 +32,29 @@ const HoverMenu = Block.define('HoverMenu', {
   Message,
 })
 
-const hoverMenu = HoverMenu.bindChild(HoverIntent.block, {
+const HoverMenuBinding = HoverMenu.bindChild(HoverIntent.block, {
   field: 'hoverMenu',
   parentMessage: Message.GotHoverMenuMessage,
+  init: true,
   outMessage: { fold: foldHoverMenuOutMessage },
 })
 
-const init = HoverMenu.init(() => {
-  const hoverMenuInit = hoverMenu.init()
-
-  return {
-    model: {
-      hoverMenu: hoverMenuInit.model,
-      // ...your other fields
-    },
-    commands: hoverMenuInit.commands,
-  }
-})
-
 const HoverMenuComposition = HoverMenu.toComposition({
-  children: [hoverMenu],
+  childBindings: [HoverMenuBinding],
 })
+
+const init = HoverMenuComposition.init(() => ({
+  model: {
+    // ...your other fields
+  },
+}))
 
 // Close the menu immediately when any item is clicked.
 
 // In the corresponding Message.match handlers:
-const update = HoverMenu.update((model, message) =>
+const update = HoverMenuComposition.update((model, message) =>
   Message.match(message, {
-    GotHoverMenuMessage: ({ message }) => hoverMenu.fold(model, message),
-    ClickedHoverMenuItem: () => hoverMenu.close()(model),
+    ClickedHoverMenuItem: () => HoverMenuBinding.close()(model),
   }),
 )
 
@@ -120,7 +114,7 @@ const view = HoverMenuComposition.view((model, h) => {
     )
 
   return h.block(
-    hoverMenu.embedView({
+    HoverMenuBinding.embedView({
       slotId: 'hover-menu',
       model: model.hoverMenu,
       viewInputs: {

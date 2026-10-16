@@ -37,6 +37,7 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 const Application = defineApplication({ Model, Message })
+const ApplicationComposition = Application.toComposition()
 
 const NavigateInternal = Application.command('NavigateInternal', {
   args: { url: Schema.String },
@@ -58,7 +59,7 @@ const LoadExternal = Application.command('LoadExternal', {
   },
 })
 
-const update = Application.update((model, message) =>
+const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),

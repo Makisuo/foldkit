@@ -1,8 +1,7 @@
 import { Context, Effect, Schema } from 'effect'
-
-import * as Block from '../src/block/public.js'
-import * as Query from '../src/experimental/query/index.js'
-import * as Message from '../src/message/public.js'
+import * as Block from 'foldkit/block'
+import * as Query from 'foldkit/experimental/query'
+import * as Message from 'foldkit/message'
 
 const Note = Schema.Struct({ id: Schema.String, body: Schema.String })
 
@@ -114,11 +113,11 @@ const Parent = Block.define('DeclarationQueryParent', {
   Message: ParentMessage,
 })
 
-export const notesChild = Parent.bindChild(Notes, {
+export const NotesChildBinding = Parent.bindChild(Notes, {
   field: 'notes',
   parentMessage: ParentMessage.GotNotesMessage,
 })
 
 export const ParentComposition = Parent.toComposition({
-  children: [notesChild],
+  childBindings: [NotesChildBinding],
 })

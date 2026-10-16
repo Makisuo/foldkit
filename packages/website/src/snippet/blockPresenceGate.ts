@@ -3,7 +3,7 @@ import { Message } from './message'
 import * as Room from './room'
 import { ApplicationRoute } from './route'
 
-const room = Application.bindChild(Room.block, {
+const RoomBinding = Application.bindChild(Room.block, {
   field: 'room',
   presentWhen: model =>
     ApplicationRoute.match(model.route, {

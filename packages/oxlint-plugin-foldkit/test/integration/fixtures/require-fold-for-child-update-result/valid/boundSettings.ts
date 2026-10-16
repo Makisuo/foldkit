@@ -3,20 +3,23 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-const BoundSettings = Block.define('BoundSettings')
 export const Model = Schema.Struct({ theme: Schema.String })
 export type Model = typeof Model.Type
 export const Message = defineMessageUnion({ ChangedTheme: { theme: Schema.String } })
 export type Message = typeof Message.Type
-const settings = BoundSettings.define({ Model, Message })
-export const setTheme = settings.step((model, theme: string) => ({
+const BoundSettings = Block.define('BoundSettings', { Model, Message })
+export const setTheme = BoundSettings.step((model, theme: string) => ({
   model: modifyFields(model, { theme: () => theme }),
 }))
-const update = settings.update((model, message) =>
+const BoundSettingsComposition = BoundSettings.toComposition()
+const init = BoundSettingsComposition.init(() => ({
+  model: Model.make({ theme: 'System' }),
+}))
+const update = BoundSettingsComposition.update((model, message) =>
   Message.match(message, { ChangedTheme: ({ theme }) => setTheme(model, theme) }),
 )
-export const Settings = settings.toComposition().toBlock({
-  init: () => ({ model: Model.make({ theme: 'System' }) }),
+export const Settings = BoundSettingsComposition.toBlock({
+  init,
   update,
   expose: { setTheme },
   EffectsLayer: Layer.empty,

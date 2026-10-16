@@ -1,17 +1,17 @@
-let currentChildren: ReadonlyArray<object> | undefined
+let currentChildBindings: ReadonlyArray<object> | undefined
 
 /** @internal Runs a synchronous Block operation with its direct child graph active. */
 export const withOperationGraph = <Value>(
-  children: ReadonlyArray<object>,
+  childBindings: ReadonlyArray<object>,
   operation: () => Value,
 ): Value => {
-  const previousChildren = currentChildren
-  currentChildren = children
+  const previousChildBindings = currentChildBindings
+  currentChildBindings = childBindings
 
   try {
     return operation()
   } finally {
-    currentChildren = previousChildren
+    currentChildBindings = previousChildBindings
   }
 }
 
@@ -20,9 +20,25 @@ export const assertRegisteredBinding = (
   binding: object,
   placement: string,
 ): void => {
-  if (currentChildren !== undefined && !currentChildren.includes(binding)) {
+  if (
+    currentChildBindings !== undefined &&
+    !currentChildBindings.includes(binding)
+  ) {
     throw new Error(
       `[foldkit] The child binding at placement "${placement}" is not registered in the current Block graph.`,
     )
   }
+}
+
+/** @internal Requires initialization to execute within an exact registered graph. */
+export const assertRegisteredInitialization = (
+  binding: object,
+  placement: string,
+): void => {
+  if (currentChildBindings === undefined) {
+    throw new Error(
+      `[foldkit] Initializing child Binding "${placement}" requires its registered Composition.`,
+    )
+  }
+  assertRegisteredBinding(binding, placement)
 }

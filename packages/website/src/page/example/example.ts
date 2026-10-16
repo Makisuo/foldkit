@@ -18,7 +18,8 @@ import type { TableOfContentsEntry } from '../../tableOfContentsEntry'
 import {
   ExampleDetailComposition,
   type ExampleDetailViewBuilder,
-  sourceFileTabs,
+  SOURCE_FILE_TABS_ID,
+  SourceFileTabsBinding,
 } from './composition'
 import { ExampleDetail } from './definition'
 import { Message } from './message'
@@ -63,20 +64,14 @@ export const EffectsLayer = Layer.mergeAll(
   ObserveExampleUrlMessages.layer,
 )
 
-export const init = ExampleDetail.init(() => {
-  const sourceFileTabsInit = sourceFileTabs.init({ id: 'source-file-tabs' })
-
-  return {
-    model: Model.make({
-      sourceFileTabs: sourceFileTabsInit.model,
-      maybeActiveSourceFilePath: Option.none(),
-      maybeExampleUrl: Option.none(),
-      isLivePreviewOpen: true,
-      currentSources: CurrentSourcesAsyncData.Idle(),
-    }),
-    commands: sourceFileTabsInit.commands ?? [],
-  }
-})
+export const init = ExampleDetailComposition.init(() => ({
+  model: {
+    maybeActiveSourceFilePath: Option.none(),
+    maybeExampleUrl: Option.none(),
+    isLivePreviewOpen: true,
+    currentSources: CurrentSourcesAsyncData.Idle(),
+  },
+}))
 
 const isSourceAvailable = (slug: string): boolean =>
   Option.match(findBySlug(slug), {
@@ -85,22 +80,17 @@ const isSourceAvailable = (slug: string): boolean =>
   })
 
 const startLoadingExampleSources = ExampleDetail.step((model, slug: string) => {
-  const sourceFileTabsInit = sourceFileTabs.init({
-    id: 'source-file-tabs',
+  return SourceFileTabsBinding.init({
+    args: [{ id: SOURCE_FILE_TABS_ID }],
+    toParentModel: sourceFileTabs =>
+      modifyFields(model, {
+        sourceFileTabs: () => sourceFileTabs,
+        maybeActiveSourceFilePath: () => Option.none(),
+        maybeExampleUrl: () => Option.none(),
+        currentSources: () => CurrentSourcesAsyncData.Loading(),
+      }),
+    commands: [LoadExampleSources({ slug })],
   })
-
-  return {
-    model: modifyFields(model, {
-      sourceFileTabs: () => sourceFileTabsInit.model,
-      maybeActiveSourceFilePath: () => Option.none(),
-      maybeExampleUrl: () => Option.none(),
-      currentSources: () => CurrentSourcesAsyncData.Loading(),
-    }),
-    commands: [
-      ...(sourceFileTabsInit.commands ?? []),
-      LoadExampleSources({ slug }),
-    ],
-  }
 })
 
 const showExampleSources = ExampleDetail.step(
@@ -118,20 +108,19 @@ const showExampleSources = ExampleDetail.step(
 )
 
 const clearExampleSources = ExampleDetail.step(model => {
-  const sourceFileTabsInit = sourceFileTabs.init({ id: 'source-file-tabs' })
-
-  return {
-    model: modifyFields(model, {
-      sourceFileTabs: () => sourceFileTabsInit.model,
-      maybeActiveSourceFilePath: () => Option.none(),
-      maybeExampleUrl: () => Option.none(),
-      currentSources: () => CurrentSourcesAsyncData.Idle(),
-    }),
-    commands: sourceFileTabsInit.commands ?? [],
-  }
+  return SourceFileTabsBinding.init({
+    args: [{ id: SOURCE_FILE_TABS_ID }],
+    toParentModel: sourceFileTabs =>
+      modifyFields(model, {
+        sourceFileTabs: () => sourceFileTabs,
+        maybeActiveSourceFilePath: () => Option.none(),
+        maybeExampleUrl: () => Option.none(),
+        currentSources: () => CurrentSourcesAsyncData.Idle(),
+      }),
+  })
 })
 
-export const boot = ExampleDetail.step(
+export const loadInitialSources = ExampleDetail.step(
   (
     model,
     maybeInitialSlug: Option.Option<string>,
@@ -155,10 +144,8 @@ export const boot = ExampleDetail.step(
   },
 )
 
-export const update = ExampleDetail.update((model, message) =>
+export const update = ExampleDetailComposition.update((model, message) =>
   Message.match(message, {
-    GotSourceFileTabsMessage: ({ message }) =>
-      sourceFileTabs.fold(model, message),
     ChangedExampleUrl: ({ url }) => ({
       model: modifyFields(model, { maybeExampleUrl: () => Option.some(url) }),
     }),
@@ -427,7 +414,7 @@ const sourceCodeView = (
   const filePaths = Array.map(files, file => file.path)
 
   return h.block(
-    sourceFileTabs.embedView({
+    SourceFileTabsBinding.embedView({
       slotId: tabsModel.id,
       model: tabsModel,
       viewInputs: {

@@ -1,6 +1,6 @@
 // view.ts (parent)
 
-import { ApplicationComposition, commandMenu } from './composition'
+import { ApplicationComposition, CommandMenuBinding } from './composition'
 
 const MENU_ITEMS: ReadonlyArray<string> = ['Open', 'Rename', 'Archive']
 
@@ -10,7 +10,7 @@ export const view = ApplicationComposition.view((model, h) => ({
     [],
     [
       h.block(
-        commandMenu.embedView({
+        CommandMenuBinding.embedView({
           slotId: 'command-menu',
           model: model.commandMenu,
           viewInputs: {

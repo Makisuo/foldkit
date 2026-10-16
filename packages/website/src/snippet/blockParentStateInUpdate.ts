@@ -1,6 +1,10 @@
-import { Message } from '../../message'
-import type { Model } from '../../model'
-import { settings } from './composition'
+import { Option } from 'effect'
 
-GotSettingsMessage: ({ message }) =>
-  settings.fold(model, message, { currentUser: model.currentUser })
+export const SettingsBinding = Application.bindChild(Settings.block, {
+  field: 'settings',
+  parentMessage: Message.GotSettingsMessage,
+  fromParentMessage: {
+    parentMessage: Message.GotSettingsMessage,
+    args: (model, { message }) => Option.some([message, model.currentUser]),
+  },
+})

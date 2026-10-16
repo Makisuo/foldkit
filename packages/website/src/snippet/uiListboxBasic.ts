@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Option, Schema } from 'effect'
+import { Option, Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -56,36 +56,27 @@ const PlanPicker = Block.define('PlanPicker', {
   Message,
 })
 
-const planListbox = PlanPicker.bindChild(PlanListbox, {
+const PlanListboxBinding = PlanPicker.bindChild(PlanListbox, {
   field: 'listbox',
   parentMessage: Message.GotListboxMessage,
+  init: { args: () => Tuple.make({ id: 'plan' }) },
   outMessage: { fold: foldListboxOutMessage },
 })
 
-// In your init function, initialize the Listbox Block with a unique id:
-const init = PlanPicker.init(() => {
-  const listboxInit = planListbox.init({ id: 'plan' })
-
-  return {
-    model: {
-      maybePlan: Option.none(),
-      listbox: listboxInit.model,
-      // ...your other fields
-    },
-    commands: listboxInit.commands,
-  }
-})
-
 const PlanPickerComposition = PlanPicker.toComposition({
-  children: [planListbox],
+  childBindings: [PlanListboxBinding],
 })
 
-// In the corresponding Message.match handler, call the fold:
-const update = PlanPicker.update((model, message) =>
-  Message.match(message, {
-    GotListboxMessage: ({ message }) => planListbox.fold(model, message),
-  }),
-)
+// In your init function, initialize the Listbox Block with a unique id:
+const init = PlanPickerComposition.init(() => ({
+  model: {
+    maybePlan: Option.none(),
+    // ...your other fields
+  },
+}))
+
+// The Composition routes GotListboxMessage through PlanListboxBinding.
+const update = PlanPickerComposition.update()
 
 const plans: ReadonlyArray<Plan> = ['Free', 'Pro', 'Enterprise']
 
@@ -100,7 +91,7 @@ const view = PlanPickerComposition.view((model, h) =>
     [
       h.label([h.For(ListboxButtonId('plan'))], ['Plan']),
       h.block(
-        planListbox.embedView({
+        PlanListboxBinding.embedView({
           slotId: 'plan',
           model: model.listbox,
           viewInputs: {

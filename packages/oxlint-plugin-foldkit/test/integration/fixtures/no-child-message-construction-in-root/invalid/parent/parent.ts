@@ -14,12 +14,14 @@ export const RunParentWork = Parent.command('RunParentWork', {
   },
 })
 
-export const child = Parent.bindChild(Child.block, {
+export const ChildBinding = Parent.bindChild(Child.block, {
   field: 'child',
   toParentMessage: message => ChildMessage.GotChildMessage({ message }),
 })
 
-export const ParentComposition = Parent.toComposition({ children: [child] })
+export const ParentComposition = Parent.toComposition({
+  childBindings: [ChildBinding],
+})
 
 export const update = Parent.update(model => ({
   model,

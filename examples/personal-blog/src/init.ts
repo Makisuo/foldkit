@@ -1,12 +1,10 @@
 import { Url } from 'foldkit/url'
 
-import { counter } from './composition'
-import { Application } from './definition'
+import { ApplicationComposition } from './composition'
 import * as Route from './route'
 
-export const init = Application.init((url: Url) => ({
+export const init = ApplicationComposition.init((url: Url) => ({
   model: {
     route: Route.urlToApplicationRoute(url),
-    counter: counter.init().model,
   },
 }))

@@ -5,7 +5,7 @@ import type { RenderInfo } from '@foldkit/ui/tabs'
 import {
   ApplicationComposition,
   type ApplicationViewBuilder,
-  tabs,
+  TabsBinding,
 } from '../composition'
 import { type Model, TABS_ID, Tab } from '../model'
 import { postsTabView } from './posts'
@@ -24,7 +24,7 @@ export const view = ApplicationComposition.view((model, h) => ({
         [
           headerView(h),
           h.block(
-            tabs.embedView({
+            TabsBinding.embedView({
               slotId: TABS_ID,
               model: model.tabs,
               viewInputs: {

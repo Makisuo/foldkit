@@ -40,17 +40,17 @@ Declare the Schemas, then call `Block.define('Settings', { Model, Message, OutMe
 
 ::Snippet{name="blockDefinition" label="Defining a typed Block"}
 
-The returned Definition supplies `command`, `mount`, `mountStream`, `resource`, `init`, `update`, `step`, `subscriptions`, and `managedResources`. Author init as `Settings.init(fn)`. The helper checks its Model and Command result Messages while preserving the function's exact arguments, return type, requirements, and child registration evidence. It provides the owning identity and precise contextual types. Completion uses the preserved evidence to validate the final child and handler graph. Keep this value in one module and import it; creating another definition with the same readable ID does not reuse the original definition.
+The returned Definition supplies `command`, `mount`, `mountStream`, `resource`, `step`, `subscriptions`, `managedResources`, and `bindChild`. It provides the owning identity and precise contextual types before the graph exists. Keep this value in one module and import it; creating another definition with the same readable ID does not reuse the original definition.
 
-`Settings.init` accepts one concrete function signature, including optional, default, and rest parameters. Adapt an overloaded helper or callable object with a concretely typed callback. A generic Block factory captures its type parameters outside the initializer instead of making the initializer generic.
+The named Composition supplies `init` and `update` after the graph exists. `SettingsComposition.init` accepts one concrete function signature, including optional, default, and rest parameters. Adapt an overloaded helper or callable object with a concretely typed callback. A generic Block factory captures its type parameters outside the initializer instead of making the initializer generic.
 
 Commands and lifecycle handlers declare local names such as `SaveTheme`. Foldkit derives the full runtime path from composition. Settings connected under Profile becomes `Profile/Settings/SaveTheme`; the feature remains reusable under another parent.
 
 ### Define the Composition
 
-Call `toComposition({ children, mounts })` after defining the child Bindings and parent policies. Name the returned value `<Feature>Composition`. It fixes that graph and supplies the capabilities available while authoring the primary view and producing the Block. Both fields are optional and default to empty collections.
+Call `toComposition({ childBindings, mounts })` after defining the child Bindings and parent policies. Name the returned value `<Feature>Composition`. It fixes that graph and supplies the capabilities available while authoring the primary view and producing the Block. Both fields are optional and default to empty collections.
 
-Keep the Definition and Composition as separate named values. Author behavior such as update and public Steps through `Settings`, define its child Bindings and policies, then create `SettingsComposition`. Author the primary view through `SettingsComposition.view` or `view.withInputs`. This ordering also breaks the inference cycle between a parent Step, the child policy that uses it, and the graph containing that policy.
+Keep the Definition and Composition as separate named values. Author public Steps and child Bindings through `Settings`, then create `SettingsComposition`. Author init, update, and the primary view through that Composition. This ordering lets update route registered child wrappers and breaks the inference cycle between a parent Step, the child policy that uses it, and the graph containing that policy.
 
 Features without children or Mounts still call `toComposition()`. Composition configures capabilities; it does not build Layers or start child behavior.
 
@@ -79,7 +79,7 @@ settings/
 └── index.ts         # explicit public barrel
 ```
 
-Keep small features together. In a split feature with children or Mounts, `composition.ts` owns child Bindings, the complete `children` and `mounts` lists passed to `toComposition`, the feature's Composition, and its optional owner-specific ViewBuilder alias such as `SettingsViewBuilder`. A Mount-only feature uses the same file. A split graphless feature exports its named empty Composition beside the Definition in `definition.ts`; `view.ts` and `block.ts` import that same value. A compact graphless feature keeps the named Composition beside its cohesive implementation. Extract a substantial child policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. Straightforward Bindings stay beside `toComposition`. Extract `layer.ts` for a substantial or reused local handler bundle.
+Keep small features together. In a split feature with children or Mounts, `composition.ts` owns child Bindings, the complete `childBindings` and `mounts` lists passed to `toComposition`, the feature's Composition, and its optional owner-specific ViewBuilder alias such as `SettingsViewBuilder`. A Mount-only feature uses the same file. A split graphless feature exports its named empty Composition beside the Definition in `definition.ts`; `view.ts` and `block.ts` import that same value. A compact graphless feature keeps the named Composition beside its cohesive implementation. Extract a substantial child policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. Straightforward Bindings stay beside `toComposition`. Extract `layer.ts` for a substantial or reused local handler bundle.
 
 Keep `definition.ts` focused on early contracts needed by implementation files, plus the empty Composition when a split feature is graphless. Substantial behavior belongs in `init.ts`, `update.ts`, or a folder-named implementation file such as `workHistory/workHistory.ts`. Views import their Composition and Bindings from the assembly module; final `block.ts` imports that same Composition and the implementation pieces. Composition must not import the primary view, update matcher, or completed Block. Put shared Mount definitions in `mount.ts` so Composition and view can import them without a cycle.
 
@@ -111,13 +111,15 @@ A keyed Binding's `key` identifies one dynamic occurrence under the Binding's pl
 
 The Composition lets Foldkit collect child handler recipes and lifecycle definitions, validate embedded views, derive qualified effect identities, and manage active occurrences.
 
-### Fold child Messages {#fold-child}
+### Route child Messages {#fold-child}
 
-Use `binding.fold(model, message, ...context)` in the wrapper Message handler. It runs the child's update, writes the next child Model, lifts Commands back to the parent Message type, and applies the Binding's OutMessage policy.
+The parent Composition routes a canonical unkeyed wrapper declared with `parentMessage` through the Binding automatically when the child update has only its Model and Message parameters. The parent update callback handles only Message variants that no registered Binding claims. The Binding runs the child's update, writes the next child Model, lifts Commands back to the parent Message type, and applies its OutMessage policy.
 
-::Snippet{name="blockFoldChild" label="Folding a bound child Message"}
+::Snippet{name="blockFoldChild" label="Routing a bound child Message"}
 
-Declare parent-driven operations under `expose`, then call them directly through the Binding. Forward received child Messages through `fold`; use named operations for changes the parent initiates:
+Custom, keyed, and contextful Bindings declare `fromParentMessage: { parentMessage, args }`. This includes optional or defaulted context parameters: the Binding must explicitly choose whether to supply a value or use the child default. The `args` callback receives the current parent Model and the exact wrapper payload. Return `Option.some(...)` with the arguments after `model` in the Binding's native `fold`, including the key and child update context where required. Return `Option.none()` when the wrapper belongs to a removed, stale, or inactive occurrence; the parent Model remains unchanged. Use `fromParentMessage: false` only when the Composition should not route a parent Message into that Binding.
+
+Declare parent-driven operations under `expose`, then call them directly through the Binding. Let the Composition route received child Messages; use named operations for changes the parent initiates:
 
 ::Snippet{name="blockProjectedSteps" label="Calling a bound public operation"}
 
@@ -129,11 +131,17 @@ Binding operations retain the exact argument types, Command requirements, and Ou
 
 ### Initialize the child
 
-The parent decides how several initial Models combine. Call `binding.init(...args)`, put its Model into the parent Model, and retain its lifted Commands.
+Declare a direct child's startup inputs with `init` on its Binding. Use `true` for a valid zero-argument init call, or `{ args }` with Effect's `Tuple.make(...)` to return the child's argument tuple. `FeatureComposition.init` accepts parent-owned Model fields and optional shared `startup` input. The Composition calls configured child initializers, places their Models, and collects their lifted Commands automatically.
 
-::Snippet{name="blockFoldChildInit" label="Initializing a connected child"}
+This Profile's Settings child accepts a theme configuration at init. The parent supplies its saved theme and owns the username:
 
-Block init cannot emit an OutMessage. Author it through the Block Definition, then pass that same `init` function to `FeatureComposition.toBlock`. Composition owns graph-aware view authoring and completion; it has no `init` method. An optional `boot` helper is an ordinary initial Step applied through the Binding after the child Model exists; Foldkit has no special Runtime boot phase, and a feature need not define both init and `boot` helpers. When an existing domain operation such as `restore` or `open` already describes the transition, expose that Step instead. The same operation may run later from update. Do not create a Message only to trigger startup behavior.
+::Snippet{name="blockFoldChildInit" label="Assembling an initial child Model"}
+
+A Binding without an init policy is not initialized by the Composition. This lets the parent choose optional presence and initial collection membership explicitly. For custom storage, explicit Command ordering, or children created later in update, call the registered Binding's `init` with `{ args, toParentModel }`, plus `key` for a keyed Binding and optional parent `commands`. `toParentModel` constructs the complete parent Model from the initialized child. The result includes every lifted child init Command before the optional parent Commands and retains the graph evidence checked by completion.
+
+Execute explicit Binding init only within the exact registered graph: in Composition init or update, through a completed Block's exposed operation, or through the operation projected onto its parent Binding. The compiler checks the exact key, argument tuple, parent Model, Command requirements, and graph evidence. The Runtime verifies that the selected child is schema-equivalent to the initialized child and, for a keyed Binding, that the result contains exactly one occurrence with the requested key. Ordinary Model construction is still available when no connected child operation is needed. See [Init & Flags](/core/init#child-initialization) for optional startup policies, Command order, and initial Steps.
+
+Block init cannot emit an OutMessage. Author it through the Block Composition, then pass that same `init` function to `FeatureComposition.toBlock`. An optional `boot` helper is an ordinary initial Step listed in the parent's init plan after the child Model exists; Foldkit has no special Runtime boot phase. When an existing domain operation such as `restore` or `open` already describes the transition, expose that Step instead. The same operation may run later from update. Do not create a Message only to trigger startup behavior.
 
 The Binding's `outMessage.fold` policy can handle a fact from that initial Step against the complete parent Model. Parent init cannot forward an OutMessage, so a startup Step used there must finish with a plain update result.
 
@@ -216,7 +224,9 @@ Build an OutMessage fold directly from the child's exhaustive matcher:
 
 The child does not know who embeds it. The parent decides what the reported fact means at that boundary.
 
-The parent configures integration policy in its child Binding. That policy executes during the pure child fold or exposed operation. The flow is parent update → child fold or operation → parent OutMessage handling → parent result. Keep a substantial policy in a named parent fold beside that child's Binding, extracting both to `composition/<child>.ts` when the policy becomes substantial and exposing them through `composition/index.ts`. External consumers import from `composition.ts` or that explicit barrel, never the policy implementation path; internal siblings may use direct relative imports to avoid barrel cycles. An OutMessage fold receives `FoldContext` when it needs to lift a child Command or compare the transition with parent state from before the child update. `modelBeforeUpdate` is that previous parent Model. The Step returned by the fold still receives the parent Model after the next child Model has been written, so policy can deliberately use either side of the transition without reconstructing the fold by hand.
+The parent configures integration policy in its child Binding. That policy executes during the pure child fold or exposed operation. The flow is parent update → child fold or operation → parent OutMessage handling → parent result. Keep a substantial policy in a named parent fold beside that child's Binding, extracting both to `composition/<child>.ts` when the policy becomes substantial. An OutMessage fold receives `FoldContext` when it needs to lift a child Command or compare the transition with parent state from before the child update. `modelBeforeUpdate` is that previous parent Model. The Step returned by the fold still receives the parent Model after the next child Model has been written.
+
+A policy may return a parent Step that calls a registered sibling Binding operation. This supports parent-owned coordination in either direction: one child's OutMessage can initialize, update, or remove another child while preserving both boundaries. `toComposition` validates the policy's captured output and confirms that every sibling Binding used by the policy is registered in `childBindings`. Keep the chain synchronous and finite; one policy may invoke another Binding policy before the original update returns.
 
 ## Keyed Collections {#fold-child-at}
 
@@ -240,7 +250,7 @@ Each active key gets independent Subscription, ManagedResource, and Mount scopes
 
 Removing a key synchronously makes its dispatchers stale and starts lifecycle cleanup. Reusing the same key later creates a new occurrence; results and callbacks captured by the earlier occurrence cannot update it.
 
-Keyed Bindings do not reconcile the collection itself. Application update remains responsible for adding, removing, and ordering items in the parent Model. In the direct child array form, `init(key, ...)` must return a child Model with that key, and a child fold or operation cannot change it. In the wrapped array form, the wrapper key stays fixed while child folds and operations replace only the child field. The parent changes occurrence identity by removing one item and adding another under its own update logic.
+Keyed Bindings do not reconcile the collection itself. Application update remains responsible for adding, removing, and ordering items in the parent Model. An explicit `Binding.init({ key, args, toParentModel })` must place exactly one initialized occurrence under the requested key. A child fold or operation cannot change that key. In the wrapped array form, the wrapper key stays fixed while child folds and operations replace only the child field. The parent changes occurrence identity by removing one item and adding another under its own update logic.
 
 A keyed Binding can also represent one optional child whose domain identity changes. Enumerate zero or one item from an `Option`, and store its ID beside the child Model.
 
@@ -252,7 +262,7 @@ Discarding a Command result does not undo its external writes. Scope persistent 
 
 The child Model should contain state the child owns. Parent-owned values can cross the boundary in two explicit ways.
 
-Pass per-dispatch context after the child Message:
+Declare per-dispatch context in the Binding's Message route:
 
 ::Snippet{name="blockParentStateInUpdate" label="Parent context in child update" class="mb-4"}
 
@@ -351,13 +361,13 @@ Name wrapper Messages `Got<Child>Message`. DevTools uses that convention to grou
 
 ### Block.define
 
-`Block.define(id, { Model, Message, OutMessage? })` creates a local identity and typed behavior authoring methods, including `init`. `id` is a nonempty segment without `/` or `::`. Name the returned value `<Id>`, such as `Settings` for the ID `Settings`. Name the result of `toComposition({ mounts?, children? })` `<Id>Composition`; it adds the primary view and completion capabilities for that fixed graph, without copying the Definition-only `init` helper.
+`Block.define(id, { Model, Message, OutMessage? })` creates a local identity and typed effect, Step, lifecycle, and child Binding authoring methods. `id` is a nonempty segment without `/` or `::`. Name the returned value `<Id>`, such as `Settings` for the ID `Settings`. Name the result of `toComposition({ mounts?, childBindings? })` `<Id>Composition`; it owns init, update, the primary view, and completion for that fixed graph.
 
 For shared definitions specialized by a generic factory, `Block.define(id)` supplies the primitive methods and `.define(contracts)` establishes each later typed contract. Both forms are passive configuration.
 
 ### Feature.toComposition
 
-`Feature.toComposition({ children?, mounts? })` checks the composition graph and returns `FeatureComposition`. Omitted children and Mounts default to empty collections without granting their capabilities.
+`Feature.toComposition({ childBindings?, mounts? })` checks the composition graph and returns `FeatureComposition`. Omitted child Bindings and Mounts default to empty collections without granting their capabilities.
 
 ### FeatureComposition.toBlock
 
@@ -365,11 +375,11 @@ For shared definitions specialized by a generic factory, `Block.define(id)` supp
 
 ### Parent.bindChild
 
-`Parent.bindChild(block, config)` creates one static, optional, or keyed Binding in the established parent Model and Message context. Use `field` for an exact direct Struct field containing the child Model or `Option<ChildModel>`; `presentWhen` can add whole-child presence policy to that direct form. Use explicit `read`/`write` for custom access. A direct child-Model array uses string-valued `field` and `key` when the child Model Schema exposes Struct fields. A required `Schema.Array` field on a parent Struct containing closed wrappers adds a distinct `childField`; its key is a required string or finite-number wrapper field, while `childField` is a required field with exactly the same decoded shape as the child Model. Every field shorthand defaults placement to `field`, including both array forms. Static accessor and general `readAll` keyed configs default to the child Block ID. A keyed occurrence's `key` is nested under that Binding placement. Union, suspended, and other opaque direct child Schemas, opaque, union, or open/index-signature wrappers, optional collections, and custom writes use the general keyed form with `readAll`, function-valued `key`, `read`, and `writeAt`. Supply exactly one of `parentMessage` and `toParentMessage` for a static Binding; keyed Message mappings receive both the key and child Message. Use an explicit placement only to resolve a sibling default collision or retain a deliberately different stable graph identity. `subscriptions.when` gates only Streams. OutMessage handling is parent policy.
+`Parent.bindChild(block, config)` creates one static, optional, or keyed Binding in the established parent Model and Message context. Use `field` for an exact direct Struct field containing the child Model or `Option<ChildModel>`; `presentWhen` can add whole-child presence policy to that direct form. Use explicit `read`/`write` for custom access. Supply exactly one outgoing mapping with `parentMessage` or `toParentMessage`. A canonical unkeyed `parentMessage` mapping also supplies the default incoming route when child update has no context parameters. Custom, keyed, or contextful delivery declares `fromParentMessage` with the exact parent Message constructor and a callback that returns the native fold arguments in `Option`. Every field shorthand defaults placement to `field`; static accessor and general keyed configs default to the child Block ID. Use an explicit placement only to resolve a sibling default collision or retain a deliberately different stable graph identity. `subscriptions.when` gates only Streams. OutMessage handling is parent policy.
 
 ### Feature.step
 
-`Feature.step(producer)` authors a pure operation over the child Model. It infers the operation's arguments, result Messages and Command requirements. Select public operations in the completed Block's `expose` record; internal Steps need not be exposed.
+`Feature.step(producer)` authors a pure operation over the child Model. It restores that owner's Model context inside nested callbacks such as OutMessage policy branches, and infers the operation's arguments, result Messages, and Command requirements. Select public operations in the completed Block's `expose` record; internal Steps need not be exposed.
 
 ### binding.fold
 
@@ -381,7 +391,7 @@ A declared operation such as `clearSelection` becomes `binding.clearSelection(..
 
 ### binding.init
 
-`binding.init(...args)` runs child init and returns the child Model with Commands already scoped and lifted to the parent Message type. A keyed Binding takes the occurrence key first.
+`binding.init({ key?, args, toParentModel, commands? })` runs the completed child's init inside the exact graph that registered the Binding. `key` is required for a keyed Binding, `args` is the exact child init tuple, and `toParentModel` receives the initialized child and constructs the complete parent Model. The result retains graph evidence and returns all lifted child Commands before optional parent Commands. Call it only from Composition init or update, a completed Block's exposed operation, or its bound operation.
 
 ### binding.embedView
 

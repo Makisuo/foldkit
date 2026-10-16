@@ -22,7 +22,7 @@ const Message = defineMessageUnion({
 
 const ArticlePreview = Block.define('ArticlePreview', { Model, Message })
 // In your init function, start it closed:
-const init = ArticlePreview.init(() => ({
+const init = ArticlePreviewComposition.init(() => ({
   model: {
     isArticleOpen: false,
     // ...your other fields

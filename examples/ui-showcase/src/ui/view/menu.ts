@@ -4,7 +4,11 @@ import { type Html, childAttributes } from 'foldkit/html'
 import { type GroupHeading, buttonId } from '@foldkit/ui/menu'
 
 import * as Icon from '../../icon'
-import { UiComposition, menuAnimatedDemo, menuBasicDemo } from '../composition'
+import {
+  MenuAnimatedDemoBinding,
+  MenuBasicDemoBinding,
+  UiComposition,
+} from '../composition'
 import type { UiViewBuilder } from '../composition'
 import type { MenuItem } from '../menu'
 
@@ -120,7 +124,7 @@ export const view = UiComposition.view((model, h) => {
         [h.Class('relative')],
         [
           h.block(
-            menuBasicDemo.embedView({
+            MenuBasicDemoBinding.embedView({
               slotId: model.menuBasicDemo.id,
               model: model.menuBasicDemo,
               viewInputs: {
@@ -146,7 +150,7 @@ export const view = UiComposition.view((model, h) => {
         [h.Class('relative')],
         [
           h.block(
-            menuAnimatedDemo.embedView({
+            MenuAnimatedDemoBinding.embedView({
               slotId: model.menuAnimatedDemo.id,
               model: model.menuAnimatedDemo,
               viewInputs: {

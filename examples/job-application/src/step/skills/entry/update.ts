@@ -7,8 +7,8 @@ import {
 import { modifyFields } from 'foldkit/struct'
 
 import { revealFieldErrors } from '../../validation'
-import { proficiencyRadioGroup } from './composition'
-import { Message, type Model, OutMessage, SkillsEntry } from './definition'
+import { SkillsEntryComposition } from './composition'
+import { Message, type Model, OutMessage } from './definition'
 
 export const nameRules = makeRules({
   required: 'Skill name is required',
@@ -16,14 +16,11 @@ export const nameRules = makeRules({
 
 const validateName = validate(nameRules)
 
-export const update = SkillsEntry.update((model, message) =>
+export const update = SkillsEntryComposition.update((model, message) =>
   Message.match(message, {
     UpdatedName: ({ value }) => ({
       model: modifyFields(model, { name: () => validateName(value) }),
     }),
-
-    GotProficiencyRadioGroupMessage: ({ message }) =>
-      proficiencyRadioGroup.fold(model, message),
 
     ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
   }),

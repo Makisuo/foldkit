@@ -71,7 +71,7 @@ export const PersistCount = Application.command('PersistCount', {
 
 export const EffectsLayer = PersistCount.layer
 
-export const init = Application.init((flags: Flags) => ({
+export const init = ApplicationComposition.init((flags: Flags) => ({
   model: {
     count: flags.initialCount,
     renderedAt: flags.renderedAt,

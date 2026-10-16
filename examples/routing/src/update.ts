@@ -5,7 +5,7 @@ import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
 import { LoadExternal, NavigateInternal } from './command'
-import { ApplicationComposition, peoplePage } from './composition'
+import { ApplicationComposition, PeoplePageBinding } from './composition'
 import { Message, type NavigationShortcut } from './message'
 import { Model } from './model'
 import {
@@ -52,7 +52,7 @@ export const update = ApplicationComposition.update((model, message) =>
 
       const routeSteps = Match.value(nextRoute).pipe(
         Match.tag('People', peopleRoute => [
-          peoplePage.informRouteChanged(peopleRoute),
+          PeoplePageBinding.informRouteChanged(peopleRoute),
         ]),
         Match.orElse(() => []),
       )
@@ -65,7 +65,5 @@ export const update = ApplicationComposition.update((model, message) =>
 
       return { model, commands: [NavigateInternal({ url })] }
     },
-
-    GotPeopleMessage: ({ message }) => peoplePage.fold(model, message),
   }),
 )

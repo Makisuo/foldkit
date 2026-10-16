@@ -2,6 +2,7 @@ import { Update } from 'foldkit'
 import type { Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { products } from './data/products'
 import { Application } from './definition'
 import { Cart } from './domain'
 import { Message } from './message'
@@ -28,14 +29,15 @@ const foldProductsOutMessage = Products.OutMessage.match<
     }),
 })
 
-export const productsPage = Application.bindChild(Products.block, {
+export const ProductsPageBinding = Application.bindChild(Products.block, {
   field: 'productsPage',
   parentMessage: Message.GotProductsMessage,
+  init: { args: () => [products] },
   outMessage: { fold: foldProductsOutMessage },
 })
 
 export const ApplicationComposition = Application.toComposition({
-  children: [productsPage],
+  childBindings: [ProductsPageBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition

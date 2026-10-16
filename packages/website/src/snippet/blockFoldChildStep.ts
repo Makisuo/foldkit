@@ -1,3 +1,3 @@
-import { dialog } from './composition'
+import { DialogBinding } from './composition'
 
-export const closeDialog = dialog.close()
+export const closeDialog = DialogBinding.close()

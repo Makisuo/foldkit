@@ -20,15 +20,18 @@ const foldGraduationYearListboxOutMessage =
       }),
   })
 
-export const graduationYearListbox = EducationEntry.bindChild(
+export const GraduationYearListboxBinding = EducationEntry.bindChild(
   GraduationYearListbox,
   {
     field: 'graduationYearListbox',
     parentMessage: Message.GotGraduationYearListboxMessage,
+    init: {
+      args: (entryId: string) => [{ id: `${entryId}-graduation-year` }],
+    },
     outMessage: { fold: foldGraduationYearListboxOutMessage },
   },
 )
 
 export const EducationEntryComposition = EducationEntry.toComposition({
-  children: [graduationYearListbox],
+  childBindings: [GraduationYearListboxBinding],
 })

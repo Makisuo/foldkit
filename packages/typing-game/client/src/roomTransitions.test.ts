@@ -5,10 +5,11 @@ import { describe, expect, test } from 'vitest'
 
 import * as Shared from '@typing-game/shared'
 
-import { Home, home, room } from './composition'
+import { Home } from './composition'
 import { init } from './init'
 import { Message } from './message'
 import { Model, RoomInstance } from './model'
+import { Home as HomePage, Room } from './page'
 import { Message as HomeMessage } from './page/home/message'
 import {
   ClearSession,
@@ -68,7 +69,7 @@ const keyedRoomCommandName = (roomId: string, commandName: string): string =>
   commandName.replace('Room', `Room[${JSON.stringify(roomId)}]`)
 
 const dirtyRoomModel = (roomId: string) => {
-  const roomInit = room.init(roomId, Option.none())
+  const roomInit = Room.block.init(Option.none())
 
   return modifyFields(roomInit.model, {
     roomAsyncData: () => RoomAsyncData.Success({ data: makeRoom(roomId, 37) }),
@@ -88,7 +89,7 @@ const modelWithRoom = (
 ): Model =>
   Model.make({
     route,
-    home: home.init().model,
+    home: HomePage.block.init().model,
     maybeRoomInstance: Option.some(
       RoomInstance.make({ roomId, model: roomModel }),
     ),
@@ -113,7 +114,7 @@ describe('Room route transitions', () => {
       ROOM_A,
     )
     const result = update(model, Message.ChangedUrl({ url: roomUrl(ROOM_B) }))
-    const expectedRoomInit = room.init(ROOM_B, Option.some(ROOM_B))
+    const expectedRoomInit = Room.block.init(Option.some(ROOM_B))
 
     expect(result.model.route).toEqual(
       ApplicationRoute.Room({ roomId: ROOM_B }),
@@ -135,7 +136,7 @@ describe('Room route transitions', () => {
 
   test('initializes a direct Room B visit with B loading Commands', () => {
     const result = init(roomUrl(ROOM_B))
-    const expectedRoomInit = room.init(ROOM_B, Option.some(ROOM_B))
+    const expectedRoomInit = Room.block.init(Option.some(ROOM_B))
 
     expect(result.model.route).toEqual(
       ApplicationRoute.Room({ roomId: ROOM_B }),

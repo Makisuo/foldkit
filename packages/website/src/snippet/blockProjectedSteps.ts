@@ -1,9 +1,9 @@
 import { Update } from 'foldkit'
 
-import { dialog, settings } from './composition'
+import { DialogBinding, SettingsBinding } from './composition'
 import type { Model } from './model'
 
-export const resetSettings = (model: Model) => settings.reset()(model)
+export const resetSettings = (model: Model) => SettingsBinding.reset()(model)
 
 export const saveAndClose = (model: Model) =>
-  Update.combine(model, [settings.save(), dialog.close()])
+  Update.combine(model, [SettingsBinding.save(), DialogBinding.close()])

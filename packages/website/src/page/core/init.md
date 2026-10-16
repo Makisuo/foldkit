@@ -2,31 +2,67 @@
 
 ## The First Model {#init}
 
-`init` constructs the first Model and returns any Commands that should run when the application starts. Author it through the root Definition as `Application.init(fn)`. The helper returns the same function with its exact arguments, return shape, Command requirements, and child registration evidence. It checks the returned Model and Command result Messages against the Application contracts where the initializer is declared.
+`init` constructs the first Model and returns any Commands that should run when the application starts. Author it through the named root Composition as `ApplicationComposition.init(fn)`. The helper preserves the function's exact arguments, return shape, Command requirements, and child registration evidence. It also owns the child startup graph used to assemble the complete Model.
 
-Give `Application.init` one concrete function signature. Optional, default, and rest parameters are supported. When an overloaded domain helper or callable object supplies the startup logic, wrap that call in one concretely typed callback. A generic Block factory closes over its type parameters and keeps the initializer itself concrete, so the Definition can check one unambiguous Model and Message contract.
+Give `ApplicationComposition.init` one concrete function signature. Optional, default, and rest parameters are supported. When an overloaded domain helper or callable object supplies the startup logic, wrap that call in one concretely typed callback. A generic Block factory closes over its type parameters and keeps the initializer itself concrete.
 
 The counter starts at zero and has no startup work:
 
 ::Snippet{name="initSimple" label="Using init"}
 
-A non-routing application or element calls `init` with no arguments. A routing application passes the current URL, so its first Model can reflect the route. When the application declares Flags, they become the first argument in either form. The Definition preserves that parameter list without deciding which case it represents. `ApplicationComposition.toApplication` or `toElement` still receives `init` explicitly and checks its arguments against the completion's Flags and routing configuration, along with the registered child and handler graph. Composition has no `init` authoring method.
+A non-routing application or element calls `init` with no arguments. A routing application passes the current URL, so its first Model can reflect the route. When the application declares Flags, they become the first argument in either form. `ApplicationComposition.toApplication` or `toElement` receives `init` explicitly and checks its arguments against the completion's Flags and routing configuration, along with the registered child and handler graph.
+
+## Assemble Child Models {#child-initialization}
+
+A completed Block carries its `init`. Declare how a child starts beside its Binding, then let the Composition call that initializer, place its Model, and collect its Commands.
+
+Use `init: true` when the child can initialize without arguments. Use `init: { args }` when it needs inputs. The `args` callback returns the child's exact init argument tuple. Build it with Effect's `Tuple.make(...)`, which preserves each argument's type through the Binding's overloaded forms. Ordinary array literals widen in this callback. A callback that reads shared startup input declares that input's type.
+
+The following Profile gives its Settings child a saved theme. The Binding selects the child inputs from `startup`, while the init plan supplies only the parent-owned username:
+
+::Snippet{name="blockFoldChildInit" label="Assembling an initial child Model"}
+
+`Composition.init` calls the selected child initializers once, in `childBindings` order. Its plan's `model` field contains only fields the parent owns; Foldkit adds the child-owned fields before constructing the Model. Use `startup` for input shared with Binding init policies, `commands` for parent Commands, and `steps` for parent Steps applied in order after the complete Model exists.
+
+Parent Commands appear first in the returned collection, followed by retained child init Commands and Step Commands. The Runtime executes Commands independently, so collection order does not sequence their completion.
+
+An exact Option field can select absence by returning `Option.none()` from `init.args`, or presence with `Option.some(args)`. The resulting field is `None` or `Some(childModel)`. Registration alone does not choose whether a child exists at startup.
+
+The final parent Model determines which initialized occurrences are active. Init Commands for absent or `presentWhen`-inactive children are omitted. A `subscriptions.when` policy only gates Subscription Streams; it does not suppress child init Commands. Initial Steps may change the child Model without discarding its init Commands.
+
+These calls assemble values only. The Runtime constructs Layers and performs the returned Commands later.
+
+For custom storage, deliberate Command ordering, or dynamic creation, call the registered Binding's explicit `init` operation from its owning graph. Pass `{ args, toParentModel }`, plus `key` for a keyed Binding and optional parent `commands`. `args` is the exact child init tuple. `toParentModel` receives the initialized child Model and constructs the complete parent Model. The result contains that parent Model and every lifted child init Command, followed by the optional parent Commands. It also retains the Binding evidence used by Composition completion.
+
+An explicit Binding init may execute only where that exact Binding is registered: inside its Composition's init or update, through an operation exposed by its completed Block, or through the operation projected onto its parent Binding. The compiler checks the key, argument tuple, complete parent Model, Command requirements, and graph evidence. At runtime, Foldkit validates the complete parent Model against its Schema, verifies that `toParentModel` stores a schema-equivalent initialized child, and checks that a keyed result contains exactly one occurrence with the requested key. These checks apply to the connected operation; ordinary Model construction remains available for fixtures and other pure values.
+
+### Keyed Initial Instances
+
+A keyed-array Binding can declare `init.occurrences` and `init.toItem`. The first callback selects the ordered keys and exact child init argument tuples. The second builds each stored item from its occurrence and initialized child Model. For a direct child array, it returns that exact child Model with the planned key. For a wrapped array, it returns the parent-owned wrapper containing that exact child Model and key. The parent keeps occurrence IDs and any wrapper metadata outside the child Model.
+
+This Counter application starts three instances. Its Model declares `counters: Schema.Array(CounterInstance)`, where each instance holds `id` and `counter`. Its `addCounter` Step creates a later occurrence through `CountersBinding.init({ key, args, toParentModel })`, so the returned parent result carries the child init Commands automatically:
+
+::Snippet{name="initKeyedChildren" label="Initializing keyed child instances"}
+
+The assembler validates the entire occurrence plan before calling child init. Duplicate keys, invalid keys, and non-array `args` fail with a configuration error. The compiler checks tuple length and argument types; the Runtime does not decode init arguments. Each wrapper must retain its planned key. Only keys present in the final parent Model retain their init Commands; initial Steps may change their child state.
+
+This startup adapter applies to exact `field` / `key` keyed arrays, with or without `childField`. General keyed accessors keep explicit initialization so their custom storage and write policy remain visible.
 
 ## Compose Startup Steps {#startup-steps}
 
-Definition-owned `init` is the application startup boundary. Foldkit does not run a special Runtime boot phase after it.
+Composition-owned `init` is the application startup boundary. Foldkit does not run a special Runtime boot phase after it.
 
-Start each child with its Binding's `init`, then build the complete parent Model. Child init may return Commands, so keep those Commands when applying any initial transitions.
+Put initial Steps in the plan's `steps` array. The Composition assembles the complete parent Model first, then passes each Step the Model returned by the preceding Step. It retains the child init Commands and adds the Commands returned by those Steps.
 
 An optional `boot` helper is an ordinary exposed Step called through the Binding after the child Model is stored. It may accept Flags, the current URL, or prerendered data, and it returns the normal next Model and Commands through that Binding. A feature need not define both init and `boot` helpers.
 
 When an existing domain operation such as `restore` or `open` already describes the transition, expose that Step instead. Do not create a Message only to trigger startup behavior.
 
-The following excerpt assumes `settings` and `session` are registered child Bindings, and that both expose a startup operation. The two Steps are sequential, so `Update.combine` passes the Model returned by `settings.restore` to `session.resume`. The final result retains Commands from both child init calls and both Steps:
+The following excerpt assumes `SettingsBinding` and `SessionBinding` have init policies and expose startup operations. The `steps` array is sequential, so `SessionBinding.resume` receives the Model returned by `SettingsBinding.restore`. The result retains Commands from both child initializers and both Steps:
 
 ::Snippet{name="initBootSteps" label="Composing startup Steps"}
 
-Call a single initial Step directly. Use `Update.combine` only when two or more Steps must receive the Model produced by the preceding Step.
+List each initial Step in `steps`. Composition applies them in order.
 
 ## Startup Data from Flags {#flags}
 

@@ -1,7 +1,7 @@
-import { Application } from './definition'
+import { ApplicationComposition } from './composition'
 import { ConnectionState } from './model'
 
-export const init = Application.init(() => ({
+export const init = ApplicationComposition.init(() => ({
   model: {
     connection: ConnectionState.Disconnected(),
     messages: [],

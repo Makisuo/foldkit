@@ -3,7 +3,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { type PeopleRoute } from '../../route'
 import { FetchPeople, PushSearchUrl } from './command'
-import { People } from './definition'
+import { People, PeopleComposition } from './definition'
 import { Message } from './message'
 import {
   Model,
@@ -12,7 +12,7 @@ import {
   routeSearchText,
 } from './model'
 
-export const init = People.init((route: PeopleRoute) => {
+export const init = PeopleComposition.init((route: PeopleRoute) => {
   const searchText = routeSearchText(route)
   return {
     model: Model.make({
@@ -23,7 +23,7 @@ export const init = People.init((route: PeopleRoute) => {
     commands: [FetchPeople({ searchText })],
   }
 })
-export const update = People.update((model, message) =>
+export const update = PeopleComposition.update((model, message) =>
   Message.match(message, {
     ChangedSearchInput: ({ value }) => ({
       model: modifyFields(model, { searchInput: () => value }),

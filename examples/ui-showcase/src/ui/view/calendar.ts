@@ -10,7 +10,7 @@ import type {
 } from '@foldkit/ui/calendar'
 
 import * as Icon from '../../icon'
-import { UiComposition, calendarBasicDemo } from '../composition'
+import { CalendarBasicDemoBinding, UiComposition } from '../composition'
 import type { UiViewBuilder } from '../composition'
 
 const containerClassName =
@@ -181,7 +181,7 @@ export const view = UiComposition.view((model, h) => {
     [
       h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Calendar']),
       h.block(
-        calendarBasicDemo.embedView({
+        CalendarBasicDemoBinding.embedView({
           slotId: model.calendarBasicDemo.id,
           model: model.calendarBasicDemo,
           viewInputs: {

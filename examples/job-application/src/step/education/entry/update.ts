@@ -7,8 +7,8 @@ import {
 import { modifyFields } from 'foldkit/struct'
 
 import { revealFieldErrors } from '../../validation'
-import { graduationYearListbox } from './composition'
-import { EducationEntry, Message, type Model, OutMessage } from './definition'
+import { EducationEntryComposition } from './composition'
+import { Message, type Model, OutMessage } from './definition'
 
 export const schoolRules = makeRules({
   required: 'School is required',
@@ -26,7 +26,7 @@ const validateSchool = validate(schoolRules)
 const validateDegree = validate(degreeRules)
 const validateFieldOfStudy = validate(fieldOfStudyRules)
 
-export const update = EducationEntry.update((model, message) =>
+export const update = EducationEntryComposition.update((model, message) =>
   Message.match(message, {
     UpdatedSchool: ({ value }) => ({
       model: modifyFields(model, { school: () => validateSchool(value) }),
@@ -41,9 +41,6 @@ export const update = EducationEntry.update((model, message) =>
         fieldOfStudy: () => validateFieldOfStudy(value),
       }),
     }),
-
-    GotGraduationYearListboxMessage: ({ message }) =>
-      graduationYearListbox.fold(model, message),
 
     ToggledCurrentlyEnrolled: ({ isChecked }) => ({
       model: modifyFields(model, { isCurrentlyEnrolled: () => isChecked }),

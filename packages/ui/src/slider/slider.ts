@@ -203,7 +203,7 @@ const withChangedValue = (
  *  Model: the view supplies the current value on the Messages that need it,
  *  and value changes surface as `ChangedValue` rather than mutating this
  *  Model. */
-export const update = Slider.update((model, message) =>
+export const update = SliderComposition.update((model, message) =>
   Message.match<UpdateReturn>(message, {
     PressedThumb: ({ originValue }) =>
       Match.value(model.dragState).pipe(
@@ -842,7 +842,9 @@ const EffectsLayer = Layer.mergeAll(
 
 /** Complete Slider Block definition. */
 export const block = SliderComposition.toBlock({
-  init: Slider.init((config: InitConfig) => ({ model: init(config) })),
+  init: SliderComposition.init((config: InitConfig) => ({
+    model: init(config),
+  })),
   update,
   view,
   subscriptions,
@@ -860,7 +862,7 @@ export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
     OutMessage,
   })
   const SliderComposition = Slider.toComposition()
-  const rootUpdate = Slider.update(update)
+  const rootUpdate = SliderComposition.update(update)
   const rootView = SliderComposition.view.withInputs<ViewInputs>(renderView)
   const subscriptions = defineSubscriptionsForRoot(
     Slider.subscriptions,
@@ -871,7 +873,9 @@ export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
     subscriptions.dragEscape.layer,
   )
   return SliderComposition.toBlock({
-    init: Slider.init((config: InitConfig) => ({ model: init(config) })),
+    init: SliderComposition.init((config: InitConfig) => ({
+      model: init(config),
+    })),
     update: rootUpdate,
     view: rootView,
     subscriptions,

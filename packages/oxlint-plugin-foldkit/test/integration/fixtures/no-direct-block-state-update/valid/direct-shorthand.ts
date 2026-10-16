@@ -15,13 +15,17 @@ const Message = defineMessageUnion({
   GotSettingsMessage: { message: BoundSettings.Message },
 })
 const Application = defineApplication({ Model, Message })
-const entries = Application.bindChild(KeyedEntry.Entry, {
+const EntriesBinding = Application.bindChild(KeyedEntry.Entry, {
   field: 'entries',
   key: 'id',
   toParentMessage: (id, message) =>
     Message.GotEntryMessage({ id, message }),
+  fromParentMessage: {
+    parentMessage: Message.GotEntryMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
 })
-const maybeSettings = Application.bindChild(BoundSettings.Settings, {
+const MaybeSettingsBinding = Application.bindChild(BoundSettings.Settings, {
   field: 'maybeSettings',
   parentMessage: Message.GotSettingsMessage,
 })
@@ -33,6 +37,6 @@ export const initial: Model = Model.make({
 
 export const updateWithNamedOperations = (model: Model) =>
   Update.combine(model, [
-    entries.setTheme('initial', 'Light'),
-    maybeSettings.setTheme('Dark'),
+    EntriesBinding.setTheme('initial', 'Light'),
+    MaybeSettingsBinding.setTheme('Dark'),
   ])

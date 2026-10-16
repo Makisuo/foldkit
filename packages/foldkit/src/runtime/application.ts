@@ -383,14 +383,15 @@ const assertDistinctManagedResourceKeys = (
   }
 }
 
-type PendingApplication<
+/** @internal Passive program contract before all ordinary Services are provided. */
+export interface PendingApplication<
   P extends Ports | undefined,
   Flags,
   Requirements,
   RuntimeServices,
   ProvidedServices,
   Kind extends 'Application' | 'Element' = 'Application',
-> = Readonly<{
+> extends Readonly<{
   /**
    * Port declarations captured by completion. Runtime.embed returns connected
    * send and subscription handles after the runtime has started.
@@ -446,7 +447,7 @@ type PendingApplication<
     ProvidedServices: (services: ProvidedServices) => ProvidedServices
     Kind: Kind
   }>
-}>
+}> {}
 
 type Program<
   P extends Ports | undefined,
@@ -978,8 +979,28 @@ type ValidateRootView<
         'Application view must be authored by its definition': View
       }>
 
+type NormalizedRootConfig<Config extends AnyRootConfig> = Readonly<{
+  [Key in keyof Config]: Key extends 'update'
+    ? Config['update'] extends DefinedUpdateSource<infer Source>
+      ? PreciseRootUpdate<Config['update'], Source>
+      : Config['update']
+    : Config[Key]
+}>
+
 /** @internal Checks shared browser and server root recipes. */
 export type ValidateRoot<
+  CompositionValue extends AnyComposition,
+  Config extends AnyRootConfig,
+  InitArgs extends ReadonlyArray<unknown>,
+  Kind extends RootViewKind,
+> = ValidateNormalizedRoot<
+  CompositionValue,
+  NormalizedRootConfig<Config>,
+  InitArgs,
+  Kind
+>
+
+type ValidateNormalizedRoot<
   CompositionValue extends AnyComposition,
   Config extends AnyRootConfig,
   InitArgs extends ReadonlyArray<unknown>,

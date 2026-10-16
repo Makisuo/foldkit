@@ -7,8 +7,11 @@ import { Dialog } from '@foldkit/ui'
 import { saveCanvas } from './command'
 import {
   GridSizeRadioGroup,
+  GRID_SIZE_RADIO_GROUP_ID,
+  PALETTE_RADIO_GROUP_ID,
   PaletteRadioGroup,
   ThemeListbox,
+  TOOL_RADIO_GROUP_ID,
   ToolRadioGroup,
 } from './components'
 import { DEFAULT_COLOR_INDEX } from './constant'
@@ -32,9 +35,10 @@ const foldErrorDialogOutMessage = Dialog.OutMessage.match<
   }),
 })
 
-export const errorDialog = Application.bindChild(Dialog.block, {
+export const ErrorDialogBinding = Application.bindChild(Dialog.block, {
   field: 'errorDialog',
   parentMessage: Message.GotErrorDialogMessage,
+  init: { args: () => [{ id: 'export-error-dialog' }] },
   outMessage: { fold: foldErrorDialogOutMessage },
 })
 
@@ -49,11 +53,15 @@ const foldGridSizeConfirmDialogOutMessage = Dialog.OutMessage.match<
   }),
 })
 
-export const gridSizeConfirmDialog = Application.bindChild(Dialog.block, {
-  field: 'gridSizeConfirmDialog',
-  parentMessage: Message.GotGridSizeConfirmDialogMessage,
-  outMessage: { fold: foldGridSizeConfirmDialogOutMessage },
-})
+export const GridSizeConfirmDialogBinding = Application.bindChild(
+  Dialog.block,
+  {
+    field: 'gridSizeConfirmDialog',
+    parentMessage: Message.GotGridSizeConfirmDialogMessage,
+    init: { args: () => [{ id: 'grid-size-confirm-dialog' }] },
+    outMessage: { fold: foldGridSizeConfirmDialogOutMessage },
+  },
+)
 
 export const selectTool = (model: Model, tool: Tool) => ({
   model: modifyFields(model, { tool: () => tool }),
@@ -76,9 +84,10 @@ const foldToolRadioGroupOutMessage = ToolRadioGroup.OutMessage.match<
       selectTool(model, value),
 })
 
-export const toolRadioGroup = Application.bindChild(ToolRadioGroup, {
+export const ToolRadioGroupBinding = Application.bindChild(ToolRadioGroup, {
   field: 'toolRadioGroup',
   parentMessage: Message.GotToolRadioGroupMessage,
+  init: { args: () => [{ id: TOOL_RADIO_GROUP_ID }] },
   outMessage: { fold: foldToolRadioGroupOutMessage },
 })
 
@@ -108,7 +117,7 @@ export const requestGridSizeChange = (model: Model, size: number) => {
         maybePendingGridSize: () => Option.some(size),
       }),
     }),
-    gridSizeConfirmDialog.open(),
+    GridSizeConfirmDialogBinding.open(),
   ])
 }
 
@@ -121,11 +130,15 @@ const foldGridSizeRadioGroupOutMessage = GridSizeRadioGroup.OutMessage.match<
       requestGridSizeChange(model, Number(value)),
 })
 
-export const gridSizeRadioGroup = Application.bindChild(GridSizeRadioGroup, {
-  field: 'gridSizeRadioGroup',
-  parentMessage: Message.GotGridSizeRadioGroupMessage,
-  outMessage: { fold: foldGridSizeRadioGroupOutMessage },
-})
+export const GridSizeRadioGroupBinding = Application.bindChild(
+  GridSizeRadioGroup,
+  {
+    field: 'gridSizeRadioGroup',
+    parentMessage: Message.GotGridSizeRadioGroupMessage,
+    init: { args: () => [{ id: GRID_SIZE_RADIO_GROUP_ID }] },
+    outMessage: { fold: foldGridSizeRadioGroupOutMessage },
+  },
+)
 
 const foldPaletteRadioGroupOutMessage = PaletteRadioGroup.OutMessage.match<
   (model: Model) => ReturnType<typeof selectColor>
@@ -139,11 +152,15 @@ const foldPaletteRadioGroupOutMessage = PaletteRadioGroup.OutMessage.match<
       ),
 })
 
-export const paletteRadioGroup = Application.bindChild(PaletteRadioGroup, {
-  field: 'paletteRadioGroup',
-  parentMessage: Message.GotPaletteRadioGroupMessage,
-  outMessage: { fold: foldPaletteRadioGroupOutMessage },
-})
+export const PaletteRadioGroupBinding = Application.bindChild(
+  PaletteRadioGroup,
+  {
+    field: 'paletteRadioGroup',
+    parentMessage: Message.GotPaletteRadioGroupMessage,
+    init: { args: () => [{ id: PALETTE_RADIO_GROUP_ID }] },
+    outMessage: { fold: foldPaletteRadioGroupOutMessage },
+  },
+)
 
 const foldThemeListboxOutMessage = ThemeListbox.OutMessage.match({
   Selected: ({ value }) =>
@@ -161,20 +178,21 @@ const foldThemeListboxOutMessage = ThemeListbox.OutMessage.match({
     }),
 })
 
-export const themeListbox = Application.bindChild(ThemeListbox, {
+export const ThemeListboxBinding = Application.bindChild(ThemeListbox, {
   field: 'themeListbox',
   parentMessage: Message.GotThemeListboxMessage,
+  init: { args: () => [{ id: 'theme-picker' }] },
   outMessage: { fold: foldThemeListboxOutMessage },
 })
 
 export const ApplicationComposition = Application.toComposition({
-  children: [
-    errorDialog,
-    themeListbox,
-    gridSizeConfirmDialog,
-    toolRadioGroup,
-    gridSizeRadioGroup,
-    paletteRadioGroup,
+  childBindings: [
+    ErrorDialogBinding,
+    ThemeListboxBinding,
+    GridSizeConfirmDialogBinding,
+    ToolRadioGroupBinding,
+    GridSizeRadioGroupBinding,
+    PaletteRadioGroupBinding,
   ],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

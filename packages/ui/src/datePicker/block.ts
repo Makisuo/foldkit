@@ -121,7 +121,7 @@ const foldPopoverOutMessage = Popover.OutMessage.match<
   Closed: () => dropCalendarToDays,
 })
 
-const popover = DatePicker.bindChild(Popover.block, {
+const PopoverBinding = DatePicker.bindChild(Popover.block, {
   field: 'popover',
   parentMessage: Message.GotPopoverMessage,
   outMessage: { fold: foldPopoverOutMessage },
@@ -129,7 +129,7 @@ const popover = DatePicker.bindChild(Popover.block, {
 
 const foldCalendarOutMessage = UiCalendar.OutMessage.match({
   ChangedViewMonth: () => DatePicker.step(model => ({ model })),
-  SelectedDate: () => popover.close(),
+  SelectedDate: () => PopoverBinding.close(),
 })
 
 const toDatePickerOutMessage = UiCalendar.OutMessage.match<OutMessage>({
@@ -138,7 +138,7 @@ const toDatePickerOutMessage = UiCalendar.OutMessage.match<OutMessage>({
   SelectedDate: ({ date }) => OutMessage.SelectedDate({ date }),
 })
 
-const calendar = DatePicker.bindChild(UiCalendar.block, {
+const CalendarBinding = DatePicker.bindChild(UiCalendar.block, {
   field: 'calendar',
   parentMessage: Message.GotCalendarMessage,
   outMessage: {
@@ -148,7 +148,7 @@ const calendar = DatePicker.bindChild(UiCalendar.block, {
 })
 
 const DatePickerComposition = DatePicker.toComposition({
-  children: [popover, calendar],
+  childBindings: [PopoverBinding, CalendarBinding],
 })
 
 /** Mount Definitions rendered by DatePicker's Popover child. */
@@ -156,19 +156,15 @@ export const mounts = DatePickerComposition.mounts
 
 /** Processes a DatePicker Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. */
-export const update = DatePicker.update((model, message) =>
+export const update = DatePickerComposition.update((model, message) =>
   Message.match(message, {
-    GotCalendarMessage: ({ message: calendarMessage }) =>
-      calendar.fold(model, calendarMessage),
+    Opened: () =>
+      Update.combine(model, [PopoverBinding.open(), dropCalendarToDays]),
 
-    GotPopoverMessage: ({ message: popoverMessage }) =>
-      popover.fold(model, popoverMessage),
+    Closed: () =>
+      Update.combine(model, [PopoverBinding.close(), dropCalendarToDays]),
 
-    Opened: () => Update.combine(model, [popover.open(), dropCalendarToDays]),
-
-    Closed: () => Update.combine(model, [popover.close(), dropCalendarToDays]),
-
-    RequestedSelectDate: ({ date }) => calendar.selectDate(date)(model),
+    RequestedSelectDate: ({ date }) => CalendarBinding.selectDate(date)(model),
 
     Cleared: () => ({ model, outMessage: OutMessage.ClearedDate() }),
   }),
@@ -393,7 +389,7 @@ export const view = DatePickerComposition.view.withInputs<ViewInputs>(
     }
 
     const calendarVNode = h.block(
-      calendar.embedView({
+      CalendarBinding.embedView({
         slotId: model.calendar.id,
         model: model.calendar,
         viewInputs: {
@@ -405,7 +401,7 @@ export const view = DatePickerComposition.view.withInputs<ViewInputs>(
     )
 
     const popoverVNode = h.block(
-      popover.embedView({
+      PopoverBinding.embedView({
         slotId: model.popover.id,
         model: model.popover,
         viewInputs: {
@@ -475,7 +471,9 @@ export const view = DatePickerComposition.view.withInputs<ViewInputs>(
 
 /** Complete DatePicker Block definition. */
 export const block = DatePickerComposition.toBlock({
-  init: DatePicker.init((config: InitConfig) => ({ model: init(config) })),
+  init: DatePickerComposition.init((config: InitConfig) => ({
+    model: init(config),
+  })),
   update,
   view,
   expose: { open, close, selectDate, clear },

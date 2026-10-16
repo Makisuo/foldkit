@@ -7,7 +7,7 @@ const OutMessage = defineMessageUnion({
 
 const DateRange = Block.define('DateRange', { Model, Message, OutMessage })
 
-const endDatePicker = DateRange.bindChild(DatePicker.block, {
+const EndDatePickerBinding = DateRange.bindChild(DatePicker.block, {
   field: 'endDatePicker',
   parentMessage: Message.GotEndDateMessage,
   outMessage: {
@@ -18,4 +18,4 @@ const endDatePicker = DateRange.bindChild(DatePicker.block, {
   },
 })
 
-const restoreEndDate = (model: Model) => endDatePicker.restore()(model)
+const restoreEndDate = (model: Model) => EndDatePickerBinding.restore()(model)

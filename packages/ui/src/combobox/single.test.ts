@@ -66,19 +66,19 @@ const FruitComboboxTest = Block.define('FruitComboboxTest', {
 const foldFruitComboboxOutMessage = FruitCombobox.OutMessage.match<
   Update.Step<FruitParentModel, FruitMessage>
 >({
-  Selected:
-    ({ value }) =>
-    model => ({
+  Selected: ({ value }) =>
+    FruitComboboxTest.step(model => ({
       model: modifyFields(model, {
         maybeSelectedFruit: () => Option.some(value),
       }),
-    }),
-  ClearedSelection: () => model => ({ model }),
+    })),
+  ClearedSelection: () => FruitComboboxTest.step(model => ({ model })),
 })
 
-const fruitCombobox = FruitComboboxTest.bindChild(FruitCombobox, {
+const FruitComboboxBinding = FruitComboboxTest.bindChild(FruitCombobox, {
   field: 'combobox',
   toParentMessage: message => message,
+  fromParentMessage: false,
   outMessage: { fold: foldFruitComboboxOutMessage },
 })
 
@@ -157,14 +157,41 @@ describe('Combobox', () => {
       expect(FruitCombobox.mounts).toEqual(mounts)
     })
 
+    it('routes Animation Messages for a generic Combobox', () => {
+      Story.story(
+        FruitCombobox.update,
+        Story.given(
+          FruitCombobox.init({ id: 'fruit-combobox', isAnimated: true }).model,
+        ),
+        Story.message(
+          FruitCombobox.Message.Opened({
+            maybeActiveItemIndex: Option.some(0),
+          }),
+        ),
+        Story.Command.resolveAll(
+          [
+            Animation.WaitForPaint,
+            Animation.Message.CompletedWaitForPaint({ generation: 1 }),
+          ],
+          [
+            Animation.WaitForAnimationSettled,
+            Animation.Message.EndedAnimation({ generation: 1 }),
+          ],
+        ),
+        Story.model(model => {
+          expect(model.animation.transitionState).toBe('Idle')
+        }),
+      )
+    })
+
     it('connects registered Steps and embeds the canonical refined view', () => {
       const parent: FruitParentModel = {
         combobox: init({ id: 'fruit' }),
         maybeSelectedFruit: Option.none(),
       }
-      const selected = fruitCombobox.selectItem('Apple', 'Apple')(parent)
-      const closed = fruitCombobox.close('')(selected.model)
-      const embedded = fruitCombobox.embedView({
+      const selected = FruitComboboxBinding.selectItem('Apple', 'Apple')(parent)
+      const closed = FruitComboboxBinding.close('')(selected.model)
+      const embedded = FruitComboboxBinding.embedView({
         slotId: 'fruit-primary',
         model: closed.model.combobox,
         viewInputs: {
@@ -176,7 +203,7 @@ describe('Combobox', () => {
           maybeSelectedValue: closed.model.maybeSelectedFruit,
         },
       })
-      const repeatedEmbedded = fruitCombobox.embedView({
+      const repeatedEmbedded = FruitComboboxBinding.embedView({
         slotId: 'fruit-secondary',
         model: closed.model.combobox,
         viewInputs: embedded.viewInputs,

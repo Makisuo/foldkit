@@ -1,4 +1,4 @@
-import { Array, Number, Schema } from 'effect'
+import { Array, Number, Option, Schema, Tuple } from 'effect'
 import { defineApplication } from 'foldkit'
 import type { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
@@ -33,15 +33,27 @@ export const Message = defineMessageUnion({
 
 export const Application = defineApplication({ Model, Message })
 
-const counters = Application.bindChild(Counter.block, {
+const CountersBinding = Application.bindChild(Counter.block, {
   field: 'counters',
   key: 'id',
   childField: 'counter',
   toParentMessage: (id, message) => Message.GotCounterMessage({ id, message }),
+  fromParentMessage: {
+    parentMessage: Message.GotCounterMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
+  init: {
+    occurrences: () =>
+      Array.makeBy(INITIAL_COUNTER_COUNT, counterId => ({
+        key: `counter-${counterId}`,
+        args: Tuple.make(),
+      })),
+    toItem: ({ key }, counter) => ({ id: key, counter }),
+  },
 })
 
 export const ApplicationComposition = Application.toComposition({
-  children: [counters],
+  childBindings: [CountersBinding],
 })
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
@@ -51,47 +63,27 @@ export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedAddCounter: () => {
       const id = `counter-${model.nextCounterId}`
-      const counterInit = counters.init(id)
-
-      return {
-        model: modifyFields(model, {
-          counters: Array.append({ id, counter: counterInit.model }),
-          nextCounterId: Number.increment,
-        }),
-        commands: counterInit.commands,
-      }
+      return CountersBinding.init({
+        key: id,
+        args: [],
+        toParentModel: counter =>
+          modifyFields(model, {
+            counters: Array.append({ id, counter }),
+            nextCounterId: Number.increment,
+          }),
+      })
     },
     ClickedRemoveCounter: ({ id }) => ({
       model: modifyFields(model, {
         counters: Array.filter(counterInstance => counterInstance.id !== id),
       }),
     }),
-    GotCounterMessage: ({ id, message }) => counters.fold(model, id, message),
   }),
 )
 
-export const init = Application.init(() => {
-  const counterInits = Array.makeBy(INITIAL_COUNTER_COUNT, counterId => {
-    const id = `counter-${counterId}`
-    const counterInit = counters.init(id)
-
-    return { id, counterInit }
-  })
-
-  return {
-    model: {
-      counters: Array.map(counterInits, ({ id, counterInit }) => ({
-        id,
-        counter: counterInit.model,
-      })),
-      nextCounterId: INITIAL_COUNTER_COUNT,
-    },
-    commands: Array.flatMap(
-      counterInits,
-      ({ counterInit }) => counterInit.commands ?? [],
-    ),
-  }
-})
+export const init = ApplicationComposition.init(() => ({
+  model: { nextCounterId: INITIAL_COUNTER_COUNT },
+}))
 
 const counterInstanceView = (
   counterInstance: CounterInstance,
@@ -105,7 +97,7 @@ const counterInstanceView = (
         [h.Class('flex-1')],
         [
           h.block(
-            counters.embedView({
+            CountersBinding.embedView({
               key: counterInstance.id,
               slotId: counterInstance.id,
               model: counterInstance.counter,

@@ -156,7 +156,7 @@ Derive an explicit handler requirement from its owning definition. `Command.Hand
 
 ::Snippet{name="handlerRequirementAnnotation" label="Deriving a Command handler requirement"}
 
-`Feature.update` normally infers the requirement, so most application code needs no annotation. The explicit expanded form is `Command.Handler<Name, Args, DeclaredMessage>`.
+`FeatureComposition.update` normally infers the requirement, so most application code needs no annotation. The explicit expanded form is `Command.Handler<Name, Args, DeclaredMessage>`.
 
 Definitions created by different named Blocks receive different owned names even when their local names and protocols match. Each definition also retains a private runtime identity. Build an external implementation or test alternative with the original definition's `toLayer` so it keeps that identity.
 

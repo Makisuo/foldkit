@@ -1,5 +1,5 @@
-import { BlockPage } from './definition'
-export const init = BlockPage.init(() => ({
+import { BlockPageComposition } from './definition'
+export const init = BlockPageComposition.init(() => ({
   model: {
     isMapMessagesUnderHoodOpen: false,
   },

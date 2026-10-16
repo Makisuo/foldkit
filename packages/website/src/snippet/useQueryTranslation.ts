@@ -34,7 +34,7 @@ const FetchPosts = Application.command('FetchPosts', {
   },
 })
 
-const update = Application.update((model, message) =>
+const update = ApplicationComposition.update((model, message) =>
   Match.value(message).pipe(
     Match.tagsExhaustive({
       EnteredPostsRoute: () =>

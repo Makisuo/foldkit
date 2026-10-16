@@ -1,32 +1,32 @@
 import { ExampleDetailComposition } from './composition'
 import {
   EffectsLayer,
-  boot,
   informRouteChanged,
   init,
+  loadInitialSources,
   update,
   view,
 } from './example'
 
+export { mounts } from './composition'
 export {
   CurrentSourcesAsyncData,
   EffectsLayer,
-  LoadExampleSources,
-  Message,
-  Model,
-  boot,
   informRouteChanged,
   init,
+  LoadExampleSources,
+  loadInitialSources,
+  Message,
+  Model,
   tableOfContents,
   update,
   view,
 } from './example'
-export { mounts } from './composition'
 
 export const block = ExampleDetailComposition.toBlock({
   init,
   update,
   view,
-  expose: { boot, informRouteChanged },
+  expose: { loadInitialSources, informRouteChanged },
   EffectsLayer,
 })

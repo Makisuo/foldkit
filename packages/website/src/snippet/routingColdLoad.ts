@@ -3,7 +3,7 @@ import { Command } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { Url } from 'foldkit/url'
 
-import { Application } from './definition'
+import { ApplicationComposition } from './composition'
 
 // Route-driven Commands live in one helper...
 const commandsForRoute = (
@@ -18,7 +18,7 @@ const commandsForRoute = (
   )
 
 // ...which init calls for the cold load...
-const init = Application.init((url: Url) => {
+const init = ApplicationComposition.init((url: Url) => {
   const route = urlToApplicationRoute(url)
   return { model: { route }, commands: commandsForRoute(route) }
 })

@@ -146,6 +146,8 @@ const DragAndDrop = Block.define('DragAndDrop', {
   OutMessage,
 })
 
+const DragAndDropComposition = DragAndDrop.toComposition()
+
 // INIT
 
 /** Configuration for creating a drag-and-drop model with `init`. */
@@ -315,7 +317,7 @@ export const ResolveKeyboardMove = DragAndDrop.command('ResolveKeyboardMove', {
 
 /** Processes a drag-and-drop Message and returns the next Model, optional
  *  Commands, and an optional OutMessage for the parent. */
-export const update = DragAndDrop.update((model, message) =>
+export const update = DragAndDropComposition.update((model, message) =>
   Message.match(message, {
     PressedDraggable: ({ itemId, containerId, index, screenX, screenY }) => ({
       model: modifyFields(model, {
@@ -922,10 +924,10 @@ export const maybeDropTarget = (
   )
 
 /** Complete DragAndDrop Block definition for connecting to a parent. */
-const DragAndDropComposition = DragAndDrop.toComposition()
-
 export const block = DragAndDropComposition.toBlock({
-  init: DragAndDrop.init((config: InitConfig) => ({ model: init(config) })),
+  init: DragAndDropComposition.init((config: InitConfig) => ({
+    model: init(config),
+  })),
   update,
   subscriptions,
   EffectsLayer,

@@ -4,36 +4,33 @@ import { Dialog, Menu } from '@foldkit/ui'
 import { Application } from './definition'
 import { Message } from './message'
 
-export const dialog = Application.bindChild(Dialog.block, {
+export const DialogBinding = Application.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-export const menu = Application.bindChild(Menu.block, {
+export const MenuBinding = Application.bindChild(Menu.block, {
   field: 'menu',
   parentMessage: Message.GotMenuMessage,
   outMessage: { fold: foldMenuOutMessage },
 })
 
 export const ApplicationComposition = Application.toComposition({
-  children: [dialog, menu],
+  childBindings: [DialogBinding, MenuBinding],
 })
 
 // update.ts
-import { dialog, menu } from './composition'
-import { Application } from './definition'
-import { Message } from './message'
+import { ApplicationComposition } from './composition'
 
-export const update = Application.update((model, message) =>
-  Message.match(message, {
-    GotDialogMessage: ({ message }) => dialog.fold(model, message),
-    GotMenuMessage: ({ message }) => menu.fold(model, message),
-  }),
-)
+export const update = ApplicationComposition.update()
 
 // view.ts
-import { ApplicationComposition, dialog, menu } from './composition'
+import {
+  ApplicationComposition,
+  DialogBinding,
+  MenuBinding,
+} from './composition'
 
 export const view = ApplicationComposition.view((model, h) => ({
   title: 'Account',
@@ -41,14 +38,14 @@ export const view = ApplicationComposition.view((model, h) => ({
     [],
     [
       h.block(
-        dialog.embedView({
+        DialogBinding.embedView({
           slotId: 'dialog',
           model: model.dialog,
           viewInputs: dialogViewInputs,
         }),
       ),
       h.block(
-        menu.embedView({
+        MenuBinding.embedView({
           slotId: 'menu',
           model: model.menu,
           viewInputs: menuViewInputs,

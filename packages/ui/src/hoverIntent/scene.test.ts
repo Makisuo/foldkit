@@ -14,29 +14,30 @@ const HoverIntentScene = Block.define('HoverIntentScene', {
 
 const foldHoverIntentOutMessage = OutMessage.match<Update.Step<Model, Message>>(
   {
-    Opened: () => model => ({ model }),
-    Closed: () => model => ({ model }),
+    Opened: () => HoverIntentScene.step(model => ({ model })),
+    Closed: () => HoverIntentScene.step(model => ({ model })),
   },
 )
 
-const hoverIntent = HoverIntentScene.bindChild(block, {
+const HoverIntentBinding = HoverIntentScene.bindChild(block, {
   read: model => Option.some(model),
   write: (_model, nextHoverIntent) => nextHoverIntent,
   toParentMessage: message => message,
+  fromParentMessage: false,
   outMessage: { fold: foldHoverIntentOutMessage },
 })
 
 const HoverIntentSceneComposition = HoverIntentScene.toComposition({
-  children: [hoverIntent],
+  childBindings: [HoverIntentBinding],
 })
 
-const update = HoverIntentScene.update((model, message) =>
-  hoverIntent.fold(model, message),
+const update = HoverIntentSceneComposition.update((model, message) =>
+  HoverIntentBinding.fold(model, message),
 )
 
 const sceneView = HoverIntentSceneComposition.view((model, h) =>
   h.block(
-    hoverIntent.embedView({
+    HoverIntentBinding.embedView({
       slotId: 'hover-intent',
       model,
       viewInputs: {

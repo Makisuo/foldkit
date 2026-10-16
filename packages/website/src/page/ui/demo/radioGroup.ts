@@ -1,8 +1,8 @@
-import {
-  horizontalRadioGroupDemo,
-  verticalRadioGroupDemo,
-} from '../composition'
 import type { UiViewBuilder } from '../composition'
+import {
+  HorizontalRadioGroupDemoBinding,
+  VerticalRadioGroupDemoBinding,
+} from '../composition'
 import { type Model, type Plan } from '../model'
 
 // DEMO CONTENT
@@ -60,7 +60,7 @@ export const verticalDemo = (model: Model, h: UiViewBuilder) => {
 
   return [
     h.block(
-      verticalRadioGroupDemo.embedView({
+      VerticalRadioGroupDemoBinding.embedView({
         slotId: model.verticalRadioGroupDemo.id,
         model: model.verticalRadioGroupDemo,
         viewInputs: {
@@ -139,7 +139,7 @@ export const horizontalDemo = (model: Model, h: UiViewBuilder) => {
 
   return [
     h.block(
-      horizontalRadioGroupDemo.embedView({
+      HorizontalRadioGroupDemoBinding.embedView({
         slotId: model.horizontalRadioGroupDemo.id,
         model: model.horizontalRadioGroupDemo,
         viewInputs: {

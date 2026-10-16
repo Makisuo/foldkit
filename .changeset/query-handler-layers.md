@@ -94,7 +94,7 @@ Bind each completed Query through its owning parent Definition. Its attached han
 
 Query's local `Fetch` Command belongs to its named Block. Parent Bindings qualify it by placement, so unrelated Blocks can use the same local Command name. Construct alternatives through the original Query's `toLayer` to preserve its handler identity.
 
-Query and KeyedQuery are completed viewless Blocks. Bind them through the owning parent Definition and list the Binding under `children`:
+Query and KeyedQuery are completed viewless Blocks. Bind them through the owning parent Definition and list the Binding under `childBindings`:
 
 ```ts
 import { defineApplication } from 'foldkit'
@@ -105,17 +105,18 @@ import { postsQuery } from './query'
 
 const Application = defineApplication({ Model, Message })
 
-const posts = Application.bindChild(postsQuery, {
+const PostsBinding = Application.bindChild(postsQuery, {
   field: 'posts',
   parentMessage: Message.GotPostsMessage,
+  init: true,
 })
 
 export const ApplicationComposition = Application.toComposition({
-  children: [posts],
+  childBindings: [PostsBinding],
 })
 ```
 
-The Binding exposes Query's `reset`, `revalidate`, `revalidateOrLoad`, and `loadIfMissing` operations with normal Block Command scoping and Message lifting. The Query value itself retains direct `read` and `run` conveniences. Request generations, stale-response protection, cache key typing, handler completeness, host delegation, and constructor error and Service requirements remain precise. A KeyedQuery's cache entries are data inside one Query Model; do not model them as keyed Block instances.
+The parent Composition initializes the Query Model and routes its wrapper Message automatically. The Binding exposes Query's `reset`, `revalidate`, `revalidateOrLoad`, and `loadIfMissing` operations with normal Block Command scoping and Message lifting. The Query value itself retains direct `read` and `run` conveniences. Request generations, stale-response protection, cache key typing, handler completeness, host delegation, and constructor error and Service requirements remain precise. A KeyedQuery's cache entries are data inside one Query Model; do not model them as keyed Block instances.
 
 KeyedQuery snapshots decoded args through their declared Codec before retaining them or starting a fetch. Its generated Fetch args and `CompletedFetch` Message now include the canonical `requestKey` alongside `args` and `generation`; completion uses that carried identity instead of recomputing `toKey`. Loading operations and `run` supply the field automatically. Tests or hosts that manually construct a generated Fetch or `CompletedFetch` must pass the same `requestKey` chosen for that request.
 

@@ -15,7 +15,7 @@ const foldSettingsOutMessage = Settings.OutMessage.match<
     }),
 })
 
-export const settings = Application.bindChild(Settings.block, {
+export const SettingsBinding = Application.bindChild(Settings.block, {
   field: 'maybeSettings',
   parentMessage: Message.GotSettingsMessage,
   outMessage: { fold: foldSettingsOutMessage },

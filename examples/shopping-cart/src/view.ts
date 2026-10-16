@@ -4,7 +4,7 @@ import { Html } from 'foldkit/html'
 import {
   ApplicationComposition,
   type ApplicationViewBuilder,
-  productsPage,
+  ProductsPageBinding,
 } from './composition'
 import { Cart } from './domain'
 import type { Model } from './model'
@@ -74,7 +74,7 @@ const navigationView = (
 
 const productsView = (model: Model, h: ApplicationViewBuilder): Html =>
   h.block(
-    productsPage.embedView({
+    ProductsPageBinding.embedView({
       slotId: 'products',
       model: model.productsPage,
       viewInputs: { cart: model.cart },

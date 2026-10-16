@@ -41,7 +41,9 @@ const both = MountRegistration.toComposition({
 })
 const graphless = MountRegistration.toComposition()
 const init = () => ({ model: Model.make({ count: 0 }) })
-const update = MountRegistration.update(model => ({ model }))
+const update = first.update(model => ({ model }))
+const bothUpdate = both.update(model => ({ model }))
+const graphlessUpdate = graphless.update(model => ({ model }))
 const firstView = first.view((_model, h) => h.div([h.OnMount(ObserveFirst())]))
 const secondView = second.view((_model, h) =>
   h.div([h.OnMount(ObserveSecond())]),
@@ -74,19 +76,22 @@ const MountParent = define('MountParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const child = MountParent.bindChild(firstBlock, {
+const ChildBinding = MountParent.bindChild(firstBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
 })
-const entries = MountParent.bindChild(firstBlock, {
+const EntriesBinding = MountParent.bindChild(firstBlock, {
+  fromParentMessage: false,
   field: 'entries',
   key: 'id',
   childField: 'child',
   toParentMessage: (id, message) =>
     ParentMessage.GotEntryMessage({ id, message }),
 })
-const parent = MountParent.toComposition({ children: [child, entries] })
-const parentUpdate = MountParent.update(model => ({ model }))
+const parent = MountParent.toComposition({
+  childBindings: [ChildBinding, EntriesBinding],
+})
+const parentUpdate = parent.update(model => ({ model }))
 const parentModel = ParentModel.make({
   child: init().model,
   entries: [Entry.make({ id: 'first', child: init().model })],
@@ -127,7 +132,7 @@ describe('captured local Mount registrations', () => {
     )
     const block = both.toBlock({
       init,
-      update,
+      update: bothUpdate,
       view,
       EffectsLayer: Layer.merge(ObserveFirst.layer, ObserveSecond.layer),
     })
@@ -146,14 +151,14 @@ describe('captured local Mount registrations', () => {
     )
 
     expect(() =>
-      Scene.scene({ update, view }, Scene.given(init().model)),
+      Scene.scene({ update: graphlessUpdate, view }, Scene.given(init().model)),
     ).toThrow("is not registered in this view's Mounts")
   })
 
   it('renders a declared Mount through static and keyed view overrides', () => {
     const staticView = parent.view((model, h) =>
       h.block(
-        child.embedView({
+        ChildBinding.embedView({
           slotId: 'child',
           model: model.child,
           view: firstView,
@@ -162,7 +167,7 @@ describe('captured local Mount registrations', () => {
     )
     const keyedView = parent.view((model, h) =>
       h.block(
-        entries.embedView({
+        EntriesBinding.embedView({
           slotId: 'entry',
           key: 'first',
           model: model.child,
@@ -183,7 +188,7 @@ describe('captured local Mount registrations', () => {
   it('checks the selected static child before rendering a view override', () => {
     const view = parent.view((model, h) =>
       h.block(
-        child.embedView({
+        ChildBinding.embedView({
           slotId: 'child',
           model: model.child,
           // @ts-expect-error The selected child does not register this override's Mount.
@@ -202,7 +207,7 @@ describe('captured local Mount registrations', () => {
   it('checks the selected keyed child before rendering a view override', () => {
     const view = parent.view((model, h) =>
       h.block(
-        entries.embedView({
+        EntriesBinding.embedView({
           slotId: 'entry',
           key: 'first',
           model: model.child,
@@ -241,7 +246,7 @@ describe('captured local Mount registrations', () => {
     const secondApplication = Application.toComposition({
       mounts: [FocusSecond],
     })
-    const applicationUpdate = Application.update(model => ({ model }))
+    const applicationUpdate = firstApplication.update(model => ({ model }))
     const view = secondApplication.view((_model, h) => ({
       title: 'Second',
       body: h.main([h.OnMount(FocusSecond())]),

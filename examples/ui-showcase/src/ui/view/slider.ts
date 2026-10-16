@@ -3,9 +3,9 @@ import type { Html } from 'foldkit/html'
 import type { SliderAttributes } from '@foldkit/ui/slider'
 
 import {
+  SliderRatingDemoBinding,
+  SliderVolumeDemoBinding,
   UiComposition,
-  sliderRatingDemo,
-  sliderVolumeDemo,
 } from '../composition'
 
 const horizontalRowClassName = 'flex flex-col gap-2 w-full max-w-sm'
@@ -116,7 +116,7 @@ export const view = UiComposition.view((model, h) => {
         ['Horizontal'],
       ),
       h.block(
-        sliderRatingDemo.embedView({
+        SliderRatingDemoBinding.embedView({
           slotId: model.sliderRatingDemo.id,
           model: model.sliderRatingDemo,
           viewInputs: {
@@ -132,7 +132,7 @@ export const view = UiComposition.view((model, h) => {
         ['Vertical'],
       ),
       h.block(
-        sliderVolumeDemo.embedView({
+        SliderVolumeDemoBinding.embedView({
           slotId: model.sliderVolumeDemo.id,
           model: model.sliderVolumeDemo,
           viewInputs: {

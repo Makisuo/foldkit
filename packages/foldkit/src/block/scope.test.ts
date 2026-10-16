@@ -42,17 +42,19 @@ const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
     },
   })
   const feature = Feature.define({ Model: Schema.Struct({}), Message })
-  const update = feature.update(model => ({
+  const composition = feature.toComposition()
+  const update = composition.update(model => ({
     model,
     commands: [ReadValue()],
   }))
-  const block = feature.toComposition().toBlock({
+  const block = composition.toBlock({
     init: () => ({ model: {} }),
     update,
     EffectsLayer: ReadValue.layer,
   })
   const bind = (placement: string) =>
     ScopeParent.bindChild(block, {
+      fromParentMessage: false,
       placement,
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
@@ -81,14 +83,20 @@ describe('Block capability contexts', () => {
     const feature = makeFeature('SharedScope', () => {
       constructions += 1
     })
-    const left = feature.bind('Left')
-    const right = feature.bind('Right')
+    const LeftBinding = feature.bind('Left')
+    const RightBinding = feature.bind('Right')
     const model = { child: {} }
-    const leftCommand = left.fold(model, Message.RequestedValue()).commands!
-    const rightCommand = right.fold(model, Message.RequestedValue()).commands!
+    const leftCommand = LeftBinding.fold(
+      model,
+      Message.RequestedValue(),
+    ).commands!
+    const rightCommand = RightBinding.fold(
+      model,
+      Message.RequestedValue(),
+    ).commands!
     const layer = Layer.merge(
-      inspectBinding(left).EffectsLayer,
-      inspectBinding(right).EffectsLayer,
+      inspectBinding(LeftBinding).EffectsLayer,
+      inspectBinding(RightBinding).EffectsLayer,
     ).pipe(Layer.provide(Layer.succeed(ValueSource, { value: 'shared' })))
 
     const results = await Effect.runPromise(
@@ -121,7 +129,8 @@ describe('Block capability contexts', () => {
         Layer.provide(Layer.succeed(ValueSource, { value: 'left' })),
       ),
     )
-    const left = ScopeParent.bindChild(leftBlock, {
+    const LeftBinding = ScopeParent.bindChild(leftBlock, {
+      fromParentMessage: false,
       placement: 'Left',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
@@ -132,19 +141,20 @@ describe('Block capability contexts', () => {
         Layer.provide(Layer.succeed(ValueSource, { value: 'right' })),
       ),
     )
-    const right = ScopeParent.bindChild(rightBlock, {
+    const RightBinding = ScopeParent.bindChild(rightBlock, {
+      fromParentMessage: false,
       placement: 'Right',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
       toParentMessage: message => message,
     })
     const layer = Layer.merge(
-      inspectBinding(left).EffectsLayer,
-      inspectBinding(right).EffectsLayer,
+      inspectBinding(LeftBinding).EffectsLayer,
+      inspectBinding(RightBinding).EffectsLayer,
     )
     const commands = [
-      ...(left.fold({}, Message.RequestedValue()).commands ?? []),
-      ...(right.fold({}, Message.RequestedValue()).commands ?? []),
+      ...(LeftBinding.fold({}, Message.RequestedValue()).commands ?? []),
+      ...(RightBinding.fold({}, Message.RequestedValue()).commands ?? []),
     ]
 
     const results = await Effect.runPromise(
@@ -179,13 +189,15 @@ describe('Block capability contexts', () => {
         Layer.provide(Layer.succeed(ValueSource, { value: 'selected' })),
       ),
     )
-    const selected = ScopeParent.bindChild(selectedBlock, {
+    const SelectedBinding = ScopeParent.bindChild(selectedBlock, {
+      fromParentMessage: false,
       placement: 'Selected',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
       toParentMessage: message => message,
     })
-    const commands = selected.fold({}, Message.RequestedValue()).commands ?? []
+    const commands =
+      SelectedBinding.fold({}, Message.RequestedValue()).commands ?? []
     const result = await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
@@ -193,7 +205,7 @@ describe('Block capability contexts', () => {
           const memoMap = Layer.makeMemoMapUnsafe()
           yield* Layer.buildWithMemoMap(ambient, memoMap, scope)
           const context = yield* Layer.buildWithMemoMap(
-            inspectBinding(selected).EffectsLayer,
+            inspectBinding(SelectedBinding).EffectsLayer,
             memoMap,
             scope,
           )

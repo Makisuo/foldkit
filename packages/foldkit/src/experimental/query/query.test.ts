@@ -691,19 +691,20 @@ describe('Query Block binding', () => {
     ClickedLoad: {},
   })
   const Definition = Block.define('QueryParent', { Model, Message })
-  const notesChild = Definition.bindChild(notes, {
+  const NotesChildBinding = Definition.bindChild(notes, {
     field: 'notes',
     parentMessage: Message.GotNotesMessage,
   })
-  const Composition = Definition.toComposition({ children: [notesChild] })
-  const update = Definition.update((model, message) =>
+  const Composition = Definition.toComposition({
+    childBindings: [NotesChildBinding],
+  })
+  const update = Composition.update((model, message) =>
     Message.match(message, {
-      GotNotesMessage: ({ message }) => notesChild.fold(model, message),
-      ClickedLoad: () => notesChild.revalidateOrLoad()(model),
+      ClickedLoad: () => NotesChildBinding.revalidateOrLoad()(model),
     }),
   )
   const Parent = Composition.toBlock({
-    init: Definition.init(() => ({
+    init: Composition.init(() => ({
       model: Model.make({ notes: notes.init().model }),
     })),
     update,
@@ -732,10 +733,10 @@ describe('Query Block binding', () => {
   })
 
   it('projects Query operations and folds the child completion Message', () => {
-    const started = notesChild.revalidateOrLoad()({
+    const started = NotesChildBinding.revalidateOrLoad()({
       notes: notes.init().model,
     })
-    const folded = notesChild.fold(
+    const folded = NotesChildBinding.fold(
       started.model,
       notes.Message.CompletedFetch({
         generation: started.model.notes.generation,
@@ -757,14 +758,14 @@ describe('Query Block binding', () => {
       Model: KeyedModel,
       Message: KeyedMessage,
     })
-    const keyedNotes = Keyed.bindChild(noteById, {
+    const KeyedNotesBinding = Keyed.bindChild(noteById, {
       field: 'notes',
       parentMessage: KeyedMessage.GotNoteMessage,
     })
-    const started = keyedNotes.loadIfMissing({ noteId: '1' })({
+    const started = KeyedNotesBinding.loadIfMissing({ noteId: '1' })({
       notes: noteById.init().model,
     })
-    const folded = keyedNotes.fold(
+    const folded = KeyedNotesBinding.fold(
       started.model,
       noteById.Message.CompletedFetch({
         args: { noteId: '1' },
@@ -777,7 +778,7 @@ describe('Query Block binding', () => {
     expect(noteById.read(folded.model.notes, { noteId: '1' })).toEqual(
       AsyncData.Success({ data: { id: '1', body: 'hello' } }),
     )
-    expect(noteById.children).toEqual([])
+    expect(noteById.childBindings).toEqual([])
   })
 })
 
@@ -1544,16 +1545,20 @@ describe('Query handler requirements', () => {
       Model: ParentModel,
       Message: ParentMessage,
     })
-    const servedNotes = Parent.bindChild(served, {
+    const ServedNotesBinding = Parent.bindChild(served, {
       field: 'notes',
       parentMessage: ParentMessage.GotNotesMessage,
     })
 
-    expectTypeOf(servedNotes.fold).parameter(1).toEqualTypeOf<ServedMessage>()
-    expectTypeOf(servedNotes.reset).parameters.toEqualTypeOf<[]>()
-    expectTypeOf(servedNotes.loadIfMissing).parameters.toEqualTypeOf<[]>()
+    expectTypeOf(ServedNotesBinding.fold)
+      .parameter(1)
+      .toEqualTypeOf<ServedMessage>()
+    expectTypeOf(ServedNotesBinding.reset).parameters.toEqualTypeOf<[]>()
+    expectTypeOf(ServedNotesBinding.loadIfMissing).parameters.toEqualTypeOf<
+      []
+    >()
     expectTypeOf<
-      Update.RequirementsOf<ReturnType<typeof servedNotes.loadIfMissing>>
+      Update.RequirementsOf<ReturnType<typeof ServedNotesBinding.loadIfMissing>>
     >().toEqualTypeOf<
       Block.Qualify<
         'notes',
@@ -1654,16 +1659,20 @@ describe('Query types', () => {
       Model: ParentModel,
       Message: ParentMessage,
     })
-    const notesChild = Parent.bindChild(notes, {
+    const NotesChildBinding = Parent.bindChild(notes, {
       field: 'notes',
       parentMessage: ParentMessage.GotNotesMessage,
     })
 
-    expectTypeOf(notesChild.fold).parameter(0).toEqualTypeOf<ParentModel>()
-    expectTypeOf(notesChild.fold)
+    expectTypeOf(NotesChildBinding.fold)
+      .parameter(0)
+      .toEqualTypeOf<ParentModel>()
+    expectTypeOf(NotesChildBinding.fold)
       .parameter(1)
       .toEqualTypeOf<(typeof notes.Message)['Type']>()
-    expectTypeOf(notesChild.revalidateOrLoad).parameters.toEqualTypeOf<[]>()
+    expectTypeOf(NotesChildBinding.revalidateOrLoad).parameters.toEqualTypeOf<
+      []
+    >()
 
     const KeyedParentModel = Schema.Struct({ notes: noteById.Model })
     const KeyedParentMessage = defineMessageUnion({
@@ -1673,12 +1682,12 @@ describe('Query types', () => {
       Model: KeyedParentModel,
       Message: KeyedParentMessage,
     })
-    const noteByIdChild = KeyedParent.bindChild(noteById, {
+    const NoteByIdChildBinding = KeyedParent.bindChild(noteById, {
       field: 'notes',
       parentMessage: KeyedParentMessage.GotNoteMessage,
     })
 
-    expectTypeOf(noteByIdChild.loadIfMissing).parameters.toEqualTypeOf<
+    expectTypeOf(NoteByIdChildBinding.loadIfMissing).parameters.toEqualTypeOf<
       [args: Readonly<{ noteId: string }>]
     >()
   })

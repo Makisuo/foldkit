@@ -32,7 +32,7 @@ const ChildComposition = Child.toComposition()
 const ChildBlock = ChildComposition.toBlock({
   view: ChildComposition.view((_model, h) => h.div([])),
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
-  update: Child.update(model => ({
+  update: ChildComposition.update(model => ({
     model: modifyFields(model, { count: count => count + 1 }),
   })),
   expose: { reset },
@@ -43,7 +43,8 @@ const omittedParent = define('OperationGraphOmittedParent').define({
   Model: ParentModel,
   Message,
 })
-const omittedChild = omittedParent.bindChild(ChildBlock, {
+const OmittedChildBinding = omittedParent.bindChild(ChildBlock, {
+  fromParentMessage: false,
   placement: 'omitted-child',
   read: (model: ParentModel) => Option.some(model.primary),
   write: (model, nextChild) =>
@@ -51,24 +52,31 @@ const omittedChild = omittedParent.bindChild(ChildBlock, {
   toParentMessage: (message: Message) => message,
 })
 
-const omittedParentComposition = omittedParent.toComposition()
+const initializeOmittedChild = omittedParent.step(model =>
+  OmittedChildBinding.init({
+    args: [],
+    toParentModel: child => modifyFields(model, { primary: () => child }),
+  }),
+)
+const omittedParentComposition = omittedParent.toComposition({
+  childBindings: [OmittedChildBinding],
+})
 const OmittedParent = omittedParentComposition.toBlock({
   view: omittedParentComposition.view((_model, h) => h.div([])),
-  init: () => ({
-    model: modifyFields(initialModel, {
-      primary: () => omittedChild.init().model,
-    }),
-  }),
+  init: () => ({ model: initialModel }),
   update: model => ({ model }),
+  expose: { initializeOmittedChild },
   EffectsLayer: Layer.empty,
 })
 
-it('rejects an omitted pure child after Model-only init extraction', () => {
-  const lowered = lowerBlock(OmittedParent)
-
-  expect(() => lowered.init()).toThrow(
-    'The child binding at placement "omitted-child" is not registered in the current Block graph.',
+it('runs a completed exposed operation in its registered child graph', () => {
+  expect(() => initializeOmittedChild(initialModel)).toThrow(
+    'Initializing child Binding "omitted-child" requires its registered Composition.',
   )
+
+  const initialized = OmittedParent.expose.initializeOmittedChild(initialModel)
+
+  expect(initialized.model.primary.count).toBe(0)
 })
 
 const readAllWrongPlacement = vi.fn((model: ParentModel) => [model.primary])
@@ -80,7 +88,8 @@ const exactParentBase = define('OperationGraphExactParent').define({
   Model: ParentModel,
   Message,
 })
-const registeredPlacement = exactParentBase.bindChild(ChildBlock, {
+const RegisteredPlacementBinding = exactParentBase.bindChild(ChildBlock, {
+  fromParentMessage: false,
   placement: 'same-placement',
   readAll: (model: ParentModel) => [model.primary],
   key: () => 'only',
@@ -89,7 +98,8 @@ const registeredPlacement = exactParentBase.bindChild(ChildBlock, {
     modifyFields(model, { primary: () => nextChild }),
   toParentMessage: (_key, message: Message) => message,
 })
-const wrongPlacement = exactParentBase.bindChild(ChildBlock, {
+const WrongPlacementBinding = exactParentBase.bindChild(ChildBlock, {
+  fromParentMessage: false,
   placement: 'same-placement',
   readAll: readAllWrongPlacement,
   key: () => 'only',
@@ -99,12 +109,21 @@ const wrongPlacement = exactParentBase.bindChild(ChildBlock, {
 })
 
 const exactParentComposition = exactParentBase.toComposition({
-  children: [registeredPlacement],
+  childBindings: [RegisteredPlacementBinding],
 })
+const initializeWrongPlacement = exactParentBase.step(model =>
+  WrongPlacementBinding.init({
+    key: 'only',
+    args: [],
+    toParentModel: child => modifyFields(model, { primary: () => child }),
+  }),
+)
 const ExactParent = exactParentComposition.toBlock({
   view: exactParentComposition.view((_model, h) => h.div([])),
   init: () => ({ model: initialModel }),
-  update: (model, message) => wrongPlacement.fold(model, 'only', message),
+  update: (model, message) =>
+    WrongPlacementBinding.fold(model, 'only', message),
+  expose: { initializeWrongPlacement },
   EffectsLayer: Layer.empty,
 })
 
@@ -117,6 +136,14 @@ it('checks exact binding identity before reading or writing the parent Model', (
   expect(readAllWrongPlacement).not.toHaveBeenCalled()
   expect(readWrongPlacement).not.toHaveBeenCalled()
   expect(writeWrongPlacement).not.toHaveBeenCalled()
+})
+
+it('keeps foreign Bindings out of completed exposed operations', () => {
+  expect(() =>
+    ExactParent.expose.initializeWrongPlacement(initialModel),
+  ).toThrow(
+    'The child binding at placement "same-placement" is not registered in the current Block graph.',
+  )
 })
 
 const PolicyOutMessage = defineMessageUnion({ RequestedSiblingReset: {} })
@@ -143,31 +170,33 @@ const policyParentBase = define('OperationGraphPolicyParent').define({
   Model: ParentModel,
   Message,
 })
-const siblingChild = policyParentBase.bindChild(ChildBlock, {
+const SiblingChildBinding = policyParentBase.bindChild(ChildBlock, {
+  fromParentMessage: false,
   placement: 'sibling-child',
   read: (model: ParentModel) => Option.some(model.sibling),
   write: (model, nextChild) =>
     modifyFields(model, { sibling: () => nextChild }),
   toParentMessage: (message: Message) => message,
 })
-const policyChild = policyParentBase.bindChild(PolicyChild, {
+const PolicyChildBinding = policyParentBase.bindChild(PolicyChild, {
+  fromParentMessage: false,
   placement: 'policy-child',
   read: (model: ParentModel) => Option.some(model.primary),
   write: (model, nextChild) =>
     modifyFields(model, { primary: () => nextChild }),
   toParentMessage: (message: Message) => message,
   outMessage: {
-    fold: (_outMessage: PolicyOutMessage) => siblingChild.reset(),
+    fold: (_outMessage: PolicyOutMessage) => SiblingChildBinding.reset(),
   },
 })
 
 const policyParentComposition = policyParentBase.toComposition({
-  children: [policyChild, siblingChild],
+  childBindings: [PolicyChildBinding, SiblingChildBinding],
 })
 const PolicyParent = policyParentComposition.toBlock({
   view: policyParentComposition.view((_model, h) => h.div([])),
   init: () => ({ model: initialModel }),
-  update: (model, message) => policyChild.fold(model, message),
+  update: (model, message) => PolicyChildBinding.fold(model, message),
   EffectsLayer: Layer.empty,
 })
 

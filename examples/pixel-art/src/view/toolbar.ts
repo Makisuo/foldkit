@@ -7,10 +7,10 @@ import type { AnchorConfig } from '@foldkit/ui/listbox'
 
 import {
   type ApplicationViewBuilder,
-  gridSizeRadioGroup as gridSizeRadioGroupBinding,
-  paletteRadioGroup as paletteRadioGroupBinding,
-  themeListbox as themeListboxBinding,
-  toolRadioGroup as toolRadioGroupBinding,
+  GridSizeRadioGroupBinding as GridSizeRadioGroupBinding,
+  PaletteRadioGroupBinding as PaletteRadioGroupBinding,
+  ThemeListboxBinding as ThemeListboxBinding,
+  ToolRadioGroupBinding as ToolRadioGroupBinding,
 } from '../composition'
 import { EMPTY_COLOR, GRID_SIZE_STRINGS } from '../constant'
 import { Message } from '../message'
@@ -130,7 +130,7 @@ const toolSectionView = (
     [
       sectionLabel('Tools', h),
       h.block(
-        toolRadioGroupBinding.embedView({
+        ToolRadioGroupBinding.embedView({
           slotId: toolRadioGroup.id,
           model: toolRadioGroup,
           viewInputs: {
@@ -268,7 +268,7 @@ const sizeSectionView = (
     [
       sectionLabel('Grid Size', h),
       h.block(
-        gridSizeRadioGroupBinding.embedView({
+        GridSizeRadioGroupBinding.embedView({
           slotId: gridSizeRadioGroup.id,
           model: gridSizeRadioGroup,
           viewInputs: {
@@ -324,7 +324,7 @@ const paletteSectionView = (
         [selectedHexColor],
       ),
       h.block(
-        paletteRadioGroupBinding.embedView({
+        PaletteRadioGroupBinding.embedView({
           slotId: paletteRadioGroup.id,
           model: paletteRadioGroup,
           viewInputs: {
@@ -373,7 +373,7 @@ const themeListboxView = (
   h: ApplicationViewBuilder,
 ): Html =>
   h.block(
-    themeListboxBinding.embedView({
+    ThemeListboxBinding.embedView({
       slotId: themeListbox.id,
       model: themeListbox,
       viewInputs: {

@@ -10,7 +10,7 @@ import {
   init,
 } from './schema.js'
 import {
-  Animation,
+  AnimationComposition,
   EffectsLayer,
   WaitForAnimationSettled,
   WaitForPaint,
@@ -37,8 +37,6 @@ export {
   toggle,
   update,
 }
-
-const AnimationComposition = Animation.toComposition()
 
 // VIEW
 
@@ -162,7 +160,9 @@ export const view = AnimationComposition.view.withInputs<ViewInputs>(
 
 /** Complete Animation Block definition for connecting to a parent. */
 export const block = AnimationComposition.toBlock({
-  init: Animation.init((config: InitConfig) => ({ model: init(config) })),
+  init: AnimationComposition.init((config: InitConfig) => ({
+    model: init(config),
+  })),
   update,
   view,
   expose: { show, hide, finish, toggle, resume },

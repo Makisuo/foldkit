@@ -22,9 +22,9 @@ import { Button, Input } from '@foldkit/ui'
 import { Icon } from '../../../icon'
 import * as DemoView from '../../demoView'
 import {
+  NoteDurationRadioGroupBinding,
   NotePlayerDemoComposition,
   type NotePlayerDemoViewBuilder,
-  noteDurationRadioGroup,
 } from './composition'
 import {
   AudioState,
@@ -62,7 +62,6 @@ const GAIN_NEAR_SILENT = 0.001
 const PHASE_DURATION: Duration.Input = '150 millis'
 const MIN_NOTES = 2
 const MAX_NOTES = 8
-const NOTE_DURATION_RADIO_GROUP_ID = 'note-duration'
 
 const noteInputRules = FieldValidation.makeRules({
   required: 'Enter some notes',
@@ -97,25 +96,17 @@ const parseNotes = (value: string) =>
   )
 const INITIAL_NOTE_SEQUENCE = 'CDEFGABC'
 
-export const init = NotePlayerDemo.init(() => {
-  const noteDurationRadioGroupInit = noteDurationRadioGroup.init({
-    id: NOTE_DURATION_RADIO_GROUP_ID,
-  })
-
-  return {
-    model: Model.make({
-      noteInput: validateNoteInput(INITIAL_NOTE_SEQUENCE),
-      noteDurationRadioGroup: noteDurationRadioGroupInit.model,
-      noteDuration: 'Medium',
-      playbackState: PlaybackState.Idle(),
-      highlightPhase: 'Idle',
-      generation: 0,
-      messageLog: [],
-      audio: AudioState.Acquiring(),
-    }),
-    commands: noteDurationRadioGroupInit.commands,
-  }
-})
+export const init = NotePlayerDemoComposition.init(() => ({
+  model: {
+    noteInput: validateNoteInput(INITIAL_NOTE_SEQUENCE),
+    noteDuration: 'Medium',
+    playbackState: PlaybackState.Idle(),
+    highlightPhase: 'Idle',
+    generation: 0,
+    messageLog: [],
+    audio: AudioState.Acquiring(),
+  },
+}))
 
 const DelayAdvanceNotePlayerPhase = NotePlayerDemo.command(
   'DelayAdvanceNotePlayerPhase',
@@ -157,7 +148,7 @@ const enterNoteCommandPhase = (
   ],
 })
 
-export const update = NotePlayerDemo.update((model, message) =>
+export const update = NotePlayerDemoComposition.update((model, message) =>
   Message.match(message, {
     ChangedNoteInput: ({ value }) => {
       const uppercased = String.toUpperCase(value)
@@ -173,9 +164,6 @@ export const update = NotePlayerDemo.update((model, message) =>
         }),
       }
     },
-
-    GotNoteDurationMessage: ({ message }) =>
-      noteDurationRadioGroup.fold(model, message),
 
     ClickedPlay: () =>
       PlaybackState.match(model.playbackState, {
@@ -618,7 +606,7 @@ const durationSelectorView = (
         ['Note Length'],
       ),
       h.block(
-        noteDurationRadioGroup.embedView({
+        NoteDurationRadioGroupBinding.embedView({
           slotId: model.noteDurationRadioGroup.id,
           model: model.noteDurationRadioGroup,
           viewInputs: {

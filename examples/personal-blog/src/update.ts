@@ -3,7 +3,7 @@ import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
 import { LoadExternal, NavigateInternal } from './command'
-import { ApplicationComposition, counter } from './composition'
+import { ApplicationComposition } from './composition'
 import { Message } from './message'
 import * as Route from './route'
 
@@ -24,7 +24,6 @@ export const update = ApplicationComposition.update((model, message) =>
       const nextRoute = Route.urlToApplicationRoute(url)
       return { model: modifyFields(model, { route: () => nextRoute }) }
     },
-    GotCounterMessage: ({ message }) => counter.fold(model, message),
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
   }),

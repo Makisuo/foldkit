@@ -1,8 +1,8 @@
-export * as Home from './home'
-export * as Room from './room'
 export {
   ApplicationComposition,
+  HomeBinding,
+  RoomBinding,
   type ApplicationViewBuilder,
-  home,
-  room,
 } from './composition'
+export * as Home from './home'
+export * as Room from './room'

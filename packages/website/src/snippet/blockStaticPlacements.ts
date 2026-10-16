@@ -5,7 +5,7 @@ import * as Composer from './composer'
 import { Chat } from './definition'
 import { Message } from './message'
 
-export const primaryComposer = Chat.bindChild(Composer.block, {
+export const PrimaryComposerBinding = Chat.bindChild(Composer.block, {
   read: model => Option.some(model.primaryPanel.composer),
   write: (model, nextComposer) =>
     modifyFields(model, {
@@ -13,9 +13,13 @@ export const primaryComposer = Chat.bindChild(Composer.block, {
         modifyFields(panel, { composer: () => nextComposer }),
     }),
   parentMessage: Message.GotPrimaryComposerMessage,
+  fromParentMessage: {
+    parentMessage: Message.GotPrimaryComposerMessage,
+    args: (_model, { message }) => Option.some([message]),
+  },
 })
 
-export const secondaryComposer = Chat.bindChild(Composer.block, {
+export const SecondaryComposerBinding = Chat.bindChild(Composer.block, {
   placement: 'SecondaryComposer',
   read: model => Option.some(model.secondaryPanel.composer),
   write: (model, nextComposer) =>
@@ -24,4 +28,8 @@ export const secondaryComposer = Chat.bindChild(Composer.block, {
         modifyFields(panel, { composer: () => nextComposer }),
     }),
   parentMessage: Message.GotSecondaryComposerMessage,
+  fromParentMessage: {
+    parentMessage: Message.GotSecondaryComposerMessage,
+    args: (_model, { message }) => Option.some([message]),
+  },
 })

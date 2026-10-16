@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Schema } from 'effect'
+import { Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -16,8 +16,8 @@ const Model = Schema.Struct({
 type Model = typeof Model.Type
 
 // Embed the Dialog Message in your parent Message and delegate to
-// the Dialog update (open from a trigger with a fact and `dialog.open()`, as in
-// the basic Dialog example):
+// the Dialog update (open from a trigger with a fact and
+// `DialogBinding.open()`, as in the basic Dialog example):
 const Message = defineMessageUnion({
   GotDialogMessage: { message: Dialog.Message },
 })
@@ -35,34 +35,27 @@ const AnimatedDialogExample = Block.define('AnimatedDialogExample', {
   Message,
 })
 
-const dialog = AnimatedDialogExample.bindChild(Dialog.block, {
+const DialogBinding = AnimatedDialogExample.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
+  init: {
+    args: () => Tuple.make({ id: 'confirm', isAnimated: true }),
+  },
   outMessage: { fold: foldDialogOutMessage },
 })
 
-// In your init function, set isAnimated: true to coordinate CSS transitions:
-const init = AnimatedDialogExample.init(() => {
-  const dialogInit = dialog.init({ id: 'confirm', isAnimated: true })
-
-  return {
-    model: {
-      dialog: dialogInit.model,
-      // ...your other fields
-    },
-    commands: dialogInit.commands,
-  }
-})
-
 const AnimatedDialogExampleComposition = AnimatedDialogExample.toComposition({
-  children: [dialog],
+  childBindings: [DialogBinding],
 })
 
-const update = AnimatedDialogExample.update((model, message) =>
-  Message.match(message, {
-    GotDialogMessage: ({ message }) => dialog.fold(model, message),
-  }),
-)
+// In your init function, set isAnimated: true to coordinate CSS transitions:
+const init = AnimatedDialogExampleComposition.init(() => ({
+  model: {
+    // ...your other fields
+  },
+}))
+
+const update = AnimatedDialogExampleComposition.update()
 
 // Inside your view function, use data-[closed] for enter/leave transitions and
 // spread the `closeButton` bundle onto your dismiss buttons:
@@ -122,7 +115,7 @@ const view = AnimatedDialogExampleComposition.view((model, h) => {
     )
 
   return h.block(
-    dialog.embedView({
+    DialogBinding.embedView({
       slotId: model.dialog.id,
       model: model.dialog,
       viewInputs: {

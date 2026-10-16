@@ -153,8 +153,12 @@ const LEFT_MOUSE_BUTTON = 0
 /** @internal Builds a completed Toast Block and exposes its definitions to package tests. */
 export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const runtime = makeRuntime(payloadSchema)
-  const { ToastComposition, entryAnimation, blockInit, ...toastRuntime } =
-    runtime
+  const {
+    ToastComposition,
+    EntryAnimationBinding,
+    blockInit,
+    ...toastRuntime
+  } = runtime
   type Entry = typeof toastRuntime.Entry.Type
 
   type ToastMessage = typeof toastRuntime.Message.Type
@@ -301,7 +305,7 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         }
 
         return h.block(
-          entryAnimation.embedView({
+          EntryAnimationBinding.embedView({
             key: entry.id,
             slotId: entry.id,
             model: entry.animation,

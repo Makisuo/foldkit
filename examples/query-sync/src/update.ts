@@ -4,11 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
 import { LoadExternal, NavigateInternal, ReplaceFilters } from './command'
-import {
-  ApplicationComposition,
-  dietListbox,
-  periodListbox,
-} from './composition'
+import { ApplicationComposition } from './composition'
 import { Message } from './message'
 import {
   nextSorting,
@@ -66,10 +62,5 @@ export const update = ApplicationComposition.update((model, message) =>
         ],
       }
     },
-
-    GotDietListboxMessage: ({ message }) => dietListbox.fold(model, message),
-
-    GotPeriodListboxMessage: ({ message }) =>
-      periodListbox.fold(model, message),
   }),
 )

@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Array, Schema } from 'effect'
+import { Array, Schema, Tuple } from 'effect'
 import { Block, File, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -50,35 +50,27 @@ const FileDropExample = Block.define('FileDropExample', {
   Message,
 })
 
-const fileDrop = FileDropExample.bindChild(FileDrop.block, {
+const FileDropBinding = FileDropExample.bindChild(FileDrop.block, {
   field: 'uploader',
   parentMessage: Message.GotFileDropMessage,
+  init: { args: () => Tuple.make({ id: 'uploader' }) },
   outMessage: { fold: foldFileDropOutMessage },
 })
 
-// Initialize both fields:
-const init = FileDropExample.init(() => {
-  const fileDropInit = fileDrop.init({ id: 'uploader' })
-
-  return {
-    model: {
-      uploader: fileDropInit.model,
-      uploadedFiles: [],
-      // ...your other fields
-    },
-    commands: fileDropInit.commands,
-  }
-})
-
 const FileDropExampleComposition = FileDropExample.toComposition({
-  children: [fileDrop],
+  childBindings: [FileDropBinding],
 })
 
-const update = FileDropExample.update((model, message) =>
-  Message.match(message, {
-    GotFileDropMessage: ({ message }) => fileDrop.fold(model, message),
-  }),
-)
+// Initialize the fields the parent owns. The Composition initializes the
+// bound FileDrop Model and combines the resulting Commands.
+const init = FileDropExampleComposition.init(() => ({
+  model: {
+    uploadedFiles: [],
+    // ...your other fields
+  },
+}))
+
+const update = FileDropExampleComposition.update()
 
 // Render the drop zone. The `toView` callback receives attribute groups.
 // Spread `root` onto a <label> so clicking opens the picker, and spread
@@ -101,7 +93,7 @@ const view = FileDropExampleComposition.view((model, h) => {
     )
 
   return h.block(
-    fileDrop.embedView({
+    FileDropBinding.embedView({
       slotId: 'uploader',
       model: model.uploader,
       viewInputs: {

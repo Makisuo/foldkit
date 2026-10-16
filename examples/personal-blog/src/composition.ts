@@ -4,13 +4,14 @@ import { Application } from './definition'
 import { Counter } from './island'
 import { Message } from './message'
 
-export const counter = Application.bindChild(Counter.block, {
+export const CounterBinding = Application.bindChild(Counter.block, {
   field: 'counter',
   parentMessage: Message.GotCounterMessage,
+  init: true,
 })
 
 export const ApplicationComposition = Application.toComposition({
-  children: [counter],
+  childBindings: [CounterBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition

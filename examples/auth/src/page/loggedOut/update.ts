@@ -1,9 +1,3 @@
-import { login } from './composition'
-import { LoggedOut } from './definition'
-import { Message } from './message'
+import { LoggedOutComposition } from './composition'
 
-export const update = LoggedOut.update((model, message) =>
-  Message.match(message, {
-    GotLoginMessage: ({ message }) => login.fold(model, message),
-  }),
-)
+export const update = LoggedOutComposition.update()

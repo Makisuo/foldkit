@@ -12,7 +12,7 @@ import { triggerId } from '@foldkit/ui/datePicker'
 import type { AnchorConfig } from '@foldkit/ui/popover'
 
 import * as Icon from '../../icon'
-import { UiComposition, datePickerBasicDemo } from '../composition'
+import { DatePickerBasicDemoBinding, UiComposition } from '../composition'
 import type { UiViewBuilder } from '../composition'
 
 const triggerClassName =
@@ -226,7 +226,7 @@ export const view = UiComposition.view((model, h) => {
         ['Due date'],
       ),
       h.block(
-        datePickerBasicDemo.embedView({
+        DatePickerBasicDemoBinding.embedView({
           slotId: model.datePickerBasicDemo.id,
           model: model.datePickerBasicDemo,
           viewInputs: {

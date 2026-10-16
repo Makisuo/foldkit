@@ -144,6 +144,49 @@ it('groups exact handler contracts by primitive and name', () => {
   >().toEqualTypeOf<unknown>()
 })
 
+it('retains exact collision checks within literal and generic handler keys', () => {
+  expectTypeOf<
+    ValidHandlerContracts<
+      | Command.Handler<'Read', string | number, string>
+      | Command.Handler<'Read', string, string>
+    >
+  >().toEqualTypeOf<
+    Readonly<{ 'Conflicting Foldkit handler contracts': 'Command/Read' }>
+  >()
+  expectTypeOf<
+    ValidHandlerContracts<
+      | Command.Handler<string, string, string>
+      | Command.Handler<string, number, string>
+    >
+  >().toEqualTypeOf<
+    Readonly<{ 'Conflicting Foldkit handler contracts': `Command/${string}` }>
+  >()
+  expectTypeOf<
+    ValidHandlerContracts<
+      | Command.Handler<'Read' | 'Write', string, string>
+      | Command.Handler<'Read' | 'Write', number, string>
+    >
+  >().toEqualTypeOf<
+    Readonly<{
+      'Conflicting Foldkit handler contracts': 'Command/Read' | 'Command/Write'
+    }>
+  >()
+  expectTypeOf<
+    ValidHandlerContracts<
+      | Scoped<'First', Command.Handler<'Read', string, string>>
+      | Scoped<'Second', Command.Handler<'Read', number, string>>
+    >
+  >().toEqualTypeOf<unknown>()
+  expectTypeOf<
+    ValidHandlerContracts<
+      | Scoped<'First', Command.Handler<'Read', string, string>>
+      | Scoped<'First', Command.Handler<'Read', number, string>>
+    >
+  >().toEqualTypeOf<
+    Readonly<{ 'Conflicting Foldkit handler contracts': 'First/Command/Read' }>
+  >()
+})
+
 const checkAssemblyTypes = (): void => {
   const Model = Schema.Struct({ text: Schema.String })
 

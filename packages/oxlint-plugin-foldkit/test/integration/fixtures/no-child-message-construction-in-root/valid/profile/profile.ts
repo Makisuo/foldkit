@@ -39,13 +39,13 @@ export const SaveProfileWithRedundantLocalPath = Profile.command(
   },
 )
 
-export const child = Profile.bindChild(Child.block, {
+export const ChildBinding = Profile.bindChild(Child.block, {
   field: 'child',
   toParentMessage: message => Message.GotChildMessage({ message }),
 })
 
 export const ProfileComposition = Profile.toComposition({
-  children: [child],
+  childBindings: [ChildBinding],
 })
 export type ProfileViewBuilder = Block.ViewBuilderFor<typeof ProfileComposition>
 

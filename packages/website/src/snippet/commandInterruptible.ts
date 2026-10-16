@@ -32,7 +32,7 @@ export const WaitBeforeReset = Application.command('WaitBeforeReset', {
 
 export const EffectsLayer = WaitBeforeReset.layer
 
-const update = Application.update((model, message) =>
+const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedResetAfterDelay: () => ({
       model,

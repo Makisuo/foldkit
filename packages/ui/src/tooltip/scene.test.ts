@@ -19,23 +19,24 @@ import {
 const TooltipScene = Block.define('TooltipScene', { Model, Message })
 
 const foldTooltipOutMessage = OutMessage.match<Update.Step<Model, Message>>({
-  Shown: () => model => ({ model }),
-  Hidden: () => model => ({ model }),
+  Shown: () => TooltipScene.step(model => ({ model })),
+  Hidden: () => TooltipScene.step(model => ({ model })),
 })
 
-const tooltip = TooltipScene.bindChild(block, {
+const TooltipBinding = TooltipScene.bindChild(block, {
   read: model => Option.some(model),
   write: (_model, nextTooltip) => nextTooltip,
   toParentMessage: message => message,
+  fromParentMessage: false,
   outMessage: { fold: foldTooltipOutMessage },
 })
 
 const TooltipSceneComposition = TooltipScene.toComposition({
-  children: [tooltip],
+  childBindings: [TooltipBinding],
 })
 
-const update = TooltipScene.update((model, message) =>
-  tooltip.fold(model, message),
+const update = TooltipSceneComposition.update((model, message) =>
+  TooltipBinding.fold(model, message),
 )
 
 const acknowledgeAnchor = Scene.Mount.resolve(
@@ -52,7 +53,7 @@ type ViewInputs = Readonly<{
 const rootView = TooltipSceneComposition.view.withInputs<ViewInputs>(
   (model, overrides, h) =>
     h.block(
-      tooltip.embedView({
+      TooltipBinding.embedView({
         slotId: 'test',
         model,
         viewInputs: {

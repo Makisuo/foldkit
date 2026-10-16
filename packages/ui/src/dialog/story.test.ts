@@ -83,25 +83,21 @@ const loadParentData = DialogParentTest.step(model => ({
   commands: [LoadParentData()],
 }))
 
-const dialog = DialogParentTest.bindChild(block, {
+const DialogBinding = DialogParentTest.bindChild(block, {
   field: 'dialog',
   parentMessage: ParentMessage.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
+  init: { args: () => [{ id: 'initial-dialog' }] },
 })
 
-const parentInit = DialogParentTest.init(() => {
-  const dialogInit = dialog.init({ id: 'initial-dialog' })
-  const initialModel = ParentModel.make({
-    dialog: dialogInit.model,
-    dialogEvents: [],
-  })
-  const startup = Update.combine(initialModel, [loadParentData, dialog.open()])
-
-  return {
-    ...startup,
-    commands: [...(dialogInit.commands ?? []), ...(startup.commands ?? [])],
-  }
+const DialogParentTestComposition = DialogParentTest.toComposition({
+  childBindings: [DialogBinding],
 })
+
+const parentInit = DialogParentTestComposition.init(() => ({
+  model: { dialogEvents: [] },
+  steps: [loadParentData, DialogBinding.open()],
+}))
 
 const openDialog = (config: InitConfig) =>
   update(init(config), Message.RequestedOpen())

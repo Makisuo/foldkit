@@ -1,8 +1,8 @@
 import { Tooltip } from '@foldkit/ui'
 import { type AnchorConfig, triggerId } from '@foldkit/ui/tooltip'
 
-import { tooltipDemo } from '../composition'
 import type { UiViewBuilder } from '../composition'
+import { TooltipDemoBinding } from '../composition'
 
 // DEMO CONTENT
 
@@ -35,7 +35,7 @@ export const demo = (
           [h.Class('relative')],
           [
             h.block(
-              tooltipDemo.embedView({
+              TooltipDemoBinding.embedView({
                 slotId: tooltipModel.id,
                 model: tooltipModel,
                 viewInputs: {

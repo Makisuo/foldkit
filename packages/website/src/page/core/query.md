@@ -46,7 +46,7 @@ With no `args`, `Query.define` returns a Query that retains one value. In this d
 - The `handler` generator constructs the fetch function. The completed Query carries its handler recipe in `EffectsLayer`.
 - `name: 'Posts'` names the Query Block. Its local `Fetch` Command is qualified by the Block and its parent placement.
 
-Bind the completed Query through the parent Definition and include the Binding in the parent's Composition `children`. The Binding carries the Query's handler recipe automatically; do not add it to the parent's local `EffectsLayer`. The entry supplies ordinary service providers through `ApplicationLayer`. The handler generator captures stable services when the Runtime builds its Layer, and the fetch function uses those services for each request.
+Bind the completed Query through the parent Definition and include the Binding in the parent's Composition `childBindings`. The Binding carries the Query's handler recipe automatically; do not add it to the parent's local `EffectsLayer`. The entry supplies ordinary service providers through `ApplicationLayer`. The handler generator captures stable services when the Runtime builds its Layer, and the fetch function uses those services for each request.
 
 Omit `handler` when an external host supplies the fetch implementation. Complete that Query with `query.provideHandlers(query.toLayer(constructor))` before binding it into a runnable application. `toLayer` accepts an Effect constructor and can also provide an alternative to an attached handler. For direct `query.run` outside application composition, provide `query.EffectsLayer` to the Effect. Ordinary execution tests retain the handler and replace its underlying services.
 
@@ -54,11 +54,11 @@ The `data` and `error` values must be Schema Codecs that require no encoding or 
 
 #### Returned Definition
 
-The returned `postsQuery` is a completed viewless Block with a Model Schema, a Message union, and exposed operations. Put `postsQuery.Model` in the parent Model Schema, bind it through the parent Definition, and use the Binding's `init()` while constructing the initial parent Model. The initial value is `Idle`.
+The returned `postsQuery` is a completed viewless Block with a Model Schema, a Message union, and exposed operations. Put `postsQuery.Model` in the parent Model Schema, bind it through the parent Definition, and declare `init: true` on the Binding. Put `PostsBinding.loadIfMissing()` in the Composition init plan's `steps` array to begin the first request after the Query Model exists.
 
 ### Bind the Query to Its Parent
 
-The parent wraps the Query's Message and routes that wrapper back through its Binding. `bindChild` also projects the loading operations so they read and write the Query field inside the parent Model:
+The parent wraps the Query's Message, and the Composition routes that wrapper back through its Binding. `bindChild` also projects the loading operations so they read and write the Query field inside the parent Model:
 
 ::Snippet{name="queryLift" label="Binding Query to its parent"}
 
@@ -68,8 +68,8 @@ The `field` form tells `bindChild` which exact field contains the Query Model or
 
 #### Bound Operations
 
-- `posts.fold(model, message)` delegates the child Message to Query's update and writes the returned Query Model back to `model.posts`.
-- `posts.loadIfMissing()`, `posts.revalidate()`, and `posts.revalidateOrLoad()` return parent Steps that apply their loading rule to the current `AsyncData`. When the rule calls for a request, the update result contains the next parent Model and the Query’s `Fetch` Command. Otherwise it contains only the unchanged Model.
+- The parent Composition delegates `GotPostsMessage` to the Binding and writes the returned Query Model back to `model.posts`.
+- `PostsBinding.loadIfMissing()`, `PostsBinding.revalidate()`, and `PostsBinding.revalidateOrLoad()` return parent Steps that apply their loading rule to the current `AsyncData`. When the rule calls for a request, the update result contains the next parent Model and the Query’s `Fetch` Command. Otherwise it contains only the unchanged Model.
 - `posts.reset()` returns a parent Step whose result contains an `Idle` Query value while preserving the Query's request identity.
 
 #### Optional and Nested Queries
@@ -78,7 +78,7 @@ Use `field` when an optional Query occupies an exact Option field. Its bound ope
 
 #### Starting a Load
 
-Call a loading operation from init or a parent Message handler. In the example, init constructs the complete parent Model and applies `posts.loadIfMissing()`. A route-change handler can return the same Step when a screen becomes active. Rendering the screen does not return a fetch Command or cause a request.
+Call a loading operation from init or a parent Message handler. In the example, `loadIfMissing` is a startup Step. A route-change handler can return the same operation when a screen becomes active. Rendering the screen does not return a fetch Command or cause a request.
 
 ### Read and Render Query Data
 

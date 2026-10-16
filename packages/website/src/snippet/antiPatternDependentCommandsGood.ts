@@ -1,6 +1,6 @@
 // ✅ Good: update returns NavigateToDocuments after SaveDraft succeeds.
 
-const update = Application.update((model, message) =>
+const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedSave: () => ({
       model,

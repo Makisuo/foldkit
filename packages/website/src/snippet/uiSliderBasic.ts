@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit each into your own Model, init, Message,
 // update, view, and subscription definitions.
-import { Schema } from 'effect'
+import { Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -48,43 +48,31 @@ const VolumeSlider = Block.define('VolumeSlider', {
   Message,
 })
 
-const slider = VolumeSlider.bindChild(Slider.block, {
+const SliderBinding = VolumeSlider.bindChild(Slider.block, {
   field: 'ratingDemo',
   parentMessage: Message.GotSliderMessage,
+  init: {
+    args: () => Tuple.make({ id: 'rating', min: 0, max: 10, step: 1 }),
+  },
   outMessage: { fold: foldSliderOutMessage },
+})
+
+const VolumeSliderComposition = VolumeSlider.toComposition({
+  childBindings: [SliderBinding],
 })
 
 // In your init function, seed the value (snapped to the range) and initialize
 // the Slider Block with min / max / step and a unique id:
-const init = VolumeSlider.init(() => {
-  const sliderInit = slider.init({
-    id: 'rating',
-    min: 0,
-    max: 10,
-    step: 1,
-  })
+const init = VolumeSliderComposition.init(() => ({
+  model: {
+    ratingValue: SliderSnapAndClamp(3, 0, 10, 1),
+    // ...your other fields
+  },
+}))
 
-  return {
-    model: {
-      ratingValue: SliderSnapAndClamp(3, 0, 10, 1),
-      ratingDemo: sliderInit.model,
-      // ...your other fields
-    },
-    commands: sliderInit.commands,
-  }
-})
+const update = VolumeSliderComposition.update()
 
-const VolumeSliderComposition = VolumeSlider.toComposition({
-  children: [slider],
-})
-
-const update = VolumeSlider.update((model, message) =>
-  Message.match(message, {
-    GotSliderMessage: ({ message }) => slider.fold(model, message),
-  }),
-)
-
-// Registering `slider` in `children` also collects both drag Subscriptions.
+// Registering `SliderBinding` in `childBindings` also collects both drag Subscriptions.
 
 // Inside your view function, render the slider. You control every element's
 // markup and classes through the `toView` callback. The `attributes` groups
@@ -134,7 +122,7 @@ const view = VolumeSliderComposition.view((model, h) => {
     )
 
   return h.block(
-    slider.embedView({
+    SliderBinding.embedView({
       slotId: 'rating',
       model: model.ratingDemo,
       viewInputs: {

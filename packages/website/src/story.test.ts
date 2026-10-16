@@ -8,7 +8,7 @@ import { Dialog, Menu } from '@foldkit/ui'
 import { ShowDialog } from '@foldkit/ui/dialog'
 
 import { ScrollSidebarActiveLinkIntoView, ScrollToTop } from './command'
-import { Home, home } from './composition'
+import { Home, HomeBinding } from './composition'
 import { Deployment } from './deployment'
 import { init } from './init'
 import { Message } from './message'
@@ -53,7 +53,7 @@ const expectHomePresent = (model: Model): void => {
   expect(Option.isSome(model.maybeHome)).toBe(true)
   expect(
     Option.isSome(
-      Block.inspectBinding(home).managedResources[
+      Block.inspectBinding(HomeBinding).managedResources[
         'notePlayerDemo/audioContext'
       ].modelToMaybeRequirements(model),
     ),
@@ -64,7 +64,7 @@ const expectHomeAbsent = (model: Model): void => {
   expect(Option.isNone(model.maybeHome)).toBe(true)
   expect(
     Option.isNone(
-      Block.inspectBinding(home).managedResources[
+      Block.inspectBinding(HomeBinding).managedResources[
         'notePlayerDemo/audioContext'
       ].modelToMaybeRequirements(model),
     ),
@@ -93,7 +93,7 @@ describe('application', () => {
       counterExampleUrl,
     )
 
-    expect(initialization.commands.map(command => command.name)).toEqual([
+    expect(initialization.commands?.map(command => command.name)).toEqual([
       'Application/LoadBrowserEnvironment',
       'Application/InjectAnalytics',
       'Application/InjectSpeedInsights',
@@ -116,7 +116,7 @@ describe('application', () => {
     expect(initialization.model.apiReference.apiData).toEqual(
       ApiReference.ApiDataAsyncData.Refreshing({ data: seededData }),
     )
-    expect(initialization.commands.map(command => command.name)).toContain(
+    expect(initialization.commands?.map(command => command.name)).toContain(
       'apiReference/LoadApiData',
     )
 

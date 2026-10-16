@@ -30,7 +30,7 @@ const NotificationPreferences = Block.define('NotificationPreferences', {
   Message,
 })
 // In your init function, start each unchecked:
-const init = NotificationPreferences.init(() => ({
+const init = NotificationPreferencesComposition.init(() => ({
   model: {
     optionA: false,
     optionB: false,

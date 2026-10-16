@@ -12,13 +12,13 @@ const SIGNALING_URL = 'wss://example.com/call/signaling'
 const Call = Block.define('Call', { Model, Message })
 const SignalingSocket = Call.resource<WebSocket>()('SignalingSocket')
 
-const videoCall = Call.bindChild(VideoCall.block, {
+const VideoCallBinding = Call.bindChild(VideoCall.block, {
   field: 'videoCall',
   parentMessage: Message.GotVideoCallMessage,
 })
 
 const CallComposition = Call.toComposition({
-  children: [videoCall],
+  childBindings: [VideoCallBinding],
 })
 
 export const managedResources = Call.managedResources(entry => ({

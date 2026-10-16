@@ -537,10 +537,10 @@ export const block = <View extends AnyBlockView>(
   }
   if (
     scope !== undefined &&
-    !parentFrame.viewIdentity?.children.includes(scope.binding)
+    !parentFrame.viewIdentity?.childBindings.includes(scope.binding)
   ) {
     throw new Error(
-      `[foldkit] Block binding "${scope.placement}" is not registered in this view's children.`,
+      `[foldkit] Block binding "${scope.placement}" is not registered in this view's childBindings.`,
     )
   }
   const registry = parentFrame.boundaryRegistry

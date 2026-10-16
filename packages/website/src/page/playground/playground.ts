@@ -27,9 +27,9 @@ import {
   reasonFromError,
 } from '../playgroundWebContainer'
 import {
+  FileTabsBinding,
   PlaygroundComposition,
   type PlaygroundViewBuilder,
-  fileTabs,
 } from './composition'
 import { Message, Model, Playground, PlaygroundState } from './definition'
 import { MountPlaygroundEditor } from './mount'
@@ -63,24 +63,20 @@ const initialActiveFile = (files: Readonly<Record<string, string>>): string =>
     Option.getOrElse(() => ''),
   )
 
-const FILE_TABS_ID = 'playground-files'
-
-export const init = Playground.init(
+export const init = PlaygroundComposition.init(
   (slug: string, maybeIsSupported: Option.Option<boolean> = Option.none()) => {
     const files = Option.getOrElse(maybeFilesForSlug(slug), () => ({}))
-    const fileTabsInit = fileTabs.init({ id: FILE_TABS_ID })
+
     return {
-      model: Model.make({
+      model: {
         slug,
         state: PlaygroundState.Booting(),
         files,
-        fileTabs: fileTabsInit.model,
         activeFilePath: initialActiveFile(files),
         dirtyPaths: [],
         lastWriteError: Option.none(),
         maybeIsSupported,
-      }),
-      commands: fileTabsInit.commands,
+      },
     }
   },
 )
@@ -259,74 +255,74 @@ const markPreviewLoaded = (
     Match.orElse(() => state),
   )
 
-export const update = Playground.update((model, message) =>
-  Message.match(message, {
-    BootedPlayground: ({ previewUrl }) => ({
-      model: modifyFields(model, {
-        state: () =>
-          PlaygroundState.Booted({
-            preview: PlaygroundPreview.start(previewUrl),
-          }),
-        dirtyPaths: () => [],
-        lastWriteError: () => Option.none(),
+export const update = PlaygroundComposition.update((model, message) =>
+  Match.value(message).pipe(
+    Match.tagsExhaustive({
+      BootedPlayground: ({ previewUrl }) => ({
+        model: modifyFields(model, {
+          state: () =>
+            PlaygroundState.Booted({
+              preview: PlaygroundPreview.start(previewUrl),
+            }),
+          dirtyPaths: () => [],
+          lastWriteError: () => Option.none(),
+        }),
+        commands: [WaitForPlaygroundServerFailure(), ...flushDirtyPaths(model)],
       }),
-      commands: [WaitForPlaygroundServerFailure(), ...flushDirtyPaths(model)],
-    }),
-    FailedBootPlayground: ({ reason }) => ({
-      model: modifyFields(model, {
-        state: () => PlaygroundState.Failed({ reason }),
+      FailedBootPlayground: ({ reason }) => ({
+        model: modifyFields(model, {
+          state: () => PlaygroundState.Failed({ reason }),
+        }),
       }),
-    }),
-    ReleasedPlayground: () => ({
-      model: modifyFields(model, {
-        state: state =>
-          state._tag === 'Failed' ? state : PlaygroundState.Idle(),
+      ReleasedPlayground: () => ({
+        model: modifyFields(model, {
+          state: state =>
+            state._tag === 'Failed' ? state : PlaygroundState.Idle(),
+        }),
       }),
-    }),
-    LoadedPlaygroundPreview: ({ previewUrl }) => ({
-      model: modifyFields(model, {
-        state: state => markPreviewLoaded(state, previewUrl),
+      LoadedPlaygroundPreview: ({ previewUrl }) => ({
+        model: modifyFields(model, {
+          state: state => markPreviewLoaded(state, previewUrl),
+        }),
       }),
-    }),
-    GotFileTabsMessage: ({ message: tabsMessage }) =>
-      fileTabs.fold(model, tabsMessage),
-    EditedPlaygroundFile: ({ path, content }) => {
-      const isBooted = model.state._tag === 'Booted'
-      const nextModel = modifyFields(model, {
-        files: Record.set(path, content),
-        dirtyPaths: existing =>
-          isBooted ? existing : appendDeduped(existing, path),
-      })
+      EditedPlaygroundFile: ({ path, content }) => {
+        const isBooted = model.state._tag === 'Booted'
+        const nextModel = modifyFields(model, {
+          files: Record.set(path, content),
+          dirtyPaths: existing =>
+            isBooted ? existing : appendDeduped(existing, path),
+        })
 
-      if (isBooted) {
-        return {
-          model: nextModel,
-          commands: [SchedulePlaygroundFileWrite({ path, content })],
+        if (isBooted) {
+          return {
+            model: nextModel,
+            commands: [SchedulePlaygroundFileWrite({ path, content })],
+          }
+        } else {
+          return { model: nextModel }
         }
-      } else {
-        return { model: nextModel }
-      }
-    },
-    FailedMountPlaygroundEditor: ({ reason }) => ({
-      model: modifyFields(model, {
-        state: () => PlaygroundState.Failed({ reason }),
+      },
+      FailedMountPlaygroundEditor: ({ reason }) => ({
+        model: modifyFields(model, {
+          state: () => PlaygroundState.Failed({ reason }),
+        }),
       }),
-    }),
-    SucceededSchedulePlaygroundFileWrite: () => ({
-      model: modifyFields(model, { lastWriteError: () => Option.none() }),
-    }),
-    FailedSchedulePlaygroundFileWrite: ({ reason }) => ({
-      model: modifyFields(model, {
-        lastWriteError: () => Option.some(reason),
+      SucceededSchedulePlaygroundFileWrite: () => ({
+        model: modifyFields(model, { lastWriteError: () => Option.none() }),
       }),
-    }),
-    CompletedWaitForPlaygroundServerFailure: ({ reason }) => ({
-      model: modifyFields(model, {
-        state: () => PlaygroundState.Failed({ reason }),
+      FailedSchedulePlaygroundFileWrite: ({ reason }) => ({
+        model: modifyFields(model, {
+          lastWriteError: () => Option.some(reason),
+        }),
       }),
+      CompletedWaitForPlaygroundServerFailure: ({ reason }) => ({
+        model: modifyFields(model, {
+          state: () => PlaygroundState.Failed({ reason }),
+        }),
+      }),
+      SucceededMountPlaygroundEditor: () => ({ model }),
     }),
-    SucceededMountPlaygroundEditor: () => ({ model }),
-  }),
+  ),
 )
 
 export const informSupport = Playground.step((model, isSupported: boolean) => ({
@@ -580,7 +576,7 @@ const editorLayoutView = (model: Model, h: PlaygroundViewBuilder): Html => {
         [h.Class('flex-1 min-h-0 min-w-0 flex max-playground-wide:flex-col')],
         [
           h.block(
-            fileTabs.embedView({
+            FileTabsBinding.embedView({
               slotId: model.fileTabs.id,
               model: model.fileTabs,
               viewInputs: {

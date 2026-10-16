@@ -82,7 +82,7 @@ Registering a Mount that the view never renders starts no element lifecycle, lis
 
 For an owned Block, create `Name = Block.define('Name', { Model, Message })`, create Mounts through that typed authoring value, and list them in `NameComposition = Name.toComposition({ mounts })`. Author the canonical view with `NameComposition.view`, then pass the local handler recipes to `NameComposition.toBlock({ EffectsLayer })`. A parent that includes the child Binding receives its Mount registrations and handler graph together. `ApplicationComposition` installs the root graph through its owned `toApplication({ init, update, view, ... })` method.
 
-For a direct array of child Models with declared Struct key fields, use `Parent.bindChild` with `field`, a string-valued `key`, and `toParentMessage`. An exact array of closed Struct wrappers adds a distinct required `childField`, leaving its key on the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration retain general keyed accessors. Each active key gets independent Mount ownership, and the parent includes the keyed Binding once under `children`.
+For a direct array of child Models with declared Struct key fields, use `Parent.bindChild` with `field`, a string-valued `key`, and `toParentMessage`. An exact array of closed Struct wrappers adds a distinct required `childField`, leaving its key on the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration retain general keyed accessors. Each active key gets independent Mount ownership, and the parent includes the keyed Binding once under `childBindings`.
 
 ### Mount Requirements in Reusable Views
 
@@ -90,7 +90,7 @@ An owned view receives a builder whose allowed Mounts are inferred from its Comp
 
 ::Snippet{name="mountBlockView" label="Preserving a Block view's Mount requirements"}
 
-The parent must include the child Binding under `children` before its builder can embed that child view. An owned child with `ViewInputs` uses `FeatureComposition.view.withInputs<ViewInputs>` and receives its builder third.
+The parent must include the child Binding under `childBindings` before its builder can embed that child view. An owned child with `ViewInputs` uses `FeatureComposition.view.withInputs<ViewInputs>` and receives its builder third.
 
 The Composition derives its builder type from the complete Mount collection, and application assembly includes those definitions. Missing Mounts fail at the composition boundary, and helpers cannot attach Mounts outside their builder's declared set. Keep helpers genuinely shared across Compositions on the framework's general `HtmlBuilder<Message>`, with an explicit requirements parameter when they forward capabilities. The returned `Html` type stays the same.
 

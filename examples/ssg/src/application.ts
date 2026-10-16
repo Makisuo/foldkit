@@ -37,7 +37,7 @@ type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-export const init = Application.init((url: Url) => ({
+export const init = ApplicationComposition.init((url: Url) => ({
   model: { route: urlToApplicationRoute(url), count: 0 },
 }))
 

@@ -4,9 +4,9 @@ import type { Html } from 'foldkit/html'
 
 import {
   type ApplicationViewBuilder,
-  chartModeRadioGroup,
-  packageRadioGroup,
-  periodRadioGroup,
+  ChartModeRadioGroupBinding,
+  PackageRadioGroupBinding,
+  PeriodRadioGroupBinding,
 } from '../composition'
 import {
   type Telemetry,
@@ -125,7 +125,7 @@ export const controlPanelView = (
             ['Chart mode'],
           ),
           h.block(
-            chartModeRadioGroup.embedView({
+            ChartModeRadioGroupBinding.embedView({
               slotId: model.chartModeRadioGroup.id,
               model: model.chartModeRadioGroup,
               viewInputs: {
@@ -161,7 +161,7 @@ export const controlPanelView = (
                 ['Period'],
               ),
               h.block(
-                periodRadioGroup.embedView({
+                PeriodRadioGroupBinding.embedView({
                   slotId: model.periodRadioGroup.id,
                   model: model.periodRadioGroup,
                   viewInputs: {
@@ -205,7 +205,7 @@ export const packagePanelView = (
         [h.Class('mt-3')],
         [
           h.block(
-            packageRadioGroup.embedView({
+            PackageRadioGroupBinding.embedView({
               slotId: model.packageRadioGroup.id,
               model: model.packageRadioGroup,
               viewInputs: {

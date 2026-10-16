@@ -17,11 +17,12 @@ import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import * as Shared from '@typing-game/shared'
 
-import { ApplicationComposition, home, room } from './composition'
+import { ApplicationComposition } from './composition'
 import { Application } from './definition'
 import { EffectsLayer } from './layer'
 import { Message } from './message'
 import { Model, RoomInstance } from './model'
+import { Home, Room } from './page'
 import { Message as HomeMessage } from './page/home/message'
 import { Message as RoomMessage } from './page/room/message'
 import { RoomAsyncData } from './page/room/model'
@@ -235,7 +236,7 @@ describe('Room identity', () => {
     let clientReleases = 0
     let completedBarriers = 0
 
-    const observedUpdate = ApplicationComposition.update((model, message) => {
+    const observedUpdate = (model: Model, message: Message) => {
       if (
         message._tag === 'GotRoomMessage' &&
         message.message._tag === 'SucceededJoinRoom'
@@ -253,7 +254,7 @@ describe('Room identity', () => {
       }
 
       return update(model, message)
-    })
+    }
 
     const RoomHandlersLayer = Shared.RoomRpcs.toLayer(
       Effect.succeed({
@@ -346,7 +347,7 @@ describe('Room identity', () => {
       }),
     )
 
-    const initialRoomInit = room.init(ROOM_A, Option.none())
+    const initialRoomInit = Room.block.init(Option.none())
     const initialRoomModel = modifyFields(initialRoomInit.model, {
       roomAsyncData: () =>
         RoomAsyncData.Success({ data: makeRoom(ROOM_A, 10) }),
@@ -361,7 +362,7 @@ describe('Room identity', () => {
       init: () => ({
         model: Model.make({
           route: ApplicationRoute.Room({ roomId: ROOM_A }),
-          home: home.init().model,
+          home: Home.block.init().model,
           maybeRoomInstance: Option.some(
             RoomInstance.make({ roomId: ROOM_A, model: initialRoomModel }),
           ),

@@ -821,6 +821,40 @@ describe('completed Block bindings', () => {
       ]),
     )
 
+  const applicationComposition = (
+    name: string,
+    definition: unknown,
+    childBindings: ReadonlyArray<unknown>,
+  ) =>
+    Testing.varDecl('const', name, {
+      type: 'CallExpression',
+      callee: {
+        type: 'MemberExpression',
+        object: definition,
+        property: Testing.id('toComposition'),
+        computed: false,
+      },
+      arguments: [
+        objectExpression([
+          property('childBindings', {
+            type: 'ArrayExpression',
+            elements: childBindings,
+          }),
+        ]),
+      ],
+    })
+
+  const compositionUpdate = (
+    composition: string,
+    model: unknown = directSettingsUpdate('model'),
+  ) =>
+    Testing.callOfMember(composition, 'update', [
+      Testing.arrowFn(objectExpression([property('model', model)]), [
+        Testing.id('model'),
+        Testing.id('message'),
+      ]),
+    ])
+
   it('tracks a parent Model dispatched through binding.fold', () => {
     const result = runRule([
       settingsBinding,
@@ -968,6 +1002,175 @@ describe('completed Block bindings', () => {
         Testing.id('message'),
       ]),
       directSettingsUpdate('model'),
+    ])
+
+    expect(result).toHaveLength(0)
+  })
+
+  it('tracks an automatically routed Binding in Composition.update', () => {
+    const result = runRule([
+      directSettingsBinding,
+      applicationComposition(
+        'ApplicationComposition',
+        Testing.id('Application'),
+        [Testing.id('settings')],
+      ),
+      compositionUpdate('ApplicationComposition'),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('tracks a registered Binding through a namespace Definition receiver', () => {
+    const namespacedApplication = Testing.memberExpr('Feature', 'Application')
+    const namespacedBinding = Testing.varDecl('const', 'settings', {
+      type: 'CallExpression',
+      callee: {
+        type: 'MemberExpression',
+        object: namespacedApplication,
+        property: Testing.id('bindChild'),
+        computed: false,
+      },
+      arguments: [
+        Testing.id('Settings'),
+        objectExpression([
+          property('field', Testing.strLiteral('settings')),
+          property(
+            'parentMessage',
+            Testing.memberExpr('Message', 'GotSettingsMessage'),
+          ),
+        ]),
+      ],
+    })
+    const result = runRule([
+      namespacedBinding,
+      applicationComposition('ApplicationComposition', namespacedApplication, [
+        Testing.id('settings'),
+      ]),
+      compositionUpdate('ApplicationComposition'),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('tracks an automatically routed keyed Binding', () => {
+    const result = runRule([
+      directEntriesBinding(),
+      applicationComposition(
+        'ApplicationComposition',
+        Testing.id('Application'),
+        [Testing.id('entries')],
+      ),
+      compositionUpdate('ApplicationComposition', updateEntriesManually()),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('tracks an automatically routed wrapped keyed Binding', () => {
+    const result = runRule([
+      wrappedEntriesBinding,
+      applicationComposition(
+        'ApplicationComposition',
+        Testing.id('Application'),
+        [Testing.id('entries')],
+      ),
+      compositionUpdate(
+        'ApplicationComposition',
+        updateWrappedEntry('counter'),
+      ),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('does not track a Binding omitted from childBindings', () => {
+    const result = runRule([
+      directSettingsBinding,
+      applicationComposition(
+        'ApplicationComposition',
+        Testing.id('Application'),
+        [],
+      ),
+      compositionUpdate('ApplicationComposition'),
+    ])
+
+    expect(result).toHaveLength(0)
+  })
+
+  it('does not track a Binding registered on another Composition receiver', () => {
+    const result = runRule([
+      directSettingsBinding,
+      applicationComposition(
+        'ApplicationCompositionWithSettings',
+        Testing.id('Application'),
+        [Testing.id('settings')],
+      ),
+      applicationComposition(
+        'ApplicationComposition',
+        Testing.id('Application'),
+        [],
+      ),
+      compositionUpdate('ApplicationComposition'),
+    ])
+
+    expect(result).toHaveLength(0)
+  })
+
+  it('does not track a Binding owned by another Definition', () => {
+    const otherSettingsBinding = Testing.varDecl('const', 'otherSettings', {
+      type: 'CallExpression',
+      callee: {
+        type: 'MemberExpression',
+        object: Testing.id('OtherApplication'),
+        property: Testing.id('bindChild'),
+        computed: false,
+      },
+      arguments: [
+        Testing.id('Settings'),
+        objectExpression([
+          property('field', Testing.strLiteral('settings')),
+          property(
+            'parentMessage',
+            Testing.memberExpr('Message', 'GotSettingsMessage'),
+          ),
+        ]),
+      ],
+    })
+    const result = runRule([
+      otherSettingsBinding,
+      applicationComposition(
+        'ApplicationComposition',
+        Testing.id('Application'),
+        [Testing.id('otherSettings')],
+      ),
+      compositionUpdate('ApplicationComposition'),
+    ])
+
+    expect(result).toHaveLength(0)
+  })
+
+  it('does not infer child fields from an imported Binding', () => {
+    const result = runRule([
+      applicationComposition(
+        'ApplicationComposition',
+        Testing.id('Application'),
+        [Testing.id('ImportedSettingsBinding')],
+      ),
+      compositionUpdate('ApplicationComposition'),
+    ])
+
+    expect(result).toHaveLength(0)
+  })
+
+  it('does not infer child fields from a namespace Binding', () => {
+    const result = runRule([
+      applicationComposition(
+        'ApplicationComposition',
+        Testing.id('Application'),
+        [Testing.memberExpr('Settings', 'SettingsBinding')],
+      ),
+      compositionUpdate('ApplicationComposition'),
     ])
 
     expect(result).toHaveLength(0)

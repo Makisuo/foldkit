@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update and view definitions.
-import { Schema } from 'effect'
+import { Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -38,37 +38,30 @@ const ActivityListExample = Block.define('ActivityListExample', {
   Message,
 })
 
-const activityList = ActivityListExample.bindChild(ActivityList, {
+const ActivityListBinding = ActivityListExample.bindChild(ActivityList, {
   field: 'activityList',
   parentMessage: Message.GotActivityListMessage,
+  init: {
+    args: () => Tuple.make({ id: 'activity-list', rowHeightPx: 56 }),
+  },
+})
+
+const ActivityListExampleComposition = ActivityListExample.toComposition({
+  childBindings: [ActivityListBinding],
 })
 
 // In your init function, give the list a unique id and a row height in
 // pixels. All rows share this height:
-const init = ActivityListExample.init(() => {
-  const activityListInit = activityList.init({
-    id: 'activity-list',
-    rowHeightPx: 56,
-  })
+const init = ActivityListExampleComposition.init(() => ({
+  model: {
+    activities: [],
+  },
+}))
 
-  return {
-    model: {
-      activityList: activityListInit.model,
-      activities: [],
-    },
-    commands: activityListInit.commands,
-  }
-})
-
-const ActivityListExampleComposition = ActivityListExample.toComposition({
-  children: [activityList],
-})
-
-const update = ActivityListExample.update((model, message) =>
+const update = ActivityListExampleComposition.update((model, message) =>
   Message.match(message, {
-    GotActivityListMessage: ({ message }) => activityList.fold(model, message),
     ClickedScrollActivityListToMiddle: () =>
-      activityList.scrollToIndex(500)(model),
+      ActivityListBinding.scrollToIndex(500)(model),
   }),
 )
 
@@ -81,7 +74,7 @@ const update = ActivityListExample.update((model, message) =>
 const view = ActivityListExampleComposition.view(
   (model, h) =>
     h.block(
-      activityList.embedView({
+      ActivityListBinding.embedView({
         slotId: 'activity-list',
         model: model.activityList,
         viewInputs: {

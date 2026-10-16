@@ -1,8 +1,8 @@
 // src/init.ts
 
-import { Application } from './definition'
+import { ApplicationComposition } from './composition'
 
-export const init = Application.init((flags: Flags) => ({
+export const init = ApplicationComposition.init((flags: Flags) => ({
   model: {
     grid: Option.match(flags.maybeSavedCanvas, {
       onNone: () => createEmptyGrid(DEFAULT_GRID_SIZE),
@@ -14,8 +14,6 @@ export const init = Application.init((flags: Flags) => ({
     mirrorMode: 'None',
     isDrawing: false,
     maybeHoveredCell: Option.none(),
-    errorDialog: Dialog.init({ id: 'export-error-dialog' }),
-    themeListbox: Listbox.init({ id: 'theme-picker' }),
     // remaining fields elided for brevity
   },
 }))
@@ -24,7 +22,6 @@ export const init = Application.init((flags: Flags) => ({
 
 import { Runtime } from 'foldkit'
 
-import { ApplicationComposition } from './composition'
 import { Flags, flags } from './flags'
 import { init } from './init'
 import { update } from './update'

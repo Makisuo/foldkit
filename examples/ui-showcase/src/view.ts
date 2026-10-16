@@ -4,7 +4,7 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Nav } from '@foldkit/ui'
 
-import { ApplicationComposition, ui } from './composition'
+import { ApplicationComposition, UiBinding } from './composition'
 import type { ApplicationViewBuilder } from './composition'
 import * as Icon from './icon'
 import { Message } from './message'
@@ -293,7 +293,7 @@ const mobileHeaderView = (model: Model, h: ApplicationViewBuilder) =>
 
 const mobileMenuView = (model: Model, h: ApplicationViewBuilder) =>
   h.block(
-    ui.embedView({
+    UiBinding.embedView({
       slotId: 'mobile-menu',
       model: model.uiModel,
       view: Ui.View.mobileMenu,
@@ -346,7 +346,7 @@ const notFoundView = (path: string, h: ApplicationViewBuilder) =>
 const contentView = (model: Model, h: ApplicationViewBuilder) => {
   const embedUi = (id: string, view: typeof Ui.View.button): Html =>
     h.block(
-      ui.embedView({
+      UiBinding.embedView({
         slotId: id,
         model: model.uiModel,
         view,

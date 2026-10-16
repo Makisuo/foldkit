@@ -18,14 +18,14 @@ export const view = ApplicationComposition.view((model, h) => ({
         Match.tagsExhaustive({
           LoggedOut: loggedOutModel =>
             h.block(
-              LoggedOut.loggedOut.embedView({
+              LoggedOut.LoggedOutBinding.embedView({
                 slotId: 'logged-out',
                 model: loggedOutModel,
               }),
             ),
           LoggedIn: loggedInModel =>
             h.block(
-              LoggedIn.loggedIn.embedView({
+              LoggedIn.LoggedInBinding.embedView({
                 slotId: 'logged-in',
                 model: loggedInModel,
               }),

@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Schema } from 'effect'
+import { Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -64,36 +64,27 @@ const TabsExample = Block.define('TabsExample', {
   Message,
 })
 
-const tabs = TabsExample.bindChild(FrameworkTabs, {
+const TabsBinding = TabsExample.bindChild(FrameworkTabs, {
   field: 'tabs',
   parentMessage: Message.GotTabsMessage,
+  init: { args: () => Tuple.make({ id: 'framework-tabs' }) },
   outMessage: { fold: foldTabsOutMessage },
+})
+
+const TabsExampleComposition = TabsExample.toComposition({
+  childBindings: [TabsBinding],
 })
 
 // In your init function, initialize the Tabs Block with a unique id and
 // pick the starting active tab:
-const init = TabsExample.init(() => {
-  const tabsInit = tabs.init({ id: 'framework-tabs' })
+const init = TabsExampleComposition.init(() => ({
+  model: {
+    activeFramework: 'Foldkit',
+    // ...your other fields
+  },
+}))
 
-  return {
-    model: Model.make({
-      tabs: tabsInit.model,
-      activeFramework: 'Foldkit',
-      // ...your other fields
-    }),
-    commands: tabsInit.commands,
-  }
-})
-
-const TabsExampleComposition = TabsExample.toComposition({
-  children: [tabs],
-})
-
-const update = TabsExample.update((model, message) =>
-  Message.match(message, {
-    GotTabsMessage: ({ message }) => tabs.fold(model, message),
-  }),
-)
+const update = TabsExampleComposition.update()
 
 // Inside your view function, embed the tabs via h.block and pass the
 // parent-owned active tab as selectedValue:
@@ -132,7 +123,7 @@ const view = TabsExampleComposition.view((model, h) => {
     )
 
   return h.block(
-    tabs.embedView({
+    TabsBinding.embedView({
       slotId: 'framework-tabs',
       model: model.tabs,
       viewInputs: {

@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Option, Schema } from 'effect'
+import { Option, Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -63,42 +63,36 @@ const Notifications = Block.define('Notifications', {
   Message,
 })
 
-const toast = Notifications.bindChild(Toast, {
+const ToastBinding = Notifications.bindChild(Toast, {
   field: 'toast',
   parentMessage: Message.GotToastMessage,
+  init: {
+    args: () => Tuple.make({ id: 'app-toast', swipeToDismiss: {} }),
+  },
   outMessage: { fold: foldToastOutMessage },
 })
 
-// In your init function, initialize it. Swipe is opt-in: omit
+const NotificationsComposition = Notifications.toComposition({
+  childBindings: [ToastBinding],
+})
+
+// In your Composition init function, configure the fields the parent owns.
+// Swipe is opt-in: omit
 // swipeToDismiss to leave it disabled, or pass {} for the default rightward
 // 40px gesture. Set threshold to customize the dismissal distance:
-const init = Notifications.init(() => {
-  const toastInit = toast.init({
-    id: 'app-toast',
-    swipeToDismiss: {},
-  })
-
-  return {
-    model: {
-      toast: toastInit.model,
-      maybeLastDismissedBody: Option.none(),
-      // ...your other fields
-    },
-    commands: toastInit.commands,
-  }
-})
-
-const NotificationsComposition = Notifications.toComposition({
-  children: [toast],
-})
+const init = NotificationsComposition.init(() => ({
+  model: {
+    maybeLastDismissedBody: Option.none(),
+    // ...your other fields
+  },
+}))
 
 declare const changesRouter: () => string
 
-const update = Notifications.update((model, message) =>
+const update = NotificationsComposition.update((model, message) =>
   Message.match(message, {
-    GotToastMessage: ({ message }) => toast.fold(model, message),
     ClickedSave: () =>
-      toast.show({
+      ToastBinding.show({
         variant: 'Success',
         payload: {
           bodyText: 'Changes saved',
@@ -108,7 +102,7 @@ const update = Notifications.update((model, message) =>
   }),
 )
 
-// Registering `toast` in `children` collects the instance's pointer Subscriptions.
+// Registering `ToastBinding` in `childBindings` collects the instance's pointer Subscriptions.
 
 // In your view, embed Toast via h.block once at the app root. The
 // entryToView callback lays out each entry from its payload. The
@@ -117,7 +111,7 @@ const update = Notifications.update((model, message) =>
 // translate/--toast-swipe-move-x), and enter/leave animations.
 const view = NotificationsComposition.view((model, h) =>
   h.block(
-    toast.embedView({
+    ToastBinding.embedView({
       slotId: 'app-toast',
       model: model.toast,
       viewInputs: {

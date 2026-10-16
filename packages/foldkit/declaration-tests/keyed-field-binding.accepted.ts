@@ -1,12 +1,11 @@
 import { Array, Context, Effect, Layer, Option, Schema } from 'effect'
-
 import {
   Block,
   Schema as FoldkitSchema,
   Message,
   Struct,
   Update,
-} from '../src/index.js'
+} from 'foldkit'
 
 const ChildModel = Schema.Struct({ id: Schema.String, count: Schema.Number })
 const ChildMessage = Message.defineMessageUnion({
@@ -17,9 +16,12 @@ const Child = Block.define('DeclarationKeyedFieldChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-export const ChildBlock = Child.toComposition().toBlock({
-  init: () => ({ model: ChildModel.make({ id: 'initial', count: 0 }) }),
-  update: Child.update((model, message) =>
+const ChildComposition = Child.toComposition()
+export const ChildBlock = ChildComposition.toBlock({
+  init: ChildComposition.init(() => ({
+    model: ChildModel.make({ id: 'initial', count: 0 }),
+  })),
+  update: ChildComposition.update((model, message) =>
     ChildMessage.match(message, {
       UpdatedCount: ({ count }) => ({
         model: Struct.modifyFields(model, { count: () => count }),
@@ -40,11 +42,12 @@ const CallableChild = Block.define('DeclarationCallableKeyedFieldChild', {
   Model: CallableChildModel,
   Message: ChildMessage,
 })
-export const CallableChildBlock = CallableChild.toComposition().toBlock({
-  init: () => ({
+const CallableChildComposition = CallableChild.toComposition()
+export const CallableChildBlock = CallableChildComposition.toBlock({
+  init: CallableChildComposition.init(() => ({
     model: CallableChildModel({ id: 'initial', count: 0 }),
-  }),
-  update: CallableChild.update((model, message) =>
+  })),
+  update: CallableChildComposition.update((model, message) =>
     ChildMessage.match(message, {
       UpdatedCount: ({ count }) => ({
         model: Struct.modifyFields(model, { count: () => count }),
@@ -70,15 +73,16 @@ const RefinedKeyChild = Block.define('DeclarationRefinedKeyChild', {
   Model: RefinedKeyModel,
   Message: RefinedKeyMessage,
 })
-export const RefinedKeyBlock = RefinedKeyChild.toComposition().toBlock({
-  init: () => ({
+const RefinedKeyComposition = RefinedKeyChild.toComposition()
+export const RefinedKeyBlock = RefinedKeyComposition.toBlock({
+  init: RefinedKeyComposition.init(() => ({
     model: RefinedKeyModel.make({
       id: Schema.decodeSync(RefinedId)('initial'),
       kind: 'Child',
       count: 0,
     }),
-  }),
-  update: RefinedKeyChild.update(model => ({ model })),
+  })),
+  update: RefinedKeyComposition.update(model => ({ model })),
   EffectsLayer: Layer.empty,
 })
 
@@ -88,9 +92,12 @@ const ArrayChild = Block.define('DeclarationArrayModelChild', {
   Model: ArrayChildModel,
   Message: ArrayChildMessage,
 })
-export const ArrayChildBlock = ArrayChild.toComposition().toBlock({
-  init: () => ({ model: ArrayChildModel.make(['initial']) }),
-  update: ArrayChild.update(model => ({ model })),
+const ArrayChildComposition = ArrayChild.toComposition()
+export const ArrayChildBlock = ArrayChildComposition.toBlock({
+  init: ArrayChildComposition.init(() => ({
+    model: ArrayChildModel.make(['initial']),
+  })),
+  update: ArrayChildComposition.update(model => ({ model })),
   EffectsLayer: Layer.empty,
 })
 
@@ -117,9 +124,12 @@ export const ReadChildCount = OutChild.command('ReadChildCount', {
       )
   },
 })
-export const OutChildBlock = OutChild.toComposition().toBlock({
-  init: () => ({ model: ChildModel.make({ id: 'initial', count: 0 }) }),
-  update: OutChild.update((model, message) =>
+const OutChildComposition = OutChild.toComposition()
+export const OutChildBlock = OutChildComposition.toBlock({
+  init: OutChildComposition.init(() => ({
+    model: ChildModel.make({ id: 'initial', count: 0 }),
+  })),
+  update: OutChildComposition.update((model, message) =>
     ChildMessage.match(message, {
       UpdatedCount: ({ count }) => ({
         model: Struct.modifyFields(model, { count: () => count }),
@@ -150,6 +160,26 @@ const EquivalentChildModel = Schema.Struct({
   count: Schema.Number,
   id: Schema.String,
 })
+type Expect<Value extends true> = Value
+type MutuallyAssignable<Left, Right> = [Left] extends [Right]
+  ? [Right] extends [Left]
+    ? true
+    : false
+  : false
+type IsAny<Value> = 0 extends 1 & Value ? true : false
+type IsUnknown<Value> =
+  IsAny<Value> extends true ? false : unknown extends Value ? true : false
+type NotAnyOrUnknownProof<Value> =
+  IsAny<Value> extends true
+    ? [error: never]
+    : IsUnknown<Value> extends true
+      ? [error: never]
+      : []
+declare const expectNotAnyOrUnknown: <Value>(
+  value: Value,
+  ...proof: NotAnyOrUnknownProof<Value>
+) => void
+
 const ParentModel = Schema.Struct({
   entries: Schema.Array(ChildModel),
   equivalentEntries: Schema.Array(EquivalentChildModel),
@@ -184,63 +214,124 @@ export const CallableParent = Block.define(
     Message: ParentMessage,
   },
 )
-export const callableEntries = CallableParent.bindChild(CallableChildBlock, {
-  field: 'entries',
-  key: 'id',
-  toParentMessage: (id, message) =>
-    ParentMessage.GotEntryMessage({ id, message }),
-})
-CallableParent.toComposition({ children: [callableEntries] })
+export const CallableEntriesBinding = CallableParent.bindChild(
+  CallableChildBlock,
+  {
+    field: 'entries',
+    key: 'id',
+    toParentMessage: (id, message) =>
+      ParentMessage.GotEntryMessage({ id, message }),
+    fromParentMessage: false,
+  },
+)
+CallableParent.toComposition({ childBindings: [CallableEntriesBinding] })
 export const callableInitialParentModel = CallableParentModel({
   entries: [CallableChildModel({ id: 'first', count: 1 })],
 })
 
-export const entries = Parent.bindChild(ChildBlock, {
+export const EntriesBinding = Parent.bindChild(ChildBlock, {
   field: 'entries',
   key: 'id',
   toParentMessage: (id, message) =>
     ParentMessage.GotEntryMessage({ id, message }),
-  subscriptions: { when: (_model, id) => id !== '' },
+  fromParentMessage: false,
+  subscriptions: {
+    when: (model, id) => {
+      expectNotAnyOrUnknown(model)
+      expectNotAnyOrUnknown(id)
+      type ParentModelContextIsExact = Expect<
+        MutuallyAssignable<typeof model, typeof ParentModel.Type>
+      >
+      type KeyContextIsExact = Expect<MutuallyAssignable<typeof id, string>>
+      const parentModelContextIsExact: ParentModelContextIsExact = true
+      const keyContextIsExact: KeyContextIsExact = true
+      void parentModelContextIsExact
+      void keyContextIsExact
+
+      return id !== ''
+    },
+  },
 })
 
-export const equivalentEntries = Parent.bindChild(ChildBlock, {
+const InitializedParentModel = Schema.Struct({
+  entries: Schema.Array(ChildModel),
+  status: Schema.Literal('Ready'),
+})
+const InitializedParent = Block.define(
+  'DeclarationInitializedKeyedFieldParent',
+  {
+    Model: InitializedParentModel,
+    Message: ParentMessage,
+  },
+)
+export const InitializedEntriesBinding = InitializedParent.bindChild(
+  ChildBlock,
+  {
+    field: 'entries',
+    key: 'id',
+    toParentMessage: (id, message) =>
+      ParentMessage.GotEntryMessage({ id, message }),
+    fromParentMessage: false,
+    init: {
+      occurrences: (status: 'Ready') => [{ key: 'initial', args: [] }],
+      toItem: (_occurrence, child) => child,
+    },
+  },
+)
+const InitializedParentComposition = InitializedParent.toComposition({
+  childBindings: [InitializedEntriesBinding],
+})
+export const initializeKeyedParent = InitializedParentComposition.init(
+  (status: 'Ready') => ({
+    startup: status,
+    model: { status },
+  }),
+)
+
+export const EquivalentEntriesBinding = Parent.bindChild(ChildBlock, {
   field: 'equivalentEntries',
   key: 'id',
   toParentMessage: (id, message) =>
     ParentMessage.GotEntryMessage({ id, message }),
+  fromParentMessage: false,
 })
 
-export const suspendedEntries = Parent.bindChild(ChildBlock, {
+export const SuspendedEntriesBinding = Parent.bindChild(ChildBlock, {
   field: 'suspendedEntries',
   key: 'id',
   toParentMessage: (id, message) =>
     ParentMessage.GotEntryMessage({ id, message }),
+  fromParentMessage: false,
 })
 
-export const brandedEntries = Parent.bindChild(RefinedKeyBlock, {
+export const BrandedEntriesBinding = Parent.bindChild(RefinedKeyBlock, {
   field: 'brandedEntries',
   key: 'id',
   toParentMessage: (id, message) =>
     ParentMessage.GotRefinedMessage({ id, message }),
+  fromParentMessage: false,
 })
 
-export const literalEntries = Parent.bindChild(RefinedKeyBlock, {
+export const LiteralEntriesBinding = Parent.bindChild(RefinedKeyBlock, {
   field: 'literalEntries',
   key: 'kind',
   toParentMessage: (id, message) =>
     ParentMessage.GotRefinedMessage({ id, message }),
+  fromParentMessage: false,
 })
 
-export const arrayChild = Parent.bindChild(ArrayChildBlock, {
+export const ArrayChildBinding = Parent.bindChild(ArrayChildBlock, {
   field: 'arrayChild',
   toParentMessage: message => ParentMessage.GotArrayChildMessage({ message }),
+  fromParentMessage: false,
 })
 
-export const outEntries = Parent.bindChild(OutChildBlock, {
+export const OutEntriesBinding = Parent.bindChild(OutChildBlock, {
   field: 'outEntries',
   key: 'id',
   toParentMessage: (id, message) =>
     ParentMessage.GotEntryMessage({ id, message }),
+  fromParentMessage: false,
   outMessage: {
     fold: (id, outMessage, context) => {
       const exactId: string = id
@@ -254,13 +345,13 @@ export const outEntries = Parent.bindChild(OutChildBlock, {
       void exactOutMessage
       void exactContext
 
-      return model => ({ model })
+      return Parent.step(model => ({ model }))
     },
   },
 })
-export const outEntriesInspection = Block.inspectBinding(outEntries)
+export const outEntriesInspection = Block.inspectBinding(OutEntriesBinding)
 
-export const wrappedRows = Parent.bindChild(ChildBlock, {
+export const WrappedRowsBinding = Parent.bindChild(ChildBlock, {
   placement: 'wrappedRows',
   readAll: model => model.wrappedRows,
   key: row => row.rowId,
@@ -275,9 +366,10 @@ export const wrappedRows = Parent.bindChild(ChildBlock, {
     }),
   toParentMessage: (rowId, message) =>
     ParentMessage.GotWrappedMessage({ rowId, message }),
+  fromParentMessage: false,
 })
 
-export const room = Parent.bindChild(ChildBlock, {
+export const RoomBinding = Parent.bindChild(ChildBlock, {
   readAll: model => Option.toArray(model.maybeRoom),
   key: child => child.id,
   read: child => child,
@@ -285,19 +377,20 @@ export const room = Parent.bindChild(ChildBlock, {
     Struct.modifyFields(model, { maybeRoom: () => Option.some(nextRoom) }),
   toParentMessage: (roomId, message) =>
     ParentMessage.GotRoomMessage({ roomId, message }),
+  fromParentMessage: false,
 })
 
 export const ParentComposition = Parent.toComposition({
-  children: [
-    entries,
-    equivalentEntries,
-    suspendedEntries,
-    brandedEntries,
-    literalEntries,
-    arrayChild,
-    outEntries,
-    wrappedRows,
-    room,
+  childBindings: [
+    EntriesBinding,
+    EquivalentEntriesBinding,
+    SuspendedEntriesBinding,
+    BrandedEntriesBinding,
+    LiteralEntriesBinding,
+    ArrayChildBinding,
+    OutEntriesBinding,
+    WrappedRowsBinding,
+    RoomBinding,
   ],
 })
 

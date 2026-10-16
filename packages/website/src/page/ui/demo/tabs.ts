@@ -2,8 +2,11 @@ import { Match } from 'effect'
 
 import { Tabs } from '@foldkit/ui'
 
-import { horizontalTabsDemo, verticalTabsDemo } from '../composition'
 import type { UiViewBuilder } from '../composition'
+import {
+  HorizontalTabsDemoBinding,
+  VerticalTabsDemoBinding,
+} from '../composition'
 import type { DemoTab } from '../model'
 
 // DEMO CONTENT
@@ -103,7 +106,7 @@ export const horizontalDemo = (
 
   return [
     h.block(
-      horizontalTabsDemo.embedView({
+      HorizontalTabsDemoBinding.embedView({
         slotId: tabsModel.id,
         model: tabsModel,
         viewInputs: {
@@ -220,7 +223,7 @@ export const verticalDemo = (
 
   return [
     h.block(
-      verticalTabsDemo.embedView({
+      VerticalTabsDemoBinding.embedView({
         slotId: tabsModel.id,
         model: tabsModel,
         viewInputs: {

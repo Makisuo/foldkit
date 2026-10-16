@@ -2,11 +2,7 @@ import { Array, Number, Option, Result } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { GenerateAmbientParticle, GenerateBurstParticle } from './command'
-import {
-  ApplicationComposition,
-  flowStrengthSlider,
-  noiseScaleSlider,
-} from './composition'
+import { ApplicationComposition } from './composition'
 import {
   BURST_BOOST_DURATION_MS,
   BURST_HUE_ANCHOR_DRIFT_DEG_PER_SECOND,
@@ -271,11 +267,5 @@ export const update = ApplicationComposition.update((model, message) =>
         maybeMousePosition: () => Option.none(),
       }),
     }),
-
-    GotFlowStrengthSliderMessage: ({ message }) =>
-      flowStrengthSlider.fold(model, message),
-
-    GotNoiseScaleSliderMessage: ({ message }) =>
-      noiseScaleSlider.fold(model, message),
   }),
 )

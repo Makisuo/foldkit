@@ -24,39 +24,28 @@ const foldEditorOutMessage = Editor.OutMessage.match<
     }),
 })
 
-const search = Application.bindChild(Search.block, {
+const SearchBinding = Application.bindChild(Search.block, {
   field: 'search',
   parentMessage: Message.GotSearchMessage,
   outMessage: { fold: foldSearchOutMessage },
+  init: true,
 })
 
-const editor = Application.bindChild(Editor.block, {
+const EditorBinding = Application.bindChild(Editor.block, {
   field: 'editor',
   parentMessage: Message.GotEditorMessage,
   outMessage: { fold: foldEditorOutMessage },
+  init: true,
 })
 
-const init = Application.init(() => {
-  const searchInit = search.init()
-  const editorInit = editor.init()
-  const initialModel = Model.make({
-    search: searchInit.model,
-    editor: editorInit.model,
+const ApplicationComposition = Application.toComposition({
+  childBindings: [SearchBinding, EditorBinding],
+})
+
+const init = ApplicationComposition.init(() => ({
+  model: {
     maybeRestoredQuery: Option.none(),
     maybeRestoredDocumentId: Option.none(),
-  })
-
-  const startup = Update.combine(initialModel, [
-    search.restore(),
-    editor.restore(),
-  ])
-
-  return {
-    model: startup.model,
-    commands: [
-      ...(searchInit.commands ?? []),
-      ...(editorInit.commands ?? []),
-      ...(startup.commands ?? []),
-    ],
-  }
-})
+  },
+  steps: [SearchBinding.restore(), EditorBinding.restore()],
+}))

@@ -124,7 +124,9 @@ export const EffectsLayer = Layer.mergeAll(
   AnchorTooltip.layer,
 )
 
-const computeUpdate = Tooltip.update((model, message) =>
+const TooltipComposition = Tooltip.toComposition({ mounts })
+
+const computeUpdate = (model: Model, message: Message) =>
   Message.match(message, {
     EnteredTrigger: () => {
       if (model.isOpen || model.isDismissed) {
@@ -221,8 +223,7 @@ const computeUpdate = Tooltip.update((model, message) =>
     },
 
     CompletedAnchorTooltip: () => ({ model }),
-  }),
-)
+  })
 
 const toVisibilityOutMessage = (
   isOpen: boolean,
@@ -241,7 +242,7 @@ const toVisibilityOutMessage = (
  *  and an optional OutMessage. `Shown`/`Hidden` fire only on `isOpen`
  *  transitions, so consumers don't get spurious events for messages that
  *  only update hover/focus/delay state without changing visibility. */
-export const update = Tooltip.update((model, message) => {
+export const update = TooltipComposition.update((model, message) => {
   const tooltipUpdate = computeUpdate(model, message)
   const outMessage = toVisibilityOutMessage(
     model.isOpen,
@@ -262,8 +263,6 @@ export const reflectShowDelay: Block.Reflect<Model, Duration.Input> =
   )
 
 // VIEW
-
-const TooltipComposition = Tooltip.toComposition({ mounts })
 
 /** Render-time payload published to the consumer's `toView`.
  *
@@ -366,7 +365,9 @@ export const view = TooltipComposition.view.withInputs<ViewInputs>(
 
 /** Complete Tooltip Block definition for connecting to a parent. */
 export const block = TooltipComposition.toBlock({
-  init: Tooltip.init((config: InitConfig) => ({ model: init(config) })),
+  init: TooltipComposition.init((config: InitConfig) => ({
+    model: init(config),
+  })),
   update,
   view,
   EffectsLayer,

@@ -134,13 +134,13 @@ const Message = defineMessageUnion({
 
 export const Application = defineApplication({ Model, Message })
 
-const counter = Application.bindChild(Counter.block, {
+const CounterBinding = Application.bindChild(Counter.block, {
   field: 'counter',
   parentMessage: Message.GotCounterMessage,
 })
 
 export const ApplicationComposition = Application.toComposition({
-  children: [counter],
+  childBindings: [CounterBinding],
 })
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition

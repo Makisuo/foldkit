@@ -24,8 +24,9 @@ const Message = defineMessageUnion({
 })
 
 const Application = defineApplication({ Model, Message })
+const ApplicationComposition = Application.toComposition()
 
-const init = Application.init((accessToken: string) => ({
+const init = ApplicationComposition.init((accessToken: string) => ({
   model: { accessToken: makeAccessToken(accessToken) },
 }))
 

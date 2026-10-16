@@ -14,7 +14,7 @@ const foldLoggedInOutMessage = LoggedIn.OutMessage.match({
     })),
 })
 
-export const loggedIn = Application.bindChild(LoggedIn.block, {
+export const LoggedInBinding = Application.bindChild(LoggedIn.block, {
   read: model =>
     Match.value(model).pipe(
       Match.tagsExhaustive({
@@ -24,5 +24,9 @@ export const loggedIn = Application.bindChild(LoggedIn.block, {
     ),
   write: (_model, nextLoggedIn) => nextLoggedIn,
   parentMessage: Message.GotLoggedInMessage,
+  fromParentMessage: {
+    parentMessage: Message.GotLoggedInMessage,
+    args: (_model, { message }) => Option.some([message]),
+  },
   outMessage: { fold: foldLoggedInOutMessage },
 })

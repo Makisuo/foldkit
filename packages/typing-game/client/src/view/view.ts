@@ -4,8 +4,8 @@ import { Html } from 'foldkit/html'
 import {
   ApplicationComposition,
   type ApplicationViewBuilder,
-  home,
-  room,
+  HomeBinding,
+  RoomBinding,
 } from '../composition'
 import { Model } from '../model'
 import { ApplicationRoute } from '../route'
@@ -21,7 +21,7 @@ export const view = ApplicationComposition.view((model, h) => {
   const content = ApplicationRoute.match(model.route, {
     Home: () =>
       h.block(
-        home.embedView({
+        HomeBinding.embedView({
           slotId: 'home',
           model: model.home,
         }),
@@ -32,7 +32,7 @@ export const view = ApplicationComposition.view((model, h) => {
         onSome: roomInstance =>
           roomInstance.roomId === roomId
             ? h.block(
-                room.embedView({
+                RoomBinding.embedView({
                   key: roomId,
                   slotId: 'room',
                   model: roomInstance.model,

@@ -1,4 +1,5 @@
-import type { Block, Html } from '../src/index.js'
+import type { Block, Html } from 'foldkit'
+
 import {
   ApplicationComposition,
   ChildModel,

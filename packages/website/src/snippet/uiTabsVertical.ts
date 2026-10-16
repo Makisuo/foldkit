@@ -60,7 +60,7 @@ const view = TabsExampleComposition.view((model, h) => {
     )
 
   return h.block(
-    tabs.embedView({
+    TabsBinding.embedView({
       slotId: 'framework-tabs',
       model: model.tabs,
       viewInputs: {

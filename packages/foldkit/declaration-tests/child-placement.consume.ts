@@ -1,40 +1,40 @@
 import {
+  DefaultAccessorBinding,
   DefaultPlacementComposition,
+  EntriesBinding,
+  EntriesByIdBinding,
+  EntriesByIdLengthBinding,
+  OptionalBinding,
   ParentComposition,
+  PrimaryBinding,
+  SecondaryBinding,
   composeDynamicChildren,
-  defaultAccessor,
-  entries,
-  entriesById,
-  entriesByIdLength,
-  optional,
-  primary,
-  secondary,
 } from './child-placement.accepted.js'
 
-const primaryPlacement: 'primary' = primary.placement
-const secondaryPlacement: 'secondaryPlacement' = secondary.placement
-const optionalPlacement: 'optional' = optional.placement
-const entriesPlacement: 'entries' = entries.placement
+const primaryPlacement: 'primary' = PrimaryBinding.placement
+const secondaryPlacement: 'secondaryPlacement' = SecondaryBinding.placement
+const optionalPlacement: 'optional' = OptionalBinding.placement
+const entriesPlacement: 'entries' = EntriesBinding.placement
 const defaultAccessorPlacement: 'DeclarationChildPlacementChild' =
-  defaultAccessor.placement
-const entriesByIdPlacement: 'entriesById' = entriesById.placement
+  DefaultAccessorBinding.placement
+const entriesByIdPlacement: 'entriesById' = EntriesByIdBinding.placement
 const entriesByIdLengthPlacement: 'entriesByIdLength' =
-  entriesByIdLength.placement
+  EntriesByIdLengthBinding.placement
 
-const children: readonly [
-  typeof primary,
-  typeof secondary,
-  typeof optional,
-  typeof entries,
-] = ParentComposition.children
+const childBindings: readonly [
+  typeof PrimaryBinding,
+  typeof SecondaryBinding,
+  typeof OptionalBinding,
+  typeof EntriesBinding,
+] = ParentComposition.childBindings
 
 const defaultPlacementChildren: readonly [
-  typeof defaultAccessor,
-  typeof entriesById,
-  typeof entriesByIdLength,
-] = DefaultPlacementComposition.children
+  typeof DefaultAccessorBinding,
+  typeof EntriesByIdBinding,
+  typeof EntriesByIdLengthBinding,
+] = DefaultPlacementComposition.childBindings
 
-composeDynamicChildren([primary, primary])
+composeDynamicChildren([PrimaryBinding, PrimaryBinding])
 
 void primaryPlacement
 void secondaryPlacement
@@ -43,5 +43,5 @@ void entriesPlacement
 void defaultAccessorPlacement
 void entriesByIdPlacement
 void entriesByIdLengthPlacement
-void children
+void childBindings
 void defaultPlacementChildren

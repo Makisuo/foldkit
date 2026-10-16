@@ -1,3 +1,4 @@
+import { Tuple } from 'effect'
 import type { Block } from 'foldkit'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
@@ -25,17 +26,18 @@ const foldNoteDurationRadioGroupOutMessage =
       }),
   })
 
-export const noteDurationRadioGroup = NotePlayerDemo.bindChild(
+export const NoteDurationRadioGroupBinding = NotePlayerDemo.bindChild(
   NoteDurationRadioGroup,
   {
     field: 'noteDurationRadioGroup',
     parentMessage: Message.GotNoteDurationMessage,
     outMessage: { fold: foldNoteDurationRadioGroupOutMessage },
+    init: { args: () => Tuple.make({ id: 'note-duration' }) },
   },
 )
 
 export const NotePlayerDemoComposition = NotePlayerDemo.toComposition({
-  children: [noteDurationRadioGroup],
+  childBindings: [NoteDurationRadioGroupBinding],
 })
 export type NotePlayerDemoViewBuilder = Block.ViewBuilderFor<
   typeof NotePlayerDemoComposition

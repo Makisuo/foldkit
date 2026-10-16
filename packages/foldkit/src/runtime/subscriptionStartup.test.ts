@@ -56,7 +56,7 @@ describe('Subscription startup supervision', () => {
     const application = ApplicationComposition.toElement({
       container,
       init: () => ({ model: { count: 0 } }),
-      update: Application.update(model => ({ model })),
+      update: ApplicationComposition.update(model => ({ model })),
       view: ApplicationComposition.view((_model, h) => h.div([], ['Running'])),
       subscriptions,
       EffectsLayer: subscriptions.pulses.layer,
@@ -108,9 +108,10 @@ describe('Subscription startup supervision', () => {
         },
       ),
     }))
-    const block = Child.toComposition().toBlock({
+    const ChildComposition = Child.toComposition()
+    const block = ChildComposition.toBlock({
       init: () => ({ model: { count: 0 } }),
-      update: Child.update(model => ({ model })),
+      update: ChildComposition.update(model => ({ model })),
       subscriptions,
       EffectsLayer: subscriptions.pulses.layer,
     })
@@ -120,27 +121,29 @@ describe('Subscription startup supervision', () => {
       GotChildMessage: { message: ChildMessage },
     })
     const Application = defineApplication({ Model, Message })
-    const child = Application.bindChild(block, {
+    const ChildBinding = Application.bindChild(block, {
       read: model => model.maybeChild,
       write: (model, nextChild) =>
         modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
       parentMessage: Message.GotChildMessage,
     })
     const ApplicationComposition = Application.toComposition({
-      children: [child],
+      childBindings: [ChildBinding],
     })
     const report = vi.fn()
     const application = ApplicationComposition.toElement({
       container,
       init: () => ({ model: { maybeChild: Option.none() } }),
-      update: Application.update((model, message) =>
+      update: ApplicationComposition.update((model, message) =>
         Message.match(message, {
-          ClickedActivateChild: () => ({
-            model: modifyFields(model, {
-              maybeChild: () => Option.some(child.init().model),
+          ClickedActivateChild: () =>
+            ChildBinding.init({
+              args: [],
+              toParentModel: child =>
+                modifyFields(model, {
+                  maybeChild: () => Option.some(child),
+                }),
             }),
-          }),
-          GotChildMessage: ({ message }) => child.fold(model, message),
         }),
       ),
       view: ApplicationComposition.view((_model, h) =>

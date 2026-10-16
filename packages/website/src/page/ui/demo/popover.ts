@@ -3,14 +3,14 @@ import { type Html, inertHtml as ih } from 'foldkit/html'
 import { Popover } from '@foldkit/ui'
 import { type AnchorConfig, buttonId } from '@foldkit/ui/popover'
 
-import {
-  popoverAnimatedDemo,
-  popoverArrowDemo,
-  popoverBasicDemo,
-  popoverNestedChildDemo,
-  popoverNestedParentDemo,
-} from '../composition'
 import type { UiViewBuilder } from '../composition'
+import {
+  PopoverAnimatedDemoBinding,
+  PopoverArrowDemoBinding,
+  PopoverBasicDemoBinding,
+  PopoverNestedChildDemoBinding,
+  PopoverNestedParentDemoBinding,
+} from '../composition'
 
 // DEMO CONTENT
 
@@ -72,7 +72,7 @@ const panelContent = (): Html =>
 const popoverViewInputs = (
   panelVariant: PanelVariant,
   h: UiViewBuilder,
-): Parameters<typeof popoverBasicDemo.embedView>[0]['viewInputs'] => {
+): Parameters<typeof PopoverBasicDemoBinding.embedView>[0]['viewInputs'] => {
   const isArrowDrawn = panelVariant === 'Arrow'
 
   return {
@@ -157,7 +157,7 @@ export const basicDemo = (
   labeledPopoverDemo(
     popoverModel,
     h.block(
-      popoverBasicDemo.embedView({
+      PopoverBasicDemoBinding.embedView({
         slotId: popoverModel.id,
         model: popoverModel,
         viewInputs: popoverViewInputs('Basic', h),
@@ -173,7 +173,7 @@ export const animatedDemo = (
   labeledPopoverDemo(
     popoverModel,
     h.block(
-      popoverAnimatedDemo.embedView({
+      PopoverAnimatedDemoBinding.embedView({
         slotId: popoverModel.id,
         model: popoverModel,
         viewInputs: popoverViewInputs('Animated', h),
@@ -189,7 +189,7 @@ export const arrowDemo = (
   labeledPopoverDemo(
     popoverModel,
     h.block(
-      popoverArrowDemo.embedView({
+      PopoverArrowDemoBinding.embedView({
         slotId: popoverModel.id,
         model: popoverModel,
         viewInputs: popoverViewInputs('Arrow', h),
@@ -203,7 +203,7 @@ const nestedChildPopover = (
   h: UiViewBuilder,
 ): Html =>
   h.block(
-    popoverNestedChildDemo.embedView({
+    PopoverNestedChildDemoBinding.embedView({
       slotId: childPopoverModel.id,
       model: childPopoverModel,
       viewInputs: {
@@ -264,7 +264,7 @@ export const nestedDemo = (
           [h.Class('relative')],
           [
             h.block(
-              popoverNestedParentDemo.embedView({
+              PopoverNestedParentDemoBinding.embedView({
                 slotId: parentPopoverModel.id,
                 model: parentPopoverModel,
                 viewInputs: {

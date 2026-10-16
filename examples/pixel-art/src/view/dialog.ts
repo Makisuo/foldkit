@@ -5,8 +5,8 @@ import { Button, Dialog } from '@foldkit/ui'
 
 import {
   type ApplicationViewBuilder,
-  errorDialog as errorDialogBinding,
-  gridSizeConfirmDialog as gridSizeConfirmDialogBinding,
+  ErrorDialogBinding as ErrorDialogBinding,
+  GridSizeConfirmDialogBinding as GridSizeConfirmDialogBinding,
 } from '../composition'
 import { Message } from '../message'
 
@@ -22,7 +22,7 @@ export const errorDialogView = (
   h: ApplicationViewBuilder,
 ): Html =>
   h.block(
-    errorDialogBinding.embedView({
+    ErrorDialogBinding.embedView({
       slotId: errorDialog.id,
       model: errorDialog,
       viewInputs: {
@@ -85,7 +85,7 @@ export const gridSizeConfirmDialogView = (
   h: ApplicationViewBuilder,
 ): Html =>
   h.block(
-    gridSizeConfirmDialogBinding.embedView({
+    GridSizeConfirmDialogBinding.embedView({
       slotId: gridSizeConfirmDialog.id,
       model: gridSizeConfirmDialog,
       viewInputs: {

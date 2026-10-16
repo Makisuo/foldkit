@@ -2047,9 +2047,12 @@ const runAll = TypePerformanceWorker.step(model => ({
     Run200(),
   ],
 }))
-const Worker = TypePerformanceWorker.toComposition().toBlock({
-  init: () => ({ model: WorkerModel.make({ value: 0 }) }),
-  update: TypePerformanceWorker.update((model, message) =>
+const WorkerComposition = TypePerformanceWorker.toComposition()
+const Worker = WorkerComposition.toBlock({
+  init: WorkerComposition.init(() => ({
+    model: WorkerModel.make({ value: 0 }),
+  })),
+  update: WorkerComposition.update((model, message) =>
     WorkerMessage.match(message, {
       RequestedRun: () => runAll(model),
       CompletedRun: () => ({ model }),
@@ -2263,21 +2266,26 @@ const Application = defineApplication({
   Model: WorkerModel,
   Message: WorkerMessage,
 })
-const worker = Application.bindChild(Worker, {
+const WorkerBinding = Application.bindChild(Worker, {
   placement: 'worker',
   read: model => Option.some(model),
   write: (_model, nextWorker) => nextWorker,
   toParentMessage: message => message,
+  fromParentMessage: false,
 })
-const ApplicationComposition = Application.toComposition({ children: [worker] })
+const ApplicationComposition = Application.toComposition({
+  childBindings: [WorkerBinding],
+})
 const update = ApplicationComposition.update((model, message) =>
-  worker.fold(model, message),
+  WorkerBinding.fold(model, message),
 )
 const view = ApplicationComposition.view((_model, h) => h.main([]))
 
 export const program = ApplicationComposition.toElement({
   container: null,
-  init: () => worker.init(),
+  init: ApplicationComposition.init(() =>
+    WorkerBinding.init({ args: [], toParentModel: model => model }),
+  ),
   update,
   view,
   EffectsLayer: Layer.empty,

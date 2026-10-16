@@ -2,26 +2,24 @@ import { Array } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { GenerateWorkHistoryEntryId } from './command'
-import { entries } from './composition'
-import { Message, type Model, WorkHistory } from './definition'
+import { EntriesBinding, WorkHistoryComposition } from './composition'
+import { Message, type Model } from './definition'
 import * as Entry from './entry'
 
-export const update = WorkHistory.update((model, message) =>
+export const update = WorkHistoryComposition.update((model, message) =>
   Message.match(message, {
     ClickedAddEntry: () => ({
       model,
       commands: [GenerateWorkHistoryEntryId()],
     }),
 
-    SucceededGenerateWorkHistoryEntryId: ({ entryId }) => {
-      const entryInit = entries.init(entryId, entryId, model.today)
-      return {
-        model: modifyFields(model, {
-          entries: Array.append(entryInit.model),
-        }),
-        commands: entryInit.commands,
-      }
-    },
+    SucceededGenerateWorkHistoryEntryId: ({ entryId }) =>
+      EntriesBinding.init({
+        key: entryId,
+        args: [entryId, model.today],
+        toParentModel: entry =>
+          modifyFields(model, { entries: Array.append(entry) }),
+      }),
 
     FailedGenerateWorkHistoryEntryId: () => ({ model }),
 
@@ -30,9 +28,6 @@ export const update = WorkHistory.update((model, message) =>
         entries: Array.filter(entry => entry.id !== entryId),
       }),
     }),
-
-    GotEntryMessage: ({ entryId, message }) =>
-      entries.fold(model, entryId, message),
   }),
 )
 

@@ -43,21 +43,23 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
   }),
 })
 
-const dialog = Application.bindChild(Dialog.block, {
+const DialogBinding = Application.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: RuntimeMessage.GotDialogMessage,
+  fromParentMessage: false,
   outMessage: { fold: foldDialogOutMessage },
+  init: { args: () => [{ id: dialogId }] },
 })
 
 const ApplicationComposition = Application.toComposition({
-  children: [dialog],
+  childBindings: [DialogBinding],
 })
 
-const update = Application.update((model, message) =>
+const update = ApplicationComposition.update((model, message) =>
   RuntimeMessage.match(message, {
     GotDialogMessage: ({ message: dialogMessage }) =>
       Update.combine(model, [
-        stepModel => dialog.fold(stepModel, dialogMessage),
+        stepModel => DialogBinding.fold(stepModel, dialogMessage),
         stepModel => ({
           model: modifyFields(stepModel, {
             isShowDialogSucceeded: isShowDialogSucceeded =>
@@ -79,7 +81,7 @@ const view = ApplicationComposition.view((model, h) =>
         [globalThis.String(model.isShowDialogSucceeded)],
       ),
       h.block(
-        dialog.embedView({
+        DialogBinding.embedView({
           slotId: model.dialog.id,
           model: model.dialog,
           viewInputs: {
@@ -103,19 +105,10 @@ const view = ApplicationComposition.view((model, h) =>
   ),
 )
 
-const init = () => {
-  const dialogInit = dialog.init({ id: dialogId })
-  const dialogOpen = dialog.open()({
-    dialog: dialogInit.model,
-    dialogEvents: [],
-    isShowDialogSucceeded: false,
-  })
-
-  return {
-    ...dialogOpen,
-    commands: [...(dialogInit.commands ?? []), ...(dialogOpen.commands ?? [])],
-  }
-}
+const init = ApplicationComposition.init(() => ({
+  model: { dialogEvents: [], isShowDialogSucceeded: false },
+  steps: [DialogBinding.open()],
+}))
 
 const preservedModel = (dialogModel: Dialog.Model): Model => ({
   dialog: dialogModel,

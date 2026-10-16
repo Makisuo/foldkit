@@ -1,7 +1,7 @@
 import { Animation } from '@foldkit/ui'
 
-import { animationDemo } from '../composition'
 import type { UiViewBuilder } from '../composition'
+import { AnimationDemoBinding } from '../composition'
 import { Message } from '../message'
 
 // DEMO CONTENT
@@ -26,7 +26,7 @@ export const view = (
         [animationModel.isShowing ? 'Hide Content' : 'Show Content'],
       ),
       h.block(
-        animationDemo.embedView({
+        AnimationDemoBinding.embedView({
           slotId: animationModel.id,
           model: animationModel,
           viewInputs: {

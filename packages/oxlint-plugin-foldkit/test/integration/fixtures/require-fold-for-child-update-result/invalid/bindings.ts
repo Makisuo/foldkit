@@ -17,18 +17,26 @@ const Message = defineMessageUnion({
   GotSettingsMessage: { message: BoundSettings.Message },
 })
 const Application = defineApplication({ Model, Message })
-export const settings = Application.bindChild(BoundSettings.Settings, {read: (model: Model) => Option.some(model.settings),
+export const SettingsBinding = Application.bindChild(BoundSettings.Settings, {read: (model: Model) => Option.some(model.settings),
 write: (model, nextSettings) =>
     modifyFields(model, { settings: () => nextSettings }),
-toParentMessage: message => Message.GotSettingsMessage({ message })})
-export const directSettings = Application.bindChild(DirectBoundSettings.Settings, {field: 'directSettings',
+parentMessage: Message.GotSettingsMessage,
+fromParentMessage: {
+  parentMessage: Message.GotSettingsMessage,
+  args: (_model, { message }) => Option.some([message]),
+}})
+export const DirectSettingsBinding = Application.bindChild(DirectBoundSettings.Settings, {field: 'directSettings',
 parentMessage: Message.GotSettingsMessage})
-export const keyedSettings = Application.bindChild(KeyedBoundSettings.Settings, {readAll: (model: Model) => [model.keyedSettings],
+export const KeyedSettingsBinding = Application.bindChild(KeyedBoundSettings.Settings, {readAll: (model: Model) => [model.keyedSettings],
 key: () => 'settings',
 read: settings => settings,
 writeAt: (model, _key, nextSettings) =>
     modifyFields(model, { keyedSettings: () => nextSettings }),
-toParentMessage: (_key, message) => Message.GotSettingsMessage({ message })})
+toParentMessage: (_key, message) => Message.GotSettingsMessage({ message }),
+fromParentMessage: {
+  parentMessage: Message.GotSettingsMessage,
+  args: (_model, { message }) => Option.some(['settings', message]),
+}})
 export const updateBinding = (model: Model) => {
   const settingsTheme = BoundSettings.setTheme(model.settings, 'Light')
   return { model: modifyFields(model, { settings: () => settingsTheme.model }) }

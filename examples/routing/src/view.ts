@@ -1,7 +1,7 @@
 import { Array, Match, Option } from 'effect'
 import { Html } from 'foldkit/html'
 
-import { ApplicationComposition, peoplePage } from './composition'
+import { ApplicationComposition, PeoplePageBinding } from './composition'
 import type { ApplicationViewBuilder } from './composition'
 import {
   type File,
@@ -415,7 +415,7 @@ export const view = ApplicationComposition.view((model, h) => {
     Nested: () => nestedView(h),
     People: () =>
       h.block(
-        peoplePage.embedView({
+        PeoplePageBinding.embedView({
           slotId: 'people',
           model: model.peoplePage,
         }),

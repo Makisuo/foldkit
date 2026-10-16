@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Effect, Match, Option, Schema } from 'effect'
+import { Effect, Match, Option, Schema, Tuple } from 'effect'
 import { Block, Calendar, Update } from 'foldkit'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -86,45 +86,39 @@ const DatePickerExample = Block.define('DatePickerExample', {
   Message,
 })
 
-const datePicker = DatePickerExample.bindChild(DatePicker.block, {
+const DatePickerBinding = DatePickerExample.bindChild(DatePicker.block, {
   field: 'datePickerDemo',
   parentMessage: Message.GotDatePickerMessage,
+  init: {
+    args: (flags: Flags) =>
+      Tuple.make({
+        id: 'date-picker-demo',
+        today: flags.today,
+        minDate: flags.today,
+        maxDate: Calendar.addMonths(flags.today, 3),
+      }),
+  },
   outMessage: { fold: foldDatePickerOutMessage },
 })
 
-// In your init function, pass the flags-resolved today into DatePicker.init.
-// Optional: constrain the selectable range with minDate / maxDate.
-const init = DatePickerExample.init((flags: Flags) => {
-  const datePickerInit = datePicker.init({
-    id: 'date-picker-demo',
-    today: flags.today,
-    minDate: flags.today,
-    maxDate: Calendar.addMonths(flags.today, 3),
-  })
-
-  return {
-    model: {
-      datePickerDemo: datePickerInit.model,
-      maybeSelectedDate: Option.none(),
-      // ...your other fields
-    },
-    commands: datePickerInit.commands,
-  }
-})
-
 const DatePickerExampleComposition = DatePickerExample.toComposition({
-  children: [datePicker],
+  childBindings: [DatePickerBinding],
 })
 type DatePickerExampleViewBuilder = Block.ViewBuilderFor<
   typeof DatePickerExampleComposition
 >
 
-// In the corresponding Message.match handler, call the fold:
-const update = DatePickerExample.update((model, message) =>
-  Message.match(message, {
-    GotDatePickerMessage: ({ message }) => datePicker.fold(model, message),
-  }),
-)
+// Pass the flags-resolved date through the startup input. The Composition
+// supplies it to DatePickerBinding and initializes the bound Model.
+const init = DatePickerExampleComposition.init((flags: Flags) => ({
+  startup: flags,
+  model: {
+    maybeSelectedDate: Option.none(),
+    // ...your other fields
+  },
+}))
+
+const update = DatePickerExampleComposition.update()
 
 // Class names live at module scope, and each view mode gets its own view
 // function below. The calendar panel has no border of its own: the
@@ -321,7 +315,7 @@ const view = DatePickerExampleComposition.view((model, h) => {
         ['Date'],
       ),
       h.block(
-        datePicker.embedView({
+        DatePickerBinding.embedView({
           slotId: 'date-picker-demo',
           model: model.datePickerDemo,
           viewInputs: {

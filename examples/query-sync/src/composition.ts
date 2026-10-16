@@ -36,9 +36,10 @@ const foldDietListboxOutMessage = DietListbox.OutMessage.match({
     }),
 })
 
-export const dietListbox = Application.bindChild(DietListbox, {
+export const DietListboxBinding = Application.bindChild(DietListbox, {
   field: 'dietListbox',
   parentMessage: Message.GotDietListboxMessage,
+  init: { args: () => [{ id: 'diet-filter' }] },
   outMessage: { fold: foldDietListboxOutMessage },
 })
 
@@ -58,14 +59,15 @@ const foldPeriodListboxOutMessage = PeriodListbox.OutMessage.match({
     }),
 })
 
-export const periodListbox = Application.bindChild(PeriodListbox, {
+export const PeriodListboxBinding = Application.bindChild(PeriodListbox, {
   field: 'periodListbox',
   parentMessage: Message.GotPeriodListboxMessage,
+  init: { args: () => [{ id: 'period-filter' }] },
   outMessage: { fold: foldPeriodListboxOutMessage },
 })
 
 export const ApplicationComposition = Application.toComposition({
-  children: [dietListbox, periodListbox],
+  childBindings: [DietListboxBinding, PeriodListboxBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition

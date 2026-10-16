@@ -1,18 +1,11 @@
 import { Option } from 'effect'
 
-import { postDetails, posts, stats, tabs } from './composition'
-import { Application } from './definition'
-import { Model, TABS_ID } from './model'
+import { ApplicationComposition, PostsBinding } from './composition'
 
-export const init = Application.init(() => {
-  const model = Model.make({
-    tabs: tabs.init({ id: TABS_ID }).model,
+export const init = ApplicationComposition.init(() => ({
+  model: {
     activeTab: 'Posts',
-    posts: posts.init().model,
-    postDetails: postDetails.init().model,
     maybeSelectedPostId: Option.none(),
-    stats: stats.init().model,
-  })
-
-  return posts.revalidateOrLoad()(model)
-})
+  },
+  steps: [PostsBinding.revalidateOrLoad()],
+}))

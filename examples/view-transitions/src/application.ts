@@ -41,7 +41,7 @@ type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-export const init = Application.init((url: Url) => ({
+export const init = ApplicationComposition.init((url: Url) => ({
   model: Model.make({ route: urlToApplicationRoute(url), filterText: '' }),
 }))
 

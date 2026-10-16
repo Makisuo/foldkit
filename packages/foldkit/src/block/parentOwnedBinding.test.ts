@@ -37,7 +37,7 @@ const selectValue = Child.step(model => ({
 const ChildComposition = Child.toComposition()
 const ChildBlock = ChildComposition.toBlock({
   init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
-  update: Child.update((model, { value }) => ({
+  update: ChildComposition.update((model, { value }) => ({
     model: modifyFields(model, { value: () => value }),
   })),
   expose: { selectValue },
@@ -47,9 +47,10 @@ const PlainChild = define('ParentOwnedBindingPlainChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const PlainChildBlock = PlainChild.toComposition().toBlock({
+const PlainChildComposition = PlainChild.toComposition()
+const PlainChildBlock = PlainChildComposition.toBlock({
   init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
-  update: PlainChild.update((model, { value }) => ({
+  update: PlainChildComposition.update((model, { value }) => ({
     model: modifyFields(model, { value: () => value }),
   })),
 })
@@ -58,7 +59,7 @@ const setPrototypeValue = PlainChild.step((model, value: string) => ({
   model: modifyFields(model, { value: () => value }),
 }))
 
-const PrototypeOperationChildBlock = PlainChild.toComposition().toBlock({
+const PrototypeOperationChildBlock = PlainChildComposition.toBlock({
   init: PlainChildBlock.init,
   update: PlainChildBlock.update,
   expose: { ['__proto__']: setPrototypeValue },
@@ -93,13 +94,14 @@ const Parent = define('ParentOwnedBindingParent', {
   OutMessage: ParentOutMessage,
 })
 
-const exactMessageChild = Parent.bindChild(PlainChildBlock, {
+const ExactMessageChildBinding = Parent.bindChild(PlainChildBlock, {
   field: 'child',
   placement: 'exactMessageChild',
   parentMessage: ParentMessage.GotChildMessage,
 })
 
-const exactCustomMessageChild = Parent.bindChild(PlainChildBlock, {
+const ExactCustomMessageChildBinding = Parent.bindChild(PlainChildBlock, {
+  fromParentMessage: false,
   placement: 'exactCustomMessageChild',
   field: 'maybeChild',
   toParentMessage: message => ParentMessage.GotChildMessage({ message }),
@@ -116,13 +118,14 @@ const foldChildOutMessage = ChildOutMessage.match<
     }),
 })
 
-const directChild = Parent.bindChild(ChildBlock, {
+const DirectChildBinding = Parent.bindChild(ChildBlock, {
+  fromParentMessage: false,
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
 
-const forwardingChild = Parent.bindChild(ChildBlock, {
+const ForwardingChildBinding = Parent.bindChild(ChildBlock, {
   field: 'child',
   placement: 'forwardingChild',
   parentMessage: ParentMessage.GotChildMessage,
@@ -138,7 +141,8 @@ const forwardingChild = Parent.bindChild(ChildBlock, {
   },
 })
 
-const optionalChild = Parent.bindChild(ChildBlock, {
+const OptionalChildBinding = Parent.bindChild(ChildBlock, {
+  fromParentMessage: false,
   placement: 'optionalChild',
   read: model => model.maybeChild,
   write: (model, nextChild) =>
@@ -156,7 +160,8 @@ const optionalChild = Parent.bindChild(ChildBlock, {
   },
 })
 
-const taggedChild = Parent.bindChild(ChildBlock, {
+const TaggedChildBinding = Parent.bindChild(ChildBlock, {
+  fromParentMessage: false,
   placement: 'taggedChild',
   read: model =>
     model.slot._tag === 'Child' ? Option.some(model.slot.child) : Option.none(),
@@ -168,7 +173,8 @@ const taggedChild = Parent.bindChild(ChildBlock, {
   outMessage: { fold: foldChildOutMessage },
 })
 
-const keyedChild = Parent.bindChild(ChildBlock, {
+const KeyedChildBinding = Parent.bindChild(ChildBlock, {
+  fromParentMessage: false,
   placement: 'entries',
   readAll: model => model.entries,
   key: entry => entry.id,
@@ -197,31 +203,36 @@ const keyedChild = Parent.bindChild(ChildBlock, {
 })
 
 const ParentComposition = Parent.toComposition({
-  children: [directChild, optionalChild, taggedChild, keyedChild],
+  childBindings: [
+    DirectChildBinding,
+    OptionalChildBinding,
+    TaggedChildBinding,
+    KeyedChildBinding,
+  ],
 })
 
-const update = Parent.update((model, message) =>
+const update = ParentComposition.update((model, message) =>
   ParentMessage.match(message, {
-    GotChildMessage: ({ message }) => directChild.fold(model, message),
+    GotChildMessage: ({ message }) => DirectChildBinding.fold(model, message),
     GotKeyedChildMessage: ({ id, message }) =>
-      keyedChild.fold(model, id, message),
+      KeyedChildBinding.fold(model, id, message),
   }),
 )
 
 const ParentBlock = ParentComposition.toBlock({
-  init: () => {
-    const childInit = directChild.init()
-
-    return {
-      model: ParentModel.make({
-        child: childInit.model,
-        maybeChild: Option.none(),
-        slot: EmptySlot.make({}),
-        entries: [],
-        selected: Option.none(),
-      }),
-    }
-  },
+  init: ParentComposition.init(() =>
+    DirectChildBinding.init({
+      args: [],
+      toParentModel: child =>
+        ParentModel.make({
+          child,
+          maybeChild: Option.none(),
+          slot: EmptySlot.make({}),
+          entries: [],
+          selected: Option.none(),
+        }),
+    }),
+  ),
   update,
 })
 
@@ -239,7 +250,7 @@ const makeGenericChoice = <const Value extends string>(
   const GenericChoiceComposition = GenericChoice.toComposition()
   const block = GenericChoiceComposition.toBlock({
     init: (value: Value) => ({ model: Model.make({ value }) }),
-    update: GenericChoice.update((model, { value }) => ({
+    update: GenericChoiceComposition.update((model, { value }) => ({
       model: modifyFields(model, { value: () => value }),
     })),
   })
@@ -257,7 +268,7 @@ const GenericParent = define('ParentOwnedGenericParent', {
   Model: GenericParentModel,
   Message: GenericParentMessage,
 })
-const genericChoice = GenericParent.bindChild(GenericChoice.block, {
+const GenericChoiceBinding = GenericParent.bindChild(GenericChoice.block, {
   field: 'choice',
   parentMessage: GenericParentMessage.GotChoiceMessage,
   outMessage: {
@@ -298,7 +309,8 @@ const makeKeyedGenericParent = <const Value extends string>(
         },
       },
     )
-  const child = Parent.bindChild(ChildBlock, {
+  const ChildBinding = Parent.bindChild(ChildBlock, {
+    fromParentMessage: false,
     readAll: model => model.entries,
     key: entry => {
       const payload: Value = entry.payload
@@ -318,7 +330,7 @@ const makeKeyedGenericParent = <const Value extends string>(
     outMessage: { fold: foldOutMessage },
   })
 
-  return { child, Model, Message }
+  return { ChildBinding, Model, Message }
 }
 
 const KeyedGenericParent = makeKeyedGenericParent(
@@ -326,11 +338,15 @@ const KeyedGenericParent = makeKeyedGenericParent(
 )
 
 it('infers generic collection items and keys from their source callbacks', () => {
-  const { child, Model } = KeyedGenericParent
-  expectTypeOf(child.fold).parameter(0).toEqualTypeOf<typeof Model.Type>()
-  expectTypeOf(child.fold).parameter(1).toEqualTypeOf<'first' | 'second'>()
-  expectTypeOf(child.fold).parameter(2).toEqualTypeOf<ChildMessage>()
-  expectTypeOf(child.selectValue)
+  const { ChildBinding, Model } = KeyedGenericParent
+  expectTypeOf(ChildBinding.fold)
+    .parameter(0)
+    .toEqualTypeOf<typeof Model.Type>()
+  expectTypeOf(ChildBinding.fold)
+    .parameter(1)
+    .toEqualTypeOf<'first' | 'second'>()
+  expectTypeOf(ChildBinding.fold).parameter(2).toEqualTypeOf<ChildMessage>()
+  expectTypeOf(ChildBinding.selectValue)
     .parameter(0)
     .toEqualTypeOf<'first' | 'second'>()
   expectTypeOf<
@@ -342,7 +358,7 @@ it('infers generic collection items and keys from their source callbacks', () =>
       { id: 'first', child: ChildModel.make({ value: 'old' }), payload: 'One' },
     ],
   })
-  const result = child.fold(
+  const result = ChildBinding.fold(
     model,
     'first',
     ChildMessage.UpdatedValue({ value: 'next' }),
@@ -356,9 +372,9 @@ it('infers generic collection items and keys from their source callbacks', () =>
 
 if (false) {
   // @ts-expect-error General keyed inference must retain the string key.
-  KeyedGenericParent.child.selectValue(1)
+  KeyedGenericParent.ChildBinding.selectValue(1)
   // @ts-expect-error A broader policy input must not widen the inferred key.
-  KeyedGenericParent.child.selectValue('third')
+  KeyedGenericParent.ChildBinding.selectValue('third')
 }
 
 const keyedConfigWithExtraField = {
@@ -381,13 +397,13 @@ const Application = defineApplication({
   Model: ParentModel,
   Message: ParentMessage,
 })
-const applicationChild = Application.bindChild(ChildBlock, {
+const ApplicationChildBinding = Application.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
 const ApplicationComposition = Application.toComposition({
-  children: [applicationChild],
+  childBindings: [ApplicationChildBinding],
 })
 
 const SnapshotMount = Parent.mount('SnapshotMount', {
@@ -435,79 +451,96 @@ if (false) {
 }
 
 it('creates direct, optional, and keyed Bindings from the parent', () => {
-  expect(directChild.placement).toBe('child')
-  expect(optionalChild.placement).toBe('optionalChild')
-  expect(taggedChild.placement).toBe('taggedChild')
-  expect(keyedChild.placement).toBe('entries')
-  expectTypeOf(directChild.fold).parameter(0).toEqualTypeOf<ParentModel>()
-  expectTypeOf(directChild.fold).parameter(1).toEqualTypeOf<ChildMessage>()
+  expect(DirectChildBinding.placement).toBe('child')
+  expect(OptionalChildBinding.placement).toBe('optionalChild')
+  expect(TaggedChildBinding.placement).toBe('taggedChild')
+  expect(KeyedChildBinding.placement).toBe('entries')
+  expectTypeOf(DirectChildBinding.fold)
+    .parameter(0)
+    .toEqualTypeOf<ParentModel>()
+  expectTypeOf(DirectChildBinding.fold)
+    .parameter(1)
+    .toEqualTypeOf<ChildMessage>()
   expectTypeOf<
-    CommandMessageOfReturn<ReturnType<typeof exactMessageChild.fold>>
+    CommandMessageOfReturn<ReturnType<typeof ExactMessageChildBinding.fold>>
   >().toEqualTypeOf<ReturnType<typeof ParentMessage.GotChildMessage>>()
   expectTypeOf<
-    CommandMessageOfReturn<ReturnType<typeof exactCustomMessageChild.fold>>
+    CommandMessageOfReturn<
+      ReturnType<typeof ExactCustomMessageChildBinding.fold>
+    >
   >().toEqualTypeOf<ReturnType<typeof ParentMessage.GotChildMessage>>()
   expectTypeOf<
-    ReturnType<ReturnType<typeof forwardingChild.selectValue>>['outMessage']
+    ReturnType<
+      ReturnType<typeof ForwardingChildBinding.selectValue>
+    >['outMessage']
   >().toEqualTypeOf<ParentOutMessage | undefined>()
-  expectTypeOf(keyedChild.fold).parameter(1).toEqualTypeOf<number>()
-  expectTypeOf(keyedChild.fold).parameter(2).toEqualTypeOf<ChildMessage>()
-  expectTypeOf(genericChoice.fold)
+  expectTypeOf(KeyedChildBinding.fold).parameter(1).toEqualTypeOf<number>()
+  expectTypeOf(KeyedChildBinding.fold)
+    .parameter(2)
+    .toEqualTypeOf<ChildMessage>()
+  expectTypeOf(GenericChoiceBinding.fold)
     .parameter(0)
     .toEqualTypeOf<GenericParentModel>()
-  expect(ApplicationComposition.children).toEqual([applicationChild])
+  expect(ApplicationComposition.childBindings).toEqual([
+    ApplicationChildBinding,
+  ])
 })
 
 it('freezes parent-owned Bindings after their private metadata is registered', () => {
-  expect(Object.isFrozen(directChild)).toBe(true)
-  expect(Object.isFrozen(keyedChild)).toBe(true)
-  expect(Reflect.set(directChild, 'placement', 'mutated')).toBe(false)
-  expect(directChild.placement).toBe('child')
+  expect(Object.isFrozen(DirectChildBinding)).toBe(true)
+  expect(Object.isFrozen(KeyedChildBinding)).toBe(true)
+  expect(Reflect.set(DirectChildBinding, 'placement', 'mutated')).toBe(false)
+  expect(DirectChildBinding.placement).toBe('child')
 })
 
 it('snapshots mutable child and Mount arrays at the Composition boundary', () => {
-  const duplicateChild = Parent.bindChild(ChildBlock, {
+  const DuplicateChildBinding = Parent.bindChild(ChildBlock, {
+    fromParentMessage: false,
     field: 'child',
     parentMessage: ParentMessage.GotChildMessage,
     outMessage: { fold: foldChildOutMessage },
   })
-  const suppliedChildren: Array<typeof directChild> = [directChild]
+  const suppliedChildBindings: Array<typeof DirectChildBinding> = [
+    DirectChildBinding,
+  ]
   const suppliedMounts: Array<
     typeof SnapshotMount | typeof AlternateSnapshotMount
   > = [SnapshotMount]
   const composition = Parent.toComposition({
-    children: suppliedChildren,
+    childBindings: suppliedChildBindings,
     mounts: suppliedMounts,
   })
 
-  suppliedChildren.push(duplicateChild)
+  suppliedChildBindings.push(DuplicateChildBinding)
   suppliedMounts.push(AlternateSnapshotMount)
-  expect(composition.children).toEqual([directChild])
+  expect(composition.childBindings).toEqual([DirectChildBinding])
   expect(composition.mounts).toEqual([SnapshotMount])
 
-  suppliedChildren.splice(0, 1, duplicateChild)
+  suppliedChildBindings.splice(0, 1, DuplicateChildBinding)
   suppliedMounts.splice(0, 1, AlternateSnapshotMount)
-  expect(composition.children).toEqual([directChild])
+  expect(composition.childBindings).toEqual([DirectChildBinding])
   expect(composition.mounts).toEqual([SnapshotMount])
 
-  suppliedChildren.pop()
+  suppliedChildBindings.pop()
   suppliedMounts.pop()
-  expect(composition.children).toEqual([directChild])
+  expect(composition.childBindings).toEqual([DirectChildBinding])
   expect(composition.mounts).toEqual([SnapshotMount])
-  expect(Object.isFrozen(composition.children)).toBe(true)
+  expect(Object.isFrozen(composition.childBindings)).toBe(true)
   expect(Object.isFrozen(composition.mounts)).toBe(true)
 })
 
 it('keeps Application Composition snapshots independent from caller arrays', () => {
-  const suppliedChildren: Array<typeof applicationChild> = [applicationChild]
+  const suppliedChildBindings: Array<typeof ApplicationChildBinding> = [
+    ApplicationChildBinding,
+  ]
   const composition = Application.toComposition({
-    children: suppliedChildren,
+    childBindings: suppliedChildBindings,
   })
 
-  suppliedChildren.pop()
+  suppliedChildBindings.pop()
 
-  expect(composition.children).toEqual([applicationChild])
-  expect(Object.isFrozen(composition.children)).toBe(true)
+  expect(composition.childBindings).toEqual([ApplicationChildBinding])
+  expect(Object.isFrozen(composition.childBindings)).toBe(true)
 })
 
 it('rejects an authentic Binding created by a different parent identity', () => {
@@ -518,22 +551,24 @@ it('rejects an authentic Binding created by a different parent identity', () => 
   })
 
   expect(() =>
-    ForeignParent.toComposition({ children: [directChild] }),
+    ForeignParent.toComposition({ childBindings: [DirectChildBinding] }),
   ).toThrow(/different parent Definition/)
 })
 
-it('accepts Definition and Composition helpers that share one parent identity', () => {
+it('keeps child Binding helpers on the Definition after composition', () => {
   const compositionHelper = Parent.toComposition()
-  const compositionOwnedChild = compositionHelper.bindChild(ChildBlock, {
+  const DefinitionOwnedChildBinding = Parent.bindChild(ChildBlock, {
     field: 'child',
-    placement: 'compositionOwnedChild',
+    placement: 'definitionOwnedChild',
     parentMessage: ParentMessage.GotChildMessage,
     outMessage: { fold: foldChildOutMessage },
   })
 
+  expect(compositionHelper).not.toHaveProperty('bindChild')
   expect(
-    Parent.toComposition({ children: [compositionOwnedChild] }).children,
-  ).toEqual([compositionOwnedChild])
+    Parent.toComposition({ childBindings: [DefinitionOwnedChildBinding] })
+      .childBindings,
+  ).toEqual([DefinitionOwnedChildBinding])
 })
 
 it('accepts shared named contracts and rejects incompatible contracts from that owner', () => {
@@ -557,17 +592,18 @@ it('accepts shared named contracts and rejects incompatible contracts from that 
     Message: ParentMessage,
     OutMessage: ParentOutMessage,
   })
-  const sharedChild = First.bindChild(PlainChildBlock, {
+  const SharedChildBinding = First.bindChild(PlainChildBlock, {
     field: 'child',
     parentMessage: ParentMessage.GotChildMessage,
   })
 
-  expect(Refined.toComposition({ children: [sharedChild] }).children).toEqual([
-    sharedChild,
-  ])
+  expect(
+    Refined.toComposition({ childBindings: [SharedChildBinding] })
+      .childBindings,
+  ).toEqual([SharedChildBinding])
   expect(() =>
     Reflect.apply(Incompatible.toComposition, undefined, [
-      { children: [sharedChild] },
+      { childBindings: [SharedChildBinding] },
     ]),
   ).toThrow(/different parent Definition contract/)
 })
@@ -596,11 +632,11 @@ it('uses only own properties to distinguish Binding config forms', () => {
       parentMessage: ParentMessage.GotChildMessage,
     },
   )
-  const inheritedReadAll = Parent.bindChild(
+  const InheritedReadAllBinding = Parent.bindChild(
     PlainChildBlock,
     inheritedReadAllConfig,
   )
-  const inheritedMapper = Parent.bindChild(
+  const InheritedMapperBinding = Parent.bindChild(
     PlainChildBlock,
     inheritedMapperConfig,
   )
@@ -608,13 +644,13 @@ it('uses only own properties to distinguish Binding config forms', () => {
   const message = ChildMessage.UpdatedValue({ value: 'updated' })
 
   const inheritedReadAllResult = Reflect.apply(
-    Reflect.get(inheritedReadAll, 'fold'),
-    inheritedReadAll,
+    Reflect.get(InheritedReadAllBinding, 'fold'),
+    InheritedReadAllBinding,
     [model, message],
   )
   const inheritedMapperResult = Reflect.apply(
-    Reflect.get(inheritedMapper, 'fold'),
-    inheritedMapper,
+    Reflect.get(InheritedMapperBinding, 'fold'),
+    InheritedMapperBinding,
     [model, message],
   )
 
@@ -623,19 +659,24 @@ it('uses only own properties to distinguish Binding config forms', () => {
 })
 
 it('binds an exposed operation named __proto__ as an own property', () => {
-  const prototypeOperation = Parent.bindChild(PrototypeOperationChildBlock, {
-    field: 'child',
-    placement: 'prototypeOperation',
-    parentMessage: ParentMessage.GotChildMessage,
-  })
-  const boundOperation = Reflect.get(prototypeOperation, '__proto__')
-  const operationStep = Reflect.apply(boundOperation, prototypeOperation, [
-    'safe',
-  ])
+  const PrototypeOperationBinding = Parent.bindChild(
+    PrototypeOperationChildBlock,
+    {
+      field: 'child',
+      placement: 'prototypeOperation',
+      parentMessage: ParentMessage.GotChildMessage,
+    },
+  )
+  const boundOperation = Reflect.get(PrototypeOperationBinding, '__proto__')
+  const operationStep = Reflect.apply(
+    boundOperation,
+    PrototypeOperationBinding,
+    ['safe'],
+  )
   const result = Reflect.apply(operationStep, undefined, [
     ParentBlock.init().model,
   ])
 
-  expect(Object.hasOwn(prototypeOperation, '__proto__')).toBe(true)
+  expect(Object.hasOwn(PrototypeOperationBinding, '__proto__')).toBe(true)
   expect(result.model.child.value).toBe('safe')
 })

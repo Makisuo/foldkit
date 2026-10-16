@@ -1,23 +1,32 @@
 import { Layer, Schema } from 'effect'
+import type { Block, Command, Update } from 'foldkit'
 
-import type { Block, Command, Update } from '../src/index.js'
 import {
   Choice,
   ChoiceBuildFailure,
+  ChoiceEntry,
   ChoiceId,
   ChoiceService,
+  ChoicesBinding,
+  GeneralChoicesBinding,
+  GeneralExtractedPolicyChoicesBinding,
+  InitializedChoicesBinding,
+  LiteralInitializedChoicesBinding,
+  LiteralChoicesBinding,
+  Parent,
   ParentModel,
+  PlainChoicesBinding,
+  TextEntriesBinding,
   TextMessage,
   choiceInspection,
-  choices,
   composition,
   firstChoiceId,
   initialParentModel,
-  literalChoices,
+  initialize,
   makePayloadParent,
   payloadParent,
-  plainChoices,
-  textEntries,
+  toChoiceMessage,
+  unassembledInitialize,
 } from './wrapped-keyed-field.accepted.js'
 
 type Equal<Left, Right> =
@@ -29,28 +38,33 @@ type Equal<Left, Right> =
 type Expect<Value extends true> = Value
 
 export type Key = Expect<
-  Equal<Parameters<typeof choices.fold>[1], typeof ChoiceId.Type>
+  Equal<Parameters<typeof ChoicesBinding.fold>[1], typeof ChoiceId.Type>
 >
 export type LiteralKey = Expect<
-  Equal<Parameters<typeof literalChoices.fold>[1], 'Primary' | 'Secondary'>
+  Equal<
+    Parameters<typeof LiteralChoicesBinding.fold>[1],
+    'Primary' | 'Secondary'
+  >
 >
-export type Placement = Expect<Equal<typeof choices.placement, 'choices'>>
+export type Placement = Expect<
+  Equal<typeof ChoicesBinding.placement, 'choices'>
+>
 export type PlainPlacement = Expect<
-  Equal<typeof plainChoices.placement, 'plainChoices'>
+  Equal<typeof PlainChoicesBinding.placement, 'plainChoices'>
 >
 export type LiteralPlacement = Expect<
-  Equal<typeof literalChoices.placement, 'literalChoices'>
+  Equal<typeof LiteralChoicesBinding.placement, 'literalChoices'>
 >
 export type ParentModelInput = Expect<
-  Equal<Parameters<typeof choices.fold>[0], typeof ParentModel.Type>
+  Equal<Parameters<typeof ChoicesBinding.fold>[0], typeof ParentModel.Type>
 >
 export type ChildMessage = Expect<
-  Equal<Parameters<typeof choices.fold>[2], typeof Choice.Message.Type>
+  Equal<Parameters<typeof ChoicesBinding.fold>[2], typeof Choice.Message.Type>
 >
 export type RefinedMessagePayload = Expect<
   Equal<
     Extract<
-      Parameters<typeof choices.fold>[2],
+      Parameters<typeof ChoicesBinding.fold>[2],
       Readonly<{ _tag: 'UpdatedValue' }>
     >['value'],
     'One' | 'Two'
@@ -66,7 +80,10 @@ export type RefinedOutMessagePayload = Expect<
   >
 >
 export type FoldModel = Expect<
-  Equal<ReturnType<typeof choices.fold>['model'], typeof ParentModel.Type>
+  Equal<
+    ReturnType<typeof ChoicesBinding.fold>['model'],
+    typeof ParentModel.Type
+  >
 >
 export type GenericPayload = Expect<
   Equal<
@@ -75,38 +92,55 @@ export type GenericPayload = Expect<
   >
 >
 export type GenericPayloadKey = Expect<
-  Equal<Parameters<typeof payloadParent.binding.fold>[1], typeof ChoiceId.Type>
+  Equal<Parameters<typeof payloadParent.Binding.fold>[1], typeof ChoiceId.Type>
 >
 export type SetValueArgs = Expect<
   Equal<
-    Parameters<typeof choices.setValue>,
+    Parameters<typeof ChoicesBinding.setValue>,
     [key: typeof ChoiceId.Type, value: 'One' | 'Two']
   >
 >
 export type RefreshArgs = Expect<
-  Equal<Parameters<typeof choices.refresh>, [key: typeof ChoiceId.Type]>
+  Equal<Parameters<typeof ChoicesBinding.refresh>, [key: typeof ChoiceId.Type]>
 >
-export type InitArgs = Expect<
+export type InitConfig = Parameters<typeof ChoicesBinding.init>[0]
+export type InitKey = Expect<Equal<InitConfig['key'], typeof ChoiceId.Type>>
+export type InitArgs = Expect<Equal<InitConfig['args'], [value: 'One' | 'Two']>>
+export type InitializedPlacement = Expect<
+  Equal<typeof InitializedChoicesBinding.placement, 'choices'>
+>
+export type InitializeArguments = Expect<
   Equal<
-    Parameters<typeof choices.init>,
-    [key: typeof ChoiceId.Type, value: 'One' | 'Two']
+    Parameters<typeof initialize>,
+    [
+      context: Readonly<{
+        id: typeof ChoiceId.Type
+        value: 'One' | 'Two'
+      }>,
+    ]
+  >
+>
+export type InitializeRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<typeof initialize>,
+    Block.Qualify<'choices', Command.HandlerOf<typeof Choice.ReadChoice>>
   >
 >
 export type Registration = Expect<
   Equal<
-    Update.RegistrationEvidenceOf<ReturnType<typeof choices.fold>>,
+    Update.RegistrationEvidenceOf<ReturnType<typeof ChoicesBinding.fold>>,
     Block.BindingRequirement<'choices', typeof Choice.block>
   >
 >
 export type RefreshRequirements = Expect<
   Equal<
-    Update.RequirementsOf<ReturnType<typeof choices.refresh>>,
+    Update.RequirementsOf<ReturnType<typeof ChoicesBinding.refresh>>,
     Block.Scoped<'choices', Command.HandlerOf<typeof Choice.ReadChoice>>
   >
 >
 export type PolicyRequirements = Expect<
   Equal<
-    Update.RequirementsOf<ReturnType<typeof choices.select>>,
+    Update.RequirementsOf<ReturnType<typeof ChoicesBinding.select>>,
     Block.Scoped<'choices', Command.HandlerOf<typeof Choice.ReadChoice>>
   >
 >
@@ -117,6 +151,11 @@ export type InspectionError = Expect<
   Equal<Layer.Error<typeof choiceInspection.EffectsLayer>, ChoiceBuildFailure>
 >
 export type Builder = Block.ViewBuilderFor<typeof composition>
+
+const initialized = initialize({ id: firstChoiceId, value: 'Two' })
+export type InitializedModel = Expect<
+  Equal<typeof initialized.model, typeof ParentModel.Type>
+>
 
 const literalPayloadParent = makePayloadParent(
   Schema.Literals(['Primary', 'Secondary']),
@@ -129,29 +168,81 @@ export type EmittedGenericPayload = Expect<
 >
 export type EmittedGenericParentModel = Expect<
   Equal<
-    Parameters<typeof literalPayloadParent.binding.fold>[0],
+    Parameters<typeof literalPayloadParent.Binding.fold>[0],
     typeof literalPayloadParent.Model.Type
   >
 >
 
-choices.fold(
+ChoicesBinding.fold(
   initialParentModel,
   firstChoiceId,
   Choice.Message.UpdatedValue({ value: 'Two' }),
 )
-choices.setValue(firstChoiceId, 'One')(initialParentModel)
-choices.refresh(firstChoiceId)(initialParentModel)
-choices.select(firstChoiceId)(initialParentModel)
-literalChoices.setValue('Secondary', 'Two')(initialParentModel)
-textEntries.fold(
+ChoicesBinding.setValue(firstChoiceId, 'One')(initialParentModel)
+ChoicesBinding.refresh(firstChoiceId)(initialParentModel)
+ChoicesBinding.select(firstChoiceId)(initialParentModel)
+LiteralChoicesBinding.setValue('Secondary', 'Two')(initialParentModel)
+TextEntriesBinding.fold(
   initialParentModel,
   'text',
   TextMessage.ReplacedText({ value: 'next' }),
 )
 
+// @ts-expect-error Emitted wrapped keyed policies must accept every collection key.
+// oxfmt-ignore
+Parent.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: false, outMessage: { fold: (_key: 'other', _outMessage: typeof Choice.OutMessage.Type) => Parent.step(model => ({ model })) } })
+
 // @ts-expect-error Emitted wrapped Bindings preserve branded keys.
-choices.refresh('first')
+ChoicesBinding.refresh('first')
 // @ts-expect-error Emitted wrapped Bindings preserve refined exposed arguments.
-choices.setValue(firstChoiceId, 'Three')
+ChoicesBinding.setValue(firstChoiceId, 'Three')
 // @ts-expect-error Emitted wrapped Bindings preserve literal keys.
-literalChoices.select('Tertiary')
+LiteralChoicesBinding.select('Tertiary')
+
+export type LiteralInitializedPlacement = Expect<
+  Equal<
+    typeof LiteralInitializedChoicesBinding.placement,
+    'literalInitializedChoices'
+  >
+>
+export type GeneralKey = Expect<
+  Equal<Parameters<typeof GeneralChoicesBinding.fold>[1], typeof ChoiceId.Type>
+>
+export type GeneralPolicyRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<ReturnType<typeof GeneralChoicesBinding.select>>,
+    Block.Scoped<'generalChoices', Command.HandlerOf<typeof Choice.ReadChoice>>
+  >
+>
+export type GeneralExtractedPolicyRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<
+      ReturnType<typeof GeneralExtractedPolicyChoicesBinding.select>
+    >,
+    Block.Scoped<
+      'generalExtractedPolicyChoices',
+      Command.HandlerOf<typeof Choice.ReadChoice>
+    >
+  >
+>
+export type GeneralRegistration = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<
+      ReturnType<typeof GeneralChoicesBinding.fold>
+    >,
+    Block.BindingRequirement<'generalChoices', typeof Choice.block>
+  >
+>
+
+export type InitializedSiblingModel = Expect<
+  Equal<
+    (typeof initialized.model)['plainChoices'][number],
+    typeof ChoiceEntry.Type
+  >
+>
+export type UnassembledModelRemainsExact = Expect<
+  Equal<
+    ReturnType<typeof unassembledInitialize>['model']['choices'],
+    Array<never>
+  >
+>

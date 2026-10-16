@@ -1,15 +1,15 @@
 import { Layer } from 'effect'
+import { Block, Message, defineApplication } from 'foldkit'
 
-import { Block, Message, defineApplication } from '../src/index.js'
 import {
   ApplicationComposition,
+  ChildBinding,
   ChildComposition,
   ChildModel,
   ObserveParent,
   Parent,
   ParentMessage,
   ParentModel,
-  child,
   childViewHelper,
 } from './plain-view-helper.accepted.js'
 
@@ -24,7 +24,7 @@ const helperWithOmittedChild = (
 ) =>
   h.block(
     // @ts-expect-error The child Binding is absent from this Composition.
-    child.embedView({ slotId: 'child', model: model.child }),
+    ChildBinding.embedView({ slotId: 'child', model: model.child }),
   )
 
 const helperWithOmittedMount = (h: OmittedParentViewBuilder) =>
@@ -45,7 +45,9 @@ const helperWithForeignMessage = (h: OmittedParentViewBuilder) =>
 OmittedParentComposition.render
 
 ChildComposition.toBlock({
-  init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
+  init: ChildComposition.init(() => ({
+    model: ChildModel.make({ value: 'initial' }),
+  })),
   update: ChildComposition.update(model => ({ model })),
   // @ts-expect-error A plain view helper cannot complete a Block as its branded view.
   view: childViewHelper,
@@ -78,7 +80,7 @@ const applicationHelperWithOmittedChild = (
 ) =>
   h.block(
     // @ts-expect-error The child Binding is absent from this Application Composition.
-    child.embedView({ slotId: 'child', model: model.child }),
+    ChildBinding.embedView({ slotId: 'child', model: model.child }),
   )
 
 const applicationHelperWithOmittedMount = (h: OmittedApplicationViewBuilder) =>
@@ -93,12 +95,12 @@ OmittedApplicationComposition.render
 // @ts-expect-error A plain view helper cannot complete an Application as its branded view.
 OmittedApplicationComposition.toElement({
   container: null,
-  init: () => ({
+  init: OmittedApplicationComposition.init(() => ({
     model: ParentModel.make({
       child: ChildModel.make({ value: 'initial' }),
     }),
-  }),
-  update: Application.update(model => ({ model })),
+  })),
+  update: OmittedApplicationComposition.update(model => ({ model })),
   view: applicationViewHelper,
 })
 

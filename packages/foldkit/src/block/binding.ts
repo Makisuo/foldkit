@@ -1,4 +1,4 @@
-import { Context, Layer, Option, Record, type Schema } from 'effect'
+import { Context, Layer, Option, Predicate, Record, Schema } from 'effect'
 
 import { type Command, mapMessages } from '../command/index.js'
 import type {
@@ -16,8 +16,19 @@ import type {
 } from '../mount/index.js'
 import * as Subscription from '../subscription/subscription.js'
 import * as Update from '../update/index.js'
-import { registerBinding, runtimeBindingOf } from './composition.js'
+import {
+  assertInitializedParentModel,
+  registerBinding,
+  runtimeBindingOf,
+} from './composition.js'
 import { type DefaultViewTypeId, defaultViewOf } from './defaultView.js'
+import {
+  type BindingDeliveryEvidence,
+  type RuntimeFromParentMessage,
+  type WithoutBindingDeliveryEvidence,
+  registerBindingDelivery,
+  trackParentMessageMapper,
+} from './delivery.js'
 import type { DirectConnection } from './directConnection.js'
 import {
   type DefinitionIdentity,
@@ -29,9 +40,11 @@ import {
 import type { InstanceFrame } from './instanceContext.js'
 import {
   assertRegisteredBinding,
+  assertRegisteredInitialization,
   withOperationGraph,
 } from './operationGraph.js'
 import type { Owner } from './owner.js'
+import type { BindingPolicyEvidence } from './policyEvidence.js'
 import type {
   HandlerEvidenceOfBlock,
   ValidateConcreteComposition,
@@ -74,6 +87,49 @@ type AnyUpdateReturn = Readonly<{
 
 type AnyProducer = (model: any, ...args: ReadonlyArray<any>) => AnyUpdateReturn
 
+type CommandRequirementsOf<Commands> = [NonNullable<Commands>] extends [never]
+  ? never
+  : NonNullable<Commands> extends ReadonlyArray<infer CommandValue>
+    ? [CommandValue] extends [never]
+      ? never
+      : CommandValue extends Command<any, any, infer Requirements>
+        ? Requirements
+        : never
+    : never
+
+type ValidateConcreteParentCommands<Commands> =
+  IsAny<Commands> extends true
+    ? Readonly<{
+        'Binding init commands must preserve concrete Command requirements and registrations': never
+      }>
+    : [NonNullable<Commands>] extends [never]
+      ? unknown
+      : NonNullable<Commands> extends ReadonlyArray<infer CommandValue>
+        ? true extends
+            | IsAny<CommandValue>
+            | IsAny<CommandRequirementsOf<Commands>>
+            | IsUnknown<CommandRequirementsOf<Commands>>
+            | IsAny<
+                Update.RegistrationEvidenceOf<Readonly<{ commands: Commands }>>
+              >
+            | IsUnknown<
+                Update.RegistrationEvidenceOf<Readonly<{ commands: Commands }>>
+              >
+          ? Readonly<{
+              'Binding init commands must preserve concrete Command requirements and registrations': never
+            }>
+          : unknown
+        : Readonly<{
+            'Binding init commands must be a concrete Commands collection': never
+          }>
+
+type ValidateConcreteInitializedModel<Model> =
+  IsAny<Model> extends true
+    ? Readonly<{
+        'Binding init toParentModel must return a concrete parent Model': never
+      }>
+    : unknown
+
 /** @internal Carries Binding evidence without adding string members. */
 declare const ConnectionEvidenceTypeId: unique symbol
 declare const ParentBindingContractTypeId: unique symbol
@@ -110,32 +166,32 @@ export type ConnectionEvidence<
 }>
 
 /** @internal Associates exact evidence through a module-private property key. */
-export type BindingEvidence<
+export interface BindingEvidence<
   BlockValue,
   HandlerRequirements,
   Inspection,
   IsKeyed extends boolean,
-> = Readonly<{
-  [ConnectionEvidenceTypeId]: ConnectionEvidence<
+> {
+  readonly [ConnectionEvidenceTypeId]: ConnectionEvidence<
     BlockValue,
     HandlerRequirements,
     Inspection,
     IsKeyed
   >
-}>
+}
 
 /** @internal Retains the established parent contracts on parent-owned Bindings. */
-export type ParentBindingContract<
+export interface ParentBindingContract<
   ParentModel,
   ParentMessage,
   ParentOutMessage,
-> = Readonly<{
-  [ParentBindingContractTypeId]: Readonly<{
+> {
+  readonly [ParentBindingContractTypeId]: Readonly<{
     model: ParentModel
     message: ParentMessage
     outMessage: ParentOutMessage
   }>
-}>
+}
 
 type OptionalParentBindingContract<
   ParentModel,
@@ -182,6 +238,39 @@ const reservedBindingMembers = new Set<string>([
   'embedView',
 ])
 
+type RuntimeBindingInitConfig = Readonly<{
+  args: ReadonlyArray<unknown>
+  toParentModel: (childModel: unknown) => unknown
+  commands?: ReadonlyArray<unknown> | undefined
+}>
+
+const assertBindingInitConfig: (
+  value: unknown,
+  placement: string,
+) => asserts value is RuntimeBindingInitConfig = (value, placement) => {
+  if (!Predicate.isObject(value)) {
+    throw new Error(
+      `[foldkit] Child Binding "${placement}" init requires a configuration object with args and toParentModel.`,
+    )
+  }
+  if (!globalThis.Array.isArray(Reflect.get(value, 'args'))) {
+    throw new Error(
+      `[foldkit] Child Binding "${placement}" init.args must be an argument tuple.`,
+    )
+  }
+  if (!Predicate.isFunction(Reflect.get(value, 'toParentModel'))) {
+    throw new Error(
+      `[foldkit] Child Binding "${placement}" init.toParentModel must be a function that stores the initialized child in the parent Model.`,
+    )
+  }
+  const commands = Reflect.get(value, 'commands')
+  if (commands !== undefined && !globalThis.Array.isArray(commands)) {
+    throw new Error(
+      `[foldkit] Child Binding "${placement}" init.commands must be a Commands collection when provided.`,
+    )
+  }
+}
+
 /** @internal Guards JavaScript callers and erased Block values at runtime. */
 export const assertValidBindingOperationNames = (
   operations: Readonly<Record<string, unknown>>,
@@ -207,7 +296,7 @@ export type BindableBlock = Readonly<{
   OutMessage?: Readonly<{ Type: any }>
   mounts: ReadonlyArray<LayeredMountDefinition>
   [LocalMountsTypeId]: ReadonlyArray<LayeredMountDefinition>
-  children: ReadonlyArray<AnyBinding>
+  childBindings: ReadonlyArray<AnyBinding>
   init: AnyFunction
   update: AnyFunction
   expose: Readonly<Record<string, AnyFunction>>
@@ -233,7 +322,7 @@ type DefinitionLocalMounts<BlockValue> =
 type DefinitionViewMountRequirements<BlockValue> =
   | MountRequirementsOf<DefinitionLocalMounts<BlockValue>>
   | (BlockValue extends Readonly<{
-      children: infer Children extends ReadonlyArray<AnyBinding>
+      childBindings: infer Children extends ReadonlyArray<AnyBinding>
     }>
       ? RequirementsOfBindings<Children>
       : never)
@@ -398,6 +487,10 @@ export type BindingConfig<
   /** Maps child Messages into the parent Message type for views, Commands, and
    * lifecycle channels. */
   toParentMessage: (message: BlockValue['Message']['Type']) => ParentMessage
+  /** Keeps incoming dispatch manual for explicitly typed configurations.
+   * Author checked incoming routes through the owning Definition's bindChild
+   * method, which knows the parent Message Schema and native fold arguments. */
+  fromParentMessage: false
   /** Adds optional activation gates for child Subscriptions while the child is
    * present. */
   subscriptions?: Readonly<{
@@ -453,6 +546,19 @@ export type BindingConfig<
           : never)
     : Readonly<{ outMessage?: never }>)
 
+type OutMessageOfProducer<
+  Producer extends (...args: ReadonlyArray<any>) => any,
+> =
+  ReturnType<Producer> extends infer Output
+    ? Output extends unknown
+      ? 'outMessage' extends keyof Output
+        ? Output extends Readonly<{ outMessage?: infer OutMessage }>
+          ? Exclude<OutMessage, undefined>
+          : never
+        : never
+      : never
+    : never
+
 /** The parent update result after a child operation's Commands and OutMessage
  * policy have been lifted through its binding. Operations that cannot emit an
  * OutMessage keep the plain {@link Update.Return} contract. */
@@ -465,17 +571,7 @@ export type BindingReturn<
   ChildId extends string = never,
   Registration = never,
 > = Update.WithRegistrationEvidence<
-  [
-    ReturnType<ChildProducer> extends infer ChildReturn
-      ? ChildReturn extends unknown
-        ? 'outMessage' extends keyof ChildReturn
-          ? ChildReturn extends Readonly<{ outMessage?: infer ChildOutMessage }>
-            ? Exclude<ChildOutMessage, undefined>
-            : never
-          : never
-        : never
-      : never,
-  ] extends [never]
+  [OutMessageOfProducer<ChildProducer>] extends [never]
     ? Update.Return<
         ParentModel,
         ParentMessage,
@@ -553,13 +649,15 @@ export type BindingReturn<
       : never,
   | Registration
   | Update.RegistrationEvidenceOf<
-      Policy extends Readonly<{
-        fold?: (
-          ...args: ReadonlyArray<any>
-        ) => (...args: ReadonlyArray<any>) => infer PolicyReturn
-      }>
-        ? PolicyReturn
-        : never
+      [OutMessageOfProducer<ChildProducer>] extends [never]
+        ? never
+        : Policy extends Readonly<{
+              fold?: (
+                ...args: ReadonlyArray<any>
+              ) => (...args: ReadonlyArray<any>) => infer PolicyReturn
+            }>
+          ? PolicyReturn
+          : never
     >
 >
 
@@ -604,7 +702,8 @@ const liftManagedResources = <
     config,
   )
 
-type BoundExposedOperations<
+/** @internal Lifts declared operations without depending on unused OutMessage policy. */
+export type BoundExposedOperations<
   BlockValue extends Readonly<{
     expose: Readonly<Record<string, (...args: ReadonlyArray<any>) => any>>
   }>,
@@ -629,13 +728,71 @@ type BoundExposedOperations<
         ParentModel,
         ParentMessage,
         BlockValue['expose'][Key],
-        Policy,
+        [OutMessageOfProducer<BlockValue['expose'][Key]>] extends [never]
+          ? never
+          : Policy,
         Placement,
         BlockId<BlockValue>,
         BindingRequirement<Placement, BlockValue>
       >
     : never
 }>
+
+/** Initializes a connected child and constructs its complete parent Model.
+ * The return type retains child and parent Command requirements and Binding
+ * registrations. At runtime, invocation requires this Binding's exact
+ * registered Composition. The returned parent must match its Model Schema and
+ * select the initialized child through the Binding's storage accessors. */
+export interface BindingInitializer<
+  BlockValue extends Readonly<{
+    Model: Readonly<{ Type: any }>
+    init: (...args: ReadonlyArray<any>) => any
+  }>,
+  ParentModel,
+  ParentMessage,
+  Placement extends string,
+  Key = never,
+  IsKeyed extends boolean = false,
+> {
+  <
+    const InitializedParentModel extends ParentModel,
+    const ParentCommands extends
+      | Update.Commands<ParentMessage, any>
+      | undefined = undefined,
+  >(
+    config: Readonly<{
+      /** Arguments passed to the child Block's init function. */
+      args: Parameters<BlockValue['init']>
+      /** Constructs the complete parent Model and stores the initialized child
+       * where this Binding's accessors select it. Parent Schema constructors may
+       * reconstruct an equivalent decoded child value. */
+      toParentModel: (
+        child: BlockValue['Model']['Type'],
+      ) => InitializedParentModel
+      /** Parent Commands appended after the initialized child's lifted
+       * Commands. Their services and Binding registrations remain required by
+       * the complete result. */
+      commands?: ParentCommands
+    }> &
+      (IsKeyed extends true
+        ? Readonly<{
+            /** Stable string or finite-number identity of the new occurrence. */
+            key: Key
+          }>
+        : unknown) &
+      ValidateConcreteInitializedModel<InitializedParentModel> &
+      ValidateConcreteParentCommands<ParentCommands>,
+  ): Update.WithRegistrationEvidence<
+    Update.Return<
+      InitializedParentModel,
+      ParentMessage,
+      | Qualify<Placement, Update.RequirementsOf<BlockValue['init']>>
+      | CommandRequirementsOf<ParentCommands>
+    >,
+    | BindingRequirement<Placement, BlockValue>
+    | Update.RegistrationEvidenceOf<Readonly<{ commands: ParentCommands }>>
+  >
+}
 
 /** A registered static or optional child Block in its parent Model and Message
  * context. The Binding is passive until a Runtime starts the composed
@@ -665,135 +822,174 @@ export type Binding<
   ContractModel = never,
   ContractMessage = never,
   ContractOutMessage = never,
-> = Readonly<{
-  [ConnectionEvidenceTypeId]: ConnectionEvidence<
-    BlockValue,
-    Qualify<Placement, HandlerEvidenceOfBlock<BlockValue>>,
-    BindingInspection<
-      {
-        readonly [
-          Key in keyof BlockValue['subscriptions']
-        ]: BlockValue['subscriptions'][Key] extends Subscription.Subscription<
-          any,
-          any,
-          infer Dependencies,
-          infer Services
-        >
-          ? Subscription.Subscription<
-              ParentModel,
-              ParentMessage,
-              Subscription.GatedDependencies<Dependencies>,
-              Qualify<Placement, Services>
-            > &
-              (BlockValue['subscriptions'][Key] extends Readonly<{
-                messages: infer Messages
-              }>
-                ? Readonly<{ messages: Messages }>
-                : unknown) &
-              (BlockValue['subscriptions'][Key] extends Readonly<{
-                name: infer Name
-                toLayer: infer ToLayer
-              }>
-                ? Readonly<{ name: Name; toLayer: ToLayer }>
-                : unknown) &
-              (BlockValue['subscriptions'][Key] extends Readonly<{
-                layer: infer EntryLayer
-              }>
-                ? Readonly<{ layer: EntryLayer }>
-                : unknown)
-          : never
-      },
-      {
-        readonly [
-          Key in keyof BlockValue['managedResources']
-        ]: BlockValue['managedResources'][Key] extends ManagedResource.Entry<
-          any,
-          any,
-          infer Requirements,
-          infer Value,
-          infer Service,
-          infer OnAcquired extends (...args: ReadonlyArray<any>) => any,
-          infer LifecycleServices,
-          infer Params
-        >
-          ? ManagedResource.Entry<
-              ParentModel,
-              ParentMessage,
-              Requirements,
-              Value,
-              Qualify<Placement, Service>,
-              (...args: Parameters<OnAcquired>) => ParentMessage,
-              Qualify<Placement, LifecycleServices>,
-              Params
-            > &
-              (BlockValue['managedResources'][Key] extends Readonly<{
-                name: infer Name
-                toLayer: infer ToLayer
-              }>
-                ? Readonly<{ name: Name; toLayer: ToLayer }>
-                : unknown) &
-              (BlockValue['managedResources'][Key] extends Readonly<{
-                layer: infer EntryLayer
-              }>
-                ? Readonly<{ layer: EntryLayer }>
-                : unknown)
-          : never
-      },
-      BlockValue['mounts'],
-      Layer.Layer<
-        Qualify<Placement, Layer.Success<BlockValue['EffectsLayer']>>,
-        Layer.Error<BlockValue['EffectsLayer']>,
-        Qualify<Placement, Layer.Services<BlockValue['EffectsLayer']>>
+  OutgoingMessage = ParentMessage,
+  IncomingMessage = never,
+> = BindingEvidence<
+  BlockValue,
+  Qualify<Placement, HandlerEvidenceOfBlock<BlockValue>>,
+  BindingInspection<
+    {
+      readonly [
+        Key in keyof BlockValue['subscriptions']
+      ]: BlockValue['subscriptions'][Key] extends Subscription.Subscription<
+        any,
+        any,
+        infer Dependencies,
+        infer Services
       >
-    >,
-    false
-  >
-  /** The stable identity of this Binding in the parent's composition graph. It
-   * is independent of DOM position and child presence. */
-  placement: Placement
-  /** Initializes child state and lifts its Commands to the parent Message type.
-   * The parent remains responsible for storing the returned child Model. */
-  init: (
-    ...args: Parameters<BlockValue['init']>
-  ) => Update.WithRegistrationEvidence<
-    Update.Return<
-      BlockValue['Model']['Type'],
-      ParentMessage,
-      Qualify<Placement, Update.RequirementsOf<BlockValue['init']>>
-    >,
-    BindingRequirement<Placement, BlockValue>
-  >
-  /** Runs the child update, writes the next child Model, lifts Commands, and
-   * applies the OutMessage policy. If `read` returns `None`, the returned parent
-   * Model is unchanged. */
-  fold: (
-    model: ParentModel,
-    ...args: [
-      message: BlockValue['Message']['Type'],
-      ...context: Parameters<BlockValue['update']> extends readonly [
-        unknown,
-        unknown,
-        ...infer Context,
+        ? Subscription.Subscription<
+            ParentModel,
+            ParentMessage,
+            Subscription.GatedDependencies<Dependencies>,
+            Qualify<Placement, Services>
+          > &
+            (BlockValue['subscriptions'][Key] extends Readonly<{
+              messages: infer Messages
+            }>
+              ? Readonly<{ messages: Messages }>
+              : unknown) &
+            (BlockValue['subscriptions'][Key] extends Readonly<{
+              name: infer Name
+              toLayer: infer ToLayer
+            }>
+              ? Readonly<{ name: Name; toLayer: ToLayer }>
+              : unknown) &
+            (BlockValue['subscriptions'][Key] extends Readonly<{
+              layer: infer EntryLayer
+            }>
+              ? Readonly<{ layer: EntryLayer }>
+              : unknown)
+        : never
+    },
+    {
+      readonly [
+        Key in keyof BlockValue['managedResources']
+      ]: BlockValue['managedResources'][Key] extends ManagedResource.Entry<
+        any,
+        any,
+        infer Requirements,
+        infer Value,
+        infer Service,
+        infer OnAcquired extends (...args: ReadonlyArray<any>) => any,
+        infer LifecycleServices,
+        infer Params
+      >
+        ? ManagedResource.Entry<
+            ParentModel,
+            ParentMessage,
+            Requirements,
+            Value,
+            Qualify<Placement, Service>,
+            (...args: Parameters<OnAcquired>) => ParentMessage,
+            Qualify<Placement, LifecycleServices>,
+            Params
+          > &
+            (BlockValue['managedResources'][Key] extends Readonly<{
+              name: infer Name
+              toLayer: infer ToLayer
+            }>
+              ? Readonly<{ name: Name; toLayer: ToLayer }>
+              : unknown) &
+            (BlockValue['managedResources'][Key] extends Readonly<{
+              layer: infer EntryLayer
+            }>
+              ? Readonly<{ layer: EntryLayer }>
+              : unknown)
+        : never
+    },
+    BlockValue['mounts'],
+    Layer.Layer<
+      Qualify<Placement, Layer.Success<BlockValue['EffectsLayer']>>,
+      Layer.Error<BlockValue['EffectsLayer']>,
+      Qualify<Placement, Layer.Services<BlockValue['EffectsLayer']>>
+    >
+  >,
+  false
+> &
+  BindingDeliveryEvidence<OutgoingMessage, IncomingMessage> &
+  BindingPolicyEvidence<Policy> &
+  Readonly<{
+    /** The stable identity of this Binding in the parent's composition graph. It
+     * is independent of DOM position and child presence. */
+    placement: Placement
+    /** Initializes child state, constructs the complete parent Model, and lifts
+     * its Commands to the parent Message type. Additional parent Commands run
+     * after the initialized child's Commands. Initialization requires this
+     * Binding's exact registered Composition to be active. */
+    init: BindingInitializer<BlockValue, ParentModel, ParentMessage, Placement>
+    /** Runs the child update, writes the next child Model, lifts Commands, and
+     * applies the OutMessage policy. If `read` returns `None`, the returned parent
+     * Model is unchanged. */
+    fold: (
+      model: ParentModel,
+      ...args: [
+        message: BlockValue['Message']['Type'],
+        ...context: Parameters<BlockValue['update']> extends readonly [
+          unknown,
+          unknown,
+          ...infer Context,
+        ]
+          ? Context
+          : readonly [],
       ]
-        ? Context
-        : readonly [],
-    ]
-  ) => BindingReturn<
-    ParentModel,
-    ParentMessage,
-    BlockValue['update'],
-    Policy,
-    Placement,
-    BlockId<BlockValue>,
-    BindingRequirement<Placement, BlockValue>
-  >
-  /** Builds the `h.block` config for this placement. The config carries the
-   * Message mapping, composition identity, and Mount evidence. */
-  embedView: BlockValue extends Readonly<{
-    [DefaultViewTypeId]: infer CanonicalView extends AnyBlockView
-  }>
-    ? {
-        <View extends AnyBlockView>(
+    ) => BindingReturn<
+      ParentModel,
+      ParentMessage,
+      BlockValue['update'],
+      Policy,
+      Placement,
+      BlockId<BlockValue>,
+      BindingRequirement<Placement, BlockValue>
+    >
+    /** Builds the `h.block` config for this placement. The config carries the
+     * Message mapping, composition identity, and Mount evidence. */
+    embedView: BlockValue extends Readonly<{
+      [DefaultViewTypeId]: infer CanonicalView extends AnyBlockView
+    }>
+      ? {
+          <View extends AnyBlockView>(
+            config: Omit<
+              BoundBlockFields<View, ParentMessage>,
+              'toParentMessage'
+            > &
+              ValidateEmbeddedViewMounts<BlockValue, View> &
+              ([Parameters<View>[0], BlockValue['Model']['Type']] extends [
+                BlockValue['Model']['Type'],
+                Parameters<View>[0],
+              ]
+                ? [
+                    Parameters<
+                      BoundBlockFields<View, ParentMessage>['toParentMessage']
+                    >[0],
+                    BlockValue['Message']['Type'],
+                  ] extends [
+                    BlockValue['Message']['Type'],
+                    Parameters<
+                      BoundBlockFields<View, ParentMessage>['toParentMessage']
+                    >[0],
+                  ]
+                  ? unknown
+                  : never
+                : never),
+          ): BoundBlockConfig<
+            BoundBlockView<View, BindingRequirement<Placement, BlockValue>>,
+            ParentMessage
+          >
+          (
+            config: Omit<
+              BoundBlockFields<CanonicalView, ParentMessage>,
+              'toParentMessage' | 'view'
+            > &
+              Readonly<{ view?: CanonicalView }>,
+          ): BoundBlockConfig<
+            BoundBlockView<
+              CanonicalView,
+              BindingRequirement<Placement, BlockValue>
+            >,
+            ParentMessage
+          >
+        }
+      : <View extends AnyBlockView>(
           config: Omit<
             BoundBlockFields<View, ParentMessage>,
             'toParentMessage'
@@ -817,50 +1013,11 @@ export type Binding<
                 ? unknown
                 : never
               : never),
-        ): BoundBlockConfig<
+        ) => BoundBlockConfig<
           BoundBlockView<View, BindingRequirement<Placement, BlockValue>>,
           ParentMessage
         >
-        (
-          config: Omit<
-            BoundBlockFields<CanonicalView, ParentMessage>,
-            'toParentMessage' | 'view'
-          > &
-            Readonly<{ view?: CanonicalView }>,
-        ): BoundBlockConfig<
-          BoundBlockView<
-            CanonicalView,
-            BindingRequirement<Placement, BlockValue>
-          >,
-          ParentMessage
-        >
-      }
-    : <View extends AnyBlockView>(
-        config: Omit<BoundBlockFields<View, ParentMessage>, 'toParentMessage'> &
-          ValidateEmbeddedViewMounts<BlockValue, View> &
-          ([Parameters<View>[0], BlockValue['Model']['Type']] extends [
-            BlockValue['Model']['Type'],
-            Parameters<View>[0],
-          ]
-            ? [
-                Parameters<
-                  BoundBlockFields<View, ParentMessage>['toParentMessage']
-                >[0],
-                BlockValue['Message']['Type'],
-              ] extends [
-                BlockValue['Message']['Type'],
-                Parameters<
-                  BoundBlockFields<View, ParentMessage>['toParentMessage']
-                >[0],
-              ]
-              ? unknown
-              : never
-            : never),
-      ) => BoundBlockConfig<
-        BoundBlockView<View, BindingRequirement<Placement, BlockValue>>,
-        ParentMessage
-      >
-}> &
+  }> &
   BoundExposedOperations<
     BlockValue,
     ParentModel,
@@ -997,7 +1154,9 @@ export type AnyBinding = Readonly<{
   init: AnyFunction
   fold: AnyFunction
   embedView: AnyFunction
-}>
+}> &
+  BindingDeliveryEvidence<any, any> &
+  (BindingPolicyEvidence<any> | BindingPolicyEvidence<never>)
 
 /** Type-level evidence that an embedded view belongs to one registered Binding
  * placement. */
@@ -1065,7 +1224,7 @@ export type IsKeyedBinding<BindingValue> =
 
 /** @internal Removes private evidence before another Binding form replaces it. */
 export type WithoutBindingEvidence<BindingValue> = Omit<
-  BindingValue,
+  WithoutBindingDeliveryEvidence<BindingValue>,
   typeof ConnectionEvidenceTypeId
 >
 
@@ -1115,6 +1274,8 @@ type RuntimeBindingConfig = Readonly<{
   toParentMessage: (message: any) => any
   subscriptions?: Readonly<{ when?: any }>
   outMessage?: RuntimeOutMessagePolicy | undefined
+  outgoingParentMessage?: Schema.Top & AnyFunction
+  fromParentMessage?: RuntimeFromParentMessage
 }>
 
 const toChildFold = (producer: AnyProducer, config: RuntimeBindingConfig) => ({
@@ -1263,15 +1424,22 @@ const bindRuntime = <
   const Policy = never,
 >(
   block: BlockValue,
-  config: BindingConfig<
-    BlockValue,
-    ParentModel,
-    ParentMessage,
-    Placement,
-    Policy
-  >,
+  bindingConfig: Omit<
+    BindingConfig<BlockValue, ParentModel, ParentMessage, Placement, Policy>,
+    'fromParentMessage'
+  > &
+    RuntimeBindingConfig,
 ): Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy> => {
+  const trackedMapper = trackParentMessageMapper(bindingConfig.toParentMessage)
+  const config = {
+    ...bindingConfig,
+    toParentMessage: trackedMapper.toParentMessage,
+  }
   const placement = config.placement ?? block.owner.id
+  const isChildModel = Reflect.apply(Schema.is, undefined, [block.Model])
+  const equivalentChildModel = Reflect.apply(Schema.toEquivalence, undefined, [
+    block.Model,
+  ])
   assertSegment(placement)
   const allowedIdentities = hostIdentitiesOf(block)
   const frame: InstanceFrame = {
@@ -1287,7 +1455,9 @@ const bindRuntime = <
   )
   const update = (model: any, ...args: ReadonlyArray<any>) =>
     scopeReturn(
-      withOperationGraph(block.children, () => block.update(model, ...args)),
+      withOperationGraph(block.childBindings, () =>
+        block.update(model, ...args),
+      ),
       placement,
       block.owner,
       frame,
@@ -1298,7 +1468,9 @@ const bindRuntime = <
     operation =>
       (model: any, ...args: ReadonlyArray<any>) =>
         scopeReturn(
-          withOperationGraph(block.children, () => operation(model, ...args)),
+          withOperationGraph(block.childBindings, () =>
+            operation(model, ...args),
+          ),
           placement,
           block.owner,
           frame,
@@ -1366,7 +1538,7 @@ const bindRuntime = <
         identity: {
           owner: block.owner,
           mounts: block[LocalMountsTypeId],
-          children: block.children,
+          childBindings: block.childBindings,
         },
       },
       toParentMessage: config.toParentMessage,
@@ -1392,22 +1564,49 @@ const bindRuntime = <
     >,
   )
 
+  const initialize = (...args: ReadonlyArray<any>) => {
+    assertRegisteredInitialization(binding, placement)
+    const childInit = scopeReturn(
+      withOperationGraph(block.childBindings, () => block.init(...args)),
+      placement,
+      block.owner,
+      { ...frame, isInitialization: true },
+      allowedIdentities,
+    )
+    return {
+      model: childInit.model,
+      commands: mapMessages(childInit.commands, config.toParentMessage),
+    }
+  }
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const binding = {
     placement,
-    init: (...args: ReadonlyArray<any>) => {
-      assertRegisteredBinding(binding, placement)
-
-      const childInit = scopeReturn(
-        withOperationGraph(block.children, () => block.init(...args)),
-        placement,
-        block.owner,
-        { ...frame, isInitialization: true },
-        allowedIdentities,
-      )
+    init: (initial: unknown) => {
+      assertBindingInitConfig(initial, placement)
+      const childInit = initialize(...initial.args)
+      const model = initial.toParentModel(childInit.model)
+      assertInitializedParentModel(binding, placement, model)
+      let maybeStoredChild: Option.Option<unknown>
+      try {
+        maybeStoredChild = config.read(model)
+      } catch (cause) {
+        throw new Error(
+          `[foldkit] Child Binding "${placement}" init.toParentModel returned a parent Model that its read accessor could not inspect.`,
+          { cause },
+        )
+      }
+      if (
+        Option.isNone(maybeStoredChild) ||
+        !isChildModel(maybeStoredChild.value) ||
+        !equivalentChildModel(maybeStoredChild.value, childInit.model)
+      ) {
+        throw new Error(
+          `[foldkit] Child Binding "${placement}" init.toParentModel must preserve the initialized child Model through the parent Model Schema.`,
+        )
+      }
       return {
-        model: childInit.model,
-        commands: mapMessages(childInit.commands, config.toParentMessage),
+        model,
+        commands: [...(childInit.commands ?? []), ...(initial.commands ?? [])],
       }
     },
     fold: makeFold(update, runtimeConfig, frame),
@@ -1423,6 +1622,7 @@ const bindRuntime = <
 
   registerBinding(binding, {
     block,
+    initialize: (_key, args) => initialize(...args),
     select: model =>
       Option.match(config.read(model), {
         onNone: () => [],
@@ -1442,6 +1642,14 @@ const bindRuntime = <
       mounts: block.mounts,
       EffectsLayer,
     },
+  })
+  registerBindingDelivery(binding, trackedMapper, {
+    ...(config.outgoingParentMessage === undefined
+      ? {}
+      : { outgoingParentMessage: config.outgoingParentMessage }),
+    ...(config.fromParentMessage === undefined
+      ? {}
+      : { fromParentMessage: config.fromParentMessage }),
   })
 
   return binding
@@ -1549,17 +1757,17 @@ export type AggregatedChildren<Children extends ReadonlyArray<AnyBinding>> =
 
 const mergeChildRecords = (
   kind: 'Subscription' | 'ManagedResource',
-  children: ReadonlyArray<AnyBinding>,
+  childBindings: ReadonlyArray<AnyBinding>,
 ): Record<string, unknown> => {
   const entries: Record<string, unknown> = {}
 
-  for (const child of children) {
-    const inspection = inspectBinding(child)
+  for (const childBinding of childBindings) {
+    const inspection = inspectBinding(childBinding)
     const childEntries =
       inspection[kind === 'Subscription' ? 'subscriptions' : 'managedResources']
 
     for (const [key, entry] of Object.entries(childEntries)) {
-      const registrationKey = `${child.placement}/${key}`
+      const registrationKey = `${childBinding.placement}/${key}`
       if (Object.hasOwn(entries, registrationKey)) {
         throw new Error(
           `Block.aggregateChildren: duplicate ${kind} registration key "${registrationKey}"`,
@@ -1581,23 +1789,23 @@ const mergeChildRecords = (
 export const aggregateChildren = <
   const Children extends ReadonlyArray<AnyBinding>,
 >(
-  children: Children,
+  childBindings: Children,
 ): AggregatedChildren<Children> => {
-  const subscriptions = mergeChildRecords('Subscription', children)
-  const managedResources = mergeChildRecords('ManagedResource', children)
+  const subscriptions = mergeChildRecords('Subscription', childBindings)
+  const managedResources = mergeChildRecords('ManagedResource', childBindings)
   const mounts: Array<LayeredMountDefinition> = []
   const seenMounts = new Set<LayeredMountDefinition>()
   const layers: Array<Layer.Any> = []
   const seenPlacements = new Set<string>()
 
-  for (const child of children) {
-    if (seenPlacements.has(child.placement)) {
+  for (const childBinding of childBindings) {
+    if (seenPlacements.has(childBinding.placement)) {
       throw new Error(
-        `[foldkit] Two child Blocks use placement "${child.placement}". Give repeated children distinct local placements.`,
+        `[foldkit] Two child Blocks use placement "${childBinding.placement}". Give repeated child Bindings distinct local placements.`,
       )
     }
-    seenPlacements.add(child.placement)
-    const inspection = inspectBinding(child)
+    seenPlacements.add(childBinding.placement)
+    const inspection = inspectBinding(childBinding)
 
     for (const mount of inspection.mounts) {
       if (!seenMounts.has(mount)) {

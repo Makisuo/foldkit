@@ -46,7 +46,7 @@ const subscriptions = Counter.subscriptions(entry => ({
   ),
 }))
 
-const update = Counter.update((model, message) =>
+const update = CounterComposition.update((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + model.step }),

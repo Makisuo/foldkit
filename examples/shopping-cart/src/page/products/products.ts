@@ -4,11 +4,19 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Item } from '../../domain'
 import { productsRouter } from '../../route'
-import { Message, Model, OutMessage, Products } from './definition'
+import {
+  Message,
+  Model,
+  OutMessage,
+  Products,
+  ProductsComposition,
+} from './definition'
 
-export const init = Products.init((products: ReadonlyArray<Item.Item>) => ({
-  model: Model.make({ products, searchText: '' }),
-}))
+export const init = ProductsComposition.init(
+  (products: ReadonlyArray<Item.Item>) => ({
+    model: Model.make({ products, searchText: '' }),
+  }),
+)
 
 export const ReplaceSearchUrl = Products.command('ReplaceSearchUrl', {
   args: { url: Schema.String },
@@ -19,7 +27,7 @@ export const ReplaceSearchUrl = Products.command('ReplaceSearchUrl', {
   },
 })
 
-export const update = Products.update((model, message) =>
+export const update = ProductsComposition.update((model, message) =>
   Message.match(message, {
     CompletedReplaceSearchUrl: () => ({ model }),
 

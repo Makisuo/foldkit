@@ -373,7 +373,7 @@ type BindingRuntimeServices<Binding> =
 
 type ChildRuntimeServices<Block> =
   Block extends Readonly<{
-    children: ReadonlyArray<infer Binding>
+    childBindings: ReadonlyArray<infer Binding>
   }>
     ? BindingRuntimeServices<Binding>
     : never
@@ -456,21 +456,21 @@ type BindingOwnOperationRequirements<Binding> =
 
 type ChildInheritedRequirements<Block> =
   Block extends Readonly<{
-    children: ReadonlyArray<infer Binding>
+    childBindings: ReadonlyArray<infer Binding>
   }>
     ? BindingInheritedRequirements<Binding>
     : never
 
 type ChildOwnOperationRequirements<Block> =
   Block extends Readonly<{
-    children: ReadonlyArray<infer Binding>
+    childBindings: ReadonlyArray<infer Binding>
   }>
     ? BindingOwnOperationRequirements<Binding>
     : never
 
 type ChildOperationRequirements<Block> =
   Block extends Readonly<{
-    children: ReadonlyArray<infer Binding>
+    childBindings: ReadonlyArray<infer Binding>
   }>
     ?
         | BindingDefinitionOperationRequirements<Binding>
@@ -517,7 +517,7 @@ type DeclaredBindingHostHandlers<Binding> =
     : never
 
 type DeclaredChildHostHandlers<Block> =
-  Block extends Readonly<{ children: ReadonlyArray<infer Binding> }>
+  Block extends Readonly<{ childBindings: ReadonlyArray<infer Binding> }>
     ? DeclaredBindingHostHandlers<Binding>
     : never
 
@@ -625,7 +625,7 @@ type LocalOperationRegistrationEvidence<Block> =
 
 type RegisteredChildEvidence<Block> =
   Block extends Readonly<{
-    children: infer Children extends ReadonlyArray<unknown>
+    childBindings: infer Children extends ReadonlyArray<unknown>
   }>
     ? RequirementsOfBindings<Children>
     : never
@@ -671,7 +671,7 @@ type LocalResidualRequirements<Composition> =
     >
 
 type CompositionChildHandlerEvidence<Composition> =
-  Composition extends Readonly<{ children: infer Children }>
+  Composition extends Readonly<{ childBindings: infer Children }>
     ? ChildHandlerEvidence<Children>
     : never
 

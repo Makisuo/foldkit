@@ -1,10 +1,8 @@
-import { Application } from './definition'
+import { ApplicationComposition, HomeBinding } from './composition'
 
-const init = Application.init(() => {
-  const homeInit = home.init()
-
-  return {
-    model: { home: homeInit.model },
-    commands: homeInit.commands,
-  }
-})
+const init = ApplicationComposition.init(() =>
+  HomeBinding.init({
+    args: [],
+    toParentModel: home => ({ home }),
+  }),
+)

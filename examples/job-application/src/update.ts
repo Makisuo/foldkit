@@ -2,17 +2,7 @@ import { Array, Option, pipe } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { SubmitApplication } from './command'
-import {
-  ApplicationComposition,
-  attachments,
-  coverLetter,
-  education,
-  personalInfo,
-  skills,
-  stepMenu,
-  stepTabs,
-  workHistory,
-} from './composition'
+import { ApplicationComposition } from './composition'
 import { Step } from './domain'
 import { Message } from './message'
 import { type Model, Submission } from './model'
@@ -43,22 +33,6 @@ const toPreviousStep = (current: Step.Step): Step.Step =>
 
 export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
-    GotPersonalInfoMessage: ({ message }) => personalInfo.fold(model, message),
-
-    GotWorkHistoryMessage: ({ message }) => workHistory.fold(model, message),
-
-    GotEducationMessage: ({ message }) => education.fold(model, message),
-
-    GotSkillsMessage: ({ message }) => skills.fold(model, message),
-
-    GotCoverLetterMessage: ({ message }) => coverLetter.fold(model, message),
-
-    GotAttachmentsMessage: ({ message }) => attachments.fold(model, message),
-
-    GotStepMenuMessage: ({ message }) => stepMenu.fold(model, message),
-
-    GotStepTabsMessage: ({ message }) => stepTabs.fold(model, message),
-
     ClickedNext: () => ({
       model: modifyFields(model, { currentStep: toNextStep }),
     }),

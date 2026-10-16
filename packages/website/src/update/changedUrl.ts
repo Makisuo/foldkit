@@ -5,7 +5,11 @@ import { modifyFields } from 'foldkit/struct'
 import { type Url } from 'foldkit/url'
 
 import * as Command from '../command'
-import { mobileMenuDialog, search, themeMenu } from '../composition'
+import {
+  MobileMenuDialogBinding,
+  SearchBinding,
+  ThemeMenuBinding,
+} from '../composition'
 import { type Model } from '../model'
 import { urlToApplicationRoute } from '../route'
 import {
@@ -62,9 +66,9 @@ export const handleChangedUrl = (model: Model, url: Url) => {
   return Update.combine(model, [
     writeRouteFields,
     reconcileRoutedChildModels(transition, model.maybeIsPlaygroundSupported),
-    mobileMenuDialog.close(),
-    themeMenu.close(),
-    search.informRouteChanged(),
+    MobileMenuDialogBinding.close(),
+    ThemeMenuBinding.close(),
+    SearchBinding.informRouteChanged(),
     ...routeDataLoadingSteps(transition),
     scrollToRoute,
   ])

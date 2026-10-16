@@ -2,6 +2,7 @@ import { Effect, Option, Record, Result, Schema } from 'effect'
 import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { ApiReferenceComposition } from './definition'
 import { ApiReference } from './definition'
 import { ParsedApiReference } from './domain'
 import { Message } from './message'
@@ -63,7 +64,7 @@ export const informRouteChanged = ApiReference.step(model =>
   ),
 )
 
-export const update = ApiReference.update((model, message) =>
+export const update = ApiReferenceComposition.update((model, message) =>
   Message.match(message, {
     SucceededLoadApiData: ({ apiData }) => ({
       model: modifyFields(model, {

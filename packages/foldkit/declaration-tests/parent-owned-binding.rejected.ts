@@ -1,6 +1,6 @@
 import { Layer, Option, Schema } from 'effect'
+import { Block, Message, defineApplication } from 'foldkit'
 
-import { Block, Message, defineApplication } from '../src/index.js'
 import {
   ChildBlock,
   ParentOutMessage,
@@ -29,10 +29,10 @@ const Parent = Block.define('DeclarationRejectedParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const unregisteredChild = Parent.bindChild(ChildBlock, {
+const UnregisteredChildBinding = Parent.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
-  outMessage: { fold: () => model => ({ model }) },
+  outMessage: { fold: () => Parent.step(model => ({ model })) },
 })
 
 type ChildPolicy = Block.OutMessagePolicy<
@@ -64,12 +64,14 @@ const missingChildPolicy: ChildConfig = {
   read: model => Option.some(model.child),
   write: model => model,
   toParentMessage: message => ParentMessage.GotChildMessage({ message }),
+  fromParentMessage: false,
 }
 const forbiddenPlainChildPolicy: PlainChildConfig = {
   placement: 'plainChild',
   read: model => Option.some(model.child),
   write: model => model,
   toParentMessage: message => ParentMessage.GotChildMessage({ message }),
+  fromParentMessage: false,
   // @ts-expect-error A child without OutMessages forbids an OutMessage policy.
   outMessage: childPolicy,
 }
@@ -79,6 +81,7 @@ const undefinedPlainChildPolicy: PlainChildConfig = {
   read: model => Option.some(model.child),
   write: model => model,
   toParentMessage: message => ParentMessage.GotChildMessage({ message }),
+  fromParentMessage: false,
   outMessage: undefined,
 }
 
@@ -91,17 +94,16 @@ const Forwarding = Block.define('DeclarationRejectedForwarding', {
   Message: ParentMessage,
   OutMessage: ParentOutMessage,
 })
-Forwarding.bindChild(ChildBlock, {
-  // @ts-expect-error This invalid Binding configuration has no matching overload.
+const WrongForwardBinding = Forwarding.bindChild(ChildBlock, {
   field: 'child',
-  // @ts-expect-error This invalid Binding configuration has no matching overload.
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: {
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
     forward: (_outMessage: typeof ChildBlock.OutMessage.Type) =>
       ChildBlock.OutMessage.SelectedValue({ value: 'foreign' }),
   },
 })
+// @ts-expect-error Forwarded OutMessages must belong to the parent.
+Forwarding.toComposition({ childBindings: [WrongForwardBinding] })
 
 Parent.bindChild(ChildBlock, {
   // @ts-expect-error This invalid Binding configuration has no matching overload.
@@ -122,6 +124,7 @@ Parent.bindChild(ChildBlock, {
   field: 'child',
   // @ts-expect-error This invalid Binding configuration has no matching overload.
   parentMessage: ParentMessage.GotChildMessage,
+  // @ts-expect-error Canonical and custom Message mapping cannot be combined.
   toParentMessage: () =>
     ParentMessage.GotChildMessage({
       message: ChildBlock.Message.UpdatedValue({ value: 'next' }),
@@ -136,7 +139,8 @@ Parent.bindChild(ChildBlock, {
   writeAt: model => model,
   toParentMessage: (_id, message) =>
     ParentMessage.GotEntryMessage({ id: 0, message }),
-  outMessage: { fold: () => model => ({ model }) },
+  fromParentMessage: false,
+  outMessage: { fold: () => Parent.step(model => ({ model })) },
 })
 
 const writeAtNumberKey = (
@@ -203,6 +207,7 @@ const missingKeyedChildPolicy: KeyedChildConfig = {
   writeAt: model => model,
   toParentMessage: (id, message) =>
     ParentMessage.GotEntryMessage({ id, message }),
+  fromParentMessage: false,
 }
 const forbiddenPlainKeyedPolicy: NamedKeyedConfig = {
   placement: 'namedEntries',
@@ -211,6 +216,7 @@ const forbiddenPlainKeyedPolicy: NamedKeyedConfig = {
   read: readNamedEntry,
   writeAt: writeAtStringKey,
   toParentMessage: toParentMessageWithStringKey,
+  fromParentMessage: false,
   // @ts-expect-error A keyed child without OutMessages forbids an OutMessage policy.
   outMessage: childPolicy,
 }
@@ -222,6 +228,7 @@ const undefinedPlainKeyedPolicy: NamedKeyedConfig = {
   read: readNamedEntry,
   writeAt: writeAtStringKey,
   toParentMessage: toParentMessageWithStringKey,
+  fromParentMessage: false,
   outMessage: undefined,
 }
 
@@ -237,6 +244,7 @@ const unstableKey: NamedKeyedConfig = {
   read: readNamedEntry,
   writeAt: writeAtStringKey,
   toParentMessage: toParentMessageWithStringKey,
+  fromParentMessage: false,
 }
 
 const wrongWriteAtKey: NamedKeyedConfig = {
@@ -247,6 +255,7 @@ const wrongWriteAtKey: NamedKeyedConfig = {
   // @ts-expect-error writeAt receives the exact string returned by key.
   writeAt: writeAtNumberKey,
   toParentMessage: toParentMessageWithStringKey,
+  fromParentMessage: false,
 }
 
 const wrongParentMessageKey: NamedKeyedConfig = {
@@ -257,6 +266,7 @@ const wrongParentMessageKey: NamedKeyedConfig = {
   writeAt: writeAtStringKey,
   // @ts-expect-error toParentMessage receives the exact string returned by key.
   toParentMessage: toParentMessageWithNumberKey,
+  fromParentMessage: false,
 }
 
 void unstableKey
@@ -270,6 +280,7 @@ const wrongSubscriptionKey: NamedKeyedConfig = {
   read: readNamedEntry,
   writeAt: writeAtStringKey,
   toParentMessage: toParentMessageWithStringKey,
+  fromParentMessage: false,
   // @ts-expect-error A keyed Subscription gate receives the exact string returned by key.
   subscriptions: { when: whenNamedEntryWithNumberKey },
 }
@@ -285,18 +296,20 @@ ChildBlock.connection
 // @ts-expect-error Keyed Bindings are also created by the parent.
 ChildBlock.keyedConnection
 
-Parent.toComposition().toBlock({
-  init: () => ({
+const UnregisteredComposition = Parent.toComposition()
+UnregisteredComposition.toBlock({
+  init: UnregisteredComposition.init(() => ({
     model: ParentModel.make({
       child: ChildBlock.Model.make({ value: 'initial' }),
       maybeChild: Option.none(),
       entries: [],
       namedEntries: [],
     }),
-  }),
-  update: Parent.update((model, message) =>
+  })),
+  update: UnregisteredComposition.update((model, message) =>
     ParentMessage.match(message, {
-      GotChildMessage: ({ message }) => unregisteredChild.fold(model, message),
+      GotChildMessage: ({ message }) =>
+        UnregisteredChildBinding.fold(model, message),
       GotEntryMessage: () => ({ model }),
       GotNamedEntryMessage: () => ({ model }),
       ForeignMessage: () => ({ model }),
@@ -310,13 +323,11 @@ const Application = defineApplication({
   Model: ParentModel,
   Message: ParentMessage,
 })
+// @ts-expect-error An Application cannot forward an OutMessage to a parent.
 Application.bindChild(ChildBlock, {
-  // @ts-expect-error This invalid Binding configuration has no matching overload.
   field: 'child',
-  // @ts-expect-error This invalid Binding configuration has no matching overload.
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: {
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
     forward: (_outMessage: typeof ChildBlock.OutMessage.Type) =>
       ParentOutMessage.ForwardedSelectedValue({ value: 'outside-root' }),
   },
@@ -325,3 +336,33 @@ Application.bindChild(ChildBlock, {
 ApplicationComposition.toElement
 // @ts-expect-error An Application Definition has no register alias.
 Application.register
+
+const schemaFreeRoutedConfig: NamedKeyedConfig = {
+  placement: 'namedEntries',
+  readAll: readNamedEntries,
+  key: namedEntryKey,
+  read: readNamedEntry,
+  writeAt: writeAtStringKey,
+  toParentMessage: toParentMessageWithStringKey,
+  // @ts-expect-error Checked incoming routes require the owning Definition's Message Schema.
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotNamedEntryMessage,
+    args: () => Option.none(),
+  },
+}
+void schemaFreeRoutedConfig
+
+declare const optionalPolicyConfig: Omit<KeyedChildConfig, 'outMessage'> &
+  Readonly<{ outMessage?: KeyedChildPolicy }>
+declare const optionalAbsentPolicyConfig: Omit<KeyedChildConfig, 'outMessage'> &
+  Readonly<{ outMessage?: never }>
+declare const missingReadAllConfig: Omit<NamedKeyedConfig, 'readAll'>
+declare const missingRouteConfig: Omit<NamedKeyedConfig, 'fromParentMessage'>
+// @ts-expect-error A potentially absent policy cannot handle a child's OutMessages.
+Parent.bindChild(ChildBlock, optionalPolicyConfig)
+// @ts-expect-error An optional never policy is absent and cannot handle OutMessages.
+Parent.bindChild(ChildBlock, optionalAbsentPolicyConfig)
+// @ts-expect-error A general keyed Binding requires its readAll callback.
+Parent.bindChild(PlainChildBlock, missingReadAllConfig)
+// @ts-expect-error A general keyed Binding requires an explicit route policy.
+Parent.bindChild(PlainChildBlock, missingRouteConfig)

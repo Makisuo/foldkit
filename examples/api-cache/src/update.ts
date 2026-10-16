@@ -3,18 +3,19 @@ import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { FetchPostDetail } from './command'
-import { applyPostsTransition, applyStatsTransition, tabs } from './composition'
-import { Application } from './definition'
+import {
+  ApplicationComposition,
+  applyPostsTransition,
+  applyStatsTransition,
+} from './composition'
 import { Message } from './message'
 import { PostDetailData } from './model'
 
 const setPostDetail = (postId: string, postDetail: PostDetailData) =>
   HashMap.set(postId, postDetail)
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
-    GotTabsMessage: ({ message }) => tabs.fold(model, message),
-
     ClickedPost: ({ postId }) => {
       const selectedModel = modifyFields(model, {
         maybeSelectedPostId: () => Option.some(postId),

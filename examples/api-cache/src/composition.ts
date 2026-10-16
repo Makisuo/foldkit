@@ -11,6 +11,7 @@ import {
   type PostsData,
   type StatsData,
   type Tab,
+  TABS_ID,
 } from './model'
 
 export const applyPostsTransition = (
@@ -64,14 +65,15 @@ const foldTabsOutMessage = AppTabs.OutMessage.match({
   Selected: ({ value }) => activateTabStep(value),
 })
 
-export const tabs = Application.bindChild(AppTabs, {
+export const TabsBinding = Application.bindChild(AppTabs, {
   field: 'tabs',
   parentMessage: Message.GotTabsMessage,
+  init: { args: () => [{ id: TABS_ID }] },
   outMessage: { fold: foldTabsOutMessage },
 })
 
 export const ApplicationComposition = Application.toComposition({
-  children: [tabs],
+  childBindings: [TabsBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition

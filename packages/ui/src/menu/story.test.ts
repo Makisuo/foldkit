@@ -36,18 +36,19 @@ import {
 const MenuStory = Block.define('MenuStory', { Model, Message })
 
 const foldMenuOutMessage = OutMessage.match<Update.Step<Model, Message>>({
-  Selected: () => model => ({ model }),
+  Selected: () => MenuStory.step(model => ({ model })),
 })
 
-const menu = MenuStory.bindChild(block, {
+const MenuBinding = MenuStory.bindChild(block, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
   toParentMessage: message => message,
+  fromParentMessage: false,
   outMessage: { fold: foldMenuOutMessage },
 })
 
 const MenuStoryComposition = MenuStory.toComposition({
-  children: [menu],
+  childBindings: [MenuBinding],
 })
 
 const RefinedMenu = create<'Edit' | 'Duplicate' | 'Delete'>()
@@ -57,19 +58,20 @@ const RefinedMenuStory = Block.define('RefinedMenuStory', {
   Message,
 })
 
-const refinedMenu = RefinedMenuStory.bindChild(RefinedMenu, {
+const RefinedMenuBinding = RefinedMenuStory.bindChild(RefinedMenu, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
   toParentMessage: message => message,
+  fromParentMessage: false,
   outMessage: {
     fold: RefinedMenu.OutMessage.match<Update.Step<Model, Message>>({
-      Selected: () => model => ({ model }),
+      Selected: () => RefinedMenuStory.step(model => ({ model })),
     }),
   },
 })
 
 const RefinedMenuStoryComposition = RefinedMenuStory.toComposition({
-  children: [refinedMenu],
+  childBindings: [RefinedMenuBinding],
 })
 
 const sceneView = (
@@ -80,7 +82,7 @@ const sceneView = (
 ) =>
   MenuStoryComposition.view((model, h) =>
     h.block(
-      menu.embedView({
+      MenuBinding.embedView({
         slotId: 'menu',
         model,
         viewInputs: {
@@ -95,7 +97,7 @@ const sceneView = (
 
 const refinedMenuSceneView = RefinedMenuStoryComposition.view((model, h) =>
   h.block(
-    refinedMenu.embedView({
+    RefinedMenuBinding.embedView({
       slotId: 'refined-menu',
       model,
       viewInputs: {

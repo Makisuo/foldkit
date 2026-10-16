@@ -361,13 +361,17 @@ const foldAnimationOutMessage =
     TransitionedOut: () => Menu.step(model => ({ model })),
   })
 
-const animation = Menu.bindChild(Animation.block, {
+const AnimationBinding = Menu.bindChild(Animation.block, {
   field: 'animation',
   parentMessage: Message.GotAnimationMessage,
   outMessage: { fold: foldAnimationOutMessage },
 })
 
-const internalUpdate = Menu.update((model, message) => {
+const internalUpdate = (
+  animationBinding: typeof AnimationBinding,
+  model: Model,
+  message: Exclude<Message, typeof Message.GotAnimationMessage.Type>,
+) => {
   const maybeLockScroll = OptionExt.when(model.isModal, LockMenuScroll())
 
   const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockMenuScroll())
@@ -401,7 +405,7 @@ const internalUpdate = Menu.update((model, message) => {
     if (model.isAnimated) {
       return Update.combine(baseModel, [
         stepModel => ({ model: stepModel, commands: openCommands }),
-        animation.show(),
+        animationBinding.show(),
         stepModel => ({
           model: modifyFields(stepModel, { isOpen: () => true }),
         }),
@@ -427,7 +431,7 @@ const internalUpdate = Menu.update((model, message) => {
     if (model.isAnimated) {
       return Update.combine(closed, [
         stepModel => ({ model: stepModel, commands }),
-        animation.hide(),
+        animationBinding.hide(),
       ])
     }
 
@@ -549,10 +553,7 @@ const internalUpdate = Menu.update((model, message) => {
     },
 
     CompletedDetectMenuMovementOrAnimationEnd: ({ generation }) =>
-      animation.finish(generation)(model),
-
-    GotAnimationMessage: ({ message: animationMessage }) =>
-      animation.fold(model, animationMessage),
+      animationBinding.finish(generation)(model),
 
     PressedPointerOnButton: ({
       pointerType,
@@ -639,7 +640,7 @@ const internalUpdate = Menu.update((model, message) => {
       }),
     }),
   })
-})
+}
 
 /**
  * The anchor-positioning Mount this Menu renders on its panel. The panel is
@@ -703,13 +704,15 @@ type MountRequirements = Mount.RequirementsOf<typeof mounts>
 
 const MenuComposition = Menu.toComposition({
   mounts,
-  children: [animation],
+  childBindings: [AnimationBinding],
 })
 type MenuViewBuilder = Block.ViewBuilderFor<typeof MenuComposition>
 
 /** Processes a Menu Message and returns the next Model, optional Commands, and
  *  an optional OutMessage. */
-export const update = Menu.update(internalUpdate)
+export const update = MenuComposition.update((model, message) =>
+  internalUpdate(AnimationBinding, model, message),
+)
 
 const EffectsLayer = Layer.mergeAll(
   LockMenuScroll.layer,
@@ -1272,7 +1275,7 @@ type RefineOutMessage<Return, OutMessage> = Return extends unknown
 
 /** Complete default Menu Block definition. */
 export const block = MenuComposition.toBlock({
-  init: Menu.init((config: InitConfig) => ({ model: init(config) })),
+  init: MenuComposition.init((config: InitConfig) => ({ model: init(config) })),
   update,
   view,
   expose,
@@ -1296,18 +1299,18 @@ const makeBlock = <Item extends string>() => {
     Message,
     OutMessage: RefinedOutMessage,
   })
-  const refinedUpdate = Menu.update((model, message) =>
-    castReturn(update(model, message)),
-  )
-  const itemAnimation = Menu.bindChild(Animation.block, {
+  const ItemAnimationBinding = Menu.bindChild(Animation.block, {
     field: 'animation',
     parentMessage: Message.GotAnimationMessage,
     outMessage: { fold: foldAnimationOutMessage },
   })
   const MenuComposition = Menu.toComposition({
     mounts,
-    children: [itemAnimation],
+    childBindings: [ItemAnimationBinding],
   })
+  const refinedUpdate = MenuComposition.update((model, message) =>
+    castReturn(internalUpdate(ItemAnimationBinding, model, message)),
+  )
   const refinedView =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     internalView<Item>() as unknown as (
@@ -1329,7 +1332,9 @@ const makeBlock = <Item extends string>() => {
     refinedUpdate(model, Message.SelectedItem({ index, item })),
   )
   return MenuComposition.toBlock({
-    init: Menu.init((config: InitConfig) => ({ model: init(config) })),
+    init: MenuComposition.init((config: InitConfig) => ({
+      model: init(config),
+    })),
     update: refinedUpdate,
     view,
     expose: { open, close, selectItem },

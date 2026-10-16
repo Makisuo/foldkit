@@ -58,7 +58,7 @@ When `isAnimated` is true, enter/leave animations flow through the [Animation](/
 
 ## Starting with an Open Dialog
 
-When a Dialog should be open at application startup, call the Binding’s `init` to obtain the Dialog Model and lifted Commands, then apply `dialog.open()` after the parent Model exists. The open operation returns a result containing a `ShowDialog` Command and emits `Opened` through the Binding’s OutMessage policy. Return its Commands along with any Commands from init. The Runtime executes them after root init returns.
+When a Dialog should be open at application startup, declare its init inputs on the Binding as in the basic example. Put `DialogBinding.open()` in the Composition init plan's `steps` array. The open operation returns a `ShowDialog` Command and emits `Opened` through the Binding's OutMessage policy. The Composition retains init Commands and collects the open operation's Commands. The Runtime executes them after root init returns.
 
 ::Snippet{name="uiDialogInitiallyOpen" label="Starting with an open Dialog"}
 

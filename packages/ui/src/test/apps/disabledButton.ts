@@ -38,14 +38,15 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const dialog = DisabledButtonTest.bindChild(Dialog.block, {
+const DialogBinding = DisabledButtonTest.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
+  init: { args: () => [{ id: 'test-dialog' }] },
 })
 
 const DisabledButtonTestComposition = DisabledButtonTest.toComposition({
-  children: [dialog],
+  childBindings: [DialogBinding],
 })
 
 // INIT
@@ -55,31 +56,21 @@ const makeInitialModel = (): Model => ({
   dialog: Dialog.init({ id: 'test-dialog' }),
 })
 
-const init = DisabledButtonTest.init(() => {
-  const dialogInit = dialog.init({ id: 'test-dialog' })
-  const dialogOpen = dialog.open()({
-    isEnabled: false,
-    dialog: dialogInit.model,
-  })
-
-  return {
-    ...dialogOpen,
-    commands: [...(dialogInit.commands ?? []), ...(dialogOpen.commands ?? [])],
-  }
-})
+const init = DisabledButtonTestComposition.init(() => ({
+  model: { isEnabled: false },
+  steps: [DialogBinding.open()],
+}))
 
 export const initialModel = modifyFields(makeInitialModel(), {
   dialog: dialog => modifyFields(dialog, { isOpen: () => true }),
 })
 
-export const update = DisabledButtonTest.update((model, message) =>
+export const update = DisabledButtonTestComposition.update((model, message) =>
   Message.match(message, {
     ClickedToggle: () => ({
       model: modifyFields(model, { isEnabled: isEnabled => !isEnabled }),
     }),
     ClickedSubmit: () => ({ model }),
-    GotDialogMessage: ({ message: dialogMessage }) =>
-      dialog.fold(model, dialogMessage),
   }),
 )
 
@@ -117,7 +108,7 @@ export const viewWithDialog = DisabledButtonTestComposition.view((model, h) => {
     [
       h.button([h.OnClick(Message.ClickedToggle())], ['Toggle']),
       h.block(
-        dialog.embedView({
+        DialogBinding.embedView({
           slotId: model.dialog.id,
           model: model.dialog,
           viewInputs: {

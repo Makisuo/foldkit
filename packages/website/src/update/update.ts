@@ -6,27 +6,17 @@ import { toString as urlToString } from 'foldkit/url'
 
 import * as Command from '../command'
 import {
-  apiReference,
-  comingFromReact,
-  coreBlockPage,
-  exampleDetail,
-  home,
-  mobileMenuDialog,
-  playground,
-  search,
-  snippetCopy,
-  snippetDisclosure,
-  themeMenu,
-  uiPages,
+  ApplicationComposition,
+  MobileMenuDialogBinding,
+  SearchBinding,
 } from '../composition'
-import { Application } from '../definition'
 import { Message } from '../message'
 import { isPlaygroundRoute, urlToApplicationRoute } from '../route'
 import { ApplyTheme, resolveTheme } from '../theme'
 import { handleCompletedLoadBrowserEnvironment } from './browserEnvironment'
 import { handleChangedUrl } from './changedUrl'
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match(request, {
@@ -70,27 +60,16 @@ export const update = Application.update((model, message) =>
 
     ClickedOpenMobileMenu: () =>
       Update.combine(model, [
-        mobileMenuDialog.open(),
+        MobileMenuDialogBinding.open(),
         stepModel => ({
           model: stepModel,
           commands: [Command.ScrollMobileMenuActiveLinkIntoView()],
         }),
       ]),
 
-    ClickedOpenSearch: () => search.open()(model),
+    ClickedOpenSearch: () => SearchBinding.open()(model),
 
-    PressedSearchShortcut: () => search.open()(model),
-
-    GotMobileMenuDialogMessage: ({ message }) =>
-      mobileMenuDialog.fold(model, message),
-
-    GotSnippetCopyMessage: ({ message }) => snippetCopy.fold(model, message),
-
-    GotSnippetDisclosureMessage: ({ message }) =>
-      snippetDisclosure.fold(model, message),
-
-    GotCoreBlockPageMessage: ({ message }) =>
-      coreBlockPage.fold(model, message),
+    PressedSearchShortcut: () => SearchBinding.open()(model),
 
     ToggledMobileTableOfContents: ({ isOpen }) => ({
       model: modifyFields(model, { isMobileTableOfContentsOpen: () => isOpen }),
@@ -116,10 +95,6 @@ export const update = Application.update((model, message) =>
     CompletedLoadBrowserEnvironment: environment =>
       handleCompletedLoadBrowserEnvironment(model, environment),
 
-    GotThemeMenuMessage: ({ message }) => themeMenu.fold(model, message),
-
-    GotHomeMessage: ({ message }) => home.fold(model, message),
-
     ChangedSystemTheme: ({ theme }) => {
       const resolvedTheme = resolveTheme(
         Option.getOrElse(model.maybeThemePreference, () => 'System'),
@@ -134,13 +109,6 @@ export const update = Application.update((model, message) =>
         commands: [ApplyTheme({ theme: resolvedTheme })],
       }
     },
-
-    GotComingFromReactMessage: ({ message }) =>
-      comingFromReact.fold(model, message),
-
-    GotApiReferenceMessage: ({ message }) => apiReference.fold(model, message),
-
-    GotUiPageMessage: ({ message }) => uiPages.fold(model, message),
 
     ToggledSidebarGroup: ({ key, isOpen }) => {
       const nextModel = modifyFields(model, {
@@ -157,12 +125,6 @@ export const update = Application.update((model, message) =>
       }
     },
 
-    GotExampleDetailMessage: ({ message }) =>
-      exampleDetail.fold(model, message),
-
-    GotSearchMessage: ({ message }) => search.fold(model, message),
-
-    GotPlaygroundMessage: ({ message }) => playground.fold(model, message),
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
     CompletedLoadPlayground: () => ({ model }),

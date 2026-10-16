@@ -29,23 +29,24 @@ const disabledAt =
 const TabsScene = Block.define('TabsScene', { Model, Message })
 
 const foldTabsOutMessage = OutMessage.match<Update.Step<Model, Message>>({
-  Selected: () => model => ({ model }),
+  Selected: () => TabsScene.step(model => ({ model })),
 })
 
-const tabs = TabsScene.bindChild(block, {
+const TabsBinding = TabsScene.bindChild(block, {
   read: model => Option.some(model),
   write: (_model, nextTabs) => nextTabs,
   toParentMessage: message => message,
+  fromParentMessage: false,
   outMessage: { fold: foldTabsOutMessage },
 })
 
 const TabsSceneComposition = TabsScene.toComposition({
-  children: [tabs],
+  childBindings: [TabsBinding],
 })
 
 const sceneView = TabsSceneComposition.view((model, h) =>
   h.block(
-    tabs.embedView({
+    TabsBinding.embedView({
       slotId: 'tabs',
       model,
       viewInputs: {
@@ -77,7 +78,7 @@ const sceneView = TabsSceneComposition.view((model, h) =>
 
 const allPanelsView = TabsSceneComposition.view((model, h) =>
   h.block(
-    tabs.embedView({
+    TabsBinding.embedView({
       slotId: 'tabs',
       model,
       viewInputs: {

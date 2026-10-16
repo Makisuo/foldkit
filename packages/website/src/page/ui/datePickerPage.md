@@ -6,7 +6,7 @@ An accessible date picker that wraps `Calendar` in a `Popover`. Consumers provid
 
 ### State Ownership
 
-`DatePicker.block` is a completed Block. Connect it, initialize it through the Binding, delegate Messages with `Binding.fold`, and render it through `Binding.embedView`.
+`DatePicker.block` is a completed Block. Declare its startup arguments on the Binding, register that Binding in the parent Composition, and render it through `Binding.embedView`. The Composition update routes the wrapper Message through the Binding automatically.
 
 The parent owns the selected date. Store it in the parent Model, pass it to the view as `maybeSelectedDate`, and handle `SelectedDate` and `ClearedDate` in the Binding's `outMessage.fold` policy. DatePicker can also emit `ChangedViewMonth` when navigation changes the visible month.
 

@@ -9,7 +9,7 @@ Replace manual Block wiring and child-owned connection factories with checked De
 
 ## Complete every Block through a Composition
 
-A Definition establishes the Model, Message, and optional OutMessage contracts and authors behavior through `init`, `update`, and Steps. A named Composition fixes the child Binding and Mount graph and authors the primary view. `toBlock` uses that same Composition to bring the implementation together and check handler completeness.
+A Definition establishes the Model, Message, and optional OutMessage contracts and authors effects, Steps, lifecycle definitions, and child Bindings. A named Composition fixes the child Binding and Mount graph and owns init, update, and the primary view. `toBlock` uses that same Composition to bring the implementation together and check handler completeness.
 
 Before:
 
@@ -68,7 +68,7 @@ export * as Home from './home'
 
 Parents import the Home namespace from the parent barrel and bind `Home.block`.
 
-`children` and `mounts` are independently optional. Use `toComposition()`, `toComposition({ children })`, `toComposition({ mounts })`, or `toComposition({ children, mounts })`. Omitted registrations grant no capabilities. Name the returned Composition, author the primary view through its `view` or `view.withInputs` method, and complete that same value. Direct `Definition.view` authoring is removed. A completed Block retains its distinct `view` helper for alternate embeds against its already fixed graph. Keep init, update, Steps, and operations required by child policy on the Definition.
+`childBindings` and `mounts` are independently optional. Use `toComposition()`, `toComposition({ childBindings })`, `toComposition({ mounts })`, or `toComposition({ childBindings, mounts })`. Omitted registrations grant no capabilities. Name the returned Composition, author init, update, and the primary view through it, and complete that same value. Direct Definition init, update, and view authoring is removed. A completed Block retains its distinct `view` helper for alternate embeds against its already fixed graph. Keep Steps and operations required by child policy on the Definition.
 
 Use the one-argument `Block.define('Feature')` form only for a generic factory that shares definitions before specializing several contracts with `.define(...)`. Ordinary features establish their contracts in the first call.
 
@@ -105,13 +105,13 @@ import { Home } from './page'
 
 export const Application = defineApplication({ Model, Message })
 
-export const home = Application.bindChild(Home.block, {
+export const HomeBinding = Application.bindChild(Home.block, {
   field: 'home',
   parentMessage: Message.GotHomeMessage,
 })
 
 export const ApplicationComposition = Application.toComposition({
-  children: [home],
+  childBindings: [HomeBinding],
 })
 ```
 
@@ -119,15 +119,16 @@ The direct field form infers the parent Model and child Model relationship for e
 
 Placement identifies one child Binding within the parent's composition graph. It does not identify a DOM position and need not match a Model field. `readAll` selects the general keyed form and defaults placement to the child Block ID. Otherwise every `field` shorthand defaults to that field, including direct and wrapped keyed arrays; a static accessor config defaults to the child Block ID. For keyed Bindings, `key` identifies dynamic occurrences under that one placement. Supply an explicit placement only when sibling defaults collide or an established graph identity must deliberately remain different from the new default.
 
-A split feature without a `composition/` directory uses `composition.ts` for straightforward Bindings, its complete `toComposition({ children, mounts })` registration, Composition and an optional owner-specific ViewBuilder alias. When `composition/` exists, `composition/composition.ts` owns that assembly and `composition/index.ts` exports it. Mount-only features use the same home, with definitions shared with the view in `mount.ts`. Extract a substantial policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. External consumers import from `composition.ts` or that barrel, never from a policy or assembly implementation path. The barrel exports each extracted policy as a child-named namespace, such as `Home` and `Room`. Consumers import `{ Home, Room }` from `./composition`. Keep flat named exports for the main Composition assembly surface and straightforward local Bindings. Name policy factories `bind`, so namespace callers use `Home.bind(...)`. Internal implementation modules may use direct relative sibling imports to avoid barrel cycles. A split graphless feature exports its named empty Composition beside the Definition in `definition.ts`; view and completion import that same value without an empty `composition.ts`. A compact graphless feature keeps it beside its cohesive implementation. A genuinely compact root keeps Model, Message, init, update, view, `Application`, and `ApplicationComposition` together in `application.ts`. A split root always uses `composition.ts` or `composition/composition.ts`, including when graphless, and removes the emptied `application.ts`. `bindChild` only configures the relationship; including its result under `children` registers it. Neither step constructs Layers or starts effects. Import every extracted policy through its child-name namespace, such as `Home` or `Room`, so factories and constructed Binding values remain visibly grouped. Keep flat named imports for the main Composition assembly surface and straightforward local Bindings. Keep child feature namespaces distinct from parent-owned Binding policies.
+A split feature without a `composition/` directory uses `composition.ts` for straightforward Bindings, its complete `toComposition({ childBindings, mounts })` registration, Composition and an optional owner-specific ViewBuilder alias. When `composition/` exists, `composition/composition.ts` owns that assembly and `composition/index.ts` exports it. Mount-only features use the same home, with definitions shared with the view in `mount.ts`. Extract a substantial policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. External consumers import from `composition.ts` or that barrel, never from a policy or assembly implementation path. The barrel exports each extracted policy as a child-named namespace, such as `Home` and `Room`. Consumers import `{ Home, Room }` from `./composition`. Keep flat named exports for the main Composition assembly surface and straightforward local Bindings. Name policy factories `bind`, so namespace callers use `Home.bind(...)`. Internal implementation modules may use direct relative sibling imports to avoid barrel cycles. A split graphless feature exports its named empty Composition beside the Definition in `definition.ts`; view and completion import that same value without an empty `composition.ts`. A compact graphless feature keeps it beside its cohesive implementation. A genuinely compact root keeps Model, Message, init, update, view, `Application`, and `ApplicationComposition` together in `application.ts`. A split root always uses `composition.ts` or `composition/composition.ts`, including when graphless, and removes the emptied `application.ts`. `bindChild` only configures the relationship; including its result under `childBindings` registers it. Neither step constructs Layers or starts effects. Import every extracted policy through its child-name namespace, such as `Home` or `Room`, so factories and constructed Binding values remain visibly grouped. Keep flat named imports for the main Composition assembly surface and straightforward local Bindings. Keep child feature namespaces distinct from parent-owned Binding policies.
 
-The Binding projects `init`, `fold`, `embedView`, and operations selected under `expose`:
+The Binding projects `init`, `fold`, `embedView`, and operations selected under `expose`. A registered canonical wrapper Message routes through `fold` automatically, so the Composition update callback handles only parent-owned variants:
+
+Canonical unkeyed wrappers route automatically only when child update has no context parameters. Declare `fromParentMessage.args` for optional or defaulted context too: the parent chooses the native fold arguments explicitly, including whether to use a child default. This restriction does not change direct Binding folds.
 
 ```ts
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
-    GotHomeMessage: ({ message }) => home.fold(model, message),
-    ClickedRefresh: () => home.refresh()(model),
+    ClickedRefresh: () => HomeBinding.refresh()(model),
   }),
 )
 ```
@@ -150,7 +151,7 @@ const foldHomeOutMessage = Home.OutMessage.match({
   SelectedArticle: ({ articleId }) => openArticle(articleId),
 })
 
-export const home = Application.bindChild(Home.block, {
+export const HomeBinding = Application.bindChild(Home.block, {
   field: 'home',
   parentMessage: Message.GotHomeMessage,
   outMessage: { fold: foldHomeOutMessage },
@@ -159,9 +160,12 @@ export const home = Application.bindChild(Home.block, {
 
 `outMessage.fold` handles variants locally. Add an exhaustive `outMessage.forward` only when at least one variant continues through the current Block's OutMessage. A derived OutMessage takes precedence over forwarding for the same dispatch; local handling still runs.
 
+An OutMessage policy may call a parent Step or a registered sibling Binding operation. This supports parent-owned coordination in either direction between siblings. Composition validates the policy's output and the captured sibling evidence when the graph is registered. Keep policy chains synchronous and finite because a sibling operation may run another policy before the original update returns.
+
 A keyed Binding uses the same parent-owned method. When a field is an array of child Models, a string-valued `key` names their stable identity field. This migration example retains the former general keyed Binding's Block-ID placement explicitly:
 
 ```ts
+import { Option } from 'effect'
 import { Block } from 'foldkit'
 
 import { Message } from './message'
@@ -170,16 +174,20 @@ import { Row } from './row'
 
 const Table = Block.define('Table', { Model, Message })
 
-export const rows = Table.bindChild(Row.block, {
+export const RowsBinding = Table.bindChild(Row.block, {
   placement: 'Row',
   field: 'rows',
   key: 'id',
   toParentMessage: (rowId, message) =>
     Message.GotRowMessage({ rowId, message }),
+  fromParentMessage: {
+    parentMessage: Message.GotRowMessage,
+    args: (_model, { rowId, message }) => Option.some([rowId, message]),
+  },
 })
 
 export const TableComposition = Table.toComposition({
-  children: [rows],
+  childBindings: [RowsBinding],
 })
 ```
 
@@ -213,13 +221,20 @@ export const applicants = Application.bindChild(Applicant.block, {
 After, preserving the former general keyed Binding's `Applicant` placement:
 
 ```ts
-export const applicants = Application.bindChild(Applicant.block, {
+import { Option } from 'effect'
+
+export const ApplicantsBinding = Application.bindChild(Applicant.block, {
   placement: 'Applicant',
   field: 'applicants',
   key: 'id',
   childField: 'entry',
   toParentMessage: (applicantId, message) =>
     Message.GotApplicantMessage({ applicantId, message }),
+  fromParentMessage: {
+    parentMessage: Message.GotApplicantMessage,
+    args: (_model, { applicantId, message }) =>
+      Option.some([applicantId, message]),
+  },
 })
 ```
 
@@ -227,7 +242,7 @@ export const applicants = Application.bindChild(Applicant.block, {
 
 Use `readAll`, function-valued `key`, `read`, and `writeAt` for custom parent writes, opaque, union, or open/index-signature wrappers, and collections such as `Option<RoomInstance>` that enumerate zero or one child. These explicit accessors continue to define application-specific storage and enumeration policy.
 
-Use a keyed Binding for a routed child when its domain ID changes, even if only one instance is present at a time. Capture the key in `toParentMessage` so delayed Command results and Subscription emissions retain their origin. Replacing the key retires that occurrence and its dispatchers; reusing the key later creates a new occurrence. Running Commands retain application lifetime, so isolate external writes by domain ID when their completion must not overwrite another instance's data.
+Use a keyed Binding for a routed child when its domain ID changes, even if only one instance is present at a time. Capture the key in `toParentMessage` so delayed Command results and Subscription emissions retain their origin, and recover the native fold tuple through `fromParentMessage`. Return `Option.none()` when the key is stale or inactive. Replacing the key retires that occurrence and its dispatchers; reusing the key later creates a new occurrence. Running Commands retain application lifetime, so isolate external writes by domain ID when their completion must not overwrite another instance's data.
 
 A Query uses the same Binding path because Query and KeyedQuery are completed viewless Blocks. A KeyedQuery's keyed entries remain cache data inside one child Model; they are not keyed Block instances.
 
@@ -254,13 +269,13 @@ export const postsQuery = Query.define({
 
 export const Application = defineApplication({ Model, Message })
 
-export const posts = Application.bindChild(postsQuery, {
+export const PostsBinding = Application.bindChild(postsQuery, {
   field: 'posts',
   parentMessage: Message.GotPostsMessage,
 })
 
 export const ApplicationComposition = Application.toComposition({
-  children: [posts],
+  childBindings: [PostsBinding],
 })
 ```
 
@@ -311,13 +326,13 @@ import { Message } from './message'
 import { Application } from './definition'
 import { mounts } from './mount'
 
-export const home = Application.bindChild(Home.block, {
+export const HomeBinding = Application.bindChild(Home.block, {
   field: 'home',
   parentMessage: Message.GotHomeMessage,
 })
 
 export const ApplicationComposition = Application.toComposition({
-  children: [home],
+  childBindings: [HomeBinding],
   mounts,
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
@@ -464,7 +479,9 @@ export const Message = defineMessageUnion({ ClickedIncrement: {} })
 
 export const Application = defineApplication({ Model, Message })
 
-export const update = Application.update((model, message) =>
+export const ApplicationComposition = Application.toComposition()
+
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + 1 }),
@@ -472,9 +489,9 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-export const init = Application.init(() => ({ model: { count: 0 } }))
-
-export const ApplicationComposition = Application.toComposition()
+export const init = ApplicationComposition.init(() => ({
+  model: { count: 0 },
+}))
 
 export const view = ApplicationComposition.view((model, h) => ({
   title: `Count: ${model.count}`,
@@ -525,6 +542,8 @@ Server.renderToString(
 ## Enforcement boundaries
 
 TypeScript checks contracts, precise handler and Service requirements, constructor errors, handler completeness, registration evidence, exposed operation requirements, and Mount or child capabilities through emitted declarations.
+
+Connected initialization requires an active registered graph at runtime and returns a complete parent result through `Binding.init({ args, key?, toParentModel, commands? })`. Ordinary Model construction remains available; projecting arbitrary Models does not retain Binding provenance.
 
 Runtime identity maps and lifecycle generations enforce exact occurrence identity, stale Command and callback suppression, keyed generation isolation, Mount ownership, and the private identity of structurally identical handler protocols. These are runtime guarantees rather than type-level proofs.
 

@@ -1,9 +1,9 @@
 import { Record } from 'effect'
 
-import { ComingFromReact } from './definition'
+import { ComingFromReactComposition } from './definition'
 import { Message } from './message'
 
-export const update = ComingFromReact.update((model, message) =>
+export const update = ComingFromReactComposition.update((model, message) =>
   Message.match(message, {
     ToggledFaq: ({ id, isOpen }) => ({ model: Record.set(model, id, isOpen) }),
   }),

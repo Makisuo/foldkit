@@ -2,23 +2,8 @@
 // example: same Model, init, Message, and update wiring. The difference is in
 // the view. Fit the excerpts into your own definitions.
 
-// Model and init are unchanged from the basic example. Pass any
-// `rowHeightPx` to `init`; fixed and known-variable views still use their
-// respective exact heights:
-const init = ActivityListExample.init(() => {
-  const activityListInit = activityList.init({
-    id: 'activity-list',
-    rowHeightPx: 56,
-  })
-
-  return {
-    model: {
-      activityList: activityListInit.model,
-      // ...your other fields
-    },
-    commands: activityListInit.commands,
-  }
-})
+// Keep the basic example's Binding startup policy and initializer. This
+// view supplies exact per-item heights instead of a single fixed height.
 
 // Provide an `itemToRowHeightPx` callback on `view`. Each row wrapper is
 // sized to the height the callback returns for that item. Slice and spacer
@@ -27,7 +12,7 @@ const init = ActivityListExample.init(() => {
 // a prefix-sum cache if you can profile the regression:
 const view = ActivityListExampleComposition.view((model, h) =>
   h.block(
-    activityList.embedView({
+    ActivityListBinding.embedView({
       slotId: 'activity-list',
       model: model.activityList,
       viewInputs: {
@@ -80,4 +65,5 @@ const view = ActivityListExampleComposition.view((model, h) =>
 // Programmatic scrolling is sizing-mode independent. The next view resolves
 // the logical index and the Command aligns the live rendered row:
 // In the corresponding Message.match handler:
-ClickedScrollActivityListToMiddle: () => activityList.scrollToIndex(500)(model)
+ClickedScrollActivityListToMiddle: () =>
+  ActivityListBinding.scrollToIndex(500)(model)

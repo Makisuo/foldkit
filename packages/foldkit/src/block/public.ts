@@ -3,6 +3,8 @@ export type {
   AnyDocumentView,
   AnyBlockView,
   BoundBlockView,
+  BoundBlockFields,
+  BoundBlockConfigEvidence,
   DocumentView,
   BoundBlockConfig as Config,
   BlockView as View,
@@ -12,18 +14,34 @@ export type {
   AnyBinding,
   Binding,
   BindingConfig,
+  BindingEvidence,
+  BindingInitializer,
   BindingInspection,
   InspectionOfBinding,
   BindingRequirement,
   BindingReturn,
   BlockOfBinding,
   OutMessagePolicy,
+  ParentBindingContract,
   RequirementOfBinding,
   RequirementsOfBindings,
   ValidateEmbeddedViewMounts,
+  WithoutBindingEvidence,
 } from './binding.js'
 export { inspectBinding } from './binding.js'
 export type { BindChild } from './bindChild.js'
+export type {
+  BindingDeliveryEvidence,
+  DefineCompositionUpdate,
+  FromParentMessageArgs,
+  FromParentMessagePolicy,
+} from './delivery.js'
+export type {
+  InitialBindingEvidence,
+  CompositionInit,
+  InitializationPlan,
+  InitializationStep,
+} from './initialization.js'
 export { LocalMountsTypeId } from './definition.js'
 export type {
   AnyBlock,
@@ -36,13 +54,12 @@ export type {
   DefinitionAuthoredView,
   DefinitionView,
   DefineBlock,
-  DefineInit,
   DefineManagedResources,
   DefinedStep,
   DefinedUpdate,
+  DefinedUpdateSource,
   DefineStep,
   DefineSubscriptions,
-  DefineUpdate,
   DefineView,
   Block,
   Implementation,
@@ -74,6 +91,7 @@ export type {
 } from './keyedBinding.js'
 export type { Owner } from './owner.js'
 export type { Qualify, Scoped } from './scope.js'
+export type { BindingPolicyEvidence } from './policyEvidence.js'
 export type { ValidateConcreteComposition } from './requirements.js'
 export type { Reflect, Reflect2 } from './block.js'
 export type { InstanceKey } from './instanceContext.js'

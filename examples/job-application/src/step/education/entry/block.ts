@@ -1,24 +1,22 @@
-import { modifyFields } from 'foldkit/struct'
+import { Option } from 'effect'
+import { NotValidated } from 'foldkit/fieldValidation'
 
-import { EducationEntryComposition, graduationYearListbox } from './composition'
-import { EducationEntry } from './definition'
-import { init } from './init'
+import { EducationEntryComposition } from './composition'
 import { update } from './update'
 import { view } from './view'
 
 export const block = EducationEntryComposition.toBlock({
-  init: EducationEntry.init((entryId: string) => {
-    const graduationYearInit = graduationYearListbox.init({
-      id: `${entryId}-graduation-year`,
-    })
-
-    return {
-      model: modifyFields(init(entryId), {
-        graduationYearListbox: () => graduationYearInit.model,
-      }),
-      commands: graduationYearInit.commands,
-    }
-  }),
+  init: EducationEntryComposition.init((entryId: string) => ({
+    startup: entryId,
+    model: {
+      id: entryId,
+      school: NotValidated({ value: '' }),
+      degree: NotValidated({ value: '' }),
+      fieldOfStudy: NotValidated({ value: '' }),
+      maybeGraduationYear: Option.none(),
+      isCurrentlyEnrolled: false,
+    },
+  })),
   update,
   view,
 })

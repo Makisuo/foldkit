@@ -20,7 +20,7 @@ Calendar owns navigation state, including the visible month, active grid, and ke
 
 ## Wire Calendar into a Parent
 
-Bind `Calendar.block` in the parent. Initialize it through the Binding’s `init`, store its Model in your parent Model, and delegate its Messages with the Binding’s `fold`. Render it through `h.block(calendar.embedView(...))`.
+Bind `Calendar.block` in the parent. Declare its startup arguments with the Binding's `init` policy and let the parent Composition assemble its Model. Registered Calendar wrapper Messages route through the Binding automatically. Render it through `h.block(CalendarBinding.embedView(...))`.
 
 Pass the parent-owned selection into `viewInputs.maybeSelectedDate` on every render. When Calendar emits `SelectedDate`, fold that OutMessage into the parent's selected-date field. `Calendar.update` returns `Update.ReturnWithOutMessage<Model, Message, OutMessage>`, so the same fold can handle `ChangedViewMonth` when your application needs month-scoped data.
 

@@ -1,3 +1,4 @@
+import { Tuple } from 'effect'
 import type { Block } from 'foldkit'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
@@ -19,15 +20,16 @@ const foldPlaygroundFileTabsOutMessage = Tabs.OutMessage.match<
     }),
 })
 
-export const fileTabs = Playground.bindChild(PlaygroundFileTabs, {
+export const FileTabsBinding = Playground.bindChild(PlaygroundFileTabs, {
   field: 'fileTabs',
   parentMessage: Message.GotFileTabsMessage,
   outMessage: { fold: foldPlaygroundFileTabsOutMessage },
+  init: { args: () => Tuple.make({ id: 'playground-files' }) },
 })
 
 export const PlaygroundComposition = Playground.toComposition({
   mounts: [MountPlaygroundEditor],
-  children: [fileTabs],
+  childBindings: [FileTabsBinding],
 })
 export type PlaygroundViewBuilder = Block.ViewBuilderFor<
   typeof PlaygroundComposition

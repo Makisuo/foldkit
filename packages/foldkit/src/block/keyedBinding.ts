@@ -1,4 +1,4 @@
-import { Array, Layer, Option, Record } from 'effect'
+import { Array, Layer, Option, Predicate, Record, Schema } from 'effect'
 
 import { type Command, mapMessages } from '../command/index.js'
 import type {
@@ -13,17 +13,25 @@ import type {
   BindableBlock,
   Binding,
   BindingEvidence,
+  BindingInitializer,
   BindingInspection,
   BindingRequirement,
   BindingReturn,
+  BoundExposedOperations,
   HandlerRequirementsOfBinding,
   ParentBindingContract,
   ValidateEmbeddedViewMounts,
   WithoutBindingEvidence,
 } from './binding.js'
 import { assertValidBindingOperationNames } from './binding.js'
-import { registerBinding } from './composition.js'
+import { assertInitializedParentModel, registerBinding } from './composition.js'
 import { type DefaultViewTypeId, defaultViewOf } from './defaultView.js'
+import {
+  type BindingDeliveryEvidence,
+  type RuntimeFromParentMessage,
+  registerBindingDelivery,
+  trackParentMessageMapper,
+} from './delivery.js'
 import {
   LocalMountsTypeId,
   ViewScopeTypeId,
@@ -32,6 +40,7 @@ import {
 import type { InstanceKey } from './instanceContext.js'
 import {
   assertRegisteredBinding,
+  assertRegisteredInitialization,
   withOperationGraph,
 } from './operationGraph.js'
 import type { ValidateConcreteComposition } from './requirements.js'
@@ -231,6 +240,10 @@ export type KeyedBindingConfig<
   Placement
 > &
   Readonly<{
+    /** Keeps incoming dispatch manual for explicitly typed configurations.
+     * Author checked incoming routes through the owning Definition's bindChild
+     * method, which knows the parent Message Schema and native fold arguments. */
+    fromParentMessage: false
     /** Handles every child OutMessage locally, forwards selected variants, or
      * does both. This property is required exactly when the child declares an
      * OutMessage type. */
@@ -317,14 +330,15 @@ type KeyedBoundExposedOperations<
   Placement extends string,
   Policy,
 > = Readonly<{
-  [Name in keyof BlockValue['expose']]: (
-    key: Key,
-    ...args: Parameters<
-      Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy>[Name]
-    >
-  ) => ReturnType<
-    Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy>[Name]
-  >
+  [Name in keyof BlockValue['expose']]: BoundExposedOperations<
+    BlockValue,
+    ParentModel,
+    ParentMessage,
+    Placement,
+    Policy
+  >[Name] extends (...args: infer Args) => infer Output
+    ? (key: Key, ...args: Args) => Output
+    : never
 }>
 
 /** A registered child collection whose active keys receive independent
@@ -340,6 +354,8 @@ export type KeyedBinding<
   ContractModel = never,
   ContractMessage = never,
   ContractOutMessage = never,
+  OutgoingMessage = ParentMessage,
+  IncomingMessage = never,
 > = WithoutBindingEvidence<
   Omit<
     Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy>,
@@ -369,20 +385,24 @@ export type KeyedBinding<
     >,
     true
   > &
+  BindingDeliveryEvidence<OutgoingMessage, IncomingMessage> &
   Readonly<{
     /** The stable identity of this child Binding in the parent Block's
      * composition graph. It is independent of DOM position. Every keyed
      * occurrence shares this placement; `key` distinguishes the occurrence
      * within it. */
     placement: Placement
-    /** Initializes one child occurrence and lifts its Commands to the parent
-     * Message type. The parent remains responsible for inserting the returned
-     * child Model into its collection. */
-    init: (
-      key: Key,
-      ...args: Parameters<BlockValue['init']>
-    ) => ReturnType<
-      Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy>['init']
+    /** Initializes one child occurrence, constructs the complete parent Model,
+     * and lifts its Commands to the parent Message type. Additional parent
+     * Commands run after the initialized child's Commands. Initialization
+     * requires this Binding's exact registered Composition to be active. */
+    init: BindingInitializer<
+      BlockValue,
+      ParentModel,
+      ParentMessage,
+      Placement,
+      Key,
+      true
     >
     /** Runs the child update for `key`, writes the next child Model through
      * `writeAt`, lifts Commands, and applies the OutMessage policy. If the key is
@@ -503,6 +523,49 @@ type AnyUpdateReturn = Readonly<{
 
 type AnyProducer = (model: any, ...args: ReadonlyArray<any>) => AnyUpdateReturn
 
+type RuntimeKeyedBindingInitConfig = Readonly<{
+  key: InstanceKey
+  args: ReadonlyArray<unknown>
+  toParentModel: (childModel: unknown) => unknown
+  commands?: ReadonlyArray<unknown> | undefined
+}>
+
+const assertKeyedBindingInitConfig: (
+  value: unknown,
+  placement: string,
+) => asserts value is RuntimeKeyedBindingInitConfig = (value, placement) => {
+  if (!Predicate.isObject(value)) {
+    throw new Error(
+      `[foldkit] Keyed child Binding "${placement}" init requires a configuration object with key, args, and toParentModel.`,
+    )
+  }
+  const key = Reflect.get(value, 'key')
+  if (
+    !Predicate.isString(key) &&
+    (typeof key !== 'number' || !globalThis.Number.isFinite(key))
+  ) {
+    throw new Error(
+      `[foldkit] Keyed child Binding "${placement}" init.key must be a string or finite number.`,
+    )
+  }
+  if (!globalThis.Array.isArray(Reflect.get(value, 'args'))) {
+    throw new Error(
+      `[foldkit] Keyed child Binding "${placement}" init.args must be an argument tuple.`,
+    )
+  }
+  if (!Predicate.isFunction(Reflect.get(value, 'toParentModel'))) {
+    throw new Error(
+      `[foldkit] Keyed child Binding "${placement}" init.toParentModel must be a function that stores the initialized child in the parent Model.`,
+    )
+  }
+  const commands = Reflect.get(value, 'commands')
+  if (commands !== undefined && !globalThis.Array.isArray(commands)) {
+    throw new Error(
+      `[foldkit] Keyed child Binding "${placement}" init.commands must be a Commands collection when provided.`,
+    )
+  }
+}
+
 type RuntimeKeyedFoldContext = Readonly<{
   modelBeforeUpdate: any
   liftCommand: (command: Command<any, any, any>) => Command<any, any, any>
@@ -539,6 +602,8 @@ type RuntimeKeyedBindingConfig = Readonly<{
   subscriptions?: Readonly<{ when?: RuntimeKeyedSubscriptionWhen }>
   outMessage?: RuntimeKeyedOutMessagePolicy
   validateChildKey?: (key: InstanceKey, childModel: any) => void
+  outgoingParentMessage?: Schema.Top & ((...args: ReadonlyArray<any>) => any)
+  fromParentMessage?: RuntimeFromParentMessage
 }>
 
 type RuntimeKeyedOperation = Readonly<{
@@ -575,9 +640,18 @@ type RuntimeBoundKeyedFold = (
 /** @internal Implements collection folding and embedding without constructing Layers. */
 export const bindEach = <const BlockValue extends BindableBlock>(
   block: BlockValue,
-  config: RuntimeKeyedBindingConfig,
+  bindingConfig: RuntimeKeyedBindingConfig,
 ): AnyBinding => {
+  const trackedMapper = trackParentMessageMapper(bindingConfig.toParentMessage)
+  const config = {
+    ...bindingConfig,
+    toParentMessage: trackedMapper.toParentMessage,
+  }
   const placement = config.placement ?? block.owner.id
+  const isChildModel = Reflect.apply(Schema.is, undefined, [block.Model])
+  const equivalentChildModel = Reflect.apply(Schema.toEquivalence, undefined, [
+    block.Model,
+  ])
   assertSegment(placement)
   assertValidBindingOperationNames(block.expose)
   const allowedIdentities = hostIdentitiesOf(block)
@@ -647,7 +721,7 @@ export const bindEach = <const BlockValue extends BindableBlock>(
   ): RuntimeKeyedChildFold => ({
     update: (childModel, operation) =>
       scopeReturn(
-        withOperationGraph(block.children, () =>
+        withOperationGraph(block.childBindings, () =>
           producer(childModel, ...operation.args),
         ),
         operation.key,
@@ -711,21 +785,54 @@ export const bindEach = <const BlockValue extends BindableBlock>(
       Layer.Services<BlockValue['EffectsLayer']>
     >,
   )
+  const initialize = (key: InstanceKey, ...args: ReadonlyArray<any>) => {
+    assertRegisteredInitialization(binding, placement)
+    const initialChild = withOperationGraph(block.childBindings, () =>
+      block.init(...args),
+    )
+    config.validateChildKey?.(key, initialChild.model)
+    const childInit = scopeReturn(initialChild, key, true)
+    return {
+      model: childInit.model,
+      commands: mapMessages(childInit.commands, message =>
+        config.toParentMessage(key, message),
+      ),
+    }
+  }
   const binding = {
     placement,
-    init: (key: InstanceKey, ...args: ReadonlyArray<any>) => {
-      assertRegisteredBinding(binding, placement)
-
-      const initialChild = withOperationGraph(block.children, () =>
-        block.init(...args),
-      )
-      config.validateChildKey?.(key, initialChild.model)
-      const childInit = scopeReturn(initialChild, key, true)
+    init: (initial: unknown) => {
+      assertKeyedBindingInitConfig(initial, placement)
+      const childInit = initialize(initial.key, ...initial.args)
+      const model = initial.toParentModel(childInit.model)
+      assertInitializedParentModel(binding, placement, model)
+      let matchingKeyCount = 0
+      let selectedChild: unknown
+      try {
+        for (const item of config.readAll(model)) {
+          if (config.key(item) === initial.key) {
+            matchingKeyCount += 1
+            selectedChild = config.read(item)
+          }
+        }
+      } catch (cause) {
+        throw new Error(
+          `[foldkit] Keyed child Binding "${placement}" init.toParentModel returned a parent Model that its collection accessors could not inspect at key "${globalThis.String(initial.key)}".`,
+          { cause },
+        )
+      }
+      if (
+        matchingKeyCount !== 1 ||
+        !isChildModel(selectedChild) ||
+        !equivalentChildModel(selectedChild, childInit.model)
+      ) {
+        throw new Error(
+          `[foldkit] Keyed child Binding "${placement}" init.toParentModel must store exactly one occurrence at key "${globalThis.String(initial.key)}" and preserve the initialized child Model through the parent Model Schema.`,
+        )
+      }
       return {
-        model: childInit.model,
-        commands: mapMessages(childInit.commands, message =>
-          config.toParentMessage(key, message),
-        ),
+        model,
+        commands: [...(childInit.commands ?? []), ...(initial.commands ?? [])],
       }
     },
     fold,
@@ -749,7 +856,7 @@ export const bindEach = <const BlockValue extends BindableBlock>(
           identity: {
             owner: block.owner,
             mounts: block[LocalMountsTypeId],
-            children: block.children,
+            childBindings: block.childBindings,
           },
         },
       } as unknown as BoundBlockConfig<View, any>
@@ -759,6 +866,7 @@ export const bindEach = <const BlockValue extends BindableBlock>(
   }
   registerBinding(binding, {
     block,
+    initialize: (key, args) => initialize(requireKey(key), ...args),
     select: model =>
       config.readAll(model).map(item => ({
         key: config.key(item),
@@ -780,6 +888,14 @@ export const bindEach = <const BlockValue extends BindableBlock>(
       mounts: block.mounts,
       EffectsLayer,
     },
+  })
+  registerBindingDelivery(binding, trackedMapper, {
+    ...(config.outgoingParentMessage === undefined
+      ? {}
+      : { outgoingParentMessage: config.outgoingParentMessage }),
+    ...(config.fromParentMessage === undefined
+      ? {}
+      : { fromParentMessage: config.fromParentMessage }),
   })
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   return binding as unknown as AnyBinding

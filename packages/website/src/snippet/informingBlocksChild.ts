@@ -11,30 +11,28 @@ import {
 } from './informingBlocksModel'
 import { type PeopleRoute } from './informingBlocksRoute'
 
-export const update = People.update((model, message) =>
-  Message.match(message, {
-    ChangedRoute: ({ route }) => {
-      const searchText = routeSearchText(route.searchText)
-      return {
-        model: modifyFields(model, {
-          searchInput: () => searchText,
-          searchHistory: history => addSearchToHistory(history, searchText),
-          results: () => SearchResults.Loading(),
-        }),
-        commands: [FetchPeople({ searchText })],
-      }
-    },
+export const informRouteChanged = People.step((model, route: PeopleRoute) => {
+  const searchText = routeSearchText(route.searchText)
 
+  return {
+    model: modifyFields(model, {
+      searchInput: () => searchText,
+      searchHistory: history => addSearchToHistory(history, searchText),
+      results: () => SearchResults.Loading(),
+    }),
+    commands: [FetchPeople({ searchText })],
+  }
+})
+
+export const update = PeopleComposition.update((model, message) =>
+  Message.match(message, {
+    ChangedRoute: ({ route }) => informRouteChanged(model, route),
     CompletedFetchPeople: ({ query, people }) => ({
       model: modifyFields(model, {
         results: () => SearchResults.Loaded({ query, people }),
       }),
     }),
   }),
-)
-
-export const informRouteChanged = People.step((model, route: PeopleRoute) =>
-  update(model, Message.ChangedRoute({ route })),
 )
 
 export const block = PeopleComposition.toBlock({

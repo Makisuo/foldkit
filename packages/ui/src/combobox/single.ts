@@ -53,6 +53,7 @@ export const init = (config: InitConfig): Model => baseInit(config)
  *  emits `ClearedSelection` when it closes with an empty input. */
 const defaultUpdate = makeUpdate(
   Combobox.bindChild,
+  Combobox.step,
   Message,
   'CloseWithFocus',
   {
@@ -89,7 +90,12 @@ const defaultUpdate = makeUpdate(
   },
 )
 
-export const update = Combobox.update(defaultUpdate.update)
+const ComboboxComposition = Combobox.toComposition({
+  mounts,
+  childBindings: [defaultUpdate.AnimationBinding],
+})
+
+export const update = ComboboxComposition.update(defaultUpdate.update)
 
 type UpdateReturn = ReturnType<typeof update>
 
@@ -140,6 +146,7 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
   })
   const itemUpdate = makeUpdate(
     Combobox.bindChild,
+    Combobox.step,
     ItemMessage,
     'CloseWithFocus',
     {
@@ -177,9 +184,9 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
   )
   const ComboboxComposition = Combobox.toComposition({
     mounts,
-    children: [itemUpdate.animation],
+    childBindings: [itemUpdate.AnimationBinding],
   })
-  const update = Combobox.update(itemUpdate.update)
+  const update = ComboboxComposition.update(itemUpdate.update)
   const render = makeView<Model, Item>(
     { ariaMultiSelectable: false },
     ItemMessage,
@@ -216,7 +223,9 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
     composition: ComboboxComposition,
     implementation: {
       view,
-      init: Combobox.init((config: InitConfig) => ({ model: init(config) })),
+      init: ComboboxComposition.init((config: InitConfig) => ({
+        model: init(config),
+      })),
       update,
       expose: { open, close, selectItem },
       EffectsLayer,

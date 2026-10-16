@@ -6,9 +6,9 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { Button } from '@foldkit/ui'
 
 import {
+  AdditionalFilesDropBinding,
   AttachmentsComposition,
-  additionalFilesDrop,
-  resumeDrop,
+  ResumeDropBinding,
 } from './composition'
 import { Message } from './definition'
 
@@ -130,7 +130,7 @@ export const view = AttachmentsComposition.view((model, h) => {
       Option.match(maybeResume, {
         onNone: () =>
           h.block(
-            resumeDrop.embedView({
+            ResumeDropBinding.embedView({
               slotId: model.resumeDrop.id,
               model: model.resumeDrop,
               viewInputs: {
@@ -169,7 +169,7 @@ export const view = AttachmentsComposition.view((model, h) => {
         ['Additional Files (optional)'],
       ),
       h.block(
-        additionalFilesDrop.embedView({
+        AdditionalFilesDropBinding.embedView({
           slotId: model.additionalFilesDrop.id,
           model: model.additionalFilesDrop,
           viewInputs: {

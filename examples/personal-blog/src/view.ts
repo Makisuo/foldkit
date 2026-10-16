@@ -7,7 +7,7 @@ import * as Markdown from '@foldkit/markdown'
 import {
   ApplicationComposition,
   type ApplicationViewBuilder,
-  counter,
+  CounterBinding,
 } from './composition'
 import { Post, about, findPost, posts } from './content'
 import { islandAttributes } from './island'
@@ -30,7 +30,7 @@ const islandViews = (
         [
           h.span([h.Class('text-sm text-stone-500')], [label ?? 'Counter']),
           h.block(
-            counter.embedView({
+            CounterBinding.embedView({
               slotId: `counter-${occurrenceIndex}`,
               model: model.counter,
             }),

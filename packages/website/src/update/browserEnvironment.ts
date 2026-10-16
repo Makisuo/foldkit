@@ -2,7 +2,7 @@ import { Option } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { playground, uiPages } from '../composition'
+import { PlaygroundBinding, UiPagesBinding } from '../composition'
 import {
   type Message,
   type ResolvedTheme,
@@ -52,19 +52,16 @@ export const handleCompletedLoadBrowserEnvironment = (
   })
 
   const initializeUiPages = (stepModel: Model) => {
-    const uiPagesInit = uiPages.init(today)
-    const nextModel = modifyFields(stepModel, {
-      uiPages: () => uiPagesInit.model,
+    return UiPagesBinding.init({
+      args: [today],
+      toParentModel: uiPages =>
+        modifyFields(stepModel, { uiPages: () => uiPages }),
     })
-
-    return uiPagesInit.commands === undefined
-      ? { model: nextModel }
-      : { model: nextModel, commands: uiPagesInit.commands }
   }
 
   return Update.combine(model, [
     applyBrowserEnvironment,
-    playground.informSupport(isPlaygroundSupported),
+    PlaygroundBinding.informSupport(isPlaygroundSupported),
     initializeUiPages,
   ])
 }

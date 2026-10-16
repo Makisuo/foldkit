@@ -1,9 +1,3 @@
-import { settings } from './composition'
-import { Application } from './definition'
-import { Message } from './message'
+import { ApplicationComposition } from './composition'
 
-export const update = Application.update((model, message) =>
-  Message.match(message, {
-    GotSettingsMessage: ({ message }) => settings.fold(model, message),
-  }),
-)
+export const update = ApplicationComposition.update()

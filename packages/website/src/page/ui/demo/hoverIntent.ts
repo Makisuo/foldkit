@@ -3,11 +3,11 @@ import type { Html } from 'foldkit/html'
 import { HoverIntent } from '@foldkit/ui'
 import type { RenderInfo as HoverIntentRenderInfo } from '@foldkit/ui/hoverIntent'
 
-import {
-  hoverIntentCardDemo as hoverIntentCardDemoBinding,
-  hoverIntentMenuDemo as hoverIntentMenuDemoBinding,
-} from '../composition'
 import type { UiViewBuilder } from '../composition'
+import {
+  HoverIntentCardDemoBinding,
+  HoverIntentMenuDemoBinding,
+} from '../composition'
 import { Message } from '../message'
 
 const triggerClassName =
@@ -81,7 +81,7 @@ export const hoverCardDemo = (
     [h.Class('flex min-h-32 w-full items-center justify-center')],
     [
       h.block(
-        hoverIntentCardDemoBinding.embedView({
+        HoverIntentCardDemoBinding.embedView({
           slotId: 'hover-intent-card-demo',
           model: hoverIntentCardDemo,
           viewInputs: {
@@ -156,7 +156,7 @@ export const hoverMenuDemo = (
     [h.Class('flex min-h-32 w-full items-center justify-center')],
     [
       h.block(
-        hoverIntentMenuDemoBinding.embedView({
+        HoverIntentMenuDemoBinding.embedView({
           slotId: 'hover-intent-menu-demo',
           model: hoverIntentMenuDemo,
           viewInputs: {

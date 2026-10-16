@@ -2,23 +2,21 @@ import { Array } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { GenerateEducationEntryId } from './command'
-import { entries } from './composition'
-import { Education, Message, type Model } from './definition'
+import { EducationComposition, EntriesBinding } from './composition'
+import { Message, type Model } from './definition'
 import * as Entry from './entry'
 
-export const update = Education.update((model, message) =>
+export const update = EducationComposition.update((model, message) =>
   Message.match(message, {
     ClickedAddEntry: () => ({ model, commands: [GenerateEducationEntryId()] }),
 
-    SucceededGenerateEducationEntryId: ({ entryId }) => {
-      const entryInit = entries.init(entryId, entryId)
-      return {
-        model: modifyFields(model, {
-          entries: Array.append(entryInit.model),
-        }),
-        commands: entryInit.commands,
-      }
-    },
+    SucceededGenerateEducationEntryId: ({ entryId }) =>
+      EntriesBinding.init({
+        key: entryId,
+        args: [entryId],
+        toParentModel: entry =>
+          modifyFields(model, { entries: Array.append(entry) }),
+      }),
 
     FailedGenerateEducationEntryId: () => ({ model }),
 
@@ -27,9 +25,6 @@ export const update = Education.update((model, message) =>
         entries: Array.filter(entry => entry.id !== entryId),
       }),
     }),
-
-    GotEntryMessage: ({ entryId, message }) =>
-      entries.fold(model, entryId, message),
   }),
 )
 

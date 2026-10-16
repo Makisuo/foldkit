@@ -1,5 +1,6 @@
 import { Option } from 'effect'
 import type { Block, Update } from 'foldkit'
+import type { CalendarDate } from 'foldkit/calendar'
 import { modifyFields } from 'foldkit/struct'
 
 import { DatePicker } from '@foldkit/ui'
@@ -23,9 +24,10 @@ const foldPronounsOutMessage = PronounsListbox.OutMessage.match<
     }),
 })
 
-export const pronounsListbox = PersonalInfo.bindChild(PronounsListbox, {
+export const PronounsListboxBinding = PersonalInfo.bindChild(PronounsListbox, {
   field: 'pronouns',
   parentMessage: Message.GotPronounsMessage,
+  init: { args: () => [{ id: 'pronouns' }] },
   outMessage: { fold: foldPronounsOutMessage },
 })
 
@@ -45,14 +47,22 @@ const foldAvailableDateOutMessage = DatePicker.OutMessage.match<
   ChangedViewMonth: () => model => ({ model }),
 })
 
-export const availableDatePicker = PersonalInfo.bindChild(DatePicker.block, {
-  field: 'availableDate',
-  parentMessage: Message.GotAvailableDateMessage,
-  outMessage: { fold: foldAvailableDateOutMessage },
-})
+export const AvailableDatePickerBinding = PersonalInfo.bindChild(
+  DatePicker.block,
+  {
+    field: 'availableDate',
+    parentMessage: Message.GotAvailableDateMessage,
+    init: {
+      args: (today: CalendarDate) => [
+        { id: 'available-date', today, minDate: today },
+      ],
+    },
+    outMessage: { fold: foldAvailableDateOutMessage },
+  },
+)
 
 export const PersonalInfoComposition = PersonalInfo.toComposition({
-  children: [pronounsListbox, availableDatePicker],
+  childBindings: [PronounsListboxBinding, AvailableDatePickerBinding],
 })
 export type PersonalInfoViewBuilder = Block.ViewBuilderFor<
   typeof PersonalInfoComposition

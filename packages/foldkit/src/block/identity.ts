@@ -57,7 +57,7 @@ export type ViewScope = Readonly<{
 export type ViewIdentity = Readonly<{
   owner: NamedIdentity
   mounts: ReadonlyArray<object>
-  children: ReadonlyArray<object>
+  childBindings: ReadonlyArray<object>
 }>
 
 /** @internal Reads the exact originating declaration from an operation value. */

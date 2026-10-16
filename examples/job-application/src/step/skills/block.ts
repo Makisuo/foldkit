@@ -1,23 +1,13 @@
-import { modifyFields } from 'foldkit/struct'
-
 import { EffectsLayer } from './command'
-import { SkillsComposition, entries } from './composition'
-import { Skills } from './definition'
-import { init } from './init'
+import { SkillsComposition } from './composition'
 import { update } from './update'
 import { view } from './view'
 
 export const block = SkillsComposition.toBlock({
-  init: Skills.init((initialEntryId: string) => {
-    const entryInit = entries.init(initialEntryId, initialEntryId)
-
-    return {
-      model: modifyFields(init(initialEntryId), {
-        entries: () => [entryInit.model],
-      }),
-      commands: entryInit.commands,
-    }
-  }),
+  init: SkillsComposition.init((initialEntryId: string) => ({
+    startup: initialEntryId,
+    model: {},
+  })),
   update,
   view,
   EffectsLayer,

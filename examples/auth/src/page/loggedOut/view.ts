@@ -2,7 +2,7 @@ import { Match } from 'effect'
 
 import { notFoundView } from '../../notFoundView'
 import { homeRouter } from '../../route'
-import { LoggedOutComposition, login } from './composition'
+import { LoggedOutComposition, LoginBinding } from './composition'
 import * as Home from './page/home'
 
 export const view = LoggedOutComposition.view((model, h) =>
@@ -14,7 +14,7 @@ export const view = LoggedOutComposition.view((model, h) =>
           Home: () => Home.view(h),
           Login: () =>
             h.block(
-              login.embedView({
+              LoginBinding.embedView({
                 slotId: 'login',
                 model: model.loginModel,
               }),

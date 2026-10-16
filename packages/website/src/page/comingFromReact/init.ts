@@ -1,10 +1,10 @@
 import { Array, Record, pipe } from 'effect'
 
-import { ComingFromReact } from './definition'
+import { ComingFromReactComposition } from './definition'
 import { FAQ_IDS } from './faq'
 import type { Model } from './model'
 
-export const init = ComingFromReact.init(() => {
+export const init = ComingFromReactComposition.init(() => {
   const disclosures: Model = pipe(
     FAQ_IDS,
     Array.map(id => [id, false] as const),

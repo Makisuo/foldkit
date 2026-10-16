@@ -4,9 +4,9 @@ import type { Html } from 'foldkit/html'
 import type { RenderInfo } from '@foldkit/ui/tabs'
 
 import {
+  HorizontalTabsDemoBinding,
   UiComposition,
-  horizontalTabsDemo,
-  verticalTabsDemo,
+  VerticalTabsDemoBinding,
 } from '../composition'
 import type { UiViewBuilder } from '../composition'
 import type { DemoTab } from '../model'
@@ -163,7 +163,7 @@ export const view = UiComposition.view((model, h) => {
         ['Horizontal'],
       ),
       h.block(
-        horizontalTabsDemo.embedView({
+        HorizontalTabsDemoBinding.embedView({
           slotId: 'horizontal-tabs-demo',
           model: model.horizontalTabsDemo,
           viewInputs: {
@@ -180,7 +180,7 @@ export const view = UiComposition.view((model, h) => {
         ['Vertical'],
       ),
       h.block(
-        verticalTabsDemo.embedView({
+        VerticalTabsDemoBinding.embedView({
           slotId: 'vertical-tabs-demo',
           model: model.verticalTabsDemo,
           viewInputs: {

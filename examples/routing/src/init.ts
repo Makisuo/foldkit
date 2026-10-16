@@ -1,12 +1,10 @@
 import { Match, Option } from 'effect'
 import type { Url } from 'foldkit/url'
 
-import { peoplePage } from './composition'
-import { Application } from './definition'
-import { Model } from './model'
+import { ApplicationComposition } from './composition'
 import { ApplicationRoute, urlToApplicationRoute } from './route'
 
-export const init = Application.init((url: Url) => {
+export const init = ApplicationComposition.init((url: Url) => {
   const route = urlToApplicationRoute(url)
 
   const initialPeopleRoute = Match.value(route).pipe(
@@ -14,10 +12,8 @@ export const init = Application.init((url: Url) => {
     Match.orElse(() => ApplicationRoute.People({ searchText: Option.none() })),
   )
 
-  const peopleInit = peoplePage.init(initialPeopleRoute)
-
   return {
-    model: Model.make({ route, peoplePage: peopleInit.model }),
-    commands: peopleInit.commands,
+    startup: initialPeopleRoute,
+    model: { route },
   }
 })

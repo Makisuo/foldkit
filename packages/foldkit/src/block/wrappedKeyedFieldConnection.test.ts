@@ -32,12 +32,13 @@ const FinishInitialization = Counter.command('FinishInitialization', {
 const setCount = Counter.step((model, count: number) => ({
   model: modifyFields(model, { count: () => count }),
 }))
-const counterBlock = Counter.toComposition().toBlock({
-  init: (count: number) => ({
+const CounterComposition = Counter.toComposition()
+const counterBlock = CounterComposition.toBlock({
+  init: CounterComposition.init((count: number) => ({
     model: CounterModel.make({ count }),
     commands: [FinishInitialization({ count })],
-  }),
-  update: Counter.update((model, message) =>
+  })),
+  update: CounterComposition.update((model, message) =>
     CounterMessage.match(message, {
       UpdatedCount: ({ count }) => setCount(model, count),
       CompletedFinishInitialization: ({ count }) => setCount(model, count),
@@ -60,9 +61,10 @@ const Text = define('WrappedKeyedFieldText', {
   Model: Schema.String,
   Message: TextMessage,
 })
-const textBlock = Text.toComposition().toBlock({
-  init: (value: string) => ({ model: value }),
-  update: Text.update((_model, { value }) => ({ model: value })),
+const TextComposition = Text.toComposition()
+const textBlock = TextComposition.toBlock({
+  init: TextComposition.init((value: string) => ({ model: value })),
+  update: TextComposition.update((_model, { value }) => ({ model: value })),
 })
 const TextEntry = Schema.Struct({
   id: Schema.String,
@@ -82,36 +84,43 @@ const Parent = define('WrappedKeyedFieldParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const counters = Parent.bindChild(counterBlock, {
+const CountersBinding = Parent.bindChild(counterBlock, {
   field: 'counters',
   key: 'id',
   childField: 'counter',
+  fromParentMessage: false,
   toParentMessage: (id, message) =>
     ParentMessage.GotCounterMessage({ id, message }),
 })
-const alternateCounters = Parent.bindChild(counterBlock, {
+const AlternateCountersBinding = Parent.bindChild(counterBlock, {
   field: 'counters',
   key: 'id',
   childField: 'counter',
   placement: 'alternateCounters',
+  fromParentMessage: false,
   toParentMessage: (id, message) =>
     ParentMessage.GotCounterMessage({ id, message }),
 })
-const textEntries = Parent.bindChild(textBlock, {
+const TextEntriesBinding = Parent.bindChild(textBlock, {
   field: 'textEntries',
   key: 'id',
   childField: 'text',
+  fromParentMessage: false,
   toParentMessage: (id, message) =>
     ParentMessage.GotTextMessage({ id, message }),
 })
 const ParentComposition = Parent.toComposition({
-  children: [counters, alternateCounters, textEntries],
+  childBindings: [
+    CountersBinding,
+    AlternateCountersBinding,
+    TextEntriesBinding,
+  ],
 })
 const ParentBlock = ParentComposition.toBlock({
-  init: () => ({
+  init: ParentComposition.init(() => ({
     model: ParentModel.make({ counters: [], textEntries: [] }),
-  }),
-  update: Parent.update(model => ({ model })),
+  })),
+  update: ParentComposition.update(model => ({ model })),
 })
 const noSlowSubscriptionDependencies: Option.Option<
   ResolvedSlowPhaseConfig<SlowSubscriptionDependenciesContext<ParentModel>>
@@ -139,7 +148,7 @@ const initial = ParentModel.make({
 it('updates only the child field of the targeted wrapper', () => {
   const previousFirst = Option.getOrThrow(Array.get(initial.counters, 0))
   const previousSecond = Option.getOrThrow(Array.get(initial.counters, 1))
-  const result = counters.fold(
+  const result = CountersBinding.fold(
     initial,
     'first',
     CounterMessage.UpdatedCount({ count: 7 }),
@@ -166,35 +175,69 @@ it('updates only the child field of the targeted wrapper', () => {
 
 it('leaves the exact parent unchanged when a wrapper key is absent', () => {
   expect(
-    counters.fold(initial, 'missing', CounterMessage.UpdatedCount({ count: 9 }))
-      .model,
+    CountersBinding.fold(
+      initial,
+      'missing',
+      CounterMessage.UpdatedCount({ count: 9 }),
+    ).model,
   ).toBe(initial)
-  expect(counters.setCount('missing', 9)(initial).model).toBe(initial)
+  expect(CountersBinding.setCount('missing', 9)(initial).model).toBe(initial)
 })
 
 it('keeps literal default and overridden placements', () => {
-  expectTypeOf(counters.placement).toEqualTypeOf<'counters'>()
-  expectTypeOf(alternateCounters.placement).toEqualTypeOf<'alternateCounters'>()
-  expect(counters.placement).toBe('counters')
-  expect(alternateCounters.placement).toBe('alternateCounters')
+  expectTypeOf(CountersBinding.placement).toEqualTypeOf<'counters'>()
+  expectTypeOf(
+    AlternateCountersBinding.placement,
+  ).toEqualTypeOf<'alternateCounters'>()
+  expect(CountersBinding.placement).toBe('counters')
+  expect(AlternateCountersBinding.placement).toBe('alternateCounters')
 })
 
-it('initializes only the child Model and lifts Commands with the wrapper key', async () => {
-  const counterInit = counters.init('created', 4)
+it('initializes the parent Model and lifts Commands with the wrapper key', async () => {
+  const initializeCounter = ParentComposition.init(() =>
+    CountersBinding.init({
+      key: 'created',
+      args: [4],
+      toParentModel: counter =>
+        ParentModel.make({
+          counters: [
+            CounterEntry.make({
+              id: 'created',
+              counter,
+              label: 'Created counter',
+              rank: 0,
+            }),
+          ],
+          textEntries: [],
+        }),
+    }),
+  )
+  const counterInit = initializeCounter()
   const command = Option.getOrThrow(Array.head(counterInit.commands!))
   const completed = await Effect.runPromise(
     Effect.scoped(
       Effect.gen(function* () {
         const context = yield* Layer.build(
-          inspectBinding(counters).EffectsLayer,
+          inspectBinding(CountersBinding).EffectsLayer,
         )
         return yield* Effect.provideContext(command.effect, context)
       }),
     ),
   )
 
-  expect(counterInit.model).toEqual(CounterModel.make({ count: 4 }))
-  expect(counterInit.model).not.toHaveProperty('id')
+  expect(counterInit.model).toEqual(
+    ParentModel.make({
+      counters: [
+        CounterEntry.make({
+          id: 'created',
+          counter: StoredCounterModel.make({ count: 4 }),
+          label: 'Created counter',
+          rank: 0,
+        }),
+      ],
+      textEntries: [],
+    }),
+  )
   expect(command.name).toBe('counters["created"]/FinishInitialization')
   expect(completed).toEqual(
     ParentMessage.GotCounterMessage({
@@ -205,12 +248,12 @@ it('initializes only the child Model and lifts Commands with the wrapper key', a
 })
 
 it('accepts equivalent child Schemas and scalar child Models', () => {
-  const counterResult = counters.fold(
+  const counterResult = CountersBinding.fold(
     initial,
     'second',
     CounterMessage.UpdatedCount({ count: 8 }),
   )
-  const textResult = textEntries.fold(
+  const textResult = TextEntriesBinding.fold(
     initial,
     'text',
     TextMessage.ReplacedText({ value: 'after' }),
@@ -284,6 +327,7 @@ const invalidConfig = (
   field,
   key,
   childField,
+  fromParentMessage: false,
   toParentMessage: (_id: unknown, message: typeof CounterMessage.Type) =>
     ParentMessage.GotCounterMessage({ id: 'invalid', message }),
 })
@@ -346,6 +390,7 @@ it('rejects invalid wrapper key and child fields at runtime', () => {
         field: 'values',
         key: 'value',
         childField: 'value',
+        fromParentMessage: false,
         toParentMessage: (id: string, message: typeof TextMessage.Type) =>
           ParentMessage.GotTextMessage({ id, message }),
       },

@@ -5,12 +5,12 @@ import { Message } from './message'
 import { Model } from './model'
 import { Room } from './page'
 
-const room = Application.bindChild(Room.block, {
+const RoomBinding = Application.bindChild(Room.block, {
   field: 'room',
   parentMessage: Message.GotRoomMessage,
 })
 
-const roomInspection = Block.inspectBinding(room)
+const roomInspection = Block.inspectBinding(RoomBinding)
 
 export const roomSubscriptions = roomInspection.subscriptions
 export const roomManagedResources = roomInspection.managedResources

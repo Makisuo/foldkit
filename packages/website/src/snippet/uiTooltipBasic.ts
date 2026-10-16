@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Schema } from 'effect'
+import { Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -46,35 +46,25 @@ const TooltipExample = Block.define('TooltipExample', {
   Message,
 })
 
-const tooltip = TooltipExample.bindChild(Tooltip.block, {
+const TooltipBinding = TooltipExample.bindChild(Tooltip.block, {
   field: 'tooltip',
   parentMessage: Message.GotTooltipMessage,
+  init: { args: () => Tuple.make({ id: 'save-button' }) },
   outMessage: { fold: foldTooltipOutMessage },
 })
 
-// In your init function, initialize the Tooltip Block with a unique id:
-const init = TooltipExample.init(() => {
-  const tooltipInit = tooltip.init({ id: 'save-button' })
-
-  return {
-    model: {
-      tooltip: tooltipInit.model,
-      // ...your other fields
-    },
-    commands: tooltipInit.commands,
-  }
-})
-
 const TooltipExampleComposition = TooltipExample.toComposition({
-  children: [tooltip],
+  childBindings: [TooltipBinding],
 })
 
-// In the corresponding Message.match handler, call the fold:
-const update = TooltipExample.update((model, message) =>
-  Message.match(message, {
-    GotTooltipMessage: ({ message }) => tooltip.fold(model, message),
-  }),
-)
+// In your init function, initialize the Tooltip Block with a unique id:
+const init = TooltipExampleComposition.init(() => ({
+  model: {
+    // ...your other fields
+  },
+}))
+
+const update = TooltipExampleComposition.update()
 
 // Inside your view function, embed the tooltip via h.block. The tooltip
 // describes the trigger but does not name it, so give an icon-only trigger
@@ -108,7 +98,7 @@ const view = TooltipExampleComposition.view((model, h) => {
     )
 
   return h.block(
-    tooltip.embedView({
+    TooltipBinding.embedView({
       slotId: 'save-button',
       model: model.tooltip,
       viewInputs: {

@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Option, Schema } from 'effect'
+import { Option, Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -60,36 +60,27 @@ const CharacterPicker = Block.define('CharacterPicker', {
   Message,
 })
 
-const characterListbox = CharacterPicker.bindChild(CharacterListbox, {
+const CharacterListboxBinding = CharacterPicker.bindChild(CharacterListbox, {
   field: 'listbox',
   parentMessage: Message.GotListboxMessage,
+  init: { args: () => Tuple.make({ id: 'character' }) },
   outMessage: { fold: foldListboxOutMessage },
 })
 
-// In your init function, initialize the Listbox Block with a unique id:
-const init = CharacterPicker.init(() => {
-  const listboxInit = characterListbox.init({ id: 'character' })
-
-  return {
-    model: {
-      maybeCharacter: Option.none(),
-      listbox: listboxInit.model,
-      // ...your other fields
-    },
-    commands: listboxInit.commands,
-  }
-})
-
 const CharacterPickerComposition = CharacterPicker.toComposition({
-  children: [characterListbox],
+  childBindings: [CharacterListboxBinding],
 })
 
-// In the corresponding Message.match handler, call the fold:
-const update = CharacterPicker.update((model, message) =>
-  Message.match(message, {
-    GotListboxMessage: ({ message }) => characterListbox.fold(model, message),
-  }),
-)
+// Initialize the fields the parent owns. The Composition initializes the
+// bound Listbox Model with the Binding's unique id.
+const init = CharacterPickerComposition.init(() => ({
+  model: {
+    maybeCharacter: Option.none(),
+    // ...your other fields
+  },
+}))
+
+const update = CharacterPickerComposition.update()
 
 const characters: ReadonlyArray<Character> = [
   { firstName: 'Michael', lastName: 'Bluth' },
@@ -105,7 +96,7 @@ const characters: ReadonlyArray<Character> = [
 // with the same key are contiguous in the items array:
 const view = CharacterPickerComposition.view((model, h) =>
   h.block(
-    characterListbox.embedView({
+    CharacterListboxBinding.embedView({
       slotId: 'character',
       model: model.listbox,
       viewInputs: {

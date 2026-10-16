@@ -23,7 +23,7 @@ const Message = defineMessageUnion({
 
 const TermsForm = Block.define('TermsForm', { Model, Message })
 // In your init function, start it unchecked:
-const init = TermsForm.init(() => ({
+const init = TermsFormComposition.init(() => ({
   model: {
     acceptedTerms: false,
     // ...your other fields

@@ -1,4 +1,4 @@
-import { Array } from 'effect'
+import { Array, Option } from 'effect'
 import { type Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
@@ -17,14 +17,24 @@ const foldEntryOutMessage = (
     }),
   })
 
-export const entries = Skills.bindChild(Entry.block, {
+export const EntriesBinding = Skills.bindChild(Entry.block, {
   field: 'entries',
   key: 'id',
   toParentMessage: (entryId, message) =>
     Message.GotEntryMessage({ entryId, message }),
+  fromParentMessage: {
+    parentMessage: Message.GotEntryMessage,
+    args: (_model, { entryId, message }) => Option.some([entryId, message]),
+  },
+  init: {
+    occurrences: (initialEntryId: string) => [
+      { key: initialEntryId, args: [initialEntryId] },
+    ],
+    toItem: (_occurrence, entry) => entry,
+  },
   outMessage: { fold: foldEntryOutMessage },
 })
 
 export const SkillsComposition = Skills.toComposition({
-  children: [entries],
+  childBindings: [EntriesBinding],
 })

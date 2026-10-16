@@ -58,6 +58,7 @@ const makeBlock = <Item, Value extends string>() => {
   })
   const itemUpdate = makeUpdate(
     Listbox.bindChild,
+    Listbox.step,
     'KeepOpen',
     (model, item) => ({
       model,
@@ -75,9 +76,9 @@ const makeBlock = <Item, Value extends string>() => {
     result as unknown as RefinedReturn
   const ListboxComposition = Listbox.toComposition({
     mounts,
-    children: [itemUpdate.animation],
+    childBindings: [itemUpdate.AnimationBinding],
   })
-  const update = Listbox.update((model, message) =>
+  const update = ListboxComposition.update((model, message) =>
     castReturn(itemUpdate.update(model, message)),
   )
   const refinedView =
@@ -99,7 +100,9 @@ const makeBlock = <Item, Value extends string>() => {
   )
   const expose = { open, close, selectItem }
   return ListboxComposition.toBlock({
-    init: Listbox.init((config: InitConfig) => ({ model: init(config) })),
+    init: ListboxComposition.init((config: InitConfig) => ({
+      model: init(config),
+    })),
     update,
     view,
     expose,

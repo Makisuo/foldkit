@@ -3,9 +3,9 @@ import type { Html } from 'foldkit/html'
 import type { RenderInfo } from '@foldkit/ui/radioGroup'
 
 import {
+  HorizontalRadioGroupDemoBinding,
   UiComposition,
-  horizontalRadioGroupDemo,
-  verticalRadioGroupDemo,
+  VerticalRadioGroupDemoBinding,
 } from '../composition'
 import type { UiViewBuilder } from '../composition'
 import type { Plan } from '../model'
@@ -141,7 +141,7 @@ export const view = UiComposition.view((model, h) => {
         ['Vertical'],
       ),
       h.block(
-        verticalRadioGroupDemo.embedView({
+        VerticalRadioGroupDemoBinding.embedView({
           slotId: model.verticalRadioGroupDemo.id,
           model: model.verticalRadioGroupDemo,
           viewInputs: {
@@ -159,7 +159,7 @@ export const view = UiComposition.view((model, h) => {
         ['Horizontal'],
       ),
       h.block(
-        horizontalRadioGroupDemo.embedView({
+        HorizontalRadioGroupDemoBinding.embedView({
           slotId: model.horizontalRadioGroupDemo.id,
           model: model.horizontalRadioGroupDemo,
           viewInputs: {

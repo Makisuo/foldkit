@@ -56,21 +56,17 @@ const foldRadioGroupOutMessage = RadioGroupOutMessage.match<
     }),
 })
 
-const radioGroup = RadioGroupScene.bindChild(TestRadioGroup, {
+const RadioGroupBinding = RadioGroupScene.bindChild(TestRadioGroup, {
   field: 'radioGroup',
   parentMessage: Message.GotRadioGroupMessage,
   outMessage: { fold: foldRadioGroupOutMessage },
 })
 
 const RadioGroupSceneComposition = RadioGroupScene.toComposition({
-  children: [radioGroup],
+  childBindings: [RadioGroupBinding],
 })
 
-const update = RadioGroupScene.update((model, message) =>
-  Message.match(message, {
-    GotRadioGroupMessage: ({ message }) => radioGroup.fold(model, message),
-  }),
-)
+const update = RadioGroupSceneComposition.update()
 
 type Overrides = Omit<
   Partial<ViewInputs>,
@@ -80,7 +76,7 @@ type Overrides = Omit<
 const rootView = RadioGroupSceneComposition.view.withInputs<Overrides>(
   (model, overrides, h) =>
     h.block(
-      radioGroup.embedView({
+      RadioGroupBinding.embedView({
         slotId: RADIO_ID,
         model: model.radioGroup,
         viewInputs: {

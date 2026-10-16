@@ -174,9 +174,9 @@ If the service Layer fails to build, startup cannot reach init or the first rend
 
 Import Effect's `Layer` module as `Layer`. Compose a small feature's attached recipes, such as `LoadUser.layer`, directly in `block.ts` as its local `EffectsLayer`. Extract `layer.ts` when that composition is substantial or independently reused. Create a standalone `LoadUserLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly, and name an external alternate `LoadUserTestLayer`. Pass the local bundle to the completed Block. Export `block` from the feature barrel, then export `* as Search` from the parent barrel. Parents call `Parent.bindChild(Search.block, config)`; the Binding carries its selected handler graph automatically.
 
-An owned Block passes its local handler bundle to `FeatureComposition.toBlock({ EffectsLayer })`. A parent that includes the child Binding in `Parent.toComposition({ children: [child] })` receives the child's complete `EffectsLayer` automatically, including its descendants. The parent composes only its own local handler recipes. Repeating this at each Block boundary produces one root graph without making the entry point import every leaf implementation.
+An owned Block passes its local handler bundle to `FeatureComposition.toBlock({ EffectsLayer })`. A parent that includes the child Binding in `Parent.toComposition({ childBindings: [ChildBinding] })` receives the child's complete `EffectsLayer` automatically, including its descendants. The parent composes only its own local handler recipes. Repeating this at each Block boundary produces one root graph without making the entry point import every leaf implementation.
 
-Do not merge a registered child's bundle a second time. `bindChild` configures the relationship; including the returned Binding in `toComposition({ children })` contributes its recipes for static, optional, and keyed placements. Composition checks the exact handler contracts supplied by the graph and reports a missing or conflicting provider before the Runtime starts.
+Do not merge a registered child's bundle a second time. `bindChild` configures the relationship; including the returned Binding in `toComposition({ childBindings })` contributes its recipes for static, optional, and keyed placements. Composition checks the exact handler contracts supplied by the graph and reports a missing or conflicting provider before the Runtime starts.
 
 At a split root, `composition.ts` or `composition/composition.ts` shows the complete child/Mount registration. A `command.ts` namespace's `Command.EffectsLayer` includes only the Command handlers owned by that module. Keep a simple root `EffectsLayer` with those Command definitions in `command.ts`; extract `layer.ts` only when the local Layer composition is substantial or reused. Registered child Blocks contribute their own handlers recursively through the completed graph; root code does not relist them.
 
@@ -194,9 +194,9 @@ The provider Layer and its handler Layers live for the application runtime. Reso
 
 ## UI Effects and Mount Registrations
 
-Bind a completed UI Block and include that Binding in the parent's `children` list. Its handler recipes and Mount registrations then reach the parent together. This keeps the implementation graph aligned with the update and view placement.
+Bind a completed UI Block and include that Binding in the parent's `childBindings` list. Its handler recipes and Mount registrations then reach the parent together. This keeps the implementation graph aligned with the update and view placement.
 
-View-only components need no Block. Stateful Foldkit UI components are completed values such as `Dialog.block` and `Combobox.block`; bind each used placement, including keyed collections, and include those Bindings under `children`.
+View-only components need no Block. Stateful Foldkit UI components are completed values such as `Dialog.block` and `Combobox.block`; bind each used placement, including keyed collections, and include those Bindings under `childBindings`.
 
 Component factories such as a Schema-refined Combobox return a completed Block with the factory's inferred Model, Message, OutMessage, view inputs, and public API operations. Bind the returned value exactly like a non-generic component.
 

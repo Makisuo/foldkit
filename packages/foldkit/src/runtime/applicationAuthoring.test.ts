@@ -10,8 +10,10 @@ import {
 } from 'vitest'
 
 import { define } from '../block/define.js'
+import type * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
+import type * as Update from '../update/index.js'
 import type { Url } from '../url/index.js'
 import type {
   Application as ApplicationProgram,
@@ -36,7 +38,7 @@ const child = Child.define({ Model: ChildModel, Message: ChildMessage })
 const ChildComposition = child.toComposition()
 const childBlock = ChildComposition.toBlock({
   init: () => ({ model: { value: 'child' } }),
-  update: child.update((model, { value }) => ({
+  update: ChildComposition.update((model, { value }) => ({
     model: modifyFields(model, { value: () => value }),
   })),
   view: ChildComposition.view((model, h) => h.span([], [model.value])),
@@ -81,21 +83,21 @@ const mountedComposition = Application.toComposition({ mounts: [ObserveRoot] })
 const mountedView = mountedComposition.view((model, h) =>
   h.div([h.OnMount(ObserveRoot())], [model.rootValue]),
 )
-const childBinding = Application.bindChild(childBlock, {
+const ChildBinding = Application.bindChild(childBlock, {
   read: model => Option.some(model.child),
   write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
   parentMessage: Message.GotChildMessage,
 })
-const composition = Application.toComposition({ children: [childBinding] })
-const initSource = () => {
-  const childInit = childBinding.init()
-
-  return {
-    model: { rootValue: 'pending', child: childInit.model },
-  }
-}
-const init = Application.init(initSource)
-const update = Application.update((model, message) =>
+const composition = Application.toComposition({
+  childBindings: [ChildBinding],
+})
+const initSource = () =>
+  ChildBinding.init({
+    args: [],
+    toParentModel: child => ({ rootValue: 'pending', child }),
+  })
+const init = composition.init(initSource)
+const update = composition.update((model, message) =>
   Message.match(message, {
     ClickedReadRootValue: () => ({
       model,
@@ -104,9 +106,11 @@ const update = Application.update((model, message) =>
     CompletedReadRootValue: ({ value }) => ({
       model: modifyFields(model, { rootValue: () => value }),
     }),
-    GotChildMessage: () => ({ model }),
   }),
 )
+expectTypeOf<Update.RequirementsOf<typeof update>>().toEqualTypeOf<
+  Command.HandlerOf<typeof ReadRootValue>
+>()
 const rootBody = (
   model: typeof Model.Type,
   h: ViewBuilderFor<typeof composition>,
@@ -116,7 +120,7 @@ const rootBody = (
     [
       h.button([h.OnClick(Message.ClickedReadRootValue())], [model.rootValue]),
       h.block(
-        childBinding.embedView({
+        ChildBinding.embedView({
           slotId: 'child',
           model: model.child,
         }),
@@ -132,7 +136,7 @@ const NoMessageApplication = defineApplication({
 })
 const NoMessageComposition = NoMessageApplication.toComposition()
 const noMessageInit = () => ({ model: null })
-const noMessageUpdate = NoMessageApplication.update(model => ({ model }))
+const noMessageUpdate = NoMessageComposition.update()
 const noMessageDocumentView = NoMessageComposition.view((_model, h) => ({
   title: 'No messages',
   body: h.empty,
@@ -142,8 +146,8 @@ const noMessageElementView = NoMessageComposition.view((_model, h) => h.empty)
 const typecheckRootCompletion = (): void => {
   // @ts-expect-error An Application Definition does not author the primary view.
   Application.view
-  // @ts-expect-error An Application Composition does not expose the Definition-only init helper.
-  composition.init
+  // @ts-expect-error An Application Definition does not expose the Composition-owned init helper.
+  Application.init
 
   Application.command('AcceptedCommand', {
     messages: [Message.CompletedReadRootValue],
@@ -167,12 +171,19 @@ const typecheckRootCompletion = (): void => {
     // @ts-expect-error Root stream Mounts must produce the Application Message.
     messages: [ForeignMessage.ForeignCompleted],
   })
-  composition.command('RegisteredForeignCommand', {
-    // @ts-expect-error Composition preserves the Application Message boundary.
-    messages: [ForeignMessage.ForeignCompleted],
-  })
+  // @ts-expect-error Primitive authoring remains on the Application Definition.
+  composition.command
 
-  graphlessComposition.toElement({
+  composition.update((model, message) =>
+    // @ts-expect-error Composition routes the registered child Message.
+    Message.match(message, {
+      ClickedReadRootValue: () => ({ model }),
+      CompletedReadRootValue: () => ({ model }),
+      GotChildMessage: () => ({ model }),
+    }),
+  )
+
+  composition.toElement({
     container: null,
     init,
     update,
@@ -375,17 +386,24 @@ describe('Application authoring', () => {
   it('stages primitive authoring before composition', () => {
     expectTypeOf(Application.Model).toEqualTypeOf(Model)
     expectTypeOf(Application.Message).toEqualTypeOf(Message)
-    expect(composition.command).toBe(Application.command)
-    expect(composition.mount).toBe(Application.mount)
-    expect(composition.mountStream).toBe(Application.mountStream)
-    expect(composition.resource).toBe(Application.resource)
-    expect(composition.update).toBe(Application.update)
-    expect(composition.step).toBe(Application.step)
-    expect(composition.subscriptions).toBe(Application.subscriptions)
-    expect(composition.managedResources).toBe(Application.managedResources)
-    expect(Application.init).toBeTypeOf('function')
-    expect(init).toBe(initSource)
-    expect(composition).not.toHaveProperty('init')
+    expect(Application.command).toBeTypeOf('function')
+    expect(Application.mount).toBeTypeOf('function')
+    expect(Application.mountStream).toBeTypeOf('function')
+    expect(Application.resource).toBeTypeOf('function')
+    expect(composition.update).toBeTypeOf('function')
+    expect(Application.step).toBeTypeOf('function')
+    expect(Application.subscriptions).toBeTypeOf('function')
+    expect(Application.managedResources).toBeTypeOf('function')
+    expect(composition).not.toHaveProperty('command')
+    expect(composition).not.toHaveProperty('step')
+    expect(composition.init).toBeTypeOf('function')
+    expect(init).not.toBe(initSource)
+    expect(init().model).toEqual({
+      rootValue: 'pending',
+      child: { value: 'child' },
+    })
+    expect(initSource).toThrow('requires its registered Composition')
+    expect(Application).not.toHaveProperty('init')
     expect(Application).not.toHaveProperty('view')
     expect(graphlessComposition).toHaveProperty('view')
 

@@ -1,6 +1,6 @@
 import { Button } from '@foldkit/ui'
 
-import { WorkHistoryComposition, entries } from './composition'
+import { EntriesBinding, WorkHistoryComposition } from './composition'
 import { Message } from './definition'
 
 export const view = WorkHistoryComposition.view((model, h) =>
@@ -15,7 +15,7 @@ export const view = WorkHistoryComposition.view((model, h) =>
         [h.Class('divide-y divide-gray-200')],
         model.entries.map(entry =>
           h.block(
-            entries.embedView({
+            EntriesBinding.embedView({
               key: entry.id,
               slotId: entry.id,
               model: entry,

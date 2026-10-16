@@ -36,7 +36,7 @@ Return Commands beside the next Model from the Message branch that requests the 
 
 `ClickedIncrement` changes the count and asks the runtime to persist it. `CompletedPersistCount` records that the Command finished, but it has no more work to request, so that branch omits `commands`.
 
-`Feature.update` authors a Block's update and infers the handler services required by the Commands across all of its branches. It leaves the function's runtime behavior unchanged.
+`FeatureComposition.update` authors a Block's update and infers the handler services required by the Commands across all parent-owned branches. Registered Bindings route their claimed wrapper Messages before this callback runs.
 
 `Update.defineStep` does the same inference for a standalone Step producer. Annotate its Model parameter and let the helper infer the returned Command requirements and OutMessage. A pure OutMessage fold can use `OutMessage.match<Update.Step<Model, Message>>` directly; the matcher types its Model parameter without a Step helper. Callers can then compose that Step with pure Steps through `Update.combine` without naming a service union by hand.
 
@@ -50,7 +50,7 @@ An update, init, Step, or component helper that statically creates no Commands o
 
 ### Keeping Results Together
 
-Keep a child init result together while constructing the parent Model so its Commands remain attached to that operation:
+For custom startup, a registered Binding's `init` constructs the complete parent Model through `toParentModel` and retains its lifted Commands. Return that result directly. Ordinary eligible startup uses [Composition-owned init](/core/init#child-initialization) to assemble child fields and Commands:
 
 ::Snippet{name="updateResultInit" label="Composing an init result"}
 
@@ -82,7 +82,7 @@ This error often points to update results being composed by hand. When both oper
 
 #### Child Bindings and Multiple Steps
 
-A child Binding projects `init`, `fold`, and every named public Step. These operations preserve the child's Message mapping, Command requirements, OutMessage policy, and origin scope. Call `binding.fold(model, message)` for the primary update and `binding.name(...args)` when composing a public entry point.
+A child Binding projects `init`, `fold`, and every named public Step. These operations preserve the child's Message mapping, Command requirements, OutMessage policy, and origin scope. The Composition calls `fold` for claimed wrapper Messages; parent policy calls `binding.name(...args)` for a public entry point.
 
 #### Combining Steps
 
@@ -98,15 +98,15 @@ Do not wrap one Step in `Update.combine`; call that operation directly.
 
 ### Combining Child Initialization and Startup Steps {#combining-independent-results}
 
-Initialize each child through its Binding. Each result already carries parent Messages and qualified Command origins, so the parent Definition's `init` can construct their Models and concrete Command collections directly.
+Declare init policies beside the Bindings and author the parent initializer through its Composition. The plan supplies only parent-owned fields and lists any startup Steps; the Composition assembles initialized child fields and lifted Commands.
 
-For example, a Workspace Block contains Search and Editor Blocks. Their init results construct the baseline Workspace Model. The Search and Editor restoration operations are ordinary Steps applied after that Model exists:
+For example, a Workspace Block contains Search and Editor Blocks. Both Bindings use `init: true`. The Search and Editor restoration operations are ordinary Steps listed after the parent-owned fields:
 
 ::Snippet{name="updateIndependentInits" label="Initializing Search and Editor Blocks"}
 
 #### Parent Construction and Fold Order
 
-`Model.make` combines the Search and Editor Models with the Workspace Block's own fields. The final result keeps each child's optional init Commands alongside the Commands returned by the restoration Steps.
+The Composition combines the Search and Editor Models with the Workspace Block's own fields. It retains each child's init Commands and appends the Commands returned by the restoration Steps.
 
 #### Step Order
 

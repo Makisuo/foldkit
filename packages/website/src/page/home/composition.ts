@@ -1,5 +1,6 @@
-import { Update } from 'foldkit'
+import { Tuple } from 'effect'
 import type { Block } from 'foldkit'
+import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import * as AsyncCounterDemo from './asyncCounterDemo'
@@ -21,10 +22,11 @@ const foldDemoTabsOutMessage = DemoTab.DemoTabs.OutMessage.match<
     }),
 })
 
-export const demoTabs = Home.bindChild(DemoTab.DemoTabs, {
+export const DemoTabsBinding = Home.bindChild(DemoTab.DemoTabs, {
   field: 'demoTabs',
   parentMessage: Message.GotDemoTabsMessage,
   outMessage: { fold: foldDemoTabsOutMessage },
+  init: { args: () => Tuple.make({ id: 'demo-tabs' }) },
 })
 
 const foldPlaygroundMenuOutMessage = PlaygroundMenu.OutMessage.match<
@@ -39,23 +41,33 @@ const foldPlaygroundMenuOutMessage = PlaygroundMenu.OutMessage.match<
     }),
 })
 
-export const playgroundMenu = Home.bindChild(PlaygroundMenu, {
+export const PlaygroundMenuBinding = Home.bindChild(PlaygroundMenu, {
   field: 'playgroundMenu',
   parentMessage: Message.GotPlaygroundMenuMessage,
   outMessage: { fold: foldPlaygroundMenuOutMessage },
+  init: {
+    args: () => Tuple.make({ id: 'playground-menu', isAnimated: true }),
+  },
 })
 
-export const asyncCounterDemo = Home.bindChild(AsyncCounterDemo.block, {
+export const AsyncCounterDemoBinding = Home.bindChild(AsyncCounterDemo.block, {
   field: 'asyncCounterDemo',
   parentMessage: Message.GotAsyncCounterDemoMessage,
+  init: true,
 })
 
-export const notePlayerDemo = Home.bindChild(NotePlayerDemo.block, {
+export const NotePlayerDemoBinding = Home.bindChild(NotePlayerDemo.block, {
   field: 'notePlayerDemo',
   parentMessage: Message.GotNotePlayerDemoMessage,
+  init: true,
 })
 
 export const HomeComposition = Home.toComposition({
-  children: [asyncCounterDemo, demoTabs, notePlayerDemo, playgroundMenu],
+  childBindings: [
+    AsyncCounterDemoBinding,
+    DemoTabsBinding,
+    NotePlayerDemoBinding,
+    PlaygroundMenuBinding,
+  ],
 })
 export type HomeViewBuilder = Block.ViewBuilderFor<typeof HomeComposition>

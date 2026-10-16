@@ -4,7 +4,7 @@ import type { Html } from 'foldkit/html'
 
 import type { FileDropAttributes } from '@foldkit/ui/fileDrop'
 
-import { UiComposition, fileDropBasicDemo } from '../composition'
+import { FileDropBasicDemoBinding, UiComposition } from '../composition'
 import { Message } from '../message'
 
 const dropZoneClassName =
@@ -62,7 +62,7 @@ export const view = UiComposition.view((model, h) => {
         [h.Class('flex flex-col gap-3 w-full max-w-md')],
         [
           h.block(
-            fileDropBasicDemo.embedView({
+            FileDropBasicDemoBinding.embedView({
               slotId: model.fileDropBasicDemo.id,
               model: model.fileDropBasicDemo,
               viewInputs: {

@@ -53,7 +53,7 @@ The Counter starter begins with these files:
 - `AGENTS.md`: your instructions for AI coding assistants working on the project
 - `FOLDKIT.md`: Foldkit's own conventions for those assistants, [replaced from the current template when you upgrade Foldkit](/ai/overview)
 
-In a small starter, `src/application.ts` calls `defineApplication({ Model, Message })`, exports the typed `Application`, and authors init, update, and other behavior through it. Every root creates a named `ApplicationComposition`; roots with child Bindings or Mounts include them in `toComposition`, and the primary view uses its contextual builder. Commands, Subscriptions, Mounts, ManagedResources, and their handler recipes stay at that Application boundary. Larger examples move substantial pieces into focused files as the application grows.
+In a small starter, `src/application.ts` calls `defineApplication({ Model, Message })` and creates a named `ApplicationComposition`. The Definition authors Commands, Steps, lifecycle behavior, and Bindings; the Composition owns init, update, and the primary view after its child and Mount graph is fixed. Commands, Subscriptions, Mounts, ManagedResources, and their handler recipes stay at that Application boundary. Larger examples move substantial pieces into focused files as the application grows.
 
 ### Runtime Entry
 

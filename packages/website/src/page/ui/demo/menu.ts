@@ -5,8 +5,8 @@ import { Menu } from '@foldkit/ui'
 import { type AnchorConfig, buttonId } from '@foldkit/ui/menu'
 
 import { Icon } from '../../../icon'
-import { menuAnimatedDemo, menuBasicDemo } from '../composition'
 import type { UiViewBuilder } from '../composition'
+import { MenuAnimatedDemoBinding, MenuBasicDemoBinding } from '../composition'
 import { type MenuItem } from './components'
 
 // DEMO CONTENT
@@ -109,7 +109,7 @@ export const basicDemo = (
           [h.Class('relative')],
           [
             h.block(
-              menuBasicDemo.embedView({
+              MenuBasicDemoBinding.embedView({
                 slotId: menuModel.id,
                 model: menuModel,
                 viewInputs: {
@@ -140,7 +140,7 @@ export const animatedDemo = (
           [h.Class('relative')],
           [
             h.block(
-              menuAnimatedDemo.embedView({
+              MenuAnimatedDemoBinding.embedView({
                 slotId: menuModel.id,
                 model: menuModel,
                 viewInputs: {

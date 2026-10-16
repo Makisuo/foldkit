@@ -8,12 +8,14 @@ import { deployment } from './deployment'
 import { Flags } from './flags'
 import { init } from './init'
 import { EffectsLayer } from './layer'
-import { ApiReference, Example } from './page'
+import { ApiReference, ExampleDetail } from './page'
 import { ApplicationRoute, urlToApplicationRoute } from './route'
 import { update } from './update'
 import { view } from './view/view'
 
-type SourcesBySlug = Readonly<globalThis.Record<string, Example.ExampleSources>>
+type SourcesBySlug = Readonly<
+  globalThis.Record<string, ExampleDetail.ExampleSources>
+>
 
 const baseFlags = Effect.gen(function* () {
   const currentYear = yield* DateTime.now.pipe(
@@ -51,10 +53,12 @@ const loadApiData: Effect.Effect<ApiReference.ApiData> = Effect.map(
 const loadAllExampleSources: Effect.Effect<SourcesBySlug> = Effect.map(
   Effect.promise(() =>
     Promise.all(
-      Example.runnableExampleSlugs.map(
-        async (slug): Promise<readonly [string, Example.ExampleSources]> => [
+      ExampleDetail.runnableExampleSlugs.map(
+        async (
           slug,
-          await Example.loadSourcesForSlug(slug),
+        ): Promise<readonly [string, ExampleDetail.ExampleSources]> => [
+          slug,
+          await ExampleDetail.loadSourcesForSlug(slug),
         ],
       ),
     ),

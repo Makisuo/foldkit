@@ -49,7 +49,7 @@ export const fetchCount = (client: HttpClient.HttpClient) =>
 
 export const FetchCountLayer = FetchCount.layer
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedFetchCount: () => ({ model, commands: [FetchCount()] }),
     SucceededFetchCount: ({ count }) => ({

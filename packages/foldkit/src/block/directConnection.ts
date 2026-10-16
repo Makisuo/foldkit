@@ -251,9 +251,11 @@ export const normalizeConnectionConfig = (
     'read',
     'write',
     'parentMessage',
+    'fromParentMessage',
     'toParentMessage',
     'subscriptions',
     'outMessage',
+    'init',
     'readAll',
     'writeAt',
     'key',
@@ -297,10 +299,11 @@ export const normalizeConnectionConfig = (
       )
     }
 
-    return mapped
+    const { init: _, ...policy } = mapped
+    return policy
   }
 
-  const { Model, field, presentWhen, ...policy } = mapped
+  const { Model, field, presentWhen, init: _, ...policy } = mapped
   const fields = Schema.isSchema(Model)
     ? Reflect.get(Model, 'fields')
     : undefined

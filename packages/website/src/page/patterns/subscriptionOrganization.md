@@ -23,7 +23,7 @@ The parent binds the completed child and includes the Binding in its Composition
 The Binding derives three things from the same policy:
 
 - `read` locates the child Model for update and every lifecycle.
-- `parentMessage` wraps update, Command, Subscription, Mount, and ManagedResource Messages.
+- `parentMessage` wraps update, Command, Subscription, Mount, and ManagedResource Messages, and supplies the canonical unkeyed route back through the Binding.
 - `placement` qualifies the child's runtime identities and registration keys.
 
 Nested Blocks repeat the same pattern. By the time a Stream reaches the root, every emitted Message has been wrapped through each parent boundary.

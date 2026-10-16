@@ -3,7 +3,7 @@ import { type Html } from 'foldkit/html'
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
 import type { UiViewBuilder } from '../composition'
-import { UiComposition, mobileMenuDialog } from '../composition'
+import { MobileMenuDialogBinding, UiComposition } from '../composition'
 
 export type ViewInputs = Readonly<{
   renderContent: (
@@ -38,7 +38,7 @@ export const view = UiComposition.view.withInputs<ViewInputs>(
       )
 
     return h.block(
-      mobileMenuDialog.embedView({
+      MobileMenuDialogBinding.embedView({
         slotId: model.mobileMenuDialog.id,
         model: model.mobileMenuDialog,
         viewInputs: { toView: mobileMenuDialogContent },

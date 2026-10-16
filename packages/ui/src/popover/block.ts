@@ -306,7 +306,7 @@ const foldAnimationOutMessage =
     TransitionedOut: () => Popover.step(model => ({ model })),
   })
 
-const animation = Popover.bindChild(Animation.block, {
+const AnimationBinding = Popover.bindChild(Animation.block, {
   field: 'animation',
   parentMessage: Message.GotAnimationMessage,
   outMessage: { fold: foldAnimationOutMessage },
@@ -314,12 +314,12 @@ const animation = Popover.bindChild(Animation.block, {
 
 const PopoverComposition = Popover.toComposition({
   mounts,
-  children: [animation],
+  childBindings: [AnimationBinding],
 })
 
 /** Processes a Popover Message and returns the next Model, optional Commands,
  *  and an optional OutMessage. */
-export const update = Popover.update((model, message) => {
+export const update = PopoverComposition.update((model, message) => {
   const maybeLockScroll = OptionExt.when(model.isModal, LockPopoverScroll())
   const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockPopoverScroll())
   const maybeInertOthers = OptionExt.when(
@@ -349,7 +349,7 @@ export const update = Popover.update((model, message) => {
     if (model.isAnimated) {
       const popoverOpen = Update.combine(baseModel, [
         stepModel => ({ model: stepModel, commands: openCommands }),
-        animation.show(),
+        AnimationBinding.show(),
         stepModel => ({
           model: modifyFields(stepModel, { isOpen: () => true }),
         }),
@@ -377,7 +377,7 @@ export const update = Popover.update((model, message) => {
     if (model.isAnimated) {
       return Update.combine(closed, [
         stepModel => ({ model: stepModel, commands }),
-        animation.hide(),
+        AnimationBinding.hide(),
       ])
     }
 
@@ -439,10 +439,7 @@ export const update = Popover.update((model, message) => {
     },
 
     CompletedDetectPopoverMovementOrAnimationEnd: ({ generation }) =>
-      animation.finish(generation)(model),
-
-    GotAnimationMessage: ({ message: animationMessage }) =>
-      animation.fold(model, animationMessage),
+      AnimationBinding.finish(generation)(model),
 
     CompletedFocusPopoverPanel: () => ({ model }),
     CompletedFocusPopoverButton: () => ({ model }),
@@ -698,7 +695,9 @@ export const view = PopoverComposition.view.withInputs<ViewInputs>(
 
 /** Complete Popover Block definition. */
 export const block = PopoverComposition.toBlock({
-  init: Popover.init((config: InitConfig) => ({ model: init(config) })),
+  init: PopoverComposition.init((config: InitConfig) => ({
+    model: init(config),
+  })),
   update,
   view,
   expose: { open, close },

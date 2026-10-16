@@ -75,7 +75,7 @@ The resource accessor holds that bare value, so Commands read it through `.get` 
 
 A child Block defines its ManagedResources in its own Model and Message terms, with no knowledge of its parent. Create the registry through `Feature.managedResources` and include it in `FeatureComposition.toBlock`.
 
-A Binding lifts the child's entries through its Model access and Message mapping. Include that Binding in the parent's `children` list, and the parent collects its entries under placement-qualified keys. `ApplicationComposition.toApplication({ init, update, view, ... })` installs the root's complete graph. Composition rejects one local resource accessor used by two lifecycle owners; changing record keys does not create another local handle. Repeating the completed child through separate Bindings is different: each placement receives its own scoped accessor and lifecycle.
+A Binding lifts the child's entries through its Model access and Message mapping. Include that Binding in the parent's `childBindings` list, and the parent collects its entries under placement-qualified keys. `ApplicationComposition.toApplication({ init, update, view, ... })` installs the root's complete graph. Composition rejects one local resource accessor used by two lifecycle owners; changing record keys does not create another local handle. Repeating the completed child through separate Bindings is different: each placement receives its own scoped accessor and lifecycle.
 
 ### Optional Child Models
 

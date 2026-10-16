@@ -8,7 +8,7 @@ import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
 import { Shared } from '../component'
 import type { ApplicationViewBuilder } from '../composition'
-import { mobileMenuDialog } from '../composition'
+import { MobileMenuDialogBinding } from '../composition'
 import {
   DOCS_SIDEBAR_NAV_ID,
   MOBILE_MENU_NAV_ID,
@@ -418,7 +418,7 @@ export const mobileView = (model: Model, h: ApplicationViewBuilder): Html => {
     )
 
   return h.block(
-    mobileMenuDialog.embedView({
+    MobileMenuDialogBinding.embedView({
       slotId: model.mobileMenuDialog.id,
       model: model.mobileMenuDialog,
       viewInputs: {

@@ -7,13 +7,13 @@ import { Button } from '@foldkit/ui'
 import {
   ApplicationComposition,
   type ApplicationViewBuilder,
-  attachments,
-  coverLetter,
-  education,
-  personalInfo,
-  skills,
-  stepTabs,
-  workHistory,
+  AttachmentsBinding,
+  CoverLetterBinding,
+  EducationBinding,
+  PersonalInfoBinding,
+  SkillsBinding,
+  StepTabsBinding,
+  WorkHistoryBinding,
 } from '../composition'
 import { Step } from '../domain'
 import { Message } from '../message'
@@ -68,7 +68,7 @@ const stepContent = (
   Match.value(model.currentStep).pipe(
     Match.when('PersonalInfo', () =>
       h.block(
-        personalInfo.embedView({
+        PersonalInfoBinding.embedView({
           slotId: 'personal-info',
           model: model.personalInfo,
         }),
@@ -76,7 +76,7 @@ const stepContent = (
     ),
     Match.when('WorkHistory', () =>
       h.block(
-        workHistory.embedView({
+        WorkHistoryBinding.embedView({
           slotId: 'work-history',
           model: model.workHistory,
         }),
@@ -84,7 +84,7 @@ const stepContent = (
     ),
     Match.when('Education', () =>
       h.block(
-        education.embedView({
+        EducationBinding.embedView({
           slotId: 'education',
           model: model.education,
         }),
@@ -92,7 +92,7 @@ const stepContent = (
     ),
     Match.when('Skills', () =>
       h.block(
-        skills.embedView({
+        SkillsBinding.embedView({
           slotId: 'skills',
           model: model.skills,
         }),
@@ -100,7 +100,7 @@ const stepContent = (
     ),
     Match.when('CoverLetter', () =>
       h.block(
-        coverLetter.embedView({
+        CoverLetterBinding.embedView({
           slotId: 'cover-letter',
           model: model.coverLetter,
         }),
@@ -108,7 +108,7 @@ const stepContent = (
     ),
     Match.when('Attachments', () =>
       h.block(
-        attachments.embedView({
+        AttachmentsBinding.embedView({
           slotId: 'attachments',
           model: model.attachments,
         }),
@@ -214,7 +214,7 @@ const stepTabsLayout = (
   h: ApplicationViewBuilder,
 ): Html =>
   h.block(
-    stepTabs.embedView({
+    StepTabsBinding.embedView({
       slotId: model.stepTabs.id,
       model: model.stepTabs,
       viewInputs: {

@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
 import { LoadExternal, NavigateInternal } from './command'
-import { ApplicationComposition, ui } from './composition'
+import { ApplicationComposition, UiBinding } from './composition'
 import { Message } from './message'
 import { urlToApplicationRoute } from './route'
 
@@ -32,11 +32,9 @@ export const update = ApplicationComposition.update((model, message) =>
             route: () => urlToApplicationRoute(url),
           }),
         }),
-        ui.closeMobileMenu(),
+        UiBinding.closeMobileMenu(),
       ]),
 
-    ClickedOpenMobileMenu: () => ui.openMobileMenu()(model),
-
-    GotUiMessage: ({ message }) => ui.fold(model, message),
+    ClickedOpenMobileMenu: () => UiBinding.openMobileMenu()(model),
   }),
 )

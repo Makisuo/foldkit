@@ -196,23 +196,40 @@ const buildGraph = (
     Model: ParentModel,
     Message: ParentMessage,
   })
-  const child = parentBase.bindChild(Child, {
-    placement: 'child',
-    field: 'maybeChild',
-    ...(mode === 'Route'
-      ? { presentWhen: (model: ParentModel) => model.route === 'Home' }
-      : {}),
-    ...(mode === 'Subscriptions'
-      ? {
-          subscriptions: {
-            when: (model: ParentModel) => model.route === 'Home',
-          },
-        }
-      : {}),
-    parentMessage: ParentMessage.GotChildMessage,
-  })
+  const ChildBinding = (() => {
+    if (mode === 'Route') {
+      return parentBase.bindChild(Child, {
+        fromParentMessage: false,
+        placement: 'child',
+        field: 'maybeChild',
+        presentWhen: (model: ParentModel) => model.route === 'Home',
+        parentMessage: ParentMessage.GotChildMessage,
+      })
+    }
 
-  const composition = parentBase.toComposition({ children: [child] })
+    if (mode === 'Subscriptions') {
+      return parentBase.bindChild(Child, {
+        fromParentMessage: false,
+        placement: 'child',
+        field: 'maybeChild',
+        subscriptions: {
+          when: (model: ParentModel) => model.route === 'Home',
+        },
+        parentMessage: ParentMessage.GotChildMessage,
+      })
+    }
+
+    return parentBase.bindChild(Child, {
+      fromParentMessage: false,
+      placement: 'child',
+      field: 'maybeChild',
+      parentMessage: ParentMessage.GotChildMessage,
+    })
+  })()
+
+  const composition = parentBase.toComposition({
+    childBindings: [ChildBinding],
+  })
   const view = composition.view((model, h) =>
     h.div(
       [],
@@ -224,7 +241,7 @@ const buildGraph = (
             mode === 'Route' && model.route !== 'Home'
               ? h.p([], ['child removed'])
               : h.block(
-                  child.embedView({
+                  ChildBinding.embedView({
                     slotId: 'child',
                     model: childModel,
                   }),
@@ -239,10 +256,10 @@ const buildGraph = (
       route: 'Home',
     }),
   })
-  const update = parentBase.update((model, message) =>
+  const update = composition.update((model, message) =>
     ParentMessage.match(message, {
       GotChildMessage: ({ message: childMessage }) =>
-        child.fold(model, childMessage),
+        ChildBinding.fold(model, childMessage),
       RemovedChild: () => ({
         model: modifyFields(model, {
           maybeChild: current => (mode === 'Option' ? Option.none() : current),

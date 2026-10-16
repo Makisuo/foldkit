@@ -8,8 +8,8 @@ import type { ViewInputs as SliderViewInputs } from '@foldkit/ui/slider'
 import {
   ApplicationComposition,
   type ApplicationViewBuilder,
-  flowStrengthSlider,
-  noiseScaleSlider,
+  FlowStrengthSliderBinding,
+  NoiseScaleSliderBinding,
 } from './composition'
 import {
   BACKGROUND_COLOR_TOP,
@@ -387,7 +387,7 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
         model.flowStrength,
         viewInputs =>
           h.block(
-            flowStrengthSlider.embedView({
+            FlowStrengthSliderBinding.embedView({
               slotId: model.flowStrengthSlider.id,
               model: model.flowStrengthSlider,
               viewInputs,
@@ -400,7 +400,7 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
         model.noiseScale,
         viewInputs =>
           h.block(
-            noiseScaleSlider.embedView({
+            NoiseScaleSliderBinding.embedView({
               slotId: model.noiseScaleSlider.id,
               model: model.noiseScaleSlider,
               viewInputs,

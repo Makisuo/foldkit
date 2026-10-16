@@ -2,48 +2,20 @@ import { Array, Match, Number, Option, pipe } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { UiComposition } from './composition'
 import {
-  animationDemo,
-  calendarBasicDemo,
-  comboboxDemo,
-  comboboxMultiDemo,
-  comboboxNullableDemo,
-  comboboxPlacementLockDemo,
-  comboboxSelectOnFocusDemo,
-  datePickerBasicDemo,
-  dialogAnimatedDemo,
-  dialogDemo,
-  dragAndDropDemo,
-  fileDropBasicDemo,
-  horizontalRadioGroupDemo,
-  horizontalTabsDemo,
-  hoverIntentCardDemo,
-  hoverIntentMenuDemo,
-  listboxDemo,
-  listboxGroupedDemo,
-  listboxMultiDemo,
-  menuAnimatedDemo,
-  menuBasicDemo,
-  nestedDialogChildDemo,
-  nestedDialogParentDemo,
-  overlayComboboxDemo,
-  overlayDialogDemo,
-  popoverAnimatedDemo,
-  popoverArrowDemo,
-  popoverBasicDemo,
-  popoverNestedChildDemo,
-  popoverNestedParentDemo,
-  sliderRatingDemo,
-  sliderVolumeDemo,
-  toastDemo,
-  tooltipDemo,
-  verticalRadioGroupDemo,
-  verticalTabsDemo,
-  virtualListChatDemo,
-  virtualListDemo,
-  virtualListVariableDemo,
+  AnimationDemoBinding,
+  DialogAnimatedDemoBinding,
+  DialogDemoBinding,
+  HoverIntentMenuDemoBinding,
+  NestedDialogChildDemoBinding,
+  NestedDialogParentDemoBinding,
+  OverlayDialogDemoBinding,
+  ToastDemoBinding,
+  VirtualListChatDemoBinding,
+  VirtualListDemoBinding,
+  VirtualListVariableDemoBinding,
 } from './composition'
-import { Ui } from './definition'
 import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './demo/virtualListData'
 import { Message } from './message'
 import {
@@ -64,7 +36,7 @@ const updateVirtualListChatMessages = (
     virtualListChatMessages: () => nextMessages,
     virtualListChatNextId: () => nextId,
   })
-  return virtualListChatDemo.informItemsChanged(
+  return VirtualListChatDemoBinding.informItemsChanged(
     Array.map(nextMessages, message => globalThis.String(message.id)),
   )(nextModel)
 }
@@ -112,7 +84,7 @@ const prependVirtualListChatMessagesOnStartThresholdEntry =
 
     return prependVirtualListChatMessages(nextModel)
   }
-export const update = Ui.update((model, message) =>
+export const update = UiComposition.update((model, message) =>
   Message.match(message, {
     UpdatedInputDemoValue: ({ value }) => ({
       model: modifyFields(model, { inputDemoValue: () => value }),
@@ -146,12 +118,6 @@ export const update = Ui.update((model, message) =>
       }),
     }),
 
-    GotCalendarBasicDemoMessage: ({ message }) =>
-      calendarBasicDemo.fold(model, message),
-
-    GotDatePickerBasicDemoMessage: ({ message }) =>
-      datePickerBasicDemo.fold(model, message),
-
     ToggledCheckboxBasicDemo: ({ isChecked }) => ({
       model: modifyFields(model, {
         isCheckboxBasicDemoChecked: () => isChecked,
@@ -177,46 +143,16 @@ export const update = Ui.update((model, message) =>
       }),
     }),
 
-    GotComboboxDemoMessage: ({ message }) => comboboxDemo.fold(model, message),
+    ClickedDeleteProject: () => NestedDialogChildDemoBinding.open()(model),
 
-    GotComboboxPlacementLockDemoMessage: ({ message }) =>
-      comboboxPlacementLockDemo.fold(model, message),
+    ClickedOpenDialog: () => DialogDemoBinding.open()(model),
 
-    GotComboboxNullableDemoMessage: ({ message }) =>
-      comboboxNullableDemo.fold(model, message),
+    ClickedOpenAnimatedDialog: () => DialogAnimatedDemoBinding.open()(model),
 
-    GotComboboxMultiDemoMessage: ({ message }) =>
-      comboboxMultiDemo.fold(model, message),
+    ClickedEditFilters: () => OverlayDialogDemoBinding.open()(model),
 
-    GotComboboxSelectOnFocusDemoMessage: ({ message }) =>
-      comboboxSelectOnFocusDemo.fold(model, message),
-
-    GotDialogDemoMessage: ({ message }) => dialogDemo.fold(model, message),
-
-    GotDialogAnimatedDemoMessage: ({ message }) =>
-      dialogAnimatedDemo.fold(model, message),
-
-    GotOverlayDialogDemoMessage: ({ message }) =>
-      overlayDialogDemo.fold(model, message),
-
-    GotOverlayComboboxDemoMessage: ({ message }) =>
-      overlayComboboxDemo.fold(model, message),
-
-    GotNestedDialogParentDemoMessage: ({ message }) =>
-      nestedDialogParentDemo.fold(model, message),
-
-    GotNestedDialogChildDemoMessage: ({ message }) =>
-      nestedDialogChildDemo.fold(model, message),
-
-    ClickedDeleteProject: () => nestedDialogChildDemo.open()(model),
-
-    ClickedOpenDialog: () => dialogDemo.open()(model),
-
-    ClickedOpenAnimatedDialog: () => dialogAnimatedDemo.open()(model),
-
-    ClickedEditFilters: () => overlayDialogDemo.open()(model),
-
-    ClickedOpenProjectSettings: () => nestedDialogParentDemo.open()(model),
+    ClickedOpenProjectSettings: () =>
+      NestedDialogParentDemoBinding.open()(model),
 
     ToggledDisclosureDemo: ({ isOpen }) => ({
       model: modifyFields(model, { isDisclosureDemoOpen: () => isOpen }),
@@ -228,71 +164,14 @@ export const update = Ui.update((model, message) =>
       }),
     }),
 
-    GotListboxDemoMessage: ({ message }) => listboxDemo.fold(model, message),
-
-    GotListboxMultiDemoMessage: ({ message }) =>
-      listboxMultiDemo.fold(model, message),
-
-    GotListboxGroupedDemoMessage: ({ message }) =>
-      listboxGroupedDemo.fold(model, message),
-
-    GotMenuBasicDemoMessage: ({ message }) =>
-      menuBasicDemo.fold(model, message),
-
-    GotMenuAnimatedDemoMessage: ({ message }) =>
-      menuAnimatedDemo.fold(model, message),
-
-    GotPopoverBasicDemoMessage: ({ message }) =>
-      popoverBasicDemo.fold(model, message),
-
-    GotPopoverAnimatedDemoMessage: ({ message }) =>
-      popoverAnimatedDemo.fold(model, message),
-
-    GotPopoverArrowDemoMessage: ({ message }) =>
-      popoverArrowDemo.fold(model, message),
-
-    GotPopoverNestedParentDemoMessage: ({ message }) =>
-      popoverNestedParentDemo.fold(model, message),
-
-    GotPopoverNestedChildDemoMessage: ({ message }) =>
-      popoverNestedChildDemo.fold(model, message),
-
-    GotVerticalRadioGroupDemoMessage: ({ message }) =>
-      verticalRadioGroupDemo.fold(model, message),
-
-    GotHorizontalRadioGroupDemoMessage: ({ message }) =>
-      horizontalRadioGroupDemo.fold(model, message),
-
-    GotSliderRatingDemoMessage: ({ message }) =>
-      sliderRatingDemo.fold(model, message),
-
-    GotSliderVolumeDemoMessage: ({ message }) =>
-      sliderVolumeDemo.fold(model, message),
-
     ToggledSwitchDemo: ({ isChecked }) => ({
       model: modifyFields(model, { isSwitchDemoChecked: () => isChecked }),
     }),
 
-    GotHorizontalTabsDemoMessage: ({ message }) =>
-      horizontalTabsDemo.fold(model, message),
-
-    GotVerticalTabsDemoMessage: ({ message }) =>
-      verticalTabsDemo.fold(model, message),
-
-    GotTooltipDemoMessage: ({ message }) => tooltipDemo.fold(model, message),
-
-    GotHoverIntentCardDemoMessage: ({ message }) =>
-      hoverIntentCardDemo.fold(model, message),
-
-    GotHoverIntentMenuDemoMessage: ({ message }) =>
-      hoverIntentMenuDemo.fold(model, message),
-
-    ClickedHoverIntentMenuItem: () => hoverIntentMenuDemo.close()(model),
-
-    GotToastDemoMessage: ({ message }) => toastDemo.fold(model, message),
+    ClickedHoverIntentMenuItem: () => HoverIntentMenuDemoBinding.close()(model),
 
     ClickedShowInfoToast: () =>
-      toastDemo.show({
+      ToastDemoBinding.show({
         variant: 'Info',
         payload: {
           title: 'Preferences updated',
@@ -301,7 +180,7 @@ export const update = Ui.update((model, message) =>
       })(model),
 
     ClickedShowSuccessToast: () =>
-      toastDemo.show({
+      ToastDemoBinding.show({
         variant: 'Success',
         payload: {
           title: 'Uploaded',
@@ -310,7 +189,7 @@ export const update = Ui.update((model, message) =>
       })(model),
 
     ClickedShowErrorToast: () =>
-      toastDemo.show({
+      ToastDemoBinding.show({
         variant: 'Error',
         payload: {
           title: 'Save failed',
@@ -319,7 +198,7 @@ export const update = Ui.update((model, message) =>
       })(model),
 
     ClickedShowStickyToast: () =>
-      toastDemo.show({
+      ToastDemoBinding.show({
         variant: 'Info',
         payload: {
           title: 'Action required',
@@ -328,18 +207,12 @@ export const update = Ui.update((model, message) =>
         sticky: true,
       })(model),
 
-    ClickedDismissAllToasts: () => toastDemo.dismissAll()(model),
-
-    GotAnimationDemoMessage: ({ message }) =>
-      animationDemo.fold(model, message),
+    ClickedDismissAllToasts: () => ToastDemoBinding.dismissAll()(model),
 
     ClickedToggleAnimationDemo: () =>
       model.animationDemo.isShowing
-        ? animationDemo.hide()(model)
-        : animationDemo.show()(model),
-
-    GotFileDropBasicDemoMessage: ({ message }) =>
-      fileDropBasicDemo.fold(model, message),
+        ? AnimationDemoBinding.hide()(model)
+        : AnimationDemoBinding.show()(model),
 
     ClickedRemoveFileDropDemoFile: ({ fileIndex }) => ({
       model: modifyFields(model, {
@@ -348,22 +221,13 @@ export const update = Ui.update((model, message) =>
       }),
     }),
 
-    GotDragAndDropDemoMessage: ({ message }) =>
-      dragAndDropDemo.fold(model, message),
-
-    GotVirtualListDemoMessage: ({ message }) =>
-      virtualListDemo.fold(model, message),
-
     ClickedVirtualListScrollToMiddle: () =>
-      virtualListDemo.scrollToIndex(Math.floor(VIRTUAL_LIST_ROW_COUNT / 2))(
-        model,
-      ),
-
-    GotVirtualListVariableDemoMessage: ({ message }) =>
-      virtualListVariableDemo.fold(model, message),
+      VirtualListDemoBinding.scrollToIndex(
+        Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
+      )(model),
 
     ClickedVirtualListVariableScrollToMiddle: () =>
-      virtualListVariableDemo.scrollToIndex(
+      VirtualListVariableDemoBinding.scrollToIndex(
         Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
       )(model),
 
@@ -371,17 +235,19 @@ export const update = Ui.update((model, message) =>
       Match.value(message).pipe(
         Match.tag('ObservedContainerScroll', ({ scrollTop }) =>
           Update.combine(model, [
-            stepModel => virtualListChatDemo.fold(stepModel, message),
+            stepModel => VirtualListChatDemoBinding.fold(stepModel, message),
             prependVirtualListChatMessagesOnStartThresholdEntry(scrollTop),
           ]),
         ),
-        Match.orElse(() => virtualListChatDemo.fold(model, message)),
+        Match.orElse(() => VirtualListChatDemoBinding.fold(model, message)),
       ),
 
     ClickedVirtualListChatPrepend: () => prependVirtualListChatMessages(model),
 
     ClickedVirtualListChatScrollToMessage: () =>
-      virtualListChatDemo.scrollToKey('7', { alignment: 'Center' })(model),
+      VirtualListChatDemoBinding.scrollToKey('7', { alignment: 'Center' })(
+        model,
+      ),
 
     ClickedVirtualListChatAppend: () => {
       const nextId = model.virtualListChatNextId

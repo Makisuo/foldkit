@@ -238,7 +238,7 @@ const close = HoverIntent.step(model =>
 )
 
 /** Processes a HoverIntent Message and returns the next Model, optional Commands, and an optional OutMessage. */
-export const update = HoverIntent.update((model, message) =>
+export const update = HoverIntentComposition.update((model, message) =>
   Message.match(message, {
     EnteredTrigger: () =>
       entered(modifyFields(model, { isTriggerHovered: () => true })),
@@ -355,7 +355,9 @@ export const view = HoverIntentComposition.view.withInputs<ViewInputs>(
 
 /** Complete HoverIntent Block definition for connecting to a parent. */
 export const block = HoverIntentComposition.toBlock({
-  init: HoverIntent.init((config?: InitConfig) => ({ model: init(config) })),
+  init: HoverIntentComposition.init((config?: InitConfig) => ({
+    model: init(config),
+  })),
   update,
   view,
   expose: { close },

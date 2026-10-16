@@ -22,7 +22,7 @@ const view = ConnectionViewsChildComposition.view.withInputs<ViewInputs>(
 )
 const block = ConnectionViewsChildComposition.toBlock({
   init: () => ({ model: Model.make({ count: 0 }) }),
-  update: ConnectionViewsChild.update(model => ({
+  update: ConnectionViewsChildComposition.update(model => ({
     model: modifyFields(model, { count: count => count + 1 }),
   })),
   view,
@@ -43,12 +43,13 @@ const ConnectionViewsParent = define('ConnectionViewsParent', {
   Message: ParentMessage,
 })
 
-const connected = ConnectionViewsParent.bindChild(block, {
+const ConnectedBinding = ConnectionViewsParent.bindChild(block, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
 })
 const entryKey = (entry: typeof Entry.Type): string => entry.id
-const keyed = ConnectionViewsParent.bindChild(block, {
+const KeyedBinding = ConnectionViewsParent.bindChild(block, {
+  fromParentMessage: false,
   placement: 'entries',
   readAll: (model: ParentModel) => model.entries,
   key: entryKey,
@@ -85,7 +86,7 @@ const TaggedParent = define('ConnectionViewsTaggedParent', {
   Model: TaggedParentModel,
   Message: ParentMessage,
 })
-const tagged = TaggedParent.bindChild(block, {
+const TaggedBinding = TaggedParent.bindChild(block, {
   read: model =>
     model._tag === 'Active' ? Option.some(model.child) : Option.none(),
   write: (model, nextChild) =>
@@ -95,12 +96,12 @@ const tagged = TaggedParent.bindChild(block, {
 
 it('retains default ViewInputs and checks alternate static and keyed Messages', () => {
   const model = Model.make({ count: 1 })
-  const staticConfig = connected.embedView({
+  const staticConfig = ConnectedBinding.embedView({
     slotId: 'child',
     model,
     viewInputs: { label: 'Count' },
   })
-  const keyedConfig = keyed.embedView({
+  const keyedConfig = KeyedBinding.embedView({
     slotId: 'entries',
     key: 'first',
     model,
@@ -112,7 +113,7 @@ it('retains default ViewInputs and checks alternate static and keyed Messages', 
       [inputs.label, globalThis.String(model.count)],
     ),
   )
-  const alternateConfig = keyed.embedView({
+  const alternateConfig = KeyedBinding.embedView({
     slotId: 'entries',
     key: 'first',
     model,
@@ -125,15 +126,15 @@ it('retains default ViewInputs and checks alternate static and keyed Messages', 
   expect(alternateConfig.view).toBe(alternate)
 
   // @ts-expect-error The default renderer requires its ViewInputs.
-  connected.embedView({ slotId: 'child', model })
-  keyed.embedView({
+  ConnectedBinding.embedView({ slotId: 'child', model })
+  KeyedBinding.embedView({
     slotId: 'entries',
     key: 'first',
     model,
     // @ts-expect-error Keyed default views preserve their ViewInputs contract.
     viewInputs: { label: 1 },
   })
-  keyed.embedView({
+  KeyedBinding.embedView({
     slotId: 'entries',
     // @ts-expect-error The registered key is a string.
     key: 1,
@@ -141,31 +142,41 @@ it('retains default ViewInputs and checks alternate static and keyed Messages', 
     viewInputs: { label: 'Count' },
   })
   // @ts-expect-error A keyed view requires its key.
-  keyed.embedView({ slotId: 'entries', model, viewInputs: { label: 'Count' } })
+  KeyedBinding.embedView({
+    slotId: 'entries',
+    model,
+    viewInputs: { label: 'Count' },
+  })
   // @ts-expect-error Static custom views must emit the child's Message union.
-  connected.embedView({ slotId: 'child', model, view: foreignView })
-  // @ts-expect-error Keyed custom views must emit the child's Message union.
-  keyed.embedView({ slotId: 'entries', key: 'first', model, view: foreignView })
+  ConnectedBinding.embedView({ slotId: 'child', model, view: foreignView })
+  KeyedBinding.embedView({
+    slotId: 'entries',
+    key: 'first',
+    model,
+    // @ts-expect-error Keyed custom views must emit the child's Message union.
+    view: foreignView,
+  })
 })
 
 it('supports explicit tagged-union readers and writers', () => {
   const active = ActiveParent.make({ child: Model.make({ count: 1 }) })
   const inactive = InactiveParent.make({})
 
-  expect(tagged.fold(active, Message.ClickedIncrement()).model).toEqual(
+  expect(TaggedBinding.fold(active, Message.ClickedIncrement()).model).toEqual(
     ActiveParent.make({ child: Model.make({ count: 2 }) }),
   )
-  expect(tagged.fold(inactive, Message.ClickedIncrement()).model).toEqual(
-    inactive,
-  )
+  expect(
+    TaggedBinding.fold(inactive, Message.ClickedIncrement()).model,
+  ).toEqual(inactive)
 
   if (false) {
     TaggedParent.bindChild(block, {
       // @ts-expect-error The invalid tagged writer prevents accessor overload selection.
       read: (model: TaggedParentModel) =>
         model._tag === 'Active' ? Option.some(model.child) : Option.none(),
-      write: (_model: TaggedParentModel, nextChild) => nextChild,
       // @ts-expect-error A tagged Binding writer must return the parent Model union.
+      write: (_model: TaggedParentModel, nextChild) => nextChild,
+      // @ts-expect-error The invalid tagged writer prevents accessor overload selection.
       parentMessage: ParentMessage.GotChildMessage,
     })
   }
@@ -176,13 +187,13 @@ it('lowers required-field shorthand through the shared pure Binding adapter', ()
     child: Model.make({ count: 0 }),
     entries: [],
   })
-  const result = connected.fold(initial, Message.ClickedIncrement())
+  const result = ConnectedBinding.fold(initial, Message.ClickedIncrement())
 
   expect(result.model.child.count).toBe(1)
   expect(result.model.entries).toBe(initial.entries)
   expect(initial.child.count).toBe(0)
   expectTypeOf<
-    Update.RequirementsOf<typeof connected.fold>
+    Update.RequirementsOf<typeof ConnectedBinding.fold>
   >().toEqualTypeOf<never>()
   expectTypeOf(result.model).toEqualTypeOf<ParentModel>()
 
@@ -191,14 +202,14 @@ it('lowers required-field shorthand through the shared pure Binding adapter', ()
     Model: optionalModel,
     Message: ParentMessage,
   })
-  const optional = OptionalParent.bindChild(block, {
+  const OptionalBinding = OptionalParent.bindChild(block, {
     read: model => model.maybeChild,
     write: (model, nextChild) =>
       modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
     parentMessage: ParentMessage.GotChildMessage,
   })
   expect(
-    optional.fold(
+    OptionalBinding.fold(
       optionalModel.make({ maybeChild: Option.none() }),
       Message.ClickedIncrement(),
     ).model.maybeChild,

@@ -1,11 +1,11 @@
 import { Option } from 'effect'
 
 import { FocusSearchInput } from './command'
-import { Application } from './definition'
+import { ApplicationComposition } from './composition'
 import { featuredLocations } from './locations'
 import { GeolocateState } from './model'
 
-export const init = Application.init(() => ({
+export const init = ApplicationComposition.init(() => ({
   model: {
     locations: featuredLocations,
     searchQuery: '',

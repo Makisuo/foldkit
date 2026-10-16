@@ -1,6 +1,5 @@
 import { Effect, Layer, Schema } from 'effect'
-
-import { Block, type Html, Message, defineApplication } from '../src/index.js'
+import { Block, type Html, Message, defineApplication } from 'foldkit'
 
 export const ChildModel = Schema.Struct({ value: Schema.String })
 const ChildMessage = Message.defineMessageUnion({ ClickedChild: {} })
@@ -16,8 +15,10 @@ export const childViewHelper = (
 ) => h.span([], [model.value])
 const childView = ChildComposition.view((model, h) => childViewHelper(model, h))
 export const ChildBlock = ChildComposition.toBlock({
-  init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
-  update: Child.update(model => ({ model })),
+  init: ChildComposition.init(() => ({
+    model: ChildModel.make({ value: 'initial' }),
+  })),
+  update: ChildComposition.update(model => ({ model })),
   view: childView,
   EffectsLayer: Layer.empty,
 })
@@ -37,12 +38,12 @@ export const ObserveParent = Parent.mount('ObserveParent', {
     return () => Effect.succeed(ParentMessage.CompletedObserveParent())
   },
 })
-export const child = Parent.bindChild(ChildBlock, {
+export const ChildBinding = Parent.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
 })
 export const ParentComposition = Parent.toComposition({
-  children: [child],
+  childBindings: [ChildBinding],
   mounts: [ObserveParent],
 })
 export type ParentViewBuilder = Block.ViewBuilderFor<typeof ParentComposition>
@@ -56,7 +57,7 @@ export const parentModelViewHelper = (
       h.OnClick(ParentMessage.CompletedObserveParent()),
       h.OnMount(ObserveParent()),
     ],
-    [h.block(child.embedView({ slotId: 'child', model: model.child }))],
+    [h.block(ChildBinding.embedView({ slotId: 'child', model: model.child }))],
   )
 
 export const parentBuilderViewHelper = (h: ParentViewBuilder) =>
@@ -65,7 +66,8 @@ export const parentBuilderViewHelper = (h: ParentViewBuilder) =>
 export const parentInputViewHelper = (
   childModel: typeof ChildModel.Type,
   h: ParentViewBuilder,
-) => h.block(child.embedView({ slotId: 'child-input', model: childModel }))
+) =>
+  h.block(ChildBinding.embedView({ slotId: 'child-input', model: childModel }))
 
 export const parentArrayViewHelper = (
   labels: ReadonlyArray<string>,
@@ -83,7 +85,7 @@ const Application = defineApplication({
   Message: ParentMessage,
 })
 export const ApplicationComposition = Application.toComposition({
-  children: [child],
+  childBindings: [ChildBinding],
   mounts: [ObserveParent],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
@@ -98,7 +100,10 @@ export const applicationModelViewHelper = (
     [h.OnMount(ObserveParent())],
     [
       h.block(
-        child.embedView({ slotId: 'application-child', model: model.child }),
+        ChildBinding.embedView({
+          slotId: 'application-child',
+          model: model.child,
+        }),
       ),
     ],
   )

@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Array, Schema } from 'effect'
+import { Array, Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -63,36 +63,27 @@ const PeoplePicker = Block.define('PeoplePicker', {
   Message,
 })
 
-const peopleListbox = PeoplePicker.bindChild(PeopleListbox, {
+const PeopleListboxBinding = PeoplePicker.bindChild(PeopleListbox, {
   field: 'listboxMulti',
   parentMessage: Message.GotListboxMultiMessage,
+  init: { args: () => Tuple.make({ id: 'people' }) },
   outMessage: { fold: foldListboxMultiOutMessage },
 })
 
-// In your init function, initialize the Listbox Block with a unique id:
-const init = PeoplePicker.init(() => {
-  const listboxInit = peopleListbox.init({ id: 'people' })
-
-  return {
-    model: {
-      selectedPeople: [],
-      listboxMulti: listboxInit.model,
-      // ...your other fields
-    },
-    commands: listboxInit.commands,
-  }
-})
-
 const PeoplePickerComposition = PeoplePicker.toComposition({
-  children: [peopleListbox],
+  childBindings: [PeopleListboxBinding],
 })
 
-// In the corresponding Message.match handler, call the fold:
-const update = PeoplePicker.update((model, message) =>
-  Message.match(message, {
-    GotListboxMultiMessage: ({ message }) => peopleListbox.fold(model, message),
-  }),
-)
+// Initialize the fields the parent owns. The Composition initializes the
+// bound Listbox Model with the Binding's unique id.
+const init = PeoplePickerComposition.init(() => ({
+  model: {
+    selectedPeople: [],
+    // ...your other fields
+  },
+}))
+
+const update = PeoplePickerComposition.update()
 
 const people: ReadonlyArray<Person> = [
   'Michael Bluth',
@@ -104,7 +95,7 @@ const people: ReadonlyArray<Person> = [
 // stays open on selection so the user can toggle several items:
 const view = PeoplePickerComposition.view((model, h) =>
   h.block(
-    peopleListbox.embedView({
+    PeopleListboxBinding.embedView({
       slotId: 'people',
       model: model.listboxMulti,
       viewInputs: {

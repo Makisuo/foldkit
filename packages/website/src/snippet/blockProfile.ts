@@ -18,35 +18,29 @@ const foldSettingsOutMessage = Settings.OutMessage.match<
 
 const Application = defineApplication({ Model, Message })
 
-export const settings = Application.bindChild(Settings.block, {
+export const SettingsBinding = Application.bindChild(Settings.block, {
   field: 'maybeSettings',
   parentMessage: Message.GotSettingsMessage,
+  fromParentMessage: {
+    parentMessage: Message.GotSettingsMessage,
+    args: (model, { message }) => Option.some([message, model.currentUser]),
+  },
   outMessage: { fold: foldSettingsOutMessage },
+  init: true,
 })
 
 export const ApplicationComposition = Application.toComposition({
-  children: [settings],
+  childBindings: [SettingsBinding],
 })
 
-export const init = Application.init(() => {
-  const settingsInit = settings.init()
+export const init = ApplicationComposition.init(() => ({
+  model: {
+    currentUser: { accountId: 'account-1' },
+    previewTheme: 'System',
+  },
+}))
 
-  return {
-    model: Model.make({
-      currentUser: { accountId: 'account-1' },
-      maybeSettings: Option.some(settingsInit.model),
-      previewTheme: 'System',
-    }),
-    commands: settingsInit.commands,
-  }
-})
-
-export const update = Application.update((model, message) =>
-  Message.match(message, {
-    GotSettingsMessage: ({ message }) =>
-      settings.fold(model, message, model.currentUser),
-  }),
-)
+export const update = ApplicationComposition.update()
 
 export const view = ApplicationComposition.view((model, h) => ({
   title: 'Profile',
@@ -54,7 +48,7 @@ export const view = ApplicationComposition.view((model, h) => ({
     onNone: () => h.empty,
     onSome: settingsModel =>
       h.block(
-        settings.embedView({
+        SettingsBinding.embedView({
           slotId: 'settings',
           model: settingsModel,
         }),

@@ -17,8 +17,6 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
-// ENGINE
-
 interface ComputeEngine {
   readonly engineId: string
   readonly square: (value: number) => number
@@ -142,7 +140,7 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-export const init = Application.init(() => ({
+export const init = ApplicationComposition.init(() => ({
   model: {
     engine: EngineState.Off(),
     computeCount: 0,

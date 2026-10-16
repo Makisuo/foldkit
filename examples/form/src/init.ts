@@ -1,6 +1,6 @@
 import { NotValidated } from 'foldkit/fieldValidation'
 
-import { Application } from './definition'
+import { ApplicationComposition } from './composition'
 import { type Model, Submission } from './model'
 
 export const initialModel: Model = {
@@ -10,4 +10,4 @@ export const initialModel: Model = {
   submission: Submission.NotSubmitted(),
 }
 
-export const init = Application.init(() => ({ model: initialModel }))
+export const init = ApplicationComposition.init(() => ({ model: initialModel }))

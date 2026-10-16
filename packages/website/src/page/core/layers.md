@@ -2,25 +2,46 @@
 
 ## Overview
 
-An Effect Layer is a recipe for constructing services and managing their lifetime. Foldkit uses Layers for shared application services and for handlers that implement Commands, Subscriptions, Mounts, and ManagedResources. The Runtime builds the application Layer once when the application starts and releases its scoped resources when the application stops.
+An Effect Layer is a recipe for constructing services and managing their lifetime. A service is a value that provides a capability, such as an API client. Foldkit also uses Layers to construct the handlers that implement Commands, Subscriptions, Mounts, and ManagedResources.
 
-:::Info{label="Think of it like a restaurant kitchen"}
-Shared services are the kitchen equipment available all night. Every dish can use the same oven. A Model-driven handle, such as a camera stream, belongs to a [ManagedResource](/core/managed-resources) instead: it exists only while the Model needs it.
-:::
+Layers give application assembly a typed list of what it still needs. A feature can request `LoadUser` without passing an HTTP client through update and every parent. Assembly supplies its handler and the services used by that handler. TypeScript rejects an application with missing providers before the Runtime starts it.
 
-The typed root Composition's owned `ApplicationComposition.toApplication` method completes the application and carries its unsatisfied Effect requirements. `application.provide(layer)` adds the application Layer and returns a new passive program. `Runtime.run` builds that Layer when it starts the program. Command execution, Subscription restart, Mount insertion, and ManagedResource acquisition reuse the handlers and services that Layer built. A hydrating start validates the server handoff before acquiring the Layer.
+These values have different jobs:
 
-A Command definition names the operation and its result Messages. Its `config.handler` is a generator constructor that captures any services the implementation needs, then returns the function that handles each invocation. Foldkit applies `Effect.gen` internally. The definition's `.layer` is the recipe application assembly provides. `Layer.provide` composes service Layers beneath that handler Layer. Subscriptions, Mounts, and ManagedResources use the same constructor boundary.
+| Value                                           | What it represents                                       |
+| ----------------------------------------------- | -------------------------------------------------------- |
+| `LoadUser({ userId })`                          | One request for the Runtime to perform work              |
+| The function returned by `LoadUser`'s `handler` | The implementation used for each request                 |
+| `LoadUser.layer`                                | A recipe that constructs that handler                    |
+| `ApiLayer`                                      | A recipe that constructs the API client the handler uses |
+
+## Provide the Handler and Its Services
+
+This root application loads a user through an API service. The Command owns the translation from an API result to a Message; the API service owns the request and decoding:
 
 ::Snippet{name="layers" label="Shared API client service"}
 
-The completed feature includes the real handler through `EffectsLayer = LoadUser.layer`. `ApplicationLayer` supplies `ApiLayer`; `ApplicationTestLayer` supplies `ApiTestLayer`. The API client starts once with the application, rather than once per `LoadUser` execution. This substitution exercises the real `LoadUser` mapping and error policy. Code inside the replaced `ApiLayer` is outside that test path.
+The application starts by requesting one user. Its update handles the Command's two result Messages, and its view displays the resulting state:
 
-Setting `config.handler` creates the Definition's `.layer` recipe through the same construction path and handler identity that `toLayer(constructor)` uses. Include that recipe in the feature's local `EffectsLayer` and pass the bundle to `FeatureComposition.toBlock`. Binding the feature carries that handler graph to the root. Foldkit does not search for attached handlers omitted from the completed graph.
+::Snippet{name="layersApplication" label="Application using the API handler"}
 
-The handler generator runs once when the Runtime builds the application Layer, including constructors for handlers that are never invoked. For a Command, the function it returns receives serializable args each time the Command runs. For a Subscription, the returned function receives the current Model dependencies each time Foldkit starts or restarts its Stream. Mount and ManagedResource handlers likewise receive their element or Model-scoped requirements when that lifecycle begins.
+The entry supplies the local handler recipe at completion, provides its remaining services, and starts the Runtime:
 
-Use `function* ()` to capture services, then return the invocation function. Foldkit applies `Effect.gen` around the generator. When construction has no work to perform, return the handler directly from the generator. The consistent shape makes application dependencies visible in the Layer graph even for a small handler.
+::Snippet{name="layersEntry" label="Complete and run the application"}
+
+When the Command belongs to a child Block, pass its local `EffectsLayer` to `FeatureComposition.toBlock` instead. Registering its Binding carries the checked handler graph upward. The root still supplies shared services once. The [Block guide](/core/block) shows that complete feature-to-root wiring.
+
+Defining handlers, binding features, completing the Application, and calling `provide` all describe configuration. `Runtime.run` builds the Layers and starts execution. Attaching `handler` makes `.layer` available; the completed graph still needs to include that recipe.
+
+`ApplicationTestLayer` supplies `ApiTestLayer` beneath the same real handler. The `LoadUser` result mapping and error policy still execute. The replaced API implementation is outside that test path; [Testing Through Service Boundaries](#testing-through-service-boundaries) explains how to choose what a test exercises.
+
+## Construction and Execution
+
+The `handler` field accepts a generator because constructing an implementation may require Effects. Foldkit applies `Effect.gen` around it. For a Command, Subscription, or Mount, the generator obtains stable dependencies and returns the function used for each invocation. A ManagedResource constructor returns an object with `acquire` and `release` functions instead. If construction needs no setup, the generator simply returns the function or object.
+
+The Runtime builds the supplied application Layer once per start. Handler constructors run at that point, including constructors for handlers never invoked. Each Command then calls its constructed handler with fresh args. A Subscription starts its constructed Stream factory with current Model dependencies; a Mount receives its live element; a ManagedResource receives its current acquisition requirements.
+
+Obtaining an API client with `yield* ApiClientService` retrieves the instance supplied by its Layer. It does not create another client. The API client and handler stay alive across Command executions and lifecycle restarts. The Runtime releases their scoped resources when the application stops.
 
 If an existing Effect or Stream already declares its service requirements, return it from the invocation function. The handler Layer carries those requirements to application assembly and captures the supplied Context. Contextual lookups use the invocation Context over the construction Context. Yield a service when the returned function needs to call the captured object directly; yielding it solely to re-provide the same instance to an existing operation adds unnecessary plumbing.
 
@@ -42,22 +63,9 @@ Compare that with a Command carrying the implementation Effect directly. Its Eff
 
 Application assembly must supply the new telemetry dependency before `Runtime.run` accepts the application. An incomplete provider composition carries `Telemetry` as an unsatisfied requirement until the root supplies it. If that requirement reaches `Runtime.run`, TypeScript rejects the application. The update and its parent folds require the `LoadUser` handler throughout.
 
-Every handler requirement also carries the definition's complete invocation protocol. The public annotation forms are:
-
-| Primitive       | Exact annotation                                            | Preferred derived annotation                               |
-| --------------- | ----------------------------------------------------------- | ---------------------------------------------------------- |
-| Command         | `Command.Handler<Name, Args, DeclaredMessage>`              | `Command.HandlerOf<typeof CommandDefinition>`              |
-| Subscription    | `Subscription.Handler<Name, Dependencies, DeclaredMessage>` | `Subscription.HandlerOf<typeof subscriptions.entry>`       |
-| Mount           | `Mount.Handler<Name, Input, DeclaredMessage>`               | `Mount.RequirementsOf<typeof MountDefinition>`             |
-| ManagedResource | `ManagedResource.Handler<Name, Params, Value>`              | `ManagedResource.HandlerOf<typeof managedResources.entry>` |
-
-The expanded types require every protocol argument. Use the derived annotation when a signature needs an explicit requirement. Definitions, update helpers, Block Bindings, completed handler graphs, and attached Layer recipes carry these requirements automatically.
-
-Owned definitions include the named Block and local operation name in their handler contracts. `FeatureComposition.toBlock` compares the feature's local requirements with the outputs and inputs of its `EffectsLayer`, or with definitions explicitly listed in `hostHandlers`. A host then uses `block.provideHandlers` to satisfy those declared contracts. Parent Bindings carry the checked handler graph; the completed application or Element's `provide` method supplies its remaining ordinary service requirements.
-
-Definitions created by different named Blocks receive different owned names even when their local names and protocols match. Each definition also retains a private runtime identity, which Foldkit checks when a Command runs, a Subscription starts, a Mount executes, or a ManagedResource lifecycle begins. Create alternate implementations through the original definition's `toLayer` so they keep its identity. Foldkit creates the handler service and its runtime identity from the definition.
-
 An inline Effect can also carry typed dependencies and use replaceable services. Defining a separate operation service yourself can achieve the same separation. Foldkit generates that service boundary from each definition and uses it across Commands, Subscriptions, Mounts, and ManagedResources. The cost is explicit handler Layer composition, even for a small implementation.
+
+Replacing a whole handler is useful when its behavior belongs to a host or when a focused test controls that boundary. Most application execution tests keep the handler and replace its underlying services. Typed assembly and separating implementation dependencies from update are useful even when the handler is never replaced.
 
 ## Testing Through Service Boundaries
 
@@ -77,13 +85,13 @@ For example, an editor feature can declare `SaveDocument` without choosing where
 
 ::Snippet{name="commandHostContract" label="Editor declaring its save operation"}
 
-The editor's update returns `SaveDocument({ contents })` when the user requests a save and handles `SucceededSaveDocument` or `FailedSaveDocument` when it finishes. Omitting `handler` gives the definition no `.layer`. The editor requires `Command.HandlerOf<typeof SaveDocument>`, which its parent carries to application assembly.
+The editor's update returns `SaveDocument({ contents })` when the user requests a save and handles `SucceededSaveDocument` or `FailedSaveDocument` when it finishes. Omitting `handler` gives the definition no `.layer`. At completion, `hostHandlers: [SaveDocument]` explicitly delegates that missing implementation to the host. Without a local recipe or that declaration, `toBlock` rejects the incomplete feature.
 
 A standalone host can implement this contract using browser storage:
 
 ::Snippet{name="commandHostImplementation" label="Host saving a document to browser storage"}
 
-The host constructs `SaveDocumentLayer` with `SaveDocument.toLayer`, then calls `Editor.provideHandlers(SaveDocumentLayer)` before connecting that feature. `ApplicationLayer` supplies the storage service beneath the selected handler graph. Without a provider for `SaveDocument`, composition retains that requirement and TypeScript rejects the completed application.
+Here `Editor` is the imported feature namespace. The host constructs `SaveDocumentLayer` from the original definition and calls `Editor.block.provideHandlers(SaveDocumentLayer)` on the completed Block. Bind the resulting `editor` value in the parent. `ApplicationLayer` supplies the storage service beneath that handler. If the host leaves the handler unsupplied, its requirement reaches application assembly and TypeScript rejects running the application.
 
 The same editor could be used inside a publishing application whose host saves through its document API. Both hosts use the editor's Command definition and report its declared result Messages, so the editor's Model and update need no storage-specific branches.
 
@@ -170,27 +178,49 @@ If the service Layer fails to build, startup cannot reach init or the first rend
 
 `ApplicationComposition.toApplication` carries requirements from init, update, Subscriptions, composed Mounts, and ManagedResources. `Runtime.run` requires those requirements to be supplied. A Flags Effect can use a service produced by a Layer passed to `application.provide(layer)`, as shown above.
 
+A hydrating start validates the server handoff before acquiring the application Layer. [Init & Flags](/core/init-and-flags#server-rendering-and-hydration) covers server-supplied startup data.
+
 ## Layer Naming and Composition
 
-Import Effect's `Layer` module as `Layer`. Compose a small feature's attached recipes, such as `LoadUser.layer`, directly in `block.ts` as its local `EffectsLayer`. Extract `layer.ts` when that composition is substantial or independently reused. Create a standalone `LoadUserLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly, and name an external alternate `LoadUserTestLayer`. Pass the local bundle to the completed Block. Export `block` from the feature barrel, then export `* as Search` from the parent barrel. Parents call `Parent.bindChild(Search.block, config)`; the Binding carries its selected handler graph automatically.
+Import Effect's module as `Layer`. Use these names to keep local implementations and shared dependencies recognizable:
 
-An owned Block passes its local handler bundle to `FeatureComposition.toBlock({ EffectsLayer })`. A parent that includes the child Binding in `Parent.toComposition({ childBindings: [ChildBinding] })` receives the child's complete `EffectsLayer` automatically, including its descendants. The parent composes only its own local handler recipes. Repeating this at each Block boundary produces one root graph without making the entry point import every leaf implementation.
+| Name                   | Contains                                                      |
+| ---------------------- | ------------------------------------------------------------- |
+| `LoadUser.layer`       | One attached handler recipe                                   |
+| `EffectsLayer`         | Handler recipes owned by the current feature                  |
+| `ApplicationLayer`     | Root HTTP, storage, RPC, and other ordinary service providers |
+| `ApplicationTestLayer` | Alternate root services for the same handler graph            |
 
-Do not merge a registered child's bundle a second time. `bindChild` configures the relationship; including the returned Binding in `toComposition({ childBindings })` contributes its recipes for static, optional, and keyed placements. Composition checks the exact handler contracts supplied by the graph and reports a missing or conflicting provider before the Runtime starts.
+Compose local recipes directly with `Layer.mergeAll`. Name an individual provider `LoadUserLayer` only when it is intentionally public or independently reused outside that assembly. Name an external test alternative `LoadUserTestLayer`.
 
-At a split root, `composition.ts` or `composition/composition.ts` shows the complete child/Mount registration. A `command.ts` namespace's `Command.EffectsLayer` includes only the Command handlers owned by that module. Keep a simple root `EffectsLayer` with those Command definitions in `command.ts`; extract `layer.ts` only when the local Layer composition is substantial or reused. Registered child Blocks contribute their own handlers recursively through the completed graph; root code does not relist them.
+A Block passes its local bundle to `FeatureComposition.toBlock({ EffectsLayer })`. Registering its Binding in the parent contributes the child's checked handler graph, including descendants. The parent supplies only its own local recipes. Do not merge a registered child's bundle again. This works for static, optional, and keyed Bindings, so the entry point never needs to import every leaf handler.
 
-There is no flattened, human-readable handler inventory today. To inspect an Application's handlers, follow its registered children into each completed Block and local `EffectsLayer`. Do not maintain a second global list.
-
-At the root, the Application Composition contains the local handlers and composed child graphs. `ServicesLayer` combines concrete HTTP, storage, RPC, and browser providers. `ApplicationLayer` contains those ordinary service providers. `ApplicationComposition.toApplication({ init, update, view, ... })` or `.toElement(...)` packages the handler graph into the passive runtime input, and `application.provide(ApplicationLayer)` supplies its remaining service requirements. An `ApplicationTestLayer` can provide alternate services to the same handlers.
-
-When a feature needs a different local handler implementation, choose it with `block.replaceEffectsLayer(localRecipe)` before binding the feature. The replacement preserves the selected descendant recipes and remains passive until application startup. Use the original definitions' `toLayer` methods to retain their protocol and runtime identity. See [Selecting a local handler recipe](/core/block#select-a-local-handler-recipe).
-
-Use `Layer.mergeAll` to combine a feature's local recipes in `EffectsLayer`. A feature may provide a business service it owns beneath that bundle. Leave concrete environment providers as requirements for the root to choose. The composed graph preserves those ordinary service requirements through every parent; the root `ApplicationLayer` supplies them once for the whole runtime. A compact root exports `Application` and `ApplicationComposition` from its all-in-one `application.ts`. A split root exports `Application` from `definition.ts` and `ApplicationComposition` from `composition.ts` or its composition barrel, with no root `application.ts` aggregation file. Each implementation piece stays with its real owner, and `entry.ts` imports those fields explicitly for `ApplicationComposition.toApplication`. Root `services.ts` composes `ApplicationLayer`, and the entry imports it.
+A feature can provide a business service it owns beneath its local `EffectsLayer`. Leave concrete environment providers open for the root to select. Those ordinary requirements flow through parents until `application.provide(ApplicationLayer)` satisfies them. `ServicesLayer` is a useful name for an intermediate service bundle when root composition needs one.
 
 ::Snippet{name="layersMultiple" label="Multiple shared services"}
 
-The provider Layer and its handler Layers live for the application runtime. Resources acquired in their Scope release when the runtime stops. When a camera stream, `WebSocket`, or other handle should exist only while the Model is in a particular state, use [Managed Resources](/core/managed-resources) instead.
+Keep a small feature bundle in `block.ts`, or beside root Command definitions in `command.ts`. Extract `layer.ts` when composition is substantial or reused. Root `services.ts` exports `ApplicationLayer`; `entry.ts` completes the Application and supplies it. [Project Organization](/patterns/project-organization#composing-handler-layers) shows the complete compact and split layouts.
+
+Select an alternative local recipe with `block.replaceEffectsLayer(recipe)` before binding. It preserves selected descendant recipes and stays passive until startup. Use the original definitions' `toLayer` methods to retain their contracts and identities. See [Selecting a local handler recipe](/core/block#select-a-local-handler-recipe).
+
+There is no flattened handler inventory today. Inspect the registered children, completed Blocks, and their local `EffectsLayer` bundles; avoid maintaining a second global list.
+
+## Explicit Handler Requirements
+
+Most authored pieces infer their requirements. When a standalone signature needs an annotation, derive it from the definition so its args, dependencies, and result Messages stay aligned:
+
+| Primitive       | Derived annotation                                            | Expanded form                                               |
+| --------------- | ------------------------------------------------------------- | ----------------------------------------------------------- |
+| Command         | `Command.HandlerOf<typeof LoadUser>`                          | `Command.Handler<Name, Args, DeclaredMessage>`              |
+| Subscription    | `Subscription.HandlerOf<typeof subscriptions.gameClockTicks>` | `Subscription.Handler<Name, Dependencies, DeclaredMessage>` |
+| Mount           | `Mount.RequirementsOf<typeof MountChart>`                     | `Mount.Handler<Name, Input, DeclaredMessage>`               |
+| ManagedResource | `ManagedResource.HandlerOf<typeof managedResources.camera>`   | `ManagedResource.Handler<Name, Params, Value>`              |
+
+The expanded forms require every protocol argument. Definitions, update helpers, Bindings, and handler recipes carry the same information without explicit annotations.
+
+`FeatureComposition.toBlock` checks local requirements against `EffectsLayer` and definitions explicitly delegated through `hostHandlers`. Parent Bindings carry that checked graph. A completed Application or Element's `provide` method supplies its remaining ordinary service requirements.
+
+Owned definitions include the Block's name and local operation name. Each definition also retains a private runtime identity, checked when its handler runs. Create alternative implementations through that original definition's `toLayer` so the implementation retains the declared identity.
 
 ## UI Effects and Mount Registrations
 

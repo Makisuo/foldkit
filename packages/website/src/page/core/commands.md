@@ -39,7 +39,7 @@ Three pieces connect the work to update:
 - `WaitBeforeReset.layer` is the Layer recipe for that handler.
 - `WaitBeforeReset()` creates the Command value that update returns. Creating that value does not start the timer.
 
-The typed definition's `update` method infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
+`ApplicationComposition.update` infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
 
 This counter is genuinely compact: `application.ts` owns its Model, Message, `Application`, graphless `ApplicationComposition`, init, update, view, Command, and local handler recipe. `entry.ts` passes those pieces to `ApplicationComposition.toApplication`, supplies any remaining Services through `application.provide(layer)`, and starts the Runtime. A split root instead puts every responsibility in its named file and removes the emptied `application.ts`:
 
@@ -53,7 +53,7 @@ When the user clicks **Reset after one second**, the loop is:
 4. The Runtime dispatches `CompletedWaitBeforeReset`.
 5. Update receives that Message and sets `count` to zero.
 
-The Runtime builds the Block's handler Layer once when the application starts. Later Command executions reuse its handler; each execution starts its own timer.
+The Runtime builds the application's handler Layer once at startup. Later Command executions reuse its handler; each execution starts its own timer.
 
 ### Command and Result Names
 
@@ -99,7 +99,9 @@ A Command handler must convert its expected failures into declared result Messag
 
 ## Handler Layers
 
-Separating the Command definition from its handler lets update declare work without choosing how that work is implemented. Update imports `FetchCount`; application completion supplies its attached handler recipe, while root assembly supplies the HTTP service that handler needs. A feature can expose its Commands to a parent while keeping its implementations in one `EffectsLayer`.
+A Command value requires its named handler. The handler, in turn, requires the services used to perform the work. Update can return `FetchCount()` while application assembly supplies `FetchCount.layer` and its HTTP client.
+
+The attached handler stays beside the Command definition. Its `.layer` makes the implementation available for assembly, and a feature collects its local recipes in `EffectsLayer`.
 
 The two Layers serve different purposes:
 
@@ -148,7 +150,9 @@ A handler can own execution bookkeeping, such as a resource pool or worker respo
 
 ### Naming and Composition
 
-Compose `FetchCount.layer` directly in the feature's local `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` composition. Pass a feature's local bundle to `toBlock`; child Bindings carry its handler recipe to the Application Composition. A genuinely compact root exports `Application` and `ApplicationComposition` from its all-in-one `application.ts`. A split root exports `Application` from `definition.ts`, exports `ApplicationComposition` from `composition.ts` or its composition barrel, and has no `application.ts` aggregation file. Keep a simple root `EffectsLayer` with the Command definitions in `command.ts`; use `layer.ts` only for substantial or reused composition. The entry imports implementation pieces from their real owners, lists them explicitly in `ApplicationComposition.toApplication`, and then calls `application.provide(ApplicationLayer)`. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
+Compose `FetchCount.layer` directly in the feature's local `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that provider is intentionally public or independently reused, as it is by this tutorial's direct execution test.
+
+Pass the local bundle to `FeatureComposition.toBlock`. Registered child Bindings carry their own recipes automatically. At root, the entry completes `ApplicationComposition` and supplies ordinary services through `application.provide(ApplicationLayer)`. A simple root bundle can stay with its Command definitions in `command.ts`; extract `layer.ts` for substantial or reused composition. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide covers compact and split layouts.
 
 Command names are local to their named Block. Two features can both declare `FetchCount`; their owners keep the definitions distinct. Names must be unique within one owner, and composition derives readable paths for each Binding placement. A Command's handler requirement includes that owned name, its decoded args, and its declared result Messages. `FeatureComposition.toBlock` checks that the feature's `EffectsLayer` supplies each local requirement or that the definition appears in `hostHandlers`.
 

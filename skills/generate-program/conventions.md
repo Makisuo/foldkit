@@ -388,7 +388,7 @@ expect(formSubmit.commands ?? []).toHaveLength(1)
 
 When the operation name collides with the function, use a trailing underscore such as `init_`. Do not destructure or rename `model`, `commands`, or `outMessage` from update-like results. Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. Name a child fold's `write` parameter after the next child Model, such as `nextSettings`. Pass optional Commands directly to APIs that accept them, including `Command.mapMessages`. Use `result.commands ?? []` only when the next operation requires a concrete array for spreading, concatenating, execution, or an assertion.
 
-Author an ordinary Block through `const Child = Block.define('Child', { Model, Message, OutMessage? })`. The Definition owns Commands, Steps, Subscriptions, ManagedResources, and Bindings. Use one-argument `Block.define('Child')` followed by `.define(...)` only when a generic factory shares effect definitions across several specialized contracts. Create `ChildComposition = Child.toComposition({ childBindings?, mounts? })`, author init, update, and the primary view through that Composition, and complete the same value through `ChildComposition.toBlock(...)`. Export the completed value as `block`, and export `* as Child` from the parent barrel. Parent code imports that namespace, creates a Binding with `Parent.bindChild(Child.block, config)`, and includes it under `childBindings` in `Parent.toComposition(...)`. The parent Composition routes claimed wrapper Messages into the Binding's native fold; parent-driven changes use named operations selected under `expose`. The completed Block aggregates child registrations and handler Layers; the Binding supplies the canonical view and Message wrapper through `binding.embedView`.
+Author an ordinary Block through `const Child = Block.define('Child', { Model, Message, OutMessage? })`. The Definition owns Commands, Steps, Subscriptions, ManagedResources, and Bindings. Use one-argument `Block.define('Child')` followed by `.define(...)` only to establish shared early identity for a generic API that specializes several typed contracts; that identity may live outside the specialization factory. Create `ChildComposition = Child.toComposition({ childBindings?, mounts? })`, author init, update, and the primary view through that Composition, and complete the same value through `ChildComposition.toBlock(...)`. Export the completed value as `block`, and export `* as Child` from the parent barrel. Parent code imports that namespace, creates a Binding with `Parent.bindChild(Child.block, config)`, and includes it under `childBindings` in `Parent.toComposition(...)`. The parent Composition routes claimed wrapper Messages into the Binding's native fold; parent-driven changes use named operations selected under `expose`. The completed Block aggregates child registrations and handler Layers; the Binding supplies the canonical view and Message wrapper through `binding.embedView`.
 
 Select an alternate whole local handler bundle through `block.replaceEffectsLayer(localRecipe)` before binding the child. The selected Block keeps its child recipes. Ordinary application tests usually retain its handlers and replace their service providers instead.
 
@@ -414,7 +414,14 @@ When a Binding handles an OutMessage locally, put the exhaustive matcher in `out
 
 ## Schema Constructors
 
-Use callable constructors, never cast:
+Construct Schema values through their actual constructors, never casts.
+Foldkit union variants are callable. When explicitly constructing a complete
+Effect `Schema.Struct` value, use `.make`. Contextually checked records, such as
+the parent-owned fields returned to Composition init, can remain plain records.
+Keyed `init.toItem` wrappers must remain plain records containing the exact
+initialized child object; a wrapper Schema constructor can reconstruct that
+child and fail runtime validation. Composition constructs the full parent Model
+after collecting those wrappers.
 
 ```ts
 // WRONG: manual object with cast
@@ -427,10 +434,13 @@ Message.ClickedSubmit()
 { _tag: 'Loading' } as DataState
 
 // RIGHT: callable constructor
-Loading()
+DataState.Loading()
 
 // With fields
 Message.SucceededFetch({ data: response })
+
+// A Struct Schema uses .make, not Model(...).
+Model.make({ count: 0 })
 ```
 
 Keep Message and OutMessage constructors on their owning namespace. Never

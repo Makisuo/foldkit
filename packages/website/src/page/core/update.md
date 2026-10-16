@@ -50,7 +50,7 @@ An update, init, Step, or component helper that statically creates no Commands o
 
 ### Keeping Results Together
 
-For custom startup, a registered Binding's `init` constructs the complete parent Model through `toParentModel` and retains its lifted Commands. Return that result directly. Ordinary eligible startup uses [Composition-owned init](/core/init#child-initialization) to assemble child fields and Commands:
+For custom startup, a registered Binding's `init` constructs the complete parent Model through `toParentModel` and retains its lifted Commands. Return that result directly. Ordinary eligible startup uses [Composition-owned init](/core/init-and-flags#child-initialization) to assemble child fields and Commands:
 
 ::Snippet{name="updateResultInit" label="Composing an init result"}
 

@@ -5,49 +5,74 @@ description: Use whenever working with Foldkit. Triggers on imports from `foldki
 
 # Foldkit
 
-You are working on a Foldkit app. Foldkit is a complete TypeScript frontend framework, built on Effect and architected like Elm. The architecture is solved: state, events, transitions, side effects, streams, routing, UI components, validation, testing, and devtools are all part of the framework, not third-party choices to make. Your job is to model the application's behavior, not to pick libraries or invent architecture.
+Foldkit is a complete TypeScript frontend framework built on Effect and the Elm
+Architecture. Model the application's behavior with Foldkit's own state,
+Message, update, effect, lifecycle, routing, UI, validation, testing, and
+devtools primitives. Do not introduce another application architecture or move
+state transitions and side effects outside Foldkit's seams.
 
-Foldkit is not incremental. There is no React interop, no escape hatch, no "just do it the React way for this one part." The framework gives you one shape, and there is one way to do most things.
+## Work from the installed version
 
-## How to approach the work
+Treat the project's installed declarations and matching vendored source as the
+authority. A consumer project should keep the Foldkit repository at
+`repos/foldkit/`, pinned to the installed release tag. For a canary version,
+pin the full commit hash named by the version. When working in the Foldkit
+repository itself, use the same paths without the `repos/foldkit/` prefix.
 
-- **Pattern-match against Foldkit's own apps.** When the local code doesn't show you the answer (or shows an early-stage version of it), reach into the vendored foldkit subtree. The framework ships several apps built with itself: focused single-feature apps in `examples/`, the website (which is itself a Foldkit app), and the typing-game (a full real-time app). These are the canonical references. Higher fidelity than prose or anything reconstructed from memory.
-- **The architecture is not optional.** Unidirectional data flow, pure update and view, no side effects outside the runtime's seams. Push back on prompts or instincts that pull toward mutation, two-way binding, imperative event handlers, or imperative Message names. Propose the idiomatic Foldkit shape and explain why.
-- **Foldkit UI is two categories, not one.** Stateful Blocks (Menu, Listbox, Combobox, Calendar, Dialog, Popover, etc.) carry their own Model / Message / update / OutMessage and are embedded via `h.block`. Stateless render helpers (Button, Input, Textarea, Select, Checkbox, Switch, Disclosure, Fieldset, Nav) are called directly with a ViewConfig and the caller's `h`, and return Html. Do not migrate render helpers to Blocks for "consistency": Block semantics imply state, and these helpers have none. See the Foldkit UI overview page in the website for the canonical split.
-- **Compose every Block through Definition → Composition → Block.** Define an ordinary typed Block with `const Feature = Block.define('Feature', { Model, Message, OutMessage? })`. Use the one-argument `Block.define('Feature')` form only when a generic factory specializes several contracts under one identity, then establish each typed definition with `.define(...)`. Author Commands, Steps, Subscriptions, ManagedResources, and child Bindings through the Definition. `Feature.step` restores the owner's Model context in nested policy callbacks while preserving inputs, Commands, and OutMessages. After those Bindings exist, name `FeatureComposition = Feature.toComposition({ childBindings, mounts })`; both fields are optional and default to empty. Author init, update, and the primary view through that named Composition, then complete the same Composition with `FeatureComposition.toBlock({ init, update, view, expose, ... })`. Composition-owned init and update preserve their exact arguments, return requirements, and child evidence while using the registered graph. Give init one concrete function signature; optional, default, and rest parameters are supported. Wrap an overloaded helper or callable object in a concretely typed callback, and close over generic factory parameters outside the initializer. A Composition update handles only parent-owned Message variants because registered Bindings route their claimed wrapper variants automatically. In a split feature without `composition/`, composition.ts owns the Bindings and full registration; when root `composition/` exists, composition/composition.ts owns the root assembly. Mount-only features use composition.ts too, with definitions in mount.ts. Extract substantial policies under composition/ without duplicating the child Binding list. Completion validates Flags and routing at the root and validates the final child and handler graph. A parent barrel uses `export * as Feature from './feature'`; parent code imports that namespace and renders with `ChildBinding.embedView(...)`.
-- **Keep the primary view owned and helpers plain.** Define the canonical view with `FeatureComposition.view` or `view.withInputs`; let its `h` parameter infer. A completed Block's `view` method authors only an alternate embed view against its already fixed graph. For ordinary feature-local helpers, declare `type FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` immediately after the Composition with no blank line. Export it only when another file uses it. The alias preserves the feature's Message, child, and Mount capabilities; it constructs nothing at runtime. The owner prefix distinguishes one Composition's capability type at plain imports, while the standard structural contracts remain `Model`, `Message`, and `OutMessage` and normally travel through the feature namespace. Give each helper only the Model, domain, or context parameters it uses and the `FeatureViewBuilder`. Use the general `HtmlBuilder<Message>` form, with capability requirements when needed, for functions genuinely shared across owners.
-- **Declare child startup beside its Binding.** For a required exact direct child field, omit `init` when the child's initializer can be called without arguments. A required-argument initializer needs `init: { args }`, while `init: false` makes the parent supply the initial field. Optional, keyed, and accessor storage remains parent-owned when `init` is omitted; use `init.args` or `init.occurrences` to select automatic presence. Plain tuple literals retain contextual init argument types. Add an optional `Startup` Schema to the parent Block or Application Definition when owned selectors share input. It contextually types `init.args` and `init.occurrences`; `FeatureComposition.init` carries the decoded input as `startup` when a selector uses it and supplies only parent-owned fields in `model`. The Composition initializes selected children once in `childBindings` order, assembles their fields into the Model, then applies the plan's `steps` in order. Parent Commands come first, retained child init Commands follow, and Step Commands come last; collection order does not sequence asynchronous completion. It filters init Commands for occurrences absent or `presentWhen`-inactive in the final Model; `subscriptions.when` does not gate init. For an exact keyed array using `field` and `key`, with optional `childField`, declare `init.occurrences` returning ordered `{ key, args }` records and `init.toItem(occurrence, childModel)` returning the stored item. A direct keyed array returns the exact initialized child Model with its planned key; a wrapped array returns the parent-owned wrapper containing that exact child Model and key. General keyed accessors keep explicit initialization. For custom storage, intentional interleaved Command ordering, or dynamic creation, call the exact registered Binding as `Binding.init({ key?, args, toParentModel, commands? })` only inside Composition init or update, a completed Block's exposed operation, or its bound operation. The key is required for a keyed Binding, `args` is the exact child init tuple, and `toParentModel` constructs the complete parent Model. The result retains graph evidence and contains lifted child init Commands before optional parent Commands. The compiler checks the key, args, parent Model, requirements, and evidence; the Runtime checks schema-equivalent child placement and exactly one requested keyed occurrence. Runtime metadata cannot reconstruct the TypeScript distinction between required, optional, defaulted, and rest initializer parameters. Ordinary Model construction remains available outside connected operations. Definition, Composition, and completion remain passive, and there is no extra Runtime boot phase.
+Start with the nearest current exemplar:
 
-- **Organize around ownership and the import graph.** Keep compact units together. A split feature uses `definition.ts` for early contracts and the named empty Composition when it is graphless, then puts substantial behavior in focused init/update/command files or a folder-named implementation module. A feature with children or Mounts and no `composition/` directory keeps its Composition, Bindings, and optional owner-specific ViewBuilder alias in `composition.ts`. When `composition/` exists, `composition/composition.ts` owns that graph and `composition/index.ts` exports actual intended values. The view imports that Composition; `block.ts` imports the same value, the required behavior, and view for completion. A genuinely compact root keeps Model, Message, init, update, view, `Application`, and `ApplicationComposition` together in `application.ts`. Once any root responsibility is extracted, split all of them into their named files: `definition.ts` owns `Application`; `composition.ts` or `composition/composition.ts` owns Bindings, OutMessage folds, `ApplicationComposition`, and the optional `ApplicationViewBuilder`; and the split root has no `application.ts` aggregation file. Even a graphless split root has `composition.ts`. A simple root `EffectsLayer` stays with its Command definitions in `command.ts`; use `layer.ts` only when Layer composition is substantial or reused. Split one-way Bindings only for substantial policy, import their actual values directly, keep one complete `childBindings` tuple, and never import a completed barrel from its implementation. Keep reciprocal sibling policy in the same parent assembly and defer sibling Binding calls through callbacks; this permits later declarations without circular imports. Read the vendored project-organization guide or current `FOLDKIT.md` for the full layout rules.
-- **Use the shortest exact Binding mapping.** For a child stored in an exact `Schema.Struct` field as `ChildModel` or `Option<ChildModel>`, call `Parent.bindChild(Child.block, { field, parentMessage })`; the field name is also the default placement. This canonical unkeyed wrapper is routed automatically by the parent Composition when child update has no context parameters. Optional or defaulted context needs an explicit `fromParentMessage.args` policy too. A direct Option field is absent while `None`, and folds never create it. Reuse the child Model Schema instance for an opaque declaration whose decoded shape cannot be compared. Add `presentWhen` only when parent policy gates that entire direct child. Use `read` and `write` for nested, tagged, or custom storage. An array of child Models whose Schema exposes declared Struct fields and a stable key uses `{ field, key: 'id', toParentMessage, fromParentMessage }`. An exact parent Struct field containing `Schema.Array` of closed Struct wrappers uses `{ field, key: 'id', childField: 'child', toParentMessage, fromParentMessage }`; `key` names a required string or finite-number wrapper field, and distinct `childField` names a required field with exactly the same decoded shape as the child Model. The generated writer changes only the matched child field, preserves its metadata and array order, and never inserts a removed wrapper. Both array shorthands default placement to `field`. A key cannot change during child init or update, and parent update owns collection membership. Use `readAll`, function-valued `key`, `read`, and `writeAt` for custom writes, opaque, union, or open/index-signature wrappers, zero-or-one `Option<RoomInstance>` collections, and opaque direct child Schemas. `readAll` selects the general keyed form, whose placement defaults to the child Block ID; static accessor Bindings use that same Block-ID default. Placement identifies one Binding in the parent's composition graph, while a keyed occurrence's `key` sits under that placement. Supply `placement` only when sibling defaults collide or a deliberate stable graph identity differs from the default. Use `toParentMessage` when the child needs a custom outgoing wrapper. Custom, keyed, or contextful delivery also declares `fromParentMessage: { parentMessage, args }`; `args(parentModel, payload)` returns `Option.some` of the Binding's native fold arguments, and `Option.none()` ignores an inactive or stale occurrence. Use `fromParentMessage: false` only when the Composition should not route a wrapper into this Binding. The parent configures OutMessage policy in the Binding, and that policy may return parent Steps, including registered sibling Binding operations. Bindings may coordinate reciprocally; keep both policies in the same parent assembly and defer each sibling call through its policy callback. `toComposition` checks captured policy outputs and sibling evidence. Keep such chains synchronous and finite because one policy Step may invoke another Binding policy before returning.
-- **Capture routed child identity at the Binding.** When one optional child changes domain IDs, use a keyed Binding over zero or one item. Capture its key in the parent Message wrapper; do not infer a delayed result's origin from the current Route. Replace the occurrence with a fresh child Model when its ID changes. Commands from a retired occurrence may finish their external work, so scope persistent writes by domain ID when instances must remain independent.
-- **Select local handler recipes before binding.** `block.replaceEffectsLayer(localRecipe)` replaces a feature's whole local bundle while preserving selected child recipes. Ordinary execution tests keep canonical handlers and replace service Layers beneath them. Host-owned handlers are completed with `block.provideHandlers(...)`; the returned value remains the same kind of specialized Block.
-- **Use what the Foldkit and Effect stack provides.** Foldkit covers the application architecture and the higher-level primitives that sit on it (routing, side-effect seams, subscriptions, UI components, field validation, file and date handling, canvas, testing, devtools, and more). Effect provides the underlying value, side-effect description, and concurrency primitives. Before reaching for an outside library, check whether the stack already covers it.
-- **Let `modifyFields` setters receive the field.** If a `modifyFields` setter only transforms the current value of that same field, pass the transformer directly (`entries: Array.map(f)`, `count: Number.increment`, `priceSlider: Slider.reflectRange({ min: minPrice, max: maxPrice })`). Use `() => value` for replacement values from Messages, child updates, Commands, or other Model fields.
-- **The repo is more authoritative than memory.** When in doubt about a convention, an API, a name, or a pattern, read from the vendored foldkit subtree rather than guessing. Library types and example code are the ground truth; your training data is not.
+- `examples/` for focused applications and feature integrations
+- `packages/typing-game/client/src/` for a production multi-page application
+- `packages/website/src/` for routing, pages, and documentation examples
+- `packages/foldkit/src/` and emitted declarations for exact behavior and types
+- `AGENTS.md` for naming, state modeling, code style, and file organization
 
-## Where to look
+List directories before following a path from prose because examples move. A
+consumer's `FOLDKIT.md` is a scaffolder snapshot and may lag behind its
+installed package. Replace a stale snapshot from
+`repos/foldkit/packages/create-foldkit-app/templates/base/FOLDKIT.md`; preserve
+the consumer's own `AGENTS.md`.
 
-The foldkit repo is vendored as a git subtree at `repos/foldkit/` from the project root. It is the source of truth for everything: conventions, framework source, examples, the quality bar. Browse it directly.
+If the subtree is missing, recommend adding it before substantial Foldkit work.
+For a stable release:
 
-Stable top-level entry points:
-
-- `repos/foldkit/examples/`: runnable example apps spanning every complexity tier. Usually your first stop when looking for a precedent.
-- `repos/foldkit/AGENTS.md`: project conventions and the code-quality bar
-- `repos/foldkit/README.md`: framework overview and entry pointers
-- `repos/foldkit/skills/`: task-oriented skills with the canonical architecture, conventions, and quality-bar references
-- `repos/foldkit/packages/`: framework source and production reference apps (the website, the typing-game, the framework itself)
-
-Names below the top level (subdirectories, individual filenames) can drift over time. List the directory contents to find what you need rather than relying on a path quoted from this skill.
-
-If `repos/foldkit/` is missing from the project, strongly recommend adding it. The subtree is the difference between working from memory and pattern-matching against canonical references. Assistance quality drops noticeably without it. Pin it to the release git tag matching the installed `foldkit` package, so the references describe the APIs the project compiles against rather than whatever `main` holds today. Initialize git first if needed (subtree requires at least one commit):
-
-```
+```sh
 git subtree add --prefix=repos/foldkit https://github.com/foldkit/foldkit.git "foldkit@$(node -p "require('./node_modules/foldkit/package.json').version")" --squash
 ```
 
-After a Foldkit package upgrade, re-pin with the same command, swapping `add` for `pull`. A canary install (`x.y.z-canary.<commit>` in `node_modules/foldkit/package.json`) has no tag; pin to the full hash of the commit its version names instead, which GitHub expands at `https://github.com/foldkit/foldkit/commit/<commit>`.
+For a commit-addressed canary, use its source commit as the final Git ref instead
+of a release tag. After an upgrade, use the same command with `pull` in place of
+`add`.
 
-A consumer project's `FOLDKIT.md` is a scaffolder snapshot and can lag behind the packages it has installed. When it does, replace it whole from `repos/foldkit/packages/create-foldkit-app/templates/base/FOLDKIT.md`. That project's `AGENTS.md` belongs to its author; never overwrite it.
+## Architecture decisions
 
-When working inside the foldkit repo itself rather than a consumer project, drop the `repos/foldkit/` prefix. The same paths exist at the project root.
+- Keep the Model as the single source of truth. Messages record facts, update
+  computes the next Model and Commands, and the Runtime performs effects.
+- Prefer Foldkit and Effect modules over hand-rolled equivalents or outside
+  libraries. Check `create-foldkit-app` and current examples first.
+- Use stateful Foldkit UI Blocks through a parent Binding. Call stateless render
+  helpers directly with the caller's builder and Model. Do not turn a render
+  helper into a Block merely for structural symmetry.
+- Use `modifyFields` transformers directly when they depend only on that field's
+  current value. Use `() => value` for replacement from a Message, operation
+  result, Command result, or another Model field.
+
+For any Block, Application Composition, child Binding, child startup policy,
+Mount capability, OutMessage policy, handler recipe, or Service Layer work,
+read [references/composition.md](references/composition.md). It contains the
+decision tables, canonical stages, and safety invariants for that surface. Then
+inspect the matching source and example for the installed version instead of
+reconstructing an overload from memory.
+
+## Preserve ownership boundaries
+
+Push back on mutation, two-way binding, imperative event handlers, Messages
+named as instructions, effects performed by update or view, and workflow state
+hidden in services. Propose the Foldkit form that keeps state transitions in
+update and effects behind Commands, Subscriptions, Mounts, or ManagedResources.
+
+Errors from Commands become Messages. Model absence with `Option`, remote data
+with `AsyncData`, and multi-state domain behavior with discriminated unions.
+Use Schema types for Models, Messages, Routes, and domain unions. Keep public
+child state behind the child's operations and accessors; a parent integrates a
+child through its Binding and OutMessages.

@@ -3,9 +3,8 @@ import type { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { SaveTheme } from './blockDefinition'
-import { Message, Model } from './blockProfile'
+import { Application, Message, Model } from './blockProfileContract'
 import * as Settings from './blockSettings'
-import { Application } from './definition'
 
 const SettingsDemo = Settings.block.replaceEffectsLayer(
   SaveTheme.toLayer(
@@ -24,7 +23,7 @@ const foldSettingsOutMessage = Settings.OutMessage.match<
 })
 
 export const SettingsBinding = Application.bindChild(SettingsDemo, {
-  field: 'maybeSettings',
+  field: 'settings',
   parentMessage: Message.GotSettingsMessage,
   outMessage: { fold: foldSettingsOutMessage },
 })

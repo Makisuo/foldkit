@@ -1,10 +1,24 @@
 # Init & Flags
 
-## The First Model {#init}
+## Overview
 
-`init` constructs the first Model and returns any Commands that should run when the application starts. Author it through the named root Composition as `ApplicationComposition.init(fn)`. The helper preserves the function's exact arguments, return shape, Command requirements, and child registration evidence. It also owns the child startup graph used to assemble the complete Model.
+Initialization turns startup input into the first complete Model and a collection of Commands. The init callback is pure. It describes initial state and work for the Runtime to perform later.
 
-Give `ApplicationComposition.init` one concrete function signature. Optional, default, and rest parameters are supported. When an overloaded domain helper or callable object supplies the startup logic, wrap that call in one concretely typed callback. A generic Block factory closes over its type parameters and keeps the initializer itself concrete.
+Three inputs have different jobs:
+
+| Input   | Where it comes from                | What it does                                                    |
+| ------- | ---------------------------------- | --------------------------------------------------------------- |
+| Flags   | A client Effect or a server render | Carries external startup data into root init                    |
+| Startup | The parent init callback           | Shares a decoded value with registered child startup selectors  |
+| Steps   | The Composition init plan          | Applies ordered parent transitions after child Models are ready |
+
+`Startup` does not add another Runtime phase or another data source. Root init may pass Flags, the current URL, or a value derived from either into `startup`. Composition uses that value while assembling registered children.
+
+On a fresh client start, the Runtime builds the supplied application Layer once, resolves the Flags Effect, calls init, renders the initial Model, starts occurrence lifecycles, and then performs init Commands. A Command result always returns later as a Message. Server rendering receives Flags as a value and runs init and view without building browser handler Layers.
+
+## Initialize the Root Model {#init}
+
+Author root init through its named Composition as `ApplicationComposition.init(fn)`. A graphless root still has an empty Composition. The helper checks the returned Model and Commands against the same graph that update, view, and completion use.
 
 The counter starts at zero and has no startup work:
 
@@ -12,27 +26,37 @@ The counter starts at zero and has no startup work:
 
 A non-routing application or element calls `init` with no arguments. A routing application passes the current URL, so its first Model can reflect the route. When the application declares Flags, they become the first argument in either form. `ApplicationComposition.toApplication` or `toElement` receives `init` explicitly and checks its arguments against the completion's Flags and routing configuration, along with the registered child and handler graph.
 
+Give `ApplicationComposition.init` one concrete function signature. Optional, default, and rest parameters are supported. Wrap an overloaded domain helper or callable object in a concretely typed callback. A generic Block factory closes over its type parameters and keeps the initializer itself concrete.
+
 ## Assemble Child Models {#child-initialization}
 
-A completed Block carries its `init`. For a child stored in an exact required direct field, omit `init` when its initializer can be called without arguments. The Composition calls that initializer without arguments, places its Model, and collects its Commands automatically. When the initializer requires arguments, provide `init: { args }`. The callback is contextually typed and ordinary tuple literals preserve the child's exact init parameters.
+A completed Block already carries its initializer. The parent Binding decides whether that child should be present at startup and which arguments it receives. Composition calls the selected child initializers, stores their Models, and retains their Commands. The parent init callback supplies only fields the parent owns.
 
-Use `init: false` when the parent owns the required field at startup and supplies it in the init plan's `model`. For an exact `Option` field, omission also leaves presence with the parent. Choose automatic presence explicitly by returning `Option.none()` or `Option.some(args)` from `init.args`. Keyed and accessor Bindings likewise remain parent-owned when `init` is omitted; use `init.occurrences` or `init.args` when Composition should initialize them.
+For a child stored in an exact required direct field:
 
-When several selectors read the same startup input, add a `Startup` Schema to the parent Definition. `Block.define` and `defineApplication` use that Schema to contextually type each owned `init.args` and `init.occurrences` callback. Put the decoded value in the Composition init plan's `startup` field when a selector uses it. A plan with no startup-dependent selector does not need that field.
+- Omit `init` when the child's initializer takes no arguments. Composition initializes it automatically.
+- Use `init: { args }` when the child needs startup arguments.
+- Use `init: false` when the parent supplies that field in the init plan's `model`.
 
-The following Profile gives its Settings child a saved theme. The Binding selects the child inputs from `startup`, while the init plan supplies only the parent-owned username:
+When several Bindings read the same startup input, add a `Startup` Schema to the parent Definition. That Schema contextually types each `init.args` selector. Put its decoded value in the Composition init plan's `startup` field.
+
+The following Profile contains a ThemePicker whose initializer requires a Theme. The Binding selects that child input from `startup`, while the init plan supplies only the parent-owned username:
 
 ::Snippet{name="blockFoldChildInit" label="Assembling an initial child Model"}
 
-`Composition.init` calls the selected child initializers once, in `childBindings` order. Its plan's `model` field contains only fields the parent owns; Foldkit adds the child-owned fields before constructing the Model. Use `startup` for input shared with Binding init policies, `commands` for parent Commands, and `steps` for parent Steps applied in order after the complete Model exists.
+Here, the Binding owns the rule that ThemePicker receives `savedTheme`. Profile init supplies `startup` and its parent-owned `username`. It does not call `themePickerInit`, place `themePicker`, or merge child Commands by hand.
+
+`Composition.init` calls the selected child initializers once, in `childBindings` order. Foldkit adds the child-owned fields before constructing the complete Model. Use `commands` for parent Commands and `steps` for parent Steps applied after that Model exists.
 
 Parent Commands appear first in the returned collection, followed by retained child init Commands and Step Commands. The Runtime executes Commands independently, so collection order does not sequence their completion.
 
-An exact Option field can select absence by returning `Option.none()` from `init.args`, or presence with `Option.some(args)`. The resulting field is `None` or `Some(childModel)`.
+These calls assemble values only. They do not construct Services, build handler Layers, or perform Commands.
+
+### Optional and custom child storage
+
+For an exact `Option` field, omitting `init` leaves presence with the parent. Return `Option.none()` from `init.args` for absence or `Option.some(args)` for presence. Keyed and accessor Bindings also remain parent-owned when `init` is omitted; use `init.occurrences` or `init.args` when Composition should initialize them.
 
 The final parent Model determines which initialized occurrences are active. Init Commands for absent or `presentWhen`-inactive children are omitted. A `subscriptions.when` policy only gates Subscription Streams; it does not suppress child init Commands. Initial Steps may change the child Model without discarding its init Commands.
-
-These calls assemble values only. The Runtime constructs Layers and performs the returned Commands later.
 
 For custom storage, deliberate Command ordering, or dynamic creation, call the registered Binding's explicit `init` operation from its owning graph. Pass `{ args, toParentModel }`, plus `key` for a keyed Binding and optional parent `commands`. `args` is the exact child init tuple. `toParentModel` receives the initialized child Model and constructs the complete parent Model. The result contains that parent Model and every lifted child init Command, followed by the optional parent Commands. It also retains the Binding evidence used by Composition completion.
 
@@ -41,6 +65,8 @@ An explicit Binding init may execute only where that exact Binding is registered
 ### Keyed Initial Instances
 
 A keyed-array Binding can declare `init.occurrences` and `init.toItem`. The first callback selects the ordered keys and exact child init argument tuples. The second builds each stored item from its occurrence and initialized child Model. For a direct child array, it returns that exact child Model with the planned key. For a wrapped array, it returns the parent-owned wrapper containing that exact child Model and key. The parent keeps occurrence IDs and any wrapper metadata outside the child Model.
+
+Return each wrapper as a plain record so its child field keeps the exact initialized object. A wrapper Schema constructor may reconstruct that child and fail the identity check. Composition constructs the full parent Model through its Schema after collecting these records.
 
 This Counter application starts three instances. Its Model declares `counters: Schema.Array(CounterInstance)`, where each instance holds `id` and `counter`. Its `addCounter` Step creates a later occurrence through `CountersBinding.init({ key, args, toParentModel })`, so the returned parent result carries the child init Commands automatically:
 
@@ -52,11 +78,11 @@ This startup adapter applies to exact `field` / `key` keyed arrays, with or with
 
 ## Compose Startup Steps {#startup-steps}
 
-Composition-owned `init` is the application startup boundary. The plan's `startup` value is decoded input used while assembling that boundary; it does not create a separate Runtime phase. Foldkit does not run a special Runtime boot phase after it.
+Use startup Steps when initial child Models must exist before a parent transition can run. Composition-owned `init` is the startup boundary. Foldkit does not run a special Runtime boot phase after it.
 
 Put initial Steps in the plan's `steps` array. The Composition assembles the complete parent Model first, then passes each Step the Model returned by the preceding Step. It retains the child init Commands and adds the Commands returned by those Steps.
 
-An optional `boot` helper is an ordinary exposed Step called through the Binding after the child Model is stored. It may accept Flags, the current URL, or prerendered data, and it returns the normal next Model and Commands through that Binding. A feature need not define both init and `boot` helpers.
+An optional `boot` helper is an ordinary exposed Step called through the Binding after the child Model is stored. It may accept Flags, the current URL, or prerendered data, and it returns the normal next Model and Commands through that Binding. The Runtime later performs those Commands through their handlers. A feature need not define both init and `boot` helpers.
 
 When an existing domain operation such as `restore` or `open` already describes the transition, expose that Step instead. Do not create a Message only to trigger startup behavior.
 
@@ -68,7 +94,7 @@ List each initial Step in `steps`. Composition applies them in order.
 
 ## Startup Data from Flags {#flags}
 
-Flags carry data from outside the application into `init`. Typical sources include persisted state, runtime configuration, and request-specific data supplied during server rendering.
+Flags carry data from outside the application into root init. Typical sources include persisted state, runtime configuration, and request-specific data supplied during server rendering. Use a Flags Effect when obtaining that data requires ordinary Effect Services; keep child selection and Model assembly in the pure init callback.
 
 Define the boundary with a Flags Schema. For a fresh client start, also define an Effect that obtains a value matching that Schema:
 
@@ -92,13 +118,13 @@ The entry imports `ApplicationLayer`, chooses the container and passes the Flags
 
 ::Snippet{name="counterEntryWithFlags" label="Flags wiring"}
 
-The Flags Effect leaves `KeyValueStore` in its requirements, and the completed application supplies the browser provider through `application.provide(ApplicationLayer)`. A whole-application test can supply a deterministic store through the same method. The runtime builds the Layer once and shares it with Flags, Commands, and Subscriptions that require the same service. See [Layers](/core/layers) for the full setup.
+The Flags Effect leaves `KeyValueStore` in its requirements, and the completed application supplies the browser provider through `application.provide(ApplicationLayer)`. A whole-application test can supply a deterministic store through the same method. The Runtime builds the Layer once and shares the resulting Service with Flags, Commands, and Subscriptions that require it. Effect's [Managing Services](https://effect.website/docs/v4/requirements-management/services) guide explains how requirements appear in an Effect's type, and [Managing Layers](https://effect.website/docs/v4/requirements-management/layers) explains how Layers construct those Services. See [Layers](/core/layers) for Foldkit's full setup.
 
 ### Server Rendering and Hydration
 
 #### Server-Supplied Flags
 
-Server rendering provides Flags from the request or build instead of running a client Flags Effect. `Server.renderToString(Application, { init, update, view, Flags }, { flags })` uses that value to call `init`, encodes it through the Schema, and embeds the result in the HTML. List every completion field explicitly, importing it from its real owner. `Runtime.hydrate` decodes the same value and calls the same `init`, so the client reconstructs the Model that produced the server HTML.
+Server rendering provides Flags from the request or build instead of running a client Flags Effect. `Server.renderToString(ApplicationComposition, { init, update, view, Flags }, { flags })` uses that value to call `init`, encodes it through the Schema, and embeds the result in the HTML. List every completion field explicitly, importing it from its real owner. `Runtime.hydrate` decodes the same value and calls the same `init`, so the client reconstructs the Model that produced the server HTML.
 
 #### Handoff Validation
 

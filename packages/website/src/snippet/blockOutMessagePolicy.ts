@@ -1,9 +1,8 @@
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { Message, Model } from './blockProfileContract'
+import { Application, Message, Model } from './blockProfileContract'
 import * as Settings from './blockSettings'
-import { Application } from './definition'
 
 const foldSettingsOutMessage = Settings.OutMessage.match<
   Update.Step<Model, Message>
@@ -16,7 +15,7 @@ const foldSettingsOutMessage = Settings.OutMessage.match<
 })
 
 export const SettingsBinding = Application.bindChild(Settings.block, {
-  field: 'maybeSettings',
+  field: 'settings',
   parentMessage: Message.GotSettingsMessage,
   outMessage: { fold: foldSettingsOutMessage },
 })

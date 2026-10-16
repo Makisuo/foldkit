@@ -1454,7 +1454,12 @@ type InitialContext<
           InitialArguments
         >
       >
-      /** Keeps the exact initialized child and planned key, adding parent-owned wrapper fields when needed. */
+      /**
+       * Keeps the exact initialized child and planned key, adding parent-owned
+       * wrapper fields when needed. Return a plain wrapper record: a Schema
+       * constructor can reconstruct its nested child and fail the runtime
+       * identity check. Composition constructs the full parent Model afterward.
+       */
       toItem: (
         occurrence: InitialWrappedOccurrence<
           BlockValue,

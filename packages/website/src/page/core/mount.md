@@ -70,34 +70,6 @@ A Mount starts when its element enters the DOM and stops when that element leave
 
 `FeatureComposition.view` derives the view builder's allowed Mounts from its Composition. TypeScript rejects a view that requires a Mount absent from that Composition, and the completed Block carries the matching handler graph to the root. Foldkit also checks each rendered definition before patching the DOM. Use the same definition in the view, Composition, and Layer assembly. Distinct Mount definitions within one Block need distinct local names; composition derives their application paths. The handler Layer lives for the application lifetime, while each Mount acquisition and cleanup follows its element.
 
-The Runtime runs the attached handler generator once while building the application Layer and obtains the element handler. Return it directly from the generator when construction has no dependencies. The constructor must not capture a DOM element or Mount args; Foldkit supplies those when each element is mounted. Each element receives its own Mount scope. Removing and reinserting an element reruns the real handler without rebuilding its provider.
-
-Omit `handler` only when an external host owns the Mount implementation. That definition has no `.layer`; the host calls `toLayer` with its implementation Effect constructor at its assembly boundary. Ordinary application Mounts keep their implementation attached and include `.layer` in the feature's `EffectsLayer`.
-
-A whole-application execution test retains the real Layer-backed Mount handler and replaces the browser or library capability beneath it. The Mount still receives a live test element, performs its element-scoped transformation, and releases on unmount. Replacing the whole handler can acknowledge or orchestrate a Mount result, but that path does not test the replaced integration.
-
-Name the Mount for the imperative work attached to the element, using a verb-first name such as `MeasurePanel`, `AnchorPopover`, or `PortalMenuBackdrop`. Compose `MeasurePanel.layer` directly in the feature's `EffectsLayer` export. Name an individual provider `MeasurePanelLayer` only when it is intentionally public or independently reused outside that bundle's assembly.
-
-Registering a Mount that the view never renders starts no element lifecycle, listeners, or DOM work. Its provided handler constructor still runs during application startup.
-
-For an owned Block, create `Name = Block.define('Name', { Model, Message })`, create Mounts through that typed authoring value, and list them in `NameComposition = Name.toComposition({ mounts })`. Author the canonical view with `NameComposition.view`, then pass the local handler recipes to `NameComposition.toBlock({ EffectsLayer })`. A parent that includes the child Binding receives its Mount registrations and handler graph together. `ApplicationComposition` installs the root graph through its owned `toApplication({ init, update, view, ... })` method.
-
-For a direct array of child Models with declared Struct key fields, use `Parent.bindChild` with `field`, a string-valued `key`, and `toParentMessage`. An exact array of closed Struct wrappers adds a distinct required `childField`, leaving its key on the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration retain general keyed accessors. Each active key gets independent Mount ownership, and the parent includes the keyed Binding once under `childBindings`.
-
-### Mount Requirements in Reusable Views
-
-An owned view receives a builder whose allowed Mounts are inferred from its Composition. Immediately after establishing `NameComposition`, derive `NameViewBuilder` with `Block.ViewBuilderFor<typeof NameComposition>` and use it for ordinary helpers on the same mounted or child embedding path. Keep it private unless another file uses it. The alias retains the Composition's Message, local Mounts, and child Bindings without constructing a runtime builder. `NameComposition.view` remains the canonical owned view and leaves its `h` parameter inferred:
-
-::Snippet{name="mountBlockView" label="Preserving a Block view's Mount requirements"}
-
-The parent must include the child Binding under `childBindings` before its builder can embed that child view. An owned child with `ViewInputs` uses `FeatureComposition.view.withInputs<ViewInputs>` and receives its builder third.
-
-The Composition derives its builder type from the complete Mount collection, and application assembly includes those definitions. Missing Mounts fail at the composition boundary, and helpers cannot attach Mounts outside their builder's declared set. Keep helpers genuinely shared across Compositions on the framework's general `HtmlBuilder<Message>`, with an explicit requirements parameter when they forward capabilities. The returned `Html` type stays the same.
-
-Let TypeScript infer `mounts` arrays and composed spreads. Widening the array to `ReadonlyArray<Mount.LayeredMountDefinition>` discards the contracts required for registration checking, so application assembly rejects it. Forwarded attribute arrays preserve the same evidence: use `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>` when an explicit annotation is necessary. `childAttributes` infers those requirements from its input, and `CustomElement.withMessage(h)` retains the builder's allowed Mounts.
-
-Mount names are local to their named Block. Definitions owned by different features receive different owned names even when their local names, args, and result Messages match. Each definition also retains a private runtime identity. Alternate implementations belong to the original definition's `toLayer`.
-
 ### Mount Work Requirements
 
 :::Info{label="Two rules for Mount work"}
@@ -197,3 +169,41 @@ When the element unmounts, Foldkit interrupts the Mount's fiber and runs registe
 :::
 
 When a foreign element already exposes a declarative property-and-event API, bind it with [CustomElement](/core/custom-element) instead.
+
+## Handler Contracts and Composition
+
+### Handler Construction and External Hosts
+
+The Runtime runs the attached handler generator once while building the application Layer and obtains the element handler. Return it directly from the generator when construction has no dependencies. The constructor must not capture a DOM element or Mount args; Foldkit supplies those when each element is mounted. Each element receives its own Mount scope. Removing and reinserting an element reruns the real handler without rebuilding its provider.
+
+Omit `handler` only when an external host owns the Mount implementation. That definition has no `.layer`; the host calls `toLayer` with its implementation Effect constructor at its assembly boundary. Ordinary application Mounts keep their implementation attached and include `.layer` in the feature's `EffectsLayer`.
+
+Registering a Mount that the view never renders starts no element lifecycle, listeners, or DOM work. Its provided handler constructor still runs during application startup.
+
+### Block Assembly and Child Placements
+
+For an owned Block, create `Name = Block.define('Name', { Model, Message })`, create Mounts through that typed authoring value, and list them in `NameComposition = Name.toComposition({ mounts })`. Author the canonical view with `NameComposition.view`, then pass the local handler recipes to `NameComposition.toBlock({ EffectsLayer })`. A parent that includes the child Binding receives its Mount registrations and handler graph together. `ApplicationComposition` installs the root graph through its owned `toApplication({ init, update, view, ... })` method.
+
+For a direct array of child Models with declared Struct key fields, use `Parent.bindChild` with `field`, a string-valued `key`, and `toParentMessage`. An exact array of closed Struct wrappers adds a distinct required `childField`, leaving its key on the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration retain general keyed accessors. Each active key gets independent Mount ownership, and the parent includes the keyed Binding once under `childBindings`.
+
+### Mount Requirements in Reusable Views
+
+An owned view receives a builder whose allowed Mounts are inferred from its Composition. Immediately after establishing `NameComposition`, derive `NameViewBuilder` with `Block.ViewBuilderFor<typeof NameComposition>` and use it for ordinary helpers on the same mounted or child embedding path. Keep it private unless another file uses it. The alias retains the Composition's Message, local Mounts, and child Bindings without constructing a runtime builder. `NameComposition.view` remains the canonical owned view and leaves its `h` parameter inferred:
+
+::Snippet{name="mountBlockView" label="Preserving a Block view's Mount requirements"}
+
+The parent must include the child Binding under `childBindings` before its builder can embed that child view. An owned child with `ViewInputs` uses `FeatureComposition.view.withInputs<ViewInputs>` and receives its builder third.
+
+The Composition derives its builder type from the complete Mount collection, and application assembly includes those definitions. Missing Mounts fail at the composition boundary, and helpers cannot attach Mounts outside their builder's declared set. Keep helpers genuinely shared across Compositions on the framework's general `HtmlBuilder<Message>`, with an explicit requirements parameter when they forward capabilities. The returned `Html` type stays the same.
+
+Let TypeScript infer `mounts` arrays and composed spreads. Widening the array to `ReadonlyArray<Mount.LayeredMountDefinition>` discards the contracts required for registration checking, so application assembly rejects it. Forwarded attribute arrays preserve the same evidence: use `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>` when an explicit annotation is necessary. `childAttributes` infers those requirements from its input, and `CustomElement.withMessage(h)` retains the builder's allowed Mounts.
+
+### Names and Runtime Identity
+
+Name the Mount for the imperative work attached to the element, using a verb-first name such as `MeasurePanel`, `AnchorPopover`, or `PortalMenuBackdrop`. Compose `MeasurePanel.layer` directly in the feature's `EffectsLayer` export. Name an individual provider `MeasurePanelLayer` only when it is intentionally public or independently reused outside that bundle's assembly.
+
+Mount names are local to their named Block. Definitions owned by different features receive different owned names even when their local names, args, and result Messages match. Each definition also retains a private runtime identity. Alternate implementations belong to the original definition's `toLayer`.
+
+### Execution Testing
+
+A whole-application execution test retains the real Layer-backed Mount handler and replaces the browser or library capability beneath it. The Mount still receives a live test element, performs its element-scoped transformation, and releases on unmount. Replacing the whole handler can acknowledge or orchestrate a Mount result, but that path does not test the replaced integration.

@@ -49,16 +49,28 @@ The goal is to resolve ambiguity early so the generated code matches what the us
 
 ## Phase 2: Study Reference Examples
 
-Read the architecture and conventions guides to internalize the rules:
+Read only the references that affect this program:
 
-- [Architecture guide](architecture.md): TEA structure, file organization, type patterns
-- [Conventions guide](conventions.md): naming, Effect-TS patterns, anti-patterns
-- [Verification checklist](checklist.md): not just for Phase 5, also the generation bar. Skim the **Quality Bar** section now so you generate code that already meets it rather than code that will fail review.
-- [Blind spots](blindSpots.md): what the Phase 6 reviewer will grade you against. Reading it now is cheaper than fixing it later.
+- [Architecture guide](architecture.md) for the TEA loop and the primitives the
+  requested behavior needs
+- [Conventions guide](conventions.md) for the naming, Schema, Effect, and update
+  patterns used by the files you will write
+- [Block composition and Layers](../foldkit/references/composition.md) when the
+  app has a Block, stateful Foldkit UI component, child Binding, Mount,
+  OutMessage, child startup policy, handler recipe, or Service Layer
+- [Verification checklist](checklist.md) for the applicable gates and quality
+  bar
+- [Blind spots](blindSpots.md) for the failure modes relevant to the planned
+  behavior
 
-These four files are a snapshot of a moving codebase. When they disagree with the live source (`repos/foldkit/`, or the `.d.ts` in `node_modules`), the live source is right. Treat the disagreement as a bug in this skill and say so in your final report.
+Do not load every guide merely because it exists. Identify the program's
+architecture surfaces first, then read the matching sections and one current
+exemplar. These files are snapshots of a moving codebase. When they disagree
+with `repos/foldkit/` or the installed declarations, the installed version is
+right. Mention a disagreement in the final report so the skill can be repaired.
 
-If you have access to a context7 MCP tool, use it to look up Effect-TS documentation when you're unsure about an API. Effect is a large library. Verify function signatures rather than guessing.
+When an Effect API is uncertain, verify its current signature from the installed
+package or official Effect documentation instead of guessing.
 
 ### Quality exemplars
 
@@ -94,7 +106,9 @@ Read `${CLAUDE_SKILL_DIR}/../../examples/auth/src/composition/`, `update.ts`, an
 **Tier 7: Real-time, WebSocket, Managed Resources, production-grade:**
 Read `${CLAUDE_SKILL_DIR}/../../packages/typing-game/client/src/update.ts`, then explore its `page/home/` and `page/room/` directories for the full Block/OutMessage pattern.
 
-Read examples from the target tier AND all lower tiers. A Tier 4 app should reflect patterns from Tiers 1-3 as well.
+Read the nearest tier-specific example plus any focused example for a primitive
+this app actually uses. Lower tiers are a lookup index, not a mandatory reading
+sequence.
 
 ## Phase 2.5: Identify Foldkit UI Component Opportunities
 
@@ -143,18 +157,22 @@ The package is not one shape.
 
 Don't take that split on faith, because components have moved across it (`Checkbox`, `Switch`, and `Disclosure` became controlled render helpers; `RadioGroup` became a Block; `Tabs` and `Slider` moved their selection to the parent Model). Read the component's `public.d.ts`: exporting `Model` and `update` means Block, exporting only `view` and a `ViewConfig` / `ViewInputs` type means render helper. A render helper does not want a `Got*` Message.
 
-To use a stateful Block:
+To use a stateful component, bind its completed Block through the parent
+Definition, register that Binding in the parent's Composition, initialize it
+through the Binding's startup policy, and render it through
+`h.block(binding.embedView(...))`. The Composition routes canonical unkeyed
+wrappers and collects the child's lifecycle and handler graph. Custom, keyed,
+or contextful wrappers declare the inverse `fromParentMessage` route.
 
-1. Create the component once at module scope: `const CityCombobox = Combobox.create(City)`, where `City` is the parent's string Schema
-2. Add its Model to your Model: `cityCombobox: CityCombobox.Model`
-3. Add a `Got*` Message: `GotCityComboboxMessage` with `{ message: CityCombobox.Message }`.
-4. Create `const CityComboboxBinding = Parent.bindChild(CityCombobox, { field: 'cityCombobox', parentMessage: Message.GotCityComboboxMessage, init: { args: () => [{ id: 'city-combobox' }] }, ...policies })`. The same direct form accepts an exact Option field; use `Option.some([{ id: 'city-combobox' }])` to choose automatic presence or omit `init` to leave presence with the parent. Use explicit accessors and `toParentMessage` when the child is tagged, nested, or stored through a custom mapping.
-5. Register it once in `ParentComposition = Parent.toComposition({ childBindings: [CityComboboxBinding] })`. Author init and update through that Composition. Init returns only parent-owned fields; the Composition assembles the configured child field and Commands. The Composition also routes the `GotCityComboboxMessage` wrapper through `CityComboboxBinding` automatically.
-6. Embed the canonical view with `h.block(CityComboboxBinding.embedView({ slotId: 'city', model: model.cityCombobox, viewInputs }))`.
+Read [Block composition and Layers](../foldkit/references/composition.md) for
+the complete storage, routing, startup, view, and Layer decisions. Then inspect
+the component's current declarations and its ui-showcase integration. Do not
+copy a fixed Binding recipe across components: generic factories, optional
+children, keyed children, and parent-owned selection have different contracts.
 
-A Binding registered under `childBindings` contributes the component's `EffectsLayer`, Mounts, Subscriptions, and ManagedResources automatically. Import `defineApplication` from `foldkit`, create `const Application = defineApplication({ Model, Message })`, then establish `const ApplicationComposition = Application.toComposition({ childBindings })`. Complete that graph through `ApplicationComposition.toApplication({ init, update, view, ... })`, listing every field explicitly. Author the canonical application view through `ApplicationComposition.view` and let its `h` parameter infer. On the next line after the Composition, derive `type ApplicationViewBuilder = Block.ViewBuilderFor<typeof ApplicationComposition>` for ordinary root-local helpers that need the same registered Mount and child capabilities. Export it only when another file uses it.
-
-Select a whole feature's alternate local handler recipe with `block.replaceEffectsLayer(localRecipe)` before binding it. This preserves selected child recipes and does not build either Layer. Ordinary execution tests retain the real handlers and replace their Service Layers instead.
+Select a whole feature's alternate local handler recipe with
+`block.replaceEffectsLayer(localRecipe)` before binding it. Ordinary execution
+tests retain real handlers and replace Service providers below them.
 
 **Always prefer Foldkit UI components over hand-rolling interactive widgets.** They make accessibility the default, not an afterthought.
 
@@ -440,7 +458,13 @@ Record these in the crib and keep them visible while generating:
 - **Routers are callable for printing**: `homeRouter()` returns `'/'`, `tagFilterRouter({ tag: 'foo' })` returns `'/tag/foo'`. Never hand-construct URLs.
 - **UI components come from `@foldkit/ui`, not from a `Ui` namespace on `foldkit`.** `import { Dialog, Input } from '@foldkit/ui'`, then connect Dialog and call Input's stateless view helper. There is no `Ui` export on the `foldkit` package.
 - **`HttpClient` and `HttpClientRequest` come from `effect/http`**, not `@effect/platform`. Leave `HttpClient.HttpClient` in the handler's requirements and provide `Http.layer`, imported from `foldkit`, at the application root. This keeps the real handler reusable with a deterministic HTTP Layer in an execution test. `@effect/platform-browser` is a different thing, used for `BrowserKeyValueStore` and `BrowserCrypto`.
-- **Register each child Binding once.** Author an ordinary child through `const Child = Block.define('Child', { Model, Message, OutMessage? })`. Use one-argument `Block.define('Child')` followed by `.define(...)` only for a generic factory sharing effect definitions across several specialized contracts. Establish `ChildComposition = Child.toComposition({ childBindings?, mounts? })`, author init, update, and the primary view through it, produce it with `ChildComposition.toBlock(...)`, and export the completed `block`. Parent code calls `Parent.bindChild(Child.block, config)` and includes that Binding under `childBindings` in `Parent.toComposition(...)`. An exact Struct field containing the child Model or its Option uses `{ field, parentMessage }`; the Composition routes that canonical wrapper automatically. Direct-field `presentWhen` gates the whole child. Keyed, custom, and contextful Bindings add `fromParentMessage: { parentMessage, args }`, where `args(parentModel, payload)` returns `Option.some` of the native fold arguments or `Option.none()` for stale or inactive delivery. Use `fromParentMessage: false` only when the Composition should not route that Binding. The ordinary Binding surface contains `placement`, `init`, `fold`, `embedView`, and named operations from `expose`; Composition carries lifecycle records and handler Layers automatically. For a required exact direct field, omit `init` when the child's initializer can be called without arguments. A required-argument initializer uses `init: { args }`; `init: false` makes the parent supply the initial field. Optional, keyed, and accessor storage remains parent-owned when `init` is omitted, with explicit `init.args` or `init.occurrences` choosing automatic presence. Plain tuple literals preserve contextual init parameters. Add an optional `Startup` Schema to the parent Definition when owned selectors share input; it types those callbacks without parameter annotations. `Composition.init` receives parent-owned `model` fields, the decoded `startup` value when a selector uses it, parent `commands`, and ordered `steps`; it assembles configured child fields and retains their Commands without adding a Runtime phase. Custom storage, deliberate Command interleaving, and dynamic creation call the exact registered Binding as `Binding.init({ key?, args, toParentModel, commands? })` within Composition init or update, a completed Block's exposed operation, or its bound operation. `toParentModel` constructs the complete parent Model, and the result retains graph evidence while placing lifted child Commands before optional parent Commands. The compiler checks the exact key, args, parent Model, requirements, and evidence; the Runtime checks schema-equivalent child placement and exactly one requested keyed occurrence. Runtime metadata cannot reconstruct the TypeScript distinction between required, optional, defaulted, and rest initializer parameters. Ordinary Model construction remains available. OutMessage policies may call parent Steps and registered sibling Binding operations, including reciprocal coordination. Keep reciprocal policies in the same parent assembly, defer sibling calls through policy callbacks, and keep policy chains synchronous and finite.
+- **Register each selected child Binding once.** Binding construction is passive;
+  registration in the parent's Composition enables routing and contributes the
+  child's lifecycle and handler graph. Use the narrowest storage form and
+  declare startup ownership explicitly. Read
+  [Block composition and Layers](../foldkit/references/composition.md) for the
+  storage, routing, OutMessage, startup, sibling policy, view, and Layer decision
+  tables. Apply its review invariants before completion.
 - **Let `FeatureComposition.update` infer Command requirements.** Inside its callback, use `Message.match(message, handlers)` without `Update.Return<Model, Message>`; that two-argument type fixes the requirement channel to `never`. Registered Bindings remove their claimed wrapper variants from the callback and route them automatically. Use `Feature.step` for a named parent-driven operation. When another matcher, helper, or exported signature needs an `UpdateReturn` alias and any branch returns Commands, derive the relevant requirements with `Update.RequirementsOf<typeof update>`. Pass them to `Update.Return<Model, Message, Requirements>` or `Update.ReturnWithOutMessage<Model, Message, OutMessage, Requirements>`. The match generic constrains the whole update, so omit a redundant return annotation. Use `Match.withReturnType<UpdateReturn>()` only for Effect `Match`.
 - **Preserve the plain-return OutMessage guard.** Use `Update.Return<Model, Message>` when an update cannot emit an OutMessage. It prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. A result with no `outMessage` can still be used where `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is expected. The missing field means that update emitted no OutMessage. A hand-written plain-return type must preserve the `outMessage?: never` field.
 - **Omit only statically empty Commands.** A producer with statically no Commands omits `commands`. A producer with a computed collection returns it without checking whether it is empty. Never write `commands: []`.
@@ -514,7 +538,7 @@ Every message must carry meaning. No `NoOp`.
 - Return an `Update.Return<Model, Message>` record. Omit `commands` when init statically creates no Commands; return a computed Commands collection directly
 - If Flags are used, accept them as the first parameter. For example: `(flags: Flags) => ({ model: initialModel(flags) })` or `(flags: Flags, url: Url) => ({ model: initialModel(flags, url) })`
 - Include startup Commands (initial fetch, focus first input, etc.)
-- Use callable Schema constructors for the initial Model: `Model({ field: value })`
+- Construct a `Schema.Struct` Model with `Model.make({ field: value })`. Message, OutMessage, Route, and tagged-union variants remain callable through their owning namespace. When Composition init assembles child fields, return the plain record of parent-owned fields instead of constructing an incomplete Model
 - Let init construct the baseline Model and return any initial Commands. Optional `boot` helpers are ordinary initial Steps called through a Binding after the child Model exists; Foldkit has no special Runtime boot phase, and a feature need not define both init and `boot` helpers. When an existing domain operation such as `open` or `restore` already describes the transition, expose that Step instead. Do not manufacture a Message only to trigger startup behavior. Preserve Commands from child init results when accumulating the startup Step results. Call one Step directly and use `Update.combine` only for two or more sequential Steps
 
 ### Update

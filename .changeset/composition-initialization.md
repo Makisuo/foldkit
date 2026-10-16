@@ -101,12 +101,13 @@ Use `init: false` when that required direct field is parent-owned at startup. Om
 
 A keyed-array Binding can select its initial instances with `init.occurrences` and construct its stored items with `init.toItem`. Each occurrence has a stable key and the exact child init argument tuple. The assembler calls child init once per occurrence and lifts its Commands through that key. For a direct array, `toItem` returns the exact initialized child Model with the planned key. For a wrapped array, it returns the parent-owned wrapper containing that exact child Model and key.
 
+Return a wrapper as a plain record. Its child field must retain the exact initialized object until the assembler constructs the parent Model. A wrapper Schema constructor may reconstruct that child and fail this check; the assembler applies the parent Model Schema after collecting the wrappers.
+
 ```ts
 import { Array, Option } from 'effect'
 
 import { Application } from './definition'
 import { Message } from './message'
-import { CounterInstance, Model } from './model'
 import * as Counter from './counter'
 
 const INITIAL_COUNTER_COUNT = 3
@@ -126,7 +127,7 @@ const CountersBinding = Application.bindChild(Counter.block, {
         key: `counter-${counterId}`,
         args: [],
       })),
-    toItem: ({ key }, counter) => CounterInstance.make({ id: key, counter }),
+    toItem: ({ key }, counter) => ({ id: key, counter }),
   },
 })
 

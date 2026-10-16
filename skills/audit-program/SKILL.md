@@ -40,14 +40,26 @@ Skip this confirmation only when the scope is unambiguous (single file, single f
 
 ## Phase 2: Read the canonical references
 
-Read these in order. Every audit, no shortcuts. They're the spec the audit grades against.
+Read the references that match the audited surface:
 
-1. [Architecture guide](../generate-program/architecture.md): TEA invariants, Block and OutMessage pattern, Flags, Subscriptions, Mount / Command / ManagedResource / CustomElement selection
-2. [Conventions guide](../generate-program/conventions.md): naming, Effect-TS idioms, Schema patterns, view conventions
-3. [Verification checklist](../generate-program/checklist.md): the canonical mechanical-check + quality-bar reference
-4. [Blind spots](../generate-program/blindSpots.md): the failure modes that survive typecheck, lint, and tests
+1. [Architecture guide](../generate-program/architecture.md): the TEA loop and
+   primitives present in the app
+2. [Conventions guide](../generate-program/conventions.md): the naming, Schema,
+   Effect, and update sections relevant to the audited files
+3. [Block composition and Layers](../foldkit/references/composition.md): Blocks,
+   stateful UI components, child Bindings, Mounts, OutMessages, startup policy,
+   handler recipes, and Service Layers
+4. [Verification checklist](../generate-program/checklist.md): mechanical checks
+   and the quality bar
+5. [Blind spots](../generate-program/blindSpots.md): failures that survive
+   typecheck, lint, and tests
 
-These four files are a snapshot. When the audited project vendors `repos/foldkit/`, the live source wins over anything here: read the `.d.ts` or the example rather than grading against a remembered signature.
+Read the relevant references before grading. Do not load an unrelated guide
+merely because it exists.
+
+These references are snapshots. When the audited project vendors
+`repos/foldkit/`, the live source wins over anything here: read the `.d.ts` or
+the example rather than grading against a remembered signature.
 
 Do not skim. The audit's signal-to-noise depends on the auditor having internalized the bar before reading the audited code.
 
@@ -176,23 +188,23 @@ Use `Agent` with `subagent_type: general-purpose`. Suggested fan-out:
 
   Flag same-Model operations that manually thread `result.model` and `result.commands` when a later operation consumes the Model produced by an earlier one; they should use `Update.combine`. `Update.combine` needs two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly, and name an inline Step parameter `stepModel` when combining several. When the OutMessage is already known while constructing a new result, include it directly. Use `Update.withOutMessage` for an existing plain return or a value with the type `OutMessage | undefined`: pipe an existing return into the helper, and pass a new result literal first. Flag local helpers or conditional spreads that duplicate `Update.withOutMessage`.
 
-  A child fold includes `outMessage.forward` only when at least one child OutMessage should continue to the current Block's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit the property when every variant stops here. `outMessage.fold` still handles each variant locally, including variants that continue upward. Flag `outMessage.forward: () => undefined`. Parent-owned policy may call registered sibling Binding operations in either direction; confirm reciprocal policies live together in the same parent assembly, each sibling call is deferred through a policy callback, every captured sibling is registered, and the synchronous policy chain is finite. Use the parent's owned `.step` helper when a nested policy callback needs its Model context restored.
+  For Block, Binding, Composition, OutMessage, startup, handler Layer, and root
+  Service review, read
+  [Block composition and Layers](../foldkit/references/composition.md). Trace the
+  actual graph and check every invariant in its final review list. Report the
+  concrete ownership or lifecycle consequence rather than copying the reference
+  into a finding. Verify one Definition and Composition per owner, one
+  registration per selected Binding, exact storage and inverse routing,
+  exhaustive OutMessage policy, explicit startup ownership, local-only handler
+  recipes, child graph propagation, root-only ordinary Services, and passive
+  assembly before Runtime start.
 
-  Every ordinary Block uses one typed `const Feature = Block.define('Feature', { Model, Message, OutMessage? })`, one named `FeatureComposition = Feature.toComposition({ childBindings?, mounts? })`, init, update, and one canonical view authored through that Composition, and one completed `FeatureComposition.toBlock(...)` value exported as `block`. The one-argument `Block.define('Feature')` form is reserved for generic factories sharing effect definitions across several specialized typed contracts. Check that the parent barrel exports `export * as Feature from './feature'`, parent code imports that namespace, and the child enters through `Parent.bindChild(Feature.block, config)`. Check the single graph assembly point: a feature without `composition/` uses composition.ts, while a feature with `composition/` uses composition/composition.ts; each owns all straightforward Bindings and complete registrations. Substantial one-way policies may be extracted under composition/, while reciprocal sibling policies remain together in the parent assembly. Mount-only features use composition.ts. A split graphless feature exports its named empty Composition beside the Definition in definition.ts; a compact graphless feature keeps it beside its cohesive implementation. Neither needs an empty composition.ts. Binding construction is passive and does not register it. Each Binding is included once in the parent's Composition, routes claimed wrapper Messages through its native fold, exposes selected parent operations, and renders through `binding.embedView`. Keyed and contextual routes declare `fromParentMessage`; `Option.none()` ignores stale or inactive occurrences. An exact Struct field containing the child Model or its Option should use `{ field, parentMessage }`; direct-field `presentWhen` governs the whole child and `subscriptions.when` governs only Streams. Tagged, nested, and custom storage retains explicit accessors. Direct child-Model arrays use string-valued `field` and `key`; exact closed Struct wrapper arrays add a distinct required `childField` and keep the stable key on the wrapper; their writer changes only that child field on an existing item. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration retain the general accessors and Message mapping. A child with OutMessages must have an explicit parent policy that `fold` and exposed operations apply consistently during the pure transition. The root always creates `Application` and a Composition. A genuinely compact root keeps Model, Message, init, update, view, `Application`, and `ApplicationComposition` together in `application.ts`. A split root owns `Application` in `definition.ts`, owns the complete graph and `ApplicationComposition` in `composition.ts` or `composition/composition.ts` even when graphless, and has no `application.ts` aggregation file. Its Composition never imports root init, update, or view. A simple root `EffectsLayer` stays with Command definitions in `command.ts`; `layer.ts` is only for substantial or reused composition. The lowercase completed value comes from `ApplicationComposition.toApplication` or `ApplicationComposition.toElement` and supplies ordinary Services through its `provide` method. Root `services.ts` composes `ApplicationLayer`; `entry.ts` imports it, chooses browser inputs, completes the Application, and starts the Runtime. It never creates a public completed root Block or manually lifts child Layers and lifecycle records a second time. Check that assembly imports extracted policies directly from sibling modules and explicit barrels re-export actual values such as `HomeBinding`, `RoomBinding`, and `ApplicationComposition`. A factory needs caller-owned construction input; a single export does not justify a namespace or factory.
-
-  A whole-feature handler replacement uses `block.replaceEffectsLayer(localRecipe)` before binding the child and retains selected child recipes. Ordinary application execution tests retain real handlers and replace service providers beneath them.
-
-  A `fold<Child>OutMessage` that needs only the OutMessage binds the child
-  union's exhaustive matcher directly. Flag a function that merely forwards
-  its argument to a data-first match. Keep a function or factory when matcher
-  branches consume other per-dispatch context, including a collection key,
-  previous Model state, an entry payload, or `FoldContext` lifters. Every
-  matcher names every variant, including a singleton union. A
-  `outMessage.forward` mapper that needs only the OutMessage uses the same
-  direct matcher form. A generic child passes its refined OutMessage type as
-  the matcher's second generic. Command-producing `Feature.step` branches
-  retain their inferred requirements instead of being constrained to a
-  requirement-free `Update.Step`.
+  Preserve inferred Command requirements in Composition update and owned Steps.
+  Use a direct exhaustive OutMessage matcher when no other dispatch context is
+  needed; retain a function or factory when policy needs a key, previous Model,
+  payload, or `FoldContext`. Whole-feature recipe replacement happens before
+  binding, while ordinary execution tests replace Service providers beneath
+  real handlers.
 
 - **Subagent C (Naming and decomposition)**. `maybe*` reserved for `Option<T>`, `is*` for booleans, no opaque abbreviations or unexplained single-letter names, conventional domain shorthand allowed, `Updated*` not `Changed*`, `Completed*` mirrors Command name verb-first, named helpers use specific verbs not generic ones, handlers over ~15 lines extracted, view branches over ~30 lines extracted, no function exceeds ~40 lines. Comments are sparse and mark architecture handoffs or a genuinely surprising constraint; they do not narrate ordinary control flow.
 - **Subagent D (Foldkit UI and accessibility)**. Hand-rolled `input` / `textarea` / `button` / `dialog` flagged unless NOTE-justified, label/input pairing via `For(id)` + `Id(id)`, dynamic errors announce via `Role('alert')` or `AriaLive('polite')`, icon-only buttons have `AriaLabel`, external links carry `Rel('noopener noreferrer')`, exactly one `h1` per route, semantic landmarks (`main`, `nav`, `header`, `footer`) over `div` soup, focus visibility preserved (no `outline-none` without `focus-visible:` replacement).
@@ -305,4 +317,8 @@ Blind spots are named by their slug in [`../generate-program/blindSpots.md`](../
 
 For focused audits, skip Phase 4's full grep block and run only the greps relevant to the focus (e.g. for `a11y`, run `label without For`, `outline-none without focus-visible`, and the `_blank` scan, reading each hit's attribute block for `Rel`).
 
-Audit startup policies alongside Bindings. A required exact direct field may omit `init` only when the child initializer is callable without arguments. A required-argument initializer must use `init: { args }` or `init: false`; the latter means the parent supplies the initial field. Optional, keyed, and accessor storage stays parent-owned when `init` is omitted, while explicit `init.args` or `init.occurrences` chooses automatic presence. Accept ordinary contextually typed tuple literals. When selectors share input, check that the parent Definition declares its optional `Startup` Schema, the selectors use its contextual type without redundant parameter annotations, and the Composition init plan carries the decoded value as `startup`. The Composition-owned init supplies only parent-owned fields plus ordered Steps, and startup remains part of that boundary rather than a Runtime phase. Custom storage, interleaved Command order, and dynamic creation use the exact registered `Binding.init({ key?, args, toParentModel, commands? })` only inside Composition init or update, a completed Block's exposed operation, or its bound operation. Verify that `toParentModel` constructs the complete parent Model, the result retains graph evidence, and lifted child Commands precede optional parent Commands. Check compiler coverage for exact key, args, parent Model, requirements, and evidence, plus runtime checks for schema-equivalent child placement and exactly one requested keyed occurrence. Do not claim runtime metadata can recover the TypeScript distinction among required, optional, defaulted, and rest initializer parameters. Do not flag ordinary Model construction outside a connected operation. A `presentWhen`-inactive child must not emit its init Commands, while `subscriptions.when` gates only Streams.
+For focused `blocks` or `effects` audits, read
+[Block composition and Layers](../foldkit/references/composition.md) and apply
+its decision tables and review invariants to the selected files. Include startup
+policy in that trace; do not infer TypeScript initializer arity from Runtime
+metadata.

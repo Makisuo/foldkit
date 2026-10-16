@@ -183,6 +183,8 @@ Init constructs the baseline Model and may return initial Commands. Author it th
 
 For a required exact direct child field, omit `init` when its initializer can be called without arguments. A required-argument initializer uses `init: { args }`; `init: false` makes the parent supply that field. Optional, keyed, and accessor storage remains parent-owned when `init` is omitted, with explicit `init.args` or `init.occurrences` choosing automatic presence. Plain tuple literals preserve contextual init parameters. Add an optional `Startup` Schema to the parent Definition when selectors share input. It contextually types owned `init.args` and `init.occurrences` callbacks without parameter annotations. The Composition initializer returns a plan: `model` contains only parent-owned fields, `startup` carries the decoded input when a selector uses it, `commands` contains parent Commands, and `steps` contains ordered parent Steps applied after the complete Model exists. The Composition calls selected children once in `childBindings` order and filters Commands for children absent from the final Model. An exact keyed array using `field` and `key`, with optional `childField`, declares `init.occurrences` and `init.toItem`. A direct array's `toItem` returns the exact initialized child Model with the planned key; a wrapped array's returns the parent-owned wrapper containing that exact child Model and key. Custom storage, intentional interleaved Command ordering, and dynamic creation use the exact registered `Binding.init({ key?, args, toParentModel, commands? })` within Composition init or update, a completed Block's exposed operation, or its bound operation. `toParentModel` constructs the complete parent Model; the result retains graph evidence and orders lifted child Commands before optional parent Commands. The compiler checks exact key, args, parent Model, requirements, and evidence. The Runtime checks schema-equivalent child placement and exactly one requested keyed occurrence, but its metadata cannot reconstruct the TypeScript distinction among required, optional, defaulted, and rest initializer parameters. Startup stays inside the Composition boundary rather than adding a Runtime phase. Ordinary Model construction remains available.
 
+Return a keyed startup wrapper as a plain record, preserving the initialized child object in its child field. Do not reconstruct that child through the wrapper's Schema constructor. Composition constructs the full parent Model through its Schema after collecting these records.
+
 Inside `FeatureComposition.update`, let the outer helper infer the Command requirement channel through `Message.match(message, handlers)`. An explicit `Message.match<Update.Return<Model, Message>>` fixes that channel to `never` and discards the handler requirements the application must provide. When helpers or other matchers need a reusable return alias and any branch returns Commands, include the relevant requirements. Derive them with `Update.RequirementsOf<typeof update>` when the update contract is available, rather than from `EffectsLayer`, which may also contain lifecycle handlers that update never returns.
 
 Use `Update.Return<Model, Message>` for an update that cannot emit an OutMessage. It prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. A result with no `outMessage` can still be used where `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is expected. The missing field means that update emitted no OutMessage. A hand-written plain-return type must preserve the `outMessage?: never` field.
@@ -220,25 +222,27 @@ When the initial Model needs data from a side effect (current time, localStorage
 
 ```ts
 const Application = defineApplication({ Model, Message })
+const ApplicationComposition = Application.toComposition()
 
 // WRONG: module-level side effect (non-deterministic and untestable)
 const now = Date.now()
 const unsafeInit = ApplicationComposition.init(() => ({
-  model: Model({ createdAt: now }),
+  model: Model.make({ createdAt: now }),
 }))
 
 // RIGHT: Flags run as an Effect before init, result passed in
 const Flags = Schema.Struct({
   createdAt: Schema.Number,
 })
+type Flags = typeof Flags.Type
 
 const flags = Effect.gen(function* () {
   const now = yield* Clock.currentTimeMillis
-  return Flags({ createdAt: now })
+  return Flags.make({ createdAt: now })
 })
 
 const init = ApplicationComposition.init((flags: Flags) => ({
-  model: Model({ createdAt: flags.createdAt }),
+  model: Model.make({ createdAt: flags.createdAt }),
 }))
 ```
 
@@ -285,90 +289,34 @@ An Element owns its Flags Effect because no separate runtime call seeds it. Put 
 
 ## Layers
 
-Commands, Subscriptions, Mounts, and ManagedResources contribute handler recipes to their completed Block. Child Bindings qualify those recipes by placement, and the Application Composition carries the complete handler graph into its `toApplication` or `toElement` method. The completed `application` or `element` supplies the ordinary Services those recipes still require through its `provide` method. That method returns a new passive program; the assembly config has no `resources` field. Every application Layer is built once for each runtime start and released when that runtime stops.
+A feature's Composition owns its child and Mount graph. Its local
+`EffectsLayer` supplies only handlers declared by that feature; registered
+child Bindings contribute their selected handler and lifecycle graphs
+automatically. The root `ApplicationLayer` supplies the ordinary HTTP, storage,
+RPC, browser, and business Services that those recipes still require.
 
-Each handler requirement carries its primitive, locally declared name, and exact protocol. Binding composition derives the application identity from the owner and placement path, so reusable children can keep stable local names without coordinating full parent paths. Composition rejects incompatible contracts before Runtime start. Prefer `Command.HandlerOf<typeof Definition>`, `Subscription.HandlerOf<typeof subscriptions.entry>`, `Mount.RequirementsOf<typeof Definition>`, and `ManagedResource.HandlerOf<typeof managedResources.entry>` only when an explicit local annotation is useful; normal definitions, owned views, and update functions infer them.
+Keep those responsibilities separate. Do not merge a registered child's Layer
+again at its parent or flatten every handler into the entry point. Completion
+and `application.provide(ApplicationLayer)` remain passive; the Runtime builds
+the graph once for each start and releases it when that run stops.
 
-Compose Layers at the same boundaries as Model and Message ownership. Keep a small local `EffectsLayer` with completion in `block.ts`; extract `layer.ts` only when the local composition is substantial or reused. The completed Block collects the handler graphs of child Bindings included in the Composition. Import Effect's module as `Layer` without an alias:
+Read [Block composition and Layers](../foldkit/references/composition.md) when
+the program defines handlers, composes child Blocks, selects host handlers,
+replaces a feature recipe, or decides where a provider belongs. That reference
+contains the ownership table, construction timing, root wiring, testing seam,
+and non-obvious lifecycle constraints. Then inspect the matching installed
+declarations and exemplar for exact APIs.
 
-```ts
-export const EffectsLayer = Layer.mergeAll(
-  FetchResults.layer,
-  subscriptions.searchEvents.layer,
-)
-```
+At a glance:
 
-Pass this local recipe to `FeatureComposition.toBlock(...)`; `Feature.toComposition({ childBindings, mounts })` supplies the graph. Export the completed value as `block`. A genuinely compact root keeps Model, Message, init, update, view, `Application`, `ApplicationComposition`, and any small local handler bundle together in `application.ts`. Once one of those responsibilities is extracted, `definition.ts` owns `Application`; `composition.ts` or `composition/composition.ts` owns Bindings, OutMessage folds, the complete graph, `ApplicationComposition`, and an optional `ApplicationViewBuilder`; and the split root removes the emptied `application.ts`. Even a graphless split root has `composition.ts`. A simple root `EffectsLayer` stays with its Command definitions in `command.ts`; use `layer.ts` only for substantial or reused composition. `entry.ts` imports each completion field from its real owner, chooses host inputs, and calls owned completion:
-
-```ts
-import { Runtime } from 'foldkit'
-import { EffectsLayer } from './command'
-import { ApplicationComposition } from './composition'
-import { ApplicationLayer } from './services'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
-
-const application = ApplicationComposition.toApplication({
-  init,
-  update,
-  view,
-  EffectsLayer,
-  container: document.getElementById('root'),
-})
-
-Runtime.run(application.provide(ApplicationLayer))
-```
-
-Keep root `ApplicationLayer` composition in `services.ts`; `entry.ts` imports it and starts the completed application. Tests and server entries import the passive Composition and implementation pieces without selecting a browser container or starting the Runtime. `ApplicationLayer` supplies the ordinary Services still required by the completed application.
-
-If an owning module's handler Layers need a business service defined by that module, provide it beneath that module's `EffectsLayer`. Leave concrete HTTP, storage, RPC, and browser requirements open for the application root. The root chooses those providers and uses `Layer.provideMerge` when their outputs must remain available to Flags or another application consumer. Keep handler-by-handler imports out of the entry point. Calls such as `application.provide(firstLayer).provide(secondLayer)` can be chained when one Layer leaves requirements for a later Layer, but a composed `ApplicationLayer` keeps ordinary application wiring at module granularity.
-
-Setting `config.handler` creates the definition's `.layer` recipe; it does not build the Layer. The Runtime builds the application Layer once for each start. The handler generator runs once during that build, performs its service lookups, and returns the function used later. Every Command invocation, Subscription scope, Mount element, or ManagedResource acquisition calls that function with fresh input while reusing the captured services. Looking up a service retrieves an instance from the Effect context; it does not construct the provider. Scope finalizers registered while building the Layer run when that runtime stops.
-
-Every attached implementation is `config.handler`, a generator constructor. Use `function* ()` to capture services and return the invocation function; Foldkit applies `Effect.gen`. A constructor that yields nothing keeps the same shape: `handler: function* () { return args => effect }`. Each invocation receives the current Command args, Subscription dependencies, Mount element, or ManagedResource requirements.
-
-When an existing Effect or Stream already declares Services, return it from the invocation function without re-providing the constructor's instances. The handler Layer retains those requirements. Contextual lookups prefer the invocation Context, while a captured object remains fixed.
-
-Omit `handler` only at an external host boundary. The definition then has `toLayer` but no `.layer`, and the host supplies the constructor Effect:
-
-```ts
-import { Context, Effect } from 'effect'
-
-import { Feature } from './definition'
-import { Message } from './message'
-
-type HostApi = Readonly<{
-  requestToken: Effect.Effect<string>
-}>
-
-const HostApi = Context.Service<HostApi>('HostApi')
-
-export const RequestHostToken = Feature.command('RequestHostToken', {
-  messages: [Message.CompletedRequestHostToken],
-})
-
-const RequestHostTokenLayer = RequestHostToken.toLayer(
-  Effect.gen(function* () {
-    const host = yield* HostApi
-
-    return () =>
-      host.requestToken.pipe(
-        Effect.map(token => Message.CompletedRequestHostToken({ token })),
-      )
-  }),
-)
-```
-
-The host selects a completed feature recipe containing `RequestHostTokenLayer` before binding that feature. `ApplicationLayer` still provides only ordinary Services required by the selected recipe. Subscription, Mount, ManagedResource, and experimental Query host contracts use the same boundary: `toLayer` receives the constructor Effect that returns the complete implementation.
-
-Keep four lifetimes distinct. Application services such as RPC clients last for one Runtime start. A Command Effect lasts for one dispatch. Subscription Streams and ManagedResource handles follow Model conditions. Mount acquisition follows one DOM element. Do not capture current time, Command args, Subscription dependencies, a DOM element, or an active ManagedResource handle in an application-scoped constructor.
-
-Handlers and services may own mutable execution bookkeeping, such as worker availability or protocol request IDs. The Model and update own pending work shown to the user, selections, and submission rules. A `Ref` created in the constructor must not become the source of truth for workflow decisions or state read by view.
-
-Whole-application execution tests compose the same handler Layers with deterministic providers for external services before building the application Layer. Keep any business service Layer whose decoding, retries, or policy the test should cover, and replace its lower HTTP or RPC transport. That keeps Command result mapping, Subscription Stream transformation, Mount element lifecycle, and ManagedResource acquire and release behavior under test. Replacing a complete handler is a narrower way to orchestrate a result path, and does not test the replaced handler. Use Effect Layers directly for substitution rather than introducing a testing DSL.
-
-The implementation Layer graph does not replace the Composition graph. A completed child Block collects `subscriptions`, `managedResources`, and `mounts` through the same Bindings that supply handler Layers. A compact root creates `Application` and `ApplicationComposition` in its all-in-one `application.ts`. A split root creates `Application` in `definition.ts` and `ApplicationComposition` in `composition.ts` or `composition/composition.ts`, with no aggregation file between them. The entry imports that Composition and the implementation fields from their actual owners, chooses the container, and calls `toApplication` or `toElement` with explicit fields. It provides `ApplicationLayer` to the completed program and starts the Runtime.
+- Put attached handler recipes in the owning feature's `EffectsLayer`.
+- Let registered Bindings carry child recipes and descendants.
+- Put concrete shared providers in the root `ApplicationLayer`.
+- Omit `handler` only for a contract deliberately supplied by a host.
+- Keep workflow state in the Model; handler constructors may retain execution
+  bookkeeping, connections, and service clients.
+- Keep application, Command, Model-condition, and mounted-element lifetimes
+  distinct.
 
 ## Mounts
 
@@ -399,95 +347,28 @@ Complete each feature with its local Subscription registry. Include its parent-o
 
 ## The Block Pattern
 
-A Block gives one feature its own Model, Message, update, lifecycle graph, view, and optional OutMessage. Every Block follows the same passive stages:
+A Block gives one feature its own state machine and effect boundary. Define its
+contracts, fix its child and Mount graph in a named Composition, then complete
+that same Composition as a passive Block. The parent integrates the completed
+Block through one registered Binding.
 
-```ts
-const Child = Block.define('Child', {
-  Model,
-  Message,
-  OutMessage,
-})
+Read [Block composition and Layers](../foldkit/references/composition.md) before
+creating or changing this graph. It provides the canonical three-stage shape
+and decision tables for:
 
-const ChildComposition = Child.toComposition({
-  childBindings,
-  mounts,
-})
+- choosing a view helper or Block;
+- selecting direct, optional, keyed, wrapped, or custom child storage;
+- routing child Messages and handling or forwarding OutMessages;
+- initializing required, optional, keyed, and dynamically created children;
+- exposing parent-driven operations and coordinating sibling Bindings;
+- authoring views with the Composition's child and Mount capabilities;
+- composing local handler recipes and root Service providers;
+- organizing one graph assembly point without circular imports.
 
-const init = ChildComposition.init(() => ({ model: parentOwnedFields }))
-const update = ChildComposition.update(updateParentMessage)
-const view = ChildComposition.view(viewChild)
-
-export const block = ChildComposition.toBlock({
-  init,
-  update,
-  view,
-  expose: { refresh },
-  subscriptions,
-  managedResources,
-  EffectsLayer,
-})
-```
-
-Definition establishes contracts and authors effects, Steps, lifecycle entries, and child Bindings. The named Composition fixes child Bindings and Mount capabilities and authors init, update, and the primary view. Its init callback returns parent-owned fields plus optional `startup`, Commands, and Steps; its update automatically routes wrapper Messages claimed by registered Bindings. Block completion uses that same Composition to check the implementation and handler graph. `childBindings` and `mounts` are independently optional, so a pure feature still creates `const ChildComposition = Child.toComposition()` before authoring its implementation and calling `ChildComposition.toBlock(...)`. Use the name-only `Block.define('Combobox')` form only for a generic factory that shares definitions before specializing contracts with `.define(...)`.
-
-Split features keep early contracts in `definition.ts`; `composition.ts` owns Bindings, the complete childBindings/Mount registration, the Composition and optional owner-specific ViewBuilder alias. Mount-only features use the same home; shared Mount definitions belong in `mount.ts`, imported by both Composition and view. Substantial one-way policy may move to `composition/<child>.ts`; then `composition/composition.ts` is the single assembly point and `composition/index.ts` is an explicit barrel. Assembly imports the policy's actual exports directly, and the barrel re-exports intended values such as `HomeBinding`, `RoomBinding`, and `ApplicationComposition`. Use a factory only when construction needs caller-owned configuration. Keep reciprocal sibling policy together in the same parent assembly, with sibling Binding calls deferred through policy callbacks. A callback may close over a Binding declared later without a circular import. A split graphless feature exports its named empty Composition beside the Definition in `definition.ts`; view and `block.ts` import that same value. A compact graphless feature keeps it beside its cohesive implementation. A split root always uses `composition.ts` or `composition/composition.ts`, including when graphless; the assembly imports extracted policies from sibling modules and never imports root init, update, or view. A genuinely compact root may assemble its graph in its all-in-one `application.ts`. Do not add a childBindings file, duplicate child binding list, arbitrary Binding categories, or duplicate assembly wrappers. Cohesive generic factories can retain local assembly. Keep substantive behavior in focused files or a folder-named implementation, and complete the feature in `block.ts`. Composition must not import the primary view, update matcher or completed Block. Put one-way policy-dependent pure Steps in leaf modules when needed. Explicit barrels export the completed `block`, contracts and intended domain helpers.
-
-Declare only intentional parent-driven operations in `expose`. Bindings expose them directly as parent Steps. Let the parent Composition route registered wrapper Messages; use `fromParentMessage` when a keyed or contextual route must recover the Binding's native fold arguments. Do not manufacture child Messages to initiate changes. Select an alternate local handler bundle with `block.replaceEffectsLayer(...)` before binding. A host completes entries listed in `hostHandlers` with `block.provideHandlers(...)` before binding.
-
-### Communication
-
-The parent owns child integration. Create a Binding from the parent Definition, then register it in the parent Composition:
-
-```ts
-export const Parent = Block.define('Parent', { Model, Message })
-
-const foldChildOutMessage = Child.OutMessage.match({
-  SucceededCreateRoom: ({ roomId }) => openRoom(roomId),
-})
-
-export const ChildBinding = Parent.bindChild(Child.block, {
-  field: 'maybeChild',
-  presentWhen: model =>
-    ApplicationRoute.match(model.route, {
-      Child: () => true,
-      Other: () => false,
-    }),
-  parentMessage: Message.GotChildMessage,
-  outMessage: { fold: foldChildOutMessage },
-})
-
-export const ParentComposition = Parent.toComposition({
-  childBindings: [ChildBinding],
-})
-```
-
-Use `{ field, parentMessage }` for an exact Struct field containing `ChildModel` or `Option<ChildModel>`. A direct Option field stays absent while `None`; `presentWhen` adds whole-child policy to the direct form. Use explicit `read` and `write` for tagged, nested, or custom storage. A direct array of child Models with declared Struct key fields uses string-valued `field` and `key` with two-argument `toParentMessage`. A required `Schema.Array` field on a parent Struct containing closed wrappers adds a distinct string-valued `childField`; its required wrapper key is a string or finite number, while its required child field has exactly the same decoded shape as the child Model. The generated writer replaces only the matched child field, preserving wrapper metadata, array order, and unmatched references without inserting a removed wrapper. Every field shorthand defaults placement to `field`, including both array forms. Union, suspended, and other opaque direct child Schemas, opaque, union, or open/index-signature wrappers, custom writes, and zero-or-one `Option<RoomInstance>` collections use the general keyed form with `readAll`, function-valued `key`, `read`, `writeAt`, and `toParentMessage`; `readAll` takes precedence and this form defaults placement to the child Block ID. Static accessor Bindings use the same Block-ID default. Placement identifies one Binding within its parent graph, while each keyed `key` identifies a dynamic occurrence under it. It does not identify a DOM position or require a same-named Model field. Optionality needs no override. Supply an explicit placement only for a sibling default collision or a deliberate stable identity that differs from the default. Each key keeps independent lifecycle identity while the parent owns collection reconciliation.
-
-The parent configures OutMessage policy in the Binding. That policy executes during the pure child fold or exposed operation:
-
-parent update → child fold or operation → parent OutMessage handling → parent result
-
-`outMessage.fold` handles a variant locally. `outMessage.forward` sends selected variants through the current Block's OutMessage. A derived OutMessage takes precedence over forwarding for the same dispatch, while local handling still runs. Preserve `FoldContext.liftCommand`, collection keys, and previous Model context when a policy uses them.
-
-The Binding carries Command scoping, Message lifting, handler requirements, placement identity, and registration evidence. Optional absence and keyed removal also drive lifecycle cleanup and stale callback suppression at runtime. TypeScript checks contracts and registration capabilities; runtime generation checks protect asynchronous results after an occurrence disappears.
-
-### View Delegation
-
-Author the canonical completed view through `ParentComposition.view` or `view.withInputs` and let the primary view's builder parameter infer. Ordinary parent-local helpers are plain functions whose builder parameter uses `type ParentViewBuilder = Block.ViewBuilderFor<typeof ParentComposition>`, declared immediately after the Composition. Give each helper only the Model, domain value, or context it uses. Plain reusable helpers remain generic over the caller's general `HtmlBuilder`.
-
-Embed the child through the same Binding:
-
-```ts
-export const view = ParentComposition.view((model, h) =>
-  Option.match(model.maybeChild, {
-    onNone: () => h.empty,
-    onSome: childModel =>
-      h.block(child.embedView({ slotId: 'child', model: childModel })),
-  }),
-)
-```
-
-The runtime resolves the Message wrapper at event time. Child builders dispatch child Messages; parent-built callbacks supplied through view inputs retain parent dispatch scope.
+The short review rule is that each Block or Application has one Definition and
+one named Composition, every selected Binding is registered exactly once, and
+the parent owns integration policy while the child owns its state transitions.
+Only the Runtime starts execution.
 
 ## Subscriptions
 

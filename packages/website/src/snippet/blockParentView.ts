@@ -1,8 +1,8 @@
 // view.ts (parent)
-import { ApplicationComposition, SettingsBinding } from './composition'
+import { ApplicationComposition, SettingsBinding } from './blockProfile'
 
 export const view = ApplicationComposition.view((model, h) => ({
-  title: 'My App',
+  title: `${model.displayName}'s profile`,
   body: h.div(
     [h.Class('min-h-screen bg-gray-50')],
     [

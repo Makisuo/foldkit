@@ -1,4 +1,3 @@
-import { Schema } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import {
@@ -11,31 +10,35 @@ import {
   Theme,
 } from './blockDefinition'
 
-const CurrentUser = Schema.Struct({ accountId: Schema.String })
-export type CurrentUser = typeof CurrentUser.Type
-
-const update = SettingsComposition.update(
-  (model, message, currentUser: CurrentUser) =>
-    Message.match(message, {
-      ChangedTheme: ({ theme }) => ({
-        model: modifyFields(model, { theme: () => theme }),
-        commands: [SaveTheme({ theme })],
-        outMessage: OutMessage.ChangedTheme({
-          accountId: currentUser.accountId,
-          theme,
-        }),
-      }),
-      CompletedSaveTheme: () => ({ model }),
-      FailedSaveTheme: () => ({ model }),
+const update = SettingsComposition.update((model, message) =>
+  Message.match(message, {
+    ChangedTheme: ({ theme }) => ({
+      model: modifyFields(model, { theme: () => theme }),
+      commands: [SaveTheme({ theme })],
+      outMessage: OutMessage.ChangedTheme({ theme }),
     }),
+    CompletedSaveTheme: () => ({ model }),
+    FailedSaveTheme: () => ({ model }),
+  }),
 )
 
 const reset = Settings.step(model => ({
   model: modifyFields(model, { theme: () => 'System' }),
+  commands: [SaveTheme({ theme: 'System' })],
+  outMessage: OutMessage.ChangedTheme({ theme: 'System' }),
 }))
 
 const view = SettingsComposition.view((model, h) =>
-  h.p([], [`Theme: ${model.theme}`]),
+  h.div(
+    [],
+    [
+      h.p([], [`Theme: ${model.theme}`]),
+      h.button(
+        [h.OnClick(Message.ChangedTheme({ theme: 'Dark' }))],
+        ['Use dark theme'],
+      ),
+    ],
+  ),
 )
 
 const init = SettingsComposition.init(() => ({

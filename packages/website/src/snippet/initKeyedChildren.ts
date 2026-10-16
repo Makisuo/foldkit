@@ -23,7 +23,7 @@ const CountersBinding = Application.bindChild(Counter.block, {
         key: `counter-${counterId}`,
         args: [],
       })),
-    toItem: ({ key }, counter) => CounterInstance.make({ id: key, counter }),
+    toItem: ({ key }, counter) => ({ id: key, counter }),
   },
 })
 

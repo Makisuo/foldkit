@@ -16,7 +16,7 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 export const OutMessage = defineMessageUnion({
-  ChangedTheme: { accountId: Schema.String, theme: Theme },
+  ChangedTheme: { theme: Theme },
 })
 export type OutMessage = typeof OutMessage.Type
 

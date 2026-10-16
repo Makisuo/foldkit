@@ -14,20 +14,6 @@ Create the handle accessor from the named feature with `Feature.resource<Value>(
 
 Give each entry a stable local handler name and set `config.handler` to a generator constructor that returns both `acquire` and `release`. Both functions are required whenever the handler is supplied. The entry exposes that attached recipe as `.layer`. Pass the `managedResources` record and its attached recipes to `FeatureComposition.toBlock`; the completed Block carries the lifecycle registrations and handler graph through parent Bindings. `ApplicationComposition.toApplication` installs that graph, while `application.provide(layer)` supplies any ordinary services the handler recipes still require. The constructed handler lasts for the application lifetime; each handle it acquires still starts and stops according to the Model.
 
-The Runtime runs the attached handler generator once while building the application Layer and obtains the lifecycle handler. Return `{ acquire, release }` directly when construction has no dependencies. The constructor must not capture an active resource handle or the current requirements; each Model-scoped acquisition supplies those values. Model changes call the returned `acquire` and `release` functions without rebuilding the handler or its providers.
-
-Omit `handler` when an external host owns the lifecycle implementation. That entry has no `.layer`. List it in the completed Block's `hostHandlers`, then let the host call `block.provideHandlers(entry.toLayer(...))` before binding the feature. The method also constructs an alternative to an attached handler. `toLayer` accepts the implementation Effect constructor, and both `acquire` and `release` are required in either constructor.
-
-ManagedResource names are local to their named Block. Two features can both declare `ManageSession`; their owners keep the definitions distinct. Names must be unique within one owner, and composition derives readable paths for each Binding placement. Reusing one completed child at two placements shares its handler recipe while giving each occurrence a separate handle lifecycle.
-
-A ManagedResource handler requirement contains its owned name, decoded acquire params, and resource value type. `FeatureComposition.toBlock` checks that each local requirement is supplied by `EffectsLayer` or declared in `hostHandlers`; `block.provideHandlers` checks an external provider against those declared contracts. Use `ManagedResource.HandlerOf<typeof managedResources.camera>` for an explicit requirement; the expanded form is `ManagedResource.Handler<Name, Params, Value>`, with all three arguments required.
-
-Definitions created by different named Blocks receive different owned names even when their local names and protocols match. Each definition also retains a private runtime identity. An external implementation should use the declared entry's `toLayer` so it keeps that identity.
-
-Within one Block Definition, each local lifecycle owner needs its own resource accessor. Composition rejects two local entries that share an accessor. Binding a completed child derives a placement-scoped accessor, so the same child can appear more than once with independent handles. A keyed Binding applies the same rule per active collection key.
-
-The record key identifies the local lifecycle that Foldkit watches. The handler name identifies the acquire-and-release implementation and becomes part of its owned path. Use a verb-first name such as `ManageCamera` or `ManageChatSocket`, and compose the entry's `.layer` directly in the feature's `EffectsLayer` export. Create a standalone `ManageCameraLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly.
-
 Put the named authoring value and resource accessor in a shared module. The lifecycle registry and Commands must import the same accessor definition.
 
 ::Snippet{name="managedResourcesDefinition" label="Defining a shared resource accessor"}
@@ -49,6 +35,30 @@ If acquisition fails, the runtime dispatches `onAcquireError` as a Message. The 
 
 Register cleanup when each handle is created, before waiting for it to become ready. `Effect.acquireRelease` inside `acquire` ties that cleanup to the ManagedResource Scope, including when readiness fails, times out, or is interrupted. The entry's explicit `release` callback runs only after acquisition has returned a handle. On release, Foldkit runs that callback and every scoped finalizer before it clears the handle or dispatches `onReleased`. Cleanup defects are contained so the remaining cleanup and lifecycle transition can finish.
 
+## Handler Contracts and Identity
+
+### Handler Construction
+
+The Runtime runs the attached handler generator once while building the application Layer and obtains the lifecycle handler. Return `{ acquire, release }` directly when construction has no dependencies. The constructor must not capture an active resource handle or the current requirements; each Model-scoped acquisition supplies those values. Model changes call the returned `acquire` and `release` functions without rebuilding the handler or its providers.
+
+### External Host Handlers
+
+Omit `handler` when an external host owns the lifecycle implementation. That entry has no `.layer`. List it in the completed Block's `hostHandlers`, then let the host call `block.provideHandlers(entry.toLayer(...))` before binding the feature. The method also constructs an alternative to an attached handler. `toLayer` accepts the implementation Effect constructor, and both `acquire` and `release` are required in either constructor.
+
+### Names and Requirements
+
+ManagedResource names are local to their named Block. Two features can both declare `ManageSession`; their owners keep the definitions distinct. Names must be unique within one owner, and composition derives readable paths for each Binding placement. Reusing one completed child at two placements shares its handler recipe while giving each occurrence a separate handle lifecycle.
+
+A ManagedResource handler requirement contains its owned name, decoded acquire params, and resource value type. `FeatureComposition.toBlock` checks that each local requirement is supplied by `EffectsLayer` or declared in `hostHandlers`; `block.provideHandlers` checks an external provider against those declared contracts. Use `ManagedResource.HandlerOf<typeof managedResources.camera>` for an explicit requirement; the expanded form is `ManagedResource.Handler<Name, Params, Value>`, with all three arguments required.
+
+Definitions created by different named Blocks receive different owned names even when their local names and protocols match. Each definition also retains a private runtime identity. An external implementation should use the declared entry's `toLayer` so it keeps that identity.
+
+Within one Block Definition, each local lifecycle owner needs its own resource accessor. Completion rejects two local entries that share an accessor. Binding a completed child derives a placement-scoped accessor, so the same child can appear more than once with independent handles. A keyed Binding applies the same rule per active collection key.
+
+The record key identifies the local lifecycle that Foldkit watches. The handler name identifies the acquire-and-release implementation and becomes part of its owned path. Use a verb-first name such as `ManageCamera` or `ManageChatSocket`, and compose the entry's `.layer` directly in the feature's `EffectsLayer` export. Create a standalone `ManageCameraLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly.
+
+### Execution Testing
+
 In a whole-application execution test, keep the real lifecycle handler and replace the service it uses to open the camera, socket, worker, or other external capability. The test then covers the same Model-driven acquire, reacquire, release, error, and cleanup paths as production. Replacing the entire lifecycle handler can orchestrate those result paths, but it does not test the replaced acquire and release code.
 
 ## Accessing Managed Resources in Commands {#accessing-managed-resources}
@@ -61,7 +71,7 @@ This is the usual Command error-to-Message boundary. The Model should gate the o
 
 ### Operations Using a Handle
 
-A handle lookup returns the currently acquired value. The Model may deactivate that resource while a Command waits: running Commands have application lifetime, while resource handles follow the Model. Release callbacks and scoped finalizers should stop operations that require the live handle. When cancellation is application policy, use [Command interruption](/core/commands#interrupting-commands) and wait for its result before changing the resource's activation state.
+A handle lookup returns the currently acquired value. The Model may deactivate that resource while a Command waits. Deactivation does not automatically interrupt running Commands. Release callbacks and scoped finalizers should stop operations that require the live handle. When cancellation is application policy, use [Command interruption](/core/commands#interrupting-commands) and wait for its result before changing the resource's activation state.
 
 ## Building a Layer in acquire
 
@@ -75,7 +85,7 @@ The resource accessor holds that bare value, so Commands read it through `.get` 
 
 A child Block defines its ManagedResources in its own Model and Message terms, with no knowledge of its parent. Create the registry through `Feature.managedResources` and include it in `FeatureComposition.toBlock`.
 
-A Binding lifts the child's entries through its Model access and Message mapping. Include that Binding in the parent's `childBindings` list, and the parent collects its entries under placement-qualified keys. `ApplicationComposition.toApplication({ init, update, view, ... })` installs the root's complete graph. Composition rejects one local resource accessor used by two lifecycle owners; changing record keys does not create another local handle. Repeating the completed child through separate Bindings is different: each placement receives its own scoped accessor and lifecycle.
+A Binding lifts the child's entries through its Model access and Message mapping. Include that Binding in the parent's `childBindings` list, and the parent collects its entries under placement-qualified keys. `ApplicationComposition.toApplication({ init, update, view, ... })` installs the root's complete graph. Completion rejects one local resource accessor used by two lifecycle owners; changing record keys does not create another local handle. Repeating the completed child through separate Bindings is different: each placement receives its own scoped accessor and lifecycle.
 
 ### Optional Child Models
 

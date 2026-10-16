@@ -2,15 +2,25 @@
 
 ## Overview
 
-Keep each feature's behavior together and give its registered children and Mounts one visible assembly point. A split feature without a composition directory uses `composition.ts`. When `composition/` exists, `composition/composition.ts` constructs the Composition and `composition/index.ts` exports it. A root is either fully compact in `application.ts` or consistently split across files named for their responsibilities. A split root moves every structural piece out of `application.ts`. Remove the file when no distinct implementation remains; use `index.ts` for a barrel.
+Organize a Foldkit application around ownership. A feature owns its state machine and local effects. Its parent owns the policy that connects it to siblings and the application. The browser entry owns completion, Service provision, and Runtime startup.
 
-`bindChild` configures a relationship: Model access, Message mapping, OutMessage handling, and lifecycle policy. It returns passive configuration. Including that Binding in `toComposition({ childBindings })` registers the child. Neither operation constructs Layers or starts effects; the Runtime does that later.
+Keep three boundaries visible as the application grows:
+
+| Boundary    | Typical home                                      | Responsibility                                                                    |
+| ----------- | ------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Definition  | `definition.ts`                                   | Early Model, Message, OutMessage, Startup, Command, lifecycle, and Step contracts |
+| Composition | `composition.ts` or `composition/`                | Parent-owned Bindings, Mount registrations, and graph-aware authoring             |
+| Completion  | `block.ts` for a feature, `entry.ts` for the root | Packages implementation; the entry also supplies Services and starts Runtime      |
+
+`bindChild` configures one parent-child relationship. Including that Binding in `toComposition({ childBindings })` registers it. Both calls are passive; `toBlock` and `toApplication` completion are passive too. A browser Runtime builds Layers, calls init, and starts effects after the entry starts it.
 
 ## Starting Simple
 
-The smallest application keeps Model, Message, Composition-owned init, update, view, `Application`, and `ApplicationComposition` together in `application.ts`. A separate `entry.ts` chooses the browser container and startup inputs, completes the Application, supplies shared services, and starts the Runtime. Tests and server tooling can import the application pieces without starting a browser Runtime.
+Start with one cohesive module. The smallest application keeps Model, Message, Composition-owned init, update, view, `Application`, and `ApplicationComposition` together in `application.ts`. A separate `entry.ts` chooses the browser container and startup inputs, completes the Application, supplies shared Services, and starts the Runtime. Tests and server tooling can import the passive application pieces without starting a browser Runtime.
 
-Once one root responsibility moves out of `application.ts`, split the rest consistently. Put Model, Message, init, update, view, and optional Flags in their named files. `definition.ts` imports Model and Message and exports the early `Application` contract. `composition.ts` owns Bindings, OutMessage folds, complete child and Mount registration, `ApplicationComposition`, and an optional `ApplicationViewBuilder`. Use `composition/composition.ts` and an explicit `composition/index.ts` barrel when substantial Binding policies need their own modules. Even a graphless split root has a `composition.ts`. Remove the emptied `application.ts` instead of retaining it as a forwarding barrel.
+Split when those responsibilities become easier to navigate separately. Once one root responsibility moves out of `application.ts`, move the rest to files named for what they own. `definition.ts` exports the early `Application` contract. `composition.ts` owns Bindings, OutMessage folds, complete child and Mount registration, `ApplicationComposition`, and an optional `ApplicationViewBuilder`. `init.ts`, `update.ts`, and `view.ts` own behavior authored through that Composition. Even a graphless split root has a `composition.ts` so every root follows the same Definition → Composition → completion sequence.
+
+Use `composition/composition.ts` and an explicit `composition/index.ts` barrel only when substantial Binding policies need their own modules. Remove the emptied `application.ts` instead of retaining it as a forwarding barrel.
 
 Add `story.test.ts` and `scene.test.ts` beside the behavior they test. The [Counter example](/example-apps/counter) shows a compact root.
 
@@ -102,7 +112,9 @@ Root `services.ts` composes `ApplicationLayer`. The entry imports it and each co
 
 Keep browser container lookup, routing callbacks, DevTools configuration, and startup Flags visible in `entry.ts`. Tests and server entries import the passive Composition and implementation pieces without starting the browser Runtime. Do not collect unrelated root behavior in `root.ts` or aggregate Subscriptions in a vague `lifecycle.ts`; use `subscription.ts` or `subscription/subscription.ts`.
 
-## Composing Handler Layers
+## Separate Handler Recipes from Application Services {#composing-handler-layers}
+
+Foldkit handlers and ordinary application Services solve different problems. A Command Definition identifies work the Runtime may invoke. `LoadProducts.layer` is the recipe that constructs the handler for that Foldkit Definition. `ProductCatalog` is an ordinary Effect Service the handler uses to do its work.
 
 Keep canonical handlers attached to their Command, Subscription, Mount, and ManagedResource definitions. Compose attached recipes such as `LoadProducts.layer` in the feature's local `EffectsLayer`. Name a standalone `LoadProductsLayer` only when that individual provider is intentionally public or independently reused, and an external alternative `LoadProductsTestLayer`.
 
@@ -110,11 +122,13 @@ Compose a small local bundle in `block.ts`. Extract `layer.ts` when the composit
 
 ::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}
 
-Products supplies `ProductCatalogLayer` beneath its local handlers. The catalog's external dependencies remain requirements of the root's production or test provider.
+Products supplies `ProductCatalogLayer` beneath its local handlers because that business Service belongs to the feature. The catalog's external HTTP or storage dependencies remain requirements of the root's production or test provider.
+
+Effect represents each required Service in an Effect's requirements type and uses Layers as constructors for Services and their dependencies. Read [Managing Services](https://effect.website/docs/v4/requirements-management/services) before [Managing Layers](https://effect.website/docs/v4/requirements-management/layers) if those Effect concepts are new.
 
 ### Local Handlers and the Complete Graph
 
-At a split root, `command.ts` owns the root Command definitions and exports `EffectsLayer` when those recipes are the complete root-local handler bundle. The entry imports that value directly. When the root combines Command recipes with other local handler bundles and the aggregate is substantial or reused, `layer.ts` owns the final `EffectsLayer` instead. Neither file imports or relists child handlers.
+At a split root, `command.ts` owns the root Command Definitions and exports `EffectsLayer` when those recipes are the complete root-local handler bundle. The entry imports that value directly. When the root combines Command recipes with other local handler bundles and the aggregate is substantial or reused, `layer.ts` owns the final `EffectsLayer` instead. Neither file imports or relists child handlers.
 
 Registered child Blocks contribute their own selected `EffectsLayer` recursively. Completing the Application includes that transitive handler graph automatically. Do not manually import or relist every child Command at root, and do not merge a registered child's handler bundle a second time.
 
@@ -122,11 +136,13 @@ There is no flattened, human-readable list of every Command Layer in an Applicat
 
 ### Ordinary Service Providers
 
-Root `services.ts` chooses concrete HTTP, storage, RPC, and browser providers and exports `ApplicationLayer`:
+Root `services.ts` chooses concrete HTTP, storage, RPC, and browser providers and exports `ApplicationLayer`. These providers satisfy requirements left by Flags and the complete handler graph:
 
 ::Snippet{name="applicationRootLayer" label="Root service Layer composition"}
 
-`LocalStorageLayer` and `SessionStorageLayer` implement distinct application service tags, so both stores coexist. `ApplicationTestLayer` supplies deterministic alternatives beneath the same real handler graph. Adding a feature handler changes its local `EffectsLayer`; changing a provider changes `ApplicationLayer`. Neither requires another provision call in `entry.ts`.
+`LocalStorageLayer` and `SessionStorageLayer` implement distinct application Service tags, so both stores coexist. `ApplicationTestLayer` supplies deterministic alternatives beneath the same real handler graph. Adding a feature handler changes its local `EffectsLayer`; changing a provider changes `ApplicationLayer`. Neither requires another provision call in `entry.ts`.
+
+The Runtime builds the selected handler recipes and `ApplicationLayer` once per application start. Each Command invocation then calls the already constructed handler. Subscriptions and ManagedResources follow their active Block occurrence, while Mounts follow mounted elements.
 
 ## Composing Runtime Behavior
 

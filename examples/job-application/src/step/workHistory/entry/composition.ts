@@ -71,6 +71,6 @@ export const EndDatePickerBinding = WorkHistoryEntry.bindChild(
   },
 )
 
-export const WorkHistoryEntryComposition = WorkHistoryEntry.toComposition({
+export const WorkHistoryEntryComposition = WorkHistoryEntry.makeComposition({
   childBindings: [StartDatePickerBinding, EndDatePickerBinding],
 })

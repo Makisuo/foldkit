@@ -29,7 +29,7 @@ export type Primitives<Id extends string, Message = unknown> = Readonly<{
 
 /** Registers the child and Mount graph for init, update and view authoring. This step only records composition; it does not construct Layers or
  * start lifecycle work. */
-export interface AuthoringToComposition<
+export interface AuthoringMakeComposition<
   Id extends string,
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
@@ -95,13 +95,13 @@ export type AuthoringDefinition<
     OutMessageSchema,
     StartupSchema
   >,
-  'toComposition'
+  'makeComposition'
 > &
   Primitives<Id, MessageSchema['Type']> &
   Readonly<{
     /** Registers this Definition's child and Mount graph and returns the passive
      * Composition used to author its view and complete its Block. */
-    toComposition: AuthoringToComposition<
+    makeComposition: AuthoringMakeComposition<
       Id,
       ModelSchema,
       MessageSchema,
@@ -331,15 +331,15 @@ export function define(
   ) => {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const base = authoring.define(contracts as never)
-    const toComposition = (
+    const makeComposition = (
       graph: Readonly<{
         mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
         childBindings?: ReadonlyArray<AnyBinding>
       }> = {},
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    ) => base.toComposition(graph as never)
+    ) => base.makeComposition(graph as never)
 
-    return { ...base, ...primitives, toComposition }
+    return { ...base, ...primitives, makeComposition }
   }
 
   if (config === undefined) {

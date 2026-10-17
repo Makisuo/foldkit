@@ -66,7 +66,7 @@ export const PeriodListboxBinding = Application.bindChild(PeriodListbox, {
   outMessage: { fold: foldPeriodListboxOutMessage },
 })
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [DietListboxBinding, PeriodListboxBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

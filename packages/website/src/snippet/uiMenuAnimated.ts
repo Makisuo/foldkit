@@ -10,14 +10,14 @@ const MenuBinding = ActionMenuExample.bindChild(ActionMenu, {
   },
 })
 
-const ActionMenuExampleComposition = ActionMenuExample.toComposition({
+const ActionMenuExampleComposition = ActionMenuExample.makeComposition({
   childBindings: [MenuBinding],
 })
 
-const init = ActionMenuExampleComposition.init(() => ({ model: {} }))
+const init = ActionMenuExampleComposition.makeInit(() => ({ model: {} }))
 
 // Inside your view function, use data-[closed] for enter/leave transitions:
-const view = ActionMenuExampleComposition.view((model, h) =>
+const view = ActionMenuExampleComposition.makeView((model, h) =>
   h.block(
     MenuBinding.embedView({
       slotId: 'menu',

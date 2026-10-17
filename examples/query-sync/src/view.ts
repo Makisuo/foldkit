@@ -487,7 +487,7 @@ const routeTitle = (route: Model['route']): string =>
     Match.orElse(() => 'Not Found | Dinosaur Explorer'),
   )
 
-export const view = ApplicationComposition.view((model, h) => {
+export const view = ApplicationComposition.makeView((model, h) => {
   const routeContent = ApplicationRoute.match(model.route, {
     Browse: route => browseView(model, route, h),
     NotFound: ({ path }) => notFoundView(path, h),

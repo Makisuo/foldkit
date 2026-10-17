@@ -19,12 +19,12 @@ const Child = define('BindingInitChild', {
   Message: ChildMessage,
 })
 
-const ChildComposition = Child.toComposition()
-const ChildBlock = ChildComposition.toBlock({
-  init: ChildComposition.init((config: Readonly<{ count: number }>) => ({
+const ChildComposition = Child.makeComposition()
+const ChildBlock = ChildComposition.makeBlock({
+  init: ChildComposition.makeInit((config: Readonly<{ count: number }>) => ({
     model: ChildModel.make({ count: config.count }),
   })),
-  update: ChildComposition.update((model, message) =>
+  update: ChildComposition.makeUpdate((model, message) =>
     ChildMessage.match(message, {
       UpdatedCount: ({ count }) => ({
         model: modifyFields(model, { count: () => count }),
@@ -202,9 +202,15 @@ it('keeps the accessor read and write policy after projected initialization', ()
     label: 'parent',
   })
 
-  const updated = AccessorBinding.fold(
+  const Composition = Parent.makeComposition({
+    childBindings: [AccessorBinding],
+  })
+  const update = Composition.makeUpdate()
+  const updated = update(
     parent,
-    ChildMessage.UpdatedCount({ count: 3 }),
+    ParentMessage.GotChildMessage({
+      message: ChildMessage.UpdatedCount({ count: 3 }),
+    }),
   )
 
   expect(updated.model.first).toEqual(ChildModel.make({ count: 3 }))

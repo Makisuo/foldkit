@@ -12,7 +12,7 @@ const valueClassName = 'tabular-nums text-gray-600'
 const trackClassName = 'h-3 w-full overflow-hidden rounded-full bg-gray-200'
 const fillClassName = 'h-full rounded-full bg-emerald-600'
 
-export const view = UiComposition.view((_model, h) => {
+export const view = UiComposition.makeView((_model, h) => {
   const healthMeterView = ({
     meter,
     label,

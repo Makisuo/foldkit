@@ -20,13 +20,13 @@ export const ApplicantsBinding = Application.bindChild(Applicant.block, {
   },
 })
 
-const ApplicationComposition = Application.toComposition({
+const ApplicationComposition = Application.makeComposition({
   childBindings: [ApplicantsBinding],
 })
 
-export const update = ApplicationComposition.update()
+export const update = ApplicationComposition.makeUpdate()
 
-export const view = ApplicationComposition.view((model, h) =>
+export const view = ApplicationComposition.makeView((model, h) =>
   h.ul(
     [h.Class('flex flex-col gap-4')],
     Array.map(model.applicants, applicant =>

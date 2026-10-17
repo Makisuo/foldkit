@@ -16,14 +16,14 @@ export const MenuBinding = Application.bindChild(Menu.block, {
   outMessage: { fold: foldMenuOutMessage },
 })
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [DialogBinding, MenuBinding],
 })
 
 // update.ts
 import { ApplicationComposition } from './composition'
 
-export const update = ApplicationComposition.update()
+export const update = ApplicationComposition.makeUpdate()
 
 // view.ts
 import {
@@ -32,7 +32,7 @@ import {
   MenuBinding,
 } from './composition'
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'Account',
   body: h.main(
     [],
@@ -64,7 +64,7 @@ import { Message } from './message'
 import { update } from './update'
 import { view } from './view'
 
-const application = ApplicationComposition.toApplication({
+const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,

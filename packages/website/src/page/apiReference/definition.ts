@@ -8,4 +8,4 @@ export const ApiReference = Block.define('ApiReference', {
   Message,
 })
 
-export const ApiReferenceComposition = ApiReference.toComposition()
+export const ApiReferenceComposition = ApiReference.makeComposition()

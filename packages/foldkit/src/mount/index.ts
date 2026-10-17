@@ -430,8 +430,8 @@ const wrapEffectAsStream =
  * args Schema, and `messages` lists the Messages this Mount can produce.
  * `handler` is a generator function that constructs the handler. Foldkit
  * applies `Effect.gen` to the generator. Include the Definition in the owning
- * Block's `toComposition({ mounts: [...] })` call and include its `layer`
- * recipe in the local Effects Layer passed to `toBlock`. The returned
+ * Block's `makeComposition({ mounts: [...] })` call and include its `layer`
+ * recipe in the local Effects Layer passed to `makeBlock`. The returned
  * handler receives the live `Element` as `element` and the runtime's
  * `viewStateChanges` Stream alongside the declared args, and returns an
  * `Effect<Message>` that runs once when the element mounts.
@@ -735,8 +735,8 @@ export function define<
  * Messages this Mount can produce. `handler` is a generator function that
  * constructs a Stream handler. Foldkit applies `Effect.gen` to the generator.
  * Include the Definition in the owning Block's
- * `toComposition({ mounts: [...] })` call and include its `layer` recipe in the
- * local Effects Layer passed to `toBlock`. The completed Block carries the
+ * `makeComposition({ mounts: [...] })` call and include its `layer` recipe in the
+ * local Effects Layer passed to `makeBlock`. The completed Block carries the
  * recipe without building it; a Runtime builds it once for the application.
  * The returned handler receives the
  * live `Element` as `element` and the runtime's

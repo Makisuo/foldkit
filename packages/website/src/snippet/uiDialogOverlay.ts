@@ -75,25 +75,25 @@ const ComboboxBinding = FilterDialog.bindChild(CityCombobox, {
   outMessage: { fold: foldComboboxOutMessage },
 })
 
-const FilterDialogComposition = FilterDialog.toComposition({
+const FilterDialogComposition = FilterDialog.makeComposition({
   childBindings: [DialogBinding, ComboboxBinding],
 })
 
-const init = FilterDialogComposition.init(() => ({
+const init = FilterDialogComposition.makeInit(() => ({
   model: {
     maybeCity: Option.none(),
     // ...your other fields
   },
 }))
 
-const update = FilterDialogComposition.update()
+const update = FilterDialogComposition.makeUpdate()
 
 // Render the overlay inside the dialog panel. Its panel portals into the
 // dialog, so it renders above the dialog content with no extra anchor config.
 // Give the panel `relative` so it paints above the Dialog backdrop, and the
 // Combobox wrapper `relative` so the input stays above the Combobox backdrop,
 // which goes directly before that wrapper.
-const view = FilterDialogComposition.view((model, h) => {
+const view = FilterDialogComposition.makeView((model, h) => {
   const dialogView = ({
     dialog,
     backdrop,

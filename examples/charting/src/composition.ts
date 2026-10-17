@@ -111,7 +111,7 @@ export const PackageRadioGroupBinding = Application.bindChild(
   },
 )
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   mounts: [MountChart],
   childBindings: [
     ChartModeRadioGroupBinding,

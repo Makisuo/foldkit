@@ -1,3 +1,3 @@
 import { HomeComposition } from './composition'
 
-export const update = HomeComposition.update()
+export const update = HomeComposition.makeUpdate()

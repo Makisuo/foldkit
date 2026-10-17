@@ -2,7 +2,6 @@ import { Array, Effect, Fiber, Layer, Schema } from 'effect'
 import { defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
-import * as Update from 'foldkit/update'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Dialog from './index.js'
@@ -28,20 +27,21 @@ const Application = defineApplication({
   Message: RuntimeMessage,
 })
 
-const foldDialogOutMessage = Dialog.OutMessage.match<
-  Update.Step<Model, RuntimeMessage>
->({
-  Opened: () => model => ({
-    model: modifyFields(model, {
-      dialogEvents: Array.append(DialogEvent.make('Opened')),
+const foldDialogOutMessage = (outMessage: typeof Dialog.OutMessage.Type) =>
+  Application.step(model =>
+    Dialog.OutMessage.match(outMessage, {
+      Opened: () => ({
+        model: modifyFields(model, {
+          dialogEvents: Array.append(DialogEvent.make('Opened')),
+        }),
+      }),
+      Closed: () => ({
+        model: modifyFields(model, {
+          dialogEvents: Array.append(DialogEvent.make('Closed')),
+        }),
+      }),
     }),
-  }),
-  Closed: () => model => ({
-    model: modifyFields(model, {
-      dialogEvents: Array.append(DialogEvent.make('Closed')),
-    }),
-  }),
-})
+  )
 
 const DialogBinding = Application.bindChild(Dialog.block, {
   field: 'dialog',
@@ -51,27 +51,28 @@ const DialogBinding = Application.bindChild(Dialog.block, {
   init: { args: () => [{ id: dialogId }] },
 })
 
-const ApplicationComposition = Application.toComposition({
+const ApplicationComposition = Application.makeComposition({
   childBindings: [DialogBinding],
 })
 
-const update = ApplicationComposition.update((model, message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   RuntimeMessage.match(message, {
-    GotDialogMessage: ({ message: dialogMessage }) =>
-      Update.combine(model, [
-        stepModel => DialogBinding.fold(stepModel, dialogMessage),
-        stepModel => ({
-          model: modifyFields(stepModel, {
-            isShowDialogSucceeded: isShowDialogSucceeded =>
-              isShowDialogSucceeded ||
-              dialogMessage._tag === 'SucceededShowDialog',
-          }),
+    GotDialogMessage: ({ message: dialogMessage }) => {
+      const dialogUpdate = DialogBinding.fold(model, dialogMessage)
+
+      return {
+        ...dialogUpdate,
+        model: modifyFields(dialogUpdate.model, {
+          isShowDialogSucceeded: isShowDialogSucceeded =>
+            isShowDialogSucceeded ||
+            dialogMessage._tag === 'SucceededShowDialog',
         }),
-      ]),
+      }
+    },
   }),
 )
 
-const view = ApplicationComposition.view((model, h) =>
+const view = ApplicationComposition.makeView((model, h) =>
   h.div(
     [],
     [
@@ -105,7 +106,7 @@ const view = ApplicationComposition.view((model, h) =>
   ),
 )
 
-const init = ApplicationComposition.init(() => ({
+const init = ApplicationComposition.makeInit(() => ({
   model: { dialogEvents: [], isShowDialogSucceeded: false },
   steps: [DialogBinding.open()],
 }))
@@ -120,7 +121,7 @@ const preservedOpenModel = (config: Dialog.InitConfig): Dialog.Model =>
   Dialog.update(Dialog.init(config), Dialog.Message.RequestedOpen()).model
 
 const makeDialogProgram = (container: HTMLElement) =>
-  ApplicationComposition.toElement({
+  ApplicationComposition.makeElement({
     container,
     init,
     update,

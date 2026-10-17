@@ -409,7 +409,7 @@ const routeTitle = (route: Model['route']): string =>
     Match.orElse(({ _tag }) => `${_tag} | Routing`),
   )
 
-export const view = ApplicationComposition.view((model, h) => {
+export const view = ApplicationComposition.makeView((model, h) => {
   const routeContent = ApplicationRoute.match(model.route, {
     Home: () => homeView(h),
     Nested: () => nestedView(h),

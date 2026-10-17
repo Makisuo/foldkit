@@ -19,13 +19,13 @@ export type Message = typeof Message.Type
 
 const CoverLetter = Block.define('CoverLetter', { Model, Message })
 
-const CoverLetterComposition = CoverLetter.toComposition()
+const CoverLetterComposition = CoverLetter.makeComposition()
 
 export const init = (): Model => ({
   content: '',
 })
 
-export const update = CoverLetterComposition.update((model, message) =>
+export const update = CoverLetterComposition.makeUpdate((model, message) =>
   Message.match(message, {
     UpdatedContent: ({ value }) => ({
       model: modifyFields(model, { content: () => value }),
@@ -36,7 +36,7 @@ export const update = CoverLetterComposition.update((model, message) =>
 const MAX_COVER_LETTER_LENGTH = 2000
 const WARNING_THRESHOLD_CHARS = 200
 
-export const view = CoverLetterComposition.view((model, h) => {
+export const view = CoverLetterComposition.makeView((model, h) => {
   const remaining = MAX_COVER_LETTER_LENGTH - model.content.length
   const isOverLimit = remaining < 0
   const isWarning = !isOverLimit && remaining <= WARNING_THRESHOLD_CHARS
@@ -95,8 +95,8 @@ export const view = CoverLetterComposition.view((model, h) => {
   )
 })
 
-export const block = CoverLetterComposition.toBlock({
-  init: CoverLetterComposition.init(() => ({ model: init() })),
+export const block = CoverLetterComposition.makeBlock({
+  init: CoverLetterComposition.makeInit(() => ({ model: init() })),
   update,
   view,
 })

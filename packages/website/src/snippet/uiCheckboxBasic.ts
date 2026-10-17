@@ -3,7 +3,6 @@
 // update, and view definitions.
 import { Schema } from 'effect'
 import { Block } from 'foldkit'
-import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -21,25 +20,32 @@ const Message = defineMessageUnion({
   ToggledTerms: { isChecked: Schema.Boolean },
 })
 
+type Message = typeof Message.Type
+
 const TermsForm = Block.define('TermsForm', { Model, Message })
+const TermsFormComposition = TermsForm.makeComposition()
+
 // In your init function, start it unchecked:
-const init = TermsFormComposition.init(() => ({
+const init = TermsFormComposition.makeInit(() => ({
   model: {
     acceptedTerms: false,
     // ...your other fields
   },
 }))
 
-// In the corresponding Message.match handler, store the value.
-// This is the moment to fire analytics, validate a form, or push the value
-// to a backend.
-ToggledTerms: ({ isChecked }) => ({
-  model: modifyFields(model, { acceptedTerms: () => isChecked }),
-})
+// In the corresponding Message.match handler, store the value. Pure form
+// validation can stay in update; return Commands for analytics or backend work.
+const update = TermsFormComposition.makeUpdate((model, message) =>
+  Message.match(message, {
+    ToggledTerms: ({ isChecked }) => ({
+      model: modifyFields(model, { acceptedTerms: () => isChecked }),
+    }),
+  }),
+)
 
 // Inside your view function, render the checkbox with Checkbox.view. It reads
 // the checked state from your Model and calls onToggle with the new state.
-const view = (model, h: HtmlBuilder<Message>) => {
+const view = TermsFormComposition.makeView((model, h) => {
   const checkboxView = (attributes: Checkbox.CheckboxAttributes<Message>) =>
     h.div(
       [h.Class('flex flex-col gap-1')],
@@ -74,4 +80,4 @@ const view = (model, h: HtmlBuilder<Message>) => {
     },
     h,
   )
-}
+})

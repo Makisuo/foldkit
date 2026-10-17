@@ -11,7 +11,7 @@ const WrongAliasedSubpathDefine = aliasedDefine('AliasedSubpathDefine')
 const WrongRegistered = BlockModule.define('Registered', {
   Model,
   Message,
-}).toComposition({})
+}).makeComposition({})
 const WrongIdentityFirst = Block.define('IdentityFirst').define({
   Model,
   Message,
@@ -20,7 +20,7 @@ const WrongApplication = defineApplication({ Model, Message })
 const WrongRegisteredApplication = defineApplication({
   Model,
   Message,
-}).toComposition({})
+}).makeComposition({})
 
 void WrongRoot
 void WrongAliasedRoot
@@ -33,7 +33,7 @@ void WrongApplication
 void WrongRegisteredApplication
 
 const Separate = Block.define('Separate', { Model, Message })
-const WrongSeparateComposition = Separate.toComposition()
+const WrongSeparateComposition = Separate.makeComposition()
 const Shared = Block.define('Shared')
 const WrongShared = Shared.define({ Model, Message })
 void WrongSeparateComposition

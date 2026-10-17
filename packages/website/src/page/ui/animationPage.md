@@ -2,7 +2,7 @@
 
 ## Overview
 
-Animation coordinates CSS enter and leave phases with a state machine and data attributes. Bind `Animation.block` in the parent. Its Binding projects the child-owned `show`, `hide`, and `toggle` operations into parent Steps; Animation applies its internal `Showed` or `Hid` fact, records each lifecycle phase in its Model, and exposes the resulting Commands through the fold. The transitions stay visible in DevTools and can be tested through update without waiting for a browser animation.
+Animation coordinates CSS enter and leave phases with a state machine and data attributes. Bind `Animation.block` in the parent. Its Binding projects the child-owned `show`, `hide`, and `toggle` operations into connected parent Steps; Animation applies its internal `Showed` or `Hid` fact, records each lifecycle phase in its Model, and exposes the resulting Commands through the fold. The transitions stay visible in DevTools and can be tested through update without waiting for a browser animation.
 
 Animation uses the [OutMessage](/core/block#surfacing-facts) pattern. The Binding’s `outMessage.fold` policy handles `StartedLeaveAnimating` by providing a Command that detects settlement, then handles `TransitionedOut` when post-animation cleanup can begin. Dialog, Menu, Popover, Listbox, and Combobox use the same Block internally when `isAnimated` is true.
 
@@ -113,7 +113,7 @@ The `animateSize` option uses CSS grid (`grid-template-rows: 0fr` → `1fr`) for
 
 ### toggle
 
-Call the bound `animation.toggle()` operation to start the enter or leave lifecycle according to the child Model's `isShowing` value. It returns a parent Step that reads and writes the child Model through the Binding.
+Call the bound `AnimationBinding.toggle()` operation to start the enter or leave lifecycle according to the child Model's `isShowing` value. It returns a connected parent Step that reads and writes the child Model through the Binding. Apply it to the contextual Model and return or compose its opaque result inside the registered Composition.
 
 ### InitConfig {#init-config}
 
@@ -126,11 +126,11 @@ Configuration object passed to `Animation.init()`.
 
 ### show and hide
 
-Call the bound `animation.show()` and `animation.hide()` operations from the parent. They return parent Steps that preserve the next Animation Model and any Commands; do not construct `Animation.Message.Showed()` or `Animation.Message.Hid()` from the parent.
+Call the bound `AnimationBinding.show()` and `AnimationBinding.hide()` operations from the parent. Apply these connected parent Steps to the contextual Model and return or compose their opaque results inside the registered Composition. Checked execution produces the readable next Animation Model and any Commands. Do not construct `Animation.Message.Showed()` or `Animation.Message.Hid()` from the parent.
 
 ### finish
 
-Call the Binding-projected `animation.finish(generation)` operation when a parent observes that the current animation has ended. It returns a parent Step and preserves the Animation's generation check: a result from an older transition does not finish a newer one. A parent-owned Command reports its own completion Message; the parent handles that result by invoking this operation.
+Call the Binding-projected `AnimationBinding.finish(generation)` operation when a parent observes that the current animation has ended. It returns a connected parent Step and preserves the Animation's generation check: a result from an older transition does not finish a newer one. A parent-owned Command reports its own completion Message; the parent handles that result by invoking this operation inside its Composition-authored update.
 
 ### ViewInputs {#view-config}
 

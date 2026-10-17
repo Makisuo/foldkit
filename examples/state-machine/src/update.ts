@@ -3,7 +3,7 @@ import { Match } from 'effect'
 import { ApplicationComposition } from './composition'
 import { stepMachine } from './transition'
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Match.value(message).pipe(
     Match.tag(
       'ClickedContinue',

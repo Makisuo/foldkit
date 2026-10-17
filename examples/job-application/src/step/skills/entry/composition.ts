@@ -33,6 +33,6 @@ export const ProficiencyRadioGroupBinding = SkillsEntry.bindChild(
   },
 )
 
-export const SkillsEntryComposition = SkillsEntry.toComposition({
+export const SkillsEntryComposition = SkillsEntry.makeComposition({
   childBindings: [ProficiencyRadioGroupBinding],
 })

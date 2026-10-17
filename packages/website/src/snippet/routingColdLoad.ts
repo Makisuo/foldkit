@@ -18,7 +18,7 @@ const commandsForRoute = (
   )
 
 // ...which init calls for the cold load...
-const init = ApplicationComposition.init((url: Url) => {
+const init = ApplicationComposition.makeInit((url: Url) => {
   const route = urlToApplicationRoute(url)
   return { model: { route }, commands: commandsForRoute(route) }
 })

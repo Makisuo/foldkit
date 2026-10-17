@@ -96,7 +96,7 @@ const panelFor = (tab: DemoTab, h: UiViewBuilder) =>
     Match.exhaustive,
   )
 
-export const view = UiComposition.view((model, h) => {
+export const view = UiComposition.makeView((model, h) => {
   const horizontalTabsView = ({
     tablist,
     tabs,

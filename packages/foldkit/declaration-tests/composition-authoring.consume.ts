@@ -25,11 +25,13 @@ import {
   ProjectedStatusBinding,
   ProvidedServiceApplicationElement,
   RoomBinding,
+  RoomBlock,
   type RoomDispatchContext,
   RoomMessage,
   RunApplicationTask,
   SecondManualStatusBinding,
   SettingsBinding,
+  SettingsBlock,
   SettingsClient,
   SettingsEffectsLayer,
   SettingsMessage,
@@ -45,6 +47,9 @@ import {
   applicationReadonlyRestInit,
   applicationUpdate,
   applicationView,
+  foldRoom,
+  foldSettings,
+  foldStatus,
   manualDeliveryUpdate,
   parentInit,
   parentUpdate,
@@ -96,13 +101,22 @@ type ExactWithoutAnyOrUnknown<Actual, Expected> =
     ? false
     : MutuallyAssignable<Actual, Expected>
 
-type ReturnOutMessage<Output> = Output extends unknown
-  ? 'outMessage' extends keyof Output
-    ? Output extends Readonly<{ outMessage?: infer OutMessage }>
-      ? Exclude<OutMessage, undefined>
+type ReturnOutMessage<Output> =
+  Output extends Update.ResultRecipe<
+    infer _Model,
+    infer _Message,
+    infer OutMessage,
+    infer _Requirements,
+    infer _Evidence
+  >
+    ? Exclude<OutMessage, undefined>
+    : Output extends unknown
+      ? 'outMessage' extends keyof Output
+        ? Output extends Readonly<{ outMessage?: infer OutMessage }>
+          ? Exclude<OutMessage, undefined>
+          : never
+        : never
       : never
-    : never
-  : never
 
 type DeliveryOf<Value> =
   Value extends Block.BindingDeliveryEvidence<
@@ -139,13 +153,16 @@ const startup: ParentStartup = {
 
 export const emittedSettingsInit = settingsInit('Light')
 export const emittedParentInit = parentInit(startup)
-export const emittedProjectedStatusInit = ProjectedStatusBinding.init({
-  args: [],
-  toParentModel: status =>
-    Struct.modifyFields(emittedParentInit.model, {
-      secondaryStatus: () => status,
-    }),
-})
+const initializeProjectedStatus = ParentComposition.makeInit(() =>
+  ProjectedStatusBinding.init({
+    args: [],
+    toParentModel: status =>
+      Struct.modifyFields(emittedParentInit.model, {
+        secondaryStatus: () => status,
+      }),
+  }),
+)
+export const emittedProjectedStatusInit = initializeProjectedStatus()
 export const emittedSettingsUpdate = settingsUpdate(
   emittedParentInit.model.settings,
   SettingsMessage.RequestedSync(),
@@ -169,7 +186,7 @@ export const emittedKeyedRouteUpdate = parentUpdate(
   }),
 )
 
-export const emittedCompositionInit = ParentComposition.init(
+export const emittedCompositionInit = ParentComposition.makeInit(
   (nextStartup: ParentStartup) => ({
     startup: nextStartup,
     model: {
@@ -181,7 +198,7 @@ export const emittedCompositionInit = ParentComposition.init(
   }),
 )
 
-export const emittedCompositionUpdate = ParentComposition.update(
+export const emittedCompositionUpdate = ParentComposition.makeUpdate(
   (model, message) => {
     const exactMessage: ReturnType<typeof ParentMessage.OpenedDashboard> =
       message
@@ -191,17 +208,22 @@ export const emittedCompositionUpdate = ParentComposition.update(
   },
 )
 
-export const emittedSettingsFold = SettingsBinding.fold(
+const authoredMessage = ParentMessage.OpenedDashboard()
+
+export const emittedSettingsFold = foldSettings(
   emittedParentInit.model,
+  authoredMessage,
   SettingsMessage.RequestedSync(),
   currentUser,
 )
-export const emittedStatusFold = StatusBinding.fold(
+export const emittedStatusFold = foldStatus(
   emittedParentInit.model,
+  authoredMessage,
   StatusMessage.Incremented(),
 )
-export const emittedRoomFold = RoomBinding.fold(
+export const emittedRoomFold = foldRoom(
   emittedParentInit.model,
+  authoredMessage,
   'room-1',
   RoomMessage.RenamedRoom({ name: 'Renamed room' }),
   { roomId: 'room-1' },
@@ -210,9 +232,8 @@ export const emittedManualDeliveryUpdate = manualDeliveryUpdate(
   emittedParentInit.model,
   ParentMessage.GotStatusMessage({ message: StatusMessage.Incremented() }),
 )
-export const emittedManualCompositionUpdate = ManualDeliveryComposition.update(
-  model => ({ model }),
-)
+export const emittedManualCompositionUpdate =
+  ManualDeliveryComposition.makeUpdate(model => ({ model }))
 
 export const emittedApplicationInit = applicationInit()
 export const emittedApplicationDefaultInit = applicationDefaultInit()
@@ -235,7 +256,7 @@ export const emittedApplicationUpdate = applicationUpdate(
   emittedApplicationInit.model,
   ApplicationMessage.Incremented(),
 )
-export const EmittedApplicationElement = ApplicationComposition.toElement({
+export const EmittedApplicationElement = ApplicationComposition.makeElement({
   container: null,
   init: applicationInit,
   update: applicationUpdate,
@@ -286,20 +307,39 @@ type EmittedParentUpdateOutMessageIsExact = Expect<
 type EmittedSettingsFoldInputsAreExact = Expect<
   Equal<
     Parameters<typeof SettingsBinding.fold>,
-    [model: ParentModel, message: typeof SettingsMessage.Type, CurrentUser]
+    [
+      model: ParentModel &
+        Update.GraphCapability<
+          ParentModel,
+          Block.BindingRequirement<'settings', typeof SettingsBlock>
+        >,
+      message: typeof SettingsMessage.Type,
+      CurrentUser,
+    ]
   >
 >
 type EmittedStatusFoldInputsAreExact = Expect<
   Equal<
     Parameters<typeof StatusBinding.fold>,
-    [model: ParentModel, message: typeof StatusMessage.Type]
+    [
+      model: ParentModel &
+        Update.GraphCapability<
+          ParentModel,
+          Block.BindingRequirement<'status', typeof StatusBlock>
+        >,
+      message: typeof StatusMessage.Type,
+    ]
   >
 >
 type EmittedRoomFoldInputsAreExact = Expect<
   Equal<
     Parameters<typeof RoomBinding.fold>,
     [
-      model: ParentModel,
+      model: ParentModel &
+        Update.GraphCapability<
+          ParentModel,
+          Block.BindingRequirement<'room', typeof RoomBlock>
+        >,
       key: string,
       message: typeof RoomMessage.Type,
       RoomDispatchContext,
@@ -431,7 +471,7 @@ import {
   NoStartupComposition,
   type NoStartupModel,
 } from './composition-authoring.accepted.js'
-export const noStartupConsumerInit = NoStartupComposition.init(() => ({
+export const noStartupConsumerInit = NoStartupComposition.makeInit(() => ({
   model: {},
 }))
 export const noStartupConsumerModel: typeof NoStartupModel.Type =

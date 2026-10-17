@@ -101,7 +101,7 @@ const DatePickerBinding = DatePickerExample.bindChild(DatePicker.block, {
   outMessage: { fold: foldDatePickerOutMessage },
 })
 
-const DatePickerExampleComposition = DatePickerExample.toComposition({
+const DatePickerExampleComposition = DatePickerExample.makeComposition({
   childBindings: [DatePickerBinding],
 })
 type DatePickerExampleViewBuilder = Block.ViewBuilderFor<
@@ -110,7 +110,7 @@ type DatePickerExampleViewBuilder = Block.ViewBuilderFor<
 
 // Pass the flags-resolved date through the startup input. The Composition
 // supplies it to DatePickerBinding and initializes the bound Model.
-const init = DatePickerExampleComposition.init((flags: Flags) => ({
+const init = DatePickerExampleComposition.makeInit((flags: Flags) => ({
   startup: flags,
   model: {
     maybeSelectedDate: Option.none(),
@@ -118,7 +118,7 @@ const init = DatePickerExampleComposition.init((flags: Flags) => ({
   },
 }))
 
-const update = DatePickerExampleComposition.update()
+const update = DatePickerExampleComposition.makeUpdate()
 
 // Class names live at module scope, and each view mode gets its own view
 // function below. The calendar panel has no border of its own: the
@@ -304,7 +304,7 @@ const yearsView = (
 // `triggerId('date-picker-demo')` from `@foldkit/ui/datePicker` for a native `<label for>`. The
 // attribute is only emitted when provided, so the trigger never carries a
 // dangling `aria-labelledby`.
-const view = DatePickerExampleComposition.view((model, h) => {
+const view = DatePickerExampleComposition.makeView((model, h) => {
   const labelId = 'date-picker-label'
 
   return h.div(

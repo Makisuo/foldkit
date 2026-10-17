@@ -1,7 +1,7 @@
 // ✅ Good: assemble the initial child, then restore against the complete Model.
 
 import { ApplicationComposition, SettingsBinding } from './composition'
-const init = ApplicationComposition.init(
+const init = ApplicationComposition.makeInit(
   (username: string, savedTheme: Settings.Theme) => ({
     model: {
       username,

@@ -114,7 +114,7 @@ const WrongForwardBinding = DeclarationRejectedForwarding.bindChild(
   },
 )
 // @ts-expect-error Forwarded OutMessages must belong to the parent.
-DeclarationRejectedForwarding.toComposition({
+DeclarationRejectedForwarding.makeComposition({
   childBindings: [WrongForwardBinding],
 })
 
@@ -302,8 +302,8 @@ const wrongSubscriptionKey: NamedKeyedConfig = {
 
 DeclarationRejectedParent.bindChild(PlainChildBlock, wrongSubscriptionKey)
 
-// @ts-expect-error A Definition cannot complete before toComposition.
-DeclarationRejectedParent.toBlock
+// @ts-expect-error A Definition cannot complete before makeComposition.
+DeclarationRejectedParent.makeBlock
 // @ts-expect-error The breaking staging API has no register alias.
 DeclarationRejectedParent.register
 // @ts-expect-error A completed child has no child-owned Binding factory.
@@ -312,9 +312,9 @@ ChildBlock.connection
 ChildBlock.keyedConnection
 
 const DeclarationRejectedParentComposition =
-  DeclarationRejectedParent.toComposition()
-DeclarationRejectedParentComposition.toBlock({
-  init: DeclarationRejectedParentComposition.init(() => ({
+  DeclarationRejectedParent.makeComposition()
+DeclarationRejectedParentComposition.makeBlock({
+  init: DeclarationRejectedParentComposition.makeInit(() => ({
     model: ParentModel.make({
       child: ChildBlock.Model.make({ value: 'initial' }),
       maybeChild: Option.none(),
@@ -322,9 +322,10 @@ DeclarationRejectedParentComposition.toBlock({
       namedEntries: [],
     }),
   })),
-  update: DeclarationRejectedParentComposition.update((model, message) =>
+  update: DeclarationRejectedParentComposition.makeUpdate((model, message) =>
     ParentMessage.match(message, {
       GotChildMessage: ({ message }) =>
+        // @ts-expect-error A Composition callback cannot invoke an unregistered child operation.
         UnregisteredChildBinding.fold(model, message),
       GotEntryMessage: () => ({ model }),
       GotNamedEntryMessage: () => ({ model }),
@@ -348,8 +349,8 @@ Application.bindChild(ChildBlock, {
       ParentOutMessage.ForwardedSelectedValue({ value: 'outside-root' }),
   },
 })
-// @ts-expect-error An Application Definition cannot complete before toComposition.
-ApplicationComposition.toElement
+// @ts-expect-error An Application Definition cannot complete before makeComposition.
+ApplicationComposition.makeElement
 // @ts-expect-error An Application Definition has no register alias.
 Application.register
 

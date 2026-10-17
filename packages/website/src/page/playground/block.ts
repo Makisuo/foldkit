@@ -8,7 +8,7 @@ import {
   view,
 } from './playground'
 
-export const block = PlaygroundComposition.toBlock({
+export const block = PlaygroundComposition.makeBlock({
   init,
   update,
   view,

@@ -15,7 +15,7 @@ export const Animation = Block.define('Animation', {
   OutMessage,
 })
 
-export const AnimationComposition = Animation.toComposition()
+export const AnimationComposition = Animation.makeComposition()
 
 // UPDATE
 
@@ -99,7 +99,7 @@ const hideTransition = (model: Model) => {
  *  but cannot finish one, so direct calls with either Message return a plain
  *  update result. Results from an earlier transition generation leave the Model
  *  unchanged. */
-const updateInferred = AnimationComposition.update((model, message) =>
+const updateInferred = AnimationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     Showed: () => showTransition(model),
 

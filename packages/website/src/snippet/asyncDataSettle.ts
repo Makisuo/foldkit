@@ -10,7 +10,7 @@ const LoadAllNotes = Application.command('LoadAllNotes', {
   },
 })
 
-const update = ApplicationComposition.update((model, message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Match.value(message).pipe(
     Match.tagsExhaustive({
       SettledLoadAllNotes: ({ result }) => ({

@@ -18,13 +18,13 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 const Application = defineApplication({ Model, Message })
-const ApplicationComposition = Application.toComposition()
+const ApplicationComposition = Application.makeComposition()
 
-const init = ApplicationComposition.init(() => ({
+const init = ApplicationComposition.makeInit(() => ({
   model: Model.make({ mode: 'Viewing' }),
 }))
 
-const update = ApplicationComposition.update((model, message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedToggle: () => {
       const nextMode = model.mode === 'Viewing' ? 'Editing' : 'Viewing'
@@ -175,10 +175,10 @@ const withRunningApp = async (
   view: View,
   run: () => Promise<void>,
 ): Promise<void> => {
-  const element = ApplicationComposition.toElement({
+  const element = ApplicationComposition.makeElement({
     init,
     update,
-    view: ApplicationComposition.view(model => view(model)),
+    view: ApplicationComposition.makeView(model => view(model)),
     EffectsLayer: Layer.empty,
     container,
   })

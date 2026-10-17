@@ -16,10 +16,10 @@ import {
   VirtualListDemoBinding,
   VirtualListVariableDemoBinding,
 } from './composition'
+import { Ui } from './definition'
 import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './demo/virtualListData'
 import { Message } from './message'
 import {
-  type Model,
   type VirtualListChatMessage,
   VirtualListChatStartProximity,
 } from './model'
@@ -28,20 +28,28 @@ const VIRTUAL_LIST_CHAT_START_THRESHOLD_PX = 48
 const VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE = 8
 
 const updateVirtualListChatMessages = (
-  model: Model,
   nextMessages: ReadonlyArray<VirtualListChatMessage>,
-  nextId: number = model.virtualListChatNextId,
-) => {
-  const nextModel = modifyFields(model, {
-    virtualListChatMessages: () => nextMessages,
-    virtualListChatNextId: () => nextId,
-  })
-  return VirtualListChatDemoBinding.informItemsChanged(
-    Array.map(nextMessages, message => globalThis.String(message.id)),
-  )(nextModel)
-}
+  nextId?: number,
+) =>
+  Ui.step(model => {
+    const nextVirtualListChatNextId =
+      nextId === undefined ? model.virtualListChatNextId : nextId
+    const updateMessages = Ui.step(stepModel => ({
+      model: modifyFields(stepModel, {
+        virtualListChatMessages: () => nextMessages,
+        virtualListChatNextId: () => nextVirtualListChatNextId,
+      }),
+    }))
 
-const prependVirtualListChatMessages = (model: Model) => {
+    return Update.combine([
+      updateMessages,
+      VirtualListChatDemoBinding.informItemsChanged(
+        Array.map(nextMessages, message => globalThis.String(message.id)),
+      ),
+    ])
+  })
+
+const prependVirtualListChatMessages = Ui.step(model => {
   const firstId = pipe(
     model.virtualListChatMessages,
     Array.head,
@@ -62,29 +70,34 @@ const prependVirtualListChatMessages = (model: Model) => {
     },
   )
   const nextMessages = [...olderMessages, ...model.virtualListChatMessages]
-  return updateVirtualListChatMessages(model, nextMessages)
-}
 
-const prependVirtualListChatMessagesOnStartThresholdEntry =
-  (scrollTop: number) => (stepModel: Model) => {
+  return updateVirtualListChatMessages(nextMessages)
+})
+
+const prependVirtualListChatMessagesOnStartThresholdEntry = (
+  scrollTop: number,
+) =>
+  Ui.step(model => {
     const isNearStart = scrollTop <= VIRTUAL_LIST_CHAT_START_THRESHOLD_PX
     const nextVirtualListChatStartProximity = isNearStart
       ? VirtualListChatStartProximity.Near()
       : VirtualListChatStartProximity.Away()
-    const nextModel = modifyFields(stepModel, {
-      virtualListChatStartProximity: () => nextVirtualListChatStartProximity,
-    })
+    const updateStartProximity = Ui.step(stepModel => ({
+      model: modifyFields(stepModel, {
+        virtualListChatStartProximity: () => nextVirtualListChatStartProximity,
+      }),
+    }))
 
-    if (
-      !isNearStart ||
-      stepModel.virtualListChatStartProximity._tag === 'Near'
-    ) {
-      return { model: nextModel }
+    if (!isNearStart || model.virtualListChatStartProximity._tag === 'Near') {
+      return updateStartProximity
     }
 
-    return prependVirtualListChatMessages(nextModel)
-  }
-export const update = UiComposition.update((model, message) =>
+    return Update.combine([
+      updateStartProximity,
+      prependVirtualListChatMessages,
+    ])
+  })
+export const update = UiComposition.makeUpdate((model, message) =>
   Message.match(message, {
     UpdatedInputDemoValue: ({ value }) => ({
       model: modifyFields(model, { inputDemoValue: () => value }),
@@ -256,7 +269,7 @@ export const update = UiComposition.update((model, message) =>
         body: `New message ${nextId} arrived at the end.`,
         isExpanded: nextId % 3 === 0,
       })
-      return updateVirtualListChatMessages(model, nextMessages, nextId + 1)
+      return updateVirtualListChatMessages(nextMessages, nextId + 1)(model)
     },
 
     ClickedVirtualListChatToggleMessage: ({ messageId }) => {
@@ -267,7 +280,7 @@ export const update = UiComposition.update((model, message) =>
             })
           : message,
       )
-      return updateVirtualListChatMessages(model, nextMessages)
+      return updateVirtualListChatMessages(nextMessages)(model)
     },
   }),
 )

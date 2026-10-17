@@ -18,7 +18,7 @@ import { Ui } from './definition'
 import { Message } from './message'
 import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './virtualList'
 
-export const update = UiComposition.update((model, message) =>
+export const update = UiComposition.makeUpdate((model, message) =>
   Message.match(message, {
     UpdatedInputDemoValue: ({ value }) => ({
       model: modifyFields(model, { inputDemoValue: () => value }),
@@ -188,6 +188,6 @@ export const update = UiComposition.update((model, message) =>
   }),
 )
 
-export const openMobileMenu = Ui.step(MobileMenuDialogBinding.open())
+export const openMobileMenu = Ui.step(() => MobileMenuDialogBinding.open())
 
-export const closeMobileMenu = Ui.step(MobileMenuDialogBinding.close())
+export const closeMobileMenu = Ui.step(() => MobileMenuDialogBinding.close())

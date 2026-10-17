@@ -52,12 +52,14 @@ describe('Subscription startup supervision', () => {
         },
       ),
     }))
-    const ApplicationComposition = Application.toComposition()
-    const application = ApplicationComposition.toElement({
+    const ApplicationComposition = Application.makeComposition()
+    const application = ApplicationComposition.makeElement({
       container,
       init: () => ({ model: { count: 0 } }),
-      update: ApplicationComposition.update(model => ({ model })),
-      view: ApplicationComposition.view((_model, h) => h.div([], ['Running'])),
+      update: ApplicationComposition.makeUpdate(model => ({ model })),
+      view: ApplicationComposition.makeView((_model, h) =>
+        h.div([], ['Running']),
+      ),
       subscriptions,
       EffectsLayer: subscriptions.pulses.layer,
       crash: {
@@ -108,10 +110,10 @@ describe('Subscription startup supervision', () => {
         },
       ),
     }))
-    const ChildComposition = Child.toComposition()
-    const block = ChildComposition.toBlock({
+    const ChildComposition = Child.makeComposition()
+    const block = ChildComposition.makeBlock({
       init: () => ({ model: { count: 0 } }),
-      update: ChildComposition.update(model => ({ model })),
+      update: ChildComposition.makeUpdate(model => ({ model })),
       subscriptions,
       EffectsLayer: subscriptions.pulses.layer,
     })
@@ -127,14 +129,14 @@ describe('Subscription startup supervision', () => {
         modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
       parentMessage: Message.GotChildMessage,
     })
-    const ApplicationComposition = Application.toComposition({
+    const ApplicationComposition = Application.makeComposition({
       childBindings: [ChildBinding],
     })
     const report = vi.fn()
-    const application = ApplicationComposition.toElement({
+    const application = ApplicationComposition.makeElement({
       container,
       init: () => ({ model: { maybeChild: Option.none() } }),
-      update: ApplicationComposition.update((model, message) =>
+      update: ApplicationComposition.makeUpdate((model, message) =>
         Message.match(message, {
           ClickedActivateChild: () =>
             ChildBinding.init({
@@ -146,7 +148,7 @@ describe('Subscription startup supervision', () => {
             }),
         }),
       ),
-      view: ApplicationComposition.view((_model, h) =>
+      view: ApplicationComposition.makeView((_model, h) =>
         h.button(
           [h.Id('activate-child'), h.OnClick(Message.ClickedActivateChild())],
           ['Activate child'],

@@ -14,9 +14,9 @@ const arbitraryFactory = {
 }
 const arbitrary = arbitraryFactory.create()
 const arbitraryCompletion = {
-  toBlock: () => ({ Message: Schema.String }),
+  makeBlock: () => ({ Message: Schema.String }),
 }
-const arbitraryBlock = arbitraryCompletion.toBlock()
+const arbitraryBlock = arbitraryCompletion.makeBlock()
 
 const Message = defineMessageUnion({
   GotWeather: { temperature: Schema.Number, },

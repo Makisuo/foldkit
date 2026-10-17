@@ -90,11 +90,11 @@ const DialogBinding = DialogParentTest.bindChild(block, {
   init: { args: () => [{ id: 'initial-dialog' }] },
 })
 
-const DialogParentTestComposition = DialogParentTest.toComposition({
+const DialogParentTestComposition = DialogParentTest.makeComposition({
   childBindings: [DialogBinding],
 })
 
-const parentInit = DialogParentTestComposition.init(() => ({
+const parentInit = DialogParentTestComposition.makeInit(() => ({
   model: { dialogEvents: [] },
   steps: [loadParentData, DialogBinding.open()],
 }))

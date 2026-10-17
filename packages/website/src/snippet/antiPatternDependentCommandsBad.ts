@@ -1,6 +1,6 @@
 // ❌ Bad: both Commands start independently.
 
-const update = ApplicationComposition.update((model, message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedSave: () => ({
       model,

@@ -439,15 +439,15 @@ const makeHostQuery = <Name extends string, A, AI, E, EI>(
     messages: [Message.CompletedFetch],
   })
   const api = makeQueryApi(config, Model, Message, Fetch)
-  const QueryComposition = Query.toComposition()
-  const init = QueryComposition.init(api.init)
+  const QueryComposition = Query.makeComposition()
+  const init = QueryComposition.makeInit(api.init)
   const reset = Query.step(api.reset)
   const revalidate = Query.step(api.revalidate)
   const revalidateOrLoad = Query.step(api.revalidateOrLoad)
   const loadIfMissing = Query.step(api.loadIfMissing)
-  const block = QueryComposition.toBlock({
+  const block = QueryComposition.makeBlock({
     init,
-    update: QueryComposition.update(api.update),
+    update: QueryComposition.makeUpdate(api.update),
     expose: { reset, revalidate, revalidateOrLoad, loadIfMissing },
     EffectsLayer: Layer.empty,
     hostHandlers: [Fetch],
@@ -498,15 +498,15 @@ const makeCanonicalQuery = <
     messages: [Message.CompletedFetch],
   })
   const api = makeQueryApi(config, Model, Message, Fetch)
-  const QueryComposition = Query.toComposition()
-  const init = QueryComposition.init(api.init)
+  const QueryComposition = Query.makeComposition()
+  const init = QueryComposition.makeInit(api.init)
   const reset = Query.step(api.reset)
   const revalidate = Query.step(api.revalidate)
   const revalidateOrLoad = Query.step(api.revalidateOrLoad)
   const loadIfMissing = Query.step(api.loadIfMissing)
-  const block = QueryComposition.toBlock({
+  const block = QueryComposition.makeBlock({
     init,
-    update: QueryComposition.update(api.update),
+    update: QueryComposition.makeUpdate(api.update),
     expose: { reset, revalidate, revalidateOrLoad, loadIfMissing },
     EffectsLayer: api.toLayer(handler),
   })

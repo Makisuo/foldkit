@@ -26,10 +26,10 @@ const DirectDefinition = Block.define('DirectDefinition', {
   Model: Schema.String,
   Message: DirectMessage,
 })
-const DirectComposition = DirectDefinition.toComposition()
-const DirectBlock = DirectComposition.toBlock({
-  init: DirectComposition.init(() => ({ model: '' })),
-  update: DirectComposition.update(model => ({ model })),
+const DirectComposition = DirectDefinition.makeComposition()
+const DirectBlock = DirectComposition.makeBlock({
+  init: DirectComposition.makeInit(() => ({ model: '' })),
+  update: DirectComposition.makeUpdate(model => ({ model })),
 })
 
 const Application = defineApplication({ Model, Message })

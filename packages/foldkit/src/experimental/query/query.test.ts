@@ -696,16 +696,16 @@ describe('Query Block binding', () => {
     parentMessage: Message.GotNotesMessage,
     init: false,
   })
-  const Composition = Definition.toComposition({
+  const Composition = Definition.makeComposition({
     childBindings: [NotesChildBinding],
   })
-  const update = Composition.update((model, message) =>
+  const update = Composition.makeUpdate((model, message) =>
     Message.match(message, {
       ClickedLoad: () => NotesChildBinding.revalidateOrLoad()(model),
     }),
   )
-  const Parent = Composition.toBlock({
-    init: Composition.init(() => ({
+  const Parent = Composition.makeBlock({
+    init: Composition.makeInit(() => ({
       model: Model.make({ notes: notes.init().model }),
     })),
     update,
@@ -734,14 +734,14 @@ describe('Query Block binding', () => {
   })
 
   it('projects Query operations and folds the child completion Message', () => {
-    const started = NotesChildBinding.revalidateOrLoad()({
-      notes: notes.init().model,
-    })
-    const folded = NotesChildBinding.fold(
+    const started = Parent.update(Parent.init().model, Message.ClickedLoad())
+    const folded = Parent.update(
       started.model,
-      notes.Message.CompletedFetch({
-        generation: started.model.notes.generation,
-        result: Result.succeed(hello),
+      Message.GotNotesMessage({
+        message: notes.Message.CompletedFetch({
+          generation: started.model.notes.generation,
+          result: Result.succeed(hello),
+        }),
       }),
     )
 
@@ -754,6 +754,7 @@ describe('Query Block binding', () => {
     const KeyedModel = Schema.Struct({ notes: noteById.Model })
     const KeyedMessage = defineMessageUnion({
       GotNoteMessage: { message: noteById.Message },
+      RequestedLoad: { noteId: Schema.String },
     })
     const Keyed = Block.define('KeyedQueryParent', {
       Model: KeyedModel,
@@ -763,16 +764,28 @@ describe('Query Block binding', () => {
       field: 'notes',
       parentMessage: KeyedMessage.GotNoteMessage,
     })
-    const started = KeyedNotesBinding.loadIfMissing({ noteId: '1' })({
-      notes: noteById.init().model,
+    const KeyedComposition = Keyed.makeComposition({
+      childBindings: [KeyedNotesBinding],
     })
-    const folded = KeyedNotesBinding.fold(
+    const update = KeyedComposition.makeUpdate((model, message) =>
+      KeyedMessage.match(message, {
+        RequestedLoad: ({ noteId }) =>
+          KeyedNotesBinding.loadIfMissing({ noteId })(model),
+      }),
+    )
+    const started = update(
+      KeyedModel.make({ notes: noteById.init().model }),
+      KeyedMessage.RequestedLoad({ noteId: '1' }),
+    )
+    const folded = update(
       started.model,
-      noteById.Message.CompletedFetch({
-        args: { noteId: '1' },
-        generation: started.model.notes.generation,
-        requestKey: noteRequestKey('1'),
-        result: Result.succeed({ id: '1', body: 'hello' }),
+      KeyedMessage.GotNoteMessage({
+        message: noteById.Message.CompletedFetch({
+          args: { noteId: '1' },
+          generation: started.model.notes.generation,
+          requestKey: noteRequestKey('1'),
+          result: Result.succeed({ id: '1', body: 'hello' }),
+        }),
       }),
     )
 
@@ -1665,9 +1678,9 @@ describe('Query types', () => {
       parentMessage: ParentMessage.GotNotesMessage,
     })
 
-    expectTypeOf(NotesChildBinding.fold)
-      .parameter(0)
-      .toEqualTypeOf<ParentModel>()
+    expectTypeOf<
+      Update.GraphModelOf<typeof NotesChildBinding.fold>
+    >().toEqualTypeOf<ParentModel>()
     expectTypeOf(NotesChildBinding.fold)
       .parameter(1)
       .toEqualTypeOf<(typeof notes.Message)['Type']>()

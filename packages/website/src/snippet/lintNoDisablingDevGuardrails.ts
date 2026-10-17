@@ -6,7 +6,7 @@ import { view } from './view'
 // ❌ Bad
 // Turning off freezeModel silences the dev warning instead of fixing the
 // mutation it caught.
-const badApplication = ApplicationComposition.toApplication({
+const badApplication = ApplicationComposition.makeApplication({
   init,
   update,
   view,
@@ -16,7 +16,7 @@ const badApplication = ApplicationComposition.toApplication({
 
 // ✅ Good
 // Leave the guardrail on and fix the in-place mutation it flags.
-const goodApplication = ApplicationComposition.toApplication({
+const goodApplication = ApplicationComposition.makeApplication({
   init,
   update,
   view,

@@ -1,6 +1,6 @@
 import { ApplicationComposition } from './composition'
 
-const view = ApplicationComposition.view((model, h) => {
+const view = ApplicationComposition.makeView((model, h) => {
   const routeContent = ApplicationRoute.match(model.route, {
     Products: () => productsView(model, h),
     Cart: () => cartView(model, h),

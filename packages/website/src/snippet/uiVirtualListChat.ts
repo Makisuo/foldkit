@@ -44,17 +44,17 @@ const MessageListBinding = MessageListExample.bindChild(MessageList, {
   },
 })
 
-const MessageListExampleComposition = MessageListExample.toComposition({
+const MessageListExampleComposition = MessageListExample.makeComposition({
   childBindings: [MessageListBinding],
 })
 
-const init = MessageListExampleComposition.init(() => ({
+const init = MessageListExampleComposition.makeInit(() => ({
   model: {
     messages: initialMessages,
   },
 }))
 
-const update = MessageListExampleComposition.update((model, message) =>
+const update = MessageListExampleComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ReceivedMessage: ({ message }) => {
       const nextMessages = Array.append(model.messages, message)
@@ -68,7 +68,7 @@ const update = MessageListExampleComposition.update((model, message) =>
   }),
 )
 
-const view = MessageListExampleComposition.view((model, h) =>
+const view = MessageListExampleComposition.makeView((model, h) =>
   h.block(
     MessageListBinding.embedView({
       slotId: 'message-list',

@@ -12,7 +12,6 @@ import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import { Tabs } from '@foldkit/ui'
 
-import { ExampleDetailBinding } from '../../composition'
 import { Deployment } from '../../deployment'
 import { init as initApplication } from '../../init'
 import type { Message as ApplicationMessage } from '../../message'
@@ -163,7 +162,7 @@ describe('example detail initial sources', () => {
 
   test('lifts the loading Command and its result through the application binding', () => {
     const url = pipe(
-      Url.fromString('https://foldkit.dev/example-apps'),
+      Url.fromString('https://foldkit.dev/example-apps/counter'),
       Option.getOrThrow,
     )
     const applicationInit = initApplication(
@@ -176,18 +175,19 @@ describe('example detail initial sources', () => {
       },
       url,
     )
+    const loadInitialSourcesCommands = pipe(
+      applicationInit.commands ?? [],
+      Array.filter(
+        command => command.name === 'exampleDetail/LoadExampleSources',
+      ),
+    )
 
-    const applicationBoot = ExampleDetailBinding.loadInitialSources(
-      Option.some('counter'),
-      Option.none(),
-    )(applicationInit.model)
-
-    expect(applicationBoot.model.exampleDetail.currentSources._tag).toBe(
+    expect(applicationInit.model.exampleDetail.currentSources._tag).toBe(
       'Loading',
     )
     expect(
       pipe(
-        applicationBoot.commands ?? [],
+        loadInitialSourcesCommands,
         Array.map(command => command.name),
       ),
     ).toEqual(['exampleDetail/LoadExampleSources'])
@@ -197,8 +197,8 @@ describe('example detail initial sources', () => {
       given(applicationInit.model),
       (simulation: StorySimulation<ApplicationModel, ApplicationMessage>) => ({
         ...simulation,
-        model: applicationBoot.model,
-        commands: applicationBoot.commands ?? [],
+        model: applicationInit.model,
+        commands: loadInitialSourcesCommands,
       }),
       StoryCommand.resolve(
         LoadExampleSources,

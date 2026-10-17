@@ -14,7 +14,7 @@ Call `Parent.bindChild` with the completed Block, its parent Model `field`, a `p
 
 ### Programmatic API
 
-The completed Block exposes `open`, `close`, and `selectItem` as direct methods on its Binding. Call `cityCombobox.open()`, `cityCombobox.close(restingInputValue)`, or `cityCombobox.selectItem(item, displayText)` to get a parent Step. Multi-select `close()` takes no input, and its `selectItem(item)` uses the item itself as display text.
+The completed Block exposes `open`, `close`, and `selectItem` as direct methods on its Binding. Call `cityCombobox.open()`, `cityCombobox.close(restingInputValue)`, or `cityCombobox.selectItem(item, displayText)` to get a connected parent Step for the owning Composition. Multi-select `close()` takes no input, and its `selectItem(item)` uses the item itself as display text.
 
 :::Info{label="See it in an app"}
 Check out how Combobox is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/combobox.ts).
@@ -161,7 +161,7 @@ Two view input fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 Configuration object passed to `Combobox.init()` or `Combobox.Multi.init()`.
 
-The Binding’s `init(config)` accepts the same configuration and returns a parent update record with the scoped Model and Commands. Use `cityCombobox.init(config)` while constructing the parent Model.
+The Binding’s `init` accepts the same configuration in its child argument tuple: `ComboboxBinding.init({ args: [config], toParentModel })`. It returns a passive initialization recipe with no `.model` or `.commands` fields. Return that recipe from the registered Composition’s `makeInit` or `makeUpdate` callback, or preserve it through a Definition-owned Step; checked execution constructs the parent Model and retains the child Commands.
 
 | Name                 | Type      | Default | Description                                                                                                                                                                                                                                                     |
 | -------------------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

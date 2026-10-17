@@ -74,7 +74,7 @@ export type Message = typeof Message.Type
 
 export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.toComposition()
+export const ApplicationComposition = Application.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
@@ -98,7 +98,7 @@ export const Compute = Application.command('Compute', {
   },
 })
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedStartEngine: () => ({
       model: modifyFields(model, { engine: () => EngineState.Booting() }),
@@ -140,7 +140,7 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-export const init = ApplicationComposition.init(() => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: {
     engine: EngineState.Off(),
     computeCount: 0,
@@ -278,7 +278,7 @@ const squareResultView = (
 
 const isEngineReady = (engine: EngineState): boolean => engine._tag === 'Ready'
 
-export const view = ApplicationComposition.view((model, h) => {
+export const view = ApplicationComposition.makeView((model, h) => {
   const isComputeDisabled = !isEngineReady(model.engine)
 
   return {

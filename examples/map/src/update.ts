@@ -20,7 +20,7 @@ const findLocation = (
 ): Option.Option<Location> =>
   Array.findFirst(model.locations, ({ id }) => Equal.equals(id, locationId))
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     SucceededMountMap: ({ hostId }) => ({
       model: modifyFields(model, { maybeMapHostId: () => Option.some(hostId) }),

@@ -71,9 +71,11 @@ Create an `UpdateReturn` alias when another matcher, helper, or exported signatu
 
 ### `manual-update-return-unpacking`
 
-Do not destructure or rename `model`, `commands`, or `outMessage` from an update-like result. Bind the whole result to an operation-named value and access its fields through that value. For example, pass `homeInit.commands` directly to `Command.mapMessages` instead of extracting or renaming it. Use `result.commands ?? []` only when the next operation requires a concrete array.
+Do not destructure or rename `model`, `commands`, or `outMessage` from an ordinary update-like result that already contains those fields. Bind the whole result to an operation-named value and access its fields through that value. For example, pass `homeInit.commands` directly to `Command.mapMessages` instead of extracting or renaming it. Use `result.commands ?? []` only when the next operation requires a concrete array.
 
-Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. When the result belongs to a child Block, manual unpacking is usually the deeper problem. Use the child Binding's `init`, `fold`, or named operation so the child Model, mapped Commands, and OutMessage policy remain part of one boundary.
+Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. When the result belongs to a child Block, manual unpacking is usually the deeper problem. Use the child Binding's `fold` or named operation so the child Model, mapped Commands, and OutMessage policy remain part of one boundary. `Binding.init` returns a passive recipe with no result fields. Return it intact from `Composition.makeInit` or `Composition.makeUpdate`, or preserve it through a Definition-owned Step, and flag any `.model` or `.commands` projection from it.
+
+A Binding fold or named operation returns a connected Step whose Model input requires the exact graph. Flag typed raw-Model calls, useful `{ model }` narrowing, and `.model` or `.commands` access on its opaque result. Return or compose that result intact for `Composition.makeUpdate`, `Composition.makeInit`, or a completed exposed operation to consume. The completed exposed operation accepts its raw Block Model and returns the readable executed result; ordinary pure Steps also remain callable. Do not claim every structural erasure fails compilation: TypeScript may accept a connected function as a method returning `void`, but calling it outside the graph only constructs and discards passive configuration and executes no child work.
 
 When the OutMessage is already known while constructing a new result, include it directly. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper, and pass a new result literal first. Flag local attachment helpers and conditional object spreads that duplicate it.
 
@@ -91,7 +93,7 @@ OutMessage type as the second matcher generic. A Command-producing branch uses
 `Feature.step` and keeps its inferred requirements instead of forcing the
 whole matcher to a requirement-free `Update.Step`.
 
-When several operations update the same Model in sequence, use `Update.combine`. Initialize each child through its registered Binding and combine the mapped Commands when assembling the parent Model.
+When several operations update the same Model in sequence, use `Update.combine`. Initialize each child through its registered Binding recipe so Composition assembles the parent Model and mapped Commands.
 
 ### `functions-doing-two-things`
 

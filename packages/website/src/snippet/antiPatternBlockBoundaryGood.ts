@@ -4,16 +4,16 @@ export const setTheme = Settings.step((model, theme: Theme) =>
   update(model, Message.ChangedTheme({ theme })),
 )
 
-const SettingsComposition = Settings.toComposition()
+const SettingsComposition = Settings.makeComposition()
 
-export const block = SettingsComposition.toBlock({
+export const block = SettingsComposition.makeBlock({
   init,
   update,
   expose: { setTheme },
   EffectsLayer,
 })
 
-const update = ParentComposition.update((model, message) =>
+const update = ParentComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedResetSettings: () => SettingsBinding.setTheme('Light')(model),
   }),

@@ -213,7 +213,7 @@ const appendGeneratedParticle =
     }
   }
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     TickedFrame: ({ deltaTimeMs }) => {
       const deltaSeconds = cappedDeltaSeconds(deltaTimeMs)

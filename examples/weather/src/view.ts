@@ -10,7 +10,7 @@ import {
 import { Message } from './message'
 import type { WeatherData } from './model'
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'Weather',
   body: h.div(
     [

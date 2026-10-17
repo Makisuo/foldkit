@@ -270,7 +270,7 @@ const filterTodos = (todos: Todos, filter: Filter): Todos =>
     Match.exhaustive,
   )
 
-export const view = ApplicationComposition.view((model, h) => {
+export const view = ApplicationComposition.makeView((model, h) => {
   const filteredTodos = filterTodos(model.todos, model.filter)
   const activeCount = Array.length(
     Array.filter(model.todos, todo => !todo.completed),

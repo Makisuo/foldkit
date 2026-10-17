@@ -18,4 +18,4 @@ const badReset = (model: Model) => {
 }
 
 // ✅ Good: the projected Step preserves the complete child result.
-const goodReset = (model: Model) => SettingsBinding.setTheme('Light')(model)
+const goodReset = Application.step(() => SettingsBinding.setTheme('Light'))

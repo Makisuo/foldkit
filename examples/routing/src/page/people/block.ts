@@ -8,7 +8,7 @@ export const EffectsLayer = Layer.mergeAll(
   FetchPeople.layer,
 )
 
-export const block = PeopleComposition.toBlock({
+export const block = PeopleComposition.makeBlock({
   init,
   update,
   view,

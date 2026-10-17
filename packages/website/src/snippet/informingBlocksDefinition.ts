@@ -4,4 +4,4 @@ import { Message } from './informingBlocksMessage'
 import { Model } from './informingBlocksModel'
 
 export const People = Block.define('People', { Model, Message })
-export const PeopleComposition = People.toComposition()
+export const PeopleComposition = People.makeComposition()

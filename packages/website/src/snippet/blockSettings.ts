@@ -10,7 +10,7 @@ import {
   Theme,
 } from './blockDefinition'
 
-const update = SettingsComposition.update((model, message) =>
+const update = SettingsComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ChangedTheme: ({ theme }) => ({
       model: modifyFields(model, { theme: () => theme }),
@@ -28,7 +28,7 @@ const reset = Settings.step(model => ({
   outMessage: OutMessage.ChangedTheme({ theme: 'System' }),
 }))
 
-const view = SettingsComposition.view((model, h) =>
+const view = SettingsComposition.makeView((model, h) =>
   h.div(
     [],
     [
@@ -41,11 +41,11 @@ const view = SettingsComposition.view((model, h) =>
   ),
 )
 
-const init = SettingsComposition.init(() => ({
+const init = SettingsComposition.makeInit(() => ({
   model: Model.make({ theme: 'System' }),
 }))
 
-export const block = SettingsComposition.toBlock({
+export const block = SettingsComposition.makeBlock({
   init,
   update,
   view,

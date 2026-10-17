@@ -4,7 +4,7 @@ import type { Url } from 'foldkit/url'
 import { ApplicationComposition } from './composition'
 import { ApplicationRoute, urlToApplicationRoute } from './route'
 
-export const init = ApplicationComposition.init((url: Url) => {
+export const init = ApplicationComposition.makeInit((url: Url) => {
   const route = urlToApplicationRoute(url)
 
   const initialPeopleRoute = Match.value(route).pipe(

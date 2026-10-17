@@ -40,7 +40,7 @@ const applyFill = (model: Model, x: number, y: number) => {
   )
 }
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     PressedCell: ({ x, y }) =>
       Match.value(model.tool).pipe(
@@ -111,7 +111,7 @@ export const update = ApplicationComposition.update((model, message) =>
 
     SelectedTool: ({ tool }) => selectTool(model, tool),
 
-    SelectedGridSize: ({ size }) => requestGridSizeChange(model, size),
+    SelectedGridSize: ({ size }) => requestGridSizeChange(size)(model),
 
     ToggledMirrorHorizontal: () => {
       const nextMirrorMode = Match.value(model.mirrorMode).pipe(

@@ -392,7 +392,7 @@ const routeTitle = (route: Model['route']): string =>
     Match.orElse(({ _tag }) => `${_tag} | Foldkit UI Showcase`),
   )
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: routeTitle(model.route),
   body: h.div(
     [h.Class('flex flex-col md:flex-row min-h-screen bg-white')],

@@ -37,7 +37,7 @@ const ghostElement = (model: Model, h: ApplicationViewBuilder) =>
     }),
   )
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'Kanban Board',
   body: h.div(
     [h.Class('flex flex-col min-h-screen bg-gray-100')],

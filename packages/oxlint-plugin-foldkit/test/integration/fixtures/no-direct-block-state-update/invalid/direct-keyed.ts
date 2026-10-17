@@ -1,5 +1,5 @@
 import { Array, Option, Schema } from 'effect'
-import { Update, defineApplication } from 'foldkit'
+import { defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -9,6 +9,7 @@ const Model = Schema.Struct({ entries: Schema.Array(KeyedEntry.Model) })
 type Model = typeof Model.Type
 const Message = defineMessageUnion({
   GotEntryMessage: { id: Schema.String, message: KeyedEntry.Message },
+  ClickedUpdateEntryManually: {},
 })
 const Application = defineApplication({ Model, Message })
 const EntriesBinding = Application.bindChild(KeyedEntry.Entry, {
@@ -21,18 +22,17 @@ const EntriesBinding = Application.bindChild(KeyedEntry.Entry, {
     args: (_model, { id, message }) => Option.some([id, message]),
   },
 })
+const ApplicationComposition = Application.makeComposition({
+  childBindings: [EntriesBinding],
+})
 
-export const updateEntryManually = (model: Model) => {
-  const entryUpdate = Update.combine(model, [
-    EntriesBinding.setTheme('initial', 'Light'),
-  ])
+export const updateEntryManually = ApplicationComposition.makeUpdate(model => {
+  const nextModel = modifyFields(model, {
+    entries: Array.map(entry =>
+      modifyFields(entry, { theme: () => 'Dark' }),
+    ),
+  })
+  void nextModel
 
-  return {
-    model: modifyFields(model, {
-      entries: Array.map(entry =>
-        modifyFields(entry, { theme: () => 'Dark' }),
-      ),
-    }),
-    commands: entryUpdate.commands,
-  }
-}
+  return EntriesBinding.setTheme('initial', 'Light')(model)
+})

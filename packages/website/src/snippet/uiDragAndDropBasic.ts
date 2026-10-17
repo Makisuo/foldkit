@@ -70,13 +70,13 @@ const DragAndDropBinding = SortableList.bindChild(DragAndDrop.block, {
   outMessage: { fold: foldDragAndDropOutMessage },
 })
 
-const SortableListComposition = SortableList.toComposition({
+const SortableListComposition = SortableList.makeComposition({
   childBindings: [DragAndDropBinding],
 })
 
 // Initialize the fields the parent owns. The Composition initializes the
 // bound DragAndDrop Model with the Binding's unique id.
-const init = SortableListComposition.init(() => ({
+const init = SortableListComposition.makeInit(() => ({
   model: {
     items: [
       { id: '1', label: 'First' },
@@ -87,13 +87,13 @@ const init = SortableListComposition.init(() => ({
   },
 }))
 
-const update = SortableListComposition.update()
+const update = SortableListComposition.makeUpdate()
 
 // Registering `DragAndDropBinding` in `childBindings` collects its document-level Subscriptions.
 
 // Inside your view function, spread draggable() onto items and droppable()
 // onto containers:
-const view = SortableListComposition.view((model, h) =>
+const view = SortableListComposition.makeView((model, h) =>
   h.ul(
     [
       ...DragAndDropDroppable('list', 'Sortable items'),

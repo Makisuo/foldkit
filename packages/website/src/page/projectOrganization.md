@@ -12,7 +12,7 @@ Keep three boundaries visible as the application grows:
 | Composition | `composition.ts` or `composition/`                | Parent-owned Bindings, Mount registrations, and graph-aware authoring             |
 | Completion  | `block.ts` for a feature, `entry.ts` for the root | Packages implementation; the entry also supplies Services and starts Runtime      |
 
-`bindChild` configures one parent-child relationship. Including that Binding in `toComposition({ childBindings })` registers it. Both calls are passive; `toBlock` and `toApplication` completion are passive too. A browser Runtime builds Layers, calls init, and starts effects after the entry starts it.
+`bindChild` configures one parent-child relationship. Including that Binding in `makeComposition({ childBindings })` registers it. Both calls are passive; `makeBlock` and `makeApplication` completion are passive too. A browser Runtime builds Layers, calls init, and starts effects after the entry starts it.
 
 ## Starting Simple
 
@@ -46,13 +46,13 @@ Put shared local Mount definitions in `mount.ts`. Both Composition and view impo
 
 ### A Feature with a Child
 
-For a split feature, `composition.ts` owns its child Bindings, complete child and Mount registration lists, and single `FeatureComposition` value. A new straightforward Binding goes immediately beside that `toComposition` call. For example, `dashboard/composition.ts` connects a Counter:
+For a split feature, `composition.ts` owns its child Bindings, complete child and Mount registration lists, and single `FeatureComposition` value. A new straightforward Binding goes immediately beside that `makeComposition` call. For example, `dashboard/composition.ts` connects a Counter:
 
 ::Snippet{name="organizationChildComposition" label="Child Binding and registration"}
 
 An update can import `CounterBinding` to invoke its exposed operations. Registered wrapper Messages route through the Binding automatically. The view imports `DashboardComposition`. Including `CounterBinding` under `childBindings` also includes the completed child's handler graph and lifecycle declarations.
 
-`block.ts` imports the Composition, init, update, view, and local `EffectsLayer`, then calls `DashboardComposition.toBlock`. Its explicit `index.ts` exports `block`, public contracts, and intentional domain helpers. Internal implementation files do not import their own completed barrel.
+`block.ts` imports the Composition, init, update, view, and local `EffectsLayer`, then calls `DashboardComposition.makeBlock`. Its explicit `index.ts` exports `block`, public contracts, and intentional domain helpers. Internal implementation files do not import their own completed barrel.
 
 ### A Feature with Mounts Only
 
@@ -88,19 +88,19 @@ A substantial one-way policy may live in its own file. Keep reciprocal policies 
 
 ### Views, Behavior, and Import Direction
 
-Author the primary view through `FeatureComposition.view` or `view.withInputs`, leaving its `h` parameter inferred. When local helpers need its builder type, declare `type FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` immediately after the Composition with no blank line. Export the alias only when another file uses it. Ordinary view helpers receive that builder and the Model, domain value, or context they use. The alias retains Message, child, and Mount capabilities without constructing anything at runtime.
+Author the primary view through `FeatureComposition.makeView` or `makeView.withInputs`, leaving its `h` parameter inferred. When local helpers need its builder type, declare `type FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` immediately after the Composition with no blank line. Export the alias only when another file uses it. Ordinary view helpers receive that builder and the Model, domain value, or context they use. The alias retains Message, child, and Mount capabilities without constructing anything at runtime.
 
 The owner prefix distinguishes a builder derived from one Composition at a plain type import site. `Model`, `Message`, and `OutMessage` keep their standard architecture names because they normally travel through a feature namespace such as `Search.Model` or `Search.Message`. Helpers shared across features use the general `HtmlBuilder` type instead of an owner-specific alias.
 
-Keep substantial behavior in `init.ts`, `update.ts`, or a folder-named implementation file such as `workHistory/workHistory.ts`. Extracted init and update modules import the named Composition and author their functions through `FeatureComposition.init` and `FeatureComposition.update`. Keep child startup ownership beside each Binding: omit `init` for automatic argument-free required direct fields, and use the explicit forms for required inputs, parent-owned required fields, optional presence, and keyed occurrences. The init plan supplies parent-owned fields, decoded `startup` when a selector uses it, and ordered Steps; the Composition assembles child fields and Commands. Keep custom storage and deliberate Command ordering explicit. Init and update never import the completed feature. Composition must not import them in return. A substantial `update/` directory uses `index.ts` as its explicit barrel and `update.ts` as the parent-owned Message matcher. The same rule gives a view directory `view/index.ts` and `view/view.ts`.
+Keep substantial behavior in `init.ts`, `update.ts`, or a folder-named implementation file such as `workHistory/workHistory.ts`. Extracted init and update modules import the named Composition and author their functions through `FeatureComposition.makeInit` and `FeatureComposition.makeUpdate`. Keep child startup ownership beside each Binding: omit `init` for automatic argument-free required direct fields, and use the explicit forms for required inputs, parent-owned required fields, optional presence, and keyed occurrences. The init plan supplies parent-owned fields, decoded `startup` when a selector uses it, and ordered Steps; the Composition assembles child fields and Commands. Keep custom storage and deliberate Command ordering explicit. Init and update never import the completed feature. Composition must not import them in return. A substantial `update/` directory uses `index.ts` as its explicit barrel and `update.ts` as the parent-owned Message matcher. The same rule gives a view directory `view/index.ts` and `view/view.ts`.
 
-Dependencies point from contracts to local declarations and policies, then to Composition, view, and completed Block. An update or view can import a Binding from Composition. Composition must not import the update matcher, primary view, or completed Block in return. If one child policy needs a parent Step, define the policy beside the Binding or extract the pure operation into a leaf module that does not depend on Composition. Keep reciprocal sibling policies together in the parent assembly and defer each sibling call through its policy callback. A one-way policy may remain in its own file.
+Dependencies point from contracts to local declarations and policies, then to Composition, view, and completed Block. An update or view can import a Binding from Composition. Composition must not import the update matcher, primary view, or completed Block in return. If one child policy needs a parent Step, define the policy beside the Binding or extract the pure operation into a leaf module that does not depend on Composition. A helper that returns a connected sibling operation uses the parent's `step` producer so it preserves the Binding requirement and defers application; it does not invoke that operation against a plain Model parameter. Keep reciprocal sibling policies together in the parent assembly and defer each sibling call through its policy callback. A one-way policy may remain in its own file.
 
-Keep route policy shared by init and navigation outside `update/`, for example in `routePolicy.ts`. `Transition.coldLoad(route)` and `Transition.make(previousRoute, nextRoute)` can share enter, exit, and stay decisions. Keep optional child Models and the choice of init Commands explicit. Browser environment setup, link handling, and scrolling have separate responsibilities.
+Keep substantial URL-change handling in `update/changedUrl.ts`. Prepare the next Route and URL, then compose the child Steps and return the required Commands in a visible order. Keep each Route identity comparison beside the behavior it controls. Put reusable Route selectors in `route.ts` and sidebar selection with the navigation-display helpers. Composition declares child startup; the URL handler decides how child state changes during navigation.
 
 ## Root Application Assembly
 
-In a split root, `composition.ts` owns the complete child and Mount graph and `ApplicationComposition`. Put straightforward root Bindings and their OutMessage folds directly beside its `Application.toComposition` call. Extract substantial policies to files such as `composition/home.ts`; then `composition/composition.ts` owns assembly, `composition/index.ts` is an explicit barrel, and the assembly module imports those policies directly from sibling modules. Composition depends on `definition.ts`, completed children, and local policy declarations. It never imports root init, update, or view.
+In a split root, `composition.ts` owns the complete child and Mount graph and `ApplicationComposition`. Put straightforward root Bindings and their OutMessage folds directly beside its `Application.makeComposition` call. Extract substantial policies to files such as `composition/home.ts`; then `composition/composition.ts` owns assembly, `composition/index.ts` is an explicit barrel, and the assembly module imports those policies directly from sibling modules. Composition depends on `definition.ts`, completed children, and local policy declarations. It never imports root init, update, or view.
 
 ::Snippet{name="applicationRegistrations" label="Root child graph"}
 
@@ -118,7 +118,7 @@ Foldkit handlers and ordinary application Services solve different problems. A C
 
 Keep canonical handlers attached to their Command, Subscription, Mount, and ManagedResource definitions. Compose attached recipes such as `LoadProducts.layer` in the feature's local `EffectsLayer`. Name a standalone `LoadProductsLayer` only when that individual provider is intentionally public or independently reused, and an external alternative `LoadProductsTestLayer`.
 
-Compose a small local bundle in `block.ts`. Extract `layer.ts` when the composition is substantial or independently reused. Pass the local bundle to `FeatureComposition.toBlock`. A feature can provide business services that it owns while leaving HTTP, storage, RPC, and browser providers open for the root.
+Compose a small local bundle in `block.ts`. Extract `layer.ts` when the composition is substantial or independently reused. Pass the local bundle to `FeatureComposition.makeBlock`. A feature can provide business services that it owns while leaving HTTP, storage, RPC, and browser providers open for the root.
 
 ::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}
 
@@ -146,7 +146,7 @@ The Runtime builds the selected handler recipes and `ApplicationLayer` once per 
 
 ## Composing Runtime Behavior
 
-A feature's `EffectsLayer` supplies handlers. Its Subscriptions, ManagedResources, and Mounts declare the lifecycle work Foldkit manages. The root `Application.toComposition` call includes the child graphs through their registered Bindings.
+A feature's `EffectsLayer` supplies handlers. Its Subscriptions, ManagedResources, and Mounts declare the lifecycle work Foldkit manages. The root `Application.makeComposition` call includes the child graphs through their registered Bindings.
 
 The Binding's storage and Message mapping connect child work to the parent. A direct Option field containing `None`, a false `presentWhen`, or a custom reader returning `None` stops that child's lifecycle work. A keyed Binding creates independent scopes for active keys. The same Binding supplies update folding and `embedView`.
 

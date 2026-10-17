@@ -27,7 +27,7 @@ const entryView = (
     }),
   )
 
-export const view = EducationComposition.view((model, h) =>
+export const view = EducationComposition.makeView((model, h) =>
   h.div(
     [h.Class('space-y-6')],
     [

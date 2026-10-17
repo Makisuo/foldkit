@@ -23,7 +23,7 @@ export {
   view,
 } from './example'
 
-export const block = ExampleDetailComposition.toBlock({
+export const block = ExampleDetailComposition.makeBlock({
   init,
   update,
   view,

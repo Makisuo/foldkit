@@ -12,6 +12,6 @@ export const ProductsBinding = Application.bindChild(Products.block, {
   parentMessage: Message.GotProductsMessage,
 })
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [HomeBinding, ProductsBinding],
 })

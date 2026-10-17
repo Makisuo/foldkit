@@ -37,7 +37,7 @@ const lazyStats = createLazy()
 // The builder travels through the args array like any other argument.
 // The runtime hands every render the same builder object, so it never
 // invalidates the cache.
-const view = ApplicationComposition.view((model, h) => ({
+const view = ApplicationComposition.makeView((model, h) => ({
   title: 'Dashboard',
   body: h.div(
     [],

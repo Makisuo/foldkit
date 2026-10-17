@@ -3,7 +3,7 @@ import { Button } from '@foldkit/ui'
 import { EntriesBinding, SkillsComposition } from './composition'
 import { Message } from './definition'
 
-export const view = SkillsComposition.view((model, h) =>
+export const view = SkillsComposition.makeView((model, h) =>
   h.div(
     [h.Class('space-y-6')],
     [

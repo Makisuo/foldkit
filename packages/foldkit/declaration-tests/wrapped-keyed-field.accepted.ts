@@ -56,15 +56,15 @@ const makeChoice = <const Values extends ReadonlyArray<string>>(
     outMessage: ChoiceOutMessage.SelectedValue({ value: model.value }),
   }))
   const DeclarationWrappedKeyedFieldChoiceComposition =
-    DeclarationWrappedKeyedFieldChoice.toComposition()
-  const block = DeclarationWrappedKeyedFieldChoiceComposition.toBlock({
-    init: DeclarationWrappedKeyedFieldChoiceComposition.init(
+    DeclarationWrappedKeyedFieldChoice.makeComposition()
+  const block = DeclarationWrappedKeyedFieldChoiceComposition.makeBlock({
+    init: DeclarationWrappedKeyedFieldChoiceComposition.makeInit(
       (value: Value) => ({
         model: Model.make({ value }),
         commands: [ReadChoice()],
       }),
     ),
-    update: DeclarationWrappedKeyedFieldChoiceComposition.update(
+    update: DeclarationWrappedKeyedFieldChoiceComposition.makeUpdate(
       (model, message) =>
         ChoiceMessage.match(message, {
           UpdatedValue: ({ value }) => setValue(model, value),
@@ -93,13 +93,13 @@ const DeclarationWrappedKeyedFieldPlainChoice = Block.define(
   },
 )
 const DeclarationWrappedKeyedFieldPlainChoiceComposition =
-  DeclarationWrappedKeyedFieldPlainChoice.toComposition()
+  DeclarationWrappedKeyedFieldPlainChoice.makeComposition()
 export const PlainChoiceBlock =
-  DeclarationWrappedKeyedFieldPlainChoiceComposition.toBlock({
-    init: DeclarationWrappedKeyedFieldPlainChoiceComposition.init(() => ({
+  DeclarationWrappedKeyedFieldPlainChoiceComposition.makeBlock({
+    init: DeclarationWrappedKeyedFieldPlainChoiceComposition.makeInit(() => ({
       model: Choice.block.Model.make({ value: 'One' }),
     })),
-    update: DeclarationWrappedKeyedFieldPlainChoiceComposition.update(
+    update: DeclarationWrappedKeyedFieldPlainChoiceComposition.makeUpdate(
       (model, message) =>
         Choice.Message.match(message, {
           UpdatedValue: ({ value }) => ({
@@ -135,10 +135,12 @@ const DeclarationWrappedKeyedFieldText = Block.define(
   },
 )
 const DeclarationWrappedKeyedFieldTextComposition =
-  DeclarationWrappedKeyedFieldText.toComposition()
-export const TextBlock = DeclarationWrappedKeyedFieldTextComposition.toBlock({
-  init: DeclarationWrappedKeyedFieldTextComposition.init(() => ({ model: '' })),
-  update: DeclarationWrappedKeyedFieldTextComposition.update(
+  DeclarationWrappedKeyedFieldText.makeComposition()
+export const TextBlock = DeclarationWrappedKeyedFieldTextComposition.makeBlock({
+  init: DeclarationWrappedKeyedFieldTextComposition.makeInit(() => ({
+    model: '',
+  })),
+  update: DeclarationWrappedKeyedFieldTextComposition.makeUpdate(
     (_model, { value }) => ({ model: value }),
   ),
   EffectsLayer: Layer.empty,
@@ -512,17 +514,17 @@ export const TextEntriesBinding = DeclarationWrappedKeyedFieldParent.bindChild(
 export const choiceInspection = Block.inspectBinding(ChoicesBinding)
 
 export const DeclarationWrappedKeyedFieldParentComposition =
-  DeclarationWrappedKeyedFieldParent.toComposition({
+  DeclarationWrappedKeyedFieldParent.makeComposition({
     childBindings: [ChoicesBinding, LiteralChoicesBinding, TextEntriesBinding],
   })
 
 // eslint-disable-next-line foldkit/block-name-matches-variable
 export const initialComposition =
-  DeclarationWrappedKeyedFieldParent.toComposition({
+  DeclarationWrappedKeyedFieldParent.makeComposition({
     childBindings: [InitializedChoicesBinding],
   })
 
-export const initialize = initialComposition.init(
+export const initialize = initialComposition.makeInit(
   (context: InitializationContext) => ({
     startup: context,
     model: {
@@ -533,9 +535,9 @@ export const initialize = initialComposition.init(
   }),
 )
 
-export const initializedBlock = initialComposition.toBlock({
+export const initializedBlock = initialComposition.makeBlock({
   init: initialize,
-  update: initialComposition.update(model => ({ model })),
+  update: initialComposition.makeUpdate(model => ({ model })),
   EffectsLayer: Layer.empty,
 })
 
@@ -556,15 +558,77 @@ export const initialParentModel = ParentModel.make({
   textEntries: [TextEntry.make({ id: 'text', text: 'initial' })],
 })
 
-ChoicesBinding.fold(
+// eslint-disable-next-line foldkit/block-name-matches-variable
+const choicesExecutionComposition =
+  DeclarationWrappedKeyedFieldParent.makeComposition({
+    childBindings: [ChoicesBinding],
+  })
+// eslint-disable-next-line foldkit/block-name-matches-variable
+const literalChoicesExecutionComposition =
+  DeclarationWrappedKeyedFieldParent.makeComposition({
+    childBindings: [LiteralChoicesBinding],
+  })
+// eslint-disable-next-line foldkit/block-name-matches-variable
+const textEntriesExecutionComposition =
+  DeclarationWrappedKeyedFieldParent.makeComposition({
+    childBindings: [TextEntriesBinding],
+  })
+
+export const foldChoice = choicesExecutionComposition.makeUpdate(
+  (
+    model,
+    _message,
+    id: typeof ChoiceId.Type,
+    childMessage: typeof Choice.Message.Type,
+  ) => ChoicesBinding.fold(model, id, childMessage),
+)
+export const setChoiceValue = choicesExecutionComposition.makeUpdate(
+  (model, _message, id: typeof ChoiceId.Type, value: 'One' | 'Two') =>
+    ChoicesBinding.setValue(id, value)(model),
+)
+export const refreshChoice = choicesExecutionComposition.makeUpdate(
+  (model, _message, id: typeof ChoiceId.Type) =>
+    ChoicesBinding.refresh(id)(model),
+)
+export const selectChoice = choicesExecutionComposition.makeUpdate(
+  (model, _message, id: typeof ChoiceId.Type) =>
+    ChoicesBinding.select(id)(model),
+)
+export const setLiteralChoiceValue =
+  literalChoicesExecutionComposition.makeUpdate(
+    (model, _message, kind: 'Primary' | 'Secondary', value: 'One' | 'Two') =>
+      LiteralChoicesBinding.setValue(kind, value)(model),
+  )
+export const selectLiteralChoice =
+  literalChoicesExecutionComposition.makeUpdate(
+    (model, _message, kind: 'Primary' | 'Secondary') =>
+      LiteralChoicesBinding.select(kind)(model),
+  )
+export const foldTextEntry = textEntriesExecutionComposition.makeUpdate(
+  (model, _message, id: string, childMessage: typeof TextMessage.Type) =>
+    TextEntriesBinding.fold(model, id, childMessage),
+)
+
+const choiceExecutionMessage = ParentMessage.GotTextMessage({
+  id: 'text',
+  message: TextMessage.ReplacedText({ value: 'unchanged' }),
+})
+const otherExecutionMessage = ParentMessage.GotChoiceMessage({
+  id: firstChoiceId,
+  message: Choice.Message.UpdatedValue({ value: 'One' }),
+})
+
+foldChoice(
   initialParentModel,
+  choiceExecutionMessage,
   firstChoiceId,
   Choice.Message.UpdatedValue({ value: 'Two' }),
 )
-ChoicesBinding.setValue(firstChoiceId, 'One')(initialParentModel)
-LiteralChoicesBinding.select('Primary')(initialParentModel)
-TextEntriesBinding.fold(
+setChoiceValue(initialParentModel, choiceExecutionMessage, firstChoiceId, 'One')
+selectLiteralChoice(initialParentModel, otherExecutionMessage, 'Primary')
+foldTextEntry(
   initialParentModel,
+  otherExecutionMessage,
   'text',
   TextMessage.ReplacedText({ value: 'next' }),
 )
@@ -577,7 +641,7 @@ const initializedModelIsExact: InitializedModelIsExact = true
 void initializedModelIsExact
 
 export const unassembledInitialize =
-  DeclarationWrappedKeyedFieldParent.toComposition().init(() => ({
+  DeclarationWrappedKeyedFieldParent.makeComposition().makeInit(() => ({
     model: {
       choices: [],
       plainChoices: [],

@@ -12,7 +12,7 @@ import { Message, OutMessage } from '../message'
 import { HomeStep } from '../model'
 import { handleKeyPressed } from './handleKeyPressed'
 
-export const update = HomeComposition.update((model, message) =>
+export const update = HomeComposition.makeUpdate((model, message) =>
   Message.match(message, {
     CompletedFocusUsernameInput: () => ({ model }),
 

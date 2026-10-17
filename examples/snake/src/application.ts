@@ -49,12 +49,12 @@ export type Message = typeof Message.Type
 
 export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.toComposition()
+export const ApplicationComposition = Application.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-export const init = ApplicationComposition.init(() => {
+export const init = ApplicationComposition.makeInit(() => {
   const snake = Snake.create(GAME.INITIAL_POSITION)
 
   return {
@@ -71,7 +71,7 @@ export const init = ApplicationComposition.init(() => {
   }
 })
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     PressedKey: ({ key }) =>
       Match.value(key).pipe(
@@ -333,7 +333,7 @@ const instructionsView = (h: ApplicationViewBuilder): Html =>
     ],
   )
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: `Snake | ${model.points} pts`,
   body: h.div(
     [

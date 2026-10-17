@@ -35,7 +35,7 @@ export const EntriesBinding = Education.bindChild(Entry.block, {
   outMessage: { fold: foldEntryOutMessage },
 })
 
-export const EducationComposition = Education.toComposition({
+export const EducationComposition = Education.makeComposition({
   childBindings: [EntriesBinding],
 })
 export type EducationViewBuilder = Block.ViewBuilderFor<

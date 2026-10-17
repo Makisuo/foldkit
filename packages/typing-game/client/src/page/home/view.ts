@@ -6,7 +6,7 @@ import { HomeComposition, type HomeViewBuilder } from './definition'
 import { Message } from './message'
 import { HOME_ACTIONS, HomeAction, HomeStep, homeActionToLabel } from './model'
 
-export const view = HomeComposition.view((model, h) => {
+export const view = HomeComposition.makeView((model, h) => {
   const maybeUsername = HomeStep.match(model.homeStep, {
     EnterUsername: () => Option.none(),
     SelectAction: ({ username }) => Option.some(username),

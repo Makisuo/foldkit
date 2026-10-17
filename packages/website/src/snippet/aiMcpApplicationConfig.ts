@@ -3,7 +3,7 @@ import { init } from './init'
 import { Message } from './message'
 import { update } from './update'
 import { view } from './view'
-ApplicationComposition.toApplication({
+ApplicationComposition.makeApplication({
   init,
   update,
   view,

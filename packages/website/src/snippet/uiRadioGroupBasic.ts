@@ -67,24 +67,24 @@ const PlanRadioGroupBinding = PlanPicker.bindChild(PlanRadioGroup, {
   outMessage: { fold: foldPlanRadioGroupOutMessage },
 })
 
-const PlanPickerComposition = PlanPicker.toComposition({
+const PlanPickerComposition = PlanPicker.makeComposition({
   childBindings: [PlanRadioGroupBinding],
 })
 
 // In your init function, initialize the RadioGroup Block with a unique
 // id and start with nothing selected:
-const init = PlanPickerComposition.init(() => ({
+const init = PlanPickerComposition.makeInit(() => ({
   model: {
     maybePlan: Option.none(),
     // ...your other fields
   },
 }))
 
-const update = PlanPickerComposition.update()
+const update = PlanPickerComposition.makeUpdate()
 
 // Inside your view function, embed the radio group via h.block and pass
 // the parent-owned selection as selectedValue:
-const view = PlanPickerComposition.view((model, h) => {
+const view = PlanPickerComposition.makeView((model, h) => {
   const radioGroupView = ({ group, options }: RadioGroupRenderInfo<Plan>) =>
     h.div(
       [...group, h.Class('flex flex-col gap-3')],

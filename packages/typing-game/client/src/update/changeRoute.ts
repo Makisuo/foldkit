@@ -6,7 +6,7 @@ import { RoomBinding } from '../composition'
 import { type Model, RoomInstance } from '../model'
 import { ApplicationRoute, urlToApplicationRoute } from '../route'
 
-export const initializeRoom = (model: Model, roomId: string) => {
+export const initRoom = (model: Model, roomId: string) => {
   return RoomBinding.init({
     key: roomId,
     args: [Option.some(roomId)],
@@ -30,11 +30,11 @@ export const changeRoute = (model: Model, url: Url.Url) => {
     }),
     Room: ({ roomId }) =>
       Option.match(model.maybeRoomInstance, {
-        onNone: () => initializeRoom(routeChanged, roomId),
+        onNone: () => initRoom(routeChanged, roomId),
         onSome: roomInstance =>
           roomInstance.roomId === roomId
             ? { model: routeChanged }
-            : initializeRoom(routeChanged, roomId),
+            : initRoom(routeChanged, roomId),
       }),
     NotFound: () => ({
       model: modifyFields(routeChanged, {

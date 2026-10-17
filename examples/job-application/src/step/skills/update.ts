@@ -6,7 +6,7 @@ import { EntriesBinding, SkillsComposition } from './composition'
 import { Message, type Model } from './definition'
 import * as Entry from './entry'
 
-export const update = SkillsComposition.update((model, message) =>
+export const update = SkillsComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedAddEntry: () => ({ model, commands: [GenerateSkillsEntryId()] }),
 

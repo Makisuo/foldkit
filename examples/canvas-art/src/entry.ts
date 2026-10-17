@@ -10,7 +10,7 @@ import {
   view,
 } from './application'
 
-const application = ApplicationComposition.toApplication({
+const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,

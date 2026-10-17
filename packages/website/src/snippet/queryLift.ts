@@ -18,17 +18,17 @@ const PostsBinding = Application.bindChild(postsQuery, {
   parentMessage: Message.GotPostsMessage,
 })
 
-const ApplicationComposition = Application.toComposition({
+const ApplicationComposition = Application.makeComposition({
   childBindings: [PostsBinding],
 })
 
-const init = ApplicationComposition.init(() => ({
+const init = ApplicationComposition.makeInit(() => ({
   model: {},
   // Start loading after the Query Model is stored in its parent.
   steps: [PostsBinding.loadIfMissing()],
 }))
 
-const update = ApplicationComposition.update((model, message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     // Return the transition and Command for either missing or retained data.
     ClickedRefreshPosts: () => PostsBinding.revalidateOrLoad()(model),

@@ -239,7 +239,7 @@ const keyboardWarmupInput: Html = ih.input([
   ih.Class('fixed top-0 left-0 w-px h-px opacity-0 pointer-events-none -z-10'),
 ])
 
-export const view = SearchComposition.view((model, h) =>
+export const view = SearchComposition.makeView((model, h) =>
   h.div(
     [],
     [

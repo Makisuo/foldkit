@@ -10,7 +10,7 @@ import { Message } from './definition'
 
 const ANCHOR = { placement: 'bottom-start' as const, gap: 4, padding: 8 }
 
-export const view = WorkHistoryEntryComposition.view((model, h) => {
+export const view = WorkHistoryEntryComposition.makeView((model, h) => {
   const showEndDate = !model.isCurrentlyEmployed
 
   const startDatePickerView = h.div(

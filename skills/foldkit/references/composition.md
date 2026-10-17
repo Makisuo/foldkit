@@ -17,15 +17,15 @@ Build that boundary in three passive stages:
 
 1. `Block.define` establishes the contracts and authors Commands, Steps,
    lifecycle entries, and child Bindings.
-2. `toComposition` fixes the registered child and Mount graph. The named
+2. `makeComposition` fixes the registered child and Mount graph. The named
    Composition authors init, update, and the canonical view against that graph.
-3. `toBlock` receives that authored implementation plus local exposed
+3. `makeBlock` receives that authored implementation plus local exposed
    operations, Subscriptions, ManagedResources, `EffectsLayer`, and
    `hostHandlers`, then checks and packages the completed Block. It does not run
    init, construct Layers, or start effects.
 
 The root follows the same first two stages with `defineApplication`, then calls
-`toApplication` or `toElement`. The Runtime constructs the resulting Layer
+`makeApplication` or `makeElement`. The Runtime constructs the resulting Layer
 graph and starts effects.
 
 Use a plain view helper when a section only renders state owned elsewhere. Use
@@ -43,13 +43,13 @@ export const Settings = Block.define('Settings', {
   OutMessage,
 })
 
-export const SettingsComposition = Settings.toComposition()
+export const SettingsComposition = Settings.makeComposition()
 
-export const init = SettingsComposition.init(() => ({
+export const init = SettingsComposition.makeInit(() => ({
   model: { theme: 'System' },
 }))
 
-export const update = SettingsComposition.update((model, message) =>
+export const update = SettingsComposition.makeUpdate((model, message) =>
   Message.match(message, {
     UpdatedTheme: ({ theme }) => ({
       model: modifyFields(model, { theme: () => theme }),
@@ -57,11 +57,11 @@ export const update = SettingsComposition.update((model, message) =>
   }),
 )
 
-export const view = SettingsComposition.view((model, h) =>
+export const view = SettingsComposition.makeView((model, h) =>
   h.p([], [model.theme]),
 )
 
-export const block = SettingsComposition.toBlock({ init, update, view })
+export const block = SettingsComposition.makeBlock({ init, update, view })
 ```
 
 Keep one Definition and one named Composition. Use the name-only
@@ -70,12 +70,12 @@ generic API that later specializes several typed contracts with `.define(...)`.
 That shared identity may be declared outside the specialization factory. A
 graphless feature still has a Composition.
 
-Author the primary view through the Composition. A completed Block's `view`
+Author the primary view through the Composition. A completed Block's `makeView`
 method is for an alternate embed view against the fixed graph. Plain helpers
 that need the same child and Mount capabilities take an owner-specific builder:
 
 ```ts
-export const ProfileComposition = Profile.toComposition({
+export const ProfileComposition = Profile.makeComposition({
   childBindings: [SettingsBinding],
 })
 export type ProfileViewBuilder = Block.ViewBuilderFor<typeof ProfileComposition>
@@ -131,7 +131,7 @@ export const SettingsBinding = Profile.bindChild(Settings.block, {
   outMessage: { fold: foldSettingsOutMessage },
 })
 
-export const ProfileComposition = Profile.toComposition({
+export const ProfileComposition = Profile.makeComposition({
   childBindings: [SettingsBinding],
 })
 ```
@@ -169,10 +169,19 @@ handling still runs for a forwarded variant, and a derived parent OutMessage
 takes precedence for that dispatch.
 
 Policy may return parent Steps and call a registered sibling Binding operation.
-Keep reciprocal sibling policies in the same parent assembly, defer the calls
-through policy callbacks, register every captured Binding, and keep the
-synchronous chain finite. Use the parent's owned `step` helper when a nested
-policy callback needs parent Model context or Command requirement inference.
+Connected Binding Steps require their exact registered graph when applied to a
+Model, so a typed call with the raw domain Model fails. Return or compose the
+opaque connected result intact from `Composition.makeUpdate` or
+`Composition.makeInit`; it exposes no `.model` or `.commands` before checked
+execution and cannot narrow to a useful `{ model }` return. A Definition-owned
+`step` preserves or wraps the connected value. A completed exposed operation is
+a checked raw-Model executor with its own graph and returns a readable result.
+Ordinary pure Steps remain callable. Keep reciprocal sibling policies in the
+same parent assembly, defer the calls through policy callbacks, register every
+captured Binding, and keep the synchronous chain finite. TypeScript may erase a
+function result when assigning it to a method that returns `void`; outside the
+exact graph, invoking that method only constructs and discards passive
+configuration and executes no child work.
 
 ## Initialize children
 
@@ -204,12 +213,17 @@ the final Model. `subscriptions.when` gates Streams and does not gate init.
 
 Use the exact registered `Binding.init({ key?, args, toParentModel,
 commands? })` for custom storage, deliberate Command interleaving, or dynamic
-creation. Call it only inside Composition init or update, a completed Block's
-exposed operation, or the operation projected through its parent Binding. The
-compiler checks the key, arguments, complete parent Model, requirements, and
-graph evidence. Runtime validation checks child placement and exactly one
-requested keyed occurrence. Runtime metadata cannot reconstruct TypeScript's
-required, optional, defaulted, and rest parameter distinctions.
+creation. It returns a passive, noncallable recipe that retains the arguments,
+mapping, key, and optional parent Commands. Return the recipe directly from the
+owning Composition's `makeInit` or `makeUpdate`, or preserve it through the
+parent's owned `step` producer. The Composition callbacks interpret it
+directly; a completed exposed operation interprets a recipe preserved by its
+Step. The recipe has no `.model` or `.commands` fields. The compiler checks the key, arguments,
+complete parent Model, requirements, and exact Binding requirement. During
+checked execution, runtime validation still checks the active composition frame,
+child placement, and exactly one requested keyed occurrence. The available runtime
+metadata cannot reconstruct TypeScript's required, optional, defaulted, and rest
+parameter distinctions.
 
 For a keyed array of wrappers, prefer `init.occurrences` and `init.toItem` when
 startup creates the complete collection. Each occurrence supplies child init
@@ -236,15 +250,15 @@ OutMessage.
 
 Composition and Layers describe different parts of the program:
 
-| Value                             | Owns                                                                                                   |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `FeatureComposition`              | Registered child placements and Mount capabilities; authors init, update, and the primary view         |
-| `FeatureComposition.toBlock(...)` | Local exposed operations, Subscriptions, ManagedResources, `EffectsLayer`, and declared `hostHandlers` |
-| Feature `EffectsLayer`            | Handler recipes declared by that feature                                                               |
-| Registered child Binding          | The selected completed child's registrations and handler graph                                         |
-| Root `ApplicationLayer`           | Shared HTTP, storage, RPC, browser, and other environment Service providers                            |
+| Value                               | Owns                                                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `FeatureComposition`                | Registered child placements and Mount capabilities; authors init, update, and the primary view         |
+| `FeatureComposition.makeBlock(...)` | Local exposed operations, Subscriptions, ManagedResources, `EffectsLayer`, and declared `hostHandlers` |
+| Feature `EffectsLayer`              | Handler recipes declared by that feature                                                               |
+| Registered child Binding            | The selected completed child's registrations and handler graph                                         |
+| Root `ApplicationLayer`             | Shared HTTP, storage, RPC, browser, and other environment Service providers                            |
 
-Pass only local handler recipes to `FeatureComposition.toBlock` or root
+Pass only local handler recipes to `FeatureComposition.makeBlock` or root
 completion. Registered child Bindings contribute their selected recipes and
 descendants automatically. Never merge a child's `EffectsLayer` again at its
 parent or root.
@@ -303,7 +317,7 @@ List that definition under `hostHandlers` when completing the Block, then call
 `provideHandlers` on that completed Block before binding it:
 
 ```ts
-const blockWithHostContract = EditorComposition.toBlock({
+const blockWithHostContract = EditorComposition.makeBlock({
   init,
   update,
   view,
@@ -328,7 +342,7 @@ ordinary Service providers below them.
 At the root:
 
 ```ts
-const application = ApplicationComposition.toApplication({
+const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,
@@ -367,6 +381,10 @@ Before finishing composition work, verify these properties:
 - Every Block and Application has one Definition and one named Composition.
 - Every selected Binding is registered exactly once and every embedded view
   uses a registered Binding.
+- Every connected fold or exposed Step is applied to a Composition-provided
+  Model, or returned from a Definition-owned Step for deferred application.
+- Every explicit Binding init recipe is returned intact from `makeInit` or a
+  Definition-owned Step; no caller projects result fields from it.
 - Parent code uses Binding operations for parent-driven transitions and lets
   Composition route received child Messages.
 - Optional absence and keyed removal cannot deliver stale callbacks or Command

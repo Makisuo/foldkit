@@ -73,10 +73,10 @@ const childManagedResources = child.managedResources(entry => ({
     },
   }),
 }))
-const childComposition = child.toComposition()
-const childBlock = childComposition.toBlock({
+const childComposition = child.makeComposition()
+const childBlock = childComposition.makeBlock({
   init: (id: number) => ({ model: { id } }),
-  update: childComposition.update(model => ({ model })),
+  update: childComposition.makeUpdate(model => ({ model })),
   subscriptions,
   managedResources: childManagedResources,
   EffectsLayer: Layer.merge(
@@ -120,7 +120,7 @@ const EntriesBinding = rootBase.bindChild(childBlock, {
     }),
   toParentMessage: (_key, message) => RootMessage.GotChildMessage({ message }),
 })
-const root = rootBase.toComposition({
+const root = rootBase.makeComposition({
   childBindings: [OptionalChildBinding, EntriesBinding],
 })
 const rootManagedResources = rootBase.managedResources(entry => ({
@@ -146,9 +146,9 @@ const initialModel = RootModel.make({
   entries: [],
   subscriptionState: 'Active',
 })
-const block = root.toBlock({
+const block = root.makeBlock({
   init: () => ({ model: initialModel }),
-  update: root.update(model => ({ model })),
+  update: root.makeUpdate(model => ({ model })),
   managedResources: rootManagedResources,
   EffectsLayer: rootManagedResources.value.layer,
 })
@@ -180,14 +180,14 @@ const NestedEntriesBinding = nestedParentBase.bindChild(childBlock, {
   toParentMessage: (id: number, message) =>
     NestedParentMessage.GotChildMessage({ id, message }),
 })
-const nestedParent = nestedParentBase.toComposition({
+const nestedParent = nestedParentBase.makeComposition({
   childBindings: [NestedEntriesBinding],
 })
-const nestedParentBlock = nestedParent.toBlock({
+const nestedParentBlock = nestedParent.makeBlock({
   init: (id: number, entries: ReadonlyArray<typeof ChildModel.Type>) => ({
     model: { id, entries },
   }),
-  update: nestedParent.update((model, message) =>
+  update: nestedParent.makeUpdate((model, message) =>
     NestedParentMessage.match(message, {
       GotChildMessage: ({ id, message }) =>
         NestedEntriesBinding.fold(model, id, message),
@@ -221,15 +221,15 @@ const NestedParentsBinding = nestedRootBase.bindChild(nestedParentBlock, {
   toParentMessage: (id: number, message) =>
     NestedRootMessage.GotParentMessage({ id, message }),
 })
-const nestedRoot = nestedRootBase.toComposition({
+const nestedRoot = nestedRootBase.makeComposition({
   childBindings: [NestedParentsBinding],
 })
 const nestedInitialModel = NestedRootModel.make({
   parents: [{ id: 1, entries: [{ id: 10 }] }],
 })
-const nestedBlock = nestedRoot.toBlock({
+const nestedBlock = nestedRoot.makeBlock({
   init: () => ({ model: nestedInitialModel }),
-  update: nestedRoot.update((model, message) =>
+  update: nestedRoot.makeUpdate((model, message) =>
     NestedRootMessage.match(message, {
       GotParentMessage: ({ id, message }) =>
         NestedParentsBinding.fold(model, id, message),

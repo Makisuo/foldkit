@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Array, Equal, Option, pipe } from 'effect'
+import { Array, Equal, Option } from 'effect'
 import { Html, createKeyedLazy } from 'foldkit/html'
 import apiModuleIndex from 'virtual:api-module-index'
 
@@ -23,11 +23,11 @@ import { Link } from '../link'
 import { Message } from '../message'
 import { type Model } from '../model'
 import {
-  ApplicationRoute,
   apiModuleRouter,
   blogRouter,
   homeRouter,
   isBlogRoute,
+  maybeExampleSlugForRoute,
 } from '../route'
 import { type GroupKey, type SidebarGroups } from '../sidebarStorage'
 
@@ -196,14 +196,7 @@ const computeNavLinks = (
   h: ApplicationViewBuilder,
 ): Html => {
   const isOnApiModulePage = route._tag === 'ApiModule'
-  const maybeExampleSlug = pipe(
-    route,
-    Option.liftPredicate(
-      (route): route is typeof ApplicationRoute.ExampleDetail.Type =>
-        route._tag === 'ExampleDetail',
-    ),
-    Option.map(route => route.exampleSlug),
-  )
+  const maybeExampleSlug = maybeExampleSlugForRoute(route)
   const maybeActiveSectionKey = findActiveSectionKey(
     route._tag,
     maybeExampleSlug,

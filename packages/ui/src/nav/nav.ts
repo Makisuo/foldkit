@@ -1,4 +1,4 @@
-import { Array, Option } from 'effect'
+import { Array } from 'effect'
 import {
   type ChildAttribute,
   type Html,
@@ -71,14 +71,12 @@ export const view = <Value extends string = string>(
     (value, index) => {
       const isCurrent = isItemCurrent(value, index)
 
-      const maybeCurrentAttributes = Option.liftPredicate(
-        [ih.AriaCurrent(ARIA_CURRENT_PAGE), ih.DataAttribute('current', '')],
-        () => isCurrent,
-      )
-
       const linkAttributes = [
         ih.Href(toHref(value, index)),
-        ...Option.getOrElse(maybeCurrentAttributes, () => []),
+        ...Array.filter(
+          [ih.AriaCurrent(ARIA_CURRENT_PAGE), ih.DataAttribute('current', '')],
+          () => isCurrent,
+        ),
       ]
 
       return {

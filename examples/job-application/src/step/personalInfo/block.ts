@@ -7,8 +7,8 @@ import { PersonalInfoComposition } from './composition'
 import { update } from './update'
 import { view } from './view'
 
-export const block = PersonalInfoComposition.toBlock({
-  init: PersonalInfoComposition.init((today: CalendarDate) => ({
+export const block = PersonalInfoComposition.makeBlock({
+  init: PersonalInfoComposition.makeInit((today: CalendarDate) => ({
     startup: today,
     model: {
       firstName: NotValidated({ value: '' }),

@@ -2,6 +2,7 @@ import {
   Array,
   Effect,
   Equal,
+  Function,
   Layer,
   Match,
   Number,
@@ -357,21 +358,13 @@ export const DetectListboxMovementOrAnimationEnd = Listbox.command(
   },
 )
 
-export const makeUpdate = <
-  ParentOutMessageSchema extends Schema.Top | undefined,
->(
+export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
   bindChild: Block.BindChild<
     typeof BaseModel,
     typeof Message,
     ParentOutMessageSchema
   >,
-  step: Block.DefineStep<
-    BaseModel,
-    Message,
-    ParentOutMessageSchema extends Schema.Top
-      ? ParentOutMessageSchema['Type']
-      : never
-  >,
+  step: Block.DefineStep<BaseModel, Message, OutMessage>,
   selectionBehavior: 'CloseWithFocus' | 'KeepOpen',
   handleSelectedItem: (
     model: BaseModel,
@@ -411,45 +404,27 @@ export const makeUpdate = <
   })
 
   const internalUpdate = (model: Model, message: RoutedMessage) => {
-    const maybeLockScroll = OptionExt.when(model.isModal, LockListboxScroll())
-    const maybeUnlockScroll = OptionExt.when(
-      model.isModal,
-      UnlockListboxScroll(),
+    const modalOpenCommands = Array.filter(
+      [LockListboxScroll(), InertListboxOthers({ id: model.id })],
+      () => model.isModal,
     )
-    const maybeInertOthers = OptionExt.when(
-      model.isModal,
-      InertListboxOthers({ id: model.id }),
-    )
-    const maybeRestoreInert = OptionExt.when(
-      model.isModal,
-      RestoreListboxInert({ id: model.id }),
+
+    const closeWithoutFocusCommands = Array.filter(
+      [UnlockListboxScroll(), RestoreListboxInert({ id: model.id })],
+      () => model.isModal,
     )
 
     const focusButton = FocusListboxButton({ id: model.id })
     const focusItems = FocusListboxItems({ id: model.id })
 
-    const openCommands = [
-      ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
-      focusItems,
-    ]
+    const openCommands = [...modalOpenCommands, focusItems]
 
-    const closeWithFocusCommands = [
-      focusButton,
-      ...Array.getSomes([maybeUnlockScroll, maybeRestoreInert]),
-    ]
-
-    const closeWithoutFocusCommands = Array.getSomes([
-      maybeUnlockScroll,
-      maybeRestoreInert,
-    ])
+    const closeWithFocusCommands = [focusButton, ...closeWithoutFocusCommands]
 
     const openListbox = (baseModel: Model) => {
       if (baseModel.isAnimated) {
-        return Update.combine(baseModel, [
-          stepModel => ({
-            model: stepModel,
-            commands: openCommands,
-          }),
+        return Update.combine([
+          () => ({ model: baseModel, commands: openCommands }),
           AnimationBinding.show(),
           stepModel => ({
             model: modifyBaseFields(stepModel, { isOpen: () => true }),
@@ -466,21 +441,27 @@ export const makeUpdate = <
     const closeListbox = (
       baseModel: Model,
       commands: typeof closeWithFocusCommands,
+      outMessage?: OutMessage,
     ) => {
       if (!baseModel.isOpen) {
-        return { model: baseModel }
+        return Update.withOutMessage({ model: baseModel }, outMessage)
       }
 
       const closed = closedModel(baseModel)
 
       if (baseModel.isAnimated) {
-        return Update.combine(closed, [
-          stepModel => ({ model: stepModel, commands }),
-          AnimationBinding.hide(),
-        ])
+        return step(() =>
+          Function.compose(
+            Update.combine([
+              () => ({ model: closed, commands }),
+              AnimationBinding.hide(),
+            ]),
+            Update.withOutMessage(outMessage),
+          ),
+        )
       }
 
-      return { model: closed, commands }
+      return Update.withOutMessage({ model: closed, commands }, outMessage)
     }
 
     return Message.match(message, {
@@ -528,10 +509,10 @@ export const makeUpdate = <
           maybeActiveItemIndex: () => Option.some(index),
           activationTrigger: () => activationTrigger,
         }),
-        commands:
-          activationTrigger === 'Keyboard'
-            ? [ScrollListboxItemIntoView({ id: model.id, index })]
-            : [],
+        commands: Array.filter(
+          [ScrollListboxItemIntoView({ id: model.id, index })],
+          () => activationTrigger === 'Keyboard',
+        ),
       }),
 
       MovedPointerOverItem: ({ index, screenX, screenY }) => {
@@ -566,9 +547,10 @@ export const makeUpdate = <
       SelectedItem: ({ item }) => {
         const selection = handleSelectedItem(model, item)
         if (selectionBehavior === 'CloseWithFocus') {
-          return pipe(
-            closeListbox(selection.model, closeWithFocusCommands),
-            Update.withOutMessage(selection.outMessage),
+          return closeListbox(
+            selection.model,
+            closeWithFocusCommands,
+            selection.outMessage,
           )
         } else {
           return selection
@@ -606,7 +588,7 @@ export const makeUpdate = <
       },
 
       CompletedDetectListboxMovementOrAnimationEnd: ({ generation }) =>
-        AnimationBinding.finish(generation)(model),
+        AnimationBinding.finish(generation),
 
       PressedPointerOnButton: ({ pointerType, button }) => {
         const withPointerType = modifyBaseFields(model, {
@@ -618,14 +600,18 @@ export const makeUpdate = <
         }
 
         if (model.isOpen) {
-          return Update.combine(withPointerType, [
-            stepModel => closeListbox(stepModel, closeWithFocusCommands),
-            stepModel => ({
-              model: modifyBaseFields(stepModel, {
-                maybeLastButtonPointerType: () => Option.some(pointerType),
-              }),
-            }),
-          ])
+          const closed = modifyBaseFields(closedModel(withPointerType), {
+            maybeLastButtonPointerType: () => Option.some(pointerType),
+          })
+
+          if (model.isAnimated) {
+            return Update.combine([
+              () => ({ model: closed, commands: closeWithFocusCommands }),
+              AnimationBinding.hide(),
+            ])
+          }
+
+          return { model: closed, commands: closeWithFocusCommands }
         }
 
         return openListbox(

@@ -2,7 +2,7 @@ import { Runtime } from 'foldkit'
 
 import { ApplicationComposition, init, update, view } from './application'
 
-const element = ApplicationComposition.toElement({
+const element = ApplicationComposition.makeElement({
   init,
   update,
   view,

@@ -5,7 +5,7 @@ import { homeRouter } from '../../route'
 import { LoggedOutComposition, LoginBinding } from './composition'
 import * as Home from './page/home'
 
-export const view = LoggedOutComposition.view((model, h) =>
+export const view = LoggedOutComposition.makeView((model, h) =>
   h.div(
     [h.Class('py-8')],
     [

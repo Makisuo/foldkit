@@ -11,16 +11,17 @@ const Application = defineApplication({ Model, Message })
 const SettingsBinding = Application.bindChild(BoundSettings.Settings, {read: (model: Model) => Option.some(model.settings),
 write: (model, nextSettings) => modifyFields(model, { settings: () => nextSettings }),
 parentMessage: Message.GotSettingsMessage,
-fromParentMessage: {
-  parentMessage: Message.GotSettingsMessage,
-  args: (_model, { message }) => Option.some([message]),
-}})
-export const updateBinding = (model: Model, message: BoundSettings.Message) => {
-  const settingsUpdate = SettingsBinding.fold(model, message)
-  return {
-    model: modifyFields(model, {
-      settings: currentSettings => modifyFields(currentSettings, { theme: () => 'Light' }),
-    }),
-    commands: settingsUpdate.commands,
-  }
-}
+fromParentMessage: false})
+const ApplicationComposition = Application.makeComposition({ childBindings: [SettingsBinding] })
+export const updateBinding = ApplicationComposition.makeUpdate((model, message) =>
+  Message.match(message, {
+    GotSettingsMessage: ({ message }) => {
+      const nextModel = modifyFields(model, {
+        settings: currentSettings => modifyFields(currentSettings, { theme: () => 'Light' }),
+      })
+      void nextModel
+
+      return SettingsBinding.fold(model, message)
+    },
+  }),
+)

@@ -209,11 +209,10 @@ export const WrongForwardBinding = DeclarationPolicyForward.bindChild(
   },
 )
 
-export const PureComposition = DeclarationWrappedKeyedFieldParent.toComposition(
-  {
+export const PureComposition =
+  DeclarationWrappedKeyedFieldParent.makeComposition({
     childBindings: [PlainChoicesBinding],
-  },
-)
+  })
 
 type UnionRequirementsAreExact = Expect<
   Equal<
@@ -252,7 +251,7 @@ export const DirectDomainBinding = DirectParent.bindChild(DirectChildBlock, {
       DirectParent.step(model => ({ model })),
   },
 })
-export const DirectDomainComposition = DirectParent.toComposition({
+export const DirectDomainComposition = DirectParent.makeComposition({
   childBindings: [DirectDomainBinding],
 })
 
@@ -274,7 +273,7 @@ export const KeyedDomainBinding = DeclarationWrappedKeyedFieldParent.bindChild(
   },
 )
 export const KeyedDomainComposition =
-  DeclarationWrappedKeyedFieldParent.toComposition({
+  DeclarationWrappedKeyedFieldParent.makeComposition({
     childBindings: [KeyedDomainBinding],
   })
 

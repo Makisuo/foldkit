@@ -7,7 +7,7 @@ import { Model, PaintingStatus } from './model'
 import { urlToApplicationRoute } from './route'
 import { handleTransition } from './transition'
 
-export const init = ApplicationComposition.init((url: Url) => {
+export const init = ApplicationComposition.makeInit((url: Url) => {
   const route = urlToApplicationRoute(url)
   const initialModel = Model.make({
     route,

@@ -67,7 +67,7 @@ export const NoiseScaleSliderBinding = Application.bindChild(Slider.block, {
   outMessage: { fold: foldNoiseScaleSliderOutMessage },
 })
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [FlowStrengthSliderBinding, NoiseScaleSliderBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

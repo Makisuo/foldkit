@@ -24,13 +24,13 @@ export type Message = typeof Message.Type
 
 export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.toComposition()
+export const ApplicationComposition = Application.makeComposition()
 
 export const init = (flags: Flags) => ({
   model: Model.make({ count: flags.start, formState: 'Controlled' }),
 })
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + 1 }),
@@ -58,7 +58,7 @@ const parserChild = CustomElement.define({
   events: {},
 })
 
-export const view = ApplicationComposition.view((model, h): Document => {
+export const view = ApplicationComposition.makeView((model, h): Document => {
   const observedIdElement = observedId.withMessage(h)
   const parserOwnedElement = parserOwned.withMessage(h)
   const parserChildElement = parserChild.withMessage(h)

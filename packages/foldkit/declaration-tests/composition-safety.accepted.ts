@@ -47,9 +47,10 @@ const CompositionSafetyPlain = Block.define('CompositionSafetyPlain', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const CompositionSafetyPlainComposition = CompositionSafetyPlain.toComposition()
-export const PlainBlock = CompositionSafetyPlainComposition.toBlock({
-  init: CompositionSafetyPlainComposition.init(() => ({
+const CompositionSafetyPlainComposition =
+  CompositionSafetyPlain.makeComposition()
+export const PlainBlock = CompositionSafetyPlainComposition.makeBlock({
+  init: CompositionSafetyPlainComposition.makeInit(() => ({
     model: ChildModel.make({ count: 0 }),
   })),
   update: plainUpdate,
@@ -64,10 +65,10 @@ const CompositionSafetyOptionalContext = Block.define(
   },
 )
 const CompositionSafetyOptionalContextComposition =
-  CompositionSafetyOptionalContext.toComposition()
+  CompositionSafetyOptionalContext.makeComposition()
 export const OptionalContextBlock =
-  CompositionSafetyOptionalContextComposition.toBlock({
-    init: CompositionSafetyOptionalContextComposition.init(() => ({
+  CompositionSafetyOptionalContextComposition.makeBlock({
+    init: CompositionSafetyOptionalContextComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
     })),
     update: optionalContextUpdate,
@@ -82,16 +83,15 @@ const CompositionSafetyRestContext = Block.define(
   },
 )
 const CompositionSafetyRestContextComposition =
-  CompositionSafetyRestContext.toComposition()
-export const RestContextBlock = CompositionSafetyRestContextComposition.toBlock(
-  {
-    init: CompositionSafetyRestContextComposition.init(() => ({
+  CompositionSafetyRestContext.makeComposition()
+export const RestContextBlock =
+  CompositionSafetyRestContextComposition.makeBlock({
+    init: CompositionSafetyRestContextComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
     })),
     update: restContextUpdate,
     EffectsLayer: Layer.empty,
-  },
-)
+  })
 
 export const ParameterizedChildModel = Schema.Struct({ count: Schema.Number })
 export const ParameterizedChildMessage = Message.defineMessageUnion({
@@ -114,14 +114,16 @@ export const LoadParameterizedChild = CompositionSafetyParameterized.command(
   },
 )
 const CompositionSafetyParameterizedComposition =
-  CompositionSafetyParameterized.toComposition()
+  CompositionSafetyParameterized.makeComposition()
 export const ParameterizedBlock =
-  CompositionSafetyParameterizedComposition.toBlock({
-    init: CompositionSafetyParameterizedComposition.init((count: number) => ({
-      model: ParameterizedChildModel.make({ count }),
-      commands: [LoadParameterizedChild()],
-    })),
-    update: CompositionSafetyParameterizedComposition.update(model => ({
+  CompositionSafetyParameterizedComposition.makeBlock({
+    init: CompositionSafetyParameterizedComposition.makeInit(
+      (count: number) => ({
+        model: ParameterizedChildModel.make({ count }),
+        commands: [LoadParameterizedChild()],
+      }),
+    ),
+    update: CompositionSafetyParameterizedComposition.makeUpdate(model => ({
       model,
     })),
     EffectsLayer: LoadParameterizedChild.layer,
@@ -141,6 +143,7 @@ export const ParentModel = Schema.Struct({
   entries: Schema.Array(Entry),
 })
 export const ParentMessage = Message.defineMessageUnion({
+  CompletedParentInitialization: {},
   RoutedProjectedMessage: { message: ChildMessage },
   RoutedPlainMessage: { message: ChildMessage },
   RoutedParentCommandMessage: { message: ChildMessage },
@@ -155,6 +158,15 @@ export const CompositionSafetyParent = Block.define('CompositionSafetyParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
+export const CompleteParentInitialization = CompositionSafetyParent.command(
+  'CompleteParentInitialization',
+  {
+    messages: [ParentMessage.CompletedParentInitialization],
+    handler: function* () {
+      return () => Effect.succeed(ParentMessage.CompletedParentInitialization())
+    },
+  },
+)
 
 export const StableProjectedBinding = CompositionSafetyParent.bindChild(
   PlainBlock,
@@ -228,6 +240,19 @@ export const initialParentModel = ParentModel.make({
   entries: [],
 })
 
+// eslint-disable-next-line foldkit/block-name-matches-variable
+const foldComposition = CompositionSafetyParent.makeComposition({
+  childBindings: [StableProjectedBinding, PlainBinding],
+})
+export const foldStableProjected = foldComposition.makeUpdate(
+  (model, _message, childMessage: typeof ChildMessage.Type) =>
+    StableProjectedBinding.fold(model, childMessage),
+)
+export const foldPlain = foldComposition.makeUpdate(
+  (model, _message, childMessage: typeof ChildMessage.Type) =>
+    PlainBinding.fold(model, childMessage),
+)
+
 const plainInitializerDocumentation = PlainBinding.init({
   args: [],
   toParentModel: child =>
@@ -261,48 +286,65 @@ export const initializeEntry = CompositionSafetyParent.step(
         }),
     }),
 )
-export const initializePlainWithParentCommands = CompositionSafetyParent.step(
-  model => {
-    const entryInit = EntryBinding.init({
-      key: 'parent-command-entry',
-      args: [1],
-      toParentModel: child =>
-        Struct.modifyFields(model, {
-          entries: Array.append(
-            Entry.make({ id: 'parent-command-entry', child }),
-          ),
-        }),
-    })
-    const parentCommands = Command.mapMessages(entryInit.commands, () =>
-      ParentMessage.RoutedParentCommandMessage({
-        message: ChildMessage.Incremented(),
+const initializeParentCommandEntry = CompositionSafetyParent.step(model =>
+  EntryBinding.init({
+    key: 'parent-command-entry',
+    args: [1],
+    toParentModel: child =>
+      Struct.modifyFields(model, {
+        entries: Array.append(
+          Entry.make({ id: 'parent-command-entry', child }),
+        ),
       }),
-    )
-
-    return ParentCommandsBinding.init({
+  }),
+)
+const initializeParentCommandChild = CompositionSafetyParent.step(model =>
+  ParentCommandsBinding.init({
+    args: [],
+    toParentModel: child => Struct.modifyFields(model, { plain: () => child }),
+    commands: [CompleteParentInitialization()],
+  }),
+)
+export const initializePlainWithParentCommands = Update.combine([
+  initializeParentCommandEntry,
+  initializeParentCommandChild,
+])
+export const makeParentCommandInitRecipe = () =>
+  ParentCommandsBinding.init({
+    args: [],
+    toParentModel: child =>
+      Struct.modifyFields(initialParentModel, { plain: () => child }),
+    commands: [CompleteParentInitialization()],
+  })
+export const initializePlainWithOwningParentCommand =
+  CompositionSafetyParent.step(model =>
+    ParentCommandsBinding.init({
       args: [],
       toParentModel: child =>
-        Struct.modifyFields(entryInit.model, { plain: () => child }),
-      commands: parentCommands,
-    })
-  },
-)
+        Struct.modifyFields(model, { plain: () => child }),
+      commands: [CompleteParentInitialization()],
+    }),
+  )
 
 export const CompositionSafetyParentComposition =
-  CompositionSafetyParent.toComposition({
+  CompositionSafetyParent.makeComposition({
     childBindings: [PlainBinding, ParentCommandsBinding, EntryBinding],
   })
-export const StrictBlock = CompositionSafetyParentComposition.toBlock({
-  init: CompositionSafetyParentComposition.init(() => ({
+export const StrictBlock = CompositionSafetyParentComposition.makeBlock({
+  init: CompositionSafetyParentComposition.makeInit(() => ({
     model: initialParentModel,
   })),
-  update: CompositionSafetyParentComposition.update(model => ({ model })),
+  update: CompositionSafetyParentComposition.makeUpdate(model => ({ model })),
   expose: {
     initializeEntry,
     initializePlain,
+    initializePlainWithOwningParentCommand,
     initializePlainWithParentCommands,
   },
-  EffectsLayer: LoadParameterizedChild.layer,
+  EffectsLayer: Layer.merge(
+    LoadParameterizedChild.layer,
+    CompleteParentInitialization.layer,
+  ),
 })
 
 type EntryInitRequirementsAreExact = Expect<
@@ -314,7 +356,8 @@ type EntryInitRequirementsAreExact = Expect<
 type ParentCommandRequirementsAreExact = Expect<
   Equal<
     Update.RequirementsOf<typeof initializePlainWithParentCommands>,
-    Block.Qualify<'entries', Command.HandlerOf<typeof LoadParameterizedChild>>
+    | Block.Qualify<'entries', Command.HandlerOf<typeof LoadParameterizedChild>>
+    | Command.HandlerOf<typeof CompleteParentInitialization>
   >
 >
 type ParentCommandRegistrationIsExact = Expect<
@@ -327,12 +370,44 @@ type ParentCommandRegistrationIsExact = Expect<
   >
 >
 type EntryInitModelIsExact = Expect<
-  Equal<ReturnType<typeof initializeEntry>['model'], typeof ParentModel.Type>
+  Equal<
+    ReturnType<typeof initializeEntry>,
+    Update.ResultRecipe<
+      typeof ParentModel.Type,
+      typeof ParentMessage.Type,
+      never,
+      Block.Qualify<
+        'entries',
+        Command.HandlerOf<typeof LoadParameterizedChild>
+      >,
+      Block.BindingRequirement<'entries', typeof ParameterizedBlock>
+    >
+  >
+>
+type PlainInitRegistrationIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<typeof initializePlain>>,
+    Block.BindingRequirement<'plain', typeof PlainBlock>
+  >
+>
+type ParentCommandRecipeRequirementsAreExact = Expect<
+  Equal<
+    Update.RequirementsOf<typeof makeParentCommandInitRecipe>,
+    Command.HandlerOf<typeof CompleteParentInitialization>
+  >
+>
+type ParentCommandRecipeRegistrationIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<
+      ReturnType<typeof makeParentCommandInitRecipe>
+    >,
+    Block.BindingRequirement<'parentCommands', typeof PlainBlock>
+  >
 >
 
-export const initialize = CompositionSafetyParent.toComposition({
+export const initialize = CompositionSafetyParent.makeComposition({
   childBindings: [StableProjectedBinding],
-}).init(() => ({
+}).makeInit(() => ({
   model: {
     second: ChildModel.make({ count: 0 }),
     plain: ChildModel.make({ count: 0 }),
@@ -347,4 +422,7 @@ export type CompositionSafetyAssertions = [
   ParentCommandRequirementsAreExact,
   ParentCommandRegistrationIsExact,
   EntryInitModelIsExact,
+  PlainInitRegistrationIsExact,
+  ParentCommandRecipeRequirementsAreExact,
+  ParentCommandRecipeRegistrationIsExact,
 ]

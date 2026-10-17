@@ -208,7 +208,7 @@ const modelText = (model: Model): string => {
   })
 }
 
-const view = ApplicationComposition.view((model, h) =>
+const view = ApplicationComposition.makeView((model, h) =>
   h.div([], [modelText(model)]),
 )
 
@@ -357,7 +357,7 @@ describe('Room identity', () => {
     container.id = 'room-identity'
     document.body.append(container)
 
-    const application = ApplicationComposition.toElement({
+    const application = ApplicationComposition.makeElement({
       container,
       init: () => ({
         model: Model.make({

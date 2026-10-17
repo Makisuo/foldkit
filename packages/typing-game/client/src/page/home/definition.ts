@@ -9,5 +9,5 @@ export const Home = Block.define('Home', {
   OutMessage,
 })
 
-export const HomeComposition = Home.toComposition()
+export const HomeComposition = Home.makeComposition()
 export type HomeViewBuilder = Block.ViewBuilderFor<typeof HomeComposition>

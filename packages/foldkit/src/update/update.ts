@@ -2,6 +2,67 @@ import { Array, type Effect, Function, Option, pipe } from 'effect'
 
 import { type AsyncData } from '../asyncData/index.js'
 import { type Command, mapMessage, mapMessages } from '../command/index.js'
+import {
+  isResultRecipe,
+  makeResultRecipe,
+  resolveOperationOutput,
+} from './operationRecipe.js'
+
+declare const ResultRecipeTypesTypeId: unique symbol
+
+/**
+ * An opaque result produced by a graph-connected Step.
+ *
+ * It preserves the exact Model, Message, OutMessage, Command requirements, and
+ * Binding registration types. Return or compose it intact: `.model`,
+ * `.commands`, and `.outMessage` are unavailable until checked execution.
+ * A matching Composition `makeInit` or `makeUpdate`, or a completed Block's
+ * exposed operation, interprets it with the registered graph active.
+ *
+ * This type provides no public executor. Ordinary {@link Return} and
+ * {@link ReturnWithOutMessage} values remain readable Model-and-Commands results.
+ */
+export interface ResultRecipe<
+  Model,
+  Message,
+  OutMessage = never,
+  R = never,
+  Evidence = never,
+> extends DeferredUpdateEvidence<Model, Message, R, Evidence> {
+  readonly [ResultRecipeTypesTypeId]: readonly [
+    model: (model: Model) => Model,
+    message: () => Message,
+    outMessage: () => OutMessage,
+    requirements: () => R,
+    evidence: () => Evidence,
+  ]
+}
+
+/** @internal Erased passive update result. */
+export type AnyResultRecipe = ResultRecipe<any, any, any, any, any>
+
+/** @internal Recovers the input Model retained by a passive result. */
+export type ResultRecipeModel<Recipe> =
+  Recipe extends ResultRecipe<infer Model, any, any, any, any> ? Model : never
+
+/** @internal Recovers the update return retained by a passive result. */
+export type ResultRecipeOutput<Recipe> =
+  Recipe extends ResultRecipe<
+    infer Model,
+    infer Message,
+    infer OutMessage,
+    infer R,
+    infer Evidence
+  >
+    ? 0 extends 1 & Model
+      ? any
+      : ResultRecipeReturn<Model, Message, OutMessage, R, Evidence>
+    : never
+
+/** @internal Recursively resolves nested passive result output. */
+export type ResolvedOperationOutput<Value> = Value extends AnyResultRecipe
+  ? ResolvedOperationOutput<ResultRecipeOutput<Value>>
+  : Value
 
 /**
  * The Commands collection an update return may include. The collection keeps
@@ -18,6 +79,84 @@ import { type Command, mapMessage, mapMessages } from '../command/index.js'
 export type Commands<Message, R = never> = ReadonlyArray<
   Command<Message, never, R>
 >
+
+declare const GraphCapabilityTypeId: unique symbol
+
+declare const DeferredUpdateEvidenceTypeId: unique symbol
+
+type ConcreteGraphRequirement<Requirement> = 0 extends 1 & Requirement
+  ? never
+  : unknown extends Requirement
+    ? never
+    : Requirement
+
+/**
+ * Carries the exact registered Binding graph available to a Composition callback.
+ * Connected Steps require this capability on their Model input.
+ */
+export interface GraphCapability<Model, Requirement> {
+  readonly [GraphCapabilityTypeId]: readonly [
+    model: () => Model,
+    requirement: (requirement: ConcreteGraphRequirement<Requirement>) => void,
+  ]
+}
+
+/**
+ * @internal Retains an update result's exact type channels on a passive value.
+ */
+export interface DeferredUpdateEvidence<Model, Message, R, Evidence> {
+  readonly [DeferredUpdateEvidenceTypeId]: readonly [
+    model: () => Model,
+    message: () => Message,
+    requirements: () => R,
+    registrationEvidence: () => Evidence,
+  ]
+}
+
+/** @internal Adds a Binding graph requirement to an ordinary Model input. */
+export type GraphInput<Model, Requirement> = [Requirement] extends [never]
+  ? Model
+  : Model & GraphCapability<Model, Requirement>
+
+/** @internal Adds the registered Binding graph to a Composition callback. */
+export type CompositionInput<Model, Requirement> = GraphInput<
+  Model,
+  Requirement
+>
+
+type GraphCapabilityModel<Value> =
+  Value extends GraphCapability<any, any>
+    ? Value[typeof GraphCapabilityTypeId][0] extends () => infer Model
+      ? Model
+      : never
+    : Value
+
+type GraphCapabilityRequirement<Value> =
+  Value extends GraphCapability<any, any>
+    ? Value[typeof GraphCapabilityTypeId][1] extends (
+        requirement: infer Requirement,
+      ) => void
+      ? Requirement
+      : never
+    : never
+
+/** @internal Reads a connected Step's required Binding graph from its input. */
+export type GraphRequirementOf<FunctionValue> = FunctionValue extends (
+  model: infer Model,
+  ...context: ReadonlyArray<any>
+) => any
+  ? GraphCapabilityRequirement<Model>
+  : never
+
+/** @internal Reads the domain Model retained by a connected Step input. */
+export type GraphModelOf<FunctionValue> = FunctionValue extends (
+  model: infer Input,
+  ...context: ReadonlyArray<any>
+) => any
+  ? GraphCapabilityModel<Input>
+  : never
+
+type GraphModelOfValue<Value> = GraphCapabilityModel<Value>
 
 /** @internal Carries child registration evidence without adding Effect services. */
 export declare const RegistrationEvidenceTypeId: unique symbol
@@ -69,6 +208,9 @@ type ReturnWithOutMessageValue<
  *  module needs the same type. When Commands use handler Layers, wrap the
  *  update with {@link define} to infer their requirements across branches.
  *  An explicit `Return<Model, Message>` annotation fixes `R` to `never`.
+ *
+ *  A graph-connected Step instead retains an opaque {@link ResultRecipe}
+ *  until checked composition applies it.
  */
 export type Return<Model, Message, R = never> = Readonly<{
   model: Model
@@ -84,6 +226,12 @@ type AnyUpdate = (...args: ReadonlyArray<any>) => any
 
 type AnyStep = (model: any, ...context: ReadonlyArray<any>) => any
 
+type ConcreteRegistrationEvidence<Evidence> = 0 extends 1 & Evidence
+  ? never
+  : unknown extends Evidence
+    ? never
+    : Evidence
+
 type DirectRegistrationEvidenceOf<Value> = Value extends unknown
   ? typeof RegistrationEvidenceTypeId extends keyof Value
     ? Value extends Readonly<{
@@ -92,7 +240,7 @@ type DirectRegistrationEvidenceOf<Value> = Value extends unknown
       ? [NonNullable<EvidenceFunction>] extends [never]
         ? never
         : NonNullable<EvidenceFunction> extends () => infer Evidence
-          ? Evidence
+          ? ConcreteRegistrationEvidence<Evidence>
           : never
       : never
     : never
@@ -101,10 +249,17 @@ type DirectRegistrationEvidenceOf<Value> = Value extends unknown
 /** Extracts child Binding registration evidence retained by an update result or
  * its Commands. */
 export type RegistrationEvidenceOf<Value> =
-  | DirectRegistrationEvidenceOf<Value>
-  | (Value extends Readonly<{ commands?: infer CommandValues }>
-      ? DirectRegistrationEvidenceOf<NonNullable<CommandValues>>
-      : never)
+  Value extends DeferredUpdateEvidence<any, any, any, infer Evidence>
+    ? ConcreteRegistrationEvidence<Evidence>
+    :
+        | DirectRegistrationEvidenceOf<Value>
+        | (Value extends unknown
+            ? 'commands' extends keyof Value
+              ? Value extends Readonly<{ commands?: infer CommandValues }>
+                ? DirectRegistrationEvidenceOf<NonNullable<CommandValues>>
+                : never
+              : never
+            : never)
 
 type RegistrationModelOf<Value> =
   Value extends Readonly<{ model: infer Model }> ? Model : never
@@ -173,21 +328,43 @@ export type WithRegistrationEvidence<Value, Evidence> = Value extends unknown
       >
   : never
 
+type ResultRecipeReturn<Model, Message, OutMessage, R, Evidence> = [
+  Evidence,
+] extends [never]
+  ? [OutMessage] extends [never]
+    ? Return<Model, Message, R>
+    : ReturnWithOutMessage<Model, Message, OutMessage, R>
+  : ReturnWithRegistrationEvidence<Model, Message, OutMessage, R, Evidence>
+
+/** @internal Normalizes an update result into the semantic channels retained by
+ * a passive operation recipe. */
+export type ResultRecipeFor<Model, Output> = ResultRecipe<
+  Model,
+  RegistrationCommandMessageOf<Output>,
+  RegistrationOutMessageOf<Output>,
+  RegistrationCommandRequirementsOf<Output>,
+  RegistrationEvidenceOf<Output>
+>
+
 type ReturnOf<Function extends (...args: ReadonlyArray<any>) => any> =
   Function extends (...args: ReadonlyArray<never>) => infer Output
     ? Output
     : never
 
 type CommandRequirements<Output> = Output extends unknown
-  ? 'commands' extends keyof Output
-    ? Output extends Readonly<{ commands?: infer Commands }>
-      ? NonNullable<Commands> extends ReadonlyArray<infer CommandValue>
-        ? CommandValue extends Command<any, any, infer R>
+  ?
+      | (Output extends DeferredUpdateEvidence<any, any, infer R, any>
           ? R
-          : never
-        : never
-      : never
-    : never
+          : never)
+      | ('commands' extends keyof Output
+          ? Output extends Readonly<{ commands?: infer Commands }>
+            ? NonNullable<Commands> extends ReadonlyArray<infer CommandValue>
+              ? CommandValue extends Command<any, any, infer R>
+                ? R
+                : never
+              : never
+            : never
+          : never)
   : never
 
 type CommandMessage<Output> = Output extends unknown
@@ -373,7 +550,8 @@ export function defineStep(step: AnyStep): AnyStep {
  *  parent. Omit `commands` when the update statically creates none. Return a
  *  computed Commands collection directly, even when it may be empty. Omit
  *  `outMessage` when the update emitted nothing. A Block that cannot emit
- *  an OutMessage returns {@link Return} instead. */
+ *  an OutMessage returns {@link Return} instead. A graph-connected Step retains
+ *  an opaque {@link ResultRecipe} until checked composition applies it. */
 export type ReturnWithOutMessage<
   Model,
   Message,
@@ -392,6 +570,36 @@ type ModelOfReturn<UpdateReturn> =
 type MessageOfReturn<UpdateReturn> = CommandMessage<UpdateReturn>
 
 type RequirementsOfReturn<UpdateReturn> = CommandRequirements<UpdateReturn>
+
+type WithOutMessageResult<UpdateReturn, OutMessage> =
+  UpdateReturn extends ReturnValue<any, any, any>
+    ? WithRegistrationEvidence<
+        ReturnWithOutMessage<
+          ModelOfReturn<UpdateReturn>,
+          MessageOfReturn<UpdateReturn>,
+          OutMessage,
+          RequirementsOfReturn<UpdateReturn>
+        >,
+        RegistrationEvidenceOf<UpdateReturn>
+      >
+    : never
+
+type PlainResultRecipe = ResultRecipe<any, any, never, any, any>
+
+type WithOutMessageInput = ReturnValue<any, any, any> | PlainResultRecipe
+
+type WithOutMessageOutput<Input, OutMessage> =
+  Input extends ResultRecipe<
+    infer Model,
+    infer Message,
+    never,
+    infer R,
+    infer Evidence
+  >
+    ? ResultRecipe<Model, Message, OutMessage, R, Evidence>
+    : Input extends ReturnValue<any, any, any>
+      ? WithOutMessageResult<Input, OutMessage>
+      : never
 
 /** Adds a known or optional OutMessage to a plain update return while
  *  preserving its Model and Commands. Use this helper when attaching to an
@@ -415,42 +623,40 @@ type RequirementsOfReturn<UpdateReturn> = CommandRequirements<UpdateReturn>
 export const withOutMessage: {
   <OutMessage>(
     outMessage: OutMessage | undefined,
-  ): <const UpdateReturn extends ReturnValue<any, any, any>>(
-    updateReturn: UpdateReturn,
-  ) => WithRegistrationEvidence<
-    ReturnWithOutMessage<
-      ModelOfReturn<UpdateReturn>,
-      MessageOfReturn<UpdateReturn>,
-      OutMessage,
-      RequirementsOfReturn<UpdateReturn>
-    >,
-    RegistrationEvidenceOf<UpdateReturn>
-  >
-  <const UpdateReturn extends ReturnValue<any, any, any>, OutMessage>(
-    updateReturn: UpdateReturn,
+  ): <const Input extends WithOutMessageInput>(
+    updateReturn: Input,
+  ) => WithOutMessageOutput<Input, OutMessage>
+  <const Input extends WithOutMessageInput, OutMessage>(
+    updateReturn: Input,
     outMessage: OutMessage | undefined,
-  ): WithRegistrationEvidence<
-    ReturnWithOutMessage<
-      ModelOfReturn<UpdateReturn>,
-      MessageOfReturn<UpdateReturn>,
-      OutMessage,
-      RequirementsOfReturn<UpdateReturn>
-    >,
-    RegistrationEvidenceOf<UpdateReturn>
-  >
+  ): WithOutMessageOutput<Input, OutMessage>
 } = Function.dual(
   2,
-  <Model, Message, OutMessage, R = never>(
-    updateReturn: Return<Model, Message, R>,
+  <OutMessage>(
+    updateReturn: ReturnValue<any, any, any> | PlainResultRecipe,
     outMessage: OutMessage | undefined,
-  ): ReturnWithOutMessage<Model, Message, OutMessage, R> =>
-    outMessage === undefined
+  ) => {
+    if (isResultRecipe(updateReturn)) {
+      return makeResultRecipe(model => {
+        const resolved = resolveOperationOutput(updateReturn, model)
+        return outMessage === undefined
+          ? resolved
+          : {
+              model: resolved.model,
+              commands: resolved.commands,
+              outMessage,
+            }
+      })
+    }
+
+    return outMessage === undefined
       ? updateReturn
       : {
           model: updateReturn.model,
           commands: updateReturn.commands,
           outMessage,
-        },
+        }
+  },
 )
 
 /** One self-contained edit to the Model paired with the Commands to run:
@@ -470,9 +676,18 @@ export type StepWithOutMessage<Model, Message, OutMessage, R = never> = (
 
 type NonEmptySteps = readonly [AnyStep, ...ReadonlyArray<AnyStep>]
 
-type FirstStepModel<Steps extends NonEmptySteps> = Parameters<Steps[0]>[0]
+type ContextualLeadingSteps<Model> = readonly [
+  (model: Model) => ReturnValue<Model, any, any>,
+  ...ReadonlyArray<AnyStep>,
+]
 
-type StepForModel<Model> = (model: Model) => ReturnValue<Model, any, any>
+type FirstStepModel<Steps extends NonEmptySteps> = GraphModelOf<Steps[0]>
+
+type ComposableReturnValue<Model> = Readonly<{
+  model: Model
+  commands?: ReadonlyArray<unknown> | undefined
+  outMessage?: never
+}>
 
 type NonEmptyStepReturnsFor<Model> = readonly [
   ReturnValue<Model, any, any>,
@@ -486,22 +701,93 @@ type StepsFromReturns<
   [Index in keyof StepReturns]: (model: Model) => StepReturns[Index]
 }>
 
-type StepsForModel<Steps extends ReadonlyArray<AnyStep>, Model> =
-  Steps extends ReadonlyArray<StepForModel<Model>> ? unknown : never
+type CombinedGraphRequirement<Steps extends ReadonlyArray<AnyStep>> =
+  GraphRequirementOf<Steps[number]>
 
-type CombinedStepModel<Steps extends ReadonlyArray<AnyStep>> = Parameters<
+type ResolvedStepReturn<StepValue> = StepValue extends AnyStep
+  ? ResolvedOperationOutput<ReturnOf<StepValue>>
+  : never
+
+type IsAnyValue<Value> = 0 extends 1 & Value ? true : false
+
+type ResultRecipeOfStep<StepValue> = StepValue extends AnyStep
+  ? ReturnOf<StepValue> extends infer Output
+    ? IsAnyValue<Output> extends true
+      ? never
+      : Output extends AnyResultRecipe
+        ? Output
+        : never
+    : never
+  : never
+
+type ResultRecipesOf<Steps extends ReadonlyArray<AnyStep>> = ResultRecipeOfStep<
   Steps[number]
->[0]
+>
+
+type OperationStepModel<Steps extends ReadonlyArray<AnyStep>> =
+  ResultRecipeModel<ResultRecipesOf<Steps>>
+
+type HasOperationStep<Steps extends ReadonlyArray<AnyStep>> = [
+  ResultRecipesOf<Steps>,
+] extends [never]
+  ? false
+  : true
+
+type RequireOperationStep<Steps extends ReadonlyArray<AnyStep>> =
+  HasOperationStep<Steps> extends true ? unknown : never
+
+type CommonOperationSteps<StepValue> = ReadonlyArray<
+  Extract<StepValue, AnyStep>
+>
+
+type StepsForModel<Steps extends ReadonlyArray<AnyStep>, Model> =
+  Steps extends ReadonlyArray<
+    (model: GraphInput<Model, CombinedGraphRequirement<Steps>>) => any
+  >
+    ? [ResolvedStepReturn<Steps[number]>] extends [ComposableReturnValue<Model>]
+      ? unknown
+      : never
+    : never
+
+type StepsWithoutOutMessage<Steps extends ReadonlyArray<unknown>> = [
+  ResolvedStepReturn<Extract<Steps[number], AnyStep>>,
+] extends [ReturnValue<any, any, any>]
+  ? unknown
+  : never
+
+type CombinedStepModel<Steps extends ReadonlyArray<AnyStep>> = GraphModelOf<
+  Steps[number]
+>
 
 type CombinedStepMessage<Steps extends ReadonlyArray<AnyStep>> = CommandMessage<
-  ReturnOf<Steps[number]>
+  ResolvedStepReturn<Steps[number]>
 >
 
 type CombinedStepRequirements<Steps extends ReadonlyArray<AnyStep>> =
-  CommandRequirements<ReturnOf<Steps[number]>>
+  CommandRequirements<ResolvedStepReturn<Steps[number]>>
 
 type CombinedStepRegistrationEvidence<Steps extends ReadonlyArray<AnyStep>> =
-  RegistrationEvidenceOf<ReturnOf<Steps[number]>>
+  | RegistrationEvidenceOf<ResolvedStepReturn<Steps[number]>>
+  | CombinedGraphRequirement<Steps>
+
+type CombinedStepOutputFor<
+  Model,
+  Steps extends ReadonlyArray<AnyStep>,
+> = WithRegistrationEvidence<
+  Return<Model, CombinedStepMessage<Steps>, CombinedStepRequirements<Steps>>,
+  CombinedStepRegistrationEvidence<Steps>
+>
+
+type CombinedStepRecipe<
+  Model,
+  Steps extends ReadonlyArray<AnyStep>,
+> = ResultRecipe<
+  Model,
+  CombinedStepMessage<Steps>,
+  never,
+  CombinedStepRequirements<Steps>,
+  CombinedStepRegistrationEvidence<Steps>
+>
 
 /** Composes a list of update steps into one. Each step runs against the
  *  Model the previous step produced, and every step's Commands are
@@ -524,15 +810,83 @@ type CombinedStepRegistrationEvidence<Steps extends ReadonlyArray<AnyStep>> =
  *      refreshNote(note.id),
  *      refreshAllNotes,
  *      refreshNotebookNotes(note.maybeNotebookId),
- *      ...(hasMoved ? [refreshNotebookNotes(previousNotebookId)] : []),
+ *      ...Array.filter([refreshNotebookNotes(previousNotebookId)], () => hasMoved),
  *      showToast('Success', `Updated ${note.title}`),
  *    ])
  *  ``` */
 export const combine: {
   <const Steps extends NonEmptySteps>(
-    steps: Steps & StepsForModel<Steps, FirstStepModel<Steps>>,
+    steps: Steps &
+      StepsForModel<Steps, OperationStepModel<Steps>> &
+      RequireOperationStep<Steps> &
+      StepsWithoutOutMessage<NoInfer<Steps>>,
   ): (
-    model: FirstStepModel<Steps>,
+    model: GraphInput<
+      OperationStepModel<Steps>,
+      CombinedGraphRequirement<Steps>
+    >,
+  ) => CombinedStepRecipe<OperationStepModel<Steps>, Steps>
+  <ModelInput, const Steps extends NonEmptySteps>(
+    model: ModelInput &
+      GraphInput<
+        GraphModelOfValue<ModelInput>,
+        CombinedGraphRequirement<Steps>
+      >,
+    steps: Steps &
+      StepsForModel<Steps, GraphModelOfValue<ModelInput>> &
+      RequireOperationStep<Steps> &
+      StepsWithoutOutMessage<NoInfer<Steps>>,
+  ): CombinedStepRecipe<GraphModelOfValue<ModelInput>, Steps>
+  <StepValue>(
+    steps: ReadonlyArray<StepValue> &
+      StepsForModel<
+        CommonOperationSteps<StepValue>,
+        OperationStepModel<CommonOperationSteps<StepValue>>
+      > &
+      RequireOperationStep<CommonOperationSteps<StepValue>> &
+      StepsWithoutOutMessage<ReadonlyArray<StepValue>>,
+  ): (
+    model: GraphInput<
+      OperationStepModel<CommonOperationSteps<StepValue>>,
+      CombinedGraphRequirement<CommonOperationSteps<StepValue>>
+    >,
+  ) =>
+    | CombinedStepOutputFor<
+        OperationStepModel<CommonOperationSteps<StepValue>>,
+        CommonOperationSteps<StepValue>
+      >
+    | CombinedStepRecipe<
+        OperationStepModel<CommonOperationSteps<StepValue>>,
+        CommonOperationSteps<StepValue>
+      >
+  <ModelInput, StepValue>(
+    model: ModelInput &
+      GraphInput<
+        GraphModelOfValue<ModelInput>,
+        CombinedGraphRequirement<CommonOperationSteps<StepValue>>
+      >,
+    steps: ReadonlyArray<StepValue> &
+      StepsForModel<
+        CommonOperationSteps<StepValue>,
+        GraphModelOfValue<ModelInput>
+      > &
+      RequireOperationStep<CommonOperationSteps<StepValue>> &
+      StepsWithoutOutMessage<ReadonlyArray<StepValue>>,
+  ):
+    | CombinedStepOutputFor<
+        GraphModelOfValue<ModelInput>,
+        CommonOperationSteps<StepValue>
+      >
+    | CombinedStepRecipe<
+        GraphModelOfValue<ModelInput>,
+        CommonOperationSteps<StepValue>
+      >
+  <const Steps extends NonEmptySteps>(
+    steps: Steps &
+      StepsForModel<Steps, FirstStepModel<Steps>> &
+      StepsWithoutOutMessage<NoInfer<Steps>>,
+  ): (
+    model: GraphInput<FirstStepModel<Steps>, CombinedGraphRequirement<Steps>>,
   ) => WithRegistrationEvidence<
     Return<
       FirstStepModel<Steps>,
@@ -552,10 +906,52 @@ export const combine: {
     >,
     RegistrationEvidenceOf<StepReturns[number]>
   >
+  <ModelInput, const Steps extends ReadonlyArray<AnyStep>>(
+    model: ModelInput,
+    steps: number extends Steps['length']
+      ? [CombinedGraphRequirement<Steps>] extends [never]
+        ? Steps &
+            StepsForModel<Steps, GraphModelOfValue<ModelInput>> &
+            StepsWithoutOutMessage<NoInfer<Steps>>
+        : never
+      : never,
+  ): WithRegistrationEvidence<
+    Return<
+      GraphModelOfValue<ModelInput>,
+      CombinedStepMessage<Steps>,
+      CombinedStepRequirements<Steps>
+    >,
+    CombinedStepRegistrationEvidence<Steps>
+  >
+  <
+    ModelInput,
+    const Steps extends ContextualLeadingSteps<GraphModelOfValue<ModelInput>>,
+  >(
+    model: ModelInput &
+      GraphInput<
+        GraphModelOfValue<ModelInput>,
+        CombinedGraphRequirement<Steps>
+      >,
+    steps: Steps &
+      StepsForModel<Steps, GraphModelOfValue<ModelInput>> &
+      StepsWithoutOutMessage<NoInfer<Steps>>,
+  ): WithRegistrationEvidence<
+    Return<
+      GraphModelOfValue<ModelInput>,
+      CombinedStepMessage<Steps>,
+      CombinedStepRequirements<Steps>
+    >,
+    CombinedStepRegistrationEvidence<Steps>
+  >
   <const Steps extends ReadonlyArray<AnyStep>>(
-    steps: Steps & StepsForModel<Steps, CombinedStepModel<Steps>>,
+    steps: Steps &
+      StepsForModel<Steps, CombinedStepModel<Steps>> &
+      StepsWithoutOutMessage<NoInfer<Steps>>,
   ): (
-    model: CombinedStepModel<Steps>,
+    model: GraphInput<
+      CombinedStepModel<Steps>,
+      CombinedGraphRequirement<Steps>
+    >,
   ) => WithRegistrationEvidence<
     Return<
       CombinedStepModel<Steps>,
@@ -564,11 +960,20 @@ export const combine: {
     >,
     CombinedStepRegistrationEvidence<Steps>
   >
-  <Model, const Steps extends ReadonlyArray<AnyStep>>(
-    model: Model,
-    steps: Steps & StepsForModel<Steps, Model>,
+  <const Steps extends NonEmptySteps>(
+    model: GraphInput<
+      CombinedStepModel<Steps>,
+      CombinedGraphRequirement<Steps>
+    >,
+    steps: Steps &
+      StepsForModel<Steps, CombinedStepModel<Steps>> &
+      StepsWithoutOutMessage<NoInfer<Steps>>,
   ): WithRegistrationEvidence<
-    Return<Model, CombinedStepMessage<Steps>, CombinedStepRequirements<Steps>>,
+    Return<
+      CombinedStepModel<Steps>,
+      CombinedStepMessage<Steps>,
+      CombinedStepRequirements<Steps>
+    >,
     CombinedStepRegistrationEvidence<Steps>
   >
   <Model, Message, R = never>(
@@ -578,20 +983,65 @@ export const combine: {
     model: Model,
     steps: ReadonlyArray<Step<Model, Message, R>>,
   ): Return<Model, Message, R>
-} = Function.dual(
-  2,
-  <Model, Message, R>(
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+} = ((modelOrSteps: unknown, maybeSteps?: ReadonlyArray<AnyStep>) => {
+  const continueRun = <Model, Message, R>(
+    current: Return<Model, Message, R>,
+    steps: ReadonlyArray<AnyStep>,
+    startIndex: number,
+    resolvePending = false,
+  ):
+    | Return<Model, Message, R>
+    | ResultRecipeFor<Model, Return<Model, Message, R>> => {
+    let index = startIndex
+    while (true) {
+      const maybeStep = Array.get(steps, index)
+      if (Option.isNone(maybeStep)) {
+        return current
+      }
+
+      const step = maybeStep.value
+      const output = step(current.model)
+      if (isResultRecipe(output) && !resolvePending) {
+        return makeResultRecipe<Model, Return<Model, Message, R>>(
+          model =>
+            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+            resolveOperationOutput(
+              continueRun({ model }, steps, 0, true),
+              model,
+            ) as Return<Model, Message, R>,
+        )
+      }
+
+      const next = resolvePending
+        ? resolveOperationOutput(output, current.model)
+        : output
+      current = {
+        model: next.model,
+        commands: [...(current.commands ?? []), ...(next.commands ?? [])],
+      }
+      index += 1
+    }
+  }
+
+  const run = <Model, Message, R>(
     model: Model,
-    steps: ReadonlyArray<Step<Model, Message, R>>,
-  ): Return<Model, Message, R> => {
+    steps: ReadonlyArray<AnyStep>,
+  ):
+    | Return<Model, Message, R>
+    | ResultRecipeFor<Model, Return<Model, Message, R>> => {
     const seed: Return<Model, Message, R> = { model }
-    return Array.reduce(steps, seed, (current, step) => {
-      const next = step(current.model)
-      const commands = [...(current.commands ?? []), ...(next.commands ?? [])]
-      return { model: next.model, commands }
-    })
-  },
-)
+    return continueRun(seed, steps, 0)
+  }
+
+  if (maybeSteps === undefined) {
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const steps = modelOrSteps as ReadonlyArray<AnyStep>
+    return (model: unknown) => run(model, steps)
+  }
+
+  return run(modelOrSteps, maybeSteps)
+}) as never
 
 /** The four capabilities that make one cache field revalidatable.
  *

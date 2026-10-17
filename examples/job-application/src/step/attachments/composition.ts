@@ -50,6 +50,6 @@ export const AdditionalFilesDropBinding = Attachments.bindChild(
   },
 )
 
-export const AttachmentsComposition = Attachments.toComposition({
+export const AttachmentsComposition = Attachments.makeComposition({
   childBindings: [ResumeDropBinding, AdditionalFilesDropBinding],
 })

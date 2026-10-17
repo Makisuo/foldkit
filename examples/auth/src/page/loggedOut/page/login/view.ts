@@ -86,7 +86,7 @@ const fieldView = (
   )
 }
 
-export const view = LoginComposition.view((model, h) => {
+export const view = LoginComposition.makeView((model, h) => {
   const canSubmit = isFormValid(model) && !model.isSubmitting
 
   return h.div(

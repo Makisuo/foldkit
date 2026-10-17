@@ -6,6 +6,7 @@ import { modifyFields } from '../struct/index.js'
 import * as Update from '../update/index.js'
 import type { BindingRequirement } from './binding.js'
 import { define } from './define.js'
+import type { BindingInitRecipe } from './initRecipe.js'
 
 const CounterModel = Schema.Struct({ count: Schema.Number })
 const CounterMessage = defineMessageUnion({ ClickedReset: {} })
@@ -19,10 +20,10 @@ const reset = ResetCounter.step(model => ({
   model: modifyFields(model, { count: () => 0 }),
   outMessage: CounterOutMessage.Reset(),
 }))
-const ResetCounterComposition = ResetCounter.toComposition()
-const block = ResetCounterComposition.toBlock({
+const ResetCounterComposition = ResetCounter.makeComposition()
+const block = ResetCounterComposition.makeBlock({
   init: (count: number) => ({ model: CounterModel.make({ count }) }),
-  update: ResetCounterComposition.update((model, _message) => reset(model)),
+  update: ResetCounterComposition.makeUpdate((model, _message) => reset(model)),
   expose: { reset },
   EffectsLayer: Layer.empty,
 })
@@ -145,10 +146,10 @@ const record = SequencedCounter.step(model => ({
 const multiply = SequencedCounter.step((model, factor: number) => ({
   model: modifyFields(model, { count: count => count * factor }),
 }))
-const SequencedCounterComposition = SequencedCounter.toComposition()
-const sequencedCounterBlock = SequencedCounterComposition.toBlock({
+const SequencedCounterComposition = SequencedCounter.makeComposition()
+const sequencedCounterBlock = SequencedCounterComposition.makeBlock({
   init: (count: number) => ({ model: { count } }),
-  update: SequencedCounterComposition.update(model => ({ model })),
+  update: SequencedCounterComposition.makeUpdate(model => ({ model })),
   expose: { add, record, multiply },
   EffectsLayer: Layer.empty,
   hostHandlers: [RecordCount],
@@ -169,29 +170,40 @@ const SequencedCounterBinding = SequencedParent.bindChild(
     write: (model, nextChild) =>
       modifyFields(model, { child: () => nextChild }),
     parentMessage: SequencedParentMessage.GotSequencedCounterMessage,
+    fromParentMessage: false,
   },
 )
 
 type CommandMessageOf<Output> =
-  Output extends Readonly<{
-    commands?: infer Commands
-  }>
-    ? NonNullable<Commands> extends Update.Commands<
-        infer CommandMessage,
-        infer _Requirements
-      >
-      ? CommandMessage
+  Output extends Update.ResultRecipe<any, infer Message, any, any, any>
+    ? Message
+    : Output extends Readonly<{
+          commands?: infer Commands
+        }>
+      ? NonNullable<Commands> extends Update.Commands<
+          infer CommandMessage,
+          infer _Requirements
+        >
+        ? CommandMessage
+        : never
       : never
-    : never
 
 if (false) {
   const boundCounterInit = BoundCounterBinding.init({
     args: [1],
     toParentModel: toCounterParentModel,
   })
-  expectTypeOf(boundCounterInit.model).toEqualTypeOf<Model>()
+  // @ts-expect-error Passive child initialization does not expose a Model.
+  boundCounterInit.model
   expectTypeOf<
-    Update.RegistrationEvidenceOf<typeof boundCounterInit>
+    typeof boundCounterInit extends BindingInitRecipe<
+      Model,
+      Message,
+      never,
+      infer Evidence
+    >
+      ? Evidence
+      : never
   >().toEqualTypeOf<BindingRequirement<'ResetCounter', typeof block>>()
   expectTypeOf<
     Update.RequirementsOf<() => typeof boundCounterInit>
@@ -201,18 +213,21 @@ if (false) {
       args: [count],
       toParentModel: toCounterParentModel,
     })
-    return {
-      model: counterInit.model,
-      // @ts-expect-error An explicit Return cannot erase child registration evidence.
-      commands: counterInit.commands,
-    }
+    // @ts-expect-error An explicit Return cannot erase passive initialization.
+    return counterInit
   }
   void forwardBoundInit
   expectTypeOf<
     CommandMessageOf<ReturnType<typeof BoundCounterBinding.fold>>
   >().toEqualTypeOf<Message>()
-  expectTypeOf(EntriesBinding.fold).parameters.toEqualTypeOf<
-    [model: Model, key: number, message: typeof CounterMessage.Type]
+  expectTypeOf<
+    Update.GraphModelOf<typeof EntriesBinding.fold>
+  >().toEqualTypeOf<Model>()
+  expectTypeOf<
+    Parameters<typeof EntriesBinding.fold>[1]
+  >().toEqualTypeOf<number>()
+  expectTypeOf<Parameters<typeof EntriesBinding.fold>[2]>().toEqualTypeOf<
+    typeof CounterMessage.Type
   >()
   expectTypeOf(EntriesBinding.reset).parameters.toEqualTypeOf<[key: number]>()
 
@@ -221,6 +236,7 @@ if (false) {
     args: [2],
     toParentModel: counter => toEntryParentModel(1, counter),
   })
+  // @ts-expect-error A raw Model cannot execute an unregistered connected fold.
   EntriesBinding.fold(initialModel, 1, CounterMessage.ClickedReset())
   EntriesBinding.reset(1)
 
@@ -281,11 +297,35 @@ if (false) {
   })
 }
 
+const StaticComposition = Parent.makeComposition({
+  childBindings: [BoundCounterBinding],
+})
+const staticParent = StaticComposition.makeBlock({
+  init: () => ({ model: initialModel }),
+  update: StaticComposition.makeUpdate(),
+  expose: { reset: Parent.step(() => BoundCounterBinding.reset()) },
+})
+const KeyedComposition = Parent.makeComposition({
+  childBindings: [EntriesBinding],
+})
+const keyedParent = KeyedComposition.makeBlock({
+  init: () => ({ model: initialModel }),
+  update: KeyedComposition.makeUpdate((model, message) =>
+    EntriesBinding.fold(model, 1, message.message),
+  ),
+  expose: {
+    reset: Parent.step((_model, id: number) => EntriesBinding.reset(id)),
+  },
+})
+
 describe('bound OutMessage context', () => {
   it('preserves the previous parent Model for static folds and exposed operations', () => {
     const results = [
-      BoundCounterBinding.fold(initialModel, CounterMessage.ClickedReset()),
-      BoundCounterBinding.reset()(initialModel),
+      staticParent.update(
+        initialModel,
+        Message.GotCounterMessage({ message: CounterMessage.ClickedReset() }),
+      ),
+      staticParent.expose.reset(initialModel),
     ]
     for (const result of results) {
       expect(result.model.counter.count).toBe(0)
@@ -295,8 +335,11 @@ describe('bound OutMessage context', () => {
 
   it('preserves the previous parent Model for keyed folds and exposed operations', () => {
     const results = [
-      EntriesBinding.fold(initialModel, 1, CounterMessage.ClickedReset()),
-      EntriesBinding.reset(1)(initialModel),
+      keyedParent.update(
+        initialModel,
+        Message.GotCounterMessage({ message: CounterMessage.ClickedReset() }),
+      ),
+      keyedParent.expose.reset(initialModel, 1),
     ]
     for (const result of results) {
       expect(result.model.entries).toEqual([{ id: 1, counter: { count: 0 } }])
@@ -312,12 +355,23 @@ describe('bound OutMessage context', () => {
 
 describe('bound Step sequencing', () => {
   it('threads each projected Step Model forward and retains Commands in order', () => {
-    const result = Update.combine([
-      SequencedCounterBinding.add(2),
-      SequencedCounterBinding.record(),
-      SequencedCounterBinding.multiply(3),
-      SequencedCounterBinding.record(),
-    ])({ child: { count: 3 } })
+    const SequencedComposition = SequencedParent.makeComposition({
+      childBindings: [SequencedCounterBinding],
+    })
+    const update = SequencedComposition.makeUpdate(model =>
+      Update.combine(model, [
+        SequencedCounterBinding.add(2),
+        SequencedCounterBinding.record(),
+        SequencedCounterBinding.multiply(3),
+        SequencedCounterBinding.record(),
+      ]),
+    )
+    const result = update(
+      SequencedParentModel.make({ child: { count: 3 } }),
+      SequencedParentMessage.GotSequencedCounterMessage({
+        message: SequencedCounterMessage.CompletedRecordCount(),
+      }),
+    )
 
     expect(result.model.child.count).toBe(15)
     expect(result.commands?.map(command => command.name)).toEqual([

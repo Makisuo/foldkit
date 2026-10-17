@@ -1,7 +1,7 @@
 import { HomeComposition } from './composition'
 
-export const init = HomeComposition.init(() => ({
+export const init = HomeComposition.makeInit(() => ({
   model: {
-    activeDemoTab: 'Architecture',
+    activeDemoTab: 'AsyncCounter',
   },
 }))

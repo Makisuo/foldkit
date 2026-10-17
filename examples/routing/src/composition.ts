@@ -10,7 +10,7 @@ export const PeoplePageBinding = Application.bindChild(People.block, {
   init: { args: route => [route] },
 })
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [PeoplePageBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

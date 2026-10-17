@@ -16,6 +16,6 @@ const saveButton = (h: ProfileViewBuilder) =>
 const importedBuilderSaveButton = (h: ImportedProfileViewBuilder) =>
   h.button([h.OnClick(Message.ClickedSaveFromImportedBuilder())])
 
-export const view = ProfileComposition.view((_model, h) =>
+export const view = ProfileComposition.makeView((_model, h) =>
   h.div([], [saveButton(h), importedBuilderSaveButton(h)]),
 )

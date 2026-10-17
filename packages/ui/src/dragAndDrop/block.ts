@@ -146,7 +146,7 @@ const DragAndDrop = Block.define('DragAndDrop', {
   OutMessage,
 })
 
-const DragAndDropComposition = DragAndDrop.toComposition()
+const DragAndDropComposition = DragAndDrop.makeComposition()
 
 // INIT
 
@@ -317,7 +317,7 @@ export const ResolveKeyboardMove = DragAndDrop.command('ResolveKeyboardMove', {
 
 /** Processes a drag-and-drop Message and returns the next Model, optional
  *  Commands, and an optional OutMessage for the parent. */
-export const update = DragAndDropComposition.update((model, message) =>
+export const update = DragAndDropComposition.makeUpdate((model, message) =>
   Message.match(message, {
     PressedDraggable: ({ itemId, containerId, index, screenX, screenY }) => ({
       model: modifyFields(model, {
@@ -400,10 +400,11 @@ export const update = DragAndDropComposition.update((model, message) =>
       ),
 
     CancelledDrag: () => {
-      const maybeFocusCommand = Option.liftPredicate(
-        model.dragState,
-        dragState => dragState._tag === 'KeyboardDragging',
-      ).pipe(Option.map(({ itemId }) => FocusItem({ itemId })))
+      const commands = pipe(
+        [model.dragState],
+        Array.filter(DragState.guards.KeyboardDragging),
+        Array.map(({ itemId }) => FocusItem({ itemId })),
+      )
 
       const maybeOutMessage = Option.liftPredicate(
         model.dragState._tag,
@@ -412,7 +413,7 @@ export const update = DragAndDropComposition.update((model, message) =>
 
       const dragCancellation = {
         model: modifyFields(model, { dragState: () => DragState.Idle() }),
-        commands: Option.toArray(maybeFocusCommand),
+        commands,
       }
       return pipe(
         dragCancellation,
@@ -924,8 +925,8 @@ export const maybeDropTarget = (
   )
 
 /** Complete DragAndDrop Block definition for connecting to a parent. */
-export const block = DragAndDropComposition.toBlock({
-  init: DragAndDropComposition.init((config: InitConfig) => ({
+export const block = DragAndDropComposition.makeBlock({
+  init: DragAndDropComposition.makeInit((config: InitConfig) => ({
     model: init(config),
   })),
   update,

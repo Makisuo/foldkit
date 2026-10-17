@@ -21,7 +21,7 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 const Counter = Block.define('Counter', { Model, Message })
-const CounterComposition = Counter.toComposition()
+const CounterComposition = Counter.makeComposition()
 
 const subscriptions = Counter.subscriptions(entry => ({
   gameClockTicks: entry(
@@ -46,7 +46,7 @@ const subscriptions = Counter.subscriptions(entry => ({
   ),
 }))
 
-const update = CounterComposition.update((model, message) =>
+const update = CounterComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + model.step }),
@@ -65,7 +65,7 @@ const update = CounterComposition.update((model, message) =>
   }),
 )
 
-const view = CounterComposition.view((model, h) => ({
+const view = CounterComposition.makeView((model, h) => ({
   title: `Count: ${model.count}`,
   body: h.div(
     [],

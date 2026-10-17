@@ -5,7 +5,6 @@ import {
   ArrayChildBinding,
   CallableModel,
   CallableOptionalBinding,
-  CallableRequiredBinding,
   ChildMessage,
   CustomIgnoredMessageBinding,
   InitializedArgumentBinding,
@@ -19,8 +18,11 @@ import {
   RequiredBinding,
   SuspendedOptionalBinding,
   composition,
+  foldOptional,
   initial,
   initialize,
+  setCallableCount,
+  setOptionalCount,
 } from './direct-field.accepted.js'
 
 type Equal<Left, Right> =
@@ -91,34 +93,41 @@ export type InitializedModelFitsParent = Assert<
 export type OperationArgs = Assert<
   Equal<Parameters<typeof OptionalBinding.setCount>, [count: number]>
 >
-const result = OptionalBinding.setCount(2)(initial)
+const result = setOptionalCount(initial, ParentMessage.IgnoredChildMessage(), 2)
 export type ParentReturn = Assert<Equal<typeof result.model, typeof Model.Type>>
 export type Builder = Block.ViewBuilderFor<typeof composition>
-OptionalBinding.fold(initial, ChildMessage.UpdatedCount({ count: 3 }))
-OptionalBinding.setCount(4)(initial)
-SuspendedOptionalBinding.fold(initial, ChildMessage.UpdatedCount({ count: 3 }))
-NestedRequiredBinding.fold(initial, ChildMessage.UpdatedCount({ count: 3 }))
-NestedOptionalBinding.fold(initial, ChildMessage.UpdatedCount({ count: 3 }))
-ArrayChildBinding.fold(initial, ChildMessage.UpdatedCount({ count: 3 }))
+foldOptional(
+  initial,
+  ParentMessage.IgnoredChildMessage(),
+  ChildMessage.UpdatedCount({ count: 3 }),
+)
 ParentMessage.GotChildMessage({
   message: ChildMessage.UpdatedCount({ count: 1 }),
 })
 // @ts-expect-error Emitted exposed operation arguments retain their exact types.
 OptionalBinding.setCount('wrong')
-OptionalBinding.setCount(1)({
-  child: { count: 1 },
-  argumentChild: { count: 2 },
-  maybeArgumentChild: Option.none(),
-  maybeChild: Option.none(),
-  // @ts-expect-error Emitted parent operations retain the parent Model.
-  route: 'Foreign',
-})
+setOptionalCount(
+  {
+    child: { count: 1 },
+    argumentChild: { count: 2 },
+    maybeArgumentChild: Option.none(),
+    maybeChild: Option.none(),
+    // @ts-expect-error Emitted parent operations retain the parent Model.
+    route: 'Foreign',
+  },
+  ParentMessage.IgnoredChildMessage(),
+  1,
+)
 
 const callableInitial = CallableModel({
   child: { count: 0 },
   maybeChild: Option.none(),
 })
-const callableResult = CallableRequiredBinding.setCount(1)(callableInitial)
+const callableResult = setCallableCount(
+  callableInitial,
+  ParentMessage.IgnoredChildMessage(),
+  1,
+)
 export type CallableParentReturn = Assert<
   Equal<typeof callableResult.model, typeof CallableModel.Type>
 >

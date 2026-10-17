@@ -17,7 +17,7 @@ const routeTitle = (route: Model['route']): string =>
     NotFound: () => 'Not Found | Typing Game',
   })
 
-export const view = ApplicationComposition.view((model, h) => {
+export const view = ApplicationComposition.makeView((model, h) => {
   const content = ApplicationRoute.match(model.route, {
     Home: () =>
       h.block(

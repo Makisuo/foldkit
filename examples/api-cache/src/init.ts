@@ -4,7 +4,7 @@ import { FetchPosts } from './command'
 import { ApplicationComposition } from './composition'
 import { PostsData, StatsData } from './model'
 
-export const init = ApplicationComposition.init(() => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: {
     activeTab: 'Posts',
     posts: PostsData.Loading(),

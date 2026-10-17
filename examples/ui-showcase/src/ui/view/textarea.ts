@@ -12,7 +12,7 @@ const labelClassName = 'block text-sm font-medium text-gray-700'
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-export const view = UiComposition.view((model, h) => {
+export const view = UiComposition.makeView((model, h) => {
   const basicTextareaView = (
     attributes: Textarea.TextareaAttributes<Message>,
   ): Html =>

@@ -64,17 +64,17 @@ The parent wraps the Query's Message, and the Composition routes that wrapper ba
 
 #### Binding Configuration
 
-The `field` form tells `bindChild` which exact field contains the Query Model or `Option<QueryModel>`. `parentMessage` supplies the parent's `Got*Message` constructor, which wraps the result Message produced by the Query's fetch Command. The Binding returns the child fold and Query operations expressed in the parent Model and Message types. These functions return pure Steps or update results; they do not perform Effects.
+The `field` form tells `bindChild` which exact field contains the Query Model or `Option<QueryModel>`. `parentMessage` supplies the parent's `Got*Message` constructor, which wraps the result Message produced by the Query's fetch Command. The Binding returns the child fold and Query operations expressed in the parent Model and Message types. Its projected operations return connected Steps whose Model input requires the registering Composition's graph. Apply them inside `makeUpdate`, include them in `makeInit` startup, or preserve them through a Definition-owned Step. Return or compose their opaque results intact; the Composition consumes them during checked execution. They do not perform Effects.
 
 #### Bound Operations
 
 - The parent Composition delegates `GotPostsMessage` to the Binding and writes the returned Query Model back to `model.posts`.
-- `PostsBinding.loadIfMissing()`, `PostsBinding.revalidate()`, and `PostsBinding.revalidateOrLoad()` return parent Steps that apply their loading rule to the current `AsyncData`. When the rule calls for a request, the update result contains the next parent Model and the Query’s `Fetch` Command. Otherwise it contains only the unchanged Model.
-- `posts.reset()` returns a parent Step whose result contains an `Idle` Query value while preserving the Query's request identity.
+- `PostsBinding.loadIfMissing()`, `PostsBinding.revalidate()`, and `PostsBinding.revalidateOrLoad()` return connected parent Steps that apply their loading rule to the current `AsyncData`. Their connected results expose no `.model` or `.commands` before the Composition consumes them. After checked execution, a requested load produces the readable next parent Model and the Query's `Fetch` Command; otherwise the readable result contains only the unchanged Model.
+- `PostsBinding.reset()` returns a connected parent Step. After checked execution, the Query value is `Idle` and retains its request identity.
 
 #### Optional and Nested Queries
 
-Use `field` when an optional Query occupies an exact Option field. Its bound operations return the parent Model unchanged and no Commands while the field is `None`; they never insert a missing Query Model. Add `presentWhen` when a parent condition governs the whole direct child while retaining its stored Model. Use explicit `read` and `write` when the Query is nested, spans tagged parent variants, or needs a custom write. When `read` returns `None`, it has the same absent behavior.
+Use `field` when an optional Query occupies an exact Option field. After checked execution, its bound operations produce the unchanged parent Model and no Commands while the field is `None`; they never insert a missing Query Model. Add `presentWhen` when a parent condition governs the whole direct child while retaining its stored Model. Use explicit `read` and `write` when the Query is nested, spans tagged parent variants, or needs a custom write. When `read` returns `None`, it has the same absent behavior.
 
 #### Starting a Load
 

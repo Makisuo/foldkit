@@ -7,7 +7,7 @@ const SettingsBinding = Parent.bindChild(Settings.block, {
   parentMessage: Message.GotSettingsMessage,
 })
 
-const update = ParentComposition.update((model, message) =>
+const update = ParentComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedResetSettings: () =>
       SettingsBinding.fold(

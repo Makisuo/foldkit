@@ -185,7 +185,7 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
    *  release offset to `100vw` or `-100vw` when leave animation begins.
    *  The offset lives on `translate` rather than `transform` so it composes
    *  with your `transform` animations instead of overriding them. */
-  const view = ToastComposition.view.withInputs<ViewInputs>(
+  const view = ToastComposition.makeView.withInputs<ViewInputs>(
     (model, viewInputs, h) => {
       const { id, entries } = model
       const {
@@ -325,7 +325,7 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     },
   )
 
-  const block = ToastComposition.toBlock({
+  const block = ToastComposition.makeBlock({
     init: blockInit,
     update: toastRuntime.update,
     view,

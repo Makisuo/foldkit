@@ -39,7 +39,7 @@ export type Message = typeof Message.Type
 
 export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.toComposition()
+export const ApplicationComposition = Application.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
@@ -78,7 +78,7 @@ export const DetermineTickTime = Application.command('DetermineTickTime', {
   },
 })
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedStart: () => ({
       model,
@@ -119,7 +119,7 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-export const init = ApplicationComposition.init(() => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: {
     elapsedMs: 0,
     isRunning: false,
@@ -175,7 +175,7 @@ const formatTime = (ms: number): string => {
 
 const floorAndPad = flow(Math.floor, v => v.toString(), String.padStart(2, '0'))
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: `Stopwatch ${formatTime(model.elapsedMs)}`,
   body: h.div(
     [h.Class('min-h-screen bg-gray-200 flex items-center justify-center')],

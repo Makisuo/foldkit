@@ -46,19 +46,19 @@ const ActivityListBinding = ActivityListExample.bindChild(ActivityList, {
   },
 })
 
-const ActivityListExampleComposition = ActivityListExample.toComposition({
+const ActivityListExampleComposition = ActivityListExample.makeComposition({
   childBindings: [ActivityListBinding],
 })
 
 // In your init function, give the list a unique id and a row height in
 // pixels. All rows share this height:
-const init = ActivityListExampleComposition.init(() => ({
+const init = ActivityListExampleComposition.makeInit(() => ({
   model: {
     activities: [],
   },
 }))
 
-const update = ActivityListExampleComposition.update((model, message) =>
+const update = ActivityListExampleComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedScrollActivityListToMiddle: () =>
       ActivityListBinding.scrollToIndex(500)(model),
@@ -71,7 +71,7 @@ const update = ActivityListExampleComposition.update((model, message) =>
 // fixed height the container grows to fit its children and never scrolls.
 // The component sets only `overflow: auto` inline; everything else is
 // yours:
-const view = ActivityListExampleComposition.view(
+const view = ActivityListExampleComposition.makeView(
   (model, h) =>
     h.block(
       ActivityListBinding.embedView({

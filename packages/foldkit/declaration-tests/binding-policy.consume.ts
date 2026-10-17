@@ -49,25 +49,27 @@ type WidenedBinding<Policy> = Block.AnyBinding &
   Block.BindingPolicyEvidence<Policy>
 
 // @ts-expect-error Emitted policy must return the parent Model.
-Parent.toComposition({ childBindings: [WrongModelBinding] })
+Parent.makeComposition({ childBindings: [WrongModelBinding] })
 // @ts-expect-error Emitted policy cannot return foreign Command Messages.
-Parent.toComposition({ childBindings: [ForeignMessageBinding] })
+Parent.makeComposition({ childBindings: [ForeignMessageBinding] })
 // @ts-expect-error Emitted policy cannot return undeclared parent OutMessages.
-Parent.toComposition({ childBindings: [UndeclaredOutMessageBinding] })
+Parent.makeComposition({ childBindings: [UndeclaredOutMessageBinding] })
 // @ts-expect-error Emitted union members must return parent Command Messages.
-Parent.toComposition({ childBindings: [UnionForeignBinding] })
+Parent.makeComposition({ childBindings: [UnionForeignBinding] })
 // @ts-expect-error Emitted optional Commands must return parent Messages.
-Parent.toComposition({ childBindings: [OptionalForeignBinding] })
+Parent.makeComposition({ childBindings: [OptionalForeignBinding] })
 // @ts-expect-error Emitted policy registrations must belong to this Composition.
-Parent.toComposition({ childBindings: [RegisteredPolicyBinding] })
+Parent.makeComposition({ childBindings: [RegisteredPolicyBinding] })
 // @ts-expect-error Emitted forwarded OutMessages must belong to the parent.
-DeclarationPolicyForward.toComposition({ childBindings: [WrongForwardBinding] })
+DeclarationPolicyForward.makeComposition({
+  childBindings: [WrongForwardBinding],
+})
 
 type ErasedBinding = Block.AnyBinding &
   Block.ParentBindingContract<ParentModel, typeof ParentMessage.Type, never>
 const erasedWrongModelBinding: ErasedBinding = WrongModelBinding
 // @ts-expect-error AnyBinding cannot erase emitted policy validation.
-Parent.toComposition({ childBindings: [erasedWrongModelBinding] })
+Parent.makeComposition({ childBindings: [erasedWrongModelBinding] })
 
 // @ts-expect-error Emitted inferred Command channels cannot be erased.
 const inferredCommandsErased: WidenedBinding<
@@ -147,8 +149,8 @@ const unionFieldErased: Block.BindingPolicyEvidence<EmptyUnionPolicy> =
   UnionForeignBinding
 void unionFieldErased
 
-DirectParent.toComposition({ childBindings: [DirectDomainBinding] })
-Parent.toComposition({ childBindings: [KeyedDomainBinding] })
+DirectParent.makeComposition({ childBindings: [DirectDomainBinding] })
+Parent.makeComposition({ childBindings: [KeyedDomainBinding] })
 const retainedUnionEvidence: Block.BindingPolicyEvidence<
   typeof unionForeignMessagePolicy
 > = UnionForeignBinding

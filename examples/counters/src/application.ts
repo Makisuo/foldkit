@@ -52,14 +52,14 @@ const CountersBinding = Application.bindChild(Counter.block, {
   },
 })
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [CountersBinding],
 })
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedAddCounter: () => {
       const id = `counter-${model.nextCounterId}`
@@ -81,7 +81,7 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-export const init = ApplicationComposition.init(() => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: { nextCounterId: INITIAL_COUNTER_COUNT },
 }))
 
@@ -124,7 +124,7 @@ const counterInstanceView = (
     ],
   )
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: `Counters (${model.counters.length})`,
   body: h.div(
     [

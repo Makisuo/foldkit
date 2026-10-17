@@ -14,13 +14,13 @@ export const OutMessage = defineMessageUnion({
   RestoredTheme: { theme: Theme },
 })
 
-const SettingsComposition = Settings.toComposition()
+const SettingsComposition = Settings.makeComposition()
 
-export const init = SettingsComposition.init(() => ({
+export const init = SettingsComposition.makeInit(() => ({
   model: Model.make({ theme: 'Light' }),
 }))
 
-export const update = SettingsComposition.update((model, message) =>
+export const update = SettingsComposition.makeUpdate((model, message) =>
   Message.match(message, {
     RestoredTheme: ({ theme }) => ({
       model: modifyFields(model, { theme: () => theme }),
@@ -35,7 +35,7 @@ export const restore = Settings.step((model, theme: Theme) =>
   update(model, Message.RestoredTheme({ theme })),
 )
 
-export const block = SettingsComposition.toBlock({
+export const block = SettingsComposition.makeBlock({
   init,
   update,
   expose: { restore },

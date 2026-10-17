@@ -2,7 +2,7 @@
 
 let socket: WebSocket | undefined
 
-const update = ApplicationComposition.update((model, message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     JoinedRoom: ({ roomId }) => {
       socket = new WebSocket(`/rooms/${roomId}`)

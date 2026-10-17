@@ -13,7 +13,7 @@ const prependWarning =
   (warnings: ReadonlyArray<SlowWarning>): ReadonlyArray<SlowWarning> =>
     pipe(warnings, Array.prepend(warning), Array.take(MAX_WARNING_COUNT))
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedRunUpdateWork: () => {
       burnCpu(UPDATE_WORK_MS)

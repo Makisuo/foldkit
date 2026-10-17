@@ -16,13 +16,13 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 const Counter = Block.define('Counter', { Model, Message })
-const CounterComposition = Counter.toComposition()
+const CounterComposition = Counter.makeComposition()
 
-export const init = CounterComposition.init(() => ({
+export const init = CounterComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
 }))
 
-export const update = CounterComposition.update((model, message) =>
+export const update = CounterComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: count => count - 1 }),
@@ -36,7 +36,7 @@ export const update = CounterComposition.update((model, message) =>
 const buttonStyle =
   'h-9 w-9 rounded-full border border-stone-300 text-lg leading-none text-stone-700 hover:bg-stone-100 transition cursor-pointer'
 
-export const view = CounterComposition.view((model, h) =>
+export const view = CounterComposition.makeView((model, h) =>
   h.div(
     [h.Class('flex items-center gap-4')],
     [
@@ -64,7 +64,7 @@ export const view = CounterComposition.view((model, h) =>
   ),
 )
 
-export const block = CounterComposition.toBlock({
+export const block = CounterComposition.makeBlock({
   init,
   update,
   view,

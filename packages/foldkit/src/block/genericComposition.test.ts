@@ -21,17 +21,17 @@ const makeGenericComplete = <const Id extends string>(id: Id) => {
     },
   })
   const definition = Feature.define({ Model, Message })
-  const composition = definition.toComposition()
+  const composition = definition.makeComposition()
 
-  return composition.toBlock({
+  return composition.makeBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
-    update: composition.update((model, message) =>
+    update: composition.makeUpdate((model, message) =>
       Message.match(message, {
         RequestedWork: () => ({ model, commands: [Work()] }),
         CompletedWork: () => ({ model }),
       }),
     ),
-    view: composition.view((model, h) => h.div([], [model.value])),
+    view: composition.makeView((model, h) => h.div([], [model.value])),
     EffectsLayer: Work.layer,
   })
 }
@@ -44,17 +44,17 @@ const makeGenericMissing = <const Id extends string>(id: Id) => {
     messages: [Message.CompletedWork],
   })
   const definition = Feature.define({ Model, Message })
-  const composition = definition.toComposition()
+  const composition = definition.makeComposition()
 
-  return composition.toBlock({
+  return composition.makeBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
-    update: composition.update((model, message) =>
+    update: composition.makeUpdate((model, message) =>
       Message.match(message, {
         RequestedWork: () => ({ model, commands: [Work()] }),
         CompletedWork: () => ({ model }),
       }),
     ),
-    view: composition.view((model, h) => h.div([], [model.value])),
+    view: composition.makeView((model, h) => h.div([], [model.value])),
     EffectsLayer: Layer.empty,
   })
 }

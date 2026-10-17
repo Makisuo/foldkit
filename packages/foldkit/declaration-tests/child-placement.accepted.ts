@@ -14,13 +14,13 @@ const DeclarationChildPlacementChild = Block.define(
   },
 )
 const DeclarationChildPlacementChildComposition =
-  DeclarationChildPlacementChild.toComposition()
+  DeclarationChildPlacementChild.makeComposition()
 
-export const ChildBlock = DeclarationChildPlacementChildComposition.toBlock({
-  init: DeclarationChildPlacementChildComposition.init(() => ({
+export const ChildBlock = DeclarationChildPlacementChildComposition.makeBlock({
+  init: DeclarationChildPlacementChildComposition.makeInit(() => ({
     model: ChildModel.make({ value: '' }),
   })),
-  update: DeclarationChildPlacementChildComposition.update(model => ({
+  update: DeclarationChildPlacementChildComposition.makeUpdate(model => ({
     model,
   })),
 })
@@ -129,7 +129,7 @@ export const EntriesByIdLengthBinding =
   })
 
 export const DeclarationChildPlacementParentComposition =
-  DeclarationChildPlacementParent.toComposition({
+  DeclarationChildPlacementParent.makeComposition({
     childBindings: [
       PrimaryBinding,
       SecondaryBinding,
@@ -140,7 +140,7 @@ export const DeclarationChildPlacementParentComposition =
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This second graph tests default placements under the same parent identity.
 export const DefaultPlacementComposition =
-  DeclarationChildPlacementParent.toComposition({
+  DeclarationChildPlacementParent.makeComposition({
     childBindings: [
       DefaultAccessorBinding,
       EntriesByIdBinding,
@@ -150,4 +150,4 @@ export const DefaultPlacementComposition =
 
 export const composeDynamicChildren = (
   childBindings: ReadonlyArray<typeof PrimaryBinding>,
-) => DeclarationChildPlacementParent.toComposition({ childBindings })
+) => DeclarationChildPlacementParent.makeComposition({ childBindings })

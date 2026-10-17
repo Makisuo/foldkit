@@ -70,20 +70,20 @@ const PeopleListboxBinding = PeoplePicker.bindChild(PeopleListbox, {
   outMessage: { fold: foldListboxMultiOutMessage },
 })
 
-const PeoplePickerComposition = PeoplePicker.toComposition({
+const PeoplePickerComposition = PeoplePicker.makeComposition({
   childBindings: [PeopleListboxBinding],
 })
 
 // Initialize the fields the parent owns. The Composition initializes the
 // bound Listbox Model with the Binding's unique id.
-const init = PeoplePickerComposition.init(() => ({
+const init = PeoplePickerComposition.makeInit(() => ({
   model: {
     selectedPeople: [],
     // ...your other fields
   },
 }))
 
-const update = PeoplePickerComposition.update()
+const update = PeoplePickerComposition.makeUpdate()
 
 const people: ReadonlyArray<Person> = [
   'Michael Bluth',
@@ -93,7 +93,7 @@ const people: ReadonlyArray<Person> = [
 
 // Inside your view function, embed the Listbox via h.block. Multi-select
 // stays open on selection so the user can toggle several items:
-const view = PeoplePickerComposition.view((model, h) =>
+const view = PeoplePickerComposition.makeView((model, h) =>
   h.block(
     PeopleListboxBinding.embedView({
       slotId: 'people',

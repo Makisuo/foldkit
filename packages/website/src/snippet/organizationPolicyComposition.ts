@@ -9,7 +9,7 @@ export const CounterBinding = Editor.bindChild(Counter.block, {
   parentMessage: Message.GotCounterMessage,
 })
 
-export const EditorComposition = Editor.toComposition({
+export const EditorComposition = Editor.makeComposition({
   childBindings: [CounterBinding, DialogBinding],
   mounts: [FocusEditor],
 })

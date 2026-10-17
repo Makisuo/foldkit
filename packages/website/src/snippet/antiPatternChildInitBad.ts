@@ -5,7 +5,7 @@
 
 import { ApplicationComposition } from './composition'
 
-const init = ApplicationComposition.init(
+const init = ApplicationComposition.makeInit(
   (username: string, savedTheme: Settings.Theme) => {
     const settingsInit = Settings.init()
     const settingsRestore = Settings.restore(settingsInit.model, savedTheme)

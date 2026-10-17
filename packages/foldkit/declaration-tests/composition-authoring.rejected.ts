@@ -38,7 +38,7 @@ applicationDefaultInit('wrong')
 // @ts-expect-error A numeric rest initializer does not accept a string.
 applicationReadonlyRestInit('wrong')
 
-ParentComposition.update((model, message) =>
+ParentComposition.makeUpdate((model, message) =>
   // @ts-expect-error Composition routes the registered child Message.
   ParentMessage.match(message, {
     OpenedDashboard: () => ({ model }),
@@ -54,7 +54,7 @@ const forwardSettingsOutMessage = (
       ParentOutMessage.SelectedSettingsTheme({ theme }),
   })
 
-SettingsComposition.toBlock({
+SettingsComposition.makeBlock({
   init: settingsInit,
   update: settingsUpdate,
   // @ts-expect-error The Settings Command handler must be registered.
@@ -291,7 +291,7 @@ const DuplicateStatusBinding = Parent.bindChild(StatusBlock, {
 })
 
 // @ts-expect-error One parent Message variant cannot route to two Bindings.
-Parent.toComposition({
+Parent.makeComposition({
   childBindings: [StatusBinding, DuplicateStatusBinding],
 })
 
@@ -303,7 +303,7 @@ const ExactOutgoingStatusBinding = Parent.bindChild(StatusBlock, {
 })
 
 // @ts-expect-error A Binding output cannot overlap another Binding's incoming route.
-Parent.toComposition({
+Parent.makeComposition({
   childBindings: [StatusBinding, ExactOutgoingStatusBinding],
 })
 
@@ -319,12 +319,12 @@ const WidenedOutgoingStatusBinding = Parent.bindChild(StatusBlock, {
 })
 
 // @ts-expect-error A widened custom mapper cannot hide overlap with an incoming route.
-Parent.toComposition({
+Parent.makeComposition({
   childBindings: [StatusBinding, WidenedOutgoingStatusBinding],
 })
 
 // @ts-expect-error Initialized child Bindings require shared startup input.
-ParentComposition.init(() => ({
+ParentComposition.makeInit(() => ({
   model: {
     currentUser: CurrentUser.make({ accountId: 'missing-startup' }),
     route: ApplicationRoute.Dashboard(),
@@ -333,7 +333,7 @@ ParentComposition.init(() => ({
 }))
 
 // @ts-expect-error Initialized child fields are assembled by their Bindings.
-ParentComposition.init((startup: ParentStartup) => ({
+ParentComposition.makeInit((startup: ParentStartup) => ({
   startup,
   model: {
     settings: SettingsModel.make({ theme: startup.theme }),
@@ -344,7 +344,7 @@ ParentComposition.init((startup: ParentStartup) => ({
 }))
 
 // @ts-expect-error Initialization Steps cannot emit an OutMessage.
-ParentComposition.init((startup: ParentStartup) => ({
+ParentComposition.makeInit((startup: ParentStartup) => ({
   startup,
   model: {
     currentUser: startup.currentUser,
@@ -361,7 +361,7 @@ ParentComposition.init((startup: ParentStartup) => ({
   ],
 }))
 
-ParentComposition.update((model, message) => {
+ParentComposition.makeUpdate((model, message) => {
   // @ts-expect-error Routed child wrapper Messages are excluded from authored update input.
   const routed: ReturnType<typeof ParentMessage.GotSettingsMessage> = message
   void routed
@@ -369,14 +369,15 @@ ParentComposition.update((model, message) => {
   return { model }
 })
 
-ParentComposition.update(model => ({
+ParentComposition.makeUpdate(model => ({
   model,
   // @ts-expect-error Parent update cannot emit a child OutMessage.
   outMessage: SettingsOutMessage.SelectedTheme({ theme: model.settings.theme }),
 }))
 
-const UnregisteredComposition = Parent.toComposition()
-const unregisteredInit = UnregisteredComposition.init(
+const UnregisteredComposition = Parent.makeComposition()
+const unregisteredInit = UnregisteredComposition.makeInit(
+  // @ts-expect-error Initialization Steps cannot use an unregistered child Binding.
   (startup: ParentStartup) => ({
     model: ParentModel.make({
       settings: SettingsModel.make({ theme: startup.theme }),
@@ -389,14 +390,7 @@ const unregisteredInit = UnregisteredComposition.init(
     steps: [SettingsBinding.refresh(startup.currentUser)],
   }),
 )
-const unregisteredUpdate = UnregisteredComposition.update(model => ({ model }))
 
-UnregisteredComposition.toBlock({
-  init: unregisteredInit,
-  update: unregisteredUpdate,
-  // @ts-expect-error Initialization Steps cannot use an unregistered child Binding.
-  EffectsLayer: Layer.empty,
-})
-
+void unregisteredInit
 void parentInit
 void parentUpdate

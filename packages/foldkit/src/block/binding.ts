@@ -17,6 +17,10 @@ import type {
 import * as Subscription from '../subscription/subscription.js'
 import * as Update from '../update/index.js'
 import {
+  makeResultRecipe,
+  resolveOperationOutput,
+} from '../update/operationRecipe.js'
+import {
   assertInitializedParentModel,
   registerBinding,
   runtimeBindingOf,
@@ -37,10 +41,12 @@ import {
   copyIdentity,
   hostIdentitiesOf,
 } from './identity.js'
+import { type BindingInitRecipe, makeBindingInitRecipe } from './initRecipe.js'
 import type { InstanceFrame } from './instanceContext.js'
 import {
   assertRegisteredBinding,
   assertRegisteredInitialization,
+  isRegisteredBinding,
   withOperationGraph,
 } from './operationGraph.js'
 import type { Owner } from './owner.js'
@@ -96,6 +102,38 @@ type CommandRequirementsOf<Commands> = [NonNullable<Commands>] extends [never]
         ? Requirements
         : never
     : never
+
+type CommandMessageOfCommands<Commands> =
+  Commands extends ReadonlyArray<infer CommandValue>
+    ? CommandValue extends Command<infer Message, any, any>
+      ? Message
+      : never
+    : never
+
+type MessageOfInitializerSource<Source> =
+  Source extends Readonly<{
+    Type: infer Message
+  }>
+    ? Message
+    : Source
+
+type InvalidParentCommandMessages = Readonly<{
+  'Binding init commands must produce only the parent Message': never
+}>
+
+type ValidateParentCommandMessages<Commands, ParentMessage> = [
+  CommandMessageOfCommands<NonNullable<Commands>>,
+] extends [never]
+  ? unknown
+  : IsAny<CommandMessageOfCommands<NonNullable<Commands>>> extends true
+    ? InvalidParentCommandMessages
+    : IsUnknown<CommandMessageOfCommands<NonNullable<Commands>>> extends true
+      ? InvalidParentCommandMessages
+      : [CommandMessageOfCommands<NonNullable<Commands>>] extends [
+            ParentMessage,
+          ]
+        ? unknown
+        : InvalidParentCommandMessages
 
 type ValidateConcreteParentCommands<Commands> =
   IsAny<Commands> extends true
@@ -365,7 +403,7 @@ export type OutMessagePolicy<
       fold: (
         outMessage: ChildOutMessage,
         context: Update.FoldContext<ChildMessage, ParentMessage, ParentModel>,
-      ) => (model: ParentModel) => Readonly<{ model: ParentModel }>
+      ) => OutMessagePolicyStep<ParentModel>
       forward?: never
     }>
   | Readonly<{
@@ -377,7 +415,7 @@ export type OutMessagePolicy<
       fold?: (
         outMessage: ChildOutMessage,
         context: Update.FoldContext<ChildMessage, ParentMessage, ParentModel>,
-      ) => (model: ParentModel) => Readonly<{ model: ParentModel }>
+      ) => OutMessagePolicyStep<ParentModel>
     }>
 
 type ValidateForwardPolicy<Policy> =
@@ -559,9 +597,93 @@ type OutMessageOfProducer<
       : never
     : never
 
-/** The parent update result after a child operation's Commands and OutMessage
- * policy have been lifted through its binding. Operations that cannot emit an
- * OutMessage keep the plain {@link Update.Return} contract. */
+type OutMessagePolicyStep<ParentModel> = (
+  model: ParentModel & Update.GraphCapability<ParentModel, unknown>,
+) =>
+  | Readonly<{ model: ParentModel }>
+  | Update.ResultRecipe<ParentModel, unknown, unknown, unknown, unknown>
+
+type BindingPolicyReturn<Policy> =
+  Policy extends Readonly<{
+    fold?: (
+      ...args: ReadonlyArray<any>
+    ) => (...args: ReadonlyArray<any>) => infer PolicyReturn
+  }>
+    ? PolicyReturn
+    : never
+
+type ResolvedBindingPolicyReturn<Policy> = Update.ResolvedOperationOutput<
+  BindingPolicyReturn<Policy>
+>
+
+type BindingPolicyOutMessage<Policy> =
+  | (Policy extends Readonly<{
+      forward: (...args: ReadonlyArray<any>) => infer ForwardedOutMessage
+    }>
+      ? Exclude<ForwardedOutMessage, undefined>
+      : never)
+  | (ResolvedBindingPolicyReturn<Policy> extends infer PolicyReturn
+      ? PolicyReturn extends unknown
+        ? 'outMessage' extends keyof PolicyReturn
+          ? PolicyReturn extends Readonly<{
+              outMessage?: infer DerivedOutMessage
+            }>
+            ? Exclude<DerivedOutMessage, undefined>
+            : never
+          : never
+        : never
+      : never)
+
+type BindingPolicyCommand<Policy> =
+  ResolvedBindingPolicyReturn<Policy> extends infer PolicyReturn
+    ? PolicyReturn extends unknown
+      ? 'commands' extends keyof PolicyReturn
+        ? PolicyReturn extends Readonly<{ commands?: infer Commands }>
+          ? NonNullable<Commands> extends ReadonlyArray<infer PolicyCommand>
+            ? PolicyCommand
+            : never
+          : never
+        : never
+      : never
+    : never
+
+type MessageOfPolicyCommand<PolicyCommand> =
+  PolicyCommand extends Command<infer Message, any, any> ? Message : never
+
+/** @internal Passive result channels computed directly from one connected Binding. */
+export type BindingOperationRecipe<
+  ParentModel,
+  ParentMessage,
+  ChildProducer extends (...args: ReadonlyArray<any>) => any,
+  Policy,
+  Placement extends string,
+  ChildId extends string,
+  Registration,
+> = [OutMessageOfProducer<ChildProducer>] extends [never]
+  ? Update.ResultRecipe<
+      ParentModel,
+      ParentMessage,
+      never,
+      Qualify<Placement, Update.RequirementsOf<ChildProducer>>,
+      Registration
+    >
+  : Update.ResultRecipe<
+      ParentModel,
+      ParentMessage | MessageOfPolicyCommand<BindingPolicyCommand<Policy>>,
+      BindingPolicyOutMessage<Policy>,
+      | Qualify<Placement, Update.RequirementsOf<ChildProducer>>
+      | QualifyOwned<
+          Placement,
+          ChildId,
+          Update.RequirementsOf<() => BindingPolicyReturn<Policy>>
+        >,
+      Registration | Update.RegistrationEvidenceOf<BindingPolicyReturn<Policy>>
+    >
+
+/** The readable parent result after applying a child operation and lifting its
+ * Commands and OutMessage policy. Operations that cannot emit an OutMessage
+ * keep the plain {@link Update.Return} contract. Binding projections expose an
+ * opaque {@link Update.ResultRecipe} until checked composition applies them. */
 export type BindingReturn<
   ParentModel,
   ParentMessage,
@@ -702,7 +824,8 @@ const liftManagedResources = <
     config,
   )
 
-/** @internal Lifts declared operations without depending on unused OutMessage policy. */
+/** @internal Projects declared operations as connected parent Steps. Their
+ * graph-checked inputs and opaque results preserve every lifted type channel. */
 export type BoundExposedOperations<
   BlockValue extends Readonly<{
     expose: Readonly<Record<string, (...args: ReadonlyArray<any>) => any>>
@@ -723,14 +846,15 @@ export type BoundExposedOperations<
           ? Context
           : readonly []
       ) => (
-        model: ParentModel,
-      ) => BindingReturn<
+        model: Update.GraphInput<
+          ParentModel,
+          BindingRequirement<Placement, BlockValue>
+        >,
+      ) => BindingOperationRecipe<
         ParentModel,
         ParentMessage,
         BlockValue['expose'][Key],
-        [OutMessageOfProducer<BlockValue['expose'][Key]>] extends [never]
-          ? never
-          : Policy,
+        Policy,
         Placement,
         BlockId<BlockValue>,
         BindingRequirement<Placement, BlockValue>
@@ -738,11 +862,19 @@ export type BoundExposedOperations<
     : never
 }>
 
-/** Initializes a connected child and constructs its complete parent Model.
- * The return type retains child and parent Command requirements and Binding
- * registrations. At runtime, invocation requires this Binding's exact
- * registered Composition. The returned parent must match its Model Schema and
- * select the initialized child through the Binding's storage accessors. */
+/**
+ * Creates a passive, noncallable child initialization recipe.
+ *
+ * It retains the child init arguments, optional keyed identity, parent Model
+ * constructor, appended parent Commands, and their requirements without
+ * initializing the child eagerly. Return it intact from a matching Composition
+ * `makeInit` or `makeUpdate` callback. A Definition-owned Step preserves or wraps
+ * it; a completed exposed operation interprets a recipe preserved by its Step.
+ * The recipe exposes no `.model` or `.commands` fields.
+ *
+ * The constructed parent must match its Model Schema and select the initialized
+ * child through the Binding's storage accessors.
+ */
 export interface BindingInitializer<
   BlockValue extends Readonly<{
     Model: Readonly<{ Type: any }>
@@ -753,11 +885,12 @@ export interface BindingInitializer<
   Placement extends string,
   Key = never,
   IsKeyed extends boolean = false,
+  AllowedParentMessage = ParentMessage,
 > {
   <
     const InitializedParentModel extends ParentModel,
     const ParentCommands extends
-      | Update.Commands<ParentMessage, any>
+      | ReadonlyArray<Command<any, never, any>>
       | undefined = undefined,
   >(
     config: Readonly<{
@@ -781,14 +914,16 @@ export interface BindingInitializer<
           }>
         : unknown) &
       ValidateConcreteInitializedModel<InitializedParentModel> &
-      ValidateConcreteParentCommands<ParentCommands>,
-  ): Update.WithRegistrationEvidence<
-    Update.Return<
-      InitializedParentModel,
-      ParentMessage,
-      | Qualify<Placement, Update.RequirementsOf<BlockValue['init']>>
-      | CommandRequirementsOf<ParentCommands>
-    >,
+      ValidateConcreteParentCommands<ParentCommands> &
+      ValidateParentCommandMessages<
+        ParentCommands,
+        MessageOfInitializerSource<AllowedParentMessage>
+      >,
+  ): BindingInitRecipe<
+    InitializedParentModel,
+    ParentMessage | CommandMessageOfCommands<ParentCommands>,
+    | Qualify<Placement, Update.RequirementsOf<BlockValue['init']>>
+    | CommandRequirementsOf<ParentCommands>,
     | BindingRequirement<Placement, BlockValue>
     | Update.RegistrationEvidenceOf<Readonly<{ commands: ParentCommands }>>
   >
@@ -824,6 +959,7 @@ export type Binding<
   ContractOutMessage = never,
   OutgoingMessage = ParentMessage,
   IncomingMessage = never,
+  InitializerMessage = ContractMessage,
 > = BindingEvidence<
   BlockValue,
   Qualify<Placement, HandlerEvidenceOfBlock<BlockValue>>,
@@ -912,16 +1048,28 @@ export type Binding<
     /** The stable identity of this Binding in the parent's composition graph. It
      * is independent of DOM position and child presence. */
     placement: Placement
-    /** Initializes child state, constructs the complete parent Model, and lifts
-     * its Commands to the parent Message type. Additional parent Commands run
-     * after the initialized child's Commands. Initialization requires this
-     * Binding's exact registered Composition to be active. */
-    init: BindingInitializer<BlockValue, ParentModel, ParentMessage, Placement>
-    /** Runs the child update, writes the next child Model, lifts Commands, and
-     * applies the OutMessage policy. If `read` returns `None`, the returned parent
-     * Model is unchanged. */
+    /** Creates a passive initialization recipe for this child. The registered
+     * Composition later initializes the child, constructs the complete parent
+     * Model, and lifts Commands to the parent Message type. Additional parent
+     * Commands run after the initialized child's Commands. */
+    init: BindingInitializer<
+      BlockValue,
+      ParentModel,
+      ContractMessage,
+      Placement,
+      never,
+      false,
+      InitializerMessage
+    >
+    /** Produces an opaque connected result for the child update, parent write,
+     * lifted Commands, and OutMessage policy. Its Model input requires this exact
+     * registered Binding graph. Checked execution leaves the parent Model
+     * unchanged when `read` returns `None`. */
     fold: (
-      model: ParentModel,
+      model: Update.GraphInput<
+        ParentModel,
+        BindingRequirement<Placement, BlockValue>
+      >,
       ...args: [
         message: BlockValue['Message']['Type'],
         ...context: Parameters<BlockValue['update']> extends readonly [
@@ -932,7 +1080,7 @@ export type Binding<
           ? Context
           : readonly [],
       ]
-    ) => BindingReturn<
+    ) => BindingOperationRecipe<
       ParentModel,
       ParentMessage,
       BlockValue['update'],
@@ -1362,9 +1510,7 @@ const makeFold = (
   const makeChildFold = Update.foldChild as unknown as (
     childFold: ReturnType<typeof toChildFold>,
   ) => AnyFunction
-  return (model: any, ...args: ReadonlyArray<any>) => {
-    assertRegisteredBinding(frame.binding, config.placement)
-
+  const execute = (model: any, args: ReadonlyArray<any>) => {
     const contextualConfig =
       config.outMessage?.fold === undefined
         ? config
@@ -1375,15 +1521,29 @@ const makeFold = (
               fold: (
                 outMessage: unknown,
                 context: Update.FoldContext<any, any>,
-              ) =>
-                config.outMessage!.fold!(outMessage, {
+              ) => {
+                const policyStep = config.outMessage!.fold!(outMessage, {
                   ...context,
                   modelBeforeUpdate: model,
-                }),
+                })
+                return (modelWithChild: any) =>
+                  resolveOperationOutput(
+                    policyStep(modelWithChild),
+                    modelWithChild,
+                  )
+              },
             },
           }
     return makeChildFold(toChildFold(producer, contextualConfig))(model, args)
   }
+
+  return (model: any, ...args: ReadonlyArray<any>) =>
+    isRegisteredBinding(frame.binding)
+      ? execute(model, args)
+      : makeResultRecipe(activeModel => {
+          assertRegisteredBinding(frame.binding, config.placement)
+          return execute(activeModel, args)
+        })
 }
 
 const makeBoundOperation = (
@@ -1583,31 +1743,37 @@ const bindRuntime = <
     placement,
     init: (initial: unknown) => {
       assertBindingInitConfig(initial, placement)
-      const childInit = initialize(...initial.args)
-      const model = initial.toParentModel(childInit.model)
-      assertInitializedParentModel(binding, placement, model)
-      let maybeStoredChild: Option.Option<unknown>
-      try {
-        maybeStoredChild = config.read(model)
-      } catch (cause) {
-        throw new Error(
-          `[foldkit] Child Binding "${placement}" init.toParentModel returned a parent Model that its read accessor could not inspect.`,
-          { cause },
-        )
-      }
-      if (
-        Option.isNone(maybeStoredChild) ||
-        !isChildModel(maybeStoredChild.value) ||
-        !equivalentChildModel(maybeStoredChild.value, childInit.model)
-      ) {
-        throw new Error(
-          `[foldkit] Child Binding "${placement}" init.toParentModel must preserve the initialized child Model through the parent Model Schema.`,
-        )
-      }
-      return {
-        model,
-        commands: [...(childInit.commands ?? []), ...(initial.commands ?? [])],
-      }
+      const { toParentModel } = initial
+      const args = [...initial.args]
+      const commands = [...(initial.commands ?? [])]
+
+      return makeBindingInitRecipe(() => {
+        const childInit = initialize(...args)
+        const model = toParentModel(childInit.model)
+        assertInitializedParentModel(binding, placement, model)
+        let maybeStoredChild: Option.Option<unknown>
+        try {
+          maybeStoredChild = config.read(model)
+        } catch (cause) {
+          throw new Error(
+            `[foldkit] Child Binding "${placement}" init.toParentModel returned a parent Model that its read accessor could not inspect.`,
+            { cause },
+          )
+        }
+        if (
+          Option.isNone(maybeStoredChild) ||
+          !isChildModel(maybeStoredChild.value) ||
+          !equivalentChildModel(maybeStoredChild.value, childInit.model)
+        ) {
+          throw new Error(
+            `[foldkit] Child Binding "${placement}" init.toParentModel must preserve the initialized child Model through the parent Model Schema.`,
+          )
+        }
+        return {
+          model,
+          commands: [...(childInit.commands ?? []), ...commands],
+        }
+      })
     },
     fold: makeFold(update, runtimeConfig, frame),
     embedView,

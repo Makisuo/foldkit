@@ -55,18 +55,18 @@ const PopoverBinding = PopoverExample.bindChild(Popover.block, {
   outMessage: { fold: foldPopoverOutMessage },
 })
 
-const PopoverExampleComposition = PopoverExample.toComposition({
+const PopoverExampleComposition = PopoverExample.makeComposition({
   childBindings: [PopoverBinding],
 })
 
 // In your init function, initialize the Popover Block with a unique id:
-const init = PopoverExampleComposition.init(() => ({
+const init = PopoverExampleComposition.makeInit(() => ({
   model: {
     // ...your other fields
   },
 }))
 
-const update = PopoverExampleComposition.update()
+const update = PopoverExampleComposition.makeUpdate()
 
 // Inside your view function, embed the popover via h.block. Give the
 // trigger an accessible name: target the trigger id with
@@ -74,7 +74,7 @@ const update = PopoverExampleComposition.update()
 // `ariaLabelledBy` so the trigger is named by the label. The attribute is
 // only emitted when provided, so the trigger never carries a dangling
 // `aria-labelledby`.
-const view = PopoverExampleComposition.view((model, h) => {
+const view = PopoverExampleComposition.makeView((model, h) => {
   const labelId = 'info-label'
 
   const popoverView = ({

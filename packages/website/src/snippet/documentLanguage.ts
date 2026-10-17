@@ -21,7 +21,7 @@ const textDirection: Readonly<Record<Locale, TextDirection>> = {
   Japanese: 'Ltr',
 }
 
-const view = ApplicationComposition.view((model, h) => ({
+const view = ApplicationComposition.makeView((model, h) => ({
   title: translate(model.locale, 'PageTitle'),
   lang: languageTag[model.locale],
   dir: textDirection[model.locale],

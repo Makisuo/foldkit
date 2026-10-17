@@ -11,7 +11,7 @@ import {
 } from './composition'
 import { Message } from './definition'
 
-export const view = SkillsEntryComposition.view((model, h) => {
+export const view = SkillsEntryComposition.makeView((model, h) => {
   const nameView = Field.input(
     {
       id: `${model.id}-name`,

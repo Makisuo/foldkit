@@ -12,7 +12,7 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const update = ApplicationComposition.update((model, message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     SucceededSearch: ({ generation, suggestions }) => {
       if (generation !== model.searchGeneration) {

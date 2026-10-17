@@ -251,7 +251,7 @@ const routeTitle = (route: Route.ApplicationRoute): string =>
     NotFound: () => 'Not Found | Devin Jameson',
   })
 
-export const view = ApplicationComposition.view((model, h) => {
+export const view = ApplicationComposition.makeView((model, h) => {
   const routeContent = Route.ApplicationRoute.match(model.route, {
     Home: () => homeView(model, h),
     Posts: () => postsView(h),

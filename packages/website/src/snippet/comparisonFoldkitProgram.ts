@@ -2,7 +2,7 @@
 
 import { ApplicationComposition } from './composition'
 
-export const init = ApplicationComposition.init((flags: Flags) => ({
+export const init = ApplicationComposition.makeInit((flags: Flags) => ({
   model: {
     grid: Option.match(flags.maybeSavedCanvas, {
       onNone: () => createEmptyGrid(DEFAULT_GRID_SIZE),
@@ -27,7 +27,7 @@ import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const application = ApplicationComposition.toApplication({
+const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,

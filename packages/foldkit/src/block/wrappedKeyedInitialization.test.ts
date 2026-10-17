@@ -39,16 +39,16 @@ const increment = Child.step(model => ({
 const single = (value: number): [number] => [value]
 
 const initCalls: globalThis.Array<number> = []
-const ChildComposition = Child.toComposition()
-const ChildBlock = ChildComposition.toBlock({
-  init: ChildComposition.init((count: number) => {
+const ChildComposition = Child.makeComposition()
+const ChildBlock = ChildComposition.makeBlock({
+  init: ChildComposition.makeInit((count: number) => {
     initCalls.push(count)
     return {
       model: ChildModel.make({ count }),
       commands: [FinishInitialization({ count })],
     }
   }),
-  update: ChildComposition.update((model, message) =>
+  update: ChildComposition.makeUpdate((model, message) =>
     ChildMessage.match(message, {
       CompletedInitialization: ({ count }) => ({
         model: modifyFields(model, { count: () => count }),
@@ -113,7 +113,7 @@ const EntriesBinding = Parent.bindChild(ChildBlock, {
     }),
   },
 })
-const ParentComposition = Parent.toComposition({
+const ParentComposition = Parent.makeComposition({
   childBindings: [EntriesBinding],
 })
 
@@ -121,7 +121,7 @@ it('initializes occurrences in order and orders own, child, then Step Commands',
   const markStepped = Parent.step(model => ({
     model: modifyFields(model, { status: () => 'Stepped' }),
   }))
-  const initialize = ParentComposition.init((startup: Startup) => ({
+  const initialize = ParentComposition.makeInit((startup: Startup) => ({
     startup,
     model: { status: 'Ready' },
     commands: [FinishParentInitialization()],
@@ -158,12 +158,12 @@ const KeyedChild = define('KeyedInitializationChild', {
   Model: KeyedChildModel,
   Message: ChildMessage,
 })
-const KeyedChildComposition = KeyedChild.toComposition()
-const KeyedChildBlock = KeyedChildComposition.toBlock({
-  init: KeyedChildComposition.init((id: string, count: number) => ({
+const KeyedChildComposition = KeyedChild.makeComposition()
+const KeyedChildBlock = KeyedChildComposition.makeBlock({
+  init: KeyedChildComposition.makeInit((id: string, count: number) => ({
     model: KeyedChildModel.make({ id, count }),
   })),
-  update: KeyedChildComposition.update(model => ({ model })),
+  update: KeyedChildComposition.makeUpdate(model => ({ model })),
 })
 const KeyedParentModel = Schema.Struct({
   entries: Schema.Array(KeyedChildModel),
@@ -193,8 +193,8 @@ const initializeKeyedParent = (
       toItem,
     },
   })
-  const composition = KeyedParent.toComposition({ childBindings: [binding] })
-  const initialize = composition.init((count: number) => ({
+  const composition = KeyedParent.makeComposition({ childBindings: [binding] })
+  const initialize = composition.makeInit((count: number) => ({
     startup: count,
     model: { status: 'Ready' },
   }))
@@ -247,7 +247,7 @@ it('drops an original init Command when a Step removes its key before another St
       ],
     }),
   }))
-  const initialize = ParentComposition.init(() => ({
+  const initialize = ParentComposition.makeInit(() => ({
     startup: { firstCount: 1, secondCount: 2 },
     model: { status: 'Ready' },
     steps: [removeFirst, readdFirst],
@@ -282,22 +282,22 @@ const makeRuntimeComposition = (init: object) => {
     },
   ])
 
-  return Reflect.apply(RuntimeParent.toComposition, undefined, [
+  return Reflect.apply(RuntimeParent.makeComposition, undefined, [
     { childBindings: [binding] },
   ])
 }
 
 const runRuntimeComposition = (composition: object): unknown => {
-  const initAuthor = Reflect.get(composition, 'init')
+  const initAuthor = Reflect.get(composition, 'makeInit')
   if (!Predicate.isFunction(initAuthor)) {
-    throw new Error('Expected a Composition.init function.')
+    throw new Error('Expected a Composition.makeInit function.')
   }
 
   const init = Reflect.apply(initAuthor, undefined, [
     () => ({ model: { status: 'Ready' } }),
   ])
   if (!Predicate.isFunction(init)) {
-    throw new Error('Expected Composition.init to return an initializer.')
+    throw new Error('Expected Composition.makeInit to return an initializer.')
   }
 
   return Reflect.apply(init, undefined, [])
@@ -363,18 +363,18 @@ it('preflights every Binding selector before calling any child init', () => {
       },
     },
   ])
-  const composition = Reflect.apply(AllPlansParent.toComposition, undefined, [
+  const composition = Reflect.apply(AllPlansParent.makeComposition, undefined, [
     { childBindings: [directBinding, keyedBinding] },
   ])
-  const initAuthor = Reflect.get(composition, 'init')
+  const initAuthor = Reflect.get(composition, 'makeInit')
   if (!Predicate.isFunction(initAuthor)) {
-    throw new Error('Expected a Composition.init function.')
+    throw new Error('Expected a Composition.makeInit function.')
   }
   const init = Reflect.apply(initAuthor, undefined, [
     () => ({ model: { status: 'Ready' } }),
   ])
   if (!Predicate.isFunction(init)) {
-    throw new Error('Expected Composition.init to return an initializer.')
+    throw new Error('Expected Composition.makeInit to return an initializer.')
   }
 
   initCalls.splice(0)
@@ -437,10 +437,10 @@ it('remains passive and creates fresh wrappers on every invocation', () => {
       toItem: ({ key }, child) => ({ id: key, child, label: key }),
     },
   })
-  const FreshComposition = Parent.toComposition({
+  const FreshComposition = Parent.makeComposition({
     childBindings: [FreshBinding],
   })
-  const initialize = FreshComposition.init(() => ({
+  const initialize = FreshComposition.makeInit(() => ({
     model: { status: 'Ready' },
   }))
 
@@ -481,11 +481,11 @@ it('selects one large wrapped keyed field once in each validation and survival p
       return runtime.select(model)
     },
   })
-  const ScalingComposition = Parent.toComposition({
+  const ScalingComposition = Parent.makeComposition({
     childBindings: [ScalingBinding],
   })
   const retainEntries = Parent.step(model => ({ model }))
-  const initialize = ScalingComposition.init(() => ({
+  const initialize = ScalingComposition.makeInit(() => ({
     model: { status: 'Ready' },
     steps: [retainEntries],
   }))
@@ -504,7 +504,7 @@ it('selects one large wrapped keyed field once in each validation and survival p
 
 if (false) {
   // @ts-expect-error Contextful occurrence selectors require shared startup.
-  ParentComposition.init(() => ({ model: { status: 'Ready' } }))
+  ParentComposition.makeInit(() => ({ model: { status: 'Ready' } }))
 
   Parent.bindChild(ChildBlock, {
     // @ts-expect-error Wrapped occurrence args must match child init exactly.

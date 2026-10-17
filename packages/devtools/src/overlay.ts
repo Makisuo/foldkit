@@ -472,7 +472,7 @@ const makeApplicationComposition = (scrubberSlider: DevToolsScrubber) => {
     BlockFilterListboxBinding,
     ScrubberBinding,
   }
-  const ApplicationComposition = Application.toComposition({
+  const ApplicationComposition = Application.makeComposition({
     childBindings: Tuple.make(
       InspectorTabsBinding,
       BlockFilterListboxBinding,
@@ -567,11 +567,8 @@ export const UnlockScroll = Application.command('UnlockScroll', {
   },
 })
 
-const maybeToggleScrollLock = (isEnabled: boolean, shouldLock: boolean) =>
-  OptionExt.when(isEnabled, shouldLock ? LockScroll() : UnlockScroll())
-
-const maybeLockScroll = (isOpen: boolean, isMobile: boolean) =>
-  OptionExt.when(isOpen && isMobile, LockScroll())
+const scrollLockCommands = (isEnabled: boolean, shouldLock: boolean) =>
+  Array.filter([shouldLock ? LockScroll() : UnlockScroll()], () => isEnabled)
 
 const DevToolsPersistedState = Schema.Struct({
   isOpen: Schema.Boolean.pipe(
@@ -790,7 +787,7 @@ const EffectsLayer = Layer.mergeAll(
   subscriptions.mobileBreakpointChanges.layer,
 )
 
-const init = ApplicationComposition.init((flags: typeof Flags.Type) => {
+const init = ApplicationComposition.makeInit((flags: typeof Flags.Type) => {
   const { isFlattened, ...displayFlags } = flags
   const sliderMax = flags.entries.length
   const initialSliderValue = flags.isPaused
@@ -819,18 +816,21 @@ const init = ApplicationComposition.init((flags: typeof Flags.Type) => {
       activeInspectorTab: 'Model',
       scrubberValue: Slider.snapAndClamp(initialSliderValue, 0, sliderMax, 1),
     },
-    commands: Option.toArray(maybeLockScroll(flags.isOpen, flags.isMobile)),
+    commands: Array.filter(
+      [LockScroll()],
+      () => flags.isOpen && flags.isMobile,
+    ),
   }
 })
 
-const update = ApplicationComposition.update((model, message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedToggle: () => {
       const nextIsOpen = !model.isOpen
       return {
         model: modifyFields(model, { isOpen: () => nextIsOpen }),
         commands: [
-          ...Option.toArray(maybeToggleScrollLock(model.isMobile, nextIsOpen)),
+          ...scrollLockCommands(model.isMobile, nextIsOpen),
           PersistDevToolsState({
             isOpen: nextIsOpen,
             isFlattened: model.isFlattened,
@@ -860,7 +860,7 @@ const update = ApplicationComposition.update((model, message) =>
 
       return {
         model: modifyFields(model, { isMobile: () => isMobile }),
-        commands: Option.toArray(maybeToggleScrollLock(model.isOpen, isMobile)),
+        commands: scrollLockCommands(model.isOpen, isMobile),
       }
     },
     ClickedRow: ({ index }) =>
@@ -1029,8 +1029,8 @@ const update = ApplicationComposition.update((model, message) =>
             ),
         }),
         commands: [
-          ...(shouldFollowSelection ? [InspectLatest()] : []),
-          ...(shouldFollowScroll ? [ScrollToTop()] : []),
+          ...Array.filter([InspectLatest()], () => shouldFollowSelection),
+          ...Array.filter([ScrollToTop()], () => shouldFollowScroll),
         ],
       }
     },
@@ -1144,7 +1144,7 @@ const makeView = (
   }
 }
 
-const view = ApplicationComposition.view(makeView(bindings))
+const view = ApplicationComposition.makeView(makeView(bindings))
 
 const buildOverlayView = (
   position: DevToolsPosition,
@@ -2411,18 +2411,14 @@ const buildOverlayView = (
       Match.exhaustive,
     )
 
-    const maybeClearHistoryButton = OptionExt.when(
-      !model.isPaused,
-      clearHistoryButton(),
+    const clearHistoryButtons = Array.filter(
+      [clearHistoryButton()],
+      () => !model.isPaused,
     )
 
     return h.header(
       [h.Class(headerClass)],
-      [
-        status,
-        ...Option.toArray(maybeAction),
-        ...Option.toArray(maybeClearHistoryButton),
-      ],
+      [status, ...Option.toArray(maybeAction), ...clearHistoryButtons],
     )
   }
 
@@ -2434,13 +2430,15 @@ const buildOverlayView = (
         h.OnClick(Message.ClickedRow({ index: INIT_INDEX })),
       ],
       [
-        ...OptionExt.when(
-          mode === 'TimeTravel',
-          h.span(
-            [h.Class('pause-column')],
-            isPausedHere ? [pauseIconView] : [],
-          ),
-        ).pipe(Option.toArray),
+        ...Array.filter(
+          [
+            h.span(
+              [h.Class('pause-column')],
+              isPausedHere ? [pauseIconView] : [],
+            ),
+          ],
+          () => mode === 'TimeTravel',
+        ),
         h.span([h.Class('dot-column')]),
         h.span([h.Class(indexClass)]),
         h.span([h.Class('text-base text-dt-muted font-mono')], ['init']),
@@ -2481,13 +2479,15 @@ const buildOverlayView = (
         h.OnClick(Message.ClickedRow({ index: absoluteIndex })),
       ],
       [
-        ...OptionExt.when(
-          mode === 'TimeTravel',
-          h.span(
-            [h.Class('pause-column')],
-            isPausedHere ? [pauseIconView] : [],
-          ),
-        ).pipe(Option.toArray),
+        ...Array.filter(
+          [
+            h.span(
+              [h.Class('pause-column')],
+              isPausedHere ? [pauseIconView] : [],
+            ),
+          ],
+          () => mode === 'TimeTravel',
+        ),
         h.span(
           [h.Class('dot-column')],
           isModelChanged ? [inlineDiffDotView] : [],
@@ -2759,22 +2759,19 @@ const buildOverlayView = (
       ],
       [
         settingsToggleView(model.screen),
-        ...OptionExt.when(isScrubberVisible, scrubberView(model)).pipe(
-          Option.toArray,
-        ),
+        ...Array.filter([scrubberView(model)], () => isScrubberVisible),
       ],
     )
 
   // PANEL
 
   const messagesScreenView = (model: Model): Html => {
-    const maybeBlockFilterView = OptionExt.when(
+    const blockFilterViews = Array.filter([blockFilterView(model)], () =>
       Array.isReadonlyArrayNonEmpty(model.blockTags),
-      blockFilterView(model),
     )
-    const maybeScrollToTopPillView = OptionExt.when(
-      !model.isFollowingTop,
-      scrollToTopPillView(),
+    const scrollToTopPillViews = Array.filter(
+      [scrollToTopPillView()],
+      () => !model.isFollowingTop,
     )
 
     return h.div(
@@ -2783,8 +2780,8 @@ const buildOverlayView = (
         h.div(
           [h.Class('flex flex-col min-h-0 dt-message-pane')],
           [
-            ...Option.toArray(maybeBlockFilterView),
-            ...Option.toArray(maybeScrollToTopPillView),
+            ...blockFilterViews,
+            ...scrollToTopPillViews,
             messageListView(model),
           ],
         ),
@@ -2835,11 +2832,11 @@ const buildOverlayView = (
     h.div(
       [],
       [
-        ...OptionExt.when(
-          model.isPaused && mode === 'TimeTravel',
-          interactionBlocker(),
-        ).pipe(Option.toArray),
-        ...OptionExt.when(model.isOpen, panelView(model)).pipe(Option.toArray),
+        ...Array.filter(
+          [interactionBlocker()],
+          () => model.isPaused && mode === 'TimeTravel',
+        ),
+        ...Array.filter([panelView(model)], () => model.isOpen),
         badgeView(model),
       ],
     )
@@ -2983,7 +2980,7 @@ export const createOverlay = (
       }
     })
 
-    const application = ApplicationComposition.toElement({
+    const application = ApplicationComposition.makeElement({
       init,
       update,
       view,

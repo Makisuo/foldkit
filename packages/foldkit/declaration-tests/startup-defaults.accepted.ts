@@ -41,13 +41,13 @@ const FailChildConstructionLayer = FailConstruction.toLayer<
   never
 >(Effect.fail<'StartupUnavailable'>('StartupUnavailable'))
 const DeclarationStartupDefaultChildComposition =
-  DeclarationStartupDefaultChild.toComposition()
-export const ChildBlock = DeclarationStartupDefaultChildComposition.toBlock({
-  init: DeclarationStartupDefaultChildComposition.init(() => ({
+  DeclarationStartupDefaultChild.makeComposition()
+export const ChildBlock = DeclarationStartupDefaultChildComposition.makeBlock({
+  init: DeclarationStartupDefaultChildComposition.makeInit(() => ({
     model: ChildModel.make({ count: 0 }),
     commands: [FinishInitialization({ count: 0 })],
   })),
-  update: DeclarationStartupDefaultChildComposition.update(
+  update: DeclarationStartupDefaultChildComposition.makeUpdate(
     (model, { count }) => ({
       model: Struct.modifyFields(model, { count: () => count }),
     }),
@@ -66,17 +66,19 @@ const DeclarationStartupDefaultArgumentChild = Block.define(
   },
 )
 const DeclarationStartupDefaultArgumentChildComposition =
-  DeclarationStartupDefaultArgumentChild.toComposition()
+  DeclarationStartupDefaultArgumentChild.makeComposition()
 export const DefaultChildBlock =
-  DeclarationStartupDefaultArgumentChildComposition.toBlock({
-    init: DeclarationStartupDefaultArgumentChildComposition.init(
+  DeclarationStartupDefaultArgumentChildComposition.makeBlock({
+    init: DeclarationStartupDefaultArgumentChildComposition.makeInit(
       (count = 1) => ({
         model: ChildModel.make({ count }),
       }),
     ),
-    update: DeclarationStartupDefaultArgumentChildComposition.update(model => ({
-      model,
-    })),
+    update: DeclarationStartupDefaultArgumentChildComposition.makeUpdate(
+      model => ({
+        model,
+      }),
+    ),
   })
 
 const DeclarationStartupOptionalArgumentChild = Block.define(
@@ -87,15 +89,15 @@ const DeclarationStartupOptionalArgumentChild = Block.define(
   },
 )
 const DeclarationStartupOptionalArgumentChildComposition =
-  DeclarationStartupOptionalArgumentChild.toComposition()
+  DeclarationStartupOptionalArgumentChild.makeComposition()
 export const OptionalChildBlock =
-  DeclarationStartupOptionalArgumentChildComposition.toBlock({
-    init: DeclarationStartupOptionalArgumentChildComposition.init(
+  DeclarationStartupOptionalArgumentChildComposition.makeBlock({
+    init: DeclarationStartupOptionalArgumentChildComposition.makeInit(
       (count?: number) => ({
         model: ChildModel.make({ count: count ?? 2 }),
       }),
     ),
-    update: DeclarationStartupOptionalArgumentChildComposition.update(
+    update: DeclarationStartupOptionalArgumentChildComposition.makeUpdate(
       model => ({ model }),
     ),
   })
@@ -108,17 +110,19 @@ const DeclarationStartupRequiredRestChild = Block.define(
   },
 )
 const DeclarationStartupRequiredRestChildComposition =
-  DeclarationStartupRequiredRestChild.toComposition()
+  DeclarationStartupRequiredRestChild.makeComposition()
 export const RestChildBlock =
-  DeclarationStartupRequiredRestChildComposition.toBlock({
-    init: DeclarationStartupRequiredRestChildComposition.init(
+  DeclarationStartupRequiredRestChildComposition.makeBlock({
+    init: DeclarationStartupRequiredRestChildComposition.makeInit(
       (first: number, ...rest: Array<number>) => ({
         model: ChildModel.make({ count: first + rest.length }),
       }),
     ),
-    update: DeclarationStartupRequiredRestChildComposition.update(model => ({
-      model,
-    })),
+    update: DeclarationStartupRequiredRestChildComposition.makeUpdate(
+      model => ({
+        model,
+      }),
+    ),
   })
 
 const DeclarationStartupRequiredChild = Block.define(
@@ -129,13 +133,15 @@ const DeclarationStartupRequiredChild = Block.define(
   },
 )
 const DeclarationStartupRequiredChildComposition =
-  DeclarationStartupRequiredChild.toComposition()
+  DeclarationStartupRequiredChild.makeComposition()
 export const RequiredChildBlock =
-  DeclarationStartupRequiredChildComposition.toBlock({
-    init: DeclarationStartupRequiredChildComposition.init((count: number) => ({
-      model: ChildModel.make({ count }),
-    })),
-    update: DeclarationStartupRequiredChildComposition.update(model => ({
+  DeclarationStartupRequiredChildComposition.makeBlock({
+    init: DeclarationStartupRequiredChildComposition.makeInit(
+      (count: number) => ({
+        model: ChildModel.make({ count }),
+      }),
+    ),
+    update: DeclarationStartupRequiredChildComposition.makeUpdate(model => ({
       model,
     })),
   })
@@ -253,7 +259,7 @@ export const EntriesBinding = DeclarationStartupDefaultsParent.bindChild(
   },
 )
 export const DeclarationStartupDefaultsParentComposition =
-  DeclarationStartupDefaultsParent.toComposition({
+  DeclarationStartupDefaultsParent.makeComposition({
     childBindings: [
       AutomaticBinding,
       DefaultArgumentBinding,
@@ -268,7 +274,7 @@ const applyParentStep = DeclarationStartupDefaultsParent.step(model => ({
   model: Struct.modifyFields(model, { status: () => 'Stepped' }),
   commands: [FinishStep()],
 }))
-export const initialize = DeclarationStartupDefaultsParentComposition.init(
+export const initialize = DeclarationStartupDefaultsParentComposition.makeInit(
   (startup: typeof Startup.Type) => ({
     startup,
     model: {
@@ -279,13 +285,17 @@ export const initialize = DeclarationStartupDefaultsParentComposition.init(
     steps: [applyParentStep],
   }),
 )
-export const ParentBlock = DeclarationStartupDefaultsParentComposition.toBlock({
-  init: initialize,
-  update: DeclarationStartupDefaultsParentComposition.update(model => ({
-    model,
-  })),
-  EffectsLayer: Layer.merge(FinishParentInitialization.layer, FinishStep.layer),
-})
+export const ParentBlock =
+  DeclarationStartupDefaultsParentComposition.makeBlock({
+    init: initialize,
+    update: DeclarationStartupDefaultsParentComposition.makeUpdate(model => ({
+      model,
+    })),
+    EffectsLayer: Layer.merge(
+      FinishParentInitialization.layer,
+      FinishStep.layer,
+    ),
+  })
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- The early identity and its specialized contracts coexist in this fixture.
 export const GenericOwner = Block.define('DeclarationStartupGenericParent')
@@ -312,11 +322,11 @@ export const WiderBinding = DeclarationStartupGenericParent.bindChild(
   },
 )
 export const DeclarationStartupGenericParentComposition =
-  DeclarationStartupGenericParent.toComposition({
+  DeclarationStartupGenericParent.makeComposition({
     childBindings: [WiderBinding],
   })
 export const initializeWithoutSelectorStartup =
-  DeclarationStartupGenericParent.toComposition({
+  DeclarationStartupGenericParent.makeComposition({
     childBindings: [
       DeclarationStartupGenericParent.bindChild(ChildBlock, {
         field: 'child',
@@ -324,7 +334,7 @@ export const initializeWithoutSelectorStartup =
         init: { args: () => [] },
       }),
     ],
-  }).init(() => ({ model: {} }))
+  }).makeInit(() => ({ model: {} }))
 
 export const ForeignStartup = Schema.Struct({ token: Schema.String })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture compares two Startup contracts under the same Block identity.
@@ -398,11 +408,11 @@ const LabelStartupBinding = DeclarationCompatibleStartupParent.bindChild(
   },
 )
 export const DeclarationCompatibleStartupParentComposition =
-  DeclarationCompatibleStartupParent.toComposition({
+  DeclarationCompatibleStartupParent.makeComposition({
     childBindings: [CountStartupBinding, LabelStartupBinding],
   })
 export const initializeCompatibleStartup =
-  DeclarationCompatibleStartupParentComposition.init(
+  DeclarationCompatibleStartupParentComposition.makeInit(
     (startup: Readonly<{ count: number; label: string }>) => ({
       startup,
       model: {},
@@ -432,10 +442,10 @@ const ContextInputBinding = DeclarationMixedStartupParent.bindChild(
   },
 )
 export const DeclarationMixedStartupParentComposition =
-  DeclarationMixedStartupParent.toComposition({
+  DeclarationMixedStartupParent.makeComposition({
     childBindings: [NoInputBinding, ContextInputBinding],
   })
 export const initializeMixedStartup =
-  DeclarationMixedStartupParentComposition.init(
+  DeclarationMixedStartupParentComposition.makeInit(
     (startup: Readonly<{ count: number }>) => ({ startup, model: {} }),
   )

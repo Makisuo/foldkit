@@ -16,7 +16,7 @@ export type Message = typeof Message.Type
 
 export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.toComposition()
+export const ApplicationComposition = Application.makeComposition()
 
 const CountResponse = Schema.Struct({ count: Schema.Int })
 
@@ -49,7 +49,7 @@ export const fetchCount = (client: HttpClient.HttpClient) =>
 
 export const FetchCountLayer = FetchCount.layer
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedFetchCount: () => ({ model, commands: [FetchCount()] }),
     SucceededFetchCount: ({ count }) => ({

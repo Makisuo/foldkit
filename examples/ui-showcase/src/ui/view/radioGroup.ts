@@ -59,7 +59,7 @@ const checkPlaceholder = (h: UiViewBuilder) => {
   return h.div([h.Class('size-5')])
 }
 
-export const view = UiComposition.view((model, h) => {
+export const view = UiComposition.makeView((model, h) => {
   const verticalPlanOptionsView = ({
     group,
     options,

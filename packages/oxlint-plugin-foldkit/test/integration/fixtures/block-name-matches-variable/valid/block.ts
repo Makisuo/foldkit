@@ -17,16 +17,16 @@ const SubpathNamespace = BlockModule.define('SubpathNamespace')
 const RegisteredComposition = Block.define('Registered', {
   Model,
   Message,
-}).toComposition({})
+}).makeComposition({})
 const IdentityFirst = Block.define('IdentityFirst').define({
   Model,
   Message,
 })
 const IdentityFirstComposition = Block.define(
   'IdentityFirst',
-).define({ Model, Message }).toComposition({})
+).define({ Model, Message }).makeComposition({})
 const Application = defineApplication({ Model, Message })
-const ApplicationComposition = defineApplication({ Model, Message }).toComposition({})
+const ApplicationComposition = defineApplication({ Model, Message }).makeComposition({})
 const DynamicBlock = AliasedBlock.define(blockName)
 const ImportedAlias = ImportedFeature
 
@@ -38,8 +38,8 @@ const unrelatedFactory = {
   define: (_name: string) => ({ define: () => ({}) }),
 }
 const UnrelatedChain = unrelatedFactory.define('DifferentName').define()
-const unrelatedComposer = { toComposition: () => ({}) }
-const UnrelatedCompositionResult = unrelatedComposer.toComposition()
+const unrelatedComposer = { makeComposition: () => ({}) }
+const UnrelatedCompositionResult = unrelatedComposer.makeComposition()
 
 const useShadowedBlock = (Block: typeof AliasedBlock) => {
   const LocalBlock = Block.define('DifferentName')
@@ -66,7 +66,7 @@ void UnrelatedCompositionResult
 void useShadowedBlock
 
 const Separate = Block.define('Separate', { Model, Message })
-const SeparateComposition = Separate.toComposition()
-const ImportedResult = Imported.toComposition()
+const SeparateComposition = Separate.makeComposition()
+const ImportedResult = Imported.makeComposition()
 void SeparateComposition
 void ImportedResult

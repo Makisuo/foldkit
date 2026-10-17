@@ -29,6 +29,7 @@ export type {
   WithoutBindingEvidence,
 } from './binding.js'
 export { inspectBinding } from './binding.js'
+export type { BindingInitRecipe } from './initRecipe.js'
 export type { BindChild } from './bindChild.js'
 export type {
   BindingDeliveryEvidence,
@@ -46,10 +47,15 @@ export { LocalMountsTypeId } from './definition.js'
 export type {
   AnyBlock,
   Base,
-  ToComposition,
+  MakeComposition,
   Composition,
   Completed,
   CompletedBlock,
+  CompletedBlockWithOutMessage,
+  CompletedBlockWithView,
+  CompletedBlockWithViewAndOutMessage,
+  CompletedBlockWithoutViewOrOutMessage,
+  CompletedWithViewAndOutMessage,
   Definition,
   DefinitionAuthoredView,
   DefinitionView,
@@ -65,7 +71,7 @@ export type {
   Implementation,
   ViewBuilderFor,
   OwnedAuthoredView,
-  ToBlock,
+  MakeBlock,
   OwnedManagedResourceEntryBuilder,
   OwnedSubscriptionEntryBuilder,
   RefineViewInputs,
@@ -74,7 +80,7 @@ export { define } from './define.js'
 export type {
   Authoring,
   AuthoringDefinition,
-  AuthoringToComposition,
+  AuthoringMakeComposition,
   DefineContracts,
   Primitives,
 } from './define.js'

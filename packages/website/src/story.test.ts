@@ -38,6 +38,13 @@ const counterExampleUrl = parseUrl('https://foldkit.dev/example-apps/counter')
 const countersExampleUrl = parseUrl('https://foldkit.dev/example-apps/counters')
 const commandApiUrl = parseUrl('https://foldkit.dev/api-reference/command')
 const updateApiUrl = parseUrl('https://foldkit.dev/api-reference/update')
+const homeUrlWithHash = parseUrl('https://foldkit.dev/#demos')
+const commandApiUrlWithHash = parseUrl(
+  'https://foldkit.dev/api-reference/command#definition',
+)
+const counterExampleUrlWithHash = parseUrl(
+  'https://foldkit.dev/example-apps/counter#application',
+)
 
 const flags = {
   currentYear: 2026,
@@ -72,7 +79,7 @@ const expectHomeAbsent = (model: Model): void => {
 }
 
 const expectDefaultHome = (home: typeof HomePage.Model.Type): void => {
-  expect(home.activeDemoTab).toBe('Architecture')
+  expect(home.activeDemoTab).toBe('AsyncCounter')
   expect(home.asyncCounterDemo.count).toBe(0)
   expect(home.notePlayerDemo.noteInput.value).toBe('CDEFGABC')
   expect(home.notePlayerDemo.playbackState._tag).toBe('Idle')
@@ -101,6 +108,33 @@ describe('application', () => {
       'exampleDetail/LoadExampleSources',
       'Application/ScrollSidebarActiveLinkIntoView',
     ])
+  })
+
+  test('navigation opens an existing closed sidebar group', () => {
+    const initialModel = initAt(homeUrl)
+    expect(initialModel.sidebarGroups.apiReference).toBe(false)
+
+    const routeChange = update(
+      initialModel,
+      Message.ChangedUrl({ url: commandApiUrl }),
+    )
+
+    expect(routeChange.model.sidebarGroups.apiReference).toBe(true)
+    expect(routeChange.model.sidebarGroups.examples).toBe(
+      initialModel.sidebarGroups.examples,
+    )
+  })
+
+  test('navigation within an open sidebar group preserves its state', () => {
+    const initialModel = initAt(commandApiUrl)
+    expect(initialModel.sidebarGroups.apiReference).toBe(true)
+
+    const routeChange = update(
+      initialModel,
+      Message.ChangedUrl({ url: updateApiUrl }),
+    )
+
+    expect(routeChange.model.sidebarGroups).toBe(initialModel.sidebarGroups)
   })
 
   test('prerendered API startup retains its slice through failure and route retry', () => {
@@ -181,6 +215,35 @@ describe('application', () => {
     expect(nextPlayground.slug).toBe('counters')
   })
 
+  test.each([
+    { isPlaygroundSupported: true },
+    { isPlaygroundSupported: false },
+  ])(
+    'entering Playground reuses cached browser support ($isPlaygroundSupported)',
+    ({ isPlaygroundSupported }) => {
+      const loadedBrowserEnvironment = update(
+        initAt(newsletterUrl),
+        Message.CompletedLoadBrowserEnvironment({
+          maybeThemePreference: Option.none(),
+          maybeSidebarState: Option.none(),
+          systemTheme: 'Light',
+          isPlaygroundSupported,
+          currentYear: flags.currentYear,
+          today: flags.today,
+        }),
+      )
+
+      const enteredPlayground = update(
+        loadedBrowserEnvironment.model,
+        Message.ChangedUrl({ url: playgroundCounterUrl }),
+      )
+
+      expect(
+        Option.getOrThrow(enteredPlayground.model.playground).maybeIsSupported,
+      ).toEqual(Option.some(isPlaygroundSupported))
+    },
+  )
+
   test('entering and exiting Playground adds and removes its Model', () => {
     const enteredPlayground = update(
       initAt(newsletterUrl),
@@ -190,6 +253,10 @@ describe('application', () => {
     expect(Option.getOrThrow(enteredPlayground.model.playground).slug).toBe(
       'counter',
     )
+    expect(enteredPlayground.commands?.map(command => command.name)).toEqual([
+      'Application/ScrollToTop',
+      'Application/ScrollSidebarActiveLinkIntoView',
+    ])
 
     const exitedPlayground = update(
       enteredPlayground.model,
@@ -197,6 +264,54 @@ describe('application', () => {
     )
 
     expect(Option.isNone(exitedPlayground.model.playground)).toBe(true)
+    expect(exitedPlayground.commands?.map(command => command.name)).toEqual([
+      'Application/ScrollToTop',
+      'Application/ScrollSidebarActiveLinkIntoView',
+    ])
+  })
+
+  test.each([
+    {
+      routeName: 'API module',
+      initialUrl: commandApiUrl,
+      urlWithHash: commandApiUrlWithHash,
+    },
+    {
+      routeName: 'example',
+      initialUrl: counterExampleUrl,
+      urlWithHash: counterExampleUrlWithHash,
+    },
+  ])(
+    'remaining on the same $routeName slug does not reload route data',
+    ({ initialUrl, urlWithHash }) => {
+      const routeChange = update(
+        initAt(initialUrl),
+        Message.ChangedUrl({ url: urlWithHash }),
+      )
+
+      expect(routeChange.commands?.map(command => command.name)).toEqual([
+        'Application/ScrollToAnchor',
+      ])
+    },
+  )
+
+  test('route cleanup precedes scrolling to an anchor on a new path', () => {
+    const openedSearch = update(
+      initAt(newsletterUrl),
+      Message.ClickedOpenSearch(),
+    )
+
+    const routeChange = update(
+      openedSearch.model,
+      Message.ChangedUrl({ url: homeUrlWithHash }),
+    )
+
+    expect(routeChange.model.search.dialog.isOpen).toBe(false)
+    expect(routeChange.commands?.map(command => command.name)).toEqual([
+      'search/dialog/CloseDialog',
+      'Application/ScrollToAnchor',
+      'Application/ScrollSidebarActiveLinkIntoView',
+    ])
   })
 
   test('changing API module slugs retries missing API data', () => {

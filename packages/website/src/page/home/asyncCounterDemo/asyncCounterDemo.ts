@@ -23,12 +23,12 @@ const clampResetSeconds = (seconds: number): number =>
     maximum: MAX_RESET_DURATION,
   })
 
-export const AsyncCounterDemoComposition = AsyncCounterDemo.toComposition()
+export const AsyncCounterDemoComposition = AsyncCounterDemo.makeComposition()
 type AsyncCounterDemoViewBuilder = Block.ViewBuilderFor<
   typeof AsyncCounterDemoComposition
 >
 
-export const init = AsyncCounterDemoComposition.init(() => ({
+export const init = AsyncCounterDemoComposition.makeInit(() => ({
   model: Model.make({
     count: 0,
     isResetting: false,
@@ -62,7 +62,7 @@ const prependToLog =
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     pipe([entry, ...messageLog], Array.take(MAX_LOG_ENTRIES))
 
-export const update = AsyncCounterDemoComposition.update((model, message) =>
+export const update = AsyncCounterDemoComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedDemoIncrement: () => {
       const nextModel = modifyFields(model, {
@@ -286,7 +286,7 @@ const phaseColorClass = (phase: AnimationPhase): string =>
     Match.exhaustive,
   )
 
-export const view = AsyncCounterDemoComposition.view((model, h) =>
+export const view = AsyncCounterDemoComposition.makeView((model, h) =>
   DemoView.shell(
     DemoView.codePanel(
       'demo-code-panel',

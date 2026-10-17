@@ -10,7 +10,7 @@ import {
 import { Message } from './message'
 import { type ChatMessage, ConnectionState } from './model'
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'WebSocket Chat',
   body: h.div(
     [

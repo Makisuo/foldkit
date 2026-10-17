@@ -23,7 +23,7 @@ export const DialogBinding = Search.bindChild(Dialog.block, {
   init: { args: () => Tuple.make({ id: 'search-dialog' }) },
 })
 
-export const SearchComposition = Search.toComposition({
+export const SearchComposition = Search.makeComposition({
   childBindings: [DialogBinding],
 })
 export type SearchViewBuilder = Block.ViewBuilderFor<typeof SearchComposition>

@@ -7,7 +7,7 @@ Declare child startup inputs beside their Bindings and assemble their initial Mo
 
 A required exact direct field initializes automatically when the child's initializer can be called without arguments. Use `init: { args }` when it needs inputs, or `init: false` when the parent supplies the initial field. Optional, keyed, and accessor storage remains parent-owned when `init` is omitted. Select automatic optional presence with `Option<tuple>` and initial keyed membership with `init.occurrences`. Ordinary tuple literals retain the child's exact contextual argument types.
 
-Author the complete startup plan with `ApplicationComposition.init` or `FeatureComposition.init`. Add a `Startup` Schema to the parent Definition when Binding selectors share decoded input. The callback supplies that value through `startup`, returns fields owned by the parent, and may list Commands and startup Steps. This remains the existing Composition startup boundary; it does not add a Runtime phase, construct Layers, or execute Commands.
+Author the complete startup plan with `ApplicationComposition.makeInit` or `FeatureComposition.makeInit`. Add a `Startup` Schema to the parent Definition when Binding selectors share decoded input. The callback supplies that value through `startup`, returns fields owned by the parent, and may list Commands and startup Steps. This remains the existing Composition startup boundary; it does not add a Runtime phase, construct Layers, or execute Commands.
 
 ## Declare startup beside the Binding
 
@@ -63,7 +63,7 @@ export const SettingsBinding = Application.bindChild(Settings.block, {
   },
 })
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [SettingsBinding],
 })
 ```
@@ -74,7 +74,7 @@ Then let the Composition collect child Models and Commands in init.ts:
 import { ApplicationComposition } from './composition'
 import type { Flags } from './flags'
 
-export const init = ApplicationComposition.init((flags: Flags) => ({
+export const init = ApplicationComposition.makeInit((flags: Flags) => ({
   startup: flags,
   model: {
     username: flags.username,
@@ -131,11 +131,11 @@ const CountersBinding = Application.bindChild(Counter.block, {
   },
 })
 
-const ApplicationComposition = Application.toComposition({
+const ApplicationComposition = Application.makeComposition({
   childBindings: [CountersBinding],
 })
 
-const init = ApplicationComposition.init(() => ({
+const init = ApplicationComposition.makeInit(() => ({
   model: {
     nextCounterId: INITIAL_COUNTER_COUNT,
   },

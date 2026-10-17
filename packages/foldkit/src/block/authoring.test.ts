@@ -127,9 +127,9 @@ const homeManagedResources = home.managedResources(entry => ({
   }),
 }))
 
-const HomeComposition = home.toComposition()
+const HomeComposition = home.makeComposition()
 
-const homeView = HomeComposition.view((model, h) =>
+const homeView = HomeComposition.makeView((model, h) =>
   h.button(
     [h.OnClick(HomeMessage.ClickedCreateRoom())],
     [`${model.status}:${model.joinedCount}`],
@@ -141,14 +141,14 @@ type HomeViewInputs = Readonly<{ label: string }>
 let renderedHomeLabel = ''
 
 const homeViewWithDefaultInputs =
-  HomeComposition.view.withInputs<HomeViewInputs>(
+  HomeComposition.makeView.withInputs<HomeViewInputs>(
     (_model, { label } = { label: 'Default' }, _h) => {
       renderedHomeLabel = label
       return null
     },
   )
 
-const homeRestTupleView = HomeComposition.view.withInputs<HomeViewInputs>(
+const homeRestTupleView = HomeComposition.makeView.withInputs<HomeViewInputs>(
   (
     ...[_model, { label }, h]: [
       HomeModel,
@@ -158,20 +158,20 @@ const homeRestTupleView = HomeComposition.view.withInputs<HomeViewInputs>(
   ) => h.div([], [label]),
 )
 
-const homeOptionalInputsView = HomeComposition.view.withInputs<
+const homeOptionalInputsView = HomeComposition.makeView.withInputs<
   HomeViewInputs | undefined
 >((_model, inputs, h) => h.div([], [inputs?.label ?? 'Missing']))
 
 let homeInitCalls = 0
 
-const homeInit = HomeComposition.init(() => {
+const homeInit = HomeComposition.makeInit(() => {
   homeInitCalls += 1
   return {
     model: HomeModel.make({ status: 'Idle', joinedCount: 0 }),
   }
 })
 
-const parameterizedHomeInit = HomeComposition.init(
+const parameterizedHomeInit = HomeComposition.makeInit(
   (joinedCount = 0, ...suffixes: ReadonlyArray<string>) => ({
     model: HomeModel.make({
       status: 'Idle',
@@ -186,7 +186,7 @@ if (false) {
   parameterizedHomeInit('two')
 }
 
-const homeUpdate = HomeComposition.update((model, message) =>
+const homeUpdate = HomeComposition.makeUpdate((model, message) =>
   HomeMessage.match(message, {
     ClickedCreateRoom: () => ({
       model: modifyFields(model, { status: () => 'Creating' }),
@@ -208,7 +208,7 @@ const homeInformJoined = home.step((model, joinedCount: number) => ({
   model: modifyFields(model, { joinedCount: () => joinedCount }),
 }))
 
-const Home = HomeComposition.toBlock({
+const Home = HomeComposition.makeBlock({
   view: homeView,
   init: homeInit,
   update: homeUpdate,
@@ -224,12 +224,12 @@ const noMessage = NoMessageOwner.define({
   Model: Schema.Null,
   Message: Schema.Never,
 })
-const NoMessageComposition = noMessage.toComposition()
-const noMessageUpdate = NoMessageComposition.update()
-const NoMessage = NoMessageComposition.toBlock({
+const NoMessageComposition = noMessage.makeComposition()
+const noMessageUpdate = NoMessageComposition.makeUpdate()
+const NoMessage = NoMessageComposition.makeBlock({
   init: () => ({ model: null }),
   update: noMessageUpdate,
-  view: NoMessageComposition.view((_model, h) => ({
+  view: NoMessageComposition.makeView((_model, h) => ({
     title: 'No Messages',
     body: h.empty,
   })),
@@ -270,15 +270,15 @@ const makeGenericAuthoring = <const Id extends string, Item, Value>(id: Id) => {
     Model: GenericModel,
     Message: GenericMessage,
   })
-  const composition = definition.toComposition()
-  const view = composition.view.withInputs<
+  const composition = definition.makeComposition()
+  const view = composition.makeView.withInputs<
     GenericAuthoringViewInputs<Item, Value>
   >((model, _viewInputs, h) => h.div([], [model.value]))
 
-  return composition.toBlock({
+  return composition.makeBlock({
     view,
     init: () => ({ model: GenericModel.make({ value: '' }) }),
-    update: composition.update((model, message) =>
+    update: composition.makeUpdate((model, message) =>
       GenericMessage.match(message, {
         RequestedText: ({ value }) => ({
           model,
@@ -333,8 +333,8 @@ const homeImplementation = {
   EffectsLayer: CreateRoomTestLayer,
 } satisfies Implementation<HomeModel, HomeMessage, HomeOutMessage>
 const HomeWithCheckedImplementation = home
-  .toComposition()
-  .toBlock(homeImplementation)
+  .makeComposition()
+  .makeBlock(homeImplementation)
 
 const RoomOwner = define('AuthoringRoom')
 
@@ -360,8 +360,8 @@ const room = RoomOwner.define({
   Message: RoomMessage,
 })
 
-const RoomComposition = room.toComposition()
-const roomUpdate = RoomComposition.update(
+const RoomComposition = room.makeComposition()
+const roomUpdate = RoomComposition.makeUpdate(
   (model, message, source: 'Reconnect' | 'Route', retryCount?: number) =>
     RoomMessage.match(message, {
       ClickedRefreshRoom: () => ({
@@ -385,7 +385,7 @@ const roomInformJoined = room.step(
   }),
 )
 
-const Room = RoomComposition.toBlock({
+const Room = RoomComposition.makeBlock({
   init: (roomId: string) => ({
     model: RoomModel.make({ roomId, joinedCount: 0 }),
   }),
@@ -423,9 +423,9 @@ const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
     Message,
     OutMessage,
   })
-  const composition = base.toComposition({ mounts: [ObserveChoice] })
+  const composition = base.makeComposition({ mounts: [ObserveChoice] })
 
-  const view = composition.view.withInputs<Readonly<{ label: string }>>(
+  const view = composition.makeView.withInputs<Readonly<{ label: string }>>(
     (model, { label }, h) =>
       h.button(
         [
@@ -436,7 +436,7 @@ const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
       ),
   )
 
-  const update = composition.update((model, message) => {
+  const update = composition.makeUpdate((model, message) => {
     if (message._tag === 'SelectedChoice') {
       return {
         model: Model.make({ value: message.value }),
@@ -452,7 +452,7 @@ const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
     outMessage: OutMessage.make({ value }),
   }))
 
-  return composition.toBlock({
+  return composition.makeBlock({
     view,
     init: (value: Value) => ({ model: Model.make({ value }) }),
     update,
@@ -481,7 +481,7 @@ const makeLeaf = <const Namespace extends string>(
     Message: LeafMessage,
   })
 
-  return definition.toComposition().toBlock({
+  return definition.makeComposition().makeBlock({
     init: () => ({ model: LeafModel.make({ value: '' }) }),
     update: (model, _message) => ({ model }),
     EffectsLayer,
@@ -528,10 +528,10 @@ const GraphChild = GraphChildOwner.define({
   Message: GraphChildMessage,
 })
 
-const graphChildComposition = GraphChild.toComposition()
+const graphChildComposition = GraphChild.makeComposition()
 const graphChildImplementation = {
   init: () => ({ model: GraphChildModel.make({ count: 0 }) }),
-  update: graphChildComposition.update((model, message) =>
+  update: graphChildComposition.makeUpdate((model, message) =>
     GraphChildMessage.match(message, {
       RequestedChildWork: () => ({ model, commands: [RunChildWork()] }),
       CompletedChildWork: () => ({ model }),
@@ -540,7 +540,9 @@ const graphChildImplementation = {
   EffectsLayer: RunChildWork.layer,
 }
 
-const GraphChildBlock = graphChildComposition.toBlock(graphChildImplementation)
+const GraphChildBlock = graphChildComposition.makeBlock(
+  graphChildImplementation,
+)
 
 const GraphParentOwner = define('AuthoringGraphParent')
 
@@ -569,7 +571,7 @@ const GraphChildBinding = graphParentBase.bindChild(GraphChildBlock, {
   parentMessage: GraphParentMessage.GotChildMessage,
 })
 
-const graphParentComposition = graphParentBase.toComposition({
+const graphParentComposition = graphParentBase.makeComposition({
   childBindings: [GraphChildBinding],
 })
 
@@ -585,7 +587,7 @@ const graphParentImplementation = {
   EffectsLayer: Layer.empty,
 }
 
-const GraphParent = graphParentComposition.toBlock(graphParentImplementation)
+const GraphParent = graphParentComposition.makeBlock(graphParentImplementation)
 
 const SelectedGraphChild = GraphChildBlock.replaceEffectsLayer(
   RunChildWork.toLayer<never, 'ChildProviderUnavailable', SelectedRoomsClient>(
@@ -611,8 +613,8 @@ const SelectedGraphChildBinding = selectedGraphParentBase.bindChild(
   },
 )
 const SelectedGraphParent = selectedGraphParentBase
-  .toComposition({ childBindings: [SelectedGraphChildBinding] })
-  .toBlock(graphParentImplementation)
+  .makeComposition({ childBindings: [SelectedGraphChildBinding] })
+  .makeBlock(graphParentImplementation)
   .replaceEffectsLayer(Layer.empty)
 
 const SelectedGraphParentWithFailure = SelectedGraphParent.replaceEffectsLayer(
@@ -653,23 +655,26 @@ const ChoiceWithPolicyCommandBinding = policyParentBase.bindChild(
   },
 )
 
-const policyParentComposition = policyParentBase.toComposition({
+const policyParentComposition = policyParentBase.makeComposition({
   childBindings: [ChoiceWithPolicyCommandBinding],
 })
-
-const PolicyParent = policyParentComposition.toBlock({
-  init: () => ({
-    model: PolicyParentModel.make({
-      choice: StringChoice.Model.make({ value: 'One' }),
-    }),
-  }),
-  update: (model, message) =>
+const policyParentUpdate = policyParentComposition.makeUpdate(
+  (model, message) =>
     HomeMessage.match(message, {
       ClickedCreateRoom: () =>
         ChoiceWithPolicyCommandBinding.finish('Two')(model),
       CompletedCreateRoom: () => ({ model }),
     }),
-  view: policyParentComposition.view((_model, h) => h.empty),
+)
+
+const PolicyParent = policyParentComposition.makeBlock({
+  init: () => ({
+    model: PolicyParentModel.make({
+      choice: StringChoice.Model.make({ value: 'One' }),
+    }),
+  }),
+  update: policyParentUpdate,
+  view: policyParentComposition.makeView((_model, h) => h.empty),
   EffectsLayer: Layer.empty,
   hostHandlers: [CreateRoom],
 })
@@ -730,10 +735,10 @@ const PolicyConflictChild = PolicyConflictChildOwner.define({
   OutMessage: PolicyConflictChildOutMessage,
 })
 
-const policyConflictChildComposition = PolicyConflictChild.toComposition()
-const PolicyConflictChildBlock = policyConflictChildComposition.toBlock({
+const policyConflictChildComposition = PolicyConflictChild.makeComposition()
+const PolicyConflictChildBlock = policyConflictChildComposition.makeBlock({
   init: () => ({ model: PolicyConflictChildModel.make({ value: '' }) }),
-  update: policyConflictChildComposition.update((model, _message) => ({
+  update: policyConflictChildComposition.makeUpdate((model, _message) => ({
     model,
     outMessage: PolicyConflictChildOutMessage.RequestedRun(),
   })),
@@ -774,9 +779,10 @@ const PolicyConflictChildBinding = policyConflictParentBase.bindChild(
     },
   },
 )
-const policyConflictParentComposition = policyConflictParentBase.toComposition({
-  childBindings: [PolicyConflictChildBinding],
-})
+const policyConflictParentComposition =
+  policyConflictParentBase.makeComposition({
+    childBindings: [PolicyConflictChildBinding],
+  })
 
 if (false) {
   const ForeignOwnedMessage = defineMessageUnion({ CompletedForeign: {} })
@@ -825,7 +831,7 @@ if (false) {
     model: HomeModel.make({ status: 'Idle', joinedCount: 0 }),
     commands: maybeCreateRoomCommands(shouldCreateRoom),
   })
-  const updateWithForwardedCommands = HomeComposition.update(
+  const updateWithForwardedCommands = HomeComposition.makeUpdate(
     (model, _message, shouldCreateRoom: boolean) => ({
       model,
       commands: maybeCreateRoomCommands(shouldCreateRoom),
@@ -837,7 +843,7 @@ if (false) {
       commands: maybeCreateRoomCommands(shouldCreateRoom),
     }),
   )
-  const HomeWithForwardedCommands = HomeComposition.toBlock({
+  const HomeWithForwardedCommands = HomeComposition.makeBlock({
     init: initWithForwardedCommands,
     update: updateWithForwardedCommands,
     expose: { boot: bootWithForwardedCommands },
@@ -845,7 +851,7 @@ if (false) {
   })
 
   const collidingFold = home.step(model => ({ model }))
-  HomeComposition.toBlock({
+  HomeComposition.makeBlock({
     init: homeInit,
     update: homeUpdate,
     expose: { fold: collidingFold },
@@ -870,7 +876,7 @@ if (false) {
     .toEqualTypeOf<boolean>()
 
   // @ts-expect-error Omitting EffectsLayer still rejects unresolved local handlers.
-  HomeComposition.toBlock({
+  HomeComposition.makeBlock({
     init: homeInit,
     update: homeUpdate,
   })
@@ -880,14 +886,14 @@ if (false) {
     HomeMessage,
     HomeOutMessage
   > = homeImplementation
-  const erasedBlock = HomeComposition.toBlock(erasedImplementation)
+  const erasedBlock = HomeComposition.makeBlock(erasedImplementation)
   // @ts-expect-error A broad annotation cannot produce a usable block.
   erasedBlock.init
   const ErasedBlockApplication = defineApplication({
     Model: HomeModel,
     Message: HomeMessage,
   })
-  ErasedBlockApplication.toComposition().toElement({
+  ErasedBlockApplication.makeComposition().makeElement({
     // @ts-expect-error A reusable Block cannot become an application root.
     block: erasedBlock,
     container: null,
@@ -942,10 +948,10 @@ if (false) {
     Model: HomeModel,
     Message: HomeMessage,
   })
-  const crossKindComposition = crossKindBase.toComposition({
+  const crossKindComposition = crossKindBase.makeComposition({
     mounts: [MountFocus],
   })
-  crossKindComposition.toBlock({
+  crossKindComposition.makeBlock({
     init: homeInit,
     update: model => ({ model, commands: [CommandFocus()] }),
     // @ts-expect-error A same-name Mount handler cannot satisfy a Command contract.
@@ -992,12 +998,12 @@ if (false) {
     messages: [HomeMessage.CompletedCreateRoom],
   })
 
-  HomeComposition.view(
+  HomeComposition.makeView(
     // @ts-expect-error Views use the Model fixed by the Block definition.
     (_model: Readonly<{ foreign: true }>, h) => h.div([]),
   )
 
-  HomeComposition.view((_model, h) =>
+  HomeComposition.makeView((_model, h) =>
     h.div([
       // @ts-expect-error The view may use only Mounts registered by its definition or child Bindings.
       h.OnMount(ObserveChoice()),
@@ -1027,10 +1033,10 @@ if (false) {
     Message: HomeMessage,
     OutMessage: HomeOutMessage,
   })
-  const subsetHomeViewComposition = subsetHomeViewBase.toComposition({
+  const subsetHomeViewComposition = subsetHomeViewBase.makeComposition({
     mounts: [ObserveHomeView],
   })
-  const subsetHomeView = subsetHomeViewComposition.view((_model, h) =>
+  const subsetHomeView = subsetHomeViewComposition.makeView((_model, h) =>
     h.div([]),
   )
   subsetHomeView satisfies Readonly<{
@@ -1045,10 +1051,10 @@ if (false) {
     Message: HomeMessage,
     OutMessage: HomeOutMessage,
   })
-  const supersetHomeViewComposition = supersetHomeViewBase.toComposition({
+  const supersetHomeViewComposition = supersetHomeViewBase.makeComposition({
     mounts: [ObserveHomeView, ObserveSecondaryHomeView],
   })
-  supersetHomeViewComposition.toBlock({
+  supersetHomeViewComposition.makeBlock({
     init: homeInit,
     update: (model, _message) => ({ model }),
     view: subsetHomeView,
@@ -1064,9 +1070,11 @@ if (false) {
     Message: HomeMessage,
     OutMessage: HomeOutMessage,
   })
-  const foreignHomeComposition = foreignHome.toComposition()
-  const foreignHomeView = foreignHomeComposition.view((_model, h) => h.div([]))
-  HomeComposition.toBlock({
+  const foreignHomeComposition = foreignHome.makeComposition()
+  const foreignHomeView = foreignHomeComposition.makeView((_model, h) =>
+    h.div([]),
+  )
+  HomeComposition.makeBlock({
     init: homeInit,
     update: (model, _message) => ({ model }),
     // @ts-expect-error A completed Block must use a view authored by its own definition.
@@ -1078,11 +1086,11 @@ if (false) {
     Model: RoomModel,
     Message: RoomMessage,
   })
-  const sameOwnerDifferentComposition = sameOwnerDifferent.toComposition()
-  const sameOwnerDifferentView = sameOwnerDifferentComposition.view(
+  const sameOwnerDifferentComposition = sameOwnerDifferent.makeComposition()
+  const sameOwnerDifferentView = sameOwnerDifferentComposition.makeView(
     (_model, h) => h.div([]),
   )
-  HomeComposition.toBlock({
+  HomeComposition.makeBlock({
     init: homeInit,
     update: (model, _message) => ({ model }),
     // @ts-expect-error Owner identity cannot substitute for the definition's Model and Message view channels.
@@ -1092,14 +1100,14 @@ if (false) {
 
   const erasedHomeView: any = homeView
   // @ts-expect-error any cannot erase an implementation's authored view contract.
-  HomeComposition.toBlock({
+  HomeComposition.makeBlock({
     init: homeInit,
     update: (model, _message) => ({ model }),
     view: erasedHomeView,
     EffectsLayer: Layer.empty,
   })
 
-  HomeComposition.toBlock({
+  HomeComposition.makeBlock({
     // @ts-expect-error Specialized implementation shapes retain the definition Model returned by init.
     init: () => ({
       model: RoomModel.make({ roomId: 'foreign', joinedCount: 0 }),
@@ -1110,7 +1118,7 @@ if (false) {
     EffectsLayer: Layer.empty,
   })
 
-  HomeComposition.toBlock({
+  HomeComposition.makeBlock({
     init: () => ({
       // @ts-expect-error Specialized implementation shapes with Subscriptions retain the definition Model returned by init.
       model: RoomModel.make({ roomId: 'foreign', joinedCount: 0 }),
@@ -1123,15 +1131,17 @@ if (false) {
   })
 
   // @ts-expect-error void would collapse the three-argument view to two arguments.
-  HomeComposition.view.withInputs<void>((_model, _inputs, h) => h.div([]))
+  HomeComposition.makeView.withInputs<void>((_model, _inputs, h) => h.div([]))
   // @ts-expect-error undefined would collapse the three-argument view to two arguments.
-  HomeComposition.view.withInputs<undefined>((_model, _inputs, h) => h.div([]))
+  HomeComposition.makeView.withInputs<undefined>((_model, _inputs, h) =>
+    h.div([]),
+  )
   // @ts-expect-error never cannot describe a usable viewInputs value.
-  HomeComposition.view.withInputs<never>((_model, _inputs, h) => h.div([]))
+  HomeComposition.makeView.withInputs<never>((_model, _inputs, h) => h.div([]))
   // @ts-expect-error any would erase the viewInputs contract.
-  HomeComposition.view.withInputs<any>((_model, _inputs, h) => h.div([]))
+  HomeComposition.makeView.withInputs<any>((_model, _inputs, h) => h.div([]))
 
-  policyParentComposition.view((model, h) => {
+  policyParentComposition.makeView((model, h) => {
     const config = ChoiceWithPolicyCommandBinding.embedView({
       slotId: 'compact-evidence',
       model: model.choice,
@@ -1199,18 +1209,18 @@ if (false) {
     return h.empty
   })
 
-  HomeComposition.update(
+  HomeComposition.makeUpdate(
     // @ts-expect-error Updates use the Model fixed by the Block definition.
     (model: RoomModel, _message: HomeMessage) => ({ model }),
   )
 
-  RoomComposition.update((model, _message) => ({
+  RoomComposition.makeUpdate((model, _message) => ({
     model,
     // @ts-expect-error A Block without OutMessage cannot emit one.
     outMessage: HomeOutMessage.CreatedRoom({ roomId: model.roomId }),
   }))
 
-  HomeComposition.update((model, _message, context) => {
+  HomeComposition.makeUpdate((model, _message, context) => {
     // @ts-expect-error Extra update context requires an explicit type annotation.
     context.nonexistent
     return { model }
@@ -1222,7 +1232,7 @@ if (false) {
     return { model }
   })
 
-  RoomComposition.toBlock({
+  RoomComposition.makeBlock({
     init: flags => {
       // @ts-expect-error Inline init parameters require explicit annotations.
       flags.nonexistent
@@ -1247,9 +1257,9 @@ if (false) {
   home.step((model, _input: any) => ({ model }))
 
   // @ts-expect-error Explicit any context erases the operation contract.
-  HomeComposition.update((model, _message, _context: any) => ({ model }))
+  HomeComposition.makeUpdate((model, _message, _context: any) => ({ model }))
 
-  graphParentComposition.toBlock({
+  graphParentComposition.makeBlock({
     init: GraphParent.init,
     update: model => ({
       model,
@@ -1274,30 +1284,31 @@ if (false) {
       parentMessage: GraphParentMessage.GotChildMessage,
     },
   )
-  unregisteredGraphParent.toComposition().toBlock({
+  const unregisteredGraphComposition = unregisteredGraphParent.makeComposition()
+  const unregisteredGraphUpdate = unregisteredGraphComposition.makeUpdate(
+    (model, message) =>
+      GraphParentMessage.match(message, {
+        GotChildMessage: ({ message }) =>
+          // @ts-expect-error An unregistered Binding cannot fold a raw Model.
+          UnregisteredGraphChildBinding.fold(model, message),
+        RequestedParentWork: () => ({ model }),
+        CompletedParentWork: () => ({ model }),
+      }),
+  )
+  unregisteredGraphComposition.makeBlock({
+    // @ts-expect-error An unregistered Binding cannot contribute initialization.
     init: () =>
       UnregisteredGraphChildBinding.init({
         args: [],
         toParentModel: child => GraphParentModel.make({ child }),
       }),
-    update: (model, message) =>
-      GraphParentMessage.match(message, {
-        GotChildMessage: ({ message }) =>
-          UnregisteredGraphChildBinding.fold(model, message),
-        RequestedParentWork: () => ({ model }),
-        CompletedParentWork: () => ({ model }),
-      }),
-    // @ts-expect-error A binding omitted from childBindings cannot supply scoped handlers.
+    update: unregisteredGraphUpdate,
+    // @ts-expect-error An unregistered Binding cannot satisfy implementation evidence.
     EffectsLayer: Layer.empty,
   })
 
-  policyConflictParentComposition.toBlock({
-    init: () => ({
-      model: PolicyConflictParentModel.make({
-        child: PolicyConflictChildModel.make({ value: '' }),
-      }),
-    }),
-    update: (model, message) =>
+  const policyConflictUpdate = policyConflictParentComposition.makeUpdate(
+    (model, message) =>
       HomeMessage.match(message, {
         ClickedCreateRoom: () =>
           PolicyConflictChildBinding.fold(
@@ -1306,12 +1317,20 @@ if (false) {
           ),
         CompletedCreateRoom: () => ({ model }),
       }),
+  )
+  policyConflictParentComposition.makeBlock({
+    init: () => ({
+      model: PolicyConflictParentModel.make({
+        child: PolicyConflictChildModel.make({ value: '' }),
+      }),
+    }),
+    update: policyConflictUpdate,
     // @ts-expect-error A scoped policy Command must exactly match the registered child handler contract.
     EffectsLayer: Layer.empty,
   })
 
   // @ts-expect-error A child named Step's OutMessage policy Command requires its matching host handler.
-  policyParentComposition.toBlock({
+  policyParentComposition.makeBlock({
     init: PolicyParent.init,
     update: PolicyParent.update,
     EffectsLayer: Layer.empty,
@@ -1323,7 +1342,7 @@ if (false) {
     Message: GraphParentMessage,
   })
   // @ts-expect-error Child bindings must use the definition's parent Model.
-  mismatchedGraphParentBase.toComposition({
+  mismatchedGraphParentBase.makeComposition({
     childBindings: [GraphChildBinding],
   })
 
@@ -1480,7 +1499,7 @@ describe('Block authoring', () => {
     expect(HomeWithTestProvider.Model).toBe(Home.Model)
     expect(HomeWithTestProvider.Message).toBe(Home.Message)
     expect(HomeWithTestProvider.OutMessage).toBe(Home.OutMessage)
-    expect(HomeWithTestProvider.view).toBe(Home.view)
+    expect(HomeWithTestProvider.makeView).toBe(Home.makeView)
     expect(HomeWithTestProvider.init).toBe(Home.init)
     expect(HomeWithTestProvider.update).toBe(Home.update)
     expect(HomeWithTestProvider.expose).toBe(Home.expose)
@@ -1543,10 +1562,10 @@ describe('Block authoring', () => {
       Model: LeafParentModel,
       Message: LeafMessage,
     })
-    const definition = base.toComposition({
+    const definition = base.makeComposition({
       childBindings: [child],
     })
-    const block = definition.toBlock({
+    const block = definition.makeBlock({
       init: () => ({
         model: LeafParentModel.make({ leaf: LeafModel.make({ value: '' }) }),
       }),
@@ -1598,13 +1617,13 @@ describe('Block authoring', () => {
       Model: LeafParentModel,
       Message: LeafMessage,
     })
-    const definition = base.toComposition({
+    const definition = base.makeComposition({
       childBindings: [
         bindLeaf(block, 'default'),
         bindLeaf(selected, 'selected'),
       ],
     })
-    const parent = definition.toBlock({
+    const parent = definition.makeBlock({
       init: () => ({
         model: LeafParentModel.make({ leaf: LeafModel.make({ value: '' }) }),
       }),
@@ -1704,7 +1723,7 @@ describe('Block authoring', () => {
     const name: string = 'fold'
 
     expect(() =>
-      home.toComposition().toBlock({
+      home.makeComposition().makeBlock({
         init: homeInit,
         update: homeUpdate,
         expose: { [name]: homeBoot },
@@ -1718,7 +1737,7 @@ describe('Block authoring', () => {
   it('constructs a passive block with named exposed operations', () => {
     expect(homeInitCalls).toBe(0)
     expect(createRoomHandlerBuilds).toBe(0)
-    expect(Home.view).toBe(HomeComposition.view)
+    expect(Home.makeView).toBe(HomeComposition.makeView)
     expect(defaultViewOf(Home)).toBe(homeView)
     expect(Home.expose).toEqual({
       boot: expect.any(Function),
@@ -1726,7 +1745,7 @@ describe('Block authoring', () => {
     })
     expect(Home.expose.boot).not.toBe(homeBoot)
     expect(Home.expose.informJoined).not.toBe(homeInformJoined)
-    expect(typeof home.toComposition).toBe('function')
+    expect(typeof home.makeComposition).toBe('function')
     expect(Home).not.toHaveProperty('connection')
 
     const homeInit_ = Home.init()
@@ -1867,7 +1886,7 @@ describe('Block authoring', () => {
       Model: LeafParentModel,
       Message: LeafMessage,
     })
-    const definition = base.toComposition({
+    const definition = base.makeComposition({
       childBindings: [first, second],
     })
 
@@ -1905,10 +1924,10 @@ describe('Block authoring', () => {
       Model: LeafParentModel,
       Message: LeafMessage,
     })
-    const definition = base.toComposition({
+    const definition = base.makeComposition({
       childBindings: [first, second],
     })
-    const parent = definition.toBlock({
+    const parent = definition.makeBlock({
       init: () => ({
         model: LeafParentModel.make({ leaf: LeafModel.make({ value: '' }) }),
       }),
@@ -1941,10 +1960,10 @@ describe('Block authoring', () => {
       Model: LeafParentModel,
       Message: LeafMessage,
     })
-    const definition = base.toComposition({
+    const definition = base.makeComposition({
       childBindings: [first, second],
     })
-    const parent = definition.toBlock({
+    const parent = definition.makeBlock({
       init: () => ({
         model: LeafParentModel.make({ leaf: LeafModel.make({ value: '' }) }),
       }),
@@ -1969,7 +1988,7 @@ describe('Block authoring', () => {
       ParentOwner.define({
         Model: LeafParentModel,
         Message: LeafMessage,
-      }).toComposition({
+      }).makeComposition({
         childBindings: [first, second],
       }),
     ).not.toThrow()
@@ -1999,8 +2018,14 @@ describe('Block authoring', () => {
         toParentMessage: (message: HomeMessage) => message,
       },
     )
+    const composition = PolicyBindingParent.makeComposition({
+      childBindings: [Binding],
+    })
+    const foldPolicy = composition.makeUpdate((model, message) =>
+      Binding.fold(model, message),
+    )
     const model = PolicyParentWithHostProvider.init().model
-    const policyUpdate = Binding.fold(model, HomeMessage.ClickedCreateRoom())
+    const policyUpdate = foldPolicy(model, HomeMessage.ClickedCreateRoom())
 
     const messages = await Effect.runPromise(
       Effect.scoped(
@@ -2053,10 +2078,16 @@ describe('Block authoring', () => {
       ) => [nextModel],
       toParentMessage: (_key: 'only', message: HomeMessage) => message,
     })
-    const policyUpdate = Binding.fold(
+    const composition = PolicyKeyedParent.makeComposition({
+      childBindings: [Binding],
+    })
+    const foldPolicy = composition.makeUpdate((models, message, key: 'only') =>
+      Binding.fold(models, key, message),
+    )
+    const policyUpdate = foldPolicy(
       [model],
-      'only',
       HomeMessage.ClickedCreateRoom(),
+      'only',
     )
 
     const messages = await Effect.runPromise(
@@ -2073,7 +2104,7 @@ describe('Block authoring', () => {
   })
 
   it('rejects a child handler in its parent local recipe', async () => {
-    const parent = graphParentComposition.toBlock({
+    const parent = graphParentComposition.makeBlock({
       ...graphParentImplementation,
       EffectsLayer: RunChildWork.layer,
     })

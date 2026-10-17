@@ -91,17 +91,16 @@ export const FocusSearchInput = Search.command('FocusSearchInput', {
   },
 })
 
-export const open = Search.step(model =>
-  Update.combine(model, [
-    DialogBinding.open(),
-    stepModel => ({
-      model: stepModel,
-      commands: [FocusSearchInput()],
-    }),
-  ]),
+const focusSearchInput = Search.step(model => ({
+  model,
+  commands: [FocusSearchInput()],
+}))
+
+export const open = Search.step(() =>
+  Update.combine([DialogBinding.open(), focusSearchInput]),
 )
 
-export const update = SearchComposition.update((model, message) =>
+export const update = SearchComposition.makeUpdate((model, message) =>
   Message.match(message, {
     UpdatedSearchQuery: ({ query }) => {
       if (query === model.query) {
@@ -205,9 +204,10 @@ export const update = SearchComposition.update((model, message) =>
   }),
 )
 
-export const informRouteChanged = Search.step(model =>
-  Update.combine(model, [
-    stepModel => update(stepModel, Message.ClearedSearchQuery()),
-    DialogBinding.close(),
-  ]),
+const clearSearchQuery = Search.step(model =>
+  update(model, Message.ClearedSearchQuery()),
+)
+
+export const informRouteChanged = Search.step(() =>
+  Update.combine([clearSearchQuery, DialogBinding.close()]),
 )

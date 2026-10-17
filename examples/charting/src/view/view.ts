@@ -1,7 +1,7 @@
 import { ApplicationComposition } from '../composition'
 import { headerView, telemetryStateView } from './layout'
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'Foldkit Adoption Observatory',
   body: h.div(
     [h.Class('min-h-screen bg-zinc-50 text-zinc-950')],

@@ -204,7 +204,7 @@ Manually copying the child Model from a helper result causes a separate problem.
 
 ::Snippet{name="antiPatternBlockResultBad" label="❌ The parent keeps only the child Model" class="mb-4"}
 
-Declare parent-driven transitions under `expose: { operation }` in the completed Block. The parent calls `binding.operation(...)`, which returns a parent Update.Step and preserves the child's full result.
+Declare parent-driven transitions under `expose: { operation }` in the completed Block. The parent calls `binding.operation(...)`, which returns a connected parent Update.Step and preserves the child's full result. Apply it to the contextual Model inside the owning Composition, or return it from the parent's `step` producer for deferred application.
 
 ::Snippet{name="antiPatternBlockBoundaryGood" label="✅ A public helper preserves the child's update boundary"}
 

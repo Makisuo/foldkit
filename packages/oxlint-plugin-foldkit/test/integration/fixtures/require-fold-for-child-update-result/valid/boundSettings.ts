@@ -11,14 +11,14 @@ const BoundSettings = Block.define('BoundSettings', { Model, Message })
 export const setTheme = BoundSettings.step((model, theme: string) => ({
   model: modifyFields(model, { theme: () => theme }),
 }))
-const BoundSettingsComposition = BoundSettings.toComposition()
-const init = BoundSettingsComposition.init(() => ({
+const BoundSettingsComposition = BoundSettings.makeComposition()
+const init = BoundSettingsComposition.makeInit(() => ({
   model: Model.make({ theme: 'System' }),
 }))
-const update = BoundSettingsComposition.update((model, message) =>
+const update = BoundSettingsComposition.makeUpdate((model, message) =>
   Message.match(message, { ChangedTheme: ({ theme }) => setTheme(model, theme) }),
 )
-export const Settings = BoundSettingsComposition.toBlock({
+export const Settings = BoundSettingsComposition.makeBlock({
   init,
   update,
   expose: { setTheme },

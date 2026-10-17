@@ -22,6 +22,6 @@ const ThemeMenuBinding = Settings.bindChild(ThemeMenu.block, {
   outMessage: { fold: foldThemeMenuOutMessage },
 })
 
-export const SettingsComposition = Settings.toComposition({
+export const SettingsComposition = Settings.makeComposition({
   childBindings: [ThemeMenuBinding],
 })

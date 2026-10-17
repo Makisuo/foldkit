@@ -7,7 +7,7 @@ import { EffectsLayer, handleSlow, subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const application = ApplicationComposition.toApplication({
+const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,

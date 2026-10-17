@@ -6,7 +6,7 @@ import { EntriesBinding, WorkHistoryComposition } from './composition'
 import { Message, type Model } from './definition'
 import * as Entry from './entry'
 
-export const update = WorkHistoryComposition.update((model, message) =>
+export const update = WorkHistoryComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedAddEntry: () => ({
       model,

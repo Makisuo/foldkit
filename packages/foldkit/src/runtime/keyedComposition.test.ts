@@ -99,7 +99,7 @@ const itemBase = Item.define({
   Model: ItemModel,
   Message: ItemMessage,
 })
-const item = itemBase.toComposition({ mounts: [ObserveValue] })
+const item = itemBase.makeComposition({ mounts: [ObserveValue] })
 const subscriptions = itemBase.subscriptions(entry => ({
   activePulse: entry(
     'ActivePulse',
@@ -159,7 +159,7 @@ const itemImplementation = {
   init: (id: number, source: string) => ({
     model: { id, source, maybeObserved: Option.none<string>() },
   }),
-  update: item.update((model, message) =>
+  update: item.makeUpdate((model, message) =>
     ItemMessage.match(message, {
       ClickedReadValue: () => ({ model, commands: [ReadValue()] }),
       CompletedReadValue: ({ value }) => ({
@@ -172,7 +172,7 @@ const itemImplementation = {
       EmittedPulse: () => ({ model }),
     }),
   ),
-  view: item.view((model, h) => {
+  view: item.makeView((model, h) => {
     dispatches.set(model.source, requireDispatch())
     return h.keyed('div')(
       globalThis.String(model.id),
@@ -193,7 +193,7 @@ const itemImplementation = {
   managedResources,
   EffectsLayer: ItemEffectsLayer,
 }
-const itemBlock = item.toBlock(itemImplementation)
+const itemBlock = item.makeBlock(itemImplementation)
 
 const RootModel = Schema.Struct({ entries: Schema.Array(ItemModel) })
 const RootMessage = defineMessageUnion({
@@ -212,14 +212,14 @@ const EntriesBinding = rootBase.bindChild(itemBlock, {
   key: 'id',
   toParentMessage: (id, message) => RootMessage.GotItemMessage({ id, message }),
 })
-const root = rootBase.toComposition({ childBindings: [EntriesBinding] })
+const root = rootBase.makeComposition({ childBindings: [EntriesBinding] })
 const firstEntry = itemBlock.init(1, 'old').model
 const rootInit = () => ({
   model: {
     entries: [firstEntry, itemBlock.init(2, 'other').model],
   },
 })
-const rootUpdate = root.update((model, message) =>
+const rootUpdate = root.makeUpdate((model, message) =>
   RootMessage.match(message, {
     GotItemMessage: ({ id, message }) =>
       EntriesBinding.fold(model, id, message),
@@ -259,7 +259,7 @@ const renderEntry = (
     }),
   )
 }
-const rootView = root.view((model, h) =>
+const rootView = root.makeView((model, h) =>
   h.div(
     [],
     [
@@ -327,7 +327,7 @@ describe('keyed Block occurrences', () => {
     const container = document.createElement('div')
     container.id = 'memoized-keyed-composition'
     document.body.append(container)
-    const element = root.toElement({
+    const element = root.makeElement({
       container,
       init: rootInit,
       update: rootUpdate,
@@ -425,7 +425,7 @@ describe('keyed Block occurrences', () => {
     container.id = 'keyed-composition'
     document.body.append(container)
     const application = root
-      .toElement({
+      .makeElement({
         container,
         init: rootInit,
         update: rootUpdate,
@@ -517,7 +517,7 @@ describe('keyed Block occurrences', () => {
     container.id = 'keyed-mount-barrier'
     document.body.append(container)
     const application = root
-      .toElement({
+      .makeElement({
         container,
         init: rootInit,
         update: rootUpdate,

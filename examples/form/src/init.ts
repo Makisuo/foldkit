@@ -10,4 +10,6 @@ export const initialModel: Model = {
   submission: Submission.NotSubmitted(),
 }
 
-export const init = ApplicationComposition.init(() => ({ model: initialModel }))
+export const init = ApplicationComposition.makeInit(() => ({
+  model: initialModel,
+}))

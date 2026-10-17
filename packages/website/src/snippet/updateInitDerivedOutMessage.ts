@@ -18,4 +18,4 @@ const EndDatePickerBinding = DateRange.bindChild(DatePicker.block, {
   },
 })
 
-const restoreEndDate = (model: Model) => EndDatePickerBinding.restore()(model)
+const restoreEndDate = DateRange.step(() => EndDatePickerBinding.restore())

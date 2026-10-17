@@ -332,7 +332,7 @@ const mobilePreviewOverlay = (model: Model, h: ApplicationViewBuilder) =>
     [preview(model)],
   )
 
-export const view = ApplicationComposition.view((model, h) => {
+export const view = ApplicationComposition.makeView((model, h) => {
   const attentionSteps = stepsNeedingAttention(model)
   const attentionStepSet = HashSet.fromIterable(attentionSteps)
   const body = h.div(

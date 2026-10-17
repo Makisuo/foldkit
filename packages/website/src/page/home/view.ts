@@ -176,7 +176,7 @@ type ViewInputs = Readonly<{
   isBrowserEnvironmentLoaded: boolean
 }>
 
-export const view = HomeComposition.view.withInputs<ViewInputs>(
+export const view = HomeComposition.makeView.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const asyncCounterDemoView = lazyAsyncCounterDemo(renderAsyncCounterDemo, [
       model.asyncCounterDemo,
@@ -198,14 +198,14 @@ export const view = HomeComposition.view.withInputs<ViewInputs>(
 
     const buttonLabelFor = (tab: DemoTab.Tab): string =>
       Match.value(tab).pipe(
-        Match.when('Architecture', () => 'Async Counter'),
+        Match.when('AsyncCounter', () => 'Async Counter'),
         Match.when('Note Player', () => 'Note Player'),
         Match.exhaustive,
       )
 
     const panelFor = (tab: DemoTab.Tab) =>
       Match.value(tab).pipe(
-        Match.when('Architecture', () => asyncCounterDemoView),
+        Match.when('AsyncCounter', () => asyncCounterDemoView),
         Match.when('Note Player', () => notePlayerDemoView),
         Match.exhaustive,
       )

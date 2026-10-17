@@ -124,7 +124,7 @@ export const EffectsLayer = Layer.mergeAll(
   AnchorTooltip.layer,
 )
 
-const TooltipComposition = Tooltip.toComposition({ mounts })
+const TooltipComposition = Tooltip.makeComposition({ mounts })
 
 const computeUpdate = (model: Model, message: Message) =>
   Message.match(message, {
@@ -242,7 +242,7 @@ const toVisibilityOutMessage = (
  *  and an optional OutMessage. `Shown`/`Hidden` fire only on `isOpen`
  *  transitions, so consumers don't get spurious events for messages that
  *  only update hover/focus/delay state without changing visibility. */
-export const update = TooltipComposition.update((model, message) => {
+export const update = TooltipComposition.makeUpdate((model, message) => {
   const tooltipUpdate = computeUpdate(model, message)
   const outMessage = toVisibilityOutMessage(
     model.isOpen,
@@ -292,7 +292,7 @@ export type ViewInputs = Readonly<{
 /** Renders a headless tooltip with an anchored non-interactive panel.
  *  Shows on hover (after delay) or focus (from keyboard, touch, or pen;
  *  mouse-click focus is excluded). Hides on leave, blur, or Escape. */
-export const view = TooltipComposition.view.withInputs<ViewInputs>(
+export const view = TooltipComposition.makeView.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const { id, isOpen } = model
     const { anchor, toView, isDisabled, ariaLabel, ariaLabelledBy } = viewInputs
@@ -364,8 +364,8 @@ export const view = TooltipComposition.view.withInputs<ViewInputs>(
 )
 
 /** Complete Tooltip Block definition for connecting to a parent. */
-export const block = TooltipComposition.toBlock({
-  init: TooltipComposition.init((config: InitConfig) => ({
+export const block = TooltipComposition.makeBlock({
+  init: TooltipComposition.makeInit((config: InitConfig) => ({
     model: init(config),
   })),
   update,

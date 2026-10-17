@@ -15,22 +15,22 @@ const ThemePicker = Block.define('ThemePicker', {
   Model: ThemePickerModel,
   Message: ThemePickerMessage,
 })
-const ThemePickerComposition = ThemePicker.toComposition()
+const ThemePickerComposition = ThemePicker.makeComposition()
 
-const themePickerInit = ThemePickerComposition.init((theme: Theme) => ({
+const themePickerInit = ThemePickerComposition.makeInit((theme: Theme) => ({
   model: ThemePickerModel.make({ theme }),
 }))
-const themePickerUpdate = ThemePickerComposition.update((model, message) =>
+const themePickerUpdate = ThemePickerComposition.makeUpdate((model, message) =>
   ThemePickerMessage.match(message, {
     ChangedTheme: ({ theme }) => ({
       model: modifyFields(model, { theme: () => theme }),
     }),
   }),
 )
-const themePickerView = ThemePickerComposition.view((model, h) =>
+const themePickerView = ThemePickerComposition.makeView((model, h) =>
   h.p([], [`Theme: ${model.theme}`]),
 )
-const themePickerBlock = ThemePickerComposition.toBlock({
+const themePickerBlock = ThemePickerComposition.makeBlock({
   init: themePickerInit,
   update: themePickerUpdate,
   view: themePickerView,
@@ -63,11 +63,11 @@ const ThemePickerBinding = Profile.bindChild(themePickerBlock, {
   },
 })
 
-const ProfileComposition = Profile.toComposition({
+const ProfileComposition = Profile.makeComposition({
   childBindings: [ThemePickerBinding],
 })
 
-export const init = ProfileComposition.init((startup: ProfileStartup) => ({
+export const init = ProfileComposition.makeInit((startup: ProfileStartup) => ({
   startup,
   model: { username: startup.username },
 }))

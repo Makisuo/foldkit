@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 import { AttachmentsComposition } from './composition'
 import { Message } from './definition'
 
-export const update = AttachmentsComposition.update((model, message) =>
+export const update = AttachmentsComposition.makeUpdate((model, message) =>
   Message.match(message, {
     RemovedResume: () => ({
       model: modifyFields(model, { maybeResume: () => Option.none() }),

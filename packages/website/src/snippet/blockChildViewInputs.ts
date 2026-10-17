@@ -10,7 +10,7 @@ export type ViewInputs = Readonly<{
   items: ReadonlyArray<string>
 }>
 
-export const view = CommandMenuComposition.view.withInputs<ViewInputs>(
+export const view = CommandMenuComposition.makeView.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const toggleMessage = model.isOpen
       ? Message.ClosedMenu()

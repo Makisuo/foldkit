@@ -312,7 +312,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     outMessage: { fold: foldEntryAnimationOutMessage },
   })
 
-  const ToastComposition = Toast.toComposition({
+  const ToastComposition = Toast.makeComposition({
     childBindings: [EntryAnimationBinding],
   })
 
@@ -363,34 +363,42 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       })),
     ),
   })
-  const blockInit = ToastComposition.init((config: InitConfig) => ({
+  const blockInit = ToastComposition.makeInit((config: InitConfig) => ({
     model: init(config),
   }))
+
+  const addEntry = (entry: Entry) => {
+    const appendEntry = Toast.step(model => ({
+      model: modifyFields(model, {
+        entries: entries => Array.append(entries, entry),
+        nextEntryKey: Number.increment,
+      }),
+    }))
+    const scheduleDismissal = Toast.step(model => ({
+      model,
+      commands: pipe(
+        Array.findFirst(model.entries, ({ id }) => id === entry.id),
+        Option.flatMap(scheduleWaitBeforeDismissal),
+        Array.fromOption,
+      ),
+    }))
+
+    return Update.combine([
+      appendEntry,
+      foldEntryAnimationShow(entry),
+      scheduleDismissal,
+    ])
+  }
+
+  const dismissEntries = (entries: ReadonlyArray<Entry>) =>
+    Update.combine(Array.map(entries, foldEntryAnimationHide))
 
   /** Processes a Toast Message and returns the next Model, optional Commands,
    *  and an optional `DismissedToast` OutMessage emitted once an entry has
    *  finished its leave animation. */
-  const update = ToastComposition.update((model, message) =>
+  const update = ToastComposition.makeUpdate((model, message) =>
     MessageSchema.match(message, {
-      Added: ({ entry }) => {
-        return Update.combine(model, [
-          Toast.step(stepModel => ({
-            model: modifyFields(stepModel, {
-              entries: entries => Array.append(entries, entry),
-              nextEntryKey: Number.increment,
-            }),
-          })),
-          foldEntryAnimationShow(entry),
-          Toast.step(stepModel => ({
-            model: stepModel,
-            commands: pipe(
-              Array.findFirst(stepModel.entries, ({ id }) => id === entry.id),
-              Option.flatMap(scheduleWaitBeforeDismissal),
-              Array.fromOption,
-            ),
-          })),
-        ])
-      },
+      Added: ({ entry }) => addEntry(entry)(model),
 
       Dismissed: ({ entryId }) => {
         const maybeEntry = Array.findFirst(
@@ -410,15 +418,15 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         })
       },
 
-      DismissedAll: () =>
-        Update.combine(
-          model,
-          pipe(
-            model.entries,
-            Array.filter(entry => !isEntryLeaving(entry)),
-            Array.map(foldEntryAnimationHide),
-          ),
-        ),
+      DismissedAll: () => {
+        const dismissVisibleEntries = pipe(
+          model.entries,
+          Array.filter(entry => !isEntryLeaving(entry)),
+          dismissEntries,
+        )
+
+        return dismissVisibleEntries(model)
+      },
 
       CompletedWaitBeforeDismissal: ({ entryId, version }) => {
         const maybeEntry = Array.findFirst(
@@ -564,7 +572,10 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
               if (isEntryLeaving(entry)) {
                 return { model: nextModel }
               } else {
-                return foldEntryAnimationHide(entry)(nextModel)
+                return Update.combine(model, [
+                  () => ({ model: nextModel }),
+                  foldEntryAnimationHide(entry),
+                ])
               }
             },
           },

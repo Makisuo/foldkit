@@ -8,4 +8,4 @@ export const ComingFromReact = Block.define('ComingFromReact', {
   Message,
 })
 
-export const ComingFromReactComposition = ComingFromReact.toComposition()
+export const ComingFromReactComposition = ComingFromReact.makeComposition()

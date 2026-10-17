@@ -39,11 +39,11 @@ const HoverMenuBinding = HoverMenu.bindChild(HoverIntent.block, {
   outMessage: { fold: foldHoverMenuOutMessage },
 })
 
-const HoverMenuComposition = HoverMenu.toComposition({
+const HoverMenuComposition = HoverMenu.makeComposition({
   childBindings: [HoverMenuBinding],
 })
 
-const init = HoverMenuComposition.init(() => ({
+const init = HoverMenuComposition.makeInit(() => ({
   model: {
     // ...your other fields
   },
@@ -52,7 +52,7 @@ const init = HoverMenuComposition.init(() => ({
 // Close the menu immediately when any item is clicked.
 
 // In the corresponding Message.match handlers:
-const update = HoverMenuComposition.update((model, message) =>
+const update = HoverMenuComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedHoverMenuItem: () => HoverMenuBinding.close()(model),
   }),
@@ -61,7 +61,7 @@ const update = HoverMenuComposition.update((model, message) =>
 const triggerId = 'actions-trigger'
 const panelId = 'actions-panel'
 
-const view = HoverMenuComposition.view((model, h) => {
+const view = HoverMenuComposition.makeView((model, h) => {
   const hoverMenuView = ({
     trigger,
     panel,

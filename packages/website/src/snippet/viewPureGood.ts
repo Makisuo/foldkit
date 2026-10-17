@@ -2,7 +2,7 @@ import { ApplicationComposition } from './composition'
 import { Message } from './message'
 
 // ✅ Keep view pure
-const view = ApplicationComposition.view((model, h) => ({
+const view = ApplicationComposition.makeView((model, h) => ({
   title: model.title,
   body: h.div(
     [h.Class('container')],

@@ -11,7 +11,7 @@ import { PaintingStatus } from './model'
 import { urlToApplicationRoute } from './route'
 import { handleTransition } from './transition'
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),

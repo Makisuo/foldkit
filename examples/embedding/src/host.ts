@@ -74,7 +74,7 @@ export const startHost = (): void => {
   const widgetSlot = getElement('widget-slot')
 
   const flags: Flags = { initialCount: INITIAL_COUNT }
-  const element = ApplicationComposition.toElement({
+  const element = ApplicationComposition.makeElement({
     init,
     update,
     view,

@@ -9,6 +9,7 @@ import {
   pipe,
 } from 'effect'
 import { type Update } from 'foldkit'
+import * as Block from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { type MessageUnion, defineMessageUnion } from 'foldkit/message'
@@ -124,7 +125,7 @@ const Tabs = SharedTabs.define({
   OutMessage,
 })
 
-const TabsComposition = Tabs.toComposition()
+const TabsComposition = Tabs.makeComposition()
 
 /** Moves focus to the tab at the given index. */
 export const FocusTab = Tabs.command('FocusTab', {
@@ -146,7 +147,7 @@ export const EffectsLayer = Layer.mergeAll(FocusTab.layer)
  *  an optional OutMessage. `Selected` fires when a tab is committed via click
  *  or keyboard; the parent stores the new value and passes it back in as
  *  `selectedValue`. */
-export const update = TabsComposition.update((model, message) =>
+export const update = TabsComposition.makeUpdate((model, message) =>
   Message.match(message, {
     SelectedTab: ({ index, value }) => ({
       model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),
@@ -222,7 +223,7 @@ export type ViewInputs<Value extends string = string> = Readonly<{
   panelMount?: PanelMount
 }>
 
-const internalView = TabsComposition.view.withInputs<ViewInputs>(
+const internalView = TabsComposition.makeView.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const { id, activationMode, maybeFocusedIndex } = model
     const {
@@ -383,14 +384,16 @@ const internalView = TabsComposition.view.withInputs<ViewInputs>(
 )
 
 /** Complete Tabs Block definition. */
-export const block = TabsComposition.toBlock({
-  init: TabsComposition.init((config: InitConfig) => ({ model: init(config) })),
+export const block = TabsComposition.makeBlock({
+  init: TabsComposition.makeInit((config: InitConfig) => ({
+    model: init(config),
+  })),
   update,
   view: internalView,
   EffectsLayer,
 })
 
-const makeBlock = <Value extends string>() => {
+const makeBlockParts = <Value extends string>() => {
   type GenericReturn = Update.ReturnWithOutMessage<
     Model,
     Message,
@@ -416,27 +419,41 @@ const makeBlock = <Value extends string>() => {
       viewInputs: ViewInputs<Value>,
       h: Parameters<typeof internalView>[2],
     ) => Html
-  const TabsComposition = Tabs.toComposition()
-  const refinedUpdate = TabsComposition.update((model, message) =>
+  const TabsComposition = Tabs.makeComposition()
+  const refinedUpdate = TabsComposition.makeUpdate((model, message) =>
     castReturn(update(model, message)),
   )
-  const view = TabsComposition.view.withInputs<ViewInputs<Value>>(
+  const view = TabsComposition.makeView.withInputs<ViewInputs<Value>>(
     (model, viewInputs, h) => refinedView(model, viewInputs, h),
   )
-  return TabsComposition.toBlock({
-    init: TabsComposition.init((config: InitConfig) => ({
-      model: init(config),
-    })),
-    update: refinedUpdate,
-    view,
-    EffectsLayer,
-  })
+  return {
+    composition: TabsComposition,
+    implementation: {
+      init: TabsComposition.makeInit((config: InitConfig) => ({
+        model: init(config),
+      })),
+      update: refinedUpdate,
+      view,
+      EffectsLayer,
+    },
+  }
 }
 
+type BlockParts<Value extends string> = ReturnType<typeof makeBlockParts<Value>>
+
 /** A completed Tabs Block refined to one Value type. */
-export type Completed<Value extends string = string> = ReturnType<
-  typeof makeBlock<Value>
->
+export interface Completed<
+  Value extends string = string,
+> extends Block.CompletedWithViewAndOutMessage<
+  BlockParts<Value>['composition'],
+  BlockParts<Value>['implementation']
+> {}
+
+const makeBlock = <Value extends string>(): Completed<Value> => {
+  const { composition, implementation } = makeBlockParts<Value>()
+
+  return composition.makeBlock(implementation)
+}
 
 /**
  * Creates a completed Tabs Block refined to one Value type. Declare

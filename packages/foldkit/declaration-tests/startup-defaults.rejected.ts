@@ -77,7 +77,7 @@ const unionInitConfig: Readonly<{
 // @ts-expect-error A union init policy does not establish one concrete startup policy.
 DeclarationStartupDefaultsParent.bindChild(ChildBlock, unionInitConfig)
 
-DeclarationStartupDefaultsParentComposition.init(
+DeclarationStartupDefaultsParentComposition.makeInit(
   // @ts-expect-error A default-initialized child field is omitted from the parent-owned Model.
   (startup: typeof Startup.Type) => ({
     startup,
@@ -89,7 +89,7 @@ DeclarationStartupDefaultsParentComposition.init(
   }),
 )
 
-DeclarationStartupDefaultsParentComposition.init(
+DeclarationStartupDefaultsParentComposition.makeInit(
   // @ts-expect-error An opted-out required child remains a mandatory parent-owned field.
   (startup: typeof Startup.Type) => ({
     startup,
@@ -97,14 +97,14 @@ DeclarationStartupDefaultsParentComposition.init(
   }),
 )
 
-DeclarationStartupGenericParentComposition.init(() => ({
+DeclarationStartupGenericParentComposition.makeInit(() => ({
   // @ts-expect-error A wider selector annotation cannot widen the declared Startup Schema.
   startup: {},
   model: {},
 }))
 
 // @ts-expect-error A Binding cannot change another Definition's Startup contract.
-DeclarationStartupGenericParent.toComposition({
+DeclarationStartupGenericParent.makeComposition({
   childBindings: [ForeignGenericBinding],
 })
 
@@ -113,7 +113,7 @@ DeclarationStartupGenericParent.toComposition({
 Application.bindChild(ChildBlock, { field: 'child', parentMessage: ParentMessage.GotChildMessage, init: { args: (_startup: Readonly<{ entryIds: readonly [] }>) => [] } })
 
 // @ts-expect-error A keyed startup Binding cannot be registered under an unrelated parent Model.
-DeclarationStartupGenericParent.toComposition({
+DeclarationStartupGenericParent.makeComposition({
   childBindings: [EntriesBinding],
 })
 
@@ -145,7 +145,7 @@ const SecondDiscriminantBinding =
     init: { args: (_startup: Readonly<{ kind: 'Second' }>) => [] },
   })
 // @ts-expect-error Disjoint discriminants cannot form one shared startup input.
-DeclarationIncompatibleStartupParent.toComposition({
+DeclarationIncompatibleStartupParent.makeComposition({
   childBindings: [FirstDiscriminantBinding, SecondDiscriminantBinding],
 })
 
@@ -175,6 +175,6 @@ const NumberStartupBinding = DeclarationPrimitiveStartupParent.bindChild(
   },
 )
 // @ts-expect-error Primitive selector inputs cannot form one shared startup input.
-DeclarationPrimitiveStartupParent.toComposition({
+DeclarationPrimitiveStartupParent.makeComposition({
   childBindings: [StringStartupBinding, NumberStartupBinding],
 })

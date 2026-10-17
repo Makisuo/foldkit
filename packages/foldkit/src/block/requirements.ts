@@ -226,8 +226,19 @@ type ProducerRegistrationEvidence<Producer> = Producer extends AnyFunction
     : Update.RegistrationEvidenceOf<ReturnOf<Producer>>
   : never
 
+type ProducerGraphRequirements<Producer> = Producer extends AnyFunction
+  ? [ProducerRegistrationEvidence<Producer>] extends [never]
+    ?
+        | Update.GraphRequirementOf<Producer>
+        | (ReturnOf<Producer> extends AnyFunction
+            ? ProducerGraphRequirements<ReturnOf<Producer>>
+            : never)
+    : never
+  : never
 type ProducerRecordRegistrationEvidence<Producers> = Producers extends object
-  ? ProducerRegistrationEvidence<Producers[keyof Producers]>
+  ?
+      | ProducerGraphRequirements<Producers[keyof Producers]>
+      | ProducerRegistrationEvidence<Producers[keyof Producers]>
   : never
 
 /**

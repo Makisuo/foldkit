@@ -32,6 +32,6 @@ export const GraduationYearListboxBinding = EducationEntry.bindChild(
   },
 )
 
-export const EducationEntryComposition = EducationEntry.toComposition({
+export const EducationEntryComposition = EducationEntry.makeComposition({
   childBindings: [GraduationYearListboxBinding],
 })

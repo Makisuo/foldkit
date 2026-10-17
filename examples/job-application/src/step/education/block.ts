@@ -5,8 +5,8 @@ import { EducationComposition } from './composition'
 import { update } from './update'
 import { view } from './view'
 
-export const block = EducationComposition.toBlock({
-  init: EducationComposition.init(
+export const block = EducationComposition.makeBlock({
+  init: EducationComposition.makeInit(
     (today: CalendarDate, initialEntryId: string) => ({
       startup: { today, initialEntryId },
       model: { today },

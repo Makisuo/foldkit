@@ -10,15 +10,15 @@ export type Message = typeof Message.Type
 
 export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.toComposition()
+export const ApplicationComposition = Application.makeComposition()
 
-export const init = ApplicationComposition.init(() => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
 }))
 
-export const update = ApplicationComposition.update()
+export const update = ApplicationComposition.makeUpdate()
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'Client only',
   body: h.main([], [model.count.toString()]),
 }))

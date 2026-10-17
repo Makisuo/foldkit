@@ -61,7 +61,7 @@ export type ViewInputs = Readonly<{
  *  - `data-leave`: leave animation is active
  *  - `data-transition`: any animation is active
  */
-export const view = AnimationComposition.view.withInputs<ViewInputs>(
+export const view = AnimationComposition.makeView.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const { id, isShowing, transitionState } = model
     const {
@@ -159,8 +159,8 @@ export const view = AnimationComposition.view.withInputs<ViewInputs>(
 )
 
 /** Complete Animation Block definition for connecting to a parent. */
-export const block = AnimationComposition.toBlock({
-  init: AnimationComposition.init((config: InitConfig) => ({
+export const block = AnimationComposition.makeBlock({
+  init: AnimationComposition.makeInit((config: InitConfig) => ({
     model: init(config),
   })),
   update,

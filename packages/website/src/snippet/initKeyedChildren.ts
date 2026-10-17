@@ -27,7 +27,7 @@ const CountersBinding = Application.bindChild(Counter.block, {
   },
 })
 
-const ApplicationComposition = Application.toComposition({
+const ApplicationComposition = Application.makeComposition({
   childBindings: [CountersBinding],
 })
 
@@ -43,6 +43,6 @@ const addCounter = Application.step((model, id: string) =>
   }),
 )
 
-const init = ApplicationComposition.init(() => ({
+const init = ApplicationComposition.makeInit(() => ({
   model: { nextCounterId: INITIAL_COUNTER_COUNT },
 }))

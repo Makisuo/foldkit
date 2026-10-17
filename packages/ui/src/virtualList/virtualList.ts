@@ -1283,11 +1283,11 @@ export const ObserveVirtualList = VirtualList.mountStream(
 /** Mount Definitions rendered by VirtualList views. */
 export const mounts = [ObserveVirtualList]
 
-const VirtualListComposition = VirtualList.toComposition({
+const VirtualListComposition = VirtualList.makeComposition({
   mounts,
 })
 
-export const update = VirtualListComposition.update(updateImpl)
+export const update = VirtualListComposition.makeUpdate(updateImpl)
 
 /** Provides VirtualList's Command and Mount handlers. */
 export const EffectsLayer = Layer.mergeAll(
@@ -1355,7 +1355,7 @@ export const view = <Item>() =>
 type InternalVirtualListViewInputs = ViewInputs<unknown>
 
 const viewImpl =
-  VirtualListComposition.view.withInputs<InternalVirtualListViewInputs>(
+  VirtualListComposition.makeView.withInputs<InternalVirtualListViewInputs>(
     (model, viewInputs, h) => {
       const {
         items,
@@ -1496,8 +1496,8 @@ const expose = {
 }
 
 /** Complete VirtualList Block definition using an unknown item type. */
-export const block = VirtualListComposition.toBlock({
-  init: VirtualListComposition.init((config: InitConfig) => ({
+export const block = VirtualListComposition.makeBlock({
+  init: VirtualListComposition.makeInit((config: InitConfig) => ({
     model: init(config),
   })),
   update,
@@ -1510,8 +1510,8 @@ export const block = VirtualListComposition.toBlock({
 export const create = <Item>() => {
   const refinedView = view<Item>()
 
-  return VirtualListComposition.toBlock({
-    init: VirtualListComposition.init((config: InitConfig) => ({
+  return VirtualListComposition.makeBlock({
+    init: VirtualListComposition.makeInit((config: InitConfig) => ({
       model: init(config),
     })),
     update,

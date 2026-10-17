@@ -5,7 +5,7 @@ import {
 } from './composition'
 import type { Flags } from './flags'
 
-const init = ApplicationComposition.init((flags: Flags) => ({
+const init = ApplicationComposition.makeInit((flags: Flags) => ({
   model: {},
   steps: [
     SettingsBinding.restore(flags.savedSettings),

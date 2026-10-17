@@ -17,7 +17,7 @@ type Model = typeof Model.Type
 
 export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.toComposition()
+export const ApplicationComposition = Application.makeComposition()
 
 export const subscriptions = Application.subscriptions(entry => ({
   gameClockTicks: entry(

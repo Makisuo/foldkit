@@ -73,7 +73,7 @@ const newsletterView = (model: Model, h: ApplicationViewBuilder) =>
     h,
   )
 
-export const view = ApplicationComposition.view((model, h) => {
+export const view = ApplicationComposition.makeView((model, h) => {
   const body = Match.value(model.route).pipe(
     Match.tag('Home', () =>
       Option.match(model.maybeHome, {

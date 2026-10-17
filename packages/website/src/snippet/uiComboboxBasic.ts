@@ -46,15 +46,15 @@ const ComboboxBinding = CityPicker.bindChild(CityCombobox, {
 
 // Including the Binding collects its lifecycle and handler graph.
 
-const CityPickerComposition = CityPicker.toComposition({
+const CityPickerComposition = CityPicker.makeComposition({
   childBindings: [ComboboxBinding],
 })
 
-const init = CityPickerComposition.init(() => ({
+const init = CityPickerComposition.makeInit(() => ({
   model: { maybeCity: Option.none() },
 }))
 
-const update = CityPickerComposition.update()
+const update = CityPickerComposition.makeUpdate()
 
 const cities: ReadonlyArray<City> = [
   'Johannesburg',
@@ -63,7 +63,7 @@ const cities: ReadonlyArray<City> = [
   'Wellington',
 ]
 
-const view = CityPickerComposition.view((model, h) => {
+const view = CityPickerComposition.makeView((model, h) => {
   const filteredCities =
     model.combobox.inputValue === ''
       ? cities
@@ -114,7 +114,7 @@ const view = CityPickerComposition.view((model, h) => {
   )
 })
 
-export const block = CityPickerComposition.toBlock({
+export const block = CityPickerComposition.makeBlock({
   init,
   update,
   view,

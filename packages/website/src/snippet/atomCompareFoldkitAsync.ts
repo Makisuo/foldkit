@@ -41,7 +41,7 @@ const FetchUser = Application.command('FetchUser', {
 export const EffectsLayer = FetchUser.layer
 export const ServicesLayer = ApiLayer
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedLoadUser: () => ({
       model: modifyFields(model, { user: () => UserAsyncData.Loading() }),

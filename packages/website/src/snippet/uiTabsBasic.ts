@@ -71,24 +71,24 @@ const TabsBinding = TabsExample.bindChild(FrameworkTabs, {
   outMessage: { fold: foldTabsOutMessage },
 })
 
-const TabsExampleComposition = TabsExample.toComposition({
+const TabsExampleComposition = TabsExample.makeComposition({
   childBindings: [TabsBinding],
 })
 
 // In your init function, initialize the Tabs Block with a unique id and
 // pick the starting active tab:
-const init = TabsExampleComposition.init(() => ({
+const init = TabsExampleComposition.makeInit(() => ({
   model: {
     activeFramework: 'Foldkit',
     // ...your other fields
   },
 }))
 
-const update = TabsExampleComposition.update()
+const update = TabsExampleComposition.makeUpdate()
 
 // Inside your view function, embed the tabs via h.block and pass the
 // parent-owned active tab as selectedValue:
-const view = TabsExampleComposition.view((model, h) => {
+const view = TabsExampleComposition.makeView((model, h) => {
   const tabsView = ({
     tablist,
     tabs,

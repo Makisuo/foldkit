@@ -66,9 +66,9 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 export const Application = defineApplication({ Model, Message })
-export const ApplicationComposition = Application.toComposition()
+export const ApplicationComposition = Application.makeComposition()
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: count => count - 1 }),
@@ -80,11 +80,11 @@ export const update = Application.update((model, message) =>
   }),
 )
 
-export const init = () => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: { count: 0 },
-})
+}))
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: `Counter: ${model.count}`,
   body: h.div(
     [
@@ -127,7 +127,7 @@ import { Runtime } from 'foldkit'
 
 import { ApplicationComposition, init, update, view } from './application'
 
-const application = ApplicationComposition.toApplication({
+const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,
@@ -136,6 +136,10 @@ const application = ApplicationComposition.toApplication({
 
 Runtime.run(application)
 ```
+
+The `makeComposition`, `makeInit`, `makeUpdate`, `makeView`, and
+`makeApplication` calls return passive configuration or authored functions.
+`Runtime.run` starts the completed application.
 
 Try [Counter in the browser](https://foldkit.dev/example-apps/counter), follow the [walkthrough](https://foldkit.dev/core/counter-example), or explore the [source](https://github.com/foldkit/foldkit/tree/main/examples/counter).
 

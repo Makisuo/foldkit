@@ -104,7 +104,7 @@ const uploadView = (upload: Upload, h: ApplicationViewBuilder): Html =>
     ],
   )
 
-export const view = ApplicationComposition.view((model, h) => {
+export const view = ApplicationComposition.makeView((model, h) => {
   const isAnyUploadRunning = Array.some(
     model.uploads,
     upload => upload.status === 'Uploading',

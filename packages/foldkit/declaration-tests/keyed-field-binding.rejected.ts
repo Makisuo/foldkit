@@ -1,5 +1,5 @@
 import { Layer, Schema } from 'effect'
-import { Block, Message } from 'foldkit'
+import { Block, Message, Update } from 'foldkit'
 
 import {
   ArrayChildBlock,
@@ -135,12 +135,14 @@ const DeclarationBooleanKeyChild = Block.define('DeclarationBooleanKeyChild', {
   Message: BooleanKeyMessage,
 })
 const DeclarationBooleanKeyChildComposition =
-  DeclarationBooleanKeyChild.toComposition()
-const BooleanKeyBlock = DeclarationBooleanKeyChildComposition.toBlock({
-  init: DeclarationBooleanKeyChildComposition.init(() => ({
+  DeclarationBooleanKeyChild.makeComposition()
+const BooleanKeyBlock = DeclarationBooleanKeyChildComposition.makeBlock({
+  init: DeclarationBooleanKeyChildComposition.makeInit(() => ({
     model: BooleanKeyModel.make({ id: false, count: 0 }),
   })),
-  update: DeclarationBooleanKeyChildComposition.update(model => ({ model })),
+  update: DeclarationBooleanKeyChildComposition.makeUpdate(model => ({
+    model,
+  })),
   EffectsLayer: Layer.empty,
 })
 const BooleanKeyParentModel = Schema.Struct({
@@ -179,12 +181,14 @@ const DeclarationOptionalKeyChild = Block.define(
   },
 )
 const DeclarationOptionalKeyChildComposition =
-  DeclarationOptionalKeyChild.toComposition()
-const OptionalKeyBlock = DeclarationOptionalKeyChildComposition.toBlock({
-  init: DeclarationOptionalKeyChildComposition.init(() => ({
+  DeclarationOptionalKeyChild.makeComposition()
+const OptionalKeyBlock = DeclarationOptionalKeyChildComposition.makeBlock({
+  init: DeclarationOptionalKeyChildComposition.makeInit(() => ({
     model: OptionalKeyModel.make({ count: 0 }),
   })),
-  update: DeclarationOptionalKeyChildComposition.update(model => ({ model })),
+  update: DeclarationOptionalKeyChildComposition.makeUpdate(model => ({
+    model,
+  })),
   EffectsLayer: Layer.empty,
 })
 const OptionalKeyParentModel = Schema.Struct({
@@ -243,12 +247,14 @@ const DeclarationPrimitiveKeyChild = Block.define(
   },
 )
 const DeclarationPrimitiveKeyChildComposition =
-  DeclarationPrimitiveKeyChild.toComposition()
-const PrimitiveBlock = DeclarationPrimitiveKeyChildComposition.toBlock({
-  init: DeclarationPrimitiveKeyChildComposition.init(() => ({
+  DeclarationPrimitiveKeyChild.makeComposition()
+const PrimitiveBlock = DeclarationPrimitiveKeyChildComposition.makeBlock({
+  init: DeclarationPrimitiveKeyChildComposition.makeInit(() => ({
     model: 'initial',
   })),
-  update: DeclarationPrimitiveKeyChildComposition.update(model => ({ model })),
+  update: DeclarationPrimitiveKeyChildComposition.makeUpdate(model => ({
+    model,
+  })),
   EffectsLayer: Layer.empty,
 })
 const PrimitiveParentModel = Schema.Struct({
@@ -292,16 +298,16 @@ const DeclarationUnionKeyChild = Block.define('DeclarationUnionKeyChild', {
   Message: UnionKeyMessage,
 })
 const DeclarationUnionKeyChildComposition =
-  DeclarationUnionKeyChild.toComposition()
-const UnionKeyBlock = DeclarationUnionKeyChildComposition.toBlock({
-  init: DeclarationUnionKeyChildComposition.init(() => ({
+  DeclarationUnionKeyChild.makeComposition()
+const UnionKeyBlock = DeclarationUnionKeyChildComposition.makeBlock({
+  init: DeclarationUnionKeyChildComposition.makeInit(() => ({
     model: UnionKeyModel.make({
       _tag: 'Primary',
       id: 'initial',
       count: 0,
     }),
   })),
-  update: DeclarationUnionKeyChildComposition.update(model => ({ model })),
+  update: DeclarationUnionKeyChildComposition.makeUpdate(model => ({ model })),
   EffectsLayer: Layer.empty,
 })
 const UnionKeyParentModel = Schema.Struct({
@@ -358,12 +364,19 @@ const DeclarationInvalidKeyChild = Block.define('DeclarationInvalidKeyChild', {
   Message: InvalidKeyMessage,
 })
 const DeclarationInvalidKeyChildComposition =
-  DeclarationInvalidKeyChild.toComposition()
-const InvalidKeyBlock = DeclarationInvalidKeyChildComposition.toBlock({
-  init: DeclarationInvalidKeyChildComposition.init(() => {
-    throw new Error('Uninhabited declaration fixture')
-  }),
-  update: DeclarationInvalidKeyChildComposition.update(model => ({ model })),
+  DeclarationInvalidKeyChild.makeComposition()
+const InvalidKeyBlock = DeclarationInvalidKeyChildComposition.makeBlock({
+  init: DeclarationInvalidKeyChildComposition.makeInit(
+    (): Update.Return<
+      typeof InvalidKeyModel.Type,
+      typeof InvalidKeyMessage.Type
+    > => {
+      throw new Error('Uninhabited declaration fixture')
+    },
+  ),
+  update: DeclarationInvalidKeyChildComposition.makeUpdate(model => ({
+    model,
+  })),
   EffectsLayer: Layer.empty,
 })
 const InvalidKeyParentModel = Schema.Struct({

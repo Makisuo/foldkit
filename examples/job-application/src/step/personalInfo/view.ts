@@ -15,7 +15,7 @@ import {
 } from './composition'
 import { Message } from './definition'
 
-export const view = PersonalInfoComposition.view((model, h) => {
+export const view = PersonalInfoComposition.makeView((model, h) => {
   const {
     firstName,
     lastName,

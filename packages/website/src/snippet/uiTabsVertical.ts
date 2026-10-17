@@ -25,7 +25,7 @@ const descriptions: Record<Framework, string> = {
 // The parent Composition and child Binding below come from the basic walkthrough.
 // Inside your view function, set orientation to 'Vertical' and use flex +
 // flex-col for layout:
-const view = TabsExampleComposition.view((model, h) => {
+const view = TabsExampleComposition.makeView((model, h) => {
   const tabsView = ({
     tablist,
     tabs,

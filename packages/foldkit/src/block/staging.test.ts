@@ -39,23 +39,23 @@ const childBase = ChildOwner.define({
   Model: ChildModel,
   Message: ChildMessage,
 })
-const graphlessComposition = childBase.toComposition()
-const observeComposition = childBase.toComposition({ mounts: [Observe] })
-const measureComposition = childBase.toComposition({ mounts: [Measure] })
+const graphlessComposition = childBase.makeComposition()
+const observeComposition = childBase.makeComposition({ mounts: [Observe] })
+const measureComposition = childBase.makeComposition({ mounts: [Measure] })
 
-const graphlessView = graphlessComposition.view((model, h) =>
+const graphlessView = graphlessComposition.makeView((model, h) =>
   h.div([], [model.value]),
 )
 
-const defaultView = observeComposition.view.withInputs<
+const defaultView = observeComposition.makeView.withInputs<
   Readonly<{ label: string }>
 >((model, { label }, h) =>
   h.div([h.OnMount(Observe())], [`${label}: ${model.value}`]),
 )
 
-const Child = observeComposition.toBlock({
+const Child = observeComposition.makeBlock({
   init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
-  update: observeComposition.update(model => ({ model })),
+  update: observeComposition.makeUpdate(model => ({ model })),
   view: defaultView,
   EffectsLayer: Observe.layer,
 })
@@ -82,7 +82,7 @@ const ExplicitChildBinding = Parent.bindChild(Child, {
   parentMessage: ParentMessage.GotChildMessage,
 })
 
-const alternateView = Child.view.withInputs<Readonly<{ prefix: string }>>(
+const alternateView = Child.makeView.withInputs<Readonly<{ prefix: string }>>(
   (model, { prefix }, h) =>
     h.div([h.OnMount(Observe())], [`${prefix}: ${model.value}`]),
 )
@@ -104,16 +104,16 @@ const alternateEmbed = DirectChildBinding.embedView({
 
 if (false) {
   // @ts-expect-error A Definition does not author the primary view.
-  childBase.view
+  childBase.makeView
 
-  graphlessComposition.view((_model, h) =>
+  graphlessComposition.makeView((_model, h) =>
     h.div([
       // @ts-expect-error A graphless Composition cannot use an unregistered Mount.
       h.OnMount(Observe()),
     ]),
   )
 
-  graphlessComposition.toBlock({
+  graphlessComposition.makeBlock({
     init: Child.init,
     update: Child.update,
     // @ts-expect-error A graphless Composition cannot complete a Mount-capable view.
@@ -121,18 +121,20 @@ if (false) {
     EffectsLayer: Observe.layer,
   })
 
-  graphlessComposition.view((_model, h) =>
+  graphlessComposition.makeView((_model, h) =>
     h.button([
       // @ts-expect-error A view accepts only its Composition's Message.
       h.OnClick({ _tag: 'ForeignMessage' }),
     ]),
   )
 
-  // @ts-expect-error void cannot describe usable per-render ViewInputs.
-  graphlessComposition.view.withInputs<void>((_model, _inputs, h) => h.empty)
+  graphlessComposition.makeView.withInputs<void>(
+    // @ts-expect-error void cannot describe usable per-render ViewInputs.
+    (_model, _inputs, h) => h.empty,
+  )
 
   // @ts-expect-error A Composition cannot establish another graph.
-  observeComposition.toComposition({ mounts: [Measure] })
+  observeComposition.makeComposition({ mounts: [Measure] })
 
   DirectChildBinding.embedView({
     slotId: 'missing-default-inputs',
@@ -147,7 +149,7 @@ if (false) {
     Message: ParentMessage,
   })
   // @ts-expect-error A child Binding must use the Composition's parent Model.
-  foreignModelBase.toComposition({ childBindings: [DirectChildBinding] })
+  foreignModelBase.makeComposition({ childBindings: [DirectChildBinding] })
 
   const ForeignMessage = defineMessageUnion({ ReceivedForeign: {} })
   const foreignMessageBase = define('StagedForeignMessageParent').define({
@@ -155,16 +157,16 @@ if (false) {
     Message: ForeignMessage,
   })
   // @ts-expect-error A child Binding must use the Composition's parent Message.
-  foreignMessageBase.toComposition({ childBindings: [DirectChildBinding] })
+  foreignMessageBase.makeComposition({ childBindings: [DirectChildBinding] })
 }
 
 it('creates independent immutable graphs from one typed Base', () => {
   expect(childBase.mounts).toEqual([])
-  expect(childBase).not.toHaveProperty('view')
-  expect(graphlessComposition.view).toBeTypeOf('function')
+  expect(childBase).not.toHaveProperty('makeView')
+  expect(graphlessComposition.makeView).toBeTypeOf('function')
   void graphlessView
   expect(observeComposition.owner).toBe(childBase.owner)
-  expect(observeComposition.update).toBeTypeOf('function')
+  expect(observeComposition.makeUpdate).toBeTypeOf('function')
   expect(observeComposition).not.toHaveProperty('step')
   expect(observeComposition).not.toHaveProperty('subscriptions')
   expect(observeComposition).not.toHaveProperty('managedResources')
@@ -186,14 +188,19 @@ it('preserves completed view capabilities and default ViewInputs', () => {
 })
 
 it('matches required-field and explicit Binding behavior', () => {
-  const directUpdate = DirectChildBinding.fold(
-    initialParent,
-    ChildMessage.CompletedObserve(),
-  )
-  const explicitUpdate = ExplicitChildBinding.fold(
-    initialParent,
-    ChildMessage.CompletedObserve(),
-  )
+  const DirectComposition = Parent.makeComposition({
+    childBindings: [DirectChildBinding],
+  })
+  const ExplicitComposition = Parent.makeComposition({
+    childBindings: [ExplicitChildBinding],
+  })
+  const updateDirect = DirectComposition.makeUpdate()
+  const updateExplicit = ExplicitComposition.makeUpdate()
+  const message = ParentMessage.GotChildMessage({
+    message: ChildMessage.CompletedObserve(),
+  })
+  const directUpdate = updateDirect(initialParent, message)
+  const explicitUpdate = updateExplicit(initialParent, message)
 
   expect(directUpdate.model).toEqual(explicitUpdate.model)
 })
@@ -208,8 +215,8 @@ it('preserves graph constructor errors and requirements exactly', () => {
 })
 
 it('retains contextual update and Step inference after registration', () => {
-  const update = observeComposition.update((model, message) => {
-    expectTypeOf(model).toEqualTypeOf<ChildModel>()
+  const update = observeComposition.makeUpdate((model, message) => {
+    expectTypeOf(model).toMatchTypeOf<ChildModel>()
     expectTypeOf(message).toEqualTypeOf<ChildMessage>()
     return { model }
   })

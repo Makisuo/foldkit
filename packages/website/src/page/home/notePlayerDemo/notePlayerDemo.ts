@@ -96,7 +96,7 @@ const parseNotes = (value: string) =>
   )
 const INITIAL_NOTE_SEQUENCE = 'CDEFGABC'
 
-export const init = NotePlayerDemoComposition.init(() => ({
+export const init = NotePlayerDemoComposition.makeInit(() => ({
   model: {
     noteInput: validateNoteInput(INITIAL_NOTE_SEQUENCE),
     noteDuration: 'Medium',
@@ -146,7 +146,7 @@ const enterNoteCommandPhase = (
   ],
 })
 
-export const update = NotePlayerDemoComposition.update((model, message) =>
+export const update = NotePlayerDemoComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ChangedNoteInput: ({ value }) => {
       const uppercased = String.toUpperCase(value)
@@ -469,7 +469,7 @@ const durationButtonClass = (
       !isSelected && isDisabled,
   })
 
-export const view = NotePlayerDemoComposition.view((model, h) =>
+export const view = NotePlayerDemoComposition.makeView((model, h) =>
   DemoView.shell(
     DemoView.codePanel(
       'note-demo-code-panel',

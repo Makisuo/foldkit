@@ -66,7 +66,7 @@ const subheading = (text: string, h: UiViewBuilder) => {
   )
 }
 
-export const view = UiComposition.view((model, h) => {
+export const view = UiComposition.makeView((model, h) => {
   const basicDisclosureView = (
     attributes: Disclosure.DisclosureAttributes<Message>,
   ): Html =>

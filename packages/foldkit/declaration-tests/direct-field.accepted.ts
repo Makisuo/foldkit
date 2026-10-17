@@ -14,39 +14,43 @@ const Child = Block.define('DeclaredDirectFieldChild', {
 const setCount = Child.step((model, count: number) => ({
   model: Struct.modifyFields(model, { count: () => count }),
 }))
-const DeclaredDirectFieldChildComposition = Child.toComposition()
-const childUpdate = DeclaredDirectFieldChildComposition.update(
+const DeclaredDirectFieldChildComposition = Child.makeComposition()
+const childUpdate = DeclaredDirectFieldChildComposition.makeUpdate(
   (model, { count }) => setCount(model, count),
 )
-export const childBlock = DeclaredDirectFieldChildComposition.toBlock({
-  init: DeclaredDirectFieldChildComposition.init(() => ({
+export const childBlock = DeclaredDirectFieldChildComposition.makeBlock({
+  init: DeclaredDirectFieldChildComposition.makeInit(() => ({
     model: ChildModel.make({ count: 0 }),
   })),
   update: childUpdate,
   expose: { setCount },
   EffectsLayer: Layer.empty,
 })
-export const argumentChildBlock = DeclaredDirectFieldChildComposition.toBlock({
-  init: DeclaredDirectFieldChildComposition.init((count: number) => ({
-    model: ChildModel.make({ count }),
-  })),
-  update: childUpdate,
-  expose: { setCount },
-  EffectsLayer: Layer.empty,
-})
+export const argumentChildBlock = DeclaredDirectFieldChildComposition.makeBlock(
+  {
+    init: DeclaredDirectFieldChildComposition.makeInit((count: number) => ({
+      model: ChildModel.make({ count }),
+    })),
+    update: childUpdate,
+    expose: { setCount },
+    EffectsLayer: Layer.empty,
+  },
+)
 export const NestedOptionChildModel = Schema.Option(ChildModel)
 // eslint-disable-next-line foldkit/block-name-matches-variable
 const NestedOptionChild = Block.define('DeclaredNestedOptionChild', {
   Model: NestedOptionChildModel,
   Message: ChildMessage,
 })
-const DeclaredNestedOptionChildComposition = NestedOptionChild.toComposition()
+const DeclaredNestedOptionChildComposition = NestedOptionChild.makeComposition()
 export const nestedOptionChildBlock =
-  DeclaredNestedOptionChildComposition.toBlock({
-    init: DeclaredNestedOptionChildComposition.init(() => ({
+  DeclaredNestedOptionChildComposition.makeBlock({
+    init: DeclaredNestedOptionChildComposition.makeInit(() => ({
       model: Option.none(),
     })),
-    update: DeclaredNestedOptionChildComposition.update(model => ({ model })),
+    update: DeclaredNestedOptionChildComposition.makeUpdate(model => ({
+      model,
+    })),
     EffectsLayer: Layer.empty,
   })
 export const ArrayChildModel = Schema.Array(Schema.String)
@@ -55,12 +59,12 @@ const ArrayChild = Block.define('DeclaredArrayChild', {
   Model: ArrayChildModel,
   Message: ChildMessage,
 })
-const DeclaredArrayChildComposition = ArrayChild.toComposition()
-export const arrayChildBlock = DeclaredArrayChildComposition.toBlock({
-  init: DeclaredArrayChildComposition.init(() => ({
+const DeclaredArrayChildComposition = ArrayChild.makeComposition()
+export const arrayChildBlock = DeclaredArrayChildComposition.makeBlock({
+  init: DeclaredArrayChildComposition.makeInit(() => ({
     model: ArrayChildModel.make([]),
   })),
-  update: DeclaredArrayChildComposition.update(model => ({ model })),
+  update: DeclaredArrayChildComposition.makeUpdate(model => ({ model })),
   EffectsLayer: Layer.empty,
 })
 export const Model = Schema.Struct({
@@ -171,7 +175,7 @@ export const InitializedCustomBinding = Parent.bindChild(argumentChildBlock, {
   },
 })
 // eslint-disable-next-line foldkit/block-name-matches-variable
-export const initialComposition = Parent.toComposition({
+export const initialComposition = Parent.makeComposition({
   childBindings: [
     InitializedRequiredBinding,
     InitializedArgumentBinding,
@@ -182,7 +186,7 @@ export type InitializationContext = Readonly<{
   count: number
   maybeCount: Option.Option<number>
 }>
-export const initialize = initialComposition.init(
+export const initialize = initialComposition.makeInit(
   (context: InitializationContext) => ({
     startup: context,
     model: {
@@ -195,13 +199,13 @@ export const initialize = initialComposition.init(
     },
   }),
 )
-export const initializedBlock = initialComposition.toBlock({
+export const initializedBlock = initialComposition.makeBlock({
   init: initialize,
-  update: initialComposition.update(model => ({ model })),
+  update: initialComposition.makeUpdate(model => ({ model })),
   EffectsLayer: Layer.empty,
 })
 // eslint-disable-next-line foldkit/block-name-matches-variable
-export const composition = Parent.toComposition({
+export const composition = Parent.makeComposition({
   childBindings: [RequiredBinding],
 })
 export const initial = Model.make({
@@ -215,9 +219,20 @@ export const initial = Model.make({
   arrayChild: [],
   route: 'Home',
 })
-const result = OptionalBinding.setCount(2)(initial)
-const folded = OptionalBinding.fold(
+const DeclaredDirectFieldParentComposition = Parent.makeComposition({
+  childBindings: [OptionalBinding],
+})
+export const setOptionalCount = DeclaredDirectFieldParentComposition.makeUpdate(
+  (model, _message, count: number) => OptionalBinding.setCount(count)(model),
+)
+export const foldOptional = DeclaredDirectFieldParentComposition.makeUpdate(
+  (model, _message, childMessage: typeof ChildMessage.Type) =>
+    OptionalBinding.fold(model, childMessage),
+)
+const result = setOptionalCount(initial, ParentMessage.IgnoredChildMessage(), 2)
+const folded = foldOptional(
   initial,
+  ParentMessage.IgnoredChildMessage(),
   ChildMessage.UpdatedCount({ count: 2 }),
 )
 void result
@@ -249,6 +264,10 @@ export const CallableOptionalBinding = CallableParent.bindChild(childBlock, {
   parentMessage: ParentMessage.GotChildMessage,
 })
 // eslint-disable-next-line foldkit/block-name-matches-variable
-export const callableComposition = CallableParent.toComposition({
+export const callableComposition = CallableParent.makeComposition({
   childBindings: [CallableRequiredBinding],
 })
+export const setCallableCount = callableComposition.makeUpdate(
+  (model, _message, count: number) =>
+    CallableRequiredBinding.setCount(count)(model),
+)

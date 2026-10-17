@@ -167,7 +167,7 @@ const yearsView = (years: YearsModeAttributes, h: UiViewBuilder) =>
     ],
   )
 
-export const view = UiComposition.view((model, h) => {
+export const view = UiComposition.makeView((model, h) => {
   const calendarView = Match.type<CalendarAttributes>().pipe(
     Match.tagsExhaustive({
       Days: days => daysView(days, h),

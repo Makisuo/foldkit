@@ -11,7 +11,7 @@ import {
 } from './model'
 import { LoadApiData } from './update'
 
-export const init = ApiReferenceComposition.init(() => ({
+export const init = ApiReferenceComposition.makeInit(() => ({
   model: Model.make({
     apiData: ApiDataAsyncData.Idle(),
     disclosures: {},

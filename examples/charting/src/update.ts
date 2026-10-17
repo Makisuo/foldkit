@@ -10,7 +10,7 @@ import {
 import { Message } from './message'
 import { TelemetryAsyncData } from './model'
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedRefresh: () => refetchTelemetry(model),
 

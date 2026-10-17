@@ -52,11 +52,11 @@ const ConfirmDialogBinding = ProjectDialogs.bindChild(Dialog.block, {
   outMessage: { fold: foldConfirmDialogOutMessage },
 })
 
-const ProjectDialogsComposition = ProjectDialogs.toComposition({
+const ProjectDialogsComposition = ProjectDialogs.makeComposition({
   childBindings: [SettingsDialogBinding, ConfirmDialogBinding],
 })
 
-const init = ProjectDialogsComposition.init(() => ({
+const init = ProjectDialogsComposition.makeInit(() => ({
   model: {
     // ...your other fields
   },
@@ -66,7 +66,7 @@ const init = ProjectDialogsComposition.init(() => ({
 // The button dispatches ClickedDeleteProject; the update opens the confirmation
 // through `ConfirmDialogBinding.open()`, keeping Got* for genuine child results.
 
-const update = ProjectDialogsComposition.update((model, message) =>
+const update = ProjectDialogsComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedDeleteProject: () => ConfirmDialogBinding.open()(model),
     ConfirmedDeleteProject: () => ConfirmDialogBinding.close()(model),
@@ -78,7 +78,7 @@ const update = ProjectDialogsComposition.update((model, message) =>
 // it. Cancel dismisses the confirmation through the `closeButton` bundle.
 // Delete dispatches a fact that runs the work and closes through
 // `ConfirmDialogBinding.close()`.
-const view = ProjectDialogsComposition.view((model, h) => {
+const view = ProjectDialogsComposition.makeView((model, h) => {
   const confirmDialogView = ({
     dialog,
     backdrop,

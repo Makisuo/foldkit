@@ -8,4 +8,4 @@ export const SnippetCopy = Block.define('SnippetCopy', {
   Message,
 })
 
-export const SnippetCopyComposition = SnippetCopy.toComposition()
+export const SnippetCopyComposition = SnippetCopy.makeComposition()

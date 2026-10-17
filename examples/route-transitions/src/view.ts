@@ -491,7 +491,7 @@ const routeTitle = (route: ApplicationRoute): string =>
     ),
   )
 
-export const view = ApplicationComposition.view((model, h) => {
+export const view = ApplicationComposition.makeView((model, h) => {
   const routeContent = ApplicationRoute.match(model.route, {
     Home: () => homeView(h),
     Gallery: () => galleryView(model.catalogStatus, h),

@@ -29,7 +29,7 @@ type Equal<Left, Right> =
     : false
 type Expect<Value extends true> = Value
 
-type ParentModel = Parameters<typeof DirectChildBinding.fold>[0]
+type ParentModel = typeof DeclarationParentOwnedParent.Model.Type
 type ChildMessage = typeof ChildBlock.Message.Type
 type NamedEntry = Readonly<{
   id: string
@@ -111,16 +111,37 @@ void forbiddenEmittedPlainChildPolicy
 void undefinedEmittedPlainChildPolicy
 
 export type DirectParentModel = Expect<
-  Equal<Parameters<typeof DirectChildBinding.fold>[0], ParentModel>
+  Equal<
+    Parameters<typeof DirectChildBinding.fold>[0],
+    ParentModel &
+      Update.GraphCapability<
+        ParentModel,
+        Block.BindingRequirement<'child', typeof ChildBlock>
+      >
+  >
 >
 export type DirectChildMessage = Expect<
   Equal<Parameters<typeof DirectChildBinding.fold>[1], ChildMessage>
 >
 export type OptionalParentModel = Expect<
-  Equal<Parameters<typeof OptionalChildBinding.fold>[0], ParentModel>
+  Equal<
+    Parameters<typeof OptionalChildBinding.fold>[0],
+    ParentModel &
+      Update.GraphCapability<
+        ParentModel,
+        Block.BindingRequirement<'optionalChild', typeof ChildBlock>
+      >
+  >
 >
 export type TaggedParentModel = Expect<
-  Equal<Parameters<typeof TaggedChildBinding.fold>[0], ParentModel>
+  Equal<
+    Parameters<typeof TaggedChildBinding.fold>[0],
+    ParentModel &
+      Update.GraphCapability<
+        ParentModel,
+        Block.BindingRequirement<'taggedChild', typeof ChildBlock>
+      >
+  >
 >
 export type KeyedKey = Expect<
   Equal<Parameters<typeof KeyedChildBinding.fold>[1], number>
@@ -290,8 +311,14 @@ export type DirectInspectionError = Expect<
 >
 export type ForwardedOutMessage = Expect<
   Equal<
-    ReturnType<ReturnType<typeof ForwardingChildBinding.select>>['outMessage'],
-    typeof ParentOutMessage.Type | undefined
+    ReturnType<ReturnType<typeof ForwardingChildBinding.select>>,
+    Update.ResultRecipe<
+      ParentModel,
+      typeof ParentMessage.Type,
+      typeof ParentOutMessage.Type,
+      never,
+      Block.BindingRequirement<'forwardingChild', typeof ChildBlock>
+    >
   >
 >
 

@@ -95,7 +95,7 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = ComingFromReactComposition.view.withInputs<ViewInputs>(
+export const view = ComingFromReactComposition.makeView.withInputs<ViewInputs>(
   (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h) =>
     renderPage({
       demos: {},

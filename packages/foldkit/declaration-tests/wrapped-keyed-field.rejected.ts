@@ -535,7 +535,7 @@ const DuplicateInitializedChoicesBinding =
     },
   })
 // @ts-expect-error Initialized child fields must be unique across the graph.
-DeclarationWrappedKeyedFieldParent.toComposition({
+DeclarationWrappedKeyedFieldParent.makeComposition({
   childBindings: [
     InitializedChoicesBinding,
     DuplicateInitializedChoicesBinding,
@@ -543,10 +543,10 @@ DeclarationWrappedKeyedFieldParent.toComposition({
 })
 
 const UnregisteredComposition =
-  DeclarationWrappedKeyedFieldParent.toComposition()
-UnregisteredComposition.toBlock({
+  DeclarationWrappedKeyedFieldParent.makeComposition()
+UnregisteredComposition.makeBlock({
   init: initialize,
-  update: UnregisteredComposition.update(model => ({ model })),
+  update: UnregisteredComposition.makeUpdate(model => ({ model })),
   // @ts-expect-error An initializer retains registration evidence for its initialized child graph.
   EffectsLayer: Choice.ReadChoice.layer,
 })
@@ -581,7 +581,7 @@ const wrongModelPolicy = {
 // oxfmt-ignore
 const WrongModelPolicyBinding = DeclarationWrappedKeyedFieldParent.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, read: item => item.choice, writeAt: model => model, toParentMessage: (id, message) => ParentMessage.GotChoiceMessage({ id, message }), fromParentMessage: false, outMessage: wrongModelPolicy })
 // @ts-expect-error An extracted keyed policy Step must return the parent Model.
-DeclarationWrappedKeyedFieldParent.toComposition({
+DeclarationWrappedKeyedFieldParent.makeComposition({
   childBindings: [WrongModelPolicyBinding],
 })
 
@@ -596,7 +596,7 @@ const foreignMessagePolicy = {
 // oxfmt-ignore
 const ForeignMessagePolicyBinding = DeclarationWrappedKeyedFieldParent.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, read: item => item.choice, writeAt: model => model, toParentMessage: (id, message) => ParentMessage.GotChoiceMessage({ id, message }), fromParentMessage: false, outMessage: foreignMessagePolicy })
 // @ts-expect-error An extracted keyed policy Command must produce a parent Message.
-DeclarationWrappedKeyedFieldParent.toComposition({
+DeclarationWrappedKeyedFieldParent.makeComposition({
   childBindings: [ForeignMessagePolicyBinding],
 })
 
@@ -611,6 +611,6 @@ const undeclaredOutMessagePolicy = {
 // oxfmt-ignore
 const UndeclaredOutMessagePolicyBinding = DeclarationWrappedKeyedFieldParent.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, read: item => item.choice, writeAt: model => model, toParentMessage: (id, message) => ParentMessage.GotChoiceMessage({ id, message }), fromParentMessage: false, outMessage: undeclaredOutMessagePolicy })
 // @ts-expect-error An extracted keyed policy cannot emit an undeclared parent OutMessage.
-DeclarationWrappedKeyedFieldParent.toComposition({
+DeclarationWrappedKeyedFieldParent.makeComposition({
   childBindings: [UndeclaredOutMessagePolicyBinding],
 })

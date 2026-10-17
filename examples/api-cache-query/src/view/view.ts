@@ -14,7 +14,7 @@ import { statsTabView } from './stats'
 const tabButtonClassName =
   'px-4 py-2 rounded-lg bg-white text-slate-600 font-semibold hover:bg-slate-50 transition cursor-pointer data-[selected]:bg-indigo-600 data-[selected]:text-white data-[selected]:hover:bg-indigo-600'
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'API Cache Query',
   body: h.div(
     [h.Class('min-h-screen bg-slate-100 flex justify-center p-6')],

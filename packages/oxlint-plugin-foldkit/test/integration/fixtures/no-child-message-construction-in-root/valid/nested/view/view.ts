@@ -14,6 +14,6 @@ const localButton = (h: NestedViewBuilder) =>
 const importedButton = (h: ImportedNestedViewBuilder) =>
   h.button([h.OnClick(Message.ClickedSave())])
 
-export const view = NestedComposition.view((_model, h) =>
+export const view = NestedComposition.makeView((_model, h) =>
   h.div([], [localButton(h), importedButton(h)]),
 )

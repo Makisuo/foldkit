@@ -67,20 +67,20 @@ const CharacterListboxBinding = CharacterPicker.bindChild(CharacterListbox, {
   outMessage: { fold: foldListboxOutMessage },
 })
 
-const CharacterPickerComposition = CharacterPicker.toComposition({
+const CharacterPickerComposition = CharacterPicker.makeComposition({
   childBindings: [CharacterListboxBinding],
 })
 
 // Initialize the fields the parent owns. The Composition initializes the
 // bound Listbox Model with the Binding's unique id.
-const init = CharacterPickerComposition.init(() => ({
+const init = CharacterPickerComposition.makeInit(() => ({
   model: {
     maybeCharacter: Option.none(),
     // ...your other fields
   },
 }))
 
-const update = CharacterPickerComposition.update()
+const update = CharacterPickerComposition.makeUpdate()
 
 const characters: ReadonlyArray<Character> = [
   { firstName: 'Michael', lastName: 'Bluth' },
@@ -94,7 +94,7 @@ const characters: ReadonlyArray<Character> = [
 // Inside your view function, group items by a key and render a heading for
 // each group. Items are grouped in the order they appear. Make sure items
 // with the same key are contiguous in the items array:
-const view = CharacterPickerComposition.view((model, h) =>
+const view = CharacterPickerComposition.makeView((model, h) =>
   h.block(
     CharacterListboxBinding.embedView({
       slotId: 'character',

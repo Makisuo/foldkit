@@ -32,13 +32,13 @@ const FinishInitialization = Counter.command('FinishInitialization', {
 const setCount = Counter.step((model, count: number) => ({
   model: modifyFields(model, { count: () => count }),
 }))
-const CounterComposition = Counter.toComposition()
-const counterBlock = CounterComposition.toBlock({
-  init: CounterComposition.init((count: number) => ({
+const CounterComposition = Counter.makeComposition()
+const counterBlock = CounterComposition.makeBlock({
+  init: CounterComposition.makeInit((count: number) => ({
     model: CounterModel.make({ count }),
     commands: [FinishInitialization({ count })],
   })),
-  update: CounterComposition.update((model, message) =>
+  update: CounterComposition.makeUpdate((model, message) =>
     CounterMessage.match(message, {
       UpdatedCount: ({ count }) => setCount(model, count),
       CompletedFinishInitialization: ({ count }) => setCount(model, count),
@@ -61,10 +61,10 @@ const Text = define('WrappedKeyedFieldText', {
   Model: Schema.String,
   Message: TextMessage,
 })
-const TextComposition = Text.toComposition()
-const textBlock = TextComposition.toBlock({
-  init: TextComposition.init((value: string) => ({ model: value })),
-  update: TextComposition.update((_model, { value }) => ({ model: value })),
+const TextComposition = Text.makeComposition()
+const textBlock = TextComposition.makeBlock({
+  init: TextComposition.makeInit((value: string) => ({ model: value })),
+  update: TextComposition.makeUpdate((_model, { value }) => ({ model: value })),
 })
 const TextEntry = Schema.Struct({
   id: Schema.String,
@@ -109,18 +109,30 @@ const TextEntriesBinding = Parent.bindChild(textBlock, {
   toParentMessage: (id, message) =>
     ParentMessage.GotTextMessage({ id, message }),
 })
-const ParentComposition = Parent.toComposition({
+const ParentComposition = Parent.makeComposition({
   childBindings: [
     CountersBinding,
     AlternateCountersBinding,
     TextEntriesBinding,
   ],
 })
-const ParentBlock = ParentComposition.toBlock({
-  init: ParentComposition.init(() => ({
+const ParentBlock = ParentComposition.makeBlock({
+  init: ParentComposition.makeInit(() => ({
     model: ParentModel.make({ counters: [], textEntries: [] }),
   })),
-  update: ParentComposition.update(model => ({ model })),
+  update: ParentComposition.makeUpdate((model, message) =>
+    ParentMessage.match(message, {
+      GotCounterMessage: ({ id, message }) =>
+        CountersBinding.fold(model, id, message),
+      GotTextMessage: ({ id, message }) =>
+        TextEntriesBinding.fold(model, id, message),
+    }),
+  ),
+  expose: {
+    setCount: Parent.step((_model, id: string, count: number) =>
+      CountersBinding.setCount(id, count),
+    ),
+  },
 })
 const noSlowSubscriptionDependencies: Option.Option<
   ResolvedSlowPhaseConfig<SlowSubscriptionDependenciesContext<ParentModel>>
@@ -148,10 +160,12 @@ const initial = ParentModel.make({
 it('updates only the child field of the targeted wrapper', () => {
   const previousFirst = Option.getOrThrow(Array.get(initial.counters, 0))
   const previousSecond = Option.getOrThrow(Array.get(initial.counters, 1))
-  const result = CountersBinding.fold(
+  const result = ParentBlock.update(
     initial,
-    'first',
-    CounterMessage.UpdatedCount({ count: 7 }),
+    ParentMessage.GotCounterMessage({
+      id: 'first',
+      message: CounterMessage.UpdatedCount({ count: 7 }),
+    }),
   )
   const nextFirst = Option.getOrThrow(Array.get(result.model.counters, 0))
   const nextSecond = Option.getOrThrow(Array.get(result.model.counters, 1))
@@ -175,13 +189,15 @@ it('updates only the child field of the targeted wrapper', () => {
 
 it('leaves the exact parent unchanged when a wrapper key is absent', () => {
   expect(
-    CountersBinding.fold(
+    ParentBlock.update(
       initial,
-      'missing',
-      CounterMessage.UpdatedCount({ count: 9 }),
+      ParentMessage.GotCounterMessage({
+        id: 'missing',
+        message: CounterMessage.UpdatedCount({ count: 9 }),
+      }),
     ).model,
   ).toBe(initial)
-  expect(CountersBinding.setCount('missing', 9)(initial).model).toBe(initial)
+  expect(ParentBlock.expose.setCount(initial, 'missing', 9).model).toBe(initial)
 })
 
 it('keeps literal default and overridden placements', () => {
@@ -194,7 +210,7 @@ it('keeps literal default and overridden placements', () => {
 })
 
 it('initializes the parent Model and lifts Commands with the wrapper key', async () => {
-  const initializeCounter = ParentComposition.init(() =>
+  const initializeCounter = ParentComposition.makeInit(() =>
     CountersBinding.init({
       key: 'created',
       args: [4],
@@ -248,15 +264,19 @@ it('initializes the parent Model and lifts Commands with the wrapper key', async
 })
 
 it('accepts equivalent child Schemas and scalar child Models', () => {
-  const counterResult = CountersBinding.fold(
+  const counterResult = ParentBlock.update(
     initial,
-    'second',
-    CounterMessage.UpdatedCount({ count: 8 }),
+    ParentMessage.GotCounterMessage({
+      id: 'second',
+      message: CounterMessage.UpdatedCount({ count: 8 }),
+    }),
   )
-  const textResult = TextEntriesBinding.fold(
+  const textResult = ParentBlock.update(
     initial,
-    'text',
-    TextMessage.ReplacedText({ value: 'after' }),
+    ParentMessage.GotTextMessage({
+      id: 'text',
+      message: TextMessage.ReplacedText({ value: 'after' }),
+    }),
   )
   const nextText = Option.getOrThrow(Array.head(textResult.model.textEntries))
 

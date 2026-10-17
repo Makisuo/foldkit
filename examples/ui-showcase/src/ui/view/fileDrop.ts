@@ -40,7 +40,7 @@ const formatFileSize = (bytes: number): string =>
 const fileKey = (file: File.File): string =>
   `${File.name(file)}:${File.size(file)}:${file.lastModified}`
 
-export const view = UiComposition.view((model, h) => {
+export const view = UiComposition.makeView((model, h) => {
   const fileDropView = (attributes: FileDropAttributes): Html =>
     h.label(
       [...attributes.root, h.Class(dropZoneClassName)],

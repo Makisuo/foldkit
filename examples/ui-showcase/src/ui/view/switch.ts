@@ -30,7 +30,7 @@ const knob = (isChecked: boolean, h: UiViewBuilder) => {
   ])
 }
 
-export const view = UiComposition.view((model, h) => {
+export const view = UiComposition.makeView((model, h) => {
   const switchView = (attributes: Switch.SwitchAttributes<Message>): Html =>
     h.div(
       [h.Class(wrapperClassName)],

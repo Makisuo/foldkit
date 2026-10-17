@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option, Schema } from 'effect'
+import { Context, Effect, Layer, Option, Record, Schema } from 'effect'
 import { defineApplication } from 'foldkit'
 import type * as ApplicationTypes from 'foldkit/application'
 import * as Block from 'foldkit/block'
@@ -16,9 +16,11 @@ import {
   type ChildModel,
   type CompletedChild,
   type CompletedChoice,
+  DisclosuresComposition,
   Measure,
   ParentMessage,
   ParentModel,
+  RecordApplicationComposition,
   RefinedChoice,
   makeProvisionElement,
   makeProvisionPageAwaitingDependency,
@@ -32,7 +34,7 @@ const InvalidApplication = (() => {
 
   return Application
 })()
-const InvalidApplicationComposition = InvalidApplication.toComposition()
+const InvalidApplicationComposition = InvalidApplication.makeComposition()
 // @ts-expect-error The previous public builder helper is no longer exported.
 export type RemovedBlockBuilder = Block.HtmlBuilderOf<
   typeof InvalidApplicationComposition
@@ -45,24 +47,26 @@ type InvalidApplicationViewBuilder = Block.ViewBuilderFor<
   typeof InvalidApplicationComposition
 >
 const invalidApplicationImplementation = {
-  init: InvalidApplicationComposition.init(() => ({
+  init: InvalidApplicationComposition.makeInit(() => ({
     model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   })),
-  update: InvalidApplicationComposition.update(model => ({ model })),
+  update: InvalidApplicationComposition.makeUpdate(model => ({ model })),
   EffectsLayer: Layer.empty,
 }
-const invalidElementView = InvalidApplicationComposition.view((model, h) =>
+const invalidElementView = InvalidApplicationComposition.makeView((model, h) =>
   h.main([], [globalThis.String(model.child.value)]),
 )
-const invalidDocumentView = InvalidApplicationComposition.view((model, h) => ({
-  title: 'Invalid application fixture',
-  body: h.main([], [globalThis.String(model.child.value)]),
-}))
+const invalidDocumentView = InvalidApplicationComposition.makeView(
+  (model, h) => ({
+    title: 'Invalid application fixture',
+    body: h.main([], [globalThis.String(model.child.value)]),
+  }),
+)
 
 // @ts-expect-error An Application Definition does not author the primary view.
-InvalidApplication.view
+InvalidApplication.makeView
 // @ts-expect-error An Application Definition does not author init directly.
-InvalidApplication.init
+InvalidApplication.makeInit
 
 const InvalidInitMessage = defineMessageUnion({ CompletedForeignInit: {} })
 const DeclarationTestsValidInit = Command.define('DeclarationTestsValidInit', {
@@ -143,29 +147,29 @@ const callableMetadataInit = Object.assign(
   { description: 'Initial parent Model' },
 )
 
-InvalidApplicationComposition.init(() => callableMetadataInit())
+InvalidApplicationComposition.makeInit(() => callableMetadataInit())
 // @ts-expect-error Initializers accept plain functions; adapt callable metadata through a concrete callback.
-InvalidApplicationComposition.init(callableMetadataInit)
+InvalidApplicationComposition.makeInit(callableMetadataInit)
 
 // @ts-expect-error Application init must return the Application Model.
-InvalidApplicationComposition.init(invalidModelInit)
+InvalidApplicationComposition.makeInit(invalidModelInit)
 // @ts-expect-error Every Application init Command must return the Application Message.
-InvalidApplicationComposition.init(invalidCommandInit)
+InvalidApplicationComposition.makeInit(invalidCommandInit)
 // @ts-expect-error Application init cannot emit an OutMessage.
-InvalidApplicationComposition.init(invalidOutMessageInit)
+InvalidApplicationComposition.makeInit(invalidOutMessageInit)
 // @ts-expect-error Every Application init result branch must contain the Application Model.
-InvalidApplicationComposition.init(invalidUnionInit)
+InvalidApplicationComposition.makeInit(invalidUnionInit)
 // @ts-expect-error Initializers require one concrete call signature.
-InvalidApplicationComposition.init(validOverloadedInit)
+InvalidApplicationComposition.makeInit(validOverloadedInit)
 // @ts-expect-error Initializers require one concrete call signature.
-InvalidApplicationComposition.init(earlyInvalidDuplicateTrailingInit)
+InvalidApplicationComposition.makeInit(earlyInvalidDuplicateTrailingInit)
 // @ts-expect-error Initializers require one concrete call signature.
-InvalidApplicationComposition.init(middleForeignCommandInit)
-InvalidApplicationComposition.init(safelyNormalizedEarlierInit)
+InvalidApplicationComposition.makeInit(middleForeignCommandInit)
+InvalidApplicationComposition.makeInit(safelyNormalizedEarlierInit)
 // @ts-expect-error Initializers require one concrete call signature.
-InvalidApplicationComposition.init(genericLastInit)
+InvalidApplicationComposition.makeInit(genericLastInit)
 // @ts-expect-error Initializers require one concrete call signature.
-InvalidApplicationComposition.init(genericInit)
+InvalidApplicationComposition.makeInit(genericInit)
 
 const DeclarationTestsInvalidBlockInit = Block.define(
   'DeclarationTestsInvalidBlockInit',
@@ -175,25 +179,25 @@ const DeclarationTestsInvalidBlockInit = Block.define(
   },
 )
 const InvalidBlockInit = DeclarationTestsInvalidBlockInit
-const InvalidBlockInitComposition = InvalidBlockInit.toComposition()
+const InvalidBlockInitComposition = InvalidBlockInit.makeComposition()
 // @ts-expect-error Block init must return the Block Model.
-InvalidBlockInitComposition.init(invalidModelInit)
+InvalidBlockInitComposition.makeInit(invalidModelInit)
 // @ts-expect-error Every Block init Command must return the Block Message.
-InvalidBlockInitComposition.init(invalidCommandInit)
+InvalidBlockInitComposition.makeInit(invalidCommandInit)
 // @ts-expect-error Block init cannot emit an OutMessage.
-InvalidBlockInitComposition.init(invalidOutMessageInit)
+InvalidBlockInitComposition.makeInit(invalidOutMessageInit)
 // @ts-expect-error A Block Definition does not author init directly.
-InvalidBlockInit.init
+InvalidBlockInit.makeInit
 
 const InitFlags = Schema.Struct({ value: Schema.Number })
-const flagsRoutingInit = InvalidApplicationComposition.init(
+const flagsRoutingInit = InvalidApplicationComposition.makeInit(
   (_flags: typeof InitFlags.Type, _url: Url) => ({
     model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   }),
 )
 
 // @ts-expect-error Completion requires the Flags and routing inputs declared by init.
-InvalidApplicationComposition.toApplication({
+InvalidApplicationComposition.makeApplication({
   container: null,
   init: flagsRoutingInit,
   update: invalidApplicationImplementation.update,
@@ -211,7 +215,7 @@ const ObserveViewHelper = DeclarationTestsViewHelper.mount(
   },
 )
 const DeclarationTestsViewHelperComposition =
-  DeclarationTestsViewHelper.toComposition()
+  DeclarationTestsViewHelper.makeComposition()
 const ViewHelperComposition = DeclarationTestsViewHelperComposition
 type ViewHelperViewBuilder = Block.ViewBuilderFor<typeof ViewHelperComposition>
 const viewHelper = (model: ParentModel, h: ViewHelperViewBuilder) =>
@@ -237,16 +241,16 @@ const ForeignViewHelperMessage = defineMessageUnion({
 })
 
 // @ts-expect-error A Block Definition does not author the primary view.
-DeclarationTestsViewHelper.view
+DeclarationTestsViewHelper.makeView
 
-ViewHelperComposition.view((_model, h) =>
+ViewHelperComposition.makeView((_model, h) =>
   h.main([
     // @ts-expect-error A Composition view cannot use an unregistered Mount.
     h.OnMount(ObserveViewHelper()),
   ]),
 )
 
-ViewHelperComposition.view((_model, h) =>
+ViewHelperComposition.makeView((_model, h) =>
   h.button([
     // @ts-expect-error A Composition view preserves its exact Message.
     h.OnClick(ForeignViewHelperMessage.ClickedForeignViewHelper()),
@@ -254,10 +258,10 @@ ViewHelperComposition.view((_model, h) =>
 )
 
 // @ts-expect-error void cannot describe usable per-render ViewInputs.
-ViewHelperComposition.view.withInputs<void>((_model, _inputs, h) => h.empty)
+ViewHelperComposition.makeView.withInputs<void>((_model, _inputs, h) => h.empty)
 
 // @ts-expect-error any cannot erase a Composition's ViewInputs contract.
-ViewHelperComposition.view.withInputs<any>((_model, _inputs, h) => h.empty) // eslint-disable-line @typescript-eslint/no-explicit-any
+ViewHelperComposition.makeView.withInputs<any>((_model, _inputs, h) => h.empty) // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const viewHelperWithForeignMessage = (h: ViewHelperViewBuilder) =>
   h.button([
@@ -268,11 +272,11 @@ const viewHelperWithForeignMessage = (h: ViewHelperViewBuilder) =>
 // @ts-expect-error Composition no longer carries a render helper.
 ViewHelperComposition.render
 
-ViewHelperComposition.toBlock({
-  init: ViewHelperComposition.init(() => ({
+ViewHelperComposition.makeBlock({
+  init: ViewHelperComposition.makeInit(() => ({
     model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   })),
-  update: ViewHelperComposition.update(model => ({ model })),
+  update: ViewHelperComposition.makeUpdate(model => ({ model })),
   // @ts-expect-error A plain view helper cannot complete a Block as its branded view.
   view: viewHelper,
   EffectsLayer: Layer.empty,
@@ -283,12 +287,12 @@ const applicationViewHelper = (
   h: InvalidApplicationViewBuilder,
 ) => h.main([], [globalThis.String(model.child.value)])
 
-const applicationInputView = InvalidApplicationComposition.view.withInputs<
+const applicationInputView = InvalidApplicationComposition.makeView.withInputs<
   Readonly<{ label: string }>
 >((_model, { label }, h) => h.main([], [label]))
 
 // @ts-expect-error An Application's primary view cannot require parent-supplied inputs.
-InvalidApplicationComposition.toElement({
+InvalidApplicationComposition.makeElement({
   ...invalidApplicationImplementation,
   container: null,
   view: applicationInputView,
@@ -298,7 +302,7 @@ InvalidApplicationComposition.toElement({
 InvalidApplicationComposition.render
 
 // @ts-expect-error A plain view helper cannot complete an Application as its branded view.
-InvalidApplicationComposition.toElement({
+InvalidApplicationComposition.makeElement({
   ...invalidApplicationImplementation,
   container: null,
   view: applicationViewHelper,
@@ -355,7 +359,7 @@ const RequiresConflictingProvisionContract = Layer.effect(
   }),
 )
 
-const provisionContractProgram = InvalidApplicationComposition.toElement({
+const provisionContractProgram = InvalidApplicationComposition.makeElement({
   ...invalidApplicationImplementation,
   container: null,
   view: invalidElementView,
@@ -371,20 +375,20 @@ programWithProvisionContract.provide(ConflictingProvisionContract.layer)
 programWithProvisionContract.provide(RequiresConflictingProvisionContract)
 
 // @ts-expect-error Page Applications require a Document view.
-InvalidApplicationComposition.toApplication({
+InvalidApplicationComposition.makeApplication({
   ...invalidApplicationImplementation,
   container: null,
   view: invalidElementView,
 })
 
 // @ts-expect-error Element Applications require an HTML view.
-InvalidApplicationComposition.toElement({
+InvalidApplicationComposition.makeElement({
   ...invalidApplicationImplementation,
   container: null,
   view: invalidDocumentView,
 })
 
-const requiredContextUpdate = InvalidApplicationComposition.update(
+const requiredContextUpdate = InvalidApplicationComposition.makeUpdate(
   (model, _message, requiredContext: string) => {
     void requiredContext
     return { model }
@@ -392,7 +396,7 @@ const requiredContextUpdate = InvalidApplicationComposition.update(
 )
 
 // @ts-expect-error Application update cannot require root dispatch context.
-InvalidApplicationComposition.toElement({
+InvalidApplicationComposition.makeElement({
   ...invalidApplicationImplementation,
   update: requiredContextUpdate,
   container: null,
@@ -413,13 +417,13 @@ const WiderMessageApplication = (() => {
 
   return Application
 })()
-const WiderMessageComposition = WiderMessageApplication.toComposition()
-const widerMessageUpdate = WiderMessageComposition.update(
+const WiderMessageComposition = WiderMessageApplication.makeComposition()
+const widerMessageUpdate = WiderMessageComposition.makeUpdate(
   (model, _message): Update.Return<ParentModel, ParentMessage> => ({ model }),
 )
 
 // @ts-expect-error Application update must accept exactly the root Message.
-InvalidApplicationComposition.toElement({
+InvalidApplicationComposition.makeElement({
   ...invalidApplicationImplementation,
   update: widerMessageUpdate,
   container: null,
@@ -435,15 +439,15 @@ const WiderInputModelApplication = (() => {
 
   return Application
 })()
-const WiderInputModelComposition = WiderInputModelApplication.toComposition()
-const widerModelUpdate = WiderInputModelComposition.update(
+const WiderInputModelComposition = WiderInputModelApplication.makeComposition()
+const widerModelUpdate = WiderInputModelComposition.makeUpdate(
   (_model, _message): Update.Return<ParentModel, ParentMessage> => ({
     model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   }),
 )
 
 // @ts-expect-error Application update must accept exactly the root Model.
-InvalidApplicationComposition.toElement({
+InvalidApplicationComposition.makeElement({
   ...invalidApplicationImplementation,
   update: widerModelUpdate,
   container: null,
@@ -636,7 +640,7 @@ const DeclarationTestsInvalidParent = Block.define(
   Message: ParentMessage,
 })
 // @ts-expect-error Registered child bindings must use the definition's parent Message.
-DeclarationTestsInvalidParent.toComposition({
+DeclarationTestsInvalidParent.makeComposition({
   childBindings: [ForeignChildBinding],
 })
 
@@ -655,21 +659,22 @@ Block.define('DeclarationTestsInvalidDirectContracts', {
 })
 
 const DeclarationTestsOmittedChildComposition =
-  DeclarationTestsOmittedChild.toComposition()
-const omittedChildUpdate = DeclarationTestsOmittedChildComposition.update(
+  DeclarationTestsOmittedChild.makeComposition()
+const omittedChildUpdate = DeclarationTestsOmittedChildComposition.makeUpdate(
   (model, message) =>
     ParentMessage.match(message, {
+      // @ts-expect-error A Composition callback cannot invoke an unregistered child operation.
       GotChildMessage: ({ message }) => ChildBinding.fold(model, message),
       RequestedRefresh: () => ({ model }),
     }),
 )
 
-DeclarationTestsOmittedChildComposition.toBlock({
-  init: DeclarationTestsOmittedChildComposition.init(() => ({
+DeclarationTestsOmittedChildComposition.makeBlock({
+  init: DeclarationTestsOmittedChildComposition.makeInit(() => ({
     model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   })),
   update: omittedChildUpdate,
-  // @ts-expect-error A Block implementation cannot use an unregistered child operation.
+  // @ts-expect-error Completion retains evidence from the rejected child operation.
   EffectsLayer: Layer.empty,
 })
 
@@ -690,17 +695,18 @@ const OmittedInitChildBinding = DeclarationTestsOmittedInitChild.bindChild(
   },
 )
 const DeclarationTestsOmittedInitChildComposition =
-  DeclarationTestsOmittedInitChild.toComposition()
-const omittedChildInit = DeclarationTestsOmittedInitChildComposition.init(() =>
-  OmittedInitChildBinding.init({
-    args: [],
-    toParentModel: child => child,
-  }),
+  DeclarationTestsOmittedInitChild.makeComposition()
+const omittedChildInit = DeclarationTestsOmittedInitChildComposition.makeInit(
+  () =>
+    OmittedInitChildBinding.init({
+      args: [],
+      toParentModel: child => child,
+    }),
 )
 
-DeclarationTestsOmittedInitChildComposition.toBlock({
+DeclarationTestsOmittedInitChildComposition.makeBlock({
   init: omittedChildInit,
-  update: DeclarationTestsOmittedInitChildComposition.update(model => ({
+  update: DeclarationTestsOmittedInitChildComposition.makeUpdate(model => ({
     model,
   })),
   // @ts-expect-error A Block initializer cannot use an unregistered child Binding.
@@ -763,9 +769,9 @@ const DeclarationTestsInvalidView = Block.define(
   Message: ParentMessage,
 })
 const DeclarationTestsInvalidViewComposition =
-  DeclarationTestsInvalidView.toComposition({ childBindings: [ChildBinding] })
+  DeclarationTestsInvalidView.makeComposition({ childBindings: [ChildBinding] })
 
-DeclarationTestsInvalidViewComposition.view((model, h) => {
+DeclarationTestsInvalidViewComposition.makeView((model, h) => {
   const config = ChildBinding.embedView({ slotId: 'child', model: model.child })
 
   h.block(config)
@@ -780,3 +786,12 @@ DeclarationTestsInvalidViewComposition.view((model, h) => {
 
   return h.empty
 })
+
+DisclosuresComposition.makeUpdate(
+  // @ts-expect-error A graphless Block still rejects incompatible Record values.
+  (model, { id }) => ({ model: Record.set(model, id, 'invalid') }),
+)
+RecordApplicationComposition.makeUpdate(
+  // @ts-expect-error A graphless Application still rejects incompatible Record values.
+  (model, { id }) => ({ model: Record.set(model, id, 'invalid') }),
+)

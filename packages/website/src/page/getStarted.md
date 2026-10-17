@@ -57,7 +57,7 @@ In a small starter, `src/application.ts` calls `defineApplication({ Model, Messa
 
 ### Runtime Entry
 
-For the Counter starter, `src/entry.ts` imports `ApplicationComposition`, init, update, and view, then completes that same Composition with `toApplication`. The returned lowercase `application` is a passive runtime input. A starter whose handlers need application Services defines `ApplicationLayer` in `services.ts`, then the entry calls `application.provide(ApplicationLayer)`. Importing the authoring Definition, completing the runtime input, and providing a Layer remain passive; startup happens only when the Runtime starts the program.
+For the Counter starter, `src/entry.ts` imports `ApplicationComposition`, init, update, and view, then completes that same Composition with `makeApplication`. The returned lowercase `application` is a passive runtime input. A starter whose handlers need application Services defines `ApplicationLayer` in `services.ts`, then the entry calls `application.provide(ApplicationLayer)`. Importing the authoring Definition, completing the runtime input, and providing a Layer remain passive; startup happens only when the Runtime starts the program.
 
 ### Project Scripts
 

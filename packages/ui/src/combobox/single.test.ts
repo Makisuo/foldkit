@@ -83,6 +83,29 @@ const FruitComboboxBinding = FruitComboboxTest.bindChild(FruitCombobox, {
   outMessage: { fold: foldFruitComboboxOutMessage },
 })
 
+const FruitComboboxTestComposition = FruitComboboxTest.makeComposition({
+  childBindings: [FruitComboboxBinding],
+})
+
+const selectFruitAndClose = FruitComboboxTest.step((_model, item: Fruit) =>
+  Update.combine([
+    FruitComboboxBinding.selectItem(item, item),
+    FruitComboboxBinding.close(''),
+  ]),
+)
+
+const FruitComboboxTestBlock = FruitComboboxTestComposition.makeBlock({
+  init: FruitComboboxTestComposition.makeInit(() => ({
+    model: {
+      combobox: init({ id: 'fruit' }),
+      maybeSelectedFruit: Option.none(),
+    },
+  })),
+  update: FruitComboboxTestComposition.makeUpdate(model => ({ model })),
+  expose: { selectFruitAndClose },
+  EffectsLayer: FruitCombobox.EffectsLayer,
+})
+
 type TestHtmlBuilder = Parameters<typeof view>[2]
 
 const acknowledgeAnchor = Scene.Mount.resolve(Anchor, Message.CompletedAnchor())
@@ -190,8 +213,10 @@ describe('Combobox', () => {
         combobox: init({ id: 'fruit' }),
         maybeSelectedFruit: Option.none(),
       }
-      const selected = FruitComboboxBinding.selectItem('Apple', 'Apple')(parent)
-      const closed = FruitComboboxBinding.close('')(selected.model)
+      const closed = FruitComboboxTestBlock.expose.selectFruitAndClose(
+        parent,
+        'Apple',
+      )
       const embedded = FruitComboboxBinding.embedView({
         slotId: 'fruit-primary',
         model: closed.model.combobox,
@@ -210,7 +235,7 @@ describe('Combobox', () => {
         viewInputs: embedded.viewInputs,
       })
 
-      expect(selected.model.maybeSelectedFruit).toStrictEqual(
+      expect(closed.model.maybeSelectedFruit).toStrictEqual(
         Option.some('Apple'),
       )
       expect(embedded.view).toBe(repeatedEmbedded.view)
@@ -1011,6 +1036,25 @@ describe('Combobox', () => {
       })
 
       describe('leave flow', () => {
+        it('preserves ClearedSelection when an animated nullable Combobox closes', () => {
+          const opened = update(
+            init({ id: 'animated-nullable', isAnimated: true, nullable: true }),
+            Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
+          )
+          const closed = update(
+            opened.model,
+            Message.Closed({ restingInputValue: '', isClearable: true }),
+          )
+
+          expect(closed.outMessage).toEqual(OutMessage.ClearedSelection())
+          expect(closed.model.isOpen).toBe(false)
+          expect(closed.model.animation.transitionState).toBe('LeaveStart')
+          expect(closed.commands?.map(command => command.name)).toEqual([
+            'Combobox/FocusInput',
+            'animation/WaitForPaint',
+          ])
+        })
+
         it('sets LeaveStart on Closed', () => {
           Story.story(
             update,
@@ -1074,6 +1118,7 @@ describe('Combobox', () => {
                 wasSelected: false,
               }),
             ),
+            Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')

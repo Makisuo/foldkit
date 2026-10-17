@@ -369,7 +369,7 @@ export interface EntryBuilder<Model, Message> {
  * Application features create accessors through their named Block's
  * `resource` and registries through their definition's `managedResources`.
  * Pass the registry as `managedResources` and its local handler recipes through
- * `EffectsLayer` when calling `Composition.toBlock`; registered child bindings
+ * `EffectsLayer` when calling `Composition.makeBlock`; registered child bindings
  * collect their own registries and derive independent occurrence lifetimes.
  *
  * Use this when a resource is expensive or stateful and should only exist while

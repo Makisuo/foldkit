@@ -15,16 +15,23 @@ import {
   InitializedChoicesBinding,
   LiteralChoicesBinding,
   LiteralInitializedChoicesBinding,
+  ParentMessage,
   ParentModel,
+  PlainChoiceBlock,
   PlainChoicesBinding,
-  TextEntriesBinding,
   TextMessage,
   choiceInspection,
   firstChoiceId,
+  foldChoice,
+  foldTextEntry,
   initialParentModel,
   initialize,
   makePayloadParent,
   payloadParent,
+  refreshChoice,
+  selectChoice,
+  setChoiceValue,
+  setLiteralChoiceValue,
   toChoiceMessage,
   unassembledInitialize,
 } from './wrapped-keyed-field.accepted.js'
@@ -56,7 +63,14 @@ export type LiteralPlacement = Expect<
   Equal<typeof LiteralChoicesBinding.placement, 'literalChoices'>
 >
 export type ParentModelInput = Expect<
-  Equal<Parameters<typeof ChoicesBinding.fold>[0], typeof ParentModel.Type>
+  Equal<
+    Parameters<typeof ChoicesBinding.fold>[0],
+    typeof ParentModel.Type &
+      Update.GraphCapability<
+        typeof ParentModel.Type,
+        Block.BindingRequirement<'choices', typeof Choice.block>
+      >
+  >
 >
 export type ChildMessage = Expect<
   Equal<Parameters<typeof ChoicesBinding.fold>[2], typeof Choice.Message.Type>
@@ -81,8 +95,14 @@ export type RefinedOutMessagePayload = Expect<
 >
 export type FoldModel = Expect<
   Equal<
-    ReturnType<typeof ChoicesBinding.fold>['model'],
-    typeof ParentModel.Type
+    ReturnType<typeof ChoicesBinding.fold>,
+    Update.ResultRecipe<
+      typeof ParentModel.Type,
+      typeof ParentMessage.Type,
+      never,
+      never,
+      Block.BindingRequirement<'choices', typeof Choice.block>
+    >
   >
 >
 export type GenericPayload = Expect<
@@ -171,21 +191,41 @@ export type EmittedGenericPayload = Expect<
 export type EmittedGenericParentModel = Expect<
   Equal<
     Parameters<typeof literalPayloadParent.Binding.fold>[0],
-    typeof literalPayloadParent.Model.Type
+    typeof literalPayloadParent.Model.Type &
+      Update.GraphCapability<
+        typeof literalPayloadParent.Model.Type,
+        Block.BindingRequirement<'entries', typeof PlainChoiceBlock>
+      >
   >
 >
 
-ChoicesBinding.fold(
+const choiceExecutionMessage = ParentMessage.GotTextMessage({
+  id: 'text',
+  message: TextMessage.ReplacedText({ value: 'unchanged' }),
+})
+const otherExecutionMessage = ParentMessage.GotChoiceMessage({
+  id: firstChoiceId,
+  message: Choice.Message.UpdatedValue({ value: 'One' }),
+})
+
+foldChoice(
   initialParentModel,
+  choiceExecutionMessage,
   firstChoiceId,
   Choice.Message.UpdatedValue({ value: 'Two' }),
 )
-ChoicesBinding.setValue(firstChoiceId, 'One')(initialParentModel)
-ChoicesBinding.refresh(firstChoiceId)(initialParentModel)
-ChoicesBinding.select(firstChoiceId)(initialParentModel)
-LiteralChoicesBinding.setValue('Secondary', 'Two')(initialParentModel)
-TextEntriesBinding.fold(
+setChoiceValue(initialParentModel, choiceExecutionMessage, firstChoiceId, 'One')
+refreshChoice(initialParentModel, choiceExecutionMessage, firstChoiceId)
+selectChoice(initialParentModel, choiceExecutionMessage, firstChoiceId)
+setLiteralChoiceValue(
   initialParentModel,
+  otherExecutionMessage,
+  'Secondary',
+  'Two',
+)
+foldTextEntry(
+  initialParentModel,
+  otherExecutionMessage,
   'text',
   TextMessage.ReplacedText({ value: 'next' }),
 )

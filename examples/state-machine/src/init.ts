@@ -2,7 +2,7 @@ import { ApplicationComposition } from './composition'
 import { checkoutMachine } from './machine'
 import { Model } from './model'
 
-export const init = ApplicationComposition.init(() => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: {
     checkout: checkoutMachine.initial,
     transitionLog: [],

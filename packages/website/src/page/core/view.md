@@ -24,7 +24,7 @@ React functional components can hold local state and run effects through hooks, 
 
 ### Document Fields
 
-An `ApplicationComposition.toApplication` view returns a `Document`, not bare HTML. The Document contains the body to patch into the application container and the document-level state that should track the Model.
+An `ApplicationComposition.makeApplication` view returns a `Document`, not bare HTML. The Document contains the body to patch into the application container and the document-level state that should track the Model.
 
 | Field       | Type                       | Required | What the runtime does with it                                                                                                                  |
 | ----------- | -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -39,7 +39,7 @@ Every field is a function of the Model, just like `body`. There is no imperative
 
 ### Document Ownership
 
-An `ApplicationComposition.toElement` view returns `Html` directly. An embedded app does not own the page, so it cannot declare the title or document metadata. Everything outside this section applies to both kinds of view. See [Runtime](/core/runtime#to-element) for when to use each one.
+An `ApplicationComposition.makeElement` view returns `Html` directly. An embedded app does not own the page, so it cannot declare the title or document metadata. Everything outside this section applies to both kinds of view. See [Runtime](/core/runtime#to-element) for when to use each one.
 
 ### Language and Direction
 
@@ -87,9 +87,9 @@ Every view receives `h`, an `HtmlBuilder` typed to the application's Message uni
 
 ::Snippet{name="htmlHelpers" label="HTML helpers"}
 
-The Message type follows the builder. If `h.OnClick` receives a Message outside the application union, TypeScript rejects it. The root Runtime supplies its builder, and each Block Composition's `view` supplies one for its child view.
+The Message type follows the builder. If `h.OnClick` receives a Message outside the application union, TypeScript rejects it. The root Runtime supplies its builder, and each Block Composition's `makeView` supplies one for its child view.
 
-The builder also carries the Mount definitions and child Blocks the view may render. A Composition infers them from its local Mounts and child Bindings, and `ApplicationComposition.toApplication` installs the root Composition's complete registry. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
+The builder also carries the Mount definitions and child Blocks the view may render. A Composition infers them from its local Mounts and child Bindings, and `ApplicationComposition.makeApplication` installs the root Composition's complete registry. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
 
 #### Element Builder Arity
 
@@ -97,7 +97,7 @@ Element builders that accept children take attributes first and optional childre
 
 #### Builder Ownership
 
-Application code cannot construct a builder. The canonical owned view enters through `Composition.view` or `view.withInputs`, which checks the complete view contract when the Block or Application is completed. Let that primary view's `h` parameter infer. A completed Block retains `block.view` for authoring an alternate embed view against that already fixed graph; it cannot change the graph or complete another Block.
+Application code cannot construct a builder. The canonical owned view enters through `Composition.makeView` or `makeView.withInputs`, which checks the complete view contract when the Block or Application is completed. Let that primary view's `h` parameter infer. A completed Block retains `block.makeView` for authoring an alternate embed view against that already fixed graph; it cannot change the graph or complete another Block.
 
 Ordinary feature-local helpers remain plain functions. After establishing `FeatureComposition`, declare `type FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` on the next line with no blank line and use that alias for each helper's `h` parameter. Export it only when another file uses it. The alias carries the owner's Message type and its registered child and Mount capabilities; it creates no runtime value.
 

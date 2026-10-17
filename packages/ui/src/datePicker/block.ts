@@ -149,7 +149,7 @@ const CalendarBinding = DatePicker.bindChild(UiCalendar.block, {
   },
 })
 
-const DatePickerComposition = DatePicker.toComposition({
+const DatePickerComposition = DatePicker.makeComposition({
   childBindings: [PopoverBinding, CalendarBinding],
 })
 
@@ -158,7 +158,7 @@ export const mounts = DatePickerComposition.mounts
 
 /** Processes a DatePicker Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. */
-export const update = DatePickerComposition.update((model, message) =>
+export const update = DatePickerComposition.makeUpdate((model, message) =>
   Message.match(message, {
     Opened: () =>
       Update.combine(model, [PopoverBinding.open(), dropCalendarToDays]),
@@ -324,7 +324,7 @@ export type ViewInputs = Readonly<{
  * embedded Calendar and Popover components into one flat API. Consumers
  * provide the trigger face and the calendar grid layout, DatePicker handles
  * focus choreography, open/close state, and form submission. */
-export const view = DatePickerComposition.view.withInputs<ViewInputs>(
+export const view = DatePickerComposition.makeView.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const {
       anchor,
@@ -472,8 +472,8 @@ export const view = DatePickerComposition.view.withInputs<ViewInputs>(
 )
 
 /** Complete DatePicker Block definition. */
-export const block = DatePickerComposition.toBlock({
-  init: DatePickerComposition.init((config: InitConfig) => ({
+export const block = DatePickerComposition.makeBlock({
+  init: DatePickerComposition.makeInit((config: InitConfig) => ({
     model: init(config),
   })),
   update,

@@ -95,7 +95,7 @@ export type OutMessage = typeof OutMessage.Type
 
 const Slider = Block.define('Slider', { Model, Message, OutMessage })
 
-const SliderComposition = Slider.toComposition()
+const SliderComposition = Slider.makeComposition()
 type SliderViewBuilder = Block.ViewBuilderFor<typeof SliderComposition>
 
 // INIT
@@ -203,7 +203,7 @@ const withChangedValue = (
  *  Model: the view supplies the current value on the Messages that need it,
  *  and value changes surface as `ChangedValue` rather than mutating this
  *  Model. */
-export const update = SliderComposition.update((model, message) =>
+export const update = SliderComposition.makeUpdate((model, message) =>
   Message.match<UpdateReturn>(message, {
     PressedThumb: ({ originValue }) =>
       Match.value(model.dragState).pipe(
@@ -744,7 +744,8 @@ const renderView = (
 }
 
 /** Renders an accessible Slider with the supplied value and view callback. */
-export const view = SliderComposition.view.withInputs<ViewInputs>(renderView)
+export const view =
+  SliderComposition.makeView.withInputs<ViewInputs>(renderView)
 
 const defineSubscriptionsForRoot = <Id extends string>(
   defineSubscriptions: Block.DefineSubscriptions<Id, Model, Message>,
@@ -841,8 +842,8 @@ const EffectsLayer = Layer.mergeAll(
 )
 
 /** Complete Slider Block definition. */
-export const block = SliderComposition.toBlock({
-  init: SliderComposition.init((config: InitConfig) => ({
+export const block = SliderComposition.makeBlock({
+  init: SliderComposition.makeInit((config: InitConfig) => ({
     model: init(config),
   })),
   update,
@@ -861,9 +862,9 @@ export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
     Message,
     OutMessage,
   })
-  const SliderComposition = Slider.toComposition()
-  const rootUpdate = SliderComposition.update(update)
-  const rootView = SliderComposition.view.withInputs<ViewInputs>(renderView)
+  const SliderComposition = Slider.makeComposition()
+  const rootUpdate = SliderComposition.makeUpdate(update)
+  const rootView = SliderComposition.makeView.withInputs<ViewInputs>(renderView)
   const subscriptions = defineSubscriptionsForRoot(
     Slider.subscriptions,
     getTrackRoot,
@@ -872,8 +873,8 @@ export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
     subscriptions.dragPointer.layer,
     subscriptions.dragEscape.layer,
   )
-  return SliderComposition.toBlock({
-    init: SliderComposition.init((config: InitConfig) => ({
+  return SliderComposition.makeBlock({
+    init: SliderComposition.makeInit((config: InitConfig) => ({
       model: init(config),
     })),
     update: rootUpdate,

@@ -21,8 +21,12 @@ import {
   RefinedId,
   RoomBinding,
   SuspendedEntriesBinding,
-  WrappedRowsBinding,
   callableInitialParentModel,
+  foldArrayChild,
+  foldCallableEntry,
+  foldEntry,
+  foldRoom,
+  foldWrappedRow,
   initialParentModel,
   initializeKeyedParent,
   outEntriesInspection,
@@ -51,7 +55,11 @@ export type RoomPlacement = Expect<
 export type CallableParentModel = Expect<
   Equal<
     Parameters<typeof CallableEntriesBinding.fold>[0],
-    typeof DeclarationCallableKeyedFieldParent.Model.Type
+    typeof DeclarationCallableKeyedFieldParent.Model.Type &
+      Update.GraphCapability<
+        typeof DeclarationCallableKeyedFieldParent.Model.Type,
+        Block.BindingRequirement<'entries', typeof CallableChildBlock>
+      >
   >
 >
 export type EquivalentKey = Expect<
@@ -78,7 +86,11 @@ export type ArrayChildMessage = Expect<
 export type ParentModel = Expect<
   Equal<
     Parameters<typeof EntriesBinding.fold>[0],
-    typeof DeclarationKeyedFieldParent.Model.Type
+    typeof DeclarationKeyedFieldParent.Model.Type &
+      Update.GraphCapability<
+        typeof DeclarationKeyedFieldParent.Model.Type,
+        Block.BindingRequirement<'entries', typeof ChildBlock>
+      >
   >
 >
 export type ChildMessage = Expect<
@@ -89,8 +101,14 @@ export type ChildMessage = Expect<
 >
 export type FoldModel = Expect<
   Equal<
-    ReturnType<typeof EntriesBinding.fold>['model'],
-    typeof DeclarationKeyedFieldParent.Model.Type
+    ReturnType<typeof EntriesBinding.fold>,
+    Update.ResultRecipe<
+      typeof DeclarationKeyedFieldParent.Model.Type,
+      typeof ParentMessage.Type,
+      never,
+      never,
+      Block.BindingRequirement<'entries', typeof ChildBlock>
+    >
   >
 >
 export type Registration = Expect<
@@ -115,28 +133,47 @@ export type OutInspectionServices = Expect<
   Equal<Layer.Services<typeof outEntriesInspection.EffectsLayer>, ChildCounter>
 >
 
-EntriesBinding.fold(
+foldEntry(
   initialParentModel,
+  ParentMessage.GotEntryMessage({
+    id: 'first',
+    message: ChildBlock.Message.UpdatedCount({ count: 2 }),
+  }),
   'first',
   ChildBlock.Message.UpdatedCount({ count: 2 }),
 )
-CallableEntriesBinding.fold(
+foldCallableEntry(
   callableInitialParentModel,
+  ParentMessage.GotEntryMessage({
+    id: 'first',
+    message: ChildBlock.Message.UpdatedCount({ count: 2 }),
+  }),
   'first',
   CallableChildBlock.Message.UpdatedCount({ count: 2 }),
 )
-ArrayChildBinding.fold(
+foldArrayChild(
   initialParentModel,
+  ParentMessage.GotArrayChildMessage({
+    message: ArrayChildBlock.Message.IgnoredValue(),
+  }),
   ArrayChildBlock.Message.IgnoredValue(),
 )
 Option.getOrThrow(Array.head(initialParentModel.entries))
-WrappedRowsBinding.fold(
+foldWrappedRow(
   initialParentModel,
+  ParentMessage.GotWrappedMessage({
+    rowId: 'row',
+    message: ChildBlock.Message.UpdatedCount({ count: 2 }),
+  }),
   'row',
   ChildBlock.Message.UpdatedCount({ count: 2 }),
 )
-RoomBinding.fold(
+foldRoom(
   initialParentModel,
+  ParentMessage.GotRoomMessage({
+    roomId: 'room',
+    message: ChildBlock.Message.UpdatedCount({ count: 2 }),
+  }),
   'room',
   ChildBlock.Message.UpdatedCount({ count: 2 }),
 )

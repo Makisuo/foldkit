@@ -1,4 +1,4 @@
-import { Schema, String, pipe } from 'effect'
+import { Option, Schema, String, pipe } from 'effect'
 import {
   defineRouteUnion,
   literal,
@@ -120,6 +120,13 @@ export const ApplicationRoute = defineRouteUnion({
   NotFound: { path: Schema.String },
 })
 export type ApplicationRoute = typeof ApplicationRoute.Type
+
+export const maybeExampleSlugForRoute = (
+  route: ApplicationRoute,
+): Option.Option<string> =>
+  route._tag === 'ExampleDetail'
+    ? Option.some(route.exampleSlug)
+    : Option.none()
 
 export const DocsRoute = ApplicationRoute.subset([
   'WhyFoldkit',

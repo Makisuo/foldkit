@@ -43,7 +43,15 @@ type KeysOf<Value> = Value extends unknown ? keyof Value : never
 
 type RegistrationKey = keyof Update.RegistrationEvidence<unknown>
 
-type PolicyOutput<Policy> = ReturnOf<ReturnOf<FieldOf<Policy, 'fold'>>>
+type PolicyStep<Policy> = ReturnOf<FieldOf<Policy, 'fold'>>
+
+type PolicyOutput<Policy> = Update.ResolvedOperationOutput<
+  ReturnOf<PolicyStep<Policy>>
+>
+
+type PolicyRegistration<Policy> =
+  | Update.RegistrationEvidenceOf<PolicyOutput<Policy>>
+  | Update.GraphRequirementOf<PolicyStep<Policy>>
 
 type CommandMessage<Output> =
   FieldOf<Output, 'commands'> extends ReadonlyArray<infer Invocation>
@@ -74,7 +82,7 @@ type PolicyChannels<Policy> =
         commandMessage: CommandMessage<PolicyOutput<Policy>>
         requirements: Update.RequirementsOf<() => PolicyOutput<Policy>>
         outMessage: FieldOf<PolicyOutput<Policy>, 'outMessage'>
-        registration: Update.RegistrationEvidenceOf<PolicyOutput<Policy>>
+        registration: PolicyRegistration<Policy>
         forwardedOutMessage: ReturnOf<FieldOf<Policy, 'forward'>>
       }>
 
@@ -104,14 +112,33 @@ type ValidStep<Step, Model, Message, OutMessage> =
   IsAny<Step> extends true
     ? false
     : Step extends AnyFunction
-      ? IsAny<ReturnType<Step>> extends true
+      ? IsAny<Update.ResolvedOperationOutput<ReturnType<Step>>> extends true
         ? false
-        : true extends HasErasedFields<ReturnType<Step>>
+        : true extends HasErasedFields<
+              Update.ResolvedOperationOutput<ReturnType<Step>>
+            >
           ? false
-          : [Step] extends [
-                (model: Model) => PolicyStepReturn<Model, Message, OutMessage>,
-              ]
-            ? true
+          : Parameters<Step> extends readonly [infer Input]
+            ? IsAny<Input> extends true
+              ? false
+              : IsUnknown<Input> extends true
+                ? false
+                : Update.GraphRequirementOf<Step> extends infer Requirement
+                  ? IsAny<Requirement> extends true
+                    ? false
+                    : IsUnknown<Requirement> extends true
+                      ? false
+                      : [Input, Update.GraphInput<Model, Requirement>] extends [
+                            Update.GraphInput<Model, Requirement>,
+                            Input,
+                          ]
+                        ? Update.ResolvedOperationOutput<
+                            ReturnType<Step>
+                          > extends PolicyStepReturn<Model, Message, OutMessage>
+                          ? true
+                          : false
+                        : false
+                  : false
             : false
       : false
 
@@ -180,7 +207,7 @@ type InvalidPolicies<
 type RegistrationsOfPolicies<Children extends ReadonlyArray<unknown>> =
   Children[number] extends infer Binding
     ? Binding extends BindingPolicyEvidence<infer Policy>
-      ? Update.RegistrationEvidenceOf<PolicyOutput<Policy>>
+      ? PolicyRegistration<Policy>
       : never
     : never
 

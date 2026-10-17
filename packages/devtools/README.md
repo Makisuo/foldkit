@@ -32,7 +32,7 @@ import {
   Message,
 } from './application'
 
-const application = ApplicationComposition.toApplication({
+const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,
@@ -45,14 +45,14 @@ const application = ApplicationComposition.toApplication({
 Runtime.run(application)
 ```
 
-`Application` is the typed authoring value created by `defineApplication({ Model, Message })`. Export `ApplicationComposition = Application.toComposition({ childBindings })` from `application.ts`, or call `toComposition()` for a root without child Bindings. Complete that Composition with `ApplicationComposition.toApplication` in the entry point.
+`Application` is the typed authoring value created by `defineApplication({ Model, Message })`. Export `ApplicationComposition = Application.makeComposition({ childBindings })` from `application.ts`, or call `makeComposition()` for a root without child Bindings. Complete that Composition with `ApplicationComposition.makeApplication` in the entry point.
 
 The `devTools` configuration is optional unless you need settings such as `Message`, `position`, or `excludeFromHistory`. Recording and the WebSocket bridge that the [DevTools MCP server](https://foldkit.dev/ai/mcp) connects to live in Foldkit's core Runtime.
 
 To include the overlay in production, move `@foldkit/devtools` to regular `dependencies` and set `show: 'Always'`. The dependency section is the build-time opt-in, and `show` controls whether the Runtime mounts it:
 
 ```typescript
-const application = ApplicationComposition.toApplication({
+const application = ApplicationComposition.makeApplication({
   // ...
   devTools: {
     show: 'Always',

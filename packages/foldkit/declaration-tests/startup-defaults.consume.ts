@@ -98,7 +98,7 @@ export type StartupRequirements = Expect<
 
 initialize({ count: 3, includeOptional: true, entryIds: ['first'] })
 initializeWithoutSelectorStartup()
-DeclarationStartupGenericParentComposition.init(() => ({
+DeclarationStartupGenericParentComposition.makeInit(() => ({
   startup: { count: 1, includeOptional: false, entryIds: [] },
   model: {},
 }))

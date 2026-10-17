@@ -41,7 +41,7 @@ export type Context = Readonly<{
   roomId: string
 }>
 
-export const update = RoomComposition.update(
+export const update = RoomComposition.makeUpdate(
   (model, message, context: Context) =>
     Message.match(message, {
       PressedKey: handleKeyPressed(model, context),

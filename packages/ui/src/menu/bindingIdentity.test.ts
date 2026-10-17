@@ -46,11 +46,24 @@ const MenuBinding = GenericMenuBindingIdentity.bindChild(RefinedMenu, {
 })
 
 const GenericMenuBindingIdentityComposition =
-  GenericMenuBindingIdentity.toComposition({
+  GenericMenuBindingIdentity.makeComposition({
     childBindings: [MenuBinding],
   })
 
-const update = GenericMenuBindingIdentityComposition.update()
+const init = GenericMenuBindingIdentityComposition.makeInit(() =>
+  MenuBinding.init({
+    args: [{ id: 'binding-identity', isAnimated: true }],
+    toParentModel: menu => Model.make({ menu }),
+  }),
+)
+const update = GenericMenuBindingIdentityComposition.makeUpdate()
+const open = GenericMenuBindingIdentity.step(() => MenuBinding.open())
+const block = GenericMenuBindingIdentityComposition.makeBlock({
+  init,
+  update,
+  expose: { open },
+  EffectsLayer: RefinedMenu.EffectsLayer,
+})
 
 const deliverAnimationMessage = (model: Model, message: Animation.Message) =>
   update(
@@ -61,15 +74,10 @@ const deliverAnimationMessage = (model: Model, message: Animation.Message) =>
   )
 
 it('uses the factory Menu Animation Binding through open and completion', () => {
-  const menuInit = GenericMenuBindingIdentityComposition.init(() =>
-    MenuBinding.init({
-      args: [{ id: 'binding-identity', isAnimated: true }],
-      toParentModel: menu => Model.make({ menu }),
-    }),
-  )()
+  const menuInit = block.init()
   const model = menuInit.model
 
-  const menuOpen = MenuBinding.open()(model)
+  const menuOpen = block.expose.open(model)
 
   expect(menuOpen.model.menu.isOpen).toBe(true)
   expect(menuOpen.model.menu.animation.transitionState).toBe('EnterStart')
@@ -98,7 +106,12 @@ it('uses the factory Menu Animation Binding through open and completion', () => 
   expect(completedEnter.model.menu.animation.transitionState).toBe('Idle')
   expect(completedEnter.commands).toEqual([])
 
-  const selected = MenuBinding.selectItem('Edit', 0)(completedEnter.model)
+  const selected = block.update(
+    completedEnter.model,
+    Message.GotMenuMessage({
+      message: RefinedMenu.Message.SelectedItem({ item: 'Edit', index: 0 }),
+    }),
+  )
 
   expect(selected.model.menu.isOpen).toBe(false)
   expect(selected.model.menu.animation.transitionState).toBe('LeaveStart')

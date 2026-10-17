@@ -21,7 +21,7 @@ export const assertRegisteredBinding = (
   placement: string,
 ): void => {
   if (
-    currentChildBindings !== undefined &&
+    currentChildBindings === undefined ||
     !currentChildBindings.includes(binding)
   ) {
     throw new Error(
@@ -29,6 +29,10 @@ export const assertRegisteredBinding = (
     )
   }
 }
+
+/** @internal Checks whether a Binding belongs to the active exact graph. */
+export const isRegisteredBinding = (binding: object): boolean =>
+  currentChildBindings !== undefined && currentChildBindings.includes(binding)
 
 /** @internal Requires initialization to execute within an exact registered graph. */
 export const assertRegisteredInitialization = (

@@ -6,7 +6,7 @@ import { EducationComposition, EntriesBinding } from './composition'
 import { Message, type Model } from './definition'
 import * as Entry from './entry'
 
-export const update = EducationComposition.update((model, message) =>
+export const update = EducationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedAddEntry: () => ({ model, commands: [GenerateEducationEntryId()] }),
 

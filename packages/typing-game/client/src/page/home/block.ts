@@ -5,7 +5,7 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-export const block = HomeComposition.toBlock({
+export const block = HomeComposition.makeBlock({
   init,
   update,
   view,

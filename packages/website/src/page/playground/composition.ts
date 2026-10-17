@@ -27,7 +27,7 @@ export const FileTabsBinding = Playground.bindChild(PlaygroundFileTabs, {
   init: { args: () => Tuple.make({ id: 'playground-files' }) },
 })
 
-export const PlaygroundComposition = Playground.toComposition({
+export const PlaygroundComposition = Playground.makeComposition({
   mounts: [MountPlaygroundEditor],
   childBindings: [FileTabsBinding],
 })

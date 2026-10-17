@@ -1,4 +1,5 @@
 import { Option, Schema } from 'effect'
+import type * as Block from 'foldkit/block'
 import { modifyFields } from 'foldkit/struct'
 
 import {
@@ -74,12 +75,19 @@ const defaultUpdate = makeUpdate(
   },
 )
 
-const ComboboxComposition = Combobox.toComposition({
+const ComboboxComposition = Combobox.makeComposition({
   mounts,
   childBindings: [defaultUpdate.AnimationBinding],
 })
 
-export const update = ComboboxComposition.update(defaultUpdate.update)
+const authoredUpdate = Combobox.step(
+  (model, message: Parameters<typeof defaultUpdate.update>[1]) =>
+    defaultUpdate.update(model, message),
+)
+
+export const update = ComboboxComposition.makeUpdate((model, message) =>
+  authoredUpdate(model, message),
+)
 
 type UpdateReturn = ReturnType<typeof update>
 
@@ -107,7 +115,7 @@ export const selectItem = (model: Model, item: string): UpdateReturn =>
 /** Per-render view inputs passed to the view via `h.block`'s `viewInputs` field. */
 export type ViewInputs<Item extends string> = BaseViewInputs<Item>
 
-const makeBlock = <Item extends string>(Item: ItemSchema<Item>) => {
+const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
   const ItemMessage: MessageSchema<Item> = makeMessage(Item)
   const ItemOutMessage: OutMessageSchema<Item> = makeOutMessage(Item)
   const Combobox = SharedCombobox.define({
@@ -134,12 +142,18 @@ const makeBlock = <Item extends string>(Item: ItemSchema<Item>) => {
       }),
     },
   )
-  const ComboboxComposition = Combobox.toComposition({
+  const ComboboxComposition = Combobox.makeComposition({
     mounts,
     childBindings: [itemUpdate.AnimationBinding],
   })
-  const update = ComboboxComposition.update(itemUpdate.update)
-  const view = ComboboxComposition.view.withInputs<ViewInputs<Item>>(
+  const authoredUpdate = Combobox.step(
+    (model, message: Parameters<typeof itemUpdate.update>[1]) =>
+      itemUpdate.update(model, message),
+  )
+  const update = ComboboxComposition.makeUpdate((model, message) =>
+    authoredUpdate(model, message),
+  )
+  const view = ComboboxComposition.makeView.withInputs<ViewInputs<Item>>(
     makeView<Model, Item>({ ariaMultiSelectable: true }, ItemMessage),
   )
   const open = Combobox.step(model =>
@@ -163,21 +177,37 @@ const makeBlock = <Item extends string>(Item: ItemSchema<Item>) => {
   )
 
   const expose = { open, close, selectItem }
-  return ComboboxComposition.toBlock({
-    view,
-    init: ComboboxComposition.init((config: InitConfig) => ({
-      model: init(config),
-    })),
-    update,
-    expose,
-    EffectsLayer,
-  })
+  return {
+    composition: ComboboxComposition,
+    implementation: {
+      view,
+      init: ComboboxComposition.makeInit((config: InitConfig) => ({
+        model: init(config),
+      })),
+      update,
+      expose,
+      EffectsLayer,
+    },
+  }
 }
 
+type BlockParts<Item extends string> = ReturnType<typeof makeBlockParts<Item>>
+
 /** A completed multi-select Combobox Block refined to one Item Schema. */
-export type Completed<Item extends string = string> = ReturnType<
-  typeof makeBlock<Item>
->
+export interface Completed<
+  Item extends string = string,
+> extends Block.CompletedWithViewAndOutMessage<
+  BlockParts<Item>['composition'],
+  BlockParts<Item>['implementation']
+> {}
+
+const makeBlock = <Item extends string>(
+  Item: ItemSchema<Item>,
+): Completed<Item> => {
+  const { composition, implementation } = makeBlockParts(Item)
+
+  return composition.makeBlock(implementation)
+}
 
 /** Creates a checked multi-select Combobox Block. Pass an Item Schema to
  * retain its exact Message and OutMessage payloads. */

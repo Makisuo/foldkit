@@ -10,6 +10,7 @@ import {
   KeyedReciprocalApplication,
   LeftHomeBinding,
   LeftKeyedHomeBinding,
+  NestedPolicy,
   RightHomeBinding,
   RightKeyedHomeBinding,
   RoomBinding,
@@ -17,33 +18,33 @@ import {
 } from './reciprocal-coordination.accepted.js'
 
 // @ts-expect-error Room policy uses the omitted Home Binding.
-const MissingHomeComposition = Application.toComposition({
+const MissingHomeComposition = Application.makeComposition({
   childBindings: [RoomBinding],
 })
 // @ts-expect-error Room policy uses HomeBinding.resetJoinForm.
-MissingHomeComposition.update()
+MissingHomeComposition.makeUpdate()
 
 // @ts-expect-error Home policy uses the omitted Room Binding.
-const MissingRoomComposition = Application.toComposition({
+const MissingRoomComposition = Application.makeComposition({
   childBindings: [HomeBinding],
 })
 // @ts-expect-error Home policy uses RoomBinding.informJoined.
-MissingRoomComposition.update()
+MissingRoomComposition.makeUpdate()
 
 // @ts-expect-error Left direct policy uses the omitted right Home Binding.
-DirectReciprocalApplication.toComposition({
+DirectReciprocalApplication.makeComposition({
   childBindings: [LeftHomeBinding],
 })
 // @ts-expect-error Right direct policy uses the omitted left Home Binding.
-DirectReciprocalApplication.toComposition({
+DirectReciprocalApplication.makeComposition({
   childBindings: [RightHomeBinding],
 })
 // @ts-expect-error Left keyed policy uses the omitted right Home Binding.
-KeyedReciprocalApplication.toComposition({
+KeyedReciprocalApplication.makeComposition({
   childBindings: [LeftKeyedHomeBinding],
 })
 // @ts-expect-error Right keyed policy uses the omitted left Home Binding.
-KeyedReciprocalApplication.toComposition({
+KeyedReciprocalApplication.makeComposition({
   childBindings: [RightKeyedHomeBinding],
 })
 
@@ -67,3 +68,8 @@ Application.bindChild(RoomBlock, { readAll: model => Option.toArray(model.maybeR
 // @ts-expect-error A static policy must accept every refined child OutMessage.
 // oxfmt-ignore
 Application.bindChild(HomeBlock, { field: 'home', parentMessage: ApplicationMessage.GotHomeMessage, outMessage: { fold: (_outMessage: Extract<typeof HomeOutMessage.Type, Readonly<{ username: 'alice' }>>) => Application.step(model => ({ model })) } })
+
+// @ts-expect-error A policy-returned sibling recipe retains its required Binding.
+NestedPolicy.Parent.makeComposition({
+  childBindings: [NestedPolicy.HomeBinding],
+})

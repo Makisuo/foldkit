@@ -6,7 +6,7 @@ import { FetchPosts, FetchStats } from './command'
 import { Application } from './definition'
 import { Message } from './message'
 import {
-  AppTabs,
+  ApplicationTabs,
   type Model,
   type PostsData,
   type StatsData,
@@ -38,7 +38,7 @@ export const applyStatsTransition = (
     }),
   })
 
-const activateTab = (model: Model, tab: Tab) => {
+const activateTab = (tab: Tab) => (model: Model) => {
   const modelWithActiveTab = modifyFields(model, { activeTab: () => tab })
 
   return Match.value(tab).pipe(
@@ -58,21 +58,18 @@ const activateTab = (model: Model, tab: Tab) => {
   )
 }
 
-const activateTabStep = (tab: Tab) =>
-  Application.step(model => activateTab(model, tab))
-
-const foldTabsOutMessage = AppTabs.OutMessage.match({
-  Selected: ({ value }) => activateTabStep(value),
+const foldTabsOutMessage = ApplicationTabs.OutMessage.match({
+  Selected: ({ value }) => Application.step(activateTab(value)),
 })
 
-export const TabsBinding = Application.bindChild(AppTabs, {
+export const TabsBinding = Application.bindChild(ApplicationTabs, {
   field: 'tabs',
   parentMessage: Message.GotTabsMessage,
   init: { args: () => [{ id: TABS_ID }] },
   outMessage: { fold: foldTabsOutMessage },
 })
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [TabsBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

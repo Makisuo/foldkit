@@ -2,6 +2,7 @@ import { Array, Number, Option, pipe } from 'effect'
 
 import { examples } from './page/example/meta'
 import {
+  type ApplicationRoute,
   aiMcpRouter,
   aiOverviewRouter,
   aiSkillsRouter,
@@ -50,6 +51,7 @@ import {
   examplesRouter,
   fieldValidationRouter,
   getStartedRouter,
+  maybeExampleSlugForRoute,
   patternsAntiPatternsRouter,
   patternsInformingBlocksRouter,
   patternsSubscriptionOrganizationRouter,
@@ -771,3 +773,8 @@ export const findActiveSectionKey = (
     Option.map(section => section.key),
   )
 }
+
+export const findActiveSectionKeyForRoute = (
+  route: ApplicationRoute,
+): Option.Option<GroupKey> =>
+  findActiveSectionKey(route._tag, maybeExampleSlugForRoute(route))

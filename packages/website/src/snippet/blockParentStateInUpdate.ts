@@ -19,15 +19,15 @@ const AccountSettings = Block.define('AccountSettings', {
   Model: AccountSettingsModel,
   Message: AccountSettingsMessage,
 })
-const AccountSettingsComposition = AccountSettings.toComposition()
+const AccountSettingsComposition = AccountSettings.makeComposition()
 
-const accountSettingsInit = AccountSettingsComposition.init(() => ({
+const accountSettingsInit = AccountSettingsComposition.makeInit(() => ({
   model: AccountSettingsModel.make({
     theme: 'Light',
     auditTrail: [],
   }),
 }))
-const accountSettingsUpdate = AccountSettingsComposition.update(
+const accountSettingsUpdate = AccountSettingsComposition.makeUpdate(
   (model, message, currentUser: CurrentUser) =>
     AccountSettingsMessage.match(message, {
       ChangedTheme: ({ theme }) => ({
@@ -38,10 +38,10 @@ const accountSettingsUpdate = AccountSettingsComposition.update(
       }),
     }),
 )
-const accountSettingsView = AccountSettingsComposition.view((model, h) =>
+const accountSettingsView = AccountSettingsComposition.makeView((model, h) =>
   h.p([], [`${model.theme}; audit: ${Array.join(model.auditTrail, ', ')}`]),
 )
-const accountSettingsBlock = AccountSettingsComposition.toBlock({
+const accountSettingsBlock = AccountSettingsComposition.makeBlock({
   init: accountSettingsInit,
   update: accountSettingsUpdate,
   view: accountSettingsView,
@@ -68,6 +68,6 @@ export const AccountSettingsBinding = Profile.bindChild(accountSettingsBlock, {
   },
 })
 
-export const ProfileComposition = Profile.toComposition({
+export const ProfileComposition = Profile.makeComposition({
   childBindings: [AccountSettingsBinding],
 })

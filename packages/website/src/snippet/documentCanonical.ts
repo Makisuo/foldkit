@@ -32,7 +32,7 @@ const routeToCanonicalUrl = (route: ApplicationRoute): string =>
     }),
   )
 
-const view = ApplicationComposition.view((model, h) => ({
+const view = ApplicationComposition.makeView((model, h) => ({
   title: pageTitle(model.route),
   canonical: routeToCanonicalUrl(model.route),
   body: h.div([h.Class('mx-auto max-w-prose p-6')], [pageContent(model, h)]),

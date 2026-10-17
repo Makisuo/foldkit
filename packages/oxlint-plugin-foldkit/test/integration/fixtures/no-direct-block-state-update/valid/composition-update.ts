@@ -16,10 +16,10 @@ const SettingsBinding = Application.bindChild(BoundSettings.Settings, {
   parentMessage: Message.GotSettingsMessage,
   init: true,
 })
-Application.toComposition({ childBindings: [SettingsBinding] })
-const ApplicationComposition = Application.toComposition()
+Application.makeComposition({ childBindings: [SettingsBinding] })
+const ApplicationComposition = Application.makeComposition()
 
-export const update = ApplicationComposition.update(model => ({
+export const update = ApplicationComposition.makeUpdate(model => ({
   model: modifyFields(model, {
     settings: settings =>
       modifyFields(settings, { theme: () => 'Light' }),

@@ -10,7 +10,7 @@ export const UiBinding = Application.bindChild(Ui.block, {
   init: { args: ({ today }) => [today] },
 })
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [UiBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

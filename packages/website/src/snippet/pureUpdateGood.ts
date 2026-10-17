@@ -22,7 +22,7 @@ const GenerateApplePosition = Application.command('GenerateApplePosition', {
   },
 })
 
-const update = ApplicationComposition.update((model, message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     RequestedApple: () => ({ model, commands: [GenerateApplePosition()] }),
     CompletedGenerateApplePosition: ({ position }) => ({

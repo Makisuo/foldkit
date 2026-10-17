@@ -17,12 +17,12 @@ const DeclarationKeyedFieldChild = Block.define('DeclarationKeyedFieldChild', {
   Message: ChildMessage,
 })
 const DeclarationKeyedFieldChildComposition =
-  DeclarationKeyedFieldChild.toComposition()
-export const ChildBlock = DeclarationKeyedFieldChildComposition.toBlock({
-  init: DeclarationKeyedFieldChildComposition.init(() => ({
+  DeclarationKeyedFieldChild.makeComposition()
+export const ChildBlock = DeclarationKeyedFieldChildComposition.makeBlock({
+  init: DeclarationKeyedFieldChildComposition.makeInit(() => ({
     model: ChildModel.make({ id: 'initial', count: 0 }),
   })),
-  update: DeclarationKeyedFieldChildComposition.update((model, message) =>
+  update: DeclarationKeyedFieldChildComposition.makeUpdate((model, message) =>
     ChildMessage.match(message, {
       UpdatedCount: ({ count }) => ({
         model: Struct.modifyFields(model, { count: () => count }),
@@ -47,13 +47,13 @@ const DeclarationCallableKeyedFieldChild = Block.define(
   },
 )
 const DeclarationCallableKeyedFieldChildComposition =
-  DeclarationCallableKeyedFieldChild.toComposition()
+  DeclarationCallableKeyedFieldChild.makeComposition()
 export const CallableChildBlock =
-  DeclarationCallableKeyedFieldChildComposition.toBlock({
-    init: DeclarationCallableKeyedFieldChildComposition.init(() => ({
+  DeclarationCallableKeyedFieldChildComposition.makeBlock({
+    init: DeclarationCallableKeyedFieldChildComposition.makeInit(() => ({
       model: CallableChildModel({ id: 'initial', count: 0 }),
     })),
-    update: DeclarationCallableKeyedFieldChildComposition.update(
+    update: DeclarationCallableKeyedFieldChildComposition.makeUpdate(
       (model, message) =>
         ChildMessage.match(message, {
           UpdatedCount: ({ count }) => ({
@@ -81,16 +81,18 @@ const DeclarationRefinedKeyChild = Block.define('DeclarationRefinedKeyChild', {
   Message: RefinedKeyMessage,
 })
 const DeclarationRefinedKeyChildComposition =
-  DeclarationRefinedKeyChild.toComposition()
-export const RefinedKeyBlock = DeclarationRefinedKeyChildComposition.toBlock({
-  init: DeclarationRefinedKeyChildComposition.init(() => ({
+  DeclarationRefinedKeyChild.makeComposition()
+export const RefinedKeyBlock = DeclarationRefinedKeyChildComposition.makeBlock({
+  init: DeclarationRefinedKeyChildComposition.makeInit(() => ({
     model: RefinedKeyModel.make({
       id: Schema.decodeSync(RefinedId)('initial'),
       kind: 'Child',
       count: 0,
     }),
   })),
-  update: DeclarationRefinedKeyChildComposition.update(model => ({ model })),
+  update: DeclarationRefinedKeyChildComposition.makeUpdate(model => ({
+    model,
+  })),
   EffectsLayer: Layer.empty,
 })
 
@@ -101,12 +103,14 @@ const DeclarationArrayModelChild = Block.define('DeclarationArrayModelChild', {
   Message: ArrayChildMessage,
 })
 const DeclarationArrayModelChildComposition =
-  DeclarationArrayModelChild.toComposition()
-export const ArrayChildBlock = DeclarationArrayModelChildComposition.toBlock({
-  init: DeclarationArrayModelChildComposition.init(() => ({
+  DeclarationArrayModelChild.makeComposition()
+export const ArrayChildBlock = DeclarationArrayModelChildComposition.makeBlock({
+  init: DeclarationArrayModelChildComposition.makeInit(() => ({
     model: ArrayChildModel.make(['initial']),
   })),
-  update: DeclarationArrayModelChildComposition.update(model => ({ model })),
+  update: DeclarationArrayModelChildComposition.makeUpdate(model => ({
+    model,
+  })),
   EffectsLayer: Layer.empty,
 })
 
@@ -140,33 +144,36 @@ export const ReadChildCount = DeclarationKeyedFieldOutChild.command(
   },
 )
 const DeclarationKeyedFieldOutChildComposition =
-  DeclarationKeyedFieldOutChild.toComposition()
-export const OutChildBlock = DeclarationKeyedFieldOutChildComposition.toBlock({
-  init: DeclarationKeyedFieldOutChildComposition.init(() => ({
-    model: ChildModel.make({ id: 'initial', count: 0 }),
-  })),
-  update: DeclarationKeyedFieldOutChildComposition.update((model, message) =>
-    ChildMessage.match(message, {
-      UpdatedCount: ({ count }) => ({
-        model: Struct.modifyFields(model, { count: () => count }),
-      }),
-      CompletedReadCount: ({ count }) => ({
-        model: Struct.modifyFields(model, { count: () => count }),
-      }),
-    }),
-  ),
-  expose: {
-    refresh: DeclarationKeyedFieldOutChild.step(model => ({
-      model,
-      commands: [ReadChildCount()],
+  DeclarationKeyedFieldOutChild.makeComposition()
+export const OutChildBlock = DeclarationKeyedFieldOutChildComposition.makeBlock(
+  {
+    init: DeclarationKeyedFieldOutChildComposition.makeInit(() => ({
+      model: ChildModel.make({ id: 'initial', count: 0 }),
     })),
-    select: DeclarationKeyedFieldOutChild.step(model => ({
-      model,
-      outMessage: ChildOutMessage.RequestedSelection(),
-    })),
+    update: DeclarationKeyedFieldOutChildComposition.makeUpdate(
+      (model, message) =>
+        ChildMessage.match(message, {
+          UpdatedCount: ({ count }) => ({
+            model: Struct.modifyFields(model, { count: () => count }),
+          }),
+          CompletedReadCount: ({ count }) => ({
+            model: Struct.modifyFields(model, { count: () => count }),
+          }),
+        }),
+    ),
+    expose: {
+      refresh: DeclarationKeyedFieldOutChild.step(model => ({
+        model,
+        commands: [ReadChildCount()],
+      })),
+      select: DeclarationKeyedFieldOutChild.step(model => ({
+        model,
+        outMessage: ChildOutMessage.RequestedSelection(),
+      })),
+    },
+    EffectsLayer: ReadChildCount.layer,
   },
-  EffectsLayer: ReadChildCount.layer,
-})
+)
 
 const WrappedRow = Schema.Struct({
   rowId: Schema.String,
@@ -241,9 +248,15 @@ export const CallableEntriesBinding =
       ParentMessage.GotEntryMessage({ id, message }),
     fromParentMessage: false,
   })
-DeclarationCallableKeyedFieldParent.toComposition({
-  childBindings: [CallableEntriesBinding],
-})
+const DeclarationCallableKeyedFieldParentComposition =
+  DeclarationCallableKeyedFieldParent.makeComposition({
+    childBindings: [CallableEntriesBinding],
+  })
+export const foldCallableEntry =
+  DeclarationCallableKeyedFieldParentComposition.makeUpdate(
+    (model, _message, id: string, childMessage: typeof ChildMessage.Type) =>
+      CallableEntriesBinding.fold(model, id, childMessage),
+  )
 export const callableInitialParentModel = CallableParentModel({
   entries: [CallableChildModel({ id: 'first', count: 1 })],
 })
@@ -299,14 +312,16 @@ export const InitializedEntriesBinding =
     },
   })
 const DeclarationInitializedKeyedFieldParentComposition =
-  DeclarationInitializedKeyedFieldParent.toComposition({
+  DeclarationInitializedKeyedFieldParent.makeComposition({
     childBindings: [InitializedEntriesBinding],
   })
 export const initializeKeyedParent =
-  DeclarationInitializedKeyedFieldParentComposition.init((status: 'Ready') => ({
-    startup: status,
-    model: { status },
-  }))
+  DeclarationInitializedKeyedFieldParentComposition.makeInit(
+    (status: 'Ready') => ({
+      startup: status,
+      model: { status },
+    }),
+  )
 
 export const EquivalentEntriesBinding = DeclarationKeyedFieldParent.bindChild(
   ChildBlock,
@@ -422,7 +437,7 @@ export const RoomBinding = DeclarationKeyedFieldParent.bindChild(ChildBlock, {
 })
 
 export const DeclarationKeyedFieldParentComposition =
-  DeclarationKeyedFieldParent.toComposition({
+  DeclarationKeyedFieldParent.makeComposition({
     childBindings: [
       EntriesBinding,
       EquivalentEntriesBinding,
@@ -461,3 +476,19 @@ export const initialParentModel = ParentModel.make({
   wrappedRows: [],
   maybeRoom: Option.none(),
 })
+export const foldEntry = DeclarationKeyedFieldParentComposition.makeUpdate(
+  (model, _message, id: string, childMessage: typeof ChildMessage.Type) =>
+    EntriesBinding.fold(model, id, childMessage),
+)
+export const foldArrayChild = DeclarationKeyedFieldParentComposition.makeUpdate(
+  (model, _message, childMessage: typeof ArrayChildMessage.Type) =>
+    ArrayChildBinding.fold(model, childMessage),
+)
+export const foldWrappedRow = DeclarationKeyedFieldParentComposition.makeUpdate(
+  (model, _message, rowId: string, childMessage: typeof ChildMessage.Type) =>
+    WrappedRowsBinding.fold(model, rowId, childMessage),
+)
+export const foldRoom = DeclarationKeyedFieldParentComposition.makeUpdate(
+  (model, _message, roomId: string, childMessage: typeof ChildMessage.Type) =>
+    RoomBinding.fold(model, roomId, childMessage),
+)

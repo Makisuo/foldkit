@@ -42,7 +42,7 @@ export const DialogBinding = Application.bindChild(Dialog.block, {
   outMessage: { fold: foldDialogOutMessage },
   init: { args: () => [{ id: 'confirm' }] },
 })
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [DialogBinding],
 })
 ```
@@ -50,7 +50,7 @@ export const ApplicationComposition = Application.toComposition({
 Then list the opening transition in the Composition init plan:
 
 ```ts
-export const init = ApplicationComposition.init(() => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: {},
   steps: [DialogBinding.open()],
 }))

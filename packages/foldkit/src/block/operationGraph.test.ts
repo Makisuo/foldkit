@@ -1,15 +1,20 @@
-import { Layer, Option, Schema } from 'effect'
+import { Array, Layer, Option, Schema } from 'effect'
 import { expect, it, vi } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
+import * as Update from '../update/index.js'
 import { define } from './define.js'
 import { lowerBlock } from './lowering.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 type ChildModel = typeof ChildModel.Type
 
-const Message = defineMessageUnion({ Advanced: {} })
+const Message = defineMessageUnion({
+  Advanced: {},
+  CompletedRecordBeforeReplay: {},
+  CompletedRecordAfterReplay: {},
+})
 type Message = typeof Message.Type
 
 const ParentModel = Schema.Struct({
@@ -25,14 +30,17 @@ const initialModel = ParentModel.make({
 
 const ChildOwner = define('OperationGraphChild')
 const Child = ChildOwner.define({ Model: ChildModel, Message })
-const reset = Child.step(_model => ({
-  model: ChildModel.make({ count: 0 }),
-}))
-const ChildComposition = Child.toComposition()
-const ChildBlock = ChildComposition.toBlock({
-  view: ChildComposition.view((_model, h) => h.div([])),
+const resetInvocation = vi.fn()
+const reset = Child.step(_model => {
+  resetInvocation()
+
+  return { model: ChildModel.make({ count: 0 }) }
+})
+const ChildComposition = Child.makeComposition()
+const ChildBlock = ChildComposition.makeBlock({
+  view: ChildComposition.makeView((_model, h) => h.div([])),
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
-  update: ChildComposition.update(model => ({
+  update: ChildComposition.makeUpdate(model => ({
     model: modifyFields(model, { count: count => count + 1 }),
   })),
   expose: { reset },
@@ -58,25 +66,124 @@ const initializeOmittedChild = omittedParent.step(model =>
     toParentModel: child => modifyFields(model, { primary: () => child }),
   }),
 )
-const omittedParentComposition = omittedParent.toComposition({
+const omittedParentComposition = omittedParent.makeComposition({
   childBindings: [OmittedChildBinding],
 })
-const OmittedParent = omittedParentComposition.toBlock({
-  view: omittedParentComposition.view((_model, h) => h.div([])),
+const OmittedParent = omittedParentComposition.makeBlock({
+  view: omittedParentComposition.makeView((_model, h) => h.div([])),
   init: () => ({ model: initialModel }),
   update: model => ({ model }),
   expose: { initializeOmittedChild },
   EffectsLayer: Layer.empty,
 })
 
+const unregisteredParentComposition = omittedParent.makeComposition()
+const narrowedReset = (model: ParentModel): Readonly<{ model: ParentModel }> =>
+  Reflect.apply(OmittedChildBinding.reset(), undefined, [model])
+const unregisteredNarrowedReset = Reflect.apply(
+  unregisteredParentComposition.makeUpdate,
+  undefined,
+  [narrowedReset],
+)
+const registeredNarrowedReset = Reflect.apply(
+  omittedParentComposition.makeUpdate,
+  undefined,
+  [narrowedReset],
+)
+const unregisteredDiscardedReset = unregisteredParentComposition.makeUpdate(
+  model => {
+    Reflect.apply(OmittedChildBinding.reset(), undefined, [model])
+
+    return { model }
+  },
+)
+
 it('runs a completed exposed operation in its registered child graph', () => {
-  expect(() => initializeOmittedChild(initialModel)).toThrow(
-    'Initializing child Binding "omitted-child" requires its registered Composition.',
-  )
+  const recipe = Reflect.apply(initializeOmittedChild, undefined, [
+    initialModel,
+  ])
+
+  expect(recipe).not.toHaveProperty('model')
+  expect(recipe).not.toHaveProperty('commands')
 
   const initialized = OmittedParent.expose.initializeOmittedChild(initialModel)
 
   expect(initialized.model.primary.count).toBe(0)
+})
+
+it('runs a narrowed bound operation in its registered child graph', () => {
+  const result = Reflect.apply(registeredNarrowedReset, undefined, [
+    initialModel,
+    Message.Advanced(),
+  ])
+
+  expect(result).toMatchObject({ model: { primary: { count: 0 } } })
+})
+
+it('rejects an unregistered bound operation after its result is narrowed', () => {
+  expect(() =>
+    Reflect.apply(unregisteredNarrowedReset, undefined, [
+      initialModel,
+      Message.Advanced(),
+    ]),
+  ).toThrow(
+    'The child binding at placement "omitted-child" is not registered in the current Block graph.',
+  )
+})
+
+it('does no child work when an erased unregistered result is discarded', () => {
+  const previousInvocationCount = resetInvocation.mock.calls.length
+  const resetDiscarded = unregisteredDiscardedReset(
+    initialModel,
+    Message.Advanced(),
+  )
+
+  expect(resetDiscarded.model).toBe(initialModel)
+  expect(resetInvocation).toHaveBeenCalledTimes(previousInvocationCount)
+})
+
+interface DiscardedOperation {
+  execute(model: ParentModel): void
+}
+
+const discardedOperation: DiscardedOperation = {
+  execute: OmittedChildBinding.reset(),
+}
+
+it('keeps method-shaped void erasure passive outside its registered graph', () => {
+  const previousInvocationCount = resetInvocation.mock.calls.length
+
+  discardedOperation.execute(initialModel)
+
+  expect(resetInvocation).toHaveBeenCalledTimes(previousInvocationCount)
+})
+
+it('keeps a callback holding a scoped Model passive after its graph returns', () => {
+  const callbacks: Array<() => void> = []
+  const captureReset = omittedParentComposition.makeUpdate(model => {
+    callbacks.push(() => {
+      OmittedChildBinding.reset()(model)
+    })
+
+    return { model }
+  })
+  const previousInvocationCount = resetInvocation.mock.calls.length
+
+  captureReset(initialModel, Message.Advanced())
+  Option.getOrThrow(Array.head(callbacks))()
+
+  expect(resetInvocation).toHaveBeenCalledTimes(previousInvocationCount)
+})
+
+it('prevents a pending operation from acquiring Model fields or a prototype', () => {
+  const recipe = Reflect.apply(OmittedChildBinding.reset(), undefined, [
+    initialModel,
+  ])
+
+  expect(Object.isFrozen(recipe)).toBe(true)
+  expect(Object.getPrototypeOf(recipe)).toBe(null)
+  expect(Reflect.set(recipe, 'model', initialModel)).toBe(false)
+  expect(Reflect.setPrototypeOf(recipe, { model: initialModel })).toBe(false)
 })
 
 const readAllWrongPlacement = vi.fn((model: ParentModel) => [model.primary])
@@ -108,7 +215,7 @@ const WrongPlacementBinding = exactParentBase.bindChild(ChildBlock, {
   toParentMessage: (_key, message: Message) => message,
 })
 
-const exactParentComposition = exactParentBase.toComposition({
+const exactParentComposition = exactParentBase.makeComposition({
   childBindings: [RegisteredPlacementBinding],
 })
 const initializeWrongPlacement = exactParentBase.step(model =>
@@ -118,11 +225,12 @@ const initializeWrongPlacement = exactParentBase.step(model =>
     toParentModel: child => modifyFields(model, { primary: () => child }),
   }),
 )
-const ExactParent = exactParentComposition.toBlock({
-  view: exactParentComposition.view((_model, h) => h.div([])),
+const ExactParent = exactParentComposition.makeBlock({
+  view: exactParentComposition.makeView((_model, h) => h.div([])),
   init: () => ({ model: initialModel }),
-  update: (model, message) =>
+  update: exactParentComposition.makeUpdate((model, message) =>
     WrongPlacementBinding.fold(model, 'only', message),
+  ),
   expose: { initializeWrongPlacement },
   EffectsLayer: Layer.empty,
 })
@@ -146,6 +254,107 @@ it('keeps foreign Bindings out of completed exposed operations', () => {
   )
 })
 
+const PendingEntry = Schema.Struct({
+  id: Schema.String,
+  child: ChildModel,
+})
+const PendingParentModel = Schema.Struct({
+  entries: Schema.Array(PendingEntry),
+  status: Schema.String,
+})
+const PendingParent = define('PendingParent', {
+  Model: PendingParentModel,
+  Message,
+})
+const PendingChildBinding = PendingParent.bindChild(ChildBlock, {
+  field: 'entries',
+  key: 'id',
+  childField: 'child',
+  fromParentMessage: false,
+  toParentMessage: (_id, message) => message,
+})
+const PendingParentComposition = PendingParent.makeComposition({
+  childBindings: [PendingChildBinding],
+})
+const capturedPendingModel = PendingParentModel.make({
+  entries: [
+    PendingEntry.make({
+      id: 'only',
+      child: ChildModel.make({ count: 1 }),
+    }),
+  ],
+  status: 'Captured',
+})
+const pendingRegisteredKeyedReset = Reflect.apply(
+  PendingChildBinding.reset('only'),
+  undefined,
+  [capturedPendingModel],
+)
+const returnPendingRegisteredKeyedReset = Reflect.apply(
+  PendingParentComposition.makeUpdate,
+  undefined,
+  [() => pendingRegisteredKeyedReset],
+)
+
+it('resolves a pending keyed operation against the active Model after its key is removed', () => {
+  const modelWithoutKey = modifyFields(capturedPendingModel, {
+    entries: () => [],
+    status: () => 'Active',
+  })
+  const previousInvocationCount = resetInvocation.mock.calls.length
+
+  const result = returnPendingRegisteredKeyedReset(
+    modelWithoutKey,
+    Message.Advanced(),
+  )
+
+  expect(result.model).toBe(modelWithoutKey)
+  expect(result.model.status).toBe('Active')
+  expect(resetInvocation).toHaveBeenCalledTimes(previousInvocationCount)
+})
+
+const RecordBeforeReplay = PendingParent.command('RecordBeforeReplay', {
+  messages: [Message.CompletedRecordBeforeReplay],
+})
+const RecordAfterReplay = PendingParent.command('RecordAfterReplay', {
+  messages: [Message.CompletedRecordAfterReplay],
+})
+
+it('replays a deferred combined operation from the active Model without restoring removed keys', () => {
+  const pending = Reflect.apply(Update.combine, undefined, [
+    capturedPendingModel,
+    [
+      (model: typeof PendingParentModel.Type) => ({
+        model: modifyFields(model, { status: status => `${status}/Before` }),
+        commands: [RecordBeforeReplay()],
+      }),
+      () => pendingRegisteredKeyedReset,
+      (model: typeof PendingParentModel.Type) => ({
+        model: modifyFields(model, { status: status => `${status}/After` }),
+        commands: [RecordAfterReplay()],
+      }),
+    ],
+  ])
+  const replay = Reflect.apply(PendingParentComposition.makeUpdate, undefined, [
+    () => pending,
+  ])
+  const modelWithoutKey = modifyFields(capturedPendingModel, {
+    entries: () => [],
+    status: () => 'Active',
+  })
+  const previousInvocationCount = resetInvocation.mock.calls.length
+
+  const result = replay(modelWithoutKey, Message.Advanced())
+
+  expect(result.model.entries).toEqual([])
+  expect(result.model.status).toBe('Active/Before/After')
+  expect(result.commands).toMatchObject([
+    { name: 'PendingParent/RecordBeforeReplay' },
+    { name: 'PendingParent/RecordAfterReplay' },
+  ])
+  expect(resetInvocation).toHaveBeenCalledTimes(previousInvocationCount)
+})
+
 const PolicyOutMessage = defineMessageUnion({ RequestedSiblingReset: {} })
 type PolicyOutMessage = typeof PolicyOutMessage.Type
 
@@ -155,9 +364,9 @@ const policy = PolicyOwner.define({
   Message,
   OutMessage: PolicyOutMessage,
 })
-const policyComposition = policy.toComposition()
-const PolicyChild = policyComposition.toBlock({
-  view: policyComposition.view((_model, h) => h.div([])),
+const policyComposition = policy.makeComposition()
+const PolicyChild = policyComposition.makeBlock({
+  view: policyComposition.makeView((_model, h) => h.div([])),
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
   update: model => ({
     model,
@@ -190,13 +399,15 @@ const PolicyChildBinding = policyParentBase.bindChild(PolicyChild, {
   },
 })
 
-const policyParentComposition = policyParentBase.toComposition({
+const policyParentComposition = policyParentBase.makeComposition({
   childBindings: [PolicyChildBinding, SiblingChildBinding],
 })
-const PolicyParent = policyParentComposition.toBlock({
-  view: policyParentComposition.view((_model, h) => h.div([])),
+const PolicyParent = policyParentComposition.makeBlock({
+  view: policyParentComposition.makeView((_model, h) => h.div([])),
   init: () => ({ model: initialModel }),
-  update: (model, message) => PolicyChildBinding.fold(model, message),
+  update: policyParentComposition.makeUpdate((model, message) =>
+    PolicyChildBinding.fold(model, message),
+  ),
   EffectsLayer: Layer.empty,
 })
 

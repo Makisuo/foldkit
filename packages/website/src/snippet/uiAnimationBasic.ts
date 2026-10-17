@@ -77,13 +77,13 @@ const AnimationBinding = AnimationExample.bindChild(Animation.block, {
   outMessage: { fold: foldAnimationOutMessage },
 })
 
-const AnimationExampleComposition = AnimationExample.toComposition({
+const AnimationExampleComposition = AnimationExample.makeComposition({
   childBindings: [AnimationBinding],
 })
 
 // In your init function, specify the fields the parent owns. The Composition
 // initializes the bound Animation Model.
-const init = AnimationExampleComposition.init(() => ({
+const init = AnimationExampleComposition.makeInit(() => ({
   model: {
     // ...your other fields
   },
@@ -92,7 +92,7 @@ const init = AnimationExampleComposition.init(() => ({
 // Bound public operations integrate the next child Model and Commands without
 // exposing the internal Showed or Hid Message constructors to the parent.
 
-const update = AnimationExampleComposition.update((model, message) =>
+const update = AnimationExampleComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedToggleAnimation: () =>
       model.animation.isShowing
@@ -106,7 +106,7 @@ const update = AnimationExampleComposition.update((model, message) =>
 // truth for whether content is currently visible. The Animation view wraps
 // your content. Data attributes drive the CSS transitions or keyframe
 // animations defined in className:
-const view = AnimationExampleComposition.view((model, h) =>
+const view = AnimationExampleComposition.makeView((model, h) =>
   h.div(
     [],
     [

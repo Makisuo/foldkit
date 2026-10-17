@@ -53,25 +53,25 @@ const TooltipBinding = TooltipExample.bindChild(Tooltip.block, {
   outMessage: { fold: foldTooltipOutMessage },
 })
 
-const TooltipExampleComposition = TooltipExample.toComposition({
+const TooltipExampleComposition = TooltipExample.makeComposition({
   childBindings: [TooltipBinding],
 })
 
 // In your init function, initialize the Tooltip Block with a unique id:
-const init = TooltipExampleComposition.init(() => ({
+const init = TooltipExampleComposition.makeInit(() => ({
   model: {
     // ...your other fields
   },
 }))
 
-const update = TooltipExampleComposition.update()
+const update = TooltipExampleComposition.makeUpdate()
 
 // Inside your view function, embed the tooltip via h.block. The tooltip
 // describes the trigger but does not name it, so give an icon-only trigger
 // an accessible name with `ariaLabel`. (Point `ariaLabelledBy` at a visible
 // label element instead when one exists.) The attribute is only emitted when
 // provided, so the trigger never carries a dangling `aria-labelledby`.
-const view = TooltipExampleComposition.view((model, h) => {
+const view = TooltipExampleComposition.makeView((model, h) => {
   const tooltipView = ({ trigger, panel, isVisible }: TooltipRenderInfo) =>
     h.div(
       [h.Class('relative inline-block')],

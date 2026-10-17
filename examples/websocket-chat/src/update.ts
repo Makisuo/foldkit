@@ -10,7 +10,7 @@ import { ApplicationComposition } from './composition'
 import { Message } from './message'
 import { ChatMessage, ConnectionState } from './model'
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedConnect: () => ({
       model: modifyFields(model, {

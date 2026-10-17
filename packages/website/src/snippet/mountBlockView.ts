@@ -21,19 +21,19 @@ const MeasurePanel = Panel.mount('MeasurePanel', {
   },
 })
 
-const PanelComposition = Panel.toComposition({
+const PanelComposition = Panel.makeComposition({
   mounts: [MeasurePanel],
 })
 
-const init = PanelComposition.init(() => ({
+const init = PanelComposition.makeInit(() => ({
   model: Model.make({ label: 'Panel' }),
 }))
-const update = PanelComposition.update(model => ({ model }))
-const view = PanelComposition.view((model, h) =>
+const update = PanelComposition.makeUpdate(model => ({ model }))
+const view = PanelComposition.makeView((model, h) =>
   h.div([h.OnMount(MeasurePanel())], [model.label]),
 )
 
-export const block = PanelComposition.toBlock({
+export const block = PanelComposition.makeBlock({
   init,
   update,
   view,

@@ -16,7 +16,7 @@ import { ApplyTheme, resolveTheme } from '../theme'
 import { handleCompletedLoadBrowserEnvironment } from './browserEnvironment'
 import { handleChangedUrl } from './changedUrl'
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match(request, {

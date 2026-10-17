@@ -64,11 +64,11 @@ Portal-to-body is a small example. When an overlay enters the DOM, its Mount mov
 
 ### Handler Layers
 
-A Mount starts when its element enters the DOM and stops when that element leaves. In a split feature, `mount.ts` owns the definition and handler, while `composition.ts` owns its registration, including when the feature has no children. Both Composition and view import the definition from `mount.ts`, avoiding a Composition/view cycle. Include its definition in the owning Composition's `mounts`, include its handler recipe in the local `EffectsLayer`, and complete that Composition with `toBlock`. Composition declares a Mount the view may render; a conditional Mount need not appear in every render.
+A Mount starts when its element enters the DOM and stops when that element leaves. In a split feature, `mount.ts` owns the definition and handler, while `composition.ts` owns its registration, including when the feature has no children. Both Composition and view import the definition from `mount.ts`, avoiding a Composition/view cycle. Include its definition in the owning Composition's `mounts`, include its handler recipe in the local `EffectsLayer`, and complete that Composition with `makeBlock`. Composition declares a Mount the view may render; a conditional Mount need not appear in every render.
 
 ::Snippet{name="mountHandlerLayers" label="Registering a Mount handler Layer"}
 
-`FeatureComposition.view` derives the view builder's allowed Mounts from its Composition. TypeScript rejects a view that requires a Mount absent from that Composition, and the completed Block carries the matching handler graph to the root. Foldkit also checks each rendered definition before patching the DOM. Use the same definition in the view, Composition, and Layer assembly. Distinct Mount definitions within one Block need distinct local names; composition derives their application paths. The handler Layer lives for the application lifetime, while each Mount acquisition and cleanup follows its element.
+`FeatureComposition.makeView` derives the view builder's allowed Mounts from its Composition. TypeScript rejects a view that requires a Mount absent from that Composition, and the completed Block carries the matching handler graph to the root. Foldkit also checks each rendered definition before patching the DOM. Use the same definition in the view, Composition, and Layer assembly. Distinct Mount definitions within one Block need distinct local names; composition derives their application paths. The handler Layer lives for the application lifetime, while each Mount acquisition and cleanup follows its element.
 
 ### Mount Work Requirements
 
@@ -182,17 +182,17 @@ Registering a Mount that the view never renders starts no element lifecycle, lis
 
 ### Block Assembly and Child Placements
 
-For an owned Block, create `Name = Block.define('Name', { Model, Message })`, create Mounts through that typed authoring value, and list them in `NameComposition = Name.toComposition({ mounts })`. Author the canonical view with `NameComposition.view`, then pass the local handler recipes to `NameComposition.toBlock({ EffectsLayer })`. A parent that includes the child Binding receives its Mount registrations and handler graph together. `ApplicationComposition` installs the root graph through its owned `toApplication({ init, update, view, ... })` method.
+For an owned Block, create `Name = Block.define('Name', { Model, Message })`, create Mounts through that typed authoring value, and list them in `NameComposition = Name.makeComposition({ mounts })`. Author the canonical view with `NameComposition.makeView`, then pass the local handler recipes to `NameComposition.makeBlock({ EffectsLayer })`. A parent that includes the child Binding receives its Mount registrations and handler graph together. `ApplicationComposition` installs the root graph through its owned `makeApplication({ init, update, view, ... })` method.
 
 For a direct array of child Models with declared Struct key fields, use `Parent.bindChild` with `field`, a string-valued `key`, and `toParentMessage`. An exact array of closed Struct wrappers adds a distinct required `childField`, leaving its key on the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration retain general keyed accessors. Each active key gets independent Mount ownership, and the parent includes the keyed Binding once under `childBindings`.
 
 ### Mount Requirements in Reusable Views
 
-An owned view receives a builder whose allowed Mounts are inferred from its Composition. Immediately after establishing `NameComposition`, derive `NameViewBuilder` with `Block.ViewBuilderFor<typeof NameComposition>` and use it for ordinary helpers on the same mounted or child embedding path. Keep it private unless another file uses it. The alias retains the Composition's Message, local Mounts, and child Bindings without constructing a runtime builder. `NameComposition.view` remains the canonical owned view and leaves its `h` parameter inferred:
+An owned view receives a builder whose allowed Mounts are inferred from its Composition. Immediately after establishing `NameComposition`, derive `NameViewBuilder` with `Block.ViewBuilderFor<typeof NameComposition>` and use it for ordinary helpers on the same mounted or child embedding path. Keep it private unless another file uses it. The alias retains the Composition's Message, local Mounts, and child Bindings without constructing a runtime builder. `NameComposition.makeView` remains the canonical owned view and leaves its `h` parameter inferred:
 
 ::Snippet{name="mountBlockView" label="Preserving a Block view's Mount requirements"}
 
-The parent must include the child Binding under `childBindings` before its builder can embed that child view. An owned child with `ViewInputs` uses `FeatureComposition.view.withInputs<ViewInputs>` and receives its builder third.
+The parent must include the child Binding under `childBindings` before its builder can embed that child view. An owned child with `ViewInputs` uses `FeatureComposition.makeView.withInputs<ViewInputs>` and receives its builder third.
 
 The Composition derives its builder type from the complete Mount collection, and application assembly includes those definitions. Missing Mounts fail at the composition boundary, and helpers cannot attach Mounts outside their builder's declared set. Keep helpers genuinely shared across Compositions on the framework's general `HtmlBuilder<Message>`, with an explicit requirements parameter when they forward capabilities. The returned `Html` type stays the same.
 

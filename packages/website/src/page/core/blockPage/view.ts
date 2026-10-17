@@ -107,7 +107,7 @@ const { tableOfContents, view: renderPage } =
 
 export { tableOfContents }
 
-export const view = BlockPageComposition.view.withInputs<ViewInputs>(
+export const view = BlockPageComposition.makeView.withInputs<ViewInputs>(
   (model, viewInputs, h) =>
     renderPage({
       demos: {

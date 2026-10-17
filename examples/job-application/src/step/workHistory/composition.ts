@@ -35,6 +35,6 @@ export const EntriesBinding = WorkHistory.bindChild(Entry.block, {
   outMessage: { fold: foldEntryOutMessage },
 })
 
-export const WorkHistoryComposition = WorkHistory.toComposition({
+export const WorkHistoryComposition = WorkHistory.makeComposition({
   childBindings: [EntriesBinding],
 })

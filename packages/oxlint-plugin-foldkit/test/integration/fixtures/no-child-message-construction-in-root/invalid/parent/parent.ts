@@ -19,11 +19,11 @@ export const ChildBinding = Parent.bindChild(Child.block, {
   toParentMessage: message => ChildMessage.GotChildMessage({ message }),
 })
 
-export const ParentComposition = Parent.toComposition({
+export const ParentComposition = Parent.makeComposition({
   childBindings: [ChildBinding],
 })
 
-export const update = Parent.update(model => ({
+export const update = ParentComposition.makeUpdate(model => ({
   model,
   commands: [
     AliasedEntryMessage.UpdatedEntry(),

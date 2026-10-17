@@ -31,9 +31,9 @@ export type Message = typeof Message.Type
 
 export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.toComposition()
+export const ApplicationComposition = Application.makeComposition()
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedDecrement: () => {
       const nextCount = model.count - 1
@@ -71,7 +71,7 @@ export const PersistCount = Application.command('PersistCount', {
 
 export const EffectsLayer = PersistCount.layer
 
-export const init = ApplicationComposition.init((flags: Flags) => ({
+export const init = ApplicationComposition.makeInit((flags: Flags) => ({
   model: {
     count: flags.initialCount,
     renderedAt: flags.renderedAt,
@@ -79,7 +79,7 @@ export const init = ApplicationComposition.init((flags: Flags) => ({
   },
 }))
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: `Count ${model.count}`,
   body: h.div(
     [

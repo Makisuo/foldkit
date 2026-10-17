@@ -6,7 +6,7 @@ import { ApplicationComposition } from './composition'
 import { Message } from './message'
 import { EditingState, type Todo } from './model'
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     UpdatedNewTodo: ({ text }) => ({
       model: modifyFields(model, {

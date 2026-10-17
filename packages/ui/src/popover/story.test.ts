@@ -350,6 +350,7 @@ describe('Popover', () => {
             update,
             givenClosedAnimated,
             Story.message(Message.RequestedOpen()),
+            Story.expectOutMessage(OutMessage.Opened()),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.animation.transitionState).toBe('EnterStart')
@@ -410,11 +411,27 @@ describe('Popover', () => {
       })
 
       describe('leave flow', () => {
+        it('preserves Closed when the pointer closes an animated Popover', () => {
+          const opened = update(
+            init({ id: 'animated-pointer', isAnimated: true }),
+            Message.RequestedOpen(),
+          )
+          const closed = update(
+            opened.model,
+            Message.PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
+          )
+
+          expect(closed.outMessage).toEqual(OutMessage.Closed())
+          expect(closed.model.isOpen).toBe(false)
+          expect(closed.model.animation.transitionState).toBe('LeaveStart')
+        })
+
         it('sets LeaveStart on RequestedClose', () => {
           Story.story(
             update,
             givenOpenAnimated,
             Story.message(Message.RequestedClose()),
+            Story.expectOutMessage(OutMessage.Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')

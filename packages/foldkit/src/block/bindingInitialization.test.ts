@@ -4,7 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import { define } from './define.js'
-import { withOperationGraph } from './operationGraph.js'
+import {
+  assertRegisteredBinding,
+  withOperationGraph,
+} from './operationGraph.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 const ChildMessage = defineMessageUnion({
@@ -22,14 +25,14 @@ const Read = Child.command('Read', {
   },
 })
 const initialized = vi.fn<(count: number) => void>()
-const ChildComposition = Child.toComposition()
-const child = ChildComposition.toBlock({
-  init: ChildComposition.init((count: number) => {
+const ChildComposition = Child.makeComposition()
+const child = ChildComposition.makeBlock({
+  init: ChildComposition.makeInit((count: number) => {
     initialized(count)
 
     return { model: { count }, commands: [Read({ value: count })] }
   }),
-  update: ChildComposition.update(model => ({ model })),
+  update: ChildComposition.makeUpdate(model => ({ model })),
   EffectsLayer: Read.layer,
 })
 
@@ -61,10 +64,10 @@ const ItemsBinding = Parent.bindChild(child, {
     args: (_model, { id, message }) => Option.some([id, message]),
   },
 })
-const ParentComposition = Parent.toComposition({
+const ParentComposition = Parent.makeComposition({
   childBindings: [ItemsBinding],
 })
-const init = ParentComposition.init(() =>
+const init = ParentComposition.makeInit(() =>
   ItemsBinding.init({
     key: 'first',
     args: [4],
@@ -73,36 +76,44 @@ const init = ParentComposition.init(() =>
     commands: [Record()],
   }),
 )
-const parent = ParentComposition.toBlock({
+const parent = ParentComposition.makeBlock({
   init,
-  update: ParentComposition.update(model => ({ model })),
+  update: ParentComposition.makeUpdate(model => ({ model })),
   EffectsLayer: Record.layer,
 })
 
 beforeEach(() => initialized.mockClear())
 
 describe('connected initialization', () => {
-  it('rejects initialization outside the registered graph before calling the child', () => {
+  it('constructs a passive noncallable recipe without initializing the child', () => {
+    const recipe = ItemsBinding.init({
+      key: 'first',
+      args: [4],
+      toParentModel: child => ({ items: [{ id: 'first', child }] }),
+    })
+
+    expect(recipe).not.toBeTypeOf('function')
+    expect(recipe).not.toHaveProperty('model')
+    expect(recipe).not.toHaveProperty('commands')
     expect(() =>
-      ItemsBinding.init({
-        key: 'first',
-        args: [4],
-        toParentModel: child => ({ items: [{ id: 'first', child }] }),
-      }),
-    ).toThrow('requires its registered Composition')
+      // @ts-expect-error A passive initialization recipe is not callable.
+      Reflect.apply(recipe, undefined, []),
+    ).toThrow(TypeError)
     expect(initialized).not.toHaveBeenCalled()
   })
 
-  it('rejects a foreign active graph before calling the child', () => {
-    expect(() =>
-      withOperationGraph([], () =>
-        ItemsBinding.init({
-          key: 'first',
-          args: [4],
-          toParentModel: child => ({ items: [{ id: 'first', child }] }),
-        }),
-      ),
-    ).toThrow('not registered in the current Block graph')
+  it('rejects interpretation in a foreign graph before calling the child', () => {
+    const recipe = ItemsBinding.init({
+      key: 'first',
+      args: [4],
+      toParentModel: child => ({ items: [{ id: 'first', child }] }),
+    })
+    const ForeignComposition = Parent.makeComposition()
+    const foreignInit = Reflect.apply(ForeignComposition.makeInit, undefined, [
+      () => recipe,
+    ])
+
+    expect(foreignInit).toThrow('not registered in the current Block graph')
     expect(initialized).not.toHaveBeenCalled()
   })
 
@@ -153,7 +164,7 @@ describe('connected initialization', () => {
     ],
   ])('rejects a parent mapping with %s', (_name, toParentModel) => {
     expect(() =>
-      ParentComposition.init(() =>
+      ParentComposition.makeInit(() =>
         ItemsBinding.init({
           key: 'first',
           args: [4],
@@ -174,9 +185,9 @@ describe('connected initialization', () => {
           modifyFields(model, { items: Array.append({ id: 'first', child }) }),
       }),
     )
-    const completed = ParentComposition.toBlock({
+    const completed = ParentComposition.makeBlock({
       init: () => ({ model: initialModel }),
-      update: ParentComposition.update(model => ({ model })),
+      update: ParentComposition.makeUpdate(model => ({ model })),
       expose: { createChild },
     })
     const created = completed.expose.createChild(initialModel)
@@ -233,7 +244,7 @@ describe('connected initialization', () => {
 
   it('retains a caller projection error and restores the previous graph', () => {
     const failure = new Error('cannot construct parent')
-    const failing = ParentComposition.init(() =>
+    const failing = ParentComposition.makeInit(() =>
       ItemsBinding.init({
         key: 'first',
         args: [4],
@@ -243,14 +254,13 @@ describe('connected initialization', () => {
       }),
     )
 
-    expect(failing).toThrow(failure)
-    expect(() =>
-      ItemsBinding.init({
-        key: 'first',
-        args: [4],
-        toParentModel: child => ({ items: [{ id: 'first', child }] }),
-      }),
-    ).toThrow('requires its registered Composition')
+    withOperationGraph([ItemsBinding], () => {
+      expect(failing).toThrow(failure)
+      expect(() => assertRegisteredBinding(ItemsBinding, 'items')).not.toThrow()
+    })
+    expect(() => assertRegisteredBinding(ItemsBinding, 'items')).toThrow(
+      'not registered in the current Block graph',
+    )
   })
 
   it('keeps ordinary Model construction available without a registered graph', () => {
@@ -278,7 +288,7 @@ const DirectBinding = Direct.bindChild(child, {
   field: 'child',
   parentMessage: DirectMessage.GotChildMessage,
 })
-const DirectComposition = Direct.toComposition({
+const DirectComposition = Direct.makeComposition({
   childBindings: [DirectBinding],
 })
 const createDirectChild = Direct.step((_model, label: string) =>
@@ -298,26 +308,26 @@ const createIncompleteDirectChild = Direct.step(
       },
     ]),
 )
-const dynamicDirect = DirectComposition.toBlock({
-  init: DirectComposition.init(() => ({
+const dynamicDirect = DirectComposition.makeBlock({
+  init: DirectComposition.makeInit(() => ({
     model: DirectModel.make({ child: Option.none(), label: 'initial' }),
   })),
-  update: DirectComposition.update(),
+  update: DirectComposition.makeUpdate(),
   expose: { createDirectChild, createIncompleteDirectChild },
 })
 
 describe('direct connected initialization', () => {
   it('constructs an optional child and retains its lifted Commands', async () => {
-    const directInit = DirectComposition.init(() =>
+    const directInit = DirectComposition.makeInit(() =>
       DirectBinding.init({
         args: [5],
         toParentModel: child =>
           DirectModel.make({ child: Option.some(child), label: 'parent' }),
       }),
     )
-    const direct = DirectComposition.toBlock({
+    const direct = DirectComposition.makeBlock({
       init: directInit,
-      update: DirectComposition.update(),
+      update: DirectComposition.makeUpdate(),
     })
     const initialized = directInit()
     const command = Option.getOrThrow(Array.head(initialized.commands ?? []))
@@ -337,7 +347,7 @@ describe('direct connected initialization', () => {
   })
 
   it('rejects retaining absence instead of the initialized child', () => {
-    const discardChild = DirectComposition.init(() =>
+    const discardChild = DirectComposition.makeInit(() =>
       DirectBinding.init({
         args: [5],
         toParentModel: () =>
@@ -348,17 +358,25 @@ describe('direct connected initialization', () => {
     expect(discardChild).toThrow('must preserve the initialized child Model')
   })
 
-  it('requires an active graph before invoking an unkeyed child initializer', () => {
-    expect(() =>
-      DirectBinding.init({
-        args: [5],
-        toParentModel: child => ({
-          child: Option.some(child),
-          label: 'parent',
-        }),
+  it('defers an unkeyed child initializer until its recipe is interpreted', () => {
+    const recipe = DirectBinding.init({
+      args: [5],
+      toParentModel: child => ({
+        child: Option.some(child),
+        label: 'parent',
       }),
-    ).toThrow('requires its registered Composition')
+    })
+
+    expect(recipe).not.toHaveProperty('model')
     expect(initialized).not.toHaveBeenCalled()
+
+    const init = DirectComposition.makeInit(() => recipe)
+
+    expect(init().model).toEqual({
+      child: Option.some({ count: 5 }),
+      label: 'parent',
+    })
+    expect(initialized).toHaveBeenCalledExactlyOnceWith(5)
   })
 
   it('accepts a complete parent Model from a completed exposed operation', () => {
@@ -402,7 +420,7 @@ const CompleteItemsBinding = CompleteKeyed.bindChild(child, {
     args: (_model, { id, message }) => Option.some([id, message]),
   },
 })
-const CompleteKeyedComposition = CompleteKeyed.toComposition({
+const CompleteKeyedComposition = CompleteKeyed.makeComposition({
   childBindings: [CompleteItemsBinding],
 })
 const createKeyedChild = CompleteKeyed.step((_model, label: string) =>
@@ -427,11 +445,11 @@ const createIncompleteKeyedChild = CompleteKeyed.step(
       },
     ]),
 )
-const dynamicKeyed = CompleteKeyedComposition.toBlock({
-  init: CompleteKeyedComposition.init(() => ({
+const dynamicKeyed = CompleteKeyedComposition.makeBlock({
+  init: CompleteKeyedComposition.makeInit(() => ({
     model: CompleteKeyedModel.make({ items: [], label: 'initial' }),
   })),
-  update: CompleteKeyedComposition.update(model => ({ model })),
+  update: CompleteKeyedComposition.makeUpdate(model => ({ model })),
   expose: { createKeyedChild, createIncompleteKeyedChild },
 })
 

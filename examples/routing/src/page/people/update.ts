@@ -12,7 +12,7 @@ import {
   routeSearchText,
 } from './model'
 
-export const init = PeopleComposition.init((route: PeopleRoute) => {
+export const init = PeopleComposition.makeInit((route: PeopleRoute) => {
   const searchText = routeSearchText(route)
   return {
     model: Model.make({
@@ -23,7 +23,7 @@ export const init = PeopleComposition.init((route: PeopleRoute) => {
     commands: [FetchPeople({ searchText })],
   }
 })
-export const update = PeopleComposition.update((model, message) =>
+export const update = PeopleComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ChangedSearchInput: ({ value }) => ({
       model: modifyFields(model, { searchInput: () => value }),

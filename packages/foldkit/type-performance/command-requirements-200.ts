@@ -2047,12 +2047,12 @@ const runAll = TypePerformanceWorker.step(model => ({
     Run200(),
   ],
 }))
-const TypePerformanceWorkerComposition = TypePerformanceWorker.toComposition()
-const Worker = TypePerformanceWorkerComposition.toBlock({
-  init: TypePerformanceWorkerComposition.init(() => ({
+const TypePerformanceWorkerComposition = TypePerformanceWorker.makeComposition()
+const Worker = TypePerformanceWorkerComposition.makeBlock({
+  init: TypePerformanceWorkerComposition.makeInit(() => ({
     model: WorkerModel.make({ value: 0 }),
   })),
-  update: TypePerformanceWorkerComposition.update((model, message) =>
+  update: TypePerformanceWorkerComposition.makeUpdate((model, message) =>
     WorkerMessage.match(message, {
       RequestedRun: () => runAll(model),
       CompletedRun: () => ({ model }),
@@ -2273,17 +2273,17 @@ const WorkerBinding = Application.bindChild(Worker, {
   toParentMessage: message => message,
   fromParentMessage: false,
 })
-const ApplicationComposition = Application.toComposition({
+const ApplicationComposition = Application.makeComposition({
   childBindings: [WorkerBinding],
 })
-const update = ApplicationComposition.update((model, message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   WorkerBinding.fold(model, message),
 )
-const view = ApplicationComposition.view((_model, h) => h.main([]))
+const view = ApplicationComposition.makeView((_model, h) => h.main([]))
 
-export const program = ApplicationComposition.toElement({
+export const program = ApplicationComposition.makeElement({
   container: null,
-  init: ApplicationComposition.init(() =>
+  init: ApplicationComposition.makeInit(() =>
     WorkerBinding.init({ args: [], toParentModel: model => model }),
   ),
   update,

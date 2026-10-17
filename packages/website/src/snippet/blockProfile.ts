@@ -20,20 +20,20 @@ export const SettingsBinding = Application.bindChild(Settings.block, {
   outMessage: { fold: foldSettingsOutMessage },
 })
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [SettingsBinding],
 })
 
-export const init = ApplicationComposition.init(() => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: {
     displayName: 'Ada',
     previewTheme: 'System',
   },
 }))
 
-export const update = ApplicationComposition.update()
+export const update = ApplicationComposition.makeUpdate()
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: `${model.displayName}'s profile`,
   body: h.block(
     SettingsBinding.embedView({

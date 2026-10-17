@@ -1,7 +1,16 @@
 import { Option, Predicate, Schema, SchemaAST } from 'effect'
 
 import type * as Update from '../update/index.js'
+import { resolveOperationOutput } from '../update/operationRecipe.js'
+import type { AnyBinding, RequirementsOfBindings } from './binding.js'
 import type { DefinedUpdate, DefinedUpdateSource } from './definition.js'
+import {
+  type AnyBindingInitRecipe,
+  type BindingInitRecipe,
+  type BindingInitRecipeReturn,
+  isBindingInitRecipe,
+  runBindingInitRecipe,
+} from './initRecipe.js'
 import { withOperationGraph } from './operationGraph.js'
 
 type AnyFunction = (...args: ReadonlyArray<any>) => any
@@ -204,16 +213,26 @@ type OwnedReturn<Model, Message, OutMessage> = Readonly<{
   outMessage?: OutMessage
 }>
 
+type ResolvedAuthoredOutput<Output> = Output extends AnyBindingInitRecipe
+  ? BindingInitRecipeReturn<Output>
+  : Update.ResolvedOperationOutput<Output>
+
 type RouteRequirements<Bindings extends ReadonlyArray<unknown>> =
   RouteFold<Bindings> extends infer Fold extends AnyFunction
-    ? Update.RequirementsOf<Fold>
+    ? Update.RequirementsOf<
+        () => Update.ResolvedOperationOutput<ReturnType<Fold>>
+      >
     : never
 
 type RouteOutMessage<Bindings extends ReadonlyArray<unknown>> =
-  ReturnOutMessage<ReturnType<RouteFold<Bindings>>>
+  ReturnOutMessage<
+    Update.ResolvedOperationOutput<ReturnType<RouteFold<Bindings>>>
+  >
 
 type RouteRegistration<Bindings extends ReadonlyArray<unknown>> =
-  Update.RegistrationEvidenceOf<ReturnType<RouteFold<Bindings>>>
+  Update.RegistrationEvidenceOf<
+    Update.ResolvedOperationOutput<ReturnType<RouteFold<Bindings>>>
+  >
 
 type AuthoredRequirements<Output> = Update.RequirementsOf<() => Output>
 
@@ -229,9 +248,11 @@ type CompositionDefinedUpdateValue<
   Model,
   Message,
   Context,
-  ReturnOutMessage<Output> | RouteOutMessage<Bindings>,
-  AuthoredRequirements<Output> | RouteRequirements<Bindings>,
-  AuthoredRegistration<Output> | RouteRegistration<Bindings>
+  ReturnOutMessage<ResolvedAuthoredOutput<Output>> | RouteOutMessage<Bindings>,
+  | AuthoredRequirements<ResolvedAuthoredOutput<Output>>
+  | RouteRequirements<Bindings>,
+  | AuthoredRegistration<ResolvedAuthoredOutput<Output>>
+  | RouteRegistration<Bindings>
 >
 
 type CompositionDefinedUpdate<
@@ -279,17 +300,21 @@ type ValidDefineCompositionUpdate<
   Model,
   Message,
   OutMessage,
-  Bindings extends ReadonlyArray<unknown>,
+  Bindings extends ReadonlyArray<AnyBinding>,
   PreserveSource extends boolean,
 > = [AuthoredMessage<Message, Bindings>] extends [never]
   ? () => RoutedOnlyUpdate<Model, Message, Bindings, PreserveSource>
   : <
       const Context extends ReadonlyArray<unknown>,
-      const Output extends OwnedReturn<Model, Message, OutMessage> &
+      const Output extends (
+        | OwnedReturn<Model, Message, OutMessage>
+        | BindingInitRecipe<Model, Message, any, any>
+        | Update.ResultRecipe<Model, Message, OutMessage, any, unknown>
+      ) &
         ValidateAnnotatedContext<Context>,
     >(
       update: (
-        model: Model,
+        model: Update.CompositionInput<Model, RequirementsOfBindings<Bindings>>,
         message: AuthoredMessage<Message, Bindings>,
         ...context: Context
       ) => Output,
@@ -311,7 +336,7 @@ export type DefineCompositionUpdate<
   Model,
   Message,
   OutMessage,
-  Bindings extends ReadonlyArray<unknown>,
+  Bindings extends ReadonlyArray<AnyBinding>,
   PreserveSource extends boolean = false,
 > = [DeliveryConflicts<Bindings>] extends [never]
   ? ValidDefineCompositionUpdate<
@@ -531,10 +556,14 @@ export const makeCompositionUpdate = (
         if (route === undefined) {
           if (update === undefined) {
             throw new Error(
-              `[foldkit] Composition.update received unclaimed Message "${Predicate.isObject(message) ? Reflect.get(message, '_tag') : globalThis.String(message)}" without an authored handler.`,
+              `[foldkit] Composition.makeUpdate received unclaimed Message "${Predicate.isObject(message) ? Reflect.get(message, '_tag') : globalThis.String(message)}" without an authored handler.`,
             )
           }
-          return update(model, message, ...context)
+          const output = update(model, message, ...context)
+          const resolved = resolveOperationOutput(output, model)
+          return isBindingInitRecipe(resolved)
+            ? runBindingInitRecipe(resolved)
+            : resolved
         }
 
         assertUnambiguousSource(message, route)
@@ -553,7 +582,10 @@ export const makeCompositionUpdate = (
           )
         }
 
-        return route.binding.fold(model, ...maybeArguments.value)
+        return resolveOperationOutput(
+          route.binding.fold(model, ...maybeArguments.value),
+          model,
+        )
       })
 
     observableUpdateContextArities.set(

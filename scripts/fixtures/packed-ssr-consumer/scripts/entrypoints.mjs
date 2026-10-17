@@ -40,7 +40,7 @@ const { Effect, Schema } = await import('effect')
 const Model = Schema.Struct({})
 const Message = message.defineMessageUnion({ IgnoredRender: {} })
 const Application = application.define({ Model, Message })
-const ApplicationComposition = Application.toComposition()
+const ApplicationComposition = Application.makeComposition()
 const error = await Effect.runPromise(
   Effect.flip(
     server.renderToString(

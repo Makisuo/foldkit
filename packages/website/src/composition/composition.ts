@@ -1,11 +1,10 @@
 import { Option, pipe } from 'effect'
-import { type Block, Update } from 'foldkit'
+import { type Block } from 'foldkit'
 
 import { Dialog } from '@foldkit/ui'
 
 import { Application } from '../definition'
 import { Message } from '../message'
-import { Model } from '../model'
 import {
   ApiReference,
   ComingFromReact,
@@ -82,11 +81,9 @@ export const CoreBlockPageBinding = Application.bindChild(CoreBlockPage.block, {
   parentMessage: Message.GotCoreBlockPageMessage,
 })
 
-const foldMobileMenuDialogOutMessage = Dialog.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => model => ({ model }),
-  Closed: () => model => ({ model }),
+const foldMobileMenuDialogOutMessage = Dialog.OutMessage.match({
+  Opened: () => Application.step(model => ({ model })),
+  Closed: () => Application.step(model => ({ model })),
 })
 
 export const MobileMenuDialogBinding = Application.bindChild(Dialog.block, {
@@ -107,7 +104,7 @@ export const ThemeMenuBinding = Application.bindChild(ThemeMenu, {
   init: { args: () => [{ id: 'theme-menu' }] },
 })
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [
     ApiReferenceBinding,
     ComingFromReactBinding,

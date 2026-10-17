@@ -8,6 +8,7 @@ import type {
   BoundBlockView,
 } from '../html/block.js'
 import * as Update from '../update/index.js'
+import { makeResultRecipe } from '../update/operationRecipe.js'
 import type {
   AnyBinding,
   BindableBlock,
@@ -15,8 +16,8 @@ import type {
   BindingEvidence,
   BindingInitializer,
   BindingInspection,
+  BindingOperationRecipe,
   BindingRequirement,
-  BindingReturn,
   BoundExposedOperations,
   HandlerRequirementsOfBinding,
   ParentBindingContract,
@@ -37,10 +38,12 @@ import {
   ViewScopeTypeId,
   hostIdentitiesOf,
 } from './identity.js'
+import { makeBindingInitRecipe } from './initRecipe.js'
 import type { InstanceKey } from './instanceContext.js'
 import {
   assertRegisteredBinding,
   assertRegisteredInitialization,
+  isRegisteredBinding,
   withOperationGraph,
 } from './operationGraph.js'
 import type { ValidateConcreteComposition } from './requirements.js'
@@ -356,6 +359,7 @@ export type KeyedBinding<
   ContractOutMessage = never,
   OutgoingMessage = ParentMessage,
   IncomingMessage = never,
+  InitializerMessage = ContractMessage,
 > = WithoutBindingEvidence<
   Omit<
     Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy>,
@@ -392,23 +396,28 @@ export type KeyedBinding<
      * occurrence shares this placement; `key` distinguishes the occurrence
      * within it. */
     placement: Placement
-    /** Initializes one child occurrence, constructs the complete parent Model,
-     * and lifts its Commands to the parent Message type. Additional parent
-     * Commands run after the initialized child's Commands. Initialization
-     * requires this Binding's exact registered Composition to be active. */
+    /** Creates a passive initialization recipe for one child occurrence. The
+     * registered Composition later initializes the child, constructs the
+     * complete parent Model, and lifts Commands to the parent Message type.
+     * Additional parent Commands run after the initialized child's Commands. */
     init: BindingInitializer<
       BlockValue,
       ParentModel,
-      ParentMessage,
+      ContractMessage,
       Placement,
       Key,
-      true
+      true,
+      InitializerMessage
     >
-    /** Runs the child update for `key`, writes the next child Model through
-     * `writeAt`, lifts Commands, and applies the OutMessage policy. If the key is
-     * absent, the returned parent Model is unchanged. */
+    /** Produces an opaque connected result for the child update at `key`,
+     * `writeAt`, lifted Commands, and OutMessage policy. Its Model input requires
+     * this exact registered Binding graph. Checked execution leaves the parent
+     * Model unchanged when the key is absent. */
     fold: (
-      model: ParentModel,
+      model: Update.GraphInput<
+        ParentModel,
+        BindingRequirement<Placement, BlockValue>
+      >,
       key: Key,
       ...args: Parameters<
         Binding<
@@ -421,7 +430,7 @@ export type KeyedBinding<
       > extends readonly [unknown, ...infer Args]
         ? Args
         : never
-    ) => BindingReturn<
+    ) => BindingOperationRecipe<
       ParentModel,
       ParentMessage,
       BlockValue['update'],
@@ -635,7 +644,7 @@ type RuntimeBoundKeyedFold = (
   model: any,
   key: InstanceKey,
   ...args: ReadonlyArray<any>
-) => AnyUpdateReturn
+) => AnyUpdateReturn | Update.AnyResultRecipe
 
 /** @internal Implements collection folding and embedding without constructing Layers. */
 export const bindEach = <const BlockValue extends BindableBlock>(
@@ -753,14 +762,24 @@ export const bindEach = <const BlockValue extends BindableBlock>(
     childFold: RuntimeKeyedChildFold,
   ) => RuntimeKeyedFold
   const makeFold = (producer: AnyProducer): RuntimeBoundKeyedFold => {
-    return (model, key, ...args) => {
-      assertRegisteredBinding(binding, placement)
-
+    const execute = (
+      model: any,
+      key: InstanceKey,
+      args: ReadonlyArray<any>,
+    ) => {
       return makeChildFoldAt(toChildFoldAt(producer, model))(model, key, {
         key,
         args,
       })
     }
+
+    return (model, key, ...args) =>
+      isRegisteredBinding(binding)
+        ? execute(model, key, args)
+        : makeResultRecipe(activeModel => {
+            assertRegisteredBinding(binding, placement)
+            return execute(activeModel, key, args)
+          })
   }
   const fold = makeFold(block.update)
   const exposedOperations = Record.map(block.expose, producer => {
@@ -803,37 +822,43 @@ export const bindEach = <const BlockValue extends BindableBlock>(
     placement,
     init: (initial: unknown) => {
       assertKeyedBindingInitConfig(initial, placement)
-      const childInit = initialize(initial.key, ...initial.args)
-      const model = initial.toParentModel(childInit.model)
-      assertInitializedParentModel(binding, placement, model)
-      let matchingKeyCount = 0
-      let selectedChild: unknown
-      try {
-        for (const item of config.readAll(model)) {
-          if (config.key(item) === initial.key) {
-            matchingKeyCount += 1
-            selectedChild = config.read(item)
+      const { key, toParentModel } = initial
+      const args = [...initial.args]
+      const commands = [...(initial.commands ?? [])]
+
+      return makeBindingInitRecipe(() => {
+        const childInit = initialize(key, ...args)
+        const model = toParentModel(childInit.model)
+        assertInitializedParentModel(binding, placement, model)
+        let matchingKeyCount = 0
+        let selectedChild: unknown
+        try {
+          for (const item of config.readAll(model)) {
+            if (config.key(item) === key) {
+              matchingKeyCount += 1
+              selectedChild = config.read(item)
+            }
           }
+        } catch (cause) {
+          throw new Error(
+            `[foldkit] Keyed child Binding "${placement}" init.toParentModel returned a parent Model that its collection accessors could not inspect at key "${globalThis.String(key)}".`,
+            { cause },
+          )
         }
-      } catch (cause) {
-        throw new Error(
-          `[foldkit] Keyed child Binding "${placement}" init.toParentModel returned a parent Model that its collection accessors could not inspect at key "${globalThis.String(initial.key)}".`,
-          { cause },
-        )
-      }
-      if (
-        matchingKeyCount !== 1 ||
-        !isChildModel(selectedChild) ||
-        !equivalentChildModel(selectedChild, childInit.model)
-      ) {
-        throw new Error(
-          `[foldkit] Keyed child Binding "${placement}" init.toParentModel must store exactly one occurrence at key "${globalThis.String(initial.key)}" and preserve the initialized child Model through the parent Model Schema.`,
-        )
-      }
-      return {
-        model,
-        commands: [...(childInit.commands ?? []), ...(initial.commands ?? [])],
-      }
+        if (
+          matchingKeyCount !== 1 ||
+          !isChildModel(selectedChild) ||
+          !equivalentChildModel(selectedChild, childInit.model)
+        ) {
+          throw new Error(
+            `[foldkit] Keyed child Binding "${placement}" init.toParentModel must store exactly one occurrence at key "${globalThis.String(key)}" and preserve the initialized child Model through the parent Model Schema.`,
+          )
+        }
+        return {
+          model,
+          commands: [...(childInit.commands ?? []), ...commands],
+        }
+      })
     },
     fold,
     embedView: <View extends AnyBlockView>(

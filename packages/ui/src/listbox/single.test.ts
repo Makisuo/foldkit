@@ -1073,6 +1073,7 @@ describe('Listbox', () => {
             update,
             givenOpenAnimated,
             Story.message(Message.SelectedItem({ item: 'apple' })),
+            Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')

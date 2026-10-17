@@ -49,11 +49,11 @@ const childBase = Child.define({
   Model: ChildModel,
   Message: ChildMessage,
 })
-const child = childBase.toComposition({ mounts: [Observe] })
+const child = childBase.makeComposition({ mounts: [Observe] })
 const childImplementation = {
   init: (title: string) => ({ model: { title }, commands: [Prepare()] }),
-  update: child.update(model => ({ model })),
-  view: child.view((model, h) =>
+  update: child.makeUpdate(model => ({ model })),
+  view: child.makeView((model, h) =>
     h.button(
       [h.OnMount(Observe()), h.OnClick(ChildMessage.ClickedPrepare())],
       [model.title],
@@ -61,7 +61,7 @@ const childImplementation = {
   ),
   EffectsLayer: Layer.merge(Prepare.layer, Observe.layer),
 }
-const childBlock = child.toBlock(childImplementation)
+const childBlock = child.makeBlock(childImplementation)
 const RootModel = Schema.Struct({ title: Schema.String })
 const RootMessage = defineMessageUnion({
   GotChildMessage: { message: ChildMessage },
@@ -75,18 +75,18 @@ const ChildBinding = RootApplication.bindChild(childBlock, {
   write: (_model, nextChild) => nextChild,
   parentMessage: RootMessage.GotChildMessage,
 })
-const RegisteredApplication = RootApplication.toComposition({
+const RegisteredApplication = RootApplication.makeComposition({
   childBindings: [ChildBinding],
 })
 const rootImplementation = {
-  init: RegisteredApplication.init(() =>
+  init: RegisteredApplication.makeInit(() =>
     ChildBinding.init({
       args: ['Server-rendered child'],
       toParentModel: child => child,
     }),
   ),
-  update: RegisteredApplication.update(),
-  view: RegisteredApplication.view((model, h) => ({
+  update: RegisteredApplication.makeUpdate(),
+  view: RegisteredApplication.makeView((model, h) => ({
     title: model.title,
     body: h.div(
       [],
@@ -103,11 +103,11 @@ const FlagsApplication = defineApplication({
   Model: RootModel,
   Message: RootMessage,
 })
-const FlagsComposition = FlagsApplication.toComposition()
+const FlagsComposition = FlagsApplication.makeComposition()
 const flagsImplementation = {
   init: (flags: ServerFlags) => ({ model: { title: flags.title } }),
-  update: FlagsComposition.update(model => ({ model })),
-  view: FlagsComposition.view((model, h) => ({
+  update: FlagsComposition.makeUpdate(model => ({ model })),
+  view: FlagsComposition.makeView((model, h) => ({
     title: model.title,
     body: h.main([], [model.title]),
   })),
@@ -118,11 +118,11 @@ const RoutingApplication = defineApplication({
   Model: RootModel,
   Message: RootMessage,
 })
-const RoutingComposition = RoutingApplication.toComposition()
+const RoutingComposition = RoutingApplication.makeComposition()
 const routingImplementation = {
   init: (url: Url) => ({ model: { title: url.pathname } }),
-  update: RoutingComposition.update(model => ({ model })),
-  view: RoutingComposition.view((model, h) => ({
+  update: RoutingComposition.makeUpdate(model => ({ model })),
+  view: RoutingComposition.makeView((model, h) => ({
     title: model.title,
     body: h.main([], [model.title]),
   })),
@@ -133,13 +133,13 @@ const RoutingFlagsApplication = defineApplication({
   Model: RootModel,
   Message: RootMessage,
 })
-const RoutingFlagsComposition = RoutingFlagsApplication.toComposition()
+const RoutingFlagsComposition = RoutingFlagsApplication.makeComposition()
 const routingFlagsImplementation = {
   init: (flags: ServerFlags, url: Url) => ({
     model: { title: `${flags.title}${url.pathname}` },
   }),
-  update: RoutingFlagsComposition.update(model => ({ model })),
-  view: RoutingFlagsComposition.view((model, h) => ({
+  update: RoutingFlagsComposition.makeUpdate(model => ({ model })),
+  view: RoutingFlagsComposition.makeView((model, h) => ({
     title: model.title,
     body: h.main([], [model.title]),
   })),
@@ -150,10 +150,10 @@ const DataApplication = defineApplication({
   Model: RootModel,
   Message: RootMessage,
 })
-const DataComposition = DataApplication.toComposition()
+const DataComposition = DataApplication.makeComposition()
 const dataImplementation = {
   init: () => ({ model: { title: 'data' } }),
-  update: DataComposition.update(model => ({ model })),
+  update: DataComposition.makeUpdate(model => ({ model })),
   EffectsLayer: Layer.empty,
 }
 
@@ -161,11 +161,11 @@ const HtmlApplication = defineApplication({
   Model: RootModel,
   Message: RootMessage,
 })
-const HtmlComposition = HtmlApplication.toComposition()
+const HtmlComposition = HtmlApplication.makeComposition()
 const htmlImplementation = {
   init: () => ({ model: { title: 'html' } }),
-  update: HtmlComposition.update(model => ({ model })),
-  view: HtmlComposition.view((model, h) => h.main([], [model.title])),
+  update: HtmlComposition.makeUpdate(model => ({ model })),
+  view: HtmlComposition.makeView((model, h) => h.main([], [model.title])),
   EffectsLayer: Layer.empty,
 }
 

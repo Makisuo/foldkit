@@ -27,6 +27,7 @@ export {
   update,
   type RenderInfo,
   type ViewInputs,
+  type Completed,
   view,
   block,
 } from './block.js'

@@ -18,7 +18,7 @@ const labelClassName = 'block text-sm font-medium text-gray-700'
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-export const view = UiComposition.view((model, h) => {
+export const view = UiComposition.makeView((model, h) => {
   const countryOptions = (): ReadonlyArray<Html> => [
     h.option([h.Value('us')], ['United States']),
     h.option([h.Value('ca')], ['Canada']),

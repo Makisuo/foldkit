@@ -240,10 +240,10 @@ const selectInitialPolicy = (): true | Readonly<{ args: () => readonly [] }> =>
 // oxfmt-ignore
 Parent.bindChild(childBlock, { field: 'child', parentMessage: ParentMessage.GotChildMessage, init: selectInitialPolicy() })
 
-const UnregisteredComposition = Parent.toComposition()
-UnregisteredComposition.toBlock({
+const UnregisteredComposition = Parent.makeComposition()
+UnregisteredComposition.makeBlock({
   init: initialize,
-  update: UnregisteredComposition.update(model => ({ model })),
+  update: UnregisteredComposition.makeUpdate(model => ({ model })),
   // @ts-expect-error An initializer retains registration evidence for its initialized child graph.
   EffectsLayer: Layer.empty,
 })

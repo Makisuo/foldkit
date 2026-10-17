@@ -12,6 +12,6 @@ export const LoginBinding = LoggedOut.bindChild(Login.block, {
   },
 })
 
-export const LoggedOutComposition = LoggedOut.toComposition({
+export const LoggedOutComposition = LoggedOut.makeComposition({
   childBindings: [LoginBinding],
 })

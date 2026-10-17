@@ -16,7 +16,7 @@ import {
   NOISE_SCALE_STEP,
 } from './constant'
 
-export const init = ApplicationComposition.init(() => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: {
     particles: [],
     nextId: 0,

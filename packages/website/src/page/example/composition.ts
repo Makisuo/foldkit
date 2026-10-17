@@ -34,7 +34,7 @@ export const SourceFileTabsBinding = ExampleDetail.bindChild(SourceFileTabs, {
 
 export const mounts = [ObserveExampleUrlMessages]
 
-export const ExampleDetailComposition = ExampleDetail.toComposition({
+export const ExampleDetailComposition = ExampleDetail.makeComposition({
   childBindings: [SourceFileTabsBinding],
   mounts,
 })

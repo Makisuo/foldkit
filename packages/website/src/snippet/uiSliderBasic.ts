@@ -57,27 +57,27 @@ const SliderBinding = VolumeSlider.bindChild(Slider.block, {
   outMessage: { fold: foldSliderOutMessage },
 })
 
-const VolumeSliderComposition = VolumeSlider.toComposition({
+const VolumeSliderComposition = VolumeSlider.makeComposition({
   childBindings: [SliderBinding],
 })
 
 // In your init function, seed the value (snapped to the range) and initialize
 // the Slider Block with min / max / step and a unique id:
-const init = VolumeSliderComposition.init(() => ({
+const init = VolumeSliderComposition.makeInit(() => ({
   model: {
     ratingValue: SliderSnapAndClamp(3, 0, 10, 1),
     // ...your other fields
   },
 }))
 
-const update = VolumeSliderComposition.update()
+const update = VolumeSliderComposition.makeUpdate()
 
 // Registering `SliderBinding` in `childBindings` also collects both drag Subscriptions.
 
 // Inside your view function, render the slider. You control every element's
 // markup and classes through the `toView` callback. The `attributes` groups
 // provide ARIA, pointer, and keyboard wiring:
-const view = VolumeSliderComposition.view((model, h) => {
+const view = VolumeSliderComposition.makeView((model, h) => {
   const sliderView = (attributes: SliderSliderAttributes) =>
     h.div(
       [h.Class('flex flex-col gap-2 w-full max-w-sm')],

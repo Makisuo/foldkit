@@ -36,13 +36,13 @@ const ReadValue = Child.command('ReadValue', {
   },
 })
 const child = Child.define({ Model: ChildModel, Message: ChildMessage })
-const childComposition = child.toComposition()
-const childBlock = childComposition.toBlock({
+const childComposition = child.makeComposition()
+const childBlock = childComposition.makeBlock({
   init: (label: string) => ({ model: { label }, commands: [ReadValue()] }),
-  update: childComposition.update((model, { value }) => ({
+  update: childComposition.makeUpdate((model, { value }) => ({
     model: modifyFields(model, { label: () => value }),
   })),
-  view: childComposition.view((model, h) => h.span([], [model.label])),
+  view: childComposition.makeView((model, h) => h.span([], [model.label])),
   EffectsLayer: ReadValue.layer,
 })
 
@@ -64,12 +64,12 @@ const RightBinding = Application.bindChild(childBlock, {
   parentMessage: Message.GotRightMessage,
   init: { args: () => ['right'] },
 })
-const composition = Application.toComposition({
+const composition = Application.makeComposition({
   childBindings: [LeftBinding, RightBinding],
 })
-const init = composition.init(() => ({ model: {} }))
-const update = composition.update()
-const view = composition.view((model, h) =>
+const init = composition.makeInit(() => ({ model: {} }))
+const update = composition.makeUpdate()
+const view = composition.makeView((model, h) =>
   h.div(
     [],
     [
@@ -96,13 +96,13 @@ const hostChild = HostChild.define({
   Model: HostChildModel,
   Message: HostChildMessage,
 })
-const hostChildComposition = hostChild.toComposition()
-const unresolvedHostChild = hostChildComposition.toBlock({
+const hostChildComposition = hostChild.makeComposition()
+const unresolvedHostChild = hostChildComposition.makeBlock({
   init: () => ({ model: { value: '' }, commands: [ReadHostValue()] }),
-  update: hostChildComposition.update((model, { value }) => ({
+  update: hostChildComposition.makeUpdate((model, { value }) => ({
     model: modifyFields(model, { value: () => value }),
   })),
-  view: hostChildComposition.view((model, h) => h.span([], [model.value])),
+  view: hostChildComposition.makeView((model, h) => h.span([], [model.value])),
   EffectsLayer: Layer.empty,
   hostHandlers: [ReadHostValue],
 })
@@ -136,21 +136,21 @@ const ResolvedHostBinding = hostParent.bindChild(resolvedHostChild, {
   write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
   parentMessage: HostParentMessage.GotChildMessage,
 })
-const unresolvedHostComposition = hostParent.toComposition({
+const unresolvedHostComposition = hostParent.makeComposition({
   childBindings: [UnresolvedHostBinding],
 })
-const resolvedHostComposition = hostParent.toComposition({
+const resolvedHostComposition = hostParent.makeComposition({
   childBindings: [ResolvedHostBinding],
 })
-const unresolvedHostInit = unresolvedHostComposition.init(() =>
+const unresolvedHostInit = unresolvedHostComposition.makeInit(() =>
   UnresolvedHostBinding.init({ args: [], toParentModel: child => ({ child }) }),
 )
-const resolvedHostInit = resolvedHostComposition.init(() =>
+const resolvedHostInit = resolvedHostComposition.makeInit(() =>
   ResolvedHostBinding.init({ args: [], toParentModel: child => ({ child }) }),
 )
-const unresolvedHostUpdate = unresolvedHostComposition.update()
-const resolvedHostUpdate = resolvedHostComposition.update()
-const unresolvedHostView = unresolvedHostComposition.view((model, h) =>
+const unresolvedHostUpdate = unresolvedHostComposition.makeUpdate()
+const resolvedHostUpdate = resolvedHostComposition.makeUpdate()
+const unresolvedHostView = unresolvedHostComposition.makeView((model, h) =>
   h.div(
     [],
     [
@@ -163,7 +163,7 @@ const unresolvedHostView = unresolvedHostComposition.view((model, h) =>
     ],
   ),
 )
-const resolvedHostView = resolvedHostComposition.view((model, h) =>
+const resolvedHostView = resolvedHostComposition.makeView((model, h) =>
   h.div(
     [],
     [
@@ -208,7 +208,7 @@ describe('registered Application composition completion', () => {
           }),
       ),
     )
-    const application = composition.toElement({
+    const application = composition.makeElement({
       container,
       init,
       update,
@@ -276,10 +276,10 @@ describe('registered Application composition completion', () => {
         },
       }),
     }))
-    const leafComposition = leaf.toComposition()
-    const leafBlock = leafComposition.toBlock({
+    const leafComposition = leaf.makeComposition()
+    const leafBlock = leafComposition.makeBlock({
       init: () => ({ model: { value: 'pending' } }),
-      update: leafComposition.update((model, message) =>
+      update: leafComposition.makeUpdate((model, message) =>
         LeafMessage.match(message, {
           ClickedReadValue: () => ({ model, commands: [ReadLeafValue()] }),
           CompletedReadValue: ({ value }) => ({
@@ -291,7 +291,7 @@ describe('registered Application composition completion', () => {
           FailedAcquireValue: () => ({ model }),
         }),
       ),
-      view: leafComposition.view((model, h) =>
+      view: leafComposition.makeView((model, h) =>
         h.div(
           [],
           [
@@ -327,15 +327,15 @@ describe('registered Application composition completion', () => {
       write: (model, nextLeaf) => modifyFields(model, { leaf: () => nextLeaf }),
       parentMessage: MiddleMessage.GotLeafMessage,
     })
-    const middleComposition = middle.toComposition({
+    const middleComposition = middle.makeComposition({
       childBindings: [LeafBinding],
     })
-    const middleBlock = middleComposition.toBlock({
-      init: middleComposition.init(() =>
+    const middleBlock = middleComposition.makeBlock({
+      init: middleComposition.makeInit(() =>
         LeafBinding.init({ args: [], toParentModel: leaf => ({ leaf }) }),
       ),
-      update: middleComposition.update(),
-      view: middleComposition.view((model, h) =>
+      update: middleComposition.makeUpdate(),
+      view: middleComposition.makeView((model, h) =>
         h.block(
           LeafBinding.embedView({
             slotId: 'nested-leaf',
@@ -360,14 +360,14 @@ describe('registered Application composition completion', () => {
         modifyFields(model, { middle: () => nextMiddle }),
       parentMessage: RootMessage.GotMiddleMessage,
     })
-    const nestedComposition = root.toComposition({
+    const nestedComposition = root.makeComposition({
       childBindings: [MiddleBinding],
     })
-    const nestedInit = nestedComposition.init(() =>
+    const nestedInit = nestedComposition.makeInit(() =>
       MiddleBinding.init({ args: [], toParentModel: middle => ({ middle }) }),
     )
-    const nestedUpdate = nestedComposition.update()
-    const nestedView = nestedComposition.view((model, h) =>
+    const nestedUpdate = nestedComposition.makeUpdate()
+    const nestedView = nestedComposition.makeView((model, h) =>
       h.block(
         MiddleBinding.embedView({
           slotId: 'nested-middle',
@@ -379,7 +379,7 @@ describe('registered Application composition completion', () => {
     container.id = 'nested-command-root'
     document.body.append(container)
     const handle = embed(
-      nestedComposition.toElement({
+      nestedComposition.makeElement({
         container,
         init: nestedInit,
         update: nestedUpdate,
@@ -444,16 +444,16 @@ describe('registered Application composition completion', () => {
       Model: ServiceChildModel,
       Message: ServiceChildMessage,
     })
-    const serviceChildComposition = serviceChild.toComposition()
-    const serviceChildBlock = serviceChildComposition.toBlock({
+    const serviceChildComposition = serviceChild.makeComposition()
+    const serviceChildBlock = serviceChildComposition.makeBlock({
       init: () => ({
         model: { value: 'pending' },
         commands: [ReadSharedValue()],
       }),
-      update: serviceChildComposition.update((model, { value }) => ({
+      update: serviceChildComposition.makeUpdate((model, { value }) => ({
         model: modifyFields(model, { value: () => value }),
       })),
-      view: serviceChildComposition.view((model, h) =>
+      view: serviceChildComposition.makeView((model, h) =>
         h.span([h.Id('service-child-value')], [model.value]),
       ),
       EffectsLayer: ReadSharedValue.layer,
@@ -476,16 +476,16 @@ describe('registered Application composition completion', () => {
         modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
       parentMessage: ServiceRootMessage.GotServiceChildMessage,
     })
-    const serviceComposition = serviceRoot.toComposition({
+    const serviceComposition = serviceRoot.makeComposition({
       childBindings: [ServiceChildBinding],
     })
-    const serviceInit = serviceComposition.init(() =>
+    const serviceInit = serviceComposition.makeInit(() =>
       ServiceChildBinding.init({
         args: [],
         toParentModel: child => ({ maybeChild: Option.some(child) }),
       }),
     )
-    const serviceUpdate = serviceComposition.update((model, message) =>
+    const serviceUpdate = serviceComposition.makeUpdate((model, message) =>
       ServiceRootMessage.match(message, {
         ClickedRemoveServiceChild: () => ({
           model: modifyFields(model, {
@@ -502,7 +502,7 @@ describe('registered Application composition completion', () => {
           }),
       }),
     )
-    const serviceView = serviceComposition.view((model, h) =>
+    const serviceView = serviceComposition.makeView((model, h) =>
       h.div(
         [],
         [
@@ -538,7 +538,7 @@ describe('registered Application composition completion', () => {
     document.body.append(container)
     const handle = embed(
       serviceComposition
-        .toElement({
+        .makeElement({
           container,
           init: serviceInit,
           update: serviceUpdate,
@@ -616,7 +616,9 @@ describe('registered Application composition completion', () => {
       Model: FeatureModel,
       Message: FeatureMessage,
     })
-    const featureComposition = feature.toComposition({ mounts: [ObserveValue] })
+    const featureComposition = feature.makeComposition({
+      mounts: [ObserveValue],
+    })
     const managedResources = feature.managedResources(entry => ({
       value: entry(
         'Value',
@@ -637,10 +639,10 @@ describe('registered Application composition completion', () => {
         },
       ),
     }))
-    const featureBlock = featureComposition.toBlock({
+    const featureBlock = featureComposition.makeBlock({
       init: (label: string) => ({ model: { label } }),
-      update: featureComposition.update(model => ({ model })),
-      view: featureComposition.view((model, h) =>
+      update: featureComposition.makeUpdate(model => ({ model })),
+      view: featureComposition.makeView((model, h) =>
         h.div([h.OnMount(ObserveValue())], [model.label]),
       ),
       managedResources,
@@ -673,7 +675,7 @@ describe('registered Application composition completion', () => {
         modifyFields(model, { right: () => nextRight }),
       toParentMessage: message => RootMessage.GotRight({ message }),
     })
-    const rootComposition = root.toComposition({
+    const rootComposition = root.makeComposition({
       childBindings: [LeftBinding, RightBinding],
     })
     const seen: Array<string> = []
@@ -683,7 +685,7 @@ describe('registered Application composition completion', () => {
         right: featureBlock.init('right').model,
       },
     })
-    const rootUpdate = rootComposition.update((model, message) => {
+    const rootUpdate = rootComposition.makeUpdate((model, message) => {
       if (message.message._tag === 'AcquiredValue') {
         acquisitions += 1
         if (acquisitions === 2) {
@@ -695,7 +697,7 @@ describe('registered Application composition completion', () => {
       }
       return { model }
     })
-    const rootView = rootComposition.view((model, h) =>
+    const rootView = rootComposition.makeView((model, h) =>
       h.div(
         [],
         [
@@ -710,7 +712,7 @@ describe('registered Application composition completion', () => {
     container.id = 'mounted-root'
     document.body.append(container)
     const handle = embed(
-      rootComposition.toElement({
+      rootComposition.makeElement({
         container,
         init: rootInit,
         update: rootUpdate,
@@ -732,7 +734,7 @@ describe('registered Application composition completion', () => {
 })
 
 const checkAssemblyTypes = (container: HTMLElement) => {
-  const application = composition.toElement({
+  const application = composition.makeElement({
     container,
     init,
     update,
@@ -741,8 +743,8 @@ const checkAssemblyTypes = (container: HTMLElement) => {
   })
   // @ts-expect-error Shared Service requirements must be provided before running.
   run(application)
-  // @ts-expect-error ApplicationComposition.toApplication requires a Document view.
-  composition.toApplication({
+  // @ts-expect-error ApplicationComposition.makeApplication requires a Document view.
+  composition.makeApplication({
     container,
     init,
     update,
@@ -751,14 +753,14 @@ const checkAssemblyTypes = (container: HTMLElement) => {
   })
 
   // @ts-expect-error Root completion requires inherited host handlers to be supplied first.
-  unresolvedHostComposition.toElement({
+  unresolvedHostComposition.makeElement({
     container,
     init: unresolvedHostInit,
     update: unresolvedHostUpdate,
     view: unresolvedHostView,
     EffectsLayer: Layer.empty,
   })
-  const hostApplication = resolvedHostComposition.toElement({
+  const hostApplication = resolvedHostComposition.makeElement({
     container,
     init: resolvedHostInit,
     update: resolvedHostUpdate,

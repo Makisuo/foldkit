@@ -4,7 +4,7 @@ import { ApplicationComposition } from './composition'
 import type { Flags } from './flags'
 import { EditingState, Model } from './model'
 
-export const init = ApplicationComposition.init((flags: Flags) => ({
+export const init = ApplicationComposition.makeInit((flags: Flags) => ({
   model: Model.make({
     todos: Option.getOrElse(flags.todos, () => []),
     newTodoText: '',

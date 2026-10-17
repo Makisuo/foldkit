@@ -1,6 +1,10 @@
 import type { Command } from '../command/index.js'
 import type * as Update from '../update/index.js'
-import type { AnyBinding } from './binding.js'
+import type { AnyBinding, RequirementsOfBindings } from './binding.js'
+import type {
+  AnyBindingInitRecipe,
+  BindingInitRecipeReturn,
+} from './initRecipe.js'
 
 /** @internal Carries one Binding's startup assembly contract. */
 declare const InitialBindingEvidenceTypeId: unique symbol
@@ -121,11 +125,15 @@ type InitialRegistration<ChildBindings extends ReadonlyArray<AnyBinding>> =
  * A parent Model transformation applied after initialized child fields have
  * been assembled. Initialization Steps cannot emit an OutMessage.
  */
-export type InitializationStep<Model, Message> = (model: Model) => Readonly<{
-  model: Model
-  commands?: ReadonlyArray<Command<Message, never, any>> | undefined
-  outMessage?: never
-}>
+export type InitializationStep<Model, Message, GraphRequirement = never> = (
+  model: Update.GraphInput<Model, GraphRequirement>,
+) =>
+  | Readonly<{
+      model: Model
+      commands?: ReadonlyArray<Command<Message, never, any>> | undefined
+      outMessage?: never
+    }>
+  | Update.ResultRecipe<Model, Message, never, any, unknown>
 
 type ParentOwnedModel<
   Model,
@@ -180,7 +188,15 @@ export type InitializationPlan<
    * child init Commands. Steps must handle child OutMessages through their
    * Binding policies rather than return an unhandled OutMessage.
    */
-  steps?: ReadonlyArray<InitializationStep<Model, Message>> | undefined
+  steps?:
+    | ReadonlyArray<
+        InitializationStep<
+          Model,
+          Message,
+          RequirementsOfBindings<ChildBindings>
+        >
+      >
+    | undefined
   /**
    * Initializers have no OutMessage receiver. Return parent transitions and
    * Commands directly, or apply Steps whose Binding policies handle them.
@@ -205,6 +221,10 @@ type StepsOf<Output> =
       : never
     : never
 
+type ResolvedInitializationOutput<Output> = Output extends AnyBindingInitRecipe
+  ? BindingInitRecipeReturn<Output>
+  : Output
+
 type CommandRequirements<CommandValue> =
   CommandValue extends Command<any, any, infer Requirements>
     ? Requirements
@@ -219,7 +239,7 @@ type StepReturnOf<Output> =
   StepFunctionOf<Output> extends (
     ...args: ReadonlyArray<never>
   ) => infer StepReturn
-    ? StepReturn
+    ? Update.ResolvedOperationOutput<StepReturn>
     : never
 
 type InitializedModel<
@@ -227,8 +247,10 @@ type InitializedModel<
   ChildBindings extends ReadonlyArray<AnyBinding>,
   Output,
 > = [keyof InitialFields<ChildBindings>] extends [never]
-  ? [StepsOf<Output>] extends [never]
-    ? Output extends Readonly<{ model: infer ParentModel }>
+  ? [StepsOf<ResolvedInitializationOutput<Output>>] extends [never]
+    ? ResolvedInitializationOutput<Output> extends Readonly<{
+        model: infer ParentModel
+      }>
       ? ParentModel
       : never
     : Model
@@ -248,12 +270,16 @@ export type InitializationReturn<
     InitializedModel<Model, ChildBindings, Output>,
     Message,
     | InitialRequirements<ChildBindings>
-    | CommandRequirements<CommandsOf<Output>>
-    | Update.RequirementsOf<StepFunctionOf<Output>>
+    | CommandRequirements<CommandsOf<ResolvedInitializationOutput<Output>>>
+    | Update.RequirementsOf<
+        StepFunctionOf<ResolvedInitializationOutput<Output>>
+      >
   >,
   | InitialRegistration<ChildBindings>
-  | Update.RegistrationEvidenceOf<Output>
-  | Update.RegistrationEvidenceOf<StepReturnOf<Output>>
+  | Update.RegistrationEvidenceOf<ResolvedInitializationOutput<Output>>
+  | Update.RegistrationEvidenceOf<
+      StepReturnOf<ResolvedInitializationOutput<Output>>
+    >
 >
 
 type FunctionArguments<FunctionValue> = FunctionValue extends (
@@ -300,7 +326,9 @@ export interface CompositionInit<
   <
     const Init extends (
       ...args: ReadonlyArray<never>
-    ) => InitializationPlan<Model, Message, ChildBindings>,
+    ) =>
+      | InitializationPlan<Model, Message, ChildBindings>
+      | AnyBindingInitRecipe,
     const Validation extends ValidateSingleInitSignature<NoInfer<Init>> =
       ValidateSingleInitSignature<NoInfer<Init>>,
   >(

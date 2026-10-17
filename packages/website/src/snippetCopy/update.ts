@@ -5,7 +5,7 @@ import { SnippetCopyComposition } from './definition'
 import { SnippetCopy } from './definition'
 import { Message } from './message'
 
-export const update = SnippetCopyComposition.update((model, message) =>
+export const update = SnippetCopyComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedCopySnippet: ({ snippetId, text }) => ({
       model,

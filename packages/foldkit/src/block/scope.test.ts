@@ -42,12 +42,12 @@ const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
     },
   })
   const feature = Feature.define({ Model: Schema.Struct({}), Message })
-  const composition = feature.toComposition()
-  const update = composition.update(model => ({
+  const composition = feature.makeComposition()
+  const update = composition.makeUpdate(model => ({
     model,
     commands: [ReadValue()],
   }))
-  const block = composition.toBlock({
+  const block = composition.makeBlock({
     init: () => ({ model: {} }),
     update,
     EffectsLayer: ReadValue.layer,
@@ -85,15 +85,18 @@ describe('Block capability contexts', () => {
     })
     const LeftBinding = feature.bind('Left')
     const RightBinding = feature.bind('Right')
+    const composition = ScopeParent.makeComposition({
+      childBindings: [LeftBinding, RightBinding],
+    })
+    const foldLeft = composition.makeUpdate((model, message) =>
+      LeftBinding.fold(model, message),
+    )
+    const foldRight = composition.makeUpdate((model, message) =>
+      RightBinding.fold(model, message),
+    )
     const model = { child: {} }
-    const leftCommand = LeftBinding.fold(
-      model,
-      Message.RequestedValue(),
-    ).commands!
-    const rightCommand = RightBinding.fold(
-      model,
-      Message.RequestedValue(),
-    ).commands!
+    const leftCommand = foldLeft(model, Message.RequestedValue()).commands!
+    const rightCommand = foldRight(model, Message.RequestedValue()).commands!
     const layer = Layer.merge(
       inspectBinding(LeftBinding).EffectsLayer,
       inspectBinding(RightBinding).EffectsLayer,
@@ -148,13 +151,22 @@ describe('Block capability contexts', () => {
       write: (_model, nextChild) => nextChild,
       toParentMessage: message => message,
     })
+    const composition = ScopeParent.makeComposition({
+      childBindings: [LeftBinding, RightBinding],
+    })
+    const foldLeft = composition.makeUpdate((model, message) =>
+      LeftBinding.fold(model, message),
+    )
+    const foldRight = composition.makeUpdate((model, message) =>
+      RightBinding.fold(model, message),
+    )
     const layer = Layer.merge(
       inspectBinding(LeftBinding).EffectsLayer,
       inspectBinding(RightBinding).EffectsLayer,
     )
     const commands = [
-      ...(LeftBinding.fold({}, Message.RequestedValue()).commands ?? []),
-      ...(RightBinding.fold({}, Message.RequestedValue()).commands ?? []),
+      ...(foldLeft({}, Message.RequestedValue()).commands ?? []),
+      ...(foldRight({}, Message.RequestedValue()).commands ?? []),
     ]
 
     const results = await Effect.runPromise(
@@ -196,8 +208,13 @@ describe('Block capability contexts', () => {
       write: (_model, nextChild) => nextChild,
       toParentMessage: message => message,
     })
-    const commands =
-      SelectedBinding.fold({}, Message.RequestedValue()).commands ?? []
+    const composition = ScopeParent.makeComposition({
+      childBindings: [SelectedBinding],
+    })
+    const foldSelected = composition.makeUpdate((model, message) =>
+      SelectedBinding.fold(model, message),
+    )
+    const commands = foldSelected({}, Message.RequestedValue()).commands ?? []
     const result = await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {

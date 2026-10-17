@@ -1,4 +1,4 @@
-const view = ApplicationComposition.view((model, h) => ({
+const view = ApplicationComposition.makeView((model, h) => ({
   title: `Counter: ${model.count}`,
   body: h.div(
     [h.Class(containerStyle)],

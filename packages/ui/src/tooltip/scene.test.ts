@@ -31,11 +31,11 @@ const TooltipBinding = TooltipScene.bindChild(block, {
   outMessage: { fold: foldTooltipOutMessage },
 })
 
-const TooltipSceneComposition = TooltipScene.toComposition({
+const TooltipSceneComposition = TooltipScene.makeComposition({
   childBindings: [TooltipBinding],
 })
 
-const update = TooltipSceneComposition.update((model, message) =>
+const update = TooltipSceneComposition.makeUpdate((model, message) =>
   TooltipBinding.fold(model, message),
 )
 
@@ -50,7 +50,7 @@ type ViewInputs = Readonly<{
   ariaLabelledBy?: string
 }>
 
-const rootView = TooltipSceneComposition.view.withInputs<ViewInputs>(
+const rootView = TooltipSceneComposition.makeView.withInputs<ViewInputs>(
   (model, overrides, h) =>
     h.block(
       TooltipBinding.embedView({

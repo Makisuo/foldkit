@@ -5,10 +5,12 @@ import { init } from './model'
 import { update } from './update'
 import { view } from './view'
 
-export const block = LoggedInComposition.toBlock({
-  init: LoggedInComposition.init((route: LoggedInRoute, session: Session) => ({
-    model: init(route, session),
-  })),
+export const block = LoggedInComposition.makeBlock({
+  init: LoggedInComposition.makeInit(
+    (route: LoggedInRoute, session: Session) => ({
+      model: init(route, session),
+    }),
+  ),
   update,
   view,
 })

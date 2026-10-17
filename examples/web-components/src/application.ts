@@ -27,7 +27,7 @@ export type Message = typeof Message.Type
 
 export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.toComposition()
+export const ApplicationComposition = Application.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
@@ -36,7 +36,7 @@ const DEFAULT_CONTENT = 'https://foldkit.dev'
 const DEFAULT_FILL_COLOR = '#1e1b4b'
 const DEFAULT_BACKGROUND_COLOR = '#fef3c7'
 
-export const init = ApplicationComposition.init(() => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: {
     content: DEFAULT_CONTENT,
     fillColor: DEFAULT_FILL_COLOR,
@@ -44,7 +44,7 @@ export const init = ApplicationComposition.init(() => ({
   },
 }))
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     UpdatedContent: ({ value }) => ({
       model: modifyFields(model, { content: () => value }),
@@ -83,7 +83,7 @@ const qrCode = CustomElement.define({
   events: {},
 })
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'Foldkit QR Designer',
   body: h.div(
     [

@@ -16,15 +16,15 @@ const ObserveLeaf = MountCapabilityLeaf.mount('ObserveLeaf', {
     return () => Effect.succeed(LeafMessage.CompletedObserveLeaf())
   },
 })
-const leafRegistered = MountCapabilityLeaf.toComposition({
+const leafRegistered = MountCapabilityLeaf.makeComposition({
   mounts: [ObserveLeaf],
 })
-const leafView = leafRegistered.view((model, h) =>
+const leafView = leafRegistered.makeView((model, h) =>
   h.div([h.OnMount(ObserveLeaf())], [globalThis.String(model.count)]),
 )
-const leafBlock = leafRegistered.toBlock({
+const leafBlock = leafRegistered.makeBlock({
   init: () => ({ model: LeafModel.make({ count: 0 }) }),
-  update: leafRegistered.update(model => ({ model })),
+  update: leafRegistered.makeUpdate(model => ({ model })),
   view: leafView,
   EffectsLayer: ObserveLeaf.layer,
 })
@@ -42,11 +42,11 @@ const LeafBinding = MountCapabilityMiddle.bindChild(leafBlock, {
   parentMessage: MiddleMessage.GotLeafMessage,
   init: false,
 })
-const middleRegistered = MountCapabilityMiddle.toComposition({
+const middleRegistered = MountCapabilityMiddle.makeComposition({
   childBindings: [LeafBinding],
 })
-const middleGraphless = MountCapabilityMiddle.toComposition()
-const middleView = middleRegistered.view((model, h) =>
+const middleGraphless = MountCapabilityMiddle.makeComposition()
+const middleView = middleRegistered.makeView((model, h) =>
   h.block(
     LeafBinding.embedView({
       slotId: 'leaf',
@@ -54,14 +54,14 @@ const middleView = middleRegistered.view((model, h) =>
     }),
   ),
 )
-const middleBlock = middleRegistered.toBlock({
-  init: middleRegistered.init(() =>
+const middleBlock = middleRegistered.makeBlock({
+  init: middleRegistered.makeInit(() =>
     LeafBinding.init({
       args: [],
       toParentModel: leaf => MiddleModel.make({ leaf }),
     }),
   ),
-  update: middleRegistered.update(),
+  update: middleRegistered.makeUpdate(),
   view: middleView,
 })
 
@@ -78,11 +78,11 @@ const MiddleBinding = MountCapabilityRoot.bindChild(middleBlock, {
   parentMessage: RootMessage.GotMiddleMessage,
   init: false,
 })
-const rootRegistered = MountCapabilityRoot.toComposition({
+const rootRegistered = MountCapabilityRoot.makeComposition({
   childBindings: [MiddleBinding],
 })
-const rootGraphless = MountCapabilityRoot.toComposition()
-const rootView = rootRegistered.view((model, h) =>
+const rootGraphless = MountCapabilityRoot.makeComposition()
+const rootView = rootRegistered.makeView((model, h) =>
   h.block(
     MiddleBinding.embedView({
       slotId: 'middle',
@@ -90,14 +90,14 @@ const rootView = rootRegistered.view((model, h) =>
     }),
   ),
 )
-const rootBlock = rootRegistered.toBlock({
-  init: rootRegistered.init(() =>
+const rootBlock = rootRegistered.makeBlock({
+  init: rootRegistered.makeInit(() =>
     MiddleBinding.init({
       args: [],
       toParentModel: middle => RootModel.make({ middle }),
     }),
   ),
-  update: rootRegistered.update(),
+  update: rootRegistered.makeUpdate(),
   view: rootView,
 })
 
@@ -111,14 +111,14 @@ const ObserveSibling = MountCapabilitySibling.mount('ObserveSibling', {
 })
 
 if (false) {
-  middleGraphless.view((model, h) =>
+  middleGraphless.makeView((model, h) =>
     h.block(
       // @ts-expect-error The leaf binding is absent from this graph.
       LeafBinding.embedView({ slotId: 'omitted-leaf', model: model.leaf }),
     ),
   )
 
-  rootGraphless.view((model, h) =>
+  rootGraphless.makeView((model, h) =>
     h.block(
       // @ts-expect-error The nested middle binding is absent from this graph.
       MiddleBinding.embedView({
@@ -128,7 +128,7 @@ if (false) {
     ),
   )
 
-  middleRegistered.view((_model, h) =>
+  middleRegistered.makeView((_model, h) =>
     h.div([
       // @ts-expect-error A sibling Mount is not a capability of the child graph.
       h.OnMount(ObserveSibling()),

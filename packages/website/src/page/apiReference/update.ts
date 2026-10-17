@@ -64,7 +64,7 @@ export const informRouteChanged = ApiReference.step(model =>
   ),
 )
 
-export const update = ApiReferenceComposition.update((model, message) =>
+export const update = ApiReferenceComposition.makeUpdate((model, message) =>
   Message.match(message, {
     SucceededLoadApiData: ({ apiData }) => ({
       model: modifyFields(model, {

@@ -26,7 +26,7 @@ const initialVirtualListChatMessages: ReadonlyArray<VirtualListChatMessage> =
     isExpanded: index % 7 === 0,
   }))
 
-export const init = UiComposition.init((today: Calendar.CalendarDate) => ({
+export const init = UiComposition.makeInit((today: Calendar.CalendarDate) => ({
   startup: today,
   model: {
     buttonClickCount: 0,

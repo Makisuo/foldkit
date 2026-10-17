@@ -63,18 +63,18 @@ const RadioGroupBinding = RadioGroupScene.bindChild(TestRadioGroup, {
   outMessage: { fold: foldRadioGroupOutMessage },
 })
 
-const RadioGroupSceneComposition = RadioGroupScene.toComposition({
+const RadioGroupSceneComposition = RadioGroupScene.makeComposition({
   childBindings: [RadioGroupBinding],
 })
 
-const update = RadioGroupSceneComposition.update()
+const update = RadioGroupSceneComposition.makeUpdate()
 
 type Overrides = Omit<
   Partial<ViewInputs>,
   'options' | 'selectedValue' | 'ariaLabel' | 'toView'
 >
 
-const rootView = RadioGroupSceneComposition.view.withInputs<Overrides>(
+const rootView = RadioGroupSceneComposition.makeView.withInputs<Overrides>(
   (model, overrides, h) =>
     h.block(
       RadioGroupBinding.embedView({

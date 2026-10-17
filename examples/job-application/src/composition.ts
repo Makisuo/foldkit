@@ -96,7 +96,7 @@ export const StepTabsBinding = Application.bindChild(StepTabs, {
   init: { args: () => [{ id: 'step-tabs' }] },
 })
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [
     PersonalInfoBinding,
     WorkHistoryBinding,

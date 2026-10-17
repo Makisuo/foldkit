@@ -13,7 +13,7 @@ import {
   childViewHelper,
 } from './plain-view-helper.accepted.js'
 
-const OmittedParentComposition = DeclarationViewHelperParent.toComposition()
+const OmittedParentComposition = DeclarationViewHelperParent.makeComposition()
 type OmittedParentViewBuilder = Block.ViewBuilderFor<
   typeof OmittedParentComposition
 >
@@ -44,11 +44,13 @@ const helperWithForeignMessage = (h: OmittedParentViewBuilder) =>
 // @ts-expect-error Composition no longer carries a render helper.
 OmittedParentComposition.render
 
-DeclarationViewHelperChildComposition.toBlock({
-  init: DeclarationViewHelperChildComposition.init(() => ({
+DeclarationViewHelperChildComposition.makeBlock({
+  init: DeclarationViewHelperChildComposition.makeInit(() => ({
     model: ChildModel.make({ value: 'initial' }),
   })),
-  update: DeclarationViewHelperChildComposition.update(model => ({ model })),
+  update: DeclarationViewHelperChildComposition.makeUpdate(model => ({
+    model,
+  })),
   // @ts-expect-error A plain view helper cannot complete a Block as its branded view.
   view: childViewHelper,
   EffectsLayer: Layer.empty,
@@ -56,7 +58,7 @@ DeclarationViewHelperChildComposition.toBlock({
 
 const invalidOutputHelper = (_model: typeof ChildModel.Type) => 'text'
 
-DeclarationViewHelperChildComposition.view((model, _h) =>
+DeclarationViewHelperChildComposition.makeView((model, _h) =>
   // @ts-expect-error A canonical view must return Html rather than arbitrary helper output.
   invalidOutputHelper(model),
 )
@@ -65,7 +67,7 @@ const Application = defineApplication({
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ApplicationComposition = Application.toComposition()
+const ApplicationComposition = Application.makeComposition()
 type OmittedApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
@@ -93,14 +95,14 @@ const applicationHelperWithOmittedMount = (h: OmittedApplicationViewBuilder) =>
 ApplicationComposition.render
 
 // @ts-expect-error A plain view helper cannot complete an Application as its branded view.
-ApplicationComposition.toElement({
+ApplicationComposition.makeElement({
   container: null,
-  init: ApplicationComposition.init(() => ({
+  init: ApplicationComposition.makeInit(() => ({
     model: ParentModel.make({
       child: ChildModel.make({ value: 'initial' }),
     }),
   })),
-  update: ApplicationComposition.update(model => ({ model })),
+  update: ApplicationComposition.makeUpdate(model => ({ model })),
   view: applicationViewHelper,
 })
 

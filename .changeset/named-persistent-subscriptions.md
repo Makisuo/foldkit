@@ -48,9 +48,9 @@ const subscriptions = Feature.subscriptions(entry => ({
 }))
 
 const EffectsLayer = subscriptions.animationFrameTicks.layer
-const FeatureComposition = Feature.toComposition()
+const FeatureComposition = Feature.makeComposition()
 
-export const block = FeatureComposition.toBlock({
+export const block = FeatureComposition.makeBlock({
   init,
   update,
   view,
@@ -93,9 +93,9 @@ const subscriptions = Feature.subscriptions(entry => ({
 }))
 
 const EffectsLayer = subscriptions.hostStep.layer
-const FeatureComposition = Feature.toComposition()
+const FeatureComposition = Feature.makeComposition()
 
-export const block = FeatureComposition.toBlock({
+export const block = FeatureComposition.makeBlock({
   init,
   update,
   view,

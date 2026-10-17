@@ -28,5 +28,6 @@ export {
   type RenderInfo,
   type ViewInputs,
   view,
+  type Completed,
   block,
 } from './block.js'

@@ -12,6 +12,6 @@ export const SecondaryComposerBinding = Chat.bindChild(Composer.block, {
   parentMessage: Message.GotSecondaryComposerMessage,
 })
 
-export const ChatComposition = Chat.toComposition({
+export const ChatComposition = Chat.makeComposition({
   childBindings: [PrimaryComposerBinding, SecondaryComposerBinding],
 })

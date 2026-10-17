@@ -44,18 +44,18 @@ const DialogBinding = DialogExample.bindChild(Dialog.block, {
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const DialogExampleComposition = DialogExample.toComposition({
+const DialogExampleComposition = DialogExample.makeComposition({
   childBindings: [DialogBinding],
 })
 
 // In your init function, initialize the Dialog Block with a unique id:
-const init = DialogExampleComposition.init(() => ({
+const init = DialogExampleComposition.makeInit(() => ({
   model: {
     // ...your other fields
   },
 }))
 
-const update = DialogExampleComposition.update((model, message) =>
+const update = DialogExampleComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedOpenDialog: () => DialogBinding.open()(model),
   }),
@@ -63,7 +63,7 @@ const update = DialogExampleComposition.update((model, message) =>
 
 // In your view, open from a trigger with the fact, and dismiss from a Cancel
 // button by spreading the `closeButton` bundle, no parent message needed:
-const view = DialogExampleComposition.view((model, h) => {
+const view = DialogExampleComposition.makeView((model, h) => {
   const dialogView = ({
     dialog,
     backdrop,

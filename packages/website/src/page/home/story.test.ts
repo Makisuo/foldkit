@@ -33,12 +33,12 @@ describe('home', () => {
         Message.GotDemoTabsMessage({
           message: Tabs.Message.SelectedTab({
             index: 0,
-            value: 'Architecture',
+            value: 'AsyncCounter',
           }),
         }),
       ),
       model(model => {
-        expect(model.activeDemoTab).toBe('Architecture')
+        expect(model.activeDemoTab).toBe('AsyncCounter')
         expect(model.asyncCounterDemo).toBe(initialModel.asyncCounterDemo)
         expect(model.notePlayerDemo).toBe(initialModel.notePlayerDemo)
       }),

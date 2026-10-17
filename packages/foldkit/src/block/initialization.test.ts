@@ -7,6 +7,7 @@ import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
 import { define } from './define.js'
 import type { InitializationPlan } from './initialization.js'
+import { assertRegisteredBinding } from './operationGraph.js'
 
 class ChildClient extends Context.Service<
   ChildClient,
@@ -61,16 +62,16 @@ const increment = Child.step(model => {
     commands: [FinishIncrement()],
   }
 })
-const ChildComposition = Child.toComposition()
-const ChildBlock = ChildComposition.toBlock({
-  init: ChildComposition.init((count: number) => {
+const ChildComposition = Child.makeComposition()
+const ChildBlock = ChildComposition.makeBlock({
+  init: ChildComposition.makeInit((count: number) => {
     calls.push(`child-init-${count}`)
     return {
       model: ChildModel.make({ count }),
       commands: [FinishChildInitialization({ count })],
     }
   }),
-  update: ChildComposition.update((model, message) =>
+  update: ChildComposition.makeUpdate((model, message) =>
     ChildMessage.match(message, {
       CompletedInitialization: ({ count }) => ({
         model: modifyFields(model, { count: () => count }),
@@ -147,7 +148,7 @@ const SecondBinding = Parent.bindChild(ChildBlock, {
     },
   },
 })
-const ParentComposition = Parent.toComposition({
+const ParentComposition = Parent.makeComposition({
   childBindings: [FirstBinding, SecondBinding],
 })
 const finishParentStep = Parent.step(model => {
@@ -158,7 +159,7 @@ const finishParentStep = Parent.step(model => {
   }
 })
 
-const init = ParentComposition.init(
+const init = ParentComposition.makeInit(
   (firstCount: number, maybeSecondCount: Option.Option<number>) => {
     calls.push('plan')
     return {
@@ -250,14 +251,14 @@ it('stays passive, initializes in Binding order, applies Steps sequentially, and
 })
 
 it('skips an optional child and drops its init Commands after a Step removes it', () => {
-  const initializeAbsent = ParentComposition.init(() => ({
+  const initializeAbsent = ParentComposition.makeInit(() => ({
     startup: {
       firstCount: 3,
       maybeSecondCount: Option.none<number>(),
     },
     model: { status: 'Ready' },
   }))
-  const initializeThenRemove = ParentComposition.init(() => ({
+  const initializeThenRemove = ParentComposition.makeInit(() => ({
     startup: {
       firstCount: 3,
       maybeSecondCount: Option.some(4),
@@ -287,8 +288,8 @@ it('preserves default and rest parameters for a graphless Composition', () => {
     Model: PlainModel,
     Message: Schema.Never,
   })
-  const PlainComposition = Plain.toComposition()
-  const plainInit = PlainComposition.init(
+  const PlainComposition = Plain.makeComposition()
+  const plainInit = PlainComposition.makeInit(
     (count = 0, ...increments: ReadonlyArray<number>) => ({
       model: {
         count: increments.reduce(
@@ -298,7 +299,7 @@ it('preserves default and rest parameters for a graphless Composition', () => {
       },
     }),
   )
-  const restInit = PlainComposition.init(
+  const restInit = PlainComposition.makeInit(
     (...increments: ReadonlyArray<number>) => ({
       model: {
         count: increments.reduce((total, increment) => total + increment, 0),
@@ -319,8 +320,8 @@ it('preserves primitive and tagged union Models for graphless Compositions', () 
     Model: Schema.String,
     Message: Schema.Never,
   })
-  const TextComposition = Text.toComposition()
-  const initializeText = TextComposition.init(() => ({ model: 'ready' }))
+  const TextComposition = Text.makeComposition()
+  const initializeText = TextComposition.makeInit(() => ({ model: 'ready' }))
   const SessionModel = Schema.Union([
     Schema.TaggedStruct('SignedOut', {}),
     Schema.TaggedStruct('SignedIn', { username: Schema.String }),
@@ -329,8 +330,8 @@ it('preserves primitive and tagged union Models for graphless Compositions', () 
     Model: SessionModel,
     Message: Schema.Never,
   })
-  const SessionComposition = Session.toComposition()
-  const initializeSession = SessionComposition.init((username: string) => ({
+  const SessionComposition = Session.makeComposition()
+  const initializeSession = SessionComposition.makeInit((username: string) => ({
     model: { _tag: 'SignedIn', username },
   }))
 
@@ -357,11 +358,11 @@ it('preserves literals without Steps and widens initializers that can apply Step
     Model: ChoiceModel,
     Message: Schema.Never,
   })
-  const ChoiceComposition = Choice.toComposition()
-  const withoutSteps = ChoiceComposition.init(() => ({
+  const ChoiceComposition = Choice.makeComposition()
+  const withoutSteps = ChoiceComposition.makeInit(() => ({
     model: { choice: 'One' },
   }))
-  const withOptionalSteps = ChoiceComposition.init(
+  const withOptionalSteps = ChoiceComposition.makeInit(
     (step?: Update.Step<ChoiceModel, never>) => ({
       model: { choice: 'One' },
       steps: step === undefined ? undefined : [step],
@@ -382,7 +383,7 @@ it('preserves literals without Steps and widens initializers that can apply Step
 })
 
 it('rejects parent-owned values for child-initialized fields before child init', () => {
-  const unsafeInit = Reflect.apply(ParentComposition.init, undefined, [
+  const unsafeInit = Reflect.apply(ParentComposition.makeInit, undefined, [
     () => ({
       startup: {
         firstCount: 1,
@@ -395,7 +396,7 @@ it('rejects parent-owned values for child-initialized fields before child init',
     }),
   ])
   if (!Predicate.isFunction(unsafeInit)) {
-    throw new Error('Expected Composition.init to return an initializer.')
+    throw new Error('Expected Composition.makeInit to return an initializer.')
   }
 
   calls.splice(0)
@@ -406,7 +407,7 @@ it('rejects parent-owned values for child-initialized fields before child init',
 })
 
 it('rejects OutMessages from unsafe initialization plans and Steps', () => {
-  const unsafePlanInit = Reflect.apply(ParentComposition.init, undefined, [
+  const unsafePlanInit = Reflect.apply(ParentComposition.makeInit, undefined, [
     () => ({
       startup: {
         firstCount: 1,
@@ -416,7 +417,7 @@ it('rejects OutMessages from unsafe initialization plans and Steps', () => {
       outMessage: { _tag: 'IgnoredPlanOutMessage' },
     }),
   ])
-  const unsafeStepInit = Reflect.apply(ParentComposition.init, undefined, [
+  const unsafeStepInit = Reflect.apply(ParentComposition.makeInit, undefined, [
     () => ({
       startup: {
         firstCount: 1,
@@ -435,14 +436,14 @@ it('rejects OutMessages from unsafe initialization plans and Steps', () => {
     !Predicate.isFunction(unsafePlanInit) ||
     !Predicate.isFunction(unsafeStepInit)
   ) {
-    throw new Error('Expected Composition.init to return initializers.')
+    throw new Error('Expected Composition.makeInit to return initializers.')
   }
 
   expect(() => Reflect.apply(unsafePlanInit, undefined, [])).toThrow(
-    'Composition.init callback cannot return an OutMessage',
+    'Composition.makeInit callback cannot return an OutMessage',
   )
   expect(() => Reflect.apply(unsafeStepInit, undefined, [])).toThrow(
-    'Composition.init Step cannot return an OutMessage',
+    'Composition.makeInit Step cannot return an OutMessage',
   )
 })
 
@@ -468,10 +469,10 @@ it('initializes a projected accessor child and verifies Schema reconstruction', 
       model: second => ({ second }),
     },
   })
-  const AccessorComposition = AccessorParent.toComposition({
+  const AccessorComposition = AccessorParent.makeComposition({
     childBindings: [AccessorBinding],
   })
-  const initializeAccessor = AccessorComposition.init(() => ({
+  const initializeAccessor = AccessorComposition.makeInit(() => ({
     model: {
       first: ChildModel.make({ count: 1 }),
       selected: 'Second',
@@ -506,10 +507,10 @@ it('rejects a projected field that the accessor does not select', () => {
       model: second => ({ second }),
     },
   })
-  const InvalidAccessorComposition = AccessorParent.toComposition({
+  const InvalidAccessorComposition = AccessorParent.makeComposition({
     childBindings: [InvalidAccessorBinding],
   })
-  const initializeInvalidAccessor = InvalidAccessorComposition.init(() => ({
+  const initializeInvalidAccessor = InvalidAccessorComposition.makeInit(() => ({
     model: { first: ChildModel.make({ count: 7 }) },
   }))
 
@@ -537,15 +538,13 @@ it('runs initialization callbacks and Steps under the exact registered operation
     parentMessage: ParentMessage.GotFirstMessage,
     init: {
       args: () => {
-        ForeignBinding.init({
-          args: [1],
-          toParentModel: toForeignParentModel,
-        })
+        assertRegisteredBinding(SelectorBinding, 'selectorFirst')
+        assertRegisteredBinding(ForeignBinding, 'foreignFirst')
         return single(1)
       },
     },
   })
-  const SelectorComposition = Parent.toComposition({
+  const SelectorComposition = Parent.makeComposition({
     childBindings: [SelectorBinding],
   })
   const ProjectedParentModel = Schema.Struct({
@@ -573,45 +572,45 @@ it('runs initialization callbacks and Steps under the exact registered operation
     init: {
       args: () => single(1),
       model: second => {
-        ForeignProjectedBinding.init({
-          args: [1],
-          toParentModel: first => ProjectedParentModel.make({ first, second }),
-        })
+        assertRegisteredBinding(ProjectedBinding, 'projectedSecond')
+        assertRegisteredBinding(
+          ForeignProjectedBinding,
+          'foreignProjectedFirst',
+        )
         return { second }
       },
     },
   })
-  const ProjectedComposition = ProjectedParent.toComposition({
+  const ProjectedComposition = ProjectedParent.makeComposition({
     childBindings: [ProjectedBinding],
   })
-  const initializeWithForeignStep = ParentComposition.init(() => ({
+  const initializeWithForeignStep = ParentComposition.makeInit(() => ({
     startup: {
       firstCount: 1,
       maybeSecondCount: Option.none<number>(),
     },
     model: { status: 'Ready' },
+    // @ts-expect-error A startup Step requires its exact registered Binding.
     steps: [ForeignBinding.increment()],
   }))
-  const initializeWithForeignInit = ParentComposition.init(() => {
-    ForeignBinding.init({
-      args: [1],
-      toParentModel: toForeignParentModel,
-    })
-    return {
-      startup: {
-        firstCount: 1,
-        maybeSecondCount: Option.none<number>(),
-      },
-      model: { status: 'Ready' },
-    }
-  })
-  const initializeWithForeignSelector = SelectorComposition.init(() => ({
+  const initializeWithForeignInit = Reflect.apply(
+    ParentComposition.makeInit,
+    undefined,
+    [
+      () =>
+        ForeignBinding.init({
+          args: [1],
+          toParentModel: toForeignParentModel,
+        }),
+    ],
+  )
+  const initializeWithForeignSelector = SelectorComposition.makeInit(() => ({
     model: {
       maybeSecond: Option.none(),
       status: 'Ready',
     },
   }))
-  const initializeWithForeignProjection = ProjectedComposition.init(() => ({
+  const initializeWithForeignProjection = ProjectedComposition.makeInit(() => ({
     model: { first: ChildModel.make({ count: 0 }) },
   }))
 
@@ -631,15 +630,15 @@ it('runs initialization callbacks and Steps under the exact registered operation
 
 if (false) {
   // @ts-expect-error Child-dependent startup selectors require shared startup.
-  ParentComposition.init(() => ({ model: { status: 'Ready' } }))
+  ParentComposition.makeInit(() => ({ model: { status: 'Ready' } }))
 
-  ParentComposition.init(() => ({
+  ParentComposition.makeInit(() => ({
     startup: { firstCount: 1, maybeSecondCount: Option.none<number>() },
     // @ts-expect-error Initialized child fields are owned by the Composition.
     model: { first: ChildModel.make({ count: 1 }), status: 'Ready' },
   }))
 
-  ParentComposition.init(() => ({
+  ParentComposition.makeInit(() => ({
     startup: { firstCount: 1, maybeSecondCount: Option.none<number>() },
     model: { status: 'Ready' },
     // @ts-expect-error Startup Steps cannot emit an OutMessage.
@@ -661,7 +660,7 @@ if (false) {
   }
 
   // @ts-expect-error Composition initializers require a plain function with one concrete call signature.
-  Parent.toComposition().init(overloadedInit)
+  Parent.makeComposition().makeInit(overloadedInit)
 
   const genericInit = <Value extends number>(value: Value) => ({
     model: ParentModel.make({
@@ -691,11 +690,11 @@ if (false) {
   })
 
   // @ts-expect-error Composition initializers require a plain function with one concrete call signature.
-  Parent.toComposition().init(genericInit)
+  Parent.makeComposition().makeInit(genericInit)
   // @ts-expect-error Composition initializers require a plain function with one concrete call signature.
-  Parent.toComposition().init(callableMetadataInit)
+  Parent.makeComposition().makeInit(callableMetadataInit)
   // @ts-expect-error Optional callable metadata still requires a plain adapter callback.
-  Parent.toComposition().init(optionalMetadataInit)
+  Parent.makeComposition().makeInit(optionalMetadataInit)
 
   type NeverRestPlan = InitializationPlan<
     ParentModel,
@@ -749,13 +748,13 @@ if (false) {
   })
 
   // @ts-expect-error Callable metadata cannot use the uninferred signature sentinel.
-  Parent.toComposition().init(neverRestMetadataInit)
+  Parent.makeComposition().makeInit(neverRestMetadataInit)
   // @ts-expect-error A never-rest function is not callable by consumers.
-  Parent.toComposition().init(neverRestInit)
+  Parent.makeComposition().makeInit(neverRestInit)
   // @ts-expect-error Earlier overloads cannot use the uninferred signature sentinel.
-  Parent.toComposition().init(neverRestOverloadedInit)
+  Parent.makeComposition().makeInit(neverRestOverloadedInit)
   // @ts-expect-error A never-rest generic is not callable by consumers.
-  Parent.toComposition().init(neverRestGenericInit)
+  Parent.makeComposition().makeInit(neverRestGenericInit)
 }
 
 it('omits startup when every child selector has no input', () => {
@@ -773,10 +772,11 @@ it('omits startup when every child selector has no input', () => {
     parentMessage: ParentMessage.GotSecondMessage,
     init: { args: () => Option.some([4]) },
   })
-  const ConstantStartupParentComposition = ConstantStartupParent.toComposition({
-    childBindings: [FirstBinding, SecondBinding],
-  })
-  const init = ConstantStartupParentComposition.init(() => ({
+  const ConstantStartupParentComposition =
+    ConstantStartupParent.makeComposition({
+      childBindings: [FirstBinding, SecondBinding],
+    })
+  const init = ConstantStartupParentComposition.makeInit(() => ({
     model: { status: 'Ready' },
   }))
   const parentInit = init()

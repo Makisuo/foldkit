@@ -13,6 +13,7 @@ import {
   KeyedReciprocalApplication,
   LeftHomeBinding,
   LeftKeyedHomeBinding,
+  NestedPolicy,
   RightHomeBinding,
   RightKeyedHomeBinding,
   RoomBinding,
@@ -32,13 +33,35 @@ type Equal<Left, Right> =
       : false
     : false
 type Expect<Value extends true> = Value
-type ReturnOutMessage<Output> = Output extends unknown
-  ? 'outMessage' extends keyof Output
-    ? Output extends Readonly<{ outMessage?: infer OutMessage }>
-      ? Exclude<OutMessage, undefined>
+type IsAny<Value> = 0 extends 1 & Value ? true : false
+type IsUnknown<Value> =
+  IsAny<Value> extends true ? false : unknown extends Value ? true : false
+type ExactRequirements<Actual, Expected> =
+  IsAny<Actual> extends true
+    ? false
+    : IsUnknown<Actual> extends true
+      ? false
+      : [Actual] extends [Expected]
+        ? [Expected] extends [Actual]
+          ? true
+          : false
+        : false
+type ReturnOutMessage<Output> =
+  Output extends Update.ResultRecipe<
+    infer _Model,
+    infer _Message,
+    infer OutMessage,
+    infer _Requirements,
+    infer _Evidence
+  >
+    ? Exclude<OutMessage, undefined>
+    : Output extends unknown
+      ? 'outMessage' extends keyof Output
+        ? Output extends Readonly<{ outMessage?: infer OutMessage }>
+          ? Exclude<OutMessage, undefined>
+          : never
+        : never
       : never
-    : never
-  : never
 
 type HomeReset = ReturnType<typeof HomeBinding.resetJoinForm>
 type HomeRequestJoin = ReturnType<typeof HomeBinding.requestJoin>
@@ -87,7 +110,7 @@ type RoomRequirementsAreExact = Expect<
   Equal<Update.RequirementsOf<RoomInform>, never>
 >
 type RoomFoldRequirementsAreExact = Expect<
-  Equal<
+  ExactRequirements<
     Update.RequirementsOf<typeof RoomBinding.fold>,
     Block.Scoped<
       'home',
@@ -221,33 +244,33 @@ type LeftKeyedHomeRegistrationIsExact = Expect<
 >
 
 // @ts-expect-error Emitted Room policy retains its Home Binding registration.
-const MissingHomeComposition = Application.toComposition({
+const MissingHomeComposition = Application.makeComposition({
   childBindings: [RoomBinding],
 })
 // @ts-expect-error Emitted Room policy retains its Home Binding registration.
-MissingHomeComposition.update()
+MissingHomeComposition.makeUpdate()
 
 // @ts-expect-error Emitted Home policy retains its Room Binding registration.
-const MissingRoomComposition = Application.toComposition({
+const MissingRoomComposition = Application.makeComposition({
   childBindings: [HomeBinding],
 })
 // @ts-expect-error Emitted Home policy retains its Room Binding registration.
-MissingRoomComposition.update()
+MissingRoomComposition.makeUpdate()
 
 // @ts-expect-error Emitted direct policy retains its sibling registration.
-DirectReciprocalApplication.toComposition({
+DirectReciprocalApplication.makeComposition({
   childBindings: [LeftHomeBinding],
 })
 // @ts-expect-error Emitted direct policy retains its sibling registration.
-DirectReciprocalApplication.toComposition({
+DirectReciprocalApplication.makeComposition({
   childBindings: [RightHomeBinding],
 })
 // @ts-expect-error Emitted keyed policy retains its sibling registration.
-KeyedReciprocalApplication.toComposition({
+KeyedReciprocalApplication.makeComposition({
   childBindings: [LeftKeyedHomeBinding],
 })
 // @ts-expect-error Emitted keyed policy retains its sibling registration.
-KeyedReciprocalApplication.toComposition({
+KeyedReciprocalApplication.makeComposition({
   childBindings: [RightKeyedHomeBinding],
 })
 
@@ -298,3 +321,47 @@ export type EmittedReciprocalCoordinationAssertions = [
   LeftKeyedHomeRequirementsAreExact,
   LeftKeyedHomeRegistrationIsExact,
 ]
+
+type NestedPolicyChannels<Recipe> =
+  Recipe extends Update.ResultRecipe<
+    infer Model,
+    infer Message,
+    infer OutMessage,
+    infer Requirements,
+    infer Evidence
+  >
+    ? Readonly<{
+        model: Model
+        message: Message
+        outMessage: OutMessage
+        requirements: Requirements
+        evidence: Evidence
+      }>
+    : never
+
+type NestedPolicyRecipe = ReturnType<
+  ReturnType<typeof NestedPolicy.HomeBinding.requestRoomWork>
+>
+type NestedPolicyChannelsAreExact = Expect<
+  Equal<
+    NestedPolicyChannels<NestedPolicyRecipe>,
+    Readonly<{
+      model: typeof NestedPolicy.ParentModel.Type
+      message: typeof NestedPolicy.ParentMessage.Type
+      outMessage: typeof NestedPolicy.ParentOutMessage.Type
+      requirements: Update.RequirementsOf<
+        ReturnType<typeof NestedPolicy.RoomBinding.runRoomWork>
+      >
+      evidence:
+        | Block.RequirementOfBinding<typeof NestedPolicy.HomeBinding>
+        | Block.RequirementOfBinding<typeof NestedPolicy.RoomBinding>
+    }>
+  >
+>
+
+export type EmittedNestedPolicyAssertions = [NestedPolicyChannelsAreExact]
+
+// @ts-expect-error A policy-returned sibling recipe retains its required Binding.
+NestedPolicy.Parent.makeComposition({
+  childBindings: [NestedPolicy.HomeBinding],
+})

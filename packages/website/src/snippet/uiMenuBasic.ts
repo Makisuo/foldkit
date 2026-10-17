@@ -58,18 +58,18 @@ const MenuBinding = ActionMenuExample.bindChild(ActionMenu, {
   outMessage: { fold: foldMenuOutMessage },
 })
 
-const ActionMenuExampleComposition = ActionMenuExample.toComposition({
+const ActionMenuExampleComposition = ActionMenuExample.makeComposition({
   childBindings: [MenuBinding],
 })
 
 // In your init function, initialize the Menu Block with a unique id:
-const init = ActionMenuExampleComposition.init(() => ({
+const init = ActionMenuExampleComposition.makeInit(() => ({
   model: {
     // ...your other fields
   },
 }))
 
-const update = ActionMenuExampleComposition.update()
+const update = ActionMenuExampleComposition.makeUpdate()
 
 // Inside your view function, render the menu via the factory's view. The
 // `buttonContent` below names the trigger. When the trigger is icon-only,
@@ -77,7 +77,7 @@ const update = ActionMenuExampleComposition.update()
 // label element (target the trigger id with `buttonId('actions')` from `@foldkit/ui/menu` for a
 // native `<label for>`). Either attribute is only emitted when provided, so
 // the trigger never carries a dangling `aria-labelledby`.
-const view = ActionMenuExampleComposition.view((model, h) =>
+const view = ActionMenuExampleComposition.makeView((model, h) =>
   h.block(
     MenuBinding.embedView({
       slotId: 'menu',

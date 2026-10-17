@@ -13,16 +13,16 @@ const KeyedEntry = Block.define('RequireFoldKeyedEntry', { Model, Message })
 export const setTheme = KeyedEntry.step((model, theme: string) => ({
   model: modifyFields(model, { theme: () => theme }),
 }))
-const KeyedEntryComposition = KeyedEntry.toComposition()
-const init = KeyedEntryComposition.init(() => ({
+const KeyedEntryComposition = KeyedEntry.makeComposition()
+const init = KeyedEntryComposition.makeInit(() => ({
   model: Model.make({ id: 'initial', theme: 'System' }),
 }))
-const update = KeyedEntryComposition.update((model, message) =>
+const update = KeyedEntryComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ChangedTheme: ({ theme }) => setTheme(model, theme),
   }),
 )
-export const Entry = KeyedEntryComposition.toBlock({
+export const Entry = KeyedEntryComposition.makeBlock({
   init,
   update,
   expose: { setTheme },

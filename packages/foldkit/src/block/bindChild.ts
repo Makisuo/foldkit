@@ -253,7 +253,8 @@ type DirectBindingReturn<
     : ReturnOf<Mapper>,
   ParentOutMessage<ParentOutMessageSchema>,
   ReturnOf<Mapper>,
-  IncomingMessageOf<FromParentMessage, Mapper>
+  IncomingMessageOf<FromParentMessage, Mapper>,
+  ParentMessageSchema
 >
 
 type AccessorBindingReturn<
@@ -283,7 +284,8 @@ type AccessorBindingReturn<
     : ReturnOf<Mapper>,
   ParentOutMessage<ParentOutMessageSchema>,
   ReturnOf<Mapper>,
-  IncomingMessageOf<FromParentMessage, Mapper>
+  IncomingMessageOf<FromParentMessage, Mapper>,
+  ParentMessageSchema
 >
 
 type ValidateCanonicalParentMessageConstructor<
@@ -2385,7 +2387,7 @@ const registerDirectInitialPolicy = (
     isStored: model => {
       if (!Predicate.isObject(model) || !Object.hasOwn(model, field)) {
         throw new Error(
-          `[foldkit] Composition.init assembled a parent Model without required direct Binding field "${field}".`,
+          `[foldkit] Composition.makeInit assembled a parent Model without required direct Binding field "${field}".`,
         )
       }
 
@@ -2396,7 +2398,7 @@ const registerDirectInitialPolicy = (
       const value = Reflect.get(model, field)
       if (!Option.isOption(value)) {
         throw new Error(
-          `[foldkit] Composition.init assembled direct Binding field "${field}" with a non-Option value.`,
+          `[foldkit] Composition.makeInit assembled direct Binding field "${field}" with a non-Option value.`,
         )
       }
       return Option.isSome(value)
@@ -2515,7 +2517,7 @@ const registerAccessorInitialPolicy = (
     isStored: (model, field) => {
       if (!Predicate.isObject(model) || !Object.hasOwn(model, field)) {
         throw new Error(
-          `[foldkit] Composition.init assembled a parent Model without projected Binding field "${field}".`,
+          `[foldkit] Composition.makeInit assembled a parent Model without projected Binding field "${field}".`,
         )
       }
       return true

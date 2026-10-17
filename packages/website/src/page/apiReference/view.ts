@@ -610,7 +610,7 @@ type ViewInputs = Readonly<{
  * element is built in, so one built here would be rejected by this Block's
  * `toParentMessage`.
  */
-export const view = ApiReferenceComposition.view.withInputs<ViewInputs>(
+export const view = ApiReferenceComposition.makeView.withInputs<ViewInputs>(
   (model, { module, highlights, renderHeadingLink }, h) =>
     h.div(
       [h.DataAttribute('pagefind-meta', 'kind:API Reference')],

@@ -50,7 +50,7 @@ const validateEmail = validate(emailRules)
 const validatePhone = validate(phoneRules)
 const validatePortfolioUrl = validate(portfolioUrlRules)
 
-export const update = PersonalInfoComposition.update((model, message) =>
+export const update = PersonalInfoComposition.makeUpdate((model, message) =>
   Message.match(message, {
     UpdatedFirstName: ({ value }) => ({
       model: modifyFields(model, { firstName: () => validateFirstName(value) }),

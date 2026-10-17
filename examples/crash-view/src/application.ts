@@ -16,17 +16,17 @@ export type Message = typeof Message.Type
 
 export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.toComposition()
+export const ApplicationComposition = Application.makeComposition()
 
-export const update = ApplicationComposition.update((_model, _message) => {
+export const update = ApplicationComposition.makeUpdate((_model, _message) => {
   throw new Error('This is a simulated crash!')
 })
 
-export const init = ApplicationComposition.init(() => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: null,
 }))
 
-export const view = ApplicationComposition.view((_model, h) => ({
+export const view = ApplicationComposition.makeView((_model, h) => ({
   title: 'Crash View Example',
   body: h.div(
     [h.Class('min-h-screen bg-white flex items-center justify-center')],

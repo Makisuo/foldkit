@@ -20,18 +20,18 @@ export const Message = defineMessageUnion({
 })
 
 const Editor = Block.define('Editor', { Model, Message })
-const EditorComposition = Editor.toComposition()
+const EditorComposition = Editor.makeComposition()
 
 export const SaveDocument = Editor.command('SaveDocument', {
   args: { contents: Schema.String },
   messages: [Message.SucceededSaveDocument, Message.FailedSaveDocument],
 })
 
-const init = EditorComposition.init((contents: string) => ({
+const init = EditorComposition.makeInit((contents: string) => ({
   model: { contents, save: SaveState.Idle() },
 }))
 
-const update = EditorComposition.update((model, message) =>
+const update = EditorComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedSave: () => ({
       model: modifyFields(model, { save: () => SaveState.Saving() }),
@@ -46,7 +46,7 @@ const update = EditorComposition.update((model, message) =>
   }),
 )
 
-export const block = EditorComposition.toBlock({
+export const block = EditorComposition.makeBlock({
   init,
   update,
   hostHandlers: [SaveDocument],

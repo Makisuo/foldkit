@@ -12,7 +12,7 @@ const commandsForTransition = (
   Transition.isEntering(transition, 'People') ? [FetchPeopleFilters()] : []
 
 // ...init builds the cold load transition, which counts as an entry...
-const init = ApplicationComposition.init((url: Url) => {
+const init = ApplicationComposition.makeInit((url: Url) => {
   const route = urlToApplicationRoute(url)
   return {
     model: { route },

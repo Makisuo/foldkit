@@ -96,7 +96,7 @@ const authoringStage = (
   }
 
   const methodName = node.callee.property.name
-  if (methodName !== 'define' && methodName !== 'toComposition') {
+  if (methodName !== 'define' && methodName !== 'makeComposition') {
     return undefined
   }
 
@@ -141,7 +141,7 @@ const authoringStage = (
   return {
     ...precedingStage,
     isComposition:
-      precedingStage.isComposition || methodName === 'toComposition',
+      precedingStage.isComposition || methodName === 'makeComposition',
   }
 }
 

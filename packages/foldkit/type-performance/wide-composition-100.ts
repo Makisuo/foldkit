@@ -54,12 +54,12 @@ const runLeaf = TypePerformanceWideLeaf.step(model => ({
   commands: [RunLeaf()],
 }))
 const TypePerformanceWideLeafComposition =
-  TypePerformanceWideLeaf.toComposition()
-const Leaf = TypePerformanceWideLeafComposition.toBlock({
-  init: TypePerformanceWideLeafComposition.init(() => ({
+  TypePerformanceWideLeaf.makeComposition()
+const Leaf = TypePerformanceWideLeafComposition.makeBlock({
+  init: TypePerformanceWideLeafComposition.makeInit(() => ({
     model: LeafModel.make({ value: 0 }),
   })),
-  update: TypePerformanceWideLeafComposition.update((model, message) =>
+  update: TypePerformanceWideLeafComposition.makeUpdate((model, message) =>
     LeafMessage.match(message, {
       RequestedRun: () => runLeaf(model),
       CompletedRun: () => ({ model }),
@@ -882,7 +882,7 @@ const Leaf100Binding = Application.bindChild(Leaf, {
   parentMessage: ApplicationMessage.GotLeaf100Message,
 })
 
-const ApplicationComposition = Application.toComposition({
+const ApplicationComposition = Application.makeComposition({
   childBindings: [
     Leaf001Binding,
     Leaf002Binding,
@@ -987,12 +987,12 @@ const ApplicationComposition = Application.toComposition({
   ],
 })
 
-const update = ApplicationComposition.update()
-const view = ApplicationComposition.view((_model, h) => h.main([]))
+const update = ApplicationComposition.makeUpdate()
+const view = ApplicationComposition.makeView((_model, h) => h.main([]))
 
-export const program = ApplicationComposition.toElement({
+export const program = ApplicationComposition.makeElement({
   container: null,
-  init: ApplicationComposition.init(() => ({
+  init: ApplicationComposition.makeInit(() => ({
     model: ApplicationModel.make({ leaf: LeafModel.make({ value: 0 }) }),
   })),
   update,

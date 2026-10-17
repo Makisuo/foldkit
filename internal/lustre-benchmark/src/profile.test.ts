@@ -118,11 +118,11 @@ const runProfile = async (
   }
 
   const Application = defineApplication({ Model, Message })
-  const ApplicationComposition = Application.toComposition()
-  const application = ApplicationComposition.toApplication({
+  const ApplicationComposition = Application.makeComposition()
+  const application = ApplicationComposition.makeApplication({
     init,
-    update: ApplicationComposition.update(wrappedUpdate.fn),
-    view: ApplicationComposition.view(captureView),
+    update: ApplicationComposition.makeUpdate(wrappedUpdate.fn),
+    view: ApplicationComposition.makeView(captureView),
     container,
     devTools: false,
     freezeModel: false,

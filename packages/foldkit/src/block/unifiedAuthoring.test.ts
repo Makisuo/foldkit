@@ -63,8 +63,8 @@ const TrackPointer = Search.mountStream('TrackPointer', {
     }
   },
 })
-const search = Search.toComposition({})
-const update = search.update((model, message) =>
+const search = Search.makeComposition({})
+const update = search.makeUpdate((model, message) =>
   Message.match(message, {
     RequestedSave: ({ value }) => ({
       model: modifyFields(model, { value: () => value }),
@@ -79,7 +79,7 @@ const update = search.update((model, message) =>
 const clear = Search.step(model => ({
   model: modifyFields(model, { value: () => '' }),
 }))
-const block = search.toBlock({
+const block = search.makeBlock({
   init: () => ({ model: Model.make({ value: '' }) }),
   update,
   expose: { clear },
@@ -109,16 +109,22 @@ const Shared = Early.command('Shared', {
 })
 const first = Early.define({ Model, Message })
 const second = Early.define({ Model, Message })
-const firstComposition = first.toComposition()
-const secondComposition = second.toComposition()
-const firstBlock = firstComposition.toBlock({
+const firstComposition = first.makeComposition()
+const secondComposition = second.makeComposition()
+const firstBlock = firstComposition.makeBlock({
   init: () => ({ model: Model.make({ value: '' }) }),
-  update: firstComposition.update(model => ({ model, commands: [Shared()] })),
+  update: firstComposition.makeUpdate(model => ({
+    model,
+    commands: [Shared()],
+  })),
   EffectsLayer: Shared.layer,
 })
-const secondBlock = secondComposition.toBlock({
+const secondBlock = secondComposition.makeBlock({
   init: () => ({ model: Model.make({ value: '' }) }),
-  update: secondComposition.update(model => ({ model, commands: [Shared()] })),
+  update: secondComposition.makeUpdate(model => ({
+    model,
+    commands: [Shared()],
+  })),
   EffectsLayer: Shared.layer,
 })
 it('shares one owner across specialized contracts', () => {
@@ -130,27 +136,27 @@ it('keeps primitive helpers on the Definition after composition', () => {
   expect(Search.mount).toBeTypeOf('function')
   expect(Search.mountStream).toBeTypeOf('function')
   expect(Search.resource).toBeTypeOf('function')
-  expect(search.update).toBeTypeOf('function')
+  expect(search.makeUpdate).toBeTypeOf('function')
   expect(Search.step).toBeTypeOf('function')
   expect(Search.subscriptions).toBeTypeOf('function')
   expect(Search.managedResources).toBeTypeOf('function')
   expect(search).not.toHaveProperty('command')
   expect(search).not.toHaveProperty('step')
-  expect(search).toHaveProperty('init')
+  expect(search).toHaveProperty('makeInit')
 })
 if (false) {
   // @ts-expect-error A Definition does not expose the Composition-owned init helper.
-  Search.init
+  Search.makeInit
 
   // @ts-expect-error Block init must return the Block Model.
-  search.init(() => ({ model: { value: 1 } }))
-  search.init(() => ({
+  search.makeInit(() => ({ model: { value: 1 } }))
+  search.makeInit(() => ({
     model: Model.make({ value: '' }),
     // @ts-expect-error Every Block init Command must return the Block Message.
     commands: [ForeignInitCommand()],
   }))
   // @ts-expect-error Initializers require one concrete call signature.
-  search.init(overloadedSearchInit)
+  search.makeInit(overloadedSearchInit)
 
   Search.command('AcceptedCommand', {
     messages: [Message.CompletedSave],
@@ -191,18 +197,21 @@ if (false) {
   // @ts-expect-error Typed helpers retain the declared Message payload.
   update(Model.make({ value: '' }), Message.RequestedSave({ value: 1 }))
   // @ts-expect-error Missing local handler remains rejected.
-  firstComposition.toBlock({
+  firstComposition.makeBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
-    update: firstComposition.update(model => ({ model, commands: [Shared()] })),
+    update: firstComposition.makeUpdate(model => ({
+      model,
+      commands: [Shared()],
+    })),
   })
   const Foreign = Block.define('Foreign', { Model, Message })
   const ForeignShared = Foreign.command('Shared', {
     messages: [Message.CompletedSave],
   })
-  const ForeignComposition = Foreign.toComposition()
-  ForeignComposition.toBlock({
+  const ForeignComposition = Foreign.makeComposition()
+  ForeignComposition.makeBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
-    update: ForeignComposition.update(model => ({
+    update: ForeignComposition.makeUpdate(model => ({
       model,
       commands: [ForeignShared()],
     })),

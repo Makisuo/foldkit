@@ -12,7 +12,7 @@ import {
   ProductsComposition,
 } from './definition'
 
-export const init = ProductsComposition.init(
+export const init = ProductsComposition.makeInit(
   (products: ReadonlyArray<Item.Item>) => ({
     model: Model.make({ products, searchText: '' }),
   }),
@@ -27,7 +27,7 @@ export const ReplaceSearchUrl = Products.command('ReplaceSearchUrl', {
   },
 })
 
-export const update = ProductsComposition.update((model, message) =>
+export const update = ProductsComposition.makeUpdate((model, message) =>
   Message.match(message, {
     CompletedReplaceSearchUrl: () => ({ model }),
 

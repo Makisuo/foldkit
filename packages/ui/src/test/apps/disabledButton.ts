@@ -45,7 +45,7 @@ const DialogBinding = DisabledButtonTest.bindChild(Dialog.block, {
   init: { args: () => [{ id: 'test-dialog' }] },
 })
 
-const DisabledButtonTestComposition = DisabledButtonTest.toComposition({
+const DisabledButtonTestComposition = DisabledButtonTest.makeComposition({
   childBindings: [DialogBinding],
 })
 
@@ -56,7 +56,7 @@ const makeInitialModel = (): Model => ({
   dialog: Dialog.init({ id: 'test-dialog' }),
 })
 
-const init = DisabledButtonTestComposition.init(() => ({
+const init = DisabledButtonTestComposition.makeInit(() => ({
   model: { isEnabled: false },
   steps: [DialogBinding.open()],
 }))
@@ -65,13 +65,14 @@ export const initialModel = modifyFields(makeInitialModel(), {
   dialog: dialog => modifyFields(dialog, { isOpen: () => true }),
 })
 
-export const update = DisabledButtonTestComposition.update((model, message) =>
-  Message.match(message, {
-    ClickedToggle: () => ({
-      model: modifyFields(model, { isEnabled: isEnabled => !isEnabled }),
+export const update = DisabledButtonTestComposition.makeUpdate(
+  (model, message) =>
+    Message.match(message, {
+      ClickedToggle: () => ({
+        model: modifyFields(model, { isEnabled: isEnabled => !isEnabled }),
+      }),
+      ClickedSubmit: () => ({ model }),
     }),
-    ClickedSubmit: () => ({ model }),
-  }),
 )
 
 // VIEW
@@ -102,34 +103,36 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
 }
 
 /** View with submit button inside a dialog's panel. */
-export const viewWithDialog = DisabledButtonTestComposition.view((model, h) => {
-  return h.div(
-    [],
-    [
-      h.button([h.OnClick(Message.ClickedToggle())], ['Toggle']),
-      h.block(
-        DialogBinding.embedView({
-          slotId: model.dialog.id,
-          model: model.dialog,
-          viewInputs: {
-            toView: ({ dialog, backdrop, panel, isVisible }) =>
-              h.dialog(
-                [...dialog],
-                isVisible
-                  ? [
-                      h.div([...backdrop]),
-                      h.div([...panel], [submitButton(model.isEnabled, h)]),
-                    ]
-                  : [],
-              ),
-          },
-        }),
-      ),
-    ],
-  )
-})
+export const viewWithDialog = DisabledButtonTestComposition.makeView(
+  (model, h) => {
+    return h.div(
+      [],
+      [
+        h.button([h.OnClick(Message.ClickedToggle())], ['Toggle']),
+        h.block(
+          DialogBinding.embedView({
+            slotId: model.dialog.id,
+            model: model.dialog,
+            viewInputs: {
+              toView: ({ dialog, backdrop, panel, isVisible }) =>
+                h.dialog(
+                  [...dialog],
+                  isVisible
+                    ? [
+                        h.div([...backdrop]),
+                        h.div([...panel], [submitButton(model.isEnabled, h)]),
+                      ]
+                    : [],
+                ),
+            },
+          }),
+        ),
+      ],
+    )
+  },
+)
 
-export const block = DisabledButtonTestComposition.toBlock({
+export const block = DisabledButtonTestComposition.makeBlock({
   init,
   update,
   view: viewWithDialog,

@@ -4,8 +4,8 @@ import { AttachmentsComposition } from './composition'
 import { update } from './update'
 import { view } from './view'
 
-export const block = AttachmentsComposition.toBlock({
-  init: AttachmentsComposition.init(() => ({
+export const block = AttachmentsComposition.makeBlock({
+  init: AttachmentsComposition.makeInit(() => ({
     model: {
       maybeResume: Option.none(),
       additionalFiles: [],

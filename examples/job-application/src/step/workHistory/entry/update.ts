@@ -23,7 +23,7 @@ export const titleRules = makeRules({
 const validateCompany = validate(companyRules)
 const validateTitle = validate(titleRules)
 
-export const update = WorkHistoryEntryComposition.update((model, message) =>
+export const update = WorkHistoryEntryComposition.makeUpdate((model, message) =>
   Message.match(message, {
     UpdatedCompany: ({ value }) => ({
       model: modifyFields(model, { company: () => validateCompany(value) }),

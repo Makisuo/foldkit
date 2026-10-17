@@ -44,12 +44,12 @@ export const ChildBinding = Profile.bindChild(Child.block, {
   toParentMessage: message => Message.GotChildMessage({ message }),
 })
 
-export const ProfileComposition = Profile.toComposition({
+export const ProfileComposition = Profile.makeComposition({
   childBindings: [ChildBinding],
 })
 export type ProfileViewBuilder = Block.ViewBuilderFor<typeof ProfileComposition>
 
-export const update = Profile.update((model, message) =>
+export const update = ProfileComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedSave: () => ({ model, commands: [SaveProfile()] }),
     CompletedSave: () => ({ model }),

@@ -40,12 +40,12 @@ export const ReadChildValue = DeclarationParentOwnedChild.command(
   },
 )
 const DeclarationParentOwnedChildComposition =
-  DeclarationParentOwnedChild.toComposition()
-export const ChildBlock = DeclarationParentOwnedChildComposition.toBlock({
-  init: DeclarationParentOwnedChildComposition.init(() => ({
+  DeclarationParentOwnedChild.makeComposition()
+export const ChildBlock = DeclarationParentOwnedChildComposition.makeBlock({
+  init: DeclarationParentOwnedChildComposition.makeInit(() => ({
     model: ChildModel.make({ value: 'initial' }),
   })),
-  update: DeclarationParentOwnedChildComposition.update((model, message) =>
+  update: DeclarationParentOwnedChildComposition.makeUpdate((model, message) =>
     ChildMessage.match(message, {
       UpdatedValue: ({ value }) => ({
         model: Struct.modifyFields(model, { value: () => value }),
@@ -84,13 +84,13 @@ const PlainChildSubscriptions = DeclarationParentOwnedPlainChild.subscriptions(
   }),
 )
 const DeclarationParentOwnedPlainChildComposition =
-  DeclarationParentOwnedPlainChild.toComposition()
+  DeclarationParentOwnedPlainChild.makeComposition()
 export const PlainChildBlock =
-  DeclarationParentOwnedPlainChildComposition.toBlock({
-    init: DeclarationParentOwnedPlainChildComposition.init(() => ({
+  DeclarationParentOwnedPlainChildComposition.makeBlock({
+    init: DeclarationParentOwnedPlainChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: 'initial' }),
     })),
-    update: DeclarationParentOwnedPlainChildComposition.update(model => ({
+    update: DeclarationParentOwnedPlainChildComposition.makeUpdate(model => ({
       model,
     })),
     subscriptions: PlainChildSubscriptions,
@@ -310,7 +310,7 @@ export const InlineKeyedChildWithoutOutMessageBinding =
   })
 
 const DeclarationParentOwnedParentComposition =
-  DeclarationParentOwnedParent.toComposition({
+  DeclarationParentOwnedParent.makeComposition({
     childBindings: [
       DirectChildBinding,
       OptionalChildBinding,
@@ -319,8 +319,8 @@ const DeclarationParentOwnedParentComposition =
       KeyedChildWithoutOutMessageBinding,
     ],
   })
-export const ParentBlock = DeclarationParentOwnedParentComposition.toBlock({
-  init: DeclarationParentOwnedParentComposition.init(() => ({
+export const ParentBlock = DeclarationParentOwnedParentComposition.makeBlock({
+  init: DeclarationParentOwnedParentComposition.makeInit(() => ({
     model: ParentModel.make({
       child: ChildModel.make({ value: 'initial' }),
       maybeChild: Option.none(),
@@ -329,7 +329,7 @@ export const ParentBlock = DeclarationParentOwnedParentComposition.toBlock({
       namedEntries: [],
     }),
   })),
-  update: DeclarationParentOwnedParentComposition.update((model, message) =>
+  update: DeclarationParentOwnedParentComposition.makeUpdate((model, message) =>
     ParentMessage.match(message, {
       GotChildMessage: ({ message }) => DirectChildBinding.fold(model, message),
       GotEntryMessage: ({ id, message }) =>
@@ -349,7 +349,7 @@ export const ApplicationChildBinding = Application.bindChild(ChildBlock, {
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [ApplicationChildBinding],
 })
 
@@ -359,10 +359,10 @@ export const DeclarationPureCompositionComposition = Block.define(
     Model: Schema.Null,
     Message: Schema.Never,
   },
-).toComposition()
-export const pureBlock = DeclarationPureCompositionComposition.toBlock({
-  init: DeclarationPureCompositionComposition.init(() => ({ model: null })),
-  update: DeclarationPureCompositionComposition.update(),
+).makeComposition()
+export const pureBlock = DeclarationPureCompositionComposition.makeBlock({
+  init: DeclarationPureCompositionComposition.makeInit(() => ({ model: null })),
+  update: DeclarationPureCompositionComposition.makeUpdate(),
 })
 
 export const emptyLayer = Layer.empty

@@ -11,8 +11,8 @@ const InlineChild = Block.define('InlineChild', {
   Model: Child.Model,
   Message: Child.Message,
 })
-  .toComposition({})
-  .toBlock({
+  .makeComposition({})
+  .makeBlock({
     init: Child.init,
     update: Child.update,
     EffectsLayer: Layer.empty,

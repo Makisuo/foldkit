@@ -13,7 +13,7 @@ const panelClassName =
 const TRIGGER_ID = 'hover-intent-showcase-trigger'
 const PANEL_ID = 'hover-intent-showcase-panel'
 
-export const view = UiComposition.view((model, h) => {
+export const view = UiComposition.makeView((model, h) => {
   const hoverIntentView = ({ trigger, panel, isVisible }: RenderInfo): Html =>
     h.div(
       [h.Class('relative inline-block')],

@@ -29,7 +29,7 @@ The entry supplies the local handler recipe at completion, provides its remainin
 
 ::Snippet{name="layersEntry" label="Complete and run the application"}
 
-When the Command belongs to a child Block, pass its local `EffectsLayer` to `FeatureComposition.toBlock` instead. Registering its Binding carries the checked handler graph upward. The root still supplies shared services once. The [Block guide](/core/block) shows that complete feature-to-root wiring.
+When the Command belongs to a child Block, pass its local `EffectsLayer` to `FeatureComposition.makeBlock` instead. Registering its Binding carries the checked handler graph upward. The root still supplies shared services once. The [Block guide](/core/block) shows that complete feature-to-root wiring.
 
 Defining handlers, binding features, completing the Application, and calling `provide` all describe configuration. `Runtime.run` builds the Layers and starts execution. Attaching `handler` makes `.layer` available; the completed graph still needs to include that recipe.
 
@@ -85,7 +85,7 @@ For example, an editor feature can declare `SaveDocument` without choosing where
 
 ::Snippet{name="commandHostContract" label="Editor declaring its save operation"}
 
-The editor's update returns `SaveDocument({ contents })` when the user requests a save and handles `SucceededSaveDocument` or `FailedSaveDocument` when it finishes. Omitting `handler` gives the definition no `.layer`. At completion, `hostHandlers: [SaveDocument]` explicitly delegates that missing implementation to the host. Without a local recipe or that declaration, `toBlock` rejects the incomplete feature.
+The editor's update returns `SaveDocument({ contents })` when the user requests a save and handles `SucceededSaveDocument` or `FailedSaveDocument` when it finishes. Omitting `handler` gives the definition no `.layer`. At completion, `hostHandlers: [SaveDocument]` explicitly delegates that missing implementation to the host. Without a local recipe or that declaration, `makeBlock` rejects the incomplete feature.
 
 A standalone host can implement this contract using browser storage:
 
@@ -176,7 +176,7 @@ The entry completes the split Application from each implementation owner, then s
 
 If the service Layer fails to build, startup cannot reach init or the first render. There is no Model for a crash view yet. A service used only by one Flags Effect may be private to that Effect when the application should never select or share it. Shared services stay exposed from the root Layer with `Layer.provideMerge` so Flags and handlers receive the same instance.
 
-`ApplicationComposition.toApplication` carries requirements from init, update, Subscriptions, composed Mounts, and ManagedResources. `Runtime.run` requires those requirements to be supplied. A Flags Effect can use a service produced by a Layer passed to `application.provide(layer)`, as shown above.
+`ApplicationComposition.makeApplication` carries requirements from init, update, Subscriptions, composed Mounts, and ManagedResources. `Runtime.run` requires those requirements to be supplied. A Flags Effect can use a service produced by a Layer passed to `application.provide(layer)`, as shown above.
 
 A hydrating start validates the server handoff before acquiring the application Layer. [Init & Flags](/core/init-and-flags#server-rendering-and-hydration) covers server-supplied startup data.
 
@@ -193,7 +193,7 @@ Import Effect's module as `Layer`. Use these names to keep local implementations
 
 Compose local recipes directly with `Layer.mergeAll`. Name an individual provider `LoadUserLayer` only when it is intentionally public or independently reused outside that assembly. Name an external test alternative `LoadUserTestLayer`.
 
-A Block passes its local bundle to `FeatureComposition.toBlock({ EffectsLayer })`. Registering its Binding in the parent contributes the child's checked handler graph, including descendants. The parent supplies only its own local recipes. Do not merge a registered child's bundle again. This works for static, optional, and keyed Bindings, so the entry point never needs to import every leaf handler.
+A Block passes its local bundle to `FeatureComposition.makeBlock({ EffectsLayer })`. Registering its Binding in the parent contributes the child's checked handler graph, including descendants. The parent supplies only its own local recipes. Do not merge a registered child's bundle again. This works for static, optional, and keyed Bindings, so the entry point never needs to import every leaf handler.
 
 A feature can provide a business service it owns beneath its local `EffectsLayer`. Leave concrete environment providers open for the root to select. Those ordinary requirements flow through parents until `application.provide(ApplicationLayer)` satisfies them. `ServicesLayer` is a useful name for an intermediate service bundle when root composition needs one.
 
@@ -218,7 +218,7 @@ Most authored pieces infer their requirements. When a standalone signature needs
 
 The expanded forms require every protocol argument. Definitions, update helpers, Bindings, and handler recipes carry the same information without explicit annotations.
 
-`FeatureComposition.toBlock` checks local requirements against `EffectsLayer` and definitions explicitly delegated through `hostHandlers`. Parent Bindings carry that checked graph. A completed Application or Element's `provide` method supplies its remaining ordinary service requirements.
+`FeatureComposition.makeBlock` checks local requirements against `EffectsLayer` and definitions explicitly delegated through `hostHandlers`. Parent Bindings carry that checked graph. A completed Application or Element's `provide` method supplies its remaining ordinary service requirements.
 
 Owned definitions include the Block's name and local operation name. Each definition also retains a private runtime identity, checked when its handler runs. Create alternative implementations through that original definition's `toLayer` so the implementation retains the declared identity.
 
@@ -230,4 +230,4 @@ View-only components need no Block. Stateful Foldkit UI components are completed
 
 Component factories such as a Schema-refined Combobox return a completed Block with the factory's inferred Model, Message, OutMessage, view inputs, and public API operations. Bind the returned value exactly like a non-generic component.
 
-Including Mounts in a Composition gives its view builder the allowed Mount contracts and adds their handler requirements to the application. TypeScript rejects a Mount outside that capability set or an embedded child view whose Mount requirements are missing. `FeatureComposition.view` derives this evidence from the local `mounts` and child Bindings. Providing the handler Layer satisfies execution; Composition declares which definitions the view may render. Composition starts no element work until the Mount appears in the view. Its included handler Layer builds at application startup. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for attribute and child-view composition.
+Including Mounts in a Composition gives its view builder the allowed Mount contracts and adds their handler requirements to the application. TypeScript rejects a Mount outside that capability set or an embedded child view whose Mount requirements are missing. `FeatureComposition.makeView` derives this evidence from the local `mounts` and child Bindings. Providing the handler Layer satisfies execution; Composition declares which definitions the view may render. Composition starts no element work until the Mount appears in the view. Its included handler Layer builds at application startup. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for attribute and child-view composition.

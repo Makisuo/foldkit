@@ -248,7 +248,7 @@ const tallRow = (row: Activity, summary: Summary, h: UiViewBuilder): Html => {
   )
 }
 
-export const view = UiComposition.view((model, h) => {
+export const view = UiComposition.makeView((model, h) => {
   return h.div(
     [],
     [

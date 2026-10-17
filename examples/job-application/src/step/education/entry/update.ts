@@ -26,7 +26,7 @@ const validateSchool = validate(schoolRules)
 const validateDegree = validate(degreeRules)
 const validateFieldOfStudy = validate(fieldOfStudyRules)
 
-export const update = EducationEntryComposition.update((model, message) =>
+export const update = EducationEntryComposition.makeUpdate((model, message) =>
   Message.match(message, {
     UpdatedSchool: ({ value }) => ({
       model: modifyFields(model, { school: () => validateSchool(value) }),

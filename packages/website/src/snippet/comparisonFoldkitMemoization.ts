@@ -17,7 +17,7 @@ const lazyRow = createKeyedLazy()
 // modifyFields() preserves references for unchanged Model fields, so the check just
 // works, and the builder is the same object every render, so passing it
 // through the args never invalidates the cache.
-export const view = ApplicationComposition.view((model, h) => {
+export const view = ApplicationComposition.makeView((model, h) => {
   const theme = currentPaletteTheme(model)
   const currentGrid = model.isDrawing
     ? pipe(

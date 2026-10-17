@@ -6,7 +6,7 @@
 
 A Block sometimes needs to react to a change it does not own. The URL may change, a server may push new data, or a sibling field may establish a new constraint. The parent observes that change, but the child still owns the state transition it causes.
 
-Expose an `inform*` Step from the completed child Block. The helper runs an internal child Message through update and returns the next child Model and Commands. The parent may import the child's Message Schema and type for its `Got*Message` wrapper, but it does not construct child Messages to initiate this transition. It calls the projected `binding.inform*(...)` instead.
+Expose an `inform*` Step from the completed child Block. The helper owns the child transition and returns its next Model and Commands. It can delegate to update or share pure transition logic with a Message handler. The parent may import the child's Message Schema and type for its `Got*Message` wrapper, but it does not construct child Messages to initiate this transition. It calls the projected `binding.inform*(...)` instead.
 
 ### Choose Inform or Reflect
 
@@ -34,7 +34,7 @@ Update copies the route query into the input, records it in recent searches, and
 
 ### Expose a Public Helper
 
-`informRouteChanged` is a typed public operation authored with `People.step`. It calls `update(model, ChangedRoute({ route }))`, keeping construction of that internal Message inside the child, and the completed Block selects it under `expose`.
+`informRouteChanged` is a typed public operation authored with `People.step`. The child’s `ChangedRoute` handler delegates to that same Step, and the completed Block selects it under `expose`. Both entry points share the transition without requiring the parent to manufacture a child Message.
 
 ::Snippet{name="informingBlocksChild" label="Child informRouteChanged helper"}
 
@@ -46,7 +46,7 @@ Update copies the route query into the input, records it in recent searches, and
 
 ### Define the Parent Folds
 
-The People Binding declares its parent Model `field` and `parentMessage` wrapper once. The parent Composition routes regular People Messages through that Binding, while `PeopleBinding.informRouteChanged` projects the public operation through the same boundary. The `ChangedUrl` handler matches the next Route and composes the relevant child Step with the pure `setRoute` Step through `Update.combine`. The projected operation retains the child Command requirement for application composition.
+The People Binding declares its parent Model `field` and `parentMessage` wrapper once. The parent Composition routes regular People Messages through that Binding, while `PeopleBinding.informRouteChanged` projects the public operation through the same boundary. The `ChangedUrl` handler matches the next Route and composes the relevant connected child Step with the pure `setRoute` Step through `Update.combine`. The `makeUpdate` Model supplies the registered graph, and the projected operation retains the Binding and child Command requirements for application composition.
 
 ::Snippet{name="informingBlocksParent" label="Parent route fold"}
 
@@ -57,7 +57,7 @@ When several page Blocks react to routing, match the next Route and return the `
 ### Handle Cold Loads Separately
 
 :::Warning{label="Cold loads"}
-`informRouteChanged` handles later URL changes. On a cold load, root init parses the initial URL and passes the People Route to child init. See [Cold Loads and the Initial Route](/core/routing-and-navigation#cold-loads).
+`informRouteChanged` handles later URL changes. The parent excerpt uses `init: false` because it does not show startup. On a cold load, root init must pass the People Route through the registered Binding’s initialization recipe, or the Binding can declare an argument policy from shared Startup inputs. See [Cold Loads and the Initial Route](/core/routing-and-navigation#cold-loads).
 :::
 
 ### Reuse the Pattern for Other Causes

@@ -46,7 +46,7 @@ const lazyHistoryPanel = createLazy()
 const lazyErrorDialog = createLazy()
 const lazyGridSizeConfirmDialog = createLazy()
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'Pixel Art',
   body: h.div(
     [h.Class('min-h-screen bg-gray-900 text-gray-100 flex flex-col')],

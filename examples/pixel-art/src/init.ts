@@ -9,7 +9,7 @@ import {
 import type { Flags } from './flags'
 import { createEmptyGrid } from './grid'
 
-export const init = ApplicationComposition.init((flags: Flags) => ({
+export const init = ApplicationComposition.makeInit((flags: Flags) => ({
   model: {
     grid: Option.match(flags.maybeSavedCanvas, {
       onNone: () => createEmptyGrid(DEFAULT_GRID_SIZE),

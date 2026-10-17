@@ -5,6 +5,7 @@ import { defineMessageUnion } from '../message/index.js'
 import { define as defineApplication } from '../runtime/applicationPublic.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
+import type { BindingRequirement } from './binding.js'
 import { define } from './define.js'
 
 const ChildModel = Schema.Struct({ value: Schema.String })
@@ -19,11 +20,13 @@ const ChildOutMessage = defineMessageUnion({
 type ChildOutMessage = typeof ChildOutMessage.Type
 
 type CommandMessageOfReturn<Value> =
-  Value extends Readonly<{
-    commands?: Update.Commands<infer Message, any> | undefined
-  }>
+  Value extends Update.ResultRecipe<any, infer Message, any, any, any>
     ? Message
-    : never
+    : Value extends Readonly<{
+          commands?: Update.Commands<infer Message, any> | undefined
+        }>
+      ? Message
+      : never
 
 const Child = define('ParentOwnedBindingChild', {
   Model: ChildModel,
@@ -34,10 +37,10 @@ const selectValue = Child.step(model => ({
   model,
   outMessage: ChildOutMessage.SelectedValue({ value: model.value }),
 }))
-const ChildComposition = Child.toComposition()
-const ChildBlock = ChildComposition.toBlock({
+const ChildComposition = Child.makeComposition()
+const ChildBlock = ChildComposition.makeBlock({
   init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
-  update: ChildComposition.update((model, { value }) => ({
+  update: ChildComposition.makeUpdate((model, { value }) => ({
     model: modifyFields(model, { value: () => value }),
   })),
   expose: { selectValue },
@@ -47,10 +50,10 @@ const PlainChild = define('ParentOwnedBindingPlainChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const PlainChildComposition = PlainChild.toComposition()
-const PlainChildBlock = PlainChildComposition.toBlock({
+const PlainChildComposition = PlainChild.makeComposition()
+const PlainChildBlock = PlainChildComposition.makeBlock({
   init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
-  update: PlainChildComposition.update((model, { value }) => ({
+  update: PlainChildComposition.makeUpdate((model, { value }) => ({
     model: modifyFields(model, { value: () => value }),
   })),
 })
@@ -59,7 +62,7 @@ const setPrototypeValue = PlainChild.step((model, value: string) => ({
   model: modifyFields(model, { value: () => value }),
 }))
 
-const PrototypeOperationChildBlock = PlainChildComposition.toBlock({
+const PrototypeOperationChildBlock = PlainChildComposition.makeBlock({
   init: PlainChildBlock.init,
   update: PlainChildBlock.update,
   expose: { ['__proto__']: setPrototypeValue },
@@ -203,7 +206,7 @@ const KeyedChildBinding = Parent.bindChild(ChildBlock, {
   },
 })
 
-const ParentComposition = Parent.toComposition({
+const ParentComposition = Parent.makeComposition({
   childBindings: [
     DirectChildBinding,
     OptionalChildBinding,
@@ -212,7 +215,7 @@ const ParentComposition = Parent.toComposition({
   ],
 })
 
-const update = ParentComposition.update((model, message) =>
+const update = ParentComposition.makeUpdate((model, message) =>
   ParentMessage.match(message, {
     GotChildMessage: ({ message }) => DirectChildBinding.fold(model, message),
     GotKeyedChildMessage: ({ id, message }) =>
@@ -220,8 +223,8 @@ const update = ParentComposition.update((model, message) =>
   }),
 )
 
-const ParentBlock = ParentComposition.toBlock({
-  init: ParentComposition.init(() =>
+const ParentBlock = ParentComposition.makeBlock({
+  init: ParentComposition.makeInit(() =>
     DirectChildBinding.init({
       args: [],
       toParentModel: child =>
@@ -248,10 +251,10 @@ const makeGenericChoice = <const Value extends string>(
     Message,
     OutMessage,
   })
-  const GenericChoiceComposition = GenericChoice.toComposition()
-  const block = GenericChoiceComposition.toBlock({
+  const GenericChoiceComposition = GenericChoice.makeComposition()
+  const block = GenericChoiceComposition.makeBlock({
     init: (value: Value) => ({ model: Model.make({ value }) }),
-    update: GenericChoiceComposition.update((model, { value }) => ({
+    update: GenericChoiceComposition.makeUpdate((model, { value }) => ({
       model: modifyFields(model, { value: () => value }),
     })),
   })
@@ -298,7 +301,10 @@ const makeKeyedGenericParent = <const Value extends string>(
   })
   const Model = Schema.Struct({ entries: Schema.Array(Entry) })
   const Message = defineMessageUnion({
-    GotChildMessage: { id: Schema.String, message: ChildMessage },
+    GotChildMessage: {
+      id: Schema.Literals(['first', 'second']),
+      message: ChildMessage,
+    },
   })
   const Parent = define('ParentOwnedKeyedGenericParent', { Model, Message })
   const foldOutMessage = (id: string, outMessage: ChildOutMessage) =>
@@ -332,7 +338,12 @@ const makeKeyedGenericParent = <const Value extends string>(
     outMessage: { fold: foldOutMessage },
   })
 
-  return { ChildBinding, Model, Message }
+  const composition = Parent.makeComposition({ childBindings: [ChildBinding] })
+  const foldChild = composition.makeUpdate((model, message) =>
+    ChildBinding.fold(model, message.id, message.message),
+  )
+
+  return { ChildBinding, foldChild, Model, Message }
 }
 
 const KeyedGenericParent = makeKeyedGenericParent(
@@ -340,10 +351,10 @@ const KeyedGenericParent = makeKeyedGenericParent(
 )
 
 it('infers generic collection items and keys from their source callbacks', () => {
-  const { ChildBinding, Model } = KeyedGenericParent
-  expectTypeOf(ChildBinding.fold)
-    .parameter(0)
-    .toEqualTypeOf<typeof Model.Type>()
+  const { ChildBinding, foldChild, Model } = KeyedGenericParent
+  expectTypeOf<Update.GraphModelOf<typeof ChildBinding.fold>>().toEqualTypeOf<
+    typeof Model.Type
+  >()
   expectTypeOf(ChildBinding.fold)
     .parameter(1)
     .toEqualTypeOf<'first' | 'second'>()
@@ -360,10 +371,12 @@ it('infers generic collection items and keys from their source callbacks', () =>
       { id: 'first', child: ChildModel.make({ value: 'old' }), payload: 'One' },
     ],
   })
-  const result = ChildBinding.fold(
+  const result = foldChild(
     model,
-    'first',
-    ChildMessage.UpdatedValue({ value: 'next' }),
+    KeyedGenericParent.Message.GotChildMessage({
+      id: 'first',
+      message: ChildMessage.UpdatedValue({ value: 'next' }),
+    }),
   )
   expect(Option.getOrThrow(Array.head(result.model.entries))).toEqual({
     id: 'first',
@@ -404,7 +417,7 @@ const ApplicationChildBinding = Application.bindChild(ChildBlock, {
   parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
-const ApplicationComposition = Application.toComposition({
+const ApplicationComposition = Application.makeComposition({
   childBindings: [ApplicationChildBinding],
 })
 
@@ -417,13 +430,13 @@ const AlternateSnapshotMount = Parent.mount('AlternateSnapshotMount', {
 
 if (false) {
   // @ts-expect-error Every Block completes through a Composition.
-  Parent.toBlock
+  Parent.makeBlock
   // @ts-expect-error The breaking staging API does not retain register aliases.
   Parent.register
   // @ts-expect-error Every Application completes through a Composition.
-  Application.toElement
+  Application.makeElement
   // @ts-expect-error An Application Composition does not expose Block completion.
-  ApplicationComposition.toBlock
+  ApplicationComposition.makeBlock
   // @ts-expect-error A completed child has no child-owned Binding factory.
   ChildBlock.connection
   // @ts-expect-error Keyed Bindings are also created by the parent.
@@ -444,7 +457,7 @@ if (false) {
     outMessage: { fold: foldChildOutMessage },
   })
 
-  Parent.toComposition().toBlock({
+  Parent.makeComposition().makeBlock({
     init: ParentBlock.init,
     update,
     // @ts-expect-error Child operations require registration in the Composition.
@@ -457,9 +470,9 @@ it('creates direct, optional, and keyed Bindings from the parent', () => {
   expect(OptionalChildBinding.placement).toBe('optionalChild')
   expect(TaggedChildBinding.placement).toBe('taggedChild')
   expect(KeyedChildBinding.placement).toBe('entries')
-  expectTypeOf(DirectChildBinding.fold)
-    .parameter(0)
-    .toEqualTypeOf<ParentModel>()
+  expectTypeOf<
+    Update.GraphModelOf<typeof DirectChildBinding.fold>
+  >().toEqualTypeOf<ParentModel>()
   expectTypeOf(DirectChildBinding.fold)
     .parameter(1)
     .toEqualTypeOf<ChildMessage>()
@@ -472,17 +485,23 @@ it('creates direct, optional, and keyed Bindings from the parent', () => {
     >
   >().toEqualTypeOf<ReturnType<typeof ParentMessage.GotChildMessage>>()
   expectTypeOf<
-    ReturnType<
-      ReturnType<typeof ForwardingChildBinding.selectValue>
-    >['outMessage']
-  >().toEqualTypeOf<ParentOutMessage | undefined>()
+    ReturnType<ReturnType<typeof ForwardingChildBinding.selectValue>>
+  >().toEqualTypeOf<
+    Update.ResultRecipe<
+      ParentModel,
+      ParentMessage,
+      ParentOutMessage,
+      never,
+      BindingRequirement<'forwardingChild', typeof ChildBlock>
+    >
+  >()
   expectTypeOf(KeyedChildBinding.fold).parameter(1).toEqualTypeOf<number>()
   expectTypeOf(KeyedChildBinding.fold)
     .parameter(2)
     .toEqualTypeOf<ChildMessage>()
-  expectTypeOf(GenericChoiceBinding.fold)
-    .parameter(0)
-    .toEqualTypeOf<GenericParentModel>()
+  expectTypeOf<
+    Update.GraphModelOf<typeof GenericChoiceBinding.fold>
+  >().toEqualTypeOf<GenericParentModel>()
   expect(ApplicationComposition.childBindings).toEqual([
     ApplicationChildBinding,
   ])
@@ -508,7 +527,7 @@ it('snapshots mutable child and Mount arrays at the Composition boundary', () =>
   const suppliedMounts: Array<
     typeof SnapshotMount | typeof AlternateSnapshotMount
   > = [SnapshotMount]
-  const composition = Parent.toComposition({
+  const composition = Parent.makeComposition({
     childBindings: suppliedChildBindings,
     mounts: suppliedMounts,
   })
@@ -535,7 +554,7 @@ it('keeps Application Composition snapshots independent from caller arrays', () 
   const suppliedChildBindings: Array<typeof ApplicationChildBinding> = [
     ApplicationChildBinding,
   ]
-  const composition = Application.toComposition({
+  const composition = Application.makeComposition({
     childBindings: suppliedChildBindings,
   })
 
@@ -553,12 +572,12 @@ it('rejects an authentic Binding created by a different parent identity', () => 
   })
 
   expect(() =>
-    ForeignParent.toComposition({ childBindings: [DirectChildBinding] }),
+    ForeignParent.makeComposition({ childBindings: [DirectChildBinding] }),
   ).toThrow(/different parent Definition/)
 })
 
 it('keeps child Binding helpers on the Definition after composition', () => {
-  const compositionHelper = Parent.toComposition()
+  const compositionHelper = Parent.makeComposition()
   const DefinitionOwnedChildBinding = Parent.bindChild(ChildBlock, {
     field: 'child',
     placement: 'definitionOwnedChild',
@@ -568,7 +587,7 @@ it('keeps child Binding helpers on the Definition after composition', () => {
 
   expect(compositionHelper).not.toHaveProperty('bindChild')
   expect(
-    Parent.toComposition({ childBindings: [DefinitionOwnedChildBinding] })
+    Parent.makeComposition({ childBindings: [DefinitionOwnedChildBinding] })
       .childBindings,
   ).toEqual([DefinitionOwnedChildBinding])
 })
@@ -600,11 +619,11 @@ it('accepts shared named contracts and rejects incompatible contracts from that 
   })
 
   expect(
-    Refined.toComposition({ childBindings: [SharedChildBinding] })
+    Refined.makeComposition({ childBindings: [SharedChildBinding] })
       .childBindings,
   ).toEqual([SharedChildBinding])
   expect(() =>
-    Reflect.apply(Incompatible.toComposition, undefined, [
+    Reflect.apply(Incompatible.makeComposition, undefined, [
       { childBindings: [SharedChildBinding] },
     ]),
   ).toThrow(/different parent Definition contract/)
@@ -642,19 +661,38 @@ it('uses only own properties to distinguish Binding config forms', () => {
     PlainChildBlock,
     inheritedMapperConfig,
   )
+  const foldInheritedReadAll = Parent.makeComposition({
+    childBindings: [InheritedReadAllBinding],
+  }).makeUpdate((model, message): Update.Return<ParentModel, ParentMessage> => {
+    if (message._tag === 'GotChildMessage') {
+      return Reflect.apply(
+        Reflect.get(InheritedReadAllBinding, 'fold'),
+        InheritedReadAllBinding,
+        [model, message.message],
+      )
+    } else {
+      return { model }
+    }
+  })
+  const foldInheritedMapper = Parent.makeComposition({
+    childBindings: [InheritedMapperBinding],
+  }).makeUpdate((model, message): Update.Return<ParentModel, ParentMessage> => {
+    if (message._tag === 'GotChildMessage') {
+      return Reflect.apply(
+        Reflect.get(InheritedMapperBinding, 'fold'),
+        InheritedMapperBinding,
+        [model, message.message],
+      )
+    } else {
+      return { model }
+    }
+  })
   const model = ParentBlock.init().model
   const message = ChildMessage.UpdatedValue({ value: 'updated' })
 
-  const inheritedReadAllResult = Reflect.apply(
-    Reflect.get(InheritedReadAllBinding, 'fold'),
-    InheritedReadAllBinding,
-    [model, message],
-  )
-  const inheritedMapperResult = Reflect.apply(
-    Reflect.get(InheritedMapperBinding, 'fold'),
-    InheritedMapperBinding,
-    [model, message],
-  )
+  const parentMessage = ParentMessage.GotChildMessage({ message })
+  const inheritedReadAllResult = foldInheritedReadAll(model, parentMessage)
+  const inheritedMapperResult = foldInheritedMapper(model, parentMessage)
 
   expect(inheritedReadAllResult.model.child.value).toBe('updated')
   expect(inheritedMapperResult.model.child.value).toBe('updated')
@@ -669,16 +707,25 @@ it('binds an exposed operation named __proto__ as an own property', () => {
       parentMessage: ParentMessage.GotChildMessage,
     },
   )
+  const composition = Parent.makeComposition({
+    childBindings: [PrototypeOperationBinding],
+  })
+  const invokePrototypeOperation = Parent.step((_model, value: string) => {
+    const boundOperation = Reflect.get(PrototypeOperationBinding, '__proto__')
+    return Reflect.apply(boundOperation, PrototypeOperationBinding, [value])
+  })
+  const runtime = composition.makeBlock({
+    init: ParentBlock.init,
+    update: composition.makeUpdate(model => ({ model })),
+    expose: { invokePrototypeOperation },
+  })
   const boundOperation = Reflect.get(PrototypeOperationBinding, '__proto__')
-  const operationStep = Reflect.apply(
-    boundOperation,
-    PrototypeOperationBinding,
-    ['safe'],
-  )
-  const result = Reflect.apply(operationStep, undefined, [
+  const result = runtime.expose.invokePrototypeOperation(
     ParentBlock.init().model,
-  ])
+    'safe',
+  )
 
   expect(Object.hasOwn(PrototypeOperationBinding, '__proto__')).toBe(true)
+  expect(boundOperation).toBeTypeOf('function')
   expect(result.model.child.value).toBe('safe')
 })

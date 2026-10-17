@@ -1,4 +1,4 @@
-export const update = LoginComposition.update((model, message) =>
+export const update = LoginComposition.makeUpdate((model, message) =>
   Message.match(message, {
     SubmittedLoginForm: () => ({
       model,

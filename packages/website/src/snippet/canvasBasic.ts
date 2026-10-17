@@ -9,7 +9,7 @@ const Message = defineMessageUnion({
 })
 
 const CanvasApp = Block.define('CanvasApp', { Model, Message })
-const CanvasAppComposition = CanvasApp.toComposition()
+const CanvasAppComposition = CanvasApp.makeComposition()
 
 const subscriptions = CanvasApp.subscriptions(entry => ({
   animationFrameTicks: entry(
@@ -30,7 +30,7 @@ const subscriptions = CanvasApp.subscriptions(entry => ({
   ),
 }))
 
-const view = CanvasAppComposition.view((model, h) =>
+const view = CanvasAppComposition.makeView((model, h) =>
   Canvas.view(
     {
       width: 600,

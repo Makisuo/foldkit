@@ -1,4 +1,4 @@
-import { Option, Record } from 'effect'
+import { Array, Option, Record } from 'effect'
 import { Update } from 'foldkit'
 import { Transition } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
@@ -6,70 +6,156 @@ import { type Url } from 'foldkit/url'
 
 import * as Command from '../command'
 import {
+  ApiReferenceBinding,
+  ExampleDetailBinding,
+  HomeBinding,
   MobileMenuDialogBinding,
+  PlaygroundBinding,
   SearchBinding,
   ThemeMenuBinding,
 } from '../composition'
+import { Application } from '../definition'
+import { findActiveSectionKeyForRoute } from '../docsNav'
 import { type Model } from '../model'
-import { urlToApplicationRoute } from '../route'
-import {
-  maybeActiveSectionKeyForRoute,
-  reconcileRoutedChildModels,
-  routeDataLoadingSteps,
-} from '../routePolicy'
+import { ApplicationRoute, urlToApplicationRoute } from '../route'
 
-const isPathnameEqual = (left: Url, right: Url): boolean =>
-  left.pathname === right.pathname
+type ApplicationTransition = Transition.Transition<ApplicationRoute>
 
-export const handleChangedUrl = (model: Model, url: Url) => {
+export const handleChangedUrl = Application.step((model, url: Url) => {
+  const { route: previousRoute } = model
   const nextRoute = urlToApplicationRoute(url)
-  const transition = Transition.make(model.route, nextRoute)
-  const maybeNextActiveSectionKey = maybeActiveSectionKeyForRoute(nextRoute)
+  const transition = Transition.make(previousRoute, nextRoute)
+  const isChangingPathname = model.url.pathname !== url.pathname
 
-  const nextSidebarGroups = Option.match(maybeNextActiveSectionKey, {
+  const nextModel = modifyFields(model, {
+    route: () => nextRoute,
+    url: () => url,
+    sidebarGroups: () => nextSidebarGroups(model, nextRoute),
+  })
+
+  return Update.combine([
+    Application.step(() => ({ model: nextModel })),
+    stepHome(transition),
+    stepPlayground(transition),
+    MobileMenuDialogBinding.close(),
+    ThemeMenuBinding.close(),
+    SearchBinding.informRouteChanged(),
+    loadRouteData(transition),
+    scrollAfterUrlChange(url, isChangingPathname),
+  ])
+})
+
+const nextSidebarGroups = (model: Model, nextRoute: ApplicationRoute) =>
+  Option.match(findActiveSectionKeyForRoute(nextRoute), {
     onNone: () => model.sidebarGroups,
     onSome: activeSectionKey =>
-      model.sidebarGroups[activeSectionKey]
+      Option.contains(Record.get(model.sidebarGroups, activeSectionKey), true)
         ? model.sidebarGroups
         : Record.set(model.sidebarGroups, activeSectionKey, true),
   })
 
-  const writeRouteFields = (stepModel: Model) => ({
-    model: modifyFields(stepModel, {
-      route: () => nextRoute,
-      url: () => url,
-      sidebarGroups: () => nextSidebarGroups,
-    }),
+const stepHome = (transition: ApplicationTransition) =>
+  Application.step(model => {
+    if (Transition.isEntering(transition, 'Home')) {
+      return HomeBinding.init({
+        args: [],
+        toParentModel: home =>
+          modifyFields(model, { maybeHome: () => Option.some(home) }),
+      })
+    }
+
+    if (Option.isSome(Transition.exited(transition, 'Home'))) {
+      return {
+        model: modifyFields(model, { maybeHome: () => Option.none() }),
+      }
+    }
+
+    return { model }
   })
 
-  const isChangingPathname = !isPathnameEqual(model.url, url)
-  const maybeScrollSidebar = Option.liftPredicate(
-    Command.ScrollSidebarActiveLinkIntoView(),
-    () => isChangingPathname,
-  )
-  const maybeScrollToTop = Option.liftPredicate(
-    Command.ScrollToTop(),
-    () => isChangingPathname,
-  )
+const stepPlayground = (transition: ApplicationTransition) =>
+  Application.step(model => {
+    const { nextRoute } = transition
 
-  const scrollToRoute = (stepModel: Model) => ({
-    model: stepModel,
-    commands: [
-      ...Option.match(url.hash, {
-        onNone: () => Option.toArray(maybeScrollToTop),
-        onSome: hash => [Command.ScrollToAnchor({ hash })],
-      }),
-      ...Option.toArray(maybeScrollSidebar),
-    ],
+    if (nextRoute._tag !== 'Playground') {
+      return {
+        model: modifyFields(model, { playground: () => Option.none() }),
+      }
+    }
+
+    if (
+      Option.exists(
+        Transition.stayed(transition, 'Playground'),
+        ({ previousRoute, nextRoute }) =>
+          previousRoute.exampleSlug === nextRoute.exampleSlug,
+      )
+    ) {
+      return { model }
+    }
+
+    return PlaygroundBinding.init({
+      args: [nextRoute.exampleSlug, model.maybeIsPlaygroundSupported],
+      toParentModel: playground =>
+        modifyFields(model, { playground: () => Option.some(playground) }),
+    })
   })
 
-  return Update.combine(model, [
-    writeRouteFields,
-    reconcileRoutedChildModels(transition, model.maybeIsPlaygroundSupported),
-    MobileMenuDialogBinding.close(),
-    ThemeMenuBinding.close(),
-    SearchBinding.informRouteChanged(),
-    ...routeDataLoadingSteps(transition),
-    scrollToRoute,
-  ])
-}
+const loadRouteData = (transition: ApplicationTransition) =>
+  Application.step(model =>
+    ApplicationRoute.matchOrElse(
+      transition.nextRoute,
+      {
+        ApiModule: () => {
+          if (
+            Option.exists(
+              Transition.stayed(transition, 'ApiModule'),
+              ({ previousRoute, nextRoute }) =>
+                previousRoute.moduleSlug === nextRoute.moduleSlug,
+            )
+          ) {
+            return { model }
+          }
+
+          return ApiReferenceBinding.informRouteChanged()
+        },
+        ExampleDetail: ({ exampleSlug }) => {
+          if (
+            Option.exists(
+              Transition.stayed(transition, 'ExampleDetail'),
+              ({ previousRoute, nextRoute }) =>
+                previousRoute.exampleSlug === nextRoute.exampleSlug,
+            )
+          ) {
+            return { model }
+          }
+
+          return ExampleDetailBinding.informRouteChanged(exampleSlug)
+        },
+      },
+      () => ({ model }),
+    ),
+  )
+
+const scrollAfterUrlChange = (url: Url, isChangingPathname: boolean) =>
+  Application.step(model => {
+    if (Option.isSome(url.hash)) {
+      return {
+        model,
+        commands: [
+          Command.ScrollToAnchor({ hash: url.hash.value }),
+          ...Array.filter(
+            [Command.ScrollSidebarActiveLinkIntoView()],
+            () => isChangingPathname,
+          ),
+        ],
+      }
+    }
+
+    return {
+      model,
+      commands: Array.filter(
+        [Command.ScrollToTop(), Command.ScrollSidebarActiveLinkIntoView()],
+        () => isChangingPathname,
+      ),
+    }
+  })

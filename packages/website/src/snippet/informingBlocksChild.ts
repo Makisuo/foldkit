@@ -24,7 +24,7 @@ export const informRouteChanged = People.step((model, route: PeopleRoute) => {
   }
 })
 
-export const update = PeopleComposition.update((model, message) =>
+export const update = PeopleComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ChangedRoute: ({ route }) => informRouteChanged(model, route),
     CompletedFetchPeople: ({ query, people }) => ({
@@ -35,7 +35,7 @@ export const update = PeopleComposition.update((model, message) =>
   }),
 )
 
-export const block = PeopleComposition.toBlock({
+export const block = PeopleComposition.makeBlock({
   init,
   update,
   expose: { informRouteChanged },

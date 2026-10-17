@@ -4,7 +4,7 @@ import { Message } from './message'
 import { update } from './update'
 import { view } from './view'
 
-export const application = ApplicationComposition.toApplication({
+export const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,

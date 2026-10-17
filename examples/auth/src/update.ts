@@ -14,7 +14,7 @@ import { ApplicationComposition } from './composition'
 import { Message } from './message'
 import { urlToApplicationRoute } from './route'
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match(request, {

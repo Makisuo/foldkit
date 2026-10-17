@@ -53,12 +53,12 @@ const Child = define('KeyedFieldConnectionChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const ChildComposition = Child.toComposition()
-const childBlock = ChildComposition.toBlock({
-  init: ChildComposition.init(() => ({
+const ChildComposition = Child.makeComposition()
+const childBlock = ChildComposition.makeBlock({
+  init: ChildComposition.makeInit(() => ({
     model: ChildModel.make({ id: 'initial', count: 0 }),
   })),
-  update: ChildComposition.update((model, message) =>
+  update: ChildComposition.makeUpdate((model, message) =>
     ChildMessage.match(message, {
       UpdatedCount: ({ count }) => ({
         model: modifyFields(model, { count: () => count }),
@@ -75,12 +75,12 @@ const ArrayChild = define('KeyedFieldConnectionArrayChild', {
   Model: ArrayChildModel,
   Message: ArrayChildMessage,
 })
-const ArrayChildComposition = ArrayChild.toComposition()
-const arrayChildBlock = ArrayChildComposition.toBlock({
-  init: ArrayChildComposition.init(() => ({
+const ArrayChildComposition = ArrayChild.makeComposition()
+const arrayChildBlock = ArrayChildComposition.makeBlock({
+  init: ArrayChildComposition.makeInit(() => ({
     model: ArrayChildModel.make(['initial']),
   })),
-  update: ArrayChildComposition.update(model => ({ model })),
+  update: ArrayChildComposition.makeUpdate(model => ({ model })),
   EffectsLayer: Layer.empty,
 })
 const keyedFieldCandidate: RequiredKeyedField<
@@ -114,9 +114,16 @@ const ArrayChildBinding = Parent.bindChild(arrayChildBlock, {
   fromParentMessage: false,
   init: false,
 })
-const ParentComposition = Parent.toComposition({
+const ParentComposition = Parent.makeComposition({
   childBindings: [ChildrenBinding, ArrayChildBinding],
 })
+
+const update = ParentComposition.makeUpdate((model, message) =>
+  ParentMessage.match(message, {
+    GotArrayChildMessage: ({ message }) =>
+      ArrayChildBinding.fold(model, message),
+  }),
+)
 
 const CallableChildModel = taggedStruct('CallableChild', {
   id: Schema.String,
@@ -126,12 +133,12 @@ const CallableChild = define('KeyedFieldConnectionCallableChild', {
   Model: CallableChildModel,
   Message: ChildMessage,
 })
-const CallableChildComposition = CallableChild.toComposition()
-const callableChildBlock = CallableChildComposition.toBlock({
-  init: CallableChildComposition.init(() => ({
+const CallableChildComposition = CallableChild.makeComposition()
+const callableChildBlock = CallableChildComposition.makeBlock({
+  init: CallableChildComposition.makeInit(() => ({
     model: CallableChildModel({ id: 'initial', count: 0 }),
   })),
-  update: CallableChildComposition.update((model, message) =>
+  update: CallableChildComposition.makeUpdate((model, message) =>
     ChildMessage.match(message, {
       UpdatedCount: ({ count }) => ({
         model: modifyFields(model, { count: () => count }),
@@ -160,7 +167,10 @@ const CallableChildrenBinding = CallableParent.bindChild(callableChildBlock, {
     args: (_model, { id, message }) => Option.some([id, message]),
   },
 })
-CallableParent.toComposition({ childBindings: [CallableChildrenBinding] })
+const CallableComposition = CallableParent.makeComposition({
+  childBindings: [CallableChildrenBinding],
+})
+const updateCallable = CallableComposition.makeUpdate(model => ({ model }))
 
 const normalize = (overrides: globalThis.Record<string, unknown> = {}) =>
   normalizeKeyedFieldConfig({
@@ -228,10 +238,12 @@ it('accepts callable tagged Struct schemas for parent and child Models', () => {
   const parent = CallableParentModel({ entries: [first] })
 
   expect(
-    CallableChildrenBinding.fold(
+    updateCallable(
       parent,
-      'first',
-      ChildMessage.UpdatedCount({ count: 2 }),
+      ParentMessage.GotChildMessage({
+        id: 'first',
+        message: ChildMessage.UpdatedCount({ count: 2 }),
+      }),
     ).model,
   ).toEqual(
     CallableParentModel({
@@ -280,15 +292,19 @@ it('uses the direct field shorthand through the shared keyed Binding', () => {
     child: first,
     arrayChild: ['initial'],
   })
-  const updated = ChildrenBinding.fold(
+  const updated = update(
     parent,
-    'first',
-    ChildMessage.UpdatedCount({ count: 4 }),
+    ParentMessage.GotChildMessage({
+      id: 'first',
+      message: ChildMessage.UpdatedCount({ count: 4 }),
+    }),
   )
-  const absent = ChildrenBinding.fold(
+  const absent = update(
     parent,
-    'absent',
-    ChildMessage.UpdatedCount({ count: 5 }),
+    ParentMessage.GotChildMessage({
+      id: 'absent',
+      message: ChildMessage.UpdatedCount({ count: 5 }),
+    }),
   )
 
   expectTypeOf(ChildrenBinding.placement).toEqualTypeOf<'entries'>()
@@ -310,9 +326,11 @@ it('keeps an Array child Model in the static direct Binding path', () => {
     child,
     arrayChild: ['initial'],
   })
-  const updated = ArrayChildBinding.fold(
+  const updated = update(
     parent,
-    ArrayChildMessage.IgnoredValue(),
+    ParentMessage.GotArrayChildMessage({
+      message: ArrayChildMessage.IgnoredValue(),
+    }),
   )
 
   expect(updated.model).toEqual(parent)
@@ -417,7 +435,7 @@ it('rejects invalid runtime storage and child key replacement', () => {
 })
 
 it('rejects an initialized child whose stable key differs from its occurrence', () => {
-  const initializeMismatchedChild = ParentComposition.init(() =>
+  const initializeMismatchedChild = ParentComposition.makeInit(() =>
     ChildrenBinding.init({
       key: 'requested',
       args: [],
@@ -446,10 +464,12 @@ it('rejects a child update that changes its stable key', () => {
   })
 
   expect(() =>
-    ChildrenBinding.fold(
+    update(
       parent,
-      'first',
-      ChildMessage.UpdatedId({ id: 'changed' }),
+      ParentMessage.GotChildMessage({
+        id: 'first',
+        message: ChildMessage.UpdatedId({ id: 'changed' }),
+      }),
     ),
   ).toThrow('cannot initialize or replace a child with a different key')
   expect(parent.entries).toEqual([first])

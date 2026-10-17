@@ -831,7 +831,7 @@ describe('completed Block bindings', () => {
       callee: {
         type: 'MemberExpression',
         object: definition,
-        property: Testing.id('toComposition'),
+        property: Testing.id('makeComposition'),
         computed: false,
       },
       arguments: [
@@ -848,7 +848,7 @@ describe('completed Block bindings', () => {
     composition: string,
     model: unknown = directSettingsUpdate('model'),
   ) =>
-    Testing.callOfMember(composition, 'update', [
+    Testing.callOfMember(composition, 'makeUpdate', [
       Testing.arrowFn(objectExpression([property('model', model)]), [
         Testing.id('model'),
         Testing.id('message'),
@@ -1007,7 +1007,7 @@ describe('completed Block bindings', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('tracks an automatically routed Binding in Composition.update', () => {
+  it('tracks an automatically routed Binding in Composition.makeUpdate', () => {
     const result = runRule([
       directSettingsBinding,
       applicationComposition(

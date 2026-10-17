@@ -21,7 +21,7 @@ type ViewInputs = Readonly<{
   url: Url
 }>
 
-export const view = UiComposition.view.withInputs<ViewInputs>(
+export const view = UiComposition.makeView.withInputs<ViewInputs>(
   (_model, { renderCopyButton, renderSnippet, renderHeadingLink, url }, h) =>
     renderPage({
       demos: {

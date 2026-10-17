@@ -20,13 +20,13 @@ const Read = Child.command('Read', {
   },
 })
 const initialized = vi.fn()
-const ChildComposition = Child.toComposition()
-const child = ChildComposition.toBlock({
-  init: ChildComposition.init(() => {
+const ChildComposition = Child.makeComposition()
+const child = ChildComposition.makeBlock({
+  init: ChildComposition.makeInit(() => {
     initialized()
     return { model: { count: 0 }, commands: [Read()] }
   }),
-  update: ChildComposition.update((model, { value }) => ({
+  update: ChildComposition.makeUpdate((model, { value }) => ({
     model: modifyFields(model, { count: () => value }),
   })),
   EffectsLayer: Read.layer,
@@ -50,21 +50,21 @@ const EntriesBinding = Parent.bindChild(child, {
     args: (_model, { id, message }) => Option.some([id, message]),
   },
 })
-const ParentComposition = Parent.toComposition({
+const ParentComposition = Parent.makeComposition({
   childBindings: [EntriesBinding],
 })
 
 it('uses one zero identity for connected initialization and later dispatch', async () => {
-  const init = ParentComposition.init(() =>
+  const init = ParentComposition.makeInit(() =>
     EntriesBinding.init({
       key: -0,
       args: [],
       toParentModel: child => Model.make({ entries: [{ id: 0, child }] }),
     }),
   )
-  const parent = ParentComposition.toBlock({
+  const parent = ParentComposition.makeBlock({
     init,
-    update: ParentComposition.update(),
+    update: ParentComposition.makeUpdate(),
   })
   const parentInit = init()
   const command = Option.getOrThrow(Array.head(parentInit.commands ?? []))
@@ -77,16 +77,18 @@ it('uses one zero identity for connected initialization and later dispatch', asy
     4,
   )
   expect(
-    EntriesBinding.fold(
+    parent.update(
       updated.model,
-      0,
-      ChildMessage.CompletedRead({ value: 9 }),
+      Message.GotChildMessage({
+        id: 0,
+        message: ChildMessage.CompletedRead({ value: 9 }),
+      }),
     ).model.entries,
   ).toEqual([{ id: 0, child: { count: 9 } }])
 })
 
 it('rejects zero and negative zero as duplicate occurrences of the requested key', () => {
-  const init = ParentComposition.init(() =>
+  const init = ParentComposition.makeInit(() =>
     EntriesBinding.init({
       key: -0,
       args: [],
@@ -115,10 +117,10 @@ it('retains automatic startup Commands when Schema storage normalizes a zero key
       toItem: (_occurrence, child) => ({ id: 0, child }),
     },
   })
-  const StartupComposition = Parent.toComposition({
+  const StartupComposition = Parent.makeComposition({
     childBindings: [StartupBinding],
   })
-  const init = StartupComposition.init(() => ({ model: {} }))
+  const init = StartupComposition.makeInit(() => ({ model: {} }))
 
   expect(init().commands).toHaveLength(1)
 })
@@ -138,10 +140,10 @@ it('rejects duplicate signed-zero startup keys before initializing either occurr
       toItem: ({ key }, child) => ({ id: key, child }),
     },
   })
-  const StartupComposition = Parent.toComposition({
+  const StartupComposition = Parent.makeComposition({
     childBindings: [StartupBinding],
   })
-  const init = StartupComposition.init(() => ({ model: {} }))
+  const init = StartupComposition.makeInit(() => ({ model: {} }))
   initialized.mockClear()
 
   expect(init).toThrow('duplicate')

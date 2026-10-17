@@ -60,7 +60,7 @@ export const NotePlayerDemoBinding = Home.bindChild(NotePlayerDemo.block, {
   parentMessage: Message.GotNotePlayerDemoMessage,
 })
 
-export const HomeComposition = Home.toComposition({
+export const HomeComposition = Home.makeComposition({
   childBindings: [
     AsyncCounterDemoBinding,
     DemoTabsBinding,

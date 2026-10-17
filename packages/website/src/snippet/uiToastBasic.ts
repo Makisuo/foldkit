@@ -72,7 +72,7 @@ const ToastBinding = Notifications.bindChild(Toast, {
   outMessage: { fold: foldToastOutMessage },
 })
 
-const NotificationsComposition = Notifications.toComposition({
+const NotificationsComposition = Notifications.makeComposition({
   childBindings: [ToastBinding],
 })
 
@@ -80,7 +80,7 @@ const NotificationsComposition = Notifications.toComposition({
 // Swipe is opt-in: omit
 // swipeToDismiss to leave it disabled, or pass {} for the default rightward
 // 40px gesture. Set threshold to customize the dismissal distance:
-const init = NotificationsComposition.init(() => ({
+const init = NotificationsComposition.makeInit(() => ({
   model: {
     maybeLastDismissedBody: Option.none(),
     // ...your other fields
@@ -89,7 +89,7 @@ const init = NotificationsComposition.init(() => ({
 
 declare const changesRouter: () => string
 
-const update = NotificationsComposition.update((model, message) =>
+const update = NotificationsComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedSave: () =>
       ToastBinding.show({
@@ -109,7 +109,7 @@ const update = NotificationsComposition.update((model, message) =>
 // component handles the <div> wrapper, hover-to-pause, swipe-to-dismiss
 // (pointerdown + data-swipe="move"/"settling"/"end" +
 // translate/--toast-swipe-move-x), and enter/leave animations.
-const view = NotificationsComposition.view((model, h) =>
+const view = NotificationsComposition.makeView((model, h) =>
   h.block(
     ToastBinding.embedView({
       slotId: 'app-toast',

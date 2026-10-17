@@ -1,7 +1,7 @@
 import { ApplicationComposition } from './composition'
 import { Model } from './model'
 
-export const init = ApplicationComposition.init(() => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: Model.make({
     activeWorkload: 'Idle',
     nextWarningId: 1,

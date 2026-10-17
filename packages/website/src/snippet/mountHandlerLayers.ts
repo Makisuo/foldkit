@@ -22,11 +22,11 @@ const MeasurePanel = Panel.mount('MeasurePanel', {
   },
 })
 
-const PanelComposition = Panel.toComposition({
+const PanelComposition = Panel.makeComposition({
   mounts: [MeasurePanel],
 })
 
-const update = PanelComposition.update((model, message) =>
+const update = PanelComposition.makeUpdate((model, message) =>
   Message.match(message, {
     CompletedMeasurePanel: ({ height }) => ({
       model: modifyFields(model, {
@@ -36,7 +36,7 @@ const update = PanelComposition.update((model, message) =>
   }),
 )
 
-const view = PanelComposition.view((model, h) => ({
+const view = PanelComposition.makeView((model, h) => ({
   title: 'Measured panel',
   body: h.div(
     [h.OnMount(MeasurePanel())],
@@ -49,11 +49,11 @@ const view = PanelComposition.view((model, h) => ({
   ),
 }))
 
-const init = PanelComposition.init(() => ({
+const init = PanelComposition.makeInit(() => ({
   model: Model.make({ panelHeight: Option.none() }),
 }))
 
-export const block = PanelComposition.toBlock({
+export const block = PanelComposition.makeBlock({
   init,
   update,
   view,

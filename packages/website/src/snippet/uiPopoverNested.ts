@@ -53,24 +53,24 @@ const AccountDetailsPopoverBinding = AccountMenu.bindChild(Popover.block, {
   outMessage: { fold: foldPopoverOutMessage },
 })
 
-const AccountMenuComposition = AccountMenu.toComposition({
+const AccountMenuComposition = AccountMenu.makeComposition({
   childBindings: [AccountPopoverBinding, AccountDetailsPopoverBinding],
 })
 
 // The parent uses contentFocus so focus can move into its nested trigger
 // instead of staying on the panel:
-const init = AccountMenuComposition.init(() => ({
+const init = AccountMenuComposition.makeInit(() => ({
   model: {
     // ...your other fields
   },
 }))
 
-const update = AccountMenuComposition.update()
+const update = AccountMenuComposition.makeUpdate()
 
 // Inside your view function, render the child Popover inside the parent
 // panel. `focusSelector` points at the child trigger, which Popover derives
 // from the child id as `${id}-button`.
-const view = AccountMenuComposition.view((model, h) => {
+const view = AccountMenuComposition.makeView((model, h) => {
   const accountDetailsPopoverView = ({
     button,
     panel,

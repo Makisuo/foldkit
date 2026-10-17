@@ -15,10 +15,16 @@ export const Message = defineMessageUnion({
   ClickedReset: {},
 })
 
-export const Application = defineApplication({ Model, Message })
-export const ApplicationComposition = Application.toComposition()
+export const ApplicationComposition = defineApplication({
+  Model,
+  Message,
+}).makeComposition()
 
-export const update = ApplicationComposition.update((model, message) =>
+export const init = ApplicationComposition.makeInit(() => ({
+  model: { count: 0 },
+}))
+
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: Number.decrement }),
@@ -32,11 +38,7 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-export const init = ApplicationComposition.init(() => ({
-  model: { count: 0 },
-}))
-
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: `Counter: ${model.count}`,
   body: h.div(
     [

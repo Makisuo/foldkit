@@ -36,12 +36,12 @@ describe('Composition update delivery', () => {
       Model: ContextualChildModel,
       Message: ContextualChildMessage,
     })
-    const contextualComposition = ContextualChild.toComposition()
-    const contextualBlock = contextualComposition.toBlock({
-      init: contextualComposition.init(() => ({
+    const contextualComposition = ContextualChild.makeComposition()
+    const contextualBlock = contextualComposition.makeBlock({
+      init: contextualComposition.makeInit(() => ({
         model: ContextualChildModel.make({ count: 0 }),
       })),
-      update: contextualComposition.update(
+      update: contextualComposition.makeUpdate(
         (model, _message, _context: Readonly<{ source: 'Required' }>) => ({
           model,
         }),
@@ -108,12 +108,12 @@ describe('Composition update delivery', () => {
       Model: CounterModel,
       Message: ChildMessage,
     })
-    const CounterComposition = Counter.toComposition()
-    const counterBlock = CounterComposition.toBlock({
-      init: CounterComposition.init(() => ({
+    const CounterComposition = Counter.makeComposition()
+    const counterBlock = CounterComposition.makeBlock({
+      init: CounterComposition.makeInit(() => ({
         model: CounterModel.make({ count: 0 }),
       })),
-      update: CounterComposition.update(
+      update: CounterComposition.makeUpdate(
         (model, message, context: Readonly<{ multiplier: number }>) => ({
           model: modifyFields(model, {
             count: count => count + message.amount * context.multiplier,
@@ -164,10 +164,10 @@ describe('Composition update delivery', () => {
         },
       },
     })
-    const ParentComposition = Parent.toComposition({
+    const ParentComposition = Parent.makeComposition({
       childBindings: [CounterBinding],
     })
-    const update = ParentComposition.update()
+    const update = ParentComposition.makeUpdate()
     const model = ParentModel.make({
       counters: [
         CounterInstance.make({

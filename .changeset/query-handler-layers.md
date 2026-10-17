@@ -110,12 +110,12 @@ const PostsBinding = Application.bindChild(postsQuery, {
   parentMessage: Message.GotPostsMessage,
 })
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [PostsBinding],
 })
 ```
 
-The parent Composition initializes the Query Model and routes its wrapper Message automatically. The Binding exposes Query's `reset`, `revalidate`, `revalidateOrLoad`, and `loadIfMissing` operations with normal Block Command scoping and Message lifting. The Query value itself retains direct `read` and `run` conveniences. Request generations, stale-response protection, cache key typing, handler completeness, host delegation, and constructor error and Service requirements remain precise. A KeyedQuery's cache entries are data inside one Query Model; do not model them as keyed Block instances.
+The parent Composition initializes the Query Model and routes its wrapper Message automatically. The Binding exposes Query's `reset`, `revalidate`, `revalidateOrLoad`, and `loadIfMissing` operations with normal Block Command scoping and Message lifting. These connected Steps require the registering Composition's graph on their Model input, so apply them inside `makeUpdate` or startup, or return them from a Definition-owned Step. The Query value itself retains direct `read` and `run` conveniences. Request generations, stale-response protection, cache key typing, handler completeness, host delegation, and constructor error and Service requirements remain precise. A KeyedQuery's cache entries are data inside one Query Model; do not model them as keyed Block instances.
 
 KeyedQuery snapshots decoded args through their declared Codec before retaining them or starting a fetch. Its generated Fetch args and `CompletedFetch` Message now include the canonical `requestKey` alongside `args` and `generation`; completion uses that carried identity instead of recomputing `toKey`. Loading operations and `run` supply the field automatically. Tests or hosts that manually construct a generated Fetch or `CompletedFetch` must pass the same `requestKey` chosen for that request.
 

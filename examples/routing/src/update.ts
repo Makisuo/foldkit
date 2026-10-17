@@ -30,7 +30,7 @@ const setRoute = (nextRoute: ApplicationRoute) => (model: Model) => ({
   model: modifyFields(model, { route: () => nextRoute }),
 })
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),

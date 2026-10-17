@@ -39,7 +39,7 @@ const managedResources = Camera.managedResources(entry => ({
   ),
 }))
 
-export const block = CameraComposition.toBlock({
+export const block = CameraComposition.makeBlock({
   init,
   update,
   view,

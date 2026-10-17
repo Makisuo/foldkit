@@ -896,7 +896,7 @@ export const HorizontalRadioGroupDemoBinding = Ui.bindChild(PlanRadioGroup, {
   init: { args: () => Tuple.make({ id: 'horizontal-radio-group-demo' }) },
 })
 
-export const UiComposition = Ui.toComposition({
+export const UiComposition = Ui.makeComposition({
   childBindings: [
     AnimationDemoBinding,
     CalendarBasicDemoBinding,

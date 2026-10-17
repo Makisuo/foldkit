@@ -28,6 +28,6 @@ export {
   type SuppressedSpaceScroll,
 } from './index.js'
 
-export type { InitConfig, ViewInputs, RenderInfo } from './index.js'
+export type { Completed, InitConfig, ViewInputs, RenderInfo } from './index.js'
 
 export type { AnchorConfig } from '../anchor/index.js'

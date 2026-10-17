@@ -4,7 +4,7 @@ import { FetchTelemetry } from './command'
 import { ApplicationComposition } from './composition'
 import { TelemetryAsyncData } from './model'
 
-export const init = ApplicationComposition.init(() => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: {
     telemetry: TelemetryAsyncData.Loading(),
     chartMode: 'Adoption',

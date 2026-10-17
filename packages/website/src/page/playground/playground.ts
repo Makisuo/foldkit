@@ -63,7 +63,7 @@ const initialActiveFile = (files: Readonly<Record<string, string>>): string =>
     Option.getOrElse(() => ''),
   )
 
-export const init = PlaygroundComposition.init(
+export const init = PlaygroundComposition.makeInit(
   (slug: string, maybeIsSupported: Option.Option<boolean> = Option.none()) => {
     const files = Option.getOrElse(maybeFilesForSlug(slug), () => ({}))
 
@@ -255,7 +255,7 @@ const markPreviewLoaded = (
     Match.orElse(() => state),
   )
 
-export const update = PlaygroundComposition.update((model, message) =>
+export const update = PlaygroundComposition.makeUpdate((model, message) =>
   Match.value(message).pipe(
     Match.tagsExhaustive({
       BootedPlayground: ({ previewUrl }) => ({
@@ -643,7 +643,7 @@ type ViewInputs = Readonly<{
   maybeIsPlaygroundSupported: Option.Option<boolean>
 }>
 
-export const view = PlaygroundComposition.view.withInputs<ViewInputs>(
+export const view = PlaygroundComposition.makeView.withInputs<ViewInputs>(
   (model, { maybeIsPlaygroundSupported }, h) => {
     const maybeMeta = findBySlug(model.slug)
     const maybeFiles = Option.fromNullishOr(filesBySlug[model.slug])

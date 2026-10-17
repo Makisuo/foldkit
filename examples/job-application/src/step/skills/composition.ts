@@ -35,6 +35,6 @@ export const EntriesBinding = Skills.bindChild(Entry.block, {
   outMessage: { fold: foldEntryOutMessage },
 })
 
-export const SkillsComposition = Skills.toComposition({
+export const SkillsComposition = Skills.makeComposition({
   childBindings: [EntriesBinding],
 })

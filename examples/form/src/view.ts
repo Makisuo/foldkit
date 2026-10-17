@@ -146,7 +146,7 @@ const textareaFieldView = (
     h,
   )
 
-export const view = ApplicationComposition.view((model, h) => {
+export const view = ApplicationComposition.makeView((model, h) => {
   const canSubmit = isFormValid(model) && model.submission._tag !== 'Submitting'
 
   const body = h.div(

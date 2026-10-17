@@ -50,13 +50,22 @@ type ExactWithoutAnyOrUnknown<Actual, Expected> =
     ? false
     : MutuallyAssignable<Actual, Expected>
 
-type ReturnOutMessage<Output> = Output extends unknown
-  ? 'outMessage' extends keyof Output
-    ? Output extends Readonly<{ outMessage?: infer OutMessage }>
-      ? Exclude<OutMessage, undefined>
+type ReturnOutMessage<Output> =
+  Output extends Update.ResultRecipe<
+    infer _Model,
+    infer _Message,
+    infer OutMessage,
+    infer _Requirements,
+    infer _Evidence
+  >
+    ? Exclude<OutMessage, undefined>
+    : Output extends unknown
+      ? 'outMessage' extends keyof Output
+        ? Output extends Readonly<{ outMessage?: infer OutMessage }>
+          ? Exclude<OutMessage, undefined>
+          : never
+        : never
       : never
-    : never
-  : never
 
 type DeliveryOf<Value> =
   Value extends Block.BindingDeliveryEvidence<
@@ -138,12 +147,12 @@ export const SyncSettings = Settings.command('SyncSettings', {
   },
 })
 
-export const SettingsComposition = Settings.toComposition()
-export const settingsInit = SettingsComposition.init((theme: string) => ({
+export const SettingsComposition = Settings.makeComposition()
+export const settingsInit = SettingsComposition.makeInit((theme: string) => ({
   model: SettingsModel.make({ theme }),
   commands: [SyncSettings({ accountId: 'startup', theme })],
 }))
-export const settingsUpdate = SettingsComposition.update(
+export const settingsUpdate = SettingsComposition.makeUpdate(
   (model, message, currentUser: CurrentUser) =>
     SettingsMessage.match(message, {
       ChangedTheme: ({ theme }) => ({
@@ -175,7 +184,7 @@ export const refreshSettings = Settings.step(
 )
 
 export const SettingsEffectsLayer = SyncSettings.layer
-export const SettingsBlock = SettingsComposition.toBlock({
+export const SettingsBlock = SettingsComposition.makeBlock({
   init: settingsInit,
   update: settingsUpdate,
   expose: { refresh: refreshSettings },
@@ -221,12 +230,12 @@ const Status = Block.define('Status', {
   Model: StatusModel,
   Message: StatusMessage,
 })
-const StatusComposition = Status.toComposition()
-export const StatusBlock = StatusComposition.toBlock({
-  init: StatusComposition.init(() => ({
+const StatusComposition = Status.makeComposition()
+export const StatusBlock = StatusComposition.makeBlock({
+  init: StatusComposition.makeInit(() => ({
     model: StatusModel.make({ count: 0 }),
   })),
-  update: StatusComposition.update(model => ({
+  update: StatusComposition.makeUpdate(model => ({
     model: Struct.modifyFields(model, { count: count => count + 1 }),
   })),
   EffectsLayer: Layer.empty,
@@ -248,12 +257,12 @@ const Room = Block.define('Room', {
   Model: RoomModel,
   Message: RoomMessage,
 })
-const RoomComposition = Room.toComposition()
-export const RoomBlock = RoomComposition.toBlock({
-  init: RoomComposition.init((id: string, name: string) => ({
+const RoomComposition = Room.makeComposition()
+export const RoomBlock = RoomComposition.makeBlock({
+  init: RoomComposition.makeInit((id: string, name: string) => ({
     model: RoomModel.make({ id, name }),
   })),
-  update: RoomComposition.update(
+  update: RoomComposition.makeUpdate(
     (model, message, context: RoomDispatchContext) => {
       const roomId: string = context.roomId
       void roomId
@@ -444,12 +453,14 @@ export const SecondManualStatusBinding = Parent.bindChild(StatusBlock, {
 })
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable
-export const ManualDeliveryComposition = Parent.toComposition({
+export const ManualDeliveryComposition = Parent.makeComposition({
   childBindings: [FirstManualStatusBinding, SecondManualStatusBinding],
 })
-export const manualDeliveryUpdate = ManualDeliveryComposition.update(model => ({
-  model,
-}))
+export const manualDeliveryUpdate = ManualDeliveryComposition.makeUpdate(
+  model => ({
+    model,
+  }),
+)
 
 export type ParentStartup = Readonly<{
   theme: string
@@ -457,7 +468,7 @@ export type ParentStartup = Readonly<{
   route: ApplicationRoute
 }>
 
-export const ParentComposition = Parent.toComposition({
+export const ParentComposition = Parent.makeComposition({
   childBindings: [
     SettingsBinding,
     StatusBinding,
@@ -466,24 +477,48 @@ export const ParentComposition = Parent.toComposition({
   ],
 })
 
-export const parentInit = ParentComposition.init((startup: ParentStartup) => ({
-  startup,
-  model: {
-    currentUser: startup.currentUser,
-    route: startup.route,
-    maybeRoom: Option.none(),
-  },
-  steps: [SettingsBinding.refresh(startup.currentUser)],
-}))
+export const parentInit = ParentComposition.makeInit(
+  (startup: ParentStartup) => ({
+    startup,
+    model: {
+      currentUser: startup.currentUser,
+      route: startup.route,
+      maybeRoom: Option.none(),
+    },
+    steps: [SettingsBinding.refresh(startup.currentUser)],
+  }),
+)
 
-export const parentUpdate = ParentComposition.update((model, message) => {
+export const parentUpdate = ParentComposition.makeUpdate((model, message) => {
   const exactMessage: ReturnType<typeof ParentMessage.OpenedDashboard> = message
   void exactMessage
 
   return { model }
 })
 
-export const ParentBlock = ParentComposition.toBlock({
+export const foldSettings = ParentComposition.makeUpdate(
+  (
+    model,
+    _message,
+    childMessage: typeof SettingsMessage.Type,
+    currentUser: CurrentUser,
+  ) => SettingsBinding.fold(model, childMessage, currentUser),
+)
+export const foldStatus = ParentComposition.makeUpdate(
+  (model, _message, childMessage: typeof StatusMessage.Type) =>
+    StatusBinding.fold(model, childMessage),
+)
+export const foldRoom = ParentComposition.makeUpdate(
+  (
+    model,
+    _message,
+    roomId: string,
+    childMessage: typeof RoomMessage.Type,
+    context: RoomDispatchContext,
+  ) => RoomBinding.fold(model, roomId, childMessage, context),
+)
+
+export const ParentBlock = ParentComposition.makeBlock({
   init: parentInit,
   update: parentUpdate,
   EffectsLayer: Layer.empty,
@@ -733,26 +768,26 @@ const Application = defineApplication({
   Message: ApplicationMessage,
 })
 
-export const ApplicationComposition = Application.toComposition()
-export const applicationInit = ApplicationComposition.init(() => ({
+export const ApplicationComposition = Application.makeComposition()
+export const applicationInit = ApplicationComposition.makeInit(() => ({
   model: ApplicationModel.make({ count: 0 }),
 }))
-export const applicationDefaultInit = ApplicationComposition.init(
+export const applicationDefaultInit = ApplicationComposition.makeInit(
   (count = 0) => ({ model: ApplicationModel.make({ count }) }),
 )
-export const applicationReadonlyRestInit = ApplicationComposition.init(
+export const applicationReadonlyRestInit = ApplicationComposition.makeInit(
   (...counts: readonly number[]) => ({
     model: ApplicationModel.make({ count: counts.length }),
   }),
 )
 export const applicationUndefinedDefaultInit = applicationDefaultInit(undefined)
-export const applicationUpdate = ApplicationComposition.update(model => ({
+export const applicationUpdate = ApplicationComposition.makeUpdate(model => ({
   model: Struct.modifyFields(model, { count: count => count + 1 }),
 }))
-export const applicationView = ApplicationComposition.view((model, h) =>
+export const applicationView = ApplicationComposition.makeView((model, h) =>
   h.main([], [globalThis.String(model.count)]),
 )
-export const ApplicationElement = ApplicationComposition.toElement({
+export const ApplicationElement = ApplicationComposition.makeElement({
   container: null,
   init: applicationInit,
   update: applicationUpdate,
@@ -822,12 +857,13 @@ export const RunApplicationTask = ServiceApplication.command(
 )
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable
-export const ServiceApplicationComposition = ServiceApplication.toComposition()
-export const serviceApplicationInit = ServiceApplicationComposition.init(
+export const ServiceApplicationComposition =
+  ServiceApplication.makeComposition()
+export const serviceApplicationInit = ServiceApplicationComposition.makeInit(
   () => ({ model: ServiceApplicationModel.make({ count: 0 }) }),
 )
-export const serviceApplicationUpdate = ServiceApplicationComposition.update(
-  (model, message) =>
+export const serviceApplicationUpdate =
+  ServiceApplicationComposition.makeUpdate((model, message) =>
     ServiceApplicationMessage.match(message, {
       RequestedApplicationTask: () => ({
         model,
@@ -835,13 +871,13 @@ export const serviceApplicationUpdate = ServiceApplicationComposition.update(
       }),
       CompletedRunApplicationTask: () => ({ model }),
     }),
-)
-export const serviceApplicationView = ServiceApplicationComposition.view(
+  )
+export const serviceApplicationView = ServiceApplicationComposition.makeView(
   (model, h) => h.main([], [globalThis.String(model.count)]),
 )
 
 export const PendingServiceApplicationElement =
-  ServiceApplicationComposition.toElement({
+  ServiceApplicationComposition.makeElement({
     container: null,
     init: serviceApplicationInit,
     update: serviceApplicationUpdate,
@@ -898,13 +934,15 @@ const NoStartupStatusBinding = NoStartup.bindChild(StatusBlock, {
   parentMessage: NoStartupMessage.GotStatusMessage,
   init: true,
 })
-export const NoStartupComposition = NoStartup.toComposition({
+export const NoStartupComposition = NoStartup.makeComposition({
   childBindings: [NoStartupStatusBinding],
 })
-export const noStartupInit = NoStartupComposition.init(() => ({ model: {} }))
-export const NoStartupBlock = NoStartupComposition.toBlock({
+export const noStartupInit = NoStartupComposition.makeInit(() => ({
+  model: {},
+}))
+export const NoStartupBlock = NoStartupComposition.makeBlock({
   init: noStartupInit,
-  update: NoStartupComposition.update(),
+  update: NoStartupComposition.makeUpdate(),
 })
 export type NoStartupArgumentsAreExact = Expect<
   Equal<Parameters<typeof noStartupInit>, []>

@@ -25,7 +25,7 @@ export const Settings = Block.define('Settings', {
   Message,
   OutMessage,
 })
-export const SettingsComposition = Settings.toComposition()
+export const SettingsComposition = Settings.makeComposition()
 
 export class SettingsStore extends Context.Service<
   SettingsStore,

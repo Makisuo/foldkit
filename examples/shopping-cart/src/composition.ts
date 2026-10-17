@@ -36,7 +36,7 @@ export const ProductsPageBinding = Application.bindChild(Products.block, {
   outMessage: { fold: foldProductsOutMessage },
 })
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [ProductsPageBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

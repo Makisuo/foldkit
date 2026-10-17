@@ -31,7 +31,7 @@ const toPreviousStep = (current: Step.Step): Step.Step =>
     Option.getOrElse(() => current),
   )
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedNext: () => ({
       model: modifyFields(model, { currentStep: toNextStep }),

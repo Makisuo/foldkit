@@ -35,13 +35,13 @@ const ChildMessage = defineMessageUnion({
   UpdatedChildValue: { value: Schema.String },
 })
 const child = Child.define({ Model: ChildModel, Message: ChildMessage })
-const ChildComposition = child.toComposition()
-const childBlock = ChildComposition.toBlock({
+const ChildComposition = child.makeComposition()
+const childBlock = ChildComposition.makeBlock({
   init: () => ({ model: { value: 'child' } }),
-  update: ChildComposition.update((model, { value }) => ({
+  update: ChildComposition.makeUpdate((model, { value }) => ({
     model: modifyFields(model, { value: () => value }),
   })),
-  view: ChildComposition.view((model, h) => h.span([], [model.value])),
+  view: ChildComposition.makeView((model, h) => h.span([], [model.value])),
 })
 
 const Model = Schema.Struct({
@@ -55,7 +55,7 @@ const Message = defineMessageUnion({
 })
 const ForeignMessage = defineMessageUnion({ ForeignCompleted: {} })
 const Application = defineApplication({ Model, Message })
-const graphlessComposition = Application.toComposition()
+const graphlessComposition = Application.makeComposition()
 const ReadRootValue = Application.command('ReadRootValue', {
   messages: [Message.CompletedReadRootValue],
   handler: function* () {
@@ -65,11 +65,11 @@ const ReadRootValue = Application.command('ReadRootValue', {
       Effect.succeed(Message.CompletedReadRootValue({ value: source.value }))
   },
 })
-const documentView = graphlessComposition.view((model, h) => ({
+const documentView = graphlessComposition.makeView((model, h) => ({
   title: model.rootValue,
   body: h.div([], [model.rootValue]),
 }))
-const graphlessElementView = graphlessComposition.view((model, h) =>
+const graphlessElementView = graphlessComposition.makeView((model, h) =>
   h.div([], [model.rootValue]),
 )
 const ObserveRoot = Application.mount('ObserveRoot', {
@@ -79,8 +79,10 @@ const ObserveRoot = Application.mount('ObserveRoot', {
       Effect.succeed(Message.CompletedReadRootValue({ value: 'mounted' }))
   },
 })
-const mountedComposition = Application.toComposition({ mounts: [ObserveRoot] })
-const mountedView = mountedComposition.view((model, h) =>
+const mountedComposition = Application.makeComposition({
+  mounts: [ObserveRoot],
+})
+const mountedView = mountedComposition.makeView((model, h) =>
   h.div([h.OnMount(ObserveRoot())], [model.rootValue]),
 )
 const ChildBinding = Application.bindChild(childBlock, {
@@ -88,7 +90,7 @@ const ChildBinding = Application.bindChild(childBlock, {
   write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
   parentMessage: Message.GotChildMessage,
 })
-const composition = Application.toComposition({
+const composition = Application.makeComposition({
   childBindings: [ChildBinding],
 })
 const initSource = () =>
@@ -96,8 +98,8 @@ const initSource = () =>
     args: [],
     toParentModel: child => ({ rootValue: 'pending', child }),
   })
-const init = composition.init(initSource)
-const update = composition.update((model, message) =>
+const init = composition.makeInit(initSource)
+const update = composition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedReadRootValue: () => ({
       model,
@@ -127,27 +129,29 @@ const rootBody = (
       ),
     ],
   )
-const view = composition.view(rootBody)
+const view = composition.makeView(rootBody)
 
 const NoMessageModel = Schema.Null
 const NoMessageApplication = defineApplication({
   Model: NoMessageModel,
   Message: Schema.Never,
 })
-const NoMessageComposition = NoMessageApplication.toComposition()
+const NoMessageComposition = NoMessageApplication.makeComposition()
 const noMessageInit = () => ({ model: null })
-const noMessageUpdate = NoMessageComposition.update()
-const noMessageDocumentView = NoMessageComposition.view((_model, h) => ({
+const noMessageUpdate = NoMessageComposition.makeUpdate()
+const noMessageDocumentView = NoMessageComposition.makeView((_model, h) => ({
   title: 'No messages',
   body: h.empty,
 }))
-const noMessageElementView = NoMessageComposition.view((_model, h) => h.empty)
+const noMessageElementView = NoMessageComposition.makeView(
+  (_model, h) => h.empty,
+)
 
 const typecheckRootCompletion = (): void => {
   // @ts-expect-error An Application Definition does not author the primary view.
-  Application.view
+  Application.makeView
   // @ts-expect-error An Application Definition does not expose the Composition-owned init helper.
-  Application.init
+  Application.makeInit
 
   Application.command('AcceptedCommand', {
     messages: [Message.CompletedReadRootValue],
@@ -174,7 +178,7 @@ const typecheckRootCompletion = (): void => {
   // @ts-expect-error Primitive authoring remains on the Application Definition.
   composition.command
 
-  composition.update((model, message) =>
+  composition.makeUpdate((model, message) =>
     // @ts-expect-error Composition routes the registered child Message.
     Message.match(message, {
       ClickedReadRootValue: () => ({ model }),
@@ -183,7 +187,7 @@ const typecheckRootCompletion = (): void => {
     }),
   )
 
-  composition.toElement({
+  composition.makeElement({
     container: null,
     init,
     update,
@@ -191,7 +195,7 @@ const typecheckRootCompletion = (): void => {
     EffectsLayer: ReadRootValue.layer,
   })
 
-  const application = composition.toApplication({
+  const application = composition.makeApplication({
     container: null,
     init,
     update,
@@ -207,21 +211,21 @@ const typecheckRootCompletion = (): void => {
   > = application
   void pendingApplication
 
-  NoMessageComposition.toApplication({
+  NoMessageComposition.makeApplication({
     container: null,
     init: noMessageInit,
     update: noMessageUpdate,
     view: noMessageDocumentView,
   })
-  NoMessageComposition.toElement({
+  NoMessageComposition.makeElement({
     container: null,
     init: noMessageInit,
     update: noMessageUpdate,
     view: noMessageElementView,
   })
 
-  // @ts-expect-error toApplication requires the registered Document view.
-  composition.toApplication({
+  // @ts-expect-error makeApplication requires the registered Document view.
+  composition.makeApplication({
     container: null,
     init,
     update,
@@ -229,8 +233,8 @@ const typecheckRootCompletion = (): void => {
     EffectsLayer: ReadRootValue.layer,
   })
 
-  // @ts-expect-error toElement requires the registered Element view.
-  composition.toElement({
+  // @ts-expect-error makeElement requires the registered Element view.
+  composition.makeElement({
     container: null,
     init,
     update,
@@ -239,7 +243,7 @@ const typecheckRootCompletion = (): void => {
   })
 
   // @ts-expect-error The graphless Composition has not registered the child used by this view.
-  Application.toComposition().toElement({
+  Application.makeComposition().makeElement({
     container: null,
     init,
     update,
@@ -248,7 +252,7 @@ const typecheckRootCompletion = (): void => {
   })
 
   // @ts-expect-error The graphless Composition has not registered the Mount used by this view.
-  Application.toComposition().toElement({
+  Application.makeComposition().makeElement({
     container: null,
     init,
     update,
@@ -257,14 +261,14 @@ const typecheckRootCompletion = (): void => {
   })
 
   // @ts-expect-error root handler definitions must be included in EffectsLayer.
-  composition.toElement({
+  composition.makeElement({
     container: null,
     init,
     update,
     view,
   })
 
-  composition.toElement({
+  composition.makeElement({
     // @ts-expect-error Model is established by defineApplication.
     Model,
     container: null,
@@ -281,7 +285,7 @@ const typecheckRootCompletion = (): void => {
       child: { value: 'child' },
     },
   })
-  const elementWithFlags = composition.toElement({
+  const elementWithFlags = composition.makeElement({
     Flags,
     flags: Effect.succeed({ initialValue: 'from flags' }),
     container: null,
@@ -304,7 +308,7 @@ const typecheckRootCompletion = (): void => {
     view: documentView,
     EffectsLayer: ReadRootValue.layer,
   }
-  const routedApplication = composition.toApplication({
+  const routedApplication = composition.makeApplication({
     ...routedImplementation,
     container: null,
     routing: {
@@ -334,7 +338,7 @@ const typecheckRootCompletion = (): void => {
     view: documentView,
     EffectsLayer: ReadRootValue.layer,
   }
-  const routedFlagsApplication = composition.toApplication({
+  const routedFlagsApplication = composition.makeApplication({
     ...routedFlagsImplementation,
     Flags,
     container: null,
@@ -359,7 +363,7 @@ const typecheckRootCompletion = (): void => {
   void pendingRoutedFlagsApplication
 
   // @ts-expect-error a Flags application init must receive its Flags.
-  composition.toElement({
+  composition.makeElement({
     Flags,
     flags: Effect.succeed({ initialValue: 'from flags' }),
     container: null,
@@ -390,34 +394,38 @@ describe('Application authoring', () => {
     expect(Application.mount).toBeTypeOf('function')
     expect(Application.mountStream).toBeTypeOf('function')
     expect(Application.resource).toBeTypeOf('function')
-    expect(composition.update).toBeTypeOf('function')
+    expect(composition.makeUpdate).toBeTypeOf('function')
     expect(Application.step).toBeTypeOf('function')
     expect(Application.subscriptions).toBeTypeOf('function')
     expect(Application.managedResources).toBeTypeOf('function')
     expect(composition).not.toHaveProperty('command')
     expect(composition).not.toHaveProperty('step')
-    expect(composition.init).toBeTypeOf('function')
+    expect(composition.makeInit).toBeTypeOf('function')
     expect(init).not.toBe(initSource)
     expect(init().model).toEqual({
       rootValue: 'pending',
       child: { value: 'child' },
     })
-    expect(initSource).toThrow('requires its registered Composition')
-    expect(Application).not.toHaveProperty('init')
-    expect(Application).not.toHaveProperty('view')
-    expect(graphlessComposition).toHaveProperty('view')
+    const recipe = initSource()
+
+    expect(recipe).not.toBeTypeOf('function')
+    expect(recipe).not.toHaveProperty('model')
+    expect(recipe).not.toHaveProperty('commands')
+    expect(Application).not.toHaveProperty('makeInit')
+    expect(Application).not.toHaveProperty('makeView')
+    expect(graphlessComposition).toHaveProperty('makeView')
 
     // @ts-expect-error an application root is not a reusable Block.
     void Application.bind
     // @ts-expect-error an Application composition does not expose Block completion.
-    void composition.toBlock
+    void composition.makeBlock
     // @ts-expect-error an application can only be composed once.
-    void composition.toComposition
+    void composition.makeComposition
   })
 
   it('completes an empty composition through its owned method', () => {
     expect(() =>
-      NoMessageComposition.toElement({
+      NoMessageComposition.makeElement({
         container: document.createElement('div'),
         init: noMessageInit,
         update: noMessageUpdate,
@@ -431,7 +439,7 @@ describe('Application authoring', () => {
     container.id = 'application-authoring'
     document.body.append(container)
 
-    const element = composition.toElement({
+    const element = composition.makeElement({
       container,
       init,
       update,

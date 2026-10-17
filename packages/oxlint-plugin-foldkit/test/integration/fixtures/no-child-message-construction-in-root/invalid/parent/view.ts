@@ -8,7 +8,7 @@ const AliasedEntryMessage = EntryMessage
 const foreignEntryButton = (h: EntryViewBuilder) =>
   h.button([h.OnClick(EntryMessage.ClickedEntryFromForeignBuilder())])
 
-export const view = ParentComposition.view((_model, h) =>
+export const view = ParentComposition.makeView((_model, h) =>
   h.div(
     [h.OnClick(ChildMessage.ClickedChildSave())],
     [

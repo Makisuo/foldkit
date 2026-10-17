@@ -3,7 +3,7 @@ import {
   SearchBinding,
   EditorBinding,
 } from './composition'
-const init = WorkspaceComposition.init(() => ({
+const init = WorkspaceComposition.makeInit(() => ({
   model: {
     maybeSelectedDocumentId: Option.none(),
     maybeOpenedDocumentId: Option.none(),

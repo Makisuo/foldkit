@@ -1,5 +1,5 @@
 import { Match } from 'effect'
-import type { Block } from 'foldkit'
+import { type Block, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { Application } from './definition'
@@ -22,20 +22,18 @@ export const PostDetailsBinding = Application.bindChild(postQuery, {
   parentMessage: Message.GotPostMessage,
 })
 
-const activateTab = (tab: Tab) =>
-  Application.step(model => {
-    const modelWithActiveTab = modifyFields(model, { activeTab: () => tab })
+const activateTab = (tab: Tab) => {
+  const selectTab = Application.step(model => ({
+    model: modifyFields(model, { activeTab: () => tab }),
+  }))
+  const loadTab = Match.value(tab).pipe(
+    Match.when('Posts', () => PostsBinding.loadIfMissing()),
+    Match.when('Stats', () => StatsBinding.loadIfMissing()),
+    Match.exhaustive,
+  )
 
-    return Match.value(tab).pipe(
-      Match.when('Posts', () =>
-        PostsBinding.loadIfMissing()(modelWithActiveTab),
-      ),
-      Match.when('Stats', () =>
-        StatsBinding.loadIfMissing()(modelWithActiveTab),
-      ),
-      Match.exhaustive,
-    )
-  })
+  return Update.combine([selectTab, loadTab])
+}
 
 const foldTabsOutMessage = AppTabs.OutMessage.match({
   Selected: ({ value }) => activateTab(value),
@@ -48,7 +46,7 @@ export const TabsBinding = Application.bindChild(AppTabs, {
   outMessage: { fold: foldTabsOutMessage },
 })
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [TabsBinding, PostsBinding, StatsBinding, PostDetailsBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

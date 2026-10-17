@@ -42,7 +42,7 @@ const thumbClassName =
 const ratingFormatted = (value: number): string => `${value} of 10`
 const volumeFormatted = (value: number): string => `${Math.round(value * 100)}%`
 
-export const view = UiComposition.view((model, h) => {
+export const view = UiComposition.makeView((model, h) => {
   const horizontalSliderView = (attributes: SliderAttributes): Html =>
     h.div(
       [h.Class(horizontalRowClassName)],

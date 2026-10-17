@@ -4,7 +4,7 @@ import { ApplicationComposition, init, update, view } from './counterFlagsRoot'
 import { Flags, flags } from './flagsDefinition'
 import { ApplicationLayer } from './services'
 
-const application = ApplicationComposition.toApplication({
+const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,

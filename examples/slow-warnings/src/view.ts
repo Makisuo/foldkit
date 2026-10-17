@@ -238,7 +238,7 @@ const patchSurfaceView = (model: Model, h: ApplicationViewBuilder): Html =>
     ],
   )
 
-export const view = ApplicationComposition.view((model, h) => {
+export const view = ApplicationComposition.makeView((model, h) => {
   burnCpuDuringView(model.activeWorkload)
 
   return {

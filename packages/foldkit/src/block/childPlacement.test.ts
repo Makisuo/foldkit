@@ -14,10 +14,10 @@ const Child = define('ChildPlacementChild', {
   Model: ChildModel,
   Message,
 })
-const ChildComposition = Child.toComposition()
-const ChildBlock = ChildComposition.toBlock({
+const ChildComposition = Child.makeComposition()
+const ChildBlock = ChildComposition.makeBlock({
   init: () => ({ model: ChildModel.make({ value: '' }) }),
-  update: ChildComposition.update((model, { value }) => ({
+  update: ChildComposition.makeUpdate((model, { value }) => ({
     model: modifyFields(model, { value: () => value }),
   })),
 })
@@ -130,7 +130,7 @@ const EntriesByIdLengthBinding = Parent.bindChild(ChildBlock, {
   toParentMessage: (_idLength, message) => message,
 })
 
-const composition = Parent.toComposition({
+const composition = Parent.makeComposition({
   childBindings: [
     PrimaryBinding,
     SecondaryBinding,
@@ -139,7 +139,7 @@ const composition = Parent.toComposition({
   ],
 })
 
-const defaultPlacementComposition = Parent.toComposition({
+const defaultPlacementComposition = Parent.makeComposition({
   childBindings: [
     DefaultAccessorBinding,
     EntriesByIdBinding,
@@ -161,22 +161,22 @@ const dynamicDefaultKeyedChildren: ReadonlyArray<
 
 if (false) {
   // @ts-expect-error Direct field defaults and explicit placements cannot resolve to the same sibling placement.
-  Parent.toComposition({
+  Parent.makeComposition({
     childBindings: [PrimaryBinding, SecondaryAtPrimaryBinding],
   })
 
   // @ts-expect-error Static and keyed Bindings cannot resolve to the same sibling placement.
-  Parent.toComposition({
+  Parent.makeComposition({
     childBindings: [OptionalBinding, EntriesAtOptionalBinding],
   })
 
   // @ts-expect-error Default accessor and keyed Bindings of the same child Block resolve to the same placement.
-  Parent.toComposition({
+  Parent.makeComposition({
     childBindings: [DefaultAccessorBinding, DefaultEntriesByIdBinding],
   })
 
   // @ts-expect-error Keyed occurrence keys do not distinguish sibling Binding placements.
-  Parent.toComposition({
+  Parent.makeComposition({
     childBindings: [DefaultEntriesByIdBinding, DefaultEntriesByIdLengthBinding],
   })
 }
@@ -194,7 +194,7 @@ it('accepts distinct resolved sibling placements', () => {
 
 it('rejects duplicate placements in a widened child list before completion', () => {
   expect(() =>
-    Parent.toComposition({ childBindings: dynamicChildren }),
+    Parent.makeComposition({ childBindings: dynamicChildren }),
   ).toThrow(
     '[foldkit] Block "ChildPlacementParent" child Bindings at indexes 0 and 1 both resolve to placement "primary". Give each sibling Binding a unique placement.',
   )
@@ -205,7 +205,7 @@ it('rejects widened default placements before completion', () => {
     dynamicDefaultMixedChildren,
     dynamicDefaultKeyedChildren,
   ]) {
-    expect(() => Parent.toComposition({ childBindings })).toThrow(
+    expect(() => Parent.makeComposition({ childBindings })).toThrow(
       '[foldkit] Block "ChildPlacementParent" child Bindings at indexes 0 and 1 both resolve to placement "ChildPlacementChild". Give each sibling Binding a unique placement.',
     )
   }

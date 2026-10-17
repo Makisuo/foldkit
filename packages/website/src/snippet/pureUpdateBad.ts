@@ -5,7 +5,7 @@ import { Message } from './message'
 import type { Model } from './model'
 
 // ❌ Don't call random directly in update
-const update = ApplicationComposition.update((model, message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     RequestedApple: () => {
       const x = Math.floor(Math.random() * GRID_SIZE)

@@ -58,7 +58,7 @@ export const AvailableDatePickerBinding = PersonalInfo.bindChild(
   },
 )
 
-export const PersonalInfoComposition = PersonalInfo.toComposition({
+export const PersonalInfoComposition = PersonalInfo.makeComposition({
   childBindings: [PronounsListboxBinding, AvailableDatePickerBinding],
 })
 export type PersonalInfoViewBuilder = Block.ViewBuilderFor<

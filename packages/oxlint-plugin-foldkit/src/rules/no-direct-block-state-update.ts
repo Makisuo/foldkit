@@ -630,14 +630,14 @@ const compositionDefinitions = (
         continue
       }
       if (
-        !isOwnedDefinitionCall(declarator.init, 'toComposition', references)
+        !isOwnedDefinitionCall(declarator.init, 'makeComposition', references)
       ) {
         continue
       }
 
       const owner = definitionOwner(
         declarator.init,
-        'toComposition',
+        'makeComposition',
         references,
       )
       const [configuration] = declarator.init.arguments
@@ -691,7 +691,7 @@ const compositionDefinitionForUpdate = (
   if (
     Option.isNone(maybePath) ||
     maybePath.value.members.length !== 1 ||
-    maybePath.value.members[0] !== 'update'
+    maybePath.value.members[0] !== 'makeUpdate'
   ) {
     return undefined
   }

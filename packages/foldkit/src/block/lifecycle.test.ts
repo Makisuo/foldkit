@@ -158,11 +158,11 @@ const buildGraph = (
     Model: ChildModel,
     Message: ChildMessage,
   })
-  const childComposition = childBase.toComposition({ mounts: [ObservePanel] })
-  const childView = childComposition.view((model, h) =>
+  const childComposition = childBase.makeComposition({ mounts: [ObservePanel] })
+  const childView = childComposition.makeView((model, h) =>
     h.div([h.OnMount(ObservePanel())], [`child:${model.id}`]),
   )
-  const Child = childComposition.toBlock({
+  const Child = childComposition.makeBlock({
     view: childView,
     init: () => ({ model: ChildModel.make({ id: 'one' }) }),
     update: (model, message) =>
@@ -227,10 +227,10 @@ const buildGraph = (
     })
   })()
 
-  const composition = parentBase.toComposition({
+  const composition = parentBase.makeComposition({
     childBindings: [ChildBinding],
   })
-  const view = composition.view((model, h) =>
+  const view = composition.makeView((model, h) =>
     h.div(
       [],
       [
@@ -256,7 +256,7 @@ const buildGraph = (
       route: 'Home',
     }),
   })
-  const update = composition.update((model, message) =>
+  const update = composition.makeUpdate((model, message) =>
     ParentMessage.match(message, {
       GotChildMessage: ({ message: childMessage }) =>
         ChildBinding.fold(model, childMessage),
@@ -285,7 +285,7 @@ it.each(['Option', 'Route'] as const)(
     container.id = 'block-lifecycle-test'
     document.body.appendChild(container)
 
-    const provided = composition.toElement({
+    const provided = composition.makeElement({
       container,
       init,
       update,
@@ -363,7 +363,7 @@ it('gates only Subscription Streams while the direct-field child remains present
   const container = document.createElement('div')
   container.id = 'block-subscription-only-lifecycle-test'
   document.body.appendChild(container)
-  const application = composition.toElement({ container, init, update, view })
+  const application = composition.makeElement({ container, init, update, view })
   const fiber = Effect.runFork(__startProgram(application, undefined, 'Fresh'))
 
   try {

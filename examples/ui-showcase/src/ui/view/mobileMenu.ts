@@ -12,7 +12,7 @@ export type ViewInputs = Readonly<{
   ) => Html
 }>
 
-export const view = UiComposition.view.withInputs<ViewInputs>(
+export const view = UiComposition.makeView.withInputs<ViewInputs>(
   (model, { renderContent }, h) => {
     const mobileMenuDialogContent = ({
       dialog,

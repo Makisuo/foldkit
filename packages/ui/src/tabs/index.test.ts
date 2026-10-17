@@ -40,11 +40,11 @@ const TabsBinding = TabsScene.bindChild(block, {
   outMessage: { fold: foldTabsOutMessage },
 })
 
-const TabsSceneComposition = TabsScene.toComposition({
+const TabsSceneComposition = TabsScene.makeComposition({
   childBindings: [TabsBinding],
 })
 
-const sceneView = TabsSceneComposition.view((model, h) =>
+const sceneView = TabsSceneComposition.makeView((model, h) =>
   h.block(
     TabsBinding.embedView({
       slotId: 'tabs',
@@ -76,7 +76,7 @@ const sceneView = TabsSceneComposition.view((model, h) =>
   ),
 )
 
-const allPanelsView = TabsSceneComposition.view((model, h) =>
+const allPanelsView = TabsSceneComposition.makeView((model, h) =>
   h.block(
     TabsBinding.embedView({
       slotId: 'tabs',

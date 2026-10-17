@@ -13,7 +13,7 @@ const title = (model: Model): string =>
     Match.orElse(({ _tag }) => `${_tag} | Auth`),
   )
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: title(model),
   body: h.div(
     [h.Class('min-h-screen bg-gray-100')],

@@ -119,6 +119,6 @@ export const NotesChildBinding = DeclarationQueryParent.bindChild(Notes, {
 })
 
 export const DeclarationQueryParentComposition =
-  DeclarationQueryParent.toComposition({
+  DeclarationQueryParent.makeComposition({
     childBindings: [NotesChildBinding],
   })

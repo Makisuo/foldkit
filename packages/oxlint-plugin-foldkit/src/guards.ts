@@ -337,7 +337,7 @@ const isFoldkitDefinitionViewCallback = (
     return false
   }
 
-  return isOwnedDefinitionCall(parent, 'view', references)
+  return isOwnedDefinitionCall(parent, 'makeView', references)
 }
 
 const hasHtmlBuilderTypeAnnotation = (
@@ -646,7 +646,7 @@ export const isOwnedDefinitionCall = (
         if (
           isMemberExpression(call.callee) &&
           Option.exists(staticMemberName(call.callee), member =>
-            Array.contains(['define', 'toComposition'], member),
+            Array.contains(['define', 'makeComposition'], member),
           ) &&
           isCallExpression(call.callee.object)
         ) {
@@ -657,7 +657,7 @@ export const isOwnedDefinitionCall = (
           staticMemberPath(call.callee),
           definePath =>
             Option.exists(Array.last(definePath.members), methodName =>
-              Array.contains(['define', 'toComposition'], methodName),
+              Array.contains(['define', 'makeComposition'], methodName),
             ) &&
             Option.exists(
               resolvedVariable(references, definePath.root),

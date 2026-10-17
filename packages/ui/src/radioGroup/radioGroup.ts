@@ -10,6 +10,7 @@ import {
   pipe,
 } from 'effect'
 import { type Update } from 'foldkit'
+import * as Block from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { type MessageUnion, defineMessageUnion } from 'foldkit/message'
@@ -136,13 +137,13 @@ const RadioGroup = SharedRadioGroup.define({
   OutMessage,
 })
 
-const RadioGroupComposition = RadioGroup.toComposition()
+const RadioGroupComposition = RadioGroup.makeComposition()
 
 /** Processes a RadioGroup Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. `Selected` fires when an option is
  *  committed via click or keyboard; the parent stores the new value and passes
  *  it back in as `selectedValue`. */
-export const update = RadioGroupComposition.update((model, message) =>
+export const update = RadioGroupComposition.makeUpdate((model, message) =>
   Message.match(message, {
     SelectedOption: ({ index, value }) => ({
       model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),
@@ -228,7 +229,7 @@ export type ViewInputs<Value extends string = string> = Readonly<{
   name?: string
 }>
 
-const internalView = RadioGroupComposition.view.withInputs<ViewInputs>(
+const internalView = RadioGroupComposition.makeView.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const { id, maybeFocusedIndex } = model
     const {
@@ -456,8 +457,8 @@ const internalView = RadioGroupComposition.view.withInputs<ViewInputs>(
 )
 
 /** Complete RadioGroup Block definition. */
-export const block = RadioGroupComposition.toBlock({
-  init: RadioGroupComposition.init((config: InitConfig) => ({
+export const block = RadioGroupComposition.makeBlock({
+  init: RadioGroupComposition.makeInit((config: InitConfig) => ({
     model: init(config),
   })),
   update,
@@ -465,7 +466,7 @@ export const block = RadioGroupComposition.toBlock({
   EffectsLayer,
 })
 
-const makeBlock = <Value extends string>() => {
+const makeBlockParts = <Value extends string>() => {
   type GenericReturn = Update.ReturnWithOutMessage<
     Model,
     Message,
@@ -484,8 +485,8 @@ const makeBlock = <Value extends string>() => {
     Message,
     OutMessage: RefinedOutMessage,
   })
-  const RadioGroupComposition = RadioGroup.toComposition()
-  const refinedUpdate = RadioGroupComposition.update((model, message) =>
+  const RadioGroupComposition = RadioGroup.makeComposition()
+  const refinedUpdate = RadioGroupComposition.makeUpdate((model, message) =>
     castReturn(update(model, message)),
   )
   const refinedView =
@@ -495,24 +496,38 @@ const makeBlock = <Value extends string>() => {
       viewInputs: ViewInputs<Value>,
       h: Parameters<typeof internalView>[2],
     ) => Html
-  const view = RadioGroupComposition.view.withInputs<ViewInputs<Value>>(
+  const view = RadioGroupComposition.makeView.withInputs<ViewInputs<Value>>(
     (model, viewInputs, h) => refinedView(model, viewInputs, h),
   )
 
-  return RadioGroupComposition.toBlock({
-    init: RadioGroupComposition.init((config: InitConfig) => ({
-      model: init(config),
-    })),
-    update: refinedUpdate,
-    view,
-    EffectsLayer,
-  })
+  return {
+    composition: RadioGroupComposition,
+    implementation: {
+      init: RadioGroupComposition.makeInit((config: InitConfig) => ({
+        model: init(config),
+      })),
+      update: refinedUpdate,
+      view,
+      EffectsLayer,
+    },
+  }
 }
 
+type BlockParts<Value extends string> = ReturnType<typeof makeBlockParts<Value>>
+
 /** A completed RadioGroup Block refined to one Value type. */
-export type Completed<Value extends string = string> = ReturnType<
-  typeof makeBlock<Value>
->
+export interface Completed<
+  Value extends string = string,
+> extends Block.CompletedWithViewAndOutMessage<
+  BlockParts<Value>['composition'],
+  BlockParts<Value>['implementation']
+> {}
+
+const makeBlock = <Value extends string>(): Completed<Value> => {
+  const { composition, implementation } = makeBlockParts<Value>()
+
+  return composition.makeBlock(implementation)
+}
 
 /**
  * Creates a completed RadioGroup Block refined to one Value type. Declare

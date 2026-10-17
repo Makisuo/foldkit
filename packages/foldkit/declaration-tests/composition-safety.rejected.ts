@@ -1,5 +1,6 @@
 import { Array, Option } from 'effect'
-import { Struct, Update } from 'foldkit'
+import { Block, Struct, Update } from 'foldkit'
+import * as PublicUpdate from 'foldkit/update'
 
 import {
   CompositionSafetyParent,
@@ -8,6 +9,7 @@ import {
   LoadParameterizedChild,
   OptionalContextBlock,
   ParentMessage,
+  ParentModel,
   PlainBinding,
   PlainBlock,
   RestContextBlock,
@@ -80,14 +82,54 @@ declare const unknownParentCommandRequirements: Update.Commands<
 // oxfmt-ignore
 PlainBinding.init({ args: [], toParentModel: child => Struct.modifyFields(initialParentModel, { plain: () => child }), commands: unknownParentCommandRequirements })
 
-const MissingPlainBindingComposition = CompositionSafetyParent.toComposition({
+// @ts-expect-error Foldkit's explicit Step cannot erase connected registration evidence.
+const erasedConnectedStep: Update.Step<
+  typeof ParentModel.Type,
+  typeof ParentMessage.Type
+> = initializePlain
+void erasedConnectedStep
+
+const MissingPlainBindingComposition = CompositionSafetyParent.makeComposition({
   childBindings: [EntryBinding],
 })
-MissingPlainBindingComposition.toBlock({
-  init: MissingPlainBindingComposition.init(() =>
-    initializePlain(initialParentModel),
-  ),
-  update: MissingPlainBindingComposition.update(model => ({ model })),
-  // @ts-expect-error A completed Block must register every Binding used by its initializer.
+MissingPlainBindingComposition.makeInit(() =>
+  // @ts-expect-error A connected initializer cannot run without its registered Binding capability.
+  initializePlain(initialParentModel),
+)
+
+const directConnectedInit = MissingPlainBindingComposition.makeInit(() =>
+  PlainBinding.init({
+    args: [],
+    toParentModel: child =>
+      Struct.modifyFields(initialParentModel, { plain: () => child }),
+  }),
+)
+MissingPlainBindingComposition.makeBlock({
+  init: directConnectedInit,
+  update: MissingPlainBindingComposition.makeUpdate(model => ({ model })),
+  // @ts-expect-error A directly connected initializer retains its missing Binding evidence.
   EffectsLayer: LoadParameterizedChild.layer,
 })
+
+// @ts-expect-error Passive operation construction is private to checked composition.
+Update.makeResultRecipe
+// @ts-expect-error Passive operation recognition is not a public execution seam.
+Update.isResultRecipe
+// @ts-expect-error Connected results have no public interpreter.
+Update.runResultRecipe
+// @ts-expect-error Connected result resolution is private to checked composition.
+Update.resolveOperationOutput
+// @ts-expect-error Binding initialization construction is private to composition.
+Block.makeBindingInitRecipe
+// @ts-expect-error Binding initialization recognition is private to composition.
+Block.isBindingInitRecipe
+// @ts-expect-error Binding initialization has no public interpreter.
+Block.runBindingInitRecipe
+// @ts-expect-error The update subpath also exposes no operation interpreter.
+PublicUpdate.runResultRecipe
+export type HiddenOperationRuntime =
+  // @ts-expect-error Private update runtime modules are not package subpaths.
+  typeof import('foldkit/update/operationRecipe')
+export type HiddenInitializationRuntime =
+  // @ts-expect-error Private Binding initialization modules are not package subpaths.
+  typeof import('foldkit/block/initRecipe')

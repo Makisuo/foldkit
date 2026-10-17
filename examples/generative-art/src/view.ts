@@ -432,7 +432,7 @@ const headerView = (h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: `Prism Field · ${model.particles.length} particles`,
   body: h.div(
     [

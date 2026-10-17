@@ -57,11 +57,11 @@ const TabsBinding = Panel.bindChild(AppTabs, {
   outMessage: { fold: foldTabsOutMessage },
 })
 
-const PanelComposition = Panel.toComposition({
+const PanelComposition = Panel.makeComposition({
   childBindings: [MenuBinding, TabsBinding],
 })
 
-export const view = PanelComposition.view((model, h) =>
+export const view = PanelComposition.makeView((model, h) =>
   h.block(
     MenuBinding.embedView({
       slotId: model.menu.id,

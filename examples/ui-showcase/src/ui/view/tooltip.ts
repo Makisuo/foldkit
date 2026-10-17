@@ -26,7 +26,7 @@ const TOOLTIP_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-export const view = UiComposition.view((model, h) => {
+export const view = UiComposition.makeView((model, h) => {
   const basicTooltipView = ({ trigger, panel, isVisible }: RenderInfo): Html =>
     h.div(
       [h.Class(wrapperClassName)],

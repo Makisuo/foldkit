@@ -30,7 +30,7 @@ export const EditionRadioGroupBinding = Application.bindChild(
   },
 )
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [EditionRadioGroupBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

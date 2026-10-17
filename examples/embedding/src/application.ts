@@ -22,7 +22,7 @@ export type Message = typeof Message.Type
 
 export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.toComposition()
+export const ApplicationComposition = Application.makeComposition()
 
 // PORT
 
@@ -34,7 +34,7 @@ export const ports = {
 export const Flags = Schema.Struct({ initialCount: Schema.Number })
 export type Flags = typeof Flags.Type
 
-export const init = ApplicationComposition.init((flags: Flags) => ({
+export const init = ApplicationComposition.makeInit((flags: Flags) => ({
   model: Model.make({ count: flags.initialCount, step: 1 }),
 }))
 
@@ -57,7 +57,7 @@ const advance = (model: Model) => {
   }
 }
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     Ticked: () => advance(model),
     ClickedAdvance: () => advance(model),
@@ -98,7 +98,7 @@ export const EffectsLayer = Layer.mergeAll(
   subscriptions.hostStepChanges.layer,
 )
 
-export const view = ApplicationComposition.view((model, h) =>
+export const view = ApplicationComposition.makeView((model, h) =>
   h.div(
     [
       h.Class(

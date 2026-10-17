@@ -29,7 +29,7 @@ const navigateToRoom = (roomId: string) =>
     commands: [NavigateToRoom({ roomId })],
   }))
 
-const initializeRoomInstance = (roomId: string) =>
+const initRoomInstance = (roomId: string) =>
   Application.step(model =>
     RoomBinding.init({
       key: roomId,
@@ -44,7 +44,7 @@ const initializeRoomInstance = (roomId: string) =>
 
 const enterJoinedRoom = (roomId: string, player: Shared.Player) =>
   Update.combine([
-    initializeRoomInstance(roomId),
+    initRoomInstance(roomId),
     RoomBinding.informJoined(roomId, player, { roomId }),
     navigateToRoom(roomId),
   ])

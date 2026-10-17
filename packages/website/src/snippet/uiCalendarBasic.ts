@@ -93,7 +93,7 @@ const CalendarBinding = CalendarExample.bindChild(UiCalendar.block, {
   outMessage: { fold: foldCalendarOutMessage },
 })
 
-const CalendarExampleComposition = CalendarExample.toComposition({
+const CalendarExampleComposition = CalendarExample.makeComposition({
   childBindings: [CalendarBinding],
 })
 type CalendarExampleViewBuilder = Block.ViewBuilderFor<
@@ -102,7 +102,7 @@ type CalendarExampleViewBuilder = Block.ViewBuilderFor<
 
 // Pass the flags-resolved date through the startup input. `initialViewDate`
 // seeds the month the calendar opens onto. The parent owns the selection.
-const init = CalendarExampleComposition.init((flags: Flags) => ({
+const init = CalendarExampleComposition.makeInit((flags: Flags) => ({
   startup: flags,
   model: {
     maybeSelectedDate: Option.none(),
@@ -110,7 +110,7 @@ const init = CalendarExampleComposition.init((flags: Flags) => ({
   },
 }))
 
-const update = CalendarExampleComposition.update()
+const update = CalendarExampleComposition.makeUpdate()
 
 // Class names live at module scope, and each view mode gets its own view
 // function below.
@@ -288,7 +288,7 @@ const yearsView = (
 // receives a discriminated `CalendarAttributes` whose variant matches the
 // calendar's current `viewMode`, so the match hands each grid to its own view
 // function:
-const view = CalendarExampleComposition.view((model, h) => {
+const view = CalendarExampleComposition.makeView((model, h) => {
   const calendarView = Match.type<UiCalendarCalendarAttributes>().pipe(
     Match.tagsExhaustive({
       Days: days => daysView(days, h),

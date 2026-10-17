@@ -12,13 +12,13 @@ const Plain = define('CompositionSafetyRuntimePlain', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const PlainComposition = Plain.toComposition()
-const PlainBlock = Reflect.apply(PlainComposition.toBlock, undefined, [
+const PlainComposition = Plain.makeComposition()
+const PlainBlock = Reflect.apply(PlainComposition.makeBlock, undefined, [
   {
-    init: PlainComposition.init(() => ({
+    init: PlainComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
     })),
-    update: Reflect.apply(PlainComposition.update, undefined, [
+    update: Reflect.apply(PlainComposition.makeUpdate, undefined, [
       (model: typeof ChildModel.Type) => ({
         model: modifyFields(model, { count: count => count + 1 }),
       }),
@@ -31,16 +31,16 @@ const OptionalContext = define('CompositionSafetyRuntimeOptionalContext', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const OptionalContextComposition = OptionalContext.toComposition()
+const OptionalContextComposition = OptionalContext.makeComposition()
 const OptionalContextBlock = Reflect.apply(
-  OptionalContextComposition.toBlock,
+  OptionalContextComposition.makeBlock,
   undefined,
   [
     {
-      init: OptionalContextComposition.init(() => ({
+      init: OptionalContextComposition.makeInit(() => ({
         model: ChildModel.make({ count: 0 }),
       })),
-      update: Reflect.apply(OptionalContextComposition.update, undefined, [
+      update: Reflect.apply(OptionalContextComposition.makeUpdate, undefined, [
         (
           model: typeof ChildModel.Type,
           _message: typeof ChildMessage.Type,
@@ -74,10 +74,10 @@ describe('Composition safety', () => {
         parentMessage: ParentMessage.GotChildMessage,
       },
     ])
-    const composition = Reflect.apply(Parent.toComposition, undefined, [
+    const composition = Reflect.apply(Parent.makeComposition, undefined, [
       { childBindings: [binding] },
     ])
-    const update = Reflect.apply(composition.update, undefined, [])
+    const update = Reflect.apply(composition.makeUpdate, undefined, [])
     const initial = ParentModel.make({
       child: ChildModel.make({ count: 0 }),
     })

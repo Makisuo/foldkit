@@ -27,9 +27,9 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
     Message,
     OutMessage,
   })
-  const RefinedPickerComposition = RefinedPicker.toComposition()
+  const RefinedPickerComposition = RefinedPicker.makeComposition()
 
-  const update = RefinedPickerComposition.update((model, message) =>
+  const update = RefinedPickerComposition.makeUpdate((model, message) =>
     Message.match(message, {
       SelectedValue: ({ value }) => ({
         model: modifyFields(model, { selected: () => Option.some(value) }),
@@ -42,7 +42,7 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
     update(model, Message.SelectedValue({ value })),
   )
 
-  const view = RefinedPickerComposition.view.withInputs<ViewInputs<Value>>(
+  const view = RefinedPickerComposition.makeView.withInputs<ViewInputs<Value>>(
     (model, { values }, h) =>
       h.div(
         [],
@@ -59,11 +59,11 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
       ),
   )
 
-  const init = RefinedPickerComposition.init(() => ({
+  const init = RefinedPickerComposition.makeInit(() => ({
     model: Model.make({ selected: Option.none() }),
   }))
 
-  return RefinedPickerComposition.toBlock({
+  return RefinedPickerComposition.makeBlock({
     init,
     update,
     view,
@@ -109,11 +109,11 @@ const PickerBinding = FruitSelection.bindChild(FruitPicker, {
 
 export const selectApple = PickerBinding.select('Apple')
 
-const FruitSelectionComposition = FruitSelection.toComposition({
+const FruitSelectionComposition = FruitSelection.makeComposition({
   childBindings: [PickerBinding],
 })
 
-export const pickerView = FruitSelectionComposition.view((model, h) =>
+export const pickerView = FruitSelectionComposition.makeView((model, h) =>
   h.block(
     PickerBinding.embedView({
       slotId: 'fruit-picker',

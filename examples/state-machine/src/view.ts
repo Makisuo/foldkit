@@ -4,7 +4,7 @@ import { checkoutPanelView, orderSummaryView } from './view/checkout'
 import { pageHeaderView, progressView } from './view/header'
 import { stateTitle } from './view/shared'
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: `${stateTitle(model.checkout)} | Signal Press`,
   body: h.div(
     [h.Class('min-h-screen bg-stone-100 text-stone-900')],

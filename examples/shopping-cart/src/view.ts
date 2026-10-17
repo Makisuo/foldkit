@@ -115,7 +115,7 @@ const routeTitle = (route: Model['route']): string =>
     Match.orElse(({ _tag }) => `${_tag} | Shopping Cart`),
   )
 
-export const view = ApplicationComposition.view((model, h) => {
+export const view = ApplicationComposition.makeView((model, h) => {
   const routeContent = ApplicationRoute.match(model.route, {
     Products: () => productsView(model, h),
     Cart: () => cartView(model, h),

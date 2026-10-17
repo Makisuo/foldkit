@@ -69,15 +69,15 @@ const parentView = ParentView.define({
   Model,
   Message: ParentMessage,
 })
-const ParentViewComposition = parentView.toComposition()
+const ParentViewComposition = parentView.makeComposition()
 
-export const view = ParentViewComposition.view((_model, h) =>
+export const view = ParentViewComposition.makeView((_model, h) =>
   h.button([h.OnClick(Child.Message.ClickedParentViewSave())]),
 )
 
-const ImportedParentViewComposition = parentViewDefinition.toComposition()
+const ImportedParentViewComposition = parentViewDefinition.makeComposition()
 
-export const importedParentView = ImportedParentViewComposition.view((_model, h) =>
+export const importedParentView = ImportedParentViewComposition.makeView((_model, h) =>
   h.button([h.OnClick(Child.Message.ClickedImportedParentViewSave())]),
 )
 
@@ -85,9 +85,9 @@ const TypedParentView = Block.define('TypedParentView', {
   Model,
   Message: ParentMessage,
 })
-const TypedParentViewComposition = TypedParentView.toComposition()
+const TypedParentViewComposition = TypedParentView.makeComposition()
 
-export const typedParentView = TypedParentViewComposition.view((_model, h) =>
+export const typedParentView = TypedParentViewComposition.makeView((_model, h) =>
   h.button([h.OnClick(Child.Message.ClickedTypedParentViewSave())]),
 )
 
@@ -101,8 +101,8 @@ const serverChildViewDefinition = ServerChildView.define({
   Model: Child.Model,
   Message: Child.Message,
 })
-const ServerChildViewComposition = serverChildViewDefinition.toComposition()
+const ServerChildViewComposition = serverChildViewDefinition.makeComposition()
 
-export const serverChildView = ServerChildViewComposition.view((_model, h) =>
+export const serverChildView = ServerChildViewComposition.makeView((_model, h) =>
     h.button([h.OnClick(ServerChildMessage.ClickedServerChildSave())]),
   )

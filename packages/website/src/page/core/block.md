@@ -19,6 +19,8 @@ The Settings example on this page grows through that sequence. Settings first de
 
 Definition, Composition, Block completion, Binding, and Application completion are passive. They validate and retain a program description. At the root, `application.provide(ApplicationLayer)` supplies ordinary Effect Services. `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` then builds the selected handler graph, resolves Flags when required, calls init, and begins performing effects.
 
+The factory names describe what they return. `makeComposition`, `makeBlock`, `makeApplication`, and `makeElement` return configured values. `makeInit`, `makeUpdate`, and `makeView` return functions for the Runtime to call later. None of these methods executes application behavior.
+
 A Binding lets Foldkit use one parent-owned policy across update, view, Subscriptions, ManagedResources, Mounts, and handler collection. The parent still decides where the child Model lives, what child facts mean, when the child exists, and where it renders.
 
 :::Info{label="Complete application"}
@@ -49,19 +51,19 @@ The Definition supplies `command`, `mount`, `mountStream`, `resource`, `step`, `
 
 Add a `Startup` Schema only when this feature's child startup selectors share one input. [Init & Flags](/core/init-and-flags) explains that boundary and the supported initializer signatures.
 
-Commands and lifecycle handlers declare local names such as `SaveTheme`. Foldkit derives the full runtime path from composition. Settings connected under Profile becomes `Profile/Settings/SaveTheme`; the feature remains reusable under another parent.
+Commands and lifecycle handlers declare local names such as `SaveTheme`. Foldkit derives the full runtime path from Binding placements. With explicit `profile` and `settings` placements, a nested Settings Command becomes `profile/settings/SaveTheme`; the feature remains reusable under another parent.
 
 ### Define the Composition
 
-Call `toComposition({ childBindings, mounts })` after defining the child Bindings and parent policies. Name the result `<Feature>Composition`. It fixes the feature's graph before init, update, and the primary view are authored. Both fields are optional and default to empty collections.
+Call `makeComposition({ childBindings, mounts })` after defining the child Bindings and parent policies. Name the result `<Feature>Composition`. It fixes the feature's graph before init, update, and the primary view are authored. Both fields are optional and default to empty collections.
 
 Keep the Definition and Composition as separate named values. Author public Steps and child Bindings through `Settings`, then create `SettingsComposition`. Author init, update, and the primary view through that Composition. The resulting view builder exposes only registered children and Mounts, and update routes the registered child Message wrappers.
 
-Features without children or Mounts still call `toComposition()`. Creating a Composition records capabilities. It does not build Layers, call init, or start child behavior.
+Features without children or Mounts still call `makeComposition()`. Creating a Composition records capabilities. It does not build Layers, call init, or start child behavior.
 
 ### Produce the completed Block
 
-Call `toBlock` after the feature's pieces exist. Completion packages the Definition, fixed graph, implementation, and local handler recipe into the value a parent can bind. It does not build a Layer, call init, or start lifecycle work.
+Call `makeBlock` after the feature's pieces exist. Completion packages the Definition, fixed graph, implementation, and local handler recipe into the value a parent can bind. It does not build a Layer, call init, or start lifecycle work.
 
 ::Snippet{name="blockSettings" label="Producing a completed Block"}
 
@@ -93,15 +95,15 @@ The parent Composition routes a canonical unkeyed wrapper declared with `parentM
 
 ::Snippet{name="blockFoldChild" label="Routing a bound child Message"}
 
-Declare parent-driven operations under `expose`, then call them directly through the Binding. Let the Composition route received child Messages; use named operations for changes the parent initiates. Settings exposes `reset`, so Profile can apply that exact operation:
+Declare parent-driven operations under `expose`, then call them through the Binding. Let the Composition route received child Messages; use named operations for changes the parent initiates. Settings exposes `reset`, so Profile can apply that exact operation:
 
 ::Snippet{name="blockProjectedSteps" label="Calling a bound public operation"}
 
-These calls are pure. They produce parent Update.Steps. Applying a Step to the parent Model returns the next Model, optional Commands, and optional OutMessage. The Runtime executes returned Commands later. Every public operation uses the same Model access, Command lifting, and OutMessage policy as `fold`.
+These calls are pure. They produce connected parent Update.Steps whose Model input requires the exact registered graph. A raw domain Model cannot satisfy that input. Return or compose the connected result intact from `makeUpdate` or startup processing; its public type exposes no `.model` or `.commands` before checked execution. A Definition-owned `step` may preserve or wrap a connected Step for later execution. The Composition consumes it while the graph is active and returns the readable next Model, optional Commands, and optional OutMessage. A completed Block's exposed operation is also a checked executor: it accepts the raw Block Model because the completed Block carries its own graph. Ordinary pure Update.Steps remain directly callable. The Runtime executes returned Commands later. Every public operation uses the same Model access, Command lifting, and OutMessage policy as `fold`.
 
 The direction carries meaning. A child Message records something that happened inside the child. An exposed operation is a transition the parent asks the child to perform. Delegating an operation to update can share behavior, but use a truthful Message such as `RequestedClose`; a programmatic close did not click a button. A direct pure Step or shared pure helper is also valid. Do not invent a Message only to route through update. Omit `expose` when the Block exposes no named operations.
 
-Binding operations retain the exact argument types, Command requirements, and OutMessage behavior of the child operation.
+Binding operations retain the exact argument types, Command requirements, Binding requirement, and OutMessage behavior of the child operation.
 
 ### Initialize the child
 
@@ -113,7 +115,7 @@ Use `init: { args }` when another child needs inputs, or `init: false` when the 
 
 The parent init callback returns only parent-owned fields. Composition calls the selected child initializer, stores its Model, and retains its Commands. See [Init & Flags](/core/init-and-flags#child-initialization) for optional children, keyed occurrences, custom storage, Command order, and initial Steps.
 
-Block init cannot emit an OutMessage. Author it through the Block Composition, then pass that same `init` function to `FeatureComposition.toBlock`. An optional `boot` helper is an ordinary initial Step listed in the parent's init plan after the child Model exists; Foldkit has no special Runtime boot phase. When an existing domain operation such as `restore` or `open` already describes the transition, expose that Step instead. The same operation may run later from update. Do not create a Message only to trigger startup behavior.
+Block init cannot emit an OutMessage. Author it through the Block Composition, then pass that same `init` function to `FeatureComposition.makeBlock`. An optional `boot` helper is an ordinary initial Step listed in the parent's init plan after the child Model exists; Foldkit has no special Runtime boot phase. When an existing domain operation such as `restore` or `open` already describes the transition, expose that Step instead. The same operation may run later from update. Do not create a Message only to trigger startup behavior.
 
 The Binding's `outMessage.fold` policy can handle a fact from that initial Step against the complete parent Model. Parent init cannot forward an OutMessage, so a startup Step used there must finish with a plain update result.
 
@@ -125,7 +127,7 @@ The Binding's `outMessage.fold` policy can handle a fact from that initial Step 
 
 `slotId` identifies one render position inside the current view boundary. Keep it stable. The parent still supplies the child Model explicitly, which keeps rendering a pure function of the parent Model.
 
-For per-render data owned by the parent, define the child view with the owning `view.withInputs<ViewInputs>` helper and pass `viewInputs` through the `embedView` call.
+For per-render data owned by the parent, define the child view with the owning `makeView.withInputs<ViewInputs>` helper and pass `viewInputs` through the `embedView` call.
 
 ::Snippet{name="blockChildViewInputs" label="Defining a view with inputs"}
 
@@ -151,7 +153,7 @@ The parent configures integration policy in its child Binding. That policy execu
 
 ## Complete the Application
 
-Import `defineApplication` from `foldkit` and export the early typed value as `Application`. Its owned methods author root Commands, Steps, and lifecycle declarations. Create `ApplicationComposition` with the root child Bindings and Mounts, author init, update, and the primary view through that Composition, then call its `toApplication` or `toElement` in `entry.ts` with explicitly listed implementation pieces and browser inputs. A graphless root still calls `Application.toComposition()`. An Application cannot be bound as a child.
+Import `defineApplication` from `foldkit` and export the early typed value as `Application`. Its owned methods author root Commands, Steps, and lifecycle declarations. Create `ApplicationComposition` with the root child Bindings and Mounts, author init, update, and the primary view through that Composition, then call its `makeApplication` or `makeElement` in `entry.ts` with explicitly listed implementation pieces and browser inputs. A graphless root still calls `Application.makeComposition()`. An Application cannot be bound as a child.
 
 Root `services.ts` supplies the shared store required by the child handler:
 
@@ -163,7 +165,7 @@ The entry completes and starts the Application:
 
 The Application Composition carries the child graph. Its completion config supplies root-local handler recipes and lifecycle definitions. Registered child Blocks contribute their own handlers through that graph. `ApplicationLayer` supplies ordinary application Services such as storage or an HTTP client. It does not re-merge each feature's `EffectsLayer`.
 
-`ApplicationComposition.toApplication` validates the concrete composition before the Runtime starts. It returns another passive value. `application.provide(ApplicationLayer)` records the ordinary Service providers. The Runtime builds those Layers and the selected handler graph when the application starts. Missing handlers, incompatible child Bindings, and unavailable Mount requirements fail before a user interaction.
+`ApplicationComposition.makeApplication` validates the concrete composition before the Runtime starts. It returns another passive value. `application.provide(ApplicationLayer)` records the ordinary Service providers. The Runtime builds those Layers and the selected handler graph when the application starts. Missing handlers, incompatible child Bindings, and unavailable Mount requirements fail before a user interaction.
 
 Server rendering uses the same root:
 
@@ -226,9 +228,9 @@ The gate controls Streams. It does not remove the child or disable its update.
 
 ## Coordinate Sibling Blocks
 
-A policy may return a parent Step that calls a registered sibling Binding operation. This supports parent-owned coordination in either direction: one child's OutMessage can initialize, update, or remove another child while preserving both boundaries. Keep reciprocal policies together in the same parent `composition.ts` or `composition/composition.ts`, and defer each sibling call through its policy callback. The callback may close over a Binding declared later in that module. `toComposition` validates the policy's captured output and confirms that every sibling Binding used by the policy is registered in `childBindings`. Keep the chain synchronous and finite; one policy may invoke another Binding policy before the original update returns.
+A policy may return a parent Step that calls a registered sibling Binding operation. This supports parent-owned coordination in either direction: one child's OutMessage can initialize, update, or remove another child while preserving both boundaries. Keep reciprocal policies together in the same parent `composition.ts` or `composition/composition.ts`, and defer each sibling call through its policy callback. The callback may close over a Binding declared later in that module. `makeComposition` validates the policy's captured output and confirms that every sibling Binding used by the policy is registered in `childBindings`. Keep the chain synchronous and finite; one policy may invoke another Binding policy before the original update returns.
 
-This parent opens the selected Room when Home reports `SelectedRoom`. When Room later reports `SavedRoom`, the parent marks that Room as saved in Home. The omitted child contracts expose both operations: `RoomBinding.open` returns a pure Step, while `HomeBinding.markRoomSaved` returns a Step with a persistence Command. Neither operation emits another sibling OutMessage:
+This parent opens the selected Room when Home reports `SelectedRoom`. When Room later reports `SavedRoom`, the parent marks that Room as saved in Home. The omitted child contracts expose both operations: `RoomBinding.open` returns a pure connected Step, while `HomeBinding.markRoomSaved` returns a connected Step with a persistence Command. Neither operation emits another sibling OutMessage:
 
 ::Snippet{name="blockSiblingCoordination" label="Coordinating sibling Blocks in both directions"}
 
@@ -353,17 +355,17 @@ Name wrapper Messages `Got<Child>Message`. DevTools uses that convention to grou
 
 ### Block.define
 
-`Block.define(id, { Model, Message, OutMessage? })` creates a local identity and typed effect, Step, lifecycle, and child Binding authoring methods. `id` is a nonempty segment without `/` or `::`. Name the returned value `<Id>`, such as `Settings` for the ID `Settings`. Name the result of `toComposition({ mounts?, childBindings? })` `<Id>Composition`; it owns init, update, the primary view, and completion for that fixed graph.
+`Block.define(id, { Model, Message, OutMessage? })` creates a local identity and typed effect, Step, lifecycle, and child Binding authoring methods. `id` is a nonempty segment without `/` or `::`. Name the returned value `<Id>`, such as `Settings` for the ID `Settings`. Name the result of `makeComposition({ mounts?, childBindings? })` `<Id>Composition`; it owns init, update, the primary view, and completion for that fixed graph.
 
 For shared definitions specialized by a generic factory, `Block.define(id)` supplies the primitive methods and `.define(contracts)` establishes each later typed contract. Both forms are passive configuration.
 
-### Feature.toComposition
+### Feature.makeComposition
 
-`Feature.toComposition({ childBindings?, mounts? })` checks the composition graph and returns `FeatureComposition`. Omitted child Bindings and Mounts default to empty collections without granting their capabilities.
+`Feature.makeComposition({ childBindings?, mounts? })` checks the composition graph and returns `FeatureComposition`. Omitted child Bindings and Mounts default to empty collections without granting their capabilities.
 
-### FeatureComposition.toBlock
+### FeatureComposition.makeBlock
 
-`FeatureComposition.toBlock({ init, update, view?, expose?, subscriptions?, managedResources?, EffectsLayer?, hostHandlers? })` checks and returns the passive completed Block. `EffectsLayer` may require ordinary Services supplied by `application.provide(ApplicationLayer)`. `hostHandlers` explicitly declares contracts left to the host. Complete those Blocks with their own `provideHandlers(...)` before binding them into a runnable application; final Application completion rejects unresolved child handlers.
+`FeatureComposition.makeBlock({ init, update, view?, expose?, subscriptions?, managedResources?, EffectsLayer?, hostHandlers? })` checks and returns the passive completed Block. `EffectsLayer` may require ordinary Services supplied by `application.provide(ApplicationLayer)`. `hostHandlers` explicitly declares contracts left to the host. Complete those Blocks with their own `provideHandlers(...)` before binding them into a runnable application; final Application completion rejects unresolved child handlers.
 
 ### Parent.bindChild
 
@@ -371,19 +373,19 @@ For shared definitions specialized by a generic factory, `Block.define(id)` supp
 
 ### Feature.step
 
-`Feature.step(producer)` authors a pure operation over the child Model. It restores that owner's Model context inside nested callbacks such as OutMessage policy branches, and infers the operation's arguments, result Messages, and Command requirements. Select public operations in the completed Block's `expose` record; internal Steps need not be exposed.
+`Feature.step(producer)` authors a pure operation over the child Model. Its producer may return an owned update result, a connected Step, or a Binding initialization recipe. The helper preserves or wraps a connected value until a Composition or completed exposed operation interprets it under the registered graph. It infers the operation's arguments, result Messages, Command requirements, and Binding requirements. Ordinary pure Steps remain directly callable. Select public operations in the completed Block's `expose` record; internal Steps need not be exposed.
 
 ### binding.fold
 
-`binding.fold(model, message, ...context)` forwards a received child Message through the child update and the Binding's policies. Parents import the child Message Schema to declare their wrapper Message, but should invoke a named operation when initiating a change.
+`binding.fold(model, message, ...context)` forwards a received child Message through the child update and the Binding's policies. Its Model input requires the graph capability for that exact Binding, so a typed call with a raw domain Model fails. Return its opaque connected result intact from the owning Composition's `makeUpdate` callback; no `.model` or `.commands` fields are available before checked execution. The Composition also supplies and consumes this result while routing a claimed wrapper Message. Parents import the child Message Schema to declare their wrapper Message, but should invoke a named operation when initiating a change.
 
 ### Exposed Binding operations
 
-A declared operation such as `clearSelection` becomes `binding.clearSelection(...args)`. It returns a parent Update.Step through the same Model access, Command lifting, resource access, and OutMessage policy as `fold`. A keyed Binding takes the occurrence key before the operation arguments. Operation names cannot collide with Binding members such as `fold`, `init`, or `embedView`.
+A declared operation such as `clearSelection` becomes `binding.clearSelection(...args)`. It returns a connected parent Update.Step through the same Model access, Command lifting, resource access, and OutMessage policy as `fold`. Return or compose its opaque result intact after applying it to the contextual Model inside `makeUpdate`, list the Step in Composition startup, or return it from the parent's `step` producer. Typed calls with a raw Model fail the graph-input check, and the opaque result cannot be narrowed to a useful `{ model }` return. TypeScript can still erase a function result when assigning it to a method that returns `void`; outside the exact graph, invoking that erased method only constructs and discards passive configuration and executes no child work. A completed `block.expose.clearSelection(model, ...args)` is different: it is a checked raw-Model executor and returns the readable executed result. A keyed Binding takes the occurrence key before the operation arguments. Operation names cannot collide with Binding members such as `fold`, `init`, or `embedView`.
 
 ### binding.init
 
-`binding.init({ key?, args, toParentModel, commands? })` runs the completed child's init inside the exact graph that registered the Binding. `key` is required for a keyed Binding, `args` is the exact child init tuple, and `toParentModel` receives the initialized child and constructs the complete parent Model. The result retains graph evidence and returns all lifted child Commands before optional parent Commands. Call it only from Composition init or update, a completed Block's exposed operation, or its bound operation.
+`binding.init({ key?, args, toParentModel, commands? })` returns a passive, noncallable initialization recipe. `key` is required for a keyed Binding, `args` is the exact child init tuple, and `toParentModel` receives the initialized child and constructs the complete parent Model. Return the recipe directly from the owning Composition's `makeInit` or `makeUpdate` callback, or preserve it through the parent's `step` producer. The Composition callbacks interpret it directly; a completed exposed operation interprets a recipe preserved by its Step. The exact graph then produces all lifted child Commands before optional parent Commands. The recipe has no `.model` or `.commands` fields.
 
 ### binding.embedView
 

@@ -63,7 +63,7 @@ const navigationView = (
     ],
   )
 
-export const view = LoggedInComposition.view((model, h) =>
+export const view = LoggedInComposition.makeView((model, h) =>
   h.div(
     [h.Class('min-h-screen')],
     [

@@ -2,12 +2,12 @@ import {
   Array,
   Effect,
   Equal,
+  Function,
   Layer,
   Match,
   Option,
   Predicate,
   Schema,
-  pipe,
 } from 'effect'
 import * as Block from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
@@ -313,50 +313,45 @@ const AnimationBinding = Popover.bindChild(Animation.block, {
   outMessage: { fold: foldAnimationOutMessage },
 })
 
-const PopoverComposition = Popover.toComposition({
+const PopoverComposition = Popover.makeComposition({
   mounts,
   childBindings: [AnimationBinding],
 })
 
-/** Processes a Popover Message and returns the next Model, optional Commands,
- *  and an optional OutMessage. */
-export const update = PopoverComposition.update((model, message) => {
-  const maybeLockScroll = OptionExt.when(model.isModal, LockPopoverScroll())
-  const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockPopoverScroll())
-  const maybeInertOthers = OptionExt.when(
-    model.isModal,
-    InertPopoverOthers({ id: model.id }),
+type AuthoredMessage = Exclude<
+  Message,
+  ReturnType<typeof Message.GotAnimationMessage>
+>
+
+const internalUpdate = (model: Model, message: AuthoredMessage) => {
+  const openCommands = Array.filter(
+    [LockPopoverScroll(), InertPopoverOthers({ id: model.id })],
+    () => model.isModal,
   )
-  const maybeRestoreInert = OptionExt.when(
-    model.isModal,
-    RestorePopoverInert({ id: model.id }),
+
+  const closeWithoutFocusCommands = Array.filter(
+    [UnlockPopoverScroll(), RestorePopoverInert({ id: model.id })],
+    () => model.isModal,
   )
 
   const focusButton = FocusPopoverButton({ id: model.id })
 
-  const openCommands = Array.getSomes([maybeLockScroll, maybeInertOthers])
-
-  const closeWithFocusCommands = [
-    focusButton,
-    ...Array.getSomes([maybeUnlockScroll, maybeRestoreInert]),
-  ]
-
-  const closeWithoutFocusCommands = Array.getSomes([
-    maybeUnlockScroll,
-    maybeRestoreInert,
-  ])
+  const closeWithFocusCommands = [focusButton, ...closeWithoutFocusCommands]
 
   const openPopover = (baseModel: Model) => {
     if (model.isAnimated) {
-      const popoverOpen = Update.combine(baseModel, [
-        stepModel => ({ model: stepModel, commands: openCommands }),
-        AnimationBinding.show(),
-        stepModel => ({
-          model: modifyFields(stepModel, { isOpen: () => true }),
-        }),
-      ])
-
-      return pipe(popoverOpen, Update.withOutMessage(OutMessage.Opened()))
+      return Popover.step(() =>
+        Function.compose(
+          Update.combine([
+            () => ({ model: baseModel, commands: openCommands }),
+            AnimationBinding.show(),
+            stepModel => ({
+              model: modifyFields(stepModel, { isOpen: () => true }),
+            }),
+          ]),
+          Update.withOutMessage(OutMessage.Opened()),
+        ),
+      )
     }
 
     return {
@@ -364,25 +359,6 @@ export const update = PopoverComposition.update((model, message) => {
       commands: openCommands,
       outMessage: OutMessage.Opened(),
     }
-  }
-
-  const closePopoverModel = (
-    baseModel: Model,
-    commands: typeof closeWithFocusCommands,
-  ) => {
-    if (!baseModel.isOpen) {
-      return { model: baseModel }
-    }
-    const closed = closedModel(baseModel)
-
-    if (model.isAnimated) {
-      return Update.combine(closed, [
-        stepModel => ({ model: stepModel, commands }),
-        AnimationBinding.hide(),
-      ])
-    }
-
-    return { model: closed, commands }
   }
 
   const closePopover = (
@@ -393,71 +369,106 @@ export const update = PopoverComposition.update((model, message) => {
       return { model: baseModel }
     }
 
-    return pipe(
-      closePopoverModel(baseModel, commands),
-      Update.withOutMessage(OutMessage.Closed()),
-    )
+    const closed = closedModel(baseModel)
+
+    if (model.isAnimated) {
+      return Popover.step(() =>
+        Function.compose(
+          Update.combine([
+            () => ({ model: closed, commands }),
+            AnimationBinding.hide(),
+          ]),
+          Update.withOutMessage(OutMessage.Closed()),
+        ),
+      )
+    }
+
+    return { model: closed, commands, outMessage: OutMessage.Closed() }
   }
 
-  return Message.match(message, {
-    RequestedOpen: () => openPopover(model),
+  return Match.value(message).pipe(
+    Match.tagsExhaustive({
+      RequestedOpen: () => openPopover(model),
 
-    RequestedClose: () => closePopover(model, closeWithFocusCommands),
+      RequestedClose: () => closePopover(model, closeWithFocusCommands),
 
-    BlurredPanel: () => {
-      if (
-        Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
-      ) {
-        return { model }
-      }
+      BlurredPanel: () => {
+        if (
+          Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
+        ) {
+          return { model }
+        }
 
-      return closePopover(model, closeWithoutFocusCommands)
-    },
+        return closePopover(model, closeWithoutFocusCommands)
+      },
 
-    PressedPointerOnButton: ({ pointerType, button }) => {
-      const withPointerType = modifyFields(model, {
-        maybeLastButtonPointerType: () => Option.some(pointerType),
-      })
+      PressedPointerOnButton: ({ pointerType, button }) => {
+        const withPointerType = modifyFields(model, {
+          maybeLastButtonPointerType: () => Option.some(pointerType),
+        })
 
-      if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
-        return { model: withPointerType }
-      }
+        if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
+          return { model: withPointerType }
+        }
 
-      if (model.isOpen) {
-        const popoverClose = Update.combine(withPointerType, [
-          stepModel => closePopoverModel(stepModel, closeWithFocusCommands),
-          stepModel => ({
-            model: modifyFields(stepModel, {
-              maybeLastButtonPointerType: () => Option.some(pointerType),
-            }),
-          }),
-        ])
+        if (model.isOpen) {
+          const closed = modifyFields(closedModel(withPointerType), {
+            maybeLastButtonPointerType: () => Option.some(pointerType),
+          })
 
-        return pipe(popoverClose, Update.withOutMessage(OutMessage.Closed()))
-      }
+          if (model.isAnimated) {
+            return Popover.step(() =>
+              Function.compose(
+                Update.combine([
+                  () => ({ model: closed, commands: closeWithFocusCommands }),
+                  AnimationBinding.hide(),
+                ]),
+                Update.withOutMessage(OutMessage.Closed()),
+              ),
+            )
+          }
 
-      return openPopover(withPointerType)
-    },
+          return {
+            model: closed,
+            commands: closeWithFocusCommands,
+            outMessage: OutMessage.Closed(),
+          }
+        }
 
-    CompletedDetectPopoverMovementOrAnimationEnd: ({ generation }) =>
-      AnimationBinding.finish(generation)(model),
+        return openPopover(withPointerType)
+      },
 
-    CompletedFocusPopoverPanel: () => ({ model }),
-    CompletedFocusPopoverButton: () => ({ model }),
-    CompletedLockPopoverScroll: () => ({ model }),
-    CompletedUnlockPopoverScroll: () => ({ model }),
-    CompletedInertPopoverOthers: () => ({ model }),
-    CompletedRestorePopoverInert: () => ({ model }),
-    IgnoredMouseClick: () => ({
-      model: modifyFields(model, {
-        maybeLastButtonPointerType: () => Option.none(),
+      CompletedDetectPopoverMovementOrAnimationEnd: ({ generation }) =>
+        AnimationBinding.finish(generation),
+
+      CompletedFocusPopoverPanel: () => ({ model }),
+      CompletedFocusPopoverButton: () => ({ model }),
+      CompletedLockPopoverScroll: () => ({ model }),
+      CompletedUnlockPopoverScroll: () => ({ model }),
+      CompletedInertPopoverOthers: () => ({ model }),
+      CompletedRestorePopoverInert: () => ({ model }),
+      IgnoredMouseClick: () => ({
+        model: modifyFields(model, {
+          maybeLastButtonPointerType: () => Option.none(),
+        }),
       }),
+      SuppressedSpaceScroll: () => ({ model }),
+      CompletedAnchorPopover: () => ({ model }),
+      CompletedPortalPopoverBackdrop: () => ({ model }),
     }),
-    SuppressedSpaceScroll: () => ({ model }),
-    CompletedAnchorPopover: () => ({ model }),
-    CompletedPortalPopoverBackdrop: () => ({ model }),
-  })
-})
+  )
+}
+
+const authoredUpdate = Popover.step(
+  (model, message: Parameters<typeof internalUpdate>[1]) =>
+    internalUpdate(model, message),
+)
+
+/** Processes a Popover Message and returns the next Model, optional Commands,
+ *  and an optional OutMessage. */
+export const update = PopoverComposition.makeUpdate((model, message) =>
+  authoredUpdate(model, message),
+)
 
 /** Provides Popover's Command and Mount handlers. */
 const EffectsLayer = Layer.mergeAll(
@@ -526,7 +537,7 @@ export type ViewInputs = Readonly<{
 }>
 
 /** Renders a headless popover with a trigger button and a floating panel. */
-export const view = PopoverComposition.view.withInputs<ViewInputs>(
+export const view = PopoverComposition.makeView.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const {
       id,
@@ -694,13 +705,24 @@ export const view = PopoverComposition.view.withInputs<ViewInputs>(
   },
 )
 
-/** Complete Popover Block definition. */
-export const block = PopoverComposition.toBlock({
-  init: PopoverComposition.init((config: InitConfig) => ({
+const implementation = {
+  init: PopoverComposition.makeInit((config: InitConfig) => ({
     model: init(config),
   })),
   update,
   view,
   expose: { open, close },
   EffectsLayer,
-})
+}
+
+/**
+ * A completed Popover Block with its exact child, Mount, Layer, OutMessage,
+ * operation, and default view contracts.
+ */
+export interface Completed extends Block.CompletedWithViewAndOutMessage<
+  typeof PopoverComposition,
+  typeof implementation
+> {}
+
+/** Complete Popover Block definition. */
+export const block: Completed = PopoverComposition.makeBlock(implementation)

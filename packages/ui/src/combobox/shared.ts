@@ -1,6 +1,7 @@
 import {
   Array,
   Effect,
+  Function,
   Layer,
   Match,
   Option,
@@ -371,20 +372,14 @@ export const DetectMovementOrAnimationEnd = Combobox.command(
 /** Creates a combobox update function from variant-specific handlers. Shared logic (open, close, activate, transition) is handled internally; only close, selection, and immediate-activation behavior varies by variant. */
 export const makeUpdate = <
   Item extends string,
-  ParentOutMessageSchema extends Schema.Top | undefined,
+  ParentOutMessageSchema extends Schema.Top,
 >(
   bindChild: Block.BindChild<
     typeof BaseModel,
     ReturnType<typeof makeMessage<Item>>,
     ParentOutMessageSchema
   >,
-  step: Block.DefineStep<
-    BaseModel,
-    Message<Item>,
-    ParentOutMessageSchema extends Schema.Top
-      ? ParentOutMessageSchema['Type']
-      : never
-  >,
+  step: Block.DefineStep<BaseModel, Message<Item>, OutMessage<Item>>,
   Message: ReturnType<typeof makeMessage<Item>>,
   selectionBehavior: 'CloseWithFocus' | 'KeepOpen',
   handlers: Readonly<{
@@ -438,28 +433,19 @@ export const makeUpdate = <
   >
 
   const internalUpdate = (model: Model, message: AuthoredMessage) => {
-    const maybeLockScroll = OptionExt.when(model.isModal, LockScroll())
-    const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockScroll())
-    const maybeInertOthers = OptionExt.when(
-      model.isModal,
-      InertOthers({ id: model.id }),
+    const openCommands = Array.filter(
+      [LockScroll(), InertOthers({ id: model.id })],
+      () => model.isModal,
     )
-    const maybeRestoreInert = OptionExt.when(
-      model.isModal,
-      RestoreInert({ id: model.id }),
+
+    const closeWithoutFocusCommands = Array.filter(
+      [UnlockScroll(), RestoreInert({ id: model.id })],
+      () => model.isModal,
     )
 
     const focusInput = FocusInput({ id: model.id })
 
-    const closeWithFocusCommands = [
-      focusInput,
-      ...Array.getSomes([maybeUnlockScroll, maybeRestoreInert]),
-    ]
-
-    const closeWithoutFocusCommands = Array.getSomes([
-      maybeUnlockScroll,
-      maybeRestoreInert,
-    ])
+    const closeWithFocusCommands = [focusInput, ...closeWithoutFocusCommands]
 
     const closeSelectedItemWithFocus = (
       nextModel: Model,
@@ -469,13 +455,14 @@ export const makeUpdate = <
       const commands = didClose ? closeWithFocusCommands : [focusInput]
 
       if (didClose && model.isAnimated) {
-        return pipe(
-          nextModel,
-          Update.combine([
-            stepModel => ({ model: stepModel, commands }),
-            AnimationBinding.hide(),
-          ]),
-          Update.withOutMessage(outMessage),
+        return step(() =>
+          Function.compose(
+            Update.combine([
+              () => ({ model: nextModel, commands }),
+              AnimationBinding.hide(),
+            ]),
+            Update.withOutMessage(outMessage),
+          ),
         )
       }
 
@@ -488,11 +475,8 @@ export const makeUpdate = <
 
     const openCombobox = (baseModel: Model) => {
       if (model.isAnimated) {
-        return Update.combine(baseModel, [
-          stepModel => ({
-            model: stepModel,
-            commands: Array.getSomes([maybeLockScroll, maybeInertOthers]),
-          }),
+        return Update.combine([
+          () => ({ model: baseModel, commands: openCommands }),
           AnimationBinding.show(),
           stepModel => ({
             model: modifyBaseFields(stepModel, { isOpen: () => true }),
@@ -502,7 +486,7 @@ export const makeUpdate = <
 
       return {
         model: modifyBaseFields(baseModel, { isOpen: () => true }),
-        commands: Array.getSomes([maybeLockScroll, maybeInertOthers]),
+        commands: openCommands,
       }
     }
 
@@ -519,13 +503,14 @@ export const makeUpdate = <
       )
 
       if (model.isAnimated) {
-        return pipe(
-          comboboxClose.model,
-          Update.combine([
-            stepModel => ({ model: stepModel, commands }),
-            AnimationBinding.hide(),
-          ]),
-          Update.withOutMessage(comboboxClose.outMessage),
+        return step(() =>
+          Function.compose(
+            Update.combine([
+              () => ({ model: comboboxClose.model, commands }),
+              AnimationBinding.hide(),
+            ]),
+            Update.withOutMessage(comboboxClose.outMessage),
+          ),
         )
       }
 
@@ -707,24 +692,31 @@ export const makeUpdate = <
             )
           }
 
-          return Update.combine(
-            modifyBaseFields(model, {
-              maybeActiveItemIndex: () => Option.none(),
-              activationTrigger: () => 'Pointer' as const,
-              maybeLastPointerPosition: () => Option.none(),
-            }),
-            [
+          const toggledModel = modifyBaseFields(model, {
+            maybeActiveItemIndex: () => Option.none(),
+            activationTrigger: () => 'Pointer' as const,
+            maybeLastPointerPosition: () => Option.none(),
+          })
+
+          if (model.isAnimated) {
+            return Update.combine([
+              () => ({ model: toggledModel, commands: [focusInput] }),
+              stepModel => ({ model: stepModel, commands: openCommands }),
+              AnimationBinding.show(),
               stepModel => ({
-                model: stepModel,
-                commands: [focusInput],
+                model: modifyBaseFields(stepModel, { isOpen: () => true }),
               }),
-              openCombobox,
-            ],
-          )
+            ])
+          }
+
+          return {
+            model: modifyBaseFields(toggledModel, { isOpen: () => true }),
+            commands: [focusInput, ...openCommands],
+          }
         },
 
         CompletedDetectMovementOrAnimationEnd: ({ generation }) =>
-          AnimationBinding.finish(generation)(model),
+          AnimationBinding.finish(generation),
       }),
     )
   }

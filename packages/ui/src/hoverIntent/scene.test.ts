@@ -27,15 +27,15 @@ const HoverIntentBinding = HoverIntentScene.bindChild(block, {
   outMessage: { fold: foldHoverIntentOutMessage },
 })
 
-const HoverIntentSceneComposition = HoverIntentScene.toComposition({
+const HoverIntentSceneComposition = HoverIntentScene.makeComposition({
   childBindings: [HoverIntentBinding],
 })
 
-const update = HoverIntentSceneComposition.update((model, message) =>
+const update = HoverIntentSceneComposition.makeUpdate((model, message) =>
   HoverIntentBinding.fold(model, message),
 )
 
-const sceneView = HoverIntentSceneComposition.view((model, h) =>
+const sceneView = HoverIntentSceneComposition.makeView((model, h) =>
   h.block(
     HoverIntentBinding.embedView({
       slotId: 'hover-intent',

@@ -11,7 +11,7 @@ import { view } from './view'
 
 registerEcharts()
 
-const application = ApplicationComposition.toApplication({
+const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,

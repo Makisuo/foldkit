@@ -120,7 +120,7 @@ const additionalFileView = (
     ],
   )
 
-export const view = AttachmentsComposition.view((model, h) => {
+export const view = AttachmentsComposition.makeView((model, h) => {
   const { maybeResume, additionalFiles } = model
 
   const resumeSection = h.div(

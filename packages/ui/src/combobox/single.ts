@@ -90,12 +90,19 @@ const defaultUpdate = makeUpdate(
   },
 )
 
-const ComboboxComposition = Combobox.toComposition({
+const ComboboxComposition = Combobox.makeComposition({
   mounts,
   childBindings: [defaultUpdate.AnimationBinding],
 })
 
-export const update = ComboboxComposition.update(defaultUpdate.update)
+const authoredUpdate = Combobox.step(
+  (model, message: Parameters<typeof defaultUpdate.update>[1]) =>
+    defaultUpdate.update(model, message),
+)
+
+export const update = ComboboxComposition.makeUpdate((model, message) =>
+  authoredUpdate(model, message),
+)
 
 type UpdateReturn = ReturnType<typeof update>
 
@@ -182,16 +189,22 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
       }),
     },
   )
-  const ComboboxComposition = Combobox.toComposition({
+  const ComboboxComposition = Combobox.makeComposition({
     mounts,
     childBindings: [itemUpdate.AnimationBinding],
   })
-  const update = ComboboxComposition.update(itemUpdate.update)
+  const authoredUpdate = Combobox.step(
+    (model, message: Parameters<typeof itemUpdate.update>[1]) =>
+      itemUpdate.update(model, message),
+  )
+  const update = ComboboxComposition.makeUpdate((model, message) =>
+    authoredUpdate(model, message),
+  )
   const render = makeView<Model, Item>(
     { ariaMultiSelectable: false },
     ItemMessage,
   )
-  const view = ComboboxComposition.view.withInputs<ViewInputs<Item>>(
+  const view = ComboboxComposition.makeView.withInputs<ViewInputs<Item>>(
     (model, { maybeSelectedValue, ...baseInputs }, h) =>
       render(
         model,
@@ -223,7 +236,7 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
     composition: ComboboxComposition,
     implementation: {
       view,
-      init: ComboboxComposition.init((config: InitConfig) => ({
+      init: ComboboxComposition.makeInit((config: InitConfig) => ({
         model: init(config),
       })),
       update,
@@ -236,17 +249,19 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
 type BlockParts<Item extends string> = ReturnType<typeof makeBlockParts<Item>>
 
 /** A completed single-select Combobox Block refined to one Item Schema. */
-export type Completed<Item extends string = string> = Block.Completed<
+export interface Completed<
+  Item extends string = string,
+> extends Block.CompletedWithViewAndOutMessage<
   BlockParts<Item>['composition'],
   BlockParts<Item>['implementation']
->
+> {}
 
 const makeBlock = <Item extends string>(
   Item: ItemSchema<Item>,
 ): Completed<Item> => {
   const { composition, implementation } = makeBlockParts(Item)
 
-  return composition.toBlock(implementation)
+  return composition.makeBlock(implementation)
 }
 
 /** Creates a checked single-select Combobox Block. Pass an Item Schema to

@@ -22,7 +22,7 @@ const labelClassName =
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-export const view = UiComposition.view((model, h) => {
+export const view = UiComposition.makeView((model, h) => {
   const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
   const basicCheckboxView = (
     attributes: Checkbox.CheckboxAttributes<Message>,

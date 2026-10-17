@@ -11,7 +11,7 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({ ClickedArticle: { id: Schema.String } })
 
 const Articles = Block.define('Articles', { Model, Message })
-const ArticlesComposition = Articles.toComposition()
+const ArticlesComposition = Articles.makeComposition()
 type ArticlesViewBuilder = Block.ViewBuilderFor<typeof ArticlesComposition>
 
 const headerView = (h: ArticlesViewBuilder) => h.h2([], ['Articles'])
@@ -31,6 +31,6 @@ const articleCard = (article: Article, h: ArticlesViewBuilder) =>
 const articleItems = (model: Model, h: ArticlesViewBuilder) =>
   model.articles.map(article => articleCard(article, h))
 
-export const view = ArticlesComposition.view((model, h) =>
+export const view = ArticlesComposition.makeView((model, h) =>
   h.section([], [headerView(h), h.ul([], articleItems(model, h))]),
 )

@@ -25,6 +25,6 @@ export const RoomBinding = Application.bindChild(Room.block, {
   outMessage: { fold: foldRoomOutMessage },
 })
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [HomeBinding, RoomBinding],
 })

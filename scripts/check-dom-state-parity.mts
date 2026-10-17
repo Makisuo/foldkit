@@ -19,7 +19,7 @@ const Application = defineApplication({
   Model: Schema.Null,
   Message: Schema.Never,
 })
-const ApplicationComposition = Application.toComposition()
+const ApplicationComposition = Application.makeComposition()
 const makeParityImplementation = (
   view: (
     model: null,
@@ -27,8 +27,8 @@ const makeParityImplementation = (
   ) => Readonly<{ title: string; body: Html }>,
 ) => ({
   init: () => ({ model: null }),
-  update: ApplicationComposition.update(),
-  view: ApplicationComposition.view(view),
+  update: ApplicationComposition.makeUpdate(),
+  view: ApplicationComposition.makeView(view),
   EffectsLayer: Layer.empty,
 })
 

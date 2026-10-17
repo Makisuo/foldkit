@@ -75,7 +75,7 @@ export const SimulateAuthRequest = Login.command('SimulateAuthRequest', {
 
 export const EffectsLayer = SimulateAuthRequest.layer
 
-export const update = LoginComposition.update((model, message) =>
+export const update = LoginComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ChangedEmail: ({ value }) => ({
       model: modifyFields(model, { email: () => validateEmail(value) }),

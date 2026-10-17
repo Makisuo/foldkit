@@ -2,7 +2,7 @@
 
 import { modifyFields } from 'foldkit/struct'
 
-const update = ApplicationComposition.update((model, message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedOpenDialog: () => {
       document.querySelector<HTMLInputElement>('#search-input')?.focus()

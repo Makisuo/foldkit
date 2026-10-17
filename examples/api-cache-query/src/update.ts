@@ -9,7 +9,7 @@ import {
 } from './composition'
 import { Message } from './message'
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedPost: ({ postId }) =>
       PostDetailsBinding.loadIfMissing({ postId })(

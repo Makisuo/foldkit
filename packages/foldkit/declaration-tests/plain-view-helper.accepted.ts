@@ -8,7 +8,7 @@ const DeclarationViewHelperChild = Block.define('DeclarationViewHelperChild', {
   Message: ChildMessage,
 })
 export const DeclarationViewHelperChildComposition =
-  DeclarationViewHelperChild.toComposition()
+  DeclarationViewHelperChild.makeComposition()
 type ChildViewBuilder = Block.ViewBuilderFor<
   typeof DeclarationViewHelperChildComposition
 >
@@ -16,14 +16,16 @@ export const childViewHelper = (
   model: typeof ChildModel.Type,
   h: ChildViewBuilder,
 ) => h.span([], [model.value])
-const childView = DeclarationViewHelperChildComposition.view((model, h) =>
+const childView = DeclarationViewHelperChildComposition.makeView((model, h) =>
   childViewHelper(model, h),
 )
-export const ChildBlock = DeclarationViewHelperChildComposition.toBlock({
-  init: DeclarationViewHelperChildComposition.init(() => ({
+export const ChildBlock = DeclarationViewHelperChildComposition.makeBlock({
+  init: DeclarationViewHelperChildComposition.makeInit(() => ({
     model: ChildModel.make({ value: 'initial' }),
   })),
-  update: DeclarationViewHelperChildComposition.update(model => ({ model })),
+  update: DeclarationViewHelperChildComposition.makeUpdate(model => ({
+    model,
+  })),
   view: childView,
   EffectsLayer: Layer.empty,
 })
@@ -54,7 +56,7 @@ export const ChildBinding = DeclarationViewHelperParent.bindChild(ChildBlock, {
   parentMessage: ParentMessage.GotChildMessage,
 })
 export const DeclarationViewHelperParentComposition =
-  DeclarationViewHelperParent.toComposition({
+  DeclarationViewHelperParent.makeComposition({
     childBindings: [ChildBinding],
     mounts: [ObserveParent],
   })
@@ -98,7 +100,7 @@ const Application = defineApplication({
   Model: ParentModel,
   Message: ParentMessage,
 })
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [ChildBinding],
   mounts: [ObserveParent],
 })

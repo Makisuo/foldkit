@@ -31,9 +31,9 @@ export type Message = typeof Message.Type
 
 export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.toComposition()
+export const ApplicationComposition = Application.makeComposition()
 
-export const init = ApplicationComposition.init((url: Url) => ({
+export const init = ApplicationComposition.makeInit((url: Url) => ({
   model: { route: urlToApplicationRoute(url), count: 0 },
 }))
 
@@ -60,7 +60,7 @@ export const EffectsLayer = Layer.mergeAll(
   LoadExternal.layer,
 )
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + 1 }),
@@ -161,7 +161,7 @@ const pageView = (model: Model, h: HtmlBuilder<Message>): Html =>
       ),
   })
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: routeTitle(model.route),
   body: h.main(
     [h.Class('mx-auto grid min-h-screen max-w-3xl content-center gap-10 p-8')],

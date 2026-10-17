@@ -31,4 +31,4 @@ export type OutMessage = typeof OutMessage.Type
 
 export const Login = Block.define('Login', { Model, Message, OutMessage })
 
-export const LoginComposition = Login.toComposition()
+export const LoginComposition = Login.makeComposition()

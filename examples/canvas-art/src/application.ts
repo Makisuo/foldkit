@@ -74,12 +74,12 @@ export type Message = typeof Message.Type
 
 export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.toComposition()
+export const ApplicationComposition = Application.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-export const init = ApplicationComposition.init(() => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: Model.make({ balls: [], nextId: 0, isRunning: true }),
 }))
 
@@ -134,7 +134,7 @@ const advanceBall =
     })
   }
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     TickedFrame: ({ deltaTime }) => ({
       model: modifyFields(model, {
@@ -264,7 +264,7 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
     ],
   )
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: `Canvas Art (${model.balls.length} balls)`,
   body: h.div(
     [

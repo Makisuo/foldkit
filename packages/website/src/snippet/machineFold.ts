@@ -12,7 +12,7 @@ export const Model = Schema.Struct({
 export type Model = typeof Model.Type
 
 const Application = defineApplication({ Model, Message })
-const ApplicationComposition = Application.toComposition()
+const ApplicationComposition = Application.makeComposition()
 
 export const initialModel = Model.make({
   checkout: checkoutMachine.initial,
@@ -26,7 +26,7 @@ export const foldCheckout = Machine.fold({
     modifyFields(model, { checkout: () => nextCheckout }),
 })
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Match.value(message).pipe(
     Match.tag('ToggledHelp', ({ isOpen }) => ({
       model: modifyFields(model, { isHelpOpen: () => isOpen }),

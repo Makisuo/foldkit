@@ -16,7 +16,7 @@ export const nameRules = makeRules({
 
 const validateName = validate(nameRules)
 
-export const update = SkillsEntryComposition.update((model, message) =>
+export const update = SkillsEntryComposition.makeUpdate((model, message) =>
   Message.match(message, {
     UpdatedName: ({ value }) => ({
       model: modifyFields(model, { name: () => validateName(value) }),

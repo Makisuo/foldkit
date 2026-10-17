@@ -31,18 +31,18 @@ const childView = ChildView.define({
   Model: Child.Model,
   Message: Child.Message,
 })
-const ChildViewComposition = childView.toComposition()
+const ChildViewComposition = childView.makeComposition()
 
-export const view = ChildViewComposition.view((_model, h) => saveButton(h))
+export const view = ChildViewComposition.makeView((_model, h) => saveButton(h))
 
 const DirectMessageView = Block.define('DirectMessageView')
 const directMessageDefinition = DirectMessageView.define({
   Model: Child.Model,
   Message: DirectChildMessage,
 })
-const DirectMessageComposition = directMessageDefinition.toComposition()
+const DirectMessageComposition = directMessageDefinition.makeComposition()
 
-export const directMessageView = DirectMessageComposition.view((_model, h) =>
+export const directMessageView = DirectMessageComposition.makeView((_model, h) =>
   h.button([h.OnClick(DirectChildMessage.ClickedSave())]),
 )
 
@@ -51,9 +51,9 @@ const nestedMainMessageDefinition = NestedMainMessageView.define({
   Model: Child.Model,
   Message: NestedMainMessage,
 })
-const NestedMainMessageComposition = nestedMainMessageDefinition.toComposition()
+const NestedMainMessageComposition = nestedMainMessageDefinition.makeComposition()
 
-export const nestedMainMessageView = NestedMainMessageComposition.view(
+export const nestedMainMessageView = NestedMainMessageComposition.makeView(
   (_model, h) => h.button([h.OnClick(NestedMainMessage.ClickedSave())]),
 )
 
@@ -61,9 +61,9 @@ const TypedChildView = Block.define('TypedChildView', {
   Model: Child.Model,
   Message: Child.Message,
 })
-const TypedChildViewComposition = TypedChildView.toComposition()
+const TypedChildViewComposition = TypedChildView.makeComposition()
 
-export const typedChildView = TypedChildViewComposition.view((_model, h) =>
+export const typedChildView = TypedChildViewComposition.makeView((_model, h) =>
   h.button([h.OnClick(Child.Message.ClickedTypedChildViewSave())]),
 )
 

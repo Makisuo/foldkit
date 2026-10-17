@@ -1,7 +1,7 @@
 import { Array, Match, pipe } from 'effect'
 
 import { ApplicationComposition, TabsBinding } from '../composition'
-import { TABS_ID, tabValues } from '../model'
+import { TABS_ID, Tab } from '../model'
 import { postsTabView } from './posts'
 import { headerView } from './shared'
 import { statsTabView } from './stats'
@@ -9,7 +9,7 @@ import { statsTabView } from './stats'
 const tabButtonClassName =
   'px-4 py-2 rounded-lg bg-white text-slate-600 font-semibold hover:bg-slate-50 transition cursor-pointer data-[selected]:bg-indigo-600 data-[selected]:text-white data-[selected]:hover:bg-indigo-600'
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'API Cache',
   body: h.div(
     [h.Class('min-h-screen bg-slate-100 flex justify-center p-6')],
@@ -23,7 +23,7 @@ export const view = ApplicationComposition.view((model, h) => ({
               slotId: TABS_ID,
               model: model.tabs,
               viewInputs: {
-                tabs: tabValues,
+                tabs: Tab.literals,
                 selectedValue: model.activeTab,
                 ariaLabel: 'API cache sections',
                 toView: ({ tablist, tabs: tabInfos }) =>

@@ -47,7 +47,7 @@ const MenuBinding = MenuStory.bindChild(block, {
   outMessage: { fold: foldMenuOutMessage },
 })
 
-const MenuStoryComposition = MenuStory.toComposition({
+const MenuStoryComposition = MenuStory.makeComposition({
   childBindings: [MenuBinding],
 })
 
@@ -70,7 +70,7 @@ const RefinedMenuBinding = RefinedMenuStory.bindChild(RefinedMenu, {
   },
 })
 
-const RefinedMenuStoryComposition = RefinedMenuStory.toComposition({
+const RefinedMenuStoryComposition = RefinedMenuStory.makeComposition({
   childBindings: [RefinedMenuBinding],
 })
 
@@ -80,7 +80,7 @@ const sceneView = (
     'ariaLabel' | 'ariaLabelledBy'
   > = {},
 ) =>
-  MenuStoryComposition.view((model, h) =>
+  MenuStoryComposition.makeView((model, h) =>
     h.block(
       MenuBinding.embedView({
         slotId: 'menu',
@@ -95,7 +95,7 @@ const sceneView = (
     ),
   )
 
-const refinedMenuSceneView = RefinedMenuStoryComposition.view((model, h) =>
+const refinedMenuSceneView = RefinedMenuStoryComposition.makeView((model, h) =>
   h.block(
     RefinedMenuBinding.embedView({
       slotId: 'refined-menu',
@@ -1297,6 +1297,9 @@ describe('Menu', () => {
             update,
             givenOpenAnimated,
             Story.message(Message.SelectedItem({ index: 0, item: 'item-0' })),
+            Story.expectOutMessage(
+              OutMessage.Selected({ value: 'item-0', index: 0 }),
+            ),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')

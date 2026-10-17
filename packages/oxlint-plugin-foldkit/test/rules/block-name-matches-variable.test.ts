@@ -65,7 +65,7 @@ describe('block-name-matches-variable', () => {
           type: 'MemberExpression',
           computed: false,
           object: defineCall,
-          property: Testing.id('toComposition'),
+          property: Testing.id('makeComposition'),
         },
         arguments: [],
       }),
@@ -90,7 +90,7 @@ describe('block-name-matches-variable', () => {
           type: 'MemberExpression',
           computed: false,
           object: defineCall,
-          property: Testing.id('toComposition'),
+          property: Testing.id('makeComposition'),
         },
         arguments: [],
       }),
@@ -121,7 +121,7 @@ describe('block-name-matches-variable', () => {
       'VariableDeclarator',
       variableDeclarator(
         'PeopleDirectoryComposition',
-        callMethod(callMethod(identity, 'define'), 'toComposition'),
+        callMethod(callMethod(identity, 'define'), 'makeComposition'),
       ),
     )
 
@@ -144,7 +144,7 @@ describe('block-name-matches-variable', () => {
     )
   })
 
-  it('requires ApplicationComposition after inline toComposition', () => {
+  it('requires ApplicationComposition after inline makeComposition', () => {
     const result = Testing.runRule(
       blockNameMatchesVariable,
       'VariableDeclarator',
@@ -152,7 +152,7 @@ describe('block-name-matches-variable', () => {
         'Application',
         callMethod(
           Testing.callOfMember('Application', 'define', []),
-          'toComposition',
+          'makeComposition',
         ),
       ),
     )
@@ -204,13 +204,13 @@ describe('block-name-matches-variable', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('ignores unrelated toComposition methods', () => {
+  it('ignores unrelated makeComposition methods', () => {
     const result = Testing.runRule(
       blockNameMatchesVariable,
       'VariableDeclarator',
       variableDeclarator(
         'People',
-        Testing.callOfMember('Registry', 'toComposition', []),
+        Testing.callOfMember('Registry', 'makeComposition', []),
       ),
     )
 

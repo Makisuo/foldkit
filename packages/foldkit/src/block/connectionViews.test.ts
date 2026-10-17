@@ -10,19 +10,19 @@ const Model = Schema.Struct({ count: Schema.Number })
 type Model = typeof Model.Type
 const Message = defineMessageUnion({ ClickedIncrement: {} })
 const ConnectionViewsChild = define('ConnectionViewsChild', { Model, Message })
-const ConnectionViewsChildComposition = ConnectionViewsChild.toComposition()
+const ConnectionViewsChildComposition = ConnectionViewsChild.makeComposition()
 const ViewInputs = Schema.Struct({ label: Schema.String })
 type ViewInputs = typeof ViewInputs.Type
-const view = ConnectionViewsChildComposition.view.withInputs<ViewInputs>(
+const view = ConnectionViewsChildComposition.makeView.withInputs<ViewInputs>(
   (model, inputs, h) =>
     h.button(
       [h.OnClick(Message.ClickedIncrement())],
       [inputs.label, globalThis.String(model.count)],
     ),
 )
-const block = ConnectionViewsChildComposition.toBlock({
+const block = ConnectionViewsChildComposition.makeBlock({
   init: () => ({ model: Model.make({ count: 0 }) }),
-  update: ConnectionViewsChildComposition.update(model => ({
+  update: ConnectionViewsChildComposition.makeUpdate(model => ({
     model: modifyFields(model, { count: count => count + 1 }),
   })),
   view,
@@ -70,8 +70,9 @@ const ConnectionViewsForeign = define('ConnectionViewsForeign', {
   Model,
   Message: ForeignMessage,
 })
-const ConnectionViewsForeignComposition = ConnectionViewsForeign.toComposition()
-const foreignView = ConnectionViewsForeignComposition.view((model, h) =>
+const ConnectionViewsForeignComposition =
+  ConnectionViewsForeign.makeComposition()
+const foreignView = ConnectionViewsForeignComposition.makeView((model, h) =>
   h.button(
     [h.OnClick(ForeignMessage.ClickedForeignButton())],
     [globalThis.String(model.count)],
@@ -107,7 +108,7 @@ it('retains default ViewInputs and checks alternate static and keyed Messages', 
     model,
     viewInputs: { label: 'Count' },
   })
-  const alternate = block.view.withInputs<ViewInputs>((model, inputs, h) =>
+  const alternate = block.makeView.withInputs<ViewInputs>((model, inputs, h) =>
     h.button(
       [h.OnClick(Message.ClickedIncrement())],
       [inputs.label, globalThis.String(model.count)],
@@ -162,12 +163,18 @@ it('supports explicit tagged-union readers and writers', () => {
   const active = ActiveParent.make({ child: Model.make({ count: 1 }) })
   const inactive = InactiveParent.make({})
 
-  expect(TaggedBinding.fold(active, Message.ClickedIncrement()).model).toEqual(
+  const TaggedComposition = TaggedParent.makeComposition({
+    childBindings: [TaggedBinding],
+  })
+  const update = TaggedComposition.makeUpdate(model => ({ model }))
+  const message = ParentMessage.GotChildMessage({
+    message: Message.ClickedIncrement(),
+  })
+
+  expect(update(active, message).model).toEqual(
     ActiveParent.make({ child: Model.make({ count: 2 }) }),
   )
-  expect(
-    TaggedBinding.fold(inactive, Message.ClickedIncrement()).model,
-  ).toEqual(inactive)
+  expect(update(inactive, message).model).toEqual(inactive)
 
   if (false) {
     TaggedParent.bindChild(block, {
@@ -187,7 +194,14 @@ it('lowers required-field shorthand through the shared pure Binding adapter', ()
     child: Model.make({ count: 0 }),
     entries: [],
   })
-  const result = ConnectedBinding.fold(initial, Message.ClickedIncrement())
+  const ParentComposition = ConnectionViewsParent.makeComposition({
+    childBindings: [ConnectedBinding],
+  })
+  const update = ParentComposition.makeUpdate(model => ({ model }))
+  const message = ParentMessage.GotChildMessage({
+    message: Message.ClickedIncrement(),
+  })
+  const result = update(initial, message)
 
   expect(result.model.child.count).toBe(1)
   expect(result.model.entries).toBe(initial.entries)
@@ -208,11 +222,14 @@ it('lowers required-field shorthand through the shared pure Binding adapter', ()
       modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
     parentMessage: ParentMessage.GotChildMessage,
   })
+  const OptionalComposition = OptionalParent.makeComposition({
+    childBindings: [OptionalBinding],
+  })
+  const optionalUpdate = OptionalComposition.makeUpdate(model => ({ model }))
+
   expect(
-    OptionalBinding.fold(
-      optionalModel.make({ maybeChild: Option.none() }),
-      Message.ClickedIncrement(),
-    ).model.maybeChild,
+    optionalUpdate(optionalModel.make({ maybeChild: Option.none() }), message)
+      .model.maybeChild,
   ).toEqual(Option.none())
 
   const widerModel = Schema.Struct({

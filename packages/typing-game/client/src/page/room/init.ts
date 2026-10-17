@@ -4,7 +4,7 @@ import { FetchRoom, LoadSession } from './command'
 import { RoomComposition } from './definition'
 import { Model, RoomAsyncData } from './model'
 
-export const init = RoomComposition.init(
+export const init = RoomComposition.makeInit(
   (maybeRoomId: Option.Option<string>) => {
     const commands = pipe(
       maybeRoomId,

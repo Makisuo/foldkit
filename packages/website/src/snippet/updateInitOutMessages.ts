@@ -36,11 +36,11 @@ const EditorBinding = Application.bindChild(Editor.block, {
   outMessage: { fold: foldEditorOutMessage },
 })
 
-const ApplicationComposition = Application.toComposition({
+const ApplicationComposition = Application.makeComposition({
   childBindings: [SearchBinding, EditorBinding],
 })
 
-const init = ApplicationComposition.init(() => ({
+const init = ApplicationComposition.makeInit(() => ({
   model: {
     maybeRestoredQuery: Option.none(),
     maybeRestoredDocumentId: Option.none(),

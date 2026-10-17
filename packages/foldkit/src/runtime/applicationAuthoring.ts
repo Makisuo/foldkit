@@ -32,7 +32,7 @@ import {
 import type { Owner } from '../block/owner.js'
 import type { HtmlBuilder } from '../html/index.js'
 import type * as Mount from '../mount/index.js'
-import type { ToApplication, ToElement } from './application.js'
+import type { MakeApplication, MakeElement } from './application.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
 type RootOwner = Owner<'Application', true>
@@ -125,7 +125,7 @@ type CompletionHelpers<
    * Supply its implementation and browser inputs; provision ordinary Services
    * on the returned value before passing it to Runtime.run.
    */
-  toApplication: ToApplication<
+  makeApplication: MakeApplication<
     CompositionIdentity<ModelSchema, MessageSchema, Mounts, Children>
   >
   /**
@@ -133,7 +133,7 @@ type CompletionHelpers<
    * Its view returns Html and it does not own document metadata or URL routing.
    * The Runtime constructs its Layers and starts its lifecycle effects later.
    */
-  toElement: ToElement<
+  makeElement: MakeElement<
     CompositionIdentity<ModelSchema, MessageSchema, Mounts, Children>
   >
 }>
@@ -209,7 +209,7 @@ export type ViewRequirementsOf<CompositionValue> =
 
 /**
  * A passive application root after its child and Mount graph is known. Call
- * its `toApplication` or `toElement` method to complete it. It cannot be bound into
+ * its `makeApplication` or `makeElement` method to complete it. It cannot be bound into
  * another composition.
  */
 export type Composition<
@@ -228,7 +228,7 @@ export type Composition<
   Message: MessageSchema
   /**
    * Local and lifted child Mount definitions available to the owned view.
-   * Local registrations are supplied to toComposition; child registrations
+   * Local registrations are supplied to makeComposition; child registrations
    * are collected from its Bindings.
    */
   mounts: readonly [
@@ -246,12 +246,16 @@ export type Composition<
    * shared startup inputs, Commands and ordinary Steps. The initializer
    * assembles registered children before applying the Steps.
    */
-  init: CompositionInit<ModelSchema['Type'], MessageSchema['Type'], Children>
+  makeInit: CompositionInit<
+    ModelSchema['Type'],
+    MessageSchema['Type'],
+    Children
+  >
   /**
    * Authors root transitions for Messages not claimed by child delivery
    * policies. The returned update accepts the complete root Message union.
    */
-  update: DefineCompositionUpdate<
+  makeUpdate: DefineCompositionUpdate<
     ModelSchema['Type'],
     MessageSchema['Type'],
     never,
@@ -262,7 +266,7 @@ export type Composition<
    * Authors the canonical root view with the registered child and Mount
    * capabilities. Application completion requires a view with no extra inputs.
    */
-  view: DefineView<
+  makeView: DefineView<
     RootOwner,
     ModelSchema['Type'],
     MessageSchema['Type'],
@@ -287,7 +291,7 @@ export type Composition<
  * Composition view infers its builder parameter.
  *
  * @typeParam CompositionValue - The type of the Composition returned by an
- * Application Definition's `toComposition` method.
+ * Application Definition's `makeComposition` method.
  */
 export type ViewBuilderFor<CompositionValue> =
   CompositionValue extends AnyComposition
@@ -297,7 +301,7 @@ export type ViewBuilderFor<CompositionValue> =
       >
     : CompositionValue extends Readonly<{
           Message: Readonly<{ Type: infer Message }>
-          toComposition: (...args: ReadonlyArray<any>) => unknown
+          makeComposition: (...args: ReadonlyArray<any>) => unknown
         }>
       ? HtmlBuilder<Message, never>
       : never
@@ -330,7 +334,7 @@ export type CompletedComposition<CompositionValue, Implementation> =
   CompletedForValidation<DefinitionOf<CompositionValue>, Implementation>
 
 /** Establishes the child and Mount graph for an application Definition. */
-export interface ToComposition<
+export interface MakeComposition<
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
   StartupSchema extends AnySchema | undefined = undefined,
@@ -385,11 +389,11 @@ export type Definition<
    */
   Message: MessageSchema
   /**
-   * An empty local registry before toComposition establishes Mount capabilities.
+   * An empty local registry before makeComposition establishes Mount capabilities.
    */
   mounts: readonly []
   /**
-   * An empty child graph before toComposition registers Bindings.
+   * An empty child graph before makeComposition registers Bindings.
    */
   childBindings: readonly []
   /**
@@ -407,7 +411,7 @@ export type Definition<
    * Omitted registries are empty. This step validates passive configuration;
    * it neither constructs Layers nor starts lifecycle work.
    */
-  toComposition: ToComposition<ModelSchema, MessageSchema, StartupSchema>
+  makeComposition: MakeComposition<ModelSchema, MessageSchema, StartupSchema>
 }> &
   (StartupSchema extends AnySchema
     ? Readonly<{
@@ -419,8 +423,8 @@ export type Definition<
 
 /**
  * Defines a passive root authoring value from its Model and Message Schemas.
- * Establish its graph with toComposition, then complete that Composition with
- * toApplication or toElement. The Runtime constructs Layers and runs effects.
+ * Establish its graph with makeComposition, then complete that Composition with
+ * makeApplication or makeElement. The Runtime constructs Layers and runs effects.
  */
 export interface Define {
   <
@@ -445,11 +449,11 @@ const definitions = new WeakMap<
 >()
 
 type Completion = Readonly<{
-  toApplication: (composition: AnyComposition, config: any) => any
-  toElement: (composition: AnyComposition, config: any) => any
+  makeApplication: (composition: AnyComposition, config: any) => any
+  makeElement: (composition: AnyComposition, config: any) => any
 }>
 
-const makeComposition = (
+const makeApplicationComposition = (
   definition: globalThis.ReturnType<typeof makeDefinition>,
   completion: Completion,
 ) => {
@@ -459,15 +463,15 @@ const makeComposition = (
     mounts: definition.mounts,
     [LocalMountsTypeId]: definition[LocalMountsTypeId],
     childBindings: definition.childBindings,
-    init: definition.init,
-    update: definition.update,
-    view: definition.view,
-    toApplication: (config: any) =>
+    makeInit: definition.makeInit,
+    makeUpdate: definition.makeUpdate,
+    makeView: definition.makeView,
+    makeApplication: (config: any) =>
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      completion.toApplication(composition as never, config),
-    toElement: (config: any) =>
+      completion.makeApplication(composition as never, config),
+    makeElement: (config: any) =>
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      completion.toElement(composition as never, config),
+      completion.makeElement(composition as never, config),
   }
   definitions.set(composition, definition)
   return composition
@@ -480,7 +484,7 @@ export const definitionOf = (
   const definition = definitions.get(composition)
   if (definition === undefined) {
     throw new Error(
-      '[foldkit] Application composition must come from defineApplication(...).toComposition(...).',
+      '[foldkit] Application composition must come from defineApplication(...).makeComposition(...).',
     )
   }
   return definition
@@ -495,7 +499,7 @@ export const complete = <
   implementation: Implementation,
 ): CompletedComposition<CompositionValue, Implementation> =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  definitionOf(composition).toBlock(implementation as never)
+  definitionOf(composition).makeBlock(implementation as never)
 
 /** @internal Creates the public staged application definition function. */
 export const makeDefine =
@@ -509,15 +513,15 @@ export const makeDefine =
       resource: base.resource,
     }
 
-    const toComposition = (
+    const makeComposition = (
       graph: Readonly<{
         mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
         childBindings?: ReadonlyArray<AnyBinding>
       }> = {},
     ) => {
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      const definition = base.toComposition(graph as never)
-      return makeComposition(definition, completion)
+      const definition = base.makeComposition(graph as never)
+      return makeApplicationComposition(definition, completion)
     }
 
     const definition = {
@@ -534,7 +538,7 @@ export const makeDefine =
       step: base.step,
       subscriptions: base.subscriptions,
       managedResources: base.managedResources,
-      toComposition,
+      makeComposition,
     }
 
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */

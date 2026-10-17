@@ -34,21 +34,23 @@ const ObserveSecond = MountRegistration.mount('ObserveSecond', {
     return () => Effect.succeed(Message.CompletedObserveSecond())
   },
 })
-const first = MountRegistration.toComposition({ mounts: [ObserveFirst] })
-const second = MountRegistration.toComposition({ mounts: [ObserveSecond] })
-const both = MountRegistration.toComposition({
+const first = MountRegistration.makeComposition({ mounts: [ObserveFirst] })
+const second = MountRegistration.makeComposition({ mounts: [ObserveSecond] })
+const both = MountRegistration.makeComposition({
   mounts: [ObserveFirst, ObserveSecond],
 })
-const graphless = MountRegistration.toComposition()
+const graphless = MountRegistration.makeComposition()
 const init = () => ({ model: Model.make({ count: 0 }) })
-const update = first.update(model => ({ model }))
-const bothUpdate = both.update(model => ({ model }))
-const graphlessUpdate = graphless.update(model => ({ model }))
-const firstView = first.view((_model, h) => h.div([h.OnMount(ObserveFirst())]))
-const secondView = second.view((_model, h) =>
+const update = first.makeUpdate(model => ({ model }))
+const bothUpdate = both.makeUpdate(model => ({ model }))
+const graphlessUpdate = graphless.makeUpdate(model => ({ model }))
+const firstView = first.makeView((_model, h) =>
+  h.div([h.OnMount(ObserveFirst())]),
+)
+const secondView = second.makeView((_model, h) =>
   h.div([h.OnMount(ObserveSecond())]),
 )
-const firstBlock = first.toBlock({
+const firstBlock = first.makeBlock({
   init,
   update,
   view: firstView,
@@ -88,10 +90,10 @@ const EntriesBinding = MountParent.bindChild(firstBlock, {
   toParentMessage: (id, message) =>
     ParentMessage.GotEntryMessage({ id, message }),
 })
-const parent = MountParent.toComposition({
+const parent = MountParent.makeComposition({
   childBindings: [ChildBinding, EntriesBinding],
 })
-const parentUpdate = parent.update(model => ({ model }))
+const parentUpdate = parent.makeUpdate(model => ({ model }))
 const parentModel = ParentModel.make({
   child: init().model,
   entries: [Entry.make({ id: 'first', child: init().model })],
@@ -109,7 +111,7 @@ describe('captured local Mount registrations', () => {
   })
 
   it('rejects a view completed against a different local Mount set', () => {
-    const block = first.toBlock({
+    const block = first.makeBlock({
       init,
       update,
       // @ts-expect-error The view requires a different local Mount registration.
@@ -124,13 +126,13 @@ describe('captured local Mount registrations', () => {
   })
 
   it('keeps an authored view narrower than its completion Mount set', () => {
-    const view = first.view((_model, h) =>
+    const view = first.makeView((_model, h) =>
       h.div([
         // @ts-expect-error Completion cannot grant this view an undeclared Mount.
         h.OnMount(ObserveSecond()),
       ]),
     )
-    const block = both.toBlock({
+    const block = both.makeBlock({
       init,
       update: bothUpdate,
       view,
@@ -143,7 +145,7 @@ describe('captured local Mount registrations', () => {
   })
 
   it('rejects an undeclared Mount in a graphless exported Scene view', () => {
-    const view = graphless.view((_model, h) =>
+    const view = graphless.makeView((_model, h) =>
       h.div([
         // @ts-expect-error A graphless view has no Mount capabilities.
         h.OnMount(ObserveFirst()),
@@ -156,7 +158,7 @@ describe('captured local Mount registrations', () => {
   })
 
   it('renders a declared Mount through static and keyed view overrides', () => {
-    const staticView = parent.view((model, h) =>
+    const staticView = parent.makeView((model, h) =>
       h.block(
         ChildBinding.embedView({
           slotId: 'child',
@@ -165,7 +167,7 @@ describe('captured local Mount registrations', () => {
         }),
       ),
     )
-    const keyedView = parent.view((model, h) =>
+    const keyedView = parent.makeView((model, h) =>
       h.block(
         EntriesBinding.embedView({
           slotId: 'entry',
@@ -186,7 +188,7 @@ describe('captured local Mount registrations', () => {
   })
 
   it('checks the selected static child before rendering a view override', () => {
-    const view = parent.view((model, h) =>
+    const view = parent.makeView((model, h) =>
       h.block(
         ChildBinding.embedView({
           slotId: 'child',
@@ -205,7 +207,7 @@ describe('captured local Mount registrations', () => {
   })
 
   it('checks the selected keyed child before rendering a view override', () => {
-    const view = parent.view((model, h) =>
+    const view = parent.makeView((model, h) =>
       h.block(
         EntriesBinding.embedView({
           slotId: 'entry',
@@ -242,12 +244,14 @@ describe('captured local Mount registrations', () => {
         return () => Effect.succeed(Message.CompletedObserveSecond())
       },
     })
-    const firstApplication = Application.toComposition({ mounts: [FocusFirst] })
-    const secondApplication = Application.toComposition({
+    const firstApplication = Application.makeComposition({
+      mounts: [FocusFirst],
+    })
+    const secondApplication = Application.makeComposition({
       mounts: [FocusSecond],
     })
-    const applicationUpdate = firstApplication.update(model => ({ model }))
-    const view = secondApplication.view((_model, h) => ({
+    const applicationUpdate = firstApplication.makeUpdate(model => ({ model }))
+    const view = secondApplication.makeView((_model, h) => ({
       title: 'Second',
       body: h.main([h.OnMount(FocusSecond())]),
     }))

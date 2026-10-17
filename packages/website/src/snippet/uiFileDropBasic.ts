@@ -57,26 +57,26 @@ const FileDropBinding = FileDropExample.bindChild(FileDrop.block, {
   outMessage: { fold: foldFileDropOutMessage },
 })
 
-const FileDropExampleComposition = FileDropExample.toComposition({
+const FileDropExampleComposition = FileDropExample.makeComposition({
   childBindings: [FileDropBinding],
 })
 
 // Initialize the fields the parent owns. The Composition initializes the
 // bound FileDrop Model and combines the resulting Commands.
-const init = FileDropExampleComposition.init(() => ({
+const init = FileDropExampleComposition.makeInit(() => ({
   model: {
     uploadedFiles: [],
     // ...your other fields
   },
 }))
 
-const update = FileDropExampleComposition.update()
+const update = FileDropExampleComposition.makeUpdate()
 
 // Render the drop zone. The `toView` callback receives attribute groups.
 // Spread `root` onto a <label> so clicking opens the picker, and spread
 // `input` onto a hidden <input type="file"> nested inside. Style the
 // drag-over state via `data-drag-over`.
-const view = FileDropExampleComposition.view((model, h) => {
+const view = FileDropExampleComposition.makeView((model, h) => {
   const fileDropView = (attributes: FileDropFileDropAttributes) =>
     h.label(
       [

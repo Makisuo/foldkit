@@ -1,8 +1,10 @@
 import { Array, Option } from 'effect'
 import { Block, Command, Struct, Update } from 'foldkit'
+import * as PublicUpdate from 'foldkit/update'
 
 import {
   ChildMessage,
+  CompleteParentInitialization,
   CompositionSafetyParent,
   Entry,
   EntryBinding,
@@ -14,12 +16,15 @@ import {
   PlainBinding,
   PlainBlock,
   RestContextBlock,
-  StableProjectedBinding,
+  StrictBlock,
+  foldPlain,
+  foldStableProjected,
   initialParentModel,
   initialize,
   initializeEntry,
   initializePlain,
   initializePlainWithParentCommands,
+  makeParentCommandInitRecipe,
 } from './composition-safety.accepted.js'
 
 type Equal<Left, Right> =
@@ -35,9 +40,10 @@ type Equal<Left, Right> =
 type Expect<Value extends true> = Value
 
 const initial = initialize()
-StableProjectedBinding.fold(initial.model, ChildMessage.Incremented())
-PlainBinding.fold(initial.model, ChildMessage.Incremented())
-initializeEntry(initialParentModel, 'emitted-entry', 2)
+const parentMessage = ParentMessage.CompletedParentInitialization()
+foldStableProjected(initial.model, parentMessage, ChildMessage.Incremented())
+foldPlain(initial.model, parentMessage, ChildMessage.Incremented())
+StrictBlock.expose.initializeEntry(initialParentModel, 'emitted-entry', 2)
 
 type EmittedEntryInitRequirementsAreExact = Expect<
   Equal<
@@ -48,7 +54,8 @@ type EmittedEntryInitRequirementsAreExact = Expect<
 type EmittedParentCommandRequirementsAreExact = Expect<
   Equal<
     Update.RequirementsOf<typeof initializePlainWithParentCommands>,
-    Block.Qualify<'entries', Command.HandlerOf<typeof LoadParameterizedChild>>
+    | Block.Qualify<'entries', Command.HandlerOf<typeof LoadParameterizedChild>>
+    | Command.HandlerOf<typeof CompleteParentInitialization>
   >
 >
 type EmittedParentCommandRegistrationIsExact = Expect<
@@ -61,7 +68,39 @@ type EmittedParentCommandRegistrationIsExact = Expect<
   >
 >
 type EmittedEntryInitModelIsExact = Expect<
-  Equal<ReturnType<typeof initializeEntry>['model'], typeof ParentModel.Type>
+  Equal<
+    ReturnType<typeof initializeEntry>,
+    Update.ResultRecipe<
+      typeof ParentModel.Type,
+      typeof ParentMessage.Type,
+      never,
+      Block.Qualify<
+        'entries',
+        Command.HandlerOf<typeof LoadParameterizedChild>
+      >,
+      Block.BindingRequirement<'entries', typeof ParameterizedBlock>
+    >
+  >
+>
+type EmittedPlainInitRegistrationIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<typeof initializePlain>>,
+    Block.BindingRequirement<'plain', typeof PlainBlock>
+  >
+>
+type EmittedParentCommandRecipeRequirementsAreExact = Expect<
+  Equal<
+    Update.RequirementsOf<typeof makeParentCommandInitRecipe>,
+    Command.HandlerOf<typeof CompleteParentInitialization>
+  >
+>
+type EmittedParentCommandRecipeRegistrationIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<
+      ReturnType<typeof makeParentCommandInitRecipe>
+    >,
+    Block.BindingRequirement<'parentCommands', typeof PlainBlock>
+  >
 >
 
 declare const useSecondField: boolean
@@ -129,14 +168,34 @@ declare const unknownParentCommandRequirements: Update.Commands<
 // oxfmt-ignore
 PlainBinding.init({ args: [], toParentModel: child => Struct.modifyFields(initialParentModel, { plain: () => child }), commands: unknownParentCommandRequirements })
 
+// @ts-expect-error Emitted explicit Steps cannot erase connected registration evidence.
+const erasedEmittedConnectedStep: Update.Step<
+  typeof ParentModel.Type,
+  typeof ParentMessage.Type
+> = initializePlain
+void erasedEmittedConnectedStep
+
 const EmittedMissingPlainBindingComposition =
-  CompositionSafetyParent.toComposition({ childBindings: [EntryBinding] })
-EmittedMissingPlainBindingComposition.toBlock({
-  init: EmittedMissingPlainBindingComposition.init(() =>
-    initializePlain(initialParentModel),
-  ),
-  update: EmittedMissingPlainBindingComposition.update(model => ({ model })),
-  // @ts-expect-error Emitted initializer evidence requires every used Binding at completion.
+  CompositionSafetyParent.makeComposition({ childBindings: [EntryBinding] })
+EmittedMissingPlainBindingComposition.makeInit(() =>
+  // @ts-expect-error A connected initializer cannot run without its registered Binding capability.
+  initializePlain(initialParentModel),
+)
+
+const emittedDirectConnectedInit =
+  EmittedMissingPlainBindingComposition.makeInit(() =>
+    PlainBinding.init({
+      args: [],
+      toParentModel: child =>
+        Struct.modifyFields(initialParentModel, { plain: () => child }),
+    }),
+  )
+EmittedMissingPlainBindingComposition.makeBlock({
+  init: emittedDirectConnectedInit,
+  update: EmittedMissingPlainBindingComposition.makeUpdate(model => ({
+    model,
+  })),
+  // @ts-expect-error Emitted directly connected initializers retain their missing Binding evidence.
   EffectsLayer: LoadParameterizedChild.layer,
 })
 
@@ -145,4 +204,30 @@ export type EmittedCompositionSafetyAssertions = [
   EmittedParentCommandRequirementsAreExact,
   EmittedParentCommandRegistrationIsExact,
   EmittedEntryInitModelIsExact,
+  EmittedPlainInitRegistrationIsExact,
+  EmittedParentCommandRecipeRequirementsAreExact,
+  EmittedParentCommandRecipeRegistrationIsExact,
 ]
+
+// @ts-expect-error Passive operation construction is private to checked composition.
+Update.makeResultRecipe
+// @ts-expect-error Passive operation recognition is not a public execution seam.
+Update.isResultRecipe
+// @ts-expect-error Connected results have no public interpreter.
+Update.runResultRecipe
+// @ts-expect-error Connected result resolution is private to checked composition.
+Update.resolveOperationOutput
+// @ts-expect-error Binding initialization construction is private to composition.
+Block.makeBindingInitRecipe
+// @ts-expect-error Binding initialization recognition is private to composition.
+Block.isBindingInitRecipe
+// @ts-expect-error Binding initialization has no public interpreter.
+Block.runBindingInitRecipe
+// @ts-expect-error The update subpath also exposes no operation interpreter.
+PublicUpdate.runResultRecipe
+export type HiddenOperationRuntime =
+  // @ts-expect-error Private update runtime modules are not package subpaths.
+  typeof import('foldkit/update/operationRecipe')
+export type HiddenInitializationRuntime =
+  // @ts-expect-error Private Binding initialization modules are not package subpaths.
+  typeof import('foldkit/block/initRecipe')

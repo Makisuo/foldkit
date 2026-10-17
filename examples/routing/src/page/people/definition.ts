@@ -5,4 +5,4 @@ import { Model } from './model'
 
 export const People = Block.define('People', { Model, Message })
 
-export const PeopleComposition = People.toComposition()
+export const PeopleComposition = People.makeComposition()

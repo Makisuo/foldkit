@@ -30,7 +30,7 @@ const HoverIntent = Block.define('HoverIntent', {
   OutMessage,
 })
 
-const HoverIntentComposition = HoverIntent.toComposition()
+const HoverIntentComposition = HoverIntent.makeComposition()
 
 const DEFAULT_OPEN_DELAY = Duration.millis(200)
 const DEFAULT_CLOSE_DELAY = Duration.millis(300)
@@ -238,7 +238,7 @@ const close = HoverIntent.step(model =>
 )
 
 /** Processes a HoverIntent Message and returns the next Model, optional Commands, and an optional OutMessage. */
-export const update = HoverIntentComposition.update((model, message) =>
+export const update = HoverIntentComposition.makeUpdate((model, message) =>
   Message.match(message, {
     EnteredTrigger: () =>
       entered(modifyFields(model, { isTriggerHovered: () => true })),
@@ -306,7 +306,7 @@ export type ViewInputs = Readonly<{
 }>
 
 /** Renders headless HoverIntent event bundles. It owns no markup, ARIA semantics, positioning, or styling. */
-export const view = HoverIntentComposition.view.withInputs<ViewInputs>(
+export const view = HoverIntentComposition.makeView.withInputs<ViewInputs>(
   (model, { focusTriggerSelector, toView }, h) => {
     const toPressedEscape =
       (source: 'Trigger' | 'Panel') =>
@@ -354,8 +354,8 @@ export const view = HoverIntentComposition.view.withInputs<ViewInputs>(
 )
 
 /** Complete HoverIntent Block definition for connecting to a parent. */
-export const block = HoverIntentComposition.toBlock({
-  init: HoverIntentComposition.init((config?: InitConfig) => ({
+export const block = HoverIntentComposition.makeBlock({
+  init: HoverIntentComposition.makeInit((config?: InitConfig) => ({
     model: init(config),
   })),
   update,

@@ -35,7 +35,7 @@ const ClearJoinDraft = Home.command('ClearJoinDraft', {
       store.clear.pipe(Effect.as(HomeMessage.CompletedClearJoinDraft()))
   },
 })
-const HomeComposition = Home.toComposition()
+const HomeComposition = Home.makeComposition()
 const resetJoinForm = Home.step((model, username: string) => ({
   model: modifyFields(model, {
     username: () => username,
@@ -47,11 +47,11 @@ const requestJoin = Home.step((model, roomId: string, username: string) => ({
   model,
   outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
 }))
-const HomeBlock = HomeComposition.toBlock({
-  init: HomeComposition.init(() => ({
+const HomeBlock = HomeComposition.makeBlock({
+  init: HomeComposition.makeInit(() => ({
     model: HomeModel.make({ username: '', resetCount: 0 }),
   })),
-  update: HomeComposition.update((model, message) =>
+  update: HomeComposition.makeUpdate((model, message) =>
     HomeMessage.match(message, {
       SucceededJoinRoom: ({ roomId, username }) => ({
         model,
@@ -75,17 +75,17 @@ const Room = Block.define('Room', {
   Message: RoomMessage,
   OutMessage: RoomOutMessage,
 })
-const RoomComposition = Room.toComposition()
+const RoomComposition = Room.makeComposition()
 const informJoined = Room.step(
   (model, username: string, _context: typeof RoomContext.Type) => ({
     model: modifyFields(model, { maybeUsername: () => Option.some(username) }),
   }),
 )
-const RoomBlock = RoomComposition.toBlock({
-  init: RoomComposition.init(() => ({
+const RoomBlock = RoomComposition.makeBlock({
+  init: RoomComposition.makeInit(() => ({
     model: RoomModel.make({ maybeUsername: Option.none() }),
   })),
-  update: RoomComposition.update(
+  update: RoomComposition.makeUpdate(
     (model, message, context: typeof RoomContext.Type) =>
       RoomMessage.match(message, {
         CompletedLeaveRoom: () => ({
@@ -188,13 +188,13 @@ const RoomBinding = Application.bindChild(RoomBlock, {
   },
 })
 
-const ApplicationComposition = Application.toComposition({
+const ApplicationComposition = Application.makeComposition({
   childBindings: [HomeBinding, RoomBinding],
 })
-const update = ApplicationComposition.update()
+const update = ApplicationComposition.makeUpdate()
 const requestJoinThroughApplication = Application.step(
-  (model, roomId: string, username: string) =>
-    HomeBinding.requestJoin(roomId, username)(model),
+  (_model, roomId: string, username: string) =>
+    HomeBinding.requestJoin(roomId, username),
 )
 
 const makeInitialModel = () =>
@@ -203,10 +203,15 @@ const makeInitialModel = () =>
     maybeRoomInstance: Option.none(),
     route: ApplicationRoute.Home(),
   })
-const ApplicationBlock = ApplicationComposition.toBlock({
-  init: ApplicationComposition.init(() => ({ model: makeInitialModel() })),
+const ApplicationBlock = ApplicationComposition.makeBlock({
+  init: ApplicationComposition.makeInit(() => ({ model: makeInitialModel() })),
   update,
-  expose: { requestJoin: requestJoinThroughApplication },
+  expose: {
+    requestJoin: requestJoinThroughApplication,
+    resetJoinForm: Application.step((_model, username: string) =>
+      HomeBinding.resetJoinForm(username),
+    ),
+  },
 })
 const joinRoom = (model: typeof Model.Type) =>
   update(
@@ -336,7 +341,10 @@ describe('reciprocal sibling coordination', () => {
   it('ignores stale Room results and a Home operation while Home is absent', () => {
     const joined = joinRoom(makeInitialModel())
     const stale = leaveRoom(joined.model, 'removed-room')
-    const absentHome = HomeBinding.resetJoinForm('ignored')(joined.model)
+    const absentHome = ApplicationBlock.expose.resetJoinForm(
+      joined.model,
+      'ignored',
+    )
 
     expect(stale.model).toBe(joined.model)
     expect(stale.commands ?? []).toHaveLength(0)

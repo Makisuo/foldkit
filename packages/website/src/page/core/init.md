@@ -18,15 +18,15 @@ On a fresh client start, the Runtime builds the supplied application Layer once,
 
 ## Initialize the Root Model {#init}
 
-Author root init through its named Composition as `ApplicationComposition.init(fn)`. A graphless root still has an empty Composition. The helper checks the returned Model and Commands against the same graph that update, view, and completion use.
+Author root init through its named Composition as `ApplicationComposition.makeInit(fn)`. A graphless root still has an empty Composition. The helper checks the returned Model and Commands against the same graph that update, view, and completion use.
 
 The counter starts at zero and has no startup work:
 
 ::Snippet{name="initSimple" label="Using init"}
 
-A non-routing application or element calls `init` with no arguments. A routing application passes the current URL, so its first Model can reflect the route. When the application declares Flags, they become the first argument in either form. `ApplicationComposition.toApplication` or `toElement` receives `init` explicitly and checks its arguments against the completion's Flags and routing configuration, along with the registered child and handler graph.
+A non-routing application or element calls `init` with no arguments. A routing application passes the current URL, so its first Model can reflect the route. When the application declares Flags, they become the first argument in either form. `ApplicationComposition.makeApplication` or `makeElement` receives `init` explicitly and checks its arguments against the completion's Flags and routing configuration, along with the registered child and handler graph.
 
-Give `ApplicationComposition.init` one concrete function signature. Optional, default, and rest parameters are supported. Wrap an overloaded domain helper or callable object in a concretely typed callback. A generic Block factory closes over its type parameters and keeps the initializer itself concrete.
+Give `ApplicationComposition.makeInit` one concrete function signature. Optional, default, and rest parameters are supported. Wrap an overloaded domain helper or callable object in a concretely typed callback. A generic Block factory closes over its type parameters and keeps the initializer itself concrete.
 
 ## Assemble Child Models {#child-initialization}
 
@@ -46,7 +46,7 @@ The following Profile contains a ThemePicker whose initializer requires a Theme.
 
 Here, the Binding owns the rule that ThemePicker receives `savedTheme`. Profile init supplies `startup` and its parent-owned `username`. It does not call `themePickerInit`, place `themePicker`, or merge child Commands by hand.
 
-`Composition.init` calls the selected child initializers once, in `childBindings` order. Foldkit adds the child-owned fields before constructing the complete Model. Use `commands` for parent Commands and `steps` for parent Steps applied after that Model exists.
+`Composition.makeInit` calls the selected child initializers once, in `childBindings` order. Foldkit adds the child-owned fields before constructing the complete Model. Use `commands` for parent Commands and `steps` for parent Steps applied after that Model exists.
 
 Parent Commands appear first in the returned collection, followed by retained child init Commands and Step Commands. The Runtime executes Commands independently, so collection order does not sequence their completion.
 
@@ -58,9 +58,11 @@ For an exact `Option` field, omitting `init` leaves presence with the parent. Re
 
 The final parent Model determines which initialized occurrences are active. Init Commands for absent or `presentWhen`-inactive children are omitted. A `subscriptions.when` policy only gates Subscription Streams; it does not suppress child init Commands. Initial Steps may change the child Model without discarding its init Commands.
 
-For custom storage, deliberate Command ordering, or dynamic creation, call the registered Binding's explicit `init` operation from its owning graph. Pass `{ args, toParentModel }`, plus `key` for a keyed Binding and optional parent `commands`. `args` is the exact child init tuple. `toParentModel` receives the initialized child Model and constructs the complete parent Model. The result contains that parent Model and every lifted child init Command, followed by the optional parent Commands. It also retains the Binding evidence used by Composition completion.
+For custom storage, deliberate Command ordering, or dynamic creation, call the registered Binding's explicit `init` operation. Pass `{ args, toParentModel }`, plus `key` for a keyed Binding and optional parent `commands`. `args` is the exact child init tuple. `toParentModel` receives the initialized child Model and constructs the complete parent Model. `Binding.init` returns a passive initialization recipe. The recipe has no `.model` or `.commands` fields to project.
 
-An explicit Binding init may execute only where that exact Binding is registered: inside its Composition's init or update, through an operation exposed by its completed Block, or through the operation projected onto its parent Binding. The compiler checks the key, argument tuple, complete parent Model, Command requirements, and graph evidence. At runtime, Foldkit validates the complete parent Model against its Schema, verifies that `toParentModel` stores a schema-equivalent initialized child, and checks that a keyed result contains exactly one occurrence with the requested key. These checks apply to the connected operation; ordinary Model construction remains available for fixtures and other pure values.
+Return that recipe directly from the owning Composition's `makeInit` or `makeUpdate` callback, or preserve it through the owning Definition's `step` producer. The Composition callbacks interpret it directly; a completed exposed operation interprets a recipe preserved by its Step. Checked execution enters the registered graph, then returns the complete parent Model with every lifted child init Command followed by the optional parent Commands. The compiler checks the key, argument tuple, complete parent Model, Command requirements, and exact Binding requirement at these boundaries.
+
+During checked execution, runtime validation verifies the active composition frame, validates the complete parent Model against its Schema, checks that `toParentModel` stores a schema-equivalent initialized child, and checks that a keyed result contains exactly one occurrence with the requested key. These guards protect JavaScript with erased types and operations captured for later execution. Ordinary Model construction remains available for fixtures and other pure values.
 
 ### Keyed Initial Instances
 
@@ -68,7 +70,7 @@ A keyed-array Binding can declare `init.occurrences` and `init.toItem`. The firs
 
 Return each wrapper as a plain record so its child field keeps the exact initialized object. A wrapper Schema constructor may reconstruct that child and fail the identity check. Composition constructs the full parent Model through its Schema after collecting these records.
 
-This Counter application starts three instances. Its Model declares `counters: Schema.Array(CounterInstance)`, where each instance holds `id` and `counter`. Its `addCounter` Step creates a later occurrence through `CountersBinding.init({ key, args, toParentModel })`, so the returned parent result carries the child init Commands automatically:
+This Counter application starts three instances. Its Model declares `counters: Schema.Array(CounterInstance)`, where each instance holds `id` and `counter`. Its `addCounter` Step returns a `CountersBinding.init({ key, args, toParentModel })` recipe, so the Definition defers initialization until it can produce the parent result with the child init Commands:
 
 ::Snippet{name="initKeyedChildren" label="Initializing keyed child instances"}
 
@@ -106,7 +108,7 @@ Define the boundary with a Flags Schema. For a fresh client start, also define a
 
 ### Fresh Client Start
 
-This compact Counter keeps the graphless root in `application.ts` with its Model, Message, init, update, and view. It creates `ApplicationComposition` with `Application.toComposition()`. The entry imports that Composition and passes the Schema to its owned `toApplication` method as `Flags`.
+This compact Counter keeps the graphless root in `application.ts` with its Model, Message, init, update, and view. It creates `ApplicationComposition` with `Application.makeComposition()`. The entry imports that Composition and passes the Schema to its owned `makeApplication` method as `Flags`.
 
 ::Snippet{name="counterApplicationWithFlags" label="Application configuration with Flags"}
 

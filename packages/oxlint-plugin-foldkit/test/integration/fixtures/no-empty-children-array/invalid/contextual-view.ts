@@ -7,8 +7,8 @@ const Message = defineMessageUnion({ Rendered: {} })
 const ContextualView = Block.define('ContextualView')
 const feature = ContextualView.define({ Model, Message })
 
-const ContextualViewComposition = feature.toComposition()
+const ContextualViewComposition = feature.makeComposition()
 
-export const view = ContextualViewComposition.view((_model, h) =>
+export const view = ContextualViewComposition.makeView((_model, h) =>
   h.div([], []),
 )

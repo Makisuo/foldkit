@@ -1,6 +1,8 @@
 import { Array, Option, Predicate, Schema } from 'effect'
 
+import { resolveOperationOutput } from '../update/operationRecipe.js'
 import { runtimeBindingOf } from './composition.js'
+import { isBindingInitRecipe, runBindingInitRecipe } from './initRecipe.js'
 import type { InstanceKey } from './instanceContext.js'
 import { withOperationGraph } from './operationGraph.js'
 
@@ -126,11 +128,14 @@ const assertInitializationPlan: (
 ) => asserts value is RuntimeInitializationPlan = value => {
   if (!Predicate.isObject(value) || !Object.hasOwn(value, 'model')) {
     throw new Error(
-      '[foldkit] Composition.init callback must return an object with a model field.',
+      '[foldkit] Composition.makeInit callback must return an object with a model field.',
     )
   }
 
-  assertCommands(Reflect.get(value, 'commands'), 'Composition.init callback')
+  assertCommands(
+    Reflect.get(value, 'commands'),
+    'Composition.makeInit callback',
+  )
 
   const steps = Reflect.get(value, 'steps')
   if (
@@ -139,13 +144,13 @@ const assertInitializationPlan: (
       globalThis.Array.from(steps).some(step => !Predicate.isFunction(step)))
   ) {
     throw new Error(
-      '[foldkit] Composition.init callback steps must be an array of functions when present.',
+      '[foldkit] Composition.makeInit callback steps must be an array of functions when present.',
     )
   }
 
   if (Object.hasOwn(value, 'outMessage')) {
     throw new Error(
-      '[foldkit] Composition.init callback cannot return an OutMessage.',
+      '[foldkit] Composition.makeInit callback cannot return an OutMessage.',
     )
   }
 }
@@ -155,15 +160,15 @@ const assertStepReturn: (
 ) => asserts value is RuntimeReturn = value => {
   if (!Predicate.isObject(value) || !Object.hasOwn(value, 'model')) {
     throw new Error(
-      '[foldkit] Composition.init Step must return an object with a model field.',
+      '[foldkit] Composition.makeInit Step must return an object with a model field.',
     )
   }
 
-  assertCommands(Reflect.get(value, 'commands'), 'Composition.init Step')
+  assertCommands(Reflect.get(value, 'commands'), 'Composition.makeInit Step')
 
   if (Object.hasOwn(value, 'outMessage')) {
     throw new Error(
-      '[foldkit] Composition.init Step cannot return an OutMessage.',
+      '[foldkit] Composition.makeInit Step cannot return an OutMessage.',
     )
   }
 }
@@ -199,7 +204,7 @@ const assertParentDoesNotOwnInitialField = (
     Object.hasOwn(parentOwnedModel, field)
   ) {
     throw new Error(
-      `[foldkit] Composition.init parent-owned model cannot supply child-initialized field "${field}". Remove that field from the initializer plan model.`,
+      `[foldkit] Composition.makeInit parent-owned model cannot supply child-initialized field "${field}". Remove that field from the initializer plan model.`,
     )
   }
 }
@@ -377,7 +382,7 @@ const makeParentModel = (
 
   if (!Predicate.isObject(parentOwnedModel)) {
     throw new Error(
-      '[foldkit] Composition.init parent-owned model must be an object when child Bindings initialize Model fields.',
+      '[foldkit] Composition.makeInit parent-owned model must be an object when child Bindings initialize Model fields.',
     )
   }
 
@@ -448,7 +453,10 @@ export const makeInit =
   (create: (...args: ReadonlyArray<any>) => unknown) =>
   (...args: ReadonlyArray<any>): RuntimeReturn =>
     withOperationGraph(childBindings, () => {
-      const planValue = create(...args)
+      const created = create(...args)
+      const planValue = isBindingInitRecipe(created)
+        ? runBindingInitRecipe(created)
+        : created
       assertInitializationPlan(planValue)
 
       const preflight = preflightPlans(childBindings, planValue.startup)
@@ -607,7 +615,7 @@ export const makeInit =
       const stepCommands: globalThis.Array<any> = []
 
       for (const step of planValue.steps ?? []) {
-        const stepValue = step(model)
+        const stepValue = resolveOperationOutput(step(model), model)
         assertStepReturn(stepValue)
         model = stepValue.model
         stepCommands.push(...(stepValue.commands ?? []))

@@ -9,7 +9,7 @@ import {
 import { init, view } from './counterHttpCompletion'
 import { ApplicationLayer } from './services'
 
-const application = ApplicationComposition.toApplication({
+const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,

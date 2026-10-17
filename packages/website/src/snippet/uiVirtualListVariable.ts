@@ -10,7 +10,7 @@
 // math walk the items via a prefix-sum to find the visible window. Tests
 // with 10k items at 60Hz scroll well within budget; larger lists may need
 // a prefix-sum cache if you can profile the regression:
-const view = ActivityListExampleComposition.view((model, h) =>
+const view = ActivityListExampleComposition.makeView((model, h) =>
   h.block(
     ActivityListBinding.embedView({
       slotId: 'activity-list',

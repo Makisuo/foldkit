@@ -1,4 +1,4 @@
-import { Effect, Layer, Match, Option, Schema, pipe } from 'effect'
+import { Array, Effect, Layer, Match, Option, Schema, pipe } from 'effect'
 import * as Block from 'foldkit/block'
 import { DEVTOOLS_HOST_ID } from 'foldkit/devtools-host'
 import * as Dom from 'foldkit/dom'
@@ -300,27 +300,28 @@ const AnimationBinding = Dialog.bindChild(Animation.block, {
 
 const resumeAnimationAfterAcquisition = AnimationBinding.resume()
 
-const DialogComposition = Dialog.toComposition({
+const DialogComposition = Dialog.makeComposition({
   mounts,
   childBindings: [AnimationBinding],
 })
 
 /** Processes a Dialog Message and returns the next Model and optional Commands. */
-export const update = DialogComposition.update((model, message) =>
+export const update = DialogComposition.makeUpdate((model, message) =>
   Message.match(message, {
     RequestedOpen: () => {
       const wasClosed = !model.isOpen
-      const maybeShow = Option.liftPredicate(
-        ShowDialog({
-          id: model.id,
-          focusSelector: Option.getOrElse(
-            model.maybeFocusSelector,
-            () => initialFocusMarkerSelector,
-          ),
-        }),
+      const commands = Array.filter(
+        [
+          ShowDialog({
+            id: model.id,
+            focusSelector: Option.getOrElse(
+              model.maybeFocusSelector,
+              () => initialFocusMarkerSelector,
+            ),
+          }),
+        ],
         () => wasClosed,
       )
-      const commands = Option.toArray(maybeShow)
       const dialogOpen = model.isAnimated
         ? Update.combine(model, [
             stepModel => ({ model: stepModel, commands }),
@@ -355,12 +356,10 @@ export const update = DialogComposition.update((model, message) =>
           : dialogClose
       }
 
-      const maybeClose = Option.liftPredicate(
-        CloseDialog({ id: model.id }),
+      const commands = Array.filter(
+        [CloseDialog({ id: model.id })],
         () => wasOpen,
       )
-
-      const commands = Option.toArray(maybeClose)
       const dialogClose = {
         model: modifyFields(model, { isOpen: () => false }),
         commands,
@@ -511,7 +510,7 @@ export type ViewInputs = Readonly<{
  *  `ShowDialog` and the dialog's Mount open it through `Dom.showDialog`,
  *  isolate the background, trap focus, and handle Escape on the topmost
  *  Dialog. The component supplies its own backdrop. */
-export const view = DialogComposition.view.withInputs<ViewInputs>(
+export const view = DialogComposition.makeView.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const {
       id,
@@ -619,13 +618,24 @@ export const view = DialogComposition.view.withInputs<ViewInputs>(
   },
 )
 
-/** Complete Dialog Block definition. */
-export const block = DialogComposition.toBlock({
-  init: DialogComposition.init((config: InitConfig) => ({
+const implementation = {
+  init: DialogComposition.makeInit((config: InitConfig) => ({
     model: init(config),
   })),
   update,
   view,
   expose: { open, close },
   EffectsLayer,
-})
+}
+
+/**
+ * A completed Dialog Block with its exact child, Mount, Layer, OutMessage,
+ * operation, and default view contracts.
+ */
+export interface Completed extends Block.CompletedWithViewAndOutMessage<
+  typeof DialogComposition,
+  typeof implementation
+> {}
+
+/** Complete Dialog Block definition. */
+export const block: Completed = DialogComposition.makeBlock(implementation)

@@ -9,7 +9,7 @@ export const CounterBinding = Application.bindChild(Counter.block, {
   parentMessage: Message.GotCounterMessage,
 })
 
-export const ApplicationComposition = Application.toComposition({
+export const ApplicationComposition = Application.makeComposition({
   childBindings: [CounterBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

@@ -63,12 +63,12 @@ const PlanListboxBinding = PlanPicker.bindChild(PlanListbox, {
   outMessage: { fold: foldListboxOutMessage },
 })
 
-const PlanPickerComposition = PlanPicker.toComposition({
+const PlanPickerComposition = PlanPicker.makeComposition({
   childBindings: [PlanListboxBinding],
 })
 
 // In your init function, initialize the Listbox Block with a unique id:
-const init = PlanPickerComposition.init(() => ({
+const init = PlanPickerComposition.makeInit(() => ({
   model: {
     maybePlan: Option.none(),
     // ...your other fields
@@ -76,7 +76,7 @@ const init = PlanPickerComposition.init(() => ({
 }))
 
 // The Composition routes GotListboxMessage through PlanListboxBinding.
-const update = PlanPickerComposition.update()
+const update = PlanPickerComposition.makeUpdate()
 
 const plans: ReadonlyArray<Plan> = ['Free', 'Pro', 'Enterprise']
 
@@ -85,7 +85,7 @@ const plans: ReadonlyArray<Plan> = ['Free', 'Pro', 'Enterprise']
 // `<label for>`: target the trigger id with `buttonId('plan')` from `@foldkit/ui/listbox`. The
 // `for` association gives the trigger both its accessible name and
 // click-to-focus, so ariaLabelledBy is not needed here.
-const view = PlanPickerComposition.view((model, h) =>
+const view = PlanPickerComposition.makeView((model, h) =>
   h.div(
     [],
     [

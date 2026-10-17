@@ -15,7 +15,7 @@ import {
   resolveFoldkitApiPath,
 } from '../guards.ts'
 
-const FACTORY_NAMES = ['toApplication', 'toElement']
+const FACTORY_NAMES = ['makeApplication', 'makeElement']
 
 const FREEZE_MODEL_MESSAGE =
   "`freezeModel: false` turns off Foldkit's dev mutation guard. When on, the runtime deep-freezes the Model after init and after every update, so an accidental mutation throws at the exact write site during development and costs nothing in production. Fix the mutation instead of disabling the guard. A deliberate disable belongs behind an oxlint-disable comment at this line."
@@ -28,8 +28,8 @@ const isFactoryCallee = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
   if (
-    isOwnedDefinitionCall(node, 'toApplication', references) ||
-    isOwnedDefinitionCall(node, 'toElement', references)
+    isOwnedDefinitionCall(node, 'makeApplication', references) ||
+    isOwnedDefinitionCall(node, 'makeElement', references)
   ) {
     return true
   }

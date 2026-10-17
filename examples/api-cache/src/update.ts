@@ -14,7 +14,7 @@ import { PostDetailData } from './model'
 const setPostDetail = (postId: string, postDetail: PostDetailData) =>
   HashMap.set(postId, postDetail)
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedPost: ({ postId }) => {
       const selectedModel = modifyFields(model, {

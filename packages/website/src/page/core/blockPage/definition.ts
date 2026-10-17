@@ -5,4 +5,4 @@ import { Model } from './model'
 
 export const BlockPage = Block.define('BlockPage', { Model, Message })
 
-export const BlockPageComposition = BlockPage.toComposition()
+export const BlockPageComposition = BlockPage.makeComposition()

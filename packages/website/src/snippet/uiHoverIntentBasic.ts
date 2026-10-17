@@ -42,25 +42,25 @@ const HoverIntentBinding = HoverIntentExample.bindChild(HoverIntent.block, {
   outMessage: { fold: foldHoverIntentOutMessage },
 })
 
-const HoverIntentExampleComposition = HoverIntentExample.toComposition({
+const HoverIntentExampleComposition = HoverIntentExample.makeComposition({
   childBindings: [HoverIntentBinding],
 })
 
 // Initialize it. This behavior primitive owns no DOM id:
-const init = HoverIntentExampleComposition.init(() => ({
+const init = HoverIntentExampleComposition.makeInit(() => ({
   model: {
     // ...your other fields
   },
 }))
 
-const update = HoverIntentExampleComposition.update()
+const update = HoverIntentExampleComposition.makeUpdate()
 
 // Spread each attribute bundle onto the element it names. HoverIntent owns the
 // interaction; this view owns the markup, semantics, positioning, and styles.
 const triggerId = 'more-information-trigger'
 const panelId = 'more-information-panel'
 
-const view = HoverIntentExampleComposition.view((model, h) => {
+const view = HoverIntentExampleComposition.makeView((model, h) => {
   const hoverIntentView = ({
     trigger,
     panel,

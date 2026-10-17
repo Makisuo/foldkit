@@ -17,7 +17,7 @@ const VideoCallBinding = Call.bindChild(VideoCall.block, {
   parentMessage: Message.GotVideoCallMessage,
 })
 
-const CallComposition = Call.toComposition({
+const CallComposition = Call.makeComposition({
   childBindings: [VideoCallBinding],
 })
 
@@ -38,7 +38,7 @@ export const managedResources = Call.managedResources(entry => ({
   }),
 }))
 
-export const block = CallComposition.toBlock({
+export const block = CallComposition.makeBlock({
   init,
   update,
   managedResources,

@@ -13,6 +13,7 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({
   GotEntryMessage: { id: Schema.String, message: KeyedEntry.Message },
   GotSettingsMessage: { message: BoundSettings.Message },
+  ClickedApplyThemes: {},
 })
 const Application = defineApplication({ Model, Message })
 const EntriesBinding = Application.bindChild(KeyedEntry.Entry, {
@@ -29,14 +30,18 @@ const MaybeSettingsBinding = Application.bindChild(BoundSettings.Settings, {
   field: 'maybeSettings',
   parentMessage: Message.GotSettingsMessage,
 })
+const ApplicationComposition = Application.makeComposition({
+  childBindings: [EntriesBinding, MaybeSettingsBinding],
+})
 
 export const initial: Model = Model.make({
   entries: [],
   maybeSettings: Option.none(),
 })
 
-export const updateWithNamedOperations = (model: Model) =>
+export const updateWithNamedOperations = ApplicationComposition.makeUpdate(model =>
   Update.combine(model, [
     EntriesBinding.setTheme('initial', 'Light'),
     MaybeSettingsBinding.setTheme('Dark'),
   ])
+)

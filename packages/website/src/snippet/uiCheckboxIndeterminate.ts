@@ -3,7 +3,6 @@
 // update, and view definitions.
 import { Schema } from 'effect'
 import { Block } from 'foldkit'
-import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -25,12 +24,17 @@ const Message = defineMessageUnion({
   ToggledOptionB: { isChecked: Schema.Boolean },
 })
 
+type Message = typeof Message.Type
+
 const NotificationPreferences = Block.define('NotificationPreferences', {
   Model,
   Message,
 })
+const NotificationPreferencesComposition =
+  NotificationPreferences.makeComposition()
+
 // In your init function, start each unchecked:
-const init = NotificationPreferencesComposition.init(() => ({
+const init = NotificationPreferencesComposition.makeInit(() => ({
   model: {
     optionA: false,
     optionB: false,
@@ -40,16 +44,26 @@ const init = NotificationPreferencesComposition.init(() => ({
 
 // In the corresponding Message.match handler, toggling "Select All"
 // writes the same value to every child:
-ToggledSelectAll: ({ isChecked }) => ({
-  model: modifyFields(model, {
-    optionA: () => isChecked,
-    optionB: () => isChecked,
+const update = NotificationPreferencesComposition.makeUpdate((model, message) =>
+  Message.match(message, {
+    ToggledSelectAll: ({ isChecked }) => ({
+      model: modifyFields(model, {
+        optionA: () => isChecked,
+        optionB: () => isChecked,
+      }),
+    }),
+    ToggledOptionA: ({ isChecked }) => ({
+      model: modifyFields(model, { optionA: () => isChecked }),
+    }),
+    ToggledOptionB: ({ isChecked }) => ({
+      model: modifyFields(model, { optionB: () => isChecked }),
+    }),
   }),
-})
+)
 
 // Inside your view function, compute the parent's checked and indeterminate
 // state from the children and pass isIndeterminate straight to Checkbox.view:
-const view = (model, h: HtmlBuilder<Message>) => {
+const view = NotificationPreferencesComposition.makeView((model, h) => {
   const isAllChecked = model.optionA && model.optionB
   const isNoneChecked = !model.optionA && !model.optionB
   const isIndeterminate = !isAllChecked && !isNoneChecked
@@ -89,4 +103,4 @@ const view = (model, h: HtmlBuilder<Message>) => {
     },
     h,
   )
-}
+})

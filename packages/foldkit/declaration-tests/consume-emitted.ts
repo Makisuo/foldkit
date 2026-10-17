@@ -38,6 +38,7 @@ import {
   PureComposition,
   ReadCount,
   ReadDirectValue,
+  RecordModel,
   RefinedChoice,
   type RefinedChoiceOutMessage,
   type RefreshContext,
@@ -62,6 +63,8 @@ import {
   parentView,
   provisionPorts,
   provisionRoutingInit,
+  recordApplicationUpdate,
+  recordUpdate,
   refreshDirectValue,
   renderPage,
   wrappedOverloadedChildInit,
@@ -75,28 +78,38 @@ type Equal<Left, Right> =
     : false
 type Expect<Value extends true> = Value
 type CommandMessageOfReturn<Value> =
-  Value extends Readonly<{
-    commands?: Update.Commands<infer Message, infer _Requirements> | undefined
-  }>
+  Value extends Update.ResultRecipe<
+    infer _Model,
+    infer Message,
+    infer _OutMessage,
+    infer _Requirements,
+    infer _Evidence
+  >
     ? Message
-    : never
+    : Value extends Readonly<{
+          commands?:
+            | Update.Commands<infer Message, infer _Requirements>
+            | undefined
+        }>
+      ? Message
+      : never
 
 const childModel = ChildModel.make({ value: 1 })
 const directModel = DirectModel.make({ value: 1 })
 const parentModel = ParentModel.make({ child: childModel })
 
 // @ts-expect-error An emitted Block Definition does not author the primary view.
-ChildDefinition.view
+ChildDefinition.makeView
 // @ts-expect-error An emitted graphful Block Definition does not author the primary view.
-ParentDefinition.view
+ParentDefinition.makeView
 // @ts-expect-error An emitted Application Definition does not author the primary view.
-ApplicationDefinition.view
+ApplicationDefinition.makeView
 // @ts-expect-error An emitted Block Definition does not author init directly.
-ChildDefinition.init
+ChildDefinition.makeInit
 // @ts-expect-error An emitted Application Definition does not author init directly.
-ApplicationDefinition.init
+ApplicationDefinition.makeInit
 
-const emittedChildInit = ChildComposition.init(() => ({
+const emittedChildInit = ChildComposition.makeInit(() => ({
   model: ChildModel.make({ value: 1 }),
 }))
 const emittedParameterizedInit = childParameterizedInit(1, 2, 3, 4)
@@ -105,10 +118,10 @@ const emittedWrappedOverloadedInit = wrappedOverloadedChildInit('value')
 const emittedDirectResultInit = directResultInit()
 const emittedRoutedInit = provisionRoutingInit
 
-const emittedGraphlessBlockView = PureComposition.view((model, h) =>
+const emittedGraphlessBlockView = PureComposition.makeView((model, h) =>
   h.div([], [globalThis.String(model.value)]),
 )
-const emittedGraphfulBlockView = ParentComposition.view((model, h) =>
+const emittedGraphfulBlockView = ParentComposition.makeView((model, h) =>
   h.div(
     [],
     [
@@ -118,28 +131,32 @@ const emittedGraphfulBlockView = ParentComposition.view((model, h) =>
     ],
   ),
 )
-const emittedGraphlessApplicationView = PureApplicationComposition.view(
+const emittedGraphlessApplicationView = PureApplicationComposition.makeView(
   (_model, h) => h.main([]),
 )
-const emittedGraphfulApplicationView = ApplicationComposition.view((model, h) =>
-  h.main(
-    [],
-    [
-      h.block(
-        ChildBinding.embedView({ slotId: 'emitted-root', model: model.child }),
-      ),
-    ],
-  ),
+const emittedGraphfulApplicationView = ApplicationComposition.makeView(
+  (model, h) =>
+    h.main(
+      [],
+      [
+        h.block(
+          ChildBinding.embedView({
+            slotId: 'emitted-root',
+            model: model.child,
+          }),
+        ),
+      ],
+    ),
 )
 
-PureComposition.view((_model, h) =>
+PureComposition.makeView((_model, h) =>
   h.div([
     // @ts-expect-error Emitted graphless Composition views reject unregistered Mounts.
     h.OnMount(Measure()),
   ]),
 )
 
-ParentComposition.view((_model, h) =>
+ParentComposition.makeView((_model, h) =>
   h.button([
     // @ts-expect-error Emitted Composition views preserve the exact Message.
     h.OnClick(ChildMessage.RequestedRead()),
@@ -147,7 +164,7 @@ ParentComposition.view((_model, h) =>
 )
 
 // @ts-expect-error Emitted Composition views reject unusable ViewInputs.
-ChildComposition.view.withInputs<void>((_model, _inputs, h) => h.empty)
+ChildComposition.makeView.withInputs<void>((_model, _inputs, h) => h.empty)
 
 void emittedGraphlessBlockView
 void emittedGraphfulBlockView
@@ -156,8 +173,20 @@ void emittedGraphfulApplicationView
 
 export const childRefresh = ChildBlock.expose.refresh(childModel)
 export const directRefresh = Direct.expose.refreshDirectValue(directModel)
-export const boundRefresh = ChildBinding.refresh()(parentModel)
-export const directBoundRefresh = DirectChildBinding.refresh()(parentModel)
+const boundRefreshUpdate = ParentComposition.makeUpdate((model, _message) =>
+  ChildBinding.refresh()(model),
+)
+export const boundRefresh = boundRefreshUpdate(
+  parentModel,
+  ParentMessage.RequestedRefresh(),
+)
+const directBoundRefreshUpdate = ApplicationComposition.makeUpdate(
+  (model, _message) => DirectChildBinding.refresh()(model),
+)
+export const directBoundRefresh = directBoundRefreshUpdate(
+  parentModel,
+  ParentMessage.RequestedRefresh(),
+)
 export const parentRefresh = Parent.expose.refreshChild(parentModel)
 export const refinedSelection = RefinedChoice.OutMessage.make({ value: 'Two' })
 export const program = makeProgram(document.createElement('div'))
@@ -291,7 +320,14 @@ type EmittedInspectionMountsAreExact = Expect<
 type EmittedProducerParametersAreExact = Expect<
   Equal<
     Parameters<typeof contextualRefreshChild>,
-    [model: ParentModel, context?: RefreshContext | undefined]
+    [
+      model: ParentModel &
+        Update.GraphCapability<
+          ParentModel,
+          Block.BindingRequirement<'child', typeof ChildBlock>
+        >,
+      context?: RefreshContext | undefined,
+    ]
   >
 >
 type EmittedProducerRequirementsAreExact = Expect<
@@ -421,3 +457,13 @@ export type EmittedAssertions = [
   EmittedPagePortsAreExact,
   EmittedElementPortsAreExact,
 ]
+
+export type RelocatedRecordBlockModel = Expect<
+  Equal<ReturnType<typeof recordUpdate>['model'], typeof RecordModel.Type>
+>
+export type RelocatedRecordApplicationModel = Expect<
+  Equal<
+    ReturnType<typeof recordApplicationUpdate>['model'],
+    typeof RecordModel.Type
+  >
+>

@@ -268,7 +268,7 @@ const applicationViewDefinitionPath = (
       references,
       view.exprName,
     )
-    if (!Option.contains(Array.last(path.members), 'view')) {
+    if (!Option.contains(Array.last(path.members), 'makeView')) {
       return yield* Option.none()
     }
 
@@ -422,7 +422,16 @@ const definitionOperationName = (
   method: string,
   maybePreviousMethod: Option.Option<string>,
 ): DefinitionOperation['operation'] | undefined => {
-  if (method === 'withInputs' && Option.contains(maybePreviousMethod, 'view')) {
+  if (
+    method === 'withInputs' &&
+    Option.contains(maybePreviousMethod, 'makeView')
+  ) {
+    return 'view'
+  }
+  if (method === 'makeUpdate') {
+    return 'update'
+  }
+  if (method === 'makeView') {
     return 'view'
   }
   if (
@@ -434,9 +443,7 @@ const definitionOperationName = (
     method === 'render' ||
     method === 'resource' ||
     method === 'step' ||
-    method === 'subscriptions' ||
-    method === 'update' ||
-    method === 'view'
+    method === 'subscriptions'
   ) {
     return method
   }
@@ -478,7 +485,7 @@ const compositionDefinitionPath = (
 
     const compositionCall = yield* staticMemberPath(initializer.callee)
     if (
-      !Option.contains(Array.last(compositionCall.members), 'toComposition')
+      !Option.contains(Array.last(compositionCall.members), 'makeComposition')
     ) {
       return yield* Option.none()
     }
@@ -511,7 +518,8 @@ const definitionOperation = (
       Array.length(calleePath.members) - 2,
     )
     const isViewWithInputs =
-      method === 'withInputs' && Option.contains(maybePreviousMethod, 'view')
+      method === 'withInputs' &&
+      Option.contains(maybePreviousMethod, 'makeView')
     const operation = definitionOperationName(method, maybePreviousMethod)
     if (operation === undefined) {
       return yield* Option.none()
@@ -891,7 +899,7 @@ const importedOperationOwnsMessage = (
         Array.get(path.members, Array.length(path.members) - 2),
       )
       const isViewWithInputs =
-        operation === 'withInputs' && previousOperation === 'view'
+        operation === 'withInputs' && previousOperation === 'makeView'
       const isDefinitionOperation =
         operation !== undefined &&
         definitionOperationName(
@@ -899,9 +907,9 @@ const importedOperationOwnsMessage = (
           Option.fromNullishOr(previousOperation),
         ) !== undefined
       const isCompletion =
-        operation === 'toApplication' ||
-        operation === 'toBlock' ||
-        operation === 'toElement'
+        operation === 'makeApplication' ||
+        operation === 'makeBlock' ||
+        operation === 'makeElement'
       if (!isDefinitionOperation && !isViewWithInputs && !isCompletion) {
         return false
       }

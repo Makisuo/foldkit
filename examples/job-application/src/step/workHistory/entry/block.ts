@@ -6,8 +6,8 @@ import { WorkHistoryEntryComposition } from './composition'
 import { update } from './update'
 import { view } from './view'
 
-export const block = WorkHistoryEntryComposition.toBlock({
-  init: WorkHistoryEntryComposition.init(
+export const block = WorkHistoryEntryComposition.makeBlock({
+  init: WorkHistoryEntryComposition.makeInit(
     (entryId: string, today: CalendarDate) => ({
       startup: { entryId, today },
       model: {

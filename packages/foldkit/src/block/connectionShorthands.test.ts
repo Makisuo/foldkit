@@ -66,13 +66,13 @@ const managedResources = Child.managedResources(entry => ({
     },
   }),
 }))
-const registered = Child.toComposition({ mounts: [Observe] })
-const view = registered.view((model, h) =>
+const registered = Child.makeComposition({ mounts: [Observe] })
+const view = registered.makeView((model, h) =>
   h.div([h.OnMount(Observe())], [globalThis.String(model.count)]),
 )
-const block = registered.toBlock({
+const block = registered.makeBlock({
   init: () => ({ model: Model.make({ count: 0 }) }),
-  update: registered.update((model, message) =>
+  update: registered.makeUpdate((model, message) =>
     Message.match(message, {
       RequestedRead: () => ({
         model,
@@ -112,6 +112,7 @@ const ParentMessage = defineMessageUnion({
   GotChildMessage: { message: Message },
   GotEntryMessage: { id: Schema.String, message: Message },
   GotForeignMessage: { message: Schema.String },
+  RequestedReadOperation: {},
 })
 type ParentMessage = typeof ParentMessage.Type
 const Parent = define('ConnectionShorthandsParent', {
@@ -171,6 +172,29 @@ const KeyedBinding = Parent.bindChild(block, {
       foldChildOutMessage(outMessage),
   },
 })
+const ParentComposition = Parent.makeComposition({
+  childBindings: [PrimaryBinding],
+})
+const update = ParentComposition.makeUpdate((model, message) =>
+  ParentMessage.match(message, {
+    GotEntryMessage: () => ({ model }),
+    GotForeignMessage: () => ({ model }),
+    RequestedReadOperation: () => PrimaryBinding.read()(model),
+  }),
+)
+
+const KeyedComposition = Parent.makeComposition({
+  childBindings: [KeyedBinding],
+})
+const keyedUpdate = KeyedComposition.makeUpdate((model, message) =>
+  ParentMessage.match(message, {
+    GotEntryMessage: ({ id, message }) => KeyedBinding.fold(model, id, message),
+    GotChildMessage: () => ({ model }),
+    GotForeignMessage: () => ({ model }),
+    RequestedReadOperation: () => ({ model }),
+  }),
+)
+
 const initial = ParentModel.make({
   primary: Model.make({ count: 1 }),
   secondary: Model.make({ count: 2 }),
@@ -252,7 +276,10 @@ it('keeps exact placement literals and child operation arguments', () => {
   expectTypeOf(AccessorBinding.placement).toEqualTypeOf<'Child'>()
   expectTypeOf(KeyedBinding.placement).toEqualTypeOf<'entries'>()
   expectTypeOf(
-    PrimaryBinding.fold(initial, Message.RequestedRead()).model,
+    update(
+      initial,
+      ParentMessage.GotChildMessage({ message: Message.RequestedRead() }),
+    ).model,
   ).toEqualTypeOf<ParentModel>()
   expectTypeOf<Parameters<typeof PrimaryBinding.read>>().toEqualTypeOf<[]>()
   expectTypeOf<
@@ -291,10 +318,15 @@ it('keeps exact placement literals and child operation arguments', () => {
 })
 
 it('lifts real Command execution through the constructor and preserves OutMessage handling', async () => {
-  const result = PrimaryBinding.fold(initial, Message.RequestedRead())
+  const result = update(
+    initial,
+    ParentMessage.GotChildMessage({ message: Message.RequestedRead() }),
+  )
   const command = Option.getOrThrow(Array.head(result.commands!))
   const operation = Option.getOrThrow(
-    Array.head(PrimaryBinding.read()(initial).commands!),
+    Array.head(
+      update(initial, ParentMessage.RequestedReadOperation()).commands!,
+    ),
   )
   const services = inspectBinding(PrimaryBinding).EffectsLayer.pipe(
     Layer.provide(Layer.succeed(ValueSource, { value: 42 })),
@@ -316,16 +348,7 @@ it('lifts real Command execution through the constructor and preserves OutMessag
       message: Message.CompletedRead({ count: 42 }),
     }),
   )
-  const updated = ParentMessage.match(completed, {
-    GotChildMessage: ({ message }) =>
-      PrimaryBinding.fold(result.model, message),
-    GotEntryMessage: () => {
-      throw new Error('Expected a static child Message')
-    },
-    GotForeignMessage: () => {
-      throw new Error('Expected the declared child Message union')
-    },
-  })
+  const updated = update(result.model, completed)
 
   expect(updated.model.primary.count).toBe(42)
   expect(initial.primary.count).toBe(1)
@@ -376,8 +399,13 @@ it('uses one resolved occurrence placement for lifecycle registrations and mount
     /duplicate|Two child Blocks/,
   )
   expect(
-    KeyedBinding.fold(initial, 'first', Message.CompletedRead({ count: 9 }))
-      .model.entries,
+    keyedUpdate(
+      initial,
+      ParentMessage.GotEntryMessage({
+        id: 'first',
+        message: Message.CompletedRead({ count: 9 }),
+      }),
+    ).model.entries,
   ).toEqual([Entry.make({ id: 'first', child: Model.make({ count: 9 }) })])
 })
 

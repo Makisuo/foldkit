@@ -53,16 +53,16 @@ const FailChildConstructionLayer = FailChildConstruction.toLayer<
   }),
 )
 const childInitCalls: globalThis.Array<number> = []
-const ChildComposition = Child.toComposition()
-const ChildBlock = ChildComposition.toBlock({
-  init: ChildComposition.init(() => {
+const ChildComposition = Child.makeComposition()
+const ChildBlock = ChildComposition.makeBlock({
+  init: ChildComposition.makeInit(() => {
     childInitCalls.push(0)
     return {
       model: ChildModel.make({ count: 0 }),
       commands: [FinishChildInitialization({ count: 0 })],
     }
   }),
-  update: ChildComposition.update((model, { count }) => ({
+  update: ChildComposition.makeUpdate((model, { count }) => ({
     model: modifyFields(model, { count: () => count }),
   })),
   EffectsLayer: Layer.merge(
@@ -75,52 +75,52 @@ const DefaultChild = define('StartupDefaultsDefaultChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const DefaultChildComposition = DefaultChild.toComposition()
-const DefaultChildBlock = DefaultChildComposition.toBlock({
-  init: DefaultChildComposition.init((count = 1) => ({
+const DefaultChildComposition = DefaultChild.makeComposition()
+const DefaultChildBlock = DefaultChildComposition.makeBlock({
+  init: DefaultChildComposition.makeInit((count = 1) => ({
     model: ChildModel.make({ count }),
   })),
-  update: DefaultChildComposition.update(model => ({ model })),
+  update: DefaultChildComposition.makeUpdate(model => ({ model })),
 })
 
 const OptionalArgumentChild = define('StartupDefaultsOptionalArgumentChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const OptionalArgumentChildComposition = OptionalArgumentChild.toComposition()
-const OptionalArgumentChildBlock = OptionalArgumentChildComposition.toBlock({
-  init: OptionalArgumentChildComposition.init((count?: number) => ({
+const OptionalArgumentChildComposition = OptionalArgumentChild.makeComposition()
+const OptionalArgumentChildBlock = OptionalArgumentChildComposition.makeBlock({
+  init: OptionalArgumentChildComposition.makeInit((count?: number) => ({
     model: ChildModel.make({ count: count ?? 2 }),
   })),
-  update: OptionalArgumentChildComposition.update(model => ({ model })),
+  update: OptionalArgumentChildComposition.makeUpdate(model => ({ model })),
 })
 
 const RequiredRestChild = define('StartupDefaultsRequiredRestChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const RequiredRestChildComposition = RequiredRestChild.toComposition()
-const RequiredRestChildBlock = RequiredRestChildComposition.toBlock({
-  init: RequiredRestChildComposition.init(
+const RequiredRestChildComposition = RequiredRestChild.makeComposition()
+const RequiredRestChildBlock = RequiredRestChildComposition.makeBlock({
+  init: RequiredRestChildComposition.makeInit(
     (...counts: [first: number, ...rest: Array<number>]) => ({
       model: ChildModel.make({
         count: counts.reduce((total, count) => total + count, 0),
       }),
     }),
   ),
-  update: RequiredRestChildComposition.update(model => ({ model })),
+  update: RequiredRestChildComposition.makeUpdate(model => ({ model })),
 })
 
 const RequiredChild = define('StartupDefaultsRequiredChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const RequiredChildComposition = RequiredChild.toComposition()
-const RequiredChildBlock = RequiredChildComposition.toBlock({
-  init: RequiredChildComposition.init((count: number) => ({
+const RequiredChildComposition = RequiredChild.makeComposition()
+const RequiredChildBlock = RequiredChildComposition.makeBlock({
+  init: RequiredChildComposition.makeInit((count: number) => ({
     model: ChildModel.make({ count }),
   })),
-  update: RequiredChildComposition.update(model => ({ model })),
+  update: RequiredChildComposition.makeUpdate(model => ({ model })),
 })
 
 const Entry = Schema.Struct({ id: Schema.String, child: ChildModel })
@@ -238,7 +238,7 @@ expectTypeOf<Parameters<typeof RequiredRestChildBlock.init>>().toEqualTypeOf<
   [first: number, ...rest: Array<number>]
 >()
 
-const ParentComposition = Parent.toComposition({
+const ParentComposition = Parent.makeComposition({
   childBindings: [
     AutomaticBinding,
     DefaultArgumentBinding,
@@ -255,7 +255,7 @@ const applyParentStep = Parent.step(model => ({
   model: modifyFields(model, { status: () => 'Stepped' }),
   commands: [FinishParentStep()],
 }))
-const initialize = ParentComposition.init((startup: Startup) => ({
+const initialize = ParentComposition.makeInit((startup: Startup) => ({
   startup,
   model: {
     optedOut: ChildModel.make({ count: 9 }),
@@ -266,9 +266,9 @@ const initialize = ParentComposition.init((startup: Startup) => ({
   commands: [FinishParentInitialization()],
   steps: [applyParentStep],
 }))
-const ParentBlock = ParentComposition.toBlock({
+const ParentBlock = ParentComposition.makeBlock({
   init: initialize,
-  update: ParentComposition.update(model => ({ model })),
+  update: ParentComposition.makeUpdate(model => ({ model })),
   EffectsLayer: Layer.merge(
     FinishParentInitialization.layer,
     FinishParentStep.layer,
@@ -276,7 +276,7 @@ const ParentBlock = ParentComposition.toBlock({
 })
 
 // @ts-expect-error An opted-out required child remains a mandatory parent-owned field.
-ParentComposition.init((startup: Startup) => ({
+ParentComposition.makeInit((startup: Startup) => ({
   startup,
   model: {
     maybePassive: Option.none(),
@@ -397,10 +397,10 @@ const WiderStartupBinding = ExactStartup.bindChild(ChildBlock, {
   parentMessage: ExactStartupMessage.GotChildMessage,
   init: { args: (_startup: object) => [] },
 })
-const ExactStartupComposition = ExactStartup.toComposition({
+const ExactStartupComposition = ExactStartup.makeComposition({
   childBindings: [WiderStartupBinding],
 })
-ExactStartupComposition.init(() => ({
+ExactStartupComposition.makeInit(() => ({
   // @ts-expect-error A wider selector annotation cannot widen declared Startup evidence.
   startup: {},
   model: {},
@@ -411,10 +411,10 @@ const ZeroParameterStartupBinding = ExactStartup.bindChild(ChildBlock, {
   parentMessage: ExactStartupMessage.GotChildMessage,
   init: { args: () => [] },
 })
-const ZeroParameterStartupComposition = ExactStartup.toComposition({
+const ZeroParameterStartupComposition = ExactStartup.makeComposition({
   childBindings: [ZeroParameterStartupBinding],
 })
-ZeroParameterStartupComposition.init(() => ({ model: {} }))
+ZeroParameterStartupComposition.makeInit(() => ({ model: {} }))
 
 const ForeignStartup = Schema.Struct({ token: Schema.String })
 const ForeignStartupDefinition = ExactStartupOwner.define({
@@ -429,7 +429,7 @@ const ForeignStartupBinding = ForeignStartupDefinition.bindChild(ChildBlock, {
 })
 if (false) {
   // @ts-expect-error A Binding cannot change another Definition's Startup contract.
-  ExactStartup.toComposition({ childBindings: [ForeignStartupBinding] })
+  ExactStartup.makeComposition({ childBindings: [ForeignStartupBinding] })
 }
 
 const Application = defineApplication({
@@ -497,7 +497,7 @@ it('initializes required direct fields by default and leaves opt-out storage par
 
 it('rejects an erased Binding from an incompatible Startup contract', () => {
   expect(() =>
-    Reflect.apply(ExactStartup.toComposition, undefined, [
+    Reflect.apply(ExactStartup.makeComposition, undefined, [
       { childBindings: [ForeignStartupBinding] },
     ]),
   ).toThrow('belongs to a different parent Definition contract')

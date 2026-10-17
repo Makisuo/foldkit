@@ -9,15 +9,23 @@ import {
 } from './canonical-constructor.accepted.js'
 
 type CommandMessageOf<Output> =
-  Output extends Readonly<{
-    commands?:
-      | ReadonlyArray<
-          Command<infer ReturnedMessage, never, infer _Requirements>
-        >
-      | undefined
-  }>
+  Output extends Update.ResultRecipe<
+    infer _Model,
+    infer ReturnedMessage,
+    infer _OutMessage,
+    infer _Requirements,
+    infer _Evidence
+  >
     ? ReturnedMessage
-    : never
+    : Output extends Readonly<{
+          commands?:
+            | ReadonlyArray<
+                Command<infer ReturnedMessage, never, infer _Requirements>
+              >
+            | undefined
+        }>
+      ? ReturnedMessage
+      : never
 
 type Equal<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends <

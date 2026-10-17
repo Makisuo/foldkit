@@ -31,7 +31,7 @@ const filterLocations = (
   }
 }
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'Foldkit Map',
   body: h.div(
     [h.Class('h-screen w-screen flex bg-slate-100 text-slate-900')],

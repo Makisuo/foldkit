@@ -40,17 +40,17 @@ const SUBMODEL_MOUNT_REQUIREMENTS_BRAND = '__blockMountRequirements'
  * Author the primary view through a named Composition, including an empty graph:
  *
  * ```ts
- * export const CounterComposition = Counter.toComposition()
+ * export const CounterComposition = Counter.makeComposition()
  *
- * export const view = CounterComposition.view((model, h) =>
+ * export const view = CounterComposition.makeView((model, h) =>
  *   h.button([h.OnClick(Message.ClickedIncrement())], [globalThis.String(model.count)]),
  * )
  * ```
  *
- * Use `view.withInputs` for data supplied at the embedding site:
+ * Use `makeView.withInputs` for data supplied at the embedding site:
  *
  * ```ts
- * export const view = CounterComposition.view.withInputs<ViewInputs>(
+ * export const view = CounterComposition.makeView.withInputs<ViewInputs>(
  *   (model, viewInputs, h) =>
  *     h.button([h.OnClick(Message.ClickedIncrement())], [viewInputs.label, globalThis.String(model.count)]),
  * )

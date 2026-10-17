@@ -5,5 +5,5 @@ import { Model } from './model'
 
 export const Room = Block.define('Room', { Model, Message })
 
-export const RoomComposition = Room.toComposition()
+export const RoomComposition = Room.makeComposition()
 export type RoomViewBuilder = Block.ViewBuilderFor<typeof RoomComposition>

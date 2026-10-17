@@ -3,13 +3,13 @@ import { ApplicationComposition as ImportedApplicationComposition, Message } fro
 const RootApplicationComposition = ImportedApplicationComposition
 
 type RootHtmlBuilder = Parameters<
-  Parameters<typeof RootApplicationComposition.view>[0]
+  Parameters<typeof RootApplicationComposition.makeView>[0]
 >[1]
 
 const rootViewHelper = (h: RootHtmlBuilder) =>
   h.button([h.OnClick(Message.ClickedContinue())])
 
-export const page = RootApplicationComposition.toApplication({
+export const page = RootApplicationComposition.makeApplication({
   routing: {
     onUrlRequest: request =>
       RootApplicationComposition.Message.ClickedLink({ request }),
@@ -17,7 +17,7 @@ export const page = RootApplicationComposition.toApplication({
   },
 })
 
-export const element = RootApplicationComposition.toElement({
+export const element = RootApplicationComposition.makeElement({
   view: (_model, h) =>
     h.div(
       [h.OnClick(RootApplicationComposition.Message.ClickedElement())],

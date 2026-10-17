@@ -22,6 +22,7 @@ export {
   AcquireResources,
   CloseDialog,
   ReleaseDialogResources,
+  type Completed,
   block,
   mounts,
 } from './index.js'

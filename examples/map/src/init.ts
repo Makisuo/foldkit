@@ -5,7 +5,7 @@ import { ApplicationComposition } from './composition'
 import { featuredLocations } from './locations'
 import { GeolocateState } from './model'
 
-export const init = ApplicationComposition.init(() => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: {
     locations: featuredLocations,
     searchQuery: '',

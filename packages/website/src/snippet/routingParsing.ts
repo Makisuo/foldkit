@@ -18,7 +18,7 @@ const urlToApplicationRoute = Route.parseUrlWithFallback(
 )
 
 // In your init function, parse the initial URL:
-const init = ApplicationComposition.init((url: Url) => {
+const init = ApplicationComposition.makeInit((url: Url) => {
   return { model: { route: urlToApplicationRoute(url) } }
 })
 

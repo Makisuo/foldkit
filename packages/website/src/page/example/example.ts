@@ -64,7 +64,7 @@ export const EffectsLayer = Layer.mergeAll(
   ObserveExampleUrlMessages.layer,
 )
 
-export const init = ExampleDetailComposition.init(() => ({
+export const init = ExampleDetailComposition.makeInit(() => ({
   model: {
     maybeActiveSourceFilePath: Option.none(),
     maybeExampleUrl: Option.none(),
@@ -79,22 +79,23 @@ const isSourceAvailable = (slug: string): boolean =>
     onSome: meta => meta.livePreview !== 'Unavailable',
   })
 
-const startLoadingExampleSources = ExampleDetail.step((model, slug: string) => {
-  return SourceFileTabsBinding.init({
-    args: [{ id: SOURCE_FILE_TABS_ID }],
-    toParentModel: sourceFileTabs =>
-      modifyFields(model, {
-        sourceFileTabs: () => sourceFileTabs,
-        maybeActiveSourceFilePath: () => Option.none(),
-        maybeExampleUrl: () => Option.none(),
-        currentSources: () => CurrentSourcesAsyncData.Loading(),
-      }),
-    commands: [LoadExampleSources({ slug })],
+const startLoadingExampleSources = (slug: string) =>
+  ExampleDetail.step(model => {
+    return SourceFileTabsBinding.init({
+      args: [{ id: SOURCE_FILE_TABS_ID }],
+      toParentModel: sourceFileTabs =>
+        modifyFields(model, {
+          sourceFileTabs: () => sourceFileTabs,
+          maybeActiveSourceFilePath: () => Option.none(),
+          maybeExampleUrl: () => Option.none(),
+          currentSources: () => CurrentSourcesAsyncData.Loading(),
+        }),
+      commands: [LoadExampleSources({ slug })],
+    })
   })
-})
 
-const showExampleSources = ExampleDetail.step(
-  (model, sources: typeof ExampleSources.Type) => ({
+const showExampleSources = (sources: typeof ExampleSources.Type) =>
+  ExampleDetail.step(model => ({
     model: modifyFields(model, {
       maybeActiveSourceFilePath: () =>
         pipe(
@@ -104,8 +105,7 @@ const showExampleSources = ExampleDetail.step(
         ),
       currentSources: () => CurrentSourcesAsyncData.Success({ data: sources }),
     }),
-  }),
-)
+  }))
 
 const clearExampleSources = ExampleDetail.step(model => {
   return SourceFileTabsBinding.init({
@@ -136,15 +136,15 @@ export const loadInitialSources = ExampleDetail.step(
         }
 
         return Option.match(maybeExampleSources, {
-          onNone: () => startLoadingExampleSources(model, slug),
-          onSome: sources => showExampleSources(model, sources),
+          onNone: () => startLoadingExampleSources(slug),
+          onSome: showExampleSources,
         })
       },
     })
   },
 )
 
-export const update = ExampleDetailComposition.update((model, message) =>
+export const update = ExampleDetailComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ChangedExampleUrl: ({ url }) => ({
       model: modifyFields(model, { maybeExampleUrl: () => Option.some(url) }),
@@ -154,7 +154,7 @@ export const update = ExampleDetailComposition.update((model, message) =>
     }),
 
     SucceededLoadExampleSources: ({ sources }) =>
-      showExampleSources(model, sources),
+      showExampleSources(sources)(model),
 
     FailedLoadExampleSources: ({ error }) => ({
       model: modifyFields(model, {
@@ -164,12 +164,12 @@ export const update = ExampleDetailComposition.update((model, message) =>
   }),
 )
 
-export const informRouteChanged = ExampleDetail.step((model, slug: string) => {
+export const informRouteChanged = ExampleDetail.step((_model, slug: string) => {
   if (isSourceAvailable(slug)) {
-    return startLoadingExampleSources(model, slug)
+    return startLoadingExampleSources(slug)
   }
 
-  return clearExampleSources(model)
+  return clearExampleSources
 })
 
 const featureTag = (text: string): Html =>
@@ -622,7 +622,7 @@ type ViewInputs = Readonly<{
  * renderer runs in the parent's boundary, so its Messages are wrapped for the
  * parent instead of being rejected by this page's `toParentMessage`.
  */
-export const view = ExampleDetailComposition.view.withInputs<ViewInputs>(
+export const view = ExampleDetailComposition.makeView.withInputs<ViewInputs>(
   (model, { slug, isNarrowViewport, renderSnippet }, h) =>
     Option.match(findBySlug(slug), {
       onNone: () => h.div([], ['Example not found']),

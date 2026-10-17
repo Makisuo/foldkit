@@ -3,7 +3,7 @@ import { Button } from '@foldkit/ui'
 import { EntriesBinding, WorkHistoryComposition } from './composition'
 import { Message } from './definition'
 
-export const view = WorkHistoryComposition.view((model, h) =>
+export const view = WorkHistoryComposition.makeView((model, h) =>
   h.div(
     [h.Class('space-y-6')],
     [

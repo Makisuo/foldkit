@@ -7,6 +7,6 @@ export const CounterBinding = Dashboard.bindChild(Counter.block, {
   parentMessage: Message.GotCounterMessage,
 })
 
-export const DashboardComposition = Dashboard.toComposition({
+export const DashboardComposition = Dashboard.makeComposition({
   childBindings: [CounterBinding],
 })

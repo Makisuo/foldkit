@@ -44,22 +44,22 @@ const DialogBinding = AnimatedDialogExample.bindChild(Dialog.block, {
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const AnimatedDialogExampleComposition = AnimatedDialogExample.toComposition({
+const AnimatedDialogExampleComposition = AnimatedDialogExample.makeComposition({
   childBindings: [DialogBinding],
 })
 
 // In your init function, set isAnimated: true to coordinate CSS transitions:
-const init = AnimatedDialogExampleComposition.init(() => ({
+const init = AnimatedDialogExampleComposition.makeInit(() => ({
   model: {
     // ...your other fields
   },
 }))
 
-const update = AnimatedDialogExampleComposition.update()
+const update = AnimatedDialogExampleComposition.makeUpdate()
 
 // Inside your view function, use data-[closed] for enter/leave transitions and
 // spread the `closeButton` bundle onto your dismiss buttons:
-const view = AnimatedDialogExampleComposition.view((model, h) => {
+const view = AnimatedDialogExampleComposition.makeView((model, h) => {
   const dialogView = ({
     dialog,
     backdrop,

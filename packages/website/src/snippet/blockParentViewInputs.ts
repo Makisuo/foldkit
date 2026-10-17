@@ -4,7 +4,7 @@ import { ApplicationComposition, CommandMenuBinding } from './composition'
 
 const MENU_ITEMS: ReadonlyArray<string> = ['Open', 'Rename', 'Archive']
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'My App',
   body: h.div(
     [],

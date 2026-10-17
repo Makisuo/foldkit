@@ -2,14 +2,14 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Application, LoadUser, Message, UserState } from './layers'
 
-export const ApplicationComposition = Application.toComposition()
+export const ApplicationComposition = Application.makeComposition()
 
-export const init = ApplicationComposition.init(() => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: { user: UserState.Loading() },
   commands: [LoadUser({ userId: 'user-1' })],
 }))
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     SucceededLoadUser: ({ user }) => ({
       model: modifyFields(model, { user: () => UserState.Loaded({ user }) }),
@@ -20,7 +20,7 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'User profile',
   body: UserState.match(model.user, {
     Loading: () => h.p([], ['Loading user…']),

@@ -597,7 +597,7 @@ export const VirtualListVariableDemoBinding = Ui.bindChild(
   },
 )
 
-export const UiComposition = Ui.toComposition({
+export const UiComposition = Ui.makeComposition({
   childBindings: [
     MobileMenuDialogBinding,
     ComboboxDemoBinding,

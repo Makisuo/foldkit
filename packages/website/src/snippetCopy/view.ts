@@ -13,7 +13,7 @@ export type ViewInputs = Readonly<{
   variant: 'Header' | 'Overlay'
 }>
 
-export const view = SnippetCopyComposition.view.withInputs<ViewInputs>(
+export const view = SnippetCopyComposition.makeView.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const isCopied = HashSet.has(model.copiedSnippetIds, viewInputs.snippetId)
 

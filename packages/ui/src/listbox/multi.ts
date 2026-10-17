@@ -1,5 +1,7 @@
 import { Option, Schema } from 'effect'
+import type * as Block from 'foldkit/block'
 import type { Html } from 'foldkit/html'
+import type * as Update from 'foldkit/update'
 
 import {
   type BaseInitConfig,
@@ -16,9 +18,20 @@ import {
   mounts,
 } from './shared.js'
 
-type RefineOutMessage<Return, OutMessage> = Return extends unknown
-  ? Omit<Return, 'outMessage'> & Readonly<{ outMessage?: OutMessage }>
-  : never
+type RefineOutMessage<Return, OutMessage> =
+  Return extends Update.ResultRecipe<
+    infer Model,
+    infer Message,
+    unknown,
+    infer R,
+    infer Evidence
+  >
+    ? Update.ResultRecipe<Model, Message, OutMessage, R, Evidence>
+    : Return extends (...args: infer Args) => infer Output
+      ? (...args: Args) => RefineOutMessage<Output, OutMessage>
+      : Return extends unknown
+        ? Omit<Return, 'outMessage'> & Readonly<{ outMessage?: OutMessage }>
+        : never
 
 // MODEL
 
@@ -47,7 +60,7 @@ export type ViewInputs<Item, Value extends string = string> = BaseViewInputs<
 
 const internalView = makeView<Model>({ ariaMultiSelectable: true })
 
-const makeBlock = <Item, Value extends string>() => {
+const makeBlockParts = <Item, Value extends string>() => {
   const RefinedOutMessage =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     OutMessage as unknown as OutMessageSchema<Value>
@@ -74,12 +87,16 @@ const makeBlock = <Item, Value extends string>() => {
   const castReturn = (result: ReturnType<typeof itemUpdate.update>) =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     result as unknown as RefinedReturn
-  const ListboxComposition = Listbox.toComposition({
+  const ListboxComposition = Listbox.makeComposition({
     mounts,
     childBindings: [itemUpdate.AnimationBinding],
   })
-  const update = ListboxComposition.update((model, message) =>
-    castReturn(itemUpdate.update(model, message)),
+  const authoredUpdate = Listbox.step(
+    (model, message: Parameters<typeof itemUpdate.update>[1]) =>
+      castReturn(itemUpdate.update(model, message)),
+  )
+  const update = ListboxComposition.makeUpdate((model, message) =>
+    authoredUpdate(model, message),
   )
   const refinedView =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -88,7 +105,7 @@ const makeBlock = <Item, Value extends string>() => {
       viewInputs: ViewInputs<Item, Value>,
       h: Parameters<ReturnType<typeof internalView<unknown, string>>>[2],
     ) => Html
-  const view = ListboxComposition.view.withInputs<ViewInputs<Item, Value>>(
+  const view = ListboxComposition.makeView.withInputs<ViewInputs<Item, Value>>(
     (model, viewInputs, h) => refinedView(model, viewInputs, h),
   )
   const open = Listbox.step(model =>
@@ -99,22 +116,38 @@ const makeBlock = <Item, Value extends string>() => {
     update(model, Message.SelectedItem({ item })),
   )
   const expose = { open, close, selectItem }
-  return ListboxComposition.toBlock({
-    init: ListboxComposition.init((config: InitConfig) => ({
-      model: init(config),
-    })),
-    update,
-    view,
-    expose,
-    EffectsLayer,
-  })
+  return {
+    composition: ListboxComposition,
+    implementation: {
+      init: ListboxComposition.makeInit((config: InitConfig) => ({
+        model: init(config),
+      })),
+      update,
+      view,
+      expose,
+      EffectsLayer,
+    },
+  }
 }
 
+type BlockParts<Item, Value extends string> = ReturnType<
+  typeof makeBlockParts<Item, Value>
+>
+
 /** A completed multi-select Listbox Block refined to one Item and Value pair. */
-export type Completed<
+export interface Completed<
   Item = string,
   Value extends string = Item extends string ? Item : string,
-> = ReturnType<typeof makeBlock<Item, Value>>
+> extends Block.CompletedWithViewAndOutMessage<
+  BlockParts<Item, Value>['composition'],
+  BlockParts<Item, Value>['implementation']
+> {}
+
+const makeBlock = <Item, Value extends string>(): Completed<Item, Value> => {
+  const { composition, implementation } = makeBlockParts<Item, Value>()
+
+  return composition.makeBlock(implementation)
+}
 
 /** Creates a complete multi-select Listbox Block refined to one Item and
  * Value pair. `Value` defaults to `Item` for string items and to `string` for

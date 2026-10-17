@@ -36,7 +36,7 @@ Return Commands beside the next Model from the Message branch that requests the 
 
 `ClickedIncrement` changes the count and asks the runtime to persist it. `CompletedPersistCount` records that the Command finished, but it has no more work to request, so that branch omits `commands`.
 
-`FeatureComposition.update` authors a Block's update and infers the handler services required by the Commands across all parent-owned branches. Registered Bindings route their claimed wrapper Messages before this callback runs.
+`FeatureComposition.makeUpdate` authors a Block's update and infers the handler services required by the Commands across all parent-owned branches. Registered Bindings route their claimed wrapper Messages before this callback runs.
 
 `Update.defineStep` does the same inference for a standalone Step producer. Annotate its Model parameter and let the helper infer the returned Command requirements and OutMessage. A pure OutMessage fold can use `OutMessage.match<Update.Step<Model, Message>>` directly; the matcher types its Model parameter without a Step helper. Callers can then compose that Step with pure Steps through `Update.combine` without naming a service union by hand.
 
@@ -48,15 +48,17 @@ An update, init, Step, or component helper that statically creates no Commands o
 
 ## Composing Results
 
+### Returning an Initialization Recipe
+
+For custom startup, a registered Binding's `init` returns a passive recipe that retains `toParentModel`, the child arguments, and optional parent Commands. Return that recipe directly from `makeInit`; the Composition interprets it under the registered graph and produces the complete parent Model with the lifted child Commands. The recipe itself has no result fields to unpack. Ordinary eligible startup uses [Composition-owned init](/core/init-and-flags#child-initialization) to assemble child fields and Commands:
+
+::Snippet{name="updateResultInit" label="Returning a Binding init recipe"}
+
 ### Keeping Results Together
-
-For custom startup, a registered Binding's `init` constructs the complete parent Model through `toParentModel` and retains its lifted Commands. Return that result directly. Ordinary eligible startup uses [Composition-owned init](/core/init-and-flags#child-initialization) to assemble child fields and Commands:
-
-::Snippet{name="updateResultInit" label="Composing an init result"}
 
 #### Operation-Named Results
 
-For another update-like result, keep it attached to the operation that produced it. Name the value after the operation and use dot access. The same rule applies when a test consumes an update result:
+For another ordinary update-like result that already contains a Model and optional Commands or OutMessage, keep it attached to the operation that produced it. Name the value after the operation and use dot access. The same rule applies when a test consumes an update result:
 
 ::Snippet{name="updateResultTest" label="Testing an update result"}
 
@@ -82,7 +84,7 @@ This error often points to update results being composed by hand. When both oper
 
 #### Child Bindings and Multiple Steps
 
-A child Binding projects `init`, `fold`, and every named public Step. These operations preserve the child's Message mapping, Command requirements, OutMessage policy, and origin scope. The Composition calls `fold` for claimed wrapper Messages; parent policy calls `binding.name(...args)` for a public entry point.
+A child Binding projects `init`, `fold`, and every named public Step. The fold and named Steps preserve the child's Message mapping, Command requirements, OutMessage policy, and Binding requirement. Their Model input requires the exact registered graph, so typed calls with a raw Model fail. Apply one to the contextual Model inside `makeUpdate`, include the Step in `makeInit` startup, or return it from the owner's `step` producer. Return or compose the connected result intact: its public type exposes no `.model` or `.commands` before checked execution and cannot be narrowed to a useful `{ model }` return. `makeUpdate` and `makeInit` consume it while their graph is active; `Definition.step` preserves or wraps it. A completed `block.expose.operation(model, ...args)` carries its own graph, accepts the raw Block Model, and returns the readable executed result. Ordinary pure Steps remain directly callable. TypeScript can erase a function result when assigning it to a method that returns `void`; outside the exact graph, invoking that erased method only constructs and discards passive configuration and executes no child work. Do not treat that structural erasure as a usable execution path or claim that every erasure fails compilation.
 
 #### Combining Steps
 

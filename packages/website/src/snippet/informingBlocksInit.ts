@@ -8,7 +8,7 @@ import {
 } from './informingBlocksModel'
 import { type PeopleRoute } from './informingBlocksRoute'
 
-export const init = PeopleComposition.init((route: PeopleRoute) => {
+export const init = PeopleComposition.makeInit((route: PeopleRoute) => {
   const searchText = routeSearchText(route.searchText)
 
   return {

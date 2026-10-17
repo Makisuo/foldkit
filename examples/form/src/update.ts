@@ -7,7 +7,7 @@ import { Message } from './message'
 import { Submission } from './model'
 import { isFormValid, validateEmail, validateName } from './validation'
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     UpdatedName: ({ value }) => ({
       model: modifyFields(model, { name: () => validateName(value) }),

@@ -63,7 +63,7 @@ const personListItemView = (person: Person, h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-export const view = PeopleComposition.view((model, h) =>
+export const view = PeopleComposition.makeView((model, h) =>
   h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [

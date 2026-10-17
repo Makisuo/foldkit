@@ -298,7 +298,7 @@ const disabledDemo = (h: UiViewBuilder) => {
   )
 }
 
-export const view = UiComposition.view((model, h) => {
+export const view = UiComposition.makeView((model, h) => {
   return h.div(
     [],
     [

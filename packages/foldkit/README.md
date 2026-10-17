@@ -60,9 +60,9 @@ export type Message = typeof Message.Type
 
 export const Application = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.toComposition()
+export const ApplicationComposition = Application.makeComposition()
 
-export const update = ApplicationComposition.update((model, message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: count => count - 1 }),
@@ -74,11 +74,11 @@ export const update = ApplicationComposition.update((model, message) =>
   }),
 )
 
-export const init = ApplicationComposition.init(() => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
 }))
 
-export const view = ApplicationComposition.view((model, h) => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: `Counter: ${model.count}`,
   body: h.div(
     [],
@@ -98,7 +98,7 @@ import { Runtime } from 'foldkit'
 
 import { ApplicationComposition, init, update, view } from './application'
 
-const application = ApplicationComposition.toApplication({
+const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,
@@ -108,9 +108,9 @@ const application = ApplicationComposition.toApplication({
 Runtime.run(application)
 ```
 
-`defineApplication` creates the root Definition, which owns effect constructors, Steps, lifecycle definitions, and child Bindings. Every application names the result of `Application.toComposition({ childBindings, mounts })` as `ApplicationComposition`, using `Application.toComposition()` for an empty graph. Author init, update, and the primary view through that Composition, then complete it with `toApplication` or `toElement`. Pass root-owned handler recipes during completion as `EffectsLayer`.
+`defineApplication` creates the root Definition, which owns effect constructors, Steps, lifecycle definitions, and child Bindings. Every application names the result of `Application.makeComposition({ childBindings, mounts })` as `ApplicationComposition`, using `Application.makeComposition()` for an empty graph. Author init, update, and the primary view through that Composition, then complete it with `makeApplication` or `makeElement`. Pass root-owned handler recipes during completion as `EffectsLayer`.
 
-A feature follows the same staged flow. Define its contracts as `Feature` with `Block.define('Feature', { Model, Message, OutMessage })` and author effects and Steps through that Definition. Name `FeatureComposition = Feature.toComposition({ childBindings, mounts })`, using `Feature.toComposition()` for an empty graph, then author init, update, and the primary view and export the completed Block through that same Composition. A parent imports the `Feature` namespace, creates a Binding with `const FeatureBinding = Parent.bindChild(Feature.block, config)`, and includes that Binding in its Composition's child graph.
+A feature follows the same staged flow. Define its contracts as `Feature` with `Block.define('Feature', { Model, Message, OutMessage })` and author effects and Steps through that Definition. Name `FeatureComposition = Feature.makeComposition({ childBindings, mounts })`, using `Feature.makeComposition()` for an empty graph, then author init, update, and the primary view and export the completed Block through that same Composition. A parent imports the `Feature` namespace, creates a Binding with `const FeatureBinding = Parent.bindChild(Feature.block, config)`, and includes that Binding in its Composition's child graph.
 
 When local view helpers need the Composition's exact builder capabilities, declare `type FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` immediately after the Composition and export it only for cross-file use. The owner prefix identifies that specific Composition; structural contracts keep the standard `Model`, `Message`, and `OutMessage` names and normally travel through the feature namespace.
 

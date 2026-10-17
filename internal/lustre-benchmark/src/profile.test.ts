@@ -121,7 +121,7 @@ const runProfile = async (
   const ApplicationComposition = Application.toComposition()
   const application = ApplicationComposition.toApplication({
     init,
-    update: Application.update(wrappedUpdate.fn),
+    update: ApplicationComposition.update(wrappedUpdate.fn),
     view: ApplicationComposition.view(captureView),
     container,
     devTools: false,

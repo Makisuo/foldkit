@@ -18,11 +18,11 @@ export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
 
-export const init = (flags: Flags) => ({
+export const init = ApplicationComposition.init((flags: Flags) => ({
   model: Model.make({ count: flags.start }),
-})
+}))
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + 1 }),

@@ -12,9 +12,11 @@ export const Application = defineApplication({ Model, Message })
 
 export const ApplicationComposition = Application.toComposition()
 
-export const init = () => ({ model: Model.make({ count: 0 }) })
+export const init = ApplicationComposition.init(() => ({
+  model: Model.make({ count: 0 }),
+}))
 
-export const update = Application.update(model => ({ model }))
+export const update = ApplicationComposition.update()
 
 export const view = ApplicationComposition.view((model, h) => ({
   title: 'Client only',

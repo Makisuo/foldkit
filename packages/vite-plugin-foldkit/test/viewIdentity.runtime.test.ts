@@ -20,11 +20,11 @@ type Message = typeof Message.Type
 const Application = defineApplication({ Model, Message })
 const ApplicationComposition = Application.toComposition()
 
-const init = () => ({
+const init = ApplicationComposition.init(() => ({
   model: Model.make({ mode: 'Viewing' }),
-})
+}))
 
-const update = Application.update((model, message) =>
+const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedToggle: () => {
       const nextMode = model.mode === 'Viewing' ? 'Editing' : 'Viewing'

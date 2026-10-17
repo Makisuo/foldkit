@@ -65,7 +65,7 @@ export const EffectsLayer = FillHistoryStep.layer
 
 // UPDATE
 
-export const update = Application.update((model, message) =>
+export const update = ApplicationComposition.update((model, message) =>
   Message.match(message, {
     ClickedTick: () => ({
       model: modifyFields(model, { tickCount: tickCount => tickCount + 1 }),

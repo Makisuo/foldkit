@@ -38,12 +38,7 @@
       ]
     },
     "packages/ui": {
-      "entry": [
-        "typedoc-entry.ts",
-        "src/index.ts",
-        "scripts/check-emitted-declarations.ts",
-        "declaration-tests/**/*.ts"
-      ]
+      "entry": ["typedoc-entry.ts", "src/index.ts", "declaration-tests/**/*.ts"]
     },
     "packages/devtools": {
       "entry": ["src/vite.ts"]

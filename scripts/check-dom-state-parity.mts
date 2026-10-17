@@ -27,7 +27,7 @@ const makeParityImplementation = (
   ) => Readonly<{ title: string; body: Html }>,
 ) => ({
   init: () => ({ model: null }),
-  update: Application.update(model => ({ model })),
+  update: ApplicationComposition.update(),
   view: ApplicationComposition.view(view),
   EffectsLayer: Layer.empty,
 })

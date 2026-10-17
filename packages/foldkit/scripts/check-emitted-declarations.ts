@@ -132,9 +132,10 @@ const assertBindingConfigurationDocs = async (): Promise<void> => {
       )
     }
 
-    const declarations = Array.flatMap(
-      Array.filter(source.statements, isVariableStatement),
-      statement => Array.fromIterable(statement.declarationList.declarations),
+    const declarations = Array.flatMap(source.statements, statement =>
+      isVariableStatement(statement)
+        ? Array.fromIterable(statement.declarationList.declarations)
+        : [],
     )
     const checks = [
       {
@@ -269,8 +270,11 @@ const assertBindingConfigurationDocs = async (): Promise<void> => {
       )
     }
     const initializerDeclarations = Array.flatMap(
-      Array.filter(initializerSource.statements, isVariableStatement),
-      statement => Array.fromIterable(statement.declarationList.declarations),
+      initializerSource.statements,
+      statement =>
+        isVariableStatement(statement)
+          ? Array.fromIterable(statement.declarationList.declarations)
+          : [],
     )
     const initializerChecks = [
       {

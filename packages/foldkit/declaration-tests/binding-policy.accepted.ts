@@ -278,8 +278,9 @@ export const KeyedDomainComposition =
     childBindings: [KeyedDomainBinding],
   })
 
-export const retainedUnionEvidence: Block.BindingPolicyEvidence<
+const retainedUnionEvidence: Block.BindingPolicyEvidence<
   typeof unionForeignMessagePolicy
 > = UnionForeignBinding
+void retainedUnionEvidence
 
 export { DirectChildBlock, DirectParent, DirectParentMessage }

@@ -1,5 +1,5 @@
 import { Array, Effect, Fiber, Layer, Schema } from 'effect'
-import { defineApplication } from 'foldkit'
+import { Update, defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -57,18 +57,17 @@ const ApplicationComposition = Application.makeComposition({
 
 const update = ApplicationComposition.makeUpdate((model, message) =>
   RuntimeMessage.match(message, {
-    GotDialogMessage: ({ message: dialogMessage }) => {
-      const dialogUpdate = DialogBinding.fold(model, dialogMessage)
-
-      return {
-        ...dialogUpdate,
-        model: modifyFields(dialogUpdate.model, {
-          isShowDialogSucceeded: isShowDialogSucceeded =>
-            isShowDialogSucceeded ||
-            dialogMessage._tag === 'SucceededShowDialog',
-        }),
-      }
-    },
+    GotDialogMessage: ({ message: dialogMessage }) =>
+      Update.combine(model, [
+        stepModel => DialogBinding.fold(stepModel, dialogMessage),
+        Application.step(stepModel => ({
+          model: modifyFields(stepModel, {
+            isShowDialogSucceeded: isShowDialogSucceeded =>
+              isShowDialogSucceeded ||
+              dialogMessage._tag === 'SucceededShowDialog',
+          }),
+        })),
+      ]),
   }),
 )
 

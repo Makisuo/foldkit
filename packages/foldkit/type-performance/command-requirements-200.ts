@@ -2047,12 +2047,12 @@ const runAll = TypePerformanceWorker.step(model => ({
     Run200(),
   ],
 }))
-const WorkerComposition = TypePerformanceWorker.toComposition()
-const Worker = WorkerComposition.toBlock({
-  init: WorkerComposition.init(() => ({
+const TypePerformanceWorkerComposition = TypePerformanceWorker.toComposition()
+const Worker = TypePerformanceWorkerComposition.toBlock({
+  init: TypePerformanceWorkerComposition.init(() => ({
     model: WorkerModel.make({ value: 0 }),
   })),
-  update: WorkerComposition.update((model, message) =>
+  update: TypePerformanceWorkerComposition.update((model, message) =>
     WorkerMessage.match(message, {
       RequestedRun: () => runAll(model),
       CompletedRun: () => ({ model }),

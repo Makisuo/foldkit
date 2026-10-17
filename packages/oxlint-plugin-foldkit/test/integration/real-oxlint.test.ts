@@ -139,6 +139,17 @@ describe('real-oxlint rule fixtures', () => {
     expect(countDiagnostics('no-direct-block-state-update', 'invalid')).toBe(11)
   })
 
+  it('tracks registered child Bindings in Composition update callbacks', () => {
+    const diagnostics = diagnosticsFor(
+      'no-direct-block-state-update',
+      'invalid',
+    ).filter(diagnostic =>
+      diagnostic.filename.endsWith('composition-update.ts'),
+    )
+
+    expect(diagnostics).toHaveLength(1)
+  })
+
   it('reports direct child Message construction and local constructor aliases', () => {
     const diagnostics = diagnosticsFor(
       'no-child-message-construction-in-root',
@@ -191,7 +202,7 @@ describe('real-oxlint rule fixtures', () => {
     )
     expect(
       countDiagnostics('got-prefix-requires-block-payload', 'invalid'),
-    ).toBe(7)
+    ).toBe(8)
     expect(
       countDiagnostics('wrap-child-output-in-got-message', 'invalid'),
     ).toBe(3)

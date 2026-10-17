@@ -4,13 +4,13 @@ import type { Block, Command, Update } from 'foldkit'
 import {
   ChildBlock,
   ChildClock,
+  DeclarationParentOwnedParent,
   DirectChildBinding,
   ForwardingChildBinding,
   InlineKeyedChildWithoutOutMessageBinding,
   KeyedChildBinding,
   KeyedChildWithoutOutMessageBinding,
   OptionalChildBinding,
-  Parent,
   ParentMessage,
   ParentOutMessage,
   PlainChildBlock,
@@ -41,22 +41,22 @@ type ChildEntry = Readonly<{
 }>
 
 type EmittedChildPolicy = Block.OutMessagePolicy<
-  typeof Parent.Model.Type,
+  typeof DeclarationParentOwnedParent.Model.Type,
   typeof ChildBlock.Message.Type,
-  typeof Parent.Message.Type,
+  typeof DeclarationParentOwnedParent.Message.Type,
   typeof ChildBlock.OutMessage.Type
 >
 type EmittedChildConfig = Block.BindingConfig<
   typeof ChildBlock,
-  typeof Parent.Model.Type,
-  typeof Parent.Message.Type,
+  typeof DeclarationParentOwnedParent.Model.Type,
+  typeof DeclarationParentOwnedParent.Message.Type,
   'emittedChild',
   EmittedChildPolicy
 >
 type EmittedPlainChildConfig = Block.BindingConfig<
   typeof PlainChildBlock,
-  typeof Parent.Model.Type,
-  typeof Parent.Message.Type,
+  typeof DeclarationParentOwnedParent.Model.Type,
+  typeof DeclarationParentOwnedParent.Message.Type,
   'emittedPlainChild'
 >
 const emittedChildPolicy: EmittedChildPolicy = {
@@ -148,13 +148,13 @@ export type InlineKeyedWithoutOutMessageKey = Expect<
 >
 
 const wrongEmittedSubscriptionKey = (
-  _model: typeof Parent.Model.Type,
+  _model: typeof DeclarationParentOwnedParent.Model.Type,
   _id: number,
 ) => true
 type EmittedNamedKeyedConfig = Block.KeyedBindingConfig<
   typeof PlainChildBlock,
-  typeof Parent.Model.Type,
-  typeof Parent.Message.Type,
+  typeof DeclarationParentOwnedParent.Model.Type,
+  typeof DeclarationParentOwnedParent.Message.Type,
   NamedEntry,
   string,
   'emittedNamedEntries'
@@ -183,16 +183,16 @@ const emittedNamedKeyedConfig: EmittedNamedKeyedConfig = {
 }
 
 type EmittedKeyedChildPolicy = Block.KeyedOutMessagePolicy<
-  typeof Parent.Model.Type,
+  typeof DeclarationParentOwnedParent.Model.Type,
   typeof ChildBlock.Message.Type,
-  typeof Parent.Message.Type,
+  typeof DeclarationParentOwnedParent.Message.Type,
   typeof ChildBlock.OutMessage.Type,
   number
 >
 type EmittedKeyedChildConfig = Block.KeyedBindingConfig<
   typeof ChildBlock,
-  typeof Parent.Model.Type,
-  typeof Parent.Message.Type,
+  typeof DeclarationParentOwnedParent.Model.Type,
+  typeof DeclarationParentOwnedParent.Message.Type,
   ChildEntry,
   number,
   'emittedEntries',
@@ -254,8 +254,11 @@ void missingEmittedKeyedChildPolicy
 void forbiddenEmittedPlainKeyedPolicy
 void undefinedEmittedPlainKeyedPolicy
 
-Parent.bindChild(PlainChildBlock, emittedNamedKeyedConfig)
-Parent.bindChild(PlainChildBlock, acceptedEmittedNamedKeyedConfig)
+DeclarationParentOwnedParent.bindChild(PlainChildBlock, emittedNamedKeyedConfig)
+DeclarationParentOwnedParent.bindChild(
+  PlainChildBlock,
+  acceptedEmittedNamedKeyedConfig,
+)
 export type DirectRegistration = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<typeof DirectChildBinding.fold>>,
@@ -339,13 +342,16 @@ const concreteEmittedKeyedConfig = {
   ...acceptedEmittedKeyedChildConfig,
   outMessage: { fold: () => (model: ParentModel) => ({ model }) },
 }
-Parent.bindChild(ChildBlock, concreteEmittedKeyedConfig)
+DeclarationParentOwnedParent.bindChild(ChildBlock, concreteEmittedKeyedConfig)
 const emittedKeyedConfigWithExtraField = {
   ...concreteEmittedKeyedConfig,
   unexpected: true,
 }
 // @ts-expect-error Capturing emitted keyed policies must retain excess-field rejection.
-Parent.bindChild(ChildBlock, emittedKeyedConfigWithExtraField)
+DeclarationParentOwnedParent.bindChild(
+  ChildBlock,
+  emittedKeyedConfigWithExtraField,
+)
 
 const schemaFreeEmittedRoutedConfig: EmittedNamedKeyedConfig = {
   ...acceptedEmittedNamedKeyedConfig,
@@ -368,14 +374,14 @@ declare const absentEmittedPolicyConfig: Omit<
 > &
   Readonly<{ outMessage?: never }>
 // @ts-expect-error An optional declared policy cannot establish required emitted policy presence.
-Parent.bindChild(ChildBlock, optionalEmittedPolicyConfig)
+DeclarationParentOwnedParent.bindChild(ChildBlock, optionalEmittedPolicyConfig)
 // @ts-expect-error An optional never property cannot establish emitted policy presence.
-Parent.bindChild(ChildBlock, absentEmittedPolicyConfig)
-const aliasedPlacementBinding = Parent.bindChild(
+DeclarationParentOwnedParent.bindChild(ChildBlock, absentEmittedPolicyConfig)
+const aliasedPlacementBinding = DeclarationParentOwnedParent.bindChild(
   PlainChildBlock,
   acceptedEmittedNamedKeyedConfig,
 )
-type AliasedPlacementIsTruthful = Expect<
+export type AliasedPlacementIsTruthful = Expect<
   Equal<
     typeof aliasedPlacementBinding.placement,
     'emittedNamedEntries' | 'DeclarationParentOwnedPlainChild'

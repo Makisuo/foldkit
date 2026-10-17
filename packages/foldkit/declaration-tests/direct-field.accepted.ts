@@ -14,20 +14,20 @@ const Child = Block.define('DeclaredDirectFieldChild', {
 const setCount = Child.step((model, count: number) => ({
   model: Struct.modifyFields(model, { count: () => count }),
 }))
-const ChildComposition = Child.toComposition()
-const childUpdate = ChildComposition.update((model, { count }) =>
-  setCount(model, count),
+const DeclaredDirectFieldChildComposition = Child.toComposition()
+const childUpdate = DeclaredDirectFieldChildComposition.update(
+  (model, { count }) => setCount(model, count),
 )
-export const childBlock = ChildComposition.toBlock({
-  init: ChildComposition.init(() => ({
+export const childBlock = DeclaredDirectFieldChildComposition.toBlock({
+  init: DeclaredDirectFieldChildComposition.init(() => ({
     model: ChildModel.make({ count: 0 }),
   })),
   update: childUpdate,
   expose: { setCount },
   EffectsLayer: Layer.empty,
 })
-export const argumentChildBlock = ChildComposition.toBlock({
-  init: ChildComposition.init((count: number) => ({
+export const argumentChildBlock = DeclaredDirectFieldChildComposition.toBlock({
+  init: DeclaredDirectFieldChildComposition.init((count: number) => ({
     model: ChildModel.make({ count }),
   })),
   update: childUpdate,
@@ -40,24 +40,27 @@ const NestedOptionChild = Block.define('DeclaredNestedOptionChild', {
   Model: NestedOptionChildModel,
   Message: ChildMessage,
 })
-const NestedOptionChildComposition = NestedOptionChild.toComposition()
-export const nestedOptionChildBlock = NestedOptionChildComposition.toBlock({
-  init: NestedOptionChildComposition.init(() => ({ model: Option.none() })),
-  update: NestedOptionChildComposition.update(model => ({ model })),
-  EffectsLayer: Layer.empty,
-})
+const DeclaredNestedOptionChildComposition = NestedOptionChild.toComposition()
+export const nestedOptionChildBlock =
+  DeclaredNestedOptionChildComposition.toBlock({
+    init: DeclaredNestedOptionChildComposition.init(() => ({
+      model: Option.none(),
+    })),
+    update: DeclaredNestedOptionChildComposition.update(model => ({ model })),
+    EffectsLayer: Layer.empty,
+  })
 export const ArrayChildModel = Schema.Array(Schema.String)
 // eslint-disable-next-line foldkit/block-name-matches-variable
 const ArrayChild = Block.define('DeclaredArrayChild', {
   Model: ArrayChildModel,
   Message: ChildMessage,
 })
-const ArrayChildComposition = ArrayChild.toComposition()
-export const arrayChildBlock = ArrayChildComposition.toBlock({
-  init: ArrayChildComposition.init(() => ({
+const DeclaredArrayChildComposition = ArrayChild.toComposition()
+export const arrayChildBlock = DeclaredArrayChildComposition.toBlock({
+  init: DeclaredArrayChildComposition.init(() => ({
     model: ArrayChildModel.make([]),
   })),
-  update: ArrayChildComposition.update(model => ({ model })),
+  update: DeclaredArrayChildComposition.update(model => ({ model })),
   EffectsLayer: Layer.empty,
 })
 export const Model = Schema.Struct({

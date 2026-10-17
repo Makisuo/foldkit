@@ -934,6 +934,7 @@ const addDefinitionEvidence = (
     Map<string, Set<string>>
   >,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  declaredVariables: ReadonlyArray<Variable>,
 ): void => {
   if (references === undefined) {
     addChildField(
@@ -959,7 +960,17 @@ const addDefinitionEvidence = (
     return
   }
 
-  Option.map(resolvedVariable(references, parentModel), variable => {
+  const maybeVariable = Option.orElse(
+    resolvedVariable(references, parentModel),
+    () =>
+      Option.fromNullishOr(
+        declaredVariables.find(variable =>
+          variable.identifiers.some(identifier => identifier === parentModel),
+        ),
+      ),
+  )
+
+  Option.map(maybeVariable, variable => {
     addChildField(childFieldsByParentModel, variable, definition.childField)
     if (definition.kind === 'Keyed') {
       addChildField(
@@ -1010,6 +1021,7 @@ const foldEvidence = (
     string,
     Map<string, Set<string>>
   >()
+  const declaredVariables = (scopes ?? []).flatMap(scope => scope.variables)
   const addEvidence = (
     definition: FoldDefinition,
     parentModel: ESTree.IdentifierReference,
@@ -1024,6 +1036,7 @@ const foldEvidence = (
       wrappedChildFieldsByParentModel,
       fallbackWrappedChildFieldsByParentModel,
       references,
+      declaredVariables,
     )
   const addCombineEvidence = (
     definition: CombineStepDefinition,

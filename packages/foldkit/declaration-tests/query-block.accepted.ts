@@ -108,16 +108,17 @@ const ParentModel = Schema.Struct({ notes: Notes.Model })
 const ParentMessage = Message.defineMessageUnion({
   GotNotesMessage: { message: Notes.Message },
 })
-const Parent = Block.define('DeclarationQueryParent', {
+const DeclarationQueryParent = Block.define('DeclarationQueryParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
 
-export const NotesChildBinding = Parent.bindChild(Notes, {
+export const NotesChildBinding = DeclarationQueryParent.bindChild(Notes, {
   field: 'notes',
   parentMessage: ParentMessage.GotNotesMessage,
 })
 
-export const ParentComposition = Parent.toComposition({
-  childBindings: [NotesChildBinding],
-})
+export const DeclarationQueryParentComposition =
+  DeclarationQueryParent.toComposition({
+    childBindings: [NotesChildBinding],
+  })

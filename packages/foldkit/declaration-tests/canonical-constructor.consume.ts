@@ -11,7 +11,9 @@ import {
 type CommandMessageOf<Output> =
   Output extends Readonly<{
     commands?:
-      | ReadonlyArray<Command<infer ReturnedMessage, never, any>>
+      | ReadonlyArray<
+          Command<infer ReturnedMessage, never, infer _Requirements>
+        >
       | undefined
   }>
     ? ReturnedMessage

@@ -53,10 +53,13 @@ const runLeaf = TypePerformanceDeepLeaf.step(model => ({
   model,
   commands: [RunLeaf()],
 }))
-const LeafComposition = TypePerformanceDeepLeaf.toComposition()
-const Leaf = LeafComposition.toBlock({
-  init: LeafComposition.init(() => ({ model: LeafModel.make({ value: 0 }) })),
-  update: LeafComposition.update((model, message) =>
+const TypePerformanceDeepLeafComposition =
+  TypePerformanceDeepLeaf.toComposition()
+const Leaf = TypePerformanceDeepLeafComposition.toBlock({
+  init: TypePerformanceDeepLeafComposition.init(() => ({
+    model: LeafModel.make({ value: 0 }),
+  })),
+  update: TypePerformanceDeepLeafComposition.update((model, message) =>
     LeafMessage.match(message, {
       RequestedRun: () => runLeaf(model),
       CompletedRun: () => ({ model }),

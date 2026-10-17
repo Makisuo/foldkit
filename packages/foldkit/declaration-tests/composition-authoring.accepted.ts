@@ -887,7 +887,7 @@ export type ServiceApplicationAssertions = [
 
 export const NoStartupModel = Schema.Struct({ status: StatusModel })
 export const NoStartupMessage = defineMessageUnion({
-  GotStatusMessage: { message: StatusMessage },
+  GotStatusMessage: { message: StatusBlock.Message },
 })
 const NoStartup = Block.define('NoStartup', {
   Model: NoStartupModel,

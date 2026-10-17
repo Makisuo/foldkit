@@ -8,9 +8,9 @@ import {
   EntryBinding,
   LoadParameterizedChild,
   OptionalContextBlock,
+  ParameterizedBlock,
   ParentMessage,
   ParentModel,
-  ParameterizedBlock,
   PlainBinding,
   PlainBlock,
   RestContextBlock,
@@ -95,15 +95,18 @@ EntryBinding.init({ key: 1, args: [1], toParentModel: child => Struct.modifyFiel
 // @ts-expect-error Emitted initializer projections must construct the complete parent Model.
 PlainBinding.init({ args: [], toParentModel: child => child })
 
+// oxlint-disable-next-line typescript/no-explicit-any -- This fixture verifies that an erased emitted parent Model cannot bypass validation.
 declare const erasedParentModel: any
 // @ts-expect-error Emitted initializers reject erased parent projections.
 PlainBinding.init({ args: [], toParentModel: () => erasedParentModel })
 
+// oxlint-disable-next-line typescript/no-explicit-any -- This fixture verifies that an erased emitted Commands collection cannot bypass validation.
 declare const erasedParentCommands: any
 // @ts-expect-error Emitted initializers reject erased parent Commands collections.
 // oxfmt-ignore
 PlainBinding.init({ args: [], toParentModel: child => Struct.modifyFields(initialParentModel, { plain: () => child }), commands: erasedParentCommands })
 
+// oxlint-disable-next-line typescript/no-explicit-any -- This fixture verifies that erased emitted Command elements cannot bypass validation.
 declare const erasedParentCommandElements: ReadonlyArray<any>
 // @ts-expect-error Emitted initializers reject erased parent Command elements.
 // oxfmt-ignore
@@ -111,6 +114,7 @@ PlainBinding.init({ args: [], toParentModel: child => Struct.modifyFields(initia
 
 declare const erasedParentCommandRequirements: Update.Commands<
   typeof ParentMessage.Type,
+  // oxlint-disable-next-line typescript/no-explicit-any -- This fixture verifies that erased emitted Command requirements cannot bypass validation.
   any
 >
 // @ts-expect-error Emitted initializers reject erased parent Command requirements.

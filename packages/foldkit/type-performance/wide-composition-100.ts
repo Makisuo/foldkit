@@ -53,10 +53,13 @@ const runLeaf = TypePerformanceWideLeaf.step(model => ({
   model,
   commands: [RunLeaf()],
 }))
-const LeafComposition = TypePerformanceWideLeaf.toComposition()
-const Leaf = LeafComposition.toBlock({
-  init: LeafComposition.init(() => ({ model: LeafModel.make({ value: 0 }) })),
-  update: LeafComposition.update((model, message) =>
+const TypePerformanceWideLeafComposition =
+  TypePerformanceWideLeaf.toComposition()
+const Leaf = TypePerformanceWideLeafComposition.toBlock({
+  init: TypePerformanceWideLeafComposition.init(() => ({
+    model: LeafModel.make({ value: 0 }),
+  })),
+  update: TypePerformanceWideLeafComposition.update((model, message) =>
     LeafMessage.match(message, {
       RequestedRun: () => runLeaf(model),
       CompletedRun: () => ({ model }),

@@ -331,17 +331,20 @@ export const DirectInitChildBinding = DeclarationTestsDirectInit.bindChild(
     parentMessage: ParentMessage.GotChildMessage,
   },
 )
-const DirectInitComposition = DeclarationTestsDirectInit.toComposition({
-  childBindings: [DirectInitChildBinding],
-})
-export const directResultInit = DirectInitComposition.init(() =>
+const DeclarationTestsDirectInitComposition =
+  DeclarationTestsDirectInit.toComposition({
+    childBindings: [DirectInitChildBinding],
+  })
+export const directResultInit = DeclarationTestsDirectInitComposition.init(() =>
   DirectInitChildBinding.init({
     args: [],
     toParentModel: child => child,
   }),
 )
-const directInitUpdate = DirectInitComposition.update(model => ({ model }))
-export const DirectInitBlock = DirectInitComposition.toBlock({
+const directInitUpdate = DeclarationTestsDirectInitComposition.update(
+  model => ({ model }),
+)
+export const DirectInitBlock = DeclarationTestsDirectInitComposition.toBlock({
   init: directResultInit,
   update: directInitUpdate,
 })
@@ -535,13 +538,13 @@ const makeChoiceParts = <const Values extends ReadonlyArray<string>>(
     model: Model.make({ value }),
     outMessage: OutMessage.make({ value }),
   }))
-  const composition = definition.toComposition()
+  const DeclarationTestsChoiceComposition = definition.toComposition()
 
   const implementation = {
-    init: composition.init((value: Values[number]) => ({
+    init: DeclarationTestsChoiceComposition.init((value: Values[number]) => ({
       model: Model.make({ value }),
     })),
-    update: composition.update((_model, message) => ({
+    update: DeclarationTestsChoiceComposition.update((_model, message) => ({
       model: Model.make({ value: message.value }),
       outMessage: OutMessage.make({ value: message.value }),
     })),
@@ -550,7 +553,7 @@ const makeChoiceParts = <const Values extends ReadonlyArray<string>>(
   }
 
   return {
-    composition,
+    composition: DeclarationTestsChoiceComposition,
     implementation,
   }
 }

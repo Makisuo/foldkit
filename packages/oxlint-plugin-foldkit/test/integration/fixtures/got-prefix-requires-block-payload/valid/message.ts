@@ -1,4 +1,4 @@
-import { defineApplication } from 'foldkit'
+import { Block, defineApplication } from 'foldkit'
 import { Effect, Schema } from 'effect'
 import { Query } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
@@ -21,6 +21,17 @@ const CustomFactory = {
 }
 const CustomChild = CustomFactory.create()
 
+const DirectMessage = defineMessageUnion({ UpdatedValue: {} })
+const DirectDefinition = Block.define('DirectDefinition', {
+  Model: Schema.String,
+  Message: DirectMessage,
+})
+const DirectComposition = DirectDefinition.toComposition()
+const DirectBlock = DirectComposition.toBlock({
+  init: DirectComposition.init(() => ({ model: '' })),
+  update: DirectComposition.update(model => ({ model })),
+})
+
 const Application = defineApplication({ Model, Message })
 Application.bindChild(CustomChild.block, {field: 'child',
 parentMessage: ParentMessage.GotCustomChildMessage})
@@ -35,4 +46,11 @@ const Message = defineMessageUnion({
   GotFrameworkTabsMessage: { message: FrameworkTabs.Message },
   GotDirectionRadioGroupMessage: { message: DirectionRadioGroup.Message },
   GotCustomChildMessage: { message: CustomChild.block.Message },
+  GotDirectMessage: { message: DirectBlock.Message },
 })
+
+const directBindingConfig = {
+  field: 'direct',
+  parentMessage: Message.GotDirectMessage,
+}
+Application.bindChild(DirectBlock, directBindingConfig)

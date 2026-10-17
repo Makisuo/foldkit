@@ -6,17 +6,24 @@ export const ChildModel = Schema.Struct({ value: Schema.Number })
 export const ChildMessage = Message.defineMessageUnion({
   UpdatedValue: { value: Schema.Number },
 })
-const Child = Block.define('DeclarationCanonicalConstructorChild', {
-  Model: ChildModel,
-  Message: ChildMessage,
-})
-const ChildComposition = Child.toComposition()
-export const ChildBlock = ChildComposition.toBlock({
-  init: ChildComposition.init(() => ({
-    model: ChildModel.make({ value: 0 }),
-  })),
-  update: ChildComposition.update(model => ({ model })),
-})
+const DeclarationCanonicalConstructorChild = Block.define(
+  'DeclarationCanonicalConstructorChild',
+  {
+    Model: ChildModel,
+    Message: ChildMessage,
+  },
+)
+const DeclarationCanonicalConstructorChildComposition =
+  DeclarationCanonicalConstructorChild.toComposition()
+export const ChildBlock =
+  DeclarationCanonicalConstructorChildComposition.toBlock({
+    init: DeclarationCanonicalConstructorChildComposition.init(() => ({
+      model: ChildModel.make({ value: 0 }),
+    })),
+    update: DeclarationCanonicalConstructorChildComposition.update(model => ({
+      model,
+    })),
+  })
 const ParentModel = Schema.Struct({ child: ChildModel })
 declare const PayloadWithUnknownDecodingServices: Schema.Codec<
   string,
@@ -25,45 +32,58 @@ declare const PayloadWithUnknownDecodingServices: Schema.Codec<
   never
 >
 export const ParentMessage = Message.defineMessageUnion({
-  GotChildMessage: { message: ChildMessage },
-  GotOtherMessage: { message: ChildMessage },
-  GotExtraMessage: { message: ChildMessage, extra: Schema.String },
+  GotChildMessage: { message: ChildBlock.Message },
+  GotOtherMessage: { message: ChildBlock.Message },
+  GotExtraMessage: { message: ChildBlock.Message, extra: Schema.String },
   GotOptionalExtraMessage: {
-    message: ChildMessage,
+    message: ChildBlock.Message,
     extra: Schema.optionalKey(Schema.String),
   },
+  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture preserves an invalid wrapper contract.
   GotWrongMessage: { message: Schema.String },
   ReceivedPayload: { payload: PayloadWithUnknownDecodingServices },
 })
-export const Parent = Block.define('DeclarationCanonicalConstructorParent', {
-  Model: ParentModel,
-  Message: ParentMessage,
-})
-export const CanonicalBinding = Parent.bindChild(ChildBlock, {
-  field: 'child',
-  parentMessage: ParentMessage.GotChildMessage,
-})
-export const MappedBinding = Parent.bindChild(ChildBlock, {
-  field: 'child',
-  toParentMessage: message => ParentMessage.GotOtherMessage({ message }),
-  fromParentMessage: false,
-})
+export const DeclarationCanonicalConstructorParent = Block.define(
+  'DeclarationCanonicalConstructorParent',
+  {
+    Model: ParentModel,
+    Message: ParentMessage,
+  },
+)
+export const CanonicalBinding = DeclarationCanonicalConstructorParent.bindChild(
+  ChildBlock,
+  {
+    field: 'child',
+    parentMessage: ParentMessage.GotChildMessage,
+  },
+)
+export const MappedBinding = DeclarationCanonicalConstructorParent.bindChild(
+  ChildBlock,
+  {
+    field: 'child',
+    toParentMessage: message => ParentMessage.GotOtherMessage({ message }),
+    fromParentMessage: false,
+  },
+)
 
 declare const distinctSchemaMapper: typeof ChildMessage.UpdatedValue &
   ((
     message: typeof ChildMessage.Type,
   ) => typeof ParentMessage.GotOtherMessage.Type)
 
-export const DistinctSchemaMapperBinding = Parent.bindChild(ChildBlock, {
-  field: 'child',
-  toParentMessage: distinctSchemaMapper,
-  fromParentMessage: false,
-})
+export const DistinctSchemaMapperBinding =
+  DeclarationCanonicalConstructorParent.bindChild(ChildBlock, {
+    field: 'child',
+    toParentMessage: distinctSchemaMapper,
+    fromParentMessage: false,
+  })
 
 type CommandMessageOf<Output> =
   Output extends Readonly<{
     commands?:
-      | ReadonlyArray<Command<infer ReturnedMessage, never, any>>
+      | ReadonlyArray<
+          Command<infer ReturnedMessage, never, infer _Requirements>
+        >
       | undefined
   }>
     ? ReturnedMessage

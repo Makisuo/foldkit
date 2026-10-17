@@ -7,15 +7,15 @@ import {
   BrandedEntriesBinding,
   CallableChildBlock,
   CallableEntriesBinding,
-  CallableParent,
   ChildBlock,
   ChildCounter,
+  DeclarationCallableKeyedFieldParent,
+  DeclarationKeyedFieldParent,
   EntriesBinding,
   EquivalentEntriesBinding,
   InitializedEntriesBinding,
   LiteralEntriesBinding,
   OutEntriesBinding,
-  Parent,
   ParentMessage,
   ReadChildCount,
   RefinedId,
@@ -51,7 +51,7 @@ export type RoomPlacement = Expect<
 export type CallableParentModel = Expect<
   Equal<
     Parameters<typeof CallableEntriesBinding.fold>[0],
-    typeof CallableParent.Model.Type
+    typeof DeclarationCallableKeyedFieldParent.Model.Type
   >
 >
 export type EquivalentKey = Expect<
@@ -76,7 +76,10 @@ export type ArrayChildMessage = Expect<
   >
 >
 export type ParentModel = Expect<
-  Equal<Parameters<typeof EntriesBinding.fold>[0], typeof Parent.Model.Type>
+  Equal<
+    Parameters<typeof EntriesBinding.fold>[0],
+    typeof DeclarationKeyedFieldParent.Model.Type
+  >
 >
 export type ChildMessage = Expect<
   Equal<
@@ -87,7 +90,7 @@ export type ChildMessage = Expect<
 export type FoldModel = Expect<
   Equal<
     ReturnType<typeof EntriesBinding.fold>['model'],
-    typeof Parent.Model.Type
+    typeof DeclarationKeyedFieldParent.Model.Type
   >
 >
 export type Registration = Expect<

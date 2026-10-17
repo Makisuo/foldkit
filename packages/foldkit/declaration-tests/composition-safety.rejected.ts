@@ -2,9 +2,9 @@ import { Array, Option } from 'effect'
 import { Struct, Update } from 'foldkit'
 
 import {
+  CompositionSafetyParent,
   Entry,
   EntryBinding,
-  CompositionSafetyParent,
   LoadParameterizedChild,
   OptionalContextBlock,
   ParentMessage,
@@ -46,15 +46,18 @@ EntryBinding.init({ key: 1, args: [1], toParentModel: child => Struct.modifyFiel
 // @ts-expect-error The initializer projection must construct the complete parent Model.
 PlainBinding.init({ args: [], toParentModel: child => child })
 
+// oxlint-disable-next-line typescript/no-explicit-any -- This fixture verifies that an erased parent Model cannot bypass validation.
 declare const erasedParentModel: any
 // @ts-expect-error An erased parent projection cannot bypass exact parent Model validation.
 PlainBinding.init({ args: [], toParentModel: () => erasedParentModel })
 
+// oxlint-disable-next-line typescript/no-explicit-any -- This fixture verifies that an erased Commands collection cannot bypass validation.
 declare const erasedParentCommands: any
 // @ts-expect-error An erased parent Commands collection cannot bypass requirement validation.
 // oxfmt-ignore
 PlainBinding.init({ args: [], toParentModel: child => Struct.modifyFields(initialParentModel, { plain: () => child }), commands: erasedParentCommands })
 
+// oxlint-disable-next-line typescript/no-explicit-any -- This fixture verifies that erased Command elements cannot bypass validation.
 declare const erasedParentCommandElements: ReadonlyArray<any>
 // @ts-expect-error Erased parent Command elements cannot bypass requirement validation.
 // oxfmt-ignore
@@ -62,6 +65,7 @@ PlainBinding.init({ args: [], toParentModel: child => Struct.modifyFields(initia
 
 declare const erasedParentCommandRequirements: Update.Commands<
   typeof ParentMessage.Type,
+  // oxlint-disable-next-line typescript/no-explicit-any -- This fixture verifies that erased Command requirements cannot bypass validation.
   any
 >
 // @ts-expect-error Erased parent Command requirements cannot bypass requirement validation.

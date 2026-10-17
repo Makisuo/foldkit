@@ -1,11 +1,11 @@
 import {
+  DeclarationChildPlacementParentComposition,
   DefaultAccessorBinding,
   DefaultPlacementComposition,
   EntriesBinding,
   EntriesByIdBinding,
   EntriesByIdLengthBinding,
   OptionalBinding,
-  ParentComposition,
   PrimaryBinding,
   SecondaryBinding,
   composeDynamicChildren,
@@ -26,7 +26,7 @@ const childBindings: readonly [
   typeof SecondaryBinding,
   typeof OptionalBinding,
   typeof EntriesBinding,
-] = ParentComposition.childBindings
+] = DeclarationChildPlacementParentComposition.childBindings
 
 const defaultPlacementChildren: readonly [
   typeof DefaultAccessorBinding,

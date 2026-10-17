@@ -7,6 +7,7 @@ import {
   isIdentifier,
   isMemberExpression,
   isObjectExpression,
+  isOwnedDefinitionCall,
   isStringLiteral,
   isVariableDeclarator,
   resolveFoldkitApiPath,
@@ -195,7 +196,7 @@ const hasBlockBindingUse = (
     ),
   )
 
-const isCompletedBlockFactoryVariable = (
+const isCompletedBlockVariable = (
   variable: Variable,
   references: WeakMap<ESTree.Node, Reference>,
 ): boolean =>
@@ -210,6 +211,7 @@ const isCompletedBlockFactoryVariable = (
 
     return (
       isFoldkitUiFactoryCall(definition.node.init, references) ||
+      isOwnedDefinitionCall(definition.node.init, 'toBlock', references) ||
       hasBlockBindingUse(variable, references)
     )
   })
@@ -236,7 +238,7 @@ const isLocalCompletedBlockMessageReference = (
 
     return Option.exists(
       resolvedVariable(references, memberPath.root),
-      variable => isCompletedBlockFactoryVariable(variable, references),
+      variable => isCompletedBlockVariable(variable, references),
     )
   })
 

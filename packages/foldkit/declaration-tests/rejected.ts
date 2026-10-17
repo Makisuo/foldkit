@@ -654,16 +654,18 @@ Block.define('DeclarationTestsInvalidDirectContracts', {
   childBindings: [ChildBinding],
 })
 
-const OmittedChildComposition = DeclarationTestsOmittedChild.toComposition()
-const omittedChildUpdate = OmittedChildComposition.update((model, message) =>
-  ParentMessage.match(message, {
-    GotChildMessage: ({ message }) => ChildBinding.fold(model, message),
-    RequestedRefresh: () => ({ model }),
-  }),
+const DeclarationTestsOmittedChildComposition =
+  DeclarationTestsOmittedChild.toComposition()
+const omittedChildUpdate = DeclarationTestsOmittedChildComposition.update(
+  (model, message) =>
+    ParentMessage.match(message, {
+      GotChildMessage: ({ message }) => ChildBinding.fold(model, message),
+      RequestedRefresh: () => ({ model }),
+    }),
 )
 
-OmittedChildComposition.toBlock({
-  init: OmittedChildComposition.init(() => ({
+DeclarationTestsOmittedChildComposition.toBlock({
+  init: DeclarationTestsOmittedChildComposition.init(() => ({
     model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   })),
   update: omittedChildUpdate,
@@ -687,17 +689,20 @@ const OmittedInitChildBinding = DeclarationTestsOmittedInitChild.bindChild(
     parentMessage: ParentMessage.GotChildMessage,
   },
 )
-const OmittedInitComposition = DeclarationTestsOmittedInitChild.toComposition()
-const omittedChildInit = OmittedInitComposition.init(() =>
+const DeclarationTestsOmittedInitChildComposition =
+  DeclarationTestsOmittedInitChild.toComposition()
+const omittedChildInit = DeclarationTestsOmittedInitChildComposition.init(() =>
   OmittedInitChildBinding.init({
     args: [],
     toParentModel: child => child,
   }),
 )
 
-OmittedInitComposition.toBlock({
+DeclarationTestsOmittedInitChildComposition.toBlock({
   init: omittedChildInit,
-  update: OmittedInitComposition.update(model => ({ model })),
+  update: DeclarationTestsOmittedInitChildComposition.update(model => ({
+    model,
+  })),
   // @ts-expect-error A Block initializer cannot use an unregistered child Binding.
   EffectsLayer: Layer.empty,
 })

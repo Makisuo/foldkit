@@ -43,37 +43,45 @@ export const HomeMessage = Message.defineMessageUnion({
 export const HomeOutMessage = Message.defineMessageUnion({
   JoinedRoom: { roomId: Schema.String, username: Schema.String },
 })
-const Home = Block.define('DeclarationReciprocalHome', {
+const DeclarationReciprocalHome = Block.define('DeclarationReciprocalHome', {
   Model: HomeModel,
   Message: HomeMessage,
   OutMessage: HomeOutMessage,
 })
-export const ClearJoinDraft = Home.command('ClearJoinDraft', {
-  messages: [HomeMessage.CompletedClearJoinDraft],
-  handler: function* () {
-    const store = yield* DraftStore
-    return () =>
-      store.clear.pipe(Effect.as(HomeMessage.CompletedClearJoinDraft()))
+export const ClearJoinDraft = DeclarationReciprocalHome.command(
+  'ClearJoinDraft',
+  {
+    messages: [HomeMessage.CompletedClearJoinDraft],
+    handler: function* () {
+      const store = yield* DraftStore
+      return () =>
+        store.clear.pipe(Effect.as(HomeMessage.CompletedClearJoinDraft()))
+    },
   },
-})
-const HomeComposition = Home.toComposition()
-const resetJoinForm = Home.step((model, username: string) => ({
-  model: Struct.modifyFields(model, {
-    username: () => username,
-    resetCount: count => count + 1,
+)
+const DeclarationReciprocalHomeComposition =
+  DeclarationReciprocalHome.toComposition()
+const resetJoinForm = DeclarationReciprocalHome.step(
+  (model, username: string) => ({
+    model: Struct.modifyFields(model, {
+      username: () => username,
+      resetCount: count => count + 1,
+    }),
+    commands: [ClearJoinDraft()],
   }),
-  commands: [ClearJoinDraft()],
-}))
-const requestJoin = Home.step((model, roomId: string, username: string) => ({
-  model,
-  commands: [ClearJoinDraft()],
-  outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
-}))
-export const HomeBlock = HomeComposition.toBlock({
-  init: HomeComposition.init(() => ({
+)
+const requestJoin = DeclarationReciprocalHome.step(
+  (model, roomId: string, username: string) => ({
+    model,
+    commands: [ClearJoinDraft()],
+    outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
+  }),
+)
+export const HomeBlock = DeclarationReciprocalHomeComposition.toBlock({
+  init: DeclarationReciprocalHomeComposition.init(() => ({
     model: HomeModel.make({ username: '', resetCount: 0 }),
   })),
-  update: HomeComposition.update((model, message) =>
+  update: DeclarationReciprocalHomeComposition.update((model, message) =>
     HomeMessage.match(message, {
       SucceededJoinRoom: () => ({ model }),
       CompletedClearJoinDraft: () => ({ model }),
@@ -93,24 +101,27 @@ export const RoomMessage = Message.defineMessageUnion({
 export const RoomOutMessage = Message.defineMessageUnion({
   LeftRoom: { roomId: Schema.String },
 })
-const Room = Block.define('DeclarationReciprocalRoom', {
+const DeclarationReciprocalRoom = Block.define('DeclarationReciprocalRoom', {
   Model: RoomModel,
   Message: RoomMessage,
   OutMessage: RoomOutMessage,
 })
-const RoomComposition = Room.toComposition()
-const informJoined = Room.step(
+const DeclarationReciprocalRoomComposition =
+  DeclarationReciprocalRoom.toComposition()
+const informJoined = DeclarationReciprocalRoom.step(
   (model, username: string, _context: typeof RoomContext.Type) => ({
     model: Struct.modifyFields(model, {
       maybeUsername: () => Option.some(username),
     }),
   }),
 )
-export const RoomBlock = RoomComposition.toBlock({
-  init: RoomComposition.init((maybeUsername: Option.Option<string>) => ({
-    model: RoomModel.make({ maybeUsername }),
-  })),
-  update: RoomComposition.update(
+export const RoomBlock = DeclarationReciprocalRoomComposition.toBlock({
+  init: DeclarationReciprocalRoomComposition.init(
+    (maybeUsername: Option.Option<string>) => ({
+      model: RoomModel.make({ maybeUsername }),
+    }),
+  ),
+  update: DeclarationReciprocalRoomComposition.update(
     (model, message, context: typeof RoomContext.Type) =>
       RoomMessage.match(message, {
         CompletedLeaveRoom: () => ({
@@ -137,8 +148,8 @@ export const ApplicationModel = Schema.Struct({
   route: ApplicationRoute,
 })
 export const ApplicationMessage = Message.defineMessageUnion({
-  GotHomeMessage: { message: HomeMessage },
-  GotRoomMessage: { roomId: Schema.String, message: RoomMessage },
+  GotHomeMessage: { message: HomeBlock.Message },
+  GotRoomMessage: { roomId: Schema.String, message: RoomBlock.Message },
 })
 export const Application = defineApplication({
   Model: ApplicationModel,
@@ -376,9 +387,10 @@ const DirectReciprocalModel = Schema.Struct({
   rightHome: HomeModel,
 })
 const DirectReciprocalMessage = Message.defineMessageUnion({
-  GotLeftHomeMessage: { message: HomeMessage },
-  GotRightHomeMessage: { message: HomeMessage },
+  GotLeftHomeMessage: { message: HomeBlock.Message },
+  GotRightHomeMessage: { message: HomeBlock.Message },
 })
+// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture compares independent Application graphs for direct sibling coordination.
 export const DirectReciprocalApplication = defineApplication({
   Model: DirectReciprocalModel,
   Message: DirectReciprocalMessage,
@@ -410,6 +422,7 @@ export const RightHomeBinding = DirectReciprocalApplication.bindChild(
   },
 )
 
+// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture keeps the direct sibling graph distinct from the keyed sibling graph.
 export const DirectReciprocalComposition =
   DirectReciprocalApplication.toComposition({
     childBindings: [LeftHomeBinding, RightHomeBinding],
@@ -452,9 +465,10 @@ const KeyedReciprocalModel = Schema.Struct({
   rightHomes: Schema.Array(KeyedHomeEntry),
 })
 const KeyedReciprocalMessage = Message.defineMessageUnion({
-  GotLeftHomeMessage: { id: Schema.String, message: HomeMessage },
-  GotRightHomeMessage: { id: Schema.String, message: HomeMessage },
+  GotLeftHomeMessage: { id: Schema.String, message: HomeBlock.Message },
+  GotRightHomeMessage: { id: Schema.String, message: HomeBlock.Message },
 })
+// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture compares independent Application graphs for keyed sibling coordination.
 export const KeyedReciprocalApplication = defineApplication({
   Model: KeyedReciprocalModel,
   Message: KeyedReciprocalMessage,
@@ -486,6 +500,7 @@ export const RightKeyedHomeBinding = KeyedReciprocalApplication.bindChild(
   },
 )
 
+// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture keeps the keyed sibling graph distinct from the direct sibling graph.
 export const KeyedReciprocalComposition =
   KeyedReciprocalApplication.toComposition({
     childBindings: [LeftKeyedHomeBinding, RightKeyedHomeBinding],

@@ -3,7 +3,7 @@ import type { Block, Html } from 'foldkit'
 import {
   ApplicationComposition,
   ChildModel,
-  ParentComposition,
+  DeclarationViewHelperParentComposition,
   ParentModel,
   applicationArrayViewHelper,
   applicationBuilderViewHelper,
@@ -29,14 +29,14 @@ export type ParentModelParameters = Expect<
     Parameters<typeof parentModelViewHelper>,
     [
       model: typeof ParentModel.Type,
-      h: Block.ViewBuilderFor<typeof ParentComposition>,
+      h: Block.ViewBuilderFor<typeof DeclarationViewHelperParentComposition>,
     ]
   >
 >
 export type ParentBuilderParameters = Expect<
   Equal<
     Parameters<typeof parentBuilderViewHelper>,
-    [h: Block.ViewBuilderFor<typeof ParentComposition>]
+    [h: Block.ViewBuilderFor<typeof DeclarationViewHelperParentComposition>]
   >
 >
 export type ParentInputParameters = Expect<
@@ -44,7 +44,7 @@ export type ParentInputParameters = Expect<
     Parameters<typeof parentInputViewHelper>,
     [
       input: typeof ChildModel.Type,
-      h: Block.ViewBuilderFor<typeof ParentComposition>,
+      h: Block.ViewBuilderFor<typeof DeclarationViewHelperParentComposition>,
     ]
   >
 >
@@ -56,7 +56,7 @@ export type ParentArrayOutput = Expect<
 export type ParentSharedParameters = Expect<
   Equal<
     Parameters<typeof parentSharedViewHelper>,
-    [h: Block.ViewBuilderFor<typeof ParentComposition>]
+    [h: Block.ViewBuilderFor<typeof DeclarationViewHelperParentComposition>]
   >
 >
 export type ApplicationModelParameters = Expect<

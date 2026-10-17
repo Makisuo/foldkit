@@ -2,18 +2,18 @@ import { Layer } from 'effect'
 import { Block, Message, defineApplication } from 'foldkit'
 
 import {
-  ApplicationComposition,
   ChildBinding,
-  ChildComposition,
   ChildModel,
+  DeclarationViewHelperChildComposition,
+  DeclarationViewHelperParent,
   ObserveParent,
-  Parent,
   ParentMessage,
   ParentModel,
+  ApplicationComposition as RegisteredApplicationComposition,
   childViewHelper,
 } from './plain-view-helper.accepted.js'
 
-const OmittedParentComposition = Parent.toComposition()
+const OmittedParentComposition = DeclarationViewHelperParent.toComposition()
 type OmittedParentViewBuilder = Block.ViewBuilderFor<
   typeof OmittedParentComposition
 >
@@ -44,11 +44,11 @@ const helperWithForeignMessage = (h: OmittedParentViewBuilder) =>
 // @ts-expect-error Composition no longer carries a render helper.
 OmittedParentComposition.render
 
-ChildComposition.toBlock({
-  init: ChildComposition.init(() => ({
+DeclarationViewHelperChildComposition.toBlock({
+  init: DeclarationViewHelperChildComposition.init(() => ({
     model: ChildModel.make({ value: 'initial' }),
   })),
-  update: ChildComposition.update(model => ({ model })),
+  update: DeclarationViewHelperChildComposition.update(model => ({ model })),
   // @ts-expect-error A plain view helper cannot complete a Block as its branded view.
   view: childViewHelper,
   EffectsLayer: Layer.empty,
@@ -56,7 +56,7 @@ ChildComposition.toBlock({
 
 const invalidOutputHelper = (_model: typeof ChildModel.Type) => 'text'
 
-ChildComposition.view((model, _h) =>
+DeclarationViewHelperChildComposition.view((model, _h) =>
   // @ts-expect-error A canonical view must return Html rather than arbitrary helper output.
   invalidOutputHelper(model),
 )
@@ -65,9 +65,9 @@ const Application = defineApplication({
   Model: ParentModel,
   Message: ParentMessage,
 })
-const OmittedApplicationComposition = Application.toComposition()
+const ApplicationComposition = Application.toComposition()
 type OmittedApplicationViewBuilder = Block.ViewBuilderFor<
-  typeof OmittedApplicationComposition
+  typeof ApplicationComposition
 >
 const applicationViewHelper = (
   model: typeof ParentModel.Type,
@@ -90,22 +90,22 @@ const applicationHelperWithOmittedMount = (h: OmittedApplicationViewBuilder) =>
   ])
 
 // @ts-expect-error Application Composition no longer carries a render helper.
-OmittedApplicationComposition.render
+ApplicationComposition.render
 
 // @ts-expect-error A plain view helper cannot complete an Application as its branded view.
-OmittedApplicationComposition.toElement({
+ApplicationComposition.toElement({
   container: null,
-  init: OmittedApplicationComposition.init(() => ({
+  init: ApplicationComposition.init(() => ({
     model: ParentModel.make({
       child: ChildModel.make({ value: 'initial' }),
     }),
   })),
-  update: OmittedApplicationComposition.update(model => ({ model })),
+  update: ApplicationComposition.update(model => ({ model })),
   view: applicationViewHelper,
 })
 
 type ApplicationViewBuilder = Block.ViewBuilderFor<
-  typeof ApplicationComposition
+  typeof RegisteredApplicationComposition
 >
 const applicationHelperWithForeignMessage = (h: ApplicationViewBuilder) =>
   h.button([

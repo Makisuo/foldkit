@@ -4,13 +4,13 @@ import type * as Update from 'foldkit/update'
 
 import {
   Choice,
+  DeclarationPolicyForward,
   DirectChildBlock,
   DirectDomainBinding,
-  KeyedDomainBinding,
   DirectParent,
   DirectParentMessage,
   ForeignMessageBinding,
-  ForwardParent,
+  KeyedDomainBinding,
   OptionalForeignBinding,
   Parent,
   ParentMessage,
@@ -38,7 +38,7 @@ type Equal<Left, Right> =
 type Expect<Value extends true> = Value
 type ParentModel = typeof Parent.Model.Type
 type ModelOnlyPolicy<
-  Policy extends { fold: (...args: ReadonlyArray<any>) => any },
+  Policy extends { fold: (...args: ReadonlyArray<never>) => unknown },
 > = Readonly<{
   fold: (
     ...args: Parameters<Policy['fold']>
@@ -61,7 +61,7 @@ Parent.toComposition({ childBindings: [OptionalForeignBinding] })
 // @ts-expect-error Emitted policy registrations must belong to this Composition.
 Parent.toComposition({ childBindings: [RegisteredPolicyBinding] })
 // @ts-expect-error Emitted forwarded OutMessages must belong to the parent.
-ForwardParent.toComposition({ childBindings: [WrongForwardBinding] })
+DeclarationPolicyForward.toComposition({ childBindings: [WrongForwardBinding] })
 
 type ErasedBinding = Block.AnyBinding &
   Block.ParentBindingContract<ParentModel, typeof ParentMessage.Type, never>

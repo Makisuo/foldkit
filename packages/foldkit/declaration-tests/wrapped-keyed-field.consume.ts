@@ -8,18 +8,18 @@ import {
   ChoiceId,
   ChoiceService,
   ChoicesBinding,
+  DeclarationWrappedKeyedFieldParent,
+  DeclarationWrappedKeyedFieldParentComposition,
   GeneralChoicesBinding,
   GeneralExtractedPolicyChoicesBinding,
   InitializedChoicesBinding,
-  LiteralInitializedChoicesBinding,
   LiteralChoicesBinding,
-  Parent,
+  LiteralInitializedChoicesBinding,
   ParentModel,
   PlainChoicesBinding,
   TextEntriesBinding,
   TextMessage,
   choiceInspection,
-  composition,
   firstChoiceId,
   initialParentModel,
   initialize,
@@ -150,7 +150,9 @@ export type InspectionServices = Expect<
 export type InspectionError = Expect<
   Equal<Layer.Error<typeof choiceInspection.EffectsLayer>, ChoiceBuildFailure>
 >
-export type Builder = Block.ViewBuilderFor<typeof composition>
+export type Builder = Block.ViewBuilderFor<
+  typeof DeclarationWrappedKeyedFieldParentComposition
+>
 
 const initialized = initialize({ id: firstChoiceId, value: 'Two' })
 export type InitializedModel = Expect<
@@ -190,7 +192,7 @@ TextEntriesBinding.fold(
 
 // @ts-expect-error Emitted wrapped keyed policies must accept every collection key.
 // oxfmt-ignore
-Parent.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: false, outMessage: { fold: (_key: 'other', _outMessage: typeof Choice.OutMessage.Type) => Parent.step(model => ({ model })) } })
+DeclarationWrappedKeyedFieldParent.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: false, outMessage: { fold: (_key: 'other', _outMessage: typeof Choice.OutMessage.Type) => DeclarationWrappedKeyedFieldParent.step(model => ({ model })) } })
 
 // @ts-expect-error Emitted wrapped Bindings preserve branded keys.
 ChoicesBinding.refresh('first')

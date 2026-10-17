@@ -10,8 +10,8 @@ import {
   type Model,
   type PostsData,
   type StatsData,
-  type Tab,
   TABS_ID,
+  type Tab,
 } from './model'
 
 export const applyPostsTransition = (

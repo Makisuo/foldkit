@@ -5,17 +5,18 @@ import {
   Application,
   AutomaticBinding,
   ChildBlock,
+  DeclarationStartupDefaultsParent,
+  DeclarationStartupGenericParent,
+  DeclarationStartupGenericParentComposition,
   DefaultArgumentBinding,
   DefaultChildBlock,
   EntriesBinding,
-  FinishChildInitialization,
+  FinishInitialization,
   FinishParentInitialization,
-  FinishParentStep,
-  GenericParent,
+  FinishStep,
   OptionalArgumentBinding,
   OptionalBinding,
   OptionalChildBlock,
-  Parent,
   ParentBlock,
   ParentMessage,
   RequiredChildBlock,
@@ -23,7 +24,6 @@ import {
   RestChildBlock,
   Startup,
   StartupClient,
-  WiderComposition,
   initialize,
   initializeCompatibleStartup,
   initializeMixedStartup,
@@ -89,30 +89,21 @@ export type StartupRequirements = Expect<
   Equal<
     Update.RequirementsOf<typeof initialize>,
     | Command.HandlerOf<typeof FinishParentInitialization>
-    | Command.HandlerOf<typeof FinishParentStep>
-    | Block.Scoped<
-        'automatic',
-        Command.HandlerOf<typeof FinishChildInitialization>
-      >
-    | Block.Scoped<
-        'maybeChild',
-        Command.HandlerOf<typeof FinishChildInitialization>
-      >
-    | Block.Scoped<
-        'entries',
-        Command.HandlerOf<typeof FinishChildInitialization>
-      >
+    | Command.HandlerOf<typeof FinishStep>
+    | Block.Scoped<'automatic', Command.HandlerOf<typeof FinishInitialization>>
+    | Block.Scoped<'maybeChild', Command.HandlerOf<typeof FinishInitialization>>
+    | Block.Scoped<'entries', Command.HandlerOf<typeof FinishInitialization>>
   >
 >
 
 initialize({ count: 3, includeOptional: true, entryIds: ['first'] })
 initializeWithoutSelectorStartup()
-WiderComposition.init(() => ({
+DeclarationStartupGenericParentComposition.init(() => ({
   startup: { count: 1, includeOptional: false, entryIds: [] },
   model: {},
 }))
 
-GenericParent.bindChild(ChildBlock, {
+DeclarationStartupGenericParent.bindChild(ChildBlock, {
   field: 'child',
   placement: 'external',
   parentMessage: ParentMessage.GotChildMessage,
@@ -124,7 +115,7 @@ Application.bindChild(ChildBlock, {
   parentMessage: ParentMessage.GotChildMessage,
   init: { args: _startup => [] },
 })
-Parent.bindChild(RequiredChildBlock, {
+DeclarationStartupDefaultsParent.bindChild(RequiredChildBlock, {
   field: 'automatic',
   placement: 'externalOptOut',
   parentMessage: ParentMessage.GotChildMessage,
@@ -134,9 +125,9 @@ Parent.bindChild(RequiredChildBlock, {
 
 // @ts-expect-error The emitted required child still requires args or opt out.
 // oxfmt-ignore
-Parent.bindChild(RequiredChildBlock, { field: 'automatic', placement: 'externalMissingArgs', parentMessage: ParentMessage.GotChildMessage, fromParentMessage: false })
+DeclarationStartupDefaultsParent.bindChild(RequiredChildBlock, { field: 'automatic', placement: 'externalMissingArgs', parentMessage: ParentMessage.GotChildMessage, fromParentMessage: false })
 
-GenericParent.bindChild(ChildBlock, {
+DeclarationStartupGenericParent.bindChild(ChildBlock, {
   field: 'child',
   placement: 'externalMutation',
   parentMessage: ParentMessage.GotChildMessage,

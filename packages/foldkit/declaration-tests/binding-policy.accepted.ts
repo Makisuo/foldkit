@@ -6,13 +6,13 @@ import type * as Update from 'foldkit/update'
 
 import {
   ChildBlock as DirectChildBlock,
-  Parent as DirectParent,
+  DeclarationParentOwnedParent as DirectParent,
   ParentMessage as DirectParentMessage,
 } from './parent-owned-binding.accepted.js'
 import {
   Choice,
   ChoiceId,
-  Parent,
+  DeclarationWrappedKeyedFieldParent,
   ParentMessage,
   PlainChoicesBinding,
 } from './wrapped-keyed-field.accepted.js'
@@ -28,7 +28,7 @@ type Equal<Left, Right> =
       : false
     : false
 type Expect<Value extends true> = Value
-type ParentModel = typeof Parent.Model.Type
+type ParentModel = typeof DeclarationWrappedKeyedFieldParent.Model.Type
 type ModelOnlyReturn = Readonly<{ model: ParentModel }>
 
 const wrongModelPolicy = {
@@ -38,16 +38,19 @@ const wrongModelPolicy = {
       model: Choice.block.Model.make({ value: 'One' }),
     }),
 }
-export const WrongModelBinding = Parent.bindChild(Choice.block, {
-  readAll: model => model.choices,
-  key: item => item.id,
-  read: item => item.choice,
-  writeAt: model => model,
-  toParentMessage: (id, message) =>
-    ParentMessage.GotChoiceMessage({ id, message }),
-  fromParentMessage: false,
-  outMessage: wrongModelPolicy,
-})
+export const WrongModelBinding = DeclarationWrappedKeyedFieldParent.bindChild(
+  Choice.block,
+  {
+    readAll: model => model.choices,
+    key: item => item.id,
+    read: item => item.choice,
+    writeAt: model => model,
+    toParentMessage: (id, message) =>
+      ParentMessage.GotChoiceMessage({ id, message }),
+    fromParentMessage: false,
+    outMessage: wrongModelPolicy,
+  },
+)
 
 export const foreignMessagePolicy = {
   fold:
@@ -57,16 +60,17 @@ export const foreignMessagePolicy = {
       commands: [Choice.ReadChoice()],
     }),
 }
-export const ForeignMessageBinding = Parent.bindChild(Choice.block, {
-  readAll: model => model.choices,
-  key: item => item.id,
-  read: item => item.choice,
-  writeAt: model => model,
-  toParentMessage: (id, message) =>
-    ParentMessage.GotChoiceMessage({ id, message }),
-  fromParentMessage: false,
-  outMessage: foreignMessagePolicy,
-})
+export const ForeignMessageBinding =
+  DeclarationWrappedKeyedFieldParent.bindChild(Choice.block, {
+    readAll: model => model.choices,
+    key: item => item.id,
+    read: item => item.choice,
+    writeAt: model => model,
+    toParentMessage: (id, message) =>
+      ParentMessage.GotChoiceMessage({ id, message }),
+    fromParentMessage: false,
+    outMessage: foreignMessagePolicy,
+  })
 
 const undeclaredOutMessagePolicy = {
   fold:
@@ -76,16 +80,17 @@ const undeclaredOutMessagePolicy = {
       outMessage: Choice.OutMessage.SelectedValue({ value: 'One' }),
     }),
 }
-export const UndeclaredOutMessageBinding = Parent.bindChild(Choice.block, {
-  readAll: model => model.choices,
-  key: item => item.id,
-  read: item => item.choice,
-  writeAt: model => model,
-  toParentMessage: (id, message) =>
-    ParentMessage.GotChoiceMessage({ id, message }),
-  fromParentMessage: false,
-  outMessage: undeclaredOutMessagePolicy,
-})
+export const UndeclaredOutMessageBinding =
+  DeclarationWrappedKeyedFieldParent.bindChild(Choice.block, {
+    readAll: model => model.choices,
+    key: item => item.id,
+    read: item => item.choice,
+    writeAt: model => model,
+    toParentMessage: (id, message) =>
+      ParentMessage.GotChoiceMessage({ id, message }),
+    fromParentMessage: false,
+    outMessage: undeclaredOutMessagePolicy,
+  })
 
 const ForeignMessage = Message.defineMessageUnion({ CompletedForeign: {} })
 declare const foreignCommand: Command.Command<
@@ -110,16 +115,19 @@ export const unionForeignMessagePolicy: Readonly<{
     commands: [foreignCommand],
   }),
 }
-export const UnionForeignBinding = Parent.bindChild(Choice.block, {
-  readAll: model => model.choices,
-  key: item => item.id,
-  read: item => item.choice,
-  writeAt: model => model,
-  toParentMessage: (id, message) =>
-    ParentMessage.GotChoiceMessage({ id, message }),
-  fromParentMessage: false,
-  outMessage: unionForeignMessagePolicy,
-})
+export const UnionForeignBinding = DeclarationWrappedKeyedFieldParent.bindChild(
+  Choice.block,
+  {
+    readAll: model => model.choices,
+    key: item => item.id,
+    read: item => item.choice,
+    writeAt: model => model,
+    toParentMessage: (id, message) =>
+      ParentMessage.GotChoiceMessage({ id, message }),
+    fromParentMessage: false,
+    outMessage: unionForeignMessagePolicy,
+  },
+)
 
 export const optionalForeignMessagePolicy: Readonly<{
   fold: (
@@ -136,16 +144,17 @@ export const optionalForeignMessagePolicy: Readonly<{
     commands: [Choice.ReadChoice()],
   }),
 }
-export const OptionalForeignBinding = Parent.bindChild(Choice.block, {
-  readAll: model => model.choices,
-  key: item => item.id,
-  read: item => item.choice,
-  writeAt: model => model,
-  toParentMessage: (id, message) =>
-    ParentMessage.GotChoiceMessage({ id, message }),
-  fromParentMessage: false,
-  outMessage: optionalForeignMessagePolicy,
-})
+export const OptionalForeignBinding =
+  DeclarationWrappedKeyedFieldParent.bindChild(Choice.block, {
+    readAll: model => model.choices,
+    key: item => item.id,
+    read: item => item.choice,
+    writeAt: model => model,
+    toParentMessage: (id, message) =>
+      ParentMessage.GotChoiceMessage({ id, message }),
+    fromParentMessage: false,
+    outMessage: optionalForeignMessagePolicy,
+  })
 
 type RegisteredReturn = ModelOnlyReturn &
   Update.RegistrationEvidence<'SiblingBinding'>
@@ -157,45 +166,54 @@ export const registeredPolicy: Readonly<{
 }> = {
   fold: (_key, _outMessage) => model => ({ model }),
 }
-export const RegisteredPolicyBinding = Parent.bindChild(Choice.block, {
-  readAll: model => model.choices,
-  key: item => item.id,
-  read: item => item.choice,
-  writeAt: model => model,
-  toParentMessage: (id, message) =>
-    ParentMessage.GotChoiceMessage({ id, message }),
-  fromParentMessage: false,
-  outMessage: registeredPolicy,
-})
+export const RegisteredPolicyBinding =
+  DeclarationWrappedKeyedFieldParent.bindChild(Choice.block, {
+    readAll: model => model.choices,
+    key: item => item.id,
+    read: item => item.choice,
+    writeAt: model => model,
+    toParentMessage: (id, message) =>
+      ParentMessage.GotChoiceMessage({ id, message }),
+    fromParentMessage: false,
+    outMessage: registeredPolicy,
+  })
 
 const ForwardOutMessage = Message.defineMessageUnion({
   ForwardedChoice: { value: Schema.String },
 })
-export const ForwardParent = BlockValue.define('DeclarationPolicyForward', {
-  Model: Parent.Model,
-  Message: ParentMessage,
-  OutMessage: ForwardOutMessage,
-})
+export const DeclarationPolicyForward = BlockValue.define(
+  'DeclarationPolicyForward',
+  {
+    Model: DeclarationWrappedKeyedFieldParent.Model,
+    Message: ParentMessage,
+    OutMessage: ForwardOutMessage,
+  },
+)
 const wrongForwardPolicy = {
   forward: (
     _key: typeof ChoiceId.Type,
     outMessage: typeof Choice.OutMessage.Type,
   ) => outMessage,
 }
-export const WrongForwardBinding = ForwardParent.bindChild(Choice.block, {
-  readAll: model => model.choices,
-  key: item => item.id,
-  read: item => item.choice,
-  writeAt: model => model,
-  toParentMessage: (id, message) =>
-    ParentMessage.GotChoiceMessage({ id, message }),
-  fromParentMessage: false,
-  outMessage: wrongForwardPolicy,
-})
+export const WrongForwardBinding = DeclarationPolicyForward.bindChild(
+  Choice.block,
+  {
+    readAll: model => model.choices,
+    key: item => item.id,
+    read: item => item.choice,
+    writeAt: model => model,
+    toParentMessage: (id, message) =>
+      ParentMessage.GotChoiceMessage({ id, message }),
+    fromParentMessage: false,
+    outMessage: wrongForwardPolicy,
+  },
+)
 
-export const PureComposition = Parent.toComposition({
-  childBindings: [PlainChoicesBinding],
-})
+export const PureComposition = DeclarationWrappedKeyedFieldParent.toComposition(
+  {
+    childBindings: [PlainChoicesBinding],
+  },
+)
 
 type UnionRequirementsAreExact = Expect<
   Equal<
@@ -224,7 +242,7 @@ export type BindingPolicyAssertions = [
   RegistrationIsExact,
 ]
 
-export { Choice, Parent, ParentMessage }
+export { Choice, DeclarationWrappedKeyedFieldParent as Parent, ParentMessage }
 
 export const DirectDomainBinding = DirectParent.bindChild(DirectChildBlock, {
   field: 'child',
@@ -238,23 +256,27 @@ export const DirectDomainComposition = DirectParent.toComposition({
   childBindings: [DirectDomainBinding],
 })
 
-export const KeyedDomainBinding = Parent.bindChild(Choice.block, {
-  field: 'literalChoices',
-  key: 'kind',
-  childField: 'choice',
-  toParentMessage: (kind, message) =>
-    ParentMessage.GotLiteralChoiceMessage({ kind, message }),
-  fromParentMessage: false,
-  outMessage: {
-    fold: (
-      _key: typeof ParentMessage.GotLiteralChoiceMessage.Type.kind,
-      _outMessage: typeof Choice.OutMessage.Type,
-    ) => Parent.step(model => ({ model })),
+export const KeyedDomainBinding = DeclarationWrappedKeyedFieldParent.bindChild(
+  Choice.block,
+  {
+    field: 'literalChoices',
+    key: 'kind',
+    childField: 'choice',
+    toParentMessage: (kind, message) =>
+      ParentMessage.GotLiteralChoiceMessage({ kind, message }),
+    fromParentMessage: false,
+    outMessage: {
+      fold: (
+        _key: typeof ParentMessage.GotLiteralChoiceMessage.Type.kind,
+        _outMessage: typeof Choice.OutMessage.Type,
+      ) => DeclarationWrappedKeyedFieldParent.step(model => ({ model })),
+    },
   },
-})
-export const KeyedDomainComposition = Parent.toComposition({
-  childBindings: [KeyedDomainBinding],
-})
+)
+export const KeyedDomainComposition =
+  DeclarationWrappedKeyedFieldParent.toComposition({
+    childBindings: [KeyedDomainBinding],
+  })
 
 export const retainedUnionEvidence: Block.BindingPolicyEvidence<
   typeof unionForeignMessagePolicy

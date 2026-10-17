@@ -6,12 +6,12 @@ import { Dialog } from '@foldkit/ui'
 
 import { saveCanvas } from './command'
 import {
-  GridSizeRadioGroup,
   GRID_SIZE_RADIO_GROUP_ID,
+  GridSizeRadioGroup,
   PALETTE_RADIO_GROUP_ID,
   PaletteRadioGroup,
-  ThemeListbox,
   TOOL_RADIO_GROUP_ID,
+  ThemeListbox,
   ToolRadioGroup,
 } from './components'
 import { DEFAULT_COLOR_INDEX } from './constant'

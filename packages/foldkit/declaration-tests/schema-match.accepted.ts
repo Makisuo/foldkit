@@ -21,6 +21,7 @@ export const matchUnknown = Event.match<unknown>({
   Advanced: ({ step }) => step,
 })
 
+// oxlint-disable-next-line typescript/no-explicit-any -- This fixture verifies the explicit any return contract.
 export const matchAny = Event.match<any>({
   Started: () => 'started',
   Advanced: ({ step }) => step,
@@ -36,6 +37,7 @@ export const matchOrElseUnknown = Event.matchOrElse<unknown>(
   ({ _tag }) => _tag,
 )
 
+// oxlint-disable-next-line typescript/no-explicit-any -- This fixture verifies the explicit any fallback return contract.
 export const matchOrElseAny = Event.matchOrElse<any>(
   { Advanced: ({ step }) => step },
   ({ _tag }) => _tag,

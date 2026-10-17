@@ -3,50 +3,64 @@ import { Block, type Html, Message, defineApplication } from 'foldkit'
 
 export const ChildModel = Schema.Struct({ value: Schema.String })
 const ChildMessage = Message.defineMessageUnion({ ClickedChild: {} })
-const Child = Block.define('DeclarationViewHelperChild', {
+const DeclarationViewHelperChild = Block.define('DeclarationViewHelperChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-export const ChildComposition = Child.toComposition()
-type ChildViewBuilder = Block.ViewBuilderFor<typeof ChildComposition>
+export const DeclarationViewHelperChildComposition =
+  DeclarationViewHelperChild.toComposition()
+type ChildViewBuilder = Block.ViewBuilderFor<
+  typeof DeclarationViewHelperChildComposition
+>
 export const childViewHelper = (
   model: typeof ChildModel.Type,
   h: ChildViewBuilder,
 ) => h.span([], [model.value])
-const childView = ChildComposition.view((model, h) => childViewHelper(model, h))
-export const ChildBlock = ChildComposition.toBlock({
-  init: ChildComposition.init(() => ({
+const childView = DeclarationViewHelperChildComposition.view((model, h) =>
+  childViewHelper(model, h),
+)
+export const ChildBlock = DeclarationViewHelperChildComposition.toBlock({
+  init: DeclarationViewHelperChildComposition.init(() => ({
     model: ChildModel.make({ value: 'initial' }),
   })),
-  update: ChildComposition.update(model => ({ model })),
+  update: DeclarationViewHelperChildComposition.update(model => ({ model })),
   view: childView,
   EffectsLayer: Layer.empty,
 })
 
 export const ParentModel = Schema.Struct({ child: ChildModel })
 export const ParentMessage = Message.defineMessageUnion({
-  GotChildMessage: { message: ChildMessage },
+  GotChildMessage: { message: ChildBlock.Message },
   CompletedObserveParent: {},
 })
-export const Parent = Block.define('DeclarationViewHelperParent', {
-  Model: ParentModel,
-  Message: ParentMessage,
-})
-export const ObserveParent = Parent.mount('ObserveParent', {
-  messages: [ParentMessage.CompletedObserveParent],
-  handler: function* () {
-    return () => Effect.succeed(ParentMessage.CompletedObserveParent())
+export const DeclarationViewHelperParent = Block.define(
+  'DeclarationViewHelperParent',
+  {
+    Model: ParentModel,
+    Message: ParentMessage,
   },
-})
-export const ChildBinding = Parent.bindChild(ChildBlock, {
+)
+export const ObserveParent = DeclarationViewHelperParent.mount(
+  'ObserveParent',
+  {
+    messages: [ParentMessage.CompletedObserveParent],
+    handler: function* () {
+      return () => Effect.succeed(ParentMessage.CompletedObserveParent())
+    },
+  },
+)
+export const ChildBinding = DeclarationViewHelperParent.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
 })
-export const ParentComposition = Parent.toComposition({
-  childBindings: [ChildBinding],
-  mounts: [ObserveParent],
-})
-export type ParentViewBuilder = Block.ViewBuilderFor<typeof ParentComposition>
+export const DeclarationViewHelperParentComposition =
+  DeclarationViewHelperParent.toComposition({
+    childBindings: [ChildBinding],
+    mounts: [ObserveParent],
+  })
+export type ParentViewBuilder = Block.ViewBuilderFor<
+  typeof DeclarationViewHelperParentComposition
+>
 
 export const parentModelViewHelper = (
   model: typeof ParentModel.Type,

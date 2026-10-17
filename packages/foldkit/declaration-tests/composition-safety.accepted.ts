@@ -288,12 +288,15 @@ export const initializePlainWithParentCommands = CompositionSafetyParent.step(
   },
 )
 
-export const StrictComposition = CompositionSafetyParent.toComposition({
-  childBindings: [PlainBinding, ParentCommandsBinding, EntryBinding],
-})
-export const StrictBlock = StrictComposition.toBlock({
-  init: StrictComposition.init(() => ({ model: initialParentModel })),
-  update: StrictComposition.update(model => ({ model })),
+export const CompositionSafetyParentComposition =
+  CompositionSafetyParent.toComposition({
+    childBindings: [PlainBinding, ParentCommandsBinding, EntryBinding],
+  })
+export const StrictBlock = CompositionSafetyParentComposition.toBlock({
+  init: CompositionSafetyParentComposition.init(() => ({
+    model: initialParentModel,
+  })),
+  update: CompositionSafetyParentComposition.update(model => ({ model })),
   expose: {
     initializeEntry,
     initializePlain,
@@ -327,11 +330,9 @@ type EntryInitModelIsExact = Expect<
   Equal<ReturnType<typeof initializeEntry>['model'], typeof ParentModel.Type>
 >
 
-const CompositionSafetyParentComposition =
-  CompositionSafetyParent.toComposition({
-    childBindings: [StableProjectedBinding],
-  })
-export const initialize = CompositionSafetyParentComposition.init(() => ({
+export const initialize = CompositionSafetyParent.toComposition({
+  childBindings: [StableProjectedBinding],
+}).init(() => ({
   model: {
     second: ChildModel.make({ count: 0 }),
     plain: ChildModel.make({ count: 0 }),

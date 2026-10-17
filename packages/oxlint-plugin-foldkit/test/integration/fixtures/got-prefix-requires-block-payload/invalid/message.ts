@@ -13,6 +13,10 @@ const arbitraryFactory = {
   }),
 }
 const arbitrary = arbitraryFactory.create()
+const arbitraryCompletion = {
+  toBlock: () => ({ Message: Schema.String }),
+}
+const arbitraryBlock = arbitraryCompletion.toBlock()
 
 const Message = defineMessageUnion({
   GotWeather: { temperature: Schema.Number, },
@@ -20,6 +24,7 @@ const Message = defineMessageUnion({
   GotWeatherMessage: { message: weather.Message },
   GotArbitraryMessage: { message: arbitrary.Message },
   GotArbitraryNestedMessage: { message: arbitrary.block.Message },
+  GotArbitraryBlockMessage: { message: arbitraryBlock.Message },
 })
 
 const RootMessage = MessageApi.defineMessageUnion({

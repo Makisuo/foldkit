@@ -29,19 +29,22 @@ const navigateToRoom = (roomId: string) =>
     commands: [NavigateToRoom({ roomId })],
   }))
 
+const initializeRoomInstance = (roomId: string) =>
+  Application.step(model =>
+    RoomBinding.init({
+      key: roomId,
+      args: [Option.none()],
+      toParentModel: room =>
+        modifyFields(model, {
+          maybeRoomInstance: () =>
+            Option.some(RoomInstance.make({ roomId, model: room })),
+        }),
+    }),
+  )
+
 const enterJoinedRoom = (roomId: string, player: Shared.Player) =>
   Update.combine([
-    Application.step(model =>
-      RoomBinding.init({
-        key: roomId,
-        args: [Option.none()],
-        toParentModel: room =>
-          modifyFields(model, {
-            maybeRoomInstance: () =>
-              Option.some(RoomInstance.make({ roomId, model: room })),
-          }),
-      }),
-    ),
+    initializeRoomInstance(roomId),
     RoomBinding.informJoined(roomId, player, { roomId }),
     navigateToRoom(roomId),
   ])

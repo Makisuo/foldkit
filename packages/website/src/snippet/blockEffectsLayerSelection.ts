@@ -22,7 +22,7 @@ const foldSettingsOutMessage = Settings.OutMessage.match<
     }),
 })
 
-export const SettingsBinding = Application.bindChild(SettingsDemo, {
+export const SettingsBinding = ApplicationDefinition.bindChild(SettingsDemo, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
   outMessage: { fold: foldSettingsOutMessage },

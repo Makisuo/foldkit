@@ -19,10 +19,10 @@ export const Message = defineMessageUnion({
   FailedSaveDocument: { reason: Schema.String },
 })
 
-const Editor = Block.define('Editor', { Model, Message })
-const EditorComposition = Editor.makeComposition()
+const EditorDefinition = Block.define('Editor', { Model, Message })
+const EditorComposition = EditorDefinition.makeComposition()
 
-export const SaveDocument = Editor.command('SaveDocument', {
+export const SaveDocument = EditorDefinition.command('SaveDocument', {
   args: { contents: Schema.String },
   messages: [Message.SucceededSaveDocument, Message.FailedSaveDocument],
 })

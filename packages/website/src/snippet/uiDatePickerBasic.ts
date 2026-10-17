@@ -81,29 +81,33 @@ const foldDatePickerOutMessage = DatePicker.OutMessage.match<
 // focus, and popover messages to DatePicker.update, writes the next DatePicker
 // Model back, maps the Block's Commands into your Message type, and hands
 // any OutMessage to the OutMessage fold.
-const DatePickerExample = Block.define('DatePickerExample', {
+const DatePickerExampleDefinition = Block.define('DatePickerExample', {
   Model,
   Message,
 })
 
-const DatePickerBinding = DatePickerExample.bindChild(DatePicker.block, {
-  field: 'datePickerDemo',
-  parentMessage: Message.GotDatePickerMessage,
-  init: {
-    args: (flags: Flags) =>
-      Tuple.make({
-        id: 'date-picker-demo',
-        today: flags.today,
-        minDate: flags.today,
-        maxDate: Calendar.addMonths(flags.today, 3),
-      }),
+const DatePickerBinding = DatePickerExampleDefinition.bindChild(
+  DatePicker.block,
+  {
+    field: 'datePickerDemo',
+    parentMessage: Message.GotDatePickerMessage,
+    init: {
+      args: (flags: Flags) =>
+        Tuple.make({
+          id: 'date-picker-demo',
+          today: flags.today,
+          minDate: flags.today,
+          maxDate: Calendar.addMonths(flags.today, 3),
+        }),
+    },
+    outMessage: { fold: foldDatePickerOutMessage },
   },
-  outMessage: { fold: foldDatePickerOutMessage },
-})
+)
 
-const DatePickerExampleComposition = DatePickerExample.makeComposition({
-  childBindings: [DatePickerBinding],
-})
+const DatePickerExampleComposition =
+  DatePickerExampleDefinition.makeComposition({
+    childBindings: [DatePickerBinding],
+  })
 type DatePickerExampleViewBuilder = Block.ViewBuilderFor<
   typeof DatePickerExampleComposition
 >

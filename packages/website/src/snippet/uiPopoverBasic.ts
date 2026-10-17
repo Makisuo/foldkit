@@ -43,19 +43,19 @@ const foldPopoverOutMessage = Popover.OutMessage.match<
 // The Binding wires the completed child Block into the parent: it runs Popover.update,
 // writes the next Popover Model back, maps the Block's Commands into your
 // Message type, and hands any OutMessage to the OutMessage fold.
-const PopoverExample = Block.define('PopoverExample', {
+const PopoverExampleDefinition = Block.define('PopoverExample', {
   Model,
   Message,
 })
 
-const PopoverBinding = PopoverExample.bindChild(Popover.block, {
+const PopoverBinding = PopoverExampleDefinition.bindChild(Popover.block, {
   field: 'popover',
   parentMessage: Message.GotPopoverMessage,
   init: { args: () => Tuple.make({ id: 'info' }) },
   outMessage: { fold: foldPopoverOutMessage },
 })
 
-const PopoverExampleComposition = PopoverExample.makeComposition({
+const PopoverExampleComposition = PopoverExampleDefinition.makeComposition({
   childBindings: [PopoverBinding],
 })
 

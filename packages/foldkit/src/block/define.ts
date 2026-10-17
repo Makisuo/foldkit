@@ -3,6 +3,7 @@ import type { Schema } from 'effect'
 import type * as Mount from '../mount/index.js'
 import type { AnyBinding } from './binding.js'
 import type { Base, Composition, ValidateChildBindings } from './definition.js'
+import type { CompositionDeliveryArguments } from './delivery.js'
 import type { ValidateChildStartup } from './initialization.js'
 import {
   type DefineCommand,
@@ -37,7 +38,12 @@ export interface AuthoringMakeComposition<
   Concrete extends boolean = true,
   StartupSchema extends AnySchema | undefined = undefined,
 > {
-  (): Composition<
+  (
+    ...validation: CompositionDeliveryArguments<
+      MessageSchema['Type'],
+      readonly []
+    >
+  ): Composition<
     Owner<Id, Concrete>,
     ModelSchema,
     MessageSchema,

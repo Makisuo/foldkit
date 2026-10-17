@@ -18,8 +18,8 @@ const update = DisclosuresComposition.makeUpdate((model, { id, isOpen }) => ({
   model: Record.set(model, id, isOpen),
 }))
 
-const Application = defineApplication({ Model, Message })
-const ApplicationComposition = Application.makeComposition()
+const ApplicationDefinition = defineApplication({ Model, Message })
+const ApplicationComposition = ApplicationDefinition.makeComposition()
 const updateApplication = ApplicationComposition.makeUpdate(
   (model, { id, isOpen }) => ({ model: Record.set(model, id, isOpen) }),
 )

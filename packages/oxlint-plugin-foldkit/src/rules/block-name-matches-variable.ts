@@ -145,7 +145,7 @@ const authoringStage = (
   }
 }
 
-/** Requires Block and Application bindings to follow the authoring and Composition stage naming model. */
+/** Requires Block and Application bindings to use Definition and Composition stage suffixes. */
 export const blockNameMatchesVariable = Rule.define({
   name: 'block-name-matches-variable',
   meta: Rule.meta({
@@ -178,7 +178,7 @@ export const blockNameMatchesVariable = Rule.define({
         if (stage.isApplication) {
           const expectedName = stage.isComposition
             ? 'ApplicationComposition'
-            : 'Application'
+            : 'ApplicationDefinition'
           if (node.id.name === expectedName) {
             return Effect.void
           }
@@ -196,7 +196,7 @@ export const blockNameMatchesVariable = Rule.define({
           return Effect.void
         }
 
-        const expectedName = `${identity}${stage.isComposition ? 'Composition' : ''}`
+        const expectedName = `${identity}${stage.isComposition ? 'Composition' : 'Definition'}`
         const isValidName = node.id.name === expectedName
         if (isValidName) {
           return Effect.void

@@ -6,21 +6,24 @@ import { Message } from './message'
 import type { Model } from './model'
 
 // ✅ Run random work in a Command
-const GenerateApplePosition = Application.command('GenerateApplePosition', {
-  messages: [Message.CompletedGenerateApplePosition],
-  handler: function* () {
-    return () =>
-      Effect.gen(function* () {
-        const x = yield* Random.nextIntBetween(0, GRID_SIZE, {
-          halfOpen: true,
+const GenerateApplePosition = ApplicationDefinition.command(
+  'GenerateApplePosition',
+  {
+    messages: [Message.CompletedGenerateApplePosition],
+    handler: function* () {
+      return () =>
+        Effect.gen(function* () {
+          const x = yield* Random.nextIntBetween(0, GRID_SIZE, {
+            halfOpen: true,
+          })
+          const y = yield* Random.nextIntBetween(0, GRID_SIZE, {
+            halfOpen: true,
+          })
+          return Message.CompletedGenerateApplePosition({ position: { x, y } })
         })
-        const y = yield* Random.nextIntBetween(0, GRID_SIZE, {
-          halfOpen: true,
-        })
-        return Message.CompletedGenerateApplePosition({ position: { x, y } })
-      })
+    },
   },
-})
+)
 
 const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {

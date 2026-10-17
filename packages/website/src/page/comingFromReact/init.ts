@@ -1,6 +1,6 @@
 import { Array, Record, pipe } from 'effect'
 
-import { ComingFromReactComposition } from './definition'
+import { ComingFromReactComposition } from './composition'
 import { FAQ_IDS } from './faq'
 import type { Model } from './model'
 

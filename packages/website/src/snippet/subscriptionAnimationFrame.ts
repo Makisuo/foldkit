@@ -14,9 +14,9 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const Spinner = Block.define('Spinner', { Model, Message })
+const SpinnerDefinition = Block.define('Spinner', { Model, Message })
 
-const subscriptions = Spinner.subscriptions(entry => ({
+const subscriptions = SpinnerDefinition.subscriptions(entry => ({
   animationFrameTicks: entry(
     'AnimationFrameTicks',
     { isActive: Schema.Boolean },

@@ -20,5 +20,5 @@ fromParentMessage: {
 }})
 const ApplicationComposition = Application.makeComposition({ childBindings: [SettingsBinding] })
 export const updateBinding = ApplicationComposition.makeUpdate(model =>
-  SettingsBinding.setTheme('Light')(model)
+  SettingsBinding.informThemeChanged('Light')(model)
 )

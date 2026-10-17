@@ -67,30 +67,31 @@ const foldDialogOutMessage = OutMessage.match<
       dialogEvents: Array.append(DialogEvent.make('Closed')),
     }),
   }),
+  CompletedClose: () => model => ({ model }),
 })
 
-const DialogParentTest = Block.define('DialogParentTest', {
+const DialogParentTestDefinition = Block.define('DialogParentTest', {
   Model: ParentModel,
   Message: ParentMessage,
 })
 
-const LoadParentData = DialogParentTest.command('LoadParentData', {
+const LoadParentData = DialogParentTestDefinition.command('LoadParentData', {
   messages: [ParentMessage.CompletedLoadParentData],
 })
 
-const loadParentData = DialogParentTest.step(model => ({
+const loadParentData = DialogParentTestDefinition.step(model => ({
   model,
   commands: [LoadParentData()],
 }))
 
-const DialogBinding = DialogParentTest.bindChild(block, {
+const DialogBinding = DialogParentTestDefinition.bindChild(block, {
   field: 'dialog',
   parentMessage: ParentMessage.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
   init: { args: () => [{ id: 'initial-dialog' }] },
 })
 
-const DialogParentTestComposition = DialogParentTest.makeComposition({
+const DialogParentTestComposition = DialogParentTestDefinition.makeComposition({
   childBindings: [DialogBinding],
 })
 

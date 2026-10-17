@@ -90,6 +90,10 @@ Use `isReadOnly` when the value is still information the user needs, such as a l
 
 The two flags are independent. Setting both emits both sets of attributes, and either one on its own removes the pointer and keyboard handlers.
 
+## Informing Slider about a Range Change
+
+When parent-owned configuration changes the minimum or maximum, call `SliderBinding.informRangeChanged({ min, max })`. The operation dispatches `InformedOfRangeChange` through Slider update, which keeps every child Model change inside the child. Its notification branch returns `{ model }` and emits no OutMessage.
+
 ## API Reference
 
 ### InitConfig {#init-config}

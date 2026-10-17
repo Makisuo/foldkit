@@ -104,7 +104,7 @@ describe('Composition safety', () => {
         },
       ]),
     ).toThrow(
-      'A custom, keyed, or contextual Binding must supply fromParentMessage',
+      'A contextual canonical Binding must supply fromParentMessage.args',
     )
   })
 })

@@ -11,7 +11,7 @@ import type {
   OutMessage as AnimationOutMessage,
 } from '@foldkit/ui/animation'
 
-const AnimationExample = Block.define('AnimationExample', {
+const AnimationExampleDefinition = Block.define('AnimationExample', {
   Model,
   Message,
 })
@@ -21,16 +21,19 @@ const AnimationExample = Block.define('AnimationExample', {
 // result, so Animation can tell this leave's settlement apart from a late
 // result left over from an earlier enter. This one waits on a child panel
 // instead of the Animation wrapper:
-const WaitForPanelSettled = AnimationExample.command('WaitForPanelSettled', {
-  args: { generation: Schema.Number },
-  messages: [Animation.Message.EndedAnimation],
-  handler: function* () {
-    return ({ generation }) =>
-      Dom.waitForAnimationSettled('#drawer-panel').pipe(
-        Effect.as(Animation.Message.EndedAnimation({ generation })),
-      )
+const WaitForPanelSettled = AnimationExampleDefinition.command(
+  'WaitForPanelSettled',
+  {
+    args: { generation: Schema.Number },
+    messages: [Animation.Message.EndedAnimation],
+    handler: function* () {
+      return ({ generation }) =>
+        Dom.waitForAnimationSettled('#drawer-panel').pipe(
+          Effect.as(Animation.Message.EndedAnimation({ generation })),
+        )
+    },
   },
-})
+)
 
 // StartedLeaveAnimating carries the generation. Pass it straight to the Command:
 const foldAnimationOutMessage = (
@@ -41,7 +44,7 @@ const foldAnimationOutMessage = (
     Update.Step<Model, Message, Command.HandlerOf<typeof WaitForPanelSettled>>
   >(outMessage, {
     StartedLeaveAnimating: ({ generation }) =>
-      AnimationExample.step(model => ({
+      AnimationExampleDefinition.step(model => ({
         model,
         commands: [liftCommand(WaitForPanelSettled({ generation }))],
       })),

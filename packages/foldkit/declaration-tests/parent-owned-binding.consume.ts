@@ -1,10 +1,10 @@
-import { Layer, Option } from 'effect'
+import { Layer, Option, Tuple } from 'effect'
 import type { Block, Command, Update } from 'foldkit'
 
 import {
   ChildBlock,
   ChildClock,
-  DeclarationParentOwnedParent,
+  DeclarationParentOwnedParentDefinition,
   DirectChildBinding,
   ForwardingChildBinding,
   InlineKeyedChildWithoutOutMessageBinding,
@@ -12,7 +12,6 @@ import {
   KeyedChildWithoutOutMessageBinding,
   OptionalChildBinding,
   ParentMessage,
-  ParentOutMessage,
   PlainChildBlock,
   ReadChildValue,
   TaggedChildBinding,
@@ -28,8 +27,17 @@ type Equal<Left, Right> =
     ? true
     : false
 type Expect<Value extends true> = Value
+type ExactRequirements<Actual, Expected> = 0 extends 1 & Actual
+  ? false
+  : unknown extends Actual
+    ? false
+    : [Actual] extends [Expected]
+      ? [Expected] extends [Actual]
+        ? true
+        : false
+      : false
 
-type ParentModel = typeof DeclarationParentOwnedParent.Model.Type
+type ParentModel = typeof DeclarationParentOwnedParentDefinition.Model.Type
 type ChildMessage = typeof ChildBlock.Message.Type
 type NamedEntry = Readonly<{
   id: string
@@ -41,22 +49,22 @@ type ChildEntry = Readonly<{
 }>
 
 type EmittedChildPolicy = Block.OutMessagePolicy<
-  typeof DeclarationParentOwnedParent.Model.Type,
+  typeof DeclarationParentOwnedParentDefinition.Model.Type,
   typeof ChildBlock.Message.Type,
-  typeof DeclarationParentOwnedParent.Message.Type,
+  typeof DeclarationParentOwnedParentDefinition.Message.Type,
   typeof ChildBlock.OutMessage.Type
 >
 type EmittedChildConfig = Block.BindingConfig<
   typeof ChildBlock,
-  typeof DeclarationParentOwnedParent.Model.Type,
-  typeof DeclarationParentOwnedParent.Message.Type,
+  typeof DeclarationParentOwnedParentDefinition.Model.Type,
+  typeof DeclarationParentOwnedParentDefinition.Message.Type,
   'emittedChild',
   EmittedChildPolicy
 >
 type EmittedPlainChildConfig = Block.BindingConfig<
   typeof PlainChildBlock,
-  typeof DeclarationParentOwnedParent.Model.Type,
-  typeof DeclarationParentOwnedParent.Message.Type,
+  typeof DeclarationParentOwnedParentDefinition.Model.Type,
+  typeof DeclarationParentOwnedParentDefinition.Message.Type,
   'emittedPlainChild'
 >
 const emittedChildPolicy: EmittedChildPolicy = {
@@ -67,7 +75,13 @@ const acceptedEmittedChildConfig: EmittedChildConfig = {
   read: model => Option.some(model.child),
   write: model => model,
   toParentMessage: message => ParentMessage.GotChildMessage({ message }),
-  fromParentMessage: false,
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotChildMessage,
+    args: (
+      _model: unknown,
+      { message }: ReturnType<typeof ParentMessage.GotChildMessage>,
+    ) => Option.some(Tuple.make(message)),
+  },
   outMessage: emittedChildPolicy,
 }
 const acceptedEmittedPlainChildConfig: EmittedPlainChildConfig = {
@@ -75,7 +89,13 @@ const acceptedEmittedPlainChildConfig: EmittedPlainChildConfig = {
   read: model => Option.some(model.child),
   write: model => model,
   toParentMessage: message => ParentMessage.GotChildMessage({ message }),
-  fromParentMessage: false,
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotChildMessage,
+    args: (
+      _model: unknown,
+      { message }: ReturnType<typeof ParentMessage.GotChildMessage>,
+    ) => Option.some(Tuple.make(message)),
+  },
 }
 // @ts-expect-error Emitted OutMessage children require an OutMessage policy.
 const missingEmittedChildPolicy: EmittedChildConfig = {
@@ -83,14 +103,26 @@ const missingEmittedChildPolicy: EmittedChildConfig = {
   read: model => Option.some(model.child),
   write: model => model,
   toParentMessage: message => ParentMessage.GotChildMessage({ message }),
-  fromParentMessage: false,
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotChildMessage,
+    args: (
+      _model: unknown,
+      { message }: ReturnType<typeof ParentMessage.GotChildMessage>,
+    ) => Option.some(Tuple.make(message)),
+  },
 }
 const forbiddenEmittedPlainChildPolicy: EmittedPlainChildConfig = {
   placement: 'emittedPlainChild',
   read: model => Option.some(model.child),
   write: model => model,
   toParentMessage: message => ParentMessage.GotChildMessage({ message }),
-  fromParentMessage: false,
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotChildMessage,
+    args: (
+      _model: unknown,
+      { message }: ReturnType<typeof ParentMessage.GotChildMessage>,
+    ) => Option.some(Tuple.make(message)),
+  },
   // @ts-expect-error Emitted children without OutMessages forbid a policy.
   outMessage: emittedChildPolicy,
 }
@@ -100,7 +132,13 @@ const undefinedEmittedPlainChildPolicy: EmittedPlainChildConfig = {
   read: model => Option.some(model.child),
   write: model => model,
   toParentMessage: message => ParentMessage.GotChildMessage({ message }),
-  fromParentMessage: false,
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotChildMessage,
+    args: (
+      _model: unknown,
+      { message }: ReturnType<typeof ParentMessage.GotChildMessage>,
+    ) => Option.some(Tuple.make(message)),
+  },
   outMessage: undefined,
 }
 
@@ -169,18 +207,18 @@ export type InlineKeyedWithoutOutMessageKey = Expect<
 >
 
 const wrongEmittedSubscriptionKey = (
-  _model: typeof DeclarationParentOwnedParent.Model.Type,
+  _model: typeof DeclarationParentOwnedParentDefinition.Model.Type,
   _id: number,
 ) => true
 type EmittedNamedKeyedConfig = Block.KeyedBindingConfig<
   typeof PlainChildBlock,
-  typeof DeclarationParentOwnedParent.Model.Type,
-  typeof DeclarationParentOwnedParent.Message.Type,
+  typeof DeclarationParentOwnedParentDefinition.Model.Type,
+  typeof DeclarationParentOwnedParentDefinition.Message.Type,
   NamedEntry,
   string,
   'emittedNamedEntries'
 >
-const acceptedEmittedNamedKeyedConfig: EmittedNamedKeyedConfig = {
+const acceptedEmittedNamedKeyedConfig = {
   placement: 'emittedNamedEntries',
   readAll: model => model.namedEntries,
   key: entry => entry.id,
@@ -188,8 +226,14 @@ const acceptedEmittedNamedKeyedConfig: EmittedNamedKeyedConfig = {
   writeAt: model => model,
   toParentMessage: (id, message) =>
     ParentMessage.GotNamedEntryMessage({ id, message }),
-  fromParentMessage: false,
-}
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotNamedEntryMessage,
+    args: (
+      _model: unknown,
+      { id, message }: ReturnType<typeof ParentMessage.GotNamedEntryMessage>,
+    ) => Option.some(Tuple.make(id, message)),
+  },
+} satisfies EmittedNamedKeyedConfig
 const emittedNamedKeyedConfig: EmittedNamedKeyedConfig = {
   placement: 'emittedNamedEntries',
   readAll: model => model.namedEntries,
@@ -198,22 +242,28 @@ const emittedNamedKeyedConfig: EmittedNamedKeyedConfig = {
   writeAt: model => model,
   toParentMessage: (id, message) =>
     ParentMessage.GotNamedEntryMessage({ id, message }),
-  fromParentMessage: false,
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotNamedEntryMessage,
+    args: (
+      _model: unknown,
+      { id, message }: ReturnType<typeof ParentMessage.GotNamedEntryMessage>,
+    ) => Option.some(Tuple.make(id, message)),
+  },
   // @ts-expect-error Emitted keyed Subscription gates preserve the exact string key.
   subscriptions: { when: wrongEmittedSubscriptionKey },
 }
 
 type EmittedKeyedChildPolicy = Block.KeyedOutMessagePolicy<
-  typeof DeclarationParentOwnedParent.Model.Type,
+  typeof DeclarationParentOwnedParentDefinition.Model.Type,
   typeof ChildBlock.Message.Type,
-  typeof DeclarationParentOwnedParent.Message.Type,
+  typeof DeclarationParentOwnedParentDefinition.Message.Type,
   typeof ChildBlock.OutMessage.Type,
   number
 >
 type EmittedKeyedChildConfig = Block.KeyedBindingConfig<
   typeof ChildBlock,
-  typeof DeclarationParentOwnedParent.Model.Type,
-  typeof DeclarationParentOwnedParent.Message.Type,
+  typeof DeclarationParentOwnedParentDefinition.Model.Type,
+  typeof DeclarationParentOwnedParentDefinition.Message.Type,
   ChildEntry,
   number,
   'emittedEntries',
@@ -222,7 +272,7 @@ type EmittedKeyedChildConfig = Block.KeyedBindingConfig<
 const emittedKeyedChildPolicy: EmittedKeyedChildPolicy = {
   fold: () => model => ({ model }),
 }
-const acceptedEmittedKeyedChildConfig: EmittedKeyedChildConfig = {
+const acceptedEmittedKeyedChildConfig = {
   placement: 'emittedEntries',
   readAll: model => model.entries,
   key: entry => entry.id,
@@ -230,9 +280,15 @@ const acceptedEmittedKeyedChildConfig: EmittedKeyedChildConfig = {
   writeAt: model => model,
   toParentMessage: (id, message) =>
     ParentMessage.GotEntryMessage({ id, message }),
-  fromParentMessage: false,
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotEntryMessage,
+    args: (
+      _model: unknown,
+      { id, message }: ReturnType<typeof ParentMessage.GotEntryMessage>,
+    ) => Option.some(Tuple.make(id, message)),
+  },
   outMessage: emittedKeyedChildPolicy,
-}
+} satisfies EmittedKeyedChildConfig
 // @ts-expect-error Emitted keyed OutMessage children require a policy.
 const missingEmittedKeyedChildPolicy: EmittedKeyedChildConfig = {
   placement: 'emittedEntries',
@@ -242,7 +298,13 @@ const missingEmittedKeyedChildPolicy: EmittedKeyedChildConfig = {
   writeAt: model => model,
   toParentMessage: (id, message) =>
     ParentMessage.GotEntryMessage({ id, message }),
-  fromParentMessage: false,
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotEntryMessage,
+    args: (
+      _model: unknown,
+      { id, message }: ReturnType<typeof ParentMessage.GotEntryMessage>,
+    ) => Option.some(Tuple.make(id, message)),
+  },
 }
 const forbiddenEmittedPlainKeyedPolicy: EmittedNamedKeyedConfig = {
   placement: 'emittedNamedEntries',
@@ -252,7 +314,13 @@ const forbiddenEmittedPlainKeyedPolicy: EmittedNamedKeyedConfig = {
   writeAt: model => model,
   toParentMessage: (id, message) =>
     ParentMessage.GotNamedEntryMessage({ id, message }),
-  fromParentMessage: false,
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotNamedEntryMessage,
+    args: (
+      _model: unknown,
+      { id, message }: ReturnType<typeof ParentMessage.GotNamedEntryMessage>,
+    ) => Option.some(Tuple.make(id, message)),
+  },
   // @ts-expect-error Emitted keyed children without OutMessages forbid a policy.
   outMessage: emittedKeyedChildPolicy,
 }
@@ -265,7 +333,13 @@ const undefinedEmittedPlainKeyedPolicy: EmittedNamedKeyedConfig = {
   writeAt: model => model,
   toParentMessage: (id, message) =>
     ParentMessage.GotNamedEntryMessage({ id, message }),
-  fromParentMessage: false,
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotNamedEntryMessage,
+    args: (
+      _model: unknown,
+      { id, message }: ReturnType<typeof ParentMessage.GotNamedEntryMessage>,
+    ) => Option.some(Tuple.make(id, message)),
+  },
   outMessage: undefined,
 }
 
@@ -275,8 +349,12 @@ void missingEmittedKeyedChildPolicy
 void forbiddenEmittedPlainKeyedPolicy
 void undefinedEmittedPlainKeyedPolicy
 
-DeclarationParentOwnedParent.bindChild(PlainChildBlock, emittedNamedKeyedConfig)
-DeclarationParentOwnedParent.bindChild(
+// @ts-expect-error A rejected Subscription key cannot form a complete Binding.
+DeclarationParentOwnedParentDefinition.bindChild(
+  PlainChildBlock,
+  emittedNamedKeyedConfig,
+)
+DeclarationParentOwnedParentDefinition.bindChild(
   PlainChildBlock,
   acceptedEmittedNamedKeyedConfig,
 )
@@ -309,15 +387,21 @@ export type DirectInspectionError = Expect<
     'HandlerUnavailable'
   >
 >
-export type ForwardedOutMessage = Expect<
+export type DeferredForwardedOutMessage = Expect<
   Equal<
     ReturnType<ReturnType<typeof ForwardingChildBinding.select>>,
     Update.ResultRecipe<
       ParentModel,
       typeof ParentMessage.Type,
-      typeof ParentOutMessage.Type,
       never,
-      Block.BindingRequirement<'forwardingChild', typeof ChildBlock>
+      Block.Scoped<'forwardingChild', Command.HandlerOf<typeof ReadChildValue>>,
+      | Block.BindingRequirement<'forwardingChild', typeof ChildBlock>
+      | Update.DeferredResultEvidence<
+          Block.DeferredBindingPolicy<
+            'forwardingChild',
+            'DeclarationParentOwnedChild'
+          >
+        >
     >
   >
 >
@@ -341,7 +425,7 @@ export type GenericKeyedPayload = Expect<
   >
 >
 export type GenericKeyedPolicyRequirements = Expect<
-  Equal<
+  ExactRequirements<
     Update.RequirementsOf<
       ReturnType<typeof genericKeyedBinding.ChildBinding.select>
     >,
@@ -369,24 +453,24 @@ const concreteEmittedKeyedConfig = {
   ...acceptedEmittedKeyedChildConfig,
   outMessage: { fold: () => (model: ParentModel) => ({ model }) },
 }
-DeclarationParentOwnedParent.bindChild(ChildBlock, concreteEmittedKeyedConfig)
+DeclarationParentOwnedParentDefinition.bindChild(
+  ChildBlock,
+  concreteEmittedKeyedConfig,
+)
 const emittedKeyedConfigWithExtraField = {
   ...concreteEmittedKeyedConfig,
   unexpected: true,
 }
 // @ts-expect-error Capturing emitted keyed policies must retain excess-field rejection.
-DeclarationParentOwnedParent.bindChild(
+DeclarationParentOwnedParentDefinition.bindChild(
   ChildBlock,
   emittedKeyedConfigWithExtraField,
 )
 
 const schemaFreeEmittedRoutedConfig: EmittedNamedKeyedConfig = {
   ...acceptedEmittedNamedKeyedConfig,
-  // @ts-expect-error Emitted manual config aliases cannot erase an incoming route's proof.
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotNamedEntryMessage,
-    args: () => Option.none(),
-  },
+  // @ts-expect-error Messageful emitted config aliases cannot disable incoming routing.
+  fromParentMessage: false,
 }
 void schemaFreeEmittedRoutedConfig
 
@@ -400,17 +484,21 @@ declare const absentEmittedPolicyConfig: Omit<
   'outMessage'
 > &
   Readonly<{ outMessage?: never }>
-// @ts-expect-error An optional declared policy cannot establish required emitted policy presence.
-DeclarationParentOwnedParent.bindChild(ChildBlock, optionalEmittedPolicyConfig)
-// @ts-expect-error An optional never property cannot establish emitted policy presence.
-DeclarationParentOwnedParent.bindChild(ChildBlock, absentEmittedPolicyConfig)
-const aliasedPlacementBinding = DeclarationParentOwnedParent.bindChild(
-  PlainChildBlock,
-  acceptedEmittedNamedKeyedConfig,
+DeclarationParentOwnedParentDefinition.bindChild(
+  ChildBlock,
+  // @ts-expect-error An optional declared policy cannot establish required emitted policy presence.
+  optionalEmittedPolicyConfig,
 )
+DeclarationParentOwnedParentDefinition.bindChild(
+  ChildBlock,
+  // @ts-expect-error An optional never property cannot establish emitted policy presence.
+  absentEmittedPolicyConfig,
+)
+const aliasedPlacementBinding =
+  DeclarationParentOwnedParentDefinition.bindChild(
+    PlainChildBlock,
+    acceptedEmittedNamedKeyedConfig,
+  )
 export type AliasedPlacementIsTruthful = Expect<
-  Equal<
-    typeof aliasedPlacementBinding.placement,
-    'emittedNamedEntries' | 'DeclarationParentOwnedPlainChild'
-  >
+  Equal<typeof aliasedPlacementBinding.placement, 'emittedNamedEntries'>
 >

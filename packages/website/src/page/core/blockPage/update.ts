@@ -1,6 +1,6 @@
 import { modifyFields } from 'foldkit/struct'
 
-import { BlockPageComposition } from './definition'
+import { BlockPageComposition } from './composition'
 import { Message } from './message'
 
 export const update = BlockPageComposition.makeUpdate((model, message) =>

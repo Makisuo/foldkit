@@ -51,19 +51,19 @@ const foldListboxOutMessage = PlanListbox.OutMessage.match<
 // navigation, typeahead, and open/close to PlanListbox.update, writes the next
 // Listbox Model back, maps the Block's Commands into your Message type, and
 // hands any OutMessage to the OutMessage fold.
-const PlanPicker = Block.define('PlanPicker', {
+const PlanPickerDefinition = Block.define('PlanPicker', {
   Model,
   Message,
 })
 
-const PlanListboxBinding = PlanPicker.bindChild(PlanListbox, {
+const PlanListboxBinding = PlanPickerDefinition.bindChild(PlanListbox, {
   field: 'listbox',
   parentMessage: Message.GotListboxMessage,
   init: { args: () => Tuple.make({ id: 'plan' }) },
   outMessage: { fold: foldListboxOutMessage },
 })
 
-const PlanPickerComposition = PlanPicker.makeComposition({
+const PlanPickerComposition = PlanPickerDefinition.makeComposition({
   childBindings: [PlanListboxBinding],
 })
 

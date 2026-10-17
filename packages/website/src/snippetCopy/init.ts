@@ -1,6 +1,6 @@
 import { HashSet } from 'effect'
 
-import { SnippetCopyComposition } from './definition'
+import { SnippetCopyComposition } from './composition'
 
 export const init = SnippetCopyComposition.makeInit(() => ({
   model: {

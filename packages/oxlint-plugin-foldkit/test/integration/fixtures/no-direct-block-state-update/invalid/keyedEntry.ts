@@ -6,28 +6,31 @@ import { modifyFields } from 'foldkit/struct'
 export const Model = Schema.Struct({ id: Schema.String, theme: Schema.String })
 export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
-  ChangedTheme: { theme: Schema.String },
+  InformedOfThemeChange: { theme: Schema.String },
 })
 export type Message = typeof Message.Type
 const KeyedEntry = Block.define('NoDirectStateInvalidKeyedEntry', {
   Model,
   Message,
 })
-export const setTheme = KeyedEntry.step((model, theme: string) => ({
-  model: modifyFields(model, { theme: () => theme }),
-}))
 const KeyedEntryComposition = KeyedEntry.makeComposition()
 const init = KeyedEntryComposition.makeInit(() => ({
   model: Model.make({ id: 'initial', theme: 'System' }),
 }))
 const update = KeyedEntryComposition.makeUpdate((model, message) =>
   Message.match(message, {
-    ChangedTheme: ({ theme }) => setTheme(model, theme),
+    InformedOfThemeChange: ({ theme }) => ({
+      model: modifyFields(model, { theme: () => theme }),
+    }),
   }),
 )
 export const Entry = KeyedEntryComposition.makeBlock({
   init,
   update,
-  expose: { setTheme },
+  operations: {
+    informThemeChanged: (theme: string) => [
+      Message.InformedOfThemeChange({ theme }),
+    ],
+  },
   EffectsLayer: Layer.empty,
 })

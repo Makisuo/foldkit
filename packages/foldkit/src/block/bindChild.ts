@@ -27,6 +27,7 @@ import {
   normalizeKeyedFieldConfig,
   wrappedKeyedInitialPolicyOf,
 } from './keyedFieldConnection.js'
+import type { ValidateConcreteComposition } from './requirements.js'
 import type { Qualify } from './scope.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
@@ -116,16 +117,17 @@ type FromParentArgs<ParentModel, ParentMessage, FoldArguments> = (
   message: ParentMessage,
 ) => Option.Option<FoldArguments>
 
-type IncomingMessageOf<FromParentMessage, Mapper> =
-  undefined extends FromParentMessage
-    ? ReturnOf<Mapper>
-    : FromParentMessage extends false
-      ? never
-      : FromParentMessage extends Readonly<{
-            parentMessage: infer Constructor
-          }>
-        ? ReturnOf<Constructor>
-        : ReturnOf<Mapper>
+type IncomingMessageOf<BlockValue extends BindableBlock, Config, Mapper> = [
+  BlockValue['Message']['Type'],
+] extends [never]
+  ? never
+  : Config extends Readonly<{
+        fromParentMessage: Readonly<{ parentMessage: infer Constructor }>
+      }>
+    ? ReturnOf<Constructor>
+    : Config extends Readonly<{ parentMessage: unknown }>
+      ? ReturnOf<Mapper>
+      : never
 
 type ParentOutMessage<ParentOutMessageSchema> =
   ParentOutMessageSchema extends AnySchema
@@ -234,7 +236,7 @@ type DirectBindingReturn<
   Mapper,
   Placement extends string,
   Policy,
-  FromParentMessage,
+  Config,
 > = Binding<
   BlockValue,
   ParentModelSchema['Type'],
@@ -253,7 +255,7 @@ type DirectBindingReturn<
     : ReturnOf<Mapper>,
   ParentOutMessage<ParentOutMessageSchema>,
   ReturnOf<Mapper>,
-  IncomingMessageOf<FromParentMessage, Mapper>,
+  IncomingMessageOf<BlockValue, Config, Mapper>,
   ParentMessageSchema
 >
 
@@ -265,7 +267,7 @@ type AccessorBindingReturn<
   Mapper,
   Placement extends string,
   Policy,
-  FromParentMessage,
+  Config,
 > = Binding<
   BlockValue,
   ParentModelSchema['Type'],
@@ -284,7 +286,7 @@ type AccessorBindingReturn<
     : ReturnOf<Mapper>,
   ParentOutMessage<ParentOutMessageSchema>,
   ReturnOf<Mapper>,
-  IncomingMessageOf<FromParentMessage, Mapper>,
+  IncomingMessageOf<BlockValue, Config, Mapper>,
   ParentMessageSchema
 >
 
@@ -482,7 +484,7 @@ type DirectBindingResult<
   Placement extends string,
   Policy,
   Initial,
-  FromParentMessage,
+  Config,
   Startup,
 > = (
   Initial extends Readonly<{ init: false }>
@@ -504,7 +506,7 @@ type DirectBindingResult<
         Mapper,
         Placement,
         Policy,
-        FromParentMessage
+        Config
       >,
       BlockValue,
       ParentModelSchema['Type'],
@@ -526,7 +528,7 @@ type DirectBindingResult<
       Mapper,
       Placement,
       Policy,
-      FromParentMessage
+      Config
     >
 
 type AccessorBindingResult<
@@ -539,7 +541,7 @@ type AccessorBindingResult<
   Placement extends string,
   Policy,
   Resolver extends (...args: ReadonlyArray<any>) => any,
-  FromParentMessage,
+  Config,
   Startup,
 > = InitializedBinding<
   AccessorBindingReturn<
@@ -550,7 +552,7 @@ type AccessorBindingResult<
     Mapper,
     Placement,
     Policy,
-    FromParentMessage
+    Config
   >,
   BlockValue,
   ParentModelSchema['Type'],
@@ -660,13 +662,6 @@ type PolicyOfConfig<Config> =
     ? Policy
     : never
 
-type FromParentMessageOfConfig<Config> =
-  Config extends Readonly<{
-    fromParentMessage: infer FromParentMessage
-  }>
-    ? FromParentMessage
-    : undefined
-
 type InvalidBindChildConfig<Reason> = readonly [
   error: Readonly<{
     'Binding config is invalid': Reason
@@ -675,18 +670,16 @@ type InvalidBindChildConfig<Reason> = readonly [
 
 type ValidateFromParentMessageKeys<Config> =
   Config extends Readonly<{ fromParentMessage: infer FromParentMessage }>
-    ? FromParentMessage extends false
+    ? Exclude<keyof FromParentMessage, 'parentMessage' | 'args'> extends never
       ? readonly []
-      : Exclude<keyof FromParentMessage, 'parentMessage' | 'args'> extends never
-        ? readonly []
-        : InvalidBindChildConfig<
-            Readonly<{
-              'fromParentMessage contains unsupported fields': Exclude<
-                keyof FromParentMessage,
-                'parentMessage' | 'args'
-              >
-            }>
-          >
+      : InvalidBindChildConfig<
+          Readonly<{
+            'fromParentMessage contains unsupported fields': Exclude<
+              keyof FromParentMessage,
+              'parentMessage' | 'args'
+            >
+          }>
+        >
     : readonly []
 
 type ValidateFromParentMessageConstructor<
@@ -892,13 +885,19 @@ type ValidateStaticStorage<
           : InvalidBindChildConfig<'Accessor storage requires both read and write functions'>
         : InvalidBindChildConfig<'A Binding requires direct, accessor, or keyed storage'>
 
-type ValidateStaticMessageMapping<Keys> = 'parentMessage' extends Keys
-  ? 'toParentMessage' extends Keys
-    ? InvalidBindChildConfig<'Supply exactly one parent Message mapping'>
-    : readonly []
-  : 'toParentMessage' extends Keys
+type ValidateStaticMessageMapping<BlockValue extends BindableBlock, Keys> = [
+  BlockValue['Message']['Type'],
+] extends [never]
+  ? Extract<Keys, 'parentMessage' | 'toParentMessage'> extends never
     ? readonly []
-    : InvalidBindChildConfig<'A parent Message mapping is required'>
+    : InvalidBindChildConfig<'A Message-free child cannot map parent Messages'>
+  : 'parentMessage' extends Keys
+    ? 'toParentMessage' extends Keys
+      ? InvalidBindChildConfig<'Supply exactly one parent Message mapping'>
+      : readonly []
+    : 'toParentMessage' extends Keys
+      ? readonly []
+      : InvalidBindChildConfig<'A parent Message mapping is required'>
 
 type ValidationResult<Validation> = unknown extends Validation
   ? readonly []
@@ -978,6 +977,11 @@ type RequiredOutMessagePolicy<BlockValue extends BindableBlock> =
   BlockValue extends Readonly<{ OutMessage: Readonly<{ Type: unknown }> }>
     ? Readonly<{ outMessage: unknown }>
     : unknown
+
+type ValidateConcreteCompositionArguments<BlockValue extends BindableBlock> =
+  unknown extends ValidateConcreteComposition<BlockValue>
+    ? readonly []
+    : readonly [error: ValidateConcreteComposition<BlockValue>]
 
 type ValidateStaticBindChildSource<
   BlockValue extends BindableBlock,
@@ -1061,13 +1065,16 @@ type ValidateStaticBindingConfig<
                         KeyField,
                         ChildField
                       > extends readonly []
-                      ? ValidateStaticMessageMapping<Keys> extends readonly []
+                      ? ValidateStaticMessageMapping<
+                          BlockValue,
+                          Keys
+                        > extends readonly []
                         ? ValidateStaticInitialPolicy<
                             BlockValue,
                             ParentModelSchema['Type'],
                             Config
                           >
-                        : ValidateStaticMessageMapping<Keys>
+                        : ValidateStaticMessageMapping<BlockValue, Keys>
                       : ValidateStaticStorage<
                           BlockValue,
                           ParentModelSchema,
@@ -1250,20 +1257,18 @@ type GeneralKeyedContextualProperties<
                 message: BlockValue['Message']['Type'],
               ) => ParentMessageSchema['Type']
             : Key extends 'fromParentMessage'
-              ?
-                  | false
-                  | Readonly<{
-                      parentMessage: Constructor
-                      /** Returns Some of the native fold arguments, or None to ignore this wrapper. */
-                      args: FromParentArgs<
-                        ParentModelSchema['Type'],
-                        ReturnOf<NoInfer<Constructor>>,
-                        KeyedFoldArguments<
-                          BlockValue,
-                          Extract<ReturnOf<NoInfer<KeyOf>>, InstanceKey>
-                        >
-                      >
-                    }>
+              ? Readonly<{
+                  parentMessage: Constructor
+                  /** Returns Some of the native fold arguments, or None to ignore this wrapper. */
+                  args: FromParentArgs<
+                    ParentModelSchema['Type'],
+                    ReturnOf<NoInfer<Constructor>>,
+                    KeyedFoldArguments<
+                      BlockValue,
+                      Extract<ReturnOf<NoInfer<KeyOf>>, InstanceKey>
+                    >
+                  >
+                }>
               : Key extends 'outMessage'
                 ? ContextualOutMessagePolicy<
                     KeyedOutMessageContext<
@@ -1309,7 +1314,7 @@ interface BindChildConfigDocumentation {
   parentMessage: unknown
   /** Maps each emitted child Message to its parent wrapper, with the originating key for keyed children. */
   toParentMessage: unknown
-  /** Routes one parent wrapper to the native fold. Its args returns Some of the exact fold tuple or None to ignore. False keeps routing manual. A canonical unkeyed Binding may omit this only when the child update declares no context parameters; optional and defaulted context still require this policy. */
+  /** Routes one parent wrapper to the native fold. Its args returns Some of the exact fold tuple or None to ignore. A canonical unkeyed Binding may omit this when the child update declares no context parameters. */
   fromParentMessage: unknown
   /** Folds or forwards every child OutMessage. Composition checks returned Steps and their registered sibling requirements. */
   outMessage: unknown
@@ -1601,50 +1606,44 @@ type BindChildContextualProperties<
                   ) => ParentMessageSchema['Type']
             : Key extends 'fromParentMessage'
               ? 'readAll' extends Keys
-                ?
-                    | false
-                    | Readonly<{
-                        parentMessage: Constructor
-                        /** Returns Some of the native fold arguments, or None to ignore this wrapper. */
-                        args: FromParentArgs<
-                          ParentModelSchema['Type'],
-                          ReturnOf<NoInfer<Constructor>>,
-                          KeyedFoldArguments<BlockValue, NoInfer<KeyValue>>
-                        >
-                      }>
+                ? Readonly<{
+                    parentMessage: Constructor
+                    /** Returns Some of the native fold arguments, or None to ignore this wrapper. */
+                    args: FromParentArgs<
+                      ParentModelSchema['Type'],
+                      ReturnOf<NoInfer<Constructor>>,
+                      KeyedFoldArguments<BlockValue, NoInfer<KeyValue>>
+                    >
+                  }>
                 : 'key' extends Keys
-                  ?
-                      | false
-                      | Readonly<{
-                          parentMessage: Constructor
-                          /** Returns Some of the native fold arguments, or None to ignore this wrapper. */
-                          args: FromParentArgs<
-                            ParentModelSchema['Type'],
-                            ReturnOf<NoInfer<Constructor>>,
-                            KeyedFoldArguments<
-                              BlockValue,
-                              KeyForConfig<
-                                Keys,
-                                BlockValue,
-                                ParentModelSchema,
-                                KeyValue,
-                                Field,
-                                KeyField
-                              >
-                            >
+                  ? Readonly<{
+                      parentMessage: Constructor
+                      /** Returns Some of the native fold arguments, or None to ignore this wrapper. */
+                      args: FromParentArgs<
+                        ParentModelSchema['Type'],
+                        ReturnOf<NoInfer<Constructor>>,
+                        KeyedFoldArguments<
+                          BlockValue,
+                          KeyForConfig<
+                            Keys,
+                            BlockValue,
+                            ParentModelSchema,
+                            KeyValue,
+                            Field,
+                            KeyField
                           >
-                        }>
-                  :
-                      | false
-                      | Readonly<{
-                          parentMessage?: Constructor
-                          /** Returns Some of the native fold arguments, or None to ignore this wrapper. */
-                          args: FromParentArgs<
-                            ParentModelSchema['Type'],
-                            ReturnOf<NoInfer<Constructor>>,
-                            StaticFoldArguments<BlockValue>
-                          >
-                        }>
+                        >
+                      >
+                    }>
+                  : Readonly<{
+                      parentMessage?: Constructor
+                      /** Returns Some of the native fold arguments, or None to ignore this wrapper. */
+                      args: FromParentArgs<
+                        ParentModelSchema['Type'],
+                        ReturnOf<NoInfer<Constructor>>,
+                        StaticFoldArguments<BlockValue>
+                      >
+                    }>
               : Key extends 'init'
                 ? unknown
                 : Key extends 'presentWhen'
@@ -1758,7 +1757,7 @@ type KeyedBindingResultForConfig<
   ParentMessageSchema['Type'],
   ParentOutMessage<ParentOutMessageSchema>,
   ReturnOf<MapperOfConfig<Config>>,
-  IncomingMessageOf<FromParentMessageOfConfig<Config>, MapperOfConfig<Config>>
+  IncomingMessageOf<BlockValue, Config, MapperOfConfig<Config>>
 >
 
 type BindChildResultForConfig<
@@ -1863,7 +1862,7 @@ type BindChildResultForConfig<
               PlacementOfConfig<BlockValue, Config>,
               PolicyOfConfig<Config>,
               InitialOfConfig<Config>,
-              FromParentMessageOfConfig<Config>,
+              Config,
               Startup
             >
           : Config extends Readonly<{
@@ -1881,7 +1880,7 @@ type BindChildResultForConfig<
                 PlacementOfConfig<BlockValue, Config>,
                 PolicyOfConfig<Config>,
                 ResolverOfConfig<Config>,
-                FromParentMessageOfConfig<Config>,
+                Config,
                 Startup
               >
             : AccessorBindingReturn<
@@ -1892,7 +1891,7 @@ type BindChildResultForConfig<
                 MapperOfConfig<Config>,
                 PlacementOfConfig<BlockValue, Config>,
                 PolicyOfConfig<Config>,
-                FromParentMessageOfConfig<Config>
+                Config
               >
 
 /** Creates a static, optional, or keyed child Binding in this Definition's
@@ -1954,7 +1953,6 @@ export interface BindChild<
         writeAt?: never
       }> &
       (
-        | Readonly<{ fromParentMessage: false }>
         | Readonly<{
             parentMessage: Mapper
             fromParentMessage: Readonly<{
@@ -1967,13 +1965,15 @@ export interface BindChild<
               parentMessage: Constructor
             }>
           }>
-        | ([ChildUpdateContext<BlockValue>] extends [readonly []]
-            ? Readonly<{
-                key?: never
-                parentMessage: Mapper
-                fromParentMessage?: never
-              }>
-            : never)
+        | ([BlockValue['Message']['Type']] extends [never]
+            ? Readonly<{ fromParentMessage?: never }>
+            : [ChildUpdateContext<BlockValue>] extends [readonly []]
+              ? Readonly<{
+                  key?: never
+                  parentMessage: Mapper
+                  fromParentMessage?: never
+                }>
+              : never)
       ),
     ...validation: readonly [
       ...ValidateStaticBindChildSource<
@@ -2006,6 +2006,7 @@ export interface BindChild<
               ParentOutMessageSchema
             >
       >,
+      ...ValidateConcreteCompositionArguments<BlockValue>,
     ]
   ): BindChildResultForConfig<
     BlockValue,
@@ -2049,13 +2050,24 @@ export interface BindChild<
           key: Extract<ReturnOf<NoInfer<KeyOf>>, InstanceKey>,
           nextChildModel: BlockValue['Model']['Type'],
         ) => ParentModelSchema['Type']
-        toParentMessage: (
-          key: Extract<ReturnOf<NoInfer<KeyOf>>, InstanceKey>,
-          message: BlockValue['Message']['Type'],
-        ) => ParentMessageSchema['Type']
-        fromParentMessage:
-          | false
-          | Readonly<{
+        field?: never
+        childField?: never
+        parentMessage?: never
+        presentWhen?: never
+        init?: never
+        write?: never
+      }> &
+      ([BlockValue['Message']['Type']] extends [never]
+        ? Readonly<{
+            toParentMessage?: never
+            fromParentMessage?: never
+          }>
+        : Readonly<{
+            toParentMessage: (
+              key: Extract<ReturnOf<NoInfer<KeyOf>>, InstanceKey>,
+              message: BlockValue['Message']['Type'],
+            ) => ParentMessageSchema['Type']
+            fromParentMessage: Readonly<{
               parentMessage: Constructor
               /** Returns Some of the native fold arguments, or None to ignore this wrapper. */
               args: FromParentArgs<
@@ -2067,22 +2079,19 @@ export interface BindChild<
                 >
               >
             }>
-        field?: never
-        childField?: never
-        parentMessage?: never
-        presentWhen?: never
-        init?: never
-        write?: never
-      }>,
-    ...validation: ValidateGeneralKeyedSource<
-      BlockValue,
-      ParentModelSchema,
-      ParentMessageSchema,
-      ParentOutMessageSchema,
-      Extract<ReturnOf<NoInfer<KeyOf>>, InstanceKey>,
-      NoInfer<Keys>,
-      NoInfer<Source>
-    >
+          }>),
+    ...validation: readonly [
+      ...ValidateGeneralKeyedSource<
+        BlockValue,
+        ParentModelSchema,
+        ParentMessageSchema,
+        ParentOutMessageSchema,
+        Extract<ReturnOf<NoInfer<KeyOf>>, InstanceKey>,
+        NoInfer<Keys>,
+        NoInfer<Source>
+      >,
+      ...ValidateConcreteCompositionArguments<BlockValue>,
+    ]
   ): KeyedBinding<
     BlockValue,
     ParentModelSchema['Type'],
@@ -2094,11 +2103,14 @@ export interface BindChild<
     ParentMessageSchema['Type'],
     ParentOutMessage<ParentOutMessageSchema>,
     ReturnOf<MapperOfConfig<Source>>,
-    IncomingMessageOf<FromParentMessageOfConfig<Source>, MapperOfConfig<Source>>
+    IncomingMessageOf<BlockValue, Source, MapperOfConfig<Source>>
   >
 }
 
-const assertGeneralKeyedConfig = (config: object): void => {
+const assertGeneralKeyedConfig = (
+  config: object,
+  childMessage: unknown,
+): void => {
   const allowedFields = new Set([
     'placement',
     'readAll',
@@ -2137,18 +2149,21 @@ const assertGeneralKeyedConfig = (config: object): void => {
     }
   }
 
-  for (const functionField of [
-    'readAll',
-    'key',
-    'read',
-    'writeAt',
-    'toParentMessage',
-  ]) {
+  for (const functionField of ['readAll', 'key', 'read', 'writeAt']) {
     if (!Predicate.isFunction(Reflect.get(config, functionField))) {
       throw new Error(
         `[foldkit] A general keyed Binding requires a ${functionField} function.`,
       )
     }
+  }
+
+  if (
+    !isNeverSchema(childMessage) &&
+    !Predicate.isFunction(Reflect.get(config, 'toParentMessage'))
+  ) {
+    throw new Error(
+      '[foldkit] A general keyed Binding requires a toParentMessage function.',
+    )
   }
 }
 
@@ -2186,6 +2201,23 @@ const isParentMessageMember = (
   return visit(SchemaAST.toType(parentSchema.ast))
 }
 
+const isNeverSchema = (schema: unknown): boolean => {
+  if (!Schema.isSchema(schema)) {
+    return false
+  }
+
+  const visit = (sourceAst: SchemaAST.AST): boolean => {
+    const ast = SchemaAST.toType(sourceAst)
+    if (SchemaAST.isSuspend(ast)) {
+      return visit(ast.thunk())
+    }
+
+    return SchemaAST.isNever(ast)
+  }
+
+  return visit(schema.ast)
+}
+
 const normalizeFromParentMessage = (
   block: BindableBlock,
   parentMessageSchema: Schema.Top,
@@ -2193,7 +2225,7 @@ const normalizeFromParentMessage = (
   isKeyed: boolean,
 ): Readonly<{
   outgoingParentMessage?: RuntimeMessageConstructor
-  fromParentMessage: RuntimeFromParentMessage
+  fromParentMessage?: RuntimeFromParentMessage
 }> => {
   const canonicalParentMessage = Reflect.get(config, 'parentMessage')
   const hasCanonicalParentMessage = Object.hasOwn(config, 'parentMessage')
@@ -2216,6 +2248,12 @@ const normalizeFromParentMessage = (
   const policy = Reflect.get(config, 'fromParentMessage')
 
   if (!hasPolicy) {
+    if (isNeverSchema(block.Message)) {
+      return outgoingParentMessage === undefined
+        ? {}
+        : { outgoingParentMessage }
+    }
+
     if (
       !isKeyed &&
       isRuntimeMessageConstructor(canonicalParentMessage) &&
@@ -2232,20 +2270,15 @@ const normalizeFromParentMessage = (
     }
 
     throw new Error(
-      '[foldkit] A custom, keyed, or contextual Binding must supply fromParentMessage as false or an object with parentMessage and args.',
+      isRuntimeMessageConstructor(canonicalParentMessage)
+        ? '[foldkit] A contextual canonical Binding must supply fromParentMessage.args for the native fold arguments.'
+        : '[foldkit] A custom or keyed Binding must supply fromParentMessage with an exact parentMessage constructor and args for the native fold arguments.',
     )
-  }
-
-  if (policy === false) {
-    return {
-      ...(outgoingParentMessage === undefined ? {} : { outgoingParentMessage }),
-      fromParentMessage: false,
-    }
   }
 
   if (!Predicate.isObject(policy)) {
     throw new Error(
-      '[foldkit] fromParentMessage must be false or an object with parentMessage and args.',
+      '[foldkit] fromParentMessage must be an object with parentMessage and args.',
     )
   }
 
@@ -2610,12 +2643,24 @@ export const makeBindChild = <
     }
 
     if (Predicate.isObject(config) && Object.hasOwn(config, 'readAll')) {
-      assertGeneralKeyedConfig(config)
+      assertGeneralKeyedConfig(config, block.Message)
+      const normalized =
+        isNeverSchema(block.Message) &&
+        !Predicate.isFunction(Reflect.get(config, 'toParentMessage'))
+          ? {
+              ...config,
+              toParentMessage: () => {
+                throw new Error(
+                  '[foldkit] A Message-free child cannot emit a parent Message.',
+                )
+              },
+            }
+          : config
       const deliveryConfig = withDeliveryConfig(
         block,
         parentContract.Message,
         config,
-        config,
+        normalized,
         true,
       )
 

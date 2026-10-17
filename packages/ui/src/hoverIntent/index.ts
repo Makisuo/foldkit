@@ -13,6 +13,7 @@ export type {
   LeftTrigger,
   Opened,
   PressedEscape,
+  RequestedClose,
 } from './message.js'
 export {
   Model,

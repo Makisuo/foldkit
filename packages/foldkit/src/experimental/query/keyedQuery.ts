@@ -9,9 +9,9 @@ import {
   Order,
   Predicate,
   Record,
-  type Result,
   Schema,
   type Scope,
+  Tuple,
   pipe,
 } from 'effect'
 
@@ -178,6 +178,10 @@ const makeKeyedQueryMessage = <A, AI, E, EI, Fields extends SyncFields>(
   Args: Schema.Struct<Fields>,
 ) =>
   defineMessageUnion({
+    RequestedReset: {},
+    RequestedRevalidation: { args: Args },
+    RequestedRevalidationOrLoad: { args: Args },
+    RequestedLoadIfMissing: { args: Args },
     CompletedFetch: {
       args: Args,
       generation: Schema.Number,
@@ -187,7 +191,7 @@ const makeKeyedQueryMessage = <A, AI, E, EI, Fields extends SyncFields>(
   })
 
 /**
- * Schema-backed Message union dispatched when a KeyedQuery fetch completes.
+ * Schema-backed Message union for requested KeyedQuery operations and Fetch completions.
  *
  * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
  */
@@ -232,16 +236,6 @@ export type KeyedQueryModel<
   EI,
   Fields extends SyncFields,
 > = ReturnType<typeof makeKeyedQueryModel<A, AI, E, EI, Fields>>
-
-const defineKeyedStep = <Model, Message, Args, R>(
-  defineStep: Block.DefineStep<Model, Message, never>,
-  step: Update.Fold<Model, Message, Args, R>,
-) => {
-  const authoredStep = (model: Model, args: Args) => step(model, args)
-
-  // oxlint-disable-next-line typescript/consistent-type-assertions
-  return defineStep(authoredStep as never) as typeof authoredStep
-}
 
 const makeKeyedQueryApi = <
   Name extends string,
@@ -333,8 +327,12 @@ const makeKeyedQueryApi = <
   const revalidate = liftTransition(AsyncData.revalidate)
   const revalidateOrLoad = liftTransition(AsyncData.revalidateOrLoad)
   const loadIfMissing = liftTransition(AsyncData.loadIfMissing)
-  const update = (model: Model, message: Message): PureUpdateReturn =>
-    Message.match<PureUpdateReturn>(message, {
+  const update = (model: Model, message: Message): UpdateReturn =>
+    Message.match<UpdateReturn>(message, {
+      RequestedReset: () => reset(model),
+      RequestedRevalidation: ({ args }) => revalidate(model, args),
+      RequestedRevalidationOrLoad: ({ args }) => revalidateOrLoad(model, args),
+      RequestedLoadIfMissing: ({ args }) => loadIfMissing(model, args),
       CompletedFetch({ generation, requestKey, result }) {
         const maybeEntry = HashMap.get(model.entries, requestKey)
 
@@ -363,6 +361,14 @@ const makeKeyedQueryApi = <
         }
       },
     })
+  const operations = {
+    revalidate: (args: Args) =>
+      Tuple.make(Message.RequestedRevalidation({ args })),
+    revalidateOrLoad: (args: Args) =>
+      Tuple.make(Message.RequestedRevalidationOrLoad({ args })),
+    loadIfMissing: (args: Args) =>
+      Tuple.make(Message.RequestedLoadIfMissing({ args })),
+  }
   const run = (args: Args) => {
     const requestArgs = snapshotArgs(args)
     const requestKey = argsToKey(requestArgs)
@@ -372,19 +378,6 @@ const makeKeyedQueryApi = <
       Effect.map(({ result }) => AsyncData.settle(AsyncData.Loading(), result)),
     )
   }
-  const completedFetch = (
-    args: Args,
-    generation: number,
-    requestKey: string,
-    result: Result.Result<A, E>,
-  ): typeof Message.CompletedFetch.Type => ({
-    // NOTE: The constructor input view rejects args already decoded as the Schema Type.
-    _tag: 'CompletedFetch',
-    args,
-    generation,
-    requestKey,
-    result,
-  })
   const toLayer: KeyedQueryToLayer<Name, A, AI, E, EI, Fields> = <
     HandlerR,
     BuildE = never,
@@ -407,7 +400,12 @@ const makeKeyedQueryApi = <
               execute(args),
               Effect.result,
               Effect.map(result =>
-                completedFetch(args, generation, requestKey, result),
+                Message.CompletedFetch({
+                  args,
+                  generation,
+                  requestKey,
+                  result,
+                }),
               ),
             ),
       ) as never,
@@ -418,6 +416,7 @@ const makeKeyedQueryApi = <
     reset,
     read,
     update,
+    operations,
     revalidate,
     revalidateOrLoad,
     loadIfMissing,
@@ -491,7 +490,8 @@ type KeyedQueryExposedOperations<
   /** Clears every cached entry without starting a fetch. */
   reset: Update.Step<
     KeyedQueryModelType<A, AI, E, EI, Fields>,
-    KeyedQueryMessageType<A, AI, E, EI, Fields>
+    KeyedQueryMessageType<A, AI, E, EI, Fields>,
+    KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>
   >
   /** Starts a fetch for `Success` or `Stale` data at the selected key while
    * retaining that data. Other states and a missing entry remain unchanged. */
@@ -543,9 +543,10 @@ type KeyedQueryImplementation<
     message: KeyedQueryMessageType<A, AI, E, EI, Fields>,
   ) => Update.Return<
     KeyedQueryModelType<A, AI, E, EI, Fields>,
-    KeyedQueryMessageType<A, AI, E, EI, Fields>
+    KeyedQueryMessageType<A, AI, E, EI, Fields>,
+    KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>
   >
-  expose: KeyedQueryExposedOperations<Name, A, AI, E, EI, Fields>
+  operations: KeyedQueryExposedOperations<Name, A, AI, E, EI, Fields>
   EffectsLayer: EffectsLayer
   hostHandlers: HostHandlers
 }>
@@ -581,7 +582,8 @@ type KeyedQueryConveniences<
   /** Clears every cached entry without starting a fetch. */
   reset: Update.Step<
     KeyedQueryModelType<A, AI, E, EI, Fields>,
-    KeyedQueryMessageType<A, AI, E, EI, Fields>
+    KeyedQueryMessageType<A, AI, E, EI, Fields>,
+    KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>
   >
   /** Starts a fetch for `Success` or `Stale` data at the selected key while
    * retaining that data. Other states and a missing entry remain unchanged. */
@@ -740,9 +742,9 @@ const makeHostKeyedQuery = <
   const Args = Schema.Struct(config.args)
   const Model = makeKeyedQueryModel(config.data, config.error, Args)
   const Message = makeKeyedQueryMessage(config.data, config.error, Args)
-  const QueryOwner = Block.define(config.name)
-  const Query = QueryOwner.define({ Model, Message })
-  const Fetch = Query.command('Fetch', {
+  const QueryOwnerDefinition = Block.define(config.name)
+  const QueryDefinition = QueryOwnerDefinition.define({ Model, Message })
+  const Fetch = QueryDefinition.command('Fetch', {
     args: {
       args: Args,
       generation: Schema.Number,
@@ -751,16 +753,15 @@ const makeHostKeyedQuery = <
     messages: [Message.CompletedFetch],
   })
   const api = makeKeyedQueryApi(config, Args, Model, Message, Fetch)
-  const QueryComposition = Query.makeComposition()
+  const QueryComposition = QueryDefinition.makeComposition()
   const init = QueryComposition.makeInit(api.init)
-  const reset = Query.step(api.reset)
-  const revalidate = defineKeyedStep(Query.step, api.revalidate)
-  const revalidateOrLoad = defineKeyedStep(Query.step, api.revalidateOrLoad)
-  const loadIfMissing = defineKeyedStep(Query.step, api.loadIfMissing)
   const block = QueryComposition.makeBlock({
     init,
     update: QueryComposition.makeUpdate(api.update),
-    expose: { reset, revalidate, revalidateOrLoad, loadIfMissing },
+    operations: {
+      ...api.operations,
+      reset: QueryComposition.makeOperation(Message.RequestedReset),
+    },
     EffectsLayer: Layer.empty,
     hostHandlers: [Fetch],
   })
@@ -771,10 +772,10 @@ const makeHostKeyedQuery = <
     run: api.run,
     toLayer: api.toLayer,
     operations: {
-      reset: api.reset,
-      revalidate: api.revalidate,
-      revalidateOrLoad: api.revalidateOrLoad,
-      loadIfMissing: api.loadIfMissing,
+      reset: block.operations.reset,
+      revalidate: Function.dual(2, block.operations.revalidate),
+      revalidateOrLoad: Function.dual(2, block.operations.revalidateOrLoad),
+      loadIfMissing: Function.dual(2, block.operations.loadIfMissing),
     },
   })
 }
@@ -811,9 +812,9 @@ const makeCanonicalKeyedQuery = <
   const Args = Schema.Struct(config.args)
   const Model = makeKeyedQueryModel(config.data, config.error, Args)
   const Message = makeKeyedQueryMessage(config.data, config.error, Args)
-  const QueryOwner = Block.define(config.name)
-  const Query = QueryOwner.define({ Model, Message })
-  const Fetch = Query.command('Fetch', {
+  const QueryOwnerDefinition = Block.define(config.name)
+  const QueryDefinition = QueryOwnerDefinition.define({ Model, Message })
+  const Fetch = QueryDefinition.command('Fetch', {
     args: {
       args: Args,
       generation: Schema.Number,
@@ -822,16 +823,15 @@ const makeCanonicalKeyedQuery = <
     messages: [Message.CompletedFetch],
   })
   const api = makeKeyedQueryApi(config, Args, Model, Message, Fetch)
-  const QueryComposition = Query.makeComposition()
+  const QueryComposition = QueryDefinition.makeComposition()
   const init = QueryComposition.makeInit(api.init)
-  const reset = Query.step(api.reset)
-  const revalidate = defineKeyedStep(Query.step, api.revalidate)
-  const revalidateOrLoad = defineKeyedStep(Query.step, api.revalidateOrLoad)
-  const loadIfMissing = defineKeyedStep(Query.step, api.loadIfMissing)
   const block = QueryComposition.makeBlock({
     init,
     update: QueryComposition.makeUpdate(api.update),
-    expose: { reset, revalidate, revalidateOrLoad, loadIfMissing },
+    operations: {
+      ...api.operations,
+      reset: QueryComposition.makeOperation(Message.RequestedReset),
+    },
     EffectsLayer: api.toLayer(handler),
   })
 
@@ -841,10 +841,10 @@ const makeCanonicalKeyedQuery = <
     run: api.run,
     toLayer: api.toLayer,
     operations: {
-      reset: api.reset,
-      revalidate: api.revalidate,
-      revalidateOrLoad: api.revalidateOrLoad,
-      loadIfMissing: api.loadIfMissing,
+      reset: block.operations.reset,
+      revalidate: Function.dual(2, block.operations.revalidate),
+      revalidateOrLoad: Function.dual(2, block.operations.revalidateOrLoad),
+      loadIfMissing: Function.dual(2, block.operations.loadIfMissing),
     },
   })
 }

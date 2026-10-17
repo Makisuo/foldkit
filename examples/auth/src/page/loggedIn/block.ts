@@ -1,6 +1,6 @@
 import type { Session } from '../../domain/session'
 import type { LoggedInRoute } from '../../route'
-import { LoggedInComposition } from './definition'
+import { LoggedInComposition } from './composition'
 import { init } from './model'
 import { update } from './update'
 import { view } from './view'

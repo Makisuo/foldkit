@@ -1,6 +1,6 @@
 import { Record } from 'effect'
 
-import { ComingFromReactComposition } from './definition'
+import { ComingFromReactComposition } from './composition'
 import { Message } from './message'
 
 export const update = ComingFromReactComposition.makeUpdate((model, message) =>

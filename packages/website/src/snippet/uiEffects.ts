@@ -1,22 +1,22 @@
 // composition.ts
 import { Dialog, Menu } from '@foldkit/ui'
 
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 
-export const DialogBinding = Application.bindChild(Dialog.block, {
+export const DialogBinding = ApplicationDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
 })
 
-export const MenuBinding = Application.bindChild(Menu.block, {
+export const MenuBinding = ApplicationDefinition.bindChild(Menu.block, {
   field: 'menu',
   parentMessage: Message.GotMenuMessage,
   outMessage: { fold: foldMenuOutMessage },
 })
 
-export const ApplicationComposition = Application.makeComposition({
+export const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [DialogBinding, MenuBinding],
 })
 

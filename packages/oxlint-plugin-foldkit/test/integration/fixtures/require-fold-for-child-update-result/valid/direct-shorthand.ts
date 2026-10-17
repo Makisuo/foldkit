@@ -41,7 +41,7 @@ export const initial: Model = Model.make({
 
 export const updateWithNamedOperations = ApplicationComposition.makeUpdate(model =>
   Update.combine(model, [
-    EntriesBinding.setTheme('initial', 'Light'),
-    MaybeSettingsBinding.setTheme('Dark'),
+    EntriesBinding.informThemeChanged('initial', 'Light'),
+    MaybeSettingsBinding.informThemeChanged('Dark'),
   ])
 )

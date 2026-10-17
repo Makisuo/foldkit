@@ -1,9 +1,15 @@
+import { Duration } from 'effect'
 import type * as Block from 'foldkit/block'
+
+import * as Slider from '@foldkit/ui/slider'
+import * as Tooltip from '@foldkit/ui/tooltip'
 
 import {
   DialogBinding,
   Picker,
   PickerBinding,
+  RootSlider,
+  ToastBlock,
   WithOutMessageOnly,
   WithViewAndOutMessage,
   WithViewOnly,
@@ -43,6 +49,23 @@ DialogBinding.open()
 DialogBinding.open('unexpected')
 
 PickerBinding.selectItem('Apple', 'Apple')
+
+Slider.block.operations.informRangeChanged(
+  Slider.init({ id: 'relocated-range', min: 0, max: 100, step: 1 }),
+  { min: 10, max: 90 },
+)
+RootSlider.operations.informRangeChanged(
+  Slider.init({ id: 'relocated-root-range', min: 0, max: 100, step: 1 }),
+  { min: 20, max: 80 },
+)
+Tooltip.block.operations.informShowDelayChanged(
+  Tooltip.init({ id: 'relocated-tooltip' }),
+  Duration.millis(250),
+)
+ToastBlock.operations.show(ToastBlock.init({ id: 'relocated-toast' }).model, {
+  payload: { kind: 'Saved' },
+  duration: '1 second',
+})
 
 // @ts-expect-error The emitted generic operation rejects an unrelated item.
 PickerBinding.selectItem('Banana', 'Banana')

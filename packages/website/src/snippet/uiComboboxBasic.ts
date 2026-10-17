@@ -35,9 +35,9 @@ const foldComboboxOutMessage = CityCombobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const CityPicker = Block.define('CityPicker', { Model, Message })
+const CityPickerDefinition = Block.define('CityPicker', { Model, Message })
 
-const ComboboxBinding = CityPicker.bindChild(CityCombobox, {
+const ComboboxBinding = CityPickerDefinition.bindChild(CityCombobox, {
   field: 'combobox',
   parentMessage: Message.GotComboboxMessage,
   init: { args: () => Tuple.make({ id: 'city' }) },
@@ -46,7 +46,7 @@ const ComboboxBinding = CityPicker.bindChild(CityCombobox, {
 
 // Including the Binding collects its lifecycle and handler graph.
 
-const CityPickerComposition = CityPicker.makeComposition({
+const CityPickerComposition = CityPickerDefinition.makeComposition({
   childBindings: [ComboboxBinding],
 })
 

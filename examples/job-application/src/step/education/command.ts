@@ -1,8 +1,8 @@
 import { Crypto, Effect } from 'effect'
 
-import { Education, Message } from './definition'
+import { EducationDefinition, Message } from './definition'
 
-export const GenerateEducationEntryId = Education.command(
+export const GenerateEducationEntryId = EducationDefinition.command(
   'GenerateEducationEntryId',
   {
     messages: [

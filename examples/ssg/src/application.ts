@@ -30,9 +30,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.makeComposition()
+export const ApplicationComposition = ApplicationDefinition.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
@@ -41,7 +41,7 @@ export const init = ApplicationComposition.makeInit((url: Url) => ({
   model: { route: urlToApplicationRoute(url), count: 0 },
 }))
 
-const NavigateInternal = Application.command('NavigateInternal', {
+const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -50,7 +50,7 @@ const NavigateInternal = Application.command('NavigateInternal', {
   },
 })
 
-const LoadExternal = Application.command('LoadExternal', {
+const LoadExternal = ApplicationDefinition.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {

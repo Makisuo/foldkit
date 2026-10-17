@@ -25,10 +25,10 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const Application = defineApplication({ Model, Message })
-const ApplicationComposition = Application.makeComposition()
+const ApplicationDefinition = defineApplication({ Model, Message })
+const ApplicationComposition = ApplicationDefinition.makeComposition()
 
-const FetchUser = Application.command('FetchUser', {
+const FetchUser = ApplicationDefinition.command('FetchUser', {
   args: { userId: Schema.String },
   messages: [Message.SucceededFetchUser, Message.FailedFetchUser],
   handler: function* () {

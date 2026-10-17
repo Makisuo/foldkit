@@ -1,5 +1,5 @@
 import {
-  Application,
+  ApplicationDefinition,
   ApplicationComposition,
   type Model,
 } from './counterHttpCommand'

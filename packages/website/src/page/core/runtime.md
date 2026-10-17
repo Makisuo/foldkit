@@ -2,7 +2,7 @@
 
 ## Overview
 
-A genuinely compact Foldkit application can start in two files. `src/application.ts` owns Model, Message, init, update, view, the typed `Application`, `ApplicationComposition`, and any small local handler bundle. `src/entry.ts` chooses browser inputs, calls owned `makeApplication` or `makeElement`, and starts the Runtime. Once any root responsibility is extracted, named files own every root responsibility, `definition.ts` owns `Application`, and `composition.ts` or its composition barrel owns `ApplicationComposition`; the split root has no `application.ts` aggregation file. When handlers or startup Effects require ordinary Services, `services.ts` composes their providers as `ApplicationLayer`. Importing application pieces in a test does not start the Runtime.
+A genuinely compact Foldkit application can start in two files. `src/application.ts` owns Model, Message, init, update, view, `ApplicationDefinition`, `ApplicationComposition`, and any small local handler bundle. `src/entry.ts` chooses browser inputs, calls owned `makeApplication` or `makeElement`, and starts the Runtime. Once any root responsibility is extracted, named files own every root responsibility, `definition.ts` owns `ApplicationDefinition`, and `composition.ts` or its composition barrel owns `ApplicationComposition`; the split root has no `application.ts` aggregation file. When handlers or startup Effects require ordinary Services, `services.ts` composes their providers as `ApplicationLayer`. Importing application pieces in a test does not start the Runtime.
 
 The Runtime API makes two independent choices:
 

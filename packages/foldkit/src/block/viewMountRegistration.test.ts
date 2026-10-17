@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema } from 'effect'
+import { Context, Effect, Layer, Option, Schema } from 'effect'
 import { describe, expect, it, vi } from 'vitest'
 
 import { renderToString } from '../experimental/server/server.js'
@@ -83,17 +83,20 @@ const ChildBinding = MountParent.bindChild(firstBlock, {
   parentMessage: ParentMessage.GotChildMessage,
 })
 const EntriesBinding = MountParent.bindChild(firstBlock, {
-  fromParentMessage: false,
   field: 'entries',
   key: 'id',
   childField: 'child',
   toParentMessage: (id, message) =>
     ParentMessage.GotEntryMessage({ id, message }),
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotEntryMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
 })
 const parent = MountParent.makeComposition({
   childBindings: [ChildBinding, EntriesBinding],
 })
-const parentUpdate = parent.makeUpdate(model => ({ model }))
+const parentUpdate = parent.makeUpdate()
 const parentModel = ParentModel.make({
   child: init().model,
   entries: [Entry.make({ id: 'first', child: init().model })],
@@ -227,8 +230,8 @@ describe('captured local Mount registrations', () => {
   })
 
   it('checks captured Mount sets during server rendering without building Layers', async () => {
-    const Application = defineApplication({ Model, Message })
-    const FocusFirst = Application.mount('FocusFirst', {
+    const ApplicationDefinition = defineApplication({ Model, Message })
+    const FocusFirst = ApplicationDefinition.mount('FocusFirst', {
       messages: [Message.CompletedObserveFirst],
       handler: function* () {
         yield* Effect.sync(constructed)
@@ -236,7 +239,7 @@ describe('captured local Mount registrations', () => {
         return () => Effect.succeed(Message.CompletedObserveFirst())
       },
     })
-    const FocusSecond = Application.mount('FocusSecond', {
+    const FocusSecond = ApplicationDefinition.mount('FocusSecond', {
       messages: [Message.CompletedObserveSecond],
       handler: function* () {
         yield* Effect.sync(constructed)
@@ -244,10 +247,10 @@ describe('captured local Mount registrations', () => {
         return () => Effect.succeed(Message.CompletedObserveSecond())
       },
     })
-    const firstApplication = Application.makeComposition({
+    const firstApplication = ApplicationDefinition.makeComposition({
       mounts: [FocusFirst],
     })
-    const secondApplication = Application.makeComposition({
+    const secondApplication = ApplicationDefinition.makeComposition({
       mounts: [FocusSecond],
     })
     const applicationUpdate = firstApplication.makeUpdate(model => ({ model }))

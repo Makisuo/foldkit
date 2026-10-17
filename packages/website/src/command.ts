@@ -6,7 +6,7 @@ import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
 
 import { DARK_COLOR_SCHEME_QUERY } from './colorScheme'
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { DOCS_SIDEBAR_NAV_ID, MOBILE_MENU_NAV_ID } from './docsNav'
 import { Message, type ResolvedTheme, ThemePreference } from './message'
 import {
@@ -73,17 +73,20 @@ const loadBrowserEnvironment = Effect.gen(function* () {
   })
 })
 
-export const InjectAnalytics = Application.command('InjectAnalytics', {
-  messages: [Message.CompletedInjectAnalytics],
-  handler: function* () {
-    return () =>
-      Effect.sync(() => inject()).pipe(
-        Effect.as(Message.CompletedInjectAnalytics()),
-      )
+export const InjectAnalytics = ApplicationDefinition.command(
+  'InjectAnalytics',
+  {
+    messages: [Message.CompletedInjectAnalytics],
+    handler: function* () {
+      return () =>
+        Effect.sync(() => inject()).pipe(
+          Effect.as(Message.CompletedInjectAnalytics()),
+        )
+    },
   },
-})
+)
 
-export const LoadBrowserEnvironment = Application.command(
+export const LoadBrowserEnvironment = ApplicationDefinition.command(
   'LoadBrowserEnvironment',
   {
     messages: [Message.CompletedLoadBrowserEnvironment],
@@ -93,17 +96,20 @@ export const LoadBrowserEnvironment = Application.command(
   },
 )
 
-export const InjectSpeedInsights = Application.command('InjectSpeedInsights', {
-  messages: [Message.CompletedInjectSpeedInsights],
-  handler: function* () {
-    return () =>
-      Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
-        Effect.as(Message.CompletedInjectSpeedInsights()),
-      )
+export const InjectSpeedInsights = ApplicationDefinition.command(
+  'InjectSpeedInsights',
+  {
+    messages: [Message.CompletedInjectSpeedInsights],
+    handler: function* () {
+      return () =>
+        Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
+          Effect.as(Message.CompletedInjectSpeedInsights()),
+        )
+    },
   },
-})
+)
 
-export const CopyLink = Application.command('CopyLink', {
+export const CopyLink = ApplicationDefinition.command('CopyLink', {
   args: { url: Schema.String },
   messages: [Message.SucceededCopyLink, Message.FailedCopyLink],
   handler: function* () {
@@ -118,7 +124,7 @@ export const CopyLink = Application.command('CopyLink', {
   },
 })
 
-export const ScrollToTop = Application.command('ScrollToTop', {
+export const ScrollToTop = ApplicationDefinition.command('ScrollToTop', {
   messages: [Message.CompletedScrollToTop],
   handler: function* () {
     return () =>
@@ -129,7 +135,7 @@ export const ScrollToTop = Application.command('ScrollToTop', {
   },
 })
 
-export const ScrollToAnchor = Application.command('ScrollToAnchor', {
+export const ScrollToAnchor = ApplicationDefinition.command('ScrollToAnchor', {
   args: { hash: Schema.String },
   messages: [Message.CompletedScrollToAnchor],
   handler: function* () {
@@ -142,7 +148,7 @@ export const ScrollToAnchor = Application.command('ScrollToAnchor', {
   },
 })
 
-export const ScrollSidebarActiveLinkIntoView = Application.command(
+export const ScrollSidebarActiveLinkIntoView = ApplicationDefinition.command(
   'ScrollSidebarActiveLinkIntoView',
   {
     messages: [Message.CompletedScrollSidebarActiveLinkIntoView],
@@ -160,7 +166,7 @@ export const ScrollSidebarActiveLinkIntoView = Application.command(
 
 const MOBILE_MENU_ACTIVE_LINK = `#${MOBILE_MENU_NAV_ID} [aria-current="page"]`
 
-export const ScrollMobileMenuActiveLinkIntoView = Application.command(
+export const ScrollMobileMenuActiveLinkIntoView = ApplicationDefinition.command(
   'ScrollMobileMenuActiveLinkIntoView',
   {
     messages: [Message.CompletedScrollMobileMenuActiveLinkIntoView],
@@ -176,33 +182,41 @@ export const ScrollMobileMenuActiveLinkIntoView = Application.command(
   },
 )
 
-export const SaveSidebarState = Application.command('SaveSidebarState', {
-  args: { state: SidebarState },
-  messages: [Message.CompletedSaveSidebarState],
-  handler: function* () {
-    const store = yield* SessionStorage
+export const SaveSidebarState = ApplicationDefinition.command(
+  'SaveSidebarState',
+  {
+    args: { state: SidebarState },
+    messages: [Message.CompletedSaveSidebarState],
+    handler: function* () {
+      const store = yield* SessionStorage
 
-    return ({ state }) =>
-      Effect.gen(function* () {
-        const json = yield* Schema.encodeEffect(SidebarStateJsonString)(state)
-        yield* store.set(SIDEBAR_STORAGE_KEY, json)
-        return Message.CompletedSaveSidebarState()
-      }).pipe(
-        Effect.catch(() => Effect.succeed(Message.CompletedSaveSidebarState())),
-      )
+      return ({ state }) =>
+        Effect.gen(function* () {
+          const json = yield* Schema.encodeEffect(SidebarStateJsonString)(state)
+          yield* store.set(SIDEBAR_STORAGE_KEY, json)
+          return Message.CompletedSaveSidebarState()
+        }).pipe(
+          Effect.catch(() =>
+            Effect.succeed(Message.CompletedSaveSidebarState()),
+          ),
+        )
+    },
   },
-})
+)
 
-export const NavigateInternal = Application.command('NavigateInternal', {
-  args: { url: Schema.String },
-  messages: [Message.CompletedNavigateInternal],
-  handler: function* () {
-    return ({ url }) =>
-      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
+export const NavigateInternal = ApplicationDefinition.command(
+  'NavigateInternal',
+  {
+    args: { url: Schema.String },
+    messages: [Message.CompletedNavigateInternal],
+    handler: function* () {
+      return ({ url }) =>
+        pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
+    },
   },
-})
+)
 
-export const LoadExternal = Application.command('LoadExternal', {
+export const LoadExternal = ApplicationDefinition.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {

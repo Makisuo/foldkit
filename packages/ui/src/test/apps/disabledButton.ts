@@ -24,7 +24,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-const DisabledButtonTest = Block.define('DisabledButtonTest', {
+const DisabledButtonTestDefinition = Block.define('DisabledButtonTest', {
   Model,
   Message,
 })
@@ -36,18 +36,20 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
 >({
   Opened: () => model => ({ model }),
   Closed: () => model => ({ model }),
+  CompletedClose: () => model => ({ model }),
 })
 
-const DialogBinding = DisabledButtonTest.bindChild(Dialog.block, {
+const DialogBinding = DisabledButtonTestDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
   init: { args: () => [{ id: 'test-dialog' }] },
 })
 
-const DisabledButtonTestComposition = DisabledButtonTest.makeComposition({
-  childBindings: [DialogBinding],
-})
+const DisabledButtonTestComposition =
+  DisabledButtonTestDefinition.makeComposition({
+    childBindings: [DialogBinding],
+  })
 
 // INIT
 

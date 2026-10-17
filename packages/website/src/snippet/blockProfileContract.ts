@@ -16,4 +16,4 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })

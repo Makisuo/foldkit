@@ -3,7 +3,7 @@ import { type Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import {
-  EducationEntry,
+  EducationEntryDefinition,
   GraduationYearListbox,
   Message,
   type Model,
@@ -20,7 +20,7 @@ const foldGraduationYearListboxOutMessage =
       }),
   })
 
-export const GraduationYearListboxBinding = EducationEntry.bindChild(
+export const GraduationYearListboxBinding = EducationEntryDefinition.bindChild(
   GraduationYearListbox,
   {
     field: 'graduationYearListbox',
@@ -32,6 +32,7 @@ export const GraduationYearListboxBinding = EducationEntry.bindChild(
   },
 )
 
-export const EducationEntryComposition = EducationEntry.makeComposition({
-  childBindings: [GraduationYearListboxBinding],
-})
+export const EducationEntryComposition =
+  EducationEntryDefinition.makeComposition({
+    childBindings: [GraduationYearListboxBinding],
+  })

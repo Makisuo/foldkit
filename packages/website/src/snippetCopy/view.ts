@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { HashSet } from 'effect'
 
 import { Icon } from '../icon'
-import { SnippetCopyComposition } from './definition'
+import { SnippetCopyComposition } from './composition'
 import { Message } from './message'
 
 export type ViewInputs = Readonly<{

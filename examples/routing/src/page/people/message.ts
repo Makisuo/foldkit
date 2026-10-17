@@ -7,7 +7,7 @@ import { Person } from './model'
 export const Message = defineMessageUnion({
   ChangedSearchInput: { value: Schema.String },
   SubmittedSearch: {},
-  ChangedRoute: { route: ApplicationRoute.People },
+  InformedOfRouteChange: { route: ApplicationRoute.People },
   CompletedFetchPeople: {
     query: Schema.String,
     people: Schema.Array(Person),

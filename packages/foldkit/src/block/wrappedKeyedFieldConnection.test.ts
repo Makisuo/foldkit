@@ -1,4 +1,13 @@
-import { Array, Context, Effect, Layer, Option, Schema, Scope } from 'effect'
+import {
+  Array,
+  Context,
+  Effect,
+  Layer,
+  Option,
+  Schema,
+  Scope,
+  Tuple,
+} from 'effect'
 import { expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
@@ -14,6 +23,7 @@ import { define } from './define.js'
 const CounterModel = Schema.Struct({ count: Schema.Number })
 const StoredCounterModel = Schema.Struct({ count: Schema.Number })
 const CounterMessage = defineMessageUnion({
+  RequestedSetCount: { count: Schema.Number },
   UpdatedCount: { count: Schema.Number },
   CompletedFinishInitialization: { count: Schema.Number },
 })
@@ -40,11 +50,15 @@ const counterBlock = CounterComposition.makeBlock({
   })),
   update: CounterComposition.makeUpdate((model, message) =>
     CounterMessage.match(message, {
+      RequestedSetCount: ({ count }) => setCount(model, count),
       UpdatedCount: ({ count }) => setCount(model, count),
       CompletedFinishInitialization: ({ count }) => setCount(model, count),
     }),
   ),
-  expose: { setCount },
+  operations: {
+    setCount: (count: number) =>
+      Tuple.make(CounterMessage.RequestedSetCount({ count })),
+  },
   EffectsLayer: FinishInitialization.layer,
 })
 
@@ -79,6 +93,7 @@ type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
   GotCounterMessage: { id: Schema.String, message: CounterMessage },
   GotTextMessage: { id: Schema.String, message: TextMessage },
+  RequestedSetCount: { id: Schema.String, count: Schema.Number },
 })
 const Parent = define('WrappedKeyedFieldParent', {
   Model: ParentModel,
@@ -88,33 +103,38 @@ const CountersBinding = Parent.bindChild(counterBlock, {
   field: 'counters',
   key: 'id',
   childField: 'counter',
-  fromParentMessage: false,
   toParentMessage: (id, message) =>
     ParentMessage.GotCounterMessage({ id, message }),
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotCounterMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
 })
 const AlternateCountersBinding = Parent.bindChild(counterBlock, {
   field: 'counters',
   key: 'id',
   childField: 'counter',
   placement: 'alternateCounters',
-  fromParentMessage: false,
   toParentMessage: (id, message) =>
     ParentMessage.GotCounterMessage({ id, message }),
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotCounterMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
 })
 const TextEntriesBinding = Parent.bindChild(textBlock, {
   field: 'textEntries',
   key: 'id',
   childField: 'text',
-  fromParentMessage: false,
   toParentMessage: (id, message) =>
     ParentMessage.GotTextMessage({ id, message }),
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotTextMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
 })
 const ParentComposition = Parent.makeComposition({
-  childBindings: [
-    CountersBinding,
-    AlternateCountersBinding,
-    TextEntriesBinding,
-  ],
+  childBindings: [CountersBinding, TextEntriesBinding],
 })
 const ParentBlock = ParentComposition.makeBlock({
   init: ParentComposition.makeInit(() => ({
@@ -122,16 +142,13 @@ const ParentBlock = ParentComposition.makeBlock({
   })),
   update: ParentComposition.makeUpdate((model, message) =>
     ParentMessage.match(message, {
-      GotCounterMessage: ({ id, message }) =>
-        CountersBinding.fold(model, id, message),
-      GotTextMessage: ({ id, message }) =>
-        TextEntriesBinding.fold(model, id, message),
+      RequestedSetCount: ({ id, count }) =>
+        CountersBinding.setCount(id, count)(model),
     }),
   ),
-  expose: {
-    setCount: Parent.step((_model, id: string, count: number) =>
-      CountersBinding.setCount(id, count),
-    ),
+  operations: {
+    setCount: (id: string, count: number) =>
+      Tuple.make(ParentMessage.RequestedSetCount({ id, count })),
   },
 })
 const noSlowSubscriptionDependencies: Option.Option<
@@ -197,7 +214,9 @@ it('leaves the exact parent unchanged when a wrapper key is absent', () => {
       }),
     ).model,
   ).toBe(initial)
-  expect(ParentBlock.expose.setCount(initial, 'missing', 9).model).toBe(initial)
+  expect(ParentBlock.operations.setCount(initial, 'missing', 9).model).toBe(
+    initial,
+  )
 })
 
 it('keeps literal default and overridden placements', () => {
@@ -347,7 +366,6 @@ const invalidConfig = (
   field,
   key,
   childField,
-  fromParentMessage: false,
   toParentMessage: (_id: unknown, message: typeof CounterMessage.Type) =>
     ParentMessage.GotCounterMessage({ id: 'invalid', message }),
 })
@@ -410,7 +428,6 @@ it('rejects invalid wrapper key and child fields at runtime', () => {
         field: 'values',
         key: 'value',
         childField: 'value',
-        fromParentMessage: false,
         toParentMessage: (id: string, message: typeof TextMessage.Type) =>
           ParentMessage.GotTextMessage({ id, message }),
       },

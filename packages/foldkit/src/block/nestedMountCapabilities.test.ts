@@ -45,7 +45,10 @@ const LeafBinding = MountCapabilityMiddle.bindChild(leafBlock, {
 const middleRegistered = MountCapabilityMiddle.makeComposition({
   childBindings: [LeafBinding],
 })
-const middleGraphless = MountCapabilityMiddle.makeComposition()
+const middleGraphless = define('MountCapabilityMiddleGraphless', {
+  Model: MiddleModel,
+  Message: Schema.Never,
+}).makeComposition()
 const middleView = middleRegistered.makeView((model, h) =>
   h.block(
     LeafBinding.embedView({
@@ -81,7 +84,10 @@ const MiddleBinding = MountCapabilityRoot.bindChild(middleBlock, {
 const rootRegistered = MountCapabilityRoot.makeComposition({
   childBindings: [MiddleBinding],
 })
-const rootGraphless = MountCapabilityRoot.makeComposition()
+const rootGraphless = define('MountCapabilityRootGraphless', {
+  Model: RootModel,
+  Message: Schema.Never,
+}).makeComposition()
 const rootView = rootRegistered.makeView((model, h) =>
   h.block(
     MiddleBinding.embedView({

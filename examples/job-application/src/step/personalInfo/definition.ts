@@ -40,7 +40,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const PersonalInfo = Block.define('PersonalInfo', {
+export const PersonalInfoDefinition = Block.define('PersonalInfo', {
   Model,
   Message,
   Startup: CalendarDate,

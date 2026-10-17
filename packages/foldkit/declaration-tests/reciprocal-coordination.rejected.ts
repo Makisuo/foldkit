@@ -1,13 +1,13 @@
 import { Option } from 'effect'
 
 import {
-  Application,
+  ApplicationDefinition,
   ApplicationMessage,
-  DirectReciprocalApplication,
+  DirectReciprocalApplicationDefinition,
   HomeBinding,
   HomeBlock,
   HomeOutMessage,
-  KeyedReciprocalApplication,
+  KeyedReciprocalApplicationDefinition,
   LeftHomeBinding,
   LeftKeyedHomeBinding,
   NestedPolicy,
@@ -18,33 +18,33 @@ import {
 } from './reciprocal-coordination.accepted.js'
 
 // @ts-expect-error Room policy uses the omitted Home Binding.
-const MissingHomeComposition = Application.makeComposition({
+const MissingHomeComposition = ApplicationDefinition.makeComposition({
   childBindings: [RoomBinding],
 })
 // @ts-expect-error Room policy uses HomeBinding.resetJoinForm.
 MissingHomeComposition.makeUpdate()
 
 // @ts-expect-error Home policy uses the omitted Room Binding.
-const MissingRoomComposition = Application.makeComposition({
+const MissingRoomComposition = ApplicationDefinition.makeComposition({
   childBindings: [HomeBinding],
 })
 // @ts-expect-error Home policy uses RoomBinding.informJoined.
 MissingRoomComposition.makeUpdate()
 
 // @ts-expect-error Left direct policy uses the omitted right Home Binding.
-DirectReciprocalApplication.makeComposition({
+DirectReciprocalApplicationDefinition.makeComposition({
   childBindings: [LeftHomeBinding],
 })
 // @ts-expect-error Right direct policy uses the omitted left Home Binding.
-DirectReciprocalApplication.makeComposition({
+DirectReciprocalApplicationDefinition.makeComposition({
   childBindings: [RightHomeBinding],
 })
 // @ts-expect-error Left keyed policy uses the omitted right Home Binding.
-KeyedReciprocalApplication.makeComposition({
+KeyedReciprocalApplicationDefinition.makeComposition({
   childBindings: [LeftKeyedHomeBinding],
 })
 // @ts-expect-error Right keyed policy uses the omitted left Home Binding.
-KeyedReciprocalApplication.makeComposition({
+KeyedReciprocalApplicationDefinition.makeComposition({
   childBindings: [RightKeyedHomeBinding],
 })
 
@@ -59,15 +59,18 @@ RoomBinding.informJoined('room-1', 'alice', { roomId: 1 })
 
 // @ts-expect-error A child with OutMessages requires an OutMessage policy.
 // oxfmt-ignore
-Application.bindChild(HomeBlock, { field: 'home', parentMessage: ApplicationMessage.GotHomeMessage })
+ApplicationDefinition.bindChild(HomeBlock, { field: 'home', parentMessage: ApplicationMessage.GotHomeMessage })
 
 // @ts-expect-error A keyed child with OutMessages requires an OutMessage policy.
 // oxfmt-ignore
-Application.bindChild(RoomBlock, { readAll: model => Option.toArray(model.maybeRoomInstance), key: instance => instance.roomId, read: instance => instance.model, writeAt: model => model, toParentMessage: (roomId, message) => ApplicationMessage.GotRoomMessage({ roomId, message }), fromParentMessage: false })
+ApplicationDefinition.bindChild(RoomBlock, { readAll: model => Option.toArray(model.maybeRoomInstance), key: instance => instance.roomId, read: instance => instance.model, writeAt: model => model, toParentMessage: (roomId, message) => ApplicationMessage.GotRoomMessage({ roomId, message }), fromParentMessage: {
+                                                                                                                                                                                                                                                                                           parentMessage: ApplicationMessage.GotRoomMessage,
+                                                                                                                                                                                                                                                                                           args: (_model, { roomId, message }) => Option.some([roomId, message]),
+                                                                                                                                                                                                                                                                                         } })
 
 // @ts-expect-error A static policy must accept every refined child OutMessage.
 // oxfmt-ignore
-Application.bindChild(HomeBlock, { field: 'home', parentMessage: ApplicationMessage.GotHomeMessage, outMessage: { fold: (_outMessage: Extract<typeof HomeOutMessage.Type, Readonly<{ username: 'alice' }>>) => Application.step(model => ({ model })) } })
+ApplicationDefinition.bindChild(HomeBlock, { field: 'home', parentMessage: ApplicationMessage.GotHomeMessage, outMessage: { fold: (_outMessage: Extract<typeof HomeOutMessage.Type, Readonly<{ username: 'alice' }>>) => ApplicationDefinition.step(model => ({ model })) } })
 
 // @ts-expect-error A policy-returned sibling recipe retains its required Binding.
 NestedPolicy.Parent.makeComposition({

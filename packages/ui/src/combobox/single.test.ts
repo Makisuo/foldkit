@@ -1,6 +1,7 @@
-import { Array, Effect, Option, Schema } from 'effect'
+import { Array, Effect, Option, Schema, Tuple } from 'effect'
 import { Block, Scene, Story, Update } from 'foldkit'
 import { inertHtml as ih } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import { expect, expectTypeOf } from 'vitest'
 
@@ -56,43 +57,54 @@ const FruitParentModel = Schema.Struct({
 })
 type FruitParentModel = typeof FruitParentModel.Type
 
-type FruitMessage = typeof FruitCombobox.Message.Type
+const FruitParentMessage = defineMessageUnion({
+  GotFruitComboboxMessage: { message: FruitCombobox.Message },
+  RequestedSelectFruitAndClose: { item: Fruit },
+})
+type FruitParentMessage = typeof FruitParentMessage.Type
 
-const FruitComboboxTest = Block.define('FruitComboboxTest', {
+const FruitComboboxTestDefinition = Block.define('FruitComboboxTest', {
   Model: FruitParentModel,
-  Message: FruitCombobox.Message,
+  Message: FruitParentMessage,
 })
 
 const foldFruitComboboxOutMessage = FruitCombobox.OutMessage.match<
-  Update.Step<FruitParentModel, FruitMessage>
+  Update.Step<FruitParentModel, FruitParentMessage>
 >({
   Selected: ({ value }) =>
-    FruitComboboxTest.step(model => ({
+    FruitComboboxTestDefinition.step(model => ({
       model: modifyFields(model, {
         maybeSelectedFruit: () => Option.some(value),
       }),
     })),
-  ClearedSelection: () => FruitComboboxTest.step(model => ({ model })),
+  ClearedSelection: () =>
+    FruitComboboxTestDefinition.step(model => ({ model })),
 })
 
-const FruitComboboxBinding = FruitComboboxTest.bindChild(FruitCombobox, {
-  field: 'combobox',
-  toParentMessage: message => message,
-  fromParentMessage: false,
-  init: false,
-  outMessage: { fold: foldFruitComboboxOutMessage },
-})
-
-const FruitComboboxTestComposition = FruitComboboxTest.makeComposition({
-  childBindings: [FruitComboboxBinding],
-})
-
-const selectFruitAndClose = FruitComboboxTest.step((_model, item: Fruit) =>
-  Update.combine([
-    FruitComboboxBinding.selectItem(item, item),
-    FruitComboboxBinding.close(''),
-  ]),
+const FruitComboboxBinding = FruitComboboxTestDefinition.bindChild(
+  FruitCombobox,
+  {
+    field: 'combobox',
+    parentMessage: FruitParentMessage.GotFruitComboboxMessage,
+    init: false,
+    outMessage: { fold: foldFruitComboboxOutMessage },
+  },
 )
+
+const FruitComboboxTestComposition =
+  FruitComboboxTestDefinition.makeComposition({
+    childBindings: [FruitComboboxBinding],
+  })
+
+const fruitParentUpdate = FruitComboboxTestComposition.makeUpdate(
+  (model, { item }) =>
+    Update.combine([
+      FruitComboboxBinding.selectItem(item, item),
+      FruitComboboxBinding.close(''),
+    ])(model),
+)
+const selectFruitAndClose = (item: Fruit) =>
+  Tuple.make(FruitParentMessage.RequestedSelectFruitAndClose({ item }))
 
 const FruitComboboxTestBlock = FruitComboboxTestComposition.makeBlock({
   init: FruitComboboxTestComposition.makeInit(() => ({
@@ -101,8 +113,8 @@ const FruitComboboxTestBlock = FruitComboboxTestComposition.makeBlock({
       maybeSelectedFruit: Option.none(),
     },
   })),
-  update: FruitComboboxTestComposition.makeUpdate(model => ({ model })),
-  expose: { selectFruitAndClose },
+  update: fruitParentUpdate,
+  operations: { selectFruitAndClose },
   EffectsLayer: FruitCombobox.EffectsLayer,
 })
 
@@ -213,7 +225,7 @@ describe('Combobox', () => {
         combobox: init({ id: 'fruit' }),
         maybeSelectedFruit: Option.none(),
       }
-      const closed = FruitComboboxTestBlock.expose.selectFruitAndClose(
+      const closed = FruitComboboxTestBlock.operations.selectFruitAndClose(
         parent,
         'Apple',
       )

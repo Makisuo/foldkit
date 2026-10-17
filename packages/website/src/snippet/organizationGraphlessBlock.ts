@@ -3,14 +3,17 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
+// definition.ts
 export const Model = Schema.Struct({ count: Schema.Number })
 export type Model = typeof Model.Type
 export const Message = defineMessageUnion({ ClickedIncrement: {} })
 export type Message = typeof Message.Type
+export const CounterDefinition = Block.define('Counter', { Model, Message })
 
-const Counter = Block.define('Counter', { Model, Message })
-const CounterComposition = Counter.makeComposition()
+// composition.ts
+export const CounterComposition = CounterDefinition.makeComposition()
 
+// counter.ts
 const init = CounterComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
 }))

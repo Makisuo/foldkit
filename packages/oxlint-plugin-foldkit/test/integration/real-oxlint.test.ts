@@ -136,7 +136,7 @@ describe('real-oxlint rule fixtures', () => {
   })
 
   it('traces direct, named, and automatically routed child updates', () => {
-    expect(countDiagnostics('no-direct-block-state-update', 'invalid')).toBe(11)
+    expect(countDiagnostics('no-direct-block-state-update', 'invalid')).toBe(12)
   })
 
   it('tracks registered child Bindings in Composition update callbacks', () => {
@@ -148,6 +148,10 @@ describe('real-oxlint rule fixtures', () => {
     )
 
     expect(diagnostics).toHaveLength(1)
+  })
+
+  it('reports disabled, missing, and manual child routing', () => {
+    expect(countDiagnostics('no-manual-composition-routing', 'invalid')).toBe(7)
   })
 
   it('reports direct child Message construction and local constructor aliases', () => {

@@ -10,13 +10,8 @@ import {
 import { modifyFields } from 'foldkit/struct'
 
 import { type Session } from '../../../../domain/session'
-import {
-  Login,
-  LoginComposition,
-  Message,
-  type Model,
-  OutMessage,
-} from './definition'
+import { LoginComposition } from './composition'
+import { LoginDefinition, Message, type Model, OutMessage } from './definition'
 
 export const initModel = (): Model => ({
   email: NotValidated({ value: '' }),
@@ -42,36 +37,39 @@ export const isFormValid = (model: Model): boolean =>
     [model.password, passwordRules],
   ])
 
-export const SimulateAuthRequest = Login.command('SimulateAuthRequest', {
-  args: { email: Schema.String, password: Schema.String },
-  messages: [
-    Message.SucceededSimulateAuthRequest,
-    Message.FailedSimulateAuthRequest,
-  ],
-  handler: function* () {
-    return ({ email, password }) =>
-      Effect.gen(function* () {
-        yield* Effect.sleep(Duration.seconds(1))
+export const SimulateAuthRequest = LoginDefinition.command(
+  'SimulateAuthRequest',
+  {
+    args: { email: Schema.String, password: Schema.String },
+    messages: [
+      Message.SucceededSimulateAuthRequest,
+      Message.FailedSimulateAuthRequest,
+    ],
+    handler: function* () {
+      return ({ email, password }) =>
+        Effect.gen(function* () {
+          yield* Effect.sleep(Duration.seconds(1))
 
-        if (password !== 'password') {
-          return Message.FailedSimulateAuthRequest({
-            error: 'Invalid credentials',
-          })
-        }
+          if (password !== 'password') {
+            return Message.FailedSimulateAuthRequest({
+              error: 'Invalid credentials',
+            })
+          }
 
-        const name = pipe(
-          email,
-          String.split('@'),
-          Array.head,
-          Option.getOrElse(() => email),
-        )
+          const name = pipe(
+            email,
+            String.split('@'),
+            Array.head,
+            Option.getOrElse(() => email),
+          )
 
-        const session: Session = { userId: '1', email, name }
+          const session: Session = { userId: '1', email, name }
 
-        return Message.SucceededSimulateAuthRequest({ session })
-      })
+          return Message.SucceededSimulateAuthRequest({ session })
+        })
+    },
   },
-})
+)
 
 export const EffectsLayer = SimulateAuthRequest.layer
 

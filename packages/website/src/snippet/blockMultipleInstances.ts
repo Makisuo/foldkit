@@ -5,22 +5,25 @@ import { Applicant } from './applicant'
 import { Message } from './message'
 import { Model } from './model'
 
-const Application = defineApplication({ Model, Message })
+const ApplicationDefinition = defineApplication({ Model, Message })
 
-export const ApplicantsBinding = Application.bindChild(Applicant.block, {
-  field: 'applicants',
-  key: 'id',
-  childField: 'entry',
-  toParentMessage: (applicantId, message) =>
-    Message.GotApplicantMessage({ applicantId, message }),
-  fromParentMessage: {
-    parentMessage: Message.GotApplicantMessage,
-    args: (_model, { applicantId, message }) =>
-      Option.some([applicantId, message]),
+export const ApplicantsBinding = ApplicationDefinition.bindChild(
+  Applicant.block,
+  {
+    field: 'applicants',
+    key: 'id',
+    childField: 'entry',
+    toParentMessage: (applicantId, message) =>
+      Message.GotApplicantMessage({ applicantId, message }),
+    fromParentMessage: {
+      parentMessage: Message.GotApplicantMessage,
+      args: (_model, { applicantId, message }) =>
+        Option.some([applicantId, message]),
+    },
   },
-})
+)
 
-const ApplicationComposition = Application.makeComposition({
+const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [ApplicantsBinding],
 })
 

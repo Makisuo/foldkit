@@ -25,6 +25,6 @@ export {
 
 export * as test from './test.js'
 
-export type { EntryHandlers } from './index.js'
+export type { Completed, EntryHandlers } from './index.js'
 export type { InitConfig, ShowInput, SwipeToDismissConfig } from './index.js'
 export type { DrainEntryInput } from './test.js'

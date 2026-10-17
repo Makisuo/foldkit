@@ -5,9 +5,9 @@ import { defineMessageUnion } from 'foldkit/message'
 
 const Model = Schema.Struct({ count: Schema.Number })
 const Message = defineMessageUnion({ Ticked: {} })
-const Application = defineApplication({ Model, Message })
+const ApplicationDefinition = defineApplication({ Model, Message })
 
-const ApplicationComposition = Application.makeComposition()
+const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 const init = () => ({ model: Model.make({ count: 0 }) })
 const update = ApplicationComposition.makeUpdate(model => ({ model }))

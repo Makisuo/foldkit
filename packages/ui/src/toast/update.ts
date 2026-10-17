@@ -8,6 +8,7 @@ import {
   Option,
   Schema,
   Stream,
+  Tuple,
   pipe,
 } from 'effect'
 import * as Block from 'foldkit/block'
@@ -22,7 +23,6 @@ import {
   init as animationInit,
 } from '../animation/schema.js'
 import { defaultLeaveCommand as animationDefaultLeaveCommand } from '../animation/update.js'
-import * as OptionExt from '../internal/optionExtensions.js'
 import {
   DEFAULT_DURATION,
   DEFAULT_SWIPE_DIRECTION,
@@ -40,7 +40,7 @@ import {
 
 // Factory-level ShowInput. The consumer supplies the full payload.
 
-/** Input for `api.show()`. `payload` is the consumer-defined content shape for an
+/** Input for the exposed `show` operation. `payload` is the consumer-defined content shape for an
  *  entry. Omit `duration` to use the container's `defaultDuration`; pass
  *  `sticky: true` to skip auto-dismiss entirely. */
 export type ShowInput<A> = Readonly<{
@@ -100,7 +100,7 @@ const documentStylesWhileSwiping = Stream.callback<never>(() =>
 /**
  * Factory that creates Toast's runtime (update fn, helpers, commands) for a
  *  specific payload schema. Called by `make` in `Toast.ts`; inner helpers close
- *  over the payload-specific Entry / Model / Added types so generics don't
+ *  over the payload-specific Entry / Model / Message types so generics don't
  *  have to propagate through every helper signature.
  *
  *  @internal Consumers should use `Toast.make(PayloadSchema)`. This is
@@ -111,13 +111,11 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const ModelSchema = makeModel(payloadSchema)
   const MessageSchema = makeMessage(payloadSchema)
   const OutMessageSchema = makeOutMessage(payloadSchema)
-  const Toast = Block.define('Toast', {
+  const ToastDefinition = Block.define('Toast', {
     Model: ModelSchema,
     Message: MessageSchema,
     OutMessage: OutMessageSchema,
   })
-  const Added = MessageSchema.Added
-  const DismissedToast = OutMessageSchema.DismissedToast
 
   type Entry = typeof EntrySchema.Type
   type Model = typeof ModelSchema.Type
@@ -125,7 +123,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
   /** Waits for an entry's auto-dismiss duration, then emits a versioned
    *  `CompletedWaitBeforeDismissal` Message so update can ignore stale timers. */
-  const WaitBeforeDismissal = Toast.command('WaitBeforeDismissal', {
+  const WaitBeforeDismissal = ToastDefinition.command('WaitBeforeDismissal', {
     args: {
       entryId: Schema.String,
       version: Schema.Number,
@@ -146,7 +144,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
   /** Waits for a short or cancelled swipe to animate back, then emits
    *  `CompletedWaitForSwipeSettled` so update can clear `Settling`. */
-  const WaitForSwipeSettled = Toast.command('WaitForSwipeSettled', {
+  const WaitForSwipeSettled = ToastDefinition.command('WaitForSwipeSettled', {
     args: {
       entryId: Schema.String,
       version: Schema.Number,
@@ -241,7 +239,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   }
 
   const settleSnapBack = (entry: Entry) =>
-    Toast.step(model => {
+    ToastDefinition.step(model => {
       const nextSwipeVersion = Number.increment(entry.swipeVersion)
       const nextEntry = modifyFields(entry, {
         pendingDismissVersion: Number.increment,
@@ -273,7 +271,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   ) =>
     AnimationOutMessage.match(outMessage, {
       StartedLeaveAnimating: () =>
-        Toast.step(model =>
+        ToastDefinition.step(model =>
           Option.match(readEntryAnimation(entryId)(model), {
             onNone: () => ({ model }),
             onSome: animation => ({
@@ -283,7 +281,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           }),
         ),
       TransitionedOut: () =>
-        Toast.step(model =>
+        ToastDefinition.step(model =>
           Option.match(
             Array.findFirst(model.entries, ({ id }) => id === entryId),
             {
@@ -299,7 +297,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         ),
     })
 
-  const EntryAnimationBinding = Toast.bindChild(Animation.block, {
+  const EntryAnimationBinding = ToastDefinition.bindChild(Animation.block, {
     field: 'entries',
     key: 'id',
     childField: 'animation',
@@ -312,7 +310,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     outMessage: { fold: foldEntryAnimationOutMessage },
   })
 
-  const ToastComposition = Toast.makeComposition({
+  const ToastComposition = ToastDefinition.makeComposition({
     childBindings: [EntryAnimationBinding],
   })
 
@@ -322,26 +320,31 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const foldEntryAnimationHide = (entry: Entry) =>
     EntryAnimationBinding.hide(entry.id)
 
-  const createEntry = (model: Model, input: ShowInput<A>): Entry => {
+  const createEntry = (
+    model: Model,
+    {
+      payload,
+      variant,
+      maybeDuration,
+      isSticky,
+    }: typeof MessageSchema.RequestedShow.Type,
+  ): Entry => {
     const entryId = `${model.id}-entry-${model.nextEntryKey}`
-
-    const duration =
-      input.duration === undefined
-        ? model.defaultDuration
-        : Duration.fromInputUnsafe(input.duration)
-
-    const maybeDuration = OptionExt.when(!input.sticky, duration)
 
     return {
       id: entryId,
-      variant: input.variant ?? DEFAULT_VARIANT,
+      variant,
       animation: animationInit({ id: entryId, isShowing: false }),
-      maybeDuration,
+      maybeDuration: isSticky
+        ? Option.none()
+        : Option.orElse(maybeDuration, () =>
+            Option.some(model.defaultDuration),
+          ),
       pendingDismissVersion: 0,
       isHovered: false,
       swipeState: SwipeState.Idle(),
       swipeVersion: 0,
-      payload: input.payload,
+      payload,
     }
   }
 
@@ -368,13 +371,13 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   }))
 
   const addEntry = (entry: Entry) => {
-    const appendEntry = Toast.step(model => ({
+    const appendEntry = ToastDefinition.step(model => ({
       model: modifyFields(model, {
         entries: entries => Array.append(entries, entry),
         nextEntryKey: Number.increment,
       }),
     }))
-    const scheduleDismissal = Toast.step(model => ({
+    const scheduleDismissal = ToastDefinition.step(model => ({
       model,
       commands: pipe(
         Array.findFirst(model.entries, ({ id }) => id === entry.id),
@@ -398,6 +401,8 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
    *  finished its leave animation. */
   const update = ToastComposition.makeUpdate((model, message) =>
     MessageSchema.match(message, {
+      RequestedShow: input => addEntry(createEntry(model, input))(model),
+
       Added: ({ entry }) => addEntry(entry)(model),
 
       Dismissed: ({ entryId }) => {
@@ -621,22 +626,27 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     }),
   )
 
-  /** Adds a new toast entry. */
-  const show = Toast.step((model, input: ShowInput<A>) =>
-    update(model, MessageSchema.Added({ entry: createEntry(model, input) })),
-  )
-
-  /** Begins dismissing a specific entry. */
-  const dismiss = Toast.step((model, entryId: string) =>
-    update(model, MessageSchema.Dismissed({ entryId })),
-  )
-
-  /** Begins dismissing every currently-visible entry. */
-  const dismissAll = Toast.step(model =>
-    update(model, MessageSchema.DismissedAll()),
-  )
-
-  const expose = { show, dismiss, dismissAll }
+  const operations = {
+    /** Requests a new entry. The update allocates its identity and applies the
+     * container's default duration when no duration is supplied. */
+    show: (input: ShowInput<A>) =>
+      Tuple.make(
+        MessageSchema.RequestedShow({
+          payload: input.payload,
+          variant: input.variant ?? DEFAULT_VARIANT,
+          maybeDuration: pipe(
+            Option.fromNullishOr(input.duration),
+            Option.map(Duration.fromInputUnsafe),
+          ),
+          isSticky: input.sticky ?? false,
+        }),
+      ),
+    /** Begins the selected entry's leave animation. Missing entries are ignored. */
+    dismiss: (entryId: string) =>
+      Tuple.make(MessageSchema.Dismissed({ entryId })),
+    /** Begins leave animations for every visible entry. */
+    dismissAll: ToastComposition.makeOperation(MessageSchema.DismissedAll),
+  }
 
   const swipeDependencies = (model: Model) => ({
     isSwipeEnabled: Option.isSome(model.maybeSwipeConfig),
@@ -648,7 +658,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     | typeof MessageSchema.ReleasedSwipePointer.Type
     | typeof MessageSchema.CancelledSwipe.Type
 
-  const subscriptions = Toast.subscriptions(entry => ({
+  const subscriptions = ToastDefinition.subscriptions(entry => ({
     swipePointer: entry(
       'SwipePointer',
       {
@@ -747,15 +757,10 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     Model: ModelSchema,
     Message: MessageSchema,
     OutMessage: OutMessageSchema,
-    Added,
-    DismissedToast,
     init,
     blockInit,
     update,
-    show,
-    dismiss,
-    dismissAll,
-    expose,
+    operations,
     subscriptions,
     EffectsLayer,
     WaitBeforeDismissal,

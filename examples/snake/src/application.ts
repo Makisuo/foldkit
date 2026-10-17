@@ -47,9 +47,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.makeComposition()
+export const ApplicationComposition = ApplicationDefinition.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
@@ -216,7 +216,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const GenerateApplePosition = Application.command(
+export const GenerateApplePosition = ApplicationDefinition.command(
   'GenerateApplePosition',
   {
     args: { snake: Snake.Snake },
@@ -232,7 +232,7 @@ export const GenerateApplePosition = Application.command(
   },
 )
 
-export const subscriptions = Application.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   gameClockTicks: entry(
     'GameClockTicks',
     {

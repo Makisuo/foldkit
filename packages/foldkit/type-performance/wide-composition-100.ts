@@ -37,11 +37,14 @@ class Clock extends Context.Service<
 >()('TypePerformanceWideLeafClock') {}
 const ClockLayer = Layer.succeed(Clock, { run: Effect.void })
 
-const TypePerformanceWideLeaf = Block.define('TypePerformanceWideLeaf', {
-  Model: LeafModel,
-  Message: LeafMessage,
-})
-const RunLeaf = TypePerformanceWideLeaf.command('RunLeaf', {
+const TypePerformanceWideLeafDefinition = Block.define(
+  'TypePerformanceWideLeaf',
+  {
+    Model: LeafModel,
+    Message: LeafMessage,
+  },
+)
+const RunLeaf = TypePerformanceWideLeafDefinition.command('RunLeaf', {
   messages: [LeafMessage.CompletedRun],
   handler: function* () {
     const clock = yield* Clock
@@ -49,12 +52,12 @@ const RunLeaf = TypePerformanceWideLeaf.command('RunLeaf', {
     return () => clock.run.pipe(Effect.as(LeafMessage.CompletedRun()))
   },
 })
-const runLeaf = TypePerformanceWideLeaf.step(model => ({
+const runLeaf = TypePerformanceWideLeafDefinition.step(model => ({
   model,
   commands: [RunLeaf()],
 }))
 const TypePerformanceWideLeafComposition =
-  TypePerformanceWideLeaf.makeComposition()
+  TypePerformanceWideLeafDefinition.makeComposition()
 const Leaf = TypePerformanceWideLeafComposition.makeBlock({
   init: TypePerformanceWideLeafComposition.makeInit(() => ({
     model: LeafModel.make({ value: 0 }),
@@ -65,7 +68,11 @@ const Leaf = TypePerformanceWideLeafComposition.makeBlock({
       CompletedRun: () => ({ model }),
     }),
   ),
-  expose: { runLeaf },
+  operations: {
+    runLeaf: TypePerformanceWideLeafComposition.makeOperation(
+      LeafMessage.RequestedRun,
+    ),
+  },
   EffectsLayer: RunLeaf.layer,
 })
 
@@ -177,712 +184,712 @@ const ApplicationMessage = defineMessageUnion({
 })
 // oxlint-enable foldkit/got-prefix-requires-block-payload
 
-const Application = defineApplication({
+const ApplicationDefinition = defineApplication({
   Model: ApplicationModel,
   Message: ApplicationMessage,
 })
 
-const Leaf001Binding = Application.bindChild(Leaf, {
+const Leaf001Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf001',
   parentMessage: ApplicationMessage.GotLeaf001Message,
 })
 
-const Leaf002Binding = Application.bindChild(Leaf, {
+const Leaf002Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf002',
   parentMessage: ApplicationMessage.GotLeaf002Message,
 })
 
-const Leaf003Binding = Application.bindChild(Leaf, {
+const Leaf003Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf003',
   parentMessage: ApplicationMessage.GotLeaf003Message,
 })
 
-const Leaf004Binding = Application.bindChild(Leaf, {
+const Leaf004Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf004',
   parentMessage: ApplicationMessage.GotLeaf004Message,
 })
 
-const Leaf005Binding = Application.bindChild(Leaf, {
+const Leaf005Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf005',
   parentMessage: ApplicationMessage.GotLeaf005Message,
 })
 
-const Leaf006Binding = Application.bindChild(Leaf, {
+const Leaf006Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf006',
   parentMessage: ApplicationMessage.GotLeaf006Message,
 })
 
-const Leaf007Binding = Application.bindChild(Leaf, {
+const Leaf007Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf007',
   parentMessage: ApplicationMessage.GotLeaf007Message,
 })
 
-const Leaf008Binding = Application.bindChild(Leaf, {
+const Leaf008Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf008',
   parentMessage: ApplicationMessage.GotLeaf008Message,
 })
 
-const Leaf009Binding = Application.bindChild(Leaf, {
+const Leaf009Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf009',
   parentMessage: ApplicationMessage.GotLeaf009Message,
 })
 
-const Leaf010Binding = Application.bindChild(Leaf, {
+const Leaf010Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf010',
   parentMessage: ApplicationMessage.GotLeaf010Message,
 })
 
-const Leaf011Binding = Application.bindChild(Leaf, {
+const Leaf011Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf011',
   parentMessage: ApplicationMessage.GotLeaf011Message,
 })
 
-const Leaf012Binding = Application.bindChild(Leaf, {
+const Leaf012Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf012',
   parentMessage: ApplicationMessage.GotLeaf012Message,
 })
 
-const Leaf013Binding = Application.bindChild(Leaf, {
+const Leaf013Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf013',
   parentMessage: ApplicationMessage.GotLeaf013Message,
 })
 
-const Leaf014Binding = Application.bindChild(Leaf, {
+const Leaf014Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf014',
   parentMessage: ApplicationMessage.GotLeaf014Message,
 })
 
-const Leaf015Binding = Application.bindChild(Leaf, {
+const Leaf015Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf015',
   parentMessage: ApplicationMessage.GotLeaf015Message,
 })
 
-const Leaf016Binding = Application.bindChild(Leaf, {
+const Leaf016Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf016',
   parentMessage: ApplicationMessage.GotLeaf016Message,
 })
 
-const Leaf017Binding = Application.bindChild(Leaf, {
+const Leaf017Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf017',
   parentMessage: ApplicationMessage.GotLeaf017Message,
 })
 
-const Leaf018Binding = Application.bindChild(Leaf, {
+const Leaf018Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf018',
   parentMessage: ApplicationMessage.GotLeaf018Message,
 })
 
-const Leaf019Binding = Application.bindChild(Leaf, {
+const Leaf019Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf019',
   parentMessage: ApplicationMessage.GotLeaf019Message,
 })
 
-const Leaf020Binding = Application.bindChild(Leaf, {
+const Leaf020Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf020',
   parentMessage: ApplicationMessage.GotLeaf020Message,
 })
 
-const Leaf021Binding = Application.bindChild(Leaf, {
+const Leaf021Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf021',
   parentMessage: ApplicationMessage.GotLeaf021Message,
 })
 
-const Leaf022Binding = Application.bindChild(Leaf, {
+const Leaf022Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf022',
   parentMessage: ApplicationMessage.GotLeaf022Message,
 })
 
-const Leaf023Binding = Application.bindChild(Leaf, {
+const Leaf023Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf023',
   parentMessage: ApplicationMessage.GotLeaf023Message,
 })
 
-const Leaf024Binding = Application.bindChild(Leaf, {
+const Leaf024Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf024',
   parentMessage: ApplicationMessage.GotLeaf024Message,
 })
 
-const Leaf025Binding = Application.bindChild(Leaf, {
+const Leaf025Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf025',
   parentMessage: ApplicationMessage.GotLeaf025Message,
 })
 
-const Leaf026Binding = Application.bindChild(Leaf, {
+const Leaf026Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf026',
   parentMessage: ApplicationMessage.GotLeaf026Message,
 })
 
-const Leaf027Binding = Application.bindChild(Leaf, {
+const Leaf027Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf027',
   parentMessage: ApplicationMessage.GotLeaf027Message,
 })
 
-const Leaf028Binding = Application.bindChild(Leaf, {
+const Leaf028Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf028',
   parentMessage: ApplicationMessage.GotLeaf028Message,
 })
 
-const Leaf029Binding = Application.bindChild(Leaf, {
+const Leaf029Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf029',
   parentMessage: ApplicationMessage.GotLeaf029Message,
 })
 
-const Leaf030Binding = Application.bindChild(Leaf, {
+const Leaf030Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf030',
   parentMessage: ApplicationMessage.GotLeaf030Message,
 })
 
-const Leaf031Binding = Application.bindChild(Leaf, {
+const Leaf031Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf031',
   parentMessage: ApplicationMessage.GotLeaf031Message,
 })
 
-const Leaf032Binding = Application.bindChild(Leaf, {
+const Leaf032Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf032',
   parentMessage: ApplicationMessage.GotLeaf032Message,
 })
 
-const Leaf033Binding = Application.bindChild(Leaf, {
+const Leaf033Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf033',
   parentMessage: ApplicationMessage.GotLeaf033Message,
 })
 
-const Leaf034Binding = Application.bindChild(Leaf, {
+const Leaf034Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf034',
   parentMessage: ApplicationMessage.GotLeaf034Message,
 })
 
-const Leaf035Binding = Application.bindChild(Leaf, {
+const Leaf035Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf035',
   parentMessage: ApplicationMessage.GotLeaf035Message,
 })
 
-const Leaf036Binding = Application.bindChild(Leaf, {
+const Leaf036Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf036',
   parentMessage: ApplicationMessage.GotLeaf036Message,
 })
 
-const Leaf037Binding = Application.bindChild(Leaf, {
+const Leaf037Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf037',
   parentMessage: ApplicationMessage.GotLeaf037Message,
 })
 
-const Leaf038Binding = Application.bindChild(Leaf, {
+const Leaf038Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf038',
   parentMessage: ApplicationMessage.GotLeaf038Message,
 })
 
-const Leaf039Binding = Application.bindChild(Leaf, {
+const Leaf039Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf039',
   parentMessage: ApplicationMessage.GotLeaf039Message,
 })
 
-const Leaf040Binding = Application.bindChild(Leaf, {
+const Leaf040Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf040',
   parentMessage: ApplicationMessage.GotLeaf040Message,
 })
 
-const Leaf041Binding = Application.bindChild(Leaf, {
+const Leaf041Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf041',
   parentMessage: ApplicationMessage.GotLeaf041Message,
 })
 
-const Leaf042Binding = Application.bindChild(Leaf, {
+const Leaf042Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf042',
   parentMessage: ApplicationMessage.GotLeaf042Message,
 })
 
-const Leaf043Binding = Application.bindChild(Leaf, {
+const Leaf043Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf043',
   parentMessage: ApplicationMessage.GotLeaf043Message,
 })
 
-const Leaf044Binding = Application.bindChild(Leaf, {
+const Leaf044Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf044',
   parentMessage: ApplicationMessage.GotLeaf044Message,
 })
 
-const Leaf045Binding = Application.bindChild(Leaf, {
+const Leaf045Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf045',
   parentMessage: ApplicationMessage.GotLeaf045Message,
 })
 
-const Leaf046Binding = Application.bindChild(Leaf, {
+const Leaf046Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf046',
   parentMessage: ApplicationMessage.GotLeaf046Message,
 })
 
-const Leaf047Binding = Application.bindChild(Leaf, {
+const Leaf047Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf047',
   parentMessage: ApplicationMessage.GotLeaf047Message,
 })
 
-const Leaf048Binding = Application.bindChild(Leaf, {
+const Leaf048Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf048',
   parentMessage: ApplicationMessage.GotLeaf048Message,
 })
 
-const Leaf049Binding = Application.bindChild(Leaf, {
+const Leaf049Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf049',
   parentMessage: ApplicationMessage.GotLeaf049Message,
 })
 
-const Leaf050Binding = Application.bindChild(Leaf, {
+const Leaf050Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf050',
   parentMessage: ApplicationMessage.GotLeaf050Message,
 })
 
-const Leaf051Binding = Application.bindChild(Leaf, {
+const Leaf051Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf051',
   parentMessage: ApplicationMessage.GotLeaf051Message,
 })
 
-const Leaf052Binding = Application.bindChild(Leaf, {
+const Leaf052Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf052',
   parentMessage: ApplicationMessage.GotLeaf052Message,
 })
 
-const Leaf053Binding = Application.bindChild(Leaf, {
+const Leaf053Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf053',
   parentMessage: ApplicationMessage.GotLeaf053Message,
 })
 
-const Leaf054Binding = Application.bindChild(Leaf, {
+const Leaf054Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf054',
   parentMessage: ApplicationMessage.GotLeaf054Message,
 })
 
-const Leaf055Binding = Application.bindChild(Leaf, {
+const Leaf055Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf055',
   parentMessage: ApplicationMessage.GotLeaf055Message,
 })
 
-const Leaf056Binding = Application.bindChild(Leaf, {
+const Leaf056Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf056',
   parentMessage: ApplicationMessage.GotLeaf056Message,
 })
 
-const Leaf057Binding = Application.bindChild(Leaf, {
+const Leaf057Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf057',
   parentMessage: ApplicationMessage.GotLeaf057Message,
 })
 
-const Leaf058Binding = Application.bindChild(Leaf, {
+const Leaf058Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf058',
   parentMessage: ApplicationMessage.GotLeaf058Message,
 })
 
-const Leaf059Binding = Application.bindChild(Leaf, {
+const Leaf059Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf059',
   parentMessage: ApplicationMessage.GotLeaf059Message,
 })
 
-const Leaf060Binding = Application.bindChild(Leaf, {
+const Leaf060Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf060',
   parentMessage: ApplicationMessage.GotLeaf060Message,
 })
 
-const Leaf061Binding = Application.bindChild(Leaf, {
+const Leaf061Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf061',
   parentMessage: ApplicationMessage.GotLeaf061Message,
 })
 
-const Leaf062Binding = Application.bindChild(Leaf, {
+const Leaf062Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf062',
   parentMessage: ApplicationMessage.GotLeaf062Message,
 })
 
-const Leaf063Binding = Application.bindChild(Leaf, {
+const Leaf063Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf063',
   parentMessage: ApplicationMessage.GotLeaf063Message,
 })
 
-const Leaf064Binding = Application.bindChild(Leaf, {
+const Leaf064Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf064',
   parentMessage: ApplicationMessage.GotLeaf064Message,
 })
 
-const Leaf065Binding = Application.bindChild(Leaf, {
+const Leaf065Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf065',
   parentMessage: ApplicationMessage.GotLeaf065Message,
 })
 
-const Leaf066Binding = Application.bindChild(Leaf, {
+const Leaf066Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf066',
   parentMessage: ApplicationMessage.GotLeaf066Message,
 })
 
-const Leaf067Binding = Application.bindChild(Leaf, {
+const Leaf067Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf067',
   parentMessage: ApplicationMessage.GotLeaf067Message,
 })
 
-const Leaf068Binding = Application.bindChild(Leaf, {
+const Leaf068Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf068',
   parentMessage: ApplicationMessage.GotLeaf068Message,
 })
 
-const Leaf069Binding = Application.bindChild(Leaf, {
+const Leaf069Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf069',
   parentMessage: ApplicationMessage.GotLeaf069Message,
 })
 
-const Leaf070Binding = Application.bindChild(Leaf, {
+const Leaf070Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf070',
   parentMessage: ApplicationMessage.GotLeaf070Message,
 })
 
-const Leaf071Binding = Application.bindChild(Leaf, {
+const Leaf071Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf071',
   parentMessage: ApplicationMessage.GotLeaf071Message,
 })
 
-const Leaf072Binding = Application.bindChild(Leaf, {
+const Leaf072Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf072',
   parentMessage: ApplicationMessage.GotLeaf072Message,
 })
 
-const Leaf073Binding = Application.bindChild(Leaf, {
+const Leaf073Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf073',
   parentMessage: ApplicationMessage.GotLeaf073Message,
 })
 
-const Leaf074Binding = Application.bindChild(Leaf, {
+const Leaf074Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf074',
   parentMessage: ApplicationMessage.GotLeaf074Message,
 })
 
-const Leaf075Binding = Application.bindChild(Leaf, {
+const Leaf075Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf075',
   parentMessage: ApplicationMessage.GotLeaf075Message,
 })
 
-const Leaf076Binding = Application.bindChild(Leaf, {
+const Leaf076Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf076',
   parentMessage: ApplicationMessage.GotLeaf076Message,
 })
 
-const Leaf077Binding = Application.bindChild(Leaf, {
+const Leaf077Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf077',
   parentMessage: ApplicationMessage.GotLeaf077Message,
 })
 
-const Leaf078Binding = Application.bindChild(Leaf, {
+const Leaf078Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf078',
   parentMessage: ApplicationMessage.GotLeaf078Message,
 })
 
-const Leaf079Binding = Application.bindChild(Leaf, {
+const Leaf079Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf079',
   parentMessage: ApplicationMessage.GotLeaf079Message,
 })
 
-const Leaf080Binding = Application.bindChild(Leaf, {
+const Leaf080Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf080',
   parentMessage: ApplicationMessage.GotLeaf080Message,
 })
 
-const Leaf081Binding = Application.bindChild(Leaf, {
+const Leaf081Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf081',
   parentMessage: ApplicationMessage.GotLeaf081Message,
 })
 
-const Leaf082Binding = Application.bindChild(Leaf, {
+const Leaf082Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf082',
   parentMessage: ApplicationMessage.GotLeaf082Message,
 })
 
-const Leaf083Binding = Application.bindChild(Leaf, {
+const Leaf083Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf083',
   parentMessage: ApplicationMessage.GotLeaf083Message,
 })
 
-const Leaf084Binding = Application.bindChild(Leaf, {
+const Leaf084Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf084',
   parentMessage: ApplicationMessage.GotLeaf084Message,
 })
 
-const Leaf085Binding = Application.bindChild(Leaf, {
+const Leaf085Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf085',
   parentMessage: ApplicationMessage.GotLeaf085Message,
 })
 
-const Leaf086Binding = Application.bindChild(Leaf, {
+const Leaf086Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf086',
   parentMessage: ApplicationMessage.GotLeaf086Message,
 })
 
-const Leaf087Binding = Application.bindChild(Leaf, {
+const Leaf087Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf087',
   parentMessage: ApplicationMessage.GotLeaf087Message,
 })
 
-const Leaf088Binding = Application.bindChild(Leaf, {
+const Leaf088Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf088',
   parentMessage: ApplicationMessage.GotLeaf088Message,
 })
 
-const Leaf089Binding = Application.bindChild(Leaf, {
+const Leaf089Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf089',
   parentMessage: ApplicationMessage.GotLeaf089Message,
 })
 
-const Leaf090Binding = Application.bindChild(Leaf, {
+const Leaf090Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf090',
   parentMessage: ApplicationMessage.GotLeaf090Message,
 })
 
-const Leaf091Binding = Application.bindChild(Leaf, {
+const Leaf091Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf091',
   parentMessage: ApplicationMessage.GotLeaf091Message,
 })
 
-const Leaf092Binding = Application.bindChild(Leaf, {
+const Leaf092Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf092',
   parentMessage: ApplicationMessage.GotLeaf092Message,
 })
 
-const Leaf093Binding = Application.bindChild(Leaf, {
+const Leaf093Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf093',
   parentMessage: ApplicationMessage.GotLeaf093Message,
 })
 
-const Leaf094Binding = Application.bindChild(Leaf, {
+const Leaf094Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf094',
   parentMessage: ApplicationMessage.GotLeaf094Message,
 })
 
-const Leaf095Binding = Application.bindChild(Leaf, {
+const Leaf095Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf095',
   parentMessage: ApplicationMessage.GotLeaf095Message,
 })
 
-const Leaf096Binding = Application.bindChild(Leaf, {
+const Leaf096Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf096',
   parentMessage: ApplicationMessage.GotLeaf096Message,
 })
 
-const Leaf097Binding = Application.bindChild(Leaf, {
+const Leaf097Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf097',
   parentMessage: ApplicationMessage.GotLeaf097Message,
 })
 
-const Leaf098Binding = Application.bindChild(Leaf, {
+const Leaf098Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf098',
   parentMessage: ApplicationMessage.GotLeaf098Message,
 })
 
-const Leaf099Binding = Application.bindChild(Leaf, {
+const Leaf099Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf099',
   parentMessage: ApplicationMessage.GotLeaf099Message,
 })
 
-const Leaf100Binding = Application.bindChild(Leaf, {
+const Leaf100Binding = ApplicationDefinition.bindChild(Leaf, {
   field: 'leaf',
   init: false,
   placement: 'leaf100',
   parentMessage: ApplicationMessage.GotLeaf100Message,
 })
 
-const ApplicationComposition = Application.makeComposition({
+const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [
     Leaf001Binding,
     Leaf002Binding,

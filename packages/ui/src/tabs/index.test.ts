@@ -1,5 +1,6 @@
 import { Array, Option, pipe } from 'effect'
 import { Block, Scene, Story } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import type * as Update from 'foldkit/update'
 import { expect } from 'vitest'
@@ -26,23 +27,32 @@ const disabledAt =
   (index: number) =>
     indices.includes(index)
 
-const TabsScene = Block.define('TabsScene', { Model, Message })
-
-const foldTabsOutMessage = OutMessage.match<Update.Step<Model, Message>>({
-  Selected: () => TabsScene.step(model => ({ model })),
+const TabsSceneMessage = defineMessageUnion({
+  GotTabsMessage: { message: Message },
 })
 
-const TabsBinding = TabsScene.bindChild(block, {
+const TabsSceneDefinition = Block.define('TabsScene', {
+  Model,
+  Message: TabsSceneMessage,
+})
+
+const foldTabsOutMessage = OutMessage.match<
+  Update.Step<Model, typeof TabsSceneMessage.Type>
+>({
+  Selected: () => TabsSceneDefinition.step(model => ({ model })),
+})
+
+const TabsBinding = TabsSceneDefinition.bindChild(block, {
   read: model => Option.some(model),
   write: (_model, nextTabs) => nextTabs,
-  toParentMessage: message => message,
-  fromParentMessage: false,
+  parentMessage: TabsSceneMessage.GotTabsMessage,
   outMessage: { fold: foldTabsOutMessage },
 })
 
-const TabsSceneComposition = TabsScene.makeComposition({
+const TabsSceneComposition = TabsSceneDefinition.makeComposition({
   childBindings: [TabsBinding],
 })
+const sceneUpdate = TabsSceneComposition.makeUpdate()
 
 const sceneView = TabsSceneComposition.makeView((model, h) =>
   h.block(
@@ -106,7 +116,7 @@ describe('Tabs', () => {
   describe('view', () => {
     it('only gives the mounted panel relationship to the active tab', () => {
       Scene.scene(
-        { update, view: sceneView },
+        { update: sceneUpdate, view: sceneView },
         Scene.given(init({ id: 'test' })),
         Scene.expect(Scene.selector('#test-tab-0')).toHaveAttr(
           'aria-controls',
@@ -120,7 +130,7 @@ describe('Tabs', () => {
 
     it('keeps every panel relationship when all panels remain mounted', () => {
       Scene.scene(
-        { update, view: allPanelsView },
+        { update: sceneUpdate, view: allPanelsView },
         Scene.given(init({ id: 'test' })),
         Scene.expect(Scene.selector('#test-tab-0')).toHaveAttr(
           'aria-controls',

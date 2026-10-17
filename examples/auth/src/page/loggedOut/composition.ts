@@ -1,8 +1,8 @@
-import { LoggedOut } from './definition'
+import { LoggedOutDefinition } from './definition'
 import { Message, OutMessage } from './message'
 import * as Login from './page/login'
 
-export const LoginBinding = LoggedOut.bindChild(Login.block, {
+export const LoginBinding = LoggedOutDefinition.bindChild(Login.block, {
   field: 'loginModel',
   parentMessage: Message.GotLoginMessage,
   outMessage: {
@@ -12,6 +12,6 @@ export const LoginBinding = LoggedOut.bindChild(Login.block, {
   },
 })
 
-export const LoggedOutComposition = LoggedOut.makeComposition({
+export const LoggedOutComposition = LoggedOutDefinition.makeComposition({
   childBindings: [LoginBinding],
 })

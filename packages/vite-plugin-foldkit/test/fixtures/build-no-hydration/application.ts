@@ -8,9 +8,9 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({})
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.makeComposition()
+export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 export const init = ApplicationComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),

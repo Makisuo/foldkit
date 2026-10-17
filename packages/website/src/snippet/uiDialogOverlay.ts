@@ -43,6 +43,7 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
 >({
   Opened: () => model => ({ model }),
   Closed: () => model => ({ model }),
+  CompletedClose: () => model => ({ model }),
 })
 
 const foldComboboxOutMessage = CityCombobox.OutMessage.match<
@@ -56,26 +57,26 @@ const foldComboboxOutMessage = CityCombobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const FilterDialog = Block.define('FilterDialog', {
+const FilterDialogDefinition = Block.define('FilterDialog', {
   Model,
   Message,
 })
 
-const DialogBinding = FilterDialog.bindChild(Dialog.block, {
+const DialogBinding = FilterDialogDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   init: { args: () => Tuple.make({ id: 'edit-filters' }) },
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const ComboboxBinding = FilterDialog.bindChild(CityCombobox, {
+const ComboboxBinding = FilterDialogDefinition.bindChild(CityCombobox, {
   field: 'combobox',
   parentMessage: Message.GotComboboxMessage,
   init: { args: () => Tuple.make({ id: 'city' }) },
   outMessage: { fold: foldComboboxOutMessage },
 })
 
-const FilterDialogComposition = FilterDialog.makeComposition({
+const FilterDialogComposition = FilterDialogDefinition.makeComposition({
   childBindings: [DialogBinding, ComboboxBinding],
 })
 

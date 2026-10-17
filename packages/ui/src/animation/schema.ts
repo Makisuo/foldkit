@@ -32,6 +32,11 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   Showed: {},
   Hid: {},
+  RequestedShow: {},
+  RequestedHide: {},
+  RequestedFinish: { generation: Schema.Number },
+  RequestedToggle: {},
+  RequestedResume: {},
   CompletedWaitForPaint: { generation: Schema.Number },
   EndedAnimation: { generation: Schema.Number },
 })

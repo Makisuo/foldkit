@@ -12,9 +12,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const Application = defineApplication({ Model, Message })
+const ApplicationDefinition = defineApplication({ Model, Message })
 
-const WaitBeforeReset = Application.command('WaitBeforeReset', {
+const WaitBeforeReset = ApplicationDefinition.command('WaitBeforeReset', {
   args: { delayMs: Schema.Number },
   messages: [Message.CompletedWaitBeforeReset],
   handler: function* () {

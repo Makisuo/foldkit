@@ -68,7 +68,7 @@ describe('Composition update delivery', () => {
         },
       ]),
     ).toThrow(
-      'A custom, keyed, or contextual Binding must supply fromParentMessage',
+      'A contextual canonical Binding must supply fromParentMessage.args',
     )
   })
 
@@ -92,7 +92,7 @@ describe('Composition update delivery', () => {
         args: (_model, message) => Option.some([childMessageOf(message)]),
       },
     })
-    const update = makeCompositionUpdate([binding])()
+    const update = makeCompositionUpdate(Message, [binding], false)()
     const model = { count: 1 }
     const message = trackedMapper.toParentMessage(changedCount)
 
@@ -232,7 +232,7 @@ describe('Composition update delivery', () => {
           },
         },
       ])
-      const update = makeCompositionUpdate([binding])()
+      const update = makeCompositionUpdate(Message, [binding], false)()
       const message = trackedMapper.toParentMessage(changedCount)
 
       expect(() => update({ count: 1 }, message)).toThrow(error)
@@ -255,7 +255,7 @@ describe('Composition update delivery', () => {
         args: () => Option.none(),
       },
     })
-    const update = makeCompositionUpdate([binding])()
+    const update = makeCompositionUpdate(Message, [binding], false)()
     const model = { count: 1 }
 
     expect(update(model, trackedMapper.toParentMessage(changedCount))).toEqual({
@@ -286,14 +286,14 @@ describe('Composition update delivery', () => {
     })
 
     expect(
-      makeCompositionUpdate([binding])()(
+      makeCompositionUpdate(Message, [binding], false)()(
         { count: 1 },
         trackedMapper.toParentMessage(changedCount),
       ),
     ).toEqual({ model: { count: 3 } })
   })
 
-  it('allows manual Bindings to produce the same parent Message variant', () => {
+  it('stages an incomplete internal delivery table but rejects its unclaimed Got Message', () => {
     const firstBinding = { placement: 'first', fold: vi.fn() }
     const secondBinding = { placement: 'second', fold: vi.fn() }
     const firstMapper = trackParentMessageMapper(
@@ -304,16 +304,24 @@ describe('Composition update delivery', () => {
     )
     registerBindingDelivery(firstBinding, firstMapper, {
       outgoingParentMessage: Message.GotFirstMessage,
-      fromParentMessage: false,
     })
     registerBindingDelivery(secondBinding, secondMapper, {
       outgoingParentMessage: Message.GotFirstMessage,
-      fromParentMessage: false,
     })
 
+    const update = makeCompositionUpdate(
+      Message,
+      [firstBinding, secondBinding],
+      false,
+    )()
+
     expect(() =>
-      makeCompositionUpdate([firstBinding, secondBinding]),
-    ).not.toThrow()
+      update({ count: 1 }, firstMapper.toParentMessage(changedCount)),
+    ).toThrow(
+      '[foldkit] Composition.makeUpdate received Got* child wrapper "GotFirstMessage" without an owning Binding.',
+    )
+    expect(firstBinding.fold).not.toHaveBeenCalled()
+    expect(secondBinding.fold).not.toHaveBeenCalled()
   })
 
   it('rejects a route claimed by one Binding and produced by another', () => {
@@ -334,10 +342,11 @@ describe('Composition update delivery', () => {
     })
     registerBindingDelivery(otherBinding, otherMapper, {
       outgoingParentMessage: Message.GotFirstMessage,
-      fromParentMessage: false,
     })
 
-    expect(() => makeCompositionUpdate([routedBinding, otherBinding])).toThrow(
+    expect(() =>
+      makeCompositionUpdate(Message, [routedBinding, otherBinding], false),
+    ).toThrow(
       'is routed to child Binding "first" but child Binding "second" also produces it',
     )
   })
@@ -364,9 +373,9 @@ describe('Composition update delivery', () => {
       },
     })
 
-    expect(() => makeCompositionUpdate([firstBinding, secondBinding])).toThrow(
-      'both claim parent Message "GotFirstMessage"',
-    )
+    expect(() =>
+      makeCompositionUpdate(Message, [firstBinding, secondBinding], false),
+    ).toThrow('both claim parent Message "GotFirstMessage"')
   })
 
   it('rejects a reserved Message emitted through an arbitrary mapper from another Binding', () => {
@@ -384,10 +393,12 @@ describe('Composition update delivery', () => {
         args: (_model, message) => Option.some([childMessageOf(message)]),
       },
     })
-    registerBindingDelivery(otherBinding, otherMapper, {
-      fromParentMessage: false,
-    })
-    const update = makeCompositionUpdate([routedBinding, otherBinding])()
+    registerBindingDelivery(otherBinding, otherMapper, {})
+    const update = makeCompositionUpdate(
+      Message,
+      [routedBinding, otherBinding],
+      false,
+    )()
 
     expect(() =>
       update({ count: 1 }, otherMapper.toParentMessage(changedCount)),
@@ -405,7 +416,7 @@ describe('Composition update delivery', () => {
         args: (_model, message) => Option.some([childMessageOf(message)]),
       },
     })
-    const update = makeCompositionUpdate([binding])()
+    const update = makeCompositionUpdate(Message, [binding], false)()
 
     trackedMapper.toParentMessage()
     trackedMapper.toParentMessage()
@@ -426,10 +437,12 @@ describe('Composition update delivery', () => {
         args: (_model, message) => Option.some([childMessageOf(message)]),
       },
     })
-    registerBindingDelivery(otherBinding, otherMapper, {
-      fromParentMessage: false,
-    })
-    const update = makeCompositionUpdate([binding, otherBinding])()
+    registerBindingDelivery(otherBinding, otherMapper, {})
+    const update = makeCompositionUpdate(
+      Message,
+      [binding, otherBinding],
+      false,
+    )()
 
     trackedMapper.toParentMessage()
     otherMapper.toParentMessage()
@@ -454,7 +467,11 @@ describe('Composition update delivery', () => {
     const authoredUpdate = vi.fn((model: { count: number }) => ({
       model: { count: model.count + 1 },
     }))
-    const update = makeCompositionUpdate([binding])(authoredUpdate)
+    const update = makeCompositionUpdate(
+      Message,
+      [binding],
+      false,
+    )(authoredUpdate)
     const message = Message.ClickedReset()
 
     expect(update({ count: 1 }, message)).toEqual({ model: { count: 2 } })

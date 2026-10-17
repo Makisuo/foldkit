@@ -16,9 +16,9 @@ A Listbox over a literal-union `Plan` type:
 
 ## The `create` Factory {#create-factory}
 
-A call to `Listbox.create<Plan>()` returns a completed Block whose entry points are all bound to `Plan`. Its view accepts `items: ReadonlyArray<Plan>`. Its update and exposed `selectItem` operation can return a `Selected` OutMessage carrying a `Plan`. Declare the factory once at module scope and use the same Block at every site that needs it.
+A call to `Listbox.create<Plan>()` returns a completed Block whose entry points are all bound to `Plan`. Its view accepts `items: ReadonlyArray<Plan>`. Its update and public `selectItem` operation can return a `Selected` OutMessage carrying a `Plan`. Declare the factory once at module scope and use the same Block at every site that needs it.
 
-There is no inbound reflect helper for the selection: the parent owns it outright and passes it in as `maybeSelectedValue` (`selectedValues` for multi-select), so there is nothing on the Listbox or Combobox to reflect onto. When an external value (a URL parameter, restored storage, a server push) changes the selection, the parent writes its own field. The `reflect*` family lives on the components with configuration the parent feeds in: `reflectMinDate`, `reflectMaxDate`, `reflectDisabledDates`, and `reflectDisabledDaysOfWeek` on Calendar and DatePicker, and `reflectRange` on Slider. See [Reflecting External State](/core/block#reflecting-external-state) for the concept.
+There is no inbound inform operation for the selection: the parent owns it outright and passes it in as `maybeSelectedValue` (`selectedValues` for multi-select), so there is no child Model field to update. When an external value changes the selection, the parent writes its own field. Components that store parent-provided configuration provide Message-producing operations instead: Calendar and DatePicker provide `informMinDateChanged`, `informMaxDateChanged`, `informDisabledDatesChanged`, and `informDisabledDaysOfWeekChanged`; Slider provides `informRangeChanged`. See [Informing a child about external state](/core/block#informing-external-state).
 
 ## Naming What a Factory Returns {#completed-type}
 
@@ -48,7 +48,7 @@ That split is why the Listbox Model can stay generic-free (no `Listbox.Model<Ite
 
 Without the factory, separately generic view and update functions could be instantiated with different item types at the same call site. The selected item could arrive in the OutMessage as one type while update treated it as another, and TypeScript would have no shared value through which to enforce the relationship.
 
-The factory closes that hole by setting `Item` once. The completed Block’s `view`, `update`, exposed operations, Message, and OutMessage are bound to the same `Item` because they all come from the same factory call.
+The factory closes that hole by setting `Item` once. The completed Block’s `view`, `update`, operations, Message, and OutMessage are bound to the same `Item` because they all come from the same factory call.
 
 ### The Schema Boundary
 

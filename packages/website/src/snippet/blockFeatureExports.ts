@@ -1,9 +1,11 @@
 // page/settings/block.ts
+const reset = SettingsComposition.makeOperation(Message.RequestedReset)
+
 export const block = SettingsComposition.makeBlock({
   init,
   update,
   view,
-  expose: { reset },
+  operations: { reset },
   EffectsLayer: SaveTheme.layer,
 })
 

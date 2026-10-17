@@ -15,11 +15,11 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.makeComposition()
+export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
-export const subscriptions = Application.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   gameClockTicks: entry(
     'GameClockTicks',
     { isAutoCounting: Schema.Boolean },

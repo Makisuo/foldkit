@@ -1,7 +1,7 @@
 import { Array, Duration, Effect, Layer, Random, Schema } from 'effect'
 import { Invalid, Valid } from 'foldkit/fieldValidation'
 
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 
 const FAKE_API_DELAY_MS = 500
@@ -18,7 +18,7 @@ const isEmailOnWaitlist = (email: string): Effect.Effect<boolean> =>
     return Array.contains(EMAILS_ON_WAITLIST, email.toLowerCase())
   })
 
-export const ValidateEmail = Application.command('ValidateEmail', {
+export const ValidateEmail = ApplicationDefinition.command('ValidateEmail', {
   args: { email: Schema.String },
   messages: [Message.CompletedValidateEmail],
   handler: function* () {
@@ -40,7 +40,7 @@ export const ValidateEmail = Application.command('ValidateEmail', {
   },
 })
 
-export const SubmitForm = Application.command('SubmitForm', {
+export const SubmitForm = ApplicationDefinition.command('SubmitForm', {
   args: {
     name: Schema.String,
     email: Schema.String,

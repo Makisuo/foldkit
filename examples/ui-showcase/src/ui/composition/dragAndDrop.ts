@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { DragAndDrop } from '@foldkit/ui'
 
-import { Ui } from '../definition'
+import { UiDefinition } from '../definition'
 import { Message } from '../message'
 import { type DemoColumn, Model } from '../model'
 
@@ -67,9 +67,12 @@ const foldDragAndDropDemoOutMessage = DragAndDrop.OutMessage.match<
   Cancelled: () => model => ({ model }),
 })
 
-export const DragAndDropDemoBinding = Ui.bindChild(DragAndDrop.block, {
-  field: 'dragAndDropDemo',
-  parentMessage: Message.GotDragAndDropDemoMessage,
-  init: { args: () => [{ id: 'drag-and-drop-demo' }] },
-  outMessage: { fold: foldDragAndDropDemoOutMessage },
-})
+export const DragAndDropDemoBinding = UiDefinition.bindChild(
+  DragAndDrop.block,
+  {
+    field: 'dragAndDropDemo',
+    parentMessage: Message.GotDragAndDropDemoMessage,
+    init: { args: () => [{ id: 'drag-and-drop-demo' }] },
+    outMessage: { fold: foldDragAndDropDemoOutMessage },
+  },
+)

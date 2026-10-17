@@ -41,7 +41,7 @@ import { Flags } from './flags'
 import { Message } from './message'
 import { Model } from './model'
 
-export const Application = defineApplication({
+export const ApplicationDefinition = defineApplication({
   Model,
   Message,
   Startup: Flags,
@@ -55,7 +55,7 @@ import { Application } from './definition'
 import { Message } from './message'
 import * as Settings from './settings'
 
-export const SettingsBinding = Application.bindChild(Settings.block, {
+export const SettingsBinding = ApplicationDefinition.bindChild(Settings.block, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
   init: {
@@ -63,7 +63,7 @@ export const SettingsBinding = Application.bindChild(Settings.block, {
   },
 })
 
-export const ApplicationComposition = Application.makeComposition({
+export const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [SettingsBinding],
 })
 ```
@@ -89,7 +89,7 @@ The final Model determines active occurrences. Init Commands for children absent
 When a child initializer takes no arguments, a required direct field needs no `init` property:
 
 ```ts
-const SearchBinding = Application.bindChild(Search.block, {
+const SearchBinding = ApplicationDefinition.bindChild(Search.block, {
   field: 'search',
   parentMessage: Message.GotSearchMessage,
 })
@@ -112,7 +112,7 @@ import * as Counter from './counter'
 
 const INITIAL_COUNTER_COUNT = 3
 
-const CountersBinding = Application.bindChild(Counter.block, {
+const CountersBinding = ApplicationDefinition.bindChild(Counter.block, {
   field: 'counters',
   key: 'id',
   childField: 'counter',
@@ -131,7 +131,7 @@ const CountersBinding = Application.bindChild(Counter.block, {
   },
 })
 
-const ApplicationComposition = Application.makeComposition({
+const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [CountersBinding],
 })
 

@@ -35,6 +35,7 @@ export const Model = Schema.Struct({
 export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
+  InformedOfSupport: { isSupported: Schema.Boolean },
   BootedPlayground: { previewUrl: Schema.String },
   FailedBootPlayground: { reason: Schema.String },
   ReleasedPlayground: {},
@@ -49,7 +50,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const Playground = Block.define('Playground', {
+export const PlaygroundDefinition = Block.define('Playground', {
   Model,
   Message,
 })

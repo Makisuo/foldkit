@@ -5,7 +5,7 @@ import { Person } from './informingBlocksModel'
 import { ApplicationRoute } from './informingBlocksRoute'
 
 export const Message = defineMessageUnion({
-  ChangedRoute: { route: ApplicationRoute.People },
+  InformedOfRouteChange: { route: ApplicationRoute.People },
   CompletedFetchPeople: { query: Schema.String, people: Schema.Array(Person) },
 })
 export type Message = typeof Message.Type

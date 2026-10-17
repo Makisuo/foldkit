@@ -7,18 +7,7 @@ import { describe, it } from '@effect/vitest'
 
 import * as UiCalendar from '../calendar/index.js'
 import * as Popover from '../popover/index.js'
-import {
-  Message,
-  OutMessage,
-  block,
-  focusDate,
-  init,
-  reflectDisabledDates,
-  reflectDisabledDaysOfWeek,
-  reflectMaxDate,
-  reflectMinDate,
-  update,
-} from './index.js'
+import { Message, OutMessage, block, focusDate, init, update } from './index.js'
 
 const today = Calendar.make(2026, 4, 13)
 
@@ -350,21 +339,24 @@ describe('DatePicker', () => {
   describe('programmatic helpers', () => {
     it('open(model) behaves like dispatching Opened', () => {
       const model = init({ id: 'picker', today })
-      const pickerOpen = block.expose.open(model)
+      const pickerOpen = block.operations.open(model)
       expect(pickerOpen.model.popover.isOpen).toBe(true)
     })
 
     it('close(model) behaves like dispatching Closed', () => {
-      const pickerOpen = block.expose.open(init({ id: 'picker', today }))
-      const pickerClose = block.expose.close(pickerOpen.model)
+      const pickerOpen = block.operations.open(init({ id: 'picker', today }))
+      const pickerClose = block.operations.close(pickerOpen.model)
       expect(pickerClose.model.popover.isOpen).toBe(false)
       expect((pickerClose.commands ?? []).length).toBeGreaterThan(0)
     })
 
     it('selectDate(model, date) commits the date, closes the popover, and emits SelectedDate', () => {
       const target = Calendar.make(2026, 4, 20)
-      const pickerOpen = block.expose.open(init({ id: 'picker', today }))
-      const dateSelection = block.expose.selectDate(pickerOpen.model, target)
+      const pickerOpen = block.operations.open(init({ id: 'picker', today }))
+      const dateSelection = block.operations.selectDate(
+        pickerOpen.model,
+        target,
+      )
       expect(dateSelection.model.popover.isOpen).toBe(false)
       expect(dateSelection.outMessage).toStrictEqual(
         OutMessage.SelectedDate({ date: target }),
@@ -377,58 +369,83 @@ describe('DatePicker', () => {
         today,
         initialViewDate: Calendar.make(2026, 4, 20),
       })
-      const selectionClear = block.expose.clear(seeded)
+      const selectionClear = block.operations.clear(seeded)
       expect(selectionClear.outMessage).toStrictEqual(OutMessage.ClearedDate())
     })
 
-    it('reflectMinDate(model, minDate) forwards to the embedded calendar', () => {
+    it('informMinDateChanged forwards to the embedded calendar', () => {
       const model = init({ id: 'picker', today })
       const newMin = Calendar.make(2026, 5, 1)
-      const next = reflectMinDate(model, Option.some(newMin))
-      expect(next.calendar.maybeMinDate).toStrictEqual(Option.some(newMin))
+      const minDateChange = block.operations.informMinDateChanged(
+        model,
+        Option.some(newMin),
+      )
+      expect(minDateChange.model.calendar.maybeMinDate).toStrictEqual(
+        Option.some(newMin),
+      )
     })
 
-    it('reflectMinDate(model, Option.none()) clears the minimum', () => {
+    it('informMinDateChanged clears the minimum', () => {
       const model = init({
         id: 'picker',
         today,
         minDate: Calendar.make(2026, 1, 1),
       })
-      const next = reflectMinDate(model, Option.none())
-      expect(next.calendar.maybeMinDate).toStrictEqual(Option.none())
+      const minDateChange = block.operations.informMinDateChanged(
+        model,
+        Option.none(),
+      )
+      expect(minDateChange.model.calendar.maybeMinDate).toStrictEqual(
+        Option.none(),
+      )
     })
 
-    it('reflectMaxDate(model, maxDate) forwards to the embedded calendar', () => {
+    it('informMaxDateChanged forwards to the embedded calendar', () => {
       const model = init({ id: 'picker', today })
       const newMax = Calendar.make(2026, 12, 31)
-      const next = reflectMaxDate(model, Option.some(newMax))
-      expect(next.calendar.maybeMaxDate).toStrictEqual(Option.some(newMax))
+      const maxDateChange = block.operations.informMaxDateChanged(
+        model,
+        Option.some(newMax),
+      )
+      expect(maxDateChange.model.calendar.maybeMaxDate).toStrictEqual(
+        Option.some(newMax),
+      )
     })
 
-    it('reflectDisabledDates(model, dates) forwards to the embedded calendar', () => {
+    it('informDisabledDatesChanged forwards to the embedded calendar', () => {
       const model = init({ id: 'picker', today })
       const disabled = [Calendar.make(2026, 4, 15)]
-      const next = reflectDisabledDates(model, disabled)
-      expect(next.calendar.disabledDates).toStrictEqual(disabled)
+      const disabledDatesChange = block.operations.informDisabledDatesChanged(
+        model,
+        disabled,
+      )
+      expect(disabledDatesChange.model.calendar.disabledDates).toStrictEqual(
+        disabled,
+      )
     })
 
-    it('reflectDisabledDaysOfWeek(model, days) forwards to the embedded calendar', () => {
+    it('informDisabledDaysOfWeekChanged forwards to the embedded calendar', () => {
       const model = init({ id: 'picker', today })
-      const next = reflectDisabledDaysOfWeek(model, ['Saturday', 'Sunday'])
-      expect(next.calendar.disabledDaysOfWeek).toStrictEqual([
-        'Saturday',
-        'Sunday',
-      ])
+      const disabledDaysChange =
+        block.operations.informDisabledDaysOfWeekChanged(model, [
+          'Saturday',
+          'Sunday',
+        ])
+      expect(
+        disabledDaysChange.model.calendar.disabledDaysOfWeek,
+      ).toStrictEqual(['Saturday', 'Sunday'])
     })
   })
 
   describe('focusDate', () => {
     it('moves the embedded calendar view and cursor to a date', () => {
       const date = Calendar.make(2026, 8, 15)
-      const next = focusDate(init({ id: 'picker', today }), date)
-      expect(next.calendar.viewYear).toBe(2026)
-      expect(next.calendar.viewMonth).toBe(8)
-      expect(next.calendar.maybeFocusedDate).toStrictEqual(Option.some(date))
+      const dateFocus = focusDate(init({ id: 'picker', today }), date)
+      expect(dateFocus.model.calendar.viewYear).toBe(2026)
+      expect(dateFocus.model.calendar.viewMonth).toBe(8)
+      expect(dateFocus.model.calendar.maybeFocusedDate).toStrictEqual(
+        Option.some(date),
+      )
     })
   })
 })

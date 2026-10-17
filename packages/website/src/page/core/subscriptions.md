@@ -67,7 +67,7 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 
 ### Defining Entries
 
-`Feature.subscriptions` receives a function that builds a named record of entries for the Block. When a Layer-backed entry depends on the Model, `entry` takes three arguments:
+`FeatureDefinition.subscriptions` receives a function that builds a named record of entries for the Block. When a Layer-backed entry depends on the Model, `entry` takes three arguments:
 
 - A stable handler name for the Layer requirement.
 - A field map defining the dependency Schema, in the same shape passed to `Schema.Struct`.
@@ -143,7 +143,7 @@ For a Layer-backed Subscription with no local Model dependencies, pass its stabl
 
 ::Snippet{name="subscriptionPersistent" label="Heartbeat without Model dependencies"}
 
-For work whose lifetime depends on the Model, define an entry with `Feature.subscriptions` and derive its dependencies from the Model.
+For work whose lifetime depends on the Model, define an entry with `FeatureDefinition.subscriptions` and derive its dependencies from the Model.
 
 ## Dom Streams
 
@@ -171,7 +171,7 @@ Most entries should use the first `dependencies` argument directly. Reach for `r
 
 When a parent embeds a Block with Subscriptions, its Binding lifts the child's Messages into the parent Message type and applies the same presence policy used by update. `None` in a direct Option field, `false` from `presentWhen`, or `None` from a custom `read` stops every child Stream without reading child dependencies.
 
-`Parent.bindChild(child, { field, parentMessage, ... })` performs that lift once for a direct child field. Custom storage uses `read` and `write`. Include the Binding in the parent's `childBindings` list, and the parent collects the lifted entries under placement-qualified keys. The same Composition routes the child's wrapper Messages through its Binding and installs the collected graph through `makeApplication({ init, update, view, ... })`.
+`ParentDefinition.bindChild(child, { field, parentMessage, ... })` performs that lift once for a direct child field. Custom storage uses `read` and `write`. Include the Binding in the parent's `childBindings` list, and the parent collects the lifted entries under placement-qualified keys. The same Composition routes the child's wrapper Messages through its Binding and installs the collected graph through `makeApplication({ init, update, view, ... })`.
 
 ### Gating Child Subscriptions
 

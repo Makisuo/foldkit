@@ -40,9 +40,9 @@ const foldComboboxMultiOutMessage = CitiesCombobox.OutMessage.match<
   ClearedSelection: () => model => ({ model }),
 })
 
-const CitiesPicker = Block.define('CitiesPicker', { Model, Message })
+const CitiesPickerDefinition = Block.define('CitiesPicker', { Model, Message })
 
-const ComboboxBinding = CitiesPicker.bindChild(CitiesCombobox, {
+const ComboboxBinding = CitiesPickerDefinition.bindChild(CitiesCombobox, {
   field: 'comboboxMulti',
   parentMessage: Message.GotComboboxMultiMessage,
   init: { args: () => Tuple.make({ id: 'cities-multi' }) },
@@ -51,7 +51,7 @@ const ComboboxBinding = CitiesPicker.bindChild(CitiesCombobox, {
 
 // Including the Binding collects its lifecycle and handler graph.
 
-const CitiesPickerComposition = CitiesPicker.makeComposition({
+const CitiesPickerComposition = CitiesPickerDefinition.makeComposition({
   childBindings: [ComboboxBinding],
 })
 

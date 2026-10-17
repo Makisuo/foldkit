@@ -216,29 +216,10 @@ export type ProducerRequirements<Producer> =
             : Update.RequirementsOf<Producer>
       : never
 
-type ProducerRecordRequirements<Producers> = Producers extends object
-  ? ProducerRequirements<Producers[keyof Producers]>
-  : never
-
 type ProducerRegistrationEvidence<Producer> = Producer extends AnyFunction
   ? ReturnOf<Producer> extends AnyFunction
     ? ProducerRegistrationEvidence<ReturnOf<Producer>>
     : Update.RegistrationEvidenceOf<ReturnOf<Producer>>
-  : never
-
-type ProducerGraphRequirements<Producer> = Producer extends AnyFunction
-  ? [ProducerRegistrationEvidence<Producer>] extends [never]
-    ?
-        | Update.GraphRequirementOf<Producer>
-        | (ReturnOf<Producer> extends AnyFunction
-            ? ProducerGraphRequirements<ReturnOf<Producer>>
-            : never)
-    : never
-  : never
-type ProducerRecordRegistrationEvidence<Producers> = Producers extends object
-  ?
-      | ProducerGraphRequirements<Producers[keyof Producers]>
-      | ProducerRegistrationEvidence<Producers[keyof Producers]>
   : never
 
 /**
@@ -411,9 +392,6 @@ type LocalOperationRequirements<Block> =
   | (Block extends Readonly<{ update: infer UpdateFunction }>
       ? ProducerRequirements<UpdateFunction>
       : never)
-  | (Block extends Readonly<{ expose: infer Steps }>
-      ? ProducerRecordRequirements<Steps>
-      : never)
   | (Block extends Readonly<{ subscriptions: infer Subscriptions }>
       ? SubscriptionRequirements<Subscriptions>
       : never)
@@ -432,24 +410,10 @@ type BindingDefinitionOperationRequirements<Binding> = Binding extends unknown
     : OperationRequirementsOfBlock<BlockOfBinding<Binding>>
   : never
 
-type BindingOperationFactories<Binding> =
-  BlockOfBinding<Binding> extends Readonly<{
-    expose: infer Operations extends Readonly<Record<string, AnyFunction>>
-  }>
-    ? {
-        [Name in keyof Operations]: Binding extends Readonly<
-          Record<Name, infer Factory>
-        >
-          ? Factory
-          : never
-      }[keyof Operations]
-    : never
-
 type BindingOwnOperationRequirements<Binding> =
   | (Binding extends Readonly<{ fold: infer Fold }>
       ? ProducerRequirements<Fold>
       : never)
-  | ProducerRequirements<BindingOperationFactories<Binding>>
   | SubscriptionRequirements<
       InspectionOfBinding<Binding> extends Readonly<{
         subscriptions: infer Subscriptions
@@ -565,12 +529,6 @@ type PrecisionFailures<Block> =
         : never
     >
   | ErasedRequirement<
-      'init, update, or exposed operations',
-      Block extends Readonly<{ expose: infer Steps }>
-        ? ProducerRecordRequirements<Steps>
-        : never
-    >
-  | ErasedRequirement<
       'subscriptions',
       Block extends Readonly<{ subscriptions: infer Subscriptions }>
         ? SubscriptionRequirements<Subscriptions>
@@ -619,7 +577,7 @@ type ValidateUnexpectedHostHandlers<Block> = [
     }>
 
 type ValidateBlockOperationNames<Block> =
-  Block extends Readonly<{ expose: infer Operations }>
+  Block extends Readonly<{ operations: infer Operations }>
     ? ValidateBindingOperationNames<Operations>
     : unknown
 
@@ -629,9 +587,6 @@ type LocalOperationRegistrationEvidence<Block> =
       : never)
   | (Block extends Readonly<{ update: infer UpdateFunction }>
       ? ProducerRegistrationEvidence<UpdateFunction>
-      : never)
-  | (Block extends Readonly<{ expose: infer Steps }>
-      ? ProducerRecordRegistrationEvidence<Steps>
       : never)
 
 type RegisteredChildEvidence<Block> =
@@ -747,9 +702,11 @@ type HandlerContracts<Block> = HandlerRequirements<
 export type ValidateConcreteComposition<
   Composition extends Readonly<{ owner: Owner<string> }>,
 > =
-  Composition extends Readonly<{ owner: Owner<string, false> }>
-    ? ValidateFullComposition<Composition>
-    : unknown
+  Composition['owner'] extends Owner<string, true>
+    ? unknown
+    : Composition['owner'] extends Owner<string, false>
+      ? ValidateFullComposition<Composition>
+      : unknown
 
 type ValidateDefinitionComposition<Definition, Composition> =
   Definition extends Readonly<{

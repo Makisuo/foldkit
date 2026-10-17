@@ -32,9 +32,9 @@ void WrongIdentityFirst
 void WrongApplication
 void WrongRegisteredApplication
 
-const Separate = Block.define('Separate', { Model, Message })
-const WrongSeparateComposition = Separate.makeComposition()
-const Shared = Block.define('Shared')
-const WrongShared = Shared.define({ Model, Message })
+const SeparateDefinition = Block.define('Separate', { Model, Message })
+const WrongSeparateComposition = SeparateDefinition.makeComposition()
+const SharedDefinition = Block.define('Shared')
+const WrongShared = SharedDefinition.define({ Model, Message })
 void WrongSeparateComposition
 void WrongShared

@@ -98,6 +98,13 @@ export type {
 export type { Owner } from './owner.js'
 export type { Qualify, Scoped } from './scope.js'
 export type { BindingPolicyEvidence } from './policyEvidence.js'
+export type { DeferredBindingPolicy } from './deferredPolicy.js'
 export type { ValidateConcreteComposition } from './requirements.js'
-export type { Reflect, Reflect2 } from './block.js'
 export type { InstanceKey } from './instanceContext.js'
+export type {
+  MakeOperation,
+  Operation,
+  OperationMessageConstructor,
+  OperationParameters,
+  OperationPayload,
+} from './operation.js'

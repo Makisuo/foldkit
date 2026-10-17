@@ -19,15 +19,15 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-export const PeopleBinding = Application.bindChild(People.block, {
+export const PeopleBinding = ApplicationDefinition.bindChild(People.block, {
   field: 'people',
   parentMessage: Message.GotPeopleMessage,
   init: false,
 })
 
-export const ApplicationComposition = Application.makeComposition({
+export const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [PeopleBinding],
 })
 
@@ -44,7 +44,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
         Match.tag('People', peopleRoute =>
           Update.combine(model, [
             setRoute(nextRoute),
-            PeopleBinding.informRouteChanged(peopleRoute),
+            PeopleBinding.informRouteChanged({ route: peopleRoute }),
           ]),
         ),
         Match.orElse(() => setRoute(nextRoute)(model)),

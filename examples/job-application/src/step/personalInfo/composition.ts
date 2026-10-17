@@ -7,7 +7,7 @@ import { DatePicker } from '@foldkit/ui'
 import {
   Message,
   type Model,
-  PersonalInfo,
+  PersonalInfoDefinition,
   PronounsListbox,
 } from './definition'
 
@@ -23,12 +23,15 @@ const foldPronounsOutMessage = PronounsListbox.OutMessage.match<
     }),
 })
 
-export const PronounsListboxBinding = PersonalInfo.bindChild(PronounsListbox, {
-  field: 'pronouns',
-  parentMessage: Message.GotPronounsMessage,
-  init: { args: () => [{ id: 'pronouns' }] },
-  outMessage: { fold: foldPronounsOutMessage },
-})
+export const PronounsListboxBinding = PersonalInfoDefinition.bindChild(
+  PronounsListbox,
+  {
+    field: 'pronouns',
+    parentMessage: Message.GotPronounsMessage,
+    init: { args: () => [{ id: 'pronouns' }] },
+    outMessage: { fold: foldPronounsOutMessage },
+  },
+)
 
 const foldAvailableDateOutMessage = DatePicker.OutMessage.match<
   Update.Step<Model, Message>
@@ -46,7 +49,7 @@ const foldAvailableDateOutMessage = DatePicker.OutMessage.match<
   ChangedViewMonth: () => model => ({ model }),
 })
 
-export const AvailableDatePickerBinding = PersonalInfo.bindChild(
+export const AvailableDatePickerBinding = PersonalInfoDefinition.bindChild(
   DatePicker.block,
   {
     field: 'availableDate',
@@ -58,7 +61,7 @@ export const AvailableDatePickerBinding = PersonalInfo.bindChild(
   },
 )
 
-export const PersonalInfoComposition = PersonalInfo.makeComposition({
+export const PersonalInfoComposition = PersonalInfoDefinition.makeComposition({
   childBindings: [PronounsListboxBinding, AvailableDatePickerBinding],
 })
 export type PersonalInfoViewBuilder = Block.ViewBuilderFor<

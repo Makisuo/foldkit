@@ -1,4 +1,4 @@
-import { LoggedInComposition } from './definition'
+import { LoggedInComposition } from './composition'
 import { Message, OutMessage } from './message'
 
 export const update = LoggedInComposition.makeUpdate((model, message) =>

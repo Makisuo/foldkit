@@ -1,32 +1,35 @@
-import { Imported } from './definition'
 import { Block, Block as AliasedBlock, defineApplication } from 'foldkit'
 import * as Foldkit from 'foldkit'
 import { define as aliasedDefine, define } from 'foldkit/block'
 import * as BlockModule from 'foldkit/block'
 
+import { ImportedDefinition } from './definition'
 import { block as ImportedFeature } from './feature.ts'
 
 const blockName = 'DynamicBlock'
 
-const Root = Block.define('Root')
-const AliasedRoot = AliasedBlock.define('AliasedRoot')
-const NamespaceRoot = Foldkit.Block.define('NamespaceRoot')
-const SubpathDefine = define('SubpathDefine')
-const AliasedSubpathDefine = aliasedDefine('AliasedSubpathDefine')
-const SubpathNamespace = BlockModule.define('SubpathNamespace')
+const RootDefinition = Block.define('Root')
+const AliasedRootDefinition = AliasedBlock.define('AliasedRoot')
+const NamespaceRootDefinition = Foldkit.Block.define('NamespaceRoot')
+const SubpathDefineDefinition = define('SubpathDefine')
+const AliasedSubpathDefineDefinition = aliasedDefine('AliasedSubpathDefine')
+const SubpathNamespaceDefinition = BlockModule.define('SubpathNamespace')
 const RegisteredComposition = Block.define('Registered', {
   Model,
   Message,
 }).makeComposition({})
-const IdentityFirst = Block.define('IdentityFirst').define({
+const IdentityFirstDefinition = Block.define('IdentityFirst').define({
   Model,
   Message,
 })
-const IdentityFirstComposition = Block.define(
-  'IdentityFirst',
-).define({ Model, Message }).makeComposition({})
-const Application = defineApplication({ Model, Message })
-const ApplicationComposition = defineApplication({ Model, Message }).makeComposition({})
+const IdentityFirstComposition = Block.define('IdentityFirst')
+  .define({ Model, Message })
+  .makeComposition({})
+const ApplicationDefinition = defineApplication({ Model, Message })
+const ApplicationComposition = defineApplication({
+  Model,
+  Message,
+}).makeComposition({})
 const DynamicBlock = AliasedBlock.define(blockName)
 const ImportedAlias = ImportedFeature
 
@@ -47,16 +50,16 @@ const useShadowedBlock = (Block: typeof AliasedBlock) => {
   return LocalBlock
 }
 
-void Root
-void AliasedRoot
-void NamespaceRoot
-void SubpathDefine
-void AliasedSubpathDefine
-void SubpathNamespace
+void RootDefinition
+void AliasedRootDefinition
+void NamespaceRootDefinition
+void SubpathDefineDefinition
+void AliasedSubpathDefineDefinition
+void SubpathNamespaceDefinition
 void RegisteredComposition
-void IdentityFirst
+void IdentityFirstDefinition
 void IdentityFirstComposition
-void Application
+void ApplicationDefinition
 void ApplicationComposition
 void DynamicBlock
 void ImportedAlias
@@ -65,8 +68,8 @@ void UnrelatedChain
 void UnrelatedCompositionResult
 void useShadowedBlock
 
-const Separate = Block.define('Separate', { Model, Message })
-const SeparateComposition = Separate.makeComposition()
-const ImportedResult = Imported.makeComposition()
+const SeparateDefinition = Block.define('Separate', { Model, Message })
+const SeparateComposition = SeparateDefinition.makeComposition()
+const ImportedResult = ImportedDefinition.makeComposition()
 void SeparateComposition
 void ImportedResult

@@ -1,5 +1,5 @@
 import { Array, Option, pipe } from 'effect'
-import { Calendar, Command, Update } from 'foldkit'
+import { type Block, Calendar, Command, Update } from 'foldkit'
 import type { StorySimulation } from 'foldkit/story'
 import {
   Command as StoryCommand,
@@ -18,6 +18,7 @@ import type { Message as ApplicationMessage } from '../../message'
 import type { Model as ApplicationModel } from '../../model'
 import { update as updateApplication } from '../../update'
 import { block } from './block'
+import type { SourceFileTabs } from './composition'
 import { LoadExampleSources, Message, init, update } from './example'
 import type { ExampleSources } from './sources'
 
@@ -34,7 +35,7 @@ const sources: ExampleSources = {
 const initialModel = () => init().model
 
 const commandNames = (
-  commands: ReturnType<typeof block.expose.loadInitialSources>['commands'],
+  commands: ReturnType<typeof block.operations.loadInitialSources>['commands'],
 ): ReadonlyArray<string> =>
   pipe(
     commands ?? [],
@@ -44,12 +45,12 @@ const commandNames = (
 describe('example detail initial sources', () => {
   test('preserves the initialized Model when there is no initial slug', () => {
     const model = initialModel()
-    const unseededSourcesLoad = block.expose.loadInitialSources(
+    const unseededSourcesLoad = block.operations.loadInitialSources(
       model,
       Option.none(),
       Option.none(),
     )
-    const seededSourcesLoad = block.expose.loadInitialSources(
+    const seededSourcesLoad = block.operations.loadInitialSources(
       model,
       Option.none(),
       Option.some(sources),
@@ -77,7 +78,7 @@ describe('example detail initial sources', () => {
       Message.ChangedExampleUrl({ url: 'https://example.test' }),
     )
 
-    const unseededSourcesLoad = block.expose.loadInitialSources(
+    const unseededSourcesLoad = block.operations.loadInitialSources(
       withExampleUrl.model,
       Option.some('counter'),
       Option.none(),
@@ -95,12 +96,18 @@ describe('example detail initial sources', () => {
       'ExampleDetail/LoadExampleSources',
     ])
     expectTypeOf<
-      Update.RequirementsOf<typeof block.expose.loadInitialSources>
-    >().toEqualTypeOf<Command.HandlerOf<typeof LoadExampleSources>>()
+      Update.RequirementsOf<typeof block.operations.loadInitialSources>
+    >().toEqualTypeOf<
+      | Command.HandlerOf<typeof LoadExampleSources>
+      | Block.Scoped<
+          'sourceFileTabs',
+          Update.RequirementsOf<typeof SourceFileTabs.update>
+        >
+    >()
   })
 
   test('shows supplied sources without fetching them', () => {
-    const seededSourcesLoad = block.expose.loadInitialSources(
+    const seededSourcesLoad = block.operations.loadInitialSources(
       initialModel(),
       Option.some('counter'),
       Option.some(sources),
@@ -118,12 +125,12 @@ describe('example detail initial sources', () => {
 
   test('leaves unavailable examples unchanged with or without supplied sources', () => {
     const model = initialModel()
-    const unseededSourcesLoad = block.expose.loadInitialSources(
+    const unseededSourcesLoad = block.operations.loadInitialSources(
       model,
       Option.some('livestore'),
       Option.none(),
     )
-    const seededSourcesLoad = block.expose.loadInitialSources(
+    const seededSourcesLoad = block.operations.loadInitialSources(
       model,
       Option.some('livestore'),
       Option.some(sources),
@@ -136,7 +143,7 @@ describe('example detail initial sources', () => {
   })
 
   test('clears existing sources when routing to an unavailable example', () => {
-    const loaded = block.expose.loadInitialSources(
+    const loaded = block.operations.loadInitialSources(
       initialModel(),
       Option.some('counter'),
       Option.some(sources),
@@ -146,9 +153,9 @@ describe('example detail initial sources', () => {
       Message.ChangedExampleUrl({ url: 'https://example.test' }),
     )
 
-    const routeChange = block.expose.informRouteChanged(
+    const routeChange = block.operations.informRouteChanged(
       withExampleUrl.model,
-      'livestore',
+      { slug: 'livestore' },
     )
 
     expect(routeChange.model.currentSources._tag).toBe('Idle')

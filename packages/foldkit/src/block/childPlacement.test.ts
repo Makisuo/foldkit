@@ -1,25 +1,20 @@
 import { Option, Schema } from 'effect'
 import { expect, it } from 'vitest'
 
-import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import { define } from './define.js'
 
 const ChildModel = Schema.Struct({ value: Schema.String })
 type ChildModel = typeof ChildModel.Type
 
-const Message = defineMessageUnion({ UpdatedValue: { value: Schema.String } })
-
 const Child = define('ChildPlacementChild', {
   Model: ChildModel,
-  Message,
+  Message: Schema.Never,
 })
 const ChildComposition = Child.makeComposition()
 const ChildBlock = ChildComposition.makeBlock({
   init: () => ({ model: ChildModel.make({ value: '' }) }),
-  update: ChildComposition.makeUpdate((model, { value }) => ({
-    model: modifyFields(model, { value: () => value }),
-  })),
+  update: ChildComposition.makeUpdate(),
 })
 
 const Entry = Schema.Struct({ id: Schema.String, child: ChildModel })
@@ -33,101 +28,79 @@ type ParentModel = typeof ParentModel.Type
 
 const Parent = define('ChildPlacementParent', {
   Model: ParentModel,
-  Message,
+  Message: Schema.Never,
 })
 
 const PrimaryBinding = Parent.bindChild(ChildBlock, {
-  fromParentMessage: false,
   field: 'primary',
-  toParentMessage: message => message,
 })
 
 const SecondaryAtPrimaryBinding = Parent.bindChild(ChildBlock, {
-  fromParentMessage: false,
   field: 'secondary',
   placement: 'primary',
-  toParentMessage: message => message,
 })
 
 const SecondaryBinding = Parent.bindChild(ChildBlock, {
-  fromParentMessage: false,
   field: 'secondary',
-  toParentMessage: message => message,
 })
 
 const OptionalBinding = Parent.bindChild(ChildBlock, {
-  fromParentMessage: false,
   placement: 'optional',
   read: model => model.maybeChild,
   write: (model, nextChild) =>
     modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
-  toParentMessage: message => message,
 })
 
 const EntriesBinding = Parent.bindChild(ChildBlock, {
-  fromParentMessage: false,
   placement: 'entries',
   readAll: model => model.entries,
   key: entry => entry.id,
   read: entry => entry.child,
   writeAt: model => model,
-  toParentMessage: (_id, message) => message,
 })
 
 const EntriesAtOptionalBinding = Parent.bindChild(ChildBlock, {
-  fromParentMessage: false,
   placement: 'optional',
   readAll: model => model.entries,
   key: entry => entry.id,
   read: entry => entry.child,
   writeAt: model => model,
-  toParentMessage: (_id, message) => message,
 })
 
 const DefaultAccessorBinding = Parent.bindChild(ChildBlock, {
-  fromParentMessage: false,
   read: model => model.maybeChild,
   write: (model, nextChild) =>
     modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
-  toParentMessage: message => message,
 })
 
 const DefaultEntriesByIdBinding = Parent.bindChild(ChildBlock, {
-  fromParentMessage: false,
   readAll: model => model.entries,
   key: entry => entry.id,
   read: entry => entry.child,
   writeAt: model => model,
-  toParentMessage: (_id, message) => message,
 })
 
 const DefaultEntriesByIdLengthBinding = Parent.bindChild(ChildBlock, {
-  fromParentMessage: false,
   readAll: model => model.entries,
   key: entry => entry.id.length,
   read: entry => entry.child,
   writeAt: model => model,
-  toParentMessage: (_idLength, message) => message,
 })
 
 const EntriesByIdBinding = Parent.bindChild(ChildBlock, {
-  fromParentMessage: false,
   placement: 'entriesById',
   readAll: model => model.entries,
   key: entry => entry.id,
   read: entry => entry.child,
   writeAt: model => model,
-  toParentMessage: (_id, message) => message,
 })
 
 const EntriesByIdLengthBinding = Parent.bindChild(ChildBlock, {
-  fromParentMessage: false,
   placement: 'entriesByIdLength',
   readAll: model => model.entries,
   key: entry => entry.id.length,
   read: entry => entry.child,
   writeAt: model => model,
-  toParentMessage: (_idLength, message) => message,
 })
 
 const composition = Parent.makeComposition({

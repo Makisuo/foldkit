@@ -63,12 +63,12 @@ const buildGraph = (
 
   const Session = ChildOwner.resource<string>()('Session')
 
-  const childChannels = ChildOwner.define({
+  const ChildChannelsDefinition = ChildOwner.define({
     Model: ChildModel,
     Message: ChildMessage,
   })
 
-  const subscriptions = childChannels.subscriptions(entry => ({
+  const subscriptions = ChildChannelsDefinition.subscriptions(entry => ({
     activity: entry('ObserveActivity', {
       messages: [],
       handler: function* () {
@@ -104,7 +104,7 @@ const buildGraph = (
     }),
   }))
 
-  const managedResources = childChannels.managedResources(entry => ({
+  const managedResources = ChildChannelsDefinition.managedResources(entry => ({
     session: entry('ManageSession', Schema.Option(Schema.Null), {
       resource: Session,
       modelToMaybeRequirements: () => Option.some(null),
@@ -154,11 +154,13 @@ const buildGraph = (
     },
   })
 
-  const childBase = ChildOwner.define({
+  const ChildBaseDefinition = ChildOwner.define({
     Model: ChildModel,
     Message: ChildMessage,
   })
-  const childComposition = childBase.makeComposition({ mounts: [ObservePanel] })
+  const childComposition = ChildBaseDefinition.makeComposition({
+    mounts: [ObservePanel],
+  })
   const childView = childComposition.makeView((model, h) =>
     h.div([h.OnMount(ObservePanel())], [`child:${model.id}`]),
   )
@@ -192,14 +194,13 @@ const buildGraph = (
   })
   type ParentMessage = typeof ParentMessage.Type
 
-  const parentBase = defineApplication({
+  const ParentBaseDefinition = defineApplication({
     Model: ParentModel,
     Message: ParentMessage,
   })
   const ChildBinding = (() => {
     if (mode === 'Route') {
-      return parentBase.bindChild(Child, {
-        fromParentMessage: false,
+      return ParentBaseDefinition.bindChild(Child, {
         placement: 'child',
         field: 'maybeChild',
         presentWhen: (model: ParentModel) => model.route === 'Home',
@@ -208,8 +209,7 @@ const buildGraph = (
     }
 
     if (mode === 'Subscriptions') {
-      return parentBase.bindChild(Child, {
-        fromParentMessage: false,
+      return ParentBaseDefinition.bindChild(Child, {
         placement: 'child',
         field: 'maybeChild',
         subscriptions: {
@@ -219,15 +219,14 @@ const buildGraph = (
       })
     }
 
-    return parentBase.bindChild(Child, {
-      fromParentMessage: false,
+    return ParentBaseDefinition.bindChild(Child, {
       placement: 'child',
       field: 'maybeChild',
       parentMessage: ParentMessage.GotChildMessage,
     })
   })()
 
-  const composition = parentBase.makeComposition({
+  const composition = ParentBaseDefinition.makeComposition({
     childBindings: [ChildBinding],
   })
   const view = composition.makeView((model, h) =>
@@ -256,18 +255,12 @@ const buildGraph = (
       route: 'Home',
     }),
   })
-  const update = composition.makeUpdate((model, message) =>
-    ParentMessage.match(message, {
-      GotChildMessage: ({ message: childMessage }) =>
-        ChildBinding.fold(model, childMessage),
-      RemovedChild: () => ({
-        model: modifyFields(model, {
-          maybeChild: current => (mode === 'Option' ? Option.none() : current),
-          route: () => 'Away',
-        }),
-      }),
+  const update = composition.makeUpdate(model => ({
+    model: modifyFields(model, {
+      maybeChild: current => (mode === 'Option' ? Option.none() : current),
+      route: () => 'Away',
     }),
-  )
+  }))
 
   return { composition, init, update, view }
 }

@@ -12,7 +12,7 @@ import type { Mount } from 'foldkit'
 import playgroundTypes from 'virtual:playground-types'
 
 import { reasonFromError } from '../playgroundWebContainer'
-import { Message, Playground } from './definition'
+import { Message, PlaygroundDefinition } from './definition'
 
 const monacoLanguageForPath = (path: string): string =>
   pipe(
@@ -266,7 +266,7 @@ const streamPlaygroundEditorMessages = (
     ),
   )
 
-export const MountPlaygroundEditor = Playground.mountStream(
+export const MountPlaygroundEditor = PlaygroundDefinition.mountStream(
   'MountPlaygroundEditor',
   {
     args: {

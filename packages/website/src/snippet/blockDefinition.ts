@@ -10,6 +10,7 @@ export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ChangedTheme: { theme: Theme },
+  RequestedThemeChange: { theme: Theme },
   CompletedSaveTheme: {},
   FailedSaveTheme: {},
 })
@@ -20,19 +21,19 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-export const Settings = Block.define('Settings', {
+export const SettingsDefinition = Block.define('Settings', {
   Model,
   Message,
   OutMessage,
 })
-export const SettingsComposition = Settings.makeComposition()
+export const SettingsComposition = SettingsDefinition.makeComposition()
 
 export class SettingsStore extends Context.Service<
   SettingsStore,
   Readonly<{ saveTheme: (theme: Theme) => Effect.Effect<void, Error> }>
 >()('SettingsStore') {}
 
-export const SaveTheme = Settings.command('SaveTheme', {
+export const SaveTheme = SettingsDefinition.command('SaveTheme', {
   args: { theme: Theme },
   messages: [Message.CompletedSaveTheme, Message.FailedSaveTheme],
   handler: function* () {

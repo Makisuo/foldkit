@@ -1,4 +1,4 @@
-import { Option, Schema } from 'effect'
+import { Option, Schema, Tuple } from 'effect'
 import type * as Block from 'foldkit/block'
 import type { Html } from 'foldkit/html'
 import type * as Update from 'foldkit/update'
@@ -11,7 +11,7 @@ import {
   Message,
   OutMessage,
   type OutMessageSchema,
-  Listbox as SharedListbox,
+  ListboxDefinition as SharedListbox,
   baseInit,
   makeUpdate,
   makeView,
@@ -64,14 +64,14 @@ const makeBlockParts = <Item, Value extends string>() => {
   const RefinedOutMessage =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     OutMessage as unknown as OutMessageSchema<Value>
-  const Listbox = SharedListbox.define({
+  const ListboxDefinition = SharedListbox.define({
     Model,
     Message,
     OutMessage: RefinedOutMessage,
   })
   const itemUpdate = makeUpdate(
-    Listbox.bindChild,
-    Listbox.step,
+    ListboxDefinition.bindChild,
+    ListboxDefinition.step,
     'KeepOpen',
     (model, item) => ({
       model,
@@ -87,11 +87,11 @@ const makeBlockParts = <Item, Value extends string>() => {
   const castReturn = (result: ReturnType<typeof itemUpdate.update>) =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     result as unknown as RefinedReturn
-  const ListboxComposition = Listbox.makeComposition({
+  const ListboxComposition = ListboxDefinition.makeComposition({
     mounts,
     childBindings: [itemUpdate.AnimationBinding],
   })
-  const authoredUpdate = Listbox.step(
+  const authoredUpdate = ListboxDefinition.step(
     (model, message: Parameters<typeof itemUpdate.update>[1]) =>
       castReturn(itemUpdate.update(model, message)),
   )
@@ -108,14 +108,10 @@ const makeBlockParts = <Item, Value extends string>() => {
   const view = ListboxComposition.makeView.withInputs<ViewInputs<Item, Value>>(
     (model, viewInputs, h) => refinedView(model, viewInputs, h),
   )
-  const open = Listbox.step(model =>
-    update(model, Message.Opened({ maybeActiveItemIndex: Option.none() })),
-  )
-  const close = Listbox.step(model => update(model, Message.Closed()))
-  const selectItem = Listbox.step((model, item: Value) =>
-    update(model, Message.SelectedItem({ item })),
-  )
-  const expose = { open, close, selectItem }
+  const open = () =>
+    Tuple.make(Message.Opened({ maybeActiveItemIndex: Option.none() }))
+  const close = ListboxComposition.makeOperation(Message.Closed)
+  const selectItem = (item: Value) => Tuple.make(Message.SelectedItem({ item }))
   return {
     composition: ListboxComposition,
     implementation: {
@@ -124,7 +120,7 @@ const makeBlockParts = <Item, Value extends string>() => {
       })),
       update,
       view,
-      expose,
+      operations: { open, close, selectItem },
       EffectsLayer,
     },
   }
@@ -172,14 +168,15 @@ type UpdateReturn = ReturnType<typeof update>
 
 /** Programmatically opens the Listbox, updating the Model and returning focus
  *  and modal Commands. Use this in domain-event handlers. */
-export const open = (model: Model): UpdateReturn => block.expose.open(model)
+export const open = (model: Model): UpdateReturn => block.operations.open(model)
 
 /** Programmatically closes the listbox. If it is open, returns the closed Model
  *  with focus and modal Commands. If it is already closed, returns the Model
  *  unchanged with no Commands. Use this in domain-event handlers to close the
  *  listbox. */
-export const close = (model: Model): UpdateReturn => block.expose.close(model)
+export const close = (model: Model): UpdateReturn =>
+  block.operations.close(model)
 
 /** Programmatically activates an item in the multi-select listbox. Emits `Selected({ value })`; the parent toggles the value's membership. */
 export const selectItem = (model: Model, item: string): UpdateReturn =>
-  block.expose.selectItem(model, item)
+  block.operations.selectItem(model, item)

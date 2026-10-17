@@ -1,9 +1,9 @@
 import { Dom } from 'foldkit'
 
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 
-export const subscriptions = Application.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   navigationShortcutPresses: entry('NavigationShortcutPresses', {
     messages: [Message.EnteredNavigationShortcut],
     handler: function* () {

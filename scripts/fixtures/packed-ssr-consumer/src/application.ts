@@ -22,9 +22,9 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.makeComposition()
+export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 export const init = (flags: Flags) => ({
   model: Model.make({ count: flags.start, formState: 'Controlled' }),

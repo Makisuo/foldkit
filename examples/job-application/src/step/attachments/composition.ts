@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { FileDrop } from '@foldkit/ui'
 
-import { Attachments, Message, type Model } from './definition'
+import { AttachmentsDefinition, Message, type Model } from './definition'
 
 const foldResumeDropOutMessage = FileDrop.OutMessage.match<
   Update.Step<Model, Message>
@@ -20,12 +20,15 @@ const foldResumeDropOutMessage = FileDrop.OutMessage.match<
   RejectedNonFiles: () => model => ({ model }),
 })
 
-export const ResumeDropBinding = Attachments.bindChild(FileDrop.block, {
-  field: 'resumeDrop',
-  parentMessage: Message.GotResumeDropMessage,
-  init: { args: () => [{ id: 'attachments-resume' }] },
-  outMessage: { fold: foldResumeDropOutMessage },
-})
+export const ResumeDropBinding = AttachmentsDefinition.bindChild(
+  FileDrop.block,
+  {
+    field: 'resumeDrop',
+    parentMessage: Message.GotResumeDropMessage,
+    init: { args: () => [{ id: 'attachments-resume' }] },
+    outMessage: { fold: foldResumeDropOutMessage },
+  },
+)
 
 const foldAdditionalFilesDropOutMessage = FileDrop.OutMessage.match<
   Update.Step<Model, Message>
@@ -40,7 +43,7 @@ const foldAdditionalFilesDropOutMessage = FileDrop.OutMessage.match<
   RejectedNonFiles: () => model => ({ model }),
 })
 
-export const AdditionalFilesDropBinding = Attachments.bindChild(
+export const AdditionalFilesDropBinding = AttachmentsDefinition.bindChild(
   FileDrop.block,
   {
     field: 'additionalFilesDrop',
@@ -50,6 +53,6 @@ export const AdditionalFilesDropBinding = Attachments.bindChild(
   },
 )
 
-export const AttachmentsComposition = Attachments.makeComposition({
+export const AttachmentsComposition = AttachmentsDefinition.makeComposition({
   childBindings: [ResumeDropBinding, AdditionalFilesDropBinding],
 })

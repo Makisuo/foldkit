@@ -6,7 +6,7 @@ import { DragAndDrop } from '@foldkit/ui'
 import { maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 
 import { SaveBoard } from '../command'
-import { Application } from '../definition'
+import { ApplicationDefinition } from '../definition'
 import { Column } from '../domain'
 import { Message } from '../message'
 import { Model } from '../model'
@@ -96,7 +96,7 @@ const screenReaderTextForDrop = (
 const foldDragAndDropOutMessage = (previousModel: Model) =>
   DragAndDrop.OutMessage.match({
     Reordered: outMessage =>
-      Application.step(model => {
+      ApplicationDefinition.step(model => {
         const { itemId, fromContainerId, toContainerId, toIndex } = outMessage
         const nextColumns = Column.reorder(
           model.columns,
@@ -115,7 +115,7 @@ const foldDragAndDropOutMessage = (previousModel: Model) =>
         }
       }),
     Cancelled: outMessage =>
-      Application.step(model => ({
+      ApplicationDefinition.step(model => ({
         model: modifyFields(model, {
           announcement: () =>
             screenReaderTextForDrop(previousModel, outMessage),
@@ -134,21 +134,24 @@ const dragAndDropOutMessagePolicy = {
   ) => foldDragAndDropOutMessage(context.modelBeforeUpdate)(outMessage),
 }
 
-export const DragAndDropBinding = Application.bindChild(DragAndDrop.block, {
-  read: model => Option.some(model.dragAndDrop),
-  write: (model, nextDragAndDrop) =>
-    modifyFields(model, {
-      dragAndDrop: () => nextDragAndDrop,
-      announcement: () => announceKeyboardDrag(model, nextDragAndDrop),
-    }),
-  parentMessage: Message.GotDragAndDropMessage,
-  fromParentMessage: {
+export const DragAndDropBinding = ApplicationDefinition.bindChild(
+  DragAndDrop.block,
+  {
+    read: model => Option.some(model.dragAndDrop),
+    write: (model, nextDragAndDrop) =>
+      modifyFields(model, {
+        dragAndDrop: () => nextDragAndDrop,
+        announcement: () => announceKeyboardDrag(model, nextDragAndDrop),
+      }),
     parentMessage: Message.GotDragAndDropMessage,
-    args: (_model, { message }) => Option.some([message]),
+    fromParentMessage: {
+      parentMessage: Message.GotDragAndDropMessage,
+      args: (_model, { message }) => Option.some([message]),
+    },
+    init: {
+      args: () => [{ id: 'kanban' }],
+      model: dragAndDrop => ({ dragAndDrop }),
+    },
+    outMessage: dragAndDropOutMessagePolicy,
   },
-  init: {
-    args: () => [{ id: 'kanban' }],
-    model: dragAndDrop => ({ dragAndDrop }),
-  },
-  outMessage: dragAndDropOutMessagePolicy,
-})
+)

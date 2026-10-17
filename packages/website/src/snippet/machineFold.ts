@@ -11,8 +11,8 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-const Application = defineApplication({ Model, Message })
-const ApplicationComposition = Application.makeComposition()
+const ApplicationDefinition = defineApplication({ Model, Message })
+const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 export const initialModel = Model.make({
   checkout: checkoutMachine.initial,

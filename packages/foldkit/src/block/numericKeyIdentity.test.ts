@@ -111,7 +111,10 @@ it('retains automatic startup Commands when Schema storage normalizes a zero key
     key: 'id',
     childField: 'child',
     toParentMessage: (id, message) => Message.GotChildMessage({ id, message }),
-    fromParentMessage: false,
+    fromParentMessage: {
+      parentMessage: Message.GotChildMessage,
+      args: (_model, { id, message }) => Option.some([id, message]),
+    },
     init: {
       occurrences: () => [{ key: -0, args: Tuple.make() }],
       toItem: (_occurrence, child) => ({ id: 0, child }),
@@ -131,7 +134,10 @@ it('rejects duplicate signed-zero startup keys before initializing either occurr
     key: 'id',
     childField: 'child',
     toParentMessage: (id, message) => Message.GotChildMessage({ id, message }),
-    fromParentMessage: false,
+    fromParentMessage: {
+      parentMessage: Message.GotChildMessage,
+      args: (_model, { id, message }) => Option.some([id, message]),
+    },
     init: {
       occurrences: () => [
         { key: -0, args: Tuple.make() },

@@ -26,7 +26,7 @@ const subscriptions = Subscription.make<Model, Message>()(_entry => ({
 **After**
 
 ```ts
-const subscriptions = Feature.subscriptions(entry => ({
+const subscriptions = FeatureDefinition.subscriptions(entry => ({
   animationFrameTicks: entry(
     // A named handler replaces the anonymous animation-frame helper.
     'AnimationFrameTicks',
@@ -48,7 +48,7 @@ const subscriptions = Feature.subscriptions(entry => ({
 }))
 
 const EffectsLayer = subscriptions.animationFrameTicks.layer
-const FeatureComposition = Feature.makeComposition()
+const FeatureComposition = FeatureDefinition.makeComposition()
 
 export const block = FeatureComposition.makeBlock({
   init,
@@ -79,7 +79,7 @@ const subscriptions = Subscription.aggregate(
 **After**
 
 ```ts
-const subscriptions = Feature.subscriptions(entry => ({
+const subscriptions = FeatureDefinition.subscriptions(entry => ({
   hostStep: entry('HostStepChanges', {
     messages: [Message.ChangedStep],
     handler: function* () {
@@ -93,7 +93,7 @@ const subscriptions = Feature.subscriptions(entry => ({
 }))
 
 const EffectsLayer = subscriptions.hostStep.layer
-const FeatureComposition = Feature.makeComposition()
+const FeatureComposition = FeatureDefinition.makeComposition()
 
 export const block = FeatureComposition.makeBlock({
   init,

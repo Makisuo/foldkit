@@ -1,7 +1,7 @@
-import { Application } from '../definition'
+import { ApplicationDefinition } from '../definition'
 import { LoggedInBinding } from './loggedIn'
 import { LoggedOutBinding } from './loggedOut'
 
-export const ApplicationComposition = Application.makeComposition({
+export const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [LoggedOutBinding, LoggedInBinding],
 })

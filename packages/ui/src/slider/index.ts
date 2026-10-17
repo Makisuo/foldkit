@@ -13,7 +13,6 @@ export {
   init,
   snapAndClamp,
   update,
-  reflectRange,
   valueFromPointer,
   type SliderAttributes,
   Orientation,

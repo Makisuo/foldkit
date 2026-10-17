@@ -1,4 +1,4 @@
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import * as Home from './home'
 import { Message } from './message'
 import * as Room from './room'
@@ -8,7 +8,7 @@ const foldHomeOutMessage = (outMessage: Home.OutMessage) =>
     SelectedRoom: ({ roomId }) => RoomBinding.open(roomId),
   })
 
-export const HomeBinding = Application.bindChild(Home.block, {
+export const HomeBinding = ApplicationDefinition.bindChild(Home.block, {
   field: 'home',
   parentMessage: Message.GotHomeMessage,
   outMessage: { fold: foldHomeOutMessage },
@@ -19,12 +19,12 @@ const foldRoomOutMessage = (outMessage: Room.OutMessage) =>
     SavedRoom: ({ roomId }) => HomeBinding.markRoomSaved(roomId),
   })
 
-export const RoomBinding = Application.bindChild(Room.block, {
+export const RoomBinding = ApplicationDefinition.bindChild(Room.block, {
   field: 'room',
   parentMessage: Message.GotRoomMessage,
   outMessage: { fold: foldRoomOutMessage },
 })
 
-export const ApplicationComposition = Application.makeComposition({
+export const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [HomeBinding, RoomBinding],
 })

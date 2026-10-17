@@ -36,10 +36,10 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const Application = defineApplication({ Model, Message })
-const ApplicationComposition = Application.makeComposition()
+const ApplicationDefinition = defineApplication({ Model, Message })
+const ApplicationComposition = ApplicationDefinition.makeComposition()
 
-const NavigateInternal = Application.command('NavigateInternal', {
+const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -50,7 +50,7 @@ const NavigateInternal = Application.command('NavigateInternal', {
   },
 })
 
-const LoadExternal = Application.command('LoadExternal', {
+const LoadExternal = ApplicationDefinition.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {

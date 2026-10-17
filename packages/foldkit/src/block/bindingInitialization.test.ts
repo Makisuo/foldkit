@@ -1,4 +1,4 @@
-import { Array, Effect, Option, Schema, pipe } from 'effect'
+import { Array, Effect, Option, Schema, Tuple, pipe } from 'effect'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
@@ -42,6 +42,9 @@ const ParentModel = Schema.Struct({
 const ParentMessage = defineMessageUnion({
   GotChildMessage: { id: Schema.String, message: ChildMessage },
   CompletedRecord: {},
+  RequestedCreateChild: {},
+  RequestedCreateKeyedChild: { label: Schema.String },
+  RequestedCreateIncompleteKeyedChild: {},
 })
 const Parent = define('InitializationParent', {
   Model: ParentModel,
@@ -108,7 +111,21 @@ describe('connected initialization', () => {
       args: [4],
       toParentModel: child => ({ items: [{ id: 'first', child }] }),
     })
-    const ForeignComposition = Parent.makeComposition()
+    const ForeignItemsBinding = Parent.bindChild(child, {
+      placement: 'foreign-items',
+      field: 'items',
+      key: 'id',
+      childField: 'child',
+      toParentMessage: (id, message) =>
+        ParentMessage.GotChildMessage({ id, message }),
+      fromParentMessage: {
+        parentMessage: ParentMessage.GotChildMessage,
+        args: (_model, { id, message }) => Option.some([id, message]),
+      },
+    })
+    const ForeignComposition = Parent.makeComposition({
+      childBindings: [ForeignItemsBinding],
+    })
     const foreignInit = Reflect.apply(ForeignComposition.makeInit, undefined, [
       () => recipe,
     ])
@@ -187,10 +204,19 @@ describe('connected initialization', () => {
     )
     const completed = ParentComposition.makeBlock({
       init: () => ({ model: initialModel }),
-      update: ParentComposition.makeUpdate(model => ({ model })),
-      expose: { createChild },
+      update: ParentComposition.makeUpdate((model, message) =>
+        ParentMessage.match(message, {
+          RequestedCreateChild: () => createChild(model),
+          CompletedRecord: () => ({ model }),
+          RequestedCreateKeyedChild: () => ({ model }),
+          RequestedCreateIncompleteKeyedChild: () => ({ model }),
+        }),
+      ),
+      operations: {
+        createChild: () => Tuple.make(ParentMessage.RequestedCreateChild()),
+      },
     })
-    const created = completed.expose.createChild(initialModel)
+    const created = completed.operations.createChild(initialModel)
 
     expect(Option.getOrThrow(Array.head(created.model.items))).toBe(existing)
     expect(created.model.items).toEqual([
@@ -279,6 +305,8 @@ const DirectModel = Schema.Struct({
 })
 const DirectMessage = defineMessageUnion({
   GotChildMessage: { message: ChildMessage },
+  RequestedCreateChild: { label: Schema.String },
+  RequestedCreateIncompleteChild: {},
 })
 const Direct = define('DirectInitializationParent', {
   Model: DirectModel,
@@ -312,8 +340,18 @@ const dynamicDirect = DirectComposition.makeBlock({
   init: DirectComposition.makeInit(() => ({
     model: DirectModel.make({ child: Option.none(), label: 'initial' }),
   })),
-  update: DirectComposition.makeUpdate(),
-  expose: { createDirectChild, createIncompleteDirectChild },
+  update: DirectComposition.makeUpdate((model, message) =>
+    DirectMessage.match(message, {
+      RequestedCreateChild: ({ label }) => createDirectChild(model, label),
+      RequestedCreateIncompleteChild: () => createIncompleteDirectChild(model),
+    }),
+  ),
+  operations: {
+    createDirectChild: (label: string) =>
+      Tuple.make(DirectMessage.RequestedCreateChild({ label })),
+    createIncompleteDirectChild: () =>
+      Tuple.make(DirectMessage.RequestedCreateIncompleteChild()),
+  },
 })
 
 describe('direct connected initialization', () => {
@@ -327,7 +365,8 @@ describe('direct connected initialization', () => {
     )
     const direct = DirectComposition.makeBlock({
       init: directInit,
-      update: DirectComposition.makeUpdate(),
+      update: dynamicDirect.update,
+      operations: {},
     })
     const initialized = directInit()
     const command = Option.getOrThrow(Array.head(initialized.commands ?? []))
@@ -381,7 +420,7 @@ describe('direct connected initialization', () => {
 
   it('accepts a complete parent Model from a completed exposed operation', () => {
     const directInit = dynamicDirect.init()
-    const created = dynamicDirect.expose.createDirectChild(
+    const created = dynamicDirect.operations.createDirectChild(
       directInit.model,
       'complete',
     )
@@ -396,7 +435,7 @@ describe('direct connected initialization', () => {
     const directInit = dynamicDirect.init()
 
     expect(() =>
-      dynamicDirect.expose.createIncompleteDirectChild(directInit.model),
+      dynamicDirect.operations.createIncompleteDirectChild(directInit.model),
     ).toThrow('must return a complete parent Model')
   })
 })
@@ -449,14 +488,27 @@ const dynamicKeyed = CompleteKeyedComposition.makeBlock({
   init: CompleteKeyedComposition.makeInit(() => ({
     model: CompleteKeyedModel.make({ items: [], label: 'initial' }),
   })),
-  update: CompleteKeyedComposition.makeUpdate(model => ({ model })),
-  expose: { createKeyedChild, createIncompleteKeyedChild },
+  update: CompleteKeyedComposition.makeUpdate((model, message) =>
+    ParentMessage.match(message, {
+      RequestedCreateKeyedChild: ({ label }) => createKeyedChild(model, label),
+      RequestedCreateIncompleteKeyedChild: () =>
+        createIncompleteKeyedChild(model),
+      CompletedRecord: () => ({ model }),
+      RequestedCreateChild: () => ({ model }),
+    }),
+  ),
+  operations: {
+    createKeyedChild: (label: string) =>
+      Tuple.make(ParentMessage.RequestedCreateKeyedChild({ label })),
+    createIncompleteKeyedChild: () =>
+      Tuple.make(ParentMessage.RequestedCreateIncompleteKeyedChild()),
+  },
 })
 
 describe('keyed complete parent validation', () => {
   it('accepts a complete parent Model from a completed exposed operation', () => {
     const keyedInit = dynamicKeyed.init()
-    const created = dynamicKeyed.expose.createKeyedChild(
+    const created = dynamicKeyed.operations.createKeyedChild(
       keyedInit.model,
       'complete',
     )
@@ -471,7 +523,7 @@ describe('keyed complete parent validation', () => {
     const keyedInit = dynamicKeyed.init()
 
     expect(() =>
-      dynamicKeyed.expose.createIncompleteKeyedChild(keyedInit.model),
+      dynamicKeyed.operations.createIncompleteKeyedChild(keyedInit.model),
     ).toThrow('must return a complete parent Model')
   })
 })

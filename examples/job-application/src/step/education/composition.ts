@@ -2,7 +2,7 @@ import { Array, Option } from 'effect'
 import { type Block, type Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { Education, Message, type Model } from './definition'
+import { EducationDefinition, Message, type Model } from './definition'
 import * as Entry from './entry'
 
 const foldEntryOutMessage = (
@@ -17,7 +17,7 @@ const foldEntryOutMessage = (
     }),
   })
 
-export const EntriesBinding = Education.bindChild(Entry.block, {
+export const EntriesBinding = EducationDefinition.bindChild(Entry.block, {
   field: 'entries',
   key: 'id',
   toParentMessage: (entryId, message) =>
@@ -35,7 +35,7 @@ export const EntriesBinding = Education.bindChild(Entry.block, {
   outMessage: { fold: foldEntryOutMessage },
 })
 
-export const EducationComposition = Education.makeComposition({
+export const EducationComposition = EducationDefinition.makeComposition({
   childBindings: [EntriesBinding],
 })
 export type EducationViewBuilder = Block.ViewBuilderFor<

@@ -391,7 +391,11 @@ const taggedPayload = (
 
 // UPDATE
 
-const Application = defineApplication({ Model, Message, Startup: Flags })
+const ApplicationDefinition = defineApplication({
+  Model,
+  Message,
+  Startup: Flags,
+})
 
 const foldInspectorTabsOutMessage = Tabs.OutMessage.match<
   Update.Step<Model, Message>,
@@ -404,7 +408,7 @@ const foldInspectorTabsOutMessage = Tabs.OutMessage.match<
     }),
 })
 
-const InspectorTabsBinding = Application.bindChild(InspectorTabs, {
+const InspectorTabsBinding = ApplicationDefinition.bindChild(InspectorTabs, {
   field: 'inspectorTabs',
   init: { args: () => [{ id: INSPECTOR_TABS_ID }] },
   parentMessage: Message.GotInspectorTabsMessage,
@@ -424,12 +428,15 @@ const foldBlockFilterOutMessage = Listbox.OutMessage.match<
     }),
 })
 
-const BlockFilterListboxBinding = Application.bindChild(BlockFilterListbox, {
-  field: 'blockFilterListbox',
-  init: { args: () => [{ id: BLOCK_FILTER_ID }] },
-  parentMessage: Message.GotBlockFilterMessage,
-  outMessage: { fold: foldBlockFilterOutMessage },
-})
+const BlockFilterListboxBinding = ApplicationDefinition.bindChild(
+  BlockFilterListbox,
+  {
+    field: 'blockFilterListbox',
+    init: { args: () => [{ id: BLOCK_FILTER_ID }] },
+    parentMessage: Message.GotBlockFilterMessage,
+    outMessage: { fold: foldBlockFilterOutMessage },
+  },
+)
 
 // NOTE: Pointer Messages update the thumb immediately, but jumping to and
 // inspecting the corresponding state is expensive. Keep only the latest host
@@ -451,7 +458,7 @@ const foldScrubberSliderOutMessage = Slider.OutMessage.match<
 type DevToolsScrubber = typeof scrubberSlider
 
 const makeApplicationComposition = (scrubberSlider: DevToolsScrubber) => {
-  const ScrubberBinding = Application.bindChild(scrubberSlider, {
+  const ScrubberBinding = ApplicationDefinition.bindChild(scrubberSlider, {
     field: 'scrubberSlider',
     init: {
       args: flags => [
@@ -472,7 +479,7 @@ const makeApplicationComposition = (scrubberSlider: DevToolsScrubber) => {
     BlockFilterListboxBinding,
     ScrubberBinding,
   }
-  const ApplicationComposition = Application.makeComposition({
+  const ApplicationComposition = ApplicationDefinition.makeComposition({
     childBindings: Tuple.make(
       InspectorTabsBinding,
       BlockFilterListboxBinding,
@@ -508,7 +515,7 @@ class ShadowRootService extends Context.Service<
   ShadowRoot
 >()('foldkit/DevToolsShadowRoot') {}
 
-const subscriptions = Application.subscriptions(entry => ({
+const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   scrubFrameTicks: entry(
     'ScrubFrameTicks',
     { isActive: Schema.Boolean },
@@ -553,14 +560,14 @@ const subscriptions = Application.subscriptions(entry => ({
   }),
 }))
 
-export const LockScroll = Application.command('LockScroll', {
+export const LockScroll = ApplicationDefinition.command('LockScroll', {
   messages: [Message.CompletedLockScroll],
   handler: function* () {
     return () => lockScroll.pipe(Effect.as(Message.CompletedLockScroll()))
   },
 })
 
-export const UnlockScroll = Application.command('UnlockScroll', {
+export const UnlockScroll = ApplicationDefinition.command('UnlockScroll', {
   messages: [Message.CompletedUnlockScroll],
   handler: function* () {
     return () => unlockScroll.pipe(Effect.as(Message.CompletedUnlockScroll()))
@@ -593,7 +600,7 @@ const readPersistedState = Effect.gen(function* () {
   return yield* Schema.decodeEffect(DevToolsPersistedStateJson)(json)
 }).pipe(Effect.catch(() => Effect.succeed(DEFAULT_PERSISTED_STATE)))
 
-export const PersistDevToolsState = Application.command(
+export const PersistDevToolsState = ApplicationDefinition.command(
   'PersistDevToolsState',
   {
     args: { isOpen: Schema.Boolean, isFlattened: Schema.Boolean },
@@ -641,21 +648,24 @@ const buildInspectionEffect = (store: DevToolsStore, index: number) =>
 // returns the model it resolved so the inspector reuses that single
 // resolution. Inspect-only navigation (no host pause) still uses
 // `InspectState`, which resolves once on its own.
-export const JumpToAndInspect = Application.command('JumpToAndInspect', {
-  args: { index: Schema.Number },
-  messages: [Message.ReceivedInspectedState],
-  handler: function* () {
-    const store = yield* StoreService
+export const JumpToAndInspect = ApplicationDefinition.command(
+  'JumpToAndInspect',
+  {
+    args: { index: Schema.Number },
+    messages: [Message.ReceivedInspectedState],
+    handler: function* () {
+      const store = yield* StoreService
 
-    return ({ index }) =>
-      Effect.gen(function* () {
-        const model = yield* store.jumpTo(index)
-        return yield* buildInspectionFromModel(store, index, model)
-      })
+      return ({ index }) =>
+        Effect.gen(function* () {
+          const model = yield* store.jumpTo(index)
+          return yield* buildInspectionFromModel(store, index, model)
+        })
+    },
   },
-})
+)
 
-export const InspectState = Application.command('InspectState', {
+export const InspectState = ApplicationDefinition.command('InspectState', {
   args: { index: Schema.Number },
   messages: [Message.ReceivedInspectedState],
   handler: function* () {
@@ -665,7 +675,7 @@ export const InspectState = Application.command('InspectState', {
   },
 })
 
-export const InspectLatest = Application.command('InspectLatest', {
+export const InspectLatest = ApplicationDefinition.command('InspectLatest', {
   messages: [Message.ReceivedInspectedState],
   handler: function* () {
     const store = yield* StoreService
@@ -678,7 +688,7 @@ export const InspectLatest = Application.command('InspectLatest', {
   },
 })
 
-export const Resume = Application.command('Resume', {
+export const Resume = ApplicationDefinition.command('Resume', {
   messages: [Message.CompletedResume],
   handler: function* () {
     const store = yield* StoreService
@@ -687,7 +697,7 @@ export const Resume = Application.command('Resume', {
   },
 })
 
-export const Clear = Application.command('Clear', {
+export const Clear = ApplicationDefinition.command('Clear', {
   messages: [Message.CompletedClear],
   handler: function* () {
     const store = yield* StoreService
@@ -696,7 +706,7 @@ export const Clear = Application.command('Clear', {
   },
 })
 
-export const CopyPayloadToClipboard = Application.command(
+export const CopyPayloadToClipboard = ApplicationDefinition.command(
   'CopyPayloadToClipboard',
   {
     args: {
@@ -735,7 +745,7 @@ export const CopyPayloadToClipboardLayer = CopyPayloadToClipboard.layer
 
 const COPY_INDICATOR_DURATION = '1 second'
 
-export const WaitBeforeHidingCopyIndicator = Application.command(
+export const WaitBeforeHidingCopyIndicator = ApplicationDefinition.command(
   'WaitBeforeHidingCopyIndicator',
   {
     args: { targetId: Schema.String, requestId: Schema.Number },
@@ -754,7 +764,7 @@ export const WaitBeforeHidingCopyIndicator = Application.command(
   },
 )
 
-export const ScrollToTop = Application.command('ScrollToTop', {
+export const ScrollToTop = ApplicationDefinition.command('ScrollToTop', {
   messages: [Message.CompletedScrollToTop],
   handler: function* () {
     const shadow = yield* ShadowRootService
@@ -1003,36 +1013,37 @@ const update = ApplicationComposition.makeUpdate((model, message) =>
         ? hostIndexToSliderValue(pausedAtIndex, startIndex)
         : sliderMax
 
-      return {
-        model: modifyFields(model, {
-          entries: () => entries,
-          initCommands: () => initCommands,
-          initMountStarts: () => initMountStarts,
-          startIndex: () => startIndex,
-          isPaused: () => isPaused,
-          pausedAtIndex: () => pausedAtIndex,
-          blockTags: () => nextBlockTags,
-          maybeBlockFilter: current =>
-            isFilterStale ? Option.none() : current,
-          selectedIndex: current =>
-            shouldFollowSelection ? latestIndex : current,
-          scrubberSlider: current =>
-            Slider.reflectRange(current, { min: 0, max: sliderMax }),
-          scrubberValue: current =>
-            Match.value(model.scrubberSlider.dragState).pipe(
-              Match.tag('Dragging', () =>
-                Slider.snapAndClamp(current, 0, sliderMax, 1),
+      return Update.combine(model, [
+        ApplicationDefinition.step(stepModel => ({
+          model: modifyFields(stepModel, {
+            entries: () => entries,
+            initCommands: () => initCommands,
+            initMountStarts: () => initMountStarts,
+            startIndex: () => startIndex,
+            isPaused: () => isPaused,
+            pausedAtIndex: () => pausedAtIndex,
+            blockTags: () => nextBlockTags,
+            maybeBlockFilter: current =>
+              isFilterStale ? Option.none() : current,
+            selectedIndex: current =>
+              shouldFollowSelection ? latestIndex : current,
+            scrubberValue: current =>
+              Match.value(model.scrubberSlider.dragState).pipe(
+                Match.tag('Dragging', () =>
+                  Slider.snapAndClamp(current, 0, sliderMax, 1),
+                ),
+                Match.orElse(() =>
+                  Slider.snapAndClamp(targetSliderValue, 0, sliderMax, 1),
+                ),
               ),
-              Match.orElse(() =>
-                Slider.snapAndClamp(targetSliderValue, 0, sliderMax, 1),
-              ),
-            ),
-        }),
-        commands: [
-          ...Array.filter([InspectLatest()], () => shouldFollowSelection),
-          ...Array.filter([ScrollToTop()], () => shouldFollowScroll),
-        ],
-      }
+          }),
+          commands: [
+            ...Array.filter([InspectLatest()], () => shouldFollowSelection),
+            ...Array.filter([ScrollToTop()], () => shouldFollowScroll),
+          ],
+        })),
+        bindings.ScrubberBinding.informRangeChanged({ min: 0, max: sliderMax }),
+      ])
     },
     TickedScrubFrame: () =>
       Option.match(model.maybePendingScrubIndex, {

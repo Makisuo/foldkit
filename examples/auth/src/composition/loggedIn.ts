@@ -1,20 +1,20 @@
 import { Match, Option } from 'effect'
 
 import { ClearSession, RedirectToHome } from '../command'
-import { Application } from '../definition'
+import { ApplicationDefinition } from '../definition'
 import { Message } from '../message'
 import { LoggedIn, LoggedOut } from '../page'
 import { ApplicationRoute } from '../route'
 
 const foldLoggedInOutMessage = LoggedIn.OutMessage.match({
   RequestedLogout: () =>
-    Application.step(() => ({
+    ApplicationDefinition.step(() => ({
       model: LoggedOut.init(ApplicationRoute.Home()),
       commands: [ClearSession(), RedirectToHome()],
     })),
 })
 
-export const LoggedInBinding = Application.bindChild(LoggedIn.block, {
+export const LoggedInBinding = ApplicationDefinition.bindChild(LoggedIn.block, {
   read: model =>
     Match.value(model).pipe(
       Match.tagsExhaustive({

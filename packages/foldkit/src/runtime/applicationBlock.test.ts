@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { define } from '../block/define.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
+import type * as Update from '../update/index.js'
 import { define as defineApplication } from './applicationPublic.js'
 import * as ModelPreservationBridge from './modelPreservationBridge.js'
 import { embed, run } from './start.js'
@@ -21,12 +22,12 @@ class ValueSource extends Context.Service<
   Readonly<{ value: string }>
 >()('ApplicationBlock/ValueSource') {}
 
-const Child = define('RootChild')
+const ChildOwnerDefinition = define('RootChild')
 const ChildModel = Schema.Struct({ label: Schema.String })
 const ChildMessage = defineMessageUnion({
   CompletedReadValue: { value: Schema.String },
 })
-const ReadValue = Child.command('ReadValue', {
+const ReadValue = ChildOwnerDefinition.command('ReadValue', {
   messages: [ChildMessage.CompletedReadValue],
   handler: function* () {
     const source = yield* ValueSource
@@ -35,8 +36,11 @@ const ReadValue = Child.command('ReadValue', {
       Effect.succeed(ChildMessage.CompletedReadValue({ value: source.value }))
   },
 })
-const child = Child.define({ Model: ChildModel, Message: ChildMessage })
-const childComposition = child.makeComposition()
+const ChildDefinition = ChildOwnerDefinition.define({
+  Model: ChildModel,
+  Message: ChildMessage,
+})
+const childComposition = ChildDefinition.makeComposition()
 const childBlock = childComposition.makeBlock({
   init: (label: string) => ({ model: { label }, commands: [ReadValue()] }),
   update: childComposition.makeUpdate((model, { value }) => ({
@@ -51,20 +55,20 @@ const Message = defineMessageUnion({
   GotLeftMessage: { message: ChildMessage },
   GotRightMessage: { message: ChildMessage },
 })
-const Application = defineApplication({ Model, Message })
-const LeftBinding = Application.bindChild(childBlock, {
+const ApplicationDefinition = defineApplication({ Model, Message })
+const LeftBinding = ApplicationDefinition.bindChild(childBlock, {
   placement: 'Left',
   field: 'left',
   parentMessage: Message.GotLeftMessage,
   init: { args: () => ['left'] },
 })
-const RightBinding = Application.bindChild(childBlock, {
+const RightBinding = ApplicationDefinition.bindChild(childBlock, {
   placement: 'Right',
   field: 'right',
   parentMessage: Message.GotRightMessage,
   init: { args: () => ['right'] },
 })
-const composition = Application.makeComposition({
+const composition = ApplicationDefinition.makeComposition({
   childBindings: [LeftBinding, RightBinding],
 })
 const init = composition.makeInit(() => ({ model: {} }))
@@ -84,19 +88,19 @@ class HostDependency extends Context.Service<
   Readonly<{ value: string }>
 >()('ApplicationBlock/HostDependency') {}
 
-const HostChild = define('ApplicationHostChild')
+const HostChildOwnerDefinition = define('ApplicationHostChild')
 const HostChildModel = Schema.Struct({ value: Schema.String })
 const HostChildMessage = defineMessageUnion({
   CompletedReadHostValue: { value: Schema.String },
 })
-const ReadHostValue = HostChild.command('ReadHostValue', {
+const ReadHostValue = HostChildOwnerDefinition.command('ReadHostValue', {
   messages: [HostChildMessage.CompletedReadHostValue],
 })
-const hostChild = HostChild.define({
+const HostChildDefinition = HostChildOwnerDefinition.define({
   Model: HostChildModel,
   Message: HostChildMessage,
 })
-const hostChildComposition = hostChild.makeComposition()
+const hostChildComposition = HostChildDefinition.makeComposition()
 const unresolvedHostChild = hostChildComposition.makeBlock({
   init: () => ({ model: { value: '' }, commands: [ReadHostValue()] }),
   update: hostChildComposition.makeUpdate((model, { value }) => ({
@@ -122,24 +126,28 @@ const HostParentModel = Schema.Struct({ child: HostChildModel })
 const HostParentMessage = defineMessageUnion({
   GotChildMessage: { message: HostChildMessage },
 })
-const hostParent = defineApplication({
+const HostParentDefinition = defineApplication({
   Model: HostParentModel,
   Message: HostParentMessage,
 })
-const UnresolvedHostBinding = hostParent.bindChild(unresolvedHostChild, {
+const UnresolvedHostBinding = HostParentDefinition.bindChild(
+  unresolvedHostChild,
+  {
+    read: (model: typeof HostParentModel.Type) => Option.some(model.child),
+    write: (model, nextChild) =>
+      modifyFields(model, { child: () => nextChild }),
+    parentMessage: HostParentMessage.GotChildMessage,
+  },
+)
+const ResolvedHostBinding = HostParentDefinition.bindChild(resolvedHostChild, {
   read: (model: typeof HostParentModel.Type) => Option.some(model.child),
   write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
   parentMessage: HostParentMessage.GotChildMessage,
 })
-const ResolvedHostBinding = hostParent.bindChild(resolvedHostChild, {
-  read: (model: typeof HostParentModel.Type) => Option.some(model.child),
-  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
-  parentMessage: HostParentMessage.GotChildMessage,
-})
-const unresolvedHostComposition = hostParent.makeComposition({
+const unresolvedHostComposition = HostParentDefinition.makeComposition({
   childBindings: [UnresolvedHostBinding],
 })
-const resolvedHostComposition = hostParent.makeComposition({
+const resolvedHostComposition = HostParentDefinition.makeComposition({
   childBindings: [ResolvedHostBinding],
 })
 const unresolvedHostInit = unresolvedHostComposition.makeInit(() =>
@@ -235,8 +243,8 @@ describe('registered Application composition completion', () => {
 
   it('routes a leaf Command result through every composed Message wrapper with its leaf resource', async () => {
     let resourceAcquisitions = 0
-    const Leaf = define('NestedCommandLeaf')
-    const LeafValue = Leaf.resource<string>()('Value')
+    const LeafOwnerDefinition = define('NestedCommandLeaf')
+    const LeafValue = LeafOwnerDefinition.resource<string>()('Value')
     const LeafModel = Schema.Struct({ value: Schema.String })
     const LeafMessage = defineMessageUnion({
       ClickedReadValue: {},
@@ -246,7 +254,7 @@ describe('registered Application composition completion', () => {
       ReleasedValue: {},
       FailedAcquireValue: {},
     })
-    const ReadLeafValue = Leaf.command('ReadLeafValue', {
+    const ReadLeafValue = LeafOwnerDefinition.command('ReadLeafValue', {
       messages: [LeafMessage.CompletedReadValue, LeafMessage.FailedReadValue],
       handler: function* () {
         return () =>
@@ -256,8 +264,11 @@ describe('registered Application composition completion', () => {
           )
       },
     })
-    const leaf = Leaf.define({ Model: LeafModel, Message: LeafMessage })
-    const leafManagedResources = leaf.managedResources(entry => ({
+    const LeafDefinition = LeafOwnerDefinition.define({
+      Model: LeafModel,
+      Message: LeafMessage,
+    })
+    const leafManagedResources = LeafDefinition.managedResources(entry => ({
       value: entry('Value', Schema.Option(Schema.Null), {
         resource: LeafValue,
         modelToMaybeRequirements: () => Option.some(null),
@@ -276,7 +287,7 @@ describe('registered Application composition completion', () => {
         },
       }),
     }))
-    const leafComposition = leaf.makeComposition()
+    const leafComposition = LeafDefinition.makeComposition()
     const leafBlock = leafComposition.makeBlock({
       init: () => ({ model: { value: 'pending' } }),
       update: leafComposition.makeUpdate((model, message) =>
@@ -313,21 +324,21 @@ describe('registered Application composition completion', () => {
       ),
     })
 
-    const Middle = define('NestedCommandMiddle')
+    const MiddleOwnerDefinition = define('NestedCommandMiddle')
     const MiddleModel = Schema.Struct({ leaf: LeafModel })
     const MiddleMessage = defineMessageUnion({
       GotLeafMessage: { message: LeafMessage },
     })
-    const middle = Middle.define({
+    const MiddleDefinition = MiddleOwnerDefinition.define({
       Model: MiddleModel,
       Message: MiddleMessage,
     })
-    const LeafBinding = middle.bindChild(leafBlock, {
+    const LeafBinding = MiddleDefinition.bindChild(leafBlock, {
       read: model => Option.some(model.leaf),
       write: (model, nextLeaf) => modifyFields(model, { leaf: () => nextLeaf }),
       parentMessage: MiddleMessage.GotLeafMessage,
     })
-    const middleComposition = middle.makeComposition({
+    const middleComposition = MiddleDefinition.makeComposition({
       childBindings: [LeafBinding],
     })
     const middleBlock = middleComposition.makeBlock({
@@ -350,17 +361,17 @@ describe('registered Application composition completion', () => {
     const RootMessage = defineMessageUnion({
       GotMiddleMessage: { message: MiddleMessage },
     })
-    const root = defineApplication({
+    const RootDefinition = defineApplication({
       Model: RootModel,
       Message: RootMessage,
     })
-    const MiddleBinding = root.bindChild(middleBlock, {
+    const MiddleBinding = RootDefinition.bindChild(middleBlock, {
       read: model => Option.some(model.middle),
       write: (model, nextMiddle) =>
         modifyFields(model, { middle: () => nextMiddle }),
       parentMessage: RootMessage.GotMiddleMessage,
     })
-    const nestedComposition = root.makeComposition({
+    const nestedComposition = RootDefinition.makeComposition({
       childBindings: [MiddleBinding],
     })
     const nestedInit = nestedComposition.makeInit(() =>
@@ -422,29 +433,32 @@ describe('registered Application composition completion', () => {
           }),
       ),
     )
-    const ServiceChild = define('ServiceLifetimeChild')
+    const ServiceChildOwnerDefinition = define('ServiceLifetimeChild')
     const ServiceChildModel = Schema.Struct({ value: Schema.String })
     const ServiceChildMessage = defineMessageUnion({
       CompletedReadSharedValue: { value: Schema.String },
     })
-    const ReadSharedValue = ServiceChild.command('ReadSharedValue', {
-      messages: [ServiceChildMessage.CompletedReadSharedValue],
-      handler: function* () {
-        const sharedValue = yield* SharedValue
+    const ReadSharedValue = ServiceChildOwnerDefinition.command(
+      'ReadSharedValue',
+      {
+        messages: [ServiceChildMessage.CompletedReadSharedValue],
+        handler: function* () {
+          const sharedValue = yield* SharedValue
 
-        return () =>
-          Effect.succeed(
-            ServiceChildMessage.CompletedReadSharedValue({
-              value: sharedValue.value,
-            }),
-          )
+          return () =>
+            Effect.succeed(
+              ServiceChildMessage.CompletedReadSharedValue({
+                value: sharedValue.value,
+              }),
+            )
+        },
       },
-    })
-    const serviceChild = ServiceChild.define({
+    )
+    const ServiceChildDefinition = ServiceChildOwnerDefinition.define({
       Model: ServiceChildModel,
       Message: ServiceChildMessage,
     })
-    const serviceChildComposition = serviceChild.makeComposition()
+    const serviceChildComposition = ServiceChildDefinition.makeComposition()
     const serviceChildBlock = serviceChildComposition.makeBlock({
       init: () => ({
         model: { value: 'pending' },
@@ -466,17 +480,20 @@ describe('registered Application composition completion', () => {
       ClickedRemoveServiceChild: {},
       ClickedAddServiceChild: {},
     })
-    const serviceRoot = defineApplication({
+    const ServiceRootDefinition = defineApplication({
       Model: ServiceRootModel,
       Message: ServiceRootMessage,
     })
-    const ServiceChildBinding = serviceRoot.bindChild(serviceChildBlock, {
-      read: model => model.maybeChild,
-      write: (model, nextChild) =>
-        modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
-      parentMessage: ServiceRootMessage.GotServiceChildMessage,
-    })
-    const serviceComposition = serviceRoot.makeComposition({
+    const ServiceChildBinding = ServiceRootDefinition.bindChild(
+      serviceChildBlock,
+      {
+        read: model => model.maybeChild,
+        write: (model, nextChild) =>
+          modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
+        parentMessage: ServiceRootMessage.GotServiceChildMessage,
+      },
+    )
+    const serviceComposition = ServiceRootDefinition.makeComposition({
       childBindings: [ServiceChildBinding],
     })
     const serviceInit = serviceComposition.makeInit(() =>
@@ -580,10 +597,10 @@ describe('registered Application composition completion', () => {
   })
 
   it('gives repeated child Mounts their current resource slots', async () => {
-    const Feature = define('MountedResource')
+    const FeatureOwnerDefinition = define('MountedResource')
     const ready = Deferred.makeUnsafe<void>()
     let acquisitions = 0
-    const Value = Feature.resource<string>()('Value')
+    const Value = FeatureOwnerDefinition.resource<string>()('Value')
     const FeatureModel = Schema.Struct({ label: Schema.String })
     const FeatureMessage = defineMessageUnion({
       AcquiredValue: {},
@@ -592,7 +609,11 @@ describe('registered Application composition completion', () => {
       CompletedObserveValue: { value: Schema.String },
       FailedObserveValue: {},
     })
-    const ObserveValue = Feature.mountStream('ObserveValue', {
+    const FeatureOutMessage = defineMessageUnion({
+      AcquiredValue: {},
+      ObservedValue: { value: Schema.String },
+    })
+    const ObserveValue = FeatureOwnerDefinition.mountStream('ObserveValue', {
       messages: [
         FeatureMessage.CompletedObserveValue,
         FeatureMessage.FailedObserveValue,
@@ -612,14 +633,15 @@ describe('registered Application composition completion', () => {
           )
       },
     })
-    const feature = Feature.define({
+    const FeatureDefinition = FeatureOwnerDefinition.define({
       Model: FeatureModel,
       Message: FeatureMessage,
+      OutMessage: FeatureOutMessage,
     })
-    const featureComposition = feature.makeComposition({
+    const featureComposition = FeatureDefinition.makeComposition({
       mounts: [ObserveValue],
     })
-    const managedResources = feature.managedResources(entry => ({
+    const managedResources = FeatureDefinition.managedResources(entry => ({
       value: entry(
         'Value',
         Schema.Option(Schema.Struct({ label: Schema.String })),
@@ -641,7 +663,21 @@ describe('registered Application composition completion', () => {
     }))
     const featureBlock = featureComposition.makeBlock({
       init: (label: string) => ({ model: { label } }),
-      update: featureComposition.makeUpdate(model => ({ model })),
+      update: featureComposition.makeUpdate((model, message) =>
+        FeatureMessage.match(message, {
+          AcquiredValue: () => ({
+            model,
+            outMessage: FeatureOutMessage.AcquiredValue(),
+          }),
+          ReleasedValue: () => ({ model }),
+          FailedAcquireValue: () => ({ model }),
+          CompletedObserveValue: ({ value }) => ({
+            model,
+            outMessage: FeatureOutMessage.ObservedValue({ value }),
+          }),
+          FailedObserveValue: () => ({ model }),
+        }),
+      ),
       view: featureComposition.makeView((model, h) =>
         h.div([h.OnMount(ObserveValue())], [model.label]),
       ),
@@ -656,47 +692,61 @@ describe('registered Application composition completion', () => {
       GotLeft: { message: FeatureMessage },
       GotRight: { message: FeatureMessage },
     })
-    const root = defineApplication({
+    const RootDefinition = defineApplication({
       Model: RootModel,
       Message: RootMessage,
     })
-    const LeftBinding = root.bindChild(featureBlock, {
-      fromParentMessage: false,
+    const seen: Array<string> = []
+    const foldFeatureOutMessage = (source: 'GotLeft' | 'GotRight') =>
+      FeatureOutMessage.match<Update.Step<typeof RootModel.Type, never>>({
+        AcquiredValue: () => model => {
+          acquisitions += 1
+          if (acquisitions === 2) {
+            Deferred.doneUnsafe(ready, Effect.void)
+          }
+
+          return { model }
+        },
+        ObservedValue:
+          ({ value }) =>
+          model => {
+            seen.push(`${source}:${value}`)
+            return { model }
+          },
+      })
+    const LeftBinding = RootDefinition.bindChild(featureBlock, {
       placement: 'Left',
       read: (model: typeof RootModel.Type) => Option.some(model.left),
       write: (model, nextLeft) => modifyFields(model, { left: () => nextLeft }),
       toParentMessage: message => RootMessage.GotLeft({ message }),
+      fromParentMessage: {
+        parentMessage: RootMessage.GotLeft,
+        args: (_model, { message }) => Option.some([message]),
+      },
+      outMessage: { fold: foldFeatureOutMessage('GotLeft') },
     })
-    const RightBinding = root.bindChild(featureBlock, {
-      fromParentMessage: false,
+    const RightBinding = RootDefinition.bindChild(featureBlock, {
       placement: 'Right',
       read: (model: typeof RootModel.Type) => Option.some(model.right),
       write: (model, nextRight) =>
         modifyFields(model, { right: () => nextRight }),
       toParentMessage: message => RootMessage.GotRight({ message }),
+      fromParentMessage: {
+        parentMessage: RootMessage.GotRight,
+        args: (_model, { message }) => Option.some([message]),
+      },
+      outMessage: { fold: foldFeatureOutMessage('GotRight') },
     })
-    const rootComposition = root.makeComposition({
+    const rootComposition = RootDefinition.makeComposition({
       childBindings: [LeftBinding, RightBinding],
     })
-    const seen: Array<string> = []
     const rootInit = () => ({
       model: {
         left: featureBlock.init('left').model,
         right: featureBlock.init('right').model,
       },
     })
-    const rootUpdate = rootComposition.makeUpdate((model, message) => {
-      if (message.message._tag === 'AcquiredValue') {
-        acquisitions += 1
-        if (acquisitions === 2) {
-          Deferred.doneUnsafe(ready, Effect.void)
-        }
-      }
-      if (message.message._tag === 'CompletedObserveValue') {
-        seen.push(`${message._tag}:${message.message.value}`)
-      }
-      return { model }
-    })
+    const rootUpdate = rootComposition.makeUpdate()
     const rootView = rootComposition.makeView((model, h) =>
       h.div(
         [],

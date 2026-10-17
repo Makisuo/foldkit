@@ -4,7 +4,6 @@ export {
   view,
   block,
   triggerId,
-  reflectShowDelay,
   Model,
   Message,
   OutMessage,

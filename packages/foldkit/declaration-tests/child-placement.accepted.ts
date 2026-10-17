@@ -1,12 +1,10 @@
 import { Option, Schema } from 'effect'
-import { Block, Message, Struct } from 'foldkit'
+import { Block, Struct } from 'foldkit'
 
 export const ChildModel = Schema.Struct({ value: Schema.String })
-export const ChildMessage = Message.defineMessageUnion({
-  UpdatedValue: { value: Schema.String },
-})
+export const ChildMessage = Schema.Never
 
-const DeclarationChildPlacementChild = Block.define(
+const DeclarationChildPlacementChildDefinition = Block.define(
   'DeclarationChildPlacementChild',
   {
     Model: ChildModel,
@@ -14,15 +12,13 @@ const DeclarationChildPlacementChild = Block.define(
   },
 )
 const DeclarationChildPlacementChildComposition =
-  DeclarationChildPlacementChild.makeComposition()
+  DeclarationChildPlacementChildDefinition.makeComposition()
 
 export const ChildBlock = DeclarationChildPlacementChildComposition.makeBlock({
   init: DeclarationChildPlacementChildComposition.makeInit(() => ({
     model: ChildModel.make({ value: '' }),
   })),
-  update: DeclarationChildPlacementChildComposition.makeUpdate(model => ({
-    model,
-  })),
+  update: DeclarationChildPlacementChildComposition.makeUpdate(),
 })
 
 const Entry = Schema.Struct({
@@ -37,7 +33,7 @@ export const ParentModel = Schema.Struct({
   entries: Schema.Array(Entry),
 })
 
-export const DeclarationChildPlacementParent = Block.define(
+export const DeclarationChildPlacementParentDefinition = Block.define(
   'DeclarationChildPlacementParent',
   {
     Model: ParentModel,
@@ -45,91 +41,65 @@ export const DeclarationChildPlacementParent = Block.define(
   },
 )
 
-export const PrimaryBinding = DeclarationChildPlacementParent.bindChild(
-  ChildBlock,
-  {
+export const PrimaryBinding =
+  DeclarationChildPlacementParentDefinition.bindChild(ChildBlock, {
     field: 'primary',
-    toParentMessage: message => message,
-    fromParentMessage: false,
-  },
-)
+  })
 
-export const SecondaryBinding = DeclarationChildPlacementParent.bindChild(
-  ChildBlock,
-  {
+export const SecondaryBinding =
+  DeclarationChildPlacementParentDefinition.bindChild(ChildBlock, {
     field: 'secondary',
     placement: 'secondaryPlacement',
-    toParentMessage: message => message,
-    fromParentMessage: false,
-  },
-)
+  })
 
-export const OptionalBinding = DeclarationChildPlacementParent.bindChild(
-  ChildBlock,
-  {
+export const OptionalBinding =
+  DeclarationChildPlacementParentDefinition.bindChild(ChildBlock, {
     placement: 'optional',
     read: model => model.maybeChild,
     write: (model, nextChild) =>
       Struct.modifyFields(model, {
         maybeChild: () => Option.some(nextChild),
       }),
-    toParentMessage: message => message,
-    fromParentMessage: false,
-  },
-)
+  })
 
-export const EntriesBinding = DeclarationChildPlacementParent.bindChild(
-  ChildBlock,
-  {
+export const EntriesBinding =
+  DeclarationChildPlacementParentDefinition.bindChild(ChildBlock, {
     placement: 'entries',
     readAll: model => model.entries,
     key: entry => entry.id,
     read: entry => entry.child,
     writeAt: model => model,
-    toParentMessage: (_id, message) => message,
-    fromParentMessage: false,
-  },
-)
+  })
 
-export const DefaultAccessorBinding = DeclarationChildPlacementParent.bindChild(
-  ChildBlock,
-  {
+export const DefaultAccessorBinding =
+  DeclarationChildPlacementParentDefinition.bindChild(ChildBlock, {
     read: model => model.maybeChild,
     write: (model, nextChild) =>
       Struct.modifyFields(model, {
         maybeChild: () => Option.some(nextChild),
       }),
-    toParentMessage: message => message,
-    fromParentMessage: false,
-  },
-)
+  })
 
-export const EntriesByIdBinding = DeclarationChildPlacementParent.bindChild(
-  ChildBlock,
-  {
+export const EntriesByIdBinding =
+  DeclarationChildPlacementParentDefinition.bindChild(ChildBlock, {
     placement: 'entriesById',
     readAll: model => model.entries,
     key: entry => entry.id,
     read: entry => entry.child,
     writeAt: model => model,
-    toParentMessage: (_id, message) => message,
-    fromParentMessage: false,
-  },
-)
+  })
 
 export const EntriesByIdLengthBinding =
-  DeclarationChildPlacementParent.bindChild(ChildBlock, {
+  DeclarationChildPlacementParentDefinition.bindChild(ChildBlock, {
     placement: 'entriesByIdLength',
     readAll: model => model.entries,
     key: entry => entry.id.length,
     read: entry => entry.child,
     writeAt: model => model,
-    toParentMessage: (_idLength, message) => message,
-    fromParentMessage: false,
   })
 
 export const DeclarationChildPlacementParentComposition =
-  DeclarationChildPlacementParent.makeComposition({
+  DeclarationChildPlacementParentDefinition.makeComposition({
     childBindings: [
       PrimaryBinding,
       SecondaryBinding,
@@ -140,7 +110,7 @@ export const DeclarationChildPlacementParentComposition =
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This second graph tests default placements under the same parent identity.
 export const DefaultPlacementComposition =
-  DeclarationChildPlacementParent.makeComposition({
+  DeclarationChildPlacementParentDefinition.makeComposition({
     childBindings: [
       DefaultAccessorBinding,
       EntriesByIdBinding,
@@ -150,4 +120,5 @@ export const DefaultPlacementComposition =
 
 export const composeDynamicChildren = (
   childBindings: ReadonlyArray<typeof PrimaryBinding>,
-) => DeclarationChildPlacementParent.makeComposition({ childBindings })
+) =>
+  DeclarationChildPlacementParentDefinition.makeComposition({ childBindings })

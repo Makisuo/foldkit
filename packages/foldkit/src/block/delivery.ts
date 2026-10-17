@@ -3,6 +3,7 @@ import { Option, Predicate, Schema, SchemaAST } from 'effect'
 import type * as Update from '../update/index.js'
 import { resolveOperationOutput } from '../update/operationRecipe.js'
 import type { AnyBinding, RequirementsOfBindings } from './binding.js'
+import type { ResolveCompositionOutput } from './deferredPolicy.js'
 import type { DefinedUpdate, DefinedUpdateSource } from './definition.js'
 import {
   type AnyBindingInitRecipe,
@@ -14,6 +15,17 @@ import {
 import { withOperationGraph } from './operationGraph.js'
 
 type AnyFunction = (...args: ReadonlyArray<any>) => any
+
+type IsAny<Value> = 0 extends 1 & Value ? true : false
+
+type IsUnknown<Value> =
+  IsAny<Value> extends true ? false : unknown extends Value ? true : false
+
+type IsUnion<Value, Whole = Value> = Value extends unknown
+  ? [Whole] extends [Value]
+    ? false
+    : true
+  : never
 
 type AnyUpdateReturn = Readonly<{
   model: any
@@ -91,6 +103,56 @@ export type FromParentMessagePolicy<
       args: FromParentMessageArgs<ParentModel, Constructor, Fold>
     }>
 
+type IncomingPolicy<
+  ParentModel,
+  ParentMessage,
+  Arguments extends ReadonlyArray<unknown>,
+> =
+  ParentMessage extends Readonly<{ _tag: string }>
+    ? Readonly<{
+        /** Names the exact parent wrapper handled by this Binding. */
+        parentMessage: Schema.Top &
+          ((...args: ReadonlyArray<any>) => ParentMessage)
+        /** Returns native fold arguments, or None to ignore this delivery. */
+        args: (
+          model: ParentModel,
+          message: ParentMessage,
+        ) => Option.Option<Arguments>
+      }>
+    : never
+
+type ChildUpdateContext<BlockValue> =
+  BlockValue extends Readonly<{
+    update: (model: any, message: any, ...context: infer Context) => any
+  }>
+    ? Context
+    : readonly []
+
+/** @internal Complete Message policy shared by explicit standalone Binding configs. */
+export type BindingMessagePolicy<
+  BlockValue extends Readonly<{ Message: Readonly<{ Type: unknown }> }>,
+  ParentModel,
+  ParentMessage,
+  Prefix extends ReadonlyArray<unknown> = readonly [],
+> = BlockValue extends { Message: { Type: never } }
+  ? Readonly<{ toParentMessage?: never; fromParentMessage?: never }>
+  : Readonly<{
+      /** Wraps child output for view dispatches, Commands and lifecycle channels. */
+      toParentMessage: (
+        ...args: readonly [...Prefix, message: BlockValue['Message']['Type']]
+      ) => ParentMessage
+      /** Selects one wrapper and its exact child fold arguments. */
+      fromParentMessage: IncomingPolicy<
+        ParentModel,
+        ParentMessage,
+        readonly [
+          ...Prefix,
+          message: BlockValue['Message']['Type'],
+          ...ChildUpdateContext<BlockValue>,
+        ]
+      >
+    }>
+
 type MessageTag<Message> =
   Message extends Readonly<{
     _tag: infer Tag extends string
@@ -98,13 +160,50 @@ type MessageTag<Message> =
     ? Tag
     : never
 
+type RequiredNeverKeys<Value> = {
+  [Key in keyof Value]-?: object extends Pick<Value, Key>
+    ? never
+    : [Value[Key]] extends [never]
+      ? Key
+      : never
+}[keyof Value]
+
+type GotWrapperMessage<Message> =
+  IsAny<Message> extends true
+    ? never
+    : Message extends Readonly<{
+          _tag: infer Tag extends string
+        }>
+      ? IsAny<Tag> extends true
+        ? never
+        : string extends Tag
+          ? never
+          : Tag extends `Got${infer Name}`
+            ? Name extends ''
+              ? never
+              : [RequiredNeverKeys<Message>] extends [never]
+                ? Message
+                : never
+            : never
+      : never
+
+type GotWrapperMessageTag<Message> = MessageTag<GotWrapperMessage<Message>>
+
 type IncomingMessageTag<BindingValue> = MessageTag<
   IncomingMessageOfBinding<BindingValue>
 >
 
-type OutgoingMessageTag<BindingValue> = MessageTag<
-  OutgoingMessageOfBinding<BindingValue>
->
+type OutgoingMessageTag<BindingValue> =
+  MessageTag<OutgoingMessageOfBinding<BindingValue>> extends infer Tag extends
+    string
+    ? IsAny<Tag> extends true
+      ? never
+      : string extends Tag
+        ? never
+        : true extends IsUnion<Tag>
+          ? never
+          : Tag
+    : never
 
 type IncomingBindingIndexes<Bindings extends ReadonlyArray<unknown>> = {
   [
@@ -121,12 +220,6 @@ type OutgoingBindingIndexes<Bindings extends ReadonlyArray<unknown>> = {
       : never
   ]: Index
 }
-
-type IsUnion<Value, Whole = Value> = Value extends unknown
-  ? [Whole] extends [Value]
-    ? false
-    : true
-  : never
 
 type ConflictingDeliveryTags<IncomingIndexes, OutgoingIndexes> = {
   [Tag in keyof IncomingIndexes]: true extends IsUnion<
@@ -149,20 +242,53 @@ type DeliveryConflicts<Bindings extends ReadonlyArray<unknown>> =
         }>
     : never
 
-/** Rejects incoming parent Message variants claimed or produced by multiple Bindings. */
-export type ValidateCompositionDelivery<
-  Bindings extends ReadonlyArray<unknown>,
-> = [DeliveryConflicts<Bindings>] extends [never]
-  ? unknown
-  : DeliveryConflicts<Bindings>
+type MissingDeliveryTags<Message, Bindings extends ReadonlyArray<unknown>> =
+  GotWrapperMessageTag<Message> extends infer Required
+    ? IsUnknown<Required> extends true
+      ? never
+      : Exclude<
+            Required,
+            IncomingMessageTag<Bindings[number]>
+          > extends infer Missing
+        ? [Missing] extends [never]
+          ? never
+          : Readonly<{
+              'Every Got* child wrapper must have one owning Binding': Missing
+            }>
+        : never
+    : never
 
-type RoutedMessage<Bindings extends ReadonlyArray<unknown>> =
-  IncomingMessageOfBinding<Bindings[number]>
-
-type AuthoredMessage<
+type CompositionDeliveryErrors<
   Message,
   Bindings extends ReadonlyArray<unknown>,
-> = Exclude<Message, RoutedMessage<Bindings>>
+> = DeliveryConflicts<Bindings> | MissingDeliveryTags<Message, Bindings>
+
+/** Rejects missing or conflicting child wrapper ownership in a Composition. */
+export type ValidateCompositionDelivery<
+  Message,
+  Bindings extends ReadonlyArray<unknown>,
+> = [CompositionDeliveryErrors<Message, Bindings>] extends [never]
+  ? unknown
+  : CompositionDeliveryErrors<Message, Bindings>
+
+/** @internal Requires an error argument when a Composition graph is invalid. */
+export type CompositionDeliveryArguments<
+  Message,
+  Bindings extends ReadonlyArray<unknown>,
+> =
+  unknown extends ValidateCompositionDelivery<Message, Bindings>
+    ? readonly []
+    : readonly [error: ValidateCompositionDelivery<Message, Bindings>]
+
+/** @internal Selects local facts that authored operations may send through update. */
+export type AuthoredMessage<Message, Bindings extends ReadonlyArray<unknown>> =
+  Message extends Readonly<{ _tag: infer Tag }>
+    ? [GotWrapperMessage<Message>] extends [never]
+      ? Tag extends IncomingMessageTag<Bindings[number]>
+        ? never
+        : Message
+      : never
+    : Message
 
 type BindingFold<BindingValue> =
   BindingValue extends Readonly<{
@@ -213,45 +339,88 @@ type OwnedReturn<Model, Message, OutMessage> = Readonly<{
   outMessage?: OutMessage
 }>
 
-type ResolvedAuthoredOutput<Output> = Output extends AnyBindingInitRecipe
-  ? BindingInitRecipeReturn<Output>
-  : Update.ResolvedOperationOutput<Output>
+type ResolvedAuthoredOutput<
+  Output,
+  Bindings extends ReadonlyArray<AnyBinding>,
+> = ResolveCompositionOutput<
+  Output extends AnyBindingInitRecipe
+    ? BindingInitRecipeReturn<Output>
+    : Output,
+  Bindings
+>
 
-type RouteRequirements<Bindings extends ReadonlyArray<unknown>> =
+type AuthoredRecipeOutput<Output> = Output extends AnyBindingInitRecipe
+  ? BindingInitRecipeReturn<Output>
+  : Output
+
+type ValidateAuthoredEvidence<Output> = Update.ValidateConcreteResultEvidence<
+  AuthoredRecipeOutput<Output>
+>
+
+type RouteRequirements<Bindings extends ReadonlyArray<AnyBinding>> =
   RouteFold<Bindings> extends infer Fold extends AnyFunction
     ? Update.RequirementsOf<
-        () => Update.ResolvedOperationOutput<ReturnType<Fold>>
+        () => ResolveCompositionOutput<ReturnType<Fold>, Bindings>
       >
     : never
 
-type RouteOutMessage<Bindings extends ReadonlyArray<unknown>> =
+type RouteOutMessage<Bindings extends ReadonlyArray<AnyBinding>> =
   ReturnOutMessage<
-    Update.ResolvedOperationOutput<ReturnType<RouteFold<Bindings>>>
+    ResolveCompositionOutput<ReturnType<RouteFold<Bindings>>, Bindings>
   >
 
-type RouteRegistration<Bindings extends ReadonlyArray<unknown>> =
+type RouteRegistration<Bindings extends ReadonlyArray<AnyBinding>> =
   Update.RegistrationEvidenceOf<
-    Update.ResolvedOperationOutput<ReturnType<RouteFold<Bindings>>>
+    ResolveCompositionOutput<ReturnType<RouteFold<Bindings>>, Bindings>
   >
 
 type AuthoredRequirements<Output> = Update.RequirementsOf<() => Output>
 
 type AuthoredRegistration<Output> = Update.RegistrationEvidenceOf<Output>
 
+type CompositionDefinedUpdateReturn<
+  Model,
+  Message,
+  Output,
+  Bindings extends ReadonlyArray<AnyBinding>,
+> = Update.WithRegistrationEvidence<
+  [
+    | ReturnOutMessage<ResolvedAuthoredOutput<Output, Bindings>>
+    | RouteOutMessage<Bindings>,
+  ] extends [never]
+    ? Update.Return<
+        Model,
+        Message,
+        | AuthoredRequirements<ResolvedAuthoredOutput<Output, Bindings>>
+        | RouteRequirements<Bindings>
+      >
+    : Update.ReturnWithOutMessage<
+        Model,
+        Message,
+        | ReturnOutMessage<ResolvedAuthoredOutput<Output, Bindings>>
+        | RouteOutMessage<Bindings>,
+        | AuthoredRequirements<ResolvedAuthoredOutput<Output, Bindings>>
+        | RouteRequirements<Bindings>
+      >,
+  | AuthoredRegistration<ResolvedAuthoredOutput<Output, Bindings>>
+  | RouteRegistration<Bindings>
+>
+
 type CompositionDefinedUpdateValue<
   Model,
   Message,
   Context extends ReadonlyArray<unknown>,
   Output,
-  Bindings extends ReadonlyArray<unknown>,
+  Bindings extends ReadonlyArray<AnyBinding>,
 > = DefinedUpdate<
   Model,
   Message,
   Context,
-  ReturnOutMessage<ResolvedAuthoredOutput<Output>> | RouteOutMessage<Bindings>,
-  | AuthoredRequirements<ResolvedAuthoredOutput<Output>>
+  | ReturnOutMessage<ResolvedAuthoredOutput<Output, Bindings>>
+  | RouteOutMessage<Bindings>,
+  | AuthoredRequirements<ResolvedAuthoredOutput<Output, Bindings>>
   | RouteRequirements<Bindings>,
-  | AuthoredRegistration<ResolvedAuthoredOutput<Output>>
+  | AuthoredRegistration<ResolvedAuthoredOutput<Output, Bindings>>
   | RouteRegistration<Bindings>
 >
 
@@ -260,7 +429,7 @@ type CompositionDefinedUpdate<
   Message,
   Context extends ReadonlyArray<unknown>,
   Output,
-  Bindings extends ReadonlyArray<unknown>,
+  Bindings extends ReadonlyArray<AnyBinding>,
   PreserveSource extends boolean,
 > = CompositionDefinedUpdateValue<Model, Message, Context, Output, Bindings> &
   ([PreserveSource] extends [true]
@@ -269,15 +438,7 @@ type CompositionDefinedUpdate<
           Model,
           Message,
           Context,
-          ReturnType<
-            CompositionDefinedUpdateValue<
-              Model,
-              Message,
-              Context,
-              Output,
-              Bindings
-            >
-          >,
+          CompositionDefinedUpdateReturn<Model, Message, Output, Bindings>,
         ]
       >
     : unknown)
@@ -285,7 +446,7 @@ type CompositionDefinedUpdate<
 type RoutedOnlyUpdate<
   Model,
   Message,
-  Bindings extends ReadonlyArray<unknown>,
+  Bindings extends ReadonlyArray<AnyBinding>,
   PreserveSource extends boolean,
 > = CompositionDefinedUpdate<
   Model,
@@ -317,7 +478,7 @@ type ValidDefineCompositionUpdate<
         model: Update.CompositionInput<Model, RequirementsOfBindings<Bindings>>,
         message: AuthoredMessage<Message, Bindings>,
         ...context: Context
-      ) => Output,
+      ) => Output & ValidateAuthoredEvidence<NoInfer<Output>>,
     ) => CompositionDefinedUpdate<
       Model,
       Message,
@@ -338,7 +499,7 @@ export type DefineCompositionUpdate<
   OutMessage,
   Bindings extends ReadonlyArray<AnyBinding>,
   PreserveSource extends boolean = false,
-> = [DeliveryConflicts<Bindings>] extends [never]
+> = [CompositionDeliveryErrors<Message, Bindings>] extends [never]
   ? ValidDefineCompositionUpdate<
       Model,
       Message,
@@ -346,20 +507,18 @@ export type DefineCompositionUpdate<
       Bindings,
       PreserveSource
     >
-  : DeliveryConflicts<Bindings>
+  : CompositionDeliveryErrors<Message, Bindings>
 
 type RuntimeMessageConstructor = Schema.Top & AnyFunction
 
 /** @internal Runtime parent Message route retained outside the public Binding. */
-export type RuntimeFromParentMessage =
-  | false
-  | Readonly<{
-      parentMessage: RuntimeMessageConstructor
-      args: (
-        model: unknown,
-        message: Readonly<{ _tag: string }>,
-      ) => Option.Option<ReadonlyArray<unknown>>
-    }>
+export type RuntimeFromParentMessage = Readonly<{
+  parentMessage: RuntimeMessageConstructor
+  args: (
+    model: unknown,
+    message: Readonly<{ _tag: string }>,
+  ) => Option.Option<ReadonlyArray<unknown>>
+}>
 
 /** @internal A mapper and stable provenance token shared by every lifted channel. */
 export type TrackedParentMessageMapper<Mapper extends AnyFunction> = Readonly<{
@@ -403,7 +562,7 @@ export function trackParentMessageMapper(
 type RuntimeBindingDelivery = Readonly<{
   source: object
   outgoingParentMessage?: RuntimeMessageConstructor
-  fromParentMessage: RuntimeFromParentMessage
+  fromParentMessage?: RuntimeFromParentMessage
 }>
 
 const bindingDeliveries = new WeakMap<object, RuntimeBindingDelivery>()
@@ -422,11 +581,13 @@ export const registerBindingDelivery = (
     ...(config.outgoingParentMessage === undefined
       ? {}
       : { outgoingParentMessage: config.outgoingParentMessage }),
-    fromParentMessage: config.fromParentMessage ?? false,
+    ...(config.fromParentMessage === undefined
+      ? {}
+      : { fromParentMessage: config.fromParentMessage }),
   })
 }
 
-const messageTagOf = (constructor: RuntimeMessageConstructor): string => {
+const messageTagOf = (constructor: object): string => {
   const fields = Reflect.get(constructor, 'fields')
   const tagSchema = Predicate.isObject(fields)
     ? Reflect.get(fields, '_tag')
@@ -451,8 +612,105 @@ const messageTagOf = (constructor: RuntimeMessageConstructor): string => {
 type RuntimeRoute = Readonly<{
   binding: Readonly<{ placement: string; fold: AnyFunction }>
   source: object
-  args: Exclude<RuntimeFromParentMessage, false>['args']
+  args: RuntimeFromParentMessage['args']
 }>
+
+const gotMessagePattern = /^Got.+/
+
+/** @internal Public operations may publish only this Block's local facts. */
+export const assertLocalOperationTag = (
+  tag: unknown,
+  bindings: ReadonlyArray<AnyBinding>,
+): void => {
+  if (!Predicate.isString(tag)) {
+    throw new Error(
+      '[foldkit] A Block operation must publish a tagged Message.',
+    )
+  }
+
+  const isRouted = bindings.some(binding => {
+    const incoming = bindingDeliveries.get(binding)?.fromParentMessage
+
+    return (
+      incoming !== undefined && messageTagOf(incoming.parentMessage) === tag
+    )
+  })
+
+  if (gotMessagePattern.test(tag) || isRouted) {
+    throw new Error(
+      `[foldkit] A Block operation cannot publish child wrapper Message "${tag}". Declare a local Message for the Block's operation.`,
+    )
+  }
+}
+
+/** @internal Checks constructor operations without constructing a Message. */
+export const assertLocalOperationMessage = (
+  constructor: object,
+  bindings: ReadonlyArray<AnyBinding>,
+): void => assertLocalOperationTag(messageTagOf(constructor), bindings)
+
+type RuntimeMessageSchemaContract = Readonly<{
+  tags: ReadonlySet<string>
+  gotWrapperTags: ReadonlySet<string>
+}>
+
+const runtimeMessageSchemaContract = (
+  schema: Schema.Top,
+): RuntimeMessageSchemaContract => {
+  const tags = new Set<string>()
+  const gotWrapperTags = new Set<string>()
+  const visited = new Set<SchemaAST.AST>()
+
+  const visit = (sourceAst: SchemaAST.AST): void => {
+    const ast = SchemaAST.toType(sourceAst)
+    if (visited.has(ast)) {
+      return
+    }
+    visited.add(ast)
+
+    if (SchemaAST.isSuspend(ast)) {
+      visit(ast.thunk())
+      return
+    }
+    if (SchemaAST.isUnion(ast)) {
+      for (const member of ast.types) {
+        visit(member)
+      }
+      return
+    }
+    if (!SchemaAST.isObjects(ast)) {
+      return
+    }
+
+    const tagProperty = ast.propertySignatures.find(
+      property => property.name === '_tag',
+    )
+    const tagAst =
+      tagProperty === undefined ? undefined : SchemaAST.toType(tagProperty.type)
+    if (
+      tagAst === undefined ||
+      !SchemaAST.isLiteral(tagAst) ||
+      !Predicate.isString(tagAst.literal)
+    ) {
+      return
+    }
+
+    tags.add(tagAst.literal)
+    if (
+      gotMessagePattern.test(tagAst.literal) &&
+      !ast.propertySignatures.some(
+        property =>
+          !SchemaAST.isOptional(property.type) &&
+          SchemaAST.isNever(SchemaAST.toType(property.type)),
+      )
+    ) {
+      gotWrapperTags.add(tagAst.literal)
+    }
+  }
+
+  visit(schema.ast)
+  return { tags, gotWrapperTags }
+}
 
 const observableUpdateContextArities = new WeakMap<object, number>()
 
@@ -463,9 +721,7 @@ const observableUpdateContextArity = (update: AnyFunction): number =>
 export const hasObservableUpdateContext = (update: AnyFunction): boolean =>
   observableUpdateContextArity(update) > 0
 
-type RuntimeDefineCompositionUpdate = (
-  update?: AnyFunction,
-) => (...args: ReadonlyArray<any>) => AnyUpdateReturn
+type RuntimeDefineCompositionUpdate = (update?: AnyFunction) => AnyFunction
 
 const assertUnambiguousSource = (
   message: object,
@@ -481,10 +737,13 @@ const assertUnambiguousSource = (
 
 /** @internal Creates the runtime Composition update delivery dispatcher. */
 export const makeCompositionUpdate = (
+  parentMessageSchema: Schema.Top,
   childBindings: ReadonlyArray<
     Readonly<{ placement: string; fold: AnyFunction }>
   >,
+  validateCoverage = true,
 ): RuntimeDefineCompositionUpdate => {
+  const messageContract = runtimeMessageSchemaContract(parentMessageSchema)
   const routes = new Map<string, RuntimeRoute>()
   const outgoingTags = new Map<
     string,
@@ -509,11 +768,16 @@ export const makeCompositionUpdate = (
       outgoingTags.set(outgoingTag, producers)
     }
 
-    if (delivery.fromParentMessage === false) {
+    if (delivery.fromParentMessage === undefined) {
       continue
     }
 
     const incomingTag = messageTagOf(delivery.fromParentMessage.parentMessage)
+    if (!messageContract.tags.has(incomingTag)) {
+      throw new Error(
+        `[foldkit] Child Binding "${childBinding.placement}" claims parent Message "${incomingTag}", but the parent Message Schema does not declare that variant.`,
+      )
+    }
     const previousRoute = routes.get(incomingTag)
     if (previousRoute !== undefined) {
       throw new Error(
@@ -539,7 +803,31 @@ export const makeCompositionUpdate = (
     }
   }
 
+  if (validateCoverage) {
+    for (const tag of messageContract.gotWrapperTags) {
+      if (!routes.has(tag)) {
+        throw new Error(
+          `[foldkit] Parent Message "${tag}" is a Got* child wrapper without an owning Binding. Register exactly one child Binding with an incoming route for this variant.`,
+        )
+      }
+    }
+  }
+
+  const ownedUpdates = new WeakSet<AnyFunction>()
+  const wrappedUpdates = new WeakMap<AnyFunction, AnyFunction>()
+
   return update => {
+    if (update !== undefined) {
+      if (ownedUpdates.has(update)) {
+        return update
+      }
+
+      const existing = wrappedUpdates.get(update)
+      if (existing !== undefined) {
+        return existing
+      }
+    }
+
     const dispatch = (
       model: any,
       message: any,
@@ -554,6 +842,14 @@ export const makeCompositionUpdate = (
           : undefined
 
         if (route === undefined) {
+          if (
+            Predicate.isString(messageTag) &&
+            gotMessagePattern.test(messageTag)
+          ) {
+            throw new Error(
+              `[foldkit] Composition.makeUpdate received Got* child wrapper "${messageTag}" without an owning Binding.`,
+            )
+          }
           if (update === undefined) {
             throw new Error(
               `[foldkit] Composition.makeUpdate received unclaimed Message "${Predicate.isObject(message) ? Reflect.get(message, '_tag') : globalThis.String(message)}" without an authored handler.`,
@@ -588,11 +884,29 @@ export const makeCompositionUpdate = (
         )
       })
 
+    const dualDispatch = function (
+      modelOrMessage: any,
+      message: any,
+      ...context: ReadonlyArray<any>
+    ): AnyUpdateReturn | AnyFunction {
+      if (arguments.length === 1) {
+        return (model: any, ...curriedContext: ReadonlyArray<any>) =>
+          dispatch(model, modelOrMessage, ...curriedContext)
+      }
+
+      return dispatch(modelOrMessage, message, ...context)
+    }
+
     observableUpdateContextArities.set(
-      dispatch,
+      dualDispatch,
       update === undefined ? 0 : observableUpdateContextArity(update),
     )
 
-    return dispatch
+    ownedUpdates.add(dualDispatch)
+    if (update !== undefined) {
+      wrappedUpdates.set(update, dualDispatch)
+    }
+
+    return dualDispatch
   }
 }

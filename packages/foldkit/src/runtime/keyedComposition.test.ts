@@ -43,7 +43,7 @@ class TestControls extends Context.Service<TestControls, Controls>()(
 
 const dispatches = new Map<string, (message: unknown) => void>()
 
-const Item = define('CollectionItem')
+const ItemDefinition = define('CollectionItem')
 const ItemModel = Schema.Struct({
   id: Schema.Number,
   source: Schema.String,
@@ -58,8 +58,8 @@ const ItemMessage = defineMessageUnion({
   FailedAcquireValue: {},
   EmittedPulse: {},
 })
-const Value = Item.resource<string>()('Value')
-const ReadValue = Item.command('ReadValue', {
+const Value = ItemDefinition.resource<string>()('Value')
+const ReadValue = ItemDefinition.command('ReadValue', {
   messages: [ItemMessage.CompletedReadValue, ItemMessage.FailedReadValue],
   handler: function* () {
     const controls = yield* TestControls
@@ -73,7 +73,7 @@ const ReadValue = Item.command('ReadValue', {
       )
   },
 })
-const ObserveValue = Item.mountStream('ObserveValue', {
+const ObserveValue = ItemDefinition.mountStream('ObserveValue', {
   messages: [ItemMessage.EmittedPulse],
   handler: function* () {
     const controls = yield* TestControls
@@ -95,12 +95,12 @@ const ObserveValue = Item.mountStream('ObserveValue', {
       )
   },
 })
-const itemBase = Item.define({
+const ItemBaseDefinition = ItemDefinition.define({
   Model: ItemModel,
   Message: ItemMessage,
 })
-const item = itemBase.makeComposition({ mounts: [ObserveValue] })
-const subscriptions = itemBase.subscriptions(entry => ({
+const item = ItemBaseDefinition.makeComposition({ mounts: [ObserveValue] })
+const subscriptions = ItemBaseDefinition.subscriptions(entry => ({
   activePulse: entry(
     'ActivePulse',
     { source: Schema.String },
@@ -121,7 +121,7 @@ const subscriptions = itemBase.subscriptions(entry => ({
     },
   ),
 }))
-const managedResources = itemBase.managedResources(entry => ({
+const managedResources = ItemBaseDefinition.managedResources(entry => ({
   value: entry(
     'Value',
     Schema.Option(Schema.Struct({ source: Schema.String })),
@@ -202,17 +202,22 @@ const RootMessage = defineMessageUnion({
   ClickedAddReplacement: {},
   ClickedRestoreFirst: {},
 })
-const rootBase = defineApplication({
+const RootBaseDefinition = defineApplication({
   Model: RootModel,
   Message: RootMessage,
 })
-const EntriesBinding = rootBase.bindChild(itemBlock, {
-  fromParentMessage: false,
+const EntriesBinding = RootBaseDefinition.bindChild(itemBlock, {
   field: 'entries',
   key: 'id',
   toParentMessage: (id, message) => RootMessage.GotItemMessage({ id, message }),
+  fromParentMessage: {
+    parentMessage: RootMessage.GotItemMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
 })
-const root = rootBase.makeComposition({ childBindings: [EntriesBinding] })
+const root = RootBaseDefinition.makeComposition({
+  childBindings: [EntriesBinding],
+})
 const firstEntry = itemBlock.init(1, 'old').model
 const rootInit = () => ({
   model: {
@@ -221,8 +226,6 @@ const rootInit = () => ({
 })
 const rootUpdate = root.makeUpdate((model, message) =>
   RootMessage.match(message, {
-    GotItemMessage: ({ id, message }) =>
-      EntriesBinding.fold(model, id, message),
     ClickedRemoveFirst: () => ({
       model: modifyFields(model, {
         entries: Array.filter(entry => entry.id !== 1),

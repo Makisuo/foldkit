@@ -3,7 +3,7 @@ import { Array, Number, Option, Order, String, pipe } from 'effect'
 import { Html } from 'foldkit/html'
 
 import { USER_GAME_TEXT_INPUT_ID } from '../../../constant'
-import type { RoomViewBuilder } from '../definition'
+import type { RoomViewBuilder } from '../composition'
 import { Message } from '../message'
 
 const typing = (

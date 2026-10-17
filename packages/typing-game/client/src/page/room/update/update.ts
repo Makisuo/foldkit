@@ -18,13 +18,14 @@ import {
   WaitBeforeHidingRoomIdCopiedIndicator,
   WaitForExitCountdownInterval,
 } from '../command'
-import { Room, RoomComposition } from '../definition'
+import { RoomComposition } from '../composition'
+import { RoomDefinition } from '../definition'
 import { Message } from '../message'
 import { Model, RoomAsyncData, RoomPlayerSession } from '../model'
 import { validateUserTextInput } from '../userGameText'
 import { handleRoomUpdated } from './handleRoomUpdated'
 
-export const NavigateHome = Room.command('NavigateHome', {
+export const NavigateHome = RoomDefinition.command('NavigateHome', {
   messages: [Message.CompletedNavigateHome],
   handler: function* () {
     return () =>
@@ -181,19 +182,10 @@ export const update = RoomComposition.makeUpdate(
         }
       },
 
-      SucceededJoinRoom: ({ player }) => {
-        const session = RoomPlayerSession.make({
-          roomId: context.roomId,
-          player,
-        })
-
-        return {
-          model: modifyFields(model, {
-            maybeSession: () => Option.some(session),
-          }),
-          commands: [SavePlayerSession({ session })],
-        }
-      },
+      InformedOfJoin: ({ player }) =>
+        recordJoinedPlayer(model, player, context),
+      SucceededJoinRoom: ({ player }) =>
+        recordJoinedPlayer(model, player, context),
       CompletedFocusRoomPageUsernameInput: () => ({ model }),
       CompletedFocusUserGameTextInput: () => ({ model }),
       CompletedNavigateHome: () => ({ model }),
@@ -219,6 +211,24 @@ const handleKeyPressed =
           Match.orElse(() => ({ model })),
         ),
     })
+
+const recordJoinedPlayer = (
+  model: Model,
+  player: Shared.Player,
+  context: Context,
+) => {
+  const session = RoomPlayerSession.make({
+    roomId: context.roomId,
+    player,
+  })
+
+  return {
+    model: modifyFields(model, {
+      maybeSession: () => Option.some(session),
+    }),
+    commands: [SavePlayerSession({ session })],
+  }
+}
 
 const whenWaiting = (
   model: Model,
@@ -268,8 +278,3 @@ const handleStartGame =
       },
       onNone: () => ({ model }),
     })
-
-export const informJoined = Room.step(
-  (model, player: Shared.Player, context: Context) =>
-    update(model, Message.SucceededJoinRoom({ player }), context),
-)

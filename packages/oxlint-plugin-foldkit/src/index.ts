@@ -22,6 +22,7 @@ import { noEmptyToParentOutMessage } from './rules/no-empty-to-parent-out-messag
 import { noHandRolledCommandStruct } from './rules/no-hand-rolled-command-struct.ts'
 import { noHardcodedRouteStrings } from './rules/no-hardcoded-route-strings.ts'
 import { noImpureCallAtDecisionTime } from './rules/no-impure-call-at-decision-time.ts'
+import { noManualCompositionRouting } from './rules/no-manual-composition-routing.ts'
 import { noModuleLevelMutableState } from './rules/no-module-level-mutable-state.ts'
 import { noNonportableServerGlobals } from './rules/no-nonportable-server-globals.ts'
 import { noNoopMessage } from './rules/no-noop-message.ts'
@@ -66,6 +67,7 @@ const basePlugin = Plugin.define({
     'no-hand-rolled-command-struct': noHandRolledCommandStruct,
     'no-hardcoded-route-strings': noHardcodedRouteStrings,
     'no-impure-call-at-decision-time': noImpureCallAtDecisionTime,
+    'no-manual-composition-routing': noManualCompositionRouting,
     'no-module-level-mutable-state': noModuleLevelMutableState,
     'no-nonportable-server-globals': noNonportableServerGlobals,
     'no-noop-message': noNoopMessage,

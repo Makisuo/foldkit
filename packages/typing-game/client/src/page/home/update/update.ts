@@ -7,7 +7,7 @@ import {
   FocusUsernameInput,
   JoinRoomFromHome,
 } from '../command'
-import { HomeComposition } from '../definition'
+import { HomeComposition } from '../composition'
 import { Message, OutMessage } from '../message'
 import { HomeStep } from '../model'
 import { handleKeyPressed } from './handleKeyPressed'

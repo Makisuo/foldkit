@@ -22,7 +22,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Skills = Block.define('Skills', {
+export const SkillsDefinition = Block.define('Skills', {
   Model,
   Message,
   Startup: Schema.String,

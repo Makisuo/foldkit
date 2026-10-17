@@ -34,7 +34,7 @@ export type OutMessage = typeof OutMessage.Type
 
 export type Removed = typeof OutMessage.Removed.Type
 
-export const SkillsEntry = Block.define('SkillsEntry', {
+export const SkillsEntryDefinition = Block.define('SkillsEntry', {
   Model,
   Message,
   OutMessage,

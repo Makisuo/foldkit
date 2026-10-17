@@ -11,17 +11,17 @@ const foldThemeMenuOutMessage = ThemeMenu.OutMessage.match<
   Selected: () => model => ({ model }),
 })
 
-export const Settings = Block.define('Settings', {
+export const SettingsDefinition = Block.define('Settings', {
   Model,
   Message,
 })
 
-const ThemeMenuBinding = Settings.bindChild(ThemeMenu.block, {
+const ThemeMenuBinding = SettingsDefinition.bindChild(ThemeMenu.block, {
   field: 'themeMenu',
   parentMessage: Message.GotThemeMenuMessage,
   outMessage: { fold: foldThemeMenuOutMessage },
 })
 
-export const SettingsComposition = Settings.makeComposition({
+export const SettingsComposition = SettingsDefinition.makeComposition({
   childBindings: [ThemeMenuBinding],
 })

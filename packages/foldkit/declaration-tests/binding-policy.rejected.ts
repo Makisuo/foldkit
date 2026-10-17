@@ -1,17 +1,19 @@
+import { Option } from 'effect'
 import type * as Block from 'foldkit/block'
 import type * as Command from 'foldkit/command'
 import type * as Update from 'foldkit/update'
 
 import {
   Choice,
-  DeclarationPolicyForward,
+  DeclarationPolicyForwardDefinition,
+  Parent as DeclarationWrappedKeyedFieldParentDefinition,
   DirectChildBlock,
   DirectParent,
   DirectParentMessage,
   ForeignMessageBinding,
   OptionalForeignBinding,
-  Parent,
   ParentMessage,
+  PolicyCompanionBindings,
   RegisteredPolicyBinding,
   UndeclaredOutMessageBinding,
   UnionForeignBinding,
@@ -34,7 +36,8 @@ type Equal<Left, Right> =
       : false
     : false
 type Expect<Value extends true> = Value
-type ParentModel = typeof Parent.Model.Type
+type ParentModel =
+  typeof DeclarationWrappedKeyedFieldParentDefinition.Model.Type
 type ModelOnlyPolicy<
   Policy extends { fold: (...args: ReadonlyArray<never>) => unknown },
 > = Readonly<{
@@ -47,19 +50,31 @@ type WidenedBinding<Policy> = Block.AnyBinding &
   Block.BindingPolicyEvidence<Policy>
 
 // @ts-expect-error A policy must return the parent Model.
-Parent.makeComposition({ childBindings: [WrongModelBinding] })
+DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
+  childBindings: [WrongModelBinding, ...PolicyCompanionBindings],
+})
 // @ts-expect-error A policy cannot return foreign Command Messages.
-Parent.makeComposition({ childBindings: [ForeignMessageBinding] })
+DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
+  childBindings: [ForeignMessageBinding, ...PolicyCompanionBindings],
+})
 // @ts-expect-error A policy cannot return undeclared parent OutMessages.
-Parent.makeComposition({ childBindings: [UndeclaredOutMessageBinding] })
+DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
+  childBindings: [UndeclaredOutMessageBinding, ...PolicyCompanionBindings],
+})
 // @ts-expect-error Every union member must return parent Command Messages.
-Parent.makeComposition({ childBindings: [UnionForeignBinding] })
+DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
+  childBindings: [UnionForeignBinding, ...PolicyCompanionBindings],
+})
 // @ts-expect-error Optional Commands must return parent Messages.
-Parent.makeComposition({ childBindings: [OptionalForeignBinding] })
+DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
+  childBindings: [OptionalForeignBinding, ...PolicyCompanionBindings],
+})
 // @ts-expect-error Policy registration evidence must belong to this Composition.
-Parent.makeComposition({ childBindings: [RegisteredPolicyBinding] })
+DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
+  childBindings: [RegisteredPolicyBinding, ...PolicyCompanionBindings],
+})
 // @ts-expect-error Forwarded OutMessages must belong to the parent.
-DeclarationPolicyForward.makeComposition({
+DeclarationPolicyForwardDefinition.makeComposition({
   childBindings: [WrongForwardBinding],
 })
 
@@ -67,7 +82,9 @@ type ErasedBinding = Block.AnyBinding &
   Block.ParentBindingContract<ParentModel, typeof ParentMessage.Type, never>
 const erasedWrongModelBinding: ErasedBinding = WrongModelBinding
 // @ts-expect-error AnyBinding cannot erase deferred policy validation.
-Parent.makeComposition({ childBindings: [erasedWrongModelBinding] })
+DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
+  childBindings: [erasedWrongModelBinding, ...PolicyCompanionBindings],
+})
 
 // @ts-expect-error Inferred Command channels cannot be erased after binding.
 const inferredCommandsErased: WidenedBinding<
@@ -128,11 +145,11 @@ DirectParent.bindChild(DirectChildBlock, { field: 'child', parentMessage: Direct
 
 const narrowKeyPolicy = {
   fold: (_key: 'Primary', _outMessage: typeof Choice.OutMessage.Type) =>
-    Parent.step(model => ({ model })),
+    DeclarationWrappedKeyedFieldParentDefinition.step(model => ({ model })),
 }
 // @ts-expect-error A keyed shorthand policy must accept every collection key.
 // oxfmt-ignore
-Parent.bindChild(Choice.block, { field: 'literalChoices', key: 'kind', childField: 'choice', toParentMessage: (kind, message) => ParentMessage.GotLiteralChoiceMessage({ kind, message }), fromParentMessage: false, outMessage: narrowKeyPolicy })
+DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { field: 'literalChoices', key: 'kind', childField: 'choice', toParentMessage: (kind, message) => ParentMessage.GotLiteralChoiceMessage({ kind, message }), fromParentMessage: { parentMessage: ParentMessage.GotLiteralChoiceMessage, args: (_model, { kind, message }) => Option.some([kind, message]) }, outMessage: narrowKeyPolicy })
 
 type UnionWithEmptyCommands =
   | Readonly<{ model: ParentModel }>

@@ -1,13 +1,13 @@
 import { Effect, Option } from 'effect'
 import { load } from 'foldkit/navigation'
 
-import { Application } from '../definition'
+import { ApplicationDefinition } from '../definition'
 import { Message } from '../message'
 import { Home } from '../page'
 import { ExampleSlug } from '../page/example/meta'
 import { playgroundRouter } from '../route'
 
-export const LoadPlayground = Application.command('LoadPlayground', {
+export const LoadPlayground = ApplicationDefinition.command('LoadPlayground', {
   args: { exampleSlug: ExampleSlug },
   messages: [Message.CompletedLoadPlayground],
   handler: function* () {
@@ -19,7 +19,7 @@ export const LoadPlayground = Application.command('LoadPlayground', {
 })
 
 const loadPlaygroundExample = (exampleSlug: ExampleSlug) =>
-  Application.step(model => ({
+  ApplicationDefinition.step(model => ({
     model,
     commands: [LoadPlayground({ exampleSlug })],
   }))
@@ -29,7 +29,7 @@ const foldHomeOutMessage = Home.OutMessage.match({
     loadPlaygroundExample(exampleSlug),
 })
 
-export const HomeBinding = Application.bindChild(Home.block, {
+export const HomeBinding = ApplicationDefinition.bindChild(Home.block, {
   field: 'maybeHome',
   init: {
     args: ({ route }) =>

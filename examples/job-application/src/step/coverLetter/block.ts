@@ -17,9 +17,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const CoverLetter = Block.define('CoverLetter', { Model, Message })
+const CoverLetterDefinition = Block.define('CoverLetter', { Model, Message })
 
-const CoverLetterComposition = CoverLetter.makeComposition()
+const CoverLetterComposition = CoverLetterDefinition.makeComposition()
 
 export const init = (): Model => ({
   content: '',

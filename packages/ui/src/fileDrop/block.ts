@@ -41,13 +41,13 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-const FileDrop = Block.define('FileDrop', {
+const FileDropDefinition = Block.define('FileDrop', {
   Model,
   Message,
   OutMessage,
 })
 
-const FileDropComposition = FileDrop.makeComposition()
+const FileDropComposition = FileDropDefinition.makeComposition()
 
 // INIT
 

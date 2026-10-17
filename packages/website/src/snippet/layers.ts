@@ -19,7 +19,7 @@ export const UserState = defineTaggedUnion({
 })
 
 export const Model = Schema.Struct({ user: UserState })
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
 type ApiClient = Readonly<{
   getUser: (userId: string) => Effect.Effect<User, unknown>
@@ -29,7 +29,7 @@ class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(
   'ApiClientService',
 ) {}
 
-export const LoadUser = Application.command('LoadUser', {
+export const LoadUser = ApplicationDefinition.command('LoadUser', {
   args: { userId: Schema.String },
   messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
   handler: function* () {

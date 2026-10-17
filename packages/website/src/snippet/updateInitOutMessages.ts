@@ -1,4 +1,4 @@
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 
 const foldSearchOutMessage = Search.OutMessage.match<
   Update.Step<Model, Message>
@@ -24,19 +24,19 @@ const foldEditorOutMessage = Editor.OutMessage.match<
     }),
 })
 
-const SearchBinding = Application.bindChild(Search.block, {
+const SearchBinding = ApplicationDefinition.bindChild(Search.block, {
   field: 'search',
   parentMessage: Message.GotSearchMessage,
   outMessage: { fold: foldSearchOutMessage },
 })
 
-const EditorBinding = Application.bindChild(Editor.block, {
+const EditorBinding = ApplicationDefinition.bindChild(Editor.block, {
   field: 'editor',
   parentMessage: Message.GotEditorMessage,
   outMessage: { fold: foldEditorOutMessage },
 })
 
-const ApplicationComposition = Application.makeComposition({
+const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [SearchBinding, EditorBinding],
 })
 

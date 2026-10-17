@@ -1,4 +1,4 @@
-import { Schema } from 'effect'
+import { Schema, Tuple } from 'effect'
 import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
 import type * as Update from 'foldkit/update'
@@ -14,6 +14,7 @@ type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   GotMenuMessage: { message: RefinedMenu.Message },
+  RequestedOpen: {},
 })
 type Message = typeof Message.Type
 
@@ -22,31 +23,37 @@ const OutMessage = defineMessageUnion({
 })
 type OutMessage = typeof OutMessage.Type
 
-const GenericMenuBindingIdentity = Block.define('GenericMenuBindingIdentity', {
-  Model,
-  Message,
-  OutMessage,
-})
-
-const MenuBinding = GenericMenuBindingIdentity.bindChild(RefinedMenu, {
-  field: 'menu',
-  parentMessage: Message.GotMenuMessage,
-  init: false,
-  outMessage: {
-    fold: RefinedMenu.OutMessage.match<
-      Update.StepWithOutMessage<Model, Message, OutMessage>
-    >({
-      Selected: ({ value }) =>
-        GenericMenuBindingIdentity.step(model => ({
-          model,
-          outMessage: OutMessage.SelectedMenuItem({ value }),
-        })),
-    }),
+const GenericMenuBindingIdentityDefinition = Block.define(
+  'GenericMenuBindingIdentity',
+  {
+    Model,
+    Message,
+    OutMessage,
   },
-})
+)
+
+const MenuBinding = GenericMenuBindingIdentityDefinition.bindChild(
+  RefinedMenu,
+  {
+    field: 'menu',
+    parentMessage: Message.GotMenuMessage,
+    init: false,
+    outMessage: {
+      fold: RefinedMenu.OutMessage.match<
+        Update.StepWithOutMessage<Model, Message, OutMessage>
+      >({
+        Selected: ({ value }) =>
+          GenericMenuBindingIdentityDefinition.step(model => ({
+            model,
+            outMessage: OutMessage.SelectedMenuItem({ value }),
+          })),
+      }),
+    },
+  },
+)
 
 const GenericMenuBindingIdentityComposition =
-  GenericMenuBindingIdentity.makeComposition({
+  GenericMenuBindingIdentityDefinition.makeComposition({
     childBindings: [MenuBinding],
   })
 
@@ -56,12 +63,14 @@ const init = GenericMenuBindingIdentityComposition.makeInit(() =>
     toParentModel: menu => Model.make({ menu }),
   }),
 )
-const update = GenericMenuBindingIdentityComposition.makeUpdate()
-const open = GenericMenuBindingIdentity.step(() => MenuBinding.open())
+const update = GenericMenuBindingIdentityComposition.makeUpdate(model =>
+  MenuBinding.open()(model),
+)
+const open = () => Tuple.make(Message.RequestedOpen())
 const block = GenericMenuBindingIdentityComposition.makeBlock({
   init,
   update,
-  expose: { open },
+  operations: { open },
   EffectsLayer: RefinedMenu.EffectsLayer,
 })
 
@@ -77,7 +86,7 @@ it('uses the factory Menu Animation Binding through open and completion', () => 
   const menuInit = block.init()
   const model = menuInit.model
 
-  const menuOpen = block.expose.open(model)
+  const menuOpen = block.operations.open(model)
 
   expect(menuOpen.model.menu.isOpen).toBe(true)
   expect(menuOpen.model.menu.animation.transitionState).toBe('EnterStart')

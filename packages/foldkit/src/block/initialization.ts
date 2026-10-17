@@ -1,6 +1,7 @@
 import type { Command } from '../command/index.js'
 import type * as Update from '../update/index.js'
 import type { AnyBinding, RequirementsOfBindings } from './binding.js'
+import type { ResolveCompositionOutput } from './deferredPolicy.js'
 import type {
   AnyBindingInitRecipe,
   BindingInitRecipeReturn,
@@ -221,8 +222,11 @@ type StepsOf<Output> =
       : never
     : never
 
-type ResolvedInitializationOutput<Output> = Output extends AnyBindingInitRecipe
-  ? BindingInitRecipeReturn<Output>
+type ResolvedInitializationOutput<
+  Output,
+  ChildBindings extends ReadonlyArray<AnyBinding>,
+> = Output extends AnyBindingInitRecipe
+  ? ResolveCompositionOutput<BindingInitRecipeReturn<Output>, ChildBindings>
   : Output
 
 type CommandRequirements<CommandValue> =
@@ -235,11 +239,11 @@ type StepFunctionOf<Output> = Extract<
   (...args: ReadonlyArray<any>) => any
 >
 
-type StepReturnOf<Output> =
+type StepReturnOf<Output, ChildBindings extends ReadonlyArray<AnyBinding>> =
   StepFunctionOf<Output> extends (
     ...args: ReadonlyArray<never>
   ) => infer StepReturn
-    ? Update.ResolvedOperationOutput<StepReturn>
+    ? ResolveCompositionOutput<StepReturn, ChildBindings>
     : never
 
 type InitializedModel<
@@ -247,8 +251,10 @@ type InitializedModel<
   ChildBindings extends ReadonlyArray<AnyBinding>,
   Output,
 > = [keyof InitialFields<ChildBindings>] extends [never]
-  ? [StepsOf<ResolvedInitializationOutput<Output>>] extends [never]
-    ? ResolvedInitializationOutput<Output> extends Readonly<{
+  ? [StepsOf<ResolvedInitializationOutput<Output, ChildBindings>>] extends [
+      never,
+    ]
+    ? ResolvedInitializationOutput<Output, ChildBindings> extends Readonly<{
         model: infer ParentModel
       }>
       ? ParentModel
@@ -270,15 +276,25 @@ export type InitializationReturn<
     InitializedModel<Model, ChildBindings, Output>,
     Message,
     | InitialRequirements<ChildBindings>
-    | CommandRequirements<CommandsOf<ResolvedInitializationOutput<Output>>>
+    | CommandRequirements<
+        CommandsOf<ResolvedInitializationOutput<Output, ChildBindings>>
+      >
     | Update.RequirementsOf<
-        StepFunctionOf<ResolvedInitializationOutput<Output>>
+        () => StepReturnOf<
+          ResolvedInitializationOutput<Output, ChildBindings>,
+          ChildBindings
+        >
       >
   >,
   | InitialRegistration<ChildBindings>
-  | Update.RegistrationEvidenceOf<ResolvedInitializationOutput<Output>>
   | Update.RegistrationEvidenceOf<
-      StepReturnOf<ResolvedInitializationOutput<Output>>
+      ResolvedInitializationOutput<Output, ChildBindings>
+    >
+  | Update.RegistrationEvidenceOf<
+      StepReturnOf<
+        ResolvedInitializationOutput<Output, ChildBindings>,
+        ChildBindings
+      >
     >
 >
 
@@ -312,6 +328,72 @@ type ValidateSingleInitSignature<Init> = Init extends (
     : InvalidInitSignature<Init>
   : never
 
+type ReturnOutMessage<Output> = Output extends unknown
+  ? 'outMessage' extends keyof Output
+    ? Output extends Readonly<{ outMessage?: infer OutMessage }>
+      ? Exclude<OutMessage, undefined>
+      : never
+    : never
+  : never
+
+type ValidateInitializationOutMessage<
+  Init,
+  ChildBindings extends ReadonlyArray<AnyBinding>,
+> = Init extends (...args: ReadonlyArray<any>) => infer Output
+  ? [
+      ReturnOutMessage<
+        StepReturnOf<
+          ResolvedInitializationOutput<Output, ChildBindings>,
+          ChildBindings
+        >
+      >,
+    ] extends [never]
+    ? readonly []
+    : readonly [
+        error: Readonly<{
+          'Composition initializers cannot apply a Step whose registered Binding policy may emit an OutMessage': ReturnOutMessage<
+            StepReturnOf<
+              ResolvedInitializationOutput<Output, ChildBindings>,
+              ChildBindings
+            >
+          >
+        }>,
+      ]
+  : readonly []
+
+type InitializationRecipeValues<Output> =
+  | ResolvedInitializationOutput<Output, readonly []>
+  | (StepsOf<
+      ResolvedInitializationOutput<Output, readonly []>
+    > extends infer Step
+      ? Step extends (...args: ReadonlyArray<any>) => infer StepOutput
+        ? StepOutput
+        : never
+      : never)
+
+type ValidateInitializationEvidence<Init> = Init extends (
+  ...args: ReadonlyArray<any>
+) => infer Output
+  ? unknown extends Update.ValidateConcreteResultEvidence<
+      InitializationRecipeValues<Output>
+    >
+    ? readonly []
+    : readonly [
+        error: Update.ValidateConcreteResultEvidence<
+          InitializationRecipeValues<Output>
+        >,
+      ]
+  : readonly []
+
+type ValidateInit<
+  Init,
+  ChildBindings extends ReadonlyArray<AnyBinding>,
+> = readonly [
+  ...ValidateSingleInitSignature<Init>,
+  ...ValidateInitializationEvidence<Init>,
+  ...ValidateInitializationOutMessage<Init, ChildBindings>,
+]
+
 /**
  * Authors a Composition-owned initializer. Authoring is passive: the supplied
  * function and child initialization policies run only when the returned
@@ -329,8 +411,8 @@ export interface CompositionInit<
     ) =>
       | InitializationPlan<Model, Message, ChildBindings>
       | AnyBindingInitRecipe,
-    const Validation extends ValidateSingleInitSignature<NoInfer<Init>> =
-      ValidateSingleInitSignature<NoInfer<Init>>,
+    const Validation extends ValidateInit<NoInfer<Init>, ChildBindings> =
+      ValidateInit<NoInfer<Init>, ChildBindings>,
   >(
     create: Init,
     ...validation: Validation

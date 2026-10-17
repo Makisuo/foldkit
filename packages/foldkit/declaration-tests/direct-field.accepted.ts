@@ -7,14 +7,14 @@ export const ChildMessage = Message.defineMessageUnion({
   UpdatedCount: { count: Schema.Number },
 })
 // eslint-disable-next-line foldkit/block-name-matches-variable
-const Child = Block.define('DeclaredDirectFieldChild', {
+const ChildDefinition = Block.define('DeclaredDirectFieldChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const setCount = Child.step((model, count: number) => ({
+const setCount = ChildDefinition.step((model, count: number) => ({
   model: Struct.modifyFields(model, { count: () => count }),
 }))
-const DeclaredDirectFieldChildComposition = Child.makeComposition()
+const DeclaredDirectFieldChildComposition = ChildDefinition.makeComposition()
 const childUpdate = DeclaredDirectFieldChildComposition.makeUpdate(
   (model, { count }) => setCount(model, count),
 )
@@ -23,7 +23,9 @@ export const childBlock = DeclaredDirectFieldChildComposition.makeBlock({
     model: ChildModel.make({ count: 0 }),
   })),
   update: childUpdate,
-  expose: { setCount },
+  operations: {
+    setCount: (count: number) => [ChildMessage.UpdatedCount({ count })],
+  },
   EffectsLayer: Layer.empty,
 })
 export const argumentChildBlock = DeclaredDirectFieldChildComposition.makeBlock(
@@ -32,17 +34,20 @@ export const argumentChildBlock = DeclaredDirectFieldChildComposition.makeBlock(
       model: ChildModel.make({ count }),
     })),
     update: childUpdate,
-    expose: { setCount },
+    operations: {
+      setCount: (count: number) => [ChildMessage.UpdatedCount({ count })],
+    },
     EffectsLayer: Layer.empty,
   },
 )
 export const NestedOptionChildModel = Schema.Option(ChildModel)
 // eslint-disable-next-line foldkit/block-name-matches-variable
-const NestedOptionChild = Block.define('DeclaredNestedOptionChild', {
+const NestedOptionChildDefinition = Block.define('DeclaredNestedOptionChild', {
   Model: NestedOptionChildModel,
   Message: ChildMessage,
 })
-const DeclaredNestedOptionChildComposition = NestedOptionChild.makeComposition()
+const DeclaredNestedOptionChildComposition =
+  NestedOptionChildDefinition.makeComposition()
 export const nestedOptionChildBlock =
   DeclaredNestedOptionChildComposition.makeBlock({
     init: DeclaredNestedOptionChildComposition.makeInit(() => ({
@@ -55,11 +60,11 @@ export const nestedOptionChildBlock =
   })
 export const ArrayChildModel = Schema.Array(Schema.String)
 // eslint-disable-next-line foldkit/block-name-matches-variable
-const ArrayChild = Block.define('DeclaredArrayChild', {
+const ArrayChildDefinition = Block.define('DeclaredArrayChild', {
   Model: ArrayChildModel,
   Message: ChildMessage,
 })
-const DeclaredArrayChildComposition = ArrayChild.makeComposition()
+const DeclaredArrayChildComposition = ArrayChildDefinition.makeComposition()
 export const arrayChildBlock = DeclaredArrayChildComposition.makeBlock({
   init: DeclaredArrayChildComposition.makeInit(() => ({
     model: ArrayChildModel.make([]),
@@ -85,101 +90,127 @@ export const ParentMessage = Message.defineMessageUnion({
   GotArgumentChildMessage: { message: ChildMessage },
   // eslint-disable-next-line foldkit/got-prefix-requires-block-payload
   GotOptionalArgumentChildMessage: { message: ChildMessage },
+  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture deliberately probes reserved Got* routing with a nonstandard payload.
+  GotIgnoredChildMessage: { message: ChildMessage },
   IgnoredChildMessage: {},
-  // eslint-disable-next-line foldkit/got-prefix-requires-block-payload
-  GotOptionalExtraMessage: {
-    message: ChildMessage,
-    requestId: Schema.optionalKey(Schema.String),
-  },
 })
 // eslint-disable-next-line foldkit/block-name-matches-variable
-export const Parent = Block.define('DeclaredDirectFieldParent', {
+export const ParentDefinition = Block.define('DeclaredDirectFieldParent', {
   Model,
   Message: ParentMessage,
 })
-export const RequiredBinding = Parent.bindChild(childBlock, {
+export const RequiredBinding = ParentDefinition.bindChild(childBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
 })
-export const OptionalBinding = Parent.bindChild(childBlock, {
+export const OptionalBinding = ParentDefinition.bindChild(childBlock, {
   field: 'maybeChild',
   presentWhen: model => model.route === 'Home',
   parentMessage: ParentMessage.GotChildMessage,
 })
-export const SuspendedOptionalBinding = Parent.bindChild(childBlock, {
+export const SuspendedOptionalBinding = ParentDefinition.bindChild(childBlock, {
   field: 'suspendedMaybeChild',
   parentMessage: ParentMessage.GotChildMessage,
 })
-export const NestedRequiredBinding = Parent.bindChild(nestedOptionChildBlock, {
-  field: 'nestedChild',
-  parentMessage: ParentMessage.GotChildMessage,
-})
-export const NestedOptionalBinding = Parent.bindChild(nestedOptionChildBlock, {
-  field: 'maybeNestedChild',
-  parentMessage: ParentMessage.GotChildMessage,
-})
-export const ArrayChildBinding = Parent.bindChild(arrayChildBlock, {
+export const NestedRequiredBinding = ParentDefinition.bindChild(
+  nestedOptionChildBlock,
+  {
+    field: 'nestedChild',
+    parentMessage: ParentMessage.GotChildMessage,
+  },
+)
+export const NestedOptionalBinding = ParentDefinition.bindChild(
+  nestedOptionChildBlock,
+  {
+    field: 'maybeNestedChild',
+    parentMessage: ParentMessage.GotChildMessage,
+  },
+)
+export const ArrayChildBinding = ParentDefinition.bindChild(arrayChildBlock, {
   field: 'arrayChild',
   parentMessage: ParentMessage.GotChildMessage,
 })
-export const CustomIgnoredMessageBinding = Parent.bindChild(childBlock, {
-  placement: 'customIgnoredMessage',
-  field: 'child',
-  toParentMessage: () => ParentMessage.IgnoredChildMessage(),
-  fromParentMessage: false,
-})
-export const InitializedRequiredBinding = Parent.bindChild(childBlock, {
-  field: 'child',
-  placement: 'initializedRequired',
-  parentMessage: ParentMessage.GotChildMessage,
-  init: true,
-})
-export const InitializedArgumentBinding = Parent.bindChild(argumentChildBlock, {
-  field: 'argumentChild',
-  parentMessage: ParentMessage.GotArgumentChildMessage,
-  init: {
-    args: (context: InitializationContext) => [context.count],
-  },
-})
-export const InitializedOptionalBinding = Parent.bindChild(argumentChildBlock, {
-  field: 'maybeArgumentChild',
-  parentMessage: ParentMessage.GotOptionalArgumentChildMessage,
-  init: {
-    args: (context: InitializationContext) => {
-      if (Option.isSome(context.maybeCount)) {
-        return Option.some([context.maybeCount.value])
-      }
-
-      return Option.none()
+export const CustomIgnoredMessageBinding = ParentDefinition.bindChild(
+  childBlock,
+  {
+    placement: 'customIgnoredMessage',
+    field: 'suspendedMaybeChild',
+    toParentMessage: message =>
+      ParentMessage.GotIgnoredChildMessage({ message }),
+    fromParentMessage: {
+      parentMessage: ParentMessage.GotIgnoredChildMessage,
+      args: (_model, { message }) => Option.some([message]),
     },
   },
-})
-export const NativeTupleOptionalBinding = Parent.bindChild(argumentChildBlock, {
-  field: 'maybeArgumentChild',
-  placement: 'nativeTupleOptional',
-  parentMessage: ParentMessage.GotChildMessage,
-  init: {
-    args: (context: Readonly<{ count: number }>) =>
-      Option.some([context.count]),
+)
+export const InitializedRequiredBinding = ParentDefinition.bindChild(
+  childBlock,
+  {
+    field: 'child',
+    placement: 'initializedRequired',
+    parentMessage: ParentMessage.GotChildMessage,
+    init: true,
   },
-})
-export const InitializedCustomBinding = Parent.bindChild(argumentChildBlock, {
-  placement: 'initializedCustom',
-  read: model => Option.some(model.argumentChild),
-  write: (model, nextChild) =>
-    Struct.modifyFields(model, { argumentChild: () => nextChild }),
-  parentMessage: ParentMessage.GotChildMessage,
-  init: {
-    args: (context: InitializationContext) => [context.count],
-    model: childModel => ({ argumentChild: childModel }),
+)
+export const InitializedArgumentBinding = ParentDefinition.bindChild(
+  argumentChildBlock,
+  {
+    field: 'argumentChild',
+    parentMessage: ParentMessage.GotArgumentChildMessage,
+    init: {
+      args: (context: InitializationContext) => [context.count],
+    },
   },
-})
+)
+export const InitializedOptionalBinding = ParentDefinition.bindChild(
+  argumentChildBlock,
+  {
+    field: 'maybeArgumentChild',
+    parentMessage: ParentMessage.GotOptionalArgumentChildMessage,
+    init: {
+      args: (context: InitializationContext) => {
+        if (Option.isSome(context.maybeCount)) {
+          return Option.some([context.maybeCount.value])
+        }
+
+        return Option.none()
+      },
+    },
+  },
+)
+export const NativeTupleOptionalBinding = ParentDefinition.bindChild(
+  argumentChildBlock,
+  {
+    field: 'maybeArgumentChild',
+    placement: 'nativeTupleOptional',
+    parentMessage: ParentMessage.GotChildMessage,
+    init: {
+      args: (context: Readonly<{ count: number }>) =>
+        Option.some([context.count]),
+    },
+  },
+)
+export const InitializedCustomBinding = ParentDefinition.bindChild(
+  argumentChildBlock,
+  {
+    placement: 'initializedCustom',
+    read: model => Option.some(model.argumentChild),
+    write: (model, nextChild) =>
+      Struct.modifyFields(model, { argumentChild: () => nextChild }),
+    parentMessage: ParentMessage.GotChildMessage,
+    init: {
+      args: (context: InitializationContext) => [context.count],
+      model: childModel => ({ argumentChild: childModel }),
+    },
+  },
+)
 // eslint-disable-next-line foldkit/block-name-matches-variable
-export const initialComposition = Parent.makeComposition({
+export const initialComposition = ParentDefinition.makeComposition({
   childBindings: [
     InitializedRequiredBinding,
     InitializedArgumentBinding,
     InitializedOptionalBinding,
+    CustomIgnoredMessageBinding,
   ],
 })
 export type InitializationContext = Readonly<{
@@ -205,8 +236,13 @@ export const initializedBlock = initialComposition.makeBlock({
   EffectsLayer: Layer.empty,
 })
 // eslint-disable-next-line foldkit/block-name-matches-variable
-export const composition = Parent.makeComposition({
-  childBindings: [RequiredBinding],
+export const composition = ParentDefinition.makeComposition({
+  childBindings: [
+    RequiredBinding,
+    InitializedArgumentBinding,
+    InitializedOptionalBinding,
+    CustomIgnoredMessageBinding,
+  ],
 })
 export const initial = Model.make({
   child: ChildModel.make({ count: 1 }),
@@ -219,8 +255,13 @@ export const initial = Model.make({
   arrayChild: [],
   route: 'Home',
 })
-const DeclaredDirectFieldParentComposition = Parent.makeComposition({
-  childBindings: [OptionalBinding],
+const DeclaredDirectFieldParentComposition = ParentDefinition.makeComposition({
+  childBindings: [
+    OptionalBinding,
+    InitializedArgumentBinding,
+    InitializedOptionalBinding,
+    CustomIgnoredMessageBinding,
+  ],
 })
 export const setOptionalCount = DeclaredDirectFieldParentComposition.makeUpdate(
   (model, _message, count: number) => OptionalBinding.setCount(count)(model),
@@ -237,7 +278,7 @@ const folded = foldOptional(
 )
 void result
 void folded
-export const CustomBinding = Parent.bindChild(childBlock, {
+export const CustomBinding = ParentDefinition.bindChild(childBlock, {
   placement: 'custom',
   read: model =>
     model.route === 'Home' ? Option.some(model.child) : Option.none(),
@@ -250,21 +291,32 @@ export const CallableModel = taggedStruct('DeclaredCallableParent', {
   child: ChildModel,
   maybeChild: Schema.Option(ChildModel),
 })
+const CallableParentMessage = Message.defineMessageUnion({
+  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture deliberately probes reserved Got* routing with a nonstandard payload.
+  GotChildMessage: { message: ChildMessage },
+  IgnoredChildMessage: {},
+})
 // eslint-disable-next-line foldkit/block-name-matches-variable
-const CallableParent = Block.define('DeclaredCallableFieldParent', {
+const CallableParentDefinition = Block.define('DeclaredCallableFieldParent', {
   Model: CallableModel,
-  Message: ParentMessage,
+  Message: CallableParentMessage,
 })
-export const CallableRequiredBinding = CallableParent.bindChild(childBlock, {
-  field: 'child',
-  parentMessage: ParentMessage.GotChildMessage,
-})
-export const CallableOptionalBinding = CallableParent.bindChild(childBlock, {
-  field: 'maybeChild',
-  parentMessage: ParentMessage.GotChildMessage,
-})
+export const CallableRequiredBinding = CallableParentDefinition.bindChild(
+  childBlock,
+  {
+    field: 'child',
+    parentMessage: CallableParentMessage.GotChildMessage,
+  },
+)
+export const CallableOptionalBinding = CallableParentDefinition.bindChild(
+  childBlock,
+  {
+    field: 'maybeChild',
+    parentMessage: CallableParentMessage.GotChildMessage,
+  },
+)
 // eslint-disable-next-line foldkit/block-name-matches-variable
-export const callableComposition = CallableParent.makeComposition({
+export const callableComposition = CallableParentDefinition.makeComposition({
   childBindings: [CallableRequiredBinding],
 })
 export const setCallableCount = callableComposition.makeUpdate(

@@ -1,20 +1,18 @@
-// ✅ Good: the child exposes a named Step that still runs its update.
+// ✅ Good: the child declares an operation that runs its update.
 
-export const setTheme = Settings.step((model, theme: Theme) =>
-  update(model, Message.ChangedTheme({ theme })),
-)
-
-const SettingsComposition = Settings.makeComposition()
+const SettingsComposition = SettingsDefinition.makeComposition()
+const setTheme = SettingsComposition.makeOperation(Message.RequestedThemeChange)
 
 export const block = SettingsComposition.makeBlock({
   init,
   update,
-  expose: { setTheme },
+  operations: { setTheme },
   EffectsLayer,
 })
 
 const update = ParentComposition.makeUpdate((model, message) =>
   Message.match(message, {
-    ClickedResetSettings: () => SettingsBinding.setTheme('Light')(model),
+    ClickedResetSettings: () =>
+      SettingsBinding.setTheme({ theme: 'Light' })(model),
   }),
 )

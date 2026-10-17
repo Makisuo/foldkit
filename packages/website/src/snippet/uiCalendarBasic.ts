@@ -74,12 +74,12 @@ const foldCalendarOutMessage = UiCalendar.OutMessage.match<
 // focus, and picker-mode transitions to UiCalendar.update, writes the next
 // Calendar Model back, maps the Block's Commands into your Message type,
 // and hands any OutMessage to the OutMessage fold.
-const CalendarExample = Block.define('CalendarExample', {
+const CalendarExampleDefinition = Block.define('CalendarExample', {
   Model,
   Message,
 })
 
-const CalendarBinding = CalendarExample.bindChild(UiCalendar.block, {
+const CalendarBinding = CalendarExampleDefinition.bindChild(UiCalendar.block, {
   field: 'calendarDemo',
   parentMessage: Message.GotCalendarMessage,
   init: {
@@ -93,7 +93,7 @@ const CalendarBinding = CalendarExample.bindChild(UiCalendar.block, {
   outMessage: { fold: foldCalendarOutMessage },
 })
 
-const CalendarExampleComposition = CalendarExample.makeComposition({
+const CalendarExampleComposition = CalendarExampleDefinition.makeComposition({
   childBindings: [CalendarBinding],
 })
 type CalendarExampleViewBuilder = Block.ViewBuilderFor<

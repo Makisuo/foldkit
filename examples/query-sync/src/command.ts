@@ -1,11 +1,11 @@
 import { Effect, Layer, Schema } from 'effect'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
 
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 import { Diet, Period, Sorting, browseRouter } from './route'
 
-export const ReplaceFilters = Application.command('ReplaceFilters', {
+export const ReplaceFilters = ApplicationDefinition.command('ReplaceFilters', {
   args: {
     search: Schema.Option(Schema.String),
     sorting: Sorting,
@@ -21,16 +21,19 @@ export const ReplaceFilters = Application.command('ReplaceFilters', {
   },
 })
 
-export const NavigateInternal = Application.command('NavigateInternal', {
-  args: { url: Schema.String },
-  messages: [Message.CompletedNavigateInternal],
-  handler: function* () {
-    return ({ url }) =>
-      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
+export const NavigateInternal = ApplicationDefinition.command(
+  'NavigateInternal',
+  {
+    args: { url: Schema.String },
+    messages: [Message.CompletedNavigateInternal],
+    handler: function* () {
+      return ({ url }) =>
+        pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
+    },
   },
-})
+)
 
-export const LoadExternal = Application.command('LoadExternal', {
+export const LoadExternal = ApplicationDefinition.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {

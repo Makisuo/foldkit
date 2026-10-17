@@ -4,7 +4,7 @@ import { CalendarDate } from 'foldkit/calendar'
 import { Message } from './message'
 import { Model } from './model'
 
-export const Ui = Block.define('Ui', {
+export const UiDefinition = Block.define('Ui', {
   Model,
   Message,
   Startup: CalendarDate,

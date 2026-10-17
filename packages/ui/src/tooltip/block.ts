@@ -2,7 +2,6 @@ import {
   Duration,
   Effect,
   Equal,
-  Function,
   Layer,
   Match,
   Number,
@@ -37,7 +36,7 @@ export const Model = Schema.Struct({
 
 export type Model = typeof Model.Type
 
-const Tooltip = Block.define('Tooltip', {
+const TooltipDefinition = Block.define('Tooltip', {
   Model,
   Message,
   OutMessage,
@@ -82,19 +81,22 @@ export const init = (config: InitConfig): Model => ({
 
 /** Waits for the tooltip's show delay before emitting
  *  `CompletedWaitBeforeShowing`. */
-export const WaitBeforeShowing = Tooltip.command('WaitBeforeShowing', {
-  args: { delay: Schema.DurationFromMillis, version: Schema.Number },
-  messages: [Message.CompletedWaitBeforeShowing],
-  handler: function* () {
-    return ({ delay, version }) =>
-      Effect.sleep(delay).pipe(
-        Effect.as(Message.CompletedWaitBeforeShowing({ version })),
-      )
+export const WaitBeforeShowing = TooltipDefinition.command(
+  'WaitBeforeShowing',
+  {
+    args: { delay: Schema.DurationFromMillis, version: Schema.Number },
+    messages: [Message.CompletedWaitBeforeShowing],
+    handler: function* () {
+      return ({ delay, version }) =>
+        Effect.sleep(delay).pipe(
+          Effect.as(Message.CompletedWaitBeforeShowing({ version })),
+        )
+    },
   },
-})
+)
 
 /** The anchor-positioning Mount this Tooltip renders on its panel. */
-export const AnchorTooltip = Tooltip.mount('AnchorTooltip', {
+export const AnchorTooltip = TooltipDefinition.mount('AnchorTooltip', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorTooltip],
   handler: function* () {
@@ -124,10 +126,14 @@ export const EffectsLayer = Layer.mergeAll(
   AnchorTooltip.layer,
 )
 
-const TooltipComposition = Tooltip.makeComposition({ mounts })
+const TooltipComposition = TooltipDefinition.makeComposition({ mounts })
 
 const computeUpdate = (model: Model, message: Message) =>
   Message.match(message, {
+    InformedOfShowDelayChange: ({ showDelay }) => ({
+      model: modifyFields(model, { showDelay: () => showDelay }),
+    }),
+
     EnteredTrigger: () => {
       if (model.isOpen || model.isDismissed) {
         return { model: modifyFields(model, { isHovered: () => true }) }
@@ -252,16 +258,6 @@ export const update = TooltipComposition.makeUpdate((model, message) => {
   return pipe(tooltipUpdate, Update.withOutMessage(outMessage))
 })
 
-/** Reflects an externally-sourced hover show-delay onto the Model without
- *  emitting an OutMessage. Use to mirror an external config value (a user
- *  preference, a restored setting) onto the Tooltip. */
-export const reflectShowDelay: Block.Reflect<Model, Duration.Input> =
-  Function.dual(2, (model: Model, showDelay: Duration.Input): Model =>
-    modifyFields(model, {
-      showDelay: () => Duration.fromInputUnsafe(showDelay),
-    }),
-  )
-
 // VIEW
 
 /** Render-time payload published to the consumer's `toView`.
@@ -363,12 +359,21 @@ export const view = TooltipComposition.makeView.withInputs<ViewInputs>(
   },
 )
 
-/** Complete Tooltip Block definition for connecting to a parent. */
+/** Completed Tooltip Block for binding into a parent. */
 export const block = TooltipComposition.makeBlock({
   init: TooltipComposition.makeInit((config: InitConfig) => ({
     model: init(config),
   })),
   update,
   view,
+  operations: {
+    /** Supplies a new hover delay without changing visibility or restarting a
+     * pending timer. Accepts any Effect Duration input. */
+    informShowDelayChanged: (showDelay: Duration.Input) => [
+      Message.InformedOfShowDelayChange({
+        showDelay: Duration.fromInputUnsafe(showDelay),
+      }),
+    ],
+  },
   EffectsLayer,
 })

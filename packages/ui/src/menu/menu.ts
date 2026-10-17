@@ -9,6 +9,7 @@ import {
   Predicate,
   Schema,
   String,
+  Tuple,
   pipe,
 } from 'effect'
 import * as Block from 'foldkit/block'
@@ -30,7 +31,7 @@ import {
   keyToIndex,
 } from '../keyboard.js'
 import { resolveTypeaheadMatch } from '../typeahead.js'
-import { Menu as SharedMenu } from './definition.js'
+import { MenuDefinition as SharedMenu } from './definition.js'
 
 // MODEL
 
@@ -163,7 +164,7 @@ export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
 export type ReleasedPointerOnItems = typeof Message.ReleasedPointerOnItems.Type
 
-const Menu = SharedMenu.define({
+const MenuDefinition = SharedMenu.define({
   Model,
   Message,
   OutMessage,
@@ -346,7 +347,7 @@ export const DetectMenuMovementOrAnimationEnd = SharedMenu.command(
 )
 
 const detectMenuMovementOrAnimationEnd = (generation: number) =>
-  Menu.step(model => ({
+  MenuDefinition.step(model => ({
     model,
     commands: [DetectMenuMovementOrAnimationEnd({ id: model.id, generation })],
   }))
@@ -359,10 +360,10 @@ const foldAnimationOutMessage =
   Animation.OutMessage.match<AnimationOutMessageStep>({
     StartedLeaveAnimating: ({ generation }) =>
       detectMenuMovementOrAnimationEnd(generation),
-    TransitionedOut: () => Menu.step(model => ({ model })),
+    TransitionedOut: () => MenuDefinition.step(model => ({ model })),
   })
 
-const AnimationBinding = Menu.bindChild(Animation.block, {
+const AnimationBinding = MenuDefinition.bindChild(Animation.block, {
   field: 'animation',
   parentMessage: Message.GotAnimationMessage,
   init: false,
@@ -424,7 +425,7 @@ const internalUpdate =
       const closed = closedModel(baseModel)
 
       if (model.isAnimated) {
-        return Menu.step(() =>
+        return MenuDefinition.step(() =>
           Function.compose(
             Update.combine([
               () => ({ model: closed, commands }),
@@ -707,13 +708,13 @@ export const mounts = [AnchorMenu, PortalMenuBackdrop]
 
 type MountRequirements = Mount.RequirementsOf<typeof mounts>
 
-const MenuComposition = Menu.makeComposition({
+const MenuComposition = MenuDefinition.makeComposition({
   mounts,
   childBindings: [AnimationBinding],
 })
 type MenuViewBuilder = Block.ViewBuilderFor<typeof MenuComposition>
 const defaultUpdate = internalUpdate(AnimationBinding)
-const authoredUpdate = Menu.step(
+const authoredUpdate = MenuDefinition.step(
   (model, message: Parameters<typeof defaultUpdate>[1]) =>
     defaultUpdate(model, message),
 )
@@ -737,24 +738,6 @@ const EffectsLayer = Layer.mergeAll(
   DetectMenuMovementOrAnimationEnd.layer,
   AnchorMenu.layer,
   PortalMenuBackdrop.layer,
-)
-
-/** Programmatically opens the Menu, updating the Model and returning focus and
- *  modal Commands. Use this in domain-event handlers. */
-export const open = Menu.step(model =>
-  update(model, Message.Opened({ maybeActiveItemIndex: Option.none() })),
-)
-
-/** Programmatically closes the Menu. If it is open, returns the closed Model
- *  with focus and modal Commands. If it is already closed, returns the Model
- *  unchanged with no Commands. Use this in domain-event handlers to close the
- *  Menu. */
-export const close = Menu.step(model => update(model, Message.Closed()))
-
-/** Programmatically selects a Menu item, closing the Menu and returning focus
- *  Commands plus a `Selected` OutMessage. Use this in domain-event handlers. */
-export const selectItem = Menu.step((model, item: string, index: number) =>
-  update(model, Message.SelectedItem({ index, item })),
 )
 
 // VIEW
@@ -1277,7 +1260,13 @@ const menuViewImpl = (
 
 const view = MenuComposition.makeView.withInputs<MenuInputs>(menuViewImpl)
 
-const expose = { open, close, selectItem }
+const operations = {
+  open: () =>
+    Tuple.make(Message.Opened({ maybeActiveItemIndex: Option.none() })),
+  close: MenuComposition.makeOperation(Message.Closed),
+  selectItem: (item: string, index: number) =>
+    Tuple.make(Message.SelectedItem({ index, item })),
+}
 
 type RefineOutMessage<Return, OutMessage> =
   Return extends Update.ResultRecipe<
@@ -1301,20 +1290,29 @@ export const block = MenuComposition.makeBlock({
   })),
   update,
   view,
-  expose,
+  operations,
   EffectsLayer,
 })
+
+/** Programmatically opens the Menu through Menu update. */
+export const open = block.operations.open
+
+/** Programmatically closes the Menu through Menu update. */
+export const close = block.operations.close
+
+/** Programmatically selects a Menu item through Menu update. */
+export const selectItem = block.operations.selectItem
 
 const makeBlockParts = <Item extends string>() => {
   const RefinedOutMessage =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     OutMessage as unknown as OutMessageSchema<Item>
-  const Menu = SharedMenu.define({
+  const MenuDefinition = SharedMenu.define({
     Model,
     Message,
     OutMessage: RefinedOutMessage,
   })
-  const ItemAnimationBinding = Menu.bindChild(Animation.block, {
+  const ItemAnimationBinding = MenuDefinition.bindChild(Animation.block, {
     field: 'animation',
     parentMessage: Message.GotAnimationMessage,
     init: false,
@@ -1329,11 +1327,11 @@ const makeBlockParts = <Item extends string>() => {
   const castReturn = (result: ReturnType<typeof itemUpdate>): GenericReturn =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     result as unknown as GenericReturn
-  const MenuComposition = Menu.makeComposition({
+  const MenuComposition = MenuDefinition.makeComposition({
     mounts,
     childBindings: [ItemAnimationBinding],
   })
-  const authoredUpdate = Menu.step(
+  const authoredUpdate = MenuDefinition.step(
     (model, message: Parameters<typeof itemUpdate>[1]) =>
       castReturn(itemUpdate(model, message)),
   )
@@ -1350,16 +1348,11 @@ const makeBlockParts = <Item extends string>() => {
   const view = MenuComposition.makeView.withInputs<ViewInputs<Item>>(
     (model, viewInputs, h) => refinedView(model, viewInputs, h),
   )
-  const open = Menu.step(model =>
-    refinedUpdate(
-      model,
-      Message.Opened({ maybeActiveItemIndex: Option.none() }),
-    ),
-  )
-  const close = Menu.step(model => refinedUpdate(model, Message.Closed()))
-  const selectItem = Menu.step((model, item: Item, index: number) =>
-    refinedUpdate(model, Message.SelectedItem({ index, item })),
-  )
+  const open = () =>
+    Tuple.make(Message.Opened({ maybeActiveItemIndex: Option.none() }))
+  const close = MenuComposition.makeOperation(Message.Closed)
+  const selectItem = (item: Item, index: number) =>
+    Tuple.make(Message.SelectedItem({ index, item }))
   return {
     composition: MenuComposition,
     implementation: {
@@ -1368,7 +1361,7 @@ const makeBlockParts = <Item extends string>() => {
       })),
       update: refinedUpdate,
       view,
-      expose: { open, close, selectItem },
+      operations: { open, close, selectItem },
       EffectsLayer,
     },
   }

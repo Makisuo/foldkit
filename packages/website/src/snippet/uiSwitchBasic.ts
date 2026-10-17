@@ -22,11 +22,12 @@ const Message = defineMessageUnion({
 
 type Message = typeof Message.Type
 
-const NotificationSettings = Block.define('NotificationSettings', {
+const NotificationSettingsDefinition = Block.define('NotificationSettings', {
   Model,
   Message,
 })
-const NotificationSettingsComposition = NotificationSettings.makeComposition()
+const NotificationSettingsComposition =
+  NotificationSettingsDefinition.makeComposition()
 
 // In your init function, start it off:
 const init = NotificationSettingsComposition.makeInit(() => ({

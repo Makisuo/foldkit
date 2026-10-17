@@ -46,21 +46,22 @@ const foldMenuOutMessage = ActionMenu.OutMessage.match<
 // The Binding wires the completed child Block into the parent: it runs ActionMenu.update,
 // writes the next Menu Model back, maps the Block's Commands into your
 // Message type, and hands any OutMessage to the OutMessage fold.
-const ActionMenuExample = Block.define('ActionMenuExample', {
+const ActionMenuExampleDefinition = Block.define('ActionMenuExample', {
   Model,
   Message,
 })
 
-const MenuBinding = ActionMenuExample.bindChild(ActionMenu, {
+const MenuBinding = ActionMenuExampleDefinition.bindChild(ActionMenu, {
   field: 'menu',
   parentMessage: Message.GotMenuMessage,
   init: { args: () => Tuple.make({ id: 'actions' }) },
   outMessage: { fold: foldMenuOutMessage },
 })
 
-const ActionMenuExampleComposition = ActionMenuExample.makeComposition({
-  childBindings: [MenuBinding],
-})
+const ActionMenuExampleComposition =
+  ActionMenuExampleDefinition.makeComposition({
+    childBindings: [MenuBinding],
+  })
 
 // In your init function, initialize the Menu Block with a unique id:
 const init = ActionMenuExampleComposition.makeInit(() => ({

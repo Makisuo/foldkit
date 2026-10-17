@@ -10,7 +10,7 @@ Embed Combobox via the [`Combobox.create(Item)` factory](/ui/selection-blocks) a
 
 What the factory returns is typed [`Completed<Item>` from `@foldkit/ui/combobox`](/ui/selection-blocks#completed-type). The multi-select subpath exports its own `Completed<Item>` type for cases where a created Block has to be named.
 
-Call `Parent.bindChild` with the completed Block, its parent Model `field`, a `parentMessage` wrapper constructor, and exhaustive OutMessage policy. Use explicit accessors for custom storage. Include the resulting Binding in the parent Composition's `childBindings` list to collect the Combobox's handlers and Mounts. `binding.embedView` supplies the canonical view and Message wrapper at the render site. See [Connecting a static placement](/core/block#embedding) for the complete authoring flow. Use `Combobox.block` for plain strings; `Combobox.create(Item)` requires the Item Schema.
+Call `ParentDefinition.bindChild` with the completed Block, its parent Model `field`, a `parentMessage` wrapper constructor, and exhaustive OutMessage policy. Use explicit accessors for custom storage. Include the resulting Binding in the parent Composition's `childBindings` list to collect the Combobox's handlers and Mounts. `binding.embedView` supplies the canonical view and Message wrapper at the render site. See [Connecting a static placement](/core/block#embedding) for the complete authoring flow. Use `Combobox.block` for plain strings; `Combobox.create(Item)` requires the Item Schema.
 
 ### Programmatic API
 
@@ -86,7 +86,7 @@ Freezing typing removes an open path along with it. An interactive Combobox open
 
 ### Displaying an Existing Selection
 
-A read-only single-select Combobox whose parent holds a preloaded selection renders an empty input until an open and close cycle happens, since `model.inputValue` starts empty and only becomes the selection's display text through a selection or a close. Read-only removes the user's usual recovery path, since they cannot type to surface it. After initializing the child and assembling its parent Model, apply the Binding's `selectItem` Step with the preloaded selection. This sets `inputValue` to the display text. A feature can expose this startup transition as a `boot` Step when it is useful to its parent; see [startup Steps](/core/init-and-flags#startup-steps).
+A read-only single-select Combobox whose parent holds a preloaded selection renders an empty input until an open and close cycle happens, since `model.inputValue` starts empty and only becomes the selection's display text through a selection or a close. Read-only removes the user's usual recovery path, since they cannot type to surface it. After initializing the child and assembling its parent Model, apply the Binding's `selectItem` Step with the preloaded selection. This sets `inputValue` to the display text. A feature can expose the startup transition as a Message-producing `boot` operation when it is useful to its parent; see [startup Steps](/core/init-and-flags#startup-steps).
 
 Seeding interacts with filtering. You derive `items` from `model.inputValue`, so a read-only Combobox seeded with its selection opens showing only the items matching that text, often just the one. Filter on a separate field, or skip filtering while read-only, when the full list should stay visible.
 

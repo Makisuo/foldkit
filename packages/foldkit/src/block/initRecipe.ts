@@ -13,9 +13,10 @@ declare const BindingInitRecipeTypesTypeId: unique symbol
  * requirements without initializing the child eagerly.
  *
  * Return it intact from a matching Composition `makeInit` or `makeUpdate`
- * callback. A Definition-owned Step preserves or wraps it; a completed exposed
- * operation interprets a recipe preserved by its Step. The recipe exposes no
- * `.model` or `.commands` fields.
+ * callback. A Definition-owned Step preserves or wraps it. An exposed Message
+ * can reach an update branch that returns the recipe, and the completed
+ * operation interprets that update result. The recipe exposes no `.model` or
+ * `.commands` fields.
  */
 export interface BindingInitRecipe<
   Model,

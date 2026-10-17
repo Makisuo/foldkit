@@ -3,7 +3,7 @@ import { AsyncData, type Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { FetchTelemetry, SyncChart } from './command'
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 import { Model } from './model'
 import { MountChart } from './mount'
@@ -74,7 +74,7 @@ const foldChartModeRadioGroupOutMessage = ChartModeRadioGroup.OutMessage.match({
     selectedControl(modifyFields({ chartMode: () => value })),
 })
 
-export const ChartModeRadioGroupBinding = Application.bindChild(
+export const ChartModeRadioGroupBinding = ApplicationDefinition.bindChild(
   ChartModeRadioGroup,
   {
     field: 'chartModeRadioGroup',
@@ -89,19 +89,22 @@ const foldPeriodRadioGroupOutMessage = PeriodRadioGroup.OutMessage.match({
     selectedControl(modifyFields({ period: () => value })),
 })
 
-export const PeriodRadioGroupBinding = Application.bindChild(PeriodRadioGroup, {
-  field: 'periodRadioGroup',
-  parentMessage: Message.GotPeriodRadioGroupMessage,
-  init: { args: () => [{ id: PERIOD_RADIO_GROUP_ID }] },
-  outMessage: { fold: foldPeriodRadioGroupOutMessage },
-})
+export const PeriodRadioGroupBinding = ApplicationDefinition.bindChild(
+  PeriodRadioGroup,
+  {
+    field: 'periodRadioGroup',
+    parentMessage: Message.GotPeriodRadioGroupMessage,
+    init: { args: () => [{ id: PERIOD_RADIO_GROUP_ID }] },
+    outMessage: { fold: foldPeriodRadioGroupOutMessage },
+  },
+)
 
 const foldPackageRadioGroupOutMessage = PackageRadioGroup.OutMessage.match({
   Selected: ({ value }) =>
     selectedControl(modifyFields({ selectedPackageId: () => value })),
 })
 
-export const PackageRadioGroupBinding = Application.bindChild(
+export const PackageRadioGroupBinding = ApplicationDefinition.bindChild(
   PackageRadioGroup,
   {
     field: 'packageRadioGroup',
@@ -111,7 +114,7 @@ export const PackageRadioGroupBinding = Application.bindChild(
   },
 )
 
-export const ApplicationComposition = Application.makeComposition({
+export const ApplicationComposition = ApplicationDefinition.makeComposition({
   mounts: [MountChart],
   childBindings: [
     ChartModeRadioGroupBinding,

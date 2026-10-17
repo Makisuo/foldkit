@@ -26,8 +26,10 @@ import {
   runtimeBindingOf,
 } from './composition.js'
 import { type DefaultViewTypeId, defaultViewOf } from './defaultView.js'
+import type { DeferredBindingPolicy } from './deferredPolicy.js'
 import {
   type BindingDeliveryEvidence,
+  type BindingMessagePolicy,
   type RuntimeFromParentMessage,
   type WithoutBindingDeliveryEvidence,
   registerBindingDelivery,
@@ -337,7 +339,7 @@ export type BindableBlock = Readonly<{
   childBindings: ReadonlyArray<AnyBinding>
   init: AnyFunction
   update: AnyFunction
-  expose: Readonly<Record<string, AnyFunction>>
+  operations: Readonly<Record<string, AnyFunction>>
   subscriptions: Subscription.Subscriptions<any, any, any>
   managedResources: Readonly<
     Record<
@@ -522,13 +524,6 @@ export type BindingConfig<
     model: ParentModel,
     nextChildModel: BlockValue['Model']['Type'],
   ) => ParentModel
-  /** Maps child Messages into the parent Message type for views, Commands, and
-   * lifecycle channels. */
-  toParentMessage: (message: BlockValue['Message']['Type']) => ParentMessage
-  /** Keeps incoming dispatch manual for explicitly typed configurations.
-   * Author checked incoming routes through the owning Definition's bindChild
-   * method, which knows the parent Message Schema and native fold arguments. */
-  fromParentMessage: false
   /** Adds optional activation gates for child Subscriptions while the child is
    * present. */
   subscriptions?: Readonly<{
@@ -547,6 +542,7 @@ export type BindingConfig<
         >
   }>
 }> &
+  BindingMessagePolicy<BlockValue, ParentModel, ParentMessage> &
   Readonly<{
     /** Handles every child OutMessage locally, forwards selected variants, or
      * does both. This property is required exactly when the child declares an
@@ -603,54 +599,12 @@ type OutMessagePolicyStep<ParentModel> = (
   | Readonly<{ model: ParentModel }>
   | Update.ResultRecipe<ParentModel, unknown, unknown, unknown, unknown>
 
-type BindingPolicyReturn<Policy> =
-  Policy extends Readonly<{
-    fold?: (
-      ...args: ReadonlyArray<any>
-    ) => (...args: ReadonlyArray<any>) => infer PolicyReturn
-  }>
-    ? PolicyReturn
-    : never
-
-type ResolvedBindingPolicyReturn<Policy> = Update.ResolvedOperationOutput<
-  BindingPolicyReturn<Policy>
->
-
-type BindingPolicyOutMessage<Policy> =
-  | (Policy extends Readonly<{
-      forward: (...args: ReadonlyArray<any>) => infer ForwardedOutMessage
-    }>
-      ? Exclude<ForwardedOutMessage, undefined>
-      : never)
-  | (ResolvedBindingPolicyReturn<Policy> extends infer PolicyReturn
-      ? PolicyReturn extends unknown
-        ? 'outMessage' extends keyof PolicyReturn
-          ? PolicyReturn extends Readonly<{
-              outMessage?: infer DerivedOutMessage
-            }>
-            ? Exclude<DerivedOutMessage, undefined>
-            : never
-          : never
-        : never
-      : never)
-
-type BindingPolicyCommand<Policy> =
-  ResolvedBindingPolicyReturn<Policy> extends infer PolicyReturn
-    ? PolicyReturn extends unknown
-      ? 'commands' extends keyof PolicyReturn
-        ? PolicyReturn extends Readonly<{ commands?: infer Commands }>
-          ? NonNullable<Commands> extends ReadonlyArray<infer PolicyCommand>
-            ? PolicyCommand
-            : never
-          : never
-        : never
-      : never
-    : never
-
-type MessageOfPolicyCommand<PolicyCommand> =
-  PolicyCommand extends Command<infer Message, any, any> ? Message : never
-
-/** @internal Passive result channels computed directly from one connected Binding. */
+/**
+ * @internal Passive channels computed directly from one connected Binding.
+ * Policy-produced channels remain an opaque obligation until a completed
+ * Composition resolves them against its registered graph. Raw requirement and
+ * registration inspection therefore reports only the direct child operation.
+ */
 export type BindingOperationRecipe<
   ParentModel,
   ParentMessage,
@@ -659,7 +613,7 @@ export type BindingOperationRecipe<
   Placement extends string,
   ChildId extends string,
   Registration,
-> = [OutMessageOfProducer<ChildProducer>] extends [never]
+> = [Policy] extends [never]
   ? Update.ResultRecipe<
       ParentModel,
       ParentMessage,
@@ -669,15 +623,11 @@ export type BindingOperationRecipe<
     >
   : Update.ResultRecipe<
       ParentModel,
-      ParentMessage | MessageOfPolicyCommand<BindingPolicyCommand<Policy>>,
-      BindingPolicyOutMessage<Policy>,
-      | Qualify<Placement, Update.RequirementsOf<ChildProducer>>
-      | QualifyOwned<
-          Placement,
-          ChildId,
-          Update.RequirementsOf<() => BindingPolicyReturn<Policy>>
-        >,
-      Registration | Update.RegistrationEvidenceOf<BindingPolicyReturn<Policy>>
+      ParentMessage,
+      never,
+      Qualify<Placement, Update.RequirementsOf<ChildProducer>>,
+      | Registration
+      | Update.DeferredResultEvidence<DeferredBindingPolicy<Placement, ChildId>>
     >
 
 /** The readable parent result after applying a child operation and lifting its
@@ -825,21 +775,23 @@ const liftManagedResources = <
   )
 
 /** @internal Projects declared operations as connected parent Steps. Their
- * graph-checked inputs and opaque results preserve every lifted type channel. */
+ * graph-checked inputs and opaque results preserve the direct child channels
+ * and an invariant policy obligation. A completed Composition resolves the
+ * policy-produced channels against its full registered graph. */
 export type BoundExposedOperations<
   BlockValue extends Readonly<{
-    expose: Readonly<Record<string, (...args: ReadonlyArray<any>) => any>>
+    operations: Readonly<Record<string, (...args: ReadonlyArray<any>) => any>>
   }>,
   ParentModel,
   ParentMessage,
   Placement extends string,
   Policy,
 > = Readonly<{
-  [Key in keyof BlockValue['expose']]: BlockValue['expose'][Key] extends (
-    ...args: ReadonlyArray<any>
-  ) => any
+  [
+    Key in keyof BlockValue['operations']
+  ]: BlockValue['operations'][Key] extends (...args: ReadonlyArray<any>) => any
     ? (
-        ...args: Parameters<BlockValue['expose'][Key]> extends readonly [
+        ...args: Parameters<BlockValue['operations'][Key]> extends readonly [
           unknown,
           ...infer Context,
         ]
@@ -853,7 +805,7 @@ export type BoundExposedOperations<
       ) => BindingOperationRecipe<
         ParentModel,
         ParentMessage,
-        BlockValue['expose'][Key],
+        BlockValue['operations'][Key],
         Policy,
         Placement,
         BlockId<BlockValue>,
@@ -868,9 +820,10 @@ export type BoundExposedOperations<
  * It retains the child init arguments, optional keyed identity, parent Model
  * constructor, appended parent Commands, and their requirements without
  * initializing the child eagerly. Return it intact from a matching Composition
- * `makeInit` or `makeUpdate` callback. A Definition-owned Step preserves or wraps
- * it; a completed exposed operation interprets a recipe preserved by its Step.
- * The recipe exposes no `.model` or `.commands` fields.
+ * `makeInit` or `makeUpdate` callback. A Definition-owned Step preserves or
+ * wraps it. An exposed Message can reach an update branch that returns the
+ * recipe, and the completed operation interprets that update result. The recipe
+ * exposes no `.model` or `.commands` fields.
  *
  * The constructed parent must match its Model Schema and select the initialized
  * child through the Binding's storage accessors.
@@ -939,7 +892,7 @@ export type Binding<
     OutMessage?: Readonly<{ Type: any }>
     init: (...args: ReadonlyArray<any>) => any
     update: (...args: ReadonlyArray<any>) => any
-    expose: Readonly<Record<string, (...args: ReadonlyArray<any>) => any>>
+    operations: Readonly<Record<string, (...args: ReadonlyArray<any>) => any>>
     subscriptions: Subscription.Subscriptions<any, any, any>
     managedResources: Readonly<
       Record<
@@ -1303,8 +1256,7 @@ export type AnyBinding = Readonly<{
   fold: AnyFunction
   embedView: AnyFunction
 }> &
-  BindingDeliveryEvidence<any, any> &
-  (BindingPolicyEvidence<any> | BindingPolicyEvidence<never>)
+  BindingDeliveryEvidence<any, any>
 
 /** Type-level evidence that an embedded view belongs to one registered Binding
  * placement. */
@@ -1584,11 +1536,7 @@ const bindRuntime = <
   const Policy = never,
 >(
   block: BlockValue,
-  bindingConfig: Omit<
-    BindingConfig<BlockValue, ParentModel, ParentMessage, Placement, Policy>,
-    'fromParentMessage'
-  > &
-    RuntimeBindingConfig,
+  bindingConfig: RuntimeBindingConfig,
 ): Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy> => {
   const trackedMapper = trackParentMessageMapper(bindingConfig.toParentMessage)
   const config = {
@@ -1624,7 +1572,7 @@ const bindRuntime = <
       allowedIdentities,
     )
   const exposedOperations = Record.map(
-    block.expose,
+    block.operations,
     operation =>
       (model: any, ...args: ReadonlyArray<any>) =>
         scopeReturn(

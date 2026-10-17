@@ -30,12 +30,12 @@ const foldPopoverOutMessage = Popover.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const AccountMenu = Block.define('AccountMenu', {
+const AccountMenuDefinition = Block.define('AccountMenu', {
   Model,
   Message,
 })
 
-const AccountPopoverBinding = AccountMenu.bindChild(Popover.block, {
+const AccountPopoverBinding = AccountMenuDefinition.bindChild(Popover.block, {
   field: 'accountPopover',
   parentMessage: Message.GotAccountPopoverMessage,
   init: {
@@ -44,16 +44,19 @@ const AccountPopoverBinding = AccountMenu.bindChild(Popover.block, {
   outMessage: { fold: foldPopoverOutMessage },
 })
 
-const AccountDetailsPopoverBinding = AccountMenu.bindChild(Popover.block, {
-  field: 'accountDetailsPopover',
-  parentMessage: Message.GotAccountDetailsPopoverMessage,
-  init: {
-    args: () => Tuple.make({ id: 'account-details-popover' }),
+const AccountDetailsPopoverBinding = AccountMenuDefinition.bindChild(
+  Popover.block,
+  {
+    field: 'accountDetailsPopover',
+    parentMessage: Message.GotAccountDetailsPopoverMessage,
+    init: {
+      args: () => Tuple.make({ id: 'account-details-popover' }),
+    },
+    outMessage: { fold: foldPopoverOutMessage },
   },
-  outMessage: { fold: foldPopoverOutMessage },
-})
+)
 
-const AccountMenuComposition = AccountMenu.makeComposition({
+const AccountMenuComposition = AccountMenuDefinition.makeComposition({
   childBindings: [AccountPopoverBinding, AccountDetailsPopoverBinding],
 })
 

@@ -3,7 +3,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { type PeopleRoute } from '../../route'
 import { FetchPeople, PushSearchUrl } from './command'
-import { People, PeopleComposition } from './definition'
+import { PeopleComposition } from './composition'
 import { Message } from './message'
 import {
   Model,
@@ -38,7 +38,7 @@ export const update = PeopleComposition.makeUpdate((model, message) =>
       ],
     }),
 
-    ChangedRoute: ({ route }) => {
+    InformedOfRouteChange: ({ route }) => {
       const searchText = routeSearchText(route)
       return {
         model: modifyFields(model, {
@@ -59,13 +59,4 @@ export const update = PeopleComposition.makeUpdate((model, message) =>
 
     CompletedPushSearchUrl: () => ({ model }),
   }),
-)
-
-/** Tells the People page that the route changed. People does not own the
- *  route; it derives its own state (the search input and history) from the new
- *  route and returns the refetch Command. The parent calls this from its
- *  `ChangedUrl` handler. Contrast a `reflect*` setter, which writes a field the
- *  Block owns from an external value, with no derivation and no Command. */
-export const informRouteChanged = People.step((model, route: PeopleRoute) =>
-  update(model, Message.ChangedRoute({ route })),
 )

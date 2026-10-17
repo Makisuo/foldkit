@@ -29,6 +29,8 @@ export const OutMessage = defineMessageUnion({
 
 export type OutMessage = typeof OutMessage.Type
 
-export const Login = Block.define('Login', { Model, Message, OutMessage })
-
-export const LoginComposition = Login.makeComposition()
+export const LoginDefinition = Block.define('Login', {
+  Model,
+  Message,
+  OutMessage,
+})

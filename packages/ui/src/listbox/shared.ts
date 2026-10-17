@@ -35,7 +35,7 @@ import { resolveTypeaheadMatch } from '../typeahead.js'
 export { resolveTypeaheadMatch }
 
 /** Shared named component handle for both Listbox selection variants. */
-export const Listbox = Block.define('Listbox')
+export const ListboxDefinition = Block.define('Listbox')
 
 // MODEL
 
@@ -228,69 +228,87 @@ type HandlerReturn<Model> = Readonly<{
 }>
 
 /** Prevents page scrolling while the listbox is open in modal mode. */
-export const LockListboxScroll = Listbox.command('LockListboxScroll', {
-  messages: [Message.CompletedLockListboxScroll],
-  handler: function* () {
-    return () =>
-      Dom.lockScroll.pipe(Effect.as(Message.CompletedLockListboxScroll()))
+export const LockListboxScroll = ListboxDefinition.command(
+  'LockListboxScroll',
+  {
+    messages: [Message.CompletedLockListboxScroll],
+    handler: function* () {
+      return () =>
+        Dom.lockScroll.pipe(Effect.as(Message.CompletedLockListboxScroll()))
+    },
   },
-})
+)
 /** Re-enables page scrolling after the listbox closes. */
-export const UnlockListboxScroll = Listbox.command('UnlockListboxScroll', {
-  messages: [Message.CompletedUnlockListboxScroll],
-  handler: function* () {
-    return () =>
-      Dom.unlockScroll.pipe(Effect.as(Message.CompletedUnlockListboxScroll()))
+export const UnlockListboxScroll = ListboxDefinition.command(
+  'UnlockListboxScroll',
+  {
+    messages: [Message.CompletedUnlockListboxScroll],
+    handler: function* () {
+      return () =>
+        Dom.unlockScroll.pipe(Effect.as(Message.CompletedUnlockListboxScroll()))
+    },
   },
-})
+)
 /** Marks all elements outside the listbox as inert for modal behavior. */
-export const InertListboxOthers = Listbox.command('InertListboxOthers', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedInertListboxOthers],
-  handler: function* () {
-    return ({ id }) =>
-      Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]).pipe(
-        Effect.as(Message.CompletedInertListboxOthers()),
-      )
+export const InertListboxOthers = ListboxDefinition.command(
+  'InertListboxOthers',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedInertListboxOthers],
+    handler: function* () {
+      return ({ id }) =>
+        Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]).pipe(
+          Effect.as(Message.CompletedInertListboxOthers()),
+        )
+    },
   },
-})
+)
 /** Removes the inert attribute from elements outside the listbox. */
-export const RestoreListboxInert = Listbox.command('RestoreListboxInert', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedRestoreListboxInert],
-  handler: function* () {
-    return ({ id }) =>
-      Dom.restoreInert(id).pipe(
-        Effect.as(Message.CompletedRestoreListboxInert()),
-      )
+export const RestoreListboxInert = ListboxDefinition.command(
+  'RestoreListboxInert',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedRestoreListboxInert],
+    handler: function* () {
+      return ({ id }) =>
+        Dom.restoreInert(id).pipe(
+          Effect.as(Message.CompletedRestoreListboxInert()),
+        )
+    },
   },
-})
+)
 /** Moves focus back to the listbox button after closing. */
-export const FocusListboxButton = Listbox.command('FocusListboxButton', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedFocusListboxButton],
-  handler: function* () {
-    return ({ id }) =>
-      Dom.focus(buttonSelector(id)).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedFocusListboxButton()),
-      )
+export const FocusListboxButton = ListboxDefinition.command(
+  'FocusListboxButton',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedFocusListboxButton],
+    handler: function* () {
+      return ({ id }) =>
+        Dom.focus(buttonSelector(id)).pipe(
+          Effect.ignore,
+          Effect.as(Message.CompletedFocusListboxButton()),
+        )
+    },
   },
-})
+)
 /** Moves focus to the listbox items container after opening. */
-export const FocusListboxItems = Listbox.command('FocusListboxItems', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedFocusListboxItems],
-  handler: function* () {
-    return ({ id }) =>
-      Dom.focus(itemsSelector(id)).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedFocusListboxItems()),
-      )
+export const FocusListboxItems = ListboxDefinition.command(
+  'FocusListboxItems',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedFocusListboxItems],
+    handler: function* () {
+      return ({ id }) =>
+        Dom.focus(itemsSelector(id)).pipe(
+          Effect.ignore,
+          Effect.as(Message.CompletedFocusListboxItems()),
+        )
+    },
   },
-})
+)
 /** Scrolls the active listbox item into view after keyboard navigation. */
-export const ScrollListboxItemIntoView = Listbox.command(
+export const ScrollListboxItemIntoView = ListboxDefinition.command(
   'ScrollListboxItemIntoView',
   {
     args: { id: Schema.String, index: Schema.Number },
@@ -305,7 +323,7 @@ export const ScrollListboxItemIntoView = Listbox.command(
   },
 )
 /** Programmatically clicks the active listbox item's DOM element. */
-export const ClickListboxItem = Listbox.command('ClickListboxItem', {
+export const ClickListboxItem = ListboxDefinition.command('ClickListboxItem', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedClickListboxItem],
   handler: function* () {
@@ -317,7 +335,7 @@ export const ClickListboxItem = Listbox.command('ClickListboxItem', {
   },
 })
 /** Waits for the typeahead search debounce period before clearing the query. */
-export const DelayClearListboxSearch = Listbox.command(
+export const DelayClearListboxSearch = ListboxDefinition.command(
   'DelayClearListboxSearch',
   {
     args: { version: Schema.Number },
@@ -331,7 +349,7 @@ export const DelayClearListboxSearch = Listbox.command(
   },
 )
 /** Detects whether the listbox button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation block that leave is complete. */
-export const DetectListboxMovementOrAnimationEnd = Listbox.command(
+export const DetectListboxMovementOrAnimationEnd = ListboxDefinition.command(
   'DetectListboxMovementOrAnimationEnd',
   {
     args: { id: Schema.String, generation: Schema.Number },
@@ -653,7 +671,7 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
  *  Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AnchorListbox, CompletedAnchorListbox())`.
  */
-export const AnchorListbox = Listbox.mount('AnchorListbox', {
+export const AnchorListbox = ListboxDefinition.mount('AnchorListbox', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorListbox],
   handler: function* () {
@@ -677,19 +695,22 @@ export const AnchorListbox = Listbox.mount('AnchorListbox', {
 /** The backdrop-portaling Mount this Listbox renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalListboxBackdrop, CompletedPortalListboxBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalListboxBackdrop = Listbox.mount('PortalListboxBackdrop', {
-  messages: [Message.CompletedPortalListboxBackdrop],
-  handler: function* () {
-    return ({ element }) =>
-      Effect.gen(function* () {
-        yield* Effect.acquireRelease(
-          Effect.sync(() => portalBackdrop(element)),
-          cleanup => Effect.sync(cleanup),
-        )
-        return Message.CompletedPortalListboxBackdrop()
-      })
+export const PortalListboxBackdrop = ListboxDefinition.mount(
+  'PortalListboxBackdrop',
+  {
+    messages: [Message.CompletedPortalListboxBackdrop],
+    handler: function* () {
+      return ({ element }) =>
+        Effect.gen(function* () {
+          yield* Effect.acquireRelease(
+            Effect.sync(() => portalBackdrop(element)),
+            cleanup => Effect.sync(cleanup),
+          )
+          return Message.CompletedPortalListboxBackdrop()
+        })
+    },
   },
-})
+)
 
 /** Mount Definitions rendered by Listbox views. */
 export const mounts = [AnchorListbox, PortalListboxBackdrop]

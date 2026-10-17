@@ -117,8 +117,8 @@ const runProfile = async (
     return wrappedView.fn(model, h)
   }
 
-  const Application = defineApplication({ Model, Message })
-  const ApplicationComposition = Application.makeComposition()
+  const ApplicationDefinition = defineApplication({ Model, Message })
+  const ApplicationComposition = ApplicationDefinition.makeComposition()
   const application = ApplicationComposition.makeApplication({
     init,
     update: ApplicationComposition.makeUpdate(wrappedUpdate.fn),

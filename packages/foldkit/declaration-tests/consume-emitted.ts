@@ -65,6 +65,7 @@ import {
   provisionRoutingInit,
   recordApplicationUpdate,
   recordUpdate,
+  refinedChoiceParentUpdate,
   refreshDirectValue,
   renderPage,
   wrappedOverloadedChildInit,
@@ -171,8 +172,8 @@ void emittedGraphfulBlockView
 void emittedGraphlessApplicationView
 void emittedGraphfulApplicationView
 
-export const childRefresh = ChildBlock.expose.refresh(childModel)
-export const directRefresh = Direct.expose.refreshDirectValue(directModel)
+export const childRefresh = ChildBlock.operations.refresh(childModel)
+export const directRefresh = Direct.operations.refreshDirectValue(directModel)
 const boundRefreshUpdate = ParentComposition.makeUpdate((model, _message) =>
   ChildBinding.refresh()(model),
 )
@@ -187,7 +188,7 @@ export const directBoundRefresh = directBoundRefreshUpdate(
   parentModel,
   ParentMessage.RequestedRefresh(),
 )
-export const parentRefresh = Parent.expose.refreshChild(parentModel)
+export const parentRefresh = Parent.operations.refreshChild(parentModel)
 export const refinedSelection = RefinedChoice.OutMessage.make({ value: 'Two' })
 export const program = makeProgram(document.createElement('div'))
 export const pageProgram = makePageProgram(document.createElement('div'))
@@ -354,7 +355,9 @@ type EmittedCompletedChoiceIsExact = Expect<
 >
 type EmittedCompletedChoiceInputIsExact = Expect<
   Equal<
-    Parameters<CompletedChoice<readonly ['One', 'Two']>['expose']['finish']>,
+    Parameters<
+      CompletedChoice<readonly ['One', 'Two']>['operations']['finish']
+    >,
     [model: typeof RefinedChoice.Model.Type, value: 'One' | 'Two']
   >
 >
@@ -465,5 +468,12 @@ export type RelocatedRecordApplicationModel = Expect<
   Equal<
     ReturnType<typeof recordApplicationUpdate>['model'],
     typeof RecordModel.Type
+  >
+>
+
+export type EmittedResolvedRefinedOutMessage = Expect<
+  Equal<
+    NonNullable<ReturnType<typeof refinedChoiceParentUpdate>['outMessage']>,
+    RefinedChoiceOutMessage
   >
 >

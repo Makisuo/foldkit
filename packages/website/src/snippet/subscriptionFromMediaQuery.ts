@@ -12,12 +12,12 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const MotionPreferences = Block.define('MotionPreferences', {
+const MotionPreferencesDefinition = Block.define('MotionPreferences', {
   Model,
   Message,
 })
 
-const subscriptions = MotionPreferences.subscriptions(entry => ({
+const subscriptions = MotionPreferencesDefinition.subscriptions(entry => ({
   reducedMotionChanges: entry('ReducedMotionChanges', {
     messages: [Message.ChangedReducedMotion],
     handler: function* () {

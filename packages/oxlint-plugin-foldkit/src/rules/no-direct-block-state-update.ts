@@ -28,7 +28,7 @@ import {
 } from '../guards.ts'
 
 const directBlockStateUpdateMessage = (fieldName: string): string =>
-  `Do not update the Block field \`${fieldName}\` directly from its parent. Expose a child-owned update capability, then call it through the registered Binding.`
+  `Do not update the Block field \`${fieldName}\` directly from its parent. Expose a child-owned Message producer, then call it through the registered Binding so the child update handles the transition.`
 
 const isNode = (value: unknown): value is ESTree.Node =>
   typeof value === 'object' &&
@@ -1290,6 +1290,13 @@ const updatesWrappedKeyedChildArray = (
   })
 }
 
+const isLegacyReflectCall = (node: ESTree.CallExpression): boolean =>
+  Option.exists(staticMemberPath(node.callee), path =>
+    Option.exists(Option.fromNullishOr(path.members.at(-1)), member =>
+      /^reflect(?:$|[A-Z])/u.test(member),
+    ),
+  )
+
 const directChildModifyFieldsField = (
   node: ESTree.CallExpression,
   evidence: FoldEvidence,
@@ -1360,6 +1367,13 @@ const directChildModifyFieldsField = (
       return property.key.name
     }
 
+    if (
+      isCallExpression(property.value) &&
+      isLegacyReflectCall(property.value)
+    ) {
+      return property.key.name
+    }
+
     if (!isArrowFunction(property.value)) {
       continue
     }
@@ -1369,6 +1383,9 @@ const directChildModifyFieldsField = (
       continue
     }
     for (const nestedUpdate of expressionsReturnedBy(property.value)) {
+      if (isCallExpression(nestedUpdate) && isLegacyReflectCall(nestedUpdate)) {
+        return property.key.name
+      }
       if (
         keyedChildFields?.has(property.key.name) === true &&
         (wrappedChildFields?.get(property.key.name) === undefined
@@ -1402,8 +1419,7 @@ export const noDirectBlockStateUpdate = Rule.define({
   name: 'no-direct-block-state-update',
   meta: Rule.meta({
     type: 'suggestion',
-    description:
-      'Keep Block state changes inside child-owned update capabilities.',
+    description: 'Keep Block state changes inside the child update.',
   }),
   create: function* () {
     const ctx = yield* RuleContext

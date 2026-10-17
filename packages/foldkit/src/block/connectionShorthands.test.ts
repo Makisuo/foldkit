@@ -1,4 +1,13 @@
-import { Array, Context, Effect, Layer, Option, Schema, Stream } from 'effect'
+import {
+  Array,
+  Context,
+  Effect,
+  Layer,
+  Option,
+  Schema,
+  Stream,
+  Tuple,
+} from 'effect'
 import { expect, expectTypeOf, it } from 'vitest'
 
 import type * as Command from '../command/index.js'
@@ -19,6 +28,7 @@ class ValueSource extends Context.Service<
 const Model = Schema.Struct({ count: Schema.Number })
 const Message = defineMessageUnion({
   RequestedRead: {},
+  RequestedReadOperation: {},
   CompletedRead: { count: Schema.Number },
   ObservedTick: {},
   CompletedObserve: {},
@@ -79,6 +89,7 @@ const block = registered.makeBlock({
         commands: [Read()],
         outMessage: OutMessage.ReadRequested(),
       }),
+      RequestedReadOperation: () => ({ model, commands: [Read()] }),
       CompletedRead: ({ count }) => ({
         model: modifyFields(model, { count: () => count }),
       }),
@@ -98,7 +109,9 @@ const block = registered.makeBlock({
     subscriptions.ticks.layer,
     managedResources.session.layer,
   ),
-  expose: { read: Child.step(model => ({ model, commands: [Read()] })) },
+  operations: {
+    read: () => Tuple.make(Message.RequestedReadOperation()),
+  },
 })
 const Entry = Schema.Struct({ id: Schema.String, child: Model })
 const ParentModel = Schema.Struct({
@@ -111,7 +124,7 @@ type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
   GotChildMessage: { message: Message },
   GotEntryMessage: { id: Schema.String, message: Message },
-  GotForeignMessage: { message: Schema.String },
+  ReceivedForeignMessage: { message: Schema.String },
   RequestedReadOperation: {},
 })
 type ParentMessage = typeof ParentMessage.Type
@@ -152,7 +165,6 @@ const AccessorBinding = Parent.bindChild(block, {
 })
 const entryKey = (entry: typeof Entry.Type): string => entry.id
 const KeyedBinding = Parent.bindChild(block, {
-  fromParentMessage: false,
   placement: 'entries',
   readAll: (model: ParentModel) => model.entries,
   key: entryKey,
@@ -167,33 +179,26 @@ const KeyedBinding = Parent.bindChild(block, {
     }),
   toParentMessage: (id: string, message: typeof Message.Type) =>
     ParentMessage.GotEntryMessage({ id, message }),
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotEntryMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
   outMessage: {
     fold: (_key: string, outMessage: typeof OutMessage.Type) =>
       foldChildOutMessage(outMessage),
   },
 })
 const ParentComposition = Parent.makeComposition({
-  childBindings: [PrimaryBinding],
+  childBindings: [PrimaryBinding, KeyedBinding],
 })
 const update = ParentComposition.makeUpdate((model, message) =>
   ParentMessage.match(message, {
-    GotEntryMessage: () => ({ model }),
-    GotForeignMessage: () => ({ model }),
+    ReceivedForeignMessage: () => ({ model }),
     RequestedReadOperation: () => PrimaryBinding.read()(model),
   }),
 )
 
-const KeyedComposition = Parent.makeComposition({
-  childBindings: [KeyedBinding],
-})
-const keyedUpdate = KeyedComposition.makeUpdate((model, message) =>
-  ParentMessage.match(message, {
-    GotEntryMessage: ({ id, message }) => KeyedBinding.fold(model, id, message),
-    GotChildMessage: () => ({ model }),
-    GotForeignMessage: () => ({ model }),
-    RequestedReadOperation: () => ({ model }),
-  }),
-)
+const keyedUpdate = update
 
 const initial = ParentModel.make({
   primary: Model.make({ count: 1 }),
@@ -207,7 +212,7 @@ if (false) {
     // @ts-expect-error This invalid Binding configuration has no matching overload.
     field: 'primary',
     // @ts-expect-error This invalid Binding configuration has no matching overload.
-    parentMessage: ParentMessage.GotForeignMessage,
+    parentMessage: ParentMessage.ReceivedForeignMessage,
     // @ts-expect-error This invalid Binding configuration has no matching overload.
     outMessage: { fold: foldChildOutMessage },
   })
@@ -328,9 +333,10 @@ it('lifts real Command execution through the constructor and preserves OutMessag
       update(initial, ParentMessage.RequestedReadOperation()).commands!,
     ),
   )
-  const services = inspectBinding(PrimaryBinding).EffectsLayer.pipe(
-    Layer.provide(Layer.succeed(ValueSource, { value: 42 })),
-  )
+  const services = aggregateChildren([
+    PrimaryBinding,
+    KeyedBinding,
+  ]).EffectsLayer.pipe(Layer.provide(Layer.succeed(ValueSource, { value: 42 })))
   const completed = await Effect.runPromise(
     Effect.scoped(
       Effect.gen(function* () {

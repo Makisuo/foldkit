@@ -31,9 +31,9 @@ export const Message = defineMessageUnion({
   },
 })
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-const CountersBinding = Application.bindChild(Counter.block, {
+const CountersBinding = ApplicationDefinition.bindChild(Counter.block, {
   field: 'counters',
   key: 'id',
   childField: 'counter',
@@ -52,7 +52,7 @@ const CountersBinding = Application.bindChild(Counter.block, {
   },
 })
 
-export const ApplicationComposition = Application.makeComposition({
+export const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [CountersBinding],
 })
 type ApplicationViewBuilder = Block.ViewBuilderFor<

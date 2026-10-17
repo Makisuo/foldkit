@@ -17,7 +17,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { idSelector } from '../internal/selectors.js'
 import { keyToIndex } from '../keyboard.js'
-import { Tabs as SharedTabs } from './definition.js'
+import { TabsDefinition as SharedTabs } from './definition.js'
 
 export { wrapIndex, findFirstEnabledIndex, keyToIndex } from '../keyboard.js'
 
@@ -119,16 +119,16 @@ const tabId = (id: string, index: number): string => `${id}-tab-${index}`
 
 const tabPanelId = (id: string, index: number): string => `${id}-panel-${index}`
 
-const Tabs = SharedTabs.define({
+const TabsDefinition = SharedTabs.define({
   Model,
   Message,
   OutMessage,
 })
 
-const TabsComposition = Tabs.makeComposition()
+const TabsComposition = TabsDefinition.makeComposition()
 
 /** Moves focus to the tab at the given index. */
-export const FocusTab = Tabs.command('FocusTab', {
+export const FocusTab = TabsDefinition.command('FocusTab', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedFocusTab],
   handler: function* () {
@@ -407,7 +407,7 @@ const makeBlockParts = <Value extends string>() => {
   const RefinedOutMessage =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     OutMessage as unknown as OutMessageSchema<Value>
-  const Tabs = SharedTabs.define({
+  const TabsDefinition = SharedTabs.define({
     Model,
     Message,
     OutMessage: RefinedOutMessage,
@@ -419,7 +419,7 @@ const makeBlockParts = <Value extends string>() => {
       viewInputs: ViewInputs<Value>,
       h: Parameters<typeof internalView>[2],
     ) => Html
-  const TabsComposition = Tabs.makeComposition()
+  const TabsComposition = TabsDefinition.makeComposition()
   const refinedUpdate = TabsComposition.makeUpdate((model, message) =>
     castReturn(update(model, message)),
   )

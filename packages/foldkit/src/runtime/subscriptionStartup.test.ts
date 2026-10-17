@@ -31,10 +31,10 @@ describe('Subscription startup supervision', () => {
   it('reports initial root dependency defects and keeps the crash view until disposal', async () => {
     const Model = Schema.Struct({ count: Schema.Number })
     const Message = defineMessageUnion({ EmittedPulse: {} })
-    const Application = defineApplication({ Model, Message })
+    const ApplicationDefinition = defineApplication({ Model, Message })
     const streamStarted = vi.fn()
     const report = vi.fn()
-    const subscriptions = Application.subscriptions(entry => ({
+    const subscriptions = ApplicationDefinition.subscriptions(entry => ({
       pulses: entry(
         'Pulses',
         { count: Schema.Number },
@@ -52,7 +52,7 @@ describe('Subscription startup supervision', () => {
         },
       ),
     }))
-    const ApplicationComposition = Application.makeComposition()
+    const ApplicationComposition = ApplicationDefinition.makeComposition()
     const application = ApplicationComposition.makeElement({
       container,
       init: () => ({ model: { count: 0 } }),
@@ -87,12 +87,12 @@ describe('Subscription startup supervision', () => {
   it('reports dependency defects when an optional child activates after startup', async () => {
     const ChildModel = Schema.Struct({ count: Schema.Number })
     const ChildMessage = defineMessageUnion({ EmittedPulse: {} })
-    const Child = define('StartupChild', {
+    const ChildDefinition = define('StartupChild', {
       Model: ChildModel,
       Message: ChildMessage,
     })
     const streamStarted = vi.fn()
-    const subscriptions = Child.subscriptions(entry => ({
+    const subscriptions = ChildDefinition.subscriptions(entry => ({
       pulses: entry(
         'Pulses',
         { count: Schema.Number },
@@ -110,7 +110,7 @@ describe('Subscription startup supervision', () => {
         },
       ),
     }))
-    const ChildComposition = Child.makeComposition()
+    const ChildComposition = ChildDefinition.makeComposition()
     const block = ChildComposition.makeBlock({
       init: () => ({ model: { count: 0 } }),
       update: ChildComposition.makeUpdate(model => ({ model })),
@@ -122,14 +122,14 @@ describe('Subscription startup supervision', () => {
       ClickedActivateChild: {},
       GotChildMessage: { message: ChildMessage },
     })
-    const Application = defineApplication({ Model, Message })
-    const ChildBinding = Application.bindChild(block, {
+    const ApplicationDefinition = defineApplication({ Model, Message })
+    const ChildBinding = ApplicationDefinition.bindChild(block, {
       read: model => model.maybeChild,
       write: (model, nextChild) =>
         modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
       parentMessage: Message.GotChildMessage,
     })
-    const ApplicationComposition = Application.makeComposition({
+    const ApplicationComposition = ApplicationDefinition.makeComposition({
       childBindings: [ChildBinding],
     })
     const report = vi.fn()

@@ -3,7 +3,7 @@ import { Block, Struct, Update } from 'foldkit'
 import * as PublicUpdate from 'foldkit/update'
 
 import {
-  CompositionSafetyParent,
+  CompositionSafetyParentDefinition,
   Entry,
   EntryBinding,
   LoadParameterizedChild,
@@ -21,15 +21,15 @@ declare const useSecondField: boolean
 
 // @ts-expect-error An accessor init projection must always supply one stable parent Model field.
 // oxfmt-ignore
-CompositionSafetyParent.bindChild(PlainBlock, { placement: 'unstableProjected', read: model => Option.some(model.first), write: (model, nextChild) => Struct.modifyFields(model, { first: () => nextChild }), parentMessage: ParentMessage.RoutedProjectedMessage, init: { args: () => [], model: child => useSecondField ? { second: child } : { first: child } } })
+CompositionSafetyParentDefinition.bindChild(PlainBlock, { placement: 'unstableProjected', read: model => Option.some(model.first), write: (model, nextChild) => Struct.modifyFields(model, { first: () => nextChild }), parentMessage: ParentMessage.RoutedProjectedMessage, init: { args: () => [], model: child => useSecondField ? { second: child } : { first: child } } })
 
 // @ts-expect-error An optional update context still requires an explicit incoming Message route.
 // oxfmt-ignore
-CompositionSafetyParent.bindChild(OptionalContextBlock, { field: 'optionalContext', parentMessage: ParentMessage.RoutedOptionalContextMessage })
+CompositionSafetyParentDefinition.bindChild(OptionalContextBlock, { field: 'optionalContext', parentMessage: ParentMessage.RoutedOptionalContextMessage })
 
 // @ts-expect-error A required rest update context requires an explicit incoming Message route.
 // oxfmt-ignore
-CompositionSafetyParent.bindChild(RestContextBlock, { field: 'restContext', parentMessage: ParentMessage.RoutedRestContextMessage })
+CompositionSafetyParentDefinition.bindChild(RestContextBlock, { field: 'restContext', parentMessage: ParentMessage.RoutedRestContextMessage })
 
 // @ts-expect-error A connected Binding initializer requires its parent configuration.
 PlainBinding.init()
@@ -89,9 +89,10 @@ const erasedConnectedStep: Update.Step<
 > = initializePlain
 void erasedConnectedStep
 
-const MissingPlainBindingComposition = CompositionSafetyParent.makeComposition({
-  childBindings: [EntryBinding],
-})
+const MissingPlainBindingComposition =
+  CompositionSafetyParentDefinition.makeComposition({
+    childBindings: [EntryBinding],
+  })
 MissingPlainBindingComposition.makeInit(() =>
   // @ts-expect-error A connected initializer cannot run without its registered Binding capability.
   initializePlain(initialParentModel),
@@ -104,10 +105,10 @@ const directConnectedInit = MissingPlainBindingComposition.makeInit(() =>
       Struct.modifyFields(initialParentModel, { plain: () => child }),
   }),
 )
+// @ts-expect-error A directly connected initializer retains its missing Binding evidence.
 MissingPlainBindingComposition.makeBlock({
   init: directConnectedInit,
   update: MissingPlainBindingComposition.makeUpdate(model => ({ model })),
-  // @ts-expect-error A directly connected initializer retains its missing Binding evidence.
   EffectsLayer: LoadParameterizedChild.layer,
 })
 

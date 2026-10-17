@@ -8,7 +8,12 @@ import demoCodeHtml from 'virtual:counter-demo-code'
 import { Button } from '@foldkit/ui'
 
 import * as DemoView from '../../demoView'
-import { AnimationPhase, AsyncCounterDemo, Message, Model } from './definition'
+import {
+  AnimationPhase,
+  AsyncCounterDemoDefinition,
+  Message,
+  Model,
+} from './definition'
 
 // CONSTANTS
 
@@ -23,7 +28,8 @@ const clampResetSeconds = (seconds: number): number =>
     maximum: MAX_RESET_DURATION,
   })
 
-export const AsyncCounterDemoComposition = AsyncCounterDemo.makeComposition()
+export const AsyncCounterDemoComposition =
+  AsyncCounterDemoDefinition.makeComposition()
 type AsyncCounterDemoViewBuilder = Block.ViewBuilderFor<
   typeof AsyncCounterDemoComposition
 >
@@ -39,7 +45,7 @@ export const init = AsyncCounterDemoComposition.makeInit(() => ({
   }),
 }))
 
-export const DelayAdvanceAsyncCounterPhase = AsyncCounterDemo.command(
+export const DelayAdvanceAsyncCounterPhase = AsyncCounterDemoDefinition.command(
   'DelayAdvanceAsyncCounterPhase',
   {
     args: { generation: Schema.Number, duration: Schema.DurationFromMillis },

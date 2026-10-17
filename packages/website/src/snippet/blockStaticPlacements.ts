@@ -2,10 +2,10 @@ import { Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import * as Composer from './composer'
-import { Chat } from './definition'
+import { ChatDefinition } from './definition'
 import { Message } from './message'
 
-export const PrimaryComposerBinding = Chat.bindChild(Composer.block, {
+export const PrimaryComposerBinding = ChatDefinition.bindChild(Composer.block, {
   read: model => Option.some(model.primaryPanel.composer),
   write: (model, nextComposer) =>
     modifyFields(model, {
@@ -19,17 +19,20 @@ export const PrimaryComposerBinding = Chat.bindChild(Composer.block, {
   },
 })
 
-export const SecondaryComposerBinding = Chat.bindChild(Composer.block, {
-  placement: 'SecondaryComposer',
-  read: model => Option.some(model.secondaryPanel.composer),
-  write: (model, nextComposer) =>
-    modifyFields(model, {
-      secondaryPanel: panel =>
-        modifyFields(panel, { composer: () => nextComposer }),
-    }),
-  parentMessage: Message.GotSecondaryComposerMessage,
-  fromParentMessage: {
+export const SecondaryComposerBinding = ChatDefinition.bindChild(
+  Composer.block,
+  {
+    placement: 'SecondaryComposer',
+    read: model => Option.some(model.secondaryPanel.composer),
+    write: (model, nextComposer) =>
+      modifyFields(model, {
+        secondaryPanel: panel =>
+          modifyFields(panel, { composer: () => nextComposer }),
+      }),
     parentMessage: Message.GotSecondaryComposerMessage,
-    args: (_model, { message }) => Option.some([message]),
+    fromParentMessage: {
+      parentMessage: Message.GotSecondaryComposerMessage,
+      args: (_model, { message }) => Option.some([message]),
+    },
   },
-})
+)

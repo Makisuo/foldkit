@@ -2,7 +2,7 @@ import * as echarts from 'echarts/core'
 import { Effect, Option, Queue, Schema, Stream, pipe } from 'effect'
 
 import { ChartRegistry } from './chartRegistry'
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 
 export const CHART_HOST_ID = 'charting-chart'
@@ -115,7 +115,7 @@ const mountChart = (
     ),
   )
 
-export const MountChart = Application.mountStream('MountChart', {
+export const MountChart = ApplicationDefinition.mountStream('MountChart', {
   args: { hostId: Schema.String },
   messages: [
     Message.SucceededMountChart,

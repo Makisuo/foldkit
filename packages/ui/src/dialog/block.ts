@@ -60,13 +60,15 @@ export type Message = typeof Message.Type
 export const OutMessage = defineMessageUnion({
   Opened: {},
   Closed: {},
+  CompletedClose: {},
 })
 
 export type Opened = typeof OutMessage.Opened.Type
 export type Closed = typeof OutMessage.Closed.Type
+export type CompletedClose = typeof OutMessage.CompletedClose.Type
 export type OutMessage = typeof OutMessage.Type
 
-const Dialog = Block.define('Dialog', { Model, Message, OutMessage })
+const DialogDefinition = Block.define('Dialog', { Model, Message, OutMessage })
 
 // INIT
 
@@ -152,7 +154,7 @@ const acquireDialogResourcesResult = (
  *  acquisition becomes uninterruptible after the committed element is found,
  *  so modal resources and the scroll lock cannot split. A concurrent
  *  lifecycle acquisition reuses the resources already held by the id. */
-export const ShowDialog = Dialog.command('ShowDialog', {
+export const ShowDialog = DialogDefinition.command('ShowDialog', {
   args: { id: Schema.String, focusSelector: Schema.String },
   messages: [Message.SucceededShowDialog, Message.FailedShowDialog],
   handler: function* () {
@@ -166,7 +168,7 @@ export const ShowDialog = Dialog.command('ShowDialog', {
  *  open Dialog without replaying initialization Commands. A successful
  *  acquisition also resumes a preserved animation transition from its current
  *  phase. */
-export const AcquireResources = Dialog.mount('AcquireResources', {
+export const AcquireResources = DialogDefinition.mount('AcquireResources', {
   args: { id: Schema.String, focusSelector: Schema.String },
   messages: [Message.SucceededAcquireResources, Message.FailedAcquireResources],
   handler: function* () {
@@ -205,7 +207,7 @@ export const AcquireResources = Dialog.mount('AcquireResources', {
  *  close runs, the Command calls `Dom.releaseDialogResources` instead. That
  *  releases the scroll lock, focus trap, return focus, and stack entry if the
  *  dialog still holds them. The background is restored before return focus. */
-export const CloseDialog = Dialog.command('CloseDialog', {
+export const CloseDialog = DialogDefinition.command('CloseDialog', {
   args: { id: Schema.String },
   messages: [Message.CompletedCloseDialog],
   handler: function* () {
@@ -224,17 +226,20 @@ export const CloseDialog = Dialog.command('CloseDialog', {
  *  focus trap, return focus, stack entry, background isolation) when the
  *  element unmounts without a purposeful close. Calling it after
  *  `CloseDialog` released those resources is a no-op. */
-export const ReleaseDialogResources = Dialog.command('ReleaseDialogResources', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedReleaseDialogResources],
-  handler: function* () {
-    return ({ id }) =>
-      Dom.releaseDialogResources(id).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedReleaseDialogResources()),
-      )
+export const ReleaseDialogResources = DialogDefinition.command(
+  'ReleaseDialogResources',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedReleaseDialogResources],
+    handler: function* () {
+      return ({ id }) =>
+        Dom.releaseDialogResources(id).pipe(
+          Effect.ignore,
+          Effect.as(Message.CompletedReleaseDialogResources()),
+        )
+    },
   },
-})
+)
 
 /** Mount definitions rendered by Dialog. */
 export const mounts = [AcquireResources]
@@ -268,12 +273,12 @@ const resetToClosed = (model: Model): Model =>
 const foldStartedLeaveAnimating = (
   liftCommand: Update.FoldContext<Animation.Message, Message>['liftCommand'],
 ) =>
-  Dialog.step(model => ({
+  DialogDefinition.step(model => ({
     model,
     commands: [liftCommand(Animation.defaultLeaveCommand(model.animation))],
   }))
 
-const foldTransitionedOut = Dialog.step(model => ({
+const foldTransitionedOut = DialogDefinition.step(model => ({
   model,
   commands: [CloseDialog({ id: model.id })],
 }))
@@ -291,7 +296,7 @@ const foldAnimationOutMessage = (
     TransitionedOut: () => foldTransitionedOut,
   })
 
-const AnimationBinding = Dialog.bindChild(Animation.block, {
+const AnimationBinding = DialogDefinition.bindChild(Animation.block, {
   field: 'animation',
   parentMessage: Message.GotAnimationMessage,
   init: false,
@@ -300,7 +305,7 @@ const AnimationBinding = Dialog.bindChild(Animation.block, {
 
 const resumeAnimationAfterAcquisition = AnimationBinding.resume()
 
-const DialogComposition = Dialog.makeComposition({
+const DialogComposition = DialogDefinition.makeComposition({
   mounts,
   childBindings: [AnimationBinding],
 })
@@ -412,16 +417,13 @@ export const update = DialogComposition.makeUpdate((model, message) =>
       }
     },
 
-    CompletedCloseDialog: () => ({ model }),
+    CompletedCloseDialog: () => ({
+      model,
+      outMessage: OutMessage.CompletedClose(),
+    }),
     CompletedReleaseDialogResources: () => ({ model }),
   }),
 )
-
-/** Programmatically opens the Dialog. */
-const open = Dialog.step(model => update(model, Message.RequestedOpen()))
-
-/** Programmatically closes the Dialog. */
-const close = Dialog.step(model => update(model, Message.RequestedClose()))
 
 // VIEW
 
@@ -624,7 +626,10 @@ const implementation = {
   })),
   update,
   view,
-  expose: { open, close },
+  operations: {
+    open: DialogComposition.makeOperation(Message.RequestedOpen),
+    close: DialogComposition.makeOperation(Message.RequestedClose),
+  },
   EffectsLayer,
 }
 

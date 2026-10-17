@@ -1,4 +1,4 @@
-import { Layer, Option, Schema } from 'effect'
+import { Duration, Layer, Option, Schema } from 'effect'
 import { Block, Message, Struct, defineApplication } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 
@@ -7,6 +7,9 @@ import * as Dialog from '@foldkit/ui/dialog'
 import * as Listbox from '@foldkit/ui/listbox'
 import * as Menu from '@foldkit/ui/menu'
 import * as Popover from '@foldkit/ui/popover'
+import * as Slider from '@foldkit/ui/slider'
+import * as Toast from '@foldkit/ui/toast'
+import * as Tooltip from '@foldkit/ui/tooltip'
 
 type Equal<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends <
@@ -22,6 +25,11 @@ export const MultiPicker = Combobox.Multi.create(Item)
 export const ListPicker = Listbox.create<'Apple' | 'Pear'>()
 export const MultiListPicker = Listbox.Multi.create<'Apple' | 'Pear'>()
 export const MenuPicker = Menu.create<'Apple' | 'Pear'>()
+export const RootSlider = Slider.forRoot(() => document)
+export const ToastPayload = Schema.Struct({
+  kind: Schema.Literals(['Saved', 'Failed']),
+})
+export const ToastBlock = Toast.make(ToastPayload)
 export const Model = Schema.Struct({
   dialog: Dialog.Model,
   picker: Picker.Model,
@@ -34,34 +42,38 @@ export const ParentMessage = Message.defineMessageUnion({
   GotPopoverMessage: { message: Popover.Message },
   ClickedClear: {},
 })
-export const Application = defineApplication({ Model, Message: ParentMessage })
+export const ApplicationDefinition = defineApplication({
+  Model,
+  Message: ParentMessage,
+})
 
-export const DialogBinding = Application.bindChild(Dialog.block, {
+export const DialogBinding = ApplicationDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: ParentMessage.GotDialogMessage,
   init: { args: () => [{ id: 'details' }] },
   outMessage: {
     fold: Dialog.OutMessage.match({
-      Opened: () => Application.step(model => ({ model })),
-      Closed: () => Application.step(model => ({ model })),
+      Opened: () => ApplicationDefinition.step(model => ({ model })),
+      Closed: () => ApplicationDefinition.step(model => ({ model })),
+      CompletedClose: () => ApplicationDefinition.step(model => ({ model })),
     }),
   },
 })
 
-export const PickerBinding = Application.bindChild(Picker, {
+export const PickerBinding = ApplicationDefinition.bindChild(Picker, {
   field: 'picker',
   parentMessage: ParentMessage.GotPickerMessage,
   init: { args: () => [{ id: 'fruit' }] },
   outMessage: {
     fold: Picker.OutMessage.match({
       Selected: ({ value }) =>
-        Application.step(model => ({
+        ApplicationDefinition.step(model => ({
           model: Struct.modifyFields(model, {
             maybeSelected: () => Option.some(value),
           }),
         })),
       ClearedSelection: () =>
-        Application.step(model => ({
+        ApplicationDefinition.step(model => ({
           model: Struct.modifyFields(model, {
             maybeSelected: () => Option.none(),
           }),
@@ -70,20 +82,20 @@ export const PickerBinding = Application.bindChild(Picker, {
   },
 })
 
-export const PopoverBinding = Application.bindChild(Popover.block, {
+export const PopoverBinding = ApplicationDefinition.bindChild(Popover.block, {
   field: 'popover',
   parentMessage: ParentMessage.GotPopoverMessage,
   init: { args: () => [{ id: 'help' }] },
   outMessage: {
     fold: Popover.OutMessage.match({
-      Opened: () => Application.step(model => ({ model })),
-      Closed: () => Application.step(model => ({ model })),
+      Opened: () => ApplicationDefinition.step(model => ({ model })),
+      Closed: () => ApplicationDefinition.step(model => ({ model })),
     }),
   },
 })
 
 export const createComposition = () =>
-  Application.makeComposition({
+  ApplicationDefinition.makeComposition({
     childBindings: [DialogBinding, PickerBinding, PopoverBinding],
   })
 export type Composition = ReturnType<typeof createComposition>
@@ -153,17 +165,89 @@ export type GenericAssertions = [
       [item: 'Apple' | 'Pear', displayText: string]
     >
   >,
+  Expect<
+    Equal<
+      Parameters<typeof Slider.block.operations.informRangeChanged>,
+      [
+        model: typeof Slider.Model.Type,
+        payload: Block.OperationPayload<
+          typeof Slider.Message.InformedOfRangeChange
+        >,
+      ]
+    >
+  >,
+  Expect<
+    Equal<
+      Parameters<typeof RootSlider.operations.informRangeChanged>,
+      Parameters<typeof Slider.block.operations.informRangeChanged>
+    >
+  >,
+  Expect<
+    Equal<
+      Parameters<typeof Tooltip.block.operations.informShowDelayChanged>,
+      [model: typeof Tooltip.Model.Type, showDelay: Duration.Input]
+    >
+  >,
+  Expect<
+    Equal<
+      Parameters<typeof ToastBlock.operations.show>,
+      [
+        model: typeof ToastBlock.Model.Type,
+        input: Toast.ShowInput<typeof ToastPayload.Type>,
+      ]
+    >
+  >,
 ]
+
+export const sliderRangeChange = Slider.block.operations.informRangeChanged(
+  Slider.init({ id: 'volume', min: 0, max: 100, step: 1 }),
+  { min: 10, max: 90 },
+)
+export const rootSliderRangeChange = RootSlider.operations.informRangeChanged(
+  Slider.init({ id: 'root-volume', min: 0, max: 100, step: 1 }),
+  { min: 20, max: 80 },
+)
+export const tooltipDelayFromString =
+  Tooltip.block.operations.informShowDelayChanged(
+    Tooltip.init({ id: 'help' }),
+    '250 millis',
+  )
+export const tooltipDelayFromNumber =
+  Tooltip.block.operations.informShowDelayChanged(
+    Tooltip.init({ id: 'details' }),
+    300,
+  )
+export const tooltipDelayFromDuration =
+  Tooltip.block.operations.informShowDelayChanged(
+    Tooltip.init({ id: 'settings' }),
+    Duration.millis(350),
+  )
+const toastModel = ToastBlock.init({ id: 'notifications' }).model
+export const toastFromStringDuration = ToastBlock.operations.show(toastModel, {
+  payload: { kind: 'Saved' },
+  duration: '1 second',
+})
+export const toastFromNumberDuration = ToastBlock.operations.show(toastModel, {
+  payload: { kind: 'Failed' },
+  duration: 1_000,
+})
+export const toastFromDuration = ToastBlock.operations.show(toastModel, {
+  payload: { kind: 'Saved' },
+  duration: Duration.seconds(2),
+})
 
 const ShapeModel = Schema.Struct({ value: Schema.String })
 const ShapeMessage = Message.defineMessageUnion({ Changed: {} })
 const ShapeOutMessage = Message.defineMessageUnion({ Changed: {} })
-const DeclarationWithOutMessage = Block.define('DeclarationWithOutMessage', {
-  Model: ShapeModel,
-  Message: ShapeMessage,
-  OutMessage: ShapeOutMessage,
-})
-const DeclarationWithoutOutMessage = Block.define(
+const DeclarationWithOutMessageDefinition = Block.define(
+  'DeclarationWithOutMessage',
+  {
+    Model: ShapeModel,
+    Message: ShapeMessage,
+    OutMessage: ShapeOutMessage,
+  },
+)
+const DeclarationWithoutOutMessageDefinition = Block.define(
   'DeclarationWithoutOutMessage',
   {
     Model: ShapeModel,
@@ -171,9 +255,9 @@ const DeclarationWithoutOutMessage = Block.define(
   },
 )
 const DeclarationWithOutMessageComposition =
-  DeclarationWithOutMessage.makeComposition()
+  DeclarationWithOutMessageDefinition.makeComposition()
 const DeclarationWithoutOutMessageComposition =
-  DeclarationWithoutOutMessage.makeComposition()
+  DeclarationWithoutOutMessageDefinition.makeComposition()
 const init = () => ({ model: ShapeModel.make({ value: '' }) })
 const update = (model: typeof ShapeModel.Type) => ({ model })
 const view = DeclarationWithOutMessageComposition.makeView.withInputs<
@@ -213,7 +297,7 @@ export const WithoutViewOrOutMessage =
   })
 
 type BroadOutMessageBlock = Block.Block<
-  typeof DeclarationWithOutMessage.owner,
+  typeof DeclarationWithOutMessageDefinition.owner,
   typeof ShapeModel,
   typeof ShapeMessage,
   typeof ShapeOutMessage | undefined,

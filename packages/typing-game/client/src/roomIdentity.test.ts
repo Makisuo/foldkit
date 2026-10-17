@@ -18,7 +18,8 @@ import { afterEach, describe, expect, test, vi } from 'vitest'
 import * as Shared from '@typing-game/shared'
 
 import { ApplicationComposition } from './composition'
-import { Application } from './definition'
+import { ROOM_PLAYER_SESSION_KEY } from './constant'
+import { ApplicationDefinition } from './definition'
 import { EffectsLayer } from './layer'
 import { Message } from './message'
 import { Model, RoomInstance } from './model'
@@ -69,7 +70,7 @@ const ports = {
   },
 }
 
-const testInputs = Application.subscriptions(entry => ({
+const testInputs = ApplicationDefinition.subscriptions(entry => ({
   changedRoute: entry(
     'TestChangedRoute',
     {},
@@ -229,26 +230,13 @@ describe('Room identity', () => {
     const emitters: globalThis.Array<RoomEmitter> = []
     const streamStarts: globalThis.Array<string> = []
     const streamStops: globalThis.Array<string> = []
-    const liftedJoinOrigins: globalThis.Array<string> = []
-    const liftedHomeJoinOrigins: globalThis.Array<string> = []
+    const savedSessionKeys: globalThis.Array<string> = []
     const completedJoinRequests: globalThis.Array<Deferred.Deferred<void>> = []
     let clientAcquisitions = 0
     let clientReleases = 0
     let completedBarriers = 0
 
     const observedUpdate = (model: Model, message: Message) => {
-      if (
-        message._tag === 'GotRoomMessage' &&
-        message.message._tag === 'SucceededJoinRoom'
-      ) {
-        liftedJoinOrigins.push(message.roomId)
-      }
-      if (
-        message._tag === 'GotHomeMessage' &&
-        message.message._tag === 'SucceededJoinRoomFromHome'
-      ) {
-        liftedHomeJoinOrigins.push(message.message.roomId)
-      }
       if (message._tag === 'CompletedNavigateInternal') {
         completedBarriers += 1
       }
@@ -340,7 +328,10 @@ describe('Room identity', () => {
       KeyValueStore.KeyValueStore,
       KeyValueStore.makeStringOnly({
         get: () => Effect.succeed(undefined),
-        set: () => Effect.void,
+        set: key =>
+          Effect.sync(() => {
+            savedSessionKeys.push(key)
+          }),
         remove: () => Effect.void,
         clear: Effect.void,
         size: Effect.succeed(0),
@@ -413,8 +404,8 @@ describe('Room identity', () => {
           player: playerA0,
         }),
       )
-      await vi.waitFor(() => expect(liftedJoinOrigins).toHaveLength(1))
-      expect(liftedJoinOrigins).toEqual([ROOM_A])
+      await vi.waitFor(() => expect(savedSessionKeys).toHaveLength(1))
+      expect(savedSessionKeys).toEqual([`${ROOM_PLAYER_SESSION_KEY}:${ROOM_A}`])
       await waitForText(`${ROOM_A}|${ROOM_A}:initial-player:10`)
       await vi.waitFor(() => expect(streamStarts).toEqual([ROOM_A]))
 
@@ -441,8 +432,11 @@ describe('Room identity', () => {
           player: playerB,
         }),
       )
-      await vi.waitFor(() => expect(liftedJoinOrigins).toHaveLength(2))
-      expect(liftedJoinOrigins).toEqual([ROOM_A, ROOM_B])
+      await vi.waitFor(() => expect(savedSessionKeys).toHaveLength(2))
+      expect(savedSessionKeys).toEqual([
+        `${ROOM_PLAYER_SESSION_KEY}:${ROOM_A}`,
+        `${ROOM_PLAYER_SESSION_KEY}:${ROOM_B}`,
+      ])
       await waitForText(`${ROOM_B}|${ROOM_B}:player-b:20`)
       await vi.waitFor(() => expect(streamStarts).toEqual([ROOM_A, ROOM_B]))
 
@@ -463,7 +457,10 @@ describe('Room identity', () => {
         }),
       )
       await awaitJoinCompletion(1)
-      expect(liftedJoinOrigins).toEqual([ROOM_A, ROOM_B])
+      expect(savedSessionKeys).toEqual([
+        `${ROOM_PLAYER_SESSION_KEY}:${ROOM_A}`,
+        `${ROOM_PLAYER_SESSION_KEY}:${ROOM_B}`,
+      ])
       expect(readText()).toBe(`${ROOM_A}|${ROOM_A}:none:10`)
 
       handle.ports.joinedRoom.send({ roomId: ROOM_A, username: 'alice-2' })
@@ -474,8 +471,12 @@ describe('Room identity', () => {
           player: playerA2,
         }),
       )
-      await vi.waitFor(() => expect(liftedJoinOrigins).toHaveLength(3))
-      expect(liftedJoinOrigins).toEqual([ROOM_A, ROOM_B, ROOM_A])
+      await vi.waitFor(() => expect(savedSessionKeys).toHaveLength(3))
+      expect(savedSessionKeys).toEqual([
+        `${ROOM_PLAYER_SESSION_KEY}:${ROOM_A}`,
+        `${ROOM_PLAYER_SESSION_KEY}:${ROOM_B}`,
+        `${ROOM_PLAYER_SESSION_KEY}:${ROOM_A}`,
+      ])
       await waitForText(`${ROOM_A}|${ROOM_A}:player-a2:10`)
       await vi.waitFor(() =>
         expect(streamStarts).toEqual([ROOM_A, ROOM_B, ROOM_A]),
@@ -513,7 +514,11 @@ describe('Room identity', () => {
         }),
       )
       await awaitJoinCompletion(4)
-      expect(liftedHomeJoinOrigins).toEqual([])
+      expect(savedSessionKeys).toEqual([
+        `${ROOM_PLAYER_SESSION_KEY}:${ROOM_A}`,
+        `${ROOM_PLAYER_SESSION_KEY}:${ROOM_B}`,
+        `${ROOM_PLAYER_SESSION_KEY}:${ROOM_A}`,
+      ])
       expect(readText()).toBe('home|none')
 
       expect(clientAcquisitions).toBe(1)

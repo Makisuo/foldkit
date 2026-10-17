@@ -1,4 +1,4 @@
-import { Schema } from 'effect'
+import { Option, Schema } from 'effect'
 import { Block, Message, Update } from 'foldkit'
 import type { Command } from 'foldkit/command'
 
@@ -6,7 +6,7 @@ export const ChildModel = Schema.Struct({ value: Schema.Number })
 export const ChildMessage = Message.defineMessageUnion({
   UpdatedValue: { value: Schema.Number },
 })
-const DeclarationCanonicalConstructorChild = Block.define(
+const DeclarationCanonicalConstructorChildDefinition = Block.define(
   'DeclarationCanonicalConstructorChild',
   {
     Model: ChildModel,
@@ -14,7 +14,7 @@ const DeclarationCanonicalConstructorChild = Block.define(
   },
 )
 const DeclarationCanonicalConstructorChildComposition =
-  DeclarationCanonicalConstructorChild.makeComposition()
+  DeclarationCanonicalConstructorChildDefinition.makeComposition()
 export const ChildBlock =
   DeclarationCanonicalConstructorChildComposition.makeBlock({
     init: DeclarationCanonicalConstructorChildComposition.makeInit(() => ({
@@ -45,28 +45,27 @@ export const ParentMessage = Message.defineMessageUnion({
   GotWrongMessage: { message: Schema.String },
   ReceivedPayload: { payload: PayloadWithUnknownDecodingServices },
 })
-export const DeclarationCanonicalConstructorParent = Block.define(
+export const DeclarationCanonicalConstructorParentDefinition = Block.define(
   'DeclarationCanonicalConstructorParent',
   {
     Model: ParentModel,
     Message: ParentMessage,
   },
 )
-export const CanonicalBinding = DeclarationCanonicalConstructorParent.bindChild(
-  ChildBlock,
-  {
+export const CanonicalBinding =
+  DeclarationCanonicalConstructorParentDefinition.bindChild(ChildBlock, {
     field: 'child',
     parentMessage: ParentMessage.GotChildMessage,
-  },
-)
-export const MappedBinding = DeclarationCanonicalConstructorParent.bindChild(
-  ChildBlock,
-  {
+  })
+export const MappedBinding =
+  DeclarationCanonicalConstructorParentDefinition.bindChild(ChildBlock, {
     field: 'child',
     toParentMessage: message => ParentMessage.GotOtherMessage({ message }),
-    fromParentMessage: false,
-  },
-)
+    fromParentMessage: {
+      parentMessage: ParentMessage.GotOtherMessage,
+      args: (_model, { message }) => Option.some([message]),
+    },
+  })
 
 declare const distinctSchemaMapper: typeof ChildMessage.UpdatedValue &
   ((
@@ -74,10 +73,13 @@ declare const distinctSchemaMapper: typeof ChildMessage.UpdatedValue &
   ) => typeof ParentMessage.GotOtherMessage.Type)
 
 export const DistinctSchemaMapperBinding =
-  DeclarationCanonicalConstructorParent.bindChild(ChildBlock, {
+  DeclarationCanonicalConstructorParentDefinition.bindChild(ChildBlock, {
     field: 'child',
     toParentMessage: distinctSchemaMapper,
-    fromParentMessage: false,
+    fromParentMessage: {
+      parentMessage: ParentMessage.GotOtherMessage,
+      args: (_model, { message }) => Option.some([message]),
+    },
   })
 
 type CommandMessageOf<Output> =

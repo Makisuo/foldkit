@@ -32,8 +32,8 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
-export const ApplicationComposition = Application.makeComposition()
+export const ApplicationDefinition = defineApplication({ Model, Message })
+export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 // CONSTANTS
 
@@ -52,7 +52,7 @@ const heavyPayload = makeHeavyArray(HEAVY_ITEM_COUNT)
 
 // COMMAND
 
-const FillHistoryStep = Application.command('FillHistoryStep', {
+const FillHistoryStep = ApplicationDefinition.command('FillHistoryStep', {
   args: { remaining: Schema.Number },
   messages: [Message.CompletedFillHistoryStep],
   handler: function* () {

@@ -1,12 +1,12 @@
 import * as Counter from '../counter'
-import { Dashboard } from './definition'
+import { DashboardDefinition } from './definition'
 import { Message } from './message'
 
-export const CounterBinding = Dashboard.bindChild(Counter.block, {
+export const CounterBinding = DashboardDefinition.bindChild(Counter.block, {
   field: 'counter',
   parentMessage: Message.GotCounterMessage,
 })
 
-export const DashboardComposition = Dashboard.makeComposition({
+export const DashboardComposition = DashboardDefinition.makeComposition({
   childBindings: [CounterBinding],
 })

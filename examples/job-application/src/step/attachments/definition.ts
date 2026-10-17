@@ -21,7 +21,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Attachments = Block.define('Attachments', {
+export const AttachmentsDefinition = Block.define('Attachments', {
   Model,
   Message,
 })

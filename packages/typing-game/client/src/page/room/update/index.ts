@@ -1,2 +1,2 @@
-export { NavigateHome, informJoined, update } from './update'
+export { NavigateHome, update } from './update'
 export type { Context } from './update'

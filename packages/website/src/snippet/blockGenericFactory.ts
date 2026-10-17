@@ -11,35 +11,37 @@ type ValueSchema<Value extends string> = Schema.Schema<Value> &
   Readonly<{ '~type.make': Value }>
 
 const makeMessage = <Value extends string>(Value: ValueSchema<Value>) =>
-  defineMessageUnion({ SelectedValue: { value: Value } })
+  defineMessageUnion({
+    SelectedValue: { value: Value },
+    RequestedSelectValue: { value: Value },
+  })
 
 const makeOutMessage = <Value extends string>(Value: ValueSchema<Value>) =>
   defineMessageUnion({ Selected: { value: Value } })
 
-const Picker = Block.define('Picker')
+const PickerDefinition = Block.define('Picker')
 
 export const make = <Value extends string>(Value: ValueSchema<Value>) => {
   const Model = Schema.Struct({ selected: Schema.Option(Value) })
   const Message = makeMessage(Value)
   const OutMessage = makeOutMessage(Value)
-  const RefinedPicker = Picker.define({
+  const RefinedPicker = PickerDefinition.define({
     Model,
     Message,
     OutMessage,
   })
   const RefinedPickerComposition = RefinedPicker.makeComposition()
 
+  const selectValue = RefinedPicker.step((model, value: Value) => ({
+    model: modifyFields(model, { selected: () => Option.some(value) }),
+    outMessage: OutMessage.Selected({ value }),
+  }))
+
   const update = RefinedPickerComposition.makeUpdate((model, message) =>
     Message.match(message, {
-      SelectedValue: ({ value }) => ({
-        model: modifyFields(model, { selected: () => Option.some(value) }),
-        outMessage: OutMessage.Selected({ value }),
-      }),
+      SelectedValue: ({ value }) => selectValue(model, value),
+      RequestedSelectValue: ({ value }) => selectValue(model, value),
     }),
-  )
-
-  const select = RefinedPicker.step((model, value: Value) =>
-    update(model, Message.SelectedValue({ value })),
   )
 
   const view = RefinedPickerComposition.makeView.withInputs<ViewInputs<Value>>(
@@ -67,7 +69,9 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
     init,
     update,
     view,
-    expose: { select },
+    operations: {
+      select: (value: Value) => [Message.RequestedSelectValue({ value })],
+    },
   })
 }
 
@@ -84,12 +88,12 @@ const ParentMessage = defineMessageUnion({
   GotPickerMessage: { message: FruitPicker.Message },
 })
 
-const FruitSelection = Block.define('FruitSelection', {
+const FruitSelectionDefinition = Block.define('FruitSelection', {
   Model: ParentModel,
   Message: ParentMessage,
 })
 
-const PickerBinding = FruitSelection.bindChild(FruitPicker, {
+const PickerBinding = FruitSelectionDefinition.bindChild(FruitPicker, {
   field: 'picker',
   parentMessage: ParentMessage.GotPickerMessage,
   outMessage: {
@@ -109,7 +113,7 @@ const PickerBinding = FruitSelection.bindChild(FruitPicker, {
 
 export const selectApple = PickerBinding.select('Apple')
 
-const FruitSelectionComposition = FruitSelection.makeComposition({
+const FruitSelectionComposition = FruitSelectionDefinition.makeComposition({
   childBindings: [PickerBinding],
 })
 

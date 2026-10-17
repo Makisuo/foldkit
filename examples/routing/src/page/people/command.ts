@@ -2,11 +2,11 @@ import { Effect, Schema } from 'effect'
 import { pushUrl } from 'foldkit/navigation'
 
 import { peopleRouter } from '../../route'
-import { People } from './definition'
+import { PeopleDefinition } from './definition'
 import { Message } from './message'
 import { SEARCH_LATENCY, searchPeople } from './model'
 
-export const PushSearchUrl = People.command('PushSearchUrl', {
+export const PushSearchUrl = PeopleDefinition.command('PushSearchUrl', {
   args: { searchText: Schema.Option(Schema.String) },
   messages: [Message.CompletedPushSearchUrl],
   handler: function* () {
@@ -17,7 +17,7 @@ export const PushSearchUrl = People.command('PushSearchUrl', {
   },
 })
 
-export const FetchPeople = People.command('FetchPeople', {
+export const FetchPeople = PeopleDefinition.command('FetchPeople', {
   args: { searchText: Schema.String },
   messages: [Message.CompletedFetchPeople],
   handler: function* () {

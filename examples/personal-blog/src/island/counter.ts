@@ -15,8 +15,8 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const Counter = Block.define('Counter', { Model, Message })
-const CounterComposition = Counter.makeComposition()
+const CounterDefinition = Block.define('Counter', { Model, Message })
+const CounterComposition = CounterDefinition.makeComposition()
 
 export const init = CounterComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),

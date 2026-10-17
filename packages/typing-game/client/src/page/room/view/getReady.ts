@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import { Html } from 'foldkit/html'
 
-import type { RoomViewBuilder } from '../definition'
+import type { RoomViewBuilder } from '../composition'
 
 export const getReady = (
   maybeGameText: Option.Option<string>,

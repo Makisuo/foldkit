@@ -25,9 +25,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.makeComposition()
+export const ApplicationComposition = ApplicationDefinition.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >

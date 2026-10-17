@@ -1,7 +1,7 @@
 import { Array, Option, pipe } from 'effect'
 
 import { FetchRoom, LoadSession } from './command'
-import { RoomComposition } from './definition'
+import { RoomComposition } from './composition'
 import { Model, RoomAsyncData } from './model'
 
 export const init = RoomComposition.makeInit(

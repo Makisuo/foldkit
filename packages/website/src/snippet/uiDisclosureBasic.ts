@@ -22,12 +22,15 @@ const Message = defineMessageUnion({
 
 type Message = typeof Message.Type
 
-const FrequentlyAskedQuestions = Block.define('FrequentlyAskedQuestions', {
-  Model,
-  Message,
-})
+const FrequentlyAskedQuestionsDefinition = Block.define(
+  'FrequentlyAskedQuestions',
+  {
+    Model,
+    Message,
+  },
+)
 const FrequentlyAskedQuestionsComposition =
-  FrequentlyAskedQuestions.makeComposition()
+  FrequentlyAskedQuestionsDefinition.makeComposition()
 
 // In your init function, start it closed:
 const init = FrequentlyAskedQuestionsComposition.makeInit(() => ({

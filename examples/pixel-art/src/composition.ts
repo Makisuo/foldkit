@@ -15,7 +15,7 @@ import {
   ToolRadioGroup,
 } from './components'
 import { DEFAULT_COLOR_INDEX } from './constant'
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { createEmptyGrid, isGridEmpty } from './grid'
 import { Message } from './message'
 import {
@@ -26,38 +26,37 @@ import {
 } from './model'
 import { PALETTE_THEMES } from './palette'
 
-const foldErrorDialogOutMessage = (outMessage: typeof Dialog.OutMessage.Type) =>
-  Application.step(model =>
-    Dialog.OutMessage.match(outMessage, {
-      Opened: () => ({ model }),
-      Closed: () => ({
-        model: modifyFields(model, { maybeExportError: () => Option.none() }),
-      }),
-    }),
-  )
-
-export const ErrorDialogBinding = Application.bindChild(Dialog.block, {
-  field: 'errorDialog',
-  parentMessage: Message.GotErrorDialogMessage,
-  init: { args: () => [{ id: 'export-error-dialog' }] },
-  outMessage: { fold: foldErrorDialogOutMessage },
+const foldErrorDialogOutMessage = Dialog.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Opened: () => model => ({ model }),
+  Closed: () => model => ({
+    model: modifyFields(model, { maybeExportError: () => Option.none() }),
+  }),
+  CompletedClose: () => model => ({ model }),
 })
 
-const foldGridSizeConfirmDialogOutMessage = (
-  outMessage: typeof Dialog.OutMessage.Type,
-) =>
-  Application.step(model =>
-    Dialog.OutMessage.match(outMessage, {
-      Opened: () => ({ model }),
-      Closed: () => ({
-        model: modifyFields(model, {
-          maybePendingGridSize: () => Option.none(),
-        }),
-      }),
-    }),
-  )
+export const ErrorDialogBinding = ApplicationDefinition.bindChild(
+  Dialog.block,
+  {
+    field: 'errorDialog',
+    parentMessage: Message.GotErrorDialogMessage,
+    init: { args: () => [{ id: 'export-error-dialog' }] },
+    outMessage: { fold: foldErrorDialogOutMessage },
+  },
+)
 
-export const GridSizeConfirmDialogBinding = Application.bindChild(
+const foldGridSizeConfirmDialogOutMessage = Dialog.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  Opened: () => model => ({ model }),
+  Closed: () => model => ({
+    model: modifyFields(model, { maybePendingGridSize: () => Option.none() }),
+  }),
+  CompletedClose: () => model => ({ model }),
+})
+
+export const GridSizeConfirmDialogBinding = ApplicationDefinition.bindChild(
   Dialog.block,
   {
     field: 'gridSizeConfirmDialog',
@@ -79,15 +78,19 @@ export const selectColor = (model: Model, colorIndex: PaletteIndex) => {
 }
 
 const foldToolRadioGroupOutMessage = ToolRadioGroup.OutMessage.match({
-  Selected: ({ value }) => Application.step(model => selectTool(model, value)),
+  Selected: ({ value }) =>
+    ApplicationDefinition.step(model => selectTool(model, value)),
 })
 
-export const ToolRadioGroupBinding = Application.bindChild(ToolRadioGroup, {
-  field: 'toolRadioGroup',
-  parentMessage: Message.GotToolRadioGroupMessage,
-  init: { args: () => [{ id: TOOL_RADIO_GROUP_ID }] },
-  outMessage: { fold: foldToolRadioGroupOutMessage },
-})
+export const ToolRadioGroupBinding = ApplicationDefinition.bindChild(
+  ToolRadioGroup,
+  {
+    field: 'toolRadioGroup',
+    parentMessage: Message.GotToolRadioGroupMessage,
+    init: { args: () => [{ id: TOOL_RADIO_GROUP_ID }] },
+    outMessage: { fold: foldToolRadioGroupOutMessage },
+  },
+)
 
 export const applyGridSizeChange = (model: Model, size: number) => ({
   model: modifyFields(model, {
@@ -101,7 +104,7 @@ export const applyGridSizeChange = (model: Model, size: number) => ({
 })
 
 export const requestGridSizeChange = (size: number) =>
-  Application.step(model => {
+  ApplicationDefinition.step(model => {
     if (size === model.gridSize) {
       return { model }
     }
@@ -110,7 +113,7 @@ export const requestGridSizeChange = (size: number) =>
       return applyGridSizeChange(model, size)
     }
 
-    const rememberGridSize = Application.step(stepModel => ({
+    const rememberGridSize = ApplicationDefinition.step(stepModel => ({
       model: modifyFields(stepModel, {
         maybePendingGridSize: () => Option.some(size),
       }),
@@ -126,7 +129,7 @@ const foldGridSizeRadioGroupOutMessage = GridSizeRadioGroup.OutMessage.match({
   Selected: ({ value }) => requestGridSizeChange(Number(value)),
 })
 
-export const GridSizeRadioGroupBinding = Application.bindChild(
+export const GridSizeRadioGroupBinding = ApplicationDefinition.bindChild(
   GridSizeRadioGroup,
   {
     field: 'gridSizeRadioGroup',
@@ -138,7 +141,7 @@ export const GridSizeRadioGroupBinding = Application.bindChild(
 
 const foldPaletteRadioGroupOutMessage = PaletteRadioGroup.OutMessage.match({
   Selected: ({ value }) =>
-    Application.step(model =>
+    ApplicationDefinition.step(model =>
       selectColor(
         model,
         paletteIndexFromValue(value, model.selectedColorIndex),
@@ -146,7 +149,7 @@ const foldPaletteRadioGroupOutMessage = PaletteRadioGroup.OutMessage.match({
     ),
 })
 
-export const PaletteRadioGroupBinding = Application.bindChild(
+export const PaletteRadioGroupBinding = ApplicationDefinition.bindChild(
   PaletteRadioGroup,
   {
     field: 'paletteRadioGroup',
@@ -158,7 +161,7 @@ export const PaletteRadioGroupBinding = Application.bindChild(
 
 const foldThemeListboxOutMessage = ThemeListbox.OutMessage.match({
   Selected: ({ value }) =>
-    Application.step(model => {
+    ApplicationDefinition.step(model => {
       const themeIndex = Number(value)
       const maybeNextTheme = Array.get(PALETTE_THEMES, themeIndex)
       if (Option.isNone(maybeNextTheme)) {
@@ -172,14 +175,17 @@ const foldThemeListboxOutMessage = ThemeListbox.OutMessage.match({
     }),
 })
 
-export const ThemeListboxBinding = Application.bindChild(ThemeListbox, {
-  field: 'themeListbox',
-  parentMessage: Message.GotThemeListboxMessage,
-  init: { args: () => [{ id: 'theme-picker' }] },
-  outMessage: { fold: foldThemeListboxOutMessage },
-})
+export const ThemeListboxBinding = ApplicationDefinition.bindChild(
+  ThemeListbox,
+  {
+    field: 'themeListbox',
+    parentMessage: Message.GotThemeListboxMessage,
+    init: { args: () => [{ id: 'theme-picker' }] },
+    outMessage: { fold: foldThemeListboxOutMessage },
+  },
+)
 
-export const ApplicationComposition = Application.makeComposition({
+export const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [
     ErrorDialogBinding,
     ThemeListboxBinding,

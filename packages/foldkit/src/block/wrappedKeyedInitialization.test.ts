@@ -1,4 +1,4 @@
-import { Array, Effect, Layer, Predicate, Schema } from 'effect'
+import { Array, Effect, Layer, Option, Predicate, Schema, Tuple } from 'effect'
 import { expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
@@ -10,6 +10,7 @@ const ChildModel = Schema.Struct({ count: Schema.Number })
 type ChildModel = typeof ChildModel.Type
 
 const ChildMessage = defineMessageUnion({
+  RequestedIncrement: {},
   CompletedInitialization: { count: Schema.Number },
   CompletedIncrement: {},
 })
@@ -50,13 +51,16 @@ const ChildBlock = ChildComposition.makeBlock({
   }),
   update: ChildComposition.makeUpdate((model, message) =>
     ChildMessage.match(message, {
+      RequestedIncrement: () => increment(model),
       CompletedInitialization: ({ count }) => ({
         model: modifyFields(model, { count: () => count }),
       }),
       CompletedIncrement: () => ({ model }),
     }),
   ),
-  expose: { increment },
+  operations: {
+    increment: () => Tuple.make(ChildMessage.RequestedIncrement()),
+  },
   EffectsLayer: Layer.merge(FinishInitialization.layer, FinishIncrement.layer),
 })
 
@@ -75,7 +79,6 @@ type ParentModel = typeof ParentModel.Type
 
 const ParentMessage = defineMessageUnion({
   GotChildMessage: { id: Schema.String, message: ChildMessage },
-  GotDirectMessage: { message: ChildMessage },
   CompletedParentInitialization: {},
 })
 const Parent = define('WrappedInitializationParent', {
@@ -100,7 +103,10 @@ const EntriesBinding = Parent.bindChild(ChildBlock, {
   childField: 'child',
   toParentMessage: (id, message) =>
     ParentMessage.GotChildMessage({ id, message }),
-  fromParentMessage: false,
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotChildMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
   init: {
     occurrences: (startup: Startup) => [
       { key: 'first', args: single(startup.firstCount) },
@@ -181,11 +187,14 @@ const initializeKeyedParent = (
   ) => KeyedChildModel,
 ) => {
   const binding = KeyedParent.bindChild(KeyedChildBlock, {
-    fromParentMessage: false,
     field: 'entries',
     key: 'id',
     toParentMessage: (id, message) =>
       ParentMessage.GotChildMessage({ id, message }),
+    fromParentMessage: {
+      parentMessage: ParentMessage.GotChildMessage,
+      args: (_model, { id, message }) => Option.some([id, message]),
+    },
     init: {
       occurrences: (count: number) => [
         { key: 'first', args: ['first', count] },
@@ -277,7 +286,13 @@ const makeRuntimeComposition = (init: object) => {
       childField: 'child',
       toParentMessage: (id: string, message: typeof ChildMessage.Type) =>
         ParentMessage.GotChildMessage({ id, message }),
-      fromParentMessage: false,
+      fromParentMessage: {
+        parentMessage: ParentMessage.GotChildMessage,
+        args: (
+          _model: unknown,
+          { id, message }: typeof ParentMessage.GotChildMessage.Type,
+        ) => Option.some([id, message]),
+      },
       init,
     },
   ])
@@ -337,13 +352,17 @@ it('preflights every Binding selector before calling any child init', () => {
   })
   const AllPlansParent = define('WrappedInitializationAllPlansParent', {
     Model: AllPlansModel,
-    Message: ParentMessage,
+    Message: defineMessageUnion({
+      GotChildMessage: { id: Schema.String, message: ChildMessage },
+      GotDirectMessage: { message: ChildMessage },
+    }),
   })
+  const AllPlansMessage = AllPlansParent.Message
   const directBinding = Reflect.apply(AllPlansParent.bindChild, undefined, [
     ChildBlock,
     {
       field: 'direct',
-      parentMessage: ParentMessage.GotDirectMessage,
+      parentMessage: AllPlansMessage.GotDirectMessage,
       init: { args: () => single(9) },
     },
   ])
@@ -354,8 +373,14 @@ it('preflights every Binding selector before calling any child init', () => {
       key: 'id',
       childField: 'child',
       toParentMessage: (id: string, message: typeof ChildMessage.Type) =>
-        ParentMessage.GotChildMessage({ id, message }),
-      fromParentMessage: false,
+        AllPlansMessage.GotChildMessage({ id, message }),
+      fromParentMessage: {
+        parentMessage: AllPlansMessage.GotChildMessage,
+        args: (
+          _model: unknown,
+          { id, message }: typeof AllPlansMessage.GotChildMessage.Type,
+        ) => Option.some([id, message]),
+      },
       init: {
         occurrences: () => [{ key: 'invalid' }],
         toItem: ({ key }: { key: string }, child: ChildModel) =>
@@ -419,13 +444,16 @@ it('rejects wrappers that replace the initialized child', () => {
 it('remains passive and creates fresh wrappers on every invocation', () => {
   const occurrenceCalls = { count: 0 }
   const FreshBinding = Parent.bindChild(ChildBlock, {
-    fromParentMessage: false,
     field: 'entries',
     key: 'id',
     childField: 'child',
     placement: 'freshEntries',
     toParentMessage: (id, message) =>
       ParentMessage.GotChildMessage({ id, message }),
+    fromParentMessage: {
+      parentMessage: ParentMessage.GotChildMessage,
+      args: (_model, { id, message }) => Option.some([id, message]),
+    },
     init: {
       occurrences: () => {
         occurrenceCalls.count += 1
@@ -456,13 +484,16 @@ it('remains passive and creates fresh wrappers on every invocation', () => {
 it('selects one large wrapped keyed field once in each validation and survival phase', () => {
   const occurrenceCount = 100
   const ScalingBinding = Parent.bindChild(ChildBlock, {
-    fromParentMessage: false,
     field: 'entries',
     key: 'id',
     childField: 'child',
     placement: 'scalingEntries',
     toParentMessage: (id, message) =>
       ParentMessage.GotChildMessage({ id, message }),
+    fromParentMessage: {
+      parentMessage: ParentMessage.GotChildMessage,
+      args: (_model, { id, message }) => Option.some([id, message]),
+    },
     init: {
       occurrences: () =>
         Array.makeBy(occurrenceCount, index => ({
@@ -516,6 +547,14 @@ if (false) {
     // @ts-expect-error Wrapped occurrence args must match child init exactly.
     toParentMessage: (id: string, message: typeof ChildMessage.Type) =>
       ParentMessage.GotChildMessage({ id, message }),
+    // @ts-expect-error Wrapped occurrence args must match child init exactly.
+    fromParentMessage: {
+      parentMessage: ParentMessage.GotChildMessage,
+      args: (
+        _model: ParentModel,
+        { id, message }: typeof ParentMessage.GotChildMessage.Type,
+      ) => Option.some([id, message]),
+    },
     // @ts-expect-error Wrapped occurrence args must match child init exactly.
     init: {
       occurrences: () => [{ key: 'invalid', args: ['invalid'] }],

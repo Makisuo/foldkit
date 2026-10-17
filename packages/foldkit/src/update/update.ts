@@ -16,8 +16,10 @@ declare const ResultRecipeTypesTypeId: unique symbol
  * It preserves the exact Model, Message, OutMessage, Command requirements, and
  * Binding registration types. Return or compose it intact: `.model`,
  * `.commands`, and `.outMessage` are unavailable until checked execution.
- * A matching Composition `makeInit` or `makeUpdate`, or a completed Block's
- * exposed operation, interprets it with the registered graph active.
+ * A matching Composition `makeInit` or `makeUpdate` interprets it with the
+ * registered graph active. A completed Block's exposed operation produces a
+ * Message, invokes that completed update, and interprets any recipe returned by
+ * the selected branch.
  *
  * This type provides no public executor. Ordinary {@link Return} and
  * {@link ReturnWithOutMessage} values remain readable Model-and-Commands results.
@@ -84,6 +86,8 @@ declare const GraphCapabilityTypeId: unique symbol
 
 declare const DeferredUpdateEvidenceTypeId: unique symbol
 
+declare const DeferredResultEvidenceTypeId: unique symbol
+
 type ConcreteGraphRequirement<Requirement> = 0 extends 1 & Requirement
   ? never
   : unknown extends Requirement
@@ -112,6 +116,13 @@ export interface DeferredUpdateEvidence<Model, Message, R, Evidence> {
     registrationEvidence: () => Evidence,
   ]
 }
+
+/** @internal Retains an obligation that a completed graph must interpret. */
+export interface DeferredResultEvidence<Evidence> {
+  readonly [DeferredResultEvidenceTypeId]: (evidence: Evidence) => Evidence
+}
+
+type AnyDeferredResultEvidence = DeferredResultEvidence<any>
 
 /** @internal Adds a Binding graph requirement to an ordinary Model input. */
 export type GraphInput<Model, Requirement> = [Requirement] extends [never]
@@ -232,7 +243,7 @@ type ConcreteRegistrationEvidence<Evidence> = 0 extends 1 & Evidence
     ? never
     : Evidence
 
-type DirectRegistrationEvidenceOf<Value> = Value extends unknown
+type DirectResultEvidenceChannelOf<Value> = Value extends unknown
   ? typeof RegistrationEvidenceTypeId extends keyof Value
     ? Value extends Readonly<{
         [RegistrationEvidenceTypeId]?: infer EvidenceFunction
@@ -240,23 +251,70 @@ type DirectRegistrationEvidenceOf<Value> = Value extends unknown
       ? [NonNullable<EvidenceFunction>] extends [never]
         ? never
         : NonNullable<EvidenceFunction> extends () => infer Evidence
-          ? ConcreteRegistrationEvidence<Evidence>
+          ? Evidence
           : never
       : never
     : never
   : never
 
-/** Extracts child Binding registration evidence retained by an update result or
- * its Commands. */
-export type RegistrationEvidenceOf<Value> =
+/** @internal Extracts the unfiltered graph evidence retained by an update result. */
+export type ResultEvidenceChannelOf<Value> =
   Value extends DeferredUpdateEvidence<any, any, any, infer Evidence>
-    ? ConcreteRegistrationEvidence<Evidence>
+    ? Evidence
     :
-        | DirectRegistrationEvidenceOf<Value>
+        | DirectResultEvidenceChannelOf<Value>
         | (Value extends unknown
             ? 'commands' extends keyof Value
               ? Value extends Readonly<{ commands?: infer CommandValues }>
-                ? DirectRegistrationEvidenceOf<NonNullable<CommandValues>>
+                ? DirectResultEvidenceChannelOf<NonNullable<CommandValues>>
+                : never
+              : never
+            : never)
+
+type InvalidResultEvidence<Value> =
+  ResultEvidenceChannelOf<Value> extends infer Evidence
+    ? 0 extends 1 & Evidence
+      ? Evidence
+      : unknown extends Evidence
+        ? Evidence
+        : never
+    : never
+
+/** @internal Rejects update results whose graph evidence was widened away. */
+export type ValidateConcreteResultEvidence<Value> = [
+  InvalidResultEvidence<Value>,
+] extends [never]
+  ? unknown
+  : Readonly<{
+      'Composition results must preserve concrete Binding graph evidence': InvalidResultEvidence<Value>
+    }>
+
+/** @internal Extracts graph obligations retained separately from registration. */
+export type DeferredResultEvidenceOf<Value> = Extract<
+  ConcreteRegistrationEvidence<ResultEvidenceChannelOf<Value>>,
+  AnyDeferredResultEvidence
+>
+
+type ConcreteRegistrationPart<Evidence> =
+  Evidence extends AnyDeferredResultEvidence
+    ? never
+    : ConcreteRegistrationEvidence<Evidence>
+
+/** Extracts child Binding registration evidence retained by an update result or
+ * its Commands. A raw Binding operation reports its direct child registration;
+ * policy-produced registrations remain an opaque obligation until a completed
+ * Composition resolves them against its registered graph. */
+export type RegistrationEvidenceOf<Value> =
+  Value extends DeferredUpdateEvidence<any, any, any, infer Evidence>
+    ? ConcreteRegistrationPart<Evidence>
+    :
+        | ConcreteRegistrationPart<DirectResultEvidenceChannelOf<Value>>
+        | (Value extends unknown
+            ? 'commands' extends keyof Value
+              ? Value extends Readonly<{ commands?: infer CommandValues }>
+                ? ConcreteRegistrationPart<
+                    DirectResultEvidenceChannelOf<NonNullable<CommandValues>>
+                  >
                 : never
               : never
             : never)
@@ -343,7 +401,7 @@ export type ResultRecipeFor<Model, Output> = ResultRecipe<
   RegistrationCommandMessageOf<Output>,
   RegistrationOutMessageOf<Output>,
   RegistrationCommandRequirementsOf<Output>,
-  RegistrationEvidenceOf<Output>
+  ResultEvidenceChannelOf<Output>
 >
 
 type ReturnOf<Function extends (...args: ReadonlyArray<any>) => any> =
@@ -383,7 +441,9 @@ type CommandMessage<Output> = Output extends unknown
  * The Effect services required by the Commands an update can return. This
  * reads the update's return contract, including requirements carried through
  * child folds, without including services used only by Subscriptions, Mounts,
- * or ManagedResources.
+ * or ManagedResources. A raw Binding operation reports direct child Command
+ * requirements. Policy-produced requirements become visible after a completed
+ * Composition resolves the operation against its registered graph.
  */
 export type RequirementsOf<
   Update extends (...args: ReadonlyArray<any>) => any,
@@ -767,7 +827,7 @@ type CombinedStepRequirements<Steps extends ReadonlyArray<AnyStep>> =
   CommandRequirements<ResolvedStepReturn<Steps[number]>>
 
 type CombinedStepRegistrationEvidence<Steps extends ReadonlyArray<AnyStep>> =
-  | RegistrationEvidenceOf<ResolvedStepReturn<Steps[number]>>
+  | ResultEvidenceChannelOf<ResolvedStepReturn<Steps[number]>>
   | CombinedGraphRequirement<Steps>
 
 type CombinedStepOutputFor<

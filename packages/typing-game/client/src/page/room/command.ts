@@ -8,14 +8,14 @@ import {
   USER_GAME_TEXT_INPUT_ID,
 } from '../../constant'
 import { RoomsClient } from '../../rpc'
-import { Room } from './definition'
+import { RoomDefinition } from './definition'
 import { Message } from './message'
 import { RoomPlayerSession, RoomPlayerSessionJsonString } from './model'
 
 const roomPlayerSessionKey = (roomId: string) =>
   `${ROOM_PLAYER_SESSION_KEY}:${roomId}`
 
-export const FetchRoom = Room.command('FetchRoom', {
+export const FetchRoom = RoomDefinition.command('FetchRoom', {
   args: { roomId: Schema.String },
   messages: [Message.SucceededFetchRoom, Message.FailedFetchRoom],
   handler: function* () {
@@ -29,7 +29,7 @@ export const FetchRoom = Room.command('FetchRoom', {
   },
 })
 
-export const LoadSession = Room.command('LoadSession', {
+export const LoadSession = RoomDefinition.command('LoadSession', {
   args: { roomId: Schema.String },
   messages: [Message.CompletedLoadSession],
   handler: function* () {
@@ -65,7 +65,7 @@ export const LoadSession = Room.command('LoadSession', {
   },
 })
 
-export const JoinRoom = Room.command('JoinRoom', {
+export const JoinRoom = RoomDefinition.command('JoinRoom', {
   args: { username: Schema.String, roomId: Schema.String },
   messages: [Message.SucceededJoinRoom, Message.FailedJoinRoom],
   handler: function* () {
@@ -79,7 +79,7 @@ export const JoinRoom = Room.command('JoinRoom', {
   },
 })
 
-export const StartGame = Room.command('StartGame', {
+export const StartGame = RoomDefinition.command('StartGame', {
   args: { roomId: Schema.String, playerId: Schema.String },
   messages: [Message.SucceededStartGame, Message.FailedStartGame],
   handler: function* () {
@@ -93,35 +93,38 @@ export const StartGame = Room.command('StartGame', {
   },
 })
 
-export const UpdatePlayerProgress = Room.command('UpdatePlayerProgress', {
-  args: {
-    playerId: Schema.String,
-    gameId: Schema.String,
-    userGameText: Schema.String,
-    charsTyped: Schema.Number,
-  },
-  messages: [Message.CompletedUpdatePlayerProgress],
-  handler: function* () {
-    const client = yield* RoomsClient
+export const UpdatePlayerProgress = RoomDefinition.command(
+  'UpdatePlayerProgress',
+  {
+    args: {
+      playerId: Schema.String,
+      gameId: Schema.String,
+      userGameText: Schema.String,
+      charsTyped: Schema.Number,
+    },
+    messages: [Message.CompletedUpdatePlayerProgress],
+    handler: function* () {
+      const client = yield* RoomsClient
 
-    return ({ playerId, gameId, userGameText, charsTyped }) =>
-      client
-        .updatePlayerProgress({
-          playerId,
-          gameId,
-          userText: userGameText,
-          charsTyped,
-        })
-        .pipe(
-          Effect.as(Message.CompletedUpdatePlayerProgress()),
-          Effect.catch(() =>
-            Effect.succeed(Message.CompletedUpdatePlayerProgress()),
-          ),
-        )
+      return ({ playerId, gameId, userGameText, charsTyped }) =>
+        client
+          .updatePlayerProgress({
+            playerId,
+            gameId,
+            userText: userGameText,
+            charsTyped,
+          })
+          .pipe(
+            Effect.as(Message.CompletedUpdatePlayerProgress()),
+            Effect.catch(() =>
+              Effect.succeed(Message.CompletedUpdatePlayerProgress()),
+            ),
+          )
+    },
   },
-})
+)
 
-export const CopyRoomId = Room.command('CopyRoomId', {
+export const CopyRoomId = RoomDefinition.command('CopyRoomId', {
   args: { roomId: Schema.String },
   messages: [Message.SucceededCopyRoomId, Message.FailedCopyRoomId],
   handler: function* () {
@@ -136,7 +139,7 @@ export const CopyRoomId = Room.command('CopyRoomId', {
   },
 })
 
-export const WaitForExitCountdownInterval = Room.command(
+export const WaitForExitCountdownInterval = RoomDefinition.command(
   'WaitForExitCountdownInterval',
   {
     messages: [Message.CompletedWaitForExitCountdownInterval],
@@ -151,7 +154,7 @@ export const WaitForExitCountdownInterval = Room.command(
 
 const COPY_INDICATOR_DURATION = '2 seconds'
 
-export const WaitBeforeHidingRoomIdCopiedIndicator = Room.command(
+export const WaitBeforeHidingRoomIdCopiedIndicator = RoomDefinition.command(
   'WaitBeforeHidingRoomIdCopiedIndicator',
   {
     messages: [Message.CompletedWaitBeforeHidingRoomIdCopiedIndicator],
@@ -166,7 +169,7 @@ export const WaitBeforeHidingRoomIdCopiedIndicator = Room.command(
 
 // SESSION COMMANDS
 
-export const SavePlayerSession = Room.command('SavePlayerSession', {
+export const SavePlayerSession = RoomDefinition.command('SavePlayerSession', {
   args: { session: RoomPlayerSession },
   messages: [Message.CompletedSavePlayerSession],
   handler: function* () {
@@ -186,7 +189,7 @@ export const SavePlayerSession = Room.command('SavePlayerSession', {
   },
 })
 
-export const ClearSession = Room.command('ClearSession', {
+export const ClearSession = RoomDefinition.command('ClearSession', {
   args: { roomId: Schema.String },
   messages: [Message.CompletedClearSession],
   handler: function* () {
@@ -217,7 +220,7 @@ export const ClearSession = Room.command('ClearSession', {
   },
 })
 
-export const FocusRoomPageUsernameInput = Room.command(
+export const FocusRoomPageUsernameInput = RoomDefinition.command(
   'FocusRoomPageUsernameInput',
   {
     messages: [Message.CompletedFocusRoomPageUsernameInput],
@@ -231,13 +234,16 @@ export const FocusRoomPageUsernameInput = Room.command(
   },
 )
 
-export const FocusUserGameTextInput = Room.command('FocusUserGameTextInput', {
-  messages: [Message.CompletedFocusUserGameTextInput],
-  handler: function* () {
-    return () =>
-      Dom.focus(`#${USER_GAME_TEXT_INPUT_ID}`).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedFocusUserGameTextInput()),
-      )
+export const FocusUserGameTextInput = RoomDefinition.command(
+  'FocusUserGameTextInput',
+  {
+    messages: [Message.CompletedFocusUserGameTextInput],
+    handler: function* () {
+      return () =>
+        Dom.focus(`#${USER_GAME_TEXT_INPUT_ID}`).pipe(
+          Effect.ignore,
+          Effect.as(Message.CompletedFocusUserGameTextInput()),
+        )
+    },
   },
-})
+)

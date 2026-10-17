@@ -4,7 +4,8 @@ import { Button, Input } from '@foldkit/ui'
 
 import { Cart } from '../../domain'
 import { cartRouter } from '../../route'
-import { Message, ProductsComposition } from './definition'
+import { ProductsComposition } from './composition'
+import { Message } from './definition'
 
 export type ViewInputs = Readonly<{
   cart: Cart.Cart

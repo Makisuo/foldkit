@@ -27,19 +27,19 @@ const foldHoverMenuOutMessage = HoverIntent.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const HoverMenu = Block.define('HoverMenu', {
+const HoverMenuDefinition = Block.define('HoverMenu', {
   Model,
   Message,
 })
 
-const HoverMenuBinding = HoverMenu.bindChild(HoverIntent.block, {
+const HoverMenuBinding = HoverMenuDefinition.bindChild(HoverIntent.block, {
   field: 'hoverMenu',
   parentMessage: Message.GotHoverMenuMessage,
   init: true,
   outMessage: { fold: foldHoverMenuOutMessage },
 })
 
-const HoverMenuComposition = HoverMenu.makeComposition({
+const HoverMenuComposition = HoverMenuDefinition.makeComposition({
   childBindings: [HoverMenuBinding],
 })
 

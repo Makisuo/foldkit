@@ -32,10 +32,8 @@ export type AddedToCart = typeof OutMessage.AddedToCart.Type
 export type IncrementedQuantity = typeof OutMessage.IncrementedQuantity.Type
 export type DecrementedQuantity = typeof OutMessage.DecrementedQuantity.Type
 
-export const Products = Block.define('Products', {
+export const ProductsDefinition = Block.define('Products', {
   Model,
   Message,
   OutMessage,
 })
-
-export const ProductsComposition = Products.makeComposition()

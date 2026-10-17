@@ -2,12 +2,12 @@ import { Layer } from 'effect'
 import { Block, Command, Update } from 'foldkit'
 
 import {
-  Application,
+  ApplicationDefinition,
   AutomaticBinding,
   ChildBlock,
-  DeclarationStartupDefaultsParent,
-  DeclarationStartupGenericParent,
+  DeclarationStartupDefaultsParentDefinition,
   DeclarationStartupGenericParentComposition,
+  DeclarationStartupGenericParentDefinition,
   DefaultArgumentBinding,
   DefaultChildBlock,
   EntriesBinding,
@@ -103,31 +103,31 @@ DeclarationStartupGenericParentComposition.makeInit(() => ({
   model: {},
 }))
 
-DeclarationStartupGenericParent.bindChild(ChildBlock, {
+DeclarationStartupGenericParentDefinition.bindChild(ChildBlock, {
   field: 'child',
   placement: 'external',
   parentMessage: ParentMessage.GotChildMessage,
   init: { args: _startup => [] },
 })
-Application.bindChild(ChildBlock, {
+ApplicationDefinition.bindChild(ChildBlock, {
   field: 'child',
   placement: 'external',
   parentMessage: ParentMessage.GotChildMessage,
   init: { args: _startup => [] },
 })
-DeclarationStartupDefaultsParent.bindChild(RequiredChildBlock, {
+DeclarationStartupDefaultsParentDefinition.bindChild(RequiredChildBlock, {
   field: 'automatic',
   placement: 'externalOptOut',
   parentMessage: ParentMessage.GotChildMessage,
-  fromParentMessage: false,
+
   init: false,
 })
 
 // @ts-expect-error The emitted required child still requires args or opt out.
 // oxfmt-ignore
-DeclarationStartupDefaultsParent.bindChild(RequiredChildBlock, { field: 'automatic', placement: 'externalMissingArgs', parentMessage: ParentMessage.GotChildMessage, fromParentMessage: false })
+DeclarationStartupDefaultsParentDefinition.bindChild(RequiredChildBlock, { field: 'automatic', placement: 'externalMissingArgs', parentMessage: ParentMessage.GotChildMessage,  })
 
-DeclarationStartupGenericParent.bindChild(ChildBlock, {
+DeclarationStartupGenericParentDefinition.bindChild(ChildBlock, {
   field: 'child',
   placement: 'externalMutation',
   parentMessage: ParentMessage.GotChildMessage,

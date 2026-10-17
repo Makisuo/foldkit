@@ -52,7 +52,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
 
       const routeSteps = Match.value(nextRoute).pipe(
         Match.tag('People', peopleRoute => [
-          PeoplePageBinding.informRouteChanged(peopleRoute),
+          PeoplePageBinding.informRouteChanged({ route: peopleRoute }),
         ]),
         Match.orElse(() => []),
       )

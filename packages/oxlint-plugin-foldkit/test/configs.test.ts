@@ -60,6 +60,9 @@ describe('configs', () => {
         expect(
           config.rules['foldkit/no-child-message-construction-in-root'],
         ).toBe('error')
+        expect(config.rules['foldkit/no-manual-composition-routing']).toBe(
+          'error',
+        )
         expect(config.rules['foldkit/no-direct-block-state-update']).toBe(
           'error',
         )

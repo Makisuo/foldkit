@@ -1,29 +1,17 @@
-import {
-  Array,
-  Cause,
-  Match,
-  Predicate,
-  Schema,
-  SchemaAST,
-  Types,
-} from 'effect'
+import { Array, Cause, Match, Predicate, Schema, SchemaAST } from 'effect'
 
 /** A `TaggedStruct` schema that can be called directly as a constructor: `Foo({ count: 1 })` instead of `Foo.make({ count: 1 })`. */
-export type CallableTaggedStruct<
+export interface CallableTaggedStruct<
   Tag extends string,
   Fields extends Schema.Struct.Fields,
-> = Schema.TaggedStruct<Tag, Fields> &
-  (keyof Fields extends never
-    ? (
-        value?: Parameters<Schema.TaggedStruct<Tag, Fields>['make']>[0] | void,
-      ) => Types.Simplify<
-        Schema.Struct.Type<{ readonly _tag: Schema.tag<Tag> } & Fields>
-      >
-    : (
-        value: Parameters<Schema.TaggedStruct<Tag, Fields>['make']>[0],
-      ) => Types.Simplify<
-        Schema.Struct.Type<{ readonly _tag: Schema.tag<Tag> } & Fields>
-      >)
+> extends Schema.TaggedStruct<Tag, Fields> {
+  (value: Omit<this['Type'], '_tag'> & Readonly<{ _tag?: Tag }>): this['Type']
+  (
+    ...args: keyof Fields extends never
+      ? readonly [value?: this['~type.make.in'] | void]
+      : readonly [value: this['~type.make.in']]
+  ): this['Type']
+}
 
 const assignPlainProperty = (
   output: Record<PropertyKey, unknown>,

@@ -3,7 +3,7 @@ import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { PlaygroundBinding, UiPagesBinding } from '../composition'
-import { Application } from '../definition'
+import { ApplicationDefinition } from '../definition'
 import { findActiveSectionKeyForRoute } from '../docsNav'
 import {
   type Message,
@@ -15,7 +15,7 @@ import { ApplyTheme, resolveTheme } from '../theme'
 
 type BrowserEnvironment = typeof Message.CompletedLoadBrowserEnvironment.Type
 
-export const handleCompletedLoadBrowserEnvironment = Application.step(
+export const handleCompletedLoadBrowserEnvironment = ApplicationDefinition.step(
   (
     _,
     {
@@ -36,7 +36,7 @@ export const handleCompletedLoadBrowserEnvironment = Application.step(
       systemTheme,
     )
 
-    const applyBrowserEnvironment = Application.step(stepModel => ({
+    const applyBrowserEnvironment = ApplicationDefinition.step(stepModel => ({
       model: modifyFields(stepModel, {
         currentYear: () => currentYear,
         maybeIsPlaygroundSupported: () => Option.some(isPlaygroundSupported),
@@ -52,7 +52,7 @@ export const handleCompletedLoadBrowserEnvironment = Application.step(
       commands: [ApplyTheme({ theme: resolvedTheme })],
     }))
 
-    const initUiPages = Application.step(stepModel => {
+    const initUiPages = ApplicationDefinition.step(stepModel => {
       return UiPagesBinding.init({
         args: [today],
         toParentModel: uiPages =>
@@ -62,7 +62,7 @@ export const handleCompletedLoadBrowserEnvironment = Application.step(
 
     return Update.combine([
       applyBrowserEnvironment,
-      PlaygroundBinding.informSupport(isPlaygroundSupported),
+      PlaygroundBinding.informSupport({ isSupported: isPlaygroundSupported }),
       initUiPages,
     ])
   },

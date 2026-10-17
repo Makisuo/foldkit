@@ -3,7 +3,7 @@ import { Update } from 'foldkit'
 import { Animation } from '@foldkit/ui'
 import { defaultLeaveCommand } from '@foldkit/ui/animation'
 
-import { Ui } from '../definition'
+import { UiDefinition } from '../definition'
 import { Message } from '../message'
 
 const foldAnimationDemoOutMessage = (
@@ -12,14 +12,14 @@ const foldAnimationDemoOutMessage = (
 ) =>
   Animation.OutMessage.match(outMessage, {
     StartedLeaveAnimating: () =>
-      Ui.step(model => ({
+      UiDefinition.step(model => ({
         model,
         commands: [liftCommand(defaultLeaveCommand(model.animationDemo))],
       })),
-    TransitionedOut: () => Ui.step(model => ({ model })),
+    TransitionedOut: () => UiDefinition.step(model => ({ model })),
   })
 
-export const AnimationDemoBinding = Ui.bindChild(Animation.block, {
+export const AnimationDemoBinding = UiDefinition.bindChild(Animation.block, {
   field: 'animationDemo',
   parentMessage: Message.GotAnimationDemoMessage,
   init: { args: () => [{ id: 'animation-demo' }] },

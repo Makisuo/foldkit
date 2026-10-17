@@ -3,7 +3,7 @@ import { AsyncData, type Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { FetchPosts, FetchStats } from './command'
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 import {
   ApplicationTabs,
@@ -59,17 +59,17 @@ const activateTab = (tab: Tab) => (model: Model) => {
 }
 
 const foldTabsOutMessage = ApplicationTabs.OutMessage.match({
-  Selected: ({ value }) => Application.step(activateTab(value)),
+  Selected: ({ value }) => ApplicationDefinition.step(activateTab(value)),
 })
 
-export const TabsBinding = Application.bindChild(ApplicationTabs, {
+export const TabsBinding = ApplicationDefinition.bindChild(ApplicationTabs, {
   field: 'tabs',
   parentMessage: Message.GotTabsMessage,
   init: { args: () => [{ id: TABS_ID }] },
   outMessage: { fold: foldTabsOutMessage },
 })
 
-export const ApplicationComposition = Application.makeComposition({
+export const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [TabsBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

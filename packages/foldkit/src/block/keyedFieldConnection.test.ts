@@ -110,20 +110,14 @@ const ChildrenBinding = Parent.bindChild(childBlock, {
 })
 const ArrayChildBinding = Parent.bindChild(arrayChildBlock, {
   field: 'arrayChild',
-  toParentMessage: message => ParentMessage.GotArrayChildMessage({ message }),
-  fromParentMessage: false,
+  parentMessage: ParentMessage.GotArrayChildMessage,
   init: false,
 })
 const ParentComposition = Parent.makeComposition({
   childBindings: [ChildrenBinding, ArrayChildBinding],
 })
 
-const update = ParentComposition.makeUpdate((model, message) =>
-  ParentMessage.match(message, {
-    GotArrayChildMessage: ({ message }) =>
-      ArrayChildBinding.fold(model, message),
-  }),
-)
+const update = ParentComposition.makeUpdate()
 
 const CallableChildModel = taggedStruct('CallableChild', {
   id: Schema.String,
@@ -153,24 +147,27 @@ const callableChildBlock = CallableChildComposition.makeBlock({
 const CallableParentModel = taggedStruct('CallableParent', {
   entries: Schema.Array(CallableChildModel),
 })
+const CallableParentMessage = defineMessageUnion({
+  GotChildMessage: { id: Schema.String, message: ChildMessage },
+})
 const CallableParent = define('KeyedFieldConnectionCallableParent', {
   Model: CallableParentModel,
-  Message: ParentMessage,
+  Message: CallableParentMessage,
 })
 const CallableChildrenBinding = CallableParent.bindChild(callableChildBlock, {
   field: 'entries',
   key: 'id',
   toParentMessage: (id, message) =>
-    ParentMessage.GotChildMessage({ id, message }),
+    CallableParentMessage.GotChildMessage({ id, message }),
   fromParentMessage: {
-    parentMessage: ParentMessage.GotChildMessage,
+    parentMessage: CallableParentMessage.GotChildMessage,
     args: (_model, { id, message }) => Option.some([id, message]),
   },
 })
 const CallableComposition = CallableParent.makeComposition({
   childBindings: [CallableChildrenBinding],
 })
-const updateCallable = CallableComposition.makeUpdate(model => ({ model }))
+const updateCallable = CallableComposition.makeUpdate()
 
 const normalize = (overrides: globalThis.Record<string, unknown> = {}) =>
   normalizeKeyedFieldConfig({

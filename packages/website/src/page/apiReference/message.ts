@@ -4,6 +4,8 @@ import { defineMessageUnion } from 'foldkit/message'
 import { ApiData } from './model'
 
 export const Message = defineMessageUnion({
+  RequestedLoadInitialData: { maybeApiData: Schema.Option(ApiData) },
+  InformedOfRouteChange: {},
   SucceededLoadApiData: { apiData: ApiData },
   FailedLoadApiData: { error: Schema.String },
   ToggledSignature: {

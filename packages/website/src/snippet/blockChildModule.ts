@@ -24,8 +24,8 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const Settings = Block.define('Settings', { Model, Message })
-const SettingsComposition = Settings.makeComposition()
+export const SettingsDefinition = Block.define('Settings', { Model, Message })
+const SettingsComposition = SettingsDefinition.makeComposition()
 
 export const update = SettingsComposition.makeUpdate((model, message) =>
   Message.match(message, {

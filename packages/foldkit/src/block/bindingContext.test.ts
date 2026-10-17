@@ -1,4 +1,4 @@
-import { Array, Layer, Option, Schema } from 'effect'
+import { Array, Layer, Option, Schema, Tuple } from 'effect'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
@@ -24,7 +24,7 @@ const ResetCounterComposition = ResetCounter.makeComposition()
 const block = ResetCounterComposition.makeBlock({
   init: (count: number) => ({ model: CounterModel.make({ count }) }),
   update: ResetCounterComposition.makeUpdate((model, _message) => reset(model)),
-  expose: { reset },
+  operations: { reset: () => Tuple.make(CounterMessage.ClickedReset()) },
   EffectsLayer: Layer.empty,
 })
 const Model = Schema.Struct({
@@ -37,6 +37,9 @@ const Model = Schema.Struct({
 type Model = typeof Model.Type
 const Message = defineMessageUnion({
   GotCounterMessage: { message: CounterMessage },
+  GotEntryMessage: { id: Schema.Number, message: CounterMessage },
+  RequestedResetCounter: {},
+  RequestedResetEntry: { id: Schema.Number },
 })
 type Message = typeof Message.Type
 const Parent = define('BindingContextParent', {
@@ -90,7 +93,9 @@ const keyedPolicy = {
       }),
     }),
 }
+const entriesPlacement: 'entries' = 'entries'
 const keyedBaseConfig = {
+  placement: entriesPlacement,
   readAll: (model: Model) => model.entries,
   key: (entry: Model['entries'][number]) => entry.id,
   read: (entry: Model['entries'][number]) => entry.counter,
@@ -104,11 +109,18 @@ const keyedBaseConfig = {
         entry.id === id ? { ...entry, counter: nextCounter } : entry,
       ),
     }),
-  toParentMessage: (_id: number, message: typeof CounterMessage.Type) =>
-    Message.GotCounterMessage({ message }),
+  toParentMessage: (id: number, message: typeof CounterMessage.Type) =>
+    Message.GotEntryMessage({ id, message }),
+  fromParentMessage: {
+    parentMessage: Message.GotEntryMessage,
+    args: (
+      _model: Model,
+      { id, message }: typeof Message.GotEntryMessage.Type,
+    ): Option.Option<readonly [number, typeof CounterMessage.Type]> =>
+      Option.some([id, message]),
+  },
 }
 const EntriesBinding = Parent.bindChild(block, {
-  fromParentMessage: false,
   ...keyedBaseConfig,
   outMessage: keyedPolicy,
 })
@@ -126,6 +138,9 @@ const toEntryParentModel = (
 
 const SequencedCounterModel = Schema.Struct({ count: Schema.Number })
 const SequencedCounterMessage = defineMessageUnion({
+  RequestedAdd: { amount: Schema.Number },
+  RequestedRecord: {},
+  RequestedMultiply: { factor: Schema.Number },
   CompletedRecordCount: {},
 })
 const SequencedCounter = define('SequencedCounter', {
@@ -149,8 +164,21 @@ const multiply = SequencedCounter.step((model, factor: number) => ({
 const SequencedCounterComposition = SequencedCounter.makeComposition()
 const sequencedCounterBlock = SequencedCounterComposition.makeBlock({
   init: (count: number) => ({ model: { count } }),
-  update: SequencedCounterComposition.makeUpdate(model => ({ model })),
-  expose: { add, record, multiply },
+  update: SequencedCounterComposition.makeUpdate((model, message) =>
+    SequencedCounterMessage.match(message, {
+      RequestedAdd: ({ amount }) => add(model, amount),
+      RequestedRecord: () => record(model),
+      RequestedMultiply: ({ factor }) => multiply(model, factor),
+      CompletedRecordCount: () => ({ model }),
+    }),
+  ),
+  operations: {
+    add: (amount: number) =>
+      Tuple.make(SequencedCounterMessage.RequestedAdd({ amount })),
+    record: () => Tuple.make(SequencedCounterMessage.RequestedRecord()),
+    multiply: (factor: number) =>
+      Tuple.make(SequencedCounterMessage.RequestedMultiply({ factor })),
+  },
   EffectsLayer: Layer.empty,
   hostHandlers: [RecordCount],
 })
@@ -158,6 +186,7 @@ const SequencedParentModel = Schema.Struct({ child: SequencedCounterModel })
 type SequencedParentModel = typeof SequencedParentModel.Type
 const SequencedParentMessage = defineMessageUnion({
   GotSequencedCounterMessage: { message: SequencedCounterMessage },
+  RequestedSequence: {},
 })
 const SequencedParent = define('SequencedCounterParent', {
   Model: SequencedParentModel,
@@ -170,7 +199,6 @@ const SequencedCounterBinding = SequencedParent.bindChild(
     write: (model, nextChild) =>
       modifyFields(model, { child: () => nextChild }),
     parentMessage: SequencedParentMessage.GotSequencedCounterMessage,
-    fromParentMessage: false,
   },
 )
 
@@ -298,23 +326,31 @@ if (false) {
 }
 
 const StaticComposition = Parent.makeComposition({
-  childBindings: [BoundCounterBinding],
+  childBindings: [BoundCounterBinding, EntriesBinding],
 })
 const staticParent = StaticComposition.makeBlock({
   init: () => ({ model: initialModel }),
-  update: StaticComposition.makeUpdate(),
-  expose: { reset: Parent.step(() => BoundCounterBinding.reset()) },
+  update: StaticComposition.makeUpdate((model, message) =>
+    Message.match(message, {
+      RequestedResetCounter: () => BoundCounterBinding.reset()(model),
+      RequestedResetEntry: () => ({ model }),
+    }),
+  ),
+  operations: { reset: () => Tuple.make(Message.RequestedResetCounter()) },
 })
 const KeyedComposition = Parent.makeComposition({
-  childBindings: [EntriesBinding],
+  childBindings: [BoundCounterBinding, EntriesBinding],
 })
 const keyedParent = KeyedComposition.makeBlock({
   init: () => ({ model: initialModel }),
   update: KeyedComposition.makeUpdate((model, message) =>
-    EntriesBinding.fold(model, 1, message.message),
+    Message.match(message, {
+      RequestedResetCounter: () => ({ model }),
+      RequestedResetEntry: ({ id }) => EntriesBinding.reset(id)(model),
+    }),
   ),
-  expose: {
-    reset: Parent.step((_model, id: number) => EntriesBinding.reset(id)),
+  operations: {
+    reset: (id: number) => Tuple.make(Message.RequestedResetEntry({ id })),
   },
 })
 
@@ -325,7 +361,7 @@ describe('bound OutMessage context', () => {
         initialModel,
         Message.GotCounterMessage({ message: CounterMessage.ClickedReset() }),
       ),
-      staticParent.expose.reset(initialModel),
+      staticParent.operations.reset(initialModel),
     ]
     for (const result of results) {
       expect(result.model.counter.count).toBe(0)
@@ -337,9 +373,12 @@ describe('bound OutMessage context', () => {
     const results = [
       keyedParent.update(
         initialModel,
-        Message.GotCounterMessage({ message: CounterMessage.ClickedReset() }),
+        Message.GotEntryMessage({
+          id: 1,
+          message: CounterMessage.ClickedReset(),
+        }),
       ),
-      keyedParent.expose.reset(initialModel, 1),
+      keyedParent.operations.reset(initialModel, 1),
     ]
     for (const result of results) {
       expect(result.model.entries).toEqual([{ id: 1, counter: { count: 0 } }])
@@ -368,9 +407,7 @@ describe('bound Step sequencing', () => {
     )
     const result = update(
       SequencedParentModel.make({ child: { count: 3 } }),
-      SequencedParentMessage.GotSequencedCounterMessage({
-        message: SequencedCounterMessage.CompletedRecordCount(),
-      }),
+      SequencedParentMessage.RequestedSequence(),
     )
 
     expect(result.model.child.count).toBe(15)

@@ -33,7 +33,7 @@ import {
   Note,
   NoteDuration,
   NoteHighlightPhase,
-  NotePlayerDemo,
+  NotePlayerDemoDefinition,
   PlaybackState,
 } from './definition'
 import { prependToLog } from './messageLog'
@@ -108,7 +108,7 @@ export const init = NotePlayerDemoComposition.makeInit(() => ({
   },
 }))
 
-const DelayAdvanceNotePlayerPhase = NotePlayerDemo.command(
+const DelayAdvanceNotePlayerPhase = NotePlayerDemoDefinition.command(
   'DelayAdvanceNotePlayerPhase',
   {
     args: { generation: Schema.Number },
@@ -356,31 +356,33 @@ export const update = NotePlayerDemoComposition.makeUpdate((model, message) =>
 // MANAGED RESOURCE
 
 const AudioContextResource =
-  NotePlayerDemo.resource<AudioContext>()('AudioContext')
+  NotePlayerDemoDefinition.resource<AudioContext>()('AudioContext')
 
-export const managedResources = NotePlayerDemo.managedResources(entry => ({
-  audioContext: entry('ManageAudioContext', Schema.Option(Schema.Null), {
-    resource: AudioContextResource,
-    modelToMaybeRequirements: () => Option.some(null),
-    onAcquired: () => Message.SucceededAcquireAudioContext(),
-    onReleased: () => Message.ReleasedAudioContext(),
-    onAcquireError: () => Message.FailedAcquireAudioContext(),
-    handler: function* () {
-      return {
-        acquire: () =>
-          Effect.try({
-            try: () => new AudioContext(),
-            catch: () =>
-              new Error('The Web Audio API is unavailable in this browser.'),
-          }),
-        release: audioContext =>
-          Effect.promise(() => audioContext.close().catch(() => undefined)),
-      }
-    },
+export const managedResources = NotePlayerDemoDefinition.managedResources(
+  entry => ({
+    audioContext: entry('ManageAudioContext', Schema.Option(Schema.Null), {
+      resource: AudioContextResource,
+      modelToMaybeRequirements: () => Option.some(null),
+      onAcquired: () => Message.SucceededAcquireAudioContext(),
+      onReleased: () => Message.ReleasedAudioContext(),
+      onAcquireError: () => Message.FailedAcquireAudioContext(),
+      handler: function* () {
+        return {
+          acquire: () =>
+            Effect.try({
+              try: () => new AudioContext(),
+              catch: () =>
+                new Error('The Web Audio API is unavailable in this browser.'),
+            }),
+          release: audioContext =>
+            Effect.promise(() => audioContext.close().catch(() => undefined)),
+        }
+      },
+    }),
   }),
-}))
+)
 
-const PlayNote = NotePlayerDemo.command('PlayNote', {
+const PlayNote = NotePlayerDemoDefinition.command('PlayNote', {
   args: { note: Note, duration: NoteDuration, noteIndex: Schema.Number },
   messages: [Message.CompletedPlayNote],
   handler: function* () {

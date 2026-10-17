@@ -20,6 +20,8 @@ export const Message = defineMessageUnion({
   SelectedSearchResult: { url: Schema.String },
   GotSearchDialogMessage: { message: Dialog.Message },
   ClearedSearchQuery: {},
+  RequestedOpen: {},
+  InformedOfRouteChange: {},
   CompletedNavigateToResult: {},
   CompletedScrollToResult: {},
   CompletedFocusSearchInput: {},

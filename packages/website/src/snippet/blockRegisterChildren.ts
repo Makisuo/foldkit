@@ -1,17 +1,20 @@
 import * as Composer from './composer'
-import { Chat } from './definition'
+import { ChatDefinition } from './definition'
 import { Message } from './message'
 
-export const PrimaryComposerBinding = Chat.bindChild(Composer.block, {
+export const PrimaryComposerBinding = ChatDefinition.bindChild(Composer.block, {
   field: 'primaryComposer',
   parentMessage: Message.GotPrimaryComposerMessage,
 })
 
-export const SecondaryComposerBinding = Chat.bindChild(Composer.block, {
-  field: 'secondaryComposer',
-  parentMessage: Message.GotSecondaryComposerMessage,
-})
+export const SecondaryComposerBinding = ChatDefinition.bindChild(
+  Composer.block,
+  {
+    field: 'secondaryComposer',
+    parentMessage: Message.GotSecondaryComposerMessage,
+  },
+)
 
-export const ChatComposition = Chat.makeComposition({
+export const ChatComposition = ChatDefinition.makeComposition({
   childBindings: [PrimaryComposerBinding, SecondaryComposerBinding],
 })

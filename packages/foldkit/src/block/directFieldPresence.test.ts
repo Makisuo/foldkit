@@ -1,4 +1,4 @@
-import { Option, Predicate, Schema } from 'effect'
+import { Option, Predicate, Schema, Tuple } from 'effect'
 import { expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
@@ -8,6 +8,7 @@ import { define } from './define.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 const ChildMessage = defineMessageUnion({
+  RequestedSetCount: { count: Schema.Number },
   UpdatedCount: { count: Schema.Number },
 })
 const Child = define('DirectPresenceChild', {
@@ -22,10 +23,16 @@ const childBlock = ChildComposition.makeBlock({
   init: ChildComposition.makeInit(() => ({
     model: ChildModel.make({ count: 0 }),
   })),
-  update: ChildComposition.makeUpdate((model, { count }) =>
-    setCount(model, count),
+  update: ChildComposition.makeUpdate((model, message) =>
+    ChildMessage.match(message, {
+      RequestedSetCount: ({ count }) => setCount(model, count),
+      UpdatedCount: ({ count }) => setCount(model, count),
+    }),
   ),
-  expose: { setCount },
+  operations: {
+    setCount: (count: number) =>
+      Tuple.make(ChildMessage.RequestedSetCount({ count })),
+  },
 })
 const Model = Schema.Struct({
   child: ChildModel,
@@ -34,13 +41,15 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 const Message = defineMessageUnion({
-  GotChildMessage: { message: ChildMessage },
+  GotOptionalChildMessage: { message: ChildMessage },
+  GotGatedChildMessage: { message: ChildMessage },
+  RequestedSetOptionalCount: { count: Schema.Number },
+  RequestedSetGatedCount: { count: Schema.Number },
 })
 const Parent = define('DirectPresenceParent', { Model, Message })
 const OptionalBinding = Parent.bindChild(childBlock, {
   field: 'maybeChild',
-  fromParentMessage: false,
-  parentMessage: Message.GotChildMessage,
+  parentMessage: Message.GotOptionalChildMessage,
 })
 const GatedBinding = Parent.bindChild(childBlock, {
   field: 'child',
@@ -48,15 +57,16 @@ const GatedBinding = Parent.bindChild(childBlock, {
     expectTypeOf(model).toEqualTypeOf<Model>()
     return model.route === 'Home'
   },
-  fromParentMessage: false,
-  parentMessage: Message.GotChildMessage,
+  parentMessage: Message.GotGatedChildMessage,
 })
 const composition = Parent.makeComposition({
   childBindings: [OptionalBinding, GatedBinding],
 })
 const update = composition.makeUpdate((model, message) =>
   Message.match(message, {
-    GotChildMessage: ({ message }) => OptionalBinding.fold(model, message),
+    RequestedSetOptionalCount: ({ count }) =>
+      OptionalBinding.setCount(count)(model),
+    RequestedSetGatedCount: ({ count }) => GatedBinding.setCount(count)(model),
   }),
 )
 const initial = Model.make({
@@ -65,19 +75,15 @@ const initial = Model.make({
   route: 'Home',
 })
 
-const gatedUpdate = composition.makeUpdate((model, { message }) =>
-  GatedBinding.fold(model, message),
-)
+const gatedUpdate = update
 const parent = composition.makeBlock({
   init: () => ({ model: initial }),
   update,
-  expose: {
-    setOptionalCount: Parent.step((_model, count: number) =>
-      OptionalBinding.setCount(count),
-    ),
-    setGatedCount: Parent.step((_model, count: number) =>
-      GatedBinding.setCount(count),
-    ),
+  operations: {
+    setOptionalCount: (count: number) =>
+      Tuple.make(Message.RequestedSetOptionalCount({ count })),
+    setGatedCount: (count: number) =>
+      Tuple.make(Message.RequestedSetGatedCount({ count })),
   },
 })
 
@@ -85,44 +91,44 @@ it('folds exact Option fields without creating absent children', () => {
   expectTypeOf(OptionalBinding.placement).toEqualTypeOf<'maybeChild'>()
   const changed = update(
     initial,
-    Message.GotChildMessage({
+    Message.GotOptionalChildMessage({
       message: ChildMessage.UpdatedCount({ count: 3 }),
     }),
   )
   expect(changed.model.maybeChild).toEqual(
     Option.some(ChildModel.make({ count: 3 })),
   )
-  expect(parent.expose.setOptionalCount(initial, 4).model.maybeChild).toEqual(
-    Option.some(ChildModel.make({ count: 4 })),
-  )
+  expect(
+    parent.operations.setOptionalCount(initial, 4).model.maybeChild,
+  ).toEqual(Option.some(ChildModel.make({ count: 4 })))
 
   const absent = modifyFields(initial, { maybeChild: () => Option.none() })
   expect(
     update(
       absent,
-      Message.GotChildMessage({
+      Message.GotOptionalChildMessage({
         message: ChildMessage.UpdatedCount({ count: 9 }),
       }),
     ).model,
   ).toBe(absent)
-  expect(parent.expose.setOptionalCount(absent, 9).model).toBe(absent)
+  expect(parent.operations.setOptionalCount(absent, 9).model).toBe(absent)
 })
 
 it('makes direct stored children absent through presentWhen without deleting their state', () => {
-  expect(parent.expose.setGatedCount(initial, 3).model.child.count).toBe(3)
+  expect(parent.operations.setGatedCount(initial, 3).model.child.count).toBe(3)
   const away: Model = modifyFields(initial, { route: () => 'Away' })
   expect(
     gatedUpdate(
       away,
-      Message.GotChildMessage({
+      Message.GotGatedChildMessage({
         message: ChildMessage.UpdatedCount({ count: 9 }),
       }),
     ).model,
   ).toBe(away)
-  expect(parent.expose.setGatedCount(away, 9).model).toBe(away)
+  expect(parent.operations.setGatedCount(away, 9).model).toBe(away)
   expect(away.child.count).toBe(1)
   const returned = modifyFields(away, { route: () => 'Home' })
-  expect(parent.expose.setGatedCount(returned, 5).model.child.count).toBe(5)
+  expect(parent.operations.setGatedCount(returned, 5).model.child.count).toBe(5)
 })
 
 it('distinguishes Option child Models from optional storage wrappers', () => {
@@ -148,33 +154,28 @@ it('distinguishes Option child Models from optional storage wrappers', () => {
     maybe: Schema.Option(OptionModel),
   })
   const Message = defineMessageUnion({
-    GotChildMessage: { message: OptionMessage },
+    GotRequiredChildMessage: { message: OptionMessage },
+    GotOptionalChildMessage: { message: OptionMessage },
   })
   const Parent = define('DirectPresenceOptionParent', { Model, Message })
   const RequiredBinding = Parent.bindChild(block, {
     field: 'required',
-    fromParentMessage: false,
-    parentMessage: Message.GotChildMessage,
+    parentMessage: Message.GotRequiredChildMessage,
   })
   const OptionalBinding = Parent.bindChild(block, {
     field: 'maybe',
-    fromParentMessage: false,
-    parentMessage: Message.GotChildMessage,
+    parentMessage: Message.GotOptionalChildMessage,
   })
   const Composition = Parent.makeComposition({
     childBindings: [RequiredBinding, OptionalBinding],
   })
-  const updateRequired = Composition.makeUpdate((model, { message }) =>
-    RequiredBinding.fold(model, message),
-  )
-  const updateOptional = Composition.makeUpdate((model, { message }) =>
-    OptionalBinding.fold(model, message),
-  )
+  const updateRequired = Composition.makeUpdate()
+  const updateOptional = updateRequired
   const initial = Model.make({ required: Option.none(), maybe: Option.none() })
   expect(
     updateRequired(
       initial,
-      Message.GotChildMessage({
+      Message.GotRequiredChildMessage({
         message: OptionMessage.UpdatedText({ text: 'changed' }),
       }),
     ).model.required,
@@ -182,7 +183,7 @@ it('distinguishes Option child Models from optional storage wrappers', () => {
   expect(
     updateOptional(
       initial,
-      Message.GotChildMessage({
+      Message.GotOptionalChildMessage({
         message: OptionMessage.UpdatedText({ text: 'ignored' }),
       }),
     ).model,
@@ -195,44 +196,43 @@ it('reports invalid erased direct configurations during binding creation', () =>
   expect(() =>
     bind({
       field: 'missing',
-      fromParentMessage: false,
-      parentMessage: Message.GotChildMessage,
+      parentMessage: Message.GotOptionalChildMessage,
     }),
   ).toThrow(/declared Struct Model field/)
   expect(() =>
     bind({
       field: 'child',
       read: () => Option.some(initial.child),
-      fromParentMessage: false,
-      parentMessage: Message.GotChildMessage,
+      parentMessage: Message.GotOptionalChildMessage,
     }),
   ).toThrow(/cannot also supply/)
   expect(() =>
     bind({
       field: 'child',
       write: () => initial,
-      fromParentMessage: false,
-      parentMessage: Message.GotChildMessage,
+      parentMessage: Message.GotOptionalChildMessage,
     }),
   ).toThrow(/cannot also supply/)
   expect(() =>
     bind({
       field: 'child',
       presentWhen: true,
-      fromParentMessage: false,
-      parentMessage: Message.GotChildMessage,
+      parentMessage: Message.GotOptionalChildMessage,
     }),
   ).toThrow(/presentWhen must be/)
-  expect(() => bind({ field: 'child', fromParentMessage: false })).toThrow(
-    /parentMessage constructor or a toParentMessage function/,
-  )
   expect(() =>
     bind({
       field: 'child',
+      parentMessage: Message.GotOptionalChildMessage,
       fromParentMessage: false,
-      parentMessage: Message.GotChildMessage,
+    }),
+  ).toThrow(/fromParentMessage must be an object/)
+  expect(() =>
+    bind({
+      field: 'child',
+      parentMessage: Message.GotOptionalChildMessage,
       toParentMessage: () =>
-        Message.GotChildMessage({
+        Message.GotOptionalChildMessage({
           message: ChildMessage.UpdatedCount({ count: 0 }),
         }),
     }),
@@ -243,26 +243,26 @@ it('preserves absence through a suspended Option storage schema', () => {
   const SuspendedModel = Schema.Struct({
     maybeChild: Schema.suspend(() => Schema.Option(ChildModel)),
   })
+  const SuspendedMessage = defineMessageUnion({
+    GotChildMessage: { message: ChildMessage },
+  })
   const Suspended = define('DirectPresenceSuspended', {
     Model: SuspendedModel,
-    Message,
+    Message: SuspendedMessage,
   })
   const ChildBinding = Suspended.bindChild(childBlock, {
     field: 'maybeChild',
-    fromParentMessage: false,
-    parentMessage: Message.GotChildMessage,
+    parentMessage: SuspendedMessage.GotChildMessage,
   })
   const Composition = Suspended.makeComposition({
     childBindings: [ChildBinding],
   })
-  const update = Composition.makeUpdate((model, { message }) =>
-    ChildBinding.fold(model, message),
-  )
+  const update = Composition.makeUpdate()
   const absent = SuspendedModel.make({ maybeChild: Option.none() })
   expect(
     update(
       absent,
-      Message.GotChildMessage({
+      SuspendedMessage.GotChildMessage({
         message: ChildMessage.UpdatedCount({ count: 2 }),
       }),
     ).model,
@@ -273,7 +273,7 @@ it('preserves absence through a suspended Option storage schema', () => {
   expect(
     update(
       present,
-      Message.GotChildMessage({
+      SuspendedMessage.GotChildMessage({
         message: ChildMessage.UpdatedCount({ count: 3 }),
       }),
     ).model.maybeChild,
@@ -295,8 +295,7 @@ it('rejects structurally incompatible storage and invalid wrapper constructors b
     expect(() =>
       bind({
         field,
-        fromParentMessage: false,
-        parentMessage: Message.GotChildMessage,
+        parentMessage: Message.GotOptionalChildMessage,
       }),
     ).toThrow(/must store the declared child Model/)
   }
@@ -313,21 +312,18 @@ it('rejects structurally incompatible storage and invalid wrapper constructors b
   expect(() =>
     bindParent({
       field: 'child',
-      fromParentMessage: false,
       parentMessage: () => ({}),
     }),
   ).toThrow(/callable Message Schema/)
   expect(() =>
     bindParent({
       field: 'child',
-      fromParentMessage: false,
       parentMessage: Wrappers.GotOptionalExtraMessage,
     }),
   ).toThrow(/only the message payload/)
   expect(() =>
     bindParent({
       field: 'child',
-      fromParentMessage: false,
       parentMessage: Wrappers.GotWrongMessage,
     }),
   ).toThrow(/bound child Message Schema/)
@@ -335,8 +331,7 @@ it('rejects structurally incompatible storage and invalid wrapper constructors b
     bindParent({
       field: 'child',
       presentWhem: () => true,
-      fromParentMessage: false,
-      parentMessage: Message.GotChildMessage,
+      parentMessage: Message.GotOptionalChildMessage,
     }),
   ).toThrow(/Unknown Binding configuration field "presentWhem"/)
 })
@@ -350,32 +345,28 @@ it('rejects erased foreign wrappers and nonboolean presence policies', () => {
   expect(() =>
     bind({
       field: 'child',
-      fromParentMessage: false,
       parentMessage: Foreign.ReceivedChildMessage,
     }),
   ).toThrow(/declared by the parent Message Schema/)
   const spoof = (_fields: unknown) => ({})
-  Reflect.setPrototypeOf(spoof, Message.GotChildMessage)
-  expect(() =>
-    bind({ field: 'child', fromParentMessage: false, parentMessage: spoof }),
-  ).toThrow(/callable Message Schema/)
+  Reflect.setPrototypeOf(spoof, Message.GotOptionalChildMessage)
+  expect(() => bind({ field: 'child', parentMessage: spoof })).toThrow(
+    /callable Message Schema/,
+  )
   const InvalidPresenceBinding = bind({
+    placement: 'invalid-child',
     field: 'child',
     presentWhen: () => 'Home',
-    fromParentMessage: false,
-    parentMessage: Message.GotChildMessage,
+    parentMessage: Message.GotOptionalChildMessage,
+    init: false,
   })
-  const fold = Reflect.get(InvalidPresenceBinding, 'fold')
   const Composition = Reflect.apply(Parent.makeComposition, undefined, [
-    { childBindings: [InvalidPresenceBinding] },
+    { childBindings: [InvalidPresenceBinding, GatedBinding] },
   ])
   const invalidUpdate = Reflect.apply(
     Reflect.get(Composition, 'makeUpdate'),
     undefined,
-    [
-      (model: Model, { message }: typeof Message.Type) =>
-        Reflect.apply(fold, InvalidPresenceBinding, [model, message]),
-    ],
+    [],
   )
 
   if (!Predicate.isFunction(invalidUpdate)) {
@@ -387,7 +378,7 @@ it('rejects erased foreign wrappers and nonboolean presence policies', () => {
   expect(() =>
     Reflect.apply(invalidUpdate, undefined, [
       initial,
-      Message.GotChildMessage({
+      Message.GotOptionalChildMessage({
         message: ChildMessage.UpdatedCount({ count: 1 }),
       }),
     ]),
@@ -400,11 +391,10 @@ it('rejects ignored keyed adapters on erased accessor configs', () => {
   for (const field of ['Model', 'key', 'writeAt']) {
     expect(() =>
       bind({
-        fromParentMessage: false,
         read: (model: Model) => Option.some(model.child),
         write: (model: Model) => model,
         toParentMessage: (message: typeof ChildMessage.Type) =>
-          Message.GotChildMessage({ message }),
+          Message.GotOptionalChildMessage({ message }),
         [field]: () => initial,
       }),
     ).toThrow(/accessor Binding cannot supply/)
@@ -419,23 +409,17 @@ it('reads direct fields from callable tagged Struct parent Models', () => {
   const Parent = define('DirectPresenceCallableParent', { Model, Message })
   const ChildBinding = Parent.bindChild(childBlock, {
     field: 'child',
-    fromParentMessage: false,
-    parentMessage: Message.GotChildMessage,
+    parentMessage: Message.GotGatedChildMessage,
   })
   const OptionalBinding = Parent.bindChild(childBlock, {
     field: 'maybeChild',
-    fromParentMessage: false,
-    parentMessage: Message.GotChildMessage,
+    parentMessage: Message.GotOptionalChildMessage,
   })
   const Composition = Parent.makeComposition({
     childBindings: [ChildBinding, OptionalBinding],
   })
-  const updateChild = Composition.makeUpdate((model, { message }) =>
-    ChildBinding.fold(model, message),
-  )
-  const updateOptional = Composition.makeUpdate((model, { message }) =>
-    OptionalBinding.fold(model, message),
-  )
+  const updateChild = Composition.makeUpdate(model => ({ model }))
+  const updateOptional = updateChild
   const initial = Model({
     child: ChildModel.make({ count: 1 }),
     maybeChild: Option.none(),
@@ -443,7 +427,7 @@ it('reads direct fields from callable tagged Struct parent Models', () => {
   expect(
     updateChild(
       initial,
-      Message.GotChildMessage({
+      Message.GotGatedChildMessage({
         message: ChildMessage.UpdatedCount({ count: 2 }),
       }),
     ).model,
@@ -453,7 +437,7 @@ it('reads direct fields from callable tagged Struct parent Models', () => {
   expect(
     updateOptional(
       initial,
-      Message.GotChildMessage({
+      Message.GotOptionalChildMessage({
         message: ChildMessage.UpdatedCount({ count: 2 }),
       }),
     ).model,
@@ -467,8 +451,7 @@ it('rejects ignored Model overrides on parent-owned direct fields', () => {
         childBlock,
         {
           field: 'child',
-          fromParentMessage: false,
-          parentMessage: Message.GotChildMessage,
+          parentMessage: Message.GotOptionalChildMessage,
           [field]: Schema.String,
         },
       ]),

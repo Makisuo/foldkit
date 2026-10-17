@@ -5,7 +5,7 @@ import * as PublicUpdate from 'foldkit/update'
 import {
   ChildMessage,
   CompleteParentInitialization,
-  CompositionSafetyParent,
+  CompositionSafetyParentDefinition,
   Entry,
   EntryBinding,
   LoadParameterizedChild,
@@ -43,7 +43,7 @@ const initial = initialize()
 const parentMessage = ParentMessage.CompletedParentInitialization()
 foldStableProjected(initial.model, parentMessage, ChildMessage.Incremented())
 foldPlain(initial.model, parentMessage, ChildMessage.Incremented())
-StrictBlock.expose.initializeEntry(initialParentModel, 'emitted-entry', 2)
+StrictBlock.operations.initializeEntry(initialParentModel, 'emitted-entry', 2)
 
 type EmittedEntryInitRequirementsAreExact = Expect<
   Equal<
@@ -107,15 +107,15 @@ declare const useSecondField: boolean
 
 // @ts-expect-error Emitted accessor init projections retain one stable parent Model field.
 // oxfmt-ignore
-CompositionSafetyParent.bindChild(PlainBlock, { placement: 'emittedUnstableProjected', read: model => Option.some(model.first), write: (model, nextChild) => Struct.modifyFields(model, { first: () => nextChild }), parentMessage: ParentMessage.RoutedProjectedMessage, init: { args: () => [], model: child => useSecondField ? { second: child } : { first: child } } })
+CompositionSafetyParentDefinition.bindChild(PlainBlock, { placement: 'emittedUnstableProjected', read: model => Option.some(model.first), write: (model, nextChild) => Struct.modifyFields(model, { first: () => nextChild }), parentMessage: ParentMessage.RoutedProjectedMessage, init: { args: () => [], model: child => useSecondField ? { second: child } : { first: child } } })
 
 // @ts-expect-error Emitted optional update context requires an explicit incoming Message route.
 // oxfmt-ignore
-CompositionSafetyParent.bindChild(OptionalContextBlock, { field: 'optionalContext', parentMessage: ParentMessage.RoutedOptionalContextMessage })
+CompositionSafetyParentDefinition.bindChild(OptionalContextBlock, { field: 'optionalContext', parentMessage: ParentMessage.RoutedOptionalContextMessage })
 
 // @ts-expect-error Emitted required rest update context requires an explicit incoming Message route.
 // oxfmt-ignore
-CompositionSafetyParent.bindChild(RestContextBlock, { field: 'restContext', parentMessage: ParentMessage.RoutedRestContextMessage })
+CompositionSafetyParentDefinition.bindChild(RestContextBlock, { field: 'restContext', parentMessage: ParentMessage.RoutedRestContextMessage })
 
 // @ts-expect-error Emitted connected initializers require their parent configuration.
 PlainBinding.init()
@@ -176,7 +176,9 @@ const erasedEmittedConnectedStep: Update.Step<
 void erasedEmittedConnectedStep
 
 const EmittedMissingPlainBindingComposition =
-  CompositionSafetyParent.makeComposition({ childBindings: [EntryBinding] })
+  CompositionSafetyParentDefinition.makeComposition({
+    childBindings: [EntryBinding],
+  })
 EmittedMissingPlainBindingComposition.makeInit(() =>
   // @ts-expect-error A connected initializer cannot run without its registered Binding capability.
   initializePlain(initialParentModel),
@@ -190,12 +192,12 @@ const emittedDirectConnectedInit =
         Struct.modifyFields(initialParentModel, { plain: () => child }),
     }),
   )
+// @ts-expect-error Emitted directly connected initializers retain their missing Binding evidence.
 EmittedMissingPlainBindingComposition.makeBlock({
   init: emittedDirectConnectedInit,
   update: EmittedMissingPlainBindingComposition.makeUpdate(model => ({
     model,
   })),
-  // @ts-expect-error Emitted directly connected initializers retain their missing Binding evidence.
   EffectsLayer: LoadParameterizedChild.layer,
 })
 

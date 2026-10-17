@@ -140,13 +140,13 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-const DragAndDrop = Block.define('DragAndDrop', {
+const DragAndDropDefinition = Block.define('DragAndDrop', {
   Model,
   Message,
   OutMessage,
 })
 
-const DragAndDropComposition = DragAndDrop.makeComposition()
+const DragAndDropComposition = DragAndDropDefinition.makeComposition()
 
 // INIT
 
@@ -173,7 +173,7 @@ export const init = (config: InitConfig): Model => ({
 type Direction = (typeof Message.PressedArrowKey.Type)['direction']
 
 /** Focuses a draggable item by ID after a keyboard move, drop, or cancel. */
-export const FocusItem = DragAndDrop.command('FocusItem', {
+export const FocusItem = DragAndDropDefinition.command('FocusItem', {
   args: { itemId: Schema.String },
   messages: [Message.CompletedFocusItem],
   handler: function* () {
@@ -294,25 +294,28 @@ const resolveKeyboardMoveTarget = (
   )
 
 /** Resolves the next keyboard drag position by querying the DOM for adjacent sortable items and containers. */
-export const ResolveKeyboardMove = DragAndDrop.command('ResolveKeyboardMove', {
-  args: {
-    itemId: Schema.String,
-    currentContainerId: Schema.String,
-    currentIndex: Schema.Number,
-    direction: Schema.Literals([
-      'Up',
-      'Down',
-      'Left',
-      'Right',
-      'NextContainer',
-      'PreviousContainer',
-    ]),
+export const ResolveKeyboardMove = DragAndDropDefinition.command(
+  'ResolveKeyboardMove',
+  {
+    args: {
+      itemId: Schema.String,
+      currentContainerId: Schema.String,
+      currentIndex: Schema.Number,
+      direction: Schema.Literals([
+        'Up',
+        'Down',
+        'Left',
+        'Right',
+        'NextContainer',
+        'PreviousContainer',
+      ]),
+    },
+    messages: [Message.CompletedResolveKeyboardMove],
+    handler: function* () {
+      return resolveKeyboardMoveTarget
+    },
   },
-  messages: [Message.CompletedResolveKeyboardMove],
-  handler: function* () {
-    return resolveKeyboardMoveTarget
-  },
-})
+)
 // UPDATE
 
 /** Processes a drag-and-drop Message and returns the next Model, optional
@@ -611,7 +614,7 @@ const streamKeyboardDragEvents = () =>
     },
   })
 
-export const subscriptions = DragAndDrop.subscriptions(entry => ({
+export const subscriptions = DragAndDropDefinition.subscriptions(entry => ({
   documentPointer: entry(
     'DragAndDropDocumentPointer',
     {

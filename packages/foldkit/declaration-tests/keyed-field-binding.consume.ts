@@ -7,10 +7,11 @@ import {
   BrandedEntriesBinding,
   CallableChildBlock,
   CallableEntriesBinding,
+  CallableParentMessage,
   ChildBlock,
   ChildCounter,
-  DeclarationCallableKeyedFieldParent,
-  DeclarationKeyedFieldParent,
+  DeclarationCallableKeyedFieldParentDefinition,
+  DeclarationKeyedFieldParentDefinition,
   EntriesBinding,
   EquivalentEntriesBinding,
   InitializedEntriesBinding,
@@ -55,9 +56,9 @@ export type RoomPlacement = Expect<
 export type CallableParentModel = Expect<
   Equal<
     Parameters<typeof CallableEntriesBinding.fold>[0],
-    typeof DeclarationCallableKeyedFieldParent.Model.Type &
+    typeof DeclarationCallableKeyedFieldParentDefinition.Model.Type &
       Update.GraphCapability<
-        typeof DeclarationCallableKeyedFieldParent.Model.Type,
+        typeof DeclarationCallableKeyedFieldParentDefinition.Model.Type,
         Block.BindingRequirement<'entries', typeof CallableChildBlock>
       >
   >
@@ -86,9 +87,9 @@ export type ArrayChildMessage = Expect<
 export type ParentModel = Expect<
   Equal<
     Parameters<typeof EntriesBinding.fold>[0],
-    typeof DeclarationKeyedFieldParent.Model.Type &
+    typeof DeclarationKeyedFieldParentDefinition.Model.Type &
       Update.GraphCapability<
-        typeof DeclarationKeyedFieldParent.Model.Type,
+        typeof DeclarationKeyedFieldParentDefinition.Model.Type,
         Block.BindingRequirement<'entries', typeof ChildBlock>
       >
   >
@@ -103,7 +104,7 @@ export type FoldModel = Expect<
   Equal<
     ReturnType<typeof EntriesBinding.fold>,
     Update.ResultRecipe<
-      typeof DeclarationKeyedFieldParent.Model.Type,
+      typeof DeclarationKeyedFieldParentDefinition.Model.Type,
       typeof ParentMessage.Type,
       never,
       never,
@@ -135,45 +136,31 @@ export type OutInspectionServices = Expect<
 
 foldEntry(
   initialParentModel,
-  ParentMessage.GotEntryMessage({
-    id: 'first',
-    message: ChildBlock.Message.UpdatedCount({ count: 2 }),
-  }),
+  ParentMessage.IgnoredChildMessage(),
   'first',
   ChildBlock.Message.UpdatedCount({ count: 2 }),
 )
 foldCallableEntry(
   callableInitialParentModel,
-  ParentMessage.GotEntryMessage({
-    id: 'first',
-    message: ChildBlock.Message.UpdatedCount({ count: 2 }),
-  }),
+  CallableParentMessage.IgnoredChildMessage(),
   'first',
   CallableChildBlock.Message.UpdatedCount({ count: 2 }),
 )
 foldArrayChild(
   initialParentModel,
-  ParentMessage.GotArrayChildMessage({
-    message: ArrayChildBlock.Message.IgnoredValue(),
-  }),
+  ParentMessage.IgnoredChildMessage(),
   ArrayChildBlock.Message.IgnoredValue(),
 )
 Option.getOrThrow(Array.head(initialParentModel.entries))
 foldWrappedRow(
   initialParentModel,
-  ParentMessage.GotWrappedMessage({
-    rowId: 'row',
-    message: ChildBlock.Message.UpdatedCount({ count: 2 }),
-  }),
+  ParentMessage.IgnoredChildMessage(),
   'row',
   ChildBlock.Message.UpdatedCount({ count: 2 }),
 )
 foldRoom(
   initialParentModel,
-  ParentMessage.GotRoomMessage({
-    roomId: 'room',
-    message: ChildBlock.Message.UpdatedCount({ count: 2 }),
-  }),
+  ParentMessage.IgnoredChildMessage(),
   'room',
   ChildBlock.Message.UpdatedCount({ count: 2 }),
 )

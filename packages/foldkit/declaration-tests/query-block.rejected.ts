@@ -16,7 +16,7 @@ const ParentModel = Schema.Struct({ label: Schema.String })
 const ParentMessage = Message.defineMessageUnion({
   GotNotesMessage: { message: Notes.Message },
 })
-const RejectedDeclarationQueryParent = Block.define(
+const RejectedDeclarationQueryParentDefinition = Block.define(
   'RejectedDeclarationQueryParent',
   {
     Model: ParentModel,
@@ -24,7 +24,7 @@ const RejectedDeclarationQueryParent = Block.define(
   },
 )
 
-RejectedDeclarationQueryParent.bindChild(Notes, {
+RejectedDeclarationQueryParentDefinition.bindChild(Notes, {
   // @ts-expect-error The direct parent field must contain the Query Model.
   field: 'label',
   // @ts-expect-error This invalid Binding configuration has no matching overload.

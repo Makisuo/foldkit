@@ -1,5 +1,5 @@
 import { Array, Effect, Fiber, Layer, Schema } from 'effect'
-import { Update, defineApplication } from 'foldkit'
+import { defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -18,17 +18,16 @@ const DialogEvent = Schema.Literals(['Opened', 'Closed'])
 const Model = Schema.Struct({
   dialog: Dialog.Model,
   dialogEvents: Schema.Array(DialogEvent),
-  isShowDialogSucceeded: Schema.Boolean,
 })
 type Model = typeof Model.Type
 
-const Application = defineApplication({
+const ApplicationDefinition = defineApplication({
   Model,
   Message: RuntimeMessage,
 })
 
 const foldDialogOutMessage = (outMessage: typeof Dialog.OutMessage.Type) =>
-  Application.step(model =>
+  ApplicationDefinition.step(model =>
     Dialog.OutMessage.match(outMessage, {
       Opened: () => ({
         model: modifyFields(model, {
@@ -40,46 +39,28 @@ const foldDialogOutMessage = (outMessage: typeof Dialog.OutMessage.Type) =>
           dialogEvents: Array.append(DialogEvent.make('Closed')),
         }),
       }),
+      CompletedClose: () => ({ model }),
     }),
   )
 
-const DialogBinding = Application.bindChild(Dialog.block, {
+const DialogBinding = ApplicationDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: RuntimeMessage.GotDialogMessage,
-  fromParentMessage: false,
   outMessage: { fold: foldDialogOutMessage },
   init: { args: () => [{ id: dialogId }] },
 })
 
-const ApplicationComposition = Application.makeComposition({
+const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [DialogBinding],
 })
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  RuntimeMessage.match(message, {
-    GotDialogMessage: ({ message: dialogMessage }) =>
-      Update.combine(model, [
-        stepModel => DialogBinding.fold(stepModel, dialogMessage),
-        Application.step(stepModel => ({
-          model: modifyFields(stepModel, {
-            isShowDialogSucceeded: isShowDialogSucceeded =>
-              isShowDialogSucceeded ||
-              dialogMessage._tag === 'SucceededShowDialog',
-          }),
-        })),
-      ]),
-  }),
-)
+const update = ApplicationComposition.makeUpdate()
 
 const view = ApplicationComposition.makeView((model, h) =>
   h.div(
     [],
     [
       h.p([h.Id('dialog-events')], [model.dialogEvents.join(',')]),
-      h.p(
-        [h.Id('show-dialog-succeeded')],
-        [globalThis.String(model.isShowDialogSucceeded)],
-      ),
       h.block(
         DialogBinding.embedView({
           slotId: model.dialog.id,
@@ -106,14 +87,13 @@ const view = ApplicationComposition.makeView((model, h) =>
 )
 
 const init = ApplicationComposition.makeInit(() => ({
-  model: { dialogEvents: [], isShowDialogSucceeded: false },
+  model: { dialogEvents: [] },
   steps: [DialogBinding.open()],
 }))
 
 const preservedModel = (dialogModel: Dialog.Model): Model => ({
   dialog: dialogModel,
   dialogEvents: [],
-  isShowDialogSucceeded: false,
 })
 
 const preservedOpenModel = (config: Dialog.InitConfig): Dialog.Model =>
@@ -165,9 +145,6 @@ describe('Dialog runtime lifecycle', () => {
         expect(document.querySelector('#dialog-events')?.textContent).toBe(
           'Opened',
         )
-        expect(
-          document.querySelector('#show-dialog-succeeded')?.textContent,
-        ).toBe('true')
       })
 
       await Effect.runPromise(Fiber.interrupt(freshRuntime))
@@ -186,9 +163,6 @@ describe('Dialog runtime lifecycle', () => {
         expect(document.documentElement.style.overflow).toBe('hidden')
         expect(document.activeElement?.getAttribute('id')).toBe('dialog-button')
         expect(document.querySelector('#dialog-events')?.textContent).toBe('')
-        expect(
-          document.querySelector('#show-dialog-succeeded')?.textContent,
-        ).toBe('false')
       })
 
       await Effect.runPromise(Fiber.interrupt(restoredRuntime))

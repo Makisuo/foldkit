@@ -4,7 +4,7 @@ import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import * as AsyncCounterDemo from './asyncCounterDemo'
-import { Home } from './definition'
+import { HomeDefinition } from './definition'
 import * as DemoTab from './demoTab'
 import { Message, OutMessage } from './message'
 import { Model } from './model'
@@ -22,7 +22,7 @@ const foldDemoTabsOutMessage = DemoTab.DemoTabs.OutMessage.match<
     }),
 })
 
-export const DemoTabsBinding = Home.bindChild(DemoTab.DemoTabs, {
+export const DemoTabsBinding = HomeDefinition.bindChild(DemoTab.DemoTabs, {
   field: 'demoTabs',
   parentMessage: Message.GotDemoTabsMessage,
   outMessage: { fold: foldDemoTabsOutMessage },
@@ -41,7 +41,7 @@ const foldPlaygroundMenuOutMessage = PlaygroundMenu.OutMessage.match<
     }),
 })
 
-export const PlaygroundMenuBinding = Home.bindChild(PlaygroundMenu, {
+export const PlaygroundMenuBinding = HomeDefinition.bindChild(PlaygroundMenu, {
   field: 'playgroundMenu',
   parentMessage: Message.GotPlaygroundMenuMessage,
   outMessage: { fold: foldPlaygroundMenuOutMessage },
@@ -50,17 +50,23 @@ export const PlaygroundMenuBinding = Home.bindChild(PlaygroundMenu, {
   },
 })
 
-export const AsyncCounterDemoBinding = Home.bindChild(AsyncCounterDemo.block, {
-  field: 'asyncCounterDemo',
-  parentMessage: Message.GotAsyncCounterDemoMessage,
-})
+export const AsyncCounterDemoBinding = HomeDefinition.bindChild(
+  AsyncCounterDemo.block,
+  {
+    field: 'asyncCounterDemo',
+    parentMessage: Message.GotAsyncCounterDemoMessage,
+  },
+)
 
-export const NotePlayerDemoBinding = Home.bindChild(NotePlayerDemo.block, {
-  field: 'notePlayerDemo',
-  parentMessage: Message.GotNotePlayerDemoMessage,
-})
+export const NotePlayerDemoBinding = HomeDefinition.bindChild(
+  NotePlayerDemo.block,
+  {
+    field: 'notePlayerDemo',
+    parentMessage: Message.GotNotePlayerDemoMessage,
+  },
+)
 
-export const HomeComposition = Home.makeComposition({
+export const HomeComposition = HomeDefinition.makeComposition({
   childBindings: [
     AsyncCounterDemoBinding,
     DemoTabsBinding,

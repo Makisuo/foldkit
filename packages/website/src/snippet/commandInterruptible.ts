@@ -17,18 +17,21 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-const Application = defineApplication({ Model, Message })
+const ApplicationDefinition = defineApplication({ Model, Message })
 
-export const WaitBeforeReset = Application.command('WaitBeforeReset', {
-  messages: [Message.CompletedWaitBeforeReset],
-  interrupt: true,
-  handler: function* () {
-    return () =>
-      Effect.sleep('1 second').pipe(
-        Effect.as(Message.CompletedWaitBeforeReset()),
-      )
+export const WaitBeforeReset = ApplicationDefinition.command(
+  'WaitBeforeReset',
+  {
+    messages: [Message.CompletedWaitBeforeReset],
+    interrupt: true,
+    handler: function* () {
+      return () =>
+        Effect.sleep('1 second').pipe(
+          Effect.as(Message.CompletedWaitBeforeReset()),
+        )
+    },
   },
-})
+)
 
 export const EffectsLayer = WaitBeforeReset.layer
 

@@ -68,7 +68,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const NotePlayerDemo = Block.define('NotePlayerDemo', {
+export const NotePlayerDemoDefinition = Block.define('NotePlayerDemo', {
   Model,
   Message,
 })

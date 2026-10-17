@@ -15,11 +15,11 @@ const AccountSettingsMessage = defineMessageUnion({
   ChangedTheme: { theme: Theme },
 })
 
-const AccountSettings = Block.define('AccountSettings', {
+const AccountSettingsDefinition = Block.define('AccountSettings', {
   Model: AccountSettingsModel,
   Message: AccountSettingsMessage,
 })
-const AccountSettingsComposition = AccountSettings.makeComposition()
+const AccountSettingsComposition = AccountSettingsDefinition.makeComposition()
 
 const accountSettingsInit = AccountSettingsComposition.makeInit(() => ({
   model: AccountSettingsModel.make({
@@ -54,20 +54,23 @@ const ProfileModel = Schema.Struct({
 const ProfileMessage = defineMessageUnion({
   GotAccountSettingsMessage: { message: AccountSettingsMessage },
 })
-const Profile = Block.define('Profile', {
+const ProfileDefinition = Block.define('Profile', {
   Model: ProfileModel,
   Message: ProfileMessage,
 })
 
-export const AccountSettingsBinding = Profile.bindChild(accountSettingsBlock, {
-  field: 'accountSettings',
-  parentMessage: ProfileMessage.GotAccountSettingsMessage,
-  fromParentMessage: {
+export const AccountSettingsBinding = ProfileDefinition.bindChild(
+  accountSettingsBlock,
+  {
+    field: 'accountSettings',
     parentMessage: ProfileMessage.GotAccountSettingsMessage,
-    args: (model, { message }) => Option.some([message, model.currentUser]),
+    fromParentMessage: {
+      parentMessage: ProfileMessage.GotAccountSettingsMessage,
+      args: (model, { message }) => Option.some([message, model.currentUser]),
+    },
   },
-})
+)
 
-export const ProfileComposition = Profile.makeComposition({
+export const ProfileComposition = ProfileDefinition.makeComposition({
   childBindings: [AccountSettingsBinding],
 })

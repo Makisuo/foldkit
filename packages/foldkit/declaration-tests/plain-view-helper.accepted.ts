@@ -3,12 +3,15 @@ import { Block, type Html, Message, defineApplication } from 'foldkit'
 
 export const ChildModel = Schema.Struct({ value: Schema.String })
 const ChildMessage = Message.defineMessageUnion({ ClickedChild: {} })
-const DeclarationViewHelperChild = Block.define('DeclarationViewHelperChild', {
-  Model: ChildModel,
-  Message: ChildMessage,
-})
+const DeclarationViewHelperChildDefinition = Block.define(
+  'DeclarationViewHelperChild',
+  {
+    Model: ChildModel,
+    Message: ChildMessage,
+  },
+)
 export const DeclarationViewHelperChildComposition =
-  DeclarationViewHelperChild.makeComposition()
+  DeclarationViewHelperChildDefinition.makeComposition()
 type ChildViewBuilder = Block.ViewBuilderFor<
   typeof DeclarationViewHelperChildComposition
 >
@@ -35,14 +38,14 @@ export const ParentMessage = Message.defineMessageUnion({
   GotChildMessage: { message: ChildBlock.Message },
   CompletedObserveParent: {},
 })
-export const DeclarationViewHelperParent = Block.define(
+export const DeclarationViewHelperParentDefinition = Block.define(
   'DeclarationViewHelperParent',
   {
     Model: ParentModel,
     Message: ParentMessage,
   },
 )
-export const ObserveParent = DeclarationViewHelperParent.mount(
+export const ObserveParent = DeclarationViewHelperParentDefinition.mount(
   'ObserveParent',
   {
     messages: [ParentMessage.CompletedObserveParent],
@@ -51,12 +54,15 @@ export const ObserveParent = DeclarationViewHelperParent.mount(
     },
   },
 )
-export const ChildBinding = DeclarationViewHelperParent.bindChild(ChildBlock, {
-  field: 'child',
-  parentMessage: ParentMessage.GotChildMessage,
-})
+export const ChildBinding = DeclarationViewHelperParentDefinition.bindChild(
+  ChildBlock,
+  {
+    field: 'child',
+    parentMessage: ParentMessage.GotChildMessage,
+  },
+)
 export const DeclarationViewHelperParentComposition =
-  DeclarationViewHelperParent.makeComposition({
+  DeclarationViewHelperParentDefinition.makeComposition({
     childBindings: [ChildBinding],
     mounts: [ObserveParent],
   })
@@ -96,11 +102,11 @@ const sharedDivider = <SharedMessage, SharedRequirements>(
 
 export const parentSharedViewHelper = (h: ParentViewBuilder) => sharedDivider(h)
 
-const Application = defineApplication({
+const ApplicationDefinition = defineApplication({
   Model: ParentModel,
   Message: ParentMessage,
 })
-export const ApplicationComposition = Application.makeComposition({
+export const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [ChildBinding],
   mounts: [ObserveParent],
 })

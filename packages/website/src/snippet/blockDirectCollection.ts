@@ -5,9 +5,9 @@ import { Message } from './message'
 import { Model } from './model'
 import { Row } from './row'
 
-const Table = Block.define('Table', { Model, Message })
+const TableDefinition = Block.define('Table', { Model, Message })
 
-export const RowsBinding = Table.bindChild(Row.block, {
+export const RowsBinding = TableDefinition.bindChild(Row.block, {
   field: 'rows',
   key: 'id',
   toParentMessage: (rowId, message) =>

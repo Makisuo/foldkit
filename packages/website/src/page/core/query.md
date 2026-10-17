@@ -54,7 +54,7 @@ The `data` and `error` values must be Schema Codecs that require no encoding or 
 
 #### Returned Definition
 
-The returned `postsQuery` is a completed viewless Block with a Model Schema, a Message union, and exposed operations. Put `postsQuery.Model` in the parent Model Schema and bind it through the parent Definition. Its zero-argument initializer starts the required direct field automatically. Put `PostsBinding.loadIfMissing()` in the Composition init plan's `steps` array to begin the first request after the Query Model exists.
+The returned `postsQuery` is a completed viewless Block with a Model Schema, a Message union, and public operations. Each operation produces a Query-owned `Requested*` Message that the completed Block passes through Query update synchronously. Put `postsQuery.Model` in the parent Model Schema and bind it through the parent Definition. Its zero-argument initializer starts the required direct field automatically. Put `PostsBinding.loadIfMissing()` in the Composition init plan's `steps` array to begin the first request after the Query Model exists.
 
 ### Bind the Query to Its Parent
 
@@ -70,7 +70,7 @@ The `field` form tells `bindChild` which exact field contains the Query Model or
 
 - The parent Composition delegates `GotPostsMessage` to the Binding and writes the returned Query Model back to `model.posts`.
 - `PostsBinding.loadIfMissing()`, `PostsBinding.revalidate()`, and `PostsBinding.revalidateOrLoad()` return connected parent Steps that apply their loading rule to the current `AsyncData`. Their connected results expose no `.model` or `.commands` before the Composition consumes them. After checked execution, a requested load produces the readable next parent Model and the Query's `Fetch` Command; otherwise the readable result contains only the unchanged Model.
-- `PostsBinding.reset()` returns a connected parent Step. After checked execution, the Query value is `Idle` and retains its request identity.
+- `PostsBinding.reset()` returns a connected parent Step. After checked execution, the Query value is `Idle` and retains its request identity. Its type still carries Query update's complete Fetch handler requirements even though reset itself returns no Fetch Command.
 
 #### Optional and Nested Queries
 
@@ -106,7 +106,7 @@ The no-change cases return no Command. Calling the same operation again while it
 
 #### Accepted Completions
 
-When the Command finishes, the Runtime dispatches Query's `CompletedFetch` Message through `toParentMessage`. The parent wrapper branch calls `fold`, and Query settles the pending value:
+When the Command finishes, the Runtime dispatches Query's `CompletedFetch` Message through `toParentMessage`. The Composition recognizes the registered wrapper and invokes the Binding fold. Query then settles the pending value:
 
 - A successful first load becomes `Success`.
 - A failed first load becomes `Failure`.
@@ -206,4 +206,4 @@ The Model owns the `AsyncData` field, and update handles each result as part of 
 
 The [Async Data guide](/core/async-data) covers the state type, transitions, and rendering helpers used when the application owns this wiring.
 
-The [Query API reference](/api-reference/experimental-query) lists the exact Query, KeyedQuery, `define`, Block, `read`, exposed operation, and `run` signatures.
+The [Query API reference](/api-reference/experimental-query) lists the exact Query, KeyedQuery, `define`, Block, `read`, operation, and `run` signatures.

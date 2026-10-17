@@ -24,9 +24,12 @@ class ValueSource extends Context.Service<
 >()('ScopeTest/ValueSource') {}
 
 const ScopeParentModel = Schema.Struct({})
+const ScopeParentMessage = defineMessageUnion({
+  GotChildMessage: { message: Message },
+})
 const ScopeParent = define('ScopeTestParent', {
   Model: ScopeParentModel,
-  Message,
+  Message: ScopeParentMessage,
 })
 
 const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
@@ -41,8 +44,11 @@ const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
         Effect.succeed(Message.CompletedReadValue({ value: source.value }))
     },
   })
-  const feature = Feature.define({ Model: Schema.Struct({}), Message })
-  const composition = feature.makeComposition()
+  const FeatureDefinition = Feature.define({
+    Model: Schema.Struct({}),
+    Message,
+  })
+  const composition = FeatureDefinition.makeComposition()
   const update = composition.makeUpdate(model => ({
     model,
     commands: [ReadValue()],
@@ -54,11 +60,15 @@ const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
   })
   const bind = (placement: string) =>
     ScopeParent.bindChild(block, {
-      fromParentMessage: false,
       placement,
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
-      toParentMessage: message => message,
+      toParentMessage: message =>
+        ScopeParentMessage.GotChildMessage({ message }),
+      fromParentMessage: {
+        parentMessage: ScopeParentMessage.GotChildMessage,
+        args: (_model, { message }) => Option.some([message]),
+      },
     })
   return { Feature, ReadValue, block, bind }
 }
@@ -85,18 +95,20 @@ describe('Block capability contexts', () => {
     })
     const LeftBinding = feature.bind('Left')
     const RightBinding = feature.bind('Right')
-    const composition = ScopeParent.makeComposition({
-      childBindings: [LeftBinding, RightBinding],
+    const LeftComposition = ScopeParent.makeComposition({
+      childBindings: [LeftBinding],
     })
-    const foldLeft = composition.makeUpdate((model, message) =>
-      LeftBinding.fold(model, message),
-    )
-    const foldRight = composition.makeUpdate((model, message) =>
-      RightBinding.fold(model, message),
-    )
+    const RightComposition = ScopeParent.makeComposition({
+      childBindings: [RightBinding],
+    })
+    const foldLeft = LeftComposition.makeUpdate()
+    const foldRight = RightComposition.makeUpdate()
     const model = { child: {} }
-    const leftCommand = foldLeft(model, Message.RequestedValue()).commands!
-    const rightCommand = foldRight(model, Message.RequestedValue()).commands!
+    const requestedValue = ScopeParentMessage.GotChildMessage({
+      message: Message.RequestedValue(),
+    })
+    const leftCommand = foldLeft(model, requestedValue).commands!
+    const rightCommand = foldRight(model, requestedValue).commands!
     const layer = Layer.merge(
       inspectBinding(LeftBinding).EffectsLayer,
       inspectBinding(RightBinding).EffectsLayer,
@@ -116,8 +128,12 @@ describe('Block capability contexts', () => {
 
     expect(constructions).toBe(1)
     expect(results).toEqual([
-      Message.CompletedReadValue({ value: 'shared' }),
-      Message.CompletedReadValue({ value: 'shared' }),
+      ScopeParentMessage.GotChildMessage({
+        message: Message.CompletedReadValue({ value: 'shared' }),
+      }),
+      ScopeParentMessage.GotChildMessage({
+        message: Message.CompletedReadValue({ value: 'shared' }),
+      }),
     ])
     expect(leftCommand.map(command => command.name)).toEqual(['Left/ReadValue'])
     expect(rightCommand.map(command => command.name)).toEqual([
@@ -133,11 +149,15 @@ describe('Block capability contexts', () => {
       ),
     )
     const LeftBinding = ScopeParent.bindChild(leftBlock, {
-      fromParentMessage: false,
       placement: 'Left',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
-      toParentMessage: message => message,
+      toParentMessage: message =>
+        ScopeParentMessage.GotChildMessage({ message }),
+      fromParentMessage: {
+        parentMessage: ScopeParentMessage.GotChildMessage,
+        args: (_model, { message }) => Option.some([message]),
+      },
     })
     const rightBlock = feature.block.replaceEffectsLayer(
       feature.ReadValue.layer.pipe(
@@ -145,28 +165,41 @@ describe('Block capability contexts', () => {
       ),
     )
     const RightBinding = ScopeParent.bindChild(rightBlock, {
-      fromParentMessage: false,
       placement: 'Right',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
-      toParentMessage: message => message,
+      toParentMessage: message =>
+        ScopeParentMessage.GotChildMessage({ message }),
+      fromParentMessage: {
+        parentMessage: ScopeParentMessage.GotChildMessage,
+        args: (_model, { message }) => Option.some([message]),
+      },
     })
-    const composition = ScopeParent.makeComposition({
-      childBindings: [LeftBinding, RightBinding],
+    const LeftComposition = ScopeParent.makeComposition({
+      childBindings: [LeftBinding],
     })
-    const foldLeft = composition.makeUpdate((model, message) =>
-      LeftBinding.fold(model, message),
-    )
-    const foldRight = composition.makeUpdate((model, message) =>
-      RightBinding.fold(model, message),
-    )
+    const RightComposition = ScopeParent.makeComposition({
+      childBindings: [RightBinding],
+    })
+    const foldLeft = LeftComposition.makeUpdate()
+    const foldRight = RightComposition.makeUpdate()
     const layer = Layer.merge(
       inspectBinding(LeftBinding).EffectsLayer,
       inspectBinding(RightBinding).EffectsLayer,
     )
     const commands = [
-      ...(foldLeft({}, Message.RequestedValue()).commands ?? []),
-      ...(foldRight({}, Message.RequestedValue()).commands ?? []),
+      ...(foldLeft(
+        {},
+        ScopeParentMessage.GotChildMessage({
+          message: Message.RequestedValue(),
+        }),
+      ).commands ?? []),
+      ...(foldRight(
+        {},
+        ScopeParentMessage.GotChildMessage({
+          message: Message.RequestedValue(),
+        }),
+      ).commands ?? []),
     ]
 
     const results = await Effect.runPromise(
@@ -175,7 +208,7 @@ describe('Block capability contexts', () => {
           const context = yield* Layer.build(layer)
           return yield* Effect.forEach(commands, command => {
             const effect: Effect.Effect<
-              typeof Message.Type,
+              typeof ScopeParentMessage.Type,
               never,
               Layer.Success<typeof layer>
             > = command.effect
@@ -186,8 +219,12 @@ describe('Block capability contexts', () => {
     )
 
     expect(results).toEqual([
-      Message.CompletedReadValue({ value: 'left' }),
-      Message.CompletedReadValue({ value: 'right' }),
+      ScopeParentMessage.GotChildMessage({
+        message: Message.CompletedReadValue({ value: 'left' }),
+      }),
+      ScopeParentMessage.GotChildMessage({
+        message: Message.CompletedReadValue({ value: 'right' }),
+      }),
     ])
   })
 
@@ -202,19 +239,27 @@ describe('Block capability contexts', () => {
       ),
     )
     const SelectedBinding = ScopeParent.bindChild(selectedBlock, {
-      fromParentMessage: false,
       placement: 'Selected',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
-      toParentMessage: message => message,
+      toParentMessage: message =>
+        ScopeParentMessage.GotChildMessage({ message }),
+      fromParentMessage: {
+        parentMessage: ScopeParentMessage.GotChildMessage,
+        args: (_model, { message }) => Option.some([message]),
+      },
     })
     const composition = ScopeParent.makeComposition({
       childBindings: [SelectedBinding],
     })
-    const foldSelected = composition.makeUpdate((model, message) =>
-      SelectedBinding.fold(model, message),
-    )
-    const commands = foldSelected({}, Message.RequestedValue()).commands ?? []
+    const foldSelected = composition.makeUpdate()
+    const commands =
+      foldSelected(
+        {},
+        ScopeParentMessage.GotChildMessage({
+          message: Message.RequestedValue(),
+        }),
+      ).commands ?? []
     const result = await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
@@ -232,7 +277,11 @@ describe('Block capability contexts', () => {
         }),
       ),
     )
-    expect(result).toEqual([Message.CompletedReadValue({ value: 'selected' })])
+    expect(result).toEqual([
+      ScopeParentMessage.GotChildMessage({
+        message: Message.CompletedReadValue({ value: 'selected' }),
+      }),
+    ])
   })
 
   it('supports the same local ID in different composition branches', async () => {

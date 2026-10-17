@@ -35,13 +35,17 @@ const Measure = ChildOwner.mount('Measure', {
   messages: [ChildMessage.CompletedMeasure],
 })
 
-const childBase = ChildOwner.define({
+const ChildBaseDefinition = ChildOwner.define({
   Model: ChildModel,
   Message: ChildMessage,
 })
-const graphlessComposition = childBase.makeComposition()
-const observeComposition = childBase.makeComposition({ mounts: [Observe] })
-const measureComposition = childBase.makeComposition({ mounts: [Measure] })
+const graphlessComposition = ChildBaseDefinition.makeComposition()
+const observeComposition = ChildBaseDefinition.makeComposition({
+  mounts: [Observe],
+})
+const measureComposition = ChildBaseDefinition.makeComposition({
+  mounts: [Measure],
+})
 
 const graphlessView = graphlessComposition.makeView((model, h) =>
   h.div([], [model.value]),
@@ -104,7 +108,7 @@ const alternateEmbed = DirectChildBinding.embedView({
 
 if (false) {
   // @ts-expect-error A Definition does not author the primary view.
-  childBase.makeView
+  ChildBaseDefinition.makeView
 
   graphlessComposition.makeView((_model, h) =>
     h.div([
@@ -144,33 +148,39 @@ if (false) {
   })
 
   const ForeignModel = Schema.Struct({ unrelated: Schema.String })
-  const foreignModelBase = define('StagedForeignModelParent').define({
+  const ForeignModelBaseDefinition = define('StagedForeignModelParent').define({
     Model: ForeignModel,
     Message: ParentMessage,
   })
   // @ts-expect-error A child Binding must use the Composition's parent Model.
-  foreignModelBase.makeComposition({ childBindings: [DirectChildBinding] })
+  ForeignModelBaseDefinition.makeComposition({
+    childBindings: [DirectChildBinding],
+  })
 
   const ForeignMessage = defineMessageUnion({ ReceivedForeign: {} })
-  const foreignMessageBase = define('StagedForeignMessageParent').define({
+  const ForeignMessageBaseDefinition = define(
+    'StagedForeignMessageParent',
+  ).define({
     Model: ParentModel,
     Message: ForeignMessage,
   })
   // @ts-expect-error A child Binding must use the Composition's parent Message.
-  foreignMessageBase.makeComposition({ childBindings: [DirectChildBinding] })
+  ForeignMessageBaseDefinition.makeComposition({
+    childBindings: [DirectChildBinding],
+  })
 }
 
 it('creates independent immutable graphs from one typed Base', () => {
-  expect(childBase.mounts).toEqual([])
-  expect(childBase).not.toHaveProperty('makeView')
+  expect(ChildBaseDefinition.mounts).toEqual([])
+  expect(ChildBaseDefinition).not.toHaveProperty('makeView')
   expect(graphlessComposition.makeView).toBeTypeOf('function')
   void graphlessView
-  expect(observeComposition.owner).toBe(childBase.owner)
+  expect(observeComposition.owner).toBe(ChildBaseDefinition.owner)
   expect(observeComposition.makeUpdate).toBeTypeOf('function')
   expect(observeComposition).not.toHaveProperty('step')
   expect(observeComposition).not.toHaveProperty('subscriptions')
   expect(observeComposition).not.toHaveProperty('managedResources')
-  expect(measureComposition.owner).toBe(childBase.owner)
+  expect(measureComposition.owner).toBe(ChildBaseDefinition.owner)
   expect(observeComposition).not.toBe(measureComposition)
   expect(observeComposition.mounts).toEqual([Observe])
   expect(measureComposition.mounts).toEqual([Measure])
@@ -220,7 +230,7 @@ it('retains contextual update and Step inference after registration', () => {
     expectTypeOf(message).toEqualTypeOf<ChildMessage>()
     return { model }
   })
-  const setValue = childBase.step((model, value: string) => {
+  const setValue = ChildBaseDefinition.step((model, value: string) => {
     expectTypeOf(model).toEqualTypeOf<ChildModel>()
     return { model: modifyFields(model, { value: () => value }) }
   })

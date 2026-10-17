@@ -1,19 +1,20 @@
 import { Dialog } from '@foldkit/ui'
 
 import { SaveDraft } from '../command'
-import { Editor } from '../definition'
+import { EditorDefinition } from '../definition'
 import { Message } from '../message'
 
 const foldDialogOutMessage = Dialog.OutMessage.match({
-  Opened: () => Editor.step(model => ({ model })),
+  Opened: () => EditorDefinition.step(model => ({ model })),
+  CompletedClose: () => EditorDefinition.step(model => ({ model })),
   Closed: () =>
-    Editor.step(model => ({
+    EditorDefinition.step(model => ({
       model,
       commands: [SaveDraft({ contents: model.contents })],
     })),
 })
 
-export const DialogBinding = Editor.bindChild(Dialog.block, {
+export const DialogBinding = EditorDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },

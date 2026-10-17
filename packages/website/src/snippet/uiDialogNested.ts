@@ -31,28 +31,29 @@ const foldConfirmDialogOutMessage = Dialog.OutMessage.match<
 >({
   Opened: () => model => ({ model }),
   Closed: () => model => ({ model }),
+  CompletedClose: () => model => ({ model }),
 })
 
-const ProjectDialogs = Block.define('ProjectDialogs', {
+const ProjectDialogsDefinition = Block.define('ProjectDialogs', {
   Model,
   Message,
 })
 
-const SettingsDialogBinding = ProjectDialogs.bindChild(Dialog.block, {
+const SettingsDialogBinding = ProjectDialogsDefinition.bindChild(Dialog.block, {
   field: 'settingsDialog',
   parentMessage: Message.GotSettingsDialogMessage,
   init: { args: () => Tuple.make({ id: 'settings' }) },
   outMessage: { fold: foldConfirmDialogOutMessage },
 })
 
-const ConfirmDialogBinding = ProjectDialogs.bindChild(Dialog.block, {
+const ConfirmDialogBinding = ProjectDialogsDefinition.bindChild(Dialog.block, {
   field: 'confirmDialog',
   parentMessage: Message.GotConfirmDialogMessage,
   init: { args: () => Tuple.make({ id: 'confirm-delete' }) },
   outMessage: { fold: foldConfirmDialogOutMessage },
 })
 
-const ProjectDialogsComposition = ProjectDialogs.makeComposition({
+const ProjectDialogsComposition = ProjectDialogsDefinition.makeComposition({
   childBindings: [SettingsDialogBinding, ConfirmDialogBinding],
 })
 

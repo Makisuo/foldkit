@@ -1,12 +1,12 @@
 import {
   Array,
   Effect,
-  Function,
   Layer,
   Match,
   Number,
   Option,
   Schema,
+  Tuple,
   pipe,
 } from 'effect'
 import * as Block from 'foldkit/block'
@@ -69,6 +69,21 @@ export const Message = defineMessageUnion({
   BlurredGrid: {},
   RefreshedToday: { today: CalendarDomain.CalendarDate },
   CompletedFocusGrid: {},
+  RequestedSelectDate: { date: CalendarDomain.CalendarDate },
+  RequestedFocusDate: { date: CalendarDomain.CalendarDate },
+  RequestedDropToDays: {},
+  InformedOfMinDateChange: {
+    maybeMinDate: Schema.Option(CalendarDomain.CalendarDate),
+  },
+  InformedOfMaxDateChange: {
+    maybeMaxDate: Schema.Option(CalendarDomain.CalendarDate),
+  },
+  InformedOfDisabledDatesChange: {
+    disabledDates: Schema.Array(CalendarDomain.CalendarDate),
+  },
+  InformedOfDisabledDaysOfWeekChange: {
+    disabledDaysOfWeek: Schema.Array(CalendarDomain.DayOfWeek),
+  },
 })
 export type Message = typeof Message.Type
 
@@ -92,13 +107,13 @@ export type OutMessage = typeof OutMessage.Type
 export type ChangedViewMonth = typeof OutMessage.ChangedViewMonth.Type
 export type SelectedDate = typeof OutMessage.SelectedDate.Type
 
-const Calendar = Block.define('Calendar', {
+const CalendarDefinition = Block.define('Calendar', {
   Model,
   Message,
   OutMessage,
 })
 
-const CalendarComposition = Calendar.makeComposition()
+const CalendarComposition = CalendarDefinition.makeComposition()
 type CalendarViewBuilder = Block.ViewBuilderFor<typeof CalendarComposition>
 
 // INIT
@@ -144,7 +159,7 @@ const gridSelector = (modelId: string): string => idSelector(gridId(modelId))
 
 /** Focuses the calendar grid container. Parent components like DatePicker
  * dispatch this after opening to hand focus to the grid's keyboard layer. */
-export const FocusGrid = Calendar.command('FocusGrid', {
+export const FocusGrid = CalendarDefinition.command('FocusGrid', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusGrid],
   handler: function* () {
@@ -159,86 +174,37 @@ export const FocusGrid = Calendar.command('FocusGrid', {
 /** Effect providers used by the Calendar component. */
 export const EffectsLayer = Layer.mergeAll(FocusGrid.layer)
 
-/** Moves the calendar's view and cursor to a date without changing the
- *  selection (which the parent owns). Use it to navigate to a known date, for
- *  example when opening a date picker onto its current value so the selected
- *  month is visible. Returns the model directly because it produces no
- *  commands and no OutMessage. */
-export const focusDate: Block.Reflect<Model, CalendarDate> = Function.dual(
-  2,
-  (model: Model, date: CalendarDate): Model =>
-    modifyFields(model, {
-      maybeFocusedDate: () => Option.some(date),
-      viewYear: () => date.year,
-      viewMonth: () => date.month,
-    }),
-)
+const focusDateTransition = (model: Model, date: CalendarDate) => ({
+  model: modifyFields(model, {
+    maybeFocusedDate: () => Option.some(date),
+    viewYear: () => date.year,
+    viewMonth: () => date.month,
+  }),
+})
 
-/** Reflects the minimum selectable date onto the model. Pass `Option.none()`
- * to remove the minimum. Use this when the minimum derives from other Model
- * state (e.g. a start date field whose current selection constrains an end
- * date picker).
- *
- * Does NOT reconcile the current selection. If a previously-selected date
- * is now below the new minimum, it remains selected. Callers should clear or
- * reassign the selection explicitly if their domain requires it. */
-export const reflectMinDate: Block.Reflect<
-  Model,
-  Option.Option<CalendarDate>
-> = Function.dual(
-  2,
-  (model: Model, maybeMinDate: Option.Option<CalendarDate>): Model =>
-    modifyFields(model, { maybeMinDate: () => maybeMinDate }),
-)
+const informMinDateChangedTransition = (
+  model: Model,
+  maybeMinDate: Option.Option<CalendarDate>,
+) => ({ model: modifyFields(model, { maybeMinDate: () => maybeMinDate }) })
 
-/** Reflects the maximum selectable date onto the model. Pass `Option.none()`
- * to remove the maximum. Does NOT reconcile the current selection. */
-export const reflectMaxDate: Block.Reflect<
-  Model,
-  Option.Option<CalendarDate>
-> = Function.dual(
-  2,
-  (model: Model, maybeMaxDate: Option.Option<CalendarDate>): Model =>
-    modifyFields(model, { maybeMaxDate: () => maybeMaxDate }),
-)
+const informMaxDateChangedTransition = (
+  model: Model,
+  maybeMaxDate: Option.Option<CalendarDate>,
+) => ({ model: modifyFields(model, { maybeMaxDate: () => maybeMaxDate }) })
 
-/** Reflects the list of individually-disabled dates onto the model. Pass an
- * empty array to clear. Does NOT reconcile the current selection. */
-export const reflectDisabledDates: Block.Reflect<
-  Model,
-  ReadonlyArray<CalendarDate>
-> = Function.dual(
-  2,
-  (model: Model, disabledDates: ReadonlyArray<CalendarDate>): Model =>
-    modifyFields(model, { disabledDates: () => disabledDates }),
-)
+const informDisabledDatesChangedTransition = (
+  model: Model,
+  disabledDates: ReadonlyArray<CalendarDate>,
+) => ({ model: modifyFields(model, { disabledDates: () => disabledDates }) })
 
-/** Reflects the days of the week that are disabled (e.g. weekends) onto the
- * model. Pass an empty array to clear. Does NOT reconcile the current
- * selection. */
-export const reflectDisabledDaysOfWeek: Block.Reflect<
-  Model,
-  ReadonlyArray<CalendarDomain.DayOfWeek>
-> = Function.dual(
-  2,
-  (
-    model: Model,
-    disabledDaysOfWeek: ReadonlyArray<CalendarDomain.DayOfWeek>,
-  ): Model =>
-    modifyFields(model, { disabledDaysOfWeek: () => disabledDaysOfWeek }),
-)
+const informDisabledDaysOfWeekChangedTransition = (
+  model: Model,
+  disabledDaysOfWeek: ReadonlyArray<CalendarDomain.DayOfWeek>,
+) => ({
+  model: modifyFields(model, { disabledDaysOfWeek: () => disabledDaysOfWeek }),
+})
 
-/** Returns the calendar to Days mode regardless of current depth. Useful for
- * standalone (non-popovered) consumers that want to wire their own back-out
- * gesture. Popovered consumers like `DatePicker` don't need this. Escape
- * closes the popover, and the calendar resets to Days on next open.
- *
- * Reconciles `maybeFocusedDate` to a date inside the visible (`viewYear`,
- * `viewMonth`). Months/Years navigation can leave the cursor on a date
- * outside the days grid (paged-away year, etc.), which would otherwise
- * cause `aria-activedescendant` to point at a non-rendered cell and the
- * next ArrowLeft to jump to the cursor's stale year. */
-export const dropToDays = (model: Model): Model => {
+const dropToDaysTransition = (model: Model) => {
   const focusedDay = Option.match(model.maybeFocusedDate, {
     onNone: () => 1,
     onSome: date =>
@@ -247,13 +213,15 @@ export const dropToDays = (model: Model): Model => {
         CalendarDomain.daysInMonth(model.viewYear, model.viewMonth),
       ),
   })
-  return modifyFields(model, {
-    viewMode: () => 'Days',
-    maybeFocusedDate: () =>
-      Option.some(
-        CalendarDomain.make(model.viewYear, model.viewMonth, focusedDay),
-      ),
-  })
+  return {
+    model: modifyFields(model, {
+      viewMode: () => 'Days',
+      maybeFocusedDate: () =>
+        Option.some(
+          CalendarDomain.make(model.viewYear, model.viewMonth, focusedDay),
+        ),
+    }),
+  }
 }
 
 const DAY_SKIP_CAP = 31
@@ -381,11 +349,6 @@ const selectDateTransition = (model: Model, date: CalendarDate) => {
     return commitSelection(model, date)
   }
 }
-
-/** Programmatically selects a date on the calendar, committing it as the
- * chosen value and moving the cursor onto it. Use this in controlled-mode
- * handlers to write the selection back to the calendar's internal state. */
-const selectDate = Calendar.step(selectDateTransition)
 
 /** Applies a focus move to the model, clamping to the allowed range and
  * skipping disabled dates. Emits `ChangedViewMonth` if the move crossed a
@@ -671,6 +634,24 @@ export const update = CalendarComposition.makeUpdate((model, message) =>
     }),
 
     CompletedFocusGrid: () => ({ model }),
+
+    RequestedSelectDate: ({ date }) => selectDateTransition(model, date),
+
+    RequestedFocusDate: ({ date }) => focusDateTransition(model, date),
+
+    RequestedDropToDays: () => dropToDaysTransition(model),
+
+    InformedOfMinDateChange: ({ maybeMinDate }) =>
+      informMinDateChangedTransition(model, maybeMinDate),
+
+    InformedOfMaxDateChange: ({ maybeMaxDate }) =>
+      informMaxDateChangedTransition(model, maybeMaxDate),
+
+    InformedOfDisabledDatesChange: ({ disabledDates }) =>
+      informDisabledDatesChangedTransition(model, disabledDates),
+
+    InformedOfDisabledDaysOfWeekChange: ({ disabledDaysOfWeek }) =>
+      informDisabledDaysOfWeekChangedTransition(model, disabledDaysOfWeek),
   }),
 )
 
@@ -1406,6 +1387,36 @@ export const block = CalendarComposition.makeBlock({
   })),
   update,
   view,
-  expose: { selectDate },
+  operations: {
+    selectDate: (date: CalendarDate) =>
+      Tuple.make(Message.RequestedSelectDate({ date })),
+    focusDate: (date: CalendarDate) =>
+      Tuple.make(Message.RequestedFocusDate({ date })),
+    dropToDays: CalendarComposition.makeOperation(Message.RequestedDropToDays),
+    /** Supplies a new minimum selectable date without reconciling selection. */
+    informMinDateChanged: (maybeMinDate: Option.Option<CalendarDate>) =>
+      Tuple.make(Message.InformedOfMinDateChange({ maybeMinDate })),
+    /** Supplies a new maximum selectable date without reconciling selection. */
+    informMaxDateChanged: (maybeMaxDate: Option.Option<CalendarDate>) =>
+      Tuple.make(Message.InformedOfMaxDateChange({ maybeMaxDate })),
+    /** Supplies the individually disabled dates without reconciling selection. */
+    informDisabledDatesChanged: (disabledDates: ReadonlyArray<CalendarDate>) =>
+      Tuple.make(Message.InformedOfDisabledDatesChange({ disabledDates })),
+    /** Supplies the disabled weekdays without reconciling selection. */
+    informDisabledDaysOfWeekChanged: (
+      disabledDaysOfWeek: ReadonlyArray<CalendarDomain.DayOfWeek>,
+    ) =>
+      Tuple.make(
+        Message.InformedOfDisabledDaysOfWeekChange({ disabledDaysOfWeek }),
+      ),
+  },
   EffectsLayer,
 })
+
+/** Moves the Calendar view and cursor to a date without changing the
+ * parent-owned selection. */
+export const focusDate = block.operations.focusDate
+
+/** Returns the Calendar to Days mode and rebuilds its focused date from the
+ * visible year and month. */
+export const dropToDays = block.operations.dropToDays

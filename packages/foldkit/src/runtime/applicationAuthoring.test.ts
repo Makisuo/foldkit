@@ -29,13 +29,16 @@ class ValueSource extends Context.Service<
   Readonly<{ value: string }>
 >()('ApplicationAuthoring/ValueSource') {}
 
-const Child = define('ApplicationAuthoringChild')
+const ChildOwnerDefinition = define('ApplicationAuthoringChild')
 const ChildModel = Schema.Struct({ value: Schema.String })
 const ChildMessage = defineMessageUnion({
   UpdatedChildValue: { value: Schema.String },
 })
-const child = Child.define({ Model: ChildModel, Message: ChildMessage })
-const ChildComposition = child.makeComposition()
+const ChildDefinition = ChildOwnerDefinition.define({
+  Model: ChildModel,
+  Message: ChildMessage,
+})
+const ChildComposition = ChildDefinition.makeComposition()
 const childBlock = ChildComposition.makeBlock({
   init: () => ({ model: { value: 'child' } }),
   update: ChildComposition.makeUpdate((model, { value }) => ({
@@ -54,9 +57,16 @@ const Message = defineMessageUnion({
   GotChildMessage: { message: ChildMessage },
 })
 const ForeignMessage = defineMessageUnion({ ForeignCompleted: {} })
-const Application = defineApplication({ Model, Message })
-const graphlessComposition = Application.makeComposition()
-const ReadRootValue = Application.command('ReadRootValue', {
+const ApplicationDefinition = defineApplication({ Model, Message })
+const ChildBinding = ApplicationDefinition.bindChild(childBlock, {
+  read: model => Option.some(model.child),
+  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
+  parentMessage: Message.GotChildMessage,
+})
+const graphlessComposition = ApplicationDefinition.makeComposition({
+  childBindings: [ChildBinding],
+})
+const ReadRootValue = ApplicationDefinition.command('ReadRootValue', {
   messages: [Message.CompletedReadRootValue],
   handler: function* () {
     const source = yield* ValueSource
@@ -72,25 +82,21 @@ const documentView = graphlessComposition.makeView((model, h) => ({
 const graphlessElementView = graphlessComposition.makeView((model, h) =>
   h.div([], [model.rootValue]),
 )
-const ObserveRoot = Application.mount('ObserveRoot', {
+const ObserveRoot = ApplicationDefinition.mount('ObserveRoot', {
   messages: [Message.CompletedReadRootValue],
   handler: function* () {
     return () =>
       Effect.succeed(Message.CompletedReadRootValue({ value: 'mounted' }))
   },
 })
-const mountedComposition = Application.makeComposition({
+const mountedComposition = ApplicationDefinition.makeComposition({
   mounts: [ObserveRoot],
+  childBindings: [ChildBinding],
 })
 const mountedView = mountedComposition.makeView((model, h) =>
   h.div([h.OnMount(ObserveRoot())], [model.rootValue]),
 )
-const ChildBinding = Application.bindChild(childBlock, {
-  read: model => Option.some(model.child),
-  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
-  parentMessage: Message.GotChildMessage,
-})
-const composition = Application.makeComposition({
+const composition = ApplicationDefinition.makeComposition({
   childBindings: [ChildBinding],
 })
 const initSource = () =>
@@ -132,11 +138,11 @@ const rootBody = (
 const view = composition.makeView(rootBody)
 
 const NoMessageModel = Schema.Null
-const NoMessageApplication = defineApplication({
+const NoMessageApplicationDefinition = defineApplication({
   Model: NoMessageModel,
   Message: Schema.Never,
 })
-const NoMessageComposition = NoMessageApplication.makeComposition()
+const NoMessageComposition = NoMessageApplicationDefinition.makeComposition()
 const noMessageInit = () => ({ model: null })
 const noMessageUpdate = NoMessageComposition.makeUpdate()
 const noMessageDocumentView = NoMessageComposition.makeView((_model, h) => ({
@@ -149,29 +155,29 @@ const noMessageElementView = NoMessageComposition.makeView(
 
 const typecheckRootCompletion = (): void => {
   // @ts-expect-error An Application Definition does not author the primary view.
-  Application.makeView
+  ApplicationDefinition.makeView
   // @ts-expect-error An Application Definition does not expose the Composition-owned init helper.
-  Application.makeInit
+  ApplicationDefinition.makeInit
 
-  Application.command('AcceptedCommand', {
+  ApplicationDefinition.command('AcceptedCommand', {
     messages: [Message.CompletedReadRootValue],
   })
-  Application.mount('AcceptedMount', {
+  ApplicationDefinition.mount('AcceptedMount', {
     messages: [Message.CompletedReadRootValue],
   })
-  Application.mountStream('AcceptedMountStream', {
+  ApplicationDefinition.mountStream('AcceptedMountStream', {
     messages: [Message.CompletedReadRootValue],
   })
 
-  Application.command('ForeignCommand', {
+  ApplicationDefinition.command('ForeignCommand', {
     // @ts-expect-error Root Commands must produce the Application Message.
     messages: [ForeignMessage.ForeignCompleted],
   })
-  Application.mount('ForeignMount', {
+  ApplicationDefinition.mount('ForeignMount', {
     // @ts-expect-error Root Mounts must produce the Application Message.
     messages: [ForeignMessage.ForeignCompleted],
   })
-  Application.mountStream('ForeignMountStream', {
+  ApplicationDefinition.mountStream('ForeignMountStream', {
     // @ts-expect-error Root stream Mounts must produce the Application Message.
     messages: [ForeignMessage.ForeignCompleted],
   })
@@ -243,7 +249,7 @@ const typecheckRootCompletion = (): void => {
   })
 
   // @ts-expect-error The graphless Composition has not registered the child used by this view.
-  Application.makeComposition().makeElement({
+  ApplicationDefinition.makeComposition().makeElement({
     container: null,
     init,
     update,
@@ -252,7 +258,7 @@ const typecheckRootCompletion = (): void => {
   })
 
   // @ts-expect-error The graphless Composition has not registered the Mount used by this view.
-  Application.makeComposition().makeElement({
+  ApplicationDefinition.makeComposition().makeElement({
     container: null,
     init,
     update,
@@ -388,16 +394,16 @@ afterEach(() => {
 
 describe('Application authoring', () => {
   it('stages primitive authoring before composition', () => {
-    expectTypeOf(Application.Model).toEqualTypeOf(Model)
-    expectTypeOf(Application.Message).toEqualTypeOf(Message)
-    expect(Application.command).toBeTypeOf('function')
-    expect(Application.mount).toBeTypeOf('function')
-    expect(Application.mountStream).toBeTypeOf('function')
-    expect(Application.resource).toBeTypeOf('function')
+    expectTypeOf(ApplicationDefinition.Model).toEqualTypeOf(Model)
+    expectTypeOf(ApplicationDefinition.Message).toEqualTypeOf(Message)
+    expect(ApplicationDefinition.command).toBeTypeOf('function')
+    expect(ApplicationDefinition.mount).toBeTypeOf('function')
+    expect(ApplicationDefinition.mountStream).toBeTypeOf('function')
+    expect(ApplicationDefinition.resource).toBeTypeOf('function')
     expect(composition.makeUpdate).toBeTypeOf('function')
-    expect(Application.step).toBeTypeOf('function')
-    expect(Application.subscriptions).toBeTypeOf('function')
-    expect(Application.managedResources).toBeTypeOf('function')
+    expect(ApplicationDefinition.step).toBeTypeOf('function')
+    expect(ApplicationDefinition.subscriptions).toBeTypeOf('function')
+    expect(ApplicationDefinition.managedResources).toBeTypeOf('function')
     expect(composition).not.toHaveProperty('command')
     expect(composition).not.toHaveProperty('step')
     expect(composition.makeInit).toBeTypeOf('function')
@@ -411,12 +417,12 @@ describe('Application authoring', () => {
     expect(recipe).not.toBeTypeOf('function')
     expect(recipe).not.toHaveProperty('model')
     expect(recipe).not.toHaveProperty('commands')
-    expect(Application).not.toHaveProperty('makeInit')
-    expect(Application).not.toHaveProperty('makeView')
+    expect(ApplicationDefinition).not.toHaveProperty('makeInit')
+    expect(ApplicationDefinition).not.toHaveProperty('makeView')
     expect(graphlessComposition).toHaveProperty('makeView')
 
     // @ts-expect-error an application root is not a reusable Block.
-    void Application.bind
+    void ApplicationDefinition.bind
     // @ts-expect-error an Application composition does not expose Block completion.
     void composition.makeBlock
     // @ts-expect-error an application can only be composed once.

@@ -20,9 +20,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.makeComposition()
+export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 // PORT
 
@@ -38,7 +38,7 @@ export const init = ApplicationComposition.makeInit((flags: Flags) => ({
   model: Model.make({ count: flags.initialCount, step: 1 }),
 }))
 
-export const ReportCount = Application.command('ReportCount', {
+export const ReportCount = ApplicationDefinition.command('ReportCount', {
   args: { count: Schema.Number },
   messages: [Message.CompletedReportCount],
   handler: function* () {
@@ -70,7 +70,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
 
 const TICK_INTERVAL = Duration.seconds(1)
 
-export const subscriptions = Application.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   widgetTicks: entry('WidgetTicks', {
     messages: [Message.Ticked],
     handler: function* () {

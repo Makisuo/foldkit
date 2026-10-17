@@ -5,28 +5,25 @@ import {
   Model,
   OutMessage,
   SaveTheme,
-  Settings,
+  SettingsDefinition,
   SettingsComposition,
   Theme,
 } from './blockDefinition'
 
+const changeTheme = SettingsDefinition.step((model, theme: Theme) => ({
+  model: modifyFields(model, { theme: () => theme }),
+  commands: [SaveTheme({ theme })],
+  outMessage: OutMessage.ChangedTheme({ theme }),
+}))
+
 const update = SettingsComposition.makeUpdate((model, message) =>
   Message.match(message, {
-    ChangedTheme: ({ theme }) => ({
-      model: modifyFields(model, { theme: () => theme }),
-      commands: [SaveTheme({ theme })],
-      outMessage: OutMessage.ChangedTheme({ theme }),
-    }),
+    ChangedTheme: ({ theme }) => changeTheme(model, theme),
+    RequestedThemeChange: ({ theme }) => changeTheme(model, theme),
     CompletedSaveTheme: () => ({ model }),
     FailedSaveTheme: () => ({ model }),
   }),
 )
-
-const reset = Settings.step(model => ({
-  model: modifyFields(model, { theme: () => 'System' }),
-  commands: [SaveTheme({ theme: 'System' })],
-  outMessage: OutMessage.ChangedTheme({ theme: 'System' }),
-}))
 
 const view = SettingsComposition.makeView((model, h) =>
   h.div(
@@ -49,7 +46,9 @@ export const block = SettingsComposition.makeBlock({
   init,
   update,
   view,
-  expose: { reset },
+  operations: {
+    reset: () => [Message.RequestedThemeChange({ theme: 'System' })],
+  },
   EffectsLayer: SaveTheme.layer,
 })
 

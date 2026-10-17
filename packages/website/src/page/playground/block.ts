@@ -1,12 +1,16 @@
 import { PlaygroundComposition } from './composition'
+import { Message } from './definition'
 import {
   EffectsLayer,
-  informSupport,
   init,
   managedResources,
   update,
   view,
 } from './playground'
+
+const informSupport = PlaygroundComposition.makeOperation(
+  Message.InformedOfSupport,
+)
 
 export const block = PlaygroundComposition.makeBlock({
   init,
@@ -14,5 +18,5 @@ export const block = PlaygroundComposition.makeBlock({
   view,
   managedResources,
   EffectsLayer,
-  expose: { informSupport },
+  operations: { informSupport },
 })

@@ -18,10 +18,10 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const Counter = Block.define('Counter', { Model, Message })
-const CounterComposition = Counter.makeComposition()
+const CounterDefinition = Block.define('Counter', { Model, Message })
+const CounterComposition = CounterDefinition.makeComposition()
 
-const subscriptions = Counter.subscriptions(entry => ({
+const subscriptions = CounterDefinition.subscriptions(entry => ({
   gameClockTicks: entry(
     'GameClockTicks',
     { isAutoCounting: Schema.Boolean },

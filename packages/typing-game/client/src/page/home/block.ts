@@ -1,4 +1,4 @@
-import { HomeComposition } from './definition'
+import { HomeComposition } from './composition'
 import { init } from './init'
 import { EffectsLayer } from './layer'
 import { subscriptions } from './subscription'

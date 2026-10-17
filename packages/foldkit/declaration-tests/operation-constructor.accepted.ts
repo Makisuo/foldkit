@@ -1,0 +1,439 @@
+import { Array, Context, Effect, Layer, Option, Schema, Tuple } from 'effect'
+import * as Block from 'foldkit/block'
+import * as Command from 'foldkit/command'
+import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
+import * as Update from 'foldkit/update'
+
+type Equal<Left, Right> =
+  (<Value>() => Value extends Left ? 1 : 2) extends <
+    Value,
+  >() => Value extends Right ? 1 : 2
+    ? true
+    : false
+type Expect<Value extends true> = Value
+
+export class RequiredService extends Context.Service<
+  RequiredService,
+  Readonly<{ prefix: string }>
+>()('OperationConstructorProof/RequiredService') {}
+
+export class ProvidedService extends Context.Service<
+  ProvidedService,
+  Readonly<{ value: string }>
+>()('OperationConstructorProof/ProvidedService') {}
+
+export class LayerFailure {
+  readonly _tag = 'LayerFailure'
+}
+
+export const Model = Schema.Struct({ value: Schema.String })
+export type Model = typeof Model.Type
+export const Message = defineMessageUnion({
+  ResetValue: {},
+  UpdatedValue: {
+    value: Schema.String,
+    source: Schema.String.pipe(
+      Schema.withConstructorDefault(Effect.succeed('default')),
+    ),
+  },
+  CompletedRecordValue: { value: Schema.String },
+})
+export type Message = typeof Message.Type
+export const OutMessage = defineMessageUnion({
+  ChangedValue: { value: Schema.String },
+})
+export type OutMessage = typeof OutMessage.Type
+
+export const OperationConstructorProofChildDefinition = Block.define(
+  'OperationConstructorProofChild',
+  {
+    Model,
+    Message,
+    OutMessage,
+  },
+)
+export const RecordValue = OperationConstructorProofChildDefinition.command(
+  'RecordValue',
+  {
+    args: { value: Schema.String },
+    messages: [Message.CompletedRecordValue],
+  },
+)
+export const OperationConstructorProofChildComposition =
+  OperationConstructorProofChildDefinition.makeComposition()
+export const update = OperationConstructorProofChildComposition.makeUpdate(
+  (
+    model,
+    message,
+    required: Readonly<{ prefix: string }>,
+    maybeSuffix?: string,
+    separator: string = ':',
+    ...indexes: ReadonlyArray<number>
+  ) =>
+    Message.match<
+      Update.ReturnWithOutMessage<
+        Model,
+        Message,
+        OutMessage,
+        Command.HandlerOf<typeof RecordValue>
+      >
+    >(message, {
+      ResetValue: () => ({ model: modifyFields(model, { value: () => '' }) }),
+      UpdatedValue: ({ source, value }) => {
+        const nextValue = `${required.prefix}${separator}${source}${separator}${value}${maybeSuffix ?? ''}${indexes.join('')}`
+
+        return {
+          model: modifyFields(model, { value: () => nextValue }),
+          commands: [RecordValue({ value: nextValue })],
+          outMessage: OutMessage.ChangedValue({ value: nextValue }),
+        }
+      },
+      CompletedRecordValue: () => ({ model }),
+    }),
+)
+
+export const resetValue =
+  OperationConstructorProofChildComposition.makeOperation(Message.ResetValue)
+export const updateValue =
+  OperationConstructorProofChildComposition.makeOperation(Message.UpdatedValue)
+export const EffectsLayer = Layer.merge(
+  Layer.empty,
+  Layer.effect(
+    ProvidedService,
+    Effect.gen(function* () {
+      const requiredService = yield* RequiredService
+      if (requiredService.prefix.length === 0) {
+        return yield* Effect.fail(new LayerFailure())
+      }
+
+      return ProvidedService.of({ value: requiredService.prefix })
+    }),
+  ),
+)
+
+export const ChildBlock = OperationConstructorProofChildComposition.makeBlock({
+  init: () => ({ model: Model.make({ value: '' }) }),
+  update,
+  operations: {
+    resetValue,
+    updateValue,
+    updatePositionally: (
+      value: string,
+      required: Readonly<{ prefix: string }>,
+    ) => Tuple.make(Message.UpdatedValue({ value }), required),
+    updateRefined: (value: 'First' | 'Second') =>
+      Tuple.make(
+        Message.UpdatedValue({ value }),
+        { prefix: 'refined' },
+        undefined,
+        undefined,
+      ),
+  },
+  EffectsLayer,
+  hostHandlers: [RecordValue],
+})
+
+export const ParentModel = Schema.Struct({
+  maybeChild: Schema.Option(Model),
+  entries: Schema.Array(Schema.Struct({ id: Schema.String, child: Model })),
+})
+export type ParentModel = typeof ParentModel.Type
+export const ParentMessage = defineMessageUnion({
+  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture deliberately probes routed child Message ownership.
+  GotChildMessage: { message: Message },
+  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture deliberately probes routed child Message ownership.
+  GotEntryMessage: { id: Schema.String, message: Message },
+  RequestedUpdateChild: { value: Schema.String },
+  RequestedUpdateEntry: { id: Schema.String, value: Schema.String },
+})
+export const OperationConstructorProofParentDefinition = Block.define(
+  'OperationConstructorProofParent',
+  {
+    Model: ParentModel,
+    Message: ParentMessage,
+  },
+)
+export const ChildBinding = OperationConstructorProofParentDefinition.bindChild(
+  ChildBlock,
+  {
+    placement: 'child',
+    read: model => model.maybeChild,
+    write: (model, nextChild) =>
+      modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
+    toParentMessage: message => ParentMessage.GotChildMessage({ message }),
+    fromParentMessage: {
+      parentMessage: ParentMessage.GotChildMessage,
+      args: (_model, { message }) =>
+        Option.some([message, { prefix: 'routed' }]),
+    },
+    outMessage: {
+      fold: OutMessage.match<
+        Update.Step<ParentModel, typeof ParentMessage.Type>
+      >({
+        ChangedValue: () => model => ({ model }),
+      }),
+    },
+  },
+)
+export const EntryBinding = OperationConstructorProofParentDefinition.bindChild(
+  ChildBlock,
+  {
+    placement: 'entries',
+    readAll: model => model.entries,
+    key: entry => entry.id,
+    read: entry => entry.child,
+    writeAt: (model, id, nextChild) =>
+      modifyFields(model, {
+        entries: Array.map(entry =>
+          entry.id === id ? { ...entry, child: nextChild } : entry,
+        ),
+      }),
+    toParentMessage: (id, message) =>
+      ParentMessage.GotEntryMessage({ id, message }),
+    fromParentMessage: {
+      parentMessage: ParentMessage.GotEntryMessage,
+      args: (_model, { id, message }) =>
+        Option.some([id, message, { prefix: 'routed' }]),
+    },
+    outMessage: {
+      fold: (_id, outMessage) =>
+        OutMessage.match<Update.Step<ParentModel, typeof ParentMessage.Type>>(
+          outMessage,
+          {
+            ChangedValue: () => model => ({ model }),
+          },
+        ),
+    },
+  },
+)
+export const OperationConstructorProofParentComposition =
+  OperationConstructorProofParentDefinition.makeComposition({
+    childBindings: [ChildBinding, EntryBinding],
+  })
+
+export const ParentBlock = OperationConstructorProofParentComposition.makeBlock(
+  {
+    init: () => ({
+      model: ParentModel.make({ maybeChild: Option.none(), entries: [] }),
+    }),
+    update: OperationConstructorProofParentComposition.makeUpdate(
+      (model, message) =>
+        ParentMessage.match(message, {
+          RequestedUpdateChild: ({ value }) =>
+            ChildBinding.updateValue({ value }, { prefix: 'parent' })(model),
+          RequestedUpdateEntry: ({ id, value }) =>
+            EntryBinding.updateValue(
+              id,
+              { value },
+              { prefix: 'parent' },
+            )(model),
+        }),
+    ),
+    operations: {
+      updateChild: OperationConstructorProofParentComposition.makeOperation(
+        ParentMessage.RequestedUpdateChild,
+      ),
+      updateEntry: OperationConstructorProofParentComposition.makeOperation(
+        ParentMessage.RequestedUpdateEntry,
+      ),
+    },
+    EffectsLayer: RecordValue.toLayer(
+      Effect.succeed(({ value }) =>
+        Effect.succeed(Message.CompletedRecordValue({ value })),
+      ),
+    ),
+  },
+)
+
+export function makeChoice<
+  const Values extends readonly [string, ...Array<string>],
+>(values: Values) {
+  const Value = Schema.Literals(values)
+  const ChoiceModel = Schema.Struct({ selected: Value })
+  const ChoiceMessage = defineMessageUnion({ SelectedValue: { value: Value } })
+  const OperationConstructorProofChoiceDefinition = Block.define(
+    'OperationConstructorProofChoice',
+    {
+      Model: ChoiceModel,
+      Message: ChoiceMessage,
+    },
+  )
+  const OperationConstructorProofChoiceComposition =
+    OperationConstructorProofChoiceDefinition.makeComposition()
+  const select = OperationConstructorProofChoiceComposition.makeOperation(
+    ChoiceMessage.SelectedValue,
+  )
+
+  return OperationConstructorProofChoiceComposition.makeBlock({
+    init: (selected: Values[number]) => ({
+      model: ChoiceModel.make({ selected }),
+    }),
+    update: OperationConstructorProofChoiceComposition.makeUpdate(
+      (model, { value }) => ({
+        model: modifyFields(model, { selected: () => value }),
+      }),
+    ),
+    operations: {
+      select,
+      selectPositionally: (value: Values[number]) =>
+        Tuple.make(ChoiceMessage.SelectedValue({ value })),
+    },
+    EffectsLayer: Layer.empty,
+  })
+}
+
+export const Choice = makeChoice(['First', 'Second'])
+
+type DescriptorFacade = Expect<
+  typeof updateValue extends Block.Operation<
+    'OperationConstructorProofChild',
+    Block.OperationParameters<typeof Message.UpdatedValue>,
+    ReturnType<typeof Message.UpdatedValue>
+  >
+    ? true
+    : false
+>
+type DescriptorIsPassive = Expect<
+  Equal<
+    typeof updateValue extends (...args: ReadonlyArray<unknown>) => unknown
+      ? true
+      : false,
+    false
+  >
+>
+type EmptyConstructorArguments = Expect<
+  Equal<
+    Parameters<typeof ChildBlock.operations.resetValue>,
+    [
+      model: Model,
+      required: Readonly<{ prefix: string }>,
+      maybeSuffix?: string | undefined,
+      separator?: string | undefined,
+      ...indexes: ReadonlyArray<number>,
+    ]
+  >
+>
+type ConstructorPayloadAcceptsDecoded = Expect<
+  Omit<typeof Message.UpdatedValue.Type, '_tag'> extends Parameters<
+    typeof ChildBlock.operations.updateValue
+  >[1]
+    ? true
+    : false
+>
+type ConstructorPayloadAcceptsMakeInput = Expect<
+  (typeof Message.UpdatedValue)['~type.make.in'] extends Parameters<
+    typeof ChildBlock.operations.updateValue
+  >[1]
+    ? true
+    : false
+>
+type DirectBindingContext = Expect<
+  Equal<
+    Parameters<typeof ChildBinding.updateValue> extends readonly [
+      payload: infer _Payload,
+      ...context: infer Context,
+    ]
+      ? Context
+      : never,
+    [
+      required: Readonly<{ prefix: string }>,
+      maybeSuffix?: string | undefined,
+      separator?: string | undefined,
+      ...indexes: ReadonlyArray<number>,
+    ]
+  >
+>
+type KeyedBindingStartsWithKey = Expect<
+  Equal<Parameters<typeof EntryBinding.updateValue>[0], string>
+>
+type CommandRequirementsRemain = Expect<
+  Equal<
+    Update.RequirementsOf<typeof ChildBlock.operations.updateValue>,
+    Command.HandlerOf<typeof RecordValue>
+  >
+>
+type BindingRegistrationRemains = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<
+      ReturnType<ReturnType<typeof EntryBinding.updateValue>>
+    >,
+    Block.BindingRequirement<'entries', typeof ChildBlock>
+  >
+>
+type ParentCommandRequirementsRemain = Expect<
+  Equal<
+    Update.RequirementsOf<typeof ParentBlock.operations.updateChild>,
+    Update.RequirementsOf<typeof ParentBlock.update>
+  >
+>
+type ParentRegistrationIsResolved = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<
+      ReturnType<typeof ParentBlock.operations.updateEntry>
+    >,
+    never
+  >
+>
+type OutMessageRemains = Expect<
+  ReturnType<
+    typeof ChildBlock.operations.updateValue
+  > extends Update.ReturnWithOutMessage<Model, Message, infer Value, unknown>
+    ? Equal<Value, OutMessage>
+    : false
+>
+type LayerErrorRemains = Expect<
+  Equal<Layer.Error<typeof ChildBlock.EffectsLayer>, LayerFailure>
+>
+type LayerServicesRemain = Expect<
+  Equal<Layer.Services<typeof ChildBlock.EffectsLayer>, RequiredService>
+>
+type GenericPayloadRemains = Expect<
+  Equal<
+    Omit<typeof Choice.Message.SelectedValue.Type, '_tag'>,
+    Readonly<{ value: 'First' | 'Second' }>
+  >
+>
+type GenericPositionalProducerRemains = Expect<
+  Equal<
+    Parameters<typeof Choice.operations.selectPositionally>,
+    [model: typeof Choice.Model.Type, value: 'First' | 'Second']
+  >
+>
+type NoExposeAlias = Expect<
+  Equal<'expose' extends keyof typeof ChildBlock ? true : false, false>
+>
+
+export type OperationConstructorAssertions = readonly [
+  DescriptorFacade,
+  DescriptorIsPassive,
+  EmptyConstructorArguments,
+  ConstructorPayloadAcceptsDecoded,
+  ConstructorPayloadAcceptsMakeInput,
+  DirectBindingContext,
+  KeyedBindingStartsWithKey,
+  CommandRequirementsRemain,
+  BindingRegistrationRemains,
+  ParentCommandRequirementsRemain,
+  ParentRegistrationIsResolved,
+  OutMessageRemains,
+  LayerErrorRemains,
+  LayerServicesRemain,
+  GenericPayloadRemains,
+  GenericPositionalProducerRemains,
+  NoExposeAlias,
+]
+
+export const makeNamed = <const Name extends string>(name: Name) => {
+  const NamedOwnerDefinition = Block.define(name)
+  const NamedDefinition = NamedOwnerDefinition.define({ Model, Message })
+  const NamedComposition = NamedDefinition.makeComposition()
+
+  return NamedComposition.makeBlock({
+    init: () => ({ model: Model.make({ value: '' }) }),
+    update: NamedComposition.makeUpdate(model => ({ model })),
+    operations: {
+      reset: NamedComposition.makeOperation(Message.ResetValue),
+    },
+  })
+}

@@ -34,5 +34,5 @@ export const updateEntryManually = ApplicationComposition.makeUpdate(model => {
   })
   void nextModel
 
-  return EntriesBinding.setTheme('initial', 'Light')(model)
+  return EntriesBinding.informThemeChanged('initial', 'Light')(model)
 })

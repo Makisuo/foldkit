@@ -204,7 +204,7 @@ Manually copying the child Model from a helper result causes a separate problem.
 
 ::Snippet{name="antiPatternBlockResultBad" label="❌ The parent keeps only the child Model" class="mb-4"}
 
-Declare parent-driven transitions under `expose: { operation }` in the completed Block. The parent calls `binding.operation(...)`, which returns a connected parent Update.Step and preserves the child's full result. Apply it to the contextual Model inside the owning Composition, or return it from the parent's `step` producer for deferred application.
+Prefer `Composition.makeOperation(Message.Constructor)` for a direct Message-producing operation, then select its passive descriptor under `operations` in the completed Block. Use a tuple producer there when the public inputs need mapping, refinement, defaults, or an exact update context tuple. The parent calls `binding.operation(...)`, which returns a connected parent Update.Step and preserves the child's complete update result. Apply it to the contextual Model inside the owning Composition.
 
 ::Snippet{name="antiPatternBlockBoundaryGood" label="✅ A public helper preserves the child's update boundary"}
 
@@ -214,15 +214,15 @@ The Binding writes the returned child Model into the parent, maps its Commands, 
 
 ### Initialize One Child
 
-A child's `init` can return a Model and Commands. A public restoration operation that can also emit an OutMessage belongs in a named Step, because the parent Model must exist before the parent can handle that fact.
+A child's `init` can return a Model and Commands. A public restoration operation produces a `RequestedRestore` Message so update owns its Model change, Command, and `RestoredTheme` OutMessage. The parent Model exists before the Binding handles that OutMessage.
 
-::Snippet{name="antiPatternChildInitSettings" label="The restoration Step emits RestoredTheme" class="mb-4"}
+::Snippet{name="antiPatternChildInitSettings" label="The restoration operation emits RestoredTheme" class="mb-4"}
 
 Copying the child Model from an update result can silently drop its Commands and OutMessage:
 
 ::Snippet{name="antiPatternChildInitBad" label="❌ Manual assembly loses an initialization OutMessage" class="mb-4"}
 
-Store Settings in a required direct field and omit `init`, then list the exposed restoration Step in the Composition init plan. The Composition calls its zero-argument initializer, assembles the complete parent Model, and retains init Commands; the Binding maps restoration Commands and applies the exhaustive OutMessage policy declared at the composition boundary:
+Store Settings in a required direct field and omit `init`, then list the Binding-projected restoration Step in the Composition init plan. The Composition calls its zero-argument initializer, assembles the complete parent Model, and retains init Commands; the Binding maps restoration Commands and applies the exhaustive OutMessage policy declared at the composition boundary:
 
 ::Snippet{name="antiPatternChildInitGood" label="✅ Initialize and restore through the Binding"}
 

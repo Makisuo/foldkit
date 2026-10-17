@@ -16,10 +16,10 @@ import { modifyFields } from '../struct/index.js'
 import { makeCompositionRuntime } from './compositionRuntime.js'
 import type { SlowSubscriptionDependenciesContext } from './slowPhase.js'
 
-const Child = define('LifecycleChild')
+const ChildOwnerDefinition = define('LifecycleChild')
 const ChildModel = Schema.Struct({ id: Schema.Number })
 const ChildMessage = defineMessageUnion({ EmittedPulse: {} })
-const ChildValue = Child.resource<string>()('Value')
+const ChildValue = ChildOwnerDefinition.resource<string>()('Value')
 class LifecycleLog extends Context.Service<
   LifecycleLog,
   Readonly<{
@@ -29,8 +29,11 @@ class LifecycleLog extends Context.Service<
     releaseResource: (value: string) => Effect.Effect<void>
   }>
 >()('CompositionRuntime/LifecycleLog') {}
-const child = Child.define({ Model: ChildModel, Message: ChildMessage })
-const subscriptions = child.subscriptions(entry => ({
+const ChildDefinition = ChildOwnerDefinition.define({
+  Model: ChildModel,
+  Message: ChildMessage,
+})
+const subscriptions = ChildDefinition.subscriptions(entry => ({
   pulses: entry(
     'Pulses',
     { id: Schema.Number },
@@ -51,7 +54,7 @@ const subscriptions = child.subscriptions(entry => ({
     },
   ),
 }))
-const childManagedResources = child.managedResources(entry => ({
+const childManagedResources = ChildDefinition.managedResources(entry => ({
   value: entry('Value', Schema.Option(Schema.Struct({ id: Schema.Number })), {
     resource: ChildValue,
     modelToMaybeRequirements: model => Option.some({ id: model.id }),
@@ -73,7 +76,7 @@ const childManagedResources = child.managedResources(entry => ({
     },
   }),
 }))
-const childComposition = child.makeComposition()
+const childComposition = ChildDefinition.makeComposition()
 const childBlock = childComposition.makeBlock({
   init: (id: number) => ({ model: { id } }),
   update: childComposition.makeUpdate(model => ({ model })),
@@ -84,8 +87,8 @@ const childBlock = childComposition.makeBlock({
     childManagedResources.value.layer,
   ),
 })
-const Root = define('LifecycleApp')
-const RootValue = Root.resource<string>()('Value')
+const RootDefinition = define('LifecycleApp')
+const RootValue = RootDefinition.resource<string>()('Value')
 const RootModel = Schema.Struct({
   maybeChild: Schema.Option(ChildModel),
   entries: Schema.Array(ChildModel),
@@ -93,22 +96,22 @@ const RootModel = Schema.Struct({
 })
 type RootModel = typeof RootModel.Type
 const RootMessage = defineMessageUnion({
-  GotChildMessage: { message: ChildMessage },
+  GotOptionalChildMessage: { message: ChildMessage },
+  GotEntryMessage: { id: Schema.Number, message: ChildMessage },
+  ChangedRootValueAvailability: {},
 })
-const rootBase = Root.define({
+const RootBaseDefinition = RootDefinition.define({
   Model: RootModel,
   Message: RootMessage,
 })
-const OptionalChildBinding = rootBase.bindChild(childBlock, {
-  fromParentMessage: false,
+const OptionalChildBinding = RootBaseDefinition.bindChild(childBlock, {
   read: (model: RootModel) => model.maybeChild,
   write: (model, nextChild) =>
     modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
-  parentMessage: RootMessage.GotChildMessage,
+  parentMessage: RootMessage.GotOptionalChildMessage,
   subscriptions: { when: model => model.subscriptionState === 'Active' },
 })
-const EntriesBinding = rootBase.bindChild(childBlock, {
-  fromParentMessage: false,
+const EntriesBinding = RootBaseDefinition.bindChild(childBlock, {
   placement: 'Entries',
   readAll: (model: RootModel) => model.entries,
   key: entry => entry.id,
@@ -118,21 +121,23 @@ const EntriesBinding = rootBase.bindChild(childBlock, {
       entries: entries =>
         entries.map(entry => (entry.id === key ? nextChild : entry)),
     }),
-  toParentMessage: (_key, message) => RootMessage.GotChildMessage({ message }),
+  toParentMessage: (id, message) =>
+    RootMessage.GotEntryMessage({ id, message }),
+  fromParentMessage: {
+    parentMessage: RootMessage.GotEntryMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
 })
-const root = rootBase.makeComposition({
+const root = RootBaseDefinition.makeComposition({
   childBindings: [OptionalChildBinding, EntriesBinding],
 })
-const rootManagedResources = rootBase.managedResources(entry => ({
+const rootManagedResources = RootBaseDefinition.managedResources(entry => ({
   value: entry('Value', Schema.Option(Schema.Null), {
     resource: RootValue,
     modelToMaybeRequirements: () => Option.some(null),
-    onAcquired: () =>
-      RootMessage.GotChildMessage({ message: ChildMessage.EmittedPulse() }),
-    onReleased: () =>
-      RootMessage.GotChildMessage({ message: ChildMessage.EmittedPulse() }),
-    onAcquireError: () =>
-      RootMessage.GotChildMessage({ message: ChildMessage.EmittedPulse() }),
+    onAcquired: () => RootMessage.ChangedRootValueAvailability(),
+    onReleased: () => RootMessage.ChangedRootValueAvailability(),
+    onAcquireError: () => RootMessage.ChangedRootValueAvailability(),
     handler: function* () {
       return {
         acquire: () => Effect.succeed('root'),
@@ -153,7 +158,7 @@ const block = root.makeBlock({
   EffectsLayer: rootManagedResources.value.layer,
 })
 
-const NestedParent = define('NestedLifecycleParent')
+const NestedParentDefinition = define('NestedLifecycleParent')
 const NestedParentModel = Schema.Struct({
   id: Schema.Number,
   entries: Schema.Array(ChildModel),
@@ -162,12 +167,11 @@ type NestedParentModel = typeof NestedParentModel.Type
 const NestedParentMessage = defineMessageUnion({
   GotChildMessage: { id: Schema.Number, message: ChildMessage },
 })
-const nestedParentBase = NestedParent.define({
+const NestedParentBaseDefinition = NestedParentDefinition.define({
   Model: NestedParentModel,
   Message: NestedParentMessage,
 })
-const NestedEntriesBinding = nestedParentBase.bindChild(childBlock, {
-  fromParentMessage: false,
+const NestedEntriesBinding = NestedParentBaseDefinition.bindChild(childBlock, {
   placement: 'entries',
   readAll: (model: NestedParentModel) => model.entries,
   key: (entry): number => entry.id,
@@ -179,23 +183,22 @@ const NestedEntriesBinding = nestedParentBase.bindChild(childBlock, {
     }),
   toParentMessage: (id: number, message) =>
     NestedParentMessage.GotChildMessage({ id, message }),
+  fromParentMessage: {
+    parentMessage: NestedParentMessage.GotChildMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
 })
-const nestedParent = nestedParentBase.makeComposition({
+const nestedParent = NestedParentBaseDefinition.makeComposition({
   childBindings: [NestedEntriesBinding],
 })
 const nestedParentBlock = nestedParent.makeBlock({
   init: (id: number, entries: ReadonlyArray<typeof ChildModel.Type>) => ({
     model: { id, entries },
   }),
-  update: nestedParent.makeUpdate((model, message) =>
-    NestedParentMessage.match(message, {
-      GotChildMessage: ({ id, message }) =>
-        NestedEntriesBinding.fold(model, id, message),
-    }),
-  ),
+  update: nestedParent.makeUpdate(),
   EffectsLayer: Layer.empty,
 })
-const NestedRoot = define('NestedLifecycleApp')
+const NestedRootDefinition = define('NestedLifecycleApp')
 const NestedRootModel = Schema.Struct({
   parents: Schema.Array(NestedParentModel),
 })
@@ -203,25 +206,31 @@ type NestedRootModel = typeof NestedRootModel.Type
 const NestedRootMessage = defineMessageUnion({
   GotParentMessage: { id: Schema.Number, message: NestedParentMessage },
 })
-const nestedRootBase = NestedRoot.define({
+const NestedRootBaseDefinition = NestedRootDefinition.define({
   Model: NestedRootModel,
   Message: NestedRootMessage,
 })
-const NestedParentsBinding = nestedRootBase.bindChild(nestedParentBlock, {
-  fromParentMessage: false,
-  placement: 'parents',
-  readAll: (model: NestedRootModel) => model.parents,
-  key: (parent): number => parent.id,
-  read: parent => parent,
-  writeAt: (model, key: number, nextParent) =>
-    modifyFields(model, {
-      parents: parents =>
-        parents.map(parent => (parent.id === key ? nextParent : parent)),
-    }),
-  toParentMessage: (id: number, message) =>
-    NestedRootMessage.GotParentMessage({ id, message }),
-})
-const nestedRoot = nestedRootBase.makeComposition({
+const NestedParentsBinding = NestedRootBaseDefinition.bindChild(
+  nestedParentBlock,
+  {
+    placement: 'parents',
+    readAll: (model: NestedRootModel) => model.parents,
+    key: (parent): number => parent.id,
+    read: parent => parent,
+    writeAt: (model, key: number, nextParent) =>
+      modifyFields(model, {
+        parents: parents =>
+          parents.map(parent => (parent.id === key ? nextParent : parent)),
+      }),
+    toParentMessage: (id: number, message) =>
+      NestedRootMessage.GotParentMessage({ id, message }),
+    fromParentMessage: {
+      parentMessage: NestedRootMessage.GotParentMessage,
+      args: (_model, { id, message }) => Option.some([id, message]),
+    },
+  },
+)
+const nestedRoot = NestedRootBaseDefinition.makeComposition({
   childBindings: [NestedParentsBinding],
 })
 const nestedInitialModel = NestedRootModel.make({
@@ -229,12 +238,7 @@ const nestedInitialModel = NestedRootModel.make({
 })
 const nestedBlock = nestedRoot.makeBlock({
   init: () => ({ model: nestedInitialModel }),
-  update: nestedRoot.makeUpdate((model, message) =>
-    NestedRootMessage.match(message, {
-      GotParentMessage: ({ id, message }) =>
-        NestedParentsBinding.fold(model, id, message),
-    }),
-  ),
+  update: nestedRoot.makeUpdate(),
   EffectsLayer: Layer.empty,
 })
 

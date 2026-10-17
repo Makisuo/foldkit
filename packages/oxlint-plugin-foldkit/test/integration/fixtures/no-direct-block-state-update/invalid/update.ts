@@ -36,6 +36,11 @@ const foldKeyedSettings = Update.foldChildAt({
   toParentMessage: (_key, message) => message,
 })
 
+const Settings = {
+  reflectTheme: (theme: string) => (settings: SettingsModel) =>
+    modifyFields(settings, { theme: () => theme }),
+}
+
 export const update = (model: Model, message: unknown) => {
   const settingsUpdate = Update.combine(model, [
     stepModel => {
@@ -126,5 +131,16 @@ export const updateKeyedSettings = (
         modifyFields(keyedSettings, { theme: () => 'Light' }),
     }),
     commands: keyedSettingsUpdate.commands,
+  }
+}
+
+export const reflectSettings = (model: Model, message: unknown) => {
+  const settingsUpdate = foldSettings(model, message)
+
+  return {
+    model: modifyFields(model, {
+      settings: Settings.reflectTheme('Light'),
+    }),
+    commands: settingsUpdate.commands,
   }
 }

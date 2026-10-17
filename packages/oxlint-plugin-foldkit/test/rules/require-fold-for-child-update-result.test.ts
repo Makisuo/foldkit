@@ -287,23 +287,6 @@ describe('require-fold-for-child-update-result', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('allows a Model-only reflect helper in a modifyFields updater', () => {
-    const reflectCall = Testing.callOfMember('Slider', 'reflectRange', [
-      Testing.id('range'),
-    ])
-    const modifyFields = Testing.callExpr('modifyFields', [
-      Testing.id('model'),
-      objectExpression([property('slider', Testing.arrowFn(reflectCall))]),
-    ])
-    const result = Testing.runRule(
-      requireFoldForChildUpdateResult,
-      'CallExpression',
-      modifyFields,
-    )
-
-    expect(result).toHaveLength(0)
-  })
-
   it('allows direct child helper calls when their Return is not copied', () => {
     const declaration = childReturn(
       'settingsReset',

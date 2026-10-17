@@ -25,5 +25,6 @@ export {
   SWIPE_SETTLE_DURATION,
   swipeOffset,
   type EntryHandlers,
+  type Completed,
   make,
 } from './toast.js'

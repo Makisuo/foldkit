@@ -43,21 +43,21 @@ import { menuViewInputs } from './viewInputs'
 const AppMenu = Menu.create()
 const AppTabs = Tabs.create<Tab>()
 
-const Panel = Block.define('Panel', { Model, Message })
+const PanelDefinition = Block.define('Panel', { Model, Message })
 
-const MenuBinding = Panel.bindChild(AppMenu, {
+const MenuBinding = PanelDefinition.bindChild(AppMenu, {
   field: 'menu',
   parentMessage: Message.GotMenuMessage,
   outMessage: { fold: foldMenuOutMessage },
 })
 
-const TabsBinding = Panel.bindChild(AppTabs, {
+const TabsBinding = PanelDefinition.bindChild(AppTabs, {
   field: 'tabs',
   parentMessage: Message.GotTabsMessage,
   outMessage: { fold: foldTabsOutMessage },
 })
 
-const PanelComposition = Panel.makeComposition({
+const PanelComposition = PanelDefinition.makeComposition({
   childBindings: [MenuBinding, TabsBinding],
 })
 
@@ -72,7 +72,7 @@ export const view = PanelComposition.makeView((model, h) =>
 )
 ```
 
-Register only the components the owner embeds. A Binding makes the parent-child relationship explicit once: the Composition routes received wrapper Messages through the Binding automatically, update uses exposed operations such as `binding.open()` for parent-driven changes, and view uses `binding.embedView`.
+Register only the components the owner embeds. A Binding makes the parent-child relationship explicit once: the Composition routes received wrapper Messages through the Binding automatically, update uses operations such as `binding.open()` for parent-driven changes, and view uses `binding.embedView`.
 
 Factories live on the component namespace: `Combobox.create`, `Combobox.Multi.create`, `Listbox.create`, `Listbox.Multi.create`, `Menu.create`, `Tabs.create`, `RadioGroup.create`, `VirtualList.create`, and `Toast.make`. Factory instances retain stable local names; Binding placement and keys distinguish occurrences. Schema-taking factories such as `Combobox.create(City)` preserve decoded Item payloads. Type-only factories such as `Tabs.create<Tab>()` preserve selected value types. Import ViewInputs and domain helpers from component subpaths; the completed value carries its Model, Message, and declared OutMessage matcher.
 
@@ -88,9 +88,9 @@ import { Model } from './model'
 const ToastPayload = Schema.Struct({ message: Schema.String })
 const AppToast = Toast.make(ToastPayload)
 
-const Application = defineApplication({ Model, Message })
+const ApplicationDefinition = defineApplication({ Model, Message })
 
-const ToastBinding = Application.bindChild(AppToast, {
+const ToastBinding = ApplicationDefinition.bindChild(AppToast, {
   field: 'toast',
   parentMessage: Message.GotToastMessage,
   outMessage: { fold: foldToastOutMessage },
@@ -110,9 +110,9 @@ import { foldDialogOutMessage } from './outMessage'
 import { Message } from './message'
 import { Model } from './model'
 
-const Application = defineApplication({ Model, Message })
+const ApplicationDefinition = defineApplication({ Model, Message })
 
-const DialogsBinding = Application.bindChild(Dialog.block, {
+const DialogsBinding = ApplicationDefinition.bindChild(Dialog.block, {
   readAll: model => model.dialogs,
   key: dialog => dialog.id,
   read: dialog => dialog.model,

@@ -70,7 +70,7 @@ export type KeyedRunArgs = Expect<
 >
 export type KeyedOperationArgs = Expect<
   Equal<
-    Parameters<typeof NoteById.expose.loadIfMissing>[1],
+    Parameters<typeof NoteById.operations.loadIfMissing>[1],
     Readonly<{ noteId: string }>
   >
 >

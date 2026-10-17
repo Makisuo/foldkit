@@ -24,13 +24,13 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-const HoverIntent = Block.define('HoverIntent', {
+const HoverIntentDefinition = Block.define('HoverIntent', {
   Model,
   Message,
   OutMessage,
 })
 
-const HoverIntentComposition = HoverIntent.makeComposition()
+const HoverIntentComposition = HoverIntentDefinition.makeComposition()
 
 const DEFAULT_OPEN_DELAY = Duration.millis(200)
 const DEFAULT_CLOSE_DELAY = Duration.millis(300)
@@ -63,28 +63,34 @@ export const init = (config: InitConfig = {}): Model => ({
 // COMMAND
 
 /** Waits before opening, then emits the version that scheduled the wait. */
-export const WaitBeforeOpening = HoverIntent.command('WaitBeforeOpening', {
-  args: { delay: Schema.DurationFromMillis, version: Schema.Number },
-  messages: [Message.CompletedWaitBeforeOpening],
-  handler: function* () {
-    return ({ delay, version }) =>
-      Effect.sleep(delay).pipe(
-        Effect.as(Message.CompletedWaitBeforeOpening({ version })),
-      )
+export const WaitBeforeOpening = HoverIntentDefinition.command(
+  'WaitBeforeOpening',
+  {
+    args: { delay: Schema.DurationFromMillis, version: Schema.Number },
+    messages: [Message.CompletedWaitBeforeOpening],
+    handler: function* () {
+      return ({ delay, version }) =>
+        Effect.sleep(delay).pipe(
+          Effect.as(Message.CompletedWaitBeforeOpening({ version })),
+        )
+    },
   },
-})
+)
 
 /** Waits before closing, then emits the version that scheduled the wait. */
-export const WaitBeforeClosing = HoverIntent.command('WaitBeforeClosing', {
-  args: { delay: Schema.DurationFromMillis, version: Schema.Number },
-  messages: [Message.CompletedWaitBeforeClosing],
-  handler: function* () {
-    return ({ delay, version }) =>
-      Effect.sleep(delay).pipe(
-        Effect.as(Message.CompletedWaitBeforeClosing({ version })),
-      )
+export const WaitBeforeClosing = HoverIntentDefinition.command(
+  'WaitBeforeClosing',
+  {
+    args: { delay: Schema.DurationFromMillis, version: Schema.Number },
+    messages: [Message.CompletedWaitBeforeClosing],
+    handler: function* () {
+      return ({ delay, version }) =>
+        Effect.sleep(delay).pipe(
+          Effect.as(Message.CompletedWaitBeforeClosing({ version })),
+        )
+    },
   },
-})
+)
 
 /** Effect providers used by the HoverIntent component. */
 export const EffectsLayer = Layer.mergeAll(
@@ -120,7 +126,7 @@ const finishClosing = (model: Model) => {
   }
 }
 
-const scheduleOpen = HoverIntent.step(model => {
+const scheduleOpen = HoverIntentDefinition.step(model => {
   const version = Number.increment(model.pendingOpenVersion)
   return {
     model: modifyFields(model, { pendingOpenVersion: () => version }),
@@ -129,7 +135,7 @@ const scheduleOpen = HoverIntent.step(model => {
 })
 
 const scheduleClose = (delay: Duration.Duration) =>
-  HoverIntent.step(model => {
+  HoverIntentDefinition.step(model => {
     const version = Number.increment(model.pendingCloseVersion)
     return {
       model: modifyFields(model, { pendingCloseVersion: () => version }),
@@ -225,18 +231,6 @@ const dismiss = (model: Model, isTriggerFocused: boolean) => {
   return { model: dismissedModel }
 }
 
-/** Programmatically closes HoverIntent immediately, invalidating pending
- *  transitions and suppressing reopening until the trigger disengages. */
-const close = HoverIntent.step(model =>
-  dismiss(
-    model,
-    Option.exists(
-      model.maybeFocusLocation,
-      focusLocation => focusLocation === 'Trigger',
-    ),
-  ),
-)
-
 /** Processes a HoverIntent Message and returns the next Model, optional Commands, and an optional OutMessage. */
 export const update = HoverIntentComposition.makeUpdate((model, message) =>
   Message.match(message, {
@@ -262,6 +256,15 @@ export const update = HoverIntentComposition.makeUpdate((model, message) =>
 
       return dismiss(model, isTriggerFocused)
     },
+
+    RequestedClose: () =>
+      dismiss(
+        model,
+        Option.exists(
+          model.maybeFocusLocation,
+          focusLocation => focusLocation === 'Trigger',
+        ),
+      ),
 
     CompletedWaitBeforeOpening: ({ version }) => {
       if (version !== model.pendingOpenVersion) {
@@ -360,6 +363,8 @@ export const block = HoverIntentComposition.makeBlock({
   })),
   update,
   view,
-  expose: { close },
+  operations: {
+    close: HoverIntentComposition.makeOperation(Message.RequestedClose),
+  },
   EffectsLayer,
 })

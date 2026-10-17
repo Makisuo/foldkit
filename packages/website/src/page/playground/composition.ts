@@ -5,7 +5,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Tabs } from '@foldkit/ui'
 
-import { Message, Model, Playground } from './definition'
+import { Message, Model, PlaygroundDefinition } from './definition'
 import { MountPlaygroundEditor } from './mount'
 
 const PlaygroundFileTabs = Tabs.create()
@@ -20,14 +20,17 @@ const foldPlaygroundFileTabsOutMessage = Tabs.OutMessage.match<
     }),
 })
 
-export const FileTabsBinding = Playground.bindChild(PlaygroundFileTabs, {
-  field: 'fileTabs',
-  parentMessage: Message.GotFileTabsMessage,
-  outMessage: { fold: foldPlaygroundFileTabsOutMessage },
-  init: { args: () => Tuple.make({ id: 'playground-files' }) },
-})
+export const FileTabsBinding = PlaygroundDefinition.bindChild(
+  PlaygroundFileTabs,
+  {
+    field: 'fileTabs',
+    parentMessage: Message.GotFileTabsMessage,
+    outMessage: { fold: foldPlaygroundFileTabsOutMessage },
+    init: { args: () => Tuple.make({ id: 'playground-files' }) },
+  },
+)
 
-export const PlaygroundComposition = Playground.makeComposition({
+export const PlaygroundComposition = PlaygroundDefinition.makeComposition({
   mounts: [MountPlaygroundEditor],
   childBindings: [FileTabsBinding],
 })

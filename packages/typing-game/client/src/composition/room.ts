@@ -1,13 +1,13 @@
 import { Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { Application } from '../definition'
+import { ApplicationDefinition } from '../definition'
 import { Message } from '../message'
 import { RoomInstance } from '../model'
 import { Room } from '../page'
 import { ApplicationRoute } from '../route'
 
-export const RoomBinding = Application.bindChild(Room.block, {
+export const RoomBinding = ApplicationDefinition.bindChild(Room.block, {
   readAll: model => Option.toArray(model.maybeRoomInstance),
   key: roomInstance => roomInstance.roomId,
   read: roomInstance => roomInstance.model,

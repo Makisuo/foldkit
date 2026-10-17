@@ -1,4 +1,4 @@
-import { Match } from 'effect'
+import { Match, Tuple } from 'effect'
 import type { ChildAttribute, Html, TagName } from 'foldkit/html'
 
 import {
@@ -15,11 +15,6 @@ import {
   WaitForAnimationSettled,
   WaitForPaint,
   defaultLeaveCommand,
-  finish,
-  hide,
-  resume,
-  show,
-  toggle,
   update,
 } from './update.js'
 
@@ -31,10 +26,6 @@ export {
   WaitForPaint,
   EffectsLayer,
   defaultLeaveCommand,
-  hide,
-  resume,
-  show,
-  toggle,
   update,
 }
 
@@ -165,6 +156,28 @@ export const block = AnimationComposition.makeBlock({
   })),
   update,
   view,
-  expose: { show, hide, finish, toggle, resume },
+  operations: {
+    show: AnimationComposition.makeOperation(Message.RequestedShow),
+    hide: AnimationComposition.makeOperation(Message.RequestedHide),
+    finish: (generation: number) =>
+      Tuple.make(Message.RequestedFinish({ generation })),
+    toggle: AnimationComposition.makeOperation(Message.RequestedToggle),
+    resume: AnimationComposition.makeOperation(Message.RequestedResume),
+  },
   EffectsLayer,
 })
+
+/** Programmatically starts the enter lifecycle through Animation update. */
+export const show = block.operations.show
+
+/** Programmatically starts the leave lifecycle through Animation update. */
+export const hide = block.operations.hide
+
+/** Completes the current transition generation through Animation update. */
+export const finish = block.operations.finish
+
+/** Toggles between the shown and hidden states through Animation update. */
+export const toggle = block.operations.toggle
+
+/** Resumes the pending transition lifecycle through Animation update. */
+export const resume = block.operations.resume

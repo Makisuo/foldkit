@@ -16,7 +16,7 @@ The counter's update function has only changed the count so far. Add a button th
 
 ### Definition Fields
 
-`Application.command` gives the work a name within the Application and declares its result contract. This example keeps the definition and its handler together:
+`ApplicationDefinition.command` gives the work a name within the Application and declares its result contract. This example keeps the definition and its handler together:
 
 ::Snippet{name="counterCommands" label="Counter with a delayed reset"}
 
@@ -35,13 +35,13 @@ Constructors prepare execution machinery. Application state and workflow decisio
 
 Three pieces connect the work to update:
 
-- `Application.command` names `WaitBeforeReset`, declares the Messages it can produce, and stores its handler constructor in `config.handler`. The returned handler waits one second, then produces `CompletedWaitBeforeReset`.
+- `ApplicationDefinition.command` names `WaitBeforeReset`, declares the Messages it can produce, and stores its handler constructor in `config.handler`. The returned handler waits one second, then produces `CompletedWaitBeforeReset`.
 - `WaitBeforeReset.layer` is the Layer recipe for that handler.
 - `WaitBeforeReset()` creates the Command value that update returns. Creating that value does not start the timer.
 
 `ApplicationComposition.makeUpdate` infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
 
-This counter is genuinely compact: `application.ts` owns its Model, Message, `Application`, graphless `ApplicationComposition`, init, update, view, Command, and local handler recipe. `entry.ts` passes those pieces to `ApplicationComposition.makeApplication`, supplies any remaining Services through `application.provide(layer)`, and starts the Runtime. A split root instead puts every responsibility in its named file and removes the emptied `application.ts`:
+This counter is genuinely compact: `application.ts` owns its Model, Message, `ApplicationDefinition`, graphless `ApplicationComposition`, init, update, view, Command, and local handler recipe. `entry.ts` passes those pieces to `ApplicationComposition.makeApplication`, supplies any remaining Services through `application.provide(layer)`, and starts the Runtime. A split root instead puts every responsibility in its named file and removes the emptied `application.ts`:
 
 ::Snippet{name="counterCommandsEntry" label="Starting the counter"}
 

@@ -19,6 +19,7 @@ export {
   type LeftTrigger,
   type Opened,
   type PressedEscape,
+  type RequestedClose,
   WaitBeforeClosing,
   WaitBeforeOpening,
 } from './index.js'

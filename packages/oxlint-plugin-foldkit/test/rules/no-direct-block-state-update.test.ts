@@ -360,7 +360,7 @@ describe('no-direct-block-state-update', () => {
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain('`settings`')
     expect(result[0]?.diagnostic.message).toContain(
-      'child-owned update capability',
+      'child-owned Message producer',
     )
     expect(result[0]?.diagnostic.message).toContain('registered Binding')
   })
@@ -514,7 +514,7 @@ describe('no-direct-block-state-update', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('allows child-owned reflect helpers', () => {
+  it('flags data-first reflect helpers on a child Block field', () => {
     const result = runRule([
       foldSettings,
       foldSettingsDataFirst('model'),
@@ -530,6 +530,49 @@ describe('no-direct-block-state-update', () => {
               ]),
               [Testing.id('settings')],
             ),
+          ),
+        ]),
+      ),
+    ])
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.diagnostic.message).toContain(
+      'child update handles the transition',
+    )
+  })
+
+  it('flags data-last reflect helpers on a child Block field', () => {
+    const result = runRule([
+      foldSettings,
+      foldSettingsDataFirst('model'),
+      modifyFields(
+        'model',
+        objectExpression([
+          property(
+            'settings',
+            Testing.callOfMember('Settings', 'reflectTheme', [
+              Testing.strLiteral('Light'),
+            ]),
+          ),
+        ]),
+      ),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('does not treat a longer reflection name as a reflect helper', () => {
+    const result = runRule([
+      foldSettings,
+      foldSettingsDataFirst('model'),
+      modifyFields(
+        'model',
+        objectExpression([
+          property(
+            'settings',
+            Testing.callOfMember('Settings', 'reflectionFingerprint', [
+              Testing.strLiteral('Light'),
+            ]),
           ),
         ]),
       ),

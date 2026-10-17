@@ -17,8 +17,8 @@ const Message = defineMessageUnion({
 
 type Message = typeof Message.Type
 
-const Application = defineApplication({ Model, Message })
-const ApplicationComposition = Application.makeComposition()
+const ApplicationDefinition = defineApplication({ Model, Message })
+const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 const init = ApplicationComposition.makeInit(() => ({
   model: Model.make({ mode: 'Viewing' }),

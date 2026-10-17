@@ -1,5 +1,4 @@
-import { Array, Match, Number, Option, pipe } from 'effect'
-import { Update } from 'foldkit'
+import { Array, Number, Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { UiComposition } from './composition'
@@ -12,91 +11,17 @@ import {
   NestedDialogParentDemoBinding,
   OverlayDialogDemoBinding,
   ToastDemoBinding,
-  VirtualListChatDemoBinding,
   VirtualListDemoBinding,
   VirtualListVariableDemoBinding,
 } from './composition'
-import { Ui } from './definition'
 import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './demo/virtualListData'
 import { Message } from './message'
 import {
-  type VirtualListChatMessage,
-  VirtualListChatStartProximity,
-} from './model'
+  VirtualListChatDemoBinding,
+  prependVirtualListChatMessages,
+  updateVirtualListChatMessages,
+} from './virtualListChat'
 
-const VIRTUAL_LIST_CHAT_START_THRESHOLD_PX = 48
-const VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE = 8
-
-const updateVirtualListChatMessages = (
-  nextMessages: ReadonlyArray<VirtualListChatMessage>,
-  nextId?: number,
-) =>
-  Ui.step(model => {
-    const nextVirtualListChatNextId =
-      nextId === undefined ? model.virtualListChatNextId : nextId
-    const updateMessages = Ui.step(stepModel => ({
-      model: modifyFields(stepModel, {
-        virtualListChatMessages: () => nextMessages,
-        virtualListChatNextId: () => nextVirtualListChatNextId,
-      }),
-    }))
-
-    return Update.combine([
-      updateMessages,
-      VirtualListChatDemoBinding.informItemsChanged(
-        Array.map(nextMessages, message => globalThis.String(message.id)),
-      ),
-    ])
-  })
-
-const prependVirtualListChatMessages = Ui.step(model => {
-  const firstId = pipe(
-    model.virtualListChatMessages,
-    Array.head,
-    Option.match({
-      onNone: () => model.virtualListChatNextId,
-      onSome: message => message.id,
-    }),
-  )
-  const olderMessages = Array.makeBy(
-    VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE,
-    index => {
-      const id = firstId - VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE + index
-      return {
-        id,
-        body: `Older message ${id} loaded above the viewport.`,
-        isExpanded: id % 3 === 0,
-      }
-    },
-  )
-  const nextMessages = [...olderMessages, ...model.virtualListChatMessages]
-
-  return updateVirtualListChatMessages(nextMessages)
-})
-
-const prependVirtualListChatMessagesOnStartThresholdEntry = (
-  scrollTop: number,
-) =>
-  Ui.step(model => {
-    const isNearStart = scrollTop <= VIRTUAL_LIST_CHAT_START_THRESHOLD_PX
-    const nextVirtualListChatStartProximity = isNearStart
-      ? VirtualListChatStartProximity.Near()
-      : VirtualListChatStartProximity.Away()
-    const updateStartProximity = Ui.step(stepModel => ({
-      model: modifyFields(stepModel, {
-        virtualListChatStartProximity: () => nextVirtualListChatStartProximity,
-      }),
-    }))
-
-    if (!isNearStart || model.virtualListChatStartProximity._tag === 'Near') {
-      return updateStartProximity
-    }
-
-    return Update.combine([
-      updateStartProximity,
-      prependVirtualListChatMessages,
-    ])
-  })
 export const update = UiComposition.makeUpdate((model, message) =>
   Message.match(message, {
     UpdatedInputDemoValue: ({ value }) => ({
@@ -243,17 +168,6 @@ export const update = UiComposition.makeUpdate((model, message) =>
       VirtualListVariableDemoBinding.scrollToIndex(
         Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
       )(model),
-
-    GotVirtualListChatDemoMessage: ({ message }) =>
-      Match.value(message).pipe(
-        Match.tag('ObservedContainerScroll', ({ scrollTop }) =>
-          Update.combine(model, [
-            stepModel => VirtualListChatDemoBinding.fold(stepModel, message),
-            prependVirtualListChatMessagesOnStartThresholdEntry(scrollTop),
-          ]),
-        ),
-        Match.orElse(() => VirtualListChatDemoBinding.fold(model, message)),
-      ),
 
     ClickedVirtualListChatPrepend: () => prependVirtualListChatMessages(model),
 

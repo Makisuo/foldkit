@@ -26,10 +26,10 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const Application = defineApplication({ Model, Message })
-const ApplicationComposition = Application.makeComposition()
+const ApplicationDefinition = defineApplication({ Model, Message })
+const ApplicationComposition = ApplicationDefinition.makeComposition()
 
-const Search = Application.command('Search', {
+const Search = ApplicationDefinition.command('Search', {
   args: { query: Schema.String },
   messages: [Message.SettledSearch],
   handler: function* () {

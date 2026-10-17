@@ -7,7 +7,8 @@ import { type Html, type HtmlBuilder } from 'foldkit/html'
 import { Button, Input } from '@foldkit/ui'
 
 import { homeRouter } from '../../../../route'
-import { LoginComposition, Message } from './definition'
+import { LoginComposition } from './composition'
+import { Message } from './definition'
 import { isFormValid } from './login'
 
 const fieldToBorderClass = (field: Field<string>) =>

@@ -8,7 +8,7 @@ import { Icon } from '../../icon'
 import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink } from '../../prose'
 import raw from './comingFromReact.md'
-import { ComingFromReactComposition } from './definition'
+import { ComingFromReactComposition } from './composition'
 import { Message } from './message'
 import type { Model } from './model'
 

@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 
 import { FocusUsernameInput } from './command'
-import { HomeComposition } from './definition'
+import { HomeComposition } from './composition'
 import { HomeStep, Model } from './model'
 
 export const init = HomeComposition.makeInit(() => ({

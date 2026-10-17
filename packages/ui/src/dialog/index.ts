@@ -13,6 +13,7 @@ export {
   OutMessage,
   type Opened,
   type Closed,
+  type CompletedClose,
   type InitConfig,
   init,
   initialFocusMarkerAttribute,

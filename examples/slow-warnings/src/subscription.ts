@@ -1,7 +1,7 @@
 import { Layer, Match, Option, Schema, Stream, pipe } from 'effect'
 import { Dom, Runtime } from 'foldkit'
 
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 import { type Model, SlowWarningReport, Workload } from './model'
 import { SUBSCRIPTION_DEPENDENCIES_WORK_MS, burnCpu } from './workload'
@@ -71,7 +71,7 @@ export const handleSlow = (
   )
 }
 
-export const subscriptions = Application.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   slowWarningReports: entry('SlowWarningReports', {
     messages: [Message.RecordedSlowWarning],
     handler: function* () {

@@ -9,13 +9,13 @@ import { idSelector } from '../internal/selectors.js'
 import { type Hid, Message, Model, OutMessage, type Showed } from './schema.js'
 
 /** Authored Animation Block definition shared by its implementation modules. */
-export const Animation = Block.define('Animation', {
+export const AnimationDefinition = Block.define('Animation', {
   Model,
   Message,
   OutMessage,
 })
 
-export const AnimationComposition = Animation.makeComposition()
+export const AnimationComposition = AnimationDefinition.makeComposition()
 
 // UPDATE
 
@@ -23,7 +23,7 @@ const elementSelector = (id: string): string => idSelector(id)
 
 /** Waits for paint via double-rAF, then reports the transition generation that
  *  scheduled the wait. */
-export const WaitForPaint = Animation.command('WaitForPaint', {
+export const WaitForPaint = AnimationDefinition.command('WaitForPaint', {
   args: { generation: Schema.Number },
   messages: [Message.CompletedWaitForPaint],
   handler: function* () {
@@ -36,7 +36,7 @@ export const WaitForPaint = Animation.command('WaitForPaint', {
 
 /** Waits for all CSS transitions and keyframe animations on the element to
  *  settle, then reports the transition generation that scheduled the wait. */
-export const WaitForAnimationSettled = Animation.command(
+export const WaitForAnimationSettled = AnimationDefinition.command(
   'WaitForAnimationSettled',
   {
     args: { id: Schema.String, generation: Schema.Number },
@@ -94,6 +94,50 @@ const hideTransition = (model: Model) => {
   }
 }
 
+const finishTransition = (model: Model, generation: number) => {
+  if (generation !== model.transitionGeneration) {
+    return { model }
+  }
+
+  return Match.value(model.transitionState).pipe(
+    Match.when('EnterAnimating', () => ({
+      model: modifyFields(model, { transitionState: () => 'Idle' }),
+    })),
+    Match.when('LeaveAnimating', () => ({
+      model: modifyFields(model, { transitionState: () => 'Idle' }),
+      outMessage: OutMessage.TransitionedOut(),
+    })),
+    Match.orElse(() => ({ model })),
+  )
+}
+
+const toggleTransition = (model: Model) => {
+  if (model.isShowing) {
+    return hideTransition(model)
+  } else {
+    return showTransition(model)
+  }
+}
+
+const resumeTransition = (model: Model) =>
+  Match.value(model.transitionState).pipe(
+    Match.when('Idle', () => ({ model })),
+    Match.whenOr('EnterStart', 'LeaveStart', () => ({
+      model,
+      commands: [WaitForPaint({ generation: model.transitionGeneration })],
+    })),
+    Match.whenOr('EnterAnimating', 'LeaveAnimating', () => ({
+      model,
+      commands: [
+        WaitForAnimationSettled({
+          id: model.id,
+          generation: model.transitionGeneration,
+        }),
+      ],
+    })),
+    Match.exhaustive,
+  )
+
 /** Processes an Animation Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. `Showed` and `Hid` start a transition
  *  but cannot finish one, so direct calls with either Message return a plain
@@ -104,6 +148,16 @@ const updateInferred = AnimationComposition.makeUpdate((model, message) =>
     Showed: () => showTransition(model),
 
     Hid: () => hideTransition(model),
+
+    RequestedShow: () => showTransition(model),
+
+    RequestedHide: () => hideTransition(model),
+
+    RequestedFinish: ({ generation }) => finishTransition(model, generation),
+
+    RequestedToggle: () => toggleTransition(model),
+
+    RequestedResume: () => resumeTransition(model),
 
     CompletedWaitForPaint: ({ generation }) => {
       if (generation !== model.transitionGeneration) {
@@ -134,22 +188,7 @@ const updateInferred = AnimationComposition.makeUpdate((model, message) =>
       )
     },
 
-    EndedAnimation: ({ generation }) => {
-      if (generation !== model.transitionGeneration) {
-        return { model }
-      }
-
-      return Match.value(model.transitionState).pipe(
-        Match.when('EnterAnimating', () => ({
-          model: modifyFields(model, { transitionState: () => 'Idle' }),
-        })),
-        Match.when('LeaveAnimating', () => ({
-          model: modifyFields(model, { transitionState: () => 'Idle' }),
-          outMessage: OutMessage.TransitionedOut(),
-        })),
-        Match.orElse(() => ({ model })),
-      )
-    },
+    EndedAnimation: ({ generation }) => finishTransition(model, generation),
   }),
 )
 
@@ -169,44 +208,6 @@ export function update(model: Model, message: Message): UpdateReturn
 export function update(model: Model, message: Message): UpdateReturn {
   return updateInferred(model, message)
 }
-
-/** Programmatically starts the enter lifecycle. */
-export const show = Animation.step(showTransition)
-
-/** Programmatically starts the leave lifecycle. */
-export const hide = Animation.step(hideTransition)
-
-/** Completes the current transition generation. Results from an earlier
- * generation leave the Model unchanged. */
-export const finish = Animation.step((model, generation: number) =>
-  update(model, Message.EndedAnimation({ generation })),
-)
-
-/** Toggles the animation between its shown and hidden states. */
-export const toggle = Animation.step(model => {
-  if (model.isShowing) {
-    return hide(model)
-  } else {
-    return show(model)
-  }
-})
-
-/** Resumes the pending transition Command after a mounted parent reacquires
- *  lifecycle resources for a preserved Animation Model. */
-export const resume = Animation.step(model =>
-  Match.value(model.transitionState).pipe(
-    Match.when('Idle', () => ({ model })),
-    Match.whenOr('EnterStart', 'LeaveStart', () => ({
-      model,
-      commands: [WaitForPaint({ generation: model.transitionGeneration })],
-    })),
-    Match.whenOr('EnterAnimating', 'LeaveAnimating', () => ({
-      model,
-      commands: [defaultLeaveCommand(model)],
-    })),
-    Match.exhaustive,
-  ),
-)
 
 /** Creates the standard leave Command for the Model's current transition. Use
  *  this when handling `StartedLeaveAnimating` unless the component needs its

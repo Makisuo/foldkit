@@ -108,7 +108,10 @@ const KeyedBinding = Keyed.bindChild(childBlock, {
   childField: 'child',
   toParentMessage: (id, message) =>
     KeyedMessage.GotChildMessage({ id, message }),
-  fromParentMessage: false,
+  fromParentMessage: {
+    parentMessage: KeyedMessage.GotChildMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
 })
 const KeyedComposition = Keyed.makeComposition({
   childBindings: [KeyedBinding],

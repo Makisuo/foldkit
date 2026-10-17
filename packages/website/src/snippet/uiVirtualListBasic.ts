@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update and view definitions.
 import { Schema, Tuple } from 'effect'
-import { Block } from 'foldkit'
+import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 import { VirtualList } from '@foldkit/ui'
@@ -33,22 +33,33 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ActivityListExample = Block.define('ActivityListExample', {
+const ActivityListExampleDefinition = Block.define('ActivityListExample', {
   Model,
   Message,
 })
 
-const ActivityListBinding = ActivityListExample.bindChild(ActivityList, {
-  field: 'activityList',
-  parentMessage: Message.GotActivityListMessage,
-  init: {
-    args: () => Tuple.make({ id: 'activity-list', rowHeightPx: 56 }),
-  },
+const foldActivityListOutMessage = ActivityList.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  ObservedContainerScroll: () => model => ({ model }),
 })
 
-const ActivityListExampleComposition = ActivityListExample.makeComposition({
-  childBindings: [ActivityListBinding],
-})
+const ActivityListBinding = ActivityListExampleDefinition.bindChild(
+  ActivityList,
+  {
+    field: 'activityList',
+    parentMessage: Message.GotActivityListMessage,
+    outMessage: { fold: foldActivityListOutMessage },
+    init: {
+      args: () => Tuple.make({ id: 'activity-list', rowHeightPx: 56 }),
+    },
+  },
+)
+
+const ActivityListExampleComposition =
+  ActivityListExampleDefinition.makeComposition({
+    childBindings: [ActivityListBinding],
+  })
 
 // In your init function, give the list a unique id and a row height in
 // pixels. All rows share this height:

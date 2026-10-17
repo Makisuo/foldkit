@@ -28,14 +28,15 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
 >({
   Opened: () => model => ({ model }),
   Closed: () => model => ({ model }),
+  CompletedClose: () => model => ({ model }),
 })
 
-const AnimatedDialogExample = Block.define('AnimatedDialogExample', {
+const AnimatedDialogExampleDefinition = Block.define('AnimatedDialogExample', {
   Model,
   Message,
 })
 
-const DialogBinding = AnimatedDialogExample.bindChild(Dialog.block, {
+const DialogBinding = AnimatedDialogExampleDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   init: {
@@ -44,9 +45,10 @@ const DialogBinding = AnimatedDialogExample.bindChild(Dialog.block, {
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const AnimatedDialogExampleComposition = AnimatedDialogExample.makeComposition({
-  childBindings: [DialogBinding],
-})
+const AnimatedDialogExampleComposition =
+  AnimatedDialogExampleDefinition.makeComposition({
+    childBindings: [DialogBinding],
+  })
 
 // In your init function, set isAnimated: true to coordinate CSS transitions:
 const init = AnimatedDialogExampleComposition.makeInit(() => ({

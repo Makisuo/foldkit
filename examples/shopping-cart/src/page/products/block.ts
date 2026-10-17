@@ -1,4 +1,4 @@
-import { ProductsComposition } from './definition'
+import { ProductsComposition } from './composition'
 import { ReplaceSearchUrl, init, update } from './products'
 import { view } from './view'
 

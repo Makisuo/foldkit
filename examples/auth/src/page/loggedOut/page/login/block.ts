@@ -1,4 +1,4 @@
-import { LoginComposition } from './definition'
+import { LoginComposition } from './composition'
 import { EffectsLayer, initModel, update } from './login'
 import { view } from './view'
 

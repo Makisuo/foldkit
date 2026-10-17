@@ -14,12 +14,15 @@ import {
   VirtualListDemoBinding,
   VirtualListVariableDemoBinding,
 } from './composition'
-import { Ui } from './definition'
 import { Message } from './message'
 import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './virtualList'
 
 export const update = UiComposition.makeUpdate((model, message) =>
   Message.match(message, {
+    RequestedOpenMobileMenu: () => MobileMenuDialogBinding.open()(model),
+
+    RequestedCloseMobileMenu: () => MobileMenuDialogBinding.close()(model),
+
     UpdatedInputDemoValue: ({ value }) => ({
       model: modifyFields(model, { inputDemoValue: () => value }),
     }),
@@ -187,7 +190,3 @@ export const update = UiComposition.makeUpdate((model, message) =>
       )(model),
   }),
 )
-
-export const openMobileMenu = Ui.step(() => MobileMenuDialogBinding.open())
-
-export const closeMobileMenu = Ui.step(() => MobileMenuDialogBinding.close())

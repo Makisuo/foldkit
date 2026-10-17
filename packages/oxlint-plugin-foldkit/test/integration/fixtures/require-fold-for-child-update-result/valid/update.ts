@@ -5,7 +5,6 @@ import * as Child from './child'
 import * as Preferences from './preferences'
 import * as Products from './products'
 import * as Settings from './settings'
-import * as Slider from './slider'
 
 type Model = Readonly<{
   child: Child.Model
@@ -13,7 +12,6 @@ type Model = Readonly<{
   products: Products.Model
   productsPage: Products.Model
   settings: Settings.Model
-  slider: Slider.Model
 }>
 
 type Message = Readonly<{ type: 'GotChildMessage'; message: Child.Message }>
@@ -25,7 +23,6 @@ export const init = () => {
     model: {
       child: Child.init(),
       settings: settingsInit.model,
-      slider: Slider.init(),
     },
     commands: settingsInit.commands,
   }
@@ -82,12 +79,7 @@ export const keepChildWhenNestedCallbackReadsItsUpdate = (
 }
 
 export const update = (model: Model, message: Message) =>
-  foldChild(
-    modifyFields(model, {
-      slider: () => Slider.reflectRange({ min: 0, max: 100 }),
-    }),
-    message.message,
-  )
+  foldChild(model, message.message)
 
 export const folds = { foldChild, foldProducts }
 

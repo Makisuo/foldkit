@@ -39,7 +39,7 @@ export type OutMessage = typeof OutMessage.Type
 
 export type Removed = typeof OutMessage.Removed.Type
 
-export const WorkHistoryEntry = Block.define('WorkHistoryEntry', {
+export const WorkHistoryEntryDefinition = Block.define('WorkHistoryEntry', {
   Model,
   Message,
   OutMessage,

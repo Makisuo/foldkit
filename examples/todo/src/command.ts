@@ -1,11 +1,11 @@
 import { Clock, Effect, Layer, Random, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 import { TODOS_STORAGE_KEY, Todos, TodosJsonString } from './model'
 
-export const GenerateTodo = Application.command('GenerateTodo', {
+export const GenerateTodo = ApplicationDefinition.command('GenerateTodo', {
   args: { text: Schema.String },
   messages: [Message.CompletedGenerateTodo],
   handler: function* () {
@@ -24,7 +24,7 @@ export const GenerateTodo = Application.command('GenerateTodo', {
   },
 })
 
-export const SaveTodos = Application.command('SaveTodos', {
+export const SaveTodos = ApplicationDefinition.command('SaveTodos', {
   args: { todos: Todos },
   messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
   handler: function* () {

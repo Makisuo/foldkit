@@ -14,13 +14,13 @@ const foldSettingsOutMessage = Settings.OutMessage.match<
     }),
 })
 
-export const SettingsBinding = Application.bindChild(Settings.block, {
+export const SettingsBinding = ApplicationDefinition.bindChild(Settings.block, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
   outMessage: { fold: foldSettingsOutMessage },
 })
 
-export const ApplicationComposition = Application.makeComposition({
+export const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [SettingsBinding],
 })
 

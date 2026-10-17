@@ -1,5 +1,6 @@
 import { Option } from 'effect'
 import { Block, Scene, Story } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import type * as Update from 'foldkit/update'
 import { expect } from 'vitest'
@@ -33,46 +34,57 @@ import {
   update,
 } from './index.js'
 
-const MenuStory = Block.define('MenuStory', { Model, Message })
-
-const foldMenuOutMessage = OutMessage.match<Update.Step<Model, Message>>({
-  Selected: () => MenuStory.step(model => ({ model })),
+const MenuStoryMessage = defineMessageUnion({
+  GotMenuMessage: { message: Message },
 })
 
-const MenuBinding = MenuStory.bindChild(block, {
+const MenuStoryDefinition = Block.define('MenuStory', {
+  Model,
+  Message: MenuStoryMessage,
+})
+
+const foldMenuOutMessage = OutMessage.match<
+  Update.Step<Model, typeof MenuStoryMessage.Type>
+>({
+  Selected: () => MenuStoryDefinition.step(model => ({ model })),
+})
+
+const MenuBinding = MenuStoryDefinition.bindChild(block, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
-  toParentMessage: message => message,
-  fromParentMessage: false,
+  parentMessage: MenuStoryMessage.GotMenuMessage,
   outMessage: { fold: foldMenuOutMessage },
 })
 
-const MenuStoryComposition = MenuStory.makeComposition({
+const MenuStoryComposition = MenuStoryDefinition.makeComposition({
   childBindings: [MenuBinding],
 })
+const sceneUpdate = MenuStoryComposition.makeUpdate()
 
 const RefinedMenu = create<'Edit' | 'Duplicate' | 'Delete'>()
 
-const RefinedMenuStory = Block.define('RefinedMenuStory', {
+const RefinedMenuStoryDefinition = Block.define('RefinedMenuStory', {
   Model,
-  Message,
+  Message: MenuStoryMessage,
 })
 
-const RefinedMenuBinding = RefinedMenuStory.bindChild(RefinedMenu, {
+const RefinedMenuBinding = RefinedMenuStoryDefinition.bindChild(RefinedMenu, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
-  toParentMessage: message => message,
-  fromParentMessage: false,
+  parentMessage: MenuStoryMessage.GotMenuMessage,
   outMessage: {
-    fold: RefinedMenu.OutMessage.match<Update.Step<Model, Message>>({
-      Selected: () => RefinedMenuStory.step(model => ({ model })),
+    fold: RefinedMenu.OutMessage.match<
+      Update.Step<Model, typeof MenuStoryMessage.Type>
+    >({
+      Selected: () => RefinedMenuStoryDefinition.step(model => ({ model })),
     }),
   },
 })
 
-const RefinedMenuStoryComposition = RefinedMenuStory.makeComposition({
+const RefinedMenuStoryComposition = RefinedMenuStoryDefinition.makeComposition({
   childBindings: [RefinedMenuBinding],
 })
+const refinedSceneUpdate = RefinedMenuStoryComposition.makeUpdate()
 
 const sceneView = (
   overrides: Pick<
@@ -162,7 +174,7 @@ describe('Menu', () => {
   describe('view', () => {
     it('renders a factory-refined Menu with its own child bindings', () => {
       Scene.scene(
-        { update, view: refinedMenuSceneView },
+        { update: refinedSceneUpdate, view: refinedMenuSceneView },
         Scene.given(init({ id: 'test' })),
         Scene.expect(button).toExist(),
       )
@@ -170,7 +182,7 @@ describe('Menu', () => {
 
     it('only points at the items panel while it is rendered', () => {
       Scene.scene(
-        { update, view: sceneView() },
+        { update: sceneUpdate, view: sceneView() },
         Scene.given(init({ id: 'test' })),
         Scene.expect(button).not.toHaveAttr('aria-controls'),
         Scene.given(openModel()),
@@ -185,7 +197,7 @@ describe('Menu', () => {
 
     it('keeps the items panel out of the Tab order', () => {
       Scene.scene(
-        { update, view: sceneView() },
+        { update: sceneUpdate, view: sceneView() },
         Scene.given(openModel()),
         Scene.expect(Scene.selector('#test-items')).toHaveAttr(
           'tabIndex',
@@ -1947,7 +1959,7 @@ describe('Menu', () => {
   describe('button labeling', () => {
     it('no aria-label or aria-labelledby on the button by default', () => {
       Scene.scene(
-        { update, view: sceneView() },
+        { update: sceneUpdate, view: sceneView() },
         Scene.given(init({ id: 'test' })),
         Scene.expect(button).not.toHaveAttr('aria-label'),
         Scene.expect(button).not.toHaveAttr('aria-labelledby'),
@@ -1956,7 +1968,7 @@ describe('Menu', () => {
 
     it('applies aria-label to the button when ariaLabel is provided', () => {
       Scene.scene(
-        { update, view: sceneView({ ariaLabel: 'Actions' }) },
+        { update: sceneUpdate, view: sceneView({ ariaLabel: 'Actions' }) },
         Scene.given(init({ id: 'test' })),
         Scene.expect(button).toHaveAttr('aria-label', 'Actions'),
         Scene.expect(button).not.toHaveAttr('aria-labelledby'),
@@ -1965,7 +1977,10 @@ describe('Menu', () => {
 
     it('applies aria-labelledby to the button when ariaLabelledBy is provided', () => {
       Scene.scene(
-        { update, view: sceneView({ ariaLabelledBy: 'actions-label' }) },
+        {
+          update: sceneUpdate,
+          view: sceneView({ ariaLabelledBy: 'actions-label' }),
+        },
         Scene.given(init({ id: 'test' })),
         Scene.expect(button).toHaveAttr('aria-labelledby', 'actions-label'),
         Scene.expect(button).not.toHaveAttr('aria-label'),
@@ -1975,7 +1990,7 @@ describe('Menu', () => {
     it('prefers aria-label over aria-labelledby when both are provided', () => {
       Scene.scene(
         {
-          update,
+          update: sceneUpdate,
           view: sceneView({
             ariaLabel: 'Actions',
             ariaLabelledBy: 'actions-label',

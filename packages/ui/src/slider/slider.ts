@@ -1,7 +1,6 @@
 import {
   Effect,
   Equal,
-  Function,
   Layer,
   Match,
   Option,
@@ -54,6 +53,7 @@ export type Model = typeof Model.Type
 
 /** Union of all Messages the Slider can produce. */
 export const Message = defineMessageUnion({
+  InformedOfRangeChange: { min: Schema.Number, max: Schema.Number },
   PressedThumb: { originValue: Schema.Number },
   PressedPointer: {
     value: Schema.Number,
@@ -93,9 +93,9 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-const Slider = Block.define('Slider', { Model, Message, OutMessage })
+const SliderDefinition = Block.define('Slider', { Model, Message, OutMessage })
 
-const SliderComposition = Slider.makeComposition()
+const SliderComposition = SliderDefinition.makeComposition()
 type SliderViewBuilder = Block.ViewBuilderFor<typeof SliderComposition>
 
 // INIT
@@ -205,6 +205,10 @@ const withChangedValue = (
  *  Model. */
 export const update = SliderComposition.makeUpdate((model, message) =>
   Message.match<UpdateReturn>(message, {
+    InformedOfRangeChange: ({ min, max }) => ({
+      model: modifyFields(model, { min: () => min, max: () => max }),
+    }),
+
     PressedThumb: ({ originValue }) =>
       Match.value(model.dragState).pipe(
         withUpdateReturn,
@@ -282,22 +286,6 @@ export const update = SliderComposition.makeUpdate((model, message) =>
         ),
       ),
   }),
-)
-
-/** Reflects an externally-driven range onto the slider. Use this when min/max
- *  derive from external state (e.g. a bounded buffer whose first/last index
- *  shifts over time). The parent owns the value, so conform it to the new range
- *  in the same update with {@link snapAndClamp}. */
-export const reflectRange: Block.Reflect<
-  Model,
-  Readonly<{ min: number; max: number }>
-> = Function.dual(
-  2,
-  (model: Model, range: Readonly<{ min: number; max: number }>): Model =>
-    modifyFields(model, {
-      min: () => range.min,
-      max: () => range.max,
-    }),
 )
 
 // SUBSCRIPTION
@@ -832,7 +820,7 @@ const defineSubscriptionsForRoot = <Id extends string>(
 
 /** Default drag Subscriptions, with the track looked up via `document`. */
 export const subscriptions = defineSubscriptionsForRoot(
-  Slider.subscriptions,
+  SliderDefinition.subscriptions,
   () => document,
 )
 
@@ -841,13 +829,22 @@ const EffectsLayer = Layer.mergeAll(
   subscriptions.dragEscape.layer,
 )
 
-/** Complete Slider Block definition. */
+const operations = {
+  /** Updates the range through the Slider's update. The parent owns the value;
+   * snap it to the new bounds with `snapAndClamp` in the same parent transition. */
+  informRangeChanged: SliderComposition.makeOperation(
+    Message.InformedOfRangeChange,
+  ),
+}
+
+/** Completed Slider Block. */
 export const block = SliderComposition.makeBlock({
   init: SliderComposition.makeInit((config: InitConfig) => ({
     model: init(config),
   })),
   update,
   view,
+  operations,
   subscriptions,
   EffectsLayer,
 })
@@ -857,28 +854,35 @@ export const block = SliderComposition.makeBlock({
  * a custom document or Shadow DOM root.
  */
 export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
-  const Slider = Block.define('Slider', {
+  const SliderDefinition = Block.define('Slider', {
     Model,
     Message,
     OutMessage,
   })
-  const SliderComposition = Slider.makeComposition()
+  const SliderComposition = SliderDefinition.makeComposition()
   const rootUpdate = SliderComposition.makeUpdate(update)
   const rootView = SliderComposition.makeView.withInputs<ViewInputs>(renderView)
   const subscriptions = defineSubscriptionsForRoot(
-    Slider.subscriptions,
+    SliderDefinition.subscriptions,
     getTrackRoot,
   )
   const EffectsLayer = Layer.mergeAll(
     subscriptions.dragPointer.layer,
     subscriptions.dragEscape.layer,
   )
+  const operations = {
+    informRangeChanged: SliderComposition.makeOperation(
+      Message.InformedOfRangeChange,
+    ),
+  }
+
   return SliderComposition.makeBlock({
     init: SliderComposition.makeInit((config: InitConfig) => ({
       model: init(config),
     })),
     update: rootUpdate,
     view: rootView,
+    operations,
     subscriptions,
     EffectsLayer,
   })

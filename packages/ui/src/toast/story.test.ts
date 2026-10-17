@@ -139,7 +139,7 @@ describe('Toast', () => {
   describe('show', () => {
     it('appends an entry and schedules enter + dismiss commands', () => {
       const initial = toastInit({ id: 'test' })
-      const toastShow = block.expose.show(initial, {
+      const toastShow = block.operations.show(initial, {
         payload: { body: 'Saved' },
       })
 
@@ -154,7 +154,7 @@ describe('Toast', () => {
     })
 
     it('does not schedule a dismiss command when sticky', () => {
-      const toastShow = block.expose.show(toastInit({ id: 'test' }), {
+      const toastShow = block.operations.show(toastInit({ id: 'test' }), {
         payload: { body: 'Sticky' },
         sticky: true,
       })
@@ -164,7 +164,7 @@ describe('Toast', () => {
     })
 
     it('uses a caller-provided duration over the default', () => {
-      const toastShow = block.expose.show(toastInit({ id: 'test' }), {
+      const toastShow = block.operations.show(toastInit({ id: 'test' }), {
         payload: { body: 'Quick' },
         duration: 100,
       })
@@ -175,10 +175,10 @@ describe('Toast', () => {
     })
 
     it('generates sequential entry ids using nextEntryKey', () => {
-      const firstShow = block.expose.show(toastInit({ id: 'test' }), {
+      const firstShow = block.operations.show(toastInit({ id: 'test' }), {
         payload: { body: 'One' },
       })
-      const secondShow = block.expose.show(firstShow.model, {
+      const secondShow = block.operations.show(firstShow.model, {
         payload: { body: 'Two' },
       })
       const ids = secondShow.model.entries.map(entry => entry.id)
@@ -187,7 +187,7 @@ describe('Toast', () => {
     })
 
     it('sticky wins over an explicit duration', () => {
-      const toastShow = block.expose.show(toastInit({ id: 'test' }), {
+      const toastShow = block.operations.show(toastInit({ id: 'test' }), {
         payload: { body: 'Sticky beats duration' },
         sticky: true,
         duration: 100,
@@ -489,7 +489,7 @@ describe('Toast', () => {
             }),
           ),
           Story.expectOutMessage(
-            ToastFixture.DismissedToast({ payload: entry.payload }),
+            ToastFixture.OutMessage.DismissedToast({ payload: entry.payload }),
           ),
           Story.model(next => {
             expect(next.entries).toHaveLength(0)
@@ -584,7 +584,7 @@ describe('Toast', () => {
       Story.story(
         block.update,
         givenEmpty,
-        Story.message(ToastFixture.Added({ entry })),
+        Story.message(ToastFixture.Message.Added({ entry })),
         Story.Command.resolveAll(
           [
             toastTest.matchWaitForPaint(
@@ -653,7 +653,7 @@ describe('Toast', () => {
       Story.story(
         block.update,
         givenEmpty,
-        Story.message(ToastFixture.Added({ entry })),
+        Story.message(ToastFixture.Message.Added({ entry })),
         toastTest.drainEntry({
           entryId: firstEntryId,
           waitBeforeDismissal: [
@@ -677,7 +677,7 @@ describe('Toast', () => {
       Story.story(
         block.update,
         givenEmpty,
-        Story.message(ToastFixture.Added({ entry })),
+        Story.message(ToastFixture.Message.Added({ entry })),
         Story.Command.resolveAll(
           [
             toastTest.matchWaitForPaint(
@@ -1682,7 +1682,7 @@ describe('Toast', () => {
         entries: () => [makeSettledEntry()],
         nextEntryKey: () => 1,
       })
-      const toastDismiss = block.expose.dismiss(model, firstEntryId)
+      const toastDismiss = block.operations.dismiss(model, firstEntryId)
       expect(
         requireEntry(toastDismiss.model, 0).animation.transitionState,
       ).toBe('LeaveStart')
@@ -1696,7 +1696,7 @@ describe('Toast', () => {
         ],
         nextEntryKey: () => 2,
       })
-      const toastDismissAll = block.expose.dismissAll(model)
+      const toastDismissAll = block.operations.dismissAll(model)
       toastDismissAll.model.entries.forEach(entry => {
         expect(entry.animation.transitionState).toBe('LeaveStart')
       })

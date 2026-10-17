@@ -1,7 +1,7 @@
 import { Array, Effect, Match, Option, Schema, String } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
 
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 import { WeatherData } from './model'
 
@@ -43,7 +43,7 @@ const weatherCodeToDescription = (code: number): string =>
     Match.orElse(() => 'Unknown'),
   )
 
-export const FetchWeather = Application.command('FetchWeather', {
+export const FetchWeather = ApplicationDefinition.command('FetchWeather', {
   args: { zipCode: Schema.String },
   messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
   handler: function* () {

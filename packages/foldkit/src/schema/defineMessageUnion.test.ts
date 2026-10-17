@@ -1,4 +1,4 @@
-import { Match, Schema } from 'effect'
+import { Effect, Match, Schema } from 'effect'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from './index.js'
@@ -29,6 +29,39 @@ describe('defineMessageUnion', () => {
       _tag: 'ChangedCount',
       count: 1,
     })
+  })
+
+  it('constructs a generic nested Schema from its decoded Type', () => {
+    const constructRecorded = <Fields extends Schema.Struct.Fields>(
+      Args: Schema.Struct<Fields>,
+      args: Schema.Struct.Type<Fields>,
+    ) => {
+      const GenericMessage = defineMessageUnion({ Recorded: { args: Args } })
+
+      return GenericMessage.Recorded({ args })
+    }
+    const fields = {
+      count: Schema.NumberFromString,
+      label: Schema.optionalKey(Schema.String),
+      limit: Schema.Number.pipe(
+        Schema.withConstructorDefault(Effect.succeed(10)),
+      ),
+    }
+    const Args = Schema.Struct(fields)
+    const args = Args.make({ count: 1 })
+
+    expect(constructRecorded(Args, args)).toStrictEqual({
+      _tag: 'Recorded',
+      args: { count: 1, limit: 10 },
+    })
+
+    expect(() =>
+      Reflect.apply(
+        defineMessageUnion({ Recorded: { args: Args } }).Recorded,
+        undefined,
+        [{ args: { count: '1' } }],
+      ),
+    ).toThrow('Schema validation failed')
   })
 
   it('uses the fast callable path for directly copyable fields', () => {
@@ -287,6 +320,16 @@ describe('defineMessageUnion', () => {
   })
 
   if (false) {
+    const TransformedMessage = defineMessageUnion({
+      Recorded: { args: Schema.Struct({ count: Schema.NumberFromString }) },
+    })
+
+    // @ts-expect-error A constructor rejects another variant's tag.
+    Message.ChangedCount({ _tag: 'SelectedItem', count: 1 })
+    // @ts-expect-error A fieldless constructor rejects undeclared fields.
+    Message.ClickedReset({ unexpected: 1 })
+    // @ts-expect-error A transformed field constructor rejects its encoded input.
+    TransformedMessage.Recorded({ args: { count: '1' } })
     // @ts-expect-error TaggedUnion cases are not part of the Message API
     Message.cases
     // @ts-expect-error TaggedUnion guards are not part of the Message API

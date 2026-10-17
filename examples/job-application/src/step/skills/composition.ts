@@ -2,7 +2,7 @@ import { Array, Option } from 'effect'
 import { type Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { Message, type Model, Skills } from './definition'
+import { Message, type Model, SkillsDefinition } from './definition'
 import * as Entry from './entry'
 
 const foldEntryOutMessage = (
@@ -17,7 +17,7 @@ const foldEntryOutMessage = (
     }),
   })
 
-export const EntriesBinding = Skills.bindChild(Entry.block, {
+export const EntriesBinding = SkillsDefinition.bindChild(Entry.block, {
   field: 'entries',
   key: 'id',
   toParentMessage: (entryId, message) =>
@@ -35,6 +35,6 @@ export const EntriesBinding = Skills.bindChild(Entry.block, {
   outMessage: { fold: foldEntryOutMessage },
 })
 
-export const SkillsComposition = Skills.makeComposition({
+export const SkillsComposition = SkillsDefinition.makeComposition({
   childBindings: [EntriesBinding],
 })

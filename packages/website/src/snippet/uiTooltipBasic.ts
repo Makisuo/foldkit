@@ -41,19 +41,19 @@ const foldTooltipOutMessage = Tooltip.OutMessage.match<
 // The Binding wires the completed child Block into the parent: it runs Tooltip.update,
 // writes the next Tooltip Model back, maps the Block's Commands into your
 // Message type, and hands any OutMessage to the OutMessage fold.
-const TooltipExample = Block.define('TooltipExample', {
+const TooltipExampleDefinition = Block.define('TooltipExample', {
   Model,
   Message,
 })
 
-const TooltipBinding = TooltipExample.bindChild(Tooltip.block, {
+const TooltipBinding = TooltipExampleDefinition.bindChild(Tooltip.block, {
   field: 'tooltip',
   parentMessage: Message.GotTooltipMessage,
   init: { args: () => Tuple.make({ id: 'save-button' }) },
   outMessage: { fold: foldTooltipOutMessage },
 })
 
-const TooltipExampleComposition = TooltipExample.makeComposition({
+const TooltipExampleComposition = TooltipExampleDefinition.makeComposition({
   childBindings: [TooltipBinding],
 })
 

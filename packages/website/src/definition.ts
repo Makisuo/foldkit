@@ -4,4 +4,8 @@ import { Message } from './message'
 import { Model } from './model'
 import { Startup } from './startup'
 
-export const Application = defineApplication({ Model, Message, Startup })
+export const ApplicationDefinition = defineApplication({
+  Model,
+  Message,
+  Startup,
+})

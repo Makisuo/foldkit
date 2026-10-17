@@ -16,15 +16,15 @@ Keep three boundaries visible as the application grows:
 
 ## Starting Simple
 
-Start with one cohesive module. The smallest application keeps Model, Message, Composition-owned init, update, view, `Application`, and `ApplicationComposition` together in `application.ts`. A separate `entry.ts` chooses the browser container and startup inputs, completes the Application, supplies shared Services, and starts the Runtime. Tests and server tooling can import the passive application pieces without starting a browser Runtime.
+Start with one cohesive module. The smallest application keeps Model, Message, Composition-owned init, update, view, `ApplicationDefinition`, and `ApplicationComposition` together in `application.ts`. A separate `entry.ts` chooses the browser container and startup inputs, completes the Application, supplies shared Services, and starts the Runtime. Tests and server tooling can import the passive application pieces without starting a browser Runtime.
 
-Split when those responsibilities become easier to navigate separately. Once one root responsibility moves out of `application.ts`, move the rest to files named for what they own. `definition.ts` exports the early `Application` contract. `composition.ts` owns Bindings, OutMessage folds, complete child and Mount registration, `ApplicationComposition`, and an optional `ApplicationViewBuilder`. `init.ts`, `update.ts`, and `view.ts` own behavior authored through that Composition. Even a graphless split root has a `composition.ts` so every root follows the same Definition → Composition → completion sequence.
+Split when those responsibilities become easier to navigate separately. Once one root responsibility moves out of `application.ts`, move the rest to files named for what they own. `definition.ts` exports the early `ApplicationDefinition` contract. `composition.ts` owns Bindings, OutMessage folds, complete child and Mount registration, `ApplicationComposition`, and an optional `ApplicationViewBuilder`. `init.ts`, `update.ts`, and `view.ts` own behavior authored through that Composition. Even a graphless split root has a `composition.ts` so every root follows the same Definition → Composition → completion sequence.
 
 Use `composition/composition.ts` and an explicit `composition/index.ts` barrel only when substantial Binding policies need their own modules. Remove the emptied `application.ts` instead of retaining it as a forwarding barrel.
 
 Add `story.test.ts` and `scene.test.ts` beside the behavior they test. The [Counter example](/example-apps/counter) shows a compact root.
 
-A compact feature with no children or Mounts can stay in one file. Name its empty Composition before authoring the primary view, then complete that same value. A split graphless feature exports the named Composition beside its Definition in `definition.ts`, so `view.ts` and `block.ts` can import it without adding an empty `composition.ts`:
+A compact feature with no children or Mounts can stay in one file. Name its empty Composition before authoring the primary view, then complete that same value. Once that feature has a separate `definition.ts`, put even its empty Composition in `composition.ts`, so contracts and graph assembly retain distinct import directions:
 
 ::Snippet{name="organizationGraphlessBlock" label="Small graphless feature"}
 
@@ -38,7 +38,7 @@ Use standard structural names within each feature: `Model`, `Message`, `OutMessa
 
 ### Early Contracts and Local Effects
 
-Keep `definition.ts` focused on the early typed Definition and its Model, Message, and OutMessage contracts. For a split graphless feature, export its named empty Composition there too. Split implementation files import those authoring values without loading the completed feature. A compact feature need not extract them.
+Keep `definition.ts` focused on the early typed `FooDefinition` and its Model, Message, OutMessage, and Startup contracts. Never put a Composition or owner-specific ViewBuilder in that file. Split implementation files import the Definition without loading the completed feature, and import graph-aware authoring values from `composition.ts`. A compact feature need not extract them.
 
 Commands belong to the feature whose update returns them. Keep small definitions beside update; extract `command.ts` when several definitions or substantial handlers make a separate file useful. Extract `message.ts` when handlers need result constructors and importing the update would create a cycle.
 
@@ -50,7 +50,7 @@ For a split feature, `composition.ts` owns its child Bindings, complete child an
 
 ::Snippet{name="organizationChildComposition" label="Child Binding and registration"}
 
-An update can import `CounterBinding` to invoke its exposed operations. Registered wrapper Messages route through the Binding automatically. The view imports `DashboardComposition`. Including `CounterBinding` under `childBindings` also includes the completed child's handler graph and lifecycle declarations.
+An update can import `CounterBinding` to invoke its operations. Registered wrapper Messages route through the Binding automatically. The view imports `DashboardComposition`. Including `CounterBinding` under `childBindings` also includes the completed child's handler graph and lifecycle declarations.
 
 `block.ts` imports the Composition, init, update, view, and local `EffectsLayer`, then calls `DashboardComposition.makeBlock`. Its explicit `index.ts` exports `block`, public contracts, and intentional domain helpers. Internal implementation files do not import their own completed barrel.
 
@@ -100,11 +100,11 @@ Keep substantial URL-change handling in `update/changedUrl.ts`. Prepare the next
 
 ## Root Application Assembly
 
-In a split root, `composition.ts` owns the complete child and Mount graph and `ApplicationComposition`. Put straightforward root Bindings and their OutMessage folds directly beside its `Application.makeComposition` call. Extract substantial policies to files such as `composition/home.ts`; then `composition/composition.ts` owns assembly, `composition/index.ts` is an explicit barrel, and the assembly module imports those policies directly from sibling modules. Composition depends on `definition.ts`, completed children, and local policy declarations. It never imports root init, update, or view.
+In a split root, `composition.ts` owns the complete child and Mount graph and `ApplicationComposition`. Put straightforward root Bindings and their OutMessage folds directly beside its `ApplicationDefinition.makeComposition` call. Extract substantial policies to files such as `composition/home.ts`; then `composition/composition.ts` owns assembly, `composition/index.ts` is an explicit barrel, and the assembly module imports those policies directly from sibling modules. Composition depends on `definition.ts`, completed children, and local policy declarations. It never imports root init, update, or view.
 
 ::Snippet{name="applicationRegistrations" label="Root child graph"}
 
-`definition.ts` imports the split root's Model and Message Schemas and exports `Application`. Root Commands, Subscriptions, init, update, and composition import that contract directly. A simple root `EffectsLayer` stays with its Command definitions in `command.ts`; extract `layer.ts` only when Layer composition is substantial or reused.
+`definition.ts` imports the split root's Model and Message Schemas and exports `ApplicationDefinition`. Root Commands, Subscriptions, init, update, and composition import that contract directly. A simple root `EffectsLayer` stays with its Command definitions in `command.ts`; extract `layer.ts` only when Layer composition is substantial or reused.
 
 Root `services.ts` composes `ApplicationLayer`. The entry imports it and each completion field from its real owner, chooses browser inputs, and invokes the Runtime:
 
@@ -146,7 +146,7 @@ The Runtime builds the selected handler recipes and `ApplicationLayer` once per 
 
 ## Composing Runtime Behavior
 
-A feature's `EffectsLayer` supplies handlers. Its Subscriptions, ManagedResources, and Mounts declare the lifecycle work Foldkit manages. The root `Application.makeComposition` call includes the child graphs through their registered Bindings.
+A feature's `EffectsLayer` supplies handlers. Its Subscriptions, ManagedResources, and Mounts declare the lifecycle work Foldkit manages. The root `ApplicationDefinition.makeComposition` call includes the child graphs through their registered Bindings.
 
 The Binding's storage and Message mapping connect child work to the parent. A direct Option field containing `None`, a false `presentWhen`, or a custom reader returning `None` stops that child's lifecycle work. A keyed Binding creates independent scopes for active keys. The same Binding supplies update folding and `embedView`.
 

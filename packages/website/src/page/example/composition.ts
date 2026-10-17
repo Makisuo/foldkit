@@ -5,7 +5,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Tabs } from '@foldkit/ui'
 
-import { ExampleDetail } from './definition'
+import { ExampleDetailDefinition } from './definition'
 import { Message } from './message'
 import { Model } from './model'
 import { ObserveExampleUrlMessages } from './mount'
@@ -25,19 +25,24 @@ const foldSourceFileTabsOutMessage = Tabs.OutMessage.match<
     }),
 })
 
-export const SourceFileTabsBinding = ExampleDetail.bindChild(SourceFileTabs, {
-  field: 'sourceFileTabs',
-  parentMessage: Message.GotSourceFileTabsMessage,
-  outMessage: { fold: foldSourceFileTabsOutMessage },
-  init: { args: () => Tuple.make({ id: SOURCE_FILE_TABS_ID }) },
-})
+export const SourceFileTabsBinding = ExampleDetailDefinition.bindChild(
+  SourceFileTabs,
+  {
+    field: 'sourceFileTabs',
+    parentMessage: Message.GotSourceFileTabsMessage,
+    outMessage: { fold: foldSourceFileTabsOutMessage },
+    init: { args: () => Tuple.make({ id: SOURCE_FILE_TABS_ID }) },
+  },
+)
 
 export const mounts = [ObserveExampleUrlMessages]
 
-export const ExampleDetailComposition = ExampleDetail.makeComposition({
-  childBindings: [SourceFileTabsBinding],
-  mounts,
-})
+export const ExampleDetailComposition = ExampleDetailDefinition.makeComposition(
+  {
+    childBindings: [SourceFileTabsBinding],
+    mounts,
+  },
+)
 export type ExampleDetailViewBuilder = Block.ViewBuilderFor<
   typeof ExampleDetailComposition
 >

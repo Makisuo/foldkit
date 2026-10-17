@@ -21,7 +21,7 @@ import {
   SOURCE_FILE_TABS_ID,
   SourceFileTabsBinding,
 } from './composition'
-import { ExampleDetail } from './definition'
+import { ExampleDetailDefinition } from './definition'
 import { Message } from './message'
 import { type ExampleMeta, findBySlug } from './meta'
 import { CurrentSourcesAsyncData, Model } from './model'
@@ -38,26 +38,31 @@ export { CurrentSourcesAsyncData, Model } from './model'
 /** Loads the source files for the example identified by `slug`, producing the
  *  loaded sources on success or a failure Message when the fetch does not
  *  complete. */
-export const LoadExampleSources = ExampleDetail.command('LoadExampleSources', {
-  args: { slug: Schema.String },
-  messages: [
-    Message.SucceededLoadExampleSources,
-    Message.FailedLoadExampleSources,
-  ],
-  handler: function* () {
-    return ({ slug }) =>
-      Effect.tryPromise({
-        try: () => loadSourcesForSlug(slug),
-        catch: error =>
-          error instanceof Error ? error.message : `Unknown example: ${slug}`,
-      }).pipe(
-        Effect.map(sources => Message.SucceededLoadExampleSources({ sources })),
-        Effect.catch(error =>
-          Effect.succeed(Message.FailedLoadExampleSources({ error })),
-        ),
-      )
+export const LoadExampleSources = ExampleDetailDefinition.command(
+  'LoadExampleSources',
+  {
+    args: { slug: Schema.String },
+    messages: [
+      Message.SucceededLoadExampleSources,
+      Message.FailedLoadExampleSources,
+    ],
+    handler: function* () {
+      return ({ slug }) =>
+        Effect.tryPromise({
+          try: () => loadSourcesForSlug(slug),
+          catch: error =>
+            error instanceof Error ? error.message : `Unknown example: ${slug}`,
+        }).pipe(
+          Effect.map(sources =>
+            Message.SucceededLoadExampleSources({ sources }),
+          ),
+          Effect.catch(error =>
+            Effect.succeed(Message.FailedLoadExampleSources({ error })),
+          ),
+        )
+    },
   },
-})
+)
 
 export const EffectsLayer = Layer.mergeAll(
   LoadExampleSources.layer,
@@ -80,7 +85,7 @@ const isSourceAvailable = (slug: string): boolean =>
   })
 
 const startLoadingExampleSources = (slug: string) =>
-  ExampleDetail.step(model => {
+  ExampleDetailDefinition.step(model => {
     return SourceFileTabsBinding.init({
       args: [{ id: SOURCE_FILE_TABS_ID }],
       toParentModel: sourceFileTabs =>
@@ -95,7 +100,7 @@ const startLoadingExampleSources = (slug: string) =>
   })
 
 const showExampleSources = (sources: typeof ExampleSources.Type) =>
-  ExampleDetail.step(model => ({
+  ExampleDetailDefinition.step(model => ({
     model: modifyFields(model, {
       maybeActiveSourceFilePath: () =>
         pipe(
@@ -107,7 +112,7 @@ const showExampleSources = (sources: typeof ExampleSources.Type) =>
     }),
   }))
 
-const clearExampleSources = ExampleDetail.step(model => {
+const clearExampleSources = ExampleDetailDefinition.step(model => {
   return SourceFileTabsBinding.init({
     args: [{ id: SOURCE_FILE_TABS_ID }],
     toParentModel: sourceFileTabs =>
@@ -120,7 +125,7 @@ const clearExampleSources = ExampleDetail.step(model => {
   })
 })
 
-export const loadInitialSources = ExampleDetail.step(
+const loadInitialSources = ExampleDetailDefinition.step(
   (
     model,
     maybeInitialSlug: Option.Option<string>,
@@ -146,6 +151,11 @@ export const loadInitialSources = ExampleDetail.step(
 
 export const update = ExampleDetailComposition.makeUpdate((model, message) =>
   Message.match(message, {
+    RequestedLoadInitialSources: ({ maybeInitialSlug, maybeExampleSources }) =>
+      loadInitialSources(model, maybeInitialSlug, maybeExampleSources),
+
+    InformedOfRouteChange: ({ slug }) => changeExampleRoute(model, slug),
+
     ChangedExampleUrl: ({ url }) => ({
       model: modifyFields(model, { maybeExampleUrl: () => Option.some(url) }),
     }),
@@ -164,13 +174,15 @@ export const update = ExampleDetailComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const informRouteChanged = ExampleDetail.step((_model, slug: string) => {
-  if (isSourceAvailable(slug)) {
-    return startLoadingExampleSources(slug)
-  }
+const changeExampleRoute = ExampleDetailDefinition.step(
+  (_model, slug: string) => {
+    if (isSourceAvailable(slug)) {
+      return startLoadingExampleSources(slug)
+    }
 
-  return clearExampleSources
-})
+    return clearExampleSources
+  },
+)
 
 const featureTag = (text: string): Html =>
   ih.div(

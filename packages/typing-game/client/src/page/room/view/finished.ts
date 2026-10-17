@@ -4,7 +4,7 @@ import { Html } from 'foldkit/html'
 
 import * as Shared from '@typing-game/shared'
 
-import type { RoomViewBuilder } from '../definition'
+import type { RoomViewBuilder } from '../composition'
 import { RoomPlayerSession } from '../model'
 
 const byHighestWpm = pipe(

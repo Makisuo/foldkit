@@ -2,7 +2,7 @@ import { Option } from 'effect'
 import { Url } from 'foldkit'
 
 import { ApplicationComposition } from './composition'
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { ApplicationRoute, urlToApplicationRoute } from './route'
 import { initRoom } from './update/changeRoute'
 
@@ -18,7 +18,7 @@ export const init = ApplicationComposition.makeInit((url: Url.Url) => {
       route,
       {
         Room: ({ roomId }) => [
-          Application.step(model => initRoom(model, roomId)),
+          ApplicationDefinition.step(model => initRoom(model, roomId)),
         ],
       },
       () => [],

@@ -1,4 +1,4 @@
-import { Array, Layer, Option, Schema } from 'effect'
+import { Array, Layer, Option, Schema, Tuple } from 'effect'
 import { expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
@@ -6,11 +6,14 @@ import { define as defineApplication } from '../runtime/applicationPublic.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
 import type { BindingRequirement } from './binding.js'
+import type { DeferredBindingPolicy } from './deferredPolicy.js'
 import { define } from './define.js'
 
 const ChildModel = Schema.Struct({ value: Schema.String })
 type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
+  RequestedSelectValue: {},
+  RequestedSetPrototypeValue: { value: Schema.String },
   UpdatedValue: { value: Schema.String },
 })
 type ChildMessage = typeof ChildMessage.Type
@@ -40,10 +43,18 @@ const selectValue = Child.step(model => ({
 const ChildComposition = Child.makeComposition()
 const ChildBlock = ChildComposition.makeBlock({
   init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
-  update: ChildComposition.makeUpdate((model, { value }) => ({
-    model: modifyFields(model, { value: () => value }),
-  })),
-  expose: { selectValue },
+  update: ChildComposition.makeUpdate((model, message) =>
+    ChildMessage.match(message, {
+      RequestedSelectValue: () => selectValue(model),
+      RequestedSetPrototypeValue: () => ({ model }),
+      UpdatedValue: ({ value }) => ({
+        model: modifyFields(model, { value: () => value }),
+      }),
+    }),
+  ),
+  operations: {
+    selectValue: () => Tuple.make(ChildMessage.RequestedSelectValue()),
+  },
 })
 
 const PlainChild = define('ParentOwnedBindingPlainChild', {
@@ -51,21 +62,30 @@ const PlainChild = define('ParentOwnedBindingPlainChild', {
   Message: ChildMessage,
 })
 const PlainChildComposition = PlainChild.makeComposition()
-const PlainChildBlock = PlainChildComposition.makeBlock({
-  init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
-  update: PlainChildComposition.makeUpdate((model, { value }) => ({
-    model: modifyFields(model, { value: () => value }),
-  })),
-})
-
 const setPrototypeValue = PlainChild.step((model, value: string) => ({
   model: modifyFields(model, { value: () => value }),
 }))
+const PlainChildBlock = PlainChildComposition.makeBlock({
+  init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
+  update: PlainChildComposition.makeUpdate((model, message) =>
+    ChildMessage.match(message, {
+      RequestedSelectValue: () => ({ model }),
+      RequestedSetPrototypeValue: ({ value }) =>
+        setPrototypeValue(model, value),
+      UpdatedValue: ({ value }) => ({
+        model: modifyFields(model, { value: () => value }),
+      }),
+    }),
+  ),
+})
 
 const PrototypeOperationChildBlock = PlainChildComposition.makeBlock({
   init: PlainChildBlock.init,
   update: PlainChildBlock.update,
-  expose: { ['__proto__']: setPrototypeValue },
+  operations: {
+    ['__proto__']: (value: string) =>
+      Tuple.make(ChildMessage.RequestedSetPrototypeValue({ value })),
+  },
 })
 
 const Entry = Schema.Struct({ id: Schema.Number, child: ChildModel })
@@ -83,6 +103,8 @@ const ParentModel = Schema.Struct({
 type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
   GotChildMessage: { message: ChildMessage },
+  GotOptionalChildMessage: { message: ChildMessage },
+  GotTaggedChildMessage: { message: ChildMessage },
   GotKeyedChildMessage: { id: Schema.Number, message: ChildMessage },
 })
 type ParentMessage = typeof ParentMessage.Type
@@ -104,10 +126,13 @@ const ExactMessageChildBinding = Parent.bindChild(PlainChildBlock, {
 })
 
 const ExactCustomMessageChildBinding = Parent.bindChild(PlainChildBlock, {
-  fromParentMessage: false,
   placement: 'exactCustomMessageChild',
   field: 'maybeChild',
   toParentMessage: message => ParentMessage.GotChildMessage({ message }),
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotChildMessage,
+    args: (_model, { message }) => Option.some([message]),
+  },
 })
 
 const foldChildOutMessage = ChildOutMessage.match<
@@ -122,7 +147,6 @@ const foldChildOutMessage = ChildOutMessage.match<
 })
 
 const DirectChildBinding = Parent.bindChild(ChildBlock, {
-  fromParentMessage: false,
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
   init: false,
@@ -146,12 +170,11 @@ const ForwardingChildBinding = Parent.bindChild(ChildBlock, {
 })
 
 const OptionalChildBinding = Parent.bindChild(ChildBlock, {
-  fromParentMessage: false,
   placement: 'optionalChild',
   read: model => model.maybeChild,
   write: (model, nextChild) =>
     modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
-  toParentMessage: message => ParentMessage.GotChildMessage({ message }),
+  parentMessage: ParentMessage.GotOptionalChildMessage,
   outMessage: {
     fold: (outMessage, context) => {
       expectTypeOf(outMessage).toEqualTypeOf<ChildOutMessage>()
@@ -165,7 +188,6 @@ const OptionalChildBinding = Parent.bindChild(ChildBlock, {
 })
 
 const TaggedChildBinding = Parent.bindChild(ChildBlock, {
-  fromParentMessage: false,
   placement: 'taggedChild',
   read: model =>
     model.slot._tag === 'Child' ? Option.some(model.slot.child) : Option.none(),
@@ -173,12 +195,11 @@ const TaggedChildBinding = Parent.bindChild(ChildBlock, {
     modifyFields(model, {
       slot: () => ChildSlot.make({ child: nextChild }),
     }),
-  parentMessage: ParentMessage.GotChildMessage,
+  parentMessage: ParentMessage.GotTaggedChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
 
 const KeyedChildBinding = Parent.bindChild(ChildBlock, {
-  fromParentMessage: false,
   placement: 'entries',
   readAll: model => model.entries,
   key: entry => entry.id,
@@ -193,6 +214,10 @@ const KeyedChildBinding = Parent.bindChild(ChildBlock, {
     }),
   toParentMessage: (id, message) =>
     ParentMessage.GotKeyedChildMessage({ id, message }),
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotKeyedChildMessage,
+    args: (_model, { id, message }) => Option.some([id, message]),
+  },
   outMessage: {
     fold: (id, outMessage, context) => {
       expectTypeOf(id).toEqualTypeOf<number>()
@@ -215,13 +240,7 @@ const ParentComposition = Parent.makeComposition({
   ],
 })
 
-const update = ParentComposition.makeUpdate((model, message) =>
-  ParentMessage.match(message, {
-    GotChildMessage: ({ message }) => DirectChildBinding.fold(model, message),
-    GotKeyedChildMessage: ({ id, message }) =>
-      KeyedChildBinding.fold(model, id, message),
-  }),
-)
+const update = ParentComposition.makeUpdate()
 
 const ParentBlock = ParentComposition.makeBlock({
   init: ParentComposition.makeInit(() =>
@@ -246,12 +265,12 @@ const makeGenericChoice = <const Value extends string>(
   const Model = Schema.Struct({ value: Value })
   const Message = defineMessageUnion({ UpdatedChoice: { value: Value } })
   const OutMessage = defineMessageUnion({ SelectedChoice: { value: Value } })
-  const GenericChoice = define('ParentOwnedGenericChoice').define({
+  const GenericChoiceDefinition = define('ParentOwnedGenericChoice').define({
     Model,
     Message,
     OutMessage,
   })
-  const GenericChoiceComposition = GenericChoice.makeComposition()
+  const GenericChoiceComposition = GenericChoiceDefinition.makeComposition()
   const block = GenericChoiceComposition.makeBlock({
     init: (value: Value) => ({ model: Model.make({ value }) }),
     update: GenericChoiceComposition.makeUpdate((model, { value }) => ({
@@ -318,7 +337,6 @@ const makeKeyedGenericParent = <const Value extends string>(
       },
     )
   const ChildBinding = Parent.bindChild(ChildBlock, {
-    fromParentMessage: false,
     readAll: model => model.entries,
     key: entry => {
       const payload: Value = entry.payload
@@ -335,13 +353,15 @@ const makeKeyedGenericParent = <const Value extends string>(
         ),
       }),
     toParentMessage: (id, message) => Message.GotChildMessage({ id, message }),
+    fromParentMessage: {
+      parentMessage: Message.GotChildMessage,
+      args: (_model, { id, message }) => Option.some([id, message]),
+    },
     outMessage: { fold: foldOutMessage },
   })
 
   const composition = Parent.makeComposition({ childBindings: [ChildBinding] })
-  const foldChild = composition.makeUpdate((model, message) =>
-    ChildBinding.fold(model, message.id, message.message),
-  )
+  const foldChild = composition.makeUpdate()
 
   return { ChildBinding, foldChild, Model, Message }
 }
@@ -399,6 +419,13 @@ const keyedConfigWithExtraField = {
   writeAt: (model: ParentModel) => model,
   toParentMessage: (id: number, message: ChildMessage) =>
     ParentMessage.GotKeyedChildMessage({ id, message }),
+  fromParentMessage: {
+    parentMessage: ParentMessage.GotKeyedChildMessage,
+    args: (
+      _model: ParentModel,
+      { id, message }: typeof ParentMessage.GotKeyedChildMessage.Type,
+    ) => Option.some(Tuple.make(id, message)),
+  },
   outMessage: { fold: () => (model: ParentModel) => ({ model }) },
   unexpected: true,
 }
@@ -408,24 +435,36 @@ if (false) {
   Parent.bindChild(ChildBlock, keyedConfigWithExtraField)
 }
 
-const Application = defineApplication({
+const SingleParentMessage = defineMessageUnion({
+  GotChildMessage: { message: ChildMessage },
+  RequestedInvokePrototypeOperation: { value: Schema.String },
+})
+const ApplicationDefinition = defineApplication({
   Model: ParentModel,
-  Message: ParentMessage,
+  Message: SingleParentMessage,
 })
-const ApplicationChildBinding = Application.bindChild(ChildBlock, {
+const ApplicationChildBinding = ApplicationDefinition.bindChild(ChildBlock, {
   field: 'child',
-  parentMessage: ParentMessage.GotChildMessage,
-  outMessage: { fold: foldChildOutMessage },
+  parentMessage: SingleParentMessage.GotChildMessage,
+  outMessage: { fold: () => ApplicationDefinition.step(model => ({ model })) },
 })
-const ApplicationComposition = Application.makeComposition({
+const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [ApplicationChildBinding],
 })
 
-const SnapshotMount = Parent.mount('SnapshotMount', {
-  messages: [ParentMessage.GotChildMessage],
+const SnapshotParent = define('ParentOwnedSnapshotParent', {
+  Model: ParentModel,
+  Message: SingleParentMessage,
 })
-const AlternateSnapshotMount = Parent.mount('AlternateSnapshotMount', {
-  messages: [ParentMessage.GotChildMessage],
+const SnapshotChildBinding = SnapshotParent.bindChild(PlainChildBlock, {
+  field: 'child',
+  parentMessage: SingleParentMessage.GotChildMessage,
+})
+const SnapshotMount = SnapshotParent.mount('SnapshotMount', {
+  messages: [SingleParentMessage.GotChildMessage],
+})
+const AlternateSnapshotMount = SnapshotParent.mount('AlternateSnapshotMount', {
+  messages: [SingleParentMessage.GotChildMessage],
 })
 
 if (false) {
@@ -434,7 +473,7 @@ if (false) {
   // @ts-expect-error The breaking staging API does not retain register aliases.
   Parent.register
   // @ts-expect-error Every Application completes through a Composition.
-  Application.makeElement
+  ApplicationDefinition.makeElement
   // @ts-expect-error An Application Composition does not expose Block completion.
   ApplicationComposition.makeBlock
   // @ts-expect-error A completed child has no child-owned Binding factory.
@@ -457,10 +496,24 @@ if (false) {
     outMessage: { fold: foldChildOutMessage },
   })
 
-  Parent.makeComposition().makeBlock({
+  const AlternativeChildBinding = Parent.bindChild(ChildBlock, {
+    field: 'child',
+    placement: 'alternative',
+    parentMessage: ParentMessage.GotChildMessage,
+    outMessage: { fold: foldChildOutMessage },
+  })
+  const AlternativeParentComposition = Parent.makeComposition({
+    childBindings: [
+      AlternativeChildBinding,
+      OptionalChildBinding,
+      TaggedChildBinding,
+      KeyedChildBinding,
+    ],
+  })
+  // @ts-expect-error Child operations require registration in the Composition.
+  AlternativeParentComposition.makeBlock({
     init: ParentBlock.init,
     update,
-    // @ts-expect-error Child operations require registration in the Composition.
     EffectsLayer: Layer.empty,
   })
 }
@@ -490,9 +543,12 @@ it('creates direct, optional, and keyed Bindings from the parent', () => {
     Update.ResultRecipe<
       ParentModel,
       ParentMessage,
-      ParentOutMessage,
       never,
-      BindingRequirement<'forwardingChild', typeof ChildBlock>
+      never,
+      | BindingRequirement<'forwardingChild', typeof ChildBlock>
+      | Update.DeferredResultEvidence<
+          DeferredBindingPolicy<'forwardingChild', 'ParentOwnedBindingChild'>
+        >
     >
   >()
   expectTypeOf(KeyedChildBinding.fold).parameter(1).toEqualTypeOf<number>()
@@ -515,36 +571,34 @@ it('freezes parent-owned Bindings after their private metadata is registered', (
 })
 
 it('snapshots mutable child and Mount arrays at the Composition boundary', () => {
-  const DuplicateChildBinding = Parent.bindChild(ChildBlock, {
-    fromParentMessage: false,
+  const DuplicateChildBinding = SnapshotParent.bindChild(PlainChildBlock, {
     field: 'child',
-    parentMessage: ParentMessage.GotChildMessage,
-    outMessage: { fold: foldChildOutMessage },
+    parentMessage: SingleParentMessage.GotChildMessage,
   })
-  const suppliedChildBindings: Array<typeof DirectChildBinding> = [
-    DirectChildBinding,
+  const suppliedChildBindings: Array<typeof SnapshotChildBinding> = [
+    SnapshotChildBinding,
   ]
   const suppliedMounts: Array<
     typeof SnapshotMount | typeof AlternateSnapshotMount
   > = [SnapshotMount]
-  const composition = Parent.makeComposition({
+  const composition = SnapshotParent.makeComposition({
     childBindings: suppliedChildBindings,
     mounts: suppliedMounts,
   })
 
   suppliedChildBindings.push(DuplicateChildBinding)
   suppliedMounts.push(AlternateSnapshotMount)
-  expect(composition.childBindings).toEqual([DirectChildBinding])
+  expect(composition.childBindings).toEqual([SnapshotChildBinding])
   expect(composition.mounts).toEqual([SnapshotMount])
 
   suppliedChildBindings.splice(0, 1, DuplicateChildBinding)
   suppliedMounts.splice(0, 1, AlternateSnapshotMount)
-  expect(composition.childBindings).toEqual([DirectChildBinding])
+  expect(composition.childBindings).toEqual([SnapshotChildBinding])
   expect(composition.mounts).toEqual([SnapshotMount])
 
   suppliedChildBindings.pop()
   suppliedMounts.pop()
-  expect(composition.childBindings).toEqual([DirectChildBinding])
+  expect(composition.childBindings).toEqual([SnapshotChildBinding])
   expect(composition.mounts).toEqual([SnapshotMount])
   expect(Object.isFrozen(composition.childBindings)).toBe(true)
   expect(Object.isFrozen(composition.mounts)).toBe(true)
@@ -554,7 +608,7 @@ it('keeps Application Composition snapshots independent from caller arrays', () 
   const suppliedChildBindings: Array<typeof ApplicationChildBinding> = [
     ApplicationChildBinding,
   ]
-  const composition = Application.makeComposition({
+  const composition = ApplicationDefinition.makeComposition({
     childBindings: suppliedChildBindings,
   })
 
@@ -572,12 +626,19 @@ it('rejects an authentic Binding created by a different parent identity', () => 
   })
 
   expect(() =>
-    ForeignParent.makeComposition({ childBindings: [DirectChildBinding] }),
+    ForeignParent.makeComposition({
+      childBindings: [
+        DirectChildBinding,
+        OptionalChildBinding,
+        TaggedChildBinding,
+        KeyedChildBinding,
+      ],
+    }),
   ).toThrow(/different parent Definition/)
 })
 
 it('keeps child Binding helpers on the Definition after composition', () => {
-  const compositionHelper = Parent.makeComposition()
+  const compositionHelper = ParentComposition
   const DefinitionOwnedChildBinding = Parent.bindChild(ChildBlock, {
     field: 'child',
     placement: 'definitionOwnedChild',
@@ -587,43 +648,54 @@ it('keeps child Binding helpers on the Definition after composition', () => {
 
   expect(compositionHelper).not.toHaveProperty('bindChild')
   expect(
-    Parent.makeComposition({ childBindings: [DefinitionOwnedChildBinding] })
-      .childBindings,
-  ).toEqual([DefinitionOwnedChildBinding])
+    Parent.makeComposition({
+      childBindings: [
+        DefinitionOwnedChildBinding,
+        OptionalChildBinding,
+        TaggedChildBinding,
+        KeyedChildBinding,
+      ],
+    }).childBindings,
+  ).toEqual([
+    DefinitionOwnedChildBinding,
+    OptionalChildBinding,
+    TaggedChildBinding,
+    KeyedChildBinding,
+  ])
 })
 
 it('accepts shared named contracts and rejects incompatible contracts from that owner', () => {
   const SharedParent = define('ParentOwnedBindingSharedParent')
-  const First = SharedParent.define({
+  const FirstDefinition = SharedParent.define({
     Model: ParentModel,
-    Message: ParentMessage,
+    Message: SingleParentMessage,
     OutMessage: ParentOutMessage,
   })
-  const Refined = SharedParent.define({
+  const RefinedDefinition = SharedParent.define({
     Model: ParentModel,
-    Message: ParentMessage,
+    Message: SingleParentMessage,
     OutMessage: ParentOutMessage,
   })
   const IncompatibleParentModel = Schema.Struct({
     child: ChildModel,
     unrelated: Schema.String,
   })
-  const Incompatible = SharedParent.define({
+  const IncompatibleDefinition = SharedParent.define({
     Model: IncompatibleParentModel,
-    Message: ParentMessage,
+    Message: SingleParentMessage,
     OutMessage: ParentOutMessage,
   })
-  const SharedChildBinding = First.bindChild(PlainChildBlock, {
+  const SharedChildBinding = FirstDefinition.bindChild(PlainChildBlock, {
     field: 'child',
-    parentMessage: ParentMessage.GotChildMessage,
+    parentMessage: SingleParentMessage.GotChildMessage,
   })
 
   expect(
-    Refined.makeComposition({ childBindings: [SharedChildBinding] })
+    RefinedDefinition.makeComposition({ childBindings: [SharedChildBinding] })
       .childBindings,
   ).toEqual([SharedChildBinding])
   expect(() =>
-    Reflect.apply(Incompatible.makeComposition, undefined, [
+    Reflect.apply(IncompatibleDefinition.makeComposition, undefined, [
       { childBindings: [SharedChildBinding] },
     ]),
   ).toThrow(/different parent Definition contract/)
@@ -637,60 +709,44 @@ it('uses only own properties to distinguish Binding config forms', () => {
       read: (model: ParentModel) => Option.some(model.child),
       write: (model: ParentModel, child: ChildModel) =>
         modifyFields(model, { child: () => child }),
-      parentMessage: ParentMessage.GotChildMessage,
+      parentMessage: SingleParentMessage.GotChildMessage,
     },
   )
   const inheritedMapperConfig = Object.assign(
     Object.create({
       toParentMessage: (_message: ChildMessage) =>
-        ParentMessage.GotChildMessage({ message: _message }),
+        SingleParentMessage.GotChildMessage({ message: _message }),
     }),
     {
       placement: 'inheritedMapper',
       read: (model: ParentModel) => Option.some(model.child),
       write: (model: ParentModel, child: ChildModel) =>
         modifyFields(model, { child: () => child }),
-      parentMessage: ParentMessage.GotChildMessage,
+      parentMessage: SingleParentMessage.GotChildMessage,
     },
   )
-  const InheritedReadAllBinding = Parent.bindChild(
+  const InheritedReadAllBinding = SnapshotParent.bindChild(
     PlainChildBlock,
     inheritedReadAllConfig,
   )
-  const InheritedMapperBinding = Parent.bindChild(
+  const InheritedMapperBinding = SnapshotParent.bindChild(
     PlainChildBlock,
     inheritedMapperConfig,
   )
-  const foldInheritedReadAll = Parent.makeComposition({
-    childBindings: [InheritedReadAllBinding],
-  }).makeUpdate((model, message): Update.Return<ParentModel, ParentMessage> => {
-    if (message._tag === 'GotChildMessage') {
-      return Reflect.apply(
-        Reflect.get(InheritedReadAllBinding, 'fold'),
-        InheritedReadAllBinding,
-        [model, message.message],
-      )
-    } else {
-      return { model }
-    }
-  })
-  const foldInheritedMapper = Parent.makeComposition({
-    childBindings: [InheritedMapperBinding],
-  }).makeUpdate((model, message): Update.Return<ParentModel, ParentMessage> => {
-    if (message._tag === 'GotChildMessage') {
-      return Reflect.apply(
-        Reflect.get(InheritedMapperBinding, 'fold'),
-        InheritedMapperBinding,
-        [model, message.message],
-      )
-    } else {
-      return { model }
-    }
-  })
+  const foldInheritedReadAll = Reflect.apply(
+    SnapshotParent.makeComposition,
+    SnapshotParent,
+    [{ childBindings: [InheritedReadAllBinding] }],
+  ).makeUpdate()
+  const foldInheritedMapper = Reflect.apply(
+    SnapshotParent.makeComposition,
+    SnapshotParent,
+    [{ childBindings: [InheritedMapperBinding] }],
+  ).makeUpdate()
   const model = ParentBlock.init().model
   const message = ChildMessage.UpdatedValue({ value: 'updated' })
 
-  const parentMessage = ParentMessage.GotChildMessage({ message })
+  const parentMessage = SingleParentMessage.GotChildMessage({ message })
   const inheritedReadAllResult = foldInheritedReadAll(model, parentMessage)
   const inheritedMapperResult = foldInheritedMapper(model, parentMessage)
 
@@ -699,28 +755,47 @@ it('uses only own properties to distinguish Binding config forms', () => {
 })
 
 it('binds an exposed operation named __proto__ as an own property', () => {
-  const PrototypeOperationBinding = Parent.bindChild(
+  const PrototypeOperationBinding = SnapshotParent.bindChild(
     PrototypeOperationChildBlock,
     {
       field: 'child',
       placement: 'prototypeOperation',
-      parentMessage: ParentMessage.GotChildMessage,
+      parentMessage: SingleParentMessage.GotChildMessage,
     },
   )
-  const composition = Parent.makeComposition({
+  const composition = SnapshotParent.makeComposition({
     childBindings: [PrototypeOperationBinding],
   })
-  const invokePrototypeOperation = Parent.step((_model, value: string) => {
-    const boundOperation = Reflect.get(PrototypeOperationBinding, '__proto__')
-    return Reflect.apply(boundOperation, PrototypeOperationBinding, [value])
-  })
+  const invokePrototypeOperation = SnapshotParent.step(
+    (_model, value: string) => {
+      const boundOperation = Reflect.get(PrototypeOperationBinding, '__proto__')
+      return Reflect.apply(boundOperation, PrototypeOperationBinding, [value])
+    },
+  )
   const runtime = composition.makeBlock({
-    init: ParentBlock.init,
-    update: composition.makeUpdate(model => ({ model })),
-    expose: { invokePrototypeOperation },
+    init: composition.makeInit(() => ({
+      model: {
+        maybeChild: Option.none(),
+        slot: EmptySlot.make({}),
+        entries: [],
+        selected: Option.none(),
+      },
+    })),
+    update: composition.makeUpdate((model, message) =>
+      SingleParentMessage.match(message, {
+        RequestedInvokePrototypeOperation: ({ value }) =>
+          invokePrototypeOperation(model, value),
+      }),
+    ),
+    operations: {
+      invokePrototypeOperation: (value: string) =>
+        Tuple.make(
+          SingleParentMessage.RequestedInvokePrototypeOperation({ value }),
+        ),
+    },
   })
   const boundOperation = Reflect.get(PrototypeOperationBinding, '__proto__')
-  const result = runtime.expose.invokePrototypeOperation(
+  const result = runtime.operations.invokePrototypeOperation(
     ParentBlock.init().model,
     'safe',
   )

@@ -8,7 +8,7 @@ import {
   ApplicationComposition,
   ExampleDetailBinding,
 } from './composition'
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { type Deployment, isTelemetryEnabled } from './deployment'
 import { findActiveSectionKeyForRoute } from './docsNav'
 import { type Flags } from './flags'
@@ -25,7 +25,7 @@ const browserStartupCommands = (deployment: Deployment) => [
 ]
 
 const scrollToInitialLocation = (url: Url) =>
-  Application.step(model => ({
+  ApplicationDefinition.step(model => ({
     model,
     commands: [
       Command.ScrollSidebarActiveLinkIntoView(),

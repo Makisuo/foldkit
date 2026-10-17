@@ -1,4 +1,4 @@
-import { Option, Schema } from 'effect'
+import { Option, Schema, Tuple } from 'effect'
 import type * as Block from 'foldkit/block'
 import { modifyFields } from 'foldkit/struct'
 
@@ -12,7 +12,7 @@ import {
   type MessageSchema,
   OutMessage,
   type OutMessageSchema,
-  Combobox as SharedCombobox,
+  ComboboxDefinition as SharedCombobox,
   baseInit,
   closedBaseModel,
   makeMessage,
@@ -31,7 +31,7 @@ export const Model = Schema.Struct({
 
 export type Model = typeof Model.Type
 
-const Combobox = SharedCombobox.define({
+const ComboboxDefinition = SharedCombobox.define({
   Model,
   Message,
   OutMessage,
@@ -52,8 +52,8 @@ export const init = (config: InitConfig): Model => baseInit(config)
  *  `Selected({ value })` for the parent to store. A nullable Combobox also
  *  emits `ClearedSelection` when it closes with an empty input. */
 const defaultUpdate = makeUpdate(
-  Combobox.bindChild,
-  Combobox.step,
+  ComboboxDefinition.bindChild,
+  ComboboxDefinition.step,
   Message,
   'CloseWithFocus',
   {
@@ -90,12 +90,12 @@ const defaultUpdate = makeUpdate(
   },
 )
 
-const ComboboxComposition = Combobox.makeComposition({
+const ComboboxComposition = ComboboxDefinition.makeComposition({
   mounts,
   childBindings: [defaultUpdate.AnimationBinding],
 })
 
-const authoredUpdate = Combobox.step(
+const authoredUpdate = ComboboxDefinition.step(
   (model, message: Parameters<typeof defaultUpdate.update>[1]) =>
     defaultUpdate.update(model, message),
 )
@@ -108,15 +108,14 @@ type UpdateReturn = ReturnType<typeof update>
 
 /** Programmatically opens the Combobox, updating the Model and returning
  *  focus and modal Commands. Use this in domain-event handlers. */
-export const open = (model: Model): UpdateReturn =>
-  update(model, Message.Opened({ maybeActiveItemIndex: Option.none() }))
+export const open = (model: Model): UpdateReturn => block.operations.open(model)
 
 /** Programmatically closes the Combobox, updating the Model and returning
  *  focus and modal Commands. `restingInputValue` is the text the input
  *  returns to (the parent-owned selection's display text, or empty). Use
  *  this in domain-event handlers to close the combobox. */
 export const close = (model: Model, restingInputValue: string): UpdateReturn =>
-  update(model, Message.Closed({ restingInputValue, isClearable: true }))
+  block.operations.close(model, restingInputValue)
 
 /** Programmatically selects an item in the single-select combobox, closing
  *  the combobox and emitting `Selected({ value })`. The Block treats the
@@ -128,8 +127,7 @@ export const selectItem = (
   model: Model,
   item: string,
   displayText: string,
-): UpdateReturn =>
-  update(model, Message.SelectedItem({ item, displayText, wasSelected: false }))
+): UpdateReturn => block.operations.selectItem(model, item, displayText)
 
 // VIEW
 
@@ -146,14 +144,14 @@ export type ViewInputs<Item extends string> = BaseViewInputsCommon<Item> &
 const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
   const ItemMessage: MessageSchema<Item> = makeMessage(Item)
   const ItemOutMessage: OutMessageSchema<Item> = makeOutMessage(Item)
-  const Combobox = SharedCombobox.define({
+  const ComboboxDefinition = SharedCombobox.define({
     Model,
     Message: ItemMessage,
     OutMessage: ItemOutMessage,
   })
   const itemUpdate = makeUpdate(
-    Combobox.bindChild,
-    Combobox.step,
+    ComboboxDefinition.bindChild,
+    ComboboxDefinition.step,
     ItemMessage,
     'CloseWithFocus',
     {
@@ -189,11 +187,11 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
       }),
     },
   )
-  const ComboboxComposition = Combobox.makeComposition({
+  const ComboboxComposition = ComboboxDefinition.makeComposition({
     mounts,
     childBindings: [itemUpdate.AnimationBinding],
   })
-  const authoredUpdate = Combobox.step(
+  const authoredUpdate = ComboboxDefinition.step(
     (model, message: Parameters<typeof itemUpdate.update>[1]) =>
       itemUpdate.update(model, message),
   )
@@ -215,22 +213,18 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
         h,
       ),
   )
-  const open = Combobox.step(model =>
-    update(model, ItemMessage.Opened({ maybeActiveItemIndex: Option.none() })),
-  )
-  const close = Combobox.step((model, restingInputValue: string) =>
-    update(model, ItemMessage.Closed({ restingInputValue, isClearable: true })),
-  )
-  const selectItem = Combobox.step((model, item: Item, displayText: string) =>
-    update(
-      model,
+  const open = () =>
+    Tuple.make(ItemMessage.Opened({ maybeActiveItemIndex: Option.none() }))
+  const close = (restingInputValue: string) =>
+    Tuple.make(ItemMessage.Closed({ restingInputValue, isClearable: true }))
+  const selectItem = (item: Item, displayText: string) =>
+    Tuple.make(
       ItemMessage.SelectedItem({
         item,
         displayText,
         wasSelected: false,
       }),
-    ),
-  )
+    )
 
   return {
     composition: ComboboxComposition,
@@ -240,7 +234,7 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
         model: init(config),
       })),
       update,
-      expose: { open, close, selectItem },
+      operations: { open, close, selectItem },
       EffectsLayer,
     },
   }

@@ -12,9 +12,9 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const Shortcuts = Block.define('Shortcuts', { Model, Message })
+const ShortcutsDefinition = Block.define('Shortcuts', { Model, Message })
 
-const subscriptions = Shortcuts.subscriptions(entry => ({
+const subscriptions = ShortcutsDefinition.subscriptions(entry => ({
   shortcutKeyPresses: entry(
     'ShortcutKeyPresses',
     { isListening: Schema.Boolean },

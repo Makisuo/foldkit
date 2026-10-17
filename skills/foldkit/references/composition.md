@@ -1,7 +1,7 @@
 # Block Composition and Layers
 
 Read this reference when a Foldkit app defines a Block, binds a stateful UI
-component, initializes children, exposes child operations, or supplies handler
+component, initializes children, provides child operations, or supplies handler
 Layers. For exact overloads, inspect the installed declarations and the
 matching example from the same Foldkit version.
 
@@ -19,7 +19,7 @@ Build that boundary in three passive stages:
    lifecycle entries, and child Bindings.
 2. `makeComposition` fixes the registered child and Mount graph. The named
    Composition authors init, update, and the canonical view against that graph.
-3. `makeBlock` receives that authored implementation plus local exposed
+3. `makeBlock` receives that authored implementation plus local
    operations, Subscriptions, ManagedResources, `EffectsLayer`, and
    `hostHandlers`, then checks and packages the completed Block. It does not run
    init, construct Layers, or start effects.
@@ -37,13 +37,13 @@ caller's Model and builder.
 ## Canonical shape
 
 ```ts
-export const Settings = Block.define('Settings', {
+export const SettingsDefinition = Block.define('Settings', {
   Model,
   Message,
   OutMessage,
 })
 
-export const SettingsComposition = Settings.makeComposition()
+export const SettingsComposition = SettingsDefinition.makeComposition()
 
 export const init = SettingsComposition.makeInit(() => ({
   model: { theme: 'System' },
@@ -64,6 +64,22 @@ export const view = SettingsComposition.makeView((model, h) =>
 export const block = SettingsComposition.makeBlock({ init, update, view })
 ```
 
+An authored update is dual: the Runtime uses
+`update(model, message, ...context)`, while application composition can use
+`update(message)(model, ...context)` as an internal Step. Prefer
+`Composition.makeOperation(Message.Constructor)` for a public operation that
+forwards its arguments directly into a Message. The descriptor remains passive
+and noncallable; `makeBlock` turns its `operations` entry into a completed
+callable operation. A constructor with fields takes one constructor payload
+object followed by the update context, with constructor defaults honored; a
+constructor without fields takes no payload placeholder. Keep a tuple producer
+under `operations` when public inputs need mapping, refinement, defaults, or an
+exact context tuple. Both forms pass their Message through update synchronously
+as part of the pure transition; they do not enqueue another Runtime Message.
+Use `InformedOf*` for parent notifications and `Requested*` for requested
+actions. `Update.combine` accepts unary Steps, so wrap a contextual curried
+update in a unary adapter that supplies every required context argument.
+
 Keep one Definition and one named Composition. Use the name-only
 `Block.define('Feature')` form only to establish shared early identity for a
 generic API that later specializes several typed contracts with `.define(...)`.
@@ -75,7 +91,7 @@ method is for an alternate embed view against the fixed graph. Plain helpers
 that need the same child and Mount capabilities take an owner-specific builder:
 
 ```ts
-export const ProfileComposition = Profile.makeComposition({
+export const ProfileComposition = ProfileDefinition.makeComposition({
   childBindings: [SettingsBinding],
 })
 export type ProfileViewBuilder = Block.ViewBuilderFor<typeof ProfileComposition>
@@ -121,17 +137,21 @@ Composition routes that wrapper automatically when child update has no context
 parameters. Use `toParentMessage` for a custom wrapper. Keyed, custom, or
 contextful delivery also needs `fromParentMessage`, whose `args` returns the
 Binding's native fold arguments. Return `Option.none()` for a stale, absent, or
-inactive occurrence. Use `fromParentMessage: false` only when the Composition
-must never route that wrapper.
+inactive occurrence. The constructor must name the exact parent Message variant
+owned by that Binding. Every inhabitable `Got*` variant is reserved for child
+delivery and must have exactly one owning Binding in the Composition. There is
+no `fromParentMessage: false` opt-out. A child whose Message Schema is
+`Schema.Never` omits `parentMessage`, `toParentMessage`, and
+`fromParentMessage`.
 
 ```ts
-export const SettingsBinding = Profile.bindChild(Settings.block, {
+export const SettingsBinding = ProfileDefinition.bindChild(Settings.block, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
   outMessage: { fold: foldSettingsOutMessage },
 })
 
-export const ProfileComposition = Profile.makeComposition({
+export const ProfileComposition = ProfileDefinition.makeComposition({
   childBindings: [SettingsBinding],
 })
 ```
@@ -139,9 +159,10 @@ export const ProfileComposition = Profile.makeComposition({
 The Composition update callback handles parent-owned Message variants.
 Registered Bindings handle the wrappers they claim. A parent calls a declared
 child operation through its named Binding method. For example, when a Dialog
-Block declares `close` under `expose`, its parent calls
+Block declares `close` under `operations`, its parent calls
 `DialogBinding.close(...)`; it does not construct a child Message to force that
-transition. Render through
+transition. The operation producer constructs `RequestedClose`, and Dialog
+update owns the transition. Render through
 `h.block(SettingsBinding.embedView(...))`.
 
 ## OutMessages and sibling policy
@@ -173,9 +194,16 @@ Connected Binding Steps require their exact registered graph when applied to a
 Model, so a typed call with the raw domain Model fails. Return or compose the
 opaque connected result intact from `Composition.makeUpdate` or
 `Composition.makeInit`; it exposes no `.model` or `.commands` before checked
-execution and cannot narrow to a useful `{ model }` return. A Definition-owned
-`step` preserves or wraps the connected value. A completed exposed operation is
-a checked raw-Model executor with its own graph and returns a readable result.
+execution and cannot narrow to a useful `{ model }` return. Its raw recipe
+exposes only the child transition's direct channels. The Composition resolves
+registered OutMessage policy and sibling operations into the final parent
+Command Message, requirements, and OutMessage channels. Derive exported parent
+contracts from the Composition-authored update or completed Block. A
+Definition-owned `step` preserves or wraps the connected value. A completed operation is
+a checked raw-Model executor that dispatches its produced Message through update
+under its own graph and returns a readable result. Its return contract uses the
+update function's complete Command requirements and OutMessage type. Calling a
+pure operation does not run effects returned by another update branch.
 Ordinary pure Steps remain callable. Keep reciprocal sibling policies in the
 same parent assembly, defer the calls through policy callbacks, register every
 captured Binding, and keep the synchronous chain finite. TypeScript may erase a
@@ -217,8 +245,8 @@ creation. It returns a passive, noncallable recipe that retains the arguments,
 mapping, key, and optional parent Commands. Return the recipe directly from the
 owning Composition's `makeInit` or `makeUpdate`, or preserve it through the
 parent's owned `step` producer. The Composition callbacks interpret it
-directly; a completed exposed operation interprets a recipe preserved by its
-Step. The recipe has no `.model` or `.commands` fields. The compiler checks the key, arguments,
+directly; a completed operation may dispatch a Message whose update
+branch returns the recipe. The recipe has no `.model` or `.commands` fields. The compiler checks the key, arguments,
 complete parent Model, requirements, and exact Binding requirement. During
 checked execution, runtime validation still checks the active composition frame,
 child placement, and exactly one requested keyed occurrence. The available runtime
@@ -250,13 +278,13 @@ OutMessage.
 
 Composition and Layers describe different parts of the program:
 
-| Value                               | Owns                                                                                                   |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `FeatureComposition`                | Registered child placements and Mount capabilities; authors init, update, and the primary view         |
-| `FeatureComposition.makeBlock(...)` | Local exposed operations, Subscriptions, ManagedResources, `EffectsLayer`, and declared `hostHandlers` |
-| Feature `EffectsLayer`              | Handler recipes declared by that feature                                                               |
-| Registered child Binding            | The selected completed child's registrations and handler graph                                         |
-| Root `ApplicationLayer`             | Shared HTTP, storage, RPC, browser, and other environment Service providers                            |
+| Value                               | Owns                                                                                           |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `FeatureComposition`                | Registered child placements and Mount capabilities; authors init, update, and the primary view |
+| `FeatureComposition.makeBlock(...)` | Local operations, Subscriptions, ManagedResources, `EffectsLayer`, and declared `hostHandlers` |
+| Feature `EffectsLayer`              | Handler recipes declared by that feature                                                       |
+| Registered child Binding            | The selected completed child's registrations and handler graph                                 |
+| Root `ApplicationLayer`             | Shared HTTP, storage, RPC, browser, and other environment Service providers                    |
 
 Pass only local handler recipes to `FeatureComposition.makeBlock` or root
 completion. Registered child Bindings contribute their selected recipes and
@@ -367,7 +395,9 @@ ViewBuilder alias. When policy needs a `composition/` directory,
 exports intended values explicitly. Composition does not import the primary
 view, update matcher, or completed Block.
 
-A split graphless feature may keep its empty Composition beside the Definition.
+A split graphless feature puts its empty Composition in `composition.ts`.
+A split `definition.ts` contains contracts and the Definition, never a Composition
+or owner-specific ViewBuilder.
 A split root always gives its Composition an assembly module, including when
 the graph is empty. The root entry imports init, update, view, local
 `EffectsLayer`, and `ApplicationLayer` from their owners, completes the
@@ -381,7 +411,7 @@ Before finishing composition work, verify these properties:
 - Every Block and Application has one Definition and one named Composition.
 - Every selected Binding is registered exactly once and every embedded view
   uses a registered Binding.
-- Every connected fold or exposed Step is applied to a Composition-provided
+- Every connected fold or Binding-projected operation is applied to a Composition-provided
   Model, or returned from a Definition-owned Step for deferred application.
 - Every explicit Binding init recipe is returned intact from `makeInit` or a
   Definition-owned Step; no caller projects result fields from it.

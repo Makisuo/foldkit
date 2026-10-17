@@ -20,9 +20,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const Application = defineApplication({ Model, Message })
+const ApplicationDefinition = defineApplication({ Model, Message })
 
-const FetchPosts = Application.command('FetchPosts', {
+const FetchPosts = ApplicationDefinition.command('FetchPosts', {
   messages: [Message.CompletedFetchPosts],
   handler: function* () {
     return () =>

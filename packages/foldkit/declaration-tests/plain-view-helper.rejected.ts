@@ -3,9 +3,10 @@ import { Block, Message, defineApplication } from 'foldkit'
 
 import {
   ChildBinding,
+  ChildBlock,
   ChildModel,
   DeclarationViewHelperChildComposition,
-  DeclarationViewHelperParent,
+  DeclarationViewHelperParentDefinition,
   ObserveParent,
   ParentMessage,
   ParentModel,
@@ -13,7 +14,19 @@ import {
   childViewHelper,
 } from './plain-view-helper.accepted.js'
 
-const OmittedParentComposition = DeclarationViewHelperParent.makeComposition()
+const AlternativeChildBinding = DeclarationViewHelperParentDefinition.bindChild(
+  ChildBlock,
+  {
+    field: 'child',
+    placement: 'alternativeChild',
+    parentMessage: ParentMessage.GotChildMessage,
+    init: false,
+  },
+)
+const OmittedParentComposition =
+  DeclarationViewHelperParentDefinition.makeComposition({
+    childBindings: [AlternativeChildBinding],
+  })
 type OmittedParentViewBuilder = Block.ViewBuilderFor<
   typeof OmittedParentComposition
 >
@@ -63,11 +76,22 @@ DeclarationViewHelperChildComposition.makeView((model, _h) =>
   invalidOutputHelper(model),
 )
 
-const Application = defineApplication({
+const ApplicationDefinition = defineApplication({
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ApplicationComposition = Application.makeComposition()
+const AlternativeApplicationChildBinding = ApplicationDefinition.bindChild(
+  ChildBlock,
+  {
+    field: 'child',
+    placement: 'alternativeApplicationChild',
+    parentMessage: ParentMessage.GotChildMessage,
+    init: false,
+  },
+)
+const ApplicationComposition = ApplicationDefinition.makeComposition({
+  childBindings: [AlternativeApplicationChildBinding],
+})
 type OmittedApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >

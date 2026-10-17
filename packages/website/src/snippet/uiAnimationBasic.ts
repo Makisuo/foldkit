@@ -27,7 +27,7 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const AnimationExample = Block.define('AnimationExample', {
+const AnimationExampleDefinition = Block.define('AnimationExample', {
   Model,
   Message,
 })
@@ -53,7 +53,7 @@ const foldAnimationOutMessage = (
     // element to settle, then dispatches EndedAnimation back into
     // Animation.update. Use it unless you need a custom strategy.
     StartedLeaveAnimating: () =>
-      AnimationExample.step(model => ({
+      AnimationExampleDefinition.step(model => ({
         model,
         commands: [liftCommand(AnimationDefaultLeaveCommand(model.animation))],
       })),
@@ -64,20 +64,21 @@ const foldAnimationOutMessage = (
     // release a resource. No Commands here because animateSize keeps the
     // element mounted (collapsed to zero height) so there's nothing to
     // tear down.
-    TransitionedOut: () => AnimationExample.step(model => ({ model })),
+    TransitionedOut: () =>
+      AnimationExampleDefinition.step(model => ({ model })),
   })
 
 // The Binding wires the completed child Block into the parent: it runs Animation.update,
 // writes the next Animation Model back, maps the Block's Commands into your
 // Message type, and hands any OutMessage to the OutMessage fold.
-const AnimationBinding = AnimationExample.bindChild(Animation.block, {
+const AnimationBinding = AnimationExampleDefinition.bindChild(Animation.block, {
   field: 'animation',
   parentMessage: Message.GotAnimationMessage,
   init: { args: () => Tuple.make({ id: 'content' }) },
   outMessage: { fold: foldAnimationOutMessage },
 })
 
-const AnimationExampleComposition = AnimationExample.makeComposition({
+const AnimationExampleComposition = AnimationExampleDefinition.makeComposition({
   childBindings: [AnimationBinding],
 })
 

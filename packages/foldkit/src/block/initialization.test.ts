@@ -1,4 +1,12 @@
-import { Context, Effect, Layer, Option, Predicate, Schema } from 'effect'
+import {
+  Context,
+  Effect,
+  Layer,
+  Option,
+  Predicate,
+  Schema,
+  Tuple,
+} from 'effect'
 import { expect, expectTypeOf, it } from 'vitest'
 
 import * as Command from '../command/index.js'
@@ -23,6 +31,7 @@ const ChildModel = Schema.Struct({ count: Schema.Number })
 type ChildModel = typeof ChildModel.Type
 
 const ChildMessage = defineMessageUnion({
+  RequestedIncrement: {},
   CompletedInitialization: { count: Schema.Number },
   CompletedIncrement: {},
 })
@@ -73,13 +82,16 @@ const ChildBlock = ChildComposition.makeBlock({
   }),
   update: ChildComposition.makeUpdate((model, message) =>
     ChildMessage.match(message, {
+      RequestedIncrement: () => increment(model),
       CompletedInitialization: ({ count }) => ({
         model: modifyFields(model, { count: () => count }),
       }),
       CompletedIncrement: () => ({ model }),
     }),
   ),
-  expose: { increment },
+  operations: {
+    increment: () => Tuple.make(ChildMessage.RequestedIncrement()),
+  },
   EffectsLayer: Layer.merge(
     FinishChildInitialization.layer,
     FinishIncrement.layer,
@@ -453,17 +465,24 @@ it('initializes a projected accessor child and verifies Schema reconstruction', 
     second: ChildModel,
     selected: Schema.Literal('Second'),
   })
+  const AccessorParentMessage = defineMessageUnion({
+    GotChildMessage: { message: ChildMessage },
+  })
   const AccessorParent = define('InitializationAccessorParent', {
     Model: AccessorParentModel,
-    Message: ParentMessage,
+    Message: AccessorParentMessage,
   })
   const AccessorBinding = AccessorParent.bindChild(ChildBlock, {
     placement: 'selectedChild',
     read: (model: typeof AccessorParentModel.Type) => Option.some(model.second),
     write: (model, nextSecond) =>
       modifyFields(model, { second: () => nextSecond }),
-    toParentMessage: message => ParentMessage.GotSecondMessage({ message }),
-    fromParentMessage: false,
+    toParentMessage: message =>
+      AccessorParentMessage.GotChildMessage({ message }),
+    fromParentMessage: {
+      parentMessage: AccessorParentMessage.GotChildMessage,
+      args: (_model, { message }) => Option.some([message]),
+    },
     init: {
       args: () => single(7),
       model: second => ({ second }),
@@ -491,17 +510,24 @@ it('rejects a projected field that the accessor does not select', () => {
     first: ChildModel,
     second: ChildModel,
   })
+  const AccessorParentMessage = defineMessageUnion({
+    GotChildMessage: { message: ChildMessage },
+  })
   const AccessorParent = define('InitializationInvalidAccessorParent', {
     Model: AccessorParentModel,
-    Message: ParentMessage,
+    Message: AccessorParentMessage,
   })
   const InvalidAccessorBinding = AccessorParent.bindChild(ChildBlock, {
     placement: 'invalidSelectedChild',
     read: (model: typeof AccessorParentModel.Type) => Option.some(model.first),
     write: (model, nextFirst) =>
       modifyFields(model, { first: () => nextFirst }),
-    toParentMessage: message => ParentMessage.GotFirstMessage({ message }),
-    fromParentMessage: false,
+    toParentMessage: message =>
+      AccessorParentMessage.GotChildMessage({ message }),
+    fromParentMessage: {
+      parentMessage: AccessorParentMessage.GotChildMessage,
+      args: (_model, { message }) => Option.some([message]),
+    },
     init: {
       args: () => single(7),
       model: second => ({ second }),
@@ -544,21 +570,29 @@ it('runs initialization callbacks and Steps under the exact registered operation
       },
     },
   })
+  const SelectorSecondBinding = Parent.bindChild(ChildBlock, {
+    field: 'maybeSecond',
+    parentMessage: ParentMessage.GotSecondMessage,
+    init: false,
+  })
   const SelectorComposition = Parent.makeComposition({
-    childBindings: [SelectorBinding],
+    childBindings: [SelectorBinding, SelectorSecondBinding],
   })
   const ProjectedParentModel = Schema.Struct({
     first: ChildModel,
     second: ChildModel,
   })
+  const ProjectedParentMessage = defineMessageUnion({
+    GotChildMessage: { message: ChildMessage },
+  })
   const ProjectedParent = define('InitializationProjectedGraphParent', {
     Model: ProjectedParentModel,
-    Message: ParentMessage,
+    Message: ProjectedParentMessage,
   })
   const ForeignProjectedBinding = ProjectedParent.bindChild(ChildBlock, {
     field: 'first',
     placement: 'foreignProjectedFirst',
-    parentMessage: ParentMessage.GotFirstMessage,
+    parentMessage: ProjectedParentMessage.GotChildMessage,
     init: false,
   })
   const ProjectedBinding = ProjectedParent.bindChild(ChildBlock, {
@@ -567,8 +601,12 @@ it('runs initialization callbacks and Steps under the exact registered operation
       Option.some(model.second),
     write: (model, nextSecond) =>
       modifyFields(model, { second: () => nextSecond }),
-    toParentMessage: message => ParentMessage.GotSecondMessage({ message }),
-    fromParentMessage: false,
+    toParentMessage: message =>
+      ProjectedParentMessage.GotChildMessage({ message }),
+    fromParentMessage: {
+      parentMessage: ProjectedParentMessage.GotChildMessage,
+      args: (_model, { message }) => Option.some([message]),
+    },
     init: {
       args: () => single(1),
       model: second => {

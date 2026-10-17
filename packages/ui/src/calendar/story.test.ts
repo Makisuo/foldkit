@@ -10,13 +10,10 @@ import {
   Message,
   type Model,
   OutMessage,
+  block,
   dropToDays,
   focusDate,
   init,
-  reflectDisabledDates,
-  reflectDisabledDaysOfWeek,
-  reflectMaxDate,
-  reflectMinDate,
   update,
 } from './index.js'
 
@@ -31,7 +28,7 @@ const dropCalendarToDays = <StoryOutMessage>(
   simulation: Story.StorySimulation<Model, Message, StoryOutMessage>,
 ): Story.StorySimulation<Model, Message, StoryOutMessage> => ({
   ...simulation,
-  model: dropToDays(simulation.model),
+  model: dropToDays(simulation.model).model,
 })
 
 describe('Calendar', () => {
@@ -1020,7 +1017,7 @@ describe('Calendar', () => {
 
       it('is a no-op in Days mode', () => {
         const model = init({ id: 'test', today })
-        expect(dropToDays(model).viewMode).toBe('Days')
+        expect(dropToDays(model).model.viewMode).toBe('Days')
       })
 
       it('reconciles maybeFocusedDate to a date inside the visible Days grid after Years-mode paging', () => {
@@ -1100,68 +1097,95 @@ describe('Calendar', () => {
       })
     })
 
-    describe('reflectMinDate', () => {
+    describe('informMinDateChanged', () => {
       it('sets a minimum date on a calendar that had none', () => {
         const model = init({ id: 'test', today })
         const newMin = Calendar.make(2026, 5, 1)
-        const next = reflectMinDate(model, Option.some(newMin))
-        expect(next.maybeMinDate).toStrictEqual(Option.some(newMin))
+        const minDateChange = block.operations.informMinDateChanged(
+          model,
+          Option.some(newMin),
+        )
+        expect(minDateChange.model.maybeMinDate).toStrictEqual(
+          Option.some(newMin),
+        )
       })
 
       it('replaces an existing minimum date', () => {
         const originalMin = Calendar.make(2026, 1, 1)
         const model = init({ id: 'test', today, minDate: originalMin })
         const newMin = Calendar.make(2026, 6, 1)
-        const next = reflectMinDate(model, Option.some(newMin))
-        expect(next.maybeMinDate).toStrictEqual(Option.some(newMin))
+        const minDateChange = block.operations.informMinDateChanged(
+          model,
+          Option.some(newMin),
+        )
+        expect(minDateChange.model.maybeMinDate).toStrictEqual(
+          Option.some(newMin),
+        )
       })
 
       it('clears the minimum date when given Option.none()', () => {
         const originalMin = Calendar.make(2026, 1, 1)
         const model = init({ id: 'test', today, minDate: originalMin })
-        const next = reflectMinDate(model, Option.none())
-        expect(next.maybeMinDate).toStrictEqual(Option.none())
+        const minDateChange = block.operations.informMinDateChanged(
+          model,
+          Option.none(),
+        )
+        expect(minDateChange.model.maybeMinDate).toStrictEqual(Option.none())
       })
 
       it('causes subsequent ClickedDay on a now-disabled date to be ignored', () => {
         const model = init({ id: 'test', today })
         const newMin = Calendar.make(2026, 6, 1)
-        const withMin = reflectMinDate(model, Option.some(newMin))
+        const minDateChange = block.operations.informMinDateChanged(
+          model,
+          Option.some(newMin),
+        )
         const belowMin = Calendar.make(2026, 5, 10)
         Story.story(
           update,
-          Story.given(withMin),
+          Story.given(minDateChange.model),
           Story.message(Message.ClickedDay({ date: belowMin })),
           Story.expectNoOutMessage(),
         )
       })
     })
 
-    describe('reflectMaxDate', () => {
+    describe('informMaxDateChanged', () => {
       it('sets a maximum date on a calendar that had none', () => {
         const model = init({ id: 'test', today })
         const newMax = Calendar.make(2026, 12, 31)
-        const next = reflectMaxDate(model, Option.some(newMax))
-        expect(next.maybeMaxDate).toStrictEqual(Option.some(newMax))
+        const maxDateChange = block.operations.informMaxDateChanged(
+          model,
+          Option.some(newMax),
+        )
+        expect(maxDateChange.model.maybeMaxDate).toStrictEqual(
+          Option.some(newMax),
+        )
       })
 
       it('clears the maximum date when given Option.none()', () => {
         const originalMax = Calendar.make(2026, 12, 31)
         const model = init({ id: 'test', today, maxDate: originalMax })
-        const next = reflectMaxDate(model, Option.none())
-        expect(next.maybeMaxDate).toStrictEqual(Option.none())
+        const maxDateChange = block.operations.informMaxDateChanged(
+          model,
+          Option.none(),
+        )
+        expect(maxDateChange.model.maybeMaxDate).toStrictEqual(Option.none())
       })
     })
 
-    describe('reflectDisabledDates', () => {
+    describe('informDisabledDatesChanged', () => {
       it('sets a list of disabled dates', () => {
         const model = init({ id: 'test', today })
         const disabled = [
           Calendar.make(2026, 4, 15),
           Calendar.make(2026, 4, 16),
         ]
-        const next = reflectDisabledDates(model, disabled)
-        expect(next.disabledDates).toStrictEqual(disabled)
+        const disabledDatesChange = block.operations.informDisabledDatesChanged(
+          model,
+          disabled,
+        )
+        expect(disabledDatesChange.model.disabledDates).toStrictEqual(disabled)
       })
 
       it('replaces the list with an empty array', () => {
@@ -1170,28 +1194,41 @@ describe('Calendar', () => {
           today,
           disabledDates: [Calendar.make(2026, 4, 15)],
         })
-        const next = reflectDisabledDates(model, [])
-        expect(next.disabledDates).toStrictEqual([])
+        const disabledDatesChange = block.operations.informDisabledDatesChanged(
+          model,
+          [],
+        )
+        expect(disabledDatesChange.model.disabledDates).toStrictEqual([])
       })
 
       it('causes subsequent ClickedDay on a newly-disabled date to be ignored', () => {
         const disabled = Calendar.make(2026, 4, 15)
         const model = init({ id: 'test', today })
-        const withDisabled = reflectDisabledDates(model, [disabled])
+        const disabledDatesChange = block.operations.informDisabledDatesChanged(
+          model,
+          [disabled],
+        )
         Story.story(
           update,
-          Story.given(withDisabled),
+          Story.given(disabledDatesChange.model),
           Story.message(Message.ClickedDay({ date: disabled })),
           Story.expectNoOutMessage(),
         )
       })
     })
 
-    describe('reflectDisabledDaysOfWeek', () => {
+    describe('informDisabledDaysOfWeekChanged', () => {
       it('sets disabled days of the week', () => {
         const model = init({ id: 'test', today })
-        const next = reflectDisabledDaysOfWeek(model, ['Saturday', 'Sunday'])
-        expect(next.disabledDaysOfWeek).toStrictEqual(['Saturday', 'Sunday'])
+        const disabledDaysChange =
+          block.operations.informDisabledDaysOfWeekChanged(model, [
+            'Saturday',
+            'Sunday',
+          ])
+        expect(disabledDaysChange.model.disabledDaysOfWeek).toStrictEqual([
+          'Saturday',
+          'Sunday',
+        ])
       })
 
       it('replaces the list with an empty array', () => {
@@ -1200,8 +1237,9 @@ describe('Calendar', () => {
           today,
           disabledDaysOfWeek: ['Sunday'],
         })
-        const next = reflectDisabledDaysOfWeek(model, [])
-        expect(next.disabledDaysOfWeek).toStrictEqual([])
+        const disabledDaysChange =
+          block.operations.informDisabledDaysOfWeekChanged(model, [])
+        expect(disabledDaysChange.model.disabledDaysOfWeek).toStrictEqual([])
       })
     })
   })
@@ -1209,10 +1247,10 @@ describe('Calendar', () => {
   describe('focusDate', () => {
     it('moves the view and cursor to a date without selecting it', () => {
       const date = Calendar.make(2026, 8, 15)
-      const next = focusDate(init({ id: 'test', today }), date)
-      expect(next.viewYear).toBe(2026)
-      expect(next.viewMonth).toBe(8)
-      expect(next.maybeFocusedDate).toStrictEqual(Option.some(date))
+      const dateFocus = focusDate(init({ id: 'test', today }), date)
+      expect(dateFocus.model.viewYear).toBe(2026)
+      expect(dateFocus.model.viewMonth).toBe(8)
+      expect(dateFocus.model.maybeFocusedDate).toStrictEqual(Option.some(date))
     })
   })
 })

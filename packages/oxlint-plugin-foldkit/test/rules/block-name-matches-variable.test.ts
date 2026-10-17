@@ -26,7 +26,7 @@ describe('block-name-matches-variable', () => {
       blockNameMatchesVariable,
       'VariableDeclarator',
       variableDeclarator(
-        'People',
+        'PeopleDefinition',
         Testing.callOfMember('Block', 'define', [
           Testing.strLiteral('PeopleDirectory'),
         ]),
@@ -35,7 +35,7 @@ describe('block-name-matches-variable', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain(
-      '"People" must be "PeopleDirectory"',
+      '"PeopleDefinition" must be "PeopleDirectoryDefinition"',
     )
   })
 
@@ -44,7 +44,7 @@ describe('block-name-matches-variable', () => {
       blockNameMatchesVariable,
       'VariableDeclarator',
       variableDeclarator(
-        'People',
+        'PeopleDefinition',
         Testing.callOfMember('Block', 'define', [Testing.strLiteral('People')]),
       ),
     )
@@ -77,6 +77,19 @@ describe('block-name-matches-variable', () => {
     )
   })
 
+  it('allows the Block name with a Definition suffix', () => {
+    const defineCall = Testing.callOfMember('Block', 'define', [
+      Testing.strLiteral('PeopleDirectory'),
+    ])
+    const result = Testing.runRule(
+      blockNameMatchesVariable,
+      'VariableDeclarator',
+      variableDeclarator('PeopleDirectoryDefinition', defineCall),
+    )
+
+    expect(result).toHaveLength(0)
+  })
+
   it('allows the Block name with a Composition suffix', () => {
     const defineCall = Testing.callOfMember('Block', 'define', [
       Testing.strLiteral('PeopleDirectory'),
@@ -106,7 +119,10 @@ describe('block-name-matches-variable', () => {
     const result = Testing.runRule(
       blockNameMatchesVariable,
       'VariableDeclarator',
-      variableDeclarator('PeopleDirectory', callMethod(identity, 'define')),
+      variableDeclarator(
+        'PeopleDirectoryDefinition',
+        callMethod(identity, 'define'),
+      ),
     )
 
     expect(result).toHaveLength(0)
@@ -128,19 +144,19 @@ describe('block-name-matches-variable', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('requires Application at the authoring stage', () => {
+  it('requires ApplicationDefinition at the authoring stage', () => {
     const result = Testing.runRule(
       blockNameMatchesVariable,
       'VariableDeclarator',
       variableDeclarator(
-        'ApplicationDefinition',
+        'Application',
         Testing.callOfMember('Application', 'define', []),
       ),
     )
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain(
-      '"ApplicationDefinition" must be "Application"',
+      '"Application" must be "ApplicationDefinition"',
     )
   })
 

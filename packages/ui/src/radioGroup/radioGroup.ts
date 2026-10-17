@@ -18,7 +18,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { idSelector } from '../internal/selectors.js'
 import { keyToIndex } from '../keyboard.js'
-import { RadioGroup as SharedRadioGroup } from './definition.js'
+import { RadioGroupDefinition as SharedRadioGroup } from './definition.js'
 
 // MODEL
 
@@ -131,13 +131,13 @@ export const FocusOption = SharedRadioGroup.command('FocusOption', {
 /** Effect providers used by the RadioGroup component. */
 export const EffectsLayer = Layer.mergeAll(FocusOption.layer)
 
-const RadioGroup = SharedRadioGroup.define({
+const RadioGroupDefinition = SharedRadioGroup.define({
   Model,
   Message,
   OutMessage,
 })
 
-const RadioGroupComposition = RadioGroup.makeComposition()
+const RadioGroupComposition = RadioGroupDefinition.makeComposition()
 
 /** Processes a RadioGroup Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. `Selected` fires when an option is
@@ -480,12 +480,12 @@ const makeBlockParts = <Value extends string>() => {
   const RefinedOutMessage =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     OutMessage as unknown as OutMessageSchema<Value>
-  const RadioGroup = SharedRadioGroup.define({
+  const RadioGroupDefinition = SharedRadioGroup.define({
     Model,
     Message,
     OutMessage: RefinedOutMessage,
   })
-  const RadioGroupComposition = RadioGroup.makeComposition()
+  const RadioGroupComposition = RadioGroupDefinition.makeComposition()
   const refinedUpdate = RadioGroupComposition.makeUpdate((model, message) =>
     castReturn(update(model, message)),
   )

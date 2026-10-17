@@ -2,7 +2,7 @@
 'foldkit': minor
 ---
 
-Remove `Runtime.makeApplication` and `Runtime.makeElement`, including their `resources` configuration field. Establish `Application` with `defineApplication` from `foldkit`, then create `ApplicationComposition` with `Application.makeComposition(...)`. Complete it through `ApplicationComposition.makeApplication` or `ApplicationComposition.makeElement`, then supply application-lifetime Services through `application.provide(layer)` or `element.provide(layer)` before calling `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed`.
+Remove `Runtime.makeApplication` and `Runtime.makeElement`, including their `resources` configuration field. Establish `ApplicationDefinition` with `defineApplication` from `foldkit`, then create `ApplicationComposition` with `ApplicationDefinition.makeComposition(...)`. Complete it through `ApplicationComposition.makeApplication` or `ApplicationComposition.makeElement`, then supply application-lifetime Services through `application.provide(layer)` or `element.provide(layer)` before calling `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed`.
 
 The Composition methods are factories: they return passive runtime inputs and do not execute application behavior. Only the Runtime starts the application or Element.
 

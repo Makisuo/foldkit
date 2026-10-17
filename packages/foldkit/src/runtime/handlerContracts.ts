@@ -12,94 +12,52 @@ type HandlerName<Name extends string, OwnerId extends string | never> = [
     ? LocalName
     : Name
 
+interface HandlerEntryShape {
+  readonly key: string
+  readonly contract: unknown
+}
+
+interface HandlerEntryValue<Key extends string, Contract> {
+  readonly key: Key
+  readonly contract: Contract
+}
+
 type LocalHandlerEntry<Requirements, OwnerId extends string | never> =
   Requirements extends CommandHandler<infer Name, infer _Args, infer _Message>
-    ? Readonly<{
-        key: `Command/${HandlerName<Name, OwnerId>}`
-        contract: Requirements
-      }>
+    ? HandlerEntryValue<`Command/${HandlerName<Name, OwnerId>}`, Requirements>
     : Requirements extends SubscriptionHandler<
           infer Name,
           infer _Dependencies,
           infer _Message
         >
-      ? Readonly<{
-          key: `Subscription/${HandlerName<Name, OwnerId>}`
-          contract: Requirements
-        }>
+      ? HandlerEntryValue<
+          `Subscription/${HandlerName<Name, OwnerId>}`,
+          Requirements
+        >
       : Requirements extends MountHandler<
             infer Name,
             infer _Input,
             infer _Message
           >
-        ? Readonly<{
-            key: `Mount/${HandlerName<Name, OwnerId>}`
-            contract: Requirements
-          }>
+        ? HandlerEntryValue<`Mount/${HandlerName<Name, OwnerId>}`, Requirements>
         : Requirements extends ManagedResourceHandler<
               infer Name,
               infer _Params,
               infer _Value
             >
-          ? Readonly<{
-              key: `ManagedResource/${HandlerName<Name, OwnerId>}`
-              contract: Requirements
-            }>
+          ? HandlerEntryValue<
+              `ManagedResource/${HandlerName<Name, OwnerId>}`,
+              Requirements
+            >
           : never
 
 type HandlerEntry<Requirements, OwnerId extends string | never> =
   Requirements extends Scoped<infer Path, infer Contract>
     ? LocalHandlerEntry<Contract, OwnerId> extends infer Entry extends
-        Readonly<{
-          key: string
-          contract: unknown
-        }>
-      ? Readonly<{
-          key: `${Path}/${Entry['key']}`
-          contract: Requirements
-        }>
+        HandlerEntryShape
+      ? HandlerEntryValue<`${Path}/${Entry['key']}`, Requirements>
       : never
     : LocalHandlerEntry<Requirements, OwnerId>
-
-type CommandRequirements<Requirements> = Requirements extends unknown
-  ? Requirements extends Scoped<infer _Path, infer Contract>
-    ? Contract extends CommandHandler<any, any, any>
-      ? Requirements
-      : never
-    : Requirements extends CommandHandler<any, any, any>
-      ? Requirements
-      : never
-  : never
-
-type SubscriptionRequirements<Requirements> = Requirements extends unknown
-  ? Requirements extends Scoped<infer _Path, infer Contract>
-    ? Contract extends SubscriptionHandler<any, any, any>
-      ? Requirements
-      : never
-    : Requirements extends SubscriptionHandler<any, any, any>
-      ? Requirements
-      : never
-  : never
-
-type MountRequirements<Requirements> = Requirements extends unknown
-  ? Requirements extends Scoped<infer _Path, infer Contract>
-    ? Contract extends MountHandler<any, any, any>
-      ? Requirements
-      : never
-    : Requirements extends MountHandler<any, any, any>
-      ? Requirements
-      : never
-  : never
-
-type ManagedResourceRequirements<Requirements> = Requirements extends unknown
-  ? Requirements extends Scoped<infer _Path, infer Contract>
-    ? Contract extends ManagedResourceHandler<any, any, any>
-      ? Requirements
-      : never
-    : Requirements extends ManagedResourceHandler<any, any, any>
-      ? Requirements
-      : never
-  : never
 
 type Equal<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends <
@@ -112,34 +70,28 @@ type Equal<Left, Right> =
       : false
     : false
 
-type ContractsDiffer<Left, Right> =
-  Equal<Left, Right> extends true ? false : true
+type IsUnion<Value, Whole = Value> = Value extends unknown
+  ? [Whole] extends [Value]
+    ? false
+    : true
+  : never
 
 type ConflictingPairKey<
-  Left extends Readonly<{ key: string; contract: unknown }>,
-  Right extends Readonly<{ key: string; contract: unknown }>,
+  Left extends HandlerEntryShape,
+  Right extends HandlerEntryShape,
 > =
   Equal<Left['key'], Right['key']> extends true
-    ? ContractsDiffer<Left['contract'], Right['contract']> extends true
+    ? Equal<Left['contract'], Right['contract']> extends false
       ? Left['key']
       : never
     : never
 
 type ConflictingKeysForEntry<
-  Left extends Readonly<{ key: string; contract: unknown }>,
-  Entries extends Readonly<{ key: string; contract: unknown }>,
-> = Entries extends infer Right extends Readonly<{
-  key: string
-  contract: unknown
-}>
+  Left extends HandlerEntryShape,
+  Entries extends HandlerEntryShape,
+> = Entries extends infer Right extends HandlerEntryShape
   ? ConflictingPairKey<Left, Right>
   : never
-
-type HandlerEntryShape = Readonly<{ key: string; contract: unknown }>
-
-type EntriesByKey<Entries extends HandlerEntryShape> = {
-  [Entry in Entries as Entry['key']]: Entry
-}
 
 type ConflictingIndexedKeys<
   Entries extends HandlerEntryShape,
@@ -153,25 +105,32 @@ type ConflictingIndexedKeys<
     : never
   : never
 
-type ConflictingKeys<Entries extends HandlerEntryShape> =
-  ConflictingIndexedKeys<Entries, EntriesByKey<Entries>>
-
 type ValidHandlerKindContracts<
   Requirements,
   OwnerId extends string | never = never,
-> = [ConflictingKeys<HandlerEntry<Requirements, OwnerId>>] extends [never]
+> = [Requirements] extends [never]
   ? unknown
-  : Readonly<{
-      'Conflicting Foldkit handler contracts': ConflictingKeys<
-        HandlerEntry<Requirements, OwnerId>
-      >
-    }>
+  : HandlerEntry<Requirements, OwnerId> extends infer Entries
+    ? [Entries] extends [HandlerEntryShape]
+      ? true extends IsUnion<Entries>
+        ? ConflictingIndexedKeys<
+            Entries,
+            {
+              [Entry in Entries as Entry['key']]: Entry
+            }
+          > extends infer Conflicts
+          ? [Conflicts] extends [never]
+            ? unknown
+            : Readonly<{
+                'Conflicting Foldkit handler contracts': Conflicts
+              }>
+          : never
+        : unknown
+      : unknown
+    : unknown
 
 /** @internal Rejects incompatible handler contracts sharing one Context key. */
 export type ValidHandlerContracts<
   Requirements,
   OwnerId extends string | never = never,
-> = ValidHandlerKindContracts<CommandRequirements<Requirements>, OwnerId> &
-  ValidHandlerKindContracts<SubscriptionRequirements<Requirements>, OwnerId> &
-  ValidHandlerKindContracts<MountRequirements<Requirements>, OwnerId> &
-  ValidHandlerKindContracts<ManagedResourceRequirements<Requirements>, OwnerId>
+> = ValidHandlerKindContracts<Requirements, OwnerId>

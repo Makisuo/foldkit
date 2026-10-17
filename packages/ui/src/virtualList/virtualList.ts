@@ -10,6 +10,7 @@ import {
   Record,
   Schema,
   Stream,
+  Tuple,
   pipe,
 } from 'effect'
 import { Update } from 'foldkit'
@@ -71,7 +72,8 @@ const ViewportAnchor = defineTaggedUnion({
   End: {},
 })
 
-const ObservedAnchor = defineTaggedUnion({
+/** Stable row observation captured from the live scroll container. */
+export const ObservedAnchor = defineTaggedUnion({
   None: {},
   Row: {
     key: Schema.String,
@@ -79,6 +81,18 @@ const ObservedAnchor = defineTaggedUnion({
     viewportOffset: Schema.Number,
   },
 })
+
+export type ObservedAnchor = typeof ObservedAnchor.Type
+
+/** Public snapshot of a user or browser driven container scroll. */
+export const ContainerScrollObservation = Schema.Struct({
+  scrollTop: Schema.Number,
+  scrollHeight: Schema.Number,
+  containerHeight: Schema.Number,
+  anchor: ObservedAnchor,
+})
+
+export type ContainerScrollObservation = typeof ContainerScrollObservation.Type
 
 /** Outcome of applying a logical scroll request after the view commits. */
 export const ApplyScrollOutcome = defineTaggedUnion({
@@ -136,12 +150,22 @@ export type Model = typeof Model.Type
 
 /** Union of all messages the virtual list component can produce. */
 export const Message = defineMessageUnion({
-  ObservedContainerScroll: {
-    scrollTop: Schema.Number,
-    scrollHeight: Schema.Number,
-    containerHeight: Schema.Number,
-    anchor: ObservedAnchor,
+  RequestedScrollTo: {
+    target: ScrollTarget,
+    maybeAlignment: Schema.Option(ScrollAlignment),
   },
+  RequestedScrollToIndex: {
+    index: Schema.Number,
+    maybeAlignment: Schema.Option(ScrollAlignment),
+  },
+  RequestedScrollToKey: {
+    key: Schema.String,
+    maybeAlignment: Schema.Option(ScrollAlignment),
+  },
+  RequestedScrollToOffset: { offset: Schema.Number },
+  RequestedScrollToEnd: {},
+  InformedOfItemsChange: { itemKeys: Schema.Array(Schema.String) },
+  ObservedContainerScroll: ContainerScrollObservation.fields,
   ResizedContainer: {
     containerWidth: Schema.Number,
     containerHeight: Schema.Number,
@@ -163,7 +187,20 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const VirtualList = Block.define('VirtualList', { Model, Message })
+// OUT MESSAGE
+
+/** Public observations emitted by VirtualList for parent-owned scroll policy. */
+export const OutMessage = defineMessageUnion({
+  ObservedContainerScroll: ContainerScrollObservation.fields,
+})
+
+export type OutMessage = typeof OutMessage.Type
+
+const VirtualListDefinition = Block.define('VirtualList', {
+  Model,
+  Message,
+  OutMessage,
+})
 
 // INIT
 
@@ -460,7 +497,7 @@ const scrollTopForRequest = (
 
 const mountedContainers = new Map<string, Set<HTMLElement>>()
 
-export const ApplyScroll = VirtualList.command('ApplyScroll', {
+export const ApplyScroll = VirtualListDefinition.command('ApplyScroll', {
   args: {
     id: Schema.String,
     request: ScrollRequest,
@@ -533,7 +570,7 @@ export type ScrollToOptions = Readonly<{
 }>
 
 const buildScrollRequest = (request: typeof ScrollRequest.Type) =>
-  VirtualList.step(model => {
+  VirtualListDefinition.step(model => {
     const nextVersion = Number.increment(model.pendingScrollVersion)
     return {
       model: modifyFields(model, {
@@ -623,7 +660,7 @@ const measureContainer = (
     Unmeasured: () => false,
     Measured: measurement => measurement.containerWidth !== containerWidth,
   })
-  const recordContainerMeasurement = VirtualList.step(stepModel => ({
+  const recordContainerMeasurement = VirtualListDefinition.step(stepModel => ({
     model: modifyFields(stepModel, {
       measurement: () =>
         Measurement.Measured({ containerWidth, containerHeight }),
@@ -710,6 +747,23 @@ const applyRowMeasurements = (
 /** Processes a VirtualList Message and returns the next Model and optional Commands. */
 const updateImpl = (model: Model, message: Message) =>
   Message.match(message, {
+    RequestedScrollTo: ({ target, maybeAlignment }) =>
+      requestScroll(model, target, maybeAlignment),
+
+    RequestedScrollToIndex: ({ index, maybeAlignment }) =>
+      requestScroll(model, ScrollTarget.Index({ index }), maybeAlignment),
+
+    RequestedScrollToKey: ({ key, maybeAlignment }) =>
+      requestScroll(model, ScrollTarget.Key({ key }), maybeAlignment),
+
+    RequestedScrollToOffset: ({ offset }) =>
+      requestScroll(model, ScrollTarget.Offset({ offset }), Option.none()),
+
+    RequestedScrollToEnd: () =>
+      requestScroll(model, ScrollTarget.End(), Option.none()),
+
+    InformedOfItemsChange: ({ itemKeys }) => applyItemsChange(model, itemKeys),
+
     ObservedContainerScroll: snapshot => {
       const nextPendingScrollVersion = PendingScroll.match<number>(
         model.pendingScroll,
@@ -724,6 +778,7 @@ const updateImpl = (model: Model, message: Message) =>
           pendingScroll: () => PendingScroll.Idle(),
           pendingScrollVersion: () => nextPendingScrollVersion,
         }),
+        outMessage: OutMessage.ObservedContainerScroll(snapshot),
       }
     },
 
@@ -765,69 +820,39 @@ type RowOffsets = Readonly<{
   endOffset: number
 }>
 
-/** Programmatically scrolls to a logical target. */
-export const scrollTo = VirtualList.step(
-  (model, target: ScrollTarget, options: ScrollToOptions = {}) =>
-    Update.combine(model, [
-      stepModel => ({
-        model: modifyFields(stepModel, {
-          initialScroll: () => InitialScroll.Applied(),
-        }),
+const requestScroll = (
+  model: Model,
+  target: ScrollTarget,
+  maybeAlignment: Option.Option<ScrollAlignment>,
+) =>
+  Update.combine(model, [
+    stepModel => ({
+      model: modifyFields(stepModel, {
+        initialScroll: () => InitialScroll.Applied(),
       }),
-      buildScrollRequest(
-        ScrollRequest.Target({
-          target,
-          alignment: options.alignment ?? 'Start',
-        }),
-      ),
-    ]),
-)
-
-/** Programmatically scrolls the container so the row at `index` is visible.
- *  The next view resolves the logical index with its current sizing mode, and
- *  the Command aligns the live rendered row. */
-export const scrollToIndex = VirtualList.step(
-  (model, index: number, options: ScrollToOptions = {}) =>
-    scrollTo(model, ScrollTarget.Index({ index }), options),
-)
-
-/** Programmatically scrolls to the row whose `itemToKey` result matches
- *  `key`. The next view resolves the key against its current items. */
-export const scrollToKey = VirtualList.step(
-  (model, key: string, options: ScrollToOptions = {}) =>
-    scrollTo(model, ScrollTarget.Key({ key }), options),
-)
-
-/** Programmatically scrolls to an exact pixel offset from the start of the
- *  list. Negative offsets clamp to zero. */
-export const scrollToOffset = VirtualList.step((model, offset: number) =>
-  scrollTo(model, ScrollTarget.Offset({ offset })),
-)
-
-/** Programmatically scrolls to the end of the list. */
-export const scrollToEnd = VirtualList.step(model =>
-  scrollTo(model, ScrollTarget.End()),
-)
-
-/** Notifies VirtualList that its parent-owned items changed. The next view
- *  resolves the stored stable-key anchor against the new items, and the
- *  Command restores that anchor after the DOM patch. */
-export const informItemsChanged = VirtualList.step(
-  (model, itemKeys: ReadonlyArray<string>) => {
-    const currentKeys = HashSet.fromIterable(itemKeys)
-    return Update.combine(model, [
-      stepModel => ({
-        model: modifyFields(stepModel, {
-          measuredRowHeights: Record.filter((_, key) =>
-            HashSet.has(currentKeys, key),
-          ),
-          layoutVersion: Number.increment,
-        }),
+    }),
+    buildScrollRequest(
+      ScrollRequest.Target({
+        target,
+        alignment: Option.getOrElse(maybeAlignment, () => 'Start'),
       }),
-      reconcileLayout,
-    ])
-  },
-)
+    ),
+  ])
+
+const applyItemsChange = (model: Model, itemKeys: ReadonlyArray<string>) => {
+  const currentKeys = HashSet.fromIterable(itemKeys)
+  return Update.combine(model, [
+    stepModel => ({
+      model: modifyFields(stepModel, {
+        measuredRowHeights: Record.filter((_, key) =>
+          HashSet.has(currentKeys, key),
+        ),
+        layoutVersion: Number.increment,
+      }),
+    }),
+    reconcileLayout,
+  ])
+}
 
 // HELPERS
 
@@ -1258,7 +1283,7 @@ const observeVirtualList = (
 
 /** Container-owned Mount that tracks scrolling, container resizing, and
  *  rendered row measurements for dynamic-height lists. */
-export const ObserveVirtualList = VirtualList.mountStream(
+export const ObserveVirtualList = VirtualListDefinition.mountStream(
   'ObserveVirtualList',
   {
     args: { id: Schema.String },
@@ -1283,7 +1308,7 @@ export const ObserveVirtualList = VirtualList.mountStream(
 /** Mount Definitions rendered by VirtualList views. */
 export const mounts = [ObserveVirtualList]
 
-const VirtualListComposition = VirtualList.makeComposition({
+const VirtualListComposition = VirtualListDefinition.makeComposition({
   mounts,
 })
 
@@ -1486,13 +1511,35 @@ const viewImpl =
     },
   )
 
-const expose = {
-  informItemsChanged,
-  scrollTo,
-  scrollToIndex,
-  scrollToKey,
-  scrollToOffset,
-  scrollToEnd,
+const operations = {
+  informItemsChanged: (itemKeys: ReadonlyArray<string>) =>
+    Tuple.make(Message.InformedOfItemsChange({ itemKeys })),
+  scrollTo: (target: ScrollTarget, options: ScrollToOptions = {}) =>
+    Tuple.make(
+      Message.RequestedScrollTo({
+        target,
+        maybeAlignment: Option.fromNullishOr(options.alignment),
+      }),
+    ),
+  scrollToIndex: (index: number, options: ScrollToOptions = {}) =>
+    Tuple.make(
+      Message.RequestedScrollToIndex({
+        index,
+        maybeAlignment: Option.fromNullishOr(options.alignment),
+      }),
+    ),
+  scrollToKey: (key: string, options: ScrollToOptions = {}) =>
+    Tuple.make(
+      Message.RequestedScrollToKey({
+        key,
+        maybeAlignment: Option.fromNullishOr(options.alignment),
+      }),
+    ),
+  scrollToOffset: (offset: number) =>
+    Tuple.make(Message.RequestedScrollToOffset({ offset })),
+  scrollToEnd: VirtualListComposition.makeOperation(
+    Message.RequestedScrollToEnd,
+  ),
 }
 
 /** Complete VirtualList Block definition using an unknown item type. */
@@ -1502,9 +1549,28 @@ export const block = VirtualListComposition.makeBlock({
   })),
   update,
   view: viewImpl,
-  expose,
+  operations,
   EffectsLayer,
 })
+
+/** Programmatically scrolls to a logical target. */
+export const scrollTo = block.operations.scrollTo
+
+/** Programmatically scrolls the container so the row at `index` is visible.
+ *  The next view resolves the logical index with its current sizing mode, and
+ *  the Command aligns the live rendered row. */
+export const scrollToIndex = block.operations.scrollToIndex
+
+/** Programmatically scrolls to the row whose `itemToKey` result matches
+ *  `key`. The next view resolves the key against its current items. */
+export const scrollToKey = block.operations.scrollToKey
+
+/** Programmatically scrolls to an exact pixel offset from the start of the
+ *  list. Negative offsets clamp to zero. */
+export const scrollToOffset = block.operations.scrollToOffset
+
+/** Programmatically scrolls to the end of the list. */
+export const scrollToEnd = block.operations.scrollToEnd
 
 /** Creates a completed VirtualList Block refined to one item type. */
 export const create = <Item>() => {
@@ -1516,7 +1582,7 @@ export const create = <Item>() => {
     })),
     update,
     view: refinedView,
-    expose,
+    operations,
     EffectsLayer,
   })
 }

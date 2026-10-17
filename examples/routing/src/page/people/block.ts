@@ -1,7 +1,14 @@
+import { Layer } from 'effect'
+
 import { FetchPeople, PushSearchUrl } from './command'
-import { PeopleComposition } from './definition'
-import { informRouteChanged, init, update } from './update'
+import { PeopleComposition } from './composition'
+import { Message } from './message'
+import { init, update } from './update'
 import { view } from './view'
+
+const informRouteChanged = PeopleComposition.makeOperation(
+  Message.InformedOfRouteChange,
+)
 
 export const EffectsLayer = Layer.mergeAll(
   PushSearchUrl.layer,
@@ -13,6 +20,5 @@ export const block = PeopleComposition.makeBlock({
   update,
   view,
   EffectsLayer,
-  expose: { informRouteChanged },
+  operations: { informRouteChanged },
 })
-import { Layer } from 'effect'

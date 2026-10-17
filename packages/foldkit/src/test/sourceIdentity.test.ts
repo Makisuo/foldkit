@@ -31,14 +31,14 @@ const SecondMount = Mount.define('SharedObserve', {
 })
 
 const Model = Schema.Struct({ value: Schema.Number })
-const First = define('SharedFeature')
-const Second = define('SharedFeature')
-const first = First.define({ Model, Message })
-const second = Second.define({ Model, Message })
-const subscriptions = first.subscriptions(entry => ({
+const FirstOwnerDefinition = define('SharedFeature')
+const SecondOwnerDefinition = define('SharedFeature')
+const FirstDefinition = FirstOwnerDefinition.define({ Model, Message })
+const SecondDefinition = SecondOwnerDefinition.define({ Model, Message })
+const subscriptions = FirstDefinition.subscriptions(entry => ({
   values: entry('Values', { messages: [Message.CompletedRead] }),
 }))
-const otherSubscriptions = second.subscriptions(entry => ({
+const otherSubscriptions = SecondDefinition.subscriptions(entry => ({
   values: entry('Values', { messages: [Message.CompletedRead] }),
 }))
 const lifted = Subscription.lift(subscriptions)<

@@ -15,7 +15,7 @@ import {
   headingWithContent,
   pageTitle,
 } from '../../prose'
-import { ApiReferenceComposition } from './definition'
+import { ApiReferenceComposition } from './composition'
 import {
   type ApiFunction,
   type ApiInterface,

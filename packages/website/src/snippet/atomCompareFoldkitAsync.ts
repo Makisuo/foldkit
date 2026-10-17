@@ -20,10 +20,10 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const Application = defineApplication({ Model, Message })
+const ApplicationDefinition = defineApplication({ Model, Message })
 
 // Api is an Effect service; ApiLayer provides it.
-const FetchUser = Application.command('FetchUser', {
+const FetchUser = ApplicationDefinition.command('FetchUser', {
   messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
   handler: function* () {
     const api = yield* Api

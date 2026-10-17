@@ -161,6 +161,23 @@ const isParentMessageMember = (
   return visit(SchemaAST.toType(parentSchema.ast))
 }
 
+const isNeverSchema = (schema: unknown): boolean => {
+  if (!Schema.isSchema(schema)) {
+    return false
+  }
+
+  const visit = (sourceAst: SchemaAST.AST): boolean => {
+    const ast = SchemaAST.toType(sourceAst)
+    if (SchemaAST.isSuspend(ast)) {
+      return visit(ast.thunk())
+    }
+
+    return SchemaAST.isNever(ast)
+  }
+
+  return visit(schema.ast)
+}
+
 const normalizeParentMessage = (
   config: Record<string, unknown>,
   childMessage?: unknown,
@@ -168,6 +185,17 @@ const normalizeParentMessage = (
 ): Record<string, unknown> => {
   if (!Object.hasOwn(config, 'parentMessage')) {
     if (!Predicate.isFunction(config['toParentMessage'])) {
+      if (isNeverSchema(childMessage)) {
+        return {
+          ...config,
+          toParentMessage: () => {
+            throw new Error(
+              '[foldkit] A Message-free child cannot emit a parent Message.',
+            )
+          },
+        }
+      }
+
       throw new Error(
         '[foldkit] A Binding must supply a parentMessage constructor or a toParentMessage function.',
       )

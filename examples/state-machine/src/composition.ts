@@ -2,7 +2,7 @@ import type { Block } from 'foldkit'
 
 import { RadioGroup } from '@foldkit/ui'
 
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 import {
   EDITION_RADIO_GROUP_ID,
@@ -20,7 +20,7 @@ const foldEditionRadioGroupOutMessage = RadioGroup.OutMessage.match({
     ),
 })
 
-export const EditionRadioGroupBinding = Application.bindChild(
+export const EditionRadioGroupBinding = ApplicationDefinition.bindChild(
   EditionRadioGroup,
   {
     field: 'editionRadioGroup',
@@ -30,7 +30,7 @@ export const EditionRadioGroupBinding = Application.bindChild(
   },
 )
 
-export const ApplicationComposition = Application.makeComposition({
+export const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [EditionRadioGroupBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

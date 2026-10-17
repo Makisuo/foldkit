@@ -1,5 +1,5 @@
 import { Array, Schema, Tuple } from 'effect'
-import { Block } from 'foldkit'
+import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -25,14 +25,21 @@ type Message = typeof Message.Type
 
 const initialMessages: ReadonlyArray<typeof ChatMessage.Type> = []
 
-const MessageListExample = Block.define('MessageListExample', {
+const MessageListExampleDefinition = Block.define('MessageListExample', {
   Model,
   Message,
 })
 
-const MessageListBinding = MessageListExample.bindChild(MessageList, {
+const foldMessageListOutMessage = MessageList.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  ObservedContainerScroll: () => model => ({ model }),
+})
+
+const MessageListBinding = MessageListExampleDefinition.bindChild(MessageList, {
   field: 'messageList',
   parentMessage: Message.GotMessageListMessage,
+  outMessage: { fold: foldMessageListOutMessage },
   init: {
     args: () =>
       Tuple.make({
@@ -44,9 +51,10 @@ const MessageListBinding = MessageListExample.bindChild(MessageList, {
   },
 })
 
-const MessageListExampleComposition = MessageListExample.makeComposition({
-  childBindings: [MessageListBinding],
-})
+const MessageListExampleComposition =
+  MessageListExampleDefinition.makeComposition({
+    childBindings: [MessageListBinding],
+  })
 
 const init = MessageListExampleComposition.makeInit(() => ({
   model: {

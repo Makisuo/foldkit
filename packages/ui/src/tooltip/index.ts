@@ -19,7 +19,6 @@ export {
   mounts,
   EffectsLayer,
   update,
-  reflectShowDelay,
   type RenderInfo,
   type ViewInputs,
   view,

@@ -36,13 +36,13 @@ import { Application } from './definition'
 import { Message } from './message'
 import { foldDialogOutMessage } from './operation'
 
-export const DialogBinding = Application.bindChild(Dialog.block, {
+export const DialogBinding = ApplicationDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
   init: { args: () => [{ id: 'confirm' }] },
 })
-export const ApplicationComposition = Application.makeComposition({
+export const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [DialogBinding],
 })
 ```

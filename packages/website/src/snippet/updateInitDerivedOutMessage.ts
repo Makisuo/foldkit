@@ -5,9 +5,13 @@ const OutMessage = defineMessageUnion({
   CompletedRange: { startDate: Schema.String, endDate: Schema.String },
 })
 
-const DateRange = Block.define('DateRange', { Model, Message, OutMessage })
+const DateRangeDefinition = Block.define('DateRange', {
+  Model,
+  Message,
+  OutMessage,
+})
 
-const EndDatePickerBinding = DateRange.bindChild(DatePicker.block, {
+const EndDatePickerBinding = DateRangeDefinition.bindChild(DatePicker.block, {
   field: 'endDatePicker',
   parentMessage: Message.GotEndDateMessage,
   outMessage: {
@@ -18,4 +22,6 @@ const EndDatePickerBinding = DateRange.bindChild(DatePicker.block, {
   },
 })
 
-const restoreEndDate = DateRange.step(() => EndDatePickerBinding.restore())
+const restoreEndDate = DateRangeDefinition.step(() =>
+  EndDatePickerBinding.restore(),
+)

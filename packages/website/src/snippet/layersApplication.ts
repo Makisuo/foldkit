@@ -1,8 +1,8 @@
 import { modifyFields } from 'foldkit/struct'
 
-import { Application, LoadUser, Message, UserState } from './layers'
+import { ApplicationDefinition, LoadUser, Message, UserState } from './layers'
 
-export const ApplicationComposition = Application.makeComposition()
+export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 export const init = ApplicationComposition.makeInit(() => ({
   model: { user: UserState.Loading() },

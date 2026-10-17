@@ -123,7 +123,7 @@ const LEFT_MOUSE_BUTTON = 0
  *  The returned Block contains everything needed to wire a toast stack into
  *  an app: `Model`, `Message`, `init`, `update`, the headless `view`,
  *  `subscriptions`, `EffectsLayer`, and the `show`, `dismiss`, and
- *  `dismissAll` transitions in `expose`.
+ *  `dismissAll` transitions in `operations`.
  *
  *  The payload is whatever content shape the consumer supplies via Schema.
  *  The Block never reads it. It flows through to `entryToView`. The Block
@@ -131,8 +131,8 @@ const LEFT_MOUSE_BUTTON = 0
  *  hover state, and swipe state.
  *
  *  Consume the completed Block everywhere. Use `Toast.Model` in your app
- *  Model, `Toast.Message` in your parent Message union, `Toast.expose.show`
- *  and `Toast.expose.dismiss` for raw Model operations, and
+ *  Model, `Toast.Message` in your parent Message union, `Toast.operations.show`
+ *  and `Toast.operations.dismiss` for raw Model operations, and
  *  `Parent.bindChild(Toast, config)` in the parent Block. Exposed
  *  operations such as `show` and `dismiss` are available directly on the
  *  binding. The separate exports provide
@@ -329,18 +329,25 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     init: blockInit,
     update: toastRuntime.update,
     view,
-    expose: toastRuntime.expose,
+    operations: toastRuntime.operations,
     subscriptions: toastRuntime.subscriptions,
     EffectsLayer: toastRuntime.EffectsLayer,
   })
 
   return {
     ...toastRuntime,
+    ...block.operations,
     view,
     block,
   }
 }
 
+type ToastBlock<A, I> = ReturnType<typeof makeFixture<A, I>>['block']
+
+/** A completed Toast Block refined to one payload Schema. */
+export interface Completed<A, I> extends ToastBlock<A, I> {}
+
 /** Creates a completed Toast Block for one payload Schema. */
-export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
-  makeFixture(payloadSchema).block
+export const make = <A, I>(
+  payloadSchema: Schema.Codec<A, I>,
+): Completed<A, I> => makeFixture(payloadSchema).block

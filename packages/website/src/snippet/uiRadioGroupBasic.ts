@@ -55,19 +55,19 @@ const foldPlanRadioGroupOutMessage = PlanRadioGroup.OutMessage.match<
 // The Binding wires the completed child Block into the parent: it runs the child update,
 // writes the child Model back, maps the child's Commands into your Message
 // type, and hands any OutMessage to the OutMessage fold.
-const PlanPicker = Block.define('PlanPicker', {
+const PlanPickerDefinition = Block.define('PlanPicker', {
   Model,
   Message,
 })
 
-const PlanRadioGroupBinding = PlanPicker.bindChild(PlanRadioGroup, {
+const PlanRadioGroupBinding = PlanPickerDefinition.bindChild(PlanRadioGroup, {
   field: 'planRadioGroup',
   parentMessage: Message.GotPlanRadioGroupMessage,
   init: { args: () => Tuple.make({ id: 'plan' }) },
   outMessage: { fold: foldPlanRadioGroupOutMessage },
 })
 
-const PlanPickerComposition = PlanPicker.makeComposition({
+const PlanPickerComposition = PlanPickerDefinition.makeComposition({
   childBindings: [PlanRadioGroupBinding],
 })
 

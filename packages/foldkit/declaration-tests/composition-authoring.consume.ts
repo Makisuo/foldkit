@@ -14,12 +14,12 @@ import {
   type ApplicationModel,
   ApplicationRoute,
   CurrentUser,
-  FirstManualStatusBinding,
-  ManualDeliveryComposition,
+  FirstStatusBinding,
   ParentComposition,
   ParentMessage,
   type ParentModel,
   type ParentOutMessage,
+  ParentRefreshBlock,
   type ParentStartup,
   PendingServiceApplicationElement,
   ProjectedStatusBinding,
@@ -29,7 +29,7 @@ import {
   type RoomDispatchContext,
   RoomMessage,
   RunApplicationTask,
-  SecondManualStatusBinding,
+  SecondStatusBinding,
   SettingsBinding,
   SettingsBlock,
   SettingsClient,
@@ -50,8 +50,8 @@ import {
   foldRoom,
   foldSettings,
   foldStatus,
-  manualDeliveryUpdate,
   parentInit,
+  parentRefreshUpdate,
   parentUpdate,
   settingsInit,
   settingsUpdate,
@@ -118,6 +118,24 @@ type ReturnOutMessage<Output> =
         : never
       : never
 
+type ReturnCommandMessage<Output> =
+  Output extends Update.ResultRecipe<
+    infer _Model,
+    infer Message,
+    infer _OutMessage,
+    infer _Requirements,
+    infer _Evidence
+  >
+    ? Message
+    : Output extends Readonly<{ commands?: infer Commands }>
+      ? NonNullable<Commands> extends ReadonlyArray<
+          // oxlint-disable-next-line typescript/no-explicit-any -- This fixture deliberately probes erased any channels or detects any in an inferred public type.
+          Command.Command<infer Message, any, any>
+        >
+        ? Message
+        : never
+      : never
+
 type DeliveryOf<Value> =
   Value extends Block.BindingDeliveryEvidence<
     infer OutgoingMessage,
@@ -174,6 +192,12 @@ export const emittedParentUpdate = parentUpdate(
     message: SettingsMessage.ChangedTheme({ theme: 'Light' }),
   }),
 )
+export const emittedParentRefreshUpdate = parentRefreshUpdate(
+  emittedParentInit.model,
+  ParentMessage.OpenedDashboard(),
+)
+export const emittedExposedRefresh =
+  ParentRefreshBlock.operations.refreshSettings(emittedParentInit.model)
 export const emittedDefaultRouteUpdate = parentUpdate(
   emittedParentInit.model,
   ParentMessage.GotStatusMessage({ message: StatusMessage.Incremented() }),
@@ -194,7 +218,7 @@ export const emittedCompositionInit = ParentComposition.makeInit(
       route: nextStartup.route,
       maybeRoom: Option.none(),
     },
-    steps: [SettingsBinding.refresh(nextStartup.currentUser)],
+    steps: [StatusBinding.increment()],
   }),
 )
 
@@ -228,12 +252,10 @@ export const emittedRoomFold = foldRoom(
   RoomMessage.RenamedRoom({ name: 'Renamed room' }),
   { roomId: 'room-1' },
 )
-export const emittedManualDeliveryUpdate = manualDeliveryUpdate(
+export const emittedAutomaticStatusUpdate = parentUpdate(
   emittedParentInit.model,
   ParentMessage.GotStatusMessage({ message: StatusMessage.Incremented() }),
 )
-export const emittedManualCompositionUpdate =
-  ManualDeliveryComposition.makeUpdate(model => ({ model }))
 
 export const emittedApplicationInit = applicationInit()
 export const emittedApplicationDefaultInit = applicationDefaultInit()
@@ -304,6 +326,21 @@ type EmittedParentInitRequirementsAreExact = Expect<
 type EmittedParentUpdateOutMessageIsExact = Expect<
   Equal<ReturnOutMessage<typeof emittedParentUpdate>, ParentOutMessage>
 >
+type EmittedParentRefreshRequirementsAreExact = Expect<
+  Equal<
+    Update.RequirementsOf<typeof parentRefreshUpdate>,
+    Block.Scoped<'settings', Command.HandlerOf<typeof SyncSettings>>
+  >
+>
+type EmittedParentRefreshMessageIsExact = Expect<
+  Equal<ReturnCommandMessage<typeof emittedParentRefreshUpdate>, ParentMessage>
+>
+type EmittedParentRefreshOutMessageIsExact = Expect<
+  Equal<ReturnOutMessage<typeof emittedParentRefreshUpdate>, ParentOutMessage>
+>
+type EmittedExposedRefreshOutMessageIsExact = Expect<
+  Equal<ReturnOutMessage<typeof emittedExposedRefresh>, ParentOutMessage>
+>
 type EmittedSettingsFoldInputsAreExact = Expect<
   Equal<
     Parameters<typeof SettingsBinding.fold>,
@@ -355,25 +392,25 @@ type EmittedCompositionUpdateInputsAreExact = Expect<
     [model: ParentModel, message: typeof ParentMessage.Type]
   >
 >
-type EmittedFirstManualDeliveryIsExact = Expect<
+type EmittedFirstStatusDeliveryIsExact = Expect<
   DeliveryIsExact<
-    typeof FirstManualStatusBinding,
+    typeof FirstStatusBinding,
     ReturnType<typeof ParentMessage.GotStatusMessage>,
-    never
+    ReturnType<typeof ParentMessage.GotStatusMessage>
   >
 >
-type EmittedSecondManualDeliveryIsExact = Expect<
+type EmittedSecondStatusDeliveryIsExact = Expect<
   DeliveryIsExact<
-    typeof SecondManualStatusBinding,
+    typeof SecondStatusBinding,
     ReturnType<typeof ParentMessage.GotStatusMessage>,
-    never
+    ReturnType<typeof ParentMessage.GotStatusMessage>
   >
 >
 type EmittedProjectedStatusDeliveryIsExact = Expect<
   DeliveryIsExact<
     typeof ProjectedStatusBinding,
-    ReturnType<typeof ParentMessage.OpenedDashboard>,
-    never
+    ReturnType<typeof ParentMessage.GotProjectedStatusMessage>,
+    ReturnType<typeof ParentMessage.GotProjectedStatusMessage>
   >
 >
 type EmittedProjectedStatusInitialEvidenceIsExact = Expect<
@@ -448,13 +485,17 @@ export type EmittedCompositionAuthoringAssertions = [
   EmittedParentInitModelIsExact,
   EmittedParentInitRequirementsAreExact,
   EmittedParentUpdateOutMessageIsExact,
+  EmittedParentRefreshRequirementsAreExact,
+  EmittedParentRefreshMessageIsExact,
+  EmittedParentRefreshOutMessageIsExact,
+  EmittedExposedRefreshOutMessageIsExact,
   EmittedSettingsFoldInputsAreExact,
   EmittedStatusFoldInputsAreExact,
   EmittedRoomFoldInputsAreExact,
   EmittedCompositionInitModelIsExact,
   EmittedCompositionUpdateInputsAreExact,
-  EmittedFirstManualDeliveryIsExact,
-  EmittedSecondManualDeliveryIsExact,
+  EmittedFirstStatusDeliveryIsExact,
+  EmittedSecondStatusDeliveryIsExact,
   EmittedProjectedStatusDeliveryIsExact,
   EmittedProjectedStatusInitialEvidenceIsExact,
   EmittedApplicationInitModelIsExact,

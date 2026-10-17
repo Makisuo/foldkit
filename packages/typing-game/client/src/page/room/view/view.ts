@@ -6,7 +6,7 @@ import * as Shared from '@typing-game/shared'
 
 import { ROOM_PAGE_USERNAME_INPUT_ID } from '../../../constant'
 import { Icon } from '../../../view/icon'
-import { RoomComposition, type RoomViewBuilder } from '../definition'
+import { RoomComposition, type RoomViewBuilder } from '../composition'
 import { Message } from '../message'
 import { Model, RoomPlayerSession } from '../model'
 import { findFirstWrongCharIndex } from '../userGameText'

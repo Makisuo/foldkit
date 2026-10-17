@@ -30,16 +30,29 @@ export const init = ApplicationComposition.makeInit((flags: Flags) => ({
 }))
 ```
 
-For a graphless Block, create and reuse a named empty Composition:
+For a split graphless Block, create and reuse a named empty Composition from `composition.ts`:
 
 ```ts
+// definition.ts
 import { Block } from 'foldkit'
 
 import { Message } from './message'
 import { Model } from './model'
 
-export const Search = Block.define('Search', { Model, Message })
-export const SearchComposition = Search.makeComposition()
+export const SearchDefinition = Block.define('Search', { Model, Message })
+```
+
+```ts
+// composition.ts
+import { SearchDefinition } from './definition'
+
+export const SearchComposition = SearchDefinition.makeComposition()
+```
+
+```ts
+// init.ts
+import { Model } from './model'
+import { SearchComposition } from './composition'
 
 export const init = SearchComposition.makeInit((query: string) => ({
   model: Model.make({ query }),
@@ -54,7 +67,7 @@ The helper neither calls the initializer nor starts effects. The Runtime invokes
 
 ## Initialize children in their registered graph
 
-For a required exact direct field, omit `init` when the child's initializer can be called without arguments. Use `init: { args }` for required inputs, or `init: false` when the parent supplies that required field. Optional, keyed, and accessor storage remains parent-owned when `init` is omitted; explicit `init.args` or `init.occurrences` chooses automatic presence. For dynamic children or custom storage, `Binding.init` returns a passive initialization recipe. Supply the child arguments, the keyed occurrence's `key` when applicable, and `toParentModel` to store the initialized child. Return the recipe directly from `Composition.makeInit` or `Composition.makeUpdate`, or preserve it through a Definition-owned Step. The Composition callbacks interpret it directly; a completed exposed operation interprets a recipe preserved by its Step. The recipe has no `.model` or `.commands` fields.
+For a required exact direct field, omit `init` when the child's initializer can be called without arguments. Use `init: { args }` for required inputs, or `init: false` when the parent supplies that required field. Optional, keyed, and accessor storage remains parent-owned when `init` is omitted; explicit `init.args` or `init.occurrences` chooses automatic presence. For dynamic children or custom storage, `Binding.init` returns a passive initialization recipe. Supply the child arguments, the keyed occurrence's `key` when applicable, and `toParentModel` to store the initialized child. Return the recipe directly from `Composition.makeInit` or `Composition.makeUpdate`, or preserve it through a Definition-owned Step. The Composition callbacks interpret it directly; a completed operation may dispatch a Message whose update branch returns the recipe. The recipe has no `.model` or `.commands` fields.
 
 Earlier interim Binding prototype:
 
@@ -93,8 +106,8 @@ return CountersBinding.init({
 })
 ```
 
-The compiler checks child arguments, key and parent Model types, and retains Command requirements and the exact Binding requirement. `Composition.makeInit` and `Composition.makeUpdate` check that requirement against their registered graph before interpreting the recipe. `Definition.step` preserves it until a Composition callback or completed exposed operation performs that checked execution. Optional `commands` adds parent Commands after the child's lifted Commands without exposing an intermediate result.
+The compiler checks child arguments, key and parent Model types, and retains Command requirements and the exact Binding requirement. `Composition.makeInit` and `Composition.makeUpdate` check that requirement against their registered graph before interpreting the recipe. `Definition.step` preserves it until a Composition callback performs that checked execution. A completed operation may reach the same path by dispatching a Message whose update branch returns the recipe. Optional `commands` adds parent Commands after the child's lifted Commands without exposing an intermediate result.
 
 Checked initialization requires that exact Binding in the active composition frame. These guards protect JavaScript with erased types and operations captured for later execution. The Composition executor rejects an incomplete parent Model and a mapping that discards the child, selects the wrong key, or stores duplicate occurrences at that key. Parent Schema constructors may reconstruct an equivalent child Model. Numeric zero and negative zero identify the same occurrence, matching the runtime's Map and Set key equality.
 
-Ordinary Model construction remains available. Connected Binding folds and exposed Steps require their exact graph capability on the Model input, so typed raw-Model calls fail. Return or compose their opaque results intact from `Composition.makeUpdate` or `Composition.makeInit`; no `.model` or `.commands` fields are available before checked execution, and the result cannot narrow to a useful `{ model }` return. `Definition.step` preserves or wraps a connected value. A completed exposed operation carries its own graph, accepts the raw Block Model, and returns the readable executed result. Ordinary pure Steps remain directly callable. TypeScript may erase a connected function's result through a method returning `void`; outside the graph, calling it only constructs and discards passive configuration and executes no child work, so not every structural erasure fails compilation.
+Ordinary Model construction remains available. Connected Binding folds and named operations require their exact graph capability on the Model input, so typed raw-Model calls fail. Return or compose their opaque results intact from `Composition.makeUpdate` or `Composition.makeInit`; no `.model` or `.commands` fields are available before checked execution, and the result cannot narrow to a useful `{ model }` return. `Definition.step` preserves or wraps a connected value. A completed operation carries its own graph, accepts the raw Block Model and operation arguments, synchronously dispatches the produced Message through update, and returns the readable executed result. Its return contract uses the completed update function's full Command requirements and OutMessage type. Ordinary pure Steps remain directly callable. TypeScript may erase a connected function's result through a method returning `void`; outside the graph, calling it only constructs and discards passive configuration and executes no child work, so not every structural erasure fails compilation.

@@ -3,7 +3,6 @@ export {
   EffectsLayer,
   SchedulePlaygroundFileWrite,
   WaitForPlaygroundServerFailure,
-  informSupport,
   init,
   managedResources,
   update,

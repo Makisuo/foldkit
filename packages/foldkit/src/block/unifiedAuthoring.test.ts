@@ -1,4 +1,4 @@
-import { Context, Data, Effect, Layer, Schema, Stream } from 'effect'
+import { Context, Data, Effect, Layer, Schema, Stream, Tuple } from 'effect'
 import { expect, expectTypeOf, it } from 'vitest'
 
 import * as Command from '../command/public.js'
@@ -16,6 +16,7 @@ class Storage extends Context.Service<
 class TrackingUnavailable extends Data.TaggedError('TrackingUnavailable')<{}> {}
 const Model = Schema.Struct({ value: Schema.String })
 const Message = defineMessageUnion({
+  RequestedClear: {},
   RequestedSave: { value: Schema.String },
   CompletedSave: {},
 })
@@ -64,8 +65,12 @@ const TrackPointer = Search.mountStream('TrackPointer', {
   },
 })
 const search = Search.makeComposition({})
+const clear = Search.step(model => ({
+  model: modifyFields(model, { value: () => '' }),
+}))
 const update = search.makeUpdate((model, message) =>
   Message.match(message, {
+    RequestedClear: () => clear(model),
     RequestedSave: ({ value }) => ({
       model: modifyFields(model, { value: () => value }),
       commands: [Save({ value })],
@@ -76,13 +81,10 @@ const update = search.makeUpdate((model, message) =>
     }),
   }),
 )
-const clear = Search.step(model => ({
-  model: modifyFields(model, { value: () => '' }),
-}))
 const block = search.makeBlock({
   init: () => ({ model: Model.make({ value: '' }) }),
   update,
-  expose: { clear },
+  operations: { clear: () => Tuple.make(Message.RequestedClear()) },
   EffectsLayer: Save.layer,
 })
 expectTypeOf<Update.RequirementsOf<typeof update>>().toEqualTypeOf<
@@ -107,10 +109,10 @@ const Shared = Early.command('Shared', {
     return () => Effect.succeed(Message.CompletedSave())
   },
 })
-const first = Early.define({ Model, Message })
-const second = Early.define({ Model, Message })
-const firstComposition = first.makeComposition()
-const secondComposition = second.makeComposition()
+const FirstDefinition = Early.define({ Model, Message })
+const SecondDefinition = Early.define({ Model, Message })
+const firstComposition = FirstDefinition.makeComposition()
+const secondComposition = SecondDefinition.makeComposition()
 const firstBlock = firstComposition.makeBlock({
   init: () => ({ model: Model.make({ value: '' }) }),
   update: firstComposition.makeUpdate(model => ({
@@ -209,13 +211,13 @@ if (false) {
     messages: [Message.CompletedSave],
   })
   const ForeignComposition = Foreign.makeComposition()
+  // @ts-expect-error A different owner cannot provide the local handler.
   ForeignComposition.makeBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: ForeignComposition.makeUpdate(model => ({
       model,
       commands: [ForeignShared()],
     })),
-    // @ts-expect-error A different owner cannot provide the local handler.
     EffectsLayer: Shared.layer,
   })
 }

@@ -11,11 +11,11 @@ const ThemePickerMessage = defineMessageUnion({
   ChangedTheme: { theme: Theme },
 })
 
-const ThemePicker = Block.define('ThemePicker', {
+const ThemePickerDefinition = Block.define('ThemePicker', {
   Model: ThemePickerModel,
   Message: ThemePickerMessage,
 })
-const ThemePickerComposition = ThemePicker.makeComposition()
+const ThemePickerComposition = ThemePickerDefinition.makeComposition()
 
 const themePickerInit = ThemePickerComposition.makeInit((theme: Theme) => ({
   model: ThemePickerModel.make({ theme }),
@@ -49,13 +49,13 @@ const ProfileStartup = Schema.Struct({
 })
 type ProfileStartup = typeof ProfileStartup.Type
 
-const Profile = Block.define('Profile', {
+const ProfileDefinition = Block.define('Profile', {
   Model: ProfileModel,
   Message: ProfileMessage,
   Startup: ProfileStartup,
 })
 
-const ThemePickerBinding = Profile.bindChild(themePickerBlock, {
+const ThemePickerBinding = ProfileDefinition.bindChild(themePickerBlock, {
   field: 'themePicker',
   parentMessage: ProfileMessage.GotThemePickerMessage,
   init: {
@@ -63,7 +63,7 @@ const ThemePickerBinding = Profile.bindChild(themePickerBlock, {
   },
 })
 
-const ProfileComposition = Profile.makeComposition({
+const ProfileComposition = ProfileDefinition.makeComposition({
   childBindings: [ThemePickerBinding],
 })
 

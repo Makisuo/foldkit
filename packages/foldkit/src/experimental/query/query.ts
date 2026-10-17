@@ -76,6 +76,10 @@ const makeQueryMessage = <A, AI, E, EI>(
   error: Schema.Codec<E, EI>,
 ) =>
   defineMessageUnion({
+    RequestedReset: {},
+    RequestedRevalidation: {},
+    RequestedRevalidationOrLoad: {},
+    RequestedLoadIfMissing: {},
     CompletedFetch: {
       generation: Schema.Number,
       result: Schema.Result(data, error),
@@ -83,7 +87,7 @@ const makeQueryMessage = <A, AI, E, EI>(
   })
 
 /**
- * Schema-backed Message union dispatched when a Query Fetch completes.
+ * Schema-backed Message union for requested Query operations and Fetch completions.
  *
  * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
  */
@@ -168,8 +172,12 @@ const makeQueryApi = <
     applyTransition(store, model, undefined, AsyncData.revalidateOrLoad)
   const loadIfMissing = (model: Model): UpdateReturn =>
     applyTransition(store, model, undefined, AsyncData.loadIfMissing)
-  const update = (model: Model, message: Message): PureUpdateReturn =>
-    Message.match<PureUpdateReturn>(message, {
+  const update = (model: Model, message: Message): UpdateReturn =>
+    Message.match<UpdateReturn>(message, {
+      RequestedReset: () => reset(model),
+      RequestedRevalidation: () => revalidate(model),
+      RequestedRevalidationOrLoad: () => revalidateOrLoad(model),
+      RequestedLoadIfMissing: () => loadIfMissing(model),
       CompletedFetch({ generation, result }) {
         const data = read(model)
 
@@ -270,7 +278,8 @@ type QueryExposedOperations<Name extends string, A, AI, E, EI> = Readonly<{
   /** Returns the Query to Idle without starting a fetch. */
   reset: Update.Step<
     QueryModelType<A, AI, E, EI>,
-    QueryMessageType<A, AI, E, EI>
+    QueryMessageType<A, AI, E, EI>,
+    QueryFetchHandler<Name, A, AI, E, EI>
   >
   /** Starts a fetch for `Success` or `Stale` data while retaining that data.
    * Other states remain unchanged. */
@@ -310,9 +319,10 @@ type QueryImplementation<
     message: QueryMessageType<A, AI, E, EI>,
   ) => Update.Return<
     QueryModelType<A, AI, E, EI>,
-    QueryMessageType<A, AI, E, EI>
+    QueryMessageType<A, AI, E, EI>,
+    QueryFetchHandler<Name, A, AI, E, EI>
   >
-  expose: QueryExposedOperations<Name, A, AI, E, EI>
+  operations: QueryExposedOperations<Name, A, AI, E, EI>
   EffectsLayer: EffectsLayer
   hostHandlers: HostHandlers
 }>
@@ -432,23 +442,28 @@ const makeHostQuery = <Name extends string, A, AI, E, EI>(
 ): Query<Name, A, AI, E, EI> => {
   const Model = makeQueryModel(config.data, config.error)
   const Message = makeQueryMessage(config.data, config.error)
-  const QueryOwner = Block.define(config.name)
-  const Query = QueryOwner.define({ Model, Message })
-  const Fetch = Query.command('Fetch', {
+  const QueryOwnerDefinition = Block.define(config.name)
+  const QueryDefinition = QueryOwnerDefinition.define({ Model, Message })
+  const Fetch = QueryDefinition.command('Fetch', {
     args: { generation: Schema.Number },
     messages: [Message.CompletedFetch],
   })
   const api = makeQueryApi(config, Model, Message, Fetch)
-  const QueryComposition = Query.makeComposition()
+  const QueryComposition = QueryDefinition.makeComposition()
   const init = QueryComposition.makeInit(api.init)
-  const reset = Query.step(api.reset)
-  const revalidate = Query.step(api.revalidate)
-  const revalidateOrLoad = Query.step(api.revalidateOrLoad)
-  const loadIfMissing = Query.step(api.loadIfMissing)
   const block = QueryComposition.makeBlock({
     init,
     update: QueryComposition.makeUpdate(api.update),
-    expose: { reset, revalidate, revalidateOrLoad, loadIfMissing },
+    operations: {
+      reset: QueryComposition.makeOperation(Message.RequestedReset),
+      revalidate: QueryComposition.makeOperation(Message.RequestedRevalidation),
+      revalidateOrLoad: QueryComposition.makeOperation(
+        Message.RequestedRevalidationOrLoad,
+      ),
+      loadIfMissing: QueryComposition.makeOperation(
+        Message.RequestedLoadIfMissing,
+      ),
+    },
     EffectsLayer: Layer.empty,
     hostHandlers: [Fetch],
   })
@@ -458,7 +473,7 @@ const makeHostQuery = <Name extends string, A, AI, E, EI>(
     read: api.read,
     run: api.run,
     toLayer: api.toLayer,
-    operations: { reset, revalidate, revalidateOrLoad, loadIfMissing },
+    operations: block.operations,
   })
 }
 
@@ -491,23 +506,28 @@ const makeCanonicalQuery = <
 > => {
   const Model = makeQueryModel(config.data, config.error)
   const Message = makeQueryMessage(config.data, config.error)
-  const QueryOwner = Block.define(config.name)
-  const Query = QueryOwner.define({ Model, Message })
-  const Fetch = Query.command('Fetch', {
+  const QueryOwnerDefinition = Block.define(config.name)
+  const QueryDefinition = QueryOwnerDefinition.define({ Model, Message })
+  const Fetch = QueryDefinition.command('Fetch', {
     args: { generation: Schema.Number },
     messages: [Message.CompletedFetch],
   })
   const api = makeQueryApi(config, Model, Message, Fetch)
-  const QueryComposition = Query.makeComposition()
+  const QueryComposition = QueryDefinition.makeComposition()
   const init = QueryComposition.makeInit(api.init)
-  const reset = Query.step(api.reset)
-  const revalidate = Query.step(api.revalidate)
-  const revalidateOrLoad = Query.step(api.revalidateOrLoad)
-  const loadIfMissing = Query.step(api.loadIfMissing)
   const block = QueryComposition.makeBlock({
     init,
     update: QueryComposition.makeUpdate(api.update),
-    expose: { reset, revalidate, revalidateOrLoad, loadIfMissing },
+    operations: {
+      reset: QueryComposition.makeOperation(Message.RequestedReset),
+      revalidate: QueryComposition.makeOperation(Message.RequestedRevalidation),
+      revalidateOrLoad: QueryComposition.makeOperation(
+        Message.RequestedRevalidationOrLoad,
+      ),
+      loadIfMissing: QueryComposition.makeOperation(
+        Message.RequestedLoadIfMissing,
+      ),
+    },
     EffectsLayer: api.toLayer(handler),
   })
 
@@ -516,7 +536,7 @@ const makeCanonicalQuery = <
     read: api.read,
     run: api.run,
     toLayer: api.toLayer,
-    operations: { reset, revalidate, revalidateOrLoad, loadIfMissing },
+    operations: block.operations,
   })
 }
 

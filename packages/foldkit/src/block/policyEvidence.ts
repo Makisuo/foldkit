@@ -62,8 +62,9 @@ type CommandMessage<Output> =
       : never
     : never
 
-type PolicyChannels<Policy> =
-  IsAny<Policy> extends true
+type PolicyChannels<Policy> = [Policy] extends [never]
+  ? never
+  : IsAny<Policy> extends true
     ? any
     : Readonly<{
         keys: KeysOf<Policy>

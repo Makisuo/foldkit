@@ -208,20 +208,21 @@ Use `SelectedDate` to update the parent-owned selection. Use `ChangedViewMonth` 
 
 ### Programmatic Helpers
 
-`selectDate` is a public API operation. Call `calendar.selectDate(date)` to produce a parent Step. The Model-only helpers make silent state adjustments and can be used as point-free `modifyFields` setters.
+Call these operations through the registered Calendar Binding. Each Binding call returns a connected parent Step that dispatches the operation's Message through Calendar update. Return that Step from the parent handler or compose it with `Update.combine`.
 
-| Name         | Type                                                                                            | Behavior                                                                                                                  |
-| ------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `selectDate` | `(model: Model, date: CalendarDate) => Update.ReturnWithOutMessage<Model, Message, OutMessage>` | Moves the view and cursor to the date and emits `SelectedDate`. Fold the OutMessage to update the parent-owned selection. |
-| `focusDate`  | `(model: Model, date: CalendarDate) => Model`                                                   | Moves the view and cursor without selecting. Use it when an external value should determine which month opens.            |
-| `FocusGrid`  | `(args: { id: string }) => Command`                                                             | Focuses the Calendar grid. A parent such as DatePicker can dispatch it after opening.                                     |
-| `dropToDays` | `(model: Model) => Model`                                                                       | Returns to Days mode and reconciles the cursor with the visible month.                                                    |
+| Binding call                       | Arguments            | Behavior                                                                                                                                                              |
+| ---------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CalendarBinding.selectDate(date)` | `date: CalendarDate` | Requests selection. Calendar leaves the Model unchanged and emits nothing when the date is disabled; otherwise it moves the view and cursor and emits `SelectedDate`. |
+| `CalendarBinding.focusDate(date)`  | `date: CalendarDate` | Dispatches `RequestedFocusDate` to move the view and cursor without selecting. Use it when an external value should determine which month opens.                      |
+| `CalendarBinding.dropToDays()`     | None                 | Dispatches `RequestedDropToDays` to return to Days mode and reconcile the cursor with the visible month.                                                              |
 
-The reflection helpers update constraints already stored in the Calendar Model. They emit no OutMessage and do not reconcile the parent-owned selection. If a new constraint invalidates that value, update the selection explicitly in the same parent handler.
+`Calendar.FocusGrid({ id })` is the Calendar Command that focuses the grid. A parent such as DatePicker can return it after opening.
 
-| Name                        | Type                                                   | Behavior                                                             |
-| --------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------- |
-| `reflectMinDate`            | `(model: Model, Option<CalendarDate>) => Model`        | Replaces the minimum. Pass `Option.none()` to remove it.             |
-| `reflectMaxDate`            | `(model: Model, Option<CalendarDate>) => Model`        | Replaces the maximum. Pass `Option.none()` to remove it.             |
-| `reflectDisabledDates`      | `(model: Model, ReadonlyArray<CalendarDate>) => Model` | Replaces the disabled-date list. Pass an empty array to clear it.    |
-| `reflectDisabledDaysOfWeek` | `(model: Model, ReadonlyArray<DayOfWeek>) => Model`    | Replaces the disabled-weekday list. Pass an empty array to clear it. |
+The notification operations update constraints already stored in the Calendar Model. Their `InformedOf*Change` branches return `{ model }`, emit no OutMessage, and do not reconcile the parent-owned selection. If a new constraint invalidates that value, update the selection explicitly in the same parent handler.
+
+| Binding call                                                    | Arguments                                    | Behavior                                                                                             |
+| --------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `CalendarBinding.informMinDateChanged(maybeMinDate)`            | `maybeMinDate: Option<CalendarDate>`         | Dispatches `InformedOfMinDateChange`. Pass `Option.none()` to remove the minimum.                    |
+| `CalendarBinding.informMaxDateChanged(maybeMaxDate)`            | `maybeMaxDate: Option<CalendarDate>`         | Dispatches `InformedOfMaxDateChange`. Pass `Option.none()` to remove the maximum.                    |
+| `CalendarBinding.informDisabledDatesChanged(disabledDates)`     | `disabledDates: ReadonlyArray<CalendarDate>` | Dispatches `InformedOfDisabledDatesChange`. Pass an empty array to clear the disabled dates.         |
+| `CalendarBinding.informDisabledDaysOfWeekChanged(disabledDays)` | `disabledDays: ReadonlyArray<DayOfWeek>`     | Dispatches `InformedOfDisabledDaysOfWeekChange`. Pass an empty array to clear the disabled weekdays. |

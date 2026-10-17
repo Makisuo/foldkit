@@ -28,23 +28,27 @@ const foldHoverIntentOutMessage = HoverIntent.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const HoverIntentExample = Block.define('HoverIntentExample', {
+const HoverIntentExampleDefinition = Block.define('HoverIntentExample', {
   Model,
   Message,
 })
 
-const HoverIntentBinding = HoverIntentExample.bindChild(HoverIntent.block, {
-  field: 'hoverIntent',
-  parentMessage: Message.GotHoverIntentMessage,
-  init: {
-    args: () => Tuple.make({ openDelay: 200, closeDelay: 300 }),
+const HoverIntentBinding = HoverIntentExampleDefinition.bindChild(
+  HoverIntent.block,
+  {
+    field: 'hoverIntent',
+    parentMessage: Message.GotHoverIntentMessage,
+    init: {
+      args: () => Tuple.make({ openDelay: 200, closeDelay: 300 }),
+    },
+    outMessage: { fold: foldHoverIntentOutMessage },
   },
-  outMessage: { fold: foldHoverIntentOutMessage },
-})
+)
 
-const HoverIntentExampleComposition = HoverIntentExample.makeComposition({
-  childBindings: [HoverIntentBinding],
-})
+const HoverIntentExampleComposition =
+  HoverIntentExampleDefinition.makeComposition({
+    childBindings: [HoverIntentBinding],
+  })
 
 // Initialize it. This behavior primitive owns no DOM id:
 const init = HoverIntentExampleComposition.makeInit(() => ({

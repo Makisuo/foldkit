@@ -9,7 +9,7 @@ import { slotDocPage } from '../../../markdown'
 import { type RenderHeadingLink, inlineCode } from '../../../prose'
 import * as Snippet from '../../../snippet'
 import raw from '../block.md'
-import { BlockPageComposition } from './definition'
+import { BlockPageComposition } from './composition'
 import { Message } from './message'
 import { type Model } from './model'
 

@@ -8,8 +8,8 @@ import {
   ChoiceId,
   ChoiceService,
   ChoicesBinding,
-  DeclarationWrappedKeyedFieldParent,
   DeclarationWrappedKeyedFieldParentComposition,
+  DeclarationWrappedKeyedFieldParentDefinition,
   GeneralChoicesBinding,
   GeneralExtractedPolicyChoicesBinding,
   InitializedChoicesBinding,
@@ -24,6 +24,7 @@ import {
   firstChoiceId,
   foldChoice,
   foldTextEntry,
+  fromChoiceMessage,
   initialParentModel,
   initialize,
   makePayloadParent,
@@ -43,6 +44,15 @@ type Equal<Left, Right> =
     ? true
     : false
 type Expect<Value extends true> = Value
+type ExactRequirements<Actual, Expected> = 0 extends 1 & Actual
+  ? false
+  : unknown extends Actual
+    ? false
+    : [Actual] extends [Expected]
+      ? [Expected] extends [Actual]
+        ? true
+        : false
+      : false
 
 export type Key = Expect<
   Equal<Parameters<typeof ChoicesBinding.fold>[1], typeof ChoiceId.Type>
@@ -100,8 +110,14 @@ export type FoldModel = Expect<
       typeof ParentModel.Type,
       typeof ParentMessage.Type,
       never,
-      never,
-      Block.BindingRequirement<'choices', typeof Choice.block>
+      Block.Scoped<'choices', Command.HandlerOf<typeof Choice.ReadChoice>>,
+      | Block.BindingRequirement<'choices', typeof Choice.block>
+      | Update.DeferredResultEvidence<
+          Block.DeferredBindingPolicy<
+            'choices',
+            'DeclarationWrappedKeyedFieldChoice'
+          >
+        >
     >
   >
 >
@@ -199,14 +215,8 @@ export type EmittedGenericParentModel = Expect<
   >
 >
 
-const choiceExecutionMessage = ParentMessage.GotTextMessage({
-  id: 'text',
-  message: TextMessage.ReplacedText({ value: 'unchanged' }),
-})
-const otherExecutionMessage = ParentMessage.GotChoiceMessage({
-  id: firstChoiceId,
-  message: Choice.Message.UpdatedValue({ value: 'One' }),
-})
+const choiceExecutionMessage = ParentMessage.IgnoredChildMessage()
+const otherExecutionMessage = ParentMessage.IgnoredChildMessage()
 
 foldChoice(
   initialParentModel,
@@ -232,7 +242,7 @@ foldTextEntry(
 
 // @ts-expect-error Emitted wrapped keyed policies must accept every collection key.
 // oxfmt-ignore
-DeclarationWrappedKeyedFieldParent.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: false, outMessage: { fold: (_key: 'other', _outMessage: typeof Choice.OutMessage.Type) => DeclarationWrappedKeyedFieldParent.step(model => ({ model })) } })
+DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: fromChoiceMessage, outMessage: { fold: (_key: 'other', _outMessage: typeof Choice.OutMessage.Type) => DeclarationWrappedKeyedFieldParentDefinition.step(model => ({ model })) } })
 
 // @ts-expect-error Emitted wrapped Bindings preserve branded keys.
 ChoicesBinding.refresh('first')
@@ -251,13 +261,13 @@ export type GeneralKey = Expect<
   Equal<Parameters<typeof GeneralChoicesBinding.fold>[1], typeof ChoiceId.Type>
 >
 export type GeneralPolicyRequirements = Expect<
-  Equal<
+  ExactRequirements<
     Update.RequirementsOf<ReturnType<typeof GeneralChoicesBinding.select>>,
     Block.Scoped<'generalChoices', Command.HandlerOf<typeof Choice.ReadChoice>>
   >
 >
 export type GeneralExtractedPolicyRequirements = Expect<
-  Equal<
+  ExactRequirements<
     Update.RequirementsOf<
       ReturnType<typeof GeneralExtractedPolicyChoicesBinding.select>
     >,

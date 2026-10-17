@@ -4,7 +4,7 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 import { Button, Input } from '@foldkit/ui'
 
 import { personRouter } from '../../route'
-import { PeopleComposition } from './definition'
+import { PeopleComposition } from './composition'
 import { Message } from './message'
 import { type Person, SearchResults } from './model'
 

@@ -39,13 +39,15 @@ it('preserves refined OutMessage constructors and matchers on completed factorie
   expectTypeOf<typeof FruitTabs.Model.Type>().toEqualTypeOf<Tabs.Model>()
   expectTypeOf<typeof FruitTabs.Message.Type>().toEqualTypeOf<Tabs.Message>()
 
-  expectTypeOf(FruitListbox.expose.selectItem)
+  expectTypeOf(FruitListbox.operations.selectItem)
     .parameter(1)
     .toEqualTypeOf<Fruit>()
-  expectTypeOf(FruitMultiListbox.expose.selectItem)
+  expectTypeOf(FruitMultiListbox.operations.selectItem)
     .parameter(1)
     .toEqualTypeOf<Fruit>()
-  expectTypeOf(FruitMenu.expose.selectItem).parameter(1).toEqualTypeOf<Fruit>()
+  expectTypeOf(FruitMenu.operations.selectItem)
+    .parameter(1)
+    .toEqualTypeOf<Fruit>()
 
   expectTypeOf<
     Update.RequirementsOf<typeof FruitListbox.update>

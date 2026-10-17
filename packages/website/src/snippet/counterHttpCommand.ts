@@ -14,13 +14,13 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = defineApplication({ Model, Message })
 
-export const ApplicationComposition = Application.makeComposition()
+export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 const CountResponse = Schema.Struct({ count: Schema.Int })
 
-export const FetchCount = Application.command('FetchCount', {
+export const FetchCount = ApplicationDefinition.command('FetchCount', {
   messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
   handler: function* () {
     const client = yield* HttpClient.HttpClient

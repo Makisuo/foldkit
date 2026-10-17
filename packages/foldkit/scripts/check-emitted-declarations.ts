@@ -408,6 +408,48 @@ const checks: ReadonlyArray<
   }>
 > = [
   {
+    name: 'operation-constructor',
+    accepted: ['operation-constructor.accepted.ts'],
+    rejected: ['operation-constructor.rejected.ts'],
+    consumers: ['operation-constructor.consume.ts'],
+  },
+  {
+    name: 'exposed-rest',
+    accepted: ['exposed-rest.accepted.ts'],
+    rejected: ['exposed-rest.rejected.ts'],
+    consumers: ['exposed-rest.consume.ts'],
+  },
+  {
+    name: 'exposed-message',
+    accepted: ['exposed-message.accepted.ts'],
+    rejected: ['exposed-message.rejected.ts'],
+    consumers: ['exposed-message.consume.ts'],
+  },
+  {
+    name: 'binding-message-policy',
+    accepted: ['binding-message-policy.accepted.ts'],
+    rejected: ['binding-message-policy.rejected.ts'],
+    consumers: ['binding-message-policy.consume.ts'],
+  },
+  {
+    name: 'strict-routing',
+    accepted: ['strict-routing.accepted.ts'],
+    rejected: ['strict-routing.rejected.ts'],
+    consumers: ['strict-routing.consume.ts'],
+  },
+  {
+    name: 'message-free-keyed',
+    accepted: ['message-free-keyed.accepted.ts'],
+    rejected: ['message-free-keyed.rejected.ts'],
+    consumers: ['message-free-keyed.consume.ts'],
+  },
+  {
+    name: 'dual-update',
+    accepted: ['dual-update.accepted.ts'],
+    rejected: ['dual-update.rejected.ts'],
+    consumers: ['dual-update.consume.ts'],
+  },
+  {
     name: 'base',
     accepted: ['accepted.ts'],
     rejected: ['rejected.ts'],
@@ -561,7 +603,8 @@ const main = async (): Promise<void> => {
 
       const relocated = join(consumer, check.name)
       cpSync(output, relocated, { recursive: true })
-      for (const fixture of check.consumers) {
+      const relocatedFixtures = [...check.consumers, ...check.rejected]
+      for (const fixture of relocatedFixtures) {
         copyFileSync(join(fixtureRoot, fixture), join(relocated, fixture))
       }
       const consumerConfig = join(relocated, 'tsconfig.json')
@@ -569,7 +612,7 @@ const main = async (): Promise<void> => {
         consumerConfig,
         JSON.stringify({
           compilerOptions: { ...compilerOptions, noEmit: true },
-          files: check.consumers,
+          files: relocatedFixtures,
         }),
       )
       runCompiler(`Consuming relocated ${check.name} declarations`, [

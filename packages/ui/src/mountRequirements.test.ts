@@ -1,6 +1,7 @@
 import { Option } from 'effect'
 import * as Block from 'foldkit/block'
 import type { ChildAttribute } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import type * as Mount from 'foldkit/mount'
 import type * as Update from 'foldkit/update'
 import { expectTypeOf, it } from 'vitest'
@@ -29,25 +30,36 @@ type RequirementsOfBlock<CompletedBlock extends Block.AnyBlock> =
   | Mount.RequirementsOf<CompletedBlock[typeof Block.LocalMountsTypeId]>
   | Block.RequirementsOfBindings<CompletedBlock['childBindings']>
 
+const ComboboxMountRequirementsMessage = defineMessageUnion({
+  GotComboboxMessage: { message: Combobox.Message },
+})
+
 const foldComboboxOutMessage = Combobox.OutMessage.match<
-  Update.Step<Combobox.Model, Combobox.Message>
+  Update.Step<Combobox.Model, typeof ComboboxMountRequirementsMessage.Type>
 >({
-  Selected: () => ComboboxMountRequirements.step(model => ({ model })),
-  ClearedSelection: () => ComboboxMountRequirements.step(model => ({ model })),
+  Selected: () =>
+    ComboboxMountRequirementsDefinition.step(model => ({ model })),
+  ClearedSelection: () =>
+    ComboboxMountRequirementsDefinition.step(model => ({ model })),
 })
 
-const ComboboxMountRequirements = Block.define('ComboboxMountRequirements', {
-  Model: Combobox.Model,
-  Message: Combobox.Message,
-})
+const ComboboxMountRequirementsDefinition = Block.define(
+  'ComboboxMountRequirements',
+  {
+    Model: Combobox.Model,
+    Message: ComboboxMountRequirementsMessage,
+  },
+)
 
-const ComboboxBinding = ComboboxMountRequirements.bindChild(Combobox.block, {
-  read: model => Option.some(model),
-  write: (_model, nextCombobox) => nextCombobox,
-  toParentMessage: message => message,
-  fromParentMessage: false,
-  outMessage: { fold: foldComboboxOutMessage },
-})
+const ComboboxBinding = ComboboxMountRequirementsDefinition.bindChild(
+  Combobox.block,
+  {
+    read: model => Option.some(model),
+    write: (_model, nextCombobox) => nextCombobox,
+    parentMessage: ComboboxMountRequirementsMessage.GotComboboxMessage,
+    outMessage: { fold: foldComboboxOutMessage },
+  },
+)
 
 const embeddedCombobox = ComboboxBinding.embedView({
   slotId: 'combobox',
@@ -62,24 +74,33 @@ const embeddedCombobox = ComboboxBinding.embedView({
   },
 })
 
+const ListboxMountRequirementsMessage = defineMessageUnion({
+  GotListboxMessage: { message: Listbox.Message },
+})
+
 const foldListboxOutMessage = Listbox.OutMessage.match<
-  Update.Step<Listbox.Model, Listbox.Message>
+  Update.Step<Listbox.Model, typeof ListboxMountRequirementsMessage.Type>
 >({
-  Selected: () => ListboxMountRequirements.step(model => ({ model })),
+  Selected: () => ListboxMountRequirementsDefinition.step(model => ({ model })),
 })
 
-const ListboxMountRequirements = Block.define('ListboxMountRequirements', {
-  Model: Listbox.Model,
-  Message: Listbox.Message,
-})
+const ListboxMountRequirementsDefinition = Block.define(
+  'ListboxMountRequirements',
+  {
+    Model: Listbox.Model,
+    Message: ListboxMountRequirementsMessage,
+  },
+)
 
-const ListboxBinding = ListboxMountRequirements.bindChild(Listbox.block, {
-  read: model => Option.some(model),
-  write: (_model, nextListbox) => nextListbox,
-  toParentMessage: message => message,
-  fromParentMessage: false,
-  outMessage: { fold: foldListboxOutMessage },
-})
+const ListboxBinding = ListboxMountRequirementsDefinition.bindChild(
+  Listbox.block,
+  {
+    read: model => Option.some(model),
+    write: (_model, nextListbox) => nextListbox,
+    parentMessage: ListboxMountRequirementsMessage.GotListboxMessage,
+    outMessage: { fold: foldListboxOutMessage },
+  },
+)
 
 const embeddedListbox = ListboxBinding.embedView({
   slotId: 'listbox',
@@ -93,22 +114,25 @@ const embeddedListbox = ListboxBinding.embedView({
   },
 })
 
+const MenuMountRequirementsMessage = defineMessageUnion({
+  GotMenuMessage: { message: Menu.Message },
+})
+
 const foldMenuOutMessage = Menu.OutMessage.match<
-  Update.Step<Menu.Model, Menu.Message>
+  Update.Step<Menu.Model, typeof MenuMountRequirementsMessage.Type>
 >({
-  Selected: () => MenuMountRequirements.step(model => ({ model })),
+  Selected: () => MenuMountRequirementsDefinition.step(model => ({ model })),
 })
 
-const MenuMountRequirements = Block.define('MenuMountRequirements', {
+const MenuMountRequirementsDefinition = Block.define('MenuMountRequirements', {
   Model: Menu.Model,
-  Message: Menu.Message,
+  Message: MenuMountRequirementsMessage,
 })
 
-const MenuBinding = MenuMountRequirements.bindChild(Menu.block, {
+const MenuBinding = MenuMountRequirementsDefinition.bindChild(Menu.block, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
-  toParentMessage: message => message,
-  fromParentMessage: false,
+  parentMessage: MenuMountRequirementsMessage.GotMenuMessage,
   outMessage: { fold: foldMenuOutMessage },
 })
 

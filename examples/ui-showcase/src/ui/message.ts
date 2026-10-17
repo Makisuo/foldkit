@@ -24,6 +24,8 @@ import { Toast } from './toast'
 
 export const Message = defineMessageUnion({
   GotMobileMenuDialogMessage: { message: Dialog.Message },
+  RequestedOpenMobileMenu: {},
+  RequestedCloseMobileMenu: {},
   ClickedButtonDemo: {},
   GotAnimationDemoMessage: { message: Animation.Message },
   ToggledAnimationDemo: {},

@@ -96,11 +96,12 @@ export const makeEntry = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
 
 // MODEL
 
-/** Schema factory for the toast container's state. `nextEntryKey` is a
- *  monotonic counter used to generate unique entry IDs purely from Model
- *  state. Thread the updated Model through successive `api.show()` calls.
- *  Calling `api.show()` twice against the same pre-update Model in the same tick
- *  will produce duplicate entry IDs. */
+/**
+ * Schema factory for the Toast container's state. `nextEntryKey` generates
+ * unique entry IDs from the Model. Thread the updated Model through successive
+ * calls to the exposed `show` operation. Two calls against the same prior Model
+ * produce the same entry ID.
+ */
 export const makeModel = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
   Schema.Struct({
     id: Schema.String,
@@ -159,6 +160,12 @@ export type CompletedWaitForSwipeSettled =
 /** Factory for the union of all Messages the Toast Block can produce. */
 export const makeMessage = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
   defineMessageUnion({
+    RequestedShow: {
+      payload: payloadSchema,
+      variant: Variant,
+      maybeDuration: Schema.Option(Schema.DurationFromMillis),
+      isSticky: Schema.Boolean,
+    },
     Added: { entry: makeEntry(payloadSchema) },
     Dismissed: { entryId: Schema.String },
     DismissedAll: {},
@@ -202,10 +209,11 @@ export type SwipeToDismissConfig = Readonly<{
   direction?: SwipeDirection
 }>
 
-/** Configuration for creating a toast container model. `defaultDuration` is
- *  applied to any `api.show()` call that doesn't provide its own `duration` or
- *  pass `sticky: true`. Accepts any Effect Duration input; a bare number is
- *  interpreted as milliseconds. */
+/**
+ * Configuration for creating a Toast container Model. `defaultDuration` applies
+ * to `show` calls without an explicit duration, unless `sticky: true` disables
+ * auto-dismissal. Accepts any Effect Duration input; bare numbers are milliseconds.
+ */
 export type InitConfig = Readonly<{
   id: string
   defaultDuration?: Duration.Input

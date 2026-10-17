@@ -7,7 +7,7 @@ import {
   Message,
   Model,
   NoteDurationRadioGroup,
-  NotePlayerDemo,
+  NotePlayerDemoDefinition,
 } from './definition'
 import { prependToLog } from './messageLog'
 
@@ -26,7 +26,7 @@ const foldNoteDurationRadioGroupOutMessage =
       }),
   })
 
-export const NoteDurationRadioGroupBinding = NotePlayerDemo.bindChild(
+export const NoteDurationRadioGroupBinding = NotePlayerDemoDefinition.bindChild(
   NoteDurationRadioGroup,
   {
     field: 'noteDurationRadioGroup',
@@ -36,9 +36,10 @@ export const NoteDurationRadioGroupBinding = NotePlayerDemo.bindChild(
   },
 )
 
-export const NotePlayerDemoComposition = NotePlayerDemo.makeComposition({
-  childBindings: [NoteDurationRadioGroupBinding],
-})
+export const NotePlayerDemoComposition =
+  NotePlayerDemoDefinition.makeComposition({
+    childBindings: [NoteDurationRadioGroupBinding],
+  })
 export type NotePlayerDemoViewBuilder = Block.ViewBuilderFor<
   typeof NotePlayerDemoComposition
 >

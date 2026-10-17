@@ -2,14 +2,14 @@ import { Effect, Option, Record, Result, Schema } from 'effect'
 import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { ApiReferenceComposition } from './definition'
-import { ApiReference } from './definition'
+import { ApiReferenceComposition } from './composition'
+import { ApiReferenceDefinition } from './definition'
 import { ParsedApiReference } from './domain'
 import { Message } from './message'
-import { ApiDataAsyncData, disclosuresForApiData } from './model'
+import { type ApiData, ApiDataAsyncData, disclosuresForApiData } from './model'
 
 /** Loads the complete reference, including modules omitted from hydration data. */
-export const LoadApiData = ApiReference.command('LoadApiData', {
+export const LoadApiData = ApiReferenceDefinition.command('LoadApiData', {
   messages: [Message.SucceededLoadApiData, Message.FailedLoadApiData],
   handler: function* () {
     return () =>
@@ -49,7 +49,22 @@ export const LoadApiData = ApiReference.command('LoadApiData', {
 
 export const EffectsLayer = LoadApiData.layer
 
-export const informRouteChanged = ApiReference.step(model =>
+const loadInitialData = ApiReferenceDefinition.step(
+  (model, maybeApiData: Option.Option<ApiData>) => ({
+    model: Option.match(maybeApiData, {
+      onNone: () =>
+        modifyFields(model, { apiData: () => ApiDataAsyncData.Loading() }),
+      onSome: apiData =>
+        modifyFields(model, {
+          apiData: () => ApiDataAsyncData.Refreshing({ data: apiData }),
+          disclosures: () => disclosuresForApiData(apiData),
+        }),
+    }),
+    commands: [LoadApiData()],
+  }),
+)
+
+const refreshApiData = ApiReferenceDefinition.step(model =>
   Option.match(
     AsyncData.isStale(model.apiData)
       ? AsyncData.revalidate(model.apiData)
@@ -66,6 +81,11 @@ export const informRouteChanged = ApiReference.step(model =>
 
 export const update = ApiReferenceComposition.makeUpdate((model, message) =>
   Message.match(message, {
+    RequestedLoadInitialData: ({ maybeApiData }) =>
+      loadInitialData(model, maybeApiData),
+
+    InformedOfRouteChange: () => refreshApiData(model),
+
     SucceededLoadApiData: ({ apiData }) => ({
       model: modifyFields(model, {
         apiData: () => ApiDataAsyncData.Success({ data: apiData }),

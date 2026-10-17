@@ -23,7 +23,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const WorkHistory = Block.define('WorkHistory', {
+export const WorkHistoryDefinition = Block.define('WorkHistory', {
   Model,
   Message,
   Startup: Schema.Struct({

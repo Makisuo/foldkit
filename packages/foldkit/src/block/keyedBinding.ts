@@ -29,6 +29,7 @@ import { assertInitializedParentModel, registerBinding } from './composition.js'
 import { type DefaultViewTypeId, defaultViewOf } from './defaultView.js'
 import {
   type BindingDeliveryEvidence,
+  type BindingMessagePolicy,
   type RuntimeFromParentMessage,
   registerBindingDelivery,
   trackParentMessageMapper,
@@ -198,13 +199,6 @@ export type KeyedBindingBaseConfig<
     key: Key,
     nextChildModel: BlockValue['Model']['Type'],
   ) => ParentModel
-  /** Wraps a child Message with the key of the occurrence that emitted it. The
-   * same mapping applies to view dispatches, Command results, Subscriptions,
-   * ManagedResources, and Mounts. */
-  toParentMessage: (
-    key: Key,
-    message: BlockValue['Message']['Type'],
-  ) => ParentMessage
   /** Adds optional activation gates for child Subscriptions while an occurrence
    * remains present. Gates do not disable updates or other lifecycle channels. */
   subscriptions?: Readonly<{
@@ -222,7 +216,13 @@ export type KeyedBindingBaseConfig<
           >
         >
   }>
-}>
+}> &
+  BindingMessagePolicy<
+    BlockValue,
+    ParentModel,
+    ParentMessage,
+    readonly [key: Key]
+  >
 
 /** The complete parent policy for a keyed Binding, including OutMessage
  * handling when the child Block can emit OutMessages. */
@@ -243,10 +243,6 @@ export type KeyedBindingConfig<
   Placement
 > &
   Readonly<{
-    /** Keeps incoming dispatch manual for explicitly typed configurations.
-     * Author checked incoming routes through the owning Definition's bindChild
-     * method, which knows the parent Message Schema and native fold arguments. */
-    fromParentMessage: false
     /** Handles every child OutMessage locally, forwards selected variants, or
      * does both. This property is required exactly when the child declares an
      * OutMessage type. */
@@ -333,7 +329,7 @@ type KeyedBoundExposedOperations<
   Placement extends string,
   Policy,
 > = Readonly<{
-  [Name in keyof BlockValue['expose']]: BoundExposedOperations<
+  [Name in keyof BlockValue['operations']]: BoundExposedOperations<
     BlockValue,
     ParentModel,
     ParentMessage,
@@ -363,7 +359,7 @@ export type KeyedBinding<
 > = WithoutBindingEvidence<
   Omit<
     Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy>,
-    'placement' | 'init' | 'fold' | 'embedView' | keyof BlockValue['expose']
+    'placement' | 'init' | 'fold' | 'embedView' | keyof BlockValue['operations']
   >
 > &
   BindingEvidence<
@@ -662,7 +658,7 @@ export const bindEach = <const BlockValue extends BindableBlock>(
     block.Model,
   ])
   assertSegment(placement)
-  assertValidBindingOperationNames(block.expose)
+  assertValidBindingOperationNames(block.operations)
   const allowedIdentities = hostIdentitiesOf(block)
   const readAt = (model: any, key: InstanceKey): Option.Option<any> =>
     Option.map(
@@ -782,7 +778,7 @@ export const bindEach = <const BlockValue extends BindableBlock>(
           })
   }
   const fold = makeFold(block.update)
-  const exposedOperations = Record.map(block.expose, producer => {
+  const exposedOperations = Record.map(block.operations, producer => {
     const foldStep = makeFold(producer)
     return (key: InstanceKey, ...args: ReadonlyArray<any>) =>
       (model: any) =>

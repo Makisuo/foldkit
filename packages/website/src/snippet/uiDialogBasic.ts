@@ -30,21 +30,22 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
 >({
   Opened: () => model => ({ model }),
   Closed: () => model => ({ model }),
+  CompletedClose: () => model => ({ model }),
 })
 
-const DialogExample = Block.define('DialogExample', {
+const DialogExampleDefinition = Block.define('DialogExample', {
   Model,
   Message,
 })
 
-const DialogBinding = DialogExample.bindChild(Dialog.block, {
+const DialogBinding = DialogExampleDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   init: { args: () => Tuple.make({ id: 'confirm' }) },
   outMessage: { fold: foldDialogOutMessage },
 })
 
-const DialogExampleComposition = DialogExample.makeComposition({
+const DialogExampleComposition = DialogExampleDefinition.makeComposition({
   childBindings: [DialogBinding],
 })
 

@@ -1,6 +1,6 @@
 import { Duration, Effect, Schema } from 'effect'
 
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 
 const MILLISECONDS_PER_MEGABYTE = 100
@@ -8,7 +8,7 @@ const MILLISECONDS_PER_MEGABYTE = 100
 export const UploadKey = Schema.Struct({ uploadId: Schema.Number })
 export type UploadKey = typeof UploadKey.Type
 
-export const UploadFile = Application.command('UploadFile', {
+export const UploadFile = ApplicationDefinition.command('UploadFile', {
   args: { ...UploadKey.fields, sizeMegabytes: Schema.Number },
   messages: [Message.CompletedUploadFile],
   interrupt: {

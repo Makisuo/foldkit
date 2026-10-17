@@ -2,7 +2,7 @@ import { Effect, Predicate, Queue, Schema, Stream } from 'effect'
 import { Socket } from 'effect/socket'
 
 import { ChatSocket } from './chatSocket'
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 
 const streamChatSocketMessages = (socket: Socket.WebSocketLike) =>
@@ -48,7 +48,7 @@ const streamChatSocketMessages = (socket: Socket.WebSocketLike) =>
     ).pipe(Effect.flatMap(() => Effect.never)),
   )
 
-export const subscriptions = Application.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   chatSocketMessages: entry(
     'ChatSocketMessages',
     { isConnected: Schema.Boolean },

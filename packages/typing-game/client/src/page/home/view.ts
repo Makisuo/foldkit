@@ -2,7 +2,7 @@ import { Array, Option } from 'effect'
 import { Html } from 'foldkit/html'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../constant'
-import { HomeComposition, type HomeViewBuilder } from './definition'
+import { HomeComposition, type HomeViewBuilder } from './composition'
 import { Message } from './message'
 import { HOME_ACTIONS, HomeAction, HomeStep, homeActionToLabel } from './model'
 

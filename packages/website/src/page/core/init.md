@@ -60,7 +60,7 @@ The final parent Model determines which initialized occurrences are active. Init
 
 For custom storage, deliberate Command ordering, or dynamic creation, call the registered Binding's explicit `init` operation. Pass `{ args, toParentModel }`, plus `key` for a keyed Binding and optional parent `commands`. `args` is the exact child init tuple. `toParentModel` receives the initialized child Model and constructs the complete parent Model. `Binding.init` returns a passive initialization recipe. The recipe has no `.model` or `.commands` fields to project.
 
-Return that recipe directly from the owning Composition's `makeInit` or `makeUpdate` callback, or preserve it through the owning Definition's `step` producer. The Composition callbacks interpret it directly; a completed exposed operation interprets a recipe preserved by its Step. Checked execution enters the registered graph, then returns the complete parent Model with every lifted child init Command followed by the optional parent Commands. The compiler checks the key, argument tuple, complete parent Model, Command requirements, and exact Binding requirement at these boundaries.
+Return that recipe directly from the owning Composition's `makeInit` or `makeUpdate` callback, or preserve it through the owning Definition's `step` producer. The Composition callbacks interpret it directly. Checked execution enters the registered graph, then returns the complete parent Model with every lifted child init Command followed by the optional parent Commands. The compiler checks the key, argument tuple, complete parent Model, Command requirements, and exact Binding requirement at these boundaries.
 
 During checked execution, runtime validation verifies the active composition frame, validates the complete parent Model against its Schema, checks that `toParentModel` stores a schema-equivalent initialized child, and checks that a keyed result contains exactly one occurrence with the requested key. These guards protect JavaScript with erased types and operations captured for later execution. Ordinary Model construction remains available for fixtures and other pure values.
 
@@ -84,11 +84,11 @@ Use startup Steps when initial child Models must exist before a parent transitio
 
 Put initial Steps in the plan's `steps` array. The Composition assembles the complete parent Model first, then passes each Step the Model returned by the preceding Step. It retains the child init Commands and adds the Commands returned by those Steps.
 
-An optional `boot` helper is an ordinary exposed Step called through the Binding after the child Model is stored. It may accept Flags, the current URL, or prerendered data, and it returns the normal next Model and Commands through that Binding. The Runtime later performs those Commands through their handlers. A feature need not define both init and `boot` helpers.
+An optional `boot` helper is a public Message-producing operation called through the Binding after the child Model is stored. It may accept Flags, the current URL, or prerendered data, and update returns the normal next Model and Commands through that Binding. The Runtime later performs those Commands through their handlers. A feature need not define both init and `boot` helpers.
 
-When an existing domain operation such as `restore` or `open` already describes the transition, expose that Step instead. Do not create a Message only to trigger startup behavior.
+When an existing domain operation such as `restore` or `open` already describes the transition, declare its existing Message constructor with `Composition.makeOperation` and put the descriptor under `operations`. Use a tuple producer there when the public inputs need mapping, refinement, defaults, or an exact update context tuple. Do not create a separate startup-only Message.
 
-The following excerpt assumes `SettingsBinding` and `SessionBinding` have init policies and expose startup operations. The `steps` array is sequential, so `SessionBinding.resume` receives the Model returned by `SettingsBinding.restore`. The result retains Commands from both child initializers and both Steps:
+The following excerpt assumes `SettingsBinding` and `SessionBinding` have init policies and provide startup operations. The `steps` array is sequential, so `SessionBinding.resume` receives the Model returned by `SettingsBinding.restore`. The result retains Commands from both child initializers and both Steps:
 
 ::Snippet{name="initBootSteps" label="Composing startup Steps"}
 
@@ -108,7 +108,7 @@ Define the boundary with a Flags Schema. For a fresh client start, also define a
 
 ### Fresh Client Start
 
-This compact Counter keeps the graphless root in `application.ts` with its Model, Message, init, update, and view. It creates `ApplicationComposition` with `Application.makeComposition()`. The entry imports that Composition and passes the Schema to its owned `makeApplication` method as `Flags`.
+This compact Counter keeps the graphless root in `application.ts` with its Model, Message, init, update, and view. It creates `ApplicationComposition` with `ApplicationDefinition.makeComposition()`. The entry imports that Composition and passes the Schema to its owned `makeApplication` method as `Flags`.
 
 ::Snippet{name="counterApplicationWithFlags" label="Application configuration with Flags"}
 

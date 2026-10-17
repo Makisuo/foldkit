@@ -5,7 +5,7 @@ import {
   Message,
   type Model,
   ProficiencyRadioGroup,
-  SkillsEntry,
+  SkillsEntryDefinition,
 } from './definition'
 import { proficiencyRadioGroupId } from './init'
 
@@ -21,7 +21,7 @@ const foldProficiencyRadioGroupOutMessage =
       }),
   })
 
-export const ProficiencyRadioGroupBinding = SkillsEntry.bindChild(
+export const ProficiencyRadioGroupBinding = SkillsEntryDefinition.bindChild(
   ProficiencyRadioGroup,
   {
     field: 'proficiencyRadioGroup',
@@ -33,6 +33,6 @@ export const ProficiencyRadioGroupBinding = SkillsEntry.bindChild(
   },
 )
 
-export const SkillsEntryComposition = SkillsEntry.makeComposition({
+export const SkillsEntryComposition = SkillsEntryDefinition.makeComposition({
   childBindings: [ProficiencyRadioGroupBinding],
 })

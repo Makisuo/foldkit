@@ -1,10 +1,9 @@
-import { Function, Layer, Option, Predicate, Schema } from 'effect'
+import { Layer, Option, Predicate, Schema, Tuple } from 'effect'
 import * as Block from 'foldkit/block'
 import * as Calendar from 'foldkit/calendar'
 import type { CalendarDate } from 'foldkit/calendar'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 
 import type { AnchorConfig } from '../anchor/index.js'
@@ -36,6 +35,19 @@ export const Message = defineMessageUnion({
   Cleared: {},
   Opened: {},
   Closed: {},
+  RequestedFocusDate: { date: Calendar.CalendarDate },
+  InformedOfMinDateChange: {
+    maybeMinDate: Schema.Option(Calendar.CalendarDate),
+  },
+  InformedOfMaxDateChange: {
+    maybeMaxDate: Schema.Option(Calendar.CalendarDate),
+  },
+  InformedOfDisabledDatesChange: {
+    disabledDates: Schema.Array(Calendar.CalendarDate),
+  },
+  InformedOfDisabledDaysOfWeekChange: {
+    disabledDaysOfWeek: Schema.Array(Calendar.DayOfWeek),
+  },
 })
 export type Message = typeof Message.Type
 
@@ -56,7 +68,7 @@ export type ChangedViewMonth = typeof OutMessage.ChangedViewMonth.Type
 export type SelectedDate = typeof OutMessage.SelectedDate.Type
 export type ClearedDate = typeof OutMessage.ClearedDate.Type
 
-const DatePicker = Block.define('DatePicker', {
+const DatePickerDefinition = Block.define('DatePicker', {
   Model,
   Message,
   OutMessage,
@@ -110,18 +122,13 @@ export const init = (config: InitConfig): Model => ({
 
 // UPDATE
 
-const dropCalendarToDays = DatePicker.step(model => ({
-  model: modifyFields(model, { calendar: UiCalendar.dropToDays }),
-}))
+const foldPopoverOutMessage = (outMessage: Popover.OutMessage) =>
+  Popover.OutMessage.match(outMessage, {
+    Opened: () => CalendarBinding.dropToDays(),
+    Closed: () => CalendarBinding.dropToDays(),
+  })
 
-const foldPopoverOutMessage = Popover.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => dropCalendarToDays,
-  Closed: () => dropCalendarToDays,
-})
-
-const PopoverBinding = DatePicker.bindChild(Popover.block, {
+const PopoverBinding = DatePickerDefinition.bindChild(Popover.block, {
   field: 'popover',
   parentMessage: Message.GotPopoverMessage,
   init: false,
@@ -129,7 +136,7 @@ const PopoverBinding = DatePicker.bindChild(Popover.block, {
 })
 
 const foldCalendarOutMessage = UiCalendar.OutMessage.match({
-  ChangedViewMonth: () => DatePicker.step(model => ({ model })),
+  ChangedViewMonth: () => DatePickerDefinition.step(model => ({ model })),
   SelectedDate: () => PopoverBinding.close(),
 })
 
@@ -139,7 +146,7 @@ const toDatePickerOutMessage = UiCalendar.OutMessage.match<OutMessage>({
   SelectedDate: ({ date }) => OutMessage.SelectedDate({ date }),
 })
 
-const CalendarBinding = DatePicker.bindChild(UiCalendar.block, {
+const CalendarBinding = DatePickerDefinition.bindChild(UiCalendar.block, {
   field: 'calendar',
   parentMessage: Message.GotCalendarMessage,
   init: false,
@@ -149,7 +156,7 @@ const CalendarBinding = DatePicker.bindChild(UiCalendar.block, {
   },
 })
 
-const DatePickerComposition = DatePicker.makeComposition({
+const DatePickerComposition = DatePickerDefinition.makeComposition({
   childBindings: [PopoverBinding, CalendarBinding],
 })
 
@@ -161,112 +168,37 @@ export const mounts = DatePickerComposition.mounts
 export const update = DatePickerComposition.makeUpdate((model, message) =>
   Message.match(message, {
     Opened: () =>
-      Update.combine(model, [PopoverBinding.open(), dropCalendarToDays]),
+      Update.combine(model, [
+        PopoverBinding.open(),
+        CalendarBinding.dropToDays(),
+      ]),
 
     Closed: () =>
-      Update.combine(model, [PopoverBinding.close(), dropCalendarToDays]),
+      Update.combine(model, [
+        PopoverBinding.close(),
+        CalendarBinding.dropToDays(),
+      ]),
 
     RequestedSelectDate: ({ date }) => CalendarBinding.selectDate(date)(model),
 
     Cleared: () => ({ model, outMessage: OutMessage.ClearedDate() }),
+
+    RequestedFocusDate: ({ date }) => CalendarBinding.focusDate(date)(model),
+
+    InformedOfMinDateChange: ({ maybeMinDate }) =>
+      CalendarBinding.informMinDateChanged(maybeMinDate)(model),
+
+    InformedOfMaxDateChange: ({ maybeMaxDate }) =>
+      CalendarBinding.informMaxDateChanged(maybeMaxDate)(model),
+
+    InformedOfDisabledDatesChange: ({ disabledDates }) =>
+      CalendarBinding.informDisabledDatesChanged(disabledDates)(model),
+
+    InformedOfDisabledDaysOfWeekChange: ({ disabledDaysOfWeek }) =>
+      CalendarBinding.informDisabledDaysOfWeekChanged(disabledDaysOfWeek)(
+        model,
+      ),
   }),
-)
-
-/** Programmatically opens the DatePicker, updating the Model and returning
- *  focus and Popover Commands. Use this in domain-event handlers. */
-const open = DatePicker.step(model => update(model, Message.Opened()))
-
-/** Programmatically closes the date picker. Use this in domain-event handlers. */
-const close = DatePicker.step(model => update(model, Message.Closed()))
-
-/** Programmatically selects a date, committing it and closing the popover. Emits a `SelectedDate` OutMessage just like a user-initiated selection. */
-const selectDate = DatePicker.step((model, date: CalendarDate) =>
-  update(model, Message.RequestedSelectDate({ date })),
-)
-
-/** Programmatically clears the selected date. */
-const clear = DatePicker.step(model => update(model, Message.Cleared()))
-
-/** Moves the embedded calendar's view and cursor to a date without changing
- *  the selection (which the parent owns). Use it to navigate the picker onto a
- *  known date, for example after the parent sets its value externally (a URL
- *  parameter, a saved draft) so opening the picker shows that month. Returns
- *  the Model directly because it produces no Commands and no OutMessage. */
-export const focusDate: Block.Reflect<Model, CalendarDate> = Function.dual(
-  2,
-  (model: Model, date: CalendarDate): Model =>
-    modifyFields(model, {
-      calendar: () => UiCalendar.focusDate(model.calendar, date),
-    }),
-)
-
-/** Reflects the minimum selectable date onto the embedded calendar. Pass
- * `Option.none()` to remove the minimum. Use this when the minimum derives
- * from other Model state (e.g. a start date field whose current selection
- * constrains an end date picker).
- *
- * Does NOT reconcile the current selection. If a previously-selected date
- * is now below the new minimum, it remains selected. Callers should `clear`
- * or reassign the selection explicitly if their domain requires it. */
-export const reflectMinDate: Block.Reflect<
-  Model,
-  Option.Option<CalendarDate>
-> = Function.dual(
-  2,
-  (model: Model, maybeMinDate: Option.Option<CalendarDate>): Model =>
-    modifyFields(model, {
-      calendar: () => UiCalendar.reflectMinDate(model.calendar, maybeMinDate),
-    }),
-)
-
-/** Reflects the maximum selectable date onto the embedded calendar. Pass
- * `Option.none()` to remove the maximum. Does NOT reconcile the current
- * selection. */
-export const reflectMaxDate: Block.Reflect<
-  Model,
-  Option.Option<CalendarDate>
-> = Function.dual(
-  2,
-  (model: Model, maybeMaxDate: Option.Option<CalendarDate>): Model =>
-    modifyFields(model, {
-      calendar: () => UiCalendar.reflectMaxDate(model.calendar, maybeMaxDate),
-    }),
-)
-
-/** Reflects the list of individually-disabled dates onto the embedded
- * calendar. Pass an empty array to clear. Does NOT reconcile the current
- * selection. */
-export const reflectDisabledDates: Block.Reflect<
-  Model,
-  ReadonlyArray<CalendarDate>
-> = Function.dual(
-  2,
-  (model: Model, disabledDates: ReadonlyArray<CalendarDate>): Model =>
-    modifyFields(model, {
-      calendar: () =>
-        UiCalendar.reflectDisabledDates(model.calendar, disabledDates),
-    }),
-)
-
-/** Reflects the days of the week that are disabled onto the embedded calendar
- * (e.g. weekends). Pass an empty array to clear. Does NOT reconcile the
- * current selection. */
-export const reflectDisabledDaysOfWeek: Block.Reflect<
-  Model,
-  ReadonlyArray<Calendar.DayOfWeek>
-> = Function.dual(
-  2,
-  (
-    model: Model,
-    disabledDaysOfWeek: ReadonlyArray<Calendar.DayOfWeek>,
-  ): Model =>
-    modifyFields(model, {
-      calendar: () =>
-        UiCalendar.reflectDisabledDaysOfWeek(
-          model.calendar,
-          disabledDaysOfWeek,
-        ),
-    }),
 )
 
 // SELECTORS
@@ -478,6 +410,29 @@ export const block = DatePickerComposition.makeBlock({
   })),
   update,
   view,
-  expose: { open, close, selectDate, clear },
+  operations: {
+    open: DatePickerComposition.makeOperation(Message.Opened),
+    close: DatePickerComposition.makeOperation(Message.Closed),
+    selectDate: (date: CalendarDate) =>
+      Tuple.make(Message.RequestedSelectDate({ date })),
+    clear: DatePickerComposition.makeOperation(Message.Cleared),
+    focusDate: (date: CalendarDate) =>
+      Tuple.make(Message.RequestedFocusDate({ date })),
+    informMinDateChanged: (maybeMinDate: Option.Option<CalendarDate>) =>
+      Tuple.make(Message.InformedOfMinDateChange({ maybeMinDate })),
+    informMaxDateChanged: (maybeMaxDate: Option.Option<CalendarDate>) =>
+      Tuple.make(Message.InformedOfMaxDateChange({ maybeMaxDate })),
+    informDisabledDatesChanged: (disabledDates: ReadonlyArray<CalendarDate>) =>
+      Tuple.make(Message.InformedOfDisabledDatesChange({ disabledDates })),
+    informDisabledDaysOfWeekChanged: (
+      disabledDaysOfWeek: ReadonlyArray<Calendar.DayOfWeek>,
+    ) =>
+      Tuple.make(
+        Message.InformedOfDisabledDaysOfWeekChange({ disabledDaysOfWeek }),
+      ),
+  },
   EffectsLayer: Layer.empty,
 })
+
+/** Moves the embedded Calendar view and cursor through DatePicker update. */
+export const focusDate = block.operations.focusDate

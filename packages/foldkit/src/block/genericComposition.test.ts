@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
@@ -9,6 +9,9 @@ const Message = defineMessageUnion({
   CompletedWork: {},
 })
 type Message = typeof Message.Type
+const ParentMessage = defineMessageUnion({
+  GotChildMessage: { message: Message },
+})
 
 const makeGenericComplete = <const Id extends string>(id: Id) => {
   const Feature = define(id)
@@ -20,8 +23,8 @@ const makeGenericComplete = <const Id extends string>(id: Id) => {
       return () => Effect.succeed(Message.CompletedWork())
     },
   })
-  const definition = Feature.define({ Model, Message })
-  const composition = definition.makeComposition()
+  const CompleteDefinition = Feature.define({ Model, Message })
+  const composition = CompleteDefinition.makeComposition()
 
   return composition.makeBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
@@ -43,8 +46,8 @@ const makeGenericMissing = <const Id extends string>(id: Id) => {
   const Work = Feature.command('Work', {
     messages: [Message.CompletedWork],
   })
-  const definition = Feature.define({ Model, Message })
-  const composition = definition.makeComposition()
+  const MissingDefinition = Feature.define({ Model, Message })
+  const composition = MissingDefinition.makeComposition()
 
   return composition.makeBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
@@ -60,17 +63,16 @@ const makeGenericMissing = <const Id extends string>(id: Id) => {
 }
 
 const complete = makeGenericComplete('GenericComplete')
-type CompleteModel = typeof complete.Model.Type
+const CompleteParentModel = Schema.Struct({ child: complete.Model })
 
 const CompleteParent = define('GenericCompleteParent', {
-  Model: complete.Model,
-  Message: complete.Message,
+  Model: CompleteParentModel,
+  Message: ParentMessage,
 })
 const CompleteBinding = CompleteParent.bindChild(complete, {
-  fromParentMessage: false,
-  read: (model: CompleteModel) => Option.some(model),
-  write: (_model: CompleteModel, nextModel: CompleteModel) => nextModel,
-  toParentMessage: (message: Message) => message,
+  placement: 'GenericComplete',
+  field: 'child',
+  parentMessage: ParentMessage.GotChildMessage,
 })
 
 it('keeps a complete generic Block connectable after literal instantiation', () => {
@@ -79,18 +81,16 @@ it('keeps a complete generic Block connectable after literal instantiation', () 
 
 if (false) {
   const missing = makeGenericMissing('GenericMissing')
-  type MissingModel = typeof missing.Model.Type
+  const MissingParentModel = Schema.Struct({ child: missing.Model })
   const MissingParent = define('GenericMissingParent', {
-    Model: missing.Model,
-    Message: missing.Message,
+    Model: MissingParentModel,
+    Message: ParentMessage,
   })
 
+  // @ts-expect-error Concrete Bindings validate deferred generic handler coverage.
   MissingParent.bindChild(missing, {
-    // @ts-expect-error Deferred generic handler coverage prevents accessor overload selection.
-    read: (model: MissingModel) => Option.some(model),
-    // @ts-expect-error Concrete Bindings validate deferred generic handler coverage.
-    write: (_model: MissingModel, nextModel: MissingModel) => nextModel,
-    // @ts-expect-error Concrete Bindings validate deferred generic handler coverage.
-    toParentMessage: (message: Message) => message,
+    placement: 'GenericMissing',
+    field: 'child',
+    parentMessage: ParentMessage.GotChildMessage,
   })
 }

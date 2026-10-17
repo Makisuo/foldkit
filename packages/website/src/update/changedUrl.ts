@@ -14,36 +14,38 @@ import {
   SearchBinding,
   ThemeMenuBinding,
 } from '../composition'
-import { Application } from '../definition'
+import { ApplicationDefinition } from '../definition'
 import { findActiveSectionKeyForRoute } from '../docsNav'
 import { type Model } from '../model'
 import { ApplicationRoute, urlToApplicationRoute } from '../route'
 
 type ApplicationTransition = Transition.Transition<ApplicationRoute>
 
-export const handleChangedUrl = Application.step((model, url: Url) => {
-  const { route: previousRoute } = model
-  const nextRoute = urlToApplicationRoute(url)
-  const transition = Transition.make(previousRoute, nextRoute)
-  const isChangingPathname = model.url.pathname !== url.pathname
+export const handleChangedUrl = ApplicationDefinition.step(
+  (model, url: Url) => {
+    const { route: previousRoute } = model
+    const nextRoute = urlToApplicationRoute(url)
+    const transition = Transition.make(previousRoute, nextRoute)
+    const isChangingPathname = model.url.pathname !== url.pathname
 
-  const nextModel = modifyFields(model, {
-    route: () => nextRoute,
-    url: () => url,
-    sidebarGroups: () => nextSidebarGroups(model, nextRoute),
-  })
+    const nextModel = modifyFields(model, {
+      route: () => nextRoute,
+      url: () => url,
+      sidebarGroups: () => nextSidebarGroups(model, nextRoute),
+    })
 
-  return Update.combine([
-    Application.step(() => ({ model: nextModel })),
-    stepHome(transition),
-    stepPlayground(transition),
-    MobileMenuDialogBinding.close(),
-    ThemeMenuBinding.close(),
-    SearchBinding.informRouteChanged(),
-    loadRouteData(transition),
-    scrollAfterUrlChange(url, isChangingPathname),
-  ])
-})
+    return Update.combine([
+      ApplicationDefinition.step(() => ({ model: nextModel })),
+      stepHome(transition),
+      stepPlayground(transition),
+      MobileMenuDialogBinding.close(),
+      ThemeMenuBinding.close(),
+      SearchBinding.informRouteChanged(),
+      loadRouteData(transition),
+      scrollAfterUrlChange(url, isChangingPathname),
+    ])
+  },
+)
 
 const nextSidebarGroups = (model: Model, nextRoute: ApplicationRoute) =>
   Option.match(findActiveSectionKeyForRoute(nextRoute), {
@@ -55,7 +57,7 @@ const nextSidebarGroups = (model: Model, nextRoute: ApplicationRoute) =>
   })
 
 const stepHome = (transition: ApplicationTransition) =>
-  Application.step(model => {
+  ApplicationDefinition.step(model => {
     if (Transition.isEntering(transition, 'Home')) {
       return HomeBinding.init({
         args: [],
@@ -74,7 +76,7 @@ const stepHome = (transition: ApplicationTransition) =>
   })
 
 const stepPlayground = (transition: ApplicationTransition) =>
-  Application.step(model => {
+  ApplicationDefinition.step(model => {
     const { nextRoute } = transition
 
     if (nextRoute._tag !== 'Playground') {
@@ -101,7 +103,7 @@ const stepPlayground = (transition: ApplicationTransition) =>
   })
 
 const loadRouteData = (transition: ApplicationTransition) =>
-  Application.step(model =>
+  ApplicationDefinition.step(model =>
     ApplicationRoute.matchOrElse(
       transition.nextRoute,
       {
@@ -129,7 +131,7 @@ const loadRouteData = (transition: ApplicationTransition) =>
             return { model }
           }
 
-          return ExampleDetailBinding.informRouteChanged(exampleSlug)
+          return ExampleDetailBinding.informRouteChanged({ slug: exampleSlug })
         },
       },
       () => ({ model }),
@@ -137,7 +139,7 @@ const loadRouteData = (transition: ApplicationTransition) =>
   )
 
 const scrollAfterUrlChange = (url: Url, isChangingPathname: boolean) =>
-  Application.step(model => {
+  ApplicationDefinition.step(model => {
     if (Option.isSome(url.hash)) {
       return {
         model,

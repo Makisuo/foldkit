@@ -11,7 +11,7 @@ import {
   NOISE_SCALE_MIN_DIVISOR,
   NOISE_SCALE_STEP,
 } from './constant'
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 import { Model } from './model'
 
@@ -25,21 +25,24 @@ const foldFlowStrengthSliderOutMessage = Slider.OutMessage.match<
     }),
 })
 
-export const FlowStrengthSliderBinding = Application.bindChild(Slider.block, {
-  field: 'flowStrengthSlider',
-  parentMessage: Message.GotFlowStrengthSliderMessage,
-  init: {
-    args: () => [
-      {
-        id: 'flow-strength-slider',
-        min: FLOW_STRENGTH_MIN,
-        max: FLOW_STRENGTH_MAX,
-        step: FLOW_STRENGTH_STEP,
-      },
-    ],
+export const FlowStrengthSliderBinding = ApplicationDefinition.bindChild(
+  Slider.block,
+  {
+    field: 'flowStrengthSlider',
+    parentMessage: Message.GotFlowStrengthSliderMessage,
+    init: {
+      args: () => [
+        {
+          id: 'flow-strength-slider',
+          min: FLOW_STRENGTH_MIN,
+          max: FLOW_STRENGTH_MAX,
+          step: FLOW_STRENGTH_STEP,
+        },
+      ],
+    },
+    outMessage: { fold: foldFlowStrengthSliderOutMessage },
   },
-  outMessage: { fold: foldFlowStrengthSliderOutMessage },
-})
+)
 
 const foldNoiseScaleSliderOutMessage = Slider.OutMessage.match<
   Update.Step<Model, Message>
@@ -51,23 +54,26 @@ const foldNoiseScaleSliderOutMessage = Slider.OutMessage.match<
     }),
 })
 
-export const NoiseScaleSliderBinding = Application.bindChild(Slider.block, {
-  field: 'noiseScaleSlider',
-  parentMessage: Message.GotNoiseScaleSliderMessage,
-  init: {
-    args: () => [
-      {
-        id: 'noise-scale-slider',
-        min: NOISE_SCALE_MIN_DIVISOR,
-        max: NOISE_SCALE_MAX_DIVISOR,
-        step: NOISE_SCALE_STEP,
-      },
-    ],
+export const NoiseScaleSliderBinding = ApplicationDefinition.bindChild(
+  Slider.block,
+  {
+    field: 'noiseScaleSlider',
+    parentMessage: Message.GotNoiseScaleSliderMessage,
+    init: {
+      args: () => [
+        {
+          id: 'noise-scale-slider',
+          min: NOISE_SCALE_MIN_DIVISOR,
+          max: NOISE_SCALE_MAX_DIVISOR,
+          step: NOISE_SCALE_STEP,
+        },
+      ],
+    },
+    outMessage: { fold: foldNoiseScaleSliderOutMessage },
   },
-  outMessage: { fold: foldNoiseScaleSliderOutMessage },
-})
+)
 
-export const ApplicationComposition = Application.makeComposition({
+export const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [FlowStrengthSliderBinding, NoiseScaleSliderBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

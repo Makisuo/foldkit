@@ -58,12 +58,12 @@ const foldToastOutMessage = Toast.OutMessage.match<Update.Step<Model, Message>>(
 
 // The Binding delegates Toast Messages, writes the next Toast Model, maps its
 // Commands, handles its OutMessages, and collects its Subscriptions.
-const Notifications = Block.define('Notifications', {
+const NotificationsDefinition = Block.define('Notifications', {
   Model,
   Message,
 })
 
-const ToastBinding = Notifications.bindChild(Toast, {
+const ToastBinding = NotificationsDefinition.bindChild(Toast, {
   field: 'toast',
   parentMessage: Message.GotToastMessage,
   init: {
@@ -72,7 +72,7 @@ const ToastBinding = Notifications.bindChild(Toast, {
   outMessage: { fold: foldToastOutMessage },
 })
 
-const NotificationsComposition = Notifications.makeComposition({
+const NotificationsComposition = NotificationsDefinition.makeComposition({
   childBindings: [ToastBinding],
 })
 

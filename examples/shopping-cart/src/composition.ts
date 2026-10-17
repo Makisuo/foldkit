@@ -3,7 +3,7 @@ import type { Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { products } from './data/products'
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Cart } from './domain'
 import { Message } from './message'
 import type { Model } from './model'
@@ -29,14 +29,17 @@ const foldProductsOutMessage = Products.OutMessage.match<
     }),
 })
 
-export const ProductsPageBinding = Application.bindChild(Products.block, {
-  field: 'productsPage',
-  parentMessage: Message.GotProductsMessage,
-  init: { args: () => [products] },
-  outMessage: { fold: foldProductsOutMessage },
-})
+export const ProductsPageBinding = ApplicationDefinition.bindChild(
+  Products.block,
+  {
+    field: 'productsPage',
+    parentMessage: Message.GotProductsMessage,
+    init: { args: () => [products] },
+    outMessage: { fold: foldProductsOutMessage },
+  },
+)
 
-export const ApplicationComposition = Application.makeComposition({
+export const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [ProductsPageBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

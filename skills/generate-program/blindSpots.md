@@ -75,7 +75,7 @@ Do not destructure or rename `model`, `commands`, or `outMessage` from an ordina
 
 Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. When the result belongs to a child Block, manual unpacking is usually the deeper problem. Use the child Binding's `fold` or named operation so the child Model, mapped Commands, and OutMessage policy remain part of one boundary. `Binding.init` returns a passive recipe with no result fields. Return it intact from `Composition.makeInit` or `Composition.makeUpdate`, or preserve it through a Definition-owned Step, and flag any `.model` or `.commands` projection from it.
 
-A Binding fold or named operation returns a connected Step whose Model input requires the exact graph. Flag typed raw-Model calls, useful `{ model }` narrowing, and `.model` or `.commands` access on its opaque result. Return or compose that result intact for `Composition.makeUpdate`, `Composition.makeInit`, or a completed exposed operation to consume. The completed exposed operation accepts its raw Block Model and returns the readable executed result; ordinary pure Steps also remain callable. Do not claim every structural erasure fails compilation: TypeScript may accept a connected function as a method returning `void`, but calling it outside the graph only constructs and discards passive configuration and executes no child work.
+A Binding fold or named operation returns a connected Step whose Model input requires the exact graph. Flag typed raw-Model calls, useful `{ model }` narrowing, and `.model` or `.commands` access on its opaque result. Return or compose that result intact for `Composition.makeUpdate` or `Composition.makeInit` to consume. The raw recipe exposes only direct channels; the Composition-authored update exposes the final parent channels after registered policy is resolved. A completed operation accepts its raw Block Model, dispatches its produced Message through update, and returns the readable executed result; ordinary pure Steps also remain callable. Do not claim every structural erasure fails compilation: TypeScript may accept a connected Binding function as a method returning `void`, but calling it outside the graph only constructs and discards passive configuration and executes no child work.
 
 When the OutMessage is already known while constructing a new result, include it directly. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper, and pass a new result literal first. Flag local attachment helpers and conditional object spreads that duplicate it.
 
@@ -90,7 +90,7 @@ lifters. Every matcher names every variant, including a singleton union. A
 `outMessage.forward` mapper that needs only the OutMessage uses the same direct
 matcher form. A generic child with a refined payload passes its refined
 OutMessage type as the second matcher generic. A Command-producing branch uses
-`Feature.step` and keeps its inferred requirements instead of forcing the
+`FeatureDefinition.step` and keeps its inferred requirements instead of forcing the
 whole matcher to a requirement-free `Update.Step`.
 
 When several operations update the same Model in sequence, use `Update.combine`. Initialize each child through its registered Binding recipe so Composition assembles the parent Model and mapped Commands.
@@ -133,7 +133,7 @@ Mixing `items.map(f)` and `Array.map(items, f)` in the same file. Mixing `Option
 
 ### `stuttery-modifyFields-setters`
 
-A `modifyFields` setter that only transforms that same field should be point-free: `entries: Array.map(revealErrors)`, `count: Number.increment`, `priceSlider: Slider.reflectRange({ min: minPrice, max: maxPrice })`. Flag `entries: () => Array.map(model.entries, revealErrors)` and friends. Replacement values from Messages, child updates, Commands, or other Model fields still use `() => value`.
+A `modifyFields` setter that only transforms that same field should be point-free: `entries: Array.map(revealErrors)` or `count: Number.increment`. Flag `entries: () => Array.map(model.entries, revealErrors)` and friends. Replacement values from Messages, child updates, Commands, or other Model fields still use `() => value`. A parent must not pass a child Block helper as a field transformer. Call the child Binding's named operation so the child update owns the transition.
 
 ### `empty-object-constructors`
 

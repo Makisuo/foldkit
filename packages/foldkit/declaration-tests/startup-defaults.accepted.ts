@@ -10,16 +10,15 @@ export const ChildModel = Schema.Struct({ count: Schema.Number })
 export const ChildMessage = Message.defineMessageUnion({
   CompletedInitialization: { count: Schema.Number },
 })
-const DeclarationStartupDefaultChild = Block.define(
+const DeclarationStartupDefaultChildDefinition = Block.define(
   'DeclarationStartupDefaultChild',
   {
     Model: ChildModel,
     Message: ChildMessage,
   },
 )
-export const FinishInitialization = DeclarationStartupDefaultChild.command(
-  'FinishInitialization',
-  {
+export const FinishInitialization =
+  DeclarationStartupDefaultChildDefinition.command('FinishInitialization', {
     args: { count: Schema.Number },
     messages: [ChildMessage.CompletedInitialization],
     handler: function* () {
@@ -27,9 +26,8 @@ export const FinishInitialization = DeclarationStartupDefaultChild.command(
       return ({ count }) =>
         Effect.succeed(ChildMessage.CompletedInitialization({ count }))
     },
-  },
-)
-const FailConstruction = DeclarationStartupDefaultChild.command(
+  })
+const FailConstruction = DeclarationStartupDefaultChildDefinition.command(
   'FailConstruction',
   {
     messages: [ChildMessage.CompletedInitialization],
@@ -41,7 +39,7 @@ const FailChildConstructionLayer = FailConstruction.toLayer<
   never
 >(Effect.fail<'StartupUnavailable'>('StartupUnavailable'))
 const DeclarationStartupDefaultChildComposition =
-  DeclarationStartupDefaultChild.makeComposition()
+  DeclarationStartupDefaultChildDefinition.makeComposition()
 export const ChildBlock = DeclarationStartupDefaultChildComposition.makeBlock({
   init: DeclarationStartupDefaultChildComposition.makeInit(() => ({
     model: ChildModel.make({ count: 0 }),
@@ -58,7 +56,7 @@ export const ChildBlock = DeclarationStartupDefaultChildComposition.makeBlock({
   ),
 })
 
-const DeclarationStartupDefaultArgumentChild = Block.define(
+const DeclarationStartupDefaultArgumentChildDefinition = Block.define(
   'DeclarationStartupDefaultArgumentChild',
   {
     Model: ChildModel,
@@ -66,7 +64,7 @@ const DeclarationStartupDefaultArgumentChild = Block.define(
   },
 )
 const DeclarationStartupDefaultArgumentChildComposition =
-  DeclarationStartupDefaultArgumentChild.makeComposition()
+  DeclarationStartupDefaultArgumentChildDefinition.makeComposition()
 export const DefaultChildBlock =
   DeclarationStartupDefaultArgumentChildComposition.makeBlock({
     init: DeclarationStartupDefaultArgumentChildComposition.makeInit(
@@ -81,7 +79,7 @@ export const DefaultChildBlock =
     ),
   })
 
-const DeclarationStartupOptionalArgumentChild = Block.define(
+const DeclarationStartupOptionalArgumentChildDefinition = Block.define(
   'DeclarationStartupOptionalArgumentChild',
   {
     Model: ChildModel,
@@ -89,7 +87,7 @@ const DeclarationStartupOptionalArgumentChild = Block.define(
   },
 )
 const DeclarationStartupOptionalArgumentChildComposition =
-  DeclarationStartupOptionalArgumentChild.makeComposition()
+  DeclarationStartupOptionalArgumentChildDefinition.makeComposition()
 export const OptionalChildBlock =
   DeclarationStartupOptionalArgumentChildComposition.makeBlock({
     init: DeclarationStartupOptionalArgumentChildComposition.makeInit(
@@ -102,7 +100,7 @@ export const OptionalChildBlock =
     ),
   })
 
-const DeclarationStartupRequiredRestChild = Block.define(
+const DeclarationStartupRequiredRestChildDefinition = Block.define(
   'DeclarationStartupRequiredRestChild',
   {
     Model: ChildModel,
@@ -110,7 +108,7 @@ const DeclarationStartupRequiredRestChild = Block.define(
   },
 )
 const DeclarationStartupRequiredRestChildComposition =
-  DeclarationStartupRequiredRestChild.makeComposition()
+  DeclarationStartupRequiredRestChildDefinition.makeComposition()
 export const RestChildBlock =
   DeclarationStartupRequiredRestChildComposition.makeBlock({
     init: DeclarationStartupRequiredRestChildComposition.makeInit(
@@ -125,7 +123,7 @@ export const RestChildBlock =
     ),
   })
 
-const DeclarationStartupRequiredChild = Block.define(
+const DeclarationStartupRequiredChildDefinition = Block.define(
   'DeclarationStartupRequiredChild',
   {
     Model: ChildModel,
@@ -133,7 +131,7 @@ const DeclarationStartupRequiredChild = Block.define(
   },
 )
 const DeclarationStartupRequiredChildComposition =
-  DeclarationStartupRequiredChild.makeComposition()
+  DeclarationStartupRequiredChildDefinition.makeComposition()
 export const RequiredChildBlock =
   DeclarationStartupRequiredChildComposition.makeBlock({
     init: DeclarationStartupRequiredChildComposition.makeInit(
@@ -164,10 +162,16 @@ export const ParentModel = Schema.Struct({
 })
 export const ParentMessage = Message.defineMessageUnion({
   GotChildMessage: { message: ChildBlock.Message },
+  GotDefaultArgumentMessage: { message: ChildBlock.Message },
+  GotOptionalArgumentMessage: { message: ChildBlock.Message },
+  GotRequiredRestMessage: { message: ChildBlock.Message },
+  GotOptedOutMessage: { message: ChildBlock.Message },
+  GotOptionalChildMessage: { message: ChildBlock.Message },
+  GotEntryMessage: { id: Schema.String, message: ChildBlock.Message },
   CompletedParentInitialization: {},
   CompletedParentStep: {},
 })
-export const DeclarationStartupDefaultsParent = Block.define(
+export const DeclarationStartupDefaultsParentDefinition = Block.define(
   'DeclarationStartupDefaultsParent',
   {
     Model: ParentModel,
@@ -177,13 +181,13 @@ export const DeclarationStartupDefaultsParent = Block.define(
 )
 // oxlint-disable-next-line foldkit/command-binding-matches-name -- Two owners intentionally declare the same local Command name.
 export const FinishParentInitialization =
-  DeclarationStartupDefaultsParent.command('FinishInitialization', {
+  DeclarationStartupDefaultsParentDefinition.command('FinishInitialization', {
     messages: [ParentMessage.CompletedParentInitialization],
     handler: function* () {
       return () => Effect.succeed(ParentMessage.CompletedParentInitialization())
     },
   })
-export const FinishStep = DeclarationStartupDefaultsParent.command(
+export const FinishStep = DeclarationStartupDefaultsParentDefinition.command(
   'FinishStep',
   {
     messages: [ParentMessage.CompletedParentStep],
@@ -192,74 +196,64 @@ export const FinishStep = DeclarationStartupDefaultsParent.command(
     },
   },
 )
-export const AutomaticBinding = DeclarationStartupDefaultsParent.bindChild(
-  ChildBlock,
-  {
+export const AutomaticBinding =
+  DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, {
     field: 'automatic',
     parentMessage: ParentMessage.GotChildMessage,
-    fromParentMessage: false,
-  },
-)
+  })
 export const DefaultArgumentBinding =
-  DeclarationStartupDefaultsParent.bindChild(DefaultChildBlock, {
+  DeclarationStartupDefaultsParentDefinition.bindChild(DefaultChildBlock, {
     field: 'defaultArgument',
-    parentMessage: ParentMessage.GotChildMessage,
-    fromParentMessage: false,
+    parentMessage: ParentMessage.GotDefaultArgumentMessage,
   })
 export const OptionalArgumentBinding =
-  DeclarationStartupDefaultsParent.bindChild(OptionalChildBlock, {
+  DeclarationStartupDefaultsParentDefinition.bindChild(OptionalChildBlock, {
     field: 'optionalArgument',
-    parentMessage: ParentMessage.GotChildMessage,
-    fromParentMessage: false,
+    parentMessage: ParentMessage.GotOptionalArgumentMessage,
   })
-export const RequiredRestBinding = DeclarationStartupDefaultsParent.bindChild(
-  RestChildBlock,
-  {
+export const RequiredRestBinding =
+  DeclarationStartupDefaultsParentDefinition.bindChild(RestChildBlock, {
     field: 'requiredRest',
-    parentMessage: ParentMessage.GotChildMessage,
-    fromParentMessage: false,
+    parentMessage: ParentMessage.GotRequiredRestMessage,
+
     init: { args: startup => [startup.count] },
-  },
-)
-export const OptedOutBinding = DeclarationStartupDefaultsParent.bindChild(
-  ChildBlock,
-  {
+  })
+export const OptedOutBinding =
+  DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, {
     field: 'optedOut',
-    parentMessage: ParentMessage.GotChildMessage,
-    fromParentMessage: false,
+    parentMessage: ParentMessage.GotOptedOutMessage,
+
     init: false,
-  },
-)
-export const OptionalBinding = DeclarationStartupDefaultsParent.bindChild(
-  ChildBlock,
-  {
+  })
+export const OptionalBinding =
+  DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, {
     field: 'maybeChild',
-    parentMessage: ParentMessage.GotChildMessage,
-    fromParentMessage: false,
+    parentMessage: ParentMessage.GotOptionalChildMessage,
+
     init: {
       args: startup =>
         startup.includeOptional ? Option.some([]) : Option.none(),
     },
-  },
-)
-export const EntriesBinding = DeclarationStartupDefaultsParent.bindChild(
-  ChildBlock,
-  {
+  })
+export const EntriesBinding =
+  DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, {
     field: 'entries',
     key: 'id',
     childField: 'child',
-    toParentMessage: (_id, message) =>
-      ParentMessage.GotChildMessage({ message }),
-    fromParentMessage: false,
+    toParentMessage: (id, message) =>
+      ParentMessage.GotEntryMessage({ id, message }),
+    fromParentMessage: {
+      parentMessage: ParentMessage.GotEntryMessage,
+      args: (_model, { id, message }) => Option.some([id, message]),
+    },
     init: {
       occurrences: startup =>
         startup.entryIds.map(id => ({ key: id, args: [] })),
       toItem: ({ key }, child) => ({ id: key, child }),
     },
-  },
-)
+  })
 export const DeclarationStartupDefaultsParentComposition =
-  DeclarationStartupDefaultsParent.makeComposition({
+  DeclarationStartupDefaultsParentDefinition.makeComposition({
     childBindings: [
       AutomaticBinding,
       DefaultArgumentBinding,
@@ -270,10 +264,12 @@ export const DeclarationStartupDefaultsParentComposition =
       EntriesBinding,
     ],
   })
-const applyParentStep = DeclarationStartupDefaultsParent.step(model => ({
-  model: Struct.modifyFields(model, { status: () => 'Stepped' }),
-  commands: [FinishStep()],
-}))
+const applyParentStep = DeclarationStartupDefaultsParentDefinition.step(
+  model => ({
+    model: Struct.modifyFields(model, { status: () => 'Stepped' }),
+    commands: [FinishStep()],
+  }),
+)
 export const initialize = DeclarationStartupDefaultsParentComposition.makeInit(
   (startup: typeof Startup.Type) => ({
     startup,
@@ -297,22 +293,27 @@ export const ParentBlock =
     ),
   })
 
-// oxlint-disable-next-line foldkit/block-name-matches-variable -- The early identity and its specialized contracts coexist in this fixture.
-export const GenericOwner = Block.define('DeclarationStartupGenericParent')
-export const DeclarationStartupGenericParent = GenericOwner.define({
-  Model: Schema.Struct({ child: ChildModel }),
-  Message: ParentMessage,
-  Startup,
+const SingleChildParentMessage = Message.defineMessageUnion({
+  GotChildMessage: { message: ChildBlock.Message },
 })
-export const GenericBinding = DeclarationStartupGenericParent.bindChild(
-  ChildBlock,
-  {
+
+// oxlint-disable-next-line foldkit/block-name-matches-variable -- The early identity and its specialized contracts coexist in this fixture.
+export const GenericOwnerDefinition = Block.define(
+  'DeclarationStartupGenericParent',
+)
+export const DeclarationStartupGenericParentDefinition =
+  GenericOwnerDefinition.define({
+    Model: Schema.Struct({ child: ChildModel }),
+    Message: SingleChildParentMessage,
+    Startup,
+  })
+export const GenericBinding =
+  DeclarationStartupGenericParentDefinition.bindChild(ChildBlock, {
     field: 'child',
     parentMessage: ParentMessage.GotChildMessage,
     init: { args: _startup => [] },
-  },
-)
-export const WiderBinding = DeclarationStartupGenericParent.bindChild(
+  })
+export const WiderBinding = DeclarationStartupGenericParentDefinition.bindChild(
   ChildBlock,
   {
     field: 'child',
@@ -322,13 +323,13 @@ export const WiderBinding = DeclarationStartupGenericParent.bindChild(
   },
 )
 export const DeclarationStartupGenericParentComposition =
-  DeclarationStartupGenericParent.makeComposition({
+  DeclarationStartupGenericParentDefinition.makeComposition({
     childBindings: [WiderBinding],
   })
 export const initializeWithoutSelectorStartup =
-  DeclarationStartupGenericParent.makeComposition({
+  DeclarationStartupGenericParentDefinition.makeComposition({
     childBindings: [
-      DeclarationStartupGenericParent.bindChild(ChildBlock, {
+      DeclarationStartupGenericParentDefinition.bindChild(ChildBlock, {
         field: 'child',
         parentMessage: ParentMessage.GotChildMessage,
         init: { args: () => [] },
@@ -338,12 +339,12 @@ export const initializeWithoutSelectorStartup =
 
 export const ForeignStartup = Schema.Struct({ token: Schema.String })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture compares two Startup contracts under the same Block identity.
-export const ForeignGenericParent = GenericOwner.define({
-  Model: DeclarationStartupGenericParent.Model,
-  Message: ParentMessage,
+export const ForeignGenericParentDefinition = GenericOwnerDefinition.define({
+  Model: DeclarationStartupGenericParentDefinition.Model,
+  Message: SingleChildParentMessage,
   Startup: ForeignStartup,
 })
-export const ForeignGenericBinding = ForeignGenericParent.bindChild(
+export const ForeignGenericBinding = ForeignGenericParentDefinition.bindChild(
   ChildBlock,
   {
     field: 'child',
@@ -352,63 +353,61 @@ export const ForeignGenericBinding = ForeignGenericParent.bindChild(
   },
 )
 
-export const Application = defineApplication({
+export const ApplicationDefinition = defineApplication({
   Model: Schema.Struct({ child: ChildModel }),
-  Message: ParentMessage,
+  Message: SingleChildParentMessage,
   Startup,
 })
-export const ApplicationBinding = Application.bindChild(ChildBlock, {
+export const ApplicationBinding = ApplicationDefinition.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
   init: { args: _startup => [] },
 })
 
-export const DeclarationStartupOrdinaryParent = Block.define(
+export const DeclarationStartupOrdinaryParentDefinition = Block.define(
   'DeclarationStartupOrdinaryParent',
   {
     Model: Schema.Struct({ child: ChildModel }),
-    Message: ParentMessage,
+    Message: SingleChildParentMessage,
   },
 )
-export const OrdinaryBinding = DeclarationStartupOrdinaryParent.bindChild(
-  ChildBlock,
-  {
+export const OrdinaryBinding =
+  DeclarationStartupOrdinaryParentDefinition.bindChild(ChildBlock, {
     field: 'child',
     parentMessage: ParentMessage.GotChildMessage,
-  },
-)
+  })
 
 const SharedStartupModel = Schema.Struct({
   first: ChildModel,
   second: ChildModel,
 })
-const DeclarationCompatibleStartupParent = Block.define(
+const CompatibleParentMessage = Message.defineMessageUnion({
+  GotFirstMessage: { message: ChildBlock.Message },
+  GotSecondMessage: { message: ChildBlock.Message },
+})
+const DeclarationCompatibleStartupParentDefinition = Block.define(
   'DeclarationCompatibleStartupParent',
   {
     Model: SharedStartupModel,
-    Message: ParentMessage,
+    Message: CompatibleParentMessage,
   },
 )
-const CountStartupBinding = DeclarationCompatibleStartupParent.bindChild(
-  ChildBlock,
-  {
+const CountStartupBinding =
+  DeclarationCompatibleStartupParentDefinition.bindChild(ChildBlock, {
     field: 'first',
-    parentMessage: ParentMessage.GotChildMessage,
-    fromParentMessage: false,
+    parentMessage: CompatibleParentMessage.GotFirstMessage,
+
     init: { args: (_startup: Readonly<{ count: number }>) => [] },
-  },
-)
-const LabelStartupBinding = DeclarationCompatibleStartupParent.bindChild(
-  ChildBlock,
-  {
+  })
+const LabelStartupBinding =
+  DeclarationCompatibleStartupParentDefinition.bindChild(ChildBlock, {
     field: 'second',
-    parentMessage: ParentMessage.GotChildMessage,
-    fromParentMessage: false,
+    parentMessage: CompatibleParentMessage.GotSecondMessage,
+
     init: { args: (_startup: Readonly<{ label: string }>) => [] },
-  },
-)
+  })
 export const DeclarationCompatibleStartupParentComposition =
-  DeclarationCompatibleStartupParent.makeComposition({
+  DeclarationCompatibleStartupParentDefinition.makeComposition({
     childBindings: [CountStartupBinding, LabelStartupBinding],
   })
 export const initializeCompatibleStartup =
@@ -419,30 +418,33 @@ export const initializeCompatibleStartup =
     }),
   )
 
-const DeclarationMixedStartupParent = Block.define(
+const DeclarationMixedStartupParentDefinition = Block.define(
   'DeclarationMixedStartupParent',
   {
     Model: SharedStartupModel,
-    Message: ParentMessage,
+    Message: CompatibleParentMessage,
   },
 )
-const NoInputBinding = DeclarationMixedStartupParent.bindChild(ChildBlock, {
-  field: 'first',
-  parentMessage: ParentMessage.GotChildMessage,
-  fromParentMessage: false,
-  init: { args: () => [] },
-})
-const ContextInputBinding = DeclarationMixedStartupParent.bindChild(
+const NoInputBinding = DeclarationMixedStartupParentDefinition.bindChild(
+  ChildBlock,
+  {
+    field: 'first',
+    parentMessage: CompatibleParentMessage.GotFirstMessage,
+
+    init: { args: () => [] },
+  },
+)
+const ContextInputBinding = DeclarationMixedStartupParentDefinition.bindChild(
   ChildBlock,
   {
     field: 'second',
-    parentMessage: ParentMessage.GotChildMessage,
-    fromParentMessage: false,
+    parentMessage: CompatibleParentMessage.GotSecondMessage,
+
     init: { args: (_startup: Readonly<{ count: number }>) => [] },
   },
 )
 export const DeclarationMixedStartupParentComposition =
-  DeclarationMixedStartupParent.makeComposition({
+  DeclarationMixedStartupParentDefinition.makeComposition({
     childBindings: [NoInputBinding, ContextInputBinding],
   })
 export const initializeMixedStartup =

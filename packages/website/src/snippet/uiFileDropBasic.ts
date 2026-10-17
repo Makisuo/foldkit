@@ -45,19 +45,19 @@ const foldFileDropOutMessage = FileDrop.OutMessage.match<
 // The Binding wires the completed child Block into the parent: it runs FileDrop.update,
 // writes the next FileDrop Model back, maps the Block's Commands into your
 // Message type, and hands any OutMessage to the OutMessage fold.
-const FileDropExample = Block.define('FileDropExample', {
+const FileDropExampleDefinition = Block.define('FileDropExample', {
   Model,
   Message,
 })
 
-const FileDropBinding = FileDropExample.bindChild(FileDrop.block, {
+const FileDropBinding = FileDropExampleDefinition.bindChild(FileDrop.block, {
   field: 'uploader',
   parentMessage: Message.GotFileDropMessage,
   init: { args: () => Tuple.make({ id: 'uploader' }) },
   outMessage: { fold: foldFileDropOutMessage },
 })
 
-const FileDropExampleComposition = FileDropExample.makeComposition({
+const FileDropExampleComposition = FileDropExampleDefinition.makeComposition({
   childBindings: [FileDropBinding],
 })
 

@@ -18,7 +18,10 @@ import {
   type ValidateChildBindings,
   makeDefinition,
 } from '../block/definition.js'
-import type { DefineCompositionUpdate } from '../block/delivery.js'
+import type {
+  CompositionDeliveryArguments,
+  DefineCompositionUpdate,
+} from '../block/delivery.js'
 import type {
   CompositionInit,
   ValidateChildStartup,
@@ -339,7 +342,12 @@ export interface MakeComposition<
   MessageSchema extends AnySchema,
   StartupSchema extends AnySchema | undefined = undefined,
 > {
-  (): Composition<ModelSchema, MessageSchema, readonly [], readonly []>
+  (
+    ...validation: CompositionDeliveryArguments<
+      MessageSchema['Type'],
+      readonly []
+    >
+  ): Composition<ModelSchema, MessageSchema, readonly [], readonly []>
   <
     const Mounts extends ReadonlyArray<Mount.LayeredMountDefinition> =
       readonly [],
@@ -505,12 +513,12 @@ export const complete = <
 export const makeDefine =
   (completion: Completion): Define =>
   config => {
-    const base = defineBlock('Application', config)
+    const BaseDefinition = defineBlock('Application', config)
     const primitives = {
-      command: base.command,
-      mount: base.mount,
-      mountStream: base.mountStream,
-      resource: base.resource,
+      command: BaseDefinition.command,
+      mount: BaseDefinition.mount,
+      mountStream: BaseDefinition.mountStream,
+      resource: BaseDefinition.resource,
     }
 
     const makeComposition = (
@@ -520,24 +528,24 @@ export const makeDefine =
       }> = {},
     ) => {
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      const definition = base.makeComposition(graph as never)
+      const definition = BaseDefinition.makeComposition(graph as never)
       return makeApplicationComposition(definition, completion)
     }
 
     const definition = {
-      Model: base.Model,
-      Message: base.Message,
+      Model: BaseDefinition.Model,
+      Message: BaseDefinition.Message,
       ...(config.Startup === undefined ? {} : { Startup: config.Startup }),
-      mounts: base.mounts,
-      childBindings: base.childBindings,
-      bindChild: base.bindChild,
+      mounts: BaseDefinition.mounts,
+      childBindings: BaseDefinition.childBindings,
+      bindChild: BaseDefinition.bindChild,
       command: primitives.command,
       mount: primitives.mount,
       mountStream: primitives.mountStream,
       resource: primitives.resource,
-      step: base.step,
-      subscriptions: base.subscriptions,
-      managedResources: base.managedResources,
+      step: BaseDefinition.step,
+      subscriptions: BaseDefinition.subscriptions,
+      managedResources: BaseDefinition.managedResources,
       makeComposition,
     }
 

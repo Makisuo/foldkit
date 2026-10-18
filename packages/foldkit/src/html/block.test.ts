@@ -334,11 +334,56 @@ describe('h.block', () => {
     },
   )
 
+  it('retires a displaced live handler when a cached same-id subtree is restored', () => {
+    const lazy = createLazy()
+    const renderCached = () =>
+      block({
+        slotId: 'shared',
+        model: { value: 1 },
+        view: childView,
+        toParentMessage: message => GotChild({ entryId: 'cached', message }),
+      })
+
+    const cached = lazy(renderCached, [])
+    expect(cached).not.toBeNull()
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const cachedOnClick = cached?.data?.on?.click as () => void
+
+    beginRender(registry)
+    cached?.data?.hook?.destroy?.(cached)
+
+    beginRender(registry)
+    const live = block({
+      slotId: 'shared',
+      model: { value: 2 },
+      view: childView,
+      toParentMessage: message => GotChild({ entryId: 'live', message }),
+    })
+    expect(live).not.toBeNull()
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const liveOnClick = live?.data?.on?.click as () => void
+
+    beginRender(registry)
+    const restored = lazy(renderCached, [])
+    expect(restored).toBe(cached)
+    live?.data?.hook?.destroy?.(live)
+
+    liveOnClick()
+    cachedOnClick()
+
+    expect(dispatched).toEqual([
+      GotChild({
+        entryId: 'cached',
+        message: { _tag: 'ChildClicked', value: 1 },
+      }),
+    ])
+  })
+
   it('rolls back wraps restored by a lazy hit when its outer Block fails', () => {
     const lazy = createLazy()
     const nestedHtml = __htmlBuilder<ChildMessage>()
     let isOuterViewFailing = false
-    let isNestedVisible = true
+    let nestedKind: 'Cached' | 'Live' | 'Hidden' = 'Cached'
     let nestedRenderCount = 0
     const renderNested = () => {
       nestedRenderCount += 1
@@ -353,11 +398,22 @@ describe('h.block', () => {
       })
     }
     const outerView = defineView<object, ChildMessage>(() => {
-      if (!isNestedVisible) {
+      if (nestedKind === 'Hidden') {
         return h('div', {}, ['placeholder'])
       }
 
-      const nested = lazy(renderNested, [])
+      const nested =
+        nestedKind === 'Cached'
+          ? lazy(renderNested, [])
+          : nestedHtml.block({
+              slotId: 'nested',
+              model: { value: 5 },
+              view: childView,
+              toParentMessage: message => ({
+                ...message,
+                value: message.value + 20,
+              }),
+            })
       if (isOuterViewFailing) {
         throw new Error('Outer view failed after the lazy hit')
       }
@@ -373,25 +429,57 @@ describe('h.block', () => {
 
     const first = renderOuter()
     expect(first).not.toBeNull()
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const cachedOnClick = first?.data?.on?.click as () => void
 
     beginRender(registry)
-    isNestedVisible = false
-    expect(renderOuter()).not.toBeNull()
+    nestedKind = 'Hidden'
+    const hidden = renderOuter()
+    expect(hidden).not.toBeNull()
     first?.data?.hook?.destroy?.(first)
     expect(registry.wraps.has('outer')).toBe(true)
     expect(registry.wraps.has('outer|nested')).toBe(false)
 
     beginRender(registry)
-    isNestedVisible = true
+    nestedKind = 'Live'
+    const live = renderOuter()
+    expect(live).not.toBeNull()
+    hidden?.data?.hook?.destroy?.(hidden)
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const liveOnClick = live?.data?.on?.click as () => void
+
+    beginRender(registry)
+    nestedKind = 'Cached'
     isOuterViewFailing = true
     expect(renderOuter).toThrow('Outer view failed after the lazy hit')
     expect(registry.wraps.has('outer')).toBe(true)
-    expect(registry.wraps.has('outer|nested')).toBe(false)
+    expect(registry.wraps.has('outer|nested')).toBe(true)
     expect(nestedRenderCount).toBe(1)
 
+    cachedOnClick()
+    liveOnClick()
+
+    expect(dispatched).toEqual([
+      GotChild({
+        entryId: 'outer',
+        message: { _tag: 'ChildClicked', value: 25 },
+      }),
+    ])
+
     beginRender(registry)
+    nestedKind = 'Hidden'
     isOuterViewFailing = false
     expect(renderOuter()).not.toBeNull()
+    live?.data?.hook?.destroy?.(live)
+
+    expect(() => liveOnClick()).not.toThrow()
+    cachedOnClick()
+
+    beginRender(registry)
+    nestedKind = 'Cached'
+    const reinserted = renderOuter()
+    expect(reinserted).not.toBeNull()
+    cachedOnClick()
     resolveMountBoundaryDispatch(
       registry,
       requireMountDispatch(),
@@ -400,6 +488,14 @@ describe('h.block', () => {
 
     expect(nestedRenderCount).toBe(1)
     expect(dispatched).toEqual([
+      GotChild({
+        entryId: 'outer',
+        message: { _tag: 'ChildClicked', value: 25 },
+      }),
+      GotChild({
+        entryId: 'outer',
+        message: { _tag: 'ChildClicked', value: 14 },
+      }),
       GotChild({
         entryId: 'outer',
         message: { _tag: 'ChildClicked', value: 14 },

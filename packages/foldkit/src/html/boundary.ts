@@ -27,6 +27,7 @@ type BoundaryWrapRegistration = Readonly<{
 type BoundaryWrapRollback = Readonly<{
   _tag: 'Rollback'
   rollback: () => void
+  commit?: () => void
 }>
 
 type BoundaryWrapTransactionEntry =
@@ -280,6 +281,123 @@ const trackBoundaryDispatch = (
   }
 }
 
+const setBoundaryDispatchInactive = (
+  registry: BoundaryRegistry,
+  dispatch: DispatchSync,
+  isInactive: boolean,
+): void => {
+  if (isInactive) {
+    registry.inactiveBoundaryDispatches.add(dispatch)
+  } else {
+    registry.inactiveBoundaryDispatches.delete(dispatch)
+  }
+}
+
+const restoreTrackedBoundaryDispatch = (
+  registry: BoundaryRegistry,
+  boundaryId: BoundaryId,
+  eventOuterDispatch: DispatchSync,
+  eventDispatch: DispatchSync,
+): void => {
+  const previousDispatches = registry.boundaryDispatches.get(eventOuterDispatch)
+  const previousDispatch = previousDispatches?.get(boundaryId)
+  const previousOwners = registry.boundaryDispatchOwners.get(boundaryId)
+  const wasOwner = previousOwners?.has(eventOuterDispatch) ?? false
+  const wasPreviousDispatchInactive =
+    previousDispatch !== undefined &&
+    registry.inactiveBoundaryDispatches.has(previousDispatch)
+  const wasEventDispatchInactive =
+    registry.inactiveBoundaryDispatches.has(eventDispatch)
+
+  if (
+    previousDispatch === eventDispatch &&
+    wasOwner &&
+    !wasEventDispatchInactive
+  ) {
+    return
+  }
+
+  let dispatches = previousDispatches
+  if (dispatches === undefined) {
+    dispatches = new Map()
+    registry.boundaryDispatches.set(eventOuterDispatch, dispatches)
+  }
+  dispatches.set(boundaryId, eventDispatch)
+
+  let owners = previousOwners
+  if (owners === undefined) {
+    owners = new Set()
+    registry.boundaryDispatchOwners.set(boundaryId, owners)
+  }
+  owners.add(eventOuterDispatch)
+  registry.inactiveBoundaryDispatches.delete(eventDispatch)
+
+  const retireDisplacedDispatch = (): void => {
+    if (previousDispatch !== undefined && previousDispatch !== eventDispatch) {
+      registry.inactiveBoundaryDispatches.add(previousDispatch)
+    }
+  }
+
+  if (registry.activeBoundaryWrapTransaction === undefined) {
+    retireDisplacedDispatch()
+    return
+  }
+
+  registry.boundaryWrapTransactionLog.push({
+    _tag: 'Rollback',
+    rollback: () => {
+      const currentDispatches =
+        registry.boundaryDispatches.get(eventOuterDispatch)
+      if (previousDispatch === undefined) {
+        currentDispatches?.delete(boundaryId)
+        if (previousDispatches === undefined && currentDispatches?.size === 0) {
+          registry.boundaryDispatches.delete(eventOuterDispatch)
+        }
+      } else {
+        const restoredDispatches = currentDispatches ?? previousDispatches
+        restoredDispatches?.set(boundaryId, previousDispatch)
+        if (
+          currentDispatches === undefined &&
+          restoredDispatches !== undefined
+        ) {
+          registry.boundaryDispatches.set(
+            eventOuterDispatch,
+            restoredDispatches,
+          )
+        }
+      }
+
+      const currentOwners = registry.boundaryDispatchOwners.get(boundaryId)
+      if (wasOwner) {
+        const restoredOwners = currentOwners ?? previousOwners
+        restoredOwners?.add(eventOuterDispatch)
+        if (currentOwners === undefined && restoredOwners !== undefined) {
+          registry.boundaryDispatchOwners.set(boundaryId, restoredOwners)
+        }
+      } else {
+        currentOwners?.delete(eventOuterDispatch)
+        if (previousOwners === undefined && currentOwners?.size === 0) {
+          registry.boundaryDispatchOwners.delete(boundaryId)
+        }
+      }
+
+      if (previousDispatch !== undefined) {
+        setBoundaryDispatchInactive(
+          registry,
+          previousDispatch,
+          wasPreviousDispatchInactive,
+        )
+      }
+      setBoundaryDispatchInactive(
+        registry,
+        eventDispatch,
+        wasEventDispatchInactive,
+      )
+    },
+    commit: retireDisplacedDispatch,
+  })
+}
+
 /** Starts capturing boundary registrations on a fresh set pushed onto
  *  `lazyTrackingStack`. Used by `createLazy`/`createKeyedLazy` around the
  *  wrapped view function. Must be paired with {@link endLazyTracking} on
@@ -350,17 +468,12 @@ export const restoreBoundaryWrapsForLazyHit = (
     }
 
     if (eventOuterDispatch !== undefined && eventDispatch !== undefined) {
-      let dispatches = registry.boundaryDispatches.get(eventOuterDispatch)
-      if (dispatches === undefined) {
-        dispatches = new Map()
-        registry.boundaryDispatches.set(eventOuterDispatch, dispatches)
-      }
-      dispatches.set(boundaryId, eventDispatch)
-      const owners =
-        registry.boundaryDispatchOwners.get(boundaryId) ?? new Set()
-      owners.add(eventOuterDispatch)
-      registry.boundaryDispatchOwners.set(boundaryId, owners)
-      registry.inactiveBoundaryDispatches.delete(eventDispatch)
+      restoreTrackedBoundaryDispatch(
+        registry,
+        boundaryId,
+        eventOuterDispatch,
+        eventDispatch,
+      )
     }
   }
 }
@@ -488,7 +601,14 @@ export const commitBoundaryWrapTransaction = (
   }
   registry.activeBoundaryWrapTransaction = transaction.parent
   if (transaction.parent === undefined) {
-    registry.boundaryWrapTransactionLog.length = 0
+    const entries = registry.boundaryWrapTransactionLog.splice(
+      transaction.startIndex,
+    )
+    for (const entry of entries) {
+      if (entry._tag === 'Rollback') {
+        entry.commit?.()
+      }
+    }
   }
 }
 

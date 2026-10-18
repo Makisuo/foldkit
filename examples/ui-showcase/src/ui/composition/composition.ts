@@ -43,6 +43,7 @@ const foldMenuOutMessage = DemoMenuBlock.OutMessage.match<
   typeof DemoMenuBlock.OutMessage.Type
 >({
   Selected: () => UiDefinition.stepNoop(),
+  Closed: () => UiDefinition.stepNoop(),
 })
 
 const foldPopoverOutMessage = PopoverBlock.OutMessage.match<

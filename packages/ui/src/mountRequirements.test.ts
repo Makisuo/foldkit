@@ -130,6 +130,7 @@ const foldMenuOutMessage = TestMenu.OutMessage.match<
   Update.Step<typeof TestMenu.Model.Type, never>
 >({
   Selected: () => MenuMountRequirementsDefinition.step(model => ({ model })),
+  Closed: () => MenuMountRequirementsDefinition.step(model => ({ model })),
 })
 
 const MenuMountRequirementsDefinition = Block.makeDefinition(

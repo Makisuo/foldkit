@@ -13,5 +13,5 @@ export {
 
 export type { AnchorConfig } from '../anchor/index.js'
 
-/** Original Menu Command Definitions for Story and Scene test resolution. */
+/** Original Menu Command and Mount Definitions for Story and Scene test resolution. */
 export * as test from './test.js'

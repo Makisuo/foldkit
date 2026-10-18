@@ -38,6 +38,7 @@ const foldPlaygroundMenuOutMessage = PlaygroundMenuBlock.OutMessage.match<
       model,
       outMessage: OutMessage.SelectedPlaygroundExample({ exampleSlug: value }),
     }),
+  Closed: () => HomeDefinition.stepNoop(),
 })
 
 export const PlaygroundMenuBinding = HomeDefinition.bindChild(

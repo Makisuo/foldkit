@@ -9,5 +9,5 @@ export {
 
 export type { AnchorConfig } from '../anchor/index.js'
 
-/** Original Popover Mount Definitions for Story and Scene test resolution. */
+/** Original Popover Command and Mount Definitions for Story and Scene test resolution. */
 export * as test from './test.js'

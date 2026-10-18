@@ -127,6 +127,7 @@ export type RequestedSelectItem = typeof Message.RequestedSelectItem.Type
  *  them through the Menu connection's OutMessage fold. */
 export const OutMessage = defineMessageUnion({
   Selected: { value: Schema.String, index: Schema.Number },
+  Closed: {},
 })
 
 /** The OutMessage union interface on a completed Menu, refined to its Item
@@ -150,8 +151,11 @@ export type Selected<Value extends string = string> = Readonly<{
 
 /** Generic over `Value extends string` so consumers using the typed
  *  `Menu.create<MyUnion>()` factory receive `value: MyUnion` in the
- *  `Selected` OutMessage. Defaults to `string`. */
-export type OutMessage<Value extends string = string> = Selected<Value>
+ *  `Selected` OutMessage. `Closed` reports a non-selection transition from
+ *  open to closed. Defaults to `string`. */
+export type OutMessage<Value extends string = string> =
+  | Selected<Value>
+  | typeof OutMessage.Closed.Type
 
 export type Opened = typeof Message.Opened.Type
 export type Closed = typeof Message.Closed.Type
@@ -426,6 +430,7 @@ const internalUpdate =
       }
 
       const closed = closedModel(baseModel)
+      const closeOutMessage = outMessage ?? OutMessage.Closed()
 
       if (model.isAnimated) {
         return MenuDefinition.step(() =>
@@ -434,12 +439,12 @@ const internalUpdate =
               () => ({ model: closed, commands }),
               animationBinding.requestHide(),
             ]),
-            Update.withOutMessage(outMessage),
+            Update.withOutMessage(closeOutMessage),
           ),
         )
       }
 
-      return Update.withOutMessage({ model: closed, commands }, outMessage)
+      return Update.withOutMessage({ model: closed, commands }, closeOutMessage)
     }
 
     const openWithActiveItem = (maybeActiveItemIndex: Option.Option<number>) =>
@@ -592,13 +597,22 @@ const internalUpdate =
           })
 
           if (model.isAnimated) {
-            return Update.combine([
-              () => ({ model: closed, commands: closeWithFocusCommands }),
-              animationBinding.requestHide(),
-            ])
+            return MenuDefinition.step(() =>
+              Function.compose(
+                Update.combine([
+                  () => ({ model: closed, commands: closeWithFocusCommands }),
+                  animationBinding.requestHide(),
+                ]),
+                Update.withOutMessage(OutMessage.Closed()),
+              ),
+            )
           }
 
-          return { model: closed, commands: closeWithFocusCommands }
+          return {
+            model: closed,
+            commands: closeWithFocusCommands,
+            outMessage: OutMessage.Closed(),
+          }
         }
 
         return openMenu(
@@ -774,9 +788,11 @@ export type GroupHeading = Readonly<{
 
 /** Per-render view inputs passed to the Menu connection's `embedView` method.
  *
- *  The Menu emits an `OutMessage.Selected({ value, index })` OutMessage on commit.
- *  The menu has already closed by the time this fires. Handle it in the
- *  Menu connection's OutMessage fold. */
+ *  The Menu emits `OutMessage.Selected({ value, index })` on commit and
+ *  `OutMessage.Closed()` when an open Menu closes without selection. `Closed`
+ *  is emitted by the update that closes the Menu, before any animation or
+ *  cleanup Commands complete. Handle each variant in the Menu connection's
+ *  OutMessage fold. */
 export type ViewInputs<Item extends string> = Readonly<{
   items: ReadonlyArray<Item>
   itemToConfig: (

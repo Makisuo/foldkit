@@ -7,3 +7,6 @@ export {
 } from './index.js'
 
 export type { AnchorConfig } from '../anchor/index.js'
+
+/** Original Tooltip Command and Mount Definitions for Story and Scene test resolution. */
+export * as test from './test.js'

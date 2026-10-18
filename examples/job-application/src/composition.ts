@@ -78,6 +78,7 @@ const foldStepMenuOutMessage = StepMenuBlock.OutMessage.match<
     model => ({
       model: modifyFields(model, { currentStep: () => value }),
     }),
+  Closed: () => ApplicationDefinition.stepNoop(),
 })
 
 export const StepMenuBinding = ApplicationDefinition.bindChild(StepMenuBlock, {

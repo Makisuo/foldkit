@@ -45,6 +45,7 @@ const MenuBinding = GenericMenuBindingIdentityDefinition.bindChild(
             model,
             outMessage: OutMessage.SelectedMenuItem({ value }),
           })),
+        Closed: () => GenericMenuBindingIdentityDefinition.stepNoop(),
       }),
     },
   },

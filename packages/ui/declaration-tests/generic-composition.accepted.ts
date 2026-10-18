@@ -36,6 +36,30 @@ export const MultiPicker = Combobox.Multi.create(Item)
 export const ListPicker = Listbox.create<'Apple' | 'Pear'>()
 export const MultiListPicker = Listbox.Multi.create<'Apple' | 'Pear'>()
 export const MenuPicker = Menu.create<'Apple' | 'Pear'>()
+export const matchMenuOutMessage = MenuPicker.OutMessage.match<
+  'Apple' | 'Pear' | 'Closed'
+>({
+  Selected: ({ value }) => value,
+  Closed: () => 'Closed',
+})
+export const closedMenuOutMessage = MenuPicker.OutMessage.Closed()
+export const menuTestDefinitions = [
+  Menu.test.LockMenuScroll,
+  Menu.test.UnlockMenuScroll,
+  Menu.test.InertMenuOthers,
+  Menu.test.RestoreMenuInert,
+  Menu.test.FocusMenuItems,
+  Menu.test.FocusMenuButton,
+  Menu.test.ScrollMenuItemIntoView,
+  Menu.test.ClickMenuItem,
+  Menu.test.DelayClearMenuSearch,
+  Menu.test.DetectMenuMovementOrAnimationEnd,
+  Menu.test.AnchorMenu,
+  Menu.test.PortalMenuBackdrop,
+]
+export const menuFactoryMounts: ReadonlyArray<
+  typeof Menu.test.AnchorMenu | typeof Menu.test.PortalMenuBackdrop
+> = MenuPicker.mounts
 export const RootSlider = Slider.forRoot(() => document)
 export const ToastPayload = Schema.Struct({
   kind: Schema.Literals(['Saved', 'Failed']),
@@ -176,6 +200,9 @@ export const author = (composition: Composition) => {
 export const application = author(createComposition())
 
 export type GenericAssertions = [
+  Expect<
+    Equal<ReturnType<typeof matchMenuOutMessage>, 'Apple' | 'Pear' | 'Closed'>
+  >,
   Expect<Equal<Parameters<typeof DialogBinding.requestOpen>, []>>,
   Expect<
     Equal<

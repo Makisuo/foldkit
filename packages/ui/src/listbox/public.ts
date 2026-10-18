@@ -15,5 +15,5 @@ export type {
 export type { AnchorConfig } from '../anchor/index.js'
 export * as Multi from './multiPublic.js'
 
-/** Original Listbox Command Definitions for Story and Scene test resolution. */
+/** Original Listbox Command and Mount Definitions for Story and Scene test resolution. */
 export * as test from './test.js'

@@ -20,7 +20,7 @@ Check out how Menu is wired up in a [real Foldkit app](https://github.com/foldki
 
 ### Basic
 
-Pair `view` and `update` behind `Menu.create<Item>()` at module scope. The factory threads your item union through both, so `Selected({ value, index })` carries the picked value directly. Menu closes automatically after selection.
+Pair `view` and `update` behind `Menu.create<Item>()` at module scope. The factory threads your item union through both, so `Selected({ value, index })` carries the picked value directly. Menu closes automatically after selection. It emits `Closed()` when it closes without a selection, allowing the parent to coordinate related state without inspecting child Messages.
 
 ::Demo{name="basic"}
 
@@ -128,3 +128,4 @@ Messages emitted to the parent through the optional `outMessage` field. Handle t
 | Name       | Type                             | Default | Description                                                                                                                                                                                                                                                                                                                                                             |
 | ---------- | -------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Selected` | `{ value: Item; index: number }` | —       | Emitted when a menu item is selected. Carries both the value (typed as your `Item` union via `Menu.create<Item>()`) and its index into the items array supplied at view time. Menu closes itself on selection; the parent does not need to call `menu.requestClose()`. Handle it in the Binding's `outMessage.fold` policy to dispatch the corresponding domain action. |
+| `Closed`   | `{}`                             | —       | Emitted when an open Menu closes without selection, including keyboard, button, backdrop, blur, pointer, and programmatic close paths. It is emitted by the update that changes the Menu Model to closed, before animation and cleanup Commands complete. A close request against an already closed Menu emits nothing.                                                 |

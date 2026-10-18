@@ -30,8 +30,9 @@ const actions: ReadonlyArray<Action> = [
 ]
 
 // At module scope, fold the OutMessage into your own Model. `Selected` carries
-// the picked item directly (typed as `Action`). The arm returns an Update.Step
-// over the parent Model, which already has the next Menu Model written back:
+// the picked item directly (typed as `Action`), while `Closed` reports a close
+// without selection. Each arm returns an Update.Step over the parent Model,
+// which already has the next Menu Model written back:
 const foldMenuOutMessage = ActionMenu.OutMessage.match<
   Update.Step<Model, Message>
 >({
@@ -39,6 +40,7 @@ const foldMenuOutMessage = ActionMenu.OutMessage.match<
   // its own state or dispatch its own Commands, for example transition a
   // page, mutate domain state, or trigger a downstream Command.
   Selected: () => ActionMenuExampleDefinition.stepNoop(),
+  Closed: () => ActionMenuExampleDefinition.stepNoop(),
 })
 
 // The Binding wires the completed child Block into the parent: it runs ActionMenu.update,

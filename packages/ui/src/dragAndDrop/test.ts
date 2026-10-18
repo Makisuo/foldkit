@@ -2,6 +2,8 @@ import * as Story from 'foldkit/story'
 
 import { FocusItem, Message, ResolveKeyboardMove } from './block.js'
 
+export { FocusItem, ResolveKeyboardMove }
+
 /** Identifies the item whose focus Command {@link settleFocus} resolves. */
 export type SettleFocusInput = Readonly<{
   itemId: string

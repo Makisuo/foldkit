@@ -23,6 +23,9 @@ it('preserves refined OutMessage constructors and matchers on completed factorie
     typeof FruitMultiListbox.Model.Type
   >().toEqualTypeOf<MultiListbox.Model>()
   expectTypeOf<typeof FruitMenu.Model.Type>().toEqualTypeOf<Menu.Model>()
+  expectTypeOf<typeof FruitMenu.OutMessage.Type>().toEqualTypeOf<
+    Menu.OutMessage<Fruit>
+  >()
   expectTypeOf<
     typeof FruitRadioGroup.Model.Type
   >().toEqualTypeOf<RadioGroup.Model>()
@@ -66,11 +69,12 @@ it('preserves refined OutMessage constructors and matchers on completed factorie
       return value
     },
   })
-  const matchMenu = FruitMenu.OutMessage.match<Fruit>({
+  const matchMenu = FruitMenu.OutMessage.match<Fruit | 'Closed'>({
     Selected: ({ value }) => {
       expectTypeOf(value).toEqualTypeOf<Fruit>()
       return value
     },
+    Closed: () => 'Closed',
   })
   const matchRadioGroup = FruitRadioGroup.OutMessage.match<Fruit>({
     Selected: ({ value }) => {
@@ -96,6 +100,7 @@ it('preserves refined OutMessage constructors and matchers on completed factorie
   expect(
     matchMenu(FruitMenu.OutMessage.Selected({ value: 'Apple', index: 0 })),
   ).toBe('Apple')
+  expect(matchMenu(FruitMenu.OutMessage.Closed())).toBe('Closed')
   expect(
     matchRadioGroup(
       FruitRadioGroup.OutMessage.Selected({ value: 'Apple', index: 0 }),

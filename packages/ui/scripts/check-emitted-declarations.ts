@@ -180,6 +180,7 @@ const main = (): void => {
     'generic-composition.accepted.ts',
     'generic-composition.rejected.ts',
     'generic-composition.consume.ts',
+    'test-namespaces.accepted.ts',
   ]) {
     if (!existsSync(join(fixtureRoot, fixture))) {
       fail(`Missing declaration fixture ${fixture}.`)
@@ -241,6 +242,7 @@ const main = (): void => {
     for (const fixture of [
       'generic-composition.accepted.ts',
       'generic-composition.rejected.ts',
+      'test-namespaces.accepted.ts',
     ]) {
       copyFileSync(join(fixtureRoot, fixture), join(sources, fixture))
     }
@@ -257,7 +259,10 @@ const main = (): void => {
         rootDir: sources,
         outDir: output,
       },
-      files: [join(sources, 'generic-composition.accepted.ts')],
+      files: [
+        join(sources, 'generic-composition.accepted.ts'),
+        join(sources, 'test-namespaces.accepted.ts'),
+      ],
     })
     runCompiler('Emitting external generic UI declarations', [
       '-p',

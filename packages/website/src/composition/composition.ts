@@ -103,6 +103,7 @@ export const MobileMenuDialogBinding = ApplicationDefinition.bindChild(
 
 const foldThemeMenuOutMessage = ThemeMenu.ThemeMenuBlock.OutMessage.match({
   Selected: ({ value }) => selectThemePreference(value),
+  Closed: () => ApplicationDefinition.stepNoop(),
 })
 
 export const ThemeMenuBinding = ApplicationDefinition.bindChild(

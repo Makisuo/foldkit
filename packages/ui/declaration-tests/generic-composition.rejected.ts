@@ -5,6 +5,7 @@ import * as Tooltip from '@foldkit/ui/tooltip'
 import {
   ApplicationDefinition,
   DialogBinding,
+  MenuPicker,
   Picker,
   PickerBinding,
   RootSlider,
@@ -21,6 +22,20 @@ Picker.Message.SelectedItem({
   displayText: 'Banana',
   wasSelected: false,
 })
+
+MenuPicker.OutMessage.match({
+  Selected: ({ value }) => {
+    // @ts-expect-error The Menu OutMessage matcher preserves its item refinement.
+    const banana: 'Banana' = value
+    return banana
+  },
+  Closed: () => 'Closed',
+})
+
+MenuPicker.OutMessage.match<string>(
+  // @ts-expect-error The Menu OutMessage matcher requires the Closed variant.
+  { Selected: () => '' },
+)
 
 // @ts-expect-error The connected operation preserves the item Schema.
 PickerBinding.requestSelectItem('Banana', 'Banana')

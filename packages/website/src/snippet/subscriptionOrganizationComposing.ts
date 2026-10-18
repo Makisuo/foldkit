@@ -9,6 +9,7 @@ const foldThemeMenuOutMessage = ThemeMenu.ThemeMenuBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   Selected: () => SettingsDefinition.stepNoop(),
+  Closed: () => SettingsDefinition.stepNoop(),
 })
 
 export const SettingsDefinition = Block.makeDefinition('Settings', {

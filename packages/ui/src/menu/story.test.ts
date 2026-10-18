@@ -41,6 +41,7 @@ const MenuStoryDefinition = Block.makeDefinition('MenuStory', {
 
 const foldMenuOutMessage = OutMessage.match<Update.Step<Model, never>>({
   Selected: () => MenuStoryDefinition.step(model => ({ model })),
+  Closed: () => MenuStoryDefinition.step(model => ({ model })),
 })
 
 const MenuBinding = MenuStoryDefinition.bindChild(TestMenu, {
@@ -67,6 +68,7 @@ const RefinedMenuBinding = RefinedMenuStoryDefinition.bindChild(RefinedMenu, {
   outMessage: {
     fold: RefinedMenu.OutMessage.match<Update.Step<Model, never>>({
       Selected: () => RefinedMenuStoryDefinition.step(model => ({ model })),
+      Closed: () => RefinedMenuStoryDefinition.step(model => ({ model })),
     }),
   },
 })
@@ -344,6 +346,7 @@ describe('Menu', () => {
           update,
           givenOpen,
           Story.message(Message.Closed()),
+          Story.expectOutMessage(OutMessage.Closed()),
           Story.Command.resolve(
             FocusMenuButton,
             Message.CompletedFocusMenuButton(),
@@ -377,12 +380,28 @@ describe('Menu', () => {
       })
     })
 
+    describe('RequestedClose', () => {
+      it('emits Closed when an operation closes the menu', () => {
+        Story.story(
+          update,
+          givenOpen,
+          Story.message(Message.RequestedClose()),
+          Story.expectOutMessage(OutMessage.Closed()),
+          Story.Command.resolve(
+            FocusMenuButton,
+            Message.CompletedFocusMenuButton(),
+          ),
+        )
+      })
+    })
+
     describe('BlurredItems', () => {
       it('closes the menu without restoring button focus', () => {
         Story.story(
           update,
           givenOpen,
           Story.message(Message.BlurredItems()),
+          Story.expectOutMessage(OutMessage.Closed()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
@@ -478,6 +497,7 @@ describe('Menu', () => {
               timeStamp: 1000,
             }),
           ),
+          Story.expectOutMessage(OutMessage.Closed()),
           Story.Command.resolve(
             FocusMenuButton,
             Message.CompletedFocusMenuButton(),
@@ -1260,6 +1280,7 @@ describe('Menu', () => {
             update,
             givenOpenAnimated,
             Story.message(Message.Closed()),
+            Story.expectOutMessage(OutMessage.Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
@@ -1286,6 +1307,7 @@ describe('Menu', () => {
             update,
             givenOpenAnimated,
             Story.message(Message.BlurredItems()),
+            Story.expectOutMessage(OutMessage.Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')

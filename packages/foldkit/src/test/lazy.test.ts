@@ -5,11 +5,11 @@ import { define } from '../block/define.js'
 import { block } from '../html/block.js'
 import {
   type Html,
-  __htmlBuilder as htmlBuilderFor,
   type HtmlBuilder,
   createKeyedLazy,
   createLazy,
   defineView,
+  __htmlBuilder as htmlBuilderFor,
   inertHtml as ih,
 } from '../html/index.js'
 import { observeLazyResolutions } from '../html/lazy.js'

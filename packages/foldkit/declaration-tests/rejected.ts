@@ -21,11 +21,11 @@ import {
   Measure,
   ParentMessage,
   ParentModel,
-  parentView,
   RecordApplicationComposition,
   RefinedChoice,
   makeProvisionElement,
   makeProvisionPageAwaitingDependency,
+  parentView,
 } from './accepted.js'
 
 const LocalMessage = defineMessageUnion({ RequestedRefresh: {} })

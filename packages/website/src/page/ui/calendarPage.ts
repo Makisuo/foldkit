@@ -1,14 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
-import raw from './calendarPage.md'
 import { UiComposition } from './composition'
+import { CalendarPageContent } from './content'
 import * as Calendar from './demo/calendar'
 
-const { tableOfContents, view: renderPage } = slotDocPage<'basic'>(
-  raw,
-  'ui/calendar',
-)
+const { tableOfContents, view: renderPage } = CalendarPageContent
 
 export { tableOfContents }
 

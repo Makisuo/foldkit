@@ -10,7 +10,7 @@ import {
   view,
 } from './application'
 
-const application = ApplicationComposition.makeApplication({
+const application = ApplicationComposition.assembleApplication({
   init,
   update,
   view,

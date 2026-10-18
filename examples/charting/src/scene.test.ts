@@ -13,13 +13,13 @@ import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { RadioGroup } from '@foldkit/ui'
-import { FocusOption } from '@foldkit/ui/radioGroup'
 
 import { SyncChart } from './command'
 import { Message } from './message'
 import { TelemetryAsyncData } from './model'
 import { loadingModel, readyModel, sampleTelemetry } from './model.fixture'
 import { CHART_HOST_ID, MountChart } from './mount'
+import { ChartModeRadioGroupBlock } from './radioGroups'
 import { update } from './update'
 import { view } from './view/index'
 
@@ -34,8 +34,8 @@ const acknowledgeChartSync = Command.resolve(
 )
 
 const resolveFocusOption = Command.resolve(
-  FocusOption,
-  RadioGroup.Message.CompletedFocusOption(),
+  RadioGroup.test.FocusOption,
+  ChartModeRadioGroupBlock.Message.CompletedFocusOption(),
 )
 
 describe('view', () => {

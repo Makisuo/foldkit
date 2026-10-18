@@ -2,16 +2,16 @@ import { Option } from 'effect'
 import type { Block, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { DatePicker } from '@foldkit/ui'
+import { DatePickerBlock } from '@foldkit/ui'
 
 import {
   Message,
   type Model,
   PersonalInfoDefinition,
-  PronounsListbox,
+  PronounsListboxBlock,
 } from './definition'
 
-const foldPronounsOutMessage = PronounsListbox.OutMessage.match<
+const foldPronounsOutMessage = PronounsListboxBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   Selected:
@@ -24,16 +24,15 @@ const foldPronounsOutMessage = PronounsListbox.OutMessage.match<
 })
 
 export const PronounsListboxBinding = PersonalInfoDefinition.bindChild(
-  PronounsListbox,
+  PronounsListboxBlock,
   {
     field: 'pronouns',
-    parentMessage: Message.GotPronounsMessage,
-    init: { startupToArgs: () => [{ id: 'pronouns' }] },
+    init: { contextToArgs: () => [{ id: 'pronouns' }] },
     outMessage: { fold: foldPronounsOutMessage },
   },
 )
 
-const foldAvailableDateOutMessage = DatePicker.OutMessage.match<
+const foldAvailableDateOutMessage = DatePickerBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   SelectedDate:
@@ -46,23 +45,22 @@ const foldAvailableDateOutMessage = DatePicker.OutMessage.match<
   ClearedDate: () => model => ({
     model: modifyFields(model, { maybeAvailableDate: () => Option.none() }),
   }),
-  ChangedViewMonth: () => model => ({ model }),
+  ChangedViewMonth: () => PersonalInfoDefinition.stepNoop(),
 })
 
 export const AvailableDatePickerBinding = PersonalInfoDefinition.bindChild(
-  DatePicker.block,
+  DatePickerBlock,
   {
     field: 'availableDate',
-    parentMessage: Message.GotAvailableDateMessage,
     init: {
-      startupToArgs: today => [{ id: 'available-date', today, minDate: today }],
+      contextToArgs: today => [{ id: 'available-date', today, minDate: today }],
     },
     outMessage: { fold: foldAvailableDateOutMessage },
   },
 )
 
 export const PersonalInfoComposition = PersonalInfoDefinition.makeComposition({
-  childBindings: [PronounsListboxBinding, AvailableDatePickerBinding],
+  bindings: [PronounsListboxBinding, AvailableDatePickerBinding],
 })
 export type PersonalInfoViewBuilder = Block.ViewBuilderFor<
   typeof PersonalInfoComposition

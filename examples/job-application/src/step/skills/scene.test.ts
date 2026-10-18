@@ -9,7 +9,7 @@ describe('skills', () => {
   test('renders the first skill field and the add control', () => {
     scene(
       { update, view },
-      given(init('skills-entry-1')),
+      given(init('skills-entry-1').model),
       expect(label('Skill')).toExist(),
       expect(role('button', { name: '+ Add Skill' })).toExist(),
     )

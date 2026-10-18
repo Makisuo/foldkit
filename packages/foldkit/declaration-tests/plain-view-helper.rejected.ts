@@ -1,5 +1,5 @@
 import { Layer } from 'effect'
-import { Block, Message, defineApplication } from 'foldkit'
+import { Block, Message, makeApplicationDefinition } from 'foldkit'
 
 import {
   ChildBinding,
@@ -19,13 +19,12 @@ const AlternativeChildBinding = DeclarationViewHelperParentDefinition.bindChild(
   {
     field: 'child',
     placement: 'alternativeChild',
-    parentMessage: ParentMessage.GotChildMessage,
     init: false,
   },
 )
 const OmittedParentComposition =
   DeclarationViewHelperParentDefinition.makeComposition({
-    childBindings: [AlternativeChildBinding],
+    bindings: [AlternativeChildBinding],
   })
 type OmittedParentViewBuilder = Block.ViewBuilderFor<
   typeof OmittedParentComposition
@@ -57,7 +56,7 @@ const helperWithForeignMessage = (h: OmittedParentViewBuilder) =>
 // @ts-expect-error Composition no longer carries a render helper.
 OmittedParentComposition.render
 
-DeclarationViewHelperChildComposition.makeBlock({
+DeclarationViewHelperChildComposition.assembleBlock({
   init: DeclarationViewHelperChildComposition.makeInit(() => ({
     model: ChildModel.make({ value: 'initial' }),
   })),
@@ -76,7 +75,7 @@ DeclarationViewHelperChildComposition.makeView((model, _h) =>
   invalidOutputHelper(model),
 )
 
-const ApplicationDefinition = defineApplication({
+const ApplicationDefinition = makeApplicationDefinition({
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -85,12 +84,11 @@ const AlternativeApplicationChildBinding = ApplicationDefinition.bindChild(
   {
     field: 'child',
     placement: 'alternativeApplicationChild',
-    parentMessage: ParentMessage.GotChildMessage,
     init: false,
   },
 )
 const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [AlternativeApplicationChildBinding],
+  bindings: [AlternativeApplicationChildBinding],
 })
 type OmittedApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
@@ -119,7 +117,7 @@ const applicationHelperWithOmittedMount = (h: OmittedApplicationViewBuilder) =>
 ApplicationComposition.render
 
 // @ts-expect-error A plain view helper cannot complete an Application as its branded view.
-ApplicationComposition.makeElement({
+ApplicationComposition.assembleElement({
   container: null,
   init: ApplicationComposition.makeInit(() => ({
     model: ParentModel.make({

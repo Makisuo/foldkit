@@ -3,6 +3,7 @@ import type { Html } from 'foldkit/html'
 import { Input } from '@foldkit/ui'
 
 import { UiComposition } from '../composition'
+import type { UiMessage } from '../composition'
 import { Message } from '../message'
 
 const inputClassName =
@@ -13,7 +14,7 @@ const labelClassName = 'block text-sm font-medium text-gray-700'
 const descriptionClassName = 'text-sm text-gray-500'
 
 export const view = UiComposition.makeView((model, h) => {
-  const basicInputView = (attributes: Input.InputAttributes<Message>): Html =>
+  const basicInputView = (attributes: Input.InputAttributes<UiMessage>): Html =>
     h.div(
       [h.Class('flex flex-col gap-1.5 w-full')],
       [
@@ -27,7 +28,7 @@ export const view = UiComposition.makeView((model, h) => {
     )
 
   const disabledInputView = (
-    attributes: Input.InputAttributes<Message>,
+    attributes: Input.InputAttributes<UiMessage>,
   ): Html =>
     h.div(
       [h.Class('flex flex-col gap-1.5 max-w-sm')],

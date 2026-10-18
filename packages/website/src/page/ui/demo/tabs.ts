@@ -1,13 +1,12 @@
 import { Match } from 'effect'
 
-import { Tabs } from '@foldkit/ui'
-
 import type { UiViewBuilder } from '../composition'
 import {
   HorizontalTabsDemoBinding,
   VerticalTabsDemoBinding,
 } from '../composition'
-import type { DemoTab } from '../model'
+import type { DemoTab } from '../domain/domain'
+import { DemoTabsBlock } from './components'
 
 // DEMO CONTENT
 
@@ -26,7 +25,7 @@ const verticalPanelClassName =
   'flex-1 p-6 bg-cream dark:bg-gray-900 rounded-r-lg rounded-bl-lg border border-gray-200 dark:border-gray-700'
 
 export const horizontalDemo = (
-  tabsModel: typeof Tabs.Model.Type,
+  tabsModel: typeof DemoTabsBlock.Model.Type,
   selectedTab: DemoTab,
   h: UiViewBuilder,
 ) => {
@@ -143,7 +142,7 @@ export const horizontalDemo = (
 }
 
 export const verticalDemo = (
-  tabsModel: typeof Tabs.Model.Type,
+  tabsModel: typeof DemoTabsBlock.Model.Type,
   selectedTab: DemoTab,
   h: UiViewBuilder,
 ) => {

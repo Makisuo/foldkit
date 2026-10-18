@@ -1,36 +1,34 @@
 import { Option } from 'effect'
 import { Update } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
 
-import { DatePicker } from '@foldkit/ui'
+import { DatePickerBlock } from '@foldkit/ui'
 
-import { Message, WorkHistoryEntryDefinition } from './definition'
+import { WorkHistoryEntryDefinition } from './definition'
 
-const foldStartDateOutMessage = DatePicker.OutMessage.match({
-  ChangedViewMonth: () => WorkHistoryEntryDefinition.step(model => ({ model })),
+const foldStartDateOutMessage = DatePickerBlock.OutMessage.match({
+  ChangedViewMonth: () => WorkHistoryEntryDefinition.stepNoop(),
   SelectedDate: ({ date }) =>
     Update.combine([
-      WorkHistoryEntryDefinition.step(model => ({
-        model: modifyFields(model, { maybeStartDate: () => Option.some(date) }),
+      WorkHistoryEntryDefinition.stepFields(() => ({
+        maybeStartDate: () => Option.some(date),
       })),
       EndDatePickerBinding.informMinDateChanged(Option.some(date)),
     ]),
   ClearedDate: () =>
     Update.combine([
-      WorkHistoryEntryDefinition.step(model => ({
-        model: modifyFields(model, { maybeStartDate: () => Option.none() }),
+      WorkHistoryEntryDefinition.stepFields(() => ({
+        maybeStartDate: () => Option.none(),
       })),
       EndDatePickerBinding.informMinDateChanged(Option.none()),
     ]),
 })
 
 export const StartDatePickerBinding = WorkHistoryEntryDefinition.bindChild(
-  DatePicker.block,
+  DatePickerBlock,
   {
     field: 'startDate',
-    parentMessage: Message.GotStartDateMessage,
     init: {
-      startupToArgs: ({ entryId, today }) => [
+      contextToArgs: ({ entryId, today }) => [
         { id: `${entryId}-start`, today },
       ],
     },
@@ -38,31 +36,30 @@ export const StartDatePickerBinding = WorkHistoryEntryDefinition.bindChild(
   },
 )
 
-const foldEndDateOutMessage = DatePicker.OutMessage.match({
-  ChangedViewMonth: () => WorkHistoryEntryDefinition.step(model => ({ model })),
+const foldEndDateOutMessage = DatePickerBlock.OutMessage.match({
+  ChangedViewMonth: () => WorkHistoryEntryDefinition.stepNoop(),
   SelectedDate: ({ date }) =>
     Update.combine([
-      WorkHistoryEntryDefinition.step(model => ({
-        model: modifyFields(model, { maybeEndDate: () => Option.some(date) }),
+      WorkHistoryEntryDefinition.stepFields(() => ({
+        maybeEndDate: () => Option.some(date),
       })),
       StartDatePickerBinding.informMaxDateChanged(Option.some(date)),
     ]),
   ClearedDate: () =>
     Update.combine([
-      WorkHistoryEntryDefinition.step(model => ({
-        model: modifyFields(model, { maybeEndDate: () => Option.none() }),
+      WorkHistoryEntryDefinition.stepFields(() => ({
+        maybeEndDate: () => Option.none(),
       })),
       StartDatePickerBinding.informMaxDateChanged(Option.none()),
     ]),
 })
 
 export const EndDatePickerBinding = WorkHistoryEntryDefinition.bindChild(
-  DatePicker.block,
+  DatePickerBlock,
   {
     field: 'endDate',
-    parentMessage: Message.GotEndDateMessage,
     init: {
-      startupToArgs: ({ entryId, today }) => [{ id: `${entryId}-end`, today }],
+      contextToArgs: ({ entryId, today }) => [{ id: `${entryId}-end`, today }],
     },
     outMessage: { fold: foldEndDateOutMessage },
   },
@@ -70,5 +67,5 @@ export const EndDatePickerBinding = WorkHistoryEntryDefinition.bindChild(
 
 export const WorkHistoryEntryComposition =
   WorkHistoryEntryDefinition.makeComposition({
-    childBindings: [StartDatePickerBinding, EndDatePickerBinding],
+    bindings: [StartDatePickerBinding, EndDatePickerBinding],
   })

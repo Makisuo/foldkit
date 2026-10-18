@@ -23,9 +23,10 @@ export const Message = defineMessageUnion({
   ToggledNotifications: {},
 })
 export type Message = typeof Message.Type
-
-export const SettingsDefinition = Block.define('Settings', { Model, Message })
-const SettingsComposition = SettingsDefinition.makeComposition()
+const SettingsComposition = Block.makeDefinition('Settings', {
+  Model,
+  Message,
+}).makeComposition()
 
 export const update = SettingsComposition.makeUpdate((model, message) =>
   Message.match(message, {

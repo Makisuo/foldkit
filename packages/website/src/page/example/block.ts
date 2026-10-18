@@ -18,7 +18,7 @@ export {
   view,
 } from './example'
 
-export const block = ExampleDetailComposition.makeBlock({
+export const ExampleDetailBlock = ExampleDetailComposition.assembleBlock({
   init,
   update,
   view,

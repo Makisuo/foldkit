@@ -15,7 +15,7 @@ import {
   mounts,
   update,
   view,
-} from './index.js'
+} from './virtualList.js'
 
 type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
 
@@ -82,7 +82,7 @@ const sceneView =
     return render(baseViewInputs)
   }
 
-const unmeasuredModel = init({ id: 'test', rowHeightPx: ROW_HEIGHT })
+const unmeasuredModel = init({ id: 'test', rowHeightPx: ROW_HEIGHT }).model
 
 const measuredModel = (() => {
   const measurement = update(
@@ -291,7 +291,7 @@ describe('VirtualList', () => {
           id: 'test',
           rowHeightPx: ROW_HEIGHT,
           initialScroll: { target: ScrollTarget.End() },
-        }),
+        }).model,
         Message.ResizedContainer({ containerWidth: 320, containerHeight: 90 }),
       )
 

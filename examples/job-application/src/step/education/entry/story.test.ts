@@ -9,7 +9,7 @@ describe('education entry', () => {
   test('UpdatedSchool stores a valid school', () => {
     story(
       update,
-      given(init('entry-1')),
+      given(init('entry-1').model),
       message(Message.UpdatedSchool({ value: 'MIT' })),
       model(model => {
         expect(model.school.value).toBe('MIT')
@@ -21,7 +21,7 @@ describe('education entry', () => {
   test('clearing school after a value makes the field Invalid', () => {
     story(
       update,
-      given(init('entry-1')),
+      given(init('entry-1').model),
       message(Message.UpdatedSchool({ value: 'MIT' })),
       message(Message.UpdatedSchool({ value: '' })),
       model(model => {
@@ -33,7 +33,7 @@ describe('education entry', () => {
   test('ClickedRemoveSelf emits Removed', () => {
     story(
       update,
-      given(init('entry-1')),
+      given(init('entry-1').model),
       message(Message.ClickedRemoveSelf()),
       expectOutMessage(OutMessage.Removed()),
     )

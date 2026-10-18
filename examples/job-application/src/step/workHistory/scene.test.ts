@@ -12,7 +12,7 @@ describe('workHistory', () => {
   test('renders the first position fields and the add control', () => {
     scene(
       { update, view },
-      given(init(today, 'work-history-entry-1')),
+      given(init(today, 'work-history-entry-1').model),
       expect(label('Company')).toExist(),
       expect(label('Job Title')).toExist(),
       expect(role('button', { name: '+ Add Position' })).toExist(),

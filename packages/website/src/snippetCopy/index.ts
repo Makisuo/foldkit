@@ -1,5 +1,1 @@
-export { block } from './block'
-export { Model } from './model'
-export { Message } from './message'
-export { renderer } from './renderer'
-export type { ViewInputs } from './view'
+export { SnippetCopyBlock } from './block'

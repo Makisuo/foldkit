@@ -11,9 +11,7 @@ type Framework = typeof Framework.Type
 
 const FrameworkTabs = Tabs.create<Framework>()
 
-const Message = defineMessageUnion({
-  GotTabsMessage: { message: FrameworkTabs.Message },
-})
+const Message = defineMessageUnion({})
 const frameworks: ReadonlyArray<Framework> = ['Foldkit', 'React', 'Elm']
 
 const descriptions: Record<Framework, string> = {

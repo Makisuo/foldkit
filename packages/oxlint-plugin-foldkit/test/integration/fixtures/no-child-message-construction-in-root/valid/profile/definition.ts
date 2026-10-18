@@ -13,4 +13,7 @@ export const Message = defineMessageUnion({
   GotChildMessage: { message: Schema.Unknown },
 })
 
-export const Profile = Block.define('Profile', { Model, Message })
+export const ProfileDefinition = Block.makeDefinition('Profile', {
+  Model,
+  Message,
+})

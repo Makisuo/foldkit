@@ -4,7 +4,8 @@ import { fromString as urlFromString } from 'foldkit/url'
 
 import { deployment } from '../deployment'
 import { Flags } from '../flags'
-import { ApiReference, ExampleDetail } from '../page'
+import * as ApiReference from '../page/apiReference/domain'
+import * as ExampleDetail from '../page/example/domain'
 import { ApplicationRoute, urlToApplicationRoute } from '../route'
 
 type SourcesBySlug = Readonly<

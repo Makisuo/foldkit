@@ -14,17 +14,17 @@ import { describe, test } from 'vitest'
 import { RedirectToDashboard, SaveSession } from './command'
 import { Session } from './domain/session'
 import { Message } from './message'
-import { LoggedOut } from './model'
+import { Model as LoggedOutModel } from './page/loggedOut/model'
+import { LoginBlock } from './page/loggedOut/page/login'
 import {
-  Message as LoginMessage,
   SimulateAuthRequest,
   initModel as initLoginModel,
-} from './page/loggedOut/page/login'
+} from './page/loggedOut/page/login/login'
 import { ApplicationRoute } from './route'
 import { update } from './update'
 import { view } from './view'
 
-const validModel = LoggedOut.Model({
+const validModel = LoggedOutModel({
   route: ApplicationRoute.Login(),
   loginModel: modifyFields(initLoginModel(), {
     email: () => Valid({ value: 'alice@example.com' }),
@@ -47,7 +47,9 @@ describe('login flow', () => {
       Command.expectExact(SimulateAuthRequest),
       Command.resolve(
         SimulateAuthRequest,
-        LoginMessage.SucceededSimulateAuthRequest({ session: aliceSession }),
+        LoginBlock.Message.SucceededSimulateAuthRequest({
+          session: aliceSession,
+        }),
       ),
       Command.expectExact(SaveSession, RedirectToDashboard),
       Command.resolveAll(

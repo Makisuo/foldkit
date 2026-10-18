@@ -6,7 +6,7 @@
 
 A Block sometimes needs to react to a change it does not own. The URL may change, a server may push new data, or a sibling field may establish a new constraint. The parent observes that change, but the child still owns the state transition it causes.
 
-Expose an `inform*` operation from the completed child Block, paired with an `InformedOf*` Message: `informJoined` selects `Message.InformedOfJoin`, for example. Select the Message constructor directly when its payload is the public input. Use a tuple producer when the inputs need mapping or refinement. The completed Block or registered Binding passes that Message through the child's update synchronously as part of the pure transition, so update owns the next Model and Commands. The parent may import the child's Message Schema and type for its `Got*Message` wrapper, but it does not construct child Messages to initiate this transition. It calls the projected `binding.inform*(...)` instead.
+Expose an `inform*` operation from the completed child Block, paired with an `InformedOf*` Message: `informJoined` selects `Message.InformedOfJoin`, for example. Select the Message constructor directly when its payload is the public input. Use a tuple producer when the inputs need mapping or refinement. The completed Block or registered Binding passes that Message through the child's update synchronously as part of the pure transition, so update owns the next Model and Commands. Composition derives delivery wrappers from its registered child Bindings. The parent does not declare those wrappers or construct child Messages to initiate this transition. It calls the projected `binding.inform*(...)` instead.
 
 ### Inform Every Child-Owned Change
 
@@ -17,7 +17,7 @@ Use `inform*` whenever a parent-owned fact changes the child Model. The notifica
 The example below uses routing. A People Block owns its search input, results, and recent searches. The root owns the Route. When the URL resolves to a People Route, the root calls `people.informRouteChanged` through its Binding.
 
 :::Info{label="Prerequisite"}
-This page builds on the [Blocks](/core/block) pattern. Read that first if the `Got*Message` wrapping convention is unfamiliar.
+This page builds on the [Blocks](/core/block) pattern. Read that first for the local Message, generated delivery, and Binding boundaries.
 :::
 
 ## The Child
@@ -46,7 +46,7 @@ Update copies the route query into the input, records it in recent searches, and
 
 ### Define the Parent Folds
 
-The People Binding declares its parent Model `field` and `parentMessage` wrapper once. The parent Composition routes regular People Messages through that Binding, while `PeopleBinding.informRouteChanged` produces and handles the public `InformedOfRouteChange` operation through the same boundary. The `ChangedUrl` handler matches the next Route and composes the resulting connected child Step with the pure `setRoute` Step through `Update.combine`. The `makeUpdate` Model supplies the registered graph, and the projected operation retains the Binding and child update requirements for application composition.
+The People Binding declares its parent Model `field` once; Composition derives its child delivery. The parent Composition routes regular People Messages through that Binding, while `PeopleBinding.informRouteChanged` produces and handles the public `InformedOfRouteChange` operation through the same boundary. The `ChangedUrl` handler matches the next Route and composes the resulting connected child Step with the pure `setRoute` Step through `Update.combine`. The `makeUpdate` Model supplies the registered graph, and the projected operation retains the Binding and child update requirements for application composition.
 
 ::Snippet{name="informingBlocksParent" label="Parent route fold"}
 
@@ -57,7 +57,7 @@ When several page Blocks react to routing, match the next Route and return the `
 ### Handle Cold Loads Separately
 
 :::Warning{label="Cold loads"}
-`informRouteChanged` handles later URL changes. The parent excerpt uses `init: false` because it does not show startup. On a cold load, root init must pass the People Route through the registered Binding’s initialization recipe, or the Binding can declare an argument policy from shared Startup inputs. See [Cold Loads and the Initial Route](/core/routing-and-navigation#cold-loads).
+`informRouteChanged` handles later URL changes. The parent excerpt uses `init: false` because it does not show startup. On a cold load, root init must pass the People Route through the registered Binding’s initialization recipe, or the Binding can declare an argument policy from shared ChildInitContext. See [Cold Loads and the Initial Route](/core/routing-and-navigation#cold-loads).
 :::
 
 ### Reuse the Pattern for Other Causes

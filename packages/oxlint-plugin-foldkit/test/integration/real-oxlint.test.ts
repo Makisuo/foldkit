@@ -136,7 +136,18 @@ describe('real-oxlint rule fixtures', () => {
   })
 
   it('traces direct, named, and automatically routed child updates', () => {
-    expect(countDiagnostics('no-direct-block-state-update', 'invalid')).toBe(15)
+    expect(countDiagnostics('no-direct-block-state-update', 'invalid')).toBe(21)
+  })
+
+  it('tracks provenance-backed child transform references', () => {
+    const diagnostics = diagnosticsFor(
+      'no-direct-block-state-update',
+      'invalid',
+    ).filter(diagnostic =>
+      diagnostic.filename.endsWith('function-references.ts'),
+    )
+
+    expect(diagnostics).toHaveLength(6)
   })
 
   it('tracks registered child Bindings in Composition update callbacks', () => {
@@ -151,7 +162,7 @@ describe('real-oxlint rule fixtures', () => {
   })
 
   it('reports disabled, missing, and manual child routing', () => {
-    expect(countDiagnostics('no-manual-composition-routing', 'invalid')).toBe(7)
+    expect(countDiagnostics('no-manual-composition-routing', 'invalid')).toBe(8)
   })
 
   it('reports direct child Message construction and local constructor aliases', () => {
@@ -199,7 +210,7 @@ describe('real-oxlint rule fixtures', () => {
   })
 
   it('resolves aliased constructors and helpers to their imported APIs', () => {
-    expect(countDiagnostics('block-name-matches-variable', 'invalid')).toBe(11)
+    expect(countDiagnostics('block-name-matches-variable', 'invalid')).toBe(14)
     expect(countDiagnostics('no-hardcoded-route-strings', 'invalid')).toBe(2)
     expect(countDiagnostics('keyed-required-for-mapped-rows', 'invalid')).toBe(
       3,

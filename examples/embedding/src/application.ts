@@ -1,5 +1,5 @@
 import { Duration, Effect, Layer, Schema, Stream } from 'effect'
-import { Port, defineApplication } from 'foldkit'
+import { Port, makeApplicationDefinition } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -20,7 +20,10 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const ApplicationDefinition = makeApplicationDefinition({
+  Model,
+  Message,
+})
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 

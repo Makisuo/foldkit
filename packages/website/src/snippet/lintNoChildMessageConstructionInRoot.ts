@@ -1,13 +1,16 @@
-import * as Child from './child'
+import { ChildBlock } from './child'
 import { ApplicationDefinition } from './definition'
 
-// ❌ Bad
-// The root reaches into the child Message namespace to build a child Message.
-const badRouting = () =>
-  GotChildMessage({ message: Child.Message.ClickedSave() })
+const ChildBinding = ApplicationDefinition.bindChild(ChildBlock, {
+  field: 'child',
+})
 
-const clickedSave = Child.Message.ClickedSave
-const badAliasRouting = () => GotChildMessage({ message: clickedSave() })
+// ❌ Bad
+// The parent constructs a local child Message instead of invoking its operation.
+const badRouting = () => ChildBlock.Message.RequestedSave()
+
+const requestSave = ChildBlock.Message.RequestedSave
+const badAliasRouting = () => requestSave()
 
 // ✅ Good
 // The parent invokes the operation projected by its child Binding.

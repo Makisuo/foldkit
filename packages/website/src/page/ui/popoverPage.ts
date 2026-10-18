@@ -1,13 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import { UiComposition } from './composition'
+import { PopoverPageContent } from './content'
 import * as Popover from './demo/popover'
-import raw from './popoverPage.md'
 
-const { tableOfContents, view: renderPage } = slotDocPage<
-  'basic' | 'arrow' | 'animated' | 'nested'
->(raw, 'ui/popover')
+const { tableOfContents, view: renderPage } = PopoverPageContent
 
 export { tableOfContents }
 

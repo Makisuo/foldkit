@@ -2,20 +2,19 @@ import { Match, Option } from 'effect'
 
 import { RedirectToDashboard, SaveSession } from '../command'
 import { ApplicationDefinition } from '../definition'
-import { Message } from '../message'
-import { LoggedIn, LoggedOut } from '../page'
+import { LoggedInBlock, LoggedOutBlock } from '../page'
 import { ApplicationRoute } from '../route'
 
-const foldLoggedOutOutMessage = LoggedOut.OutMessage.match({
+const foldLoggedOutOutMessage = LoggedOutBlock.OutMessage.match({
   SucceededLogin: ({ session }) =>
     ApplicationDefinition.step(() => ({
-      model: LoggedIn.init(ApplicationRoute.Dashboard(), session),
+      model: LoggedInBlock.init(ApplicationRoute.Dashboard(), session).model,
       commands: [SaveSession({ session }), RedirectToDashboard()],
     })),
 })
 
 export const LoggedOutBinding = ApplicationDefinition.bindChild(
-  LoggedOut.block,
+  LoggedOutBlock,
   {
     read: model =>
       Match.value(model).pipe(
@@ -25,11 +24,6 @@ export const LoggedOutBinding = ApplicationDefinition.bindChild(
         }),
       ),
     write: (_model, nextLoggedOut) => nextLoggedOut,
-    parentMessage: Message.GotLoggedOutMessage,
-    fromParentMessage: {
-      parentMessage: Message.GotLoggedOutMessage,
-      args: (_model, { message }) => Option.some([message]),
-    },
     outMessage: { fold: foldLoggedOutOutMessage },
   },
 )

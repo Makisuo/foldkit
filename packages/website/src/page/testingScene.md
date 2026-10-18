@@ -247,13 +247,13 @@ UI components export their Mount definitions (`Popover.AnchorPopover`, `Listbox.
 
 ## Subscriptions
 
-`Subscription.emit` supplies a declared Subscription output, such as a timer tick, WebSocket frame, or global listener result. Register the application's `subscriptions` in the `scene` config, then pass the exact entry and its raw Message to run update and render the next view. A Scene with no `subscriptions` config accepts no Subscription Message.
+`Subscription.emit` supplies a declared Subscription output, such as a timer tick, WebSocket frame, or global listener result. Register the complete application's Subscriptions in the `scene` config, then pass the exact entry and its raw Message to run update and render the next view. `Scene.subscriptions(ApplicationComposition, localSubscriptions?)` combines the root declarations with the registered children's placement-qualified entries without building Layers or running Streams. A completed feature Block already exposes its complete `.subscriptions` registry. A Scene with no `subscriptions` config accepts no Subscription Message.
 
 ::Snippet{name="testingSubscription" label="Emitting declared Subscription Messages"}
 
 Each Subscription entry's `messages` collection is its emission contract. `emit(entry, message)` accepts only a raw Message declared by that registered entry and validates its payload at runtime. An entry with `messages: []` has no Message that Scene can emit.
 
-For a lifted Subscription, pass the child Message. Scene replays the entry's `toParentMessage` mapping through every lift boundary before calling the update under test. The entry argument always makes the event source explicit, including when several Subscriptions declare the same Message.
+For a lifted Subscription, pass the child Message. Scene replays the entry's generated delivery through every child boundary before calling the update under test. The entry argument always makes the event source explicit, including when several Subscriptions declare the same Message.
 
 `emit` supplies an output from the registered Subscription graph; it does not evaluate `modelToDependencies` against the current Model. This allows a test to represent an event that was already queued when its Subscription became inactive.
 
@@ -303,11 +303,11 @@ Scene replaces the tracked sequence after every step that drives update. A step 
 
 ## Blocks with ViewInputs
 
-A Block with ViewInputs has a `(model, viewInputs, h)` view. Scene expects `(model, h)`. `withViewInputs(view, defaults)` adapts the view once and returns a factory for Scene views.
+To test a completed UI Block with render inputs, embed it through a local parent Binding and supply those inputs in the parent view. Author the parent view with `makeView.withInputs` when tests need to vary its inputs. `withViewInputs(view, defaults)` adapts that parent-owned view to Scene's `(model, h)` signature.
 
-::Snippet{name="sceneWithViewInputs" label="Using withViewInputs"}
+::Snippet{name="sceneWithViewInputs" label="Testing an embedded Block with view inputs"}
 
-Each test can override any ViewInputs field except `toView`, so values vary while the renderer stays fixed. See `packages/ui/src/slider/scene.test.ts` for a complete example.
+Each test can override the parent view inputs. Keep the embedded Block's `toView` callback in the parent renderer so the same markup and dispatch boundary are used across cases. A feature's own tests may adapt its private authored view directly.
 
 ## A Complete Scene
 

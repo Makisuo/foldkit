@@ -1,9 +1,9 @@
 import { Array, Effect, Layer } from 'effect'
 import { describe, expect, it } from 'vitest'
 
+import { PagefindService } from '../pagefind'
 import { EffectsLayer } from './layer'
 import { Message } from './message'
-import { PagefindService } from './pagefind'
 import { FetchSearchResults } from './update'
 
 describe('Search Command services', () => {

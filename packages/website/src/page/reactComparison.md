@@ -26,7 +26,7 @@ The Foldkit application currently has 25 parent Messages:
 
 ::Snippet{name="comparisonFoldkitMessage" label="Foldkit Messages"}
 
-This union is the complete input type for the parent update function. User events, Command results, and child Block Messages all enter through it. A `Got*Message` variant marks a child boundary; the child’s own Message union provides the detailed input domain one level down.
+The local Message union contains this feature's facts. Composition derives the complete update input by adding delivery from registered child Bindings. Generated `Got*Message` envelopes mark child boundaries and carry each child's complete Message Schema.
 
 Messages such as `SucceededExportPng` and `CompletedSaveCanvas` do not have to change the Model. They still record that a Command finished, and update must handle them.
 
@@ -66,7 +66,7 @@ The Foldkit entry point supplies the Runtime with the application definitions:
 
 ::Snippet{name="comparisonFoldkitProgram" label="Foldkit program"}
 
-`init` constructs the first Model and startup Commands. `ApplicationDefinition` establishes the Model and Message Schemas. `ApplicationComposition` collects child Bindings, and its owned `makeApplication` method receives init, update, view, local lifecycle declarations and handler recipes, the Flags Schema, and the container. The Runtime dispatches Messages and executes lifecycle primitives.
+`init` constructs the first Model and startup Commands. `ApplicationDefinition` establishes the Model and Message Schemas. `ApplicationComposition` collects child Bindings, and its owned `assembleApplication` method receives init, update, view, local lifecycle declarations and handler recipes, the Flags Schema, and the container. The Runtime dispatches Messages and executes lifecycle primitives.
 
 The Foldkit view still passes Model data to smaller view functions as parameters. Those functions do not own Hook state or lifecycle, so the Runtime assembly stays separate from the view tree.
 
@@ -292,7 +292,7 @@ Within a Foldkit application, the framework enforces several properties that Rea
 
 ### The Message union as total input domain {#message-union-index}
 
-The parent Message union is the total input domain of parent update. A child Block repeats that property behind its `Got*Message` wrapper. Every Runtime-driven Model transition therefore enters through a typed value from one of those unions.
+The Composition's complete Message Schema is the total input domain of its update. A child Block contributes its own complete Schema behind generated delivery. Every Runtime-driven Model transition enters through that checked dispatch contract; authored update callbacks handle only local facts.
 
 React’s Action union provides the same property for this reducer. It does not cover state internal to Headless UI or work begun directly in handlers and Effects, because those paths do not use the reducer.
 

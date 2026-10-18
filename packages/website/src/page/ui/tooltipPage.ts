@@ -1,14 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import { UiComposition } from './composition'
+import { TooltipPageContent } from './content'
 import * as Tooltip from './demo/tooltip'
-import raw from './tooltipPage.md'
 
-const { tableOfContents, view: renderPage } = slotDocPage<'demo'>(
-  raw,
-  'ui/tooltip',
-)
+const { tableOfContents, view: renderPage } = TooltipPageContent
 
 export { tableOfContents }
 

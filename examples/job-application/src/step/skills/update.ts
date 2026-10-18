@@ -1,10 +1,14 @@
 import { Array } from 'effect'
+import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { GenerateSkillsEntryId } from './command'
 import { EntriesBinding, SkillsComposition } from './composition'
 import { Message, type Model } from './definition'
-import * as Entry from './entry'
+import {
+  hasErrors as entryHasErrors,
+  isComplete as isEntryComplete,
+} from './entry/update'
 
 export const update = SkillsComposition.makeUpdate((model, message) =>
   Message.match(message, {
@@ -25,15 +29,20 @@ export const update = SkillsComposition.makeUpdate((model, message) =>
         entries: Array.filter(entry => entry.id !== entryId),
       }),
     }),
+
+    RequestedRevealErrors: () =>
+      Update.combine(
+        model,
+        Array.map(model.entries, entry =>
+          EntriesBinding.requestRevealErrors(entry.id),
+        ),
+      ),
   }),
 )
 
 export const hasErrors = (model: Model): boolean =>
-  Array.some(model.entries, Entry.hasErrors)
+  Array.some(model.entries, entryHasErrors)
 
 export const isComplete = (model: Model): boolean =>
   Array.isReadonlyArrayNonEmpty(model.entries) &&
-  Array.every(model.entries, Entry.isComplete)
-
-export const revealErrors = (model: Model): Model =>
-  modifyFields(model, { entries: Array.map(Entry.revealErrors) })
+  Array.every(model.entries, isEntryComplete)

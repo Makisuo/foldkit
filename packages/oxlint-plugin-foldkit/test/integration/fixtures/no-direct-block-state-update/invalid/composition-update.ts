@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -10,14 +10,14 @@ const Message = defineMessageUnion({
   ChangedTheme: {},
   GotSettingsMessage: { message: BoundSettings.Message },
 })
-const Application = defineApplication({ Model, Message })
-const SettingsBinding = Application.bindChild(BoundSettings.Settings, {
+const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const SettingsBinding = ApplicationDefinition.bindChild(BoundSettings.Settings, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
   init: true,
 })
-const ApplicationComposition = Application.makeComposition({
-  childBindings: [SettingsBinding],
+const ApplicationComposition = ApplicationDefinition.makeComposition({
+  bindings: [SettingsBinding],
 })
 
 export const update = ApplicationComposition.makeUpdate(model => {

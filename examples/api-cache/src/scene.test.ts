@@ -11,10 +11,11 @@ import {
 } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import * as Tabs from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import { FetchPostDetail, FetchStats } from './command'
 import { Message } from './message'
+import { ApplicationTabsBlock } from './model'
 import {
   FETCHED_AT,
   cachedFirstPostModel,
@@ -27,8 +28,8 @@ import { update } from './update'
 import { view } from './view/view'
 
 const resolveFocusTab = Command.resolve(
-  Tabs.FocusTab,
-  Tabs.Message.CompletedFocusTab(),
+  Tabs.test.FocusTab,
+  ApplicationTabsBlock.Message.CompletedFocusTab(),
 )
 
 describe('view', () => {

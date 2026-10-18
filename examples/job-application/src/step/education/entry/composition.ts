@@ -4,13 +4,13 @@ import { modifyFields } from 'foldkit/struct'
 
 import {
   EducationEntryDefinition,
-  GraduationYearListbox,
+  GraduationYearListboxBlock,
   Message,
   type Model,
 } from './definition'
 
 const foldGraduationYearListboxOutMessage =
-  GraduationYearListbox.OutMessage.match<Update.Step<Model, Message>>({
+  GraduationYearListboxBlock.OutMessage.match<Update.Step<Model, Message>>({
     Selected:
       ({ value }) =>
       model => ({
@@ -21,12 +21,11 @@ const foldGraduationYearListboxOutMessage =
   })
 
 export const GraduationYearListboxBinding = EducationEntryDefinition.bindChild(
-  GraduationYearListbox,
+  GraduationYearListboxBlock,
   {
     field: 'graduationYearListbox',
-    parentMessage: Message.GotGraduationYearListboxMessage,
     init: {
-      startupToArgs: entryId => [{ id: `${entryId}-graduation-year` }],
+      contextToArgs: entryId => [{ id: `${entryId}-graduation-year` }],
     },
     outMessage: { fold: foldGraduationYearListboxOutMessage },
   },
@@ -34,5 +33,5 @@ export const GraduationYearListboxBinding = EducationEntryDefinition.bindChild(
 
 export const EducationEntryComposition =
   EducationEntryDefinition.makeComposition({
-    childBindings: [GraduationYearListboxBinding],
+    bindings: [GraduationYearListboxBinding],
   })

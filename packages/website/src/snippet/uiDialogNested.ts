@@ -10,51 +10,53 @@ import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
 // One Model field per dialog level:
 const Model = Schema.Struct({
-  settingsDialog: Dialog.Model,
-  confirmDialog: Dialog.Model,
+  settingsDialog: Dialog.DialogBlock.Model,
+  confirmDialog: Dialog.DialogBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
 
-// Embed each Dialog Message in your parent Message and delegate each to its
-// own Dialog.update (see the basic Dialog example for the delegation).
+// Declare only the parent-owned coordination fact. Each Binding derives its
+// own generated Dialog delivery.
 const Message = defineMessageUnion({
-  GotSettingsDialogMessage: { message: Dialog.Message },
-  GotConfirmDialogMessage: { message: Dialog.Message },
   ClickedDeleteProject: {},
   ConfirmedDeleteProject: {},
 })
 type Message = typeof Message.Type
 
-const foldConfirmDialogOutMessage = Dialog.OutMessage.match<
+const foldConfirmDialogOutMessage = Dialog.DialogBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
-  Opened: () => model => ({ model }),
-  Closed: () => model => ({ model }),
-  CompletedClose: () => model => ({ model }),
+  Opened: () => ProjectDialogsDefinition.stepNoop(),
+  Closed: () => ProjectDialogsDefinition.stepNoop(),
+  CompletedClose: () => ProjectDialogsDefinition.stepNoop(),
 })
 
-const ProjectDialogsDefinition = Block.define('ProjectDialogs', {
+const ProjectDialogsDefinition = Block.makeDefinition('ProjectDialogs', {
   Model,
   Message,
 })
 
-const SettingsDialogBinding = ProjectDialogsDefinition.bindChild(Dialog.block, {
-  field: 'settingsDialog',
-  parentMessage: Message.GotSettingsDialogMessage,
-  init: { startupToArgs: () => Tuple.make({ id: 'settings' }) },
-  outMessage: { fold: foldConfirmDialogOutMessage },
-})
+const SettingsDialogBinding = ProjectDialogsDefinition.bindChild(
+  Dialog.DialogBlock,
+  {
+    field: 'settingsDialog',
+    init: { contextToArgs: () => Tuple.make({ id: 'settings' }) },
+    outMessage: { fold: foldConfirmDialogOutMessage },
+  },
+)
 
-const ConfirmDialogBinding = ProjectDialogsDefinition.bindChild(Dialog.block, {
-  field: 'confirmDialog',
-  parentMessage: Message.GotConfirmDialogMessage,
-  init: { startupToArgs: () => Tuple.make({ id: 'confirm-delete' }) },
-  outMessage: { fold: foldConfirmDialogOutMessage },
-})
+const ConfirmDialogBinding = ProjectDialogsDefinition.bindChild(
+  Dialog.DialogBlock,
+  {
+    field: 'confirmDialog',
+    init: { contextToArgs: () => Tuple.make({ id: 'confirm-delete' }) },
+    outMessage: { fold: foldConfirmDialogOutMessage },
+  },
+)
 
 const ProjectDialogsComposition = ProjectDialogsDefinition.makeComposition({
-  childBindings: [SettingsDialogBinding, ConfirmDialogBinding],
+  bindings: [SettingsDialogBinding, ConfirmDialogBinding],
 })
 
 const init = ProjectDialogsComposition.makeInit(() => ({

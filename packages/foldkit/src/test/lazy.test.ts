@@ -1,7 +1,7 @@
 import { Context, Schema } from 'effect'
 import { describe, expect, test } from 'vitest'
 
-import { define } from '../block/define.js'
+import { makeDefinition } from '../block/define.js'
 import { block } from '../html/block.js'
 import {
   type Html,
@@ -75,27 +75,27 @@ describe('Lazy.expectAllReused', () => {
 
   test('accepts a Composition view with registered child capabilities', () => {
     const lazyTitle = createLazy()
-    const ChildDefinition = define('LazyAssertionChild', {
+
+    const ChildComposition = makeDefinition('LazyAssertionChild', {
       Model,
       Message: Schema.Never,
-    })
-    const ChildComposition = ChildDefinition.makeComposition()
+    }).makeComposition()
     const childView = ChildComposition.makeView((model, h) =>
       h.div([], [lazyTitle(titleView, [model.title])]),
     )
-    const child = ChildComposition.makeBlock({
+    const child = ChildComposition.assembleBlock({
       init: ChildComposition.makeInit(() => ({ model })),
       update: ChildComposition.makeUpdate(),
       view: childView,
     })
     const ParentModel = Schema.Struct({ child: Model })
-    const ParentDefinition = define('LazyAssertionParent', {
+    const ParentDefinition = makeDefinition('LazyAssertionParent', {
       Model: ParentModel,
       Message: Schema.Never,
     })
     const ChildBinding = ParentDefinition.bindChild(child, { field: 'child' })
     const ParentComposition = ParentDefinition.makeComposition({
-      childBindings: [ChildBinding],
+      bindings: [ChildBinding],
     })
     const view = ParentComposition.makeView((model, h) =>
       h.block(ChildBinding.embedView({ slotId: 'child', model: model.child })),

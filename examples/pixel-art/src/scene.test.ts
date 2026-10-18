@@ -12,11 +12,15 @@ import {
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
-import { AcquireResources, CloseDialog, ShowDialog } from '@foldkit/ui/dialog'
-import { FocusOption } from '@foldkit/ui/radioGroup'
+import { Dialog, DialogBlock, RadioGroup } from '@foldkit/ui'
 
 import { ExportPng, SaveCanvas } from './command'
+import {
+  GridSizeRadioGroupBlock,
+  PaletteRadioGroupBlock,
+  ThemeListboxBlock,
+  ToolRadioGroupBlock,
+} from './components'
 import { createEmptyGrid } from './grid'
 import { Message } from './message'
 import { type Model, type PaletteIndex } from './model'
@@ -24,13 +28,13 @@ import { update } from './update'
 import { view } from './view'
 
 const resolveFocusOption = Command.resolve(
-  FocusOption,
-  RadioGroup.Message.CompletedFocusOption(),
+  RadioGroup.test.FocusOption,
+  ToolRadioGroupBlock.Message.CompletedFocusOption(),
 )
 
 const resolveDialogResources = Mount.resolve(
-  AcquireResources,
-  Dialog.Message.SucceededAcquireResources(),
+  Dialog.test.AcquireResources,
+  DialogBlock.Message.SucceededAcquireResources(),
 )
 
 const createTestModel = (): Model => ({
@@ -43,15 +47,18 @@ const createTestModel = (): Model => ({
   mirrorMode: 'None',
   isDrawing: false,
   maybeHoveredCell: Option.none(),
-  errorDialog: Dialog.init({ id: 'export-error-dialog' }),
+  errorDialog: DialogBlock.init({ id: 'export-error-dialog' }).model,
   maybeExportError: Option.none(),
   paletteThemeIndex: 0,
-  gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
+  gridSizeConfirmDialog: DialogBlock.init({ id: 'grid-size-confirm-dialog' })
+    .model,
   maybePendingGridSize: Option.none(),
-  themeListbox: Listbox.init({ id: 'theme-picker' }),
-  toolRadioGroup: RadioGroup.init({ id: 'tool-picker' }),
-  gridSizeRadioGroup: RadioGroup.init({ id: 'grid-size-picker' }),
-  paletteRadioGroup: RadioGroup.init({ id: 'palette-picker' }),
+  themeListbox: ThemeListboxBlock.init({ id: 'theme-picker' }).model,
+  toolRadioGroup: ToolRadioGroupBlock.init({ id: 'tool-picker' }).model,
+  gridSizeRadioGroup: GridSizeRadioGroupBlock.init({ id: 'grid-size-picker' })
+    .model,
+  paletteRadioGroup: PaletteRadioGroupBlock.init({ id: 'palette-picker' })
+    .model,
 })
 
 const createPaintedModel = (): Model =>
@@ -85,7 +92,10 @@ describe('export workflow', () => {
         ExportPng,
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(
+        Dialog.test.ShowDialog,
+        DialogBlock.Message.SucceededShowDialog(),
+      ),
       resolveDialogResources,
       expect(text('Export Failed')).toExist(),
       expect(text('Canvas 2D context not available')).toExist(),
@@ -102,12 +112,18 @@ describe('export workflow', () => {
         ExportPng,
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(
+        Dialog.test.ShowDialog,
+        DialogBlock.Message.SucceededShowDialog(),
+      ),
       resolveDialogResources,
       expect(text('Export Failed')).toExist(),
       click(role('button', { name: 'Dismiss' })),
-      Command.resolve(CloseDialog, Dialog.Message.CompletedCloseDialog()),
-      Mount.expectEnded(AcquireResources),
+      Command.resolve(
+        Dialog.test.CloseDialog,
+        DialogBlock.Message.CompletedCloseDialog(),
+      ),
+      Mount.expectEnded(Dialog.test.AcquireResources),
       expect(text('Export Failed')).toBeAbsent(),
     )
   })
@@ -215,7 +231,10 @@ describe('grid size change', () => {
       given(createPaintedModel()),
       click(role('radio', { name: '8' })),
       resolveFocusOption,
-      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(
+        Dialog.test.ShowDialog,
+        DialogBlock.Message.SucceededShowDialog(),
+      ),
       resolveDialogResources,
       expect(text('Change to 8\u00d78?')).toExist(),
       expect(
@@ -236,12 +255,18 @@ describe('grid size change', () => {
       given(paintedModel),
       click(role('radio', { name: '8' })),
       resolveFocusOption,
-      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(
+        Dialog.test.ShowDialog,
+        DialogBlock.Message.SucceededShowDialog(),
+      ),
       resolveDialogResources,
       expect(text('Change to 8\u00d78?')).toExist(),
       click(role('button', { name: 'Clear and Resize' })),
-      Command.resolve(CloseDialog, Dialog.Message.CompletedCloseDialog()),
-      Mount.expectEnded(AcquireResources),
+      Command.resolve(
+        Dialog.test.CloseDialog,
+        DialogBlock.Message.CompletedCloseDialog(),
+      ),
+      Mount.expectEnded(Dialog.test.AcquireResources),
       Command.resolve(SaveCanvas, Message.CompletedSaveCanvas()),
       expect(text('Change to 8\u00d78?')).toBeAbsent(),
     )
@@ -253,12 +278,18 @@ describe('grid size change', () => {
       given(createPaintedModel()),
       click(role('radio', { name: '8' })),
       resolveFocusOption,
-      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(
+        Dialog.test.ShowDialog,
+        DialogBlock.Message.SucceededShowDialog(),
+      ),
       resolveDialogResources,
       expect(text('Change to 8\u00d78?')).toExist(),
       click(role('button', { name: 'Cancel' })),
-      Command.resolve(CloseDialog, Dialog.Message.CompletedCloseDialog()),
-      Mount.expectEnded(AcquireResources),
+      Command.resolve(
+        Dialog.test.CloseDialog,
+        DialogBlock.Message.CompletedCloseDialog(),
+      ),
+      Mount.expectEnded(Dialog.test.AcquireResources),
       expect(text('Change to 8\u00d78?')).toBeAbsent(),
     )
   })

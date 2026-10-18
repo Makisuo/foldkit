@@ -23,7 +23,7 @@ export const createElement = (
   container: HTMLElement,
   flags: typeof Flags.Type,
 ) =>
-  ApplicationComposition.makeElement({
+  ApplicationComposition.assembleElement({
     init,
     update,
     view,

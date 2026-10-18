@@ -2,8 +2,14 @@ import { Array, Option } from 'effect'
 import { given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
-import { Message, Model as ModelSchema, init, update } from './application'
-import { Message as CounterMessage } from './counter'
+import {
+  CountersBinding,
+  Message,
+  Model as ModelSchema,
+  init,
+  update,
+} from './application'
+import { CounterBlock } from './counter'
 
 type Model = typeof ModelSchema.Type
 
@@ -14,6 +20,16 @@ const initialModel: Model = {
   ],
   nextCounterId: 2,
 }
+
+const counterMessage = (
+  id: string,
+  message: typeof CounterBlock.Message.Type,
+) =>
+  CountersBinding.embedView({
+    key: id,
+    slotId: id,
+    model: { count: 0 },
+  }).toParentMessage(message)
 
 describe('init', () => {
   test('creates distinct parent-owned instances with Counter state', () => {
@@ -70,10 +86,7 @@ describe('update', () => {
       message(Message.ClickedRemoveCounter({ id: 'counter-2' })),
       message(Message.ClickedAddCounter()),
       message(
-        Message.GotCounterMessage({
-          id: 'counter-2',
-          message: CounterMessage.ClickedIncrement(),
-        }),
+        counterMessage('counter-2', CounterBlock.Message.ClickedIncrement()),
       ),
       model(model => {
         expect(model.counters).toEqual([
@@ -85,15 +98,12 @@ describe('update', () => {
     )
   })
 
-  test('GotCounterMessage routes ClickedIncrement to the matching instance only', () => {
+  test('generated Counter Message routes ClickedIncrement to the matching instance only', () => {
     story(
       update,
       given(initialModel),
       message(
-        Message.GotCounterMessage({
-          id: 'counter-1',
-          message: CounterMessage.ClickedIncrement(),
-        }),
+        counterMessage('counter-1', CounterBlock.Message.ClickedIncrement()),
       ),
       model(model => {
         expect(
@@ -106,7 +116,7 @@ describe('update', () => {
     )
   })
 
-  test('GotCounterMessage routes ClickedDecrement to the matching instance only', () => {
+  test('generated Counter Message routes ClickedDecrement to the matching instance only', () => {
     story(
       update,
       given({
@@ -117,10 +127,7 @@ describe('update', () => {
         nextCounterId: 2,
       }),
       message(
-        Message.GotCounterMessage({
-          id: 'counter-0',
-          message: CounterMessage.ClickedDecrement(),
-        }),
+        counterMessage('counter-0', CounterBlock.Message.ClickedDecrement()),
       ),
       model(model => {
         expect(
@@ -133,15 +140,12 @@ describe('update', () => {
     )
   })
 
-  test('GotCounterMessage for a missing id leaves the model unchanged', () => {
+  test('generated Counter Message for a missing id leaves the model unchanged', () => {
     story(
       update,
       given(initialModel),
       message(
-        Message.GotCounterMessage({
-          id: 'counter-99',
-          message: CounterMessage.ClickedIncrement(),
-        }),
+        counterMessage('counter-99', CounterBlock.Message.ClickedIncrement()),
       ),
       model(model => {
         expect(
@@ -159,22 +163,13 @@ describe('update', () => {
       update,
       given(initialModel),
       message(
-        Message.GotCounterMessage({
-          id: 'counter-0',
-          message: CounterMessage.ClickedIncrement(),
-        }),
+        counterMessage('counter-0', CounterBlock.Message.ClickedIncrement()),
       ),
       message(
-        Message.GotCounterMessage({
-          id: 'counter-0',
-          message: CounterMessage.ClickedIncrement(),
-        }),
+        counterMessage('counter-0', CounterBlock.Message.ClickedIncrement()),
       ),
       message(
-        Message.GotCounterMessage({
-          id: 'counter-1',
-          message: CounterMessage.ClickedDecrement(),
-        }),
+        counterMessage('counter-1', CounterBlock.Message.ClickedDecrement()),
       ),
       model(model => {
         expect(

@@ -1,14 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
-import raw from './animationPage.md'
 import { UiComposition } from './composition'
+import { AnimationPageContent } from './content'
 import * as Animation from './demo/animation'
 
-const { tableOfContents, view: renderPage } = slotDocPage<'animation'>(
-  raw,
-  'ui/animation',
-)
+const { tableOfContents, view: renderPage } = AnimationPageContent
 
 export { tableOfContents }
 

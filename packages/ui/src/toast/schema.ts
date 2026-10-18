@@ -124,10 +124,6 @@ export const Message = defineMessageUnion({
   },
   HoveredEntry: { entryId: Schema.String },
   LeftEntry: { entryId: Schema.String },
-  GotAnimationMessage: {
-    entryId: Schema.String,
-    message: Animation.Message,
-  },
   PressedEntryPointer: {
     entryId: Schema.String,
     pointerId: Schema.Number,
@@ -150,7 +146,6 @@ export type CompletedWaitBeforeDismissal =
   typeof Message.CompletedWaitBeforeDismissal.Type
 export type HoveredEntry = typeof Message.HoveredEntry.Type
 export type LeftEntry = typeof Message.LeftEntry.Type
-export type GotAnimationMessage = typeof Message.GotAnimationMessage.Type
 export type PressedEntryPointer = typeof Message.PressedEntryPointer.Type
 export type MovedSwipePointer = typeof Message.MovedSwipePointer.Type
 export type ReleasedSwipePointer = typeof Message.ReleasedSwipePointer.Type
@@ -178,10 +173,6 @@ export const makeMessage = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
     },
     HoveredEntry: { entryId: Schema.String },
     LeftEntry: { entryId: Schema.String },
-    GotAnimationMessage: {
-      entryId: Schema.String,
-      message: Animation.Message,
-    },
     PressedEntryPointer: {
       entryId: Schema.String,
       pointerId: Schema.Number,

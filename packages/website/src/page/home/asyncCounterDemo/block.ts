@@ -6,7 +6,7 @@ import {
   view,
 } from './asyncCounterDemo'
 
-export const block = AsyncCounterDemoComposition.makeBlock({
+export const AsyncCounterDemoBlock = AsyncCounterDemoComposition.assembleBlock({
   init,
   update,
   view,

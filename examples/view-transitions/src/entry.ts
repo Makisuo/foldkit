@@ -10,7 +10,7 @@ import {
   viewTransition,
 } from './application'
 
-const application = ApplicationComposition.makeApplication({
+const application = ApplicationComposition.assembleApplication({
   init,
   update,
   view,
@@ -21,7 +21,7 @@ const application = ApplicationComposition.makeApplication({
     onUrlChange: url => Message.ChangedUrl({ url }),
   },
   viewTransition,
-  devTools: { Message },
+  devTools: { Message: ApplicationComposition.Message },
 })
 
 Runtime.run(application)

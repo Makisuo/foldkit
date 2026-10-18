@@ -48,10 +48,10 @@ const printNextSteps = (alreadyRegistered: boolean): void => {
   console.log('Next steps:')
   console.log('')
   console.log(
-    '  1. Pass your Message Schema to ApplicationComposition.makeApplication (enables dispatch):',
+    '  1. Pass the complete Message Codec to ApplicationComposition.assembleApplication (enables dispatch):',
   )
   console.log('')
-  console.log('       devTools: { Message }')
+  console.log('       devTools: { Message: ApplicationComposition.Message }')
   console.log('')
   console.log(
     '  2. Start your dev server, then restart your AI agent (Claude Code, Cursor, etc.).',

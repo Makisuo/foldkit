@@ -1,17 +1,6 @@
 export {
-  init,
-  update,
-  view,
+  DatePickerBlock,
   triggerId,
-  focusDate,
-  Model,
-  Message,
-  OutMessage,
-  type SelectedDate,
-  type ClearedDate,
-  type ChangedViewMonth,
-  block,
-  mounts,
+  type InitConfig,
+  type ViewInputs,
 } from './index.js'
-
-export type { InitConfig, ViewInputs } from './index.js'

@@ -4,7 +4,7 @@ import { Calendar } from 'foldkit'
 import { UiComposition } from './composition'
 
 export const init = UiComposition.makeInit((today: Calendar.CalendarDate) => ({
-  startup: today,
+  childInitContext: today,
   model: {
     buttonClickCount: 0,
     inputDemoValue: '',

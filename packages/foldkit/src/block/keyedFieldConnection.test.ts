@@ -1,11 +1,11 @@
-import { Layer, Option, Predicate, Schema } from 'effect'
+import { Layer, Predicate, Schema } from 'effect'
 import { expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
 import { taggedStruct } from '../schema/index.js'
 import { modifyFields } from '../struct/index.js'
 import { hasSameDecodedSchemaShape } from './decodedSchemaShape.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 import {
   type RequiredKeyField,
   type RequiredKeyedField,
@@ -49,12 +49,12 @@ const ChildMessage = defineMessageUnion({
   UpdatedCount: { count: Schema.Number },
   UpdatedId: { id: Schema.String },
 })
-const Child = define('KeyedFieldConnectionChild', {
+
+const ChildComposition = makeDefinition('KeyedFieldConnectionChild', {
   Model: ChildModel,
   Message: ChildMessage,
-})
-const ChildComposition = Child.makeComposition()
-const childBlock = ChildComposition.makeBlock({
+}).makeComposition()
+const childBlock = ChildComposition.assembleBlock({
   init: ChildComposition.makeInit(() => ({
     model: ChildModel.make({ id: 'initial', count: 0 }),
   })),
@@ -71,12 +71,12 @@ const childBlock = ChildComposition.makeBlock({
   EffectsLayer: Layer.empty,
 })
 const ArrayChildMessage = defineMessageUnion({ IgnoredValue: {} })
-const ArrayChild = define('KeyedFieldConnectionArrayChild', {
+
+const ArrayChildComposition = makeDefinition('KeyedFieldConnectionArrayChild', {
   Model: ArrayChildModel,
   Message: ArrayChildMessage,
-})
-const ArrayChildComposition = ArrayChild.makeComposition()
-const arrayChildBlock = ArrayChildComposition.makeBlock({
+}).makeComposition()
+const arrayChildBlock = ArrayChildComposition.assembleBlock({
   init: ArrayChildComposition.makeInit(() => ({
     model: ArrayChildModel.make(['initial']),
   })),
@@ -90,31 +90,20 @@ const keyedFieldCandidate: RequiredKeyedField<
 const keyFieldCandidate: RequiredKeyField<typeof childBlock.Model.Type> = 'id'
 void keyedFieldCandidate
 void keyFieldCandidate
-const ParentMessage = defineMessageUnion({
-  GotChildMessage: { id: Schema.String, message: ChildMessage },
-  GotArrayChildMessage: { message: ArrayChildMessage },
-})
-const Parent = define('KeyedFieldConnectionParent', {
+const Parent = makeDefinition('KeyedFieldConnectionParent', {
   Model: ParentModel,
-  Message: ParentMessage,
+  Message: Schema.Never,
 })
 const ChildrenBinding = Parent.bindChild(childBlock, {
   field: 'entries',
   key: 'id',
-  toParentMessage: (id, message) =>
-    ParentMessage.GotChildMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotChildMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
 })
 const ArrayChildBinding = Parent.bindChild(arrayChildBlock, {
   field: 'arrayChild',
-  parentMessage: ParentMessage.GotArrayChildMessage,
   init: false,
 })
 const ParentComposition = Parent.makeComposition({
-  childBindings: [ChildrenBinding, ArrayChildBinding],
+  bindings: [ChildrenBinding, ArrayChildBinding],
 })
 
 const update = ParentComposition.makeUpdate()
@@ -123,12 +112,15 @@ const CallableChildModel = taggedStruct('CallableChild', {
   id: Schema.String,
   count: Schema.Number,
 })
-const CallableChild = define('KeyedFieldConnectionCallableChild', {
-  Model: CallableChildModel,
-  Message: ChildMessage,
-})
-const CallableChildComposition = CallableChild.makeComposition()
-const callableChildBlock = CallableChildComposition.makeBlock({
+
+const CallableChildComposition = makeDefinition(
+  'KeyedFieldConnectionCallableChild',
+  {
+    Model: CallableChildModel,
+    Message: ChildMessage,
+  },
+).makeComposition()
+const callableChildBlock = CallableChildComposition.assembleBlock({
   init: CallableChildComposition.makeInit(() => ({
     model: CallableChildModel({ id: 'initial', count: 0 }),
   })),
@@ -147,25 +139,16 @@ const callableChildBlock = CallableChildComposition.makeBlock({
 const CallableParentModel = taggedStruct('CallableParent', {
   entries: Schema.Array(CallableChildModel),
 })
-const CallableParentMessage = defineMessageUnion({
-  GotChildMessage: { id: Schema.String, message: ChildMessage },
-})
-const CallableParent = define('KeyedFieldConnectionCallableParent', {
+const CallableParent = makeDefinition('KeyedFieldConnectionCallableParent', {
   Model: CallableParentModel,
-  Message: CallableParentMessage,
+  Message: Schema.Never,
 })
 const CallableChildrenBinding = CallableParent.bindChild(callableChildBlock, {
   field: 'entries',
   key: 'id',
-  toParentMessage: (id, message) =>
-    CallableParentMessage.GotChildMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: CallableParentMessage.GotChildMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
 })
 const CallableComposition = CallableParent.makeComposition({
-  childBindings: [CallableChildrenBinding],
+  bindings: [CallableChildrenBinding],
 })
 const updateCallable = CallableComposition.makeUpdate()
 
@@ -235,13 +218,13 @@ it('accepts callable tagged Struct schemas for parent and child Models', () => {
   const parent = CallableParentModel({ entries: [first] })
 
   expect(
-    updateCallable(
-      parent,
-      ParentMessage.GotChildMessage({
-        id: 'first',
-        message: ChildMessage.UpdatedCount({ count: 2 }),
-      }),
-    ).model,
+    updateCallable(parent, {
+      _tag: 'GotKeyedFieldConnectionCallableChildMessage',
+      placement: 'KeyedFieldConnectionCallableChild',
+      generation: 0,
+      key: 'first',
+      message: ChildMessage.UpdatedCount({ count: 2 }),
+    }).model,
   ).toEqual(
     CallableParentModel({
       entries: [CallableChildModel({ id: 'first', count: 2 })],
@@ -289,22 +272,24 @@ it('uses the direct field shorthand through the shared keyed Binding', () => {
     child: first,
     arrayChild: ['initial'],
   })
-  const updated = update(
-    parent,
-    ParentMessage.GotChildMessage({
-      id: 'first',
-      message: ChildMessage.UpdatedCount({ count: 4 }),
-    }),
-  )
-  const absent = update(
-    parent,
-    ParentMessage.GotChildMessage({
-      id: 'absent',
-      message: ChildMessage.UpdatedCount({ count: 5 }),
-    }),
-  )
+  const updated = update(parent, {
+    _tag: 'GotKeyedFieldConnectionChildMessage',
+    placement: 'KeyedFieldConnectionChild',
+    generation: 0,
+    key: 'first',
+    message: ChildMessage.UpdatedCount({ count: 4 }),
+  })
+  const absent = update(parent, {
+    _tag: 'GotKeyedFieldConnectionChildMessage',
+    placement: 'KeyedFieldConnectionChild',
+    generation: 0,
+    key: 'absent',
+    message: ChildMessage.UpdatedCount({ count: 5 }),
+  })
 
-  expectTypeOf(ChildrenBinding.placement).toEqualTypeOf<'entries'>()
+  expectTypeOf(
+    ChildrenBinding.placement,
+  ).toEqualTypeOf<'KeyedFieldConnectionChild'>()
   expectTypeOf<
     Parameters<typeof ChildrenBinding.fold>[1]
   >().toEqualTypeOf<string>()
@@ -323,12 +308,12 @@ it('keeps an Array child Model in the static direct Binding path', () => {
     child,
     arrayChild: ['initial'],
   })
-  const updated = update(
-    parent,
-    ParentMessage.GotArrayChildMessage({
-      message: ArrayChildMessage.IgnoredValue(),
-    }),
-  )
+  const updated = update(parent, {
+    _tag: 'GotArrayChildMessage',
+    placement: 'arrayChild',
+    generation: 0,
+    message: ArrayChildMessage.IgnoredValue(),
+  })
 
   expect(updated.model).toEqual(parent)
 })
@@ -461,13 +446,13 @@ it('rejects a child update that changes its stable key', () => {
   })
 
   expect(() =>
-    update(
-      parent,
-      ParentMessage.GotChildMessage({
-        id: 'first',
-        message: ChildMessage.UpdatedId({ id: 'changed' }),
-      }),
-    ),
+    update(parent, {
+      _tag: 'GotKeyedFieldConnectionChildMessage',
+      placement: 'KeyedFieldConnectionChild',
+      generation: 0,
+      key: 'first',
+      message: ChildMessage.UpdatedId({ id: 'changed' }),
+    }),
   ).toThrow('cannot initialize or replace a child with a different key')
   expect(parent.entries).toEqual([first])
 })
@@ -482,11 +467,9 @@ it('rejects ambiguous shorthand and incomplete general keyed adapters', () => {
       childBlock,
       {
         field: 'entries',
-        toParentMessage: (id: string, message: typeof ChildMessage.Type) =>
-          ParentMessage.GotChildMessage({ id, message }),
       },
     ]),
-  ).toThrow('declared child Model key field')
+  ).toThrow('requires a derivable key Schema')
 
   expect(() =>
     Reflect.apply(Parent.bindChild, undefined, [
@@ -497,11 +480,9 @@ it('rejects ambiguous shorthand and incomplete general keyed adapters', () => {
         key: (child: typeof ChildModel.Type) => child.id,
         read: (child: typeof ChildModel.Type) => child,
         writeAt: (model: typeof ParentModel.Type) => model,
-        toParentMessage: (id: string, message: typeof ChildMessage.Type) =>
-          ParentMessage.GotChildMessage({ id, message }),
       },
     ]),
-  ).toThrow('cannot supply field, presentWhen, or parentMessage')
+  ).toThrow('cannot supply field or presentWhen')
 
   expect(() =>
     Reflect.apply(Parent.bindChild, undefined, [
@@ -510,8 +491,6 @@ it('rejects ambiguous shorthand and incomplete general keyed adapters', () => {
         readAll: (model: typeof ParentModel.Type) => model.entries,
         key: (child: typeof ChildModel.Type) => child.id,
         writeAt: (model: typeof ParentModel.Type) => model,
-        toParentMessage: (id: string, message: typeof ChildMessage.Type) =>
-          ParentMessage.GotChildMessage({ id, message }),
       },
     ]),
   ).toThrow('requires a read function')
@@ -524,8 +503,6 @@ it('rejects ambiguous shorthand and incomplete general keyed adapters', () => {
         key: (child: typeof ChildModel.Type) => child.id,
         read: (child: typeof ChildModel.Type) => child,
         writeAt: (model: typeof ParentModel.Type) => model,
-        toParentMessage: (id: string, message: typeof ChildMessage.Type) =>
-          ParentMessage.GotChildMessage({ id, message }),
         subscriptons: {},
       },
     ]),

@@ -24,7 +24,7 @@ React functional components can hold local state and run effects through hooks, 
 
 ### Document Fields
 
-An `ApplicationComposition.makeApplication` view returns a `Document`, not bare HTML. The Document contains the body to patch into the application container and the document-level state that should track the Model.
+An `ApplicationComposition.assembleApplication` view returns a `Document`, not bare HTML. The Document contains the body to patch into the application container and the document-level state that should track the Model.
 
 | Field       | Type                       | Required | What the runtime does with it                                                                                                                  |
 | ----------- | -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -39,7 +39,7 @@ Every field is a function of the Model, just like `body`. There is no imperative
 
 ### Document Ownership
 
-An `ApplicationComposition.makeElement` view returns `Html` directly. An embedded app does not own the page, so it cannot declare the title or document metadata. Everything outside this section applies to both kinds of view. See [Runtime](/core/runtime#to-element) for when to use each one.
+An `ApplicationComposition.assembleElement` view returns `Html` directly. An embedded app does not own the page, so it cannot declare the title or document metadata. Everything outside this section applies to both kinds of view. See [Runtime](/core/runtime#to-element) for when to use each one.
 
 ### Language and Direction
 
@@ -89,7 +89,7 @@ Every view receives `h`, an `HtmlBuilder` typed to the application's Message uni
 
 The Message type follows the builder. If `h.OnClick` receives a Message outside the application union, TypeScript rejects it. The root Runtime supplies its builder, and each Block Composition's `makeView` supplies one for its child view.
 
-The builder also carries the Mount definitions and child Blocks the view may render. A Composition infers them from its local Mounts and child Bindings, and `ApplicationComposition.makeApplication` installs the root Composition's complete registry. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
+The builder also carries the Mount definitions and child Blocks the view may render. A Composition infers them from its local Mounts and child Bindings, and `ApplicationComposition.assembleApplication` installs the root Composition's complete registry. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
 
 #### Element Builder Arity
 
@@ -101,7 +101,7 @@ Application code cannot construct a builder. The canonical owned view enters thr
 
 Ordinary feature-local helpers remain plain functions. After establishing `FeatureComposition`, declare `type FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` on the next line with no blank line and use that alias for each helper's `h` parameter. Export it only when another file uses it. The alias carries the owner's Message type and its registered child and Mount capabilities; it creates no runtime value.
 
-The owner prefix identifies the specific Composition at a plain type import site. Structural contracts keep the standard names `Model`, `Message`, and `OutMessage` because consumers normally qualify them through the feature namespace. Give a helper only the other parameters it uses: a heading helper can take only `h`, a card helper can take its domain value and `h`, and a list helper can take the Model and `h`. Let TypeScript infer whether the helper returns one `Html` value or an array.
+The owner prefix identifies the specific Composition at a plain type import site. Structural contracts keep the standard names `Model`, `Message`, and `OutMessage` because a completed value supplies the feature context, such as `SearchBlock.Model`. Give a helper only the other parameters it uses: a heading helper can take only `h`, a card helper can take its domain value and `h`, and a list helper can take the Model and `h`. Let TypeScript infer whether the helper returns one `Html` value or an array.
 
 ::Snippet{name="featureViewHelpers" label="View helpers within a feature"}
 

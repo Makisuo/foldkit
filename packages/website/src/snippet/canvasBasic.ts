@@ -8,7 +8,10 @@ const Message = defineMessageUnion({
   ClickedCanvas: { x: Schema.Number, y: Schema.Number },
 })
 
-const CanvasAppDefinition = Block.define('CanvasApp', { Model, Message })
+const CanvasAppDefinition = Block.makeDefinition('CanvasApp', {
+  Model,
+  Message,
+})
 const CanvasAppComposition = CanvasAppDefinition.makeComposition()
 
 const subscriptions = CanvasAppDefinition.subscriptions(entry => ({

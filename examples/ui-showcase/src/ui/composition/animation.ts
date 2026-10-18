@@ -1,27 +1,28 @@
 import { Update } from 'foldkit'
 
-import { Animation } from '@foldkit/ui'
+import { AnimationBlock } from '@foldkit/ui'
 import { defaultLeaveCommand } from '@foldkit/ui/animation'
 
 import { UiDefinition } from '../definition'
 import { Message } from '../message'
 
 const foldAnimationDemoOutMessage = (
-  outMessage: typeof Animation.OutMessage.Type,
-  { liftCommand }: Update.FoldContext<typeof Animation.Message.Type, Message>,
+  outMessage: typeof AnimationBlock.OutMessage.Type,
+  {
+    liftCommand,
+  }: Update.FoldContext<typeof AnimationBlock.Message.Type, Message>,
 ) =>
-  Animation.OutMessage.match(outMessage, {
+  AnimationBlock.OutMessage.match(outMessage, {
     StartedLeaveAnimating: () =>
       UiDefinition.step(model => ({
         model,
         commands: [liftCommand(defaultLeaveCommand(model.animationDemo))],
       })),
-    TransitionedOut: () => UiDefinition.step(model => ({ model })),
+    TransitionedOut: () => UiDefinition.stepNoop(),
   })
 
-export const AnimationDemoBinding = UiDefinition.bindChild(Animation.block, {
+export const AnimationDemoBinding = UiDefinition.bindChild(AnimationBlock, {
   field: 'animationDemo',
-  parentMessage: Message.GotAnimationDemoMessage,
-  init: { startupToArgs: () => [{ id: 'animation-demo' }] },
+  init: { contextToArgs: () => [{ id: 'animation-demo' }] },
   outMessage: { fold: foldAnimationDemoOutMessage },
 })

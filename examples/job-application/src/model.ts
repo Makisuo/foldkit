@@ -1,16 +1,15 @@
 import { Schema } from 'effect'
 import { defineTaggedUnion } from 'foldkit/schema'
 
-import { Menu, Tabs } from '@foldkit/ui'
-
 import { Step } from './domain'
+import { StepMenuBlock, StepTabsBlock } from './navigationComponents'
 import {
-  Attachments,
-  CoverLetter,
-  Education,
-  PersonalInfo,
-  Skills,
-  WorkHistory,
+  AttachmentsBlock,
+  CoverLetterBlock,
+  EducationBlock,
+  PersonalInfoBlock,
+  SkillsBlock,
+  WorkHistoryBlock,
 } from './step'
 
 export const Submission = defineTaggedUnion({
@@ -23,16 +22,16 @@ export type Submission = typeof Submission.Type
 
 export const Model = Schema.Struct({
   currentStep: Step.Step,
-  personalInfo: PersonalInfo.Model,
-  workHistory: WorkHistory.Model,
-  education: Education.Model,
-  skills: Skills.Model,
-  coverLetter: CoverLetter.Model,
-  attachments: Attachments.Model,
+  personalInfo: PersonalInfoBlock.Model,
+  workHistory: WorkHistoryBlock.Model,
+  education: EducationBlock.Model,
+  skills: SkillsBlock.Model,
+  coverLetter: CoverLetterBlock.Model,
+  attachments: AttachmentsBlock.Model,
   isPreviewVisible: Schema.Boolean,
   submission: Submission,
-  stepMenu: Menu.Model,
-  stepTabs: Tabs.Model,
+  stepMenu: StepMenuBlock.Model,
+  stepTabs: StepTabsBlock.Model,
   isSubmitAttempted: Schema.Boolean,
 })
 export type Model = typeof Model.Type

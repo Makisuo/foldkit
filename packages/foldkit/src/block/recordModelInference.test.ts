@@ -2,8 +2,8 @@ import { Record, Schema } from 'effect'
 import { expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
-import { define as defineApplication } from '../runtime/applicationPublic.js'
-import { define } from './define.js'
+import { makeDefinition as makeApplicationDefinition } from '../runtime/applicationPublic.js'
+import { makeDefinition } from './define.js'
 
 const Model = Schema.Record(Schema.String, Schema.Boolean)
 type Model = typeof Model.Type
@@ -12,14 +12,18 @@ const Message = defineMessageUnion({
   ToggledDisclosure: { id: Schema.String, isOpen: Schema.Boolean },
 })
 
-const Disclosures = define('Disclosures', { Model, Message })
-const DisclosuresComposition = Disclosures.makeComposition()
+const DisclosuresComposition = makeDefinition('Disclosures', {
+  Model,
+  Message,
+}).makeComposition()
 const update = DisclosuresComposition.makeUpdate((model, { id, isOpen }) => ({
   model: Record.set(model, id, isOpen),
 }))
 
-const ApplicationDefinition = defineApplication({ Model, Message })
-const ApplicationComposition = ApplicationDefinition.makeComposition()
+const ApplicationComposition = makeApplicationDefinition({
+  Model,
+  Message,
+}).makeComposition()
 const updateApplication = ApplicationComposition.makeUpdate(
   (model, { id, isOpen }) => ({ model: Record.set(model, id, isOpen) }),
 )

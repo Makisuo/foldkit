@@ -2,7 +2,6 @@ import { clsx } from 'clsx'
 import { Array, Option } from 'effect'
 import { childAttributes, inertHtml as ih } from 'foldkit/html'
 
-import { Combobox } from '@foldkit/ui'
 import {
   type AnchorConfig,
   type ViewInputs as ComboboxViewInputs,
@@ -10,7 +9,7 @@ import {
 } from '@foldkit/ui/combobox'
 
 import { Icon } from '../../../icon'
-import { CityCombobox, CityMultiCombobox } from '../combobox'
+import { CityComboboxBlock, CityMultiComboboxBlock } from '../combobox'
 import type { UiViewBuilder } from '../composition'
 import {
   ComboboxDemoBinding,
@@ -19,11 +18,11 @@ import {
   ComboboxPlacementLockDemoBinding,
   ComboboxSelectOnFocusDemoBinding,
 } from '../composition'
-import type { City } from '../model'
+import type { City } from '../domain/domain'
 
 // DEMO CONTENT
 
-export { CityCombobox, CityMultiCombobox }
+export { CityComboboxBlock, CityMultiComboboxBlock }
 
 const CITIES: ReadonlyArray<City> = [
   'Johannesburg',
@@ -112,7 +111,7 @@ export const comboboxViewInputs = ({
 }
 
 export const view = (
-  comboboxModel: typeof Combobox.Model.Type,
+  comboboxModel: typeof CityComboboxBlock.Model.Type,
   maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
 ) => {
@@ -151,7 +150,7 @@ export const view = (
 }
 
 export const nullableDemo = (
-  comboboxNullableModel: typeof Combobox.Model.Type,
+  comboboxNullableModel: typeof CityComboboxBlock.Model.Type,
   maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
 ) => {
@@ -190,7 +189,7 @@ export const nullableDemo = (
 }
 
 export const selectOnFocusDemo = (
-  comboboxSelectOnFocusModel: typeof Combobox.Model.Type,
+  comboboxSelectOnFocusModel: typeof CityComboboxBlock.Model.Type,
   maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
 ) => {
@@ -232,7 +231,7 @@ export const selectOnFocusDemo = (
 }
 
 export const placementLockDemo = (
-  comboboxPlacementLockModel: typeof Combobox.Model.Type,
+  comboboxPlacementLockModel: typeof CityComboboxBlock.Model.Type,
   maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
 ) => [
@@ -292,7 +291,7 @@ const tagClassName =
 const emptyTagClassName = 'text-sm py-0.5 text-gray-700 dark:text-gray-400'
 
 export const multiDemo = (
-  comboboxMultiModel: typeof Combobox.Multi.Model.Type,
+  comboboxMultiModel: typeof CityMultiComboboxBlock.Model.Type,
   selectedCities: ReadonlyArray<City>,
   h: UiViewBuilder,
 ) => {

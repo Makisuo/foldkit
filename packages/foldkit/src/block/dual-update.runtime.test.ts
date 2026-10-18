@@ -6,7 +6,7 @@ import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import * as Update from '../update/index.js'
 import type { RequirementOfBinding } from './binding.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 
 const Model = Schema.Struct({ count: Schema.Number })
 type Model = typeof Model.Type
@@ -20,7 +20,7 @@ const OutMessage = defineMessageUnion({
 })
 type OutMessage = typeof OutMessage.Type
 
-const Counter = define('DualUpdateRuntimeCounter', {
+const Counter = makeDefinition('DualUpdateRuntimeCounter', {
   Model,
   Message,
   OutMessage,
@@ -59,11 +59,11 @@ const reportUpdate = CounterComposition.makeUpdate((model, message) =>
 )
 
 type DispatchContext = Readonly<{ multiplier: number }>
-const ContextCounter = define('DualUpdateRuntimeContextCounter', {
+
+const ContextComposition = makeDefinition('DualUpdateRuntimeContextCounter', {
   Model,
   Message,
-})
-const ContextComposition = ContextCounter.makeComposition()
+}).makeComposition()
 const requiredContextUpdate = ContextComposition.makeUpdate(
   (model, message, context: DispatchContext) => ({
     model: modifyFields(model, {
@@ -128,7 +128,7 @@ const fullChannelUpdate = CounterComposition.makeUpdate(
     }
   },
 )
-const FullChannelBlock = CounterComposition.makeBlock({
+const FullChannelBlock = CounterComposition.assembleBlock({
   view: CounterComposition.makeView((_model, h) => h.empty),
   init: () => ({ model: Model.make({ count: 0 }) }),
   update: fullChannelUpdate,
@@ -140,12 +140,12 @@ const ChildModel = Schema.Struct({ count: Schema.Number })
 const ChildMessage = defineMessageUnion({
   ChangedCount: { amount: Schema.Number },
 })
-const Child = define('DualUpdateRuntimeChild', {
+
+const ChildComposition = makeDefinition('DualUpdateRuntimeChild', {
   Model: ChildModel,
   Message: ChildMessage,
-})
-const ChildComposition = Child.makeComposition()
-const ChildBlock = ChildComposition.makeBlock({
+}).makeComposition()
+const ChildBlock = ChildComposition.assembleBlock({
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
   update: ChildComposition.makeUpdate((model, { amount }) => ({
     model: modifyFields(model, { count: count => count + amount }),
@@ -154,32 +154,33 @@ const ChildBlock = ChildComposition.makeBlock({
 const ParentModel = Schema.Struct({ child: ChildModel, updates: Schema.Number })
 type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
-  GotChildMessage: { message: ChildMessage },
   Advanced: {},
 })
 type ParentMessage = typeof ParentMessage.Type
-const Parent = define('DualUpdateRuntimeParent', {
+const Parent = makeDefinition('DualUpdateRuntimeParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
 const ChildBinding = Parent.bindChild(ChildBlock, {
   field: 'child',
-  parentMessage: ParentMessage.GotChildMessage,
 })
 const ParentComposition = Parent.makeComposition({
-  childBindings: [ChildBinding],
+  bindings: [ChildBinding],
 })
 const parentUpdate = ParentComposition.makeUpdate(model => ({
   model: modifyFields(model, { updates: updates => updates + 1 }),
 }))
-const parentMessage = ParentMessage.GotChildMessage({
+const parentMessage = {
+  _tag: 'GotChildMessage',
+  placement: 'child',
+  generation: 0,
   message: ChildMessage.ChangedCount({ amount: 4 }),
-})
+} satisfies Parameters<typeof parentUpdate>[1]
 const parentModel = ParentModel.make({
   child: ChildModel.make({ count: 0 }),
   updates: 0,
 })
-const ParentBlock = ParentComposition.makeBlock({
+const ParentBlock = ParentComposition.assembleBlock({
   init: () => ({ model: parentModel }),
   update: parentUpdate,
 })

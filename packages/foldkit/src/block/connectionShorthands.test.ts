@@ -15,7 +15,7 @@ import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
 import { aggregateChildren, inspectBinding } from './binding.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 import { normalizeConnectionConfig } from './directConnection.js'
 import { ViewScopeTypeId } from './identity.js'
 import type { Qualify } from './scope.js'
@@ -37,7 +37,7 @@ const Message = defineMessageUnion({
   FailedAcquireSession: {},
 })
 const OutMessage = defineMessageUnion({ ReadRequested: {} })
-const Child = define('Child', { Model, Message, OutMessage })
+const Child = makeDefinition('Child', { Model, Message, OutMessage })
 const Read = Child.command('Read', {
   messages: [Message.CompletedRead],
   handler: function* () {
@@ -98,7 +98,7 @@ const childUpdate = registered.makeUpdate((model, message) =>
     FailedAcquireSession: () => ({ model }),
   }),
 )
-const block = registered.makeBlock({
+const block = registered.assembleBlock({
   init: () => ({ model: Model.make({ count: 0 }) }),
   update: childUpdate,
   view,
@@ -123,13 +123,15 @@ const ParentModel = Schema.Struct({
 })
 type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
-  GotChildMessage: { message: Message },
-  GotEntryMessage: { id: Schema.String, message: Message },
   ReceivedForeignMessage: { message: Schema.String },
   RequestedReadOperation: {},
 })
 type ParentMessage = typeof ParentMessage.Type
-const Parent = define('ConnectionShorthandsParent', {
+const LegacyParentMessage = defineMessageUnion({
+  GotChildMessage: { message: Message },
+  GotEntryMessage: { id: Schema.String, message: Message },
+})
+const Parent = makeDefinition('ConnectionShorthandsParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -142,26 +144,22 @@ const foldChildOutMessage = OutMessage.match<
 })
 const PrimaryBinding = Parent.bindChild(block, {
   field: 'primary',
-  parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
 const primaryInspection = inspectBinding(PrimaryBinding)
 const SecondaryBinding = Parent.bindChild(block, {
   field: 'secondary',
-  parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
 const OverriddenBinding = Parent.bindChild(block, {
   field: 'secondary',
   placement: 'alternate',
-  parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
 const AccessorBinding = Parent.bindChild(block, {
   read: model => Option.some(model.primary),
   write: (model, nextPrimary) =>
     modifyFields(model, { primary: () => nextPrimary }),
-  parentMessage: ParentMessage.GotChildMessage,
   outMessage: { fold: foldChildOutMessage },
 })
 const entryKey = (entry: typeof Entry.Type): string => entry.id
@@ -169,6 +167,7 @@ const KeyedBinding = Parent.bindChild(block, {
   placement: 'entries',
   readAll: (model: ParentModel) => model.entries,
   key: entryKey,
+  keySchema: Schema.String,
   read: (entry: typeof Entry.Type) => entry.child,
   writeAt: (model: ParentModel, id: string, nextChild: typeof Model.Type) =>
     modifyFields(model, {
@@ -178,19 +177,13 @@ const KeyedBinding = Parent.bindChild(block, {
           : entry,
       ),
     }),
-  toParentMessage: (id: string, message: typeof Message.Type) =>
-    ParentMessage.GotEntryMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotEntryMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
   outMessage: {
     fold: (_key: string, outMessage: typeof OutMessage.Type) =>
       foldChildOutMessage(outMessage),
   },
 })
 const ParentComposition = Parent.makeComposition({
-  childBindings: [PrimaryBinding, KeyedBinding],
+  bindings: [PrimaryBinding, KeyedBinding],
 })
 const update = ParentComposition.makeUpdate((model, message) =>
   ParentMessage.match(message, {
@@ -208,70 +201,6 @@ const initial = ParentModel.make({
   entries: [Entry.make({ id: 'first', child: Model.make({ count: 3 }) })],
 })
 
-if (false) {
-  Parent.bindChild(block, {
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    field: 'primary',
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    parentMessage: ParentMessage.ReceivedForeignMessage,
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    outMessage: { fold: foldChildOutMessage },
-  })
-  Parent.bindChild(block, {
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    field: 'primary',
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    parentMessage: ParentMessage.GotEntryMessage,
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    outMessage: { fold: foldChildOutMessage },
-  })
-  Parent.bindChild(block, {
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    field: 'primary',
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    toParentMessage: (message: typeof Message.Type) =>
-      ParentMessage.GotChildMessage({ message }),
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    parentMessage: ParentMessage.GotChildMessage,
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    outMessage: { fold: foldChildOutMessage },
-  })
-  Parent.bindChild(block, {
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    read: (model: ParentModel) => Option.some(model.primary),
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    write: (model: ParentModel, nextPrimary: typeof Model.Type) =>
-      modifyFields(model, { primary: () => nextPrimary }),
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    toParentMessage: (message: typeof Message.Type) =>
-      ParentMessage.GotChildMessage({ message }),
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    parentMessage: ParentMessage.GotChildMessage,
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    outMessage: { fold: foldChildOutMessage },
-  })
-  Parent.bindChild(block, {
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    field: 'primary',
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    parentMessage: ParentMessage.GotChildMessage,
-  })
-  Parent.bindChild(block, {
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    readAll: (model: ParentModel) => model.entries,
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    key: (entry: typeof Entry.Type) => entry.id,
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    read: (entry: typeof Entry.Type) => entry.child,
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    writeAt: (model: ParentModel) => model,
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    parentMessage: ParentMessage.GotEntryMessage,
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    outMessage: { fold: () => foldChildOutMessage },
-  })
-}
-
 it('keeps exact placement literals and child operation arguments', () => {
   expectTypeOf<Extract<keyof typeof PrimaryBinding, string>>().toEqualTypeOf<
     'placement' | 'init' | 'fold' | 'embedView' | 'read'
@@ -282,10 +211,12 @@ it('keeps exact placement literals and child operation arguments', () => {
   expectTypeOf(AccessorBinding.placement).toEqualTypeOf<'Child'>()
   expectTypeOf(KeyedBinding.placement).toEqualTypeOf<'entries'>()
   expectTypeOf(
-    update(
-      initial,
-      ParentMessage.GotChildMessage({ message: Message.RequestedRead() }),
-    ).model,
+    update(initial, {
+      _tag: 'GotPrimaryMessage',
+      placement: 'primary',
+      generation: 0,
+      message: Message.RequestedRead(),
+    }).model,
   ).toEqualTypeOf<ParentModel>()
   expectTypeOf<Parameters<typeof PrimaryBinding.read>>().toEqualTypeOf<[]>()
   expectTypeOf<
@@ -324,10 +255,12 @@ it('keeps exact placement literals and child operation arguments', () => {
 })
 
 it('lifts real Command execution through the constructor and preserves OutMessage handling', async () => {
-  const result = update(
-    initial,
-    ParentMessage.GotChildMessage({ message: Message.RequestedRead() }),
-  )
+  const result = update(initial, {
+    _tag: 'GotPrimaryMessage',
+    placement: 'primary',
+    generation: 0,
+    message: Message.RequestedRead(),
+  })
   const command = Option.getOrThrow(Array.head(result.commands!))
   const operation = Option.getOrThrow(
     Array.head(
@@ -350,11 +283,12 @@ it('lifts real Command execution through the constructor and preserves OutMessag
   expect(result.model.requests).toBe(1)
   expect(command.name).toBe('primary/Read')
   expect(operation.name).toBe('primary/Read')
-  expect(completed).toEqual(
-    ParentMessage.GotChildMessage({
-      message: Message.CompletedRead({ count: 42 }),
-    }),
-  )
+  expect(completed).toEqual({
+    _tag: 'GotPrimaryMessage',
+    placement: 'primary',
+    generation: 0,
+    message: Message.CompletedRead({ count: 42 }),
+  })
   const updated = update(result.model, completed)
 
   expect(updated.model.primary.count).toBe(42)
@@ -406,13 +340,13 @@ it('uses one resolved occurrence placement for lifecycle registrations and mount
     /duplicate|Two child Blocks/,
   )
   expect(
-    keyedUpdate(
-      initial,
-      ParentMessage.GotEntryMessage({
-        id: 'first',
-        message: Message.CompletedRead({ count: 9 }),
-      }),
-    ).model.entries,
+    keyedUpdate(initial, {
+      _tag: 'GotEntriesMessage',
+      placement: 'entries',
+      generation: 0,
+      key: 'first',
+      message: Message.CompletedRead({ count: 9 }),
+    }).model.entries,
   ).toEqual([Entry.make({ id: 'first', child: Model.make({ count: 9 }) })])
 })
 
@@ -421,9 +355,9 @@ it('rejects ambiguous mappings before building a Binding', () => {
     normalizeConnectionConfig({
       Model: ParentModel,
       field: 'primary',
-      parentMessage: ParentMessage.GotChildMessage,
+      parentMessage: LegacyParentMessage.GotChildMessage,
       toParentMessage: (message: typeof Message.Type) =>
-        ParentMessage.GotChildMessage({ message }),
+        LegacyParentMessage.GotChildMessage({ message }),
     }),
   ).toThrow('exactly one parent Message mapping')
 })

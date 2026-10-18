@@ -1,7 +1,7 @@
 import { type Block, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { Slider } from '@foldkit/ui'
+import { SliderBlock } from '@foldkit/ui'
 
 import {
   FLOW_STRENGTH_MAX,
@@ -15,7 +15,7 @@ import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 import { Model } from './model'
 
-const foldFlowStrengthSliderOutMessage = Slider.OutMessage.match<
+const foldFlowStrengthSliderOutMessage = SliderBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   ChangedValue:
@@ -26,12 +26,11 @@ const foldFlowStrengthSliderOutMessage = Slider.OutMessage.match<
 })
 
 export const FlowStrengthSliderBinding = ApplicationDefinition.bindChild(
-  Slider.block,
+  SliderBlock,
   {
     field: 'flowStrengthSlider',
-    parentMessage: Message.GotFlowStrengthSliderMessage,
     init: {
-      startupToArgs: () => [
+      contextToArgs: () => [
         {
           id: 'flow-strength-slider',
           min: FLOW_STRENGTH_MIN,
@@ -44,7 +43,7 @@ export const FlowStrengthSliderBinding = ApplicationDefinition.bindChild(
   },
 )
 
-const foldNoiseScaleSliderOutMessage = Slider.OutMessage.match<
+const foldNoiseScaleSliderOutMessage = SliderBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   ChangedValue:
@@ -55,12 +54,11 @@ const foldNoiseScaleSliderOutMessage = Slider.OutMessage.match<
 })
 
 export const NoiseScaleSliderBinding = ApplicationDefinition.bindChild(
-  Slider.block,
+  SliderBlock,
   {
     field: 'noiseScaleSlider',
-    parentMessage: Message.GotNoiseScaleSliderMessage,
     init: {
-      startupToArgs: () => [
+      contextToArgs: () => [
         {
           id: 'noise-scale-slider',
           min: NOISE_SCALE_MIN_DIVISOR,
@@ -74,7 +72,7 @@ export const NoiseScaleSliderBinding = ApplicationDefinition.bindChild(
 )
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [FlowStrengthSliderBinding, NoiseScaleSliderBinding],
+  bindings: [FlowStrengthSliderBinding, NoiseScaleSliderBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition

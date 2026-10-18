@@ -1,5 +1,11 @@
 import { Array, Context, Effect, Layer, Option, Schema, Stream } from 'effect'
-import { Block, Message, Struct, Update, defineApplication } from 'foldkit'
+import {
+  Block,
+  Message,
+  Struct,
+  Update,
+  makeApplicationDefinition,
+} from 'foldkit'
 
 export class ChildClock extends Context.Service<
   ChildClock,
@@ -16,7 +22,7 @@ const ChildMessage = Message.defineMessageUnion({
 const ChildOutMessage = Message.defineMessageUnion({
   SelectedValue: { value: Schema.String },
 })
-const DeclarationParentOwnedChildDefinition = Block.define(
+const DeclarationParentOwnedChildDefinition = Block.makeDefinition(
   'DeclarationParentOwnedChild',
   {
     Model: ChildModel,
@@ -43,7 +49,7 @@ export const ReadChildValue = DeclarationParentOwnedChildDefinition.command(
 )
 const DeclarationParentOwnedChildComposition =
   DeclarationParentOwnedChildDefinition.makeComposition()
-export const ChildBlock = DeclarationParentOwnedChildComposition.makeBlock({
+export const ChildBlock = DeclarationParentOwnedChildComposition.assembleBlock({
   init: DeclarationParentOwnedChildComposition.makeInit(() => ({
     model: ChildModel.make({ value: 'initial' }),
   })),
@@ -70,7 +76,7 @@ export const ChildBlock = DeclarationParentOwnedChildComposition.makeBlock({
   EffectsLayer: ReadChildValue.layer,
 })
 
-const DeclarationParentOwnedPlainChildDefinition = Block.define(
+const DeclarationParentOwnedPlainChildDefinition = Block.makeDefinition(
   'DeclarationParentOwnedPlainChild',
   {
     Model: ChildModel,
@@ -89,7 +95,7 @@ const PlainChildSubscriptions =
 const DeclarationParentOwnedPlainChildComposition =
   DeclarationParentOwnedPlainChildDefinition.makeComposition()
 export const PlainChildBlock =
-  DeclarationParentOwnedPlainChildComposition.makeBlock({
+  DeclarationParentOwnedPlainChildComposition.assembleBlock({
     init: DeclarationParentOwnedPlainChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: 'initial' }),
     })),
@@ -113,16 +119,12 @@ const ParentModel = Schema.Struct({
   namedEntries: Schema.Array(NamedEntry),
 })
 export const ParentMessage = Message.defineMessageUnion({
-  GotChildMessage: { message: ChildBlock.Message },
-  GotOptionalChildMessage: { message: ChildBlock.Message },
-  GotTaggedChildMessage: { message: ChildBlock.Message },
-  GotEntryMessage: { id: Schema.Number, message: ChildBlock.Message },
-  GotNamedEntryMessage: { id: Schema.String, message: ChildBlock.Message },
+  ClickedParent: {},
 })
 export const ParentOutMessage = Message.defineMessageUnion({
   ForwardedSelectedValue: { value: Schema.String },
 })
-export const DeclarationParentOwnedParentDefinition = Block.define(
+export const DeclarationParentOwnedParentDefinition = Block.makeDefinition(
   'DeclarationParentOwnedParent',
   {
     Model: ParentModel,
@@ -140,8 +142,6 @@ const foldChildOutMessage = ChildOutMessage.match<
 export const DirectChildBinding =
   DeclarationParentOwnedParentDefinition.bindChild(ChildBlock, {
     field: 'child',
-    parentMessage: ParentMessage.GotChildMessage,
-
     init: false,
     outMessage: { fold: foldChildOutMessage },
   })
@@ -150,7 +150,6 @@ export const ForwardingChildBinding =
   DeclarationParentOwnedParentDefinition.bindChild(ChildBlock, {
     field: 'child',
     placement: 'forwardingChild',
-    parentMessage: ParentMessage.GotChildMessage,
     outMessage: {
       forward: outMessage =>
         ChildOutMessage.match<typeof ParentOutMessage.Type>(outMessage, {
@@ -164,12 +163,6 @@ export const OptionalChildBinding =
   DeclarationParentOwnedParentDefinition.bindChild(ChildBlock, {
     placement: 'optionalChild',
     field: 'maybeChild',
-    toParentMessage: message =>
-      ParentMessage.GotOptionalChildMessage({ message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotOptionalChildMessage,
-      args: (_model, { message }) => Option.some([message]),
-    },
     outMessage: {
       fold: (outMessage, context) => {
         const exactOutMessage: typeof ChildOutMessage.Type = outMessage
@@ -197,8 +190,6 @@ export const TaggedChildBinding =
       Struct.modifyFields(model, {
         slot: () => ChildSlot.make({ child: nextChild }),
       }),
-    parentMessage: ParentMessage.GotTaggedChildMessage,
-
     outMessage: { fold: foldChildOutMessage },
   })
 
@@ -207,14 +198,9 @@ export const KeyedChildBinding =
     placement: 'entries',
     readAll: model => model.entries,
     key: entry => entry.id,
+    keySchema: Entry.fields.id,
     read: entry => entry.child,
     writeAt: model => model,
-    toParentMessage: (id, message) =>
-      ParentMessage.GotEntryMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotEntryMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
     outMessage: {
       fold: (id, outMessage, context) => {
         const exactId: number = id
@@ -245,6 +231,7 @@ export const KeyedChildWithoutOutMessageBinding =
 
       return entry.id
     },
+    keySchema: NamedEntry.fields.id,
     read: entry => {
       const exactEntry: typeof NamedEntry.Type = entry
       void exactEntry
@@ -260,18 +247,6 @@ export const KeyedChildWithoutOutMessageBinding =
       void exactChild
 
       return model
-    },
-    toParentMessage: (id, message) => {
-      const exactId: string = id
-      const exactMessage: typeof ChildMessage.Type = message
-      void exactId
-      void exactMessage
-
-      return ParentMessage.GotNamedEntryMessage({ id, message })
-    },
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotNamedEntryMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
     },
     subscriptions: {
       when: (model, id) => {
@@ -295,14 +270,9 @@ export const InlineKeyedChildWithoutOutMessageBinding =
       return model.namedEntries
     },
     key: entry => entry.id,
+    keySchema: NamedEntry.fields.id,
     read: entry => entry.child,
     writeAt: model => model,
-    toParentMessage: (id, message) =>
-      ParentMessage.GotNamedEntryMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotNamedEntryMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
     subscriptions: {
       when: {
         values: (model, id) => {
@@ -317,9 +287,9 @@ export const InlineKeyedChildWithoutOutMessageBinding =
     },
   })
 
-const DeclarationParentOwnedParentComposition =
+export const DeclarationParentOwnedParentComposition =
   DeclarationParentOwnedParentDefinition.makeComposition({
-    childBindings: [
+    bindings: [
       DirectChildBinding,
       OptionalChildBinding,
       TaggedChildBinding,
@@ -327,23 +297,27 @@ const DeclarationParentOwnedParentComposition =
       KeyedChildWithoutOutMessageBinding,
     ],
   })
-export const ParentBlock = DeclarationParentOwnedParentComposition.makeBlock({
-  init: DeclarationParentOwnedParentComposition.makeInit(() => ({
-    model: ParentModel.make({
-      child: ChildModel.make({ value: 'initial' }),
-      maybeChild: Option.none(),
-      slot: EmptySlot.make({}),
-      entries: [],
-      namedEntries: [],
-    }),
-  })),
-  update: DeclarationParentOwnedParentComposition.makeUpdate(),
-})
+export const ParentBlock =
+  DeclarationParentOwnedParentComposition.assembleBlock({
+    init: DeclarationParentOwnedParentComposition.makeInit(() => ({
+      model: ParentModel.make({
+        child: ChildModel.make({ value: 'initial' }),
+        maybeChild: Option.none(),
+        slot: EmptySlot.make({}),
+        entries: [],
+        namedEntries: [],
+      }),
+    })),
+    update: DeclarationParentOwnedParentComposition.makeUpdate(
+      (model, message) =>
+        ParentMessage.match(message, { ClickedParent: () => ({ model }) }),
+    ),
+  })
 
 const ApplicationMessage = Message.defineMessageUnion({
-  GotChildMessage: { message: ChildBlock.Message },
+  ClickedApplication: {},
 })
-const ApplicationDefinition = defineApplication({
+const ApplicationDefinition = makeApplicationDefinition({
   Model: ParentModel,
   Message: ApplicationMessage,
 })
@@ -351,7 +325,6 @@ export const ApplicationChildBinding = ApplicationDefinition.bindChild(
   ChildBlock,
   {
     field: 'child',
-    parentMessage: ParentMessage.GotChildMessage,
     outMessage: {
       fold: ChildOutMessage.match<
         Update.Step<typeof ParentModel.Type, typeof ApplicationMessage.Type>
@@ -360,17 +333,17 @@ export const ApplicationChildBinding = ApplicationDefinition.bindChild(
   },
 )
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [ApplicationChildBinding],
+  bindings: [ApplicationChildBinding],
 })
 
-export const DeclarationPureCompositionComposition = Block.define(
+export const DeclarationPureCompositionComposition = Block.makeDefinition(
   'DeclarationPureComposition',
   {
     Model: Schema.Null,
     Message: Schema.Never,
   },
 ).makeComposition()
-export const pureBlock = DeclarationPureCompositionComposition.makeBlock({
+export const pureBlock = DeclarationPureCompositionComposition.assembleBlock({
   init: DeclarationPureCompositionComposition.makeInit(() => ({ model: null })),
   update: DeclarationPureCompositionComposition.makeUpdate(),
 })
@@ -386,10 +359,8 @@ export const makeGenericKeyedBinding = <const Value extends string>(
     payload: Value,
   })
   const Model = Schema.Struct({ entries: Schema.Array(Entry) })
-  const ParentMessage = Message.defineMessageUnion({
-    GotChildMessage: { id: Schema.String, message: ChildBlock.Message },
-  })
-  const DeclarationGenericKeyedParentDefinition = Block.define(
+  const ParentMessage = Message.defineMessageUnion({ ClickedParent: {} })
+  const DeclarationGenericKeyedParentDefinition = Block.makeDefinition(
     'DeclarationGenericKeyedParent',
     {
       Model,
@@ -422,6 +393,7 @@ export const makeGenericKeyedBinding = <const Value extends string>(
         return entry.id
       },
       read: entry => entry.child,
+      keySchema: Entry.fields.id,
       writeAt: (model, id, nextChild) =>
         Struct.modifyFields(model, {
           entries: Array.map(entry =>
@@ -430,15 +402,6 @@ export const makeGenericKeyedBinding = <const Value extends string>(
               : entry,
           ),
         }),
-      toParentMessage: (id, message) =>
-        ParentMessage.GotChildMessage({ id, message }),
-      fromParentMessage: {
-        parentMessage: ParentMessage.GotChildMessage,
-        args: (_model, { id, message }) =>
-          id === 'first' || id === 'second'
-            ? Option.some([id, message])
-            : Option.none(),
-      },
       outMessage: { fold: foldOutMessage },
     },
   )

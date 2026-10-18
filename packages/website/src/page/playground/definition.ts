@@ -3,9 +3,8 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 
-import { Tabs } from '@foldkit/ui'
-
 import * as PlaygroundPreview from '../playgroundPreview'
+import { PlaygroundFileTabsBlock } from './fileTabs'
 
 export const PlaygroundState = defineTaggedUnion({
   Idle: {},
@@ -19,7 +18,7 @@ export const Model = Schema.Struct({
   slug: Schema.String,
   state: PlaygroundState,
   files: Schema.Record(Schema.String, Schema.String),
-  fileTabs: Tabs.Model,
+  fileTabs: PlaygroundFileTabsBlock.Model,
   activeFilePath: Schema.String,
   // NOTE: Paths edited before the WebContainer finished booting. Writes
   // dispatched at that time fail with `ResourceNotAvailable`, so we
@@ -40,7 +39,6 @@ export const Message = defineMessageUnion({
   FailedBootPlayground: { reason: Schema.String },
   ReleasedPlayground: {},
   LoadedPlaygroundPreview: { previewUrl: Schema.String },
-  GotFileTabsMessage: { message: Tabs.Message },
   EditedPlaygroundFile: { path: Schema.String, content: Schema.String },
   SucceededMountPlaygroundEditor: {},
   FailedMountPlaygroundEditor: { reason: Schema.String },
@@ -50,7 +48,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const PlaygroundDefinition = Block.define('Playground', {
+export const PlaygroundDefinition = Block.makeDefinition('Playground', {
   Model,
   Message,
 })

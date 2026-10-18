@@ -1,4 +1,4 @@
-import { Option, Schema } from 'effect'
+import { Schema } from 'effect'
 import { Block, Message, Update } from 'foldkit'
 import type { Command } from 'foldkit/command'
 
@@ -6,17 +6,13 @@ export const ChildModel = Schema.Struct({ value: Schema.Number })
 export const ChildMessage = Message.defineMessageUnion({
   UpdatedValue: { value: Schema.Number },
 })
-const DeclarationCanonicalConstructorChildDefinition = Block.define(
+
+const DeclarationCanonicalConstructorChildComposition = Block.makeDefinition(
   'DeclarationCanonicalConstructorChild',
-  {
-    Model: ChildModel,
-    Message: ChildMessage,
-  },
-)
-const DeclarationCanonicalConstructorChildComposition =
-  DeclarationCanonicalConstructorChildDefinition.makeComposition()
+  { Model: ChildModel, Message: ChildMessage },
+).makeComposition()
 export const ChildBlock =
-  DeclarationCanonicalConstructorChildComposition.makeBlock({
+  DeclarationCanonicalConstructorChildComposition.assembleBlock({
     init: DeclarationCanonicalConstructorChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: 0 }),
     })),
@@ -34,53 +30,40 @@ declare const PayloadWithUnknownDecodingServices: Schema.Codec<
   never
 >
 export const ParentMessage = Message.defineMessageUnion({
-  GotChildMessage: { message: ChildBlock.Message },
-  GotOtherMessage: { message: ChildBlock.Message },
-  GotExtraMessage: { message: ChildBlock.Message, extra: Schema.String },
-  GotOptionalExtraMessage: {
-    message: ChildBlock.Message,
-    extra: Schema.optionalKey(Schema.String),
-  },
-  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture preserves an invalid wrapper contract.
-  GotWrongMessage: { message: Schema.String },
   ReceivedPayload: { payload: PayloadWithUnknownDecodingServices },
 })
-export const DeclarationCanonicalConstructorParentDefinition = Block.define(
-  'DeclarationCanonicalConstructorParent',
-  {
+export const DeclarationCanonicalConstructorParentDefinition =
+  Block.makeDefinition('DeclarationCanonicalConstructorParent', {
     Model: ParentModel,
     Message: ParentMessage,
-  },
-)
+  })
 export const CanonicalBinding =
   DeclarationCanonicalConstructorParentDefinition.bindChild(ChildBlock, {
     field: 'child',
-    parentMessage: ParentMessage.GotChildMessage,
   })
-export const MappedBinding =
+export const AlternativeBinding =
   DeclarationCanonicalConstructorParentDefinition.bindChild(ChildBlock, {
     field: 'child',
-    toParentMessage: message => ParentMessage.GotOtherMessage({ message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotOtherMessage,
-      args: (_model, { message }) => Option.some([message]),
-    },
+    placement: 'other',
+  })
+export const DeclarationCanonicalConstructorParentComposition =
+  DeclarationCanonicalConstructorParentDefinition.makeComposition({
+    bindings: [CanonicalBinding],
   })
 
-declare const distinctSchemaMapper: typeof ChildMessage.UpdatedValue &
-  ((
-    message: typeof ChildMessage.Type,
-  ) => typeof ParentMessage.GotOtherMessage.Type)
+export type ExpectedEnvelope = Readonly<{
+  _tag: 'GotChildMessage'
+  placement: 'child'
+  generation: number
+  message: typeof ChildMessage.Type
+}>
 
-export const DistinctSchemaMapperBinding =
-  DeclarationCanonicalConstructorParentDefinition.bindChild(ChildBlock, {
-    field: 'child',
-    toParentMessage: distinctSchemaMapper,
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotOtherMessage,
-      args: (_model, { message }) => Option.some([message]),
-    },
-  })
+export type ExpectedAlternativeEnvelope = Readonly<{
+  _tag: 'GotOtherMessage'
+  placement: 'other'
+  generation: number
+  message: typeof ChildMessage.Type
+}>
 
 type CommandMessageOf<Output> =
   Output extends Update.ResultRecipe<
@@ -113,24 +96,42 @@ type Expect<Value extends true> = Value
 export type CanonicalMessageIsExact = Expect<
   Equal<
     CommandMessageOf<ReturnType<typeof CanonicalBinding.fold>>,
-    typeof ParentMessage.GotChildMessage.Type
+    ExpectedEnvelope
   >
 >
-export type MappedMessageIsExact = Expect<
+export type AlternativePlacementMessageIsExact = Expect<
   Equal<
-    CommandMessageOf<ReturnType<typeof MappedBinding.fold>>,
-    typeof ParentMessage.GotOtherMessage.Type
-  >
->
-export type DistinctSchemaMapperReturnIsPreserved = Expect<
-  Equal<
-    CommandMessageOf<ReturnType<typeof DistinctSchemaMapperBinding.fold>>,
-    typeof ParentMessage.GotOtherMessage.Type
+    CommandMessageOf<ReturnType<typeof AlternativeBinding.fold>>,
+    ExpectedAlternativeEnvelope
   >
 >
 export type CanonicalRegistrationIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<typeof CanonicalBinding.fold>>,
     Block.RequirementOfBinding<typeof CanonicalBinding>
+  >
+>
+export type LocalConstructorIsRetained = Expect<
+  Equal<
+    typeof DeclarationCanonicalConstructorParentComposition.Message.ReceivedPayload,
+    typeof ParentMessage.ReceivedPayload
+  >
+>
+export type CompleteMessageIsExact = Expect<
+  Equal<
+    typeof DeclarationCanonicalConstructorParentComposition.Message.Type,
+    typeof ParentMessage.Type | ExpectedEnvelope
+  >
+>
+export type CompleteDecodingServicesAreNotErased = Expect<
+  Equal<
+    typeof DeclarationCanonicalConstructorParentComposition.Message.DecodingServices,
+    unknown
+  >
+>
+export type CompleteEncodingServicesAreNotWidened = Expect<
+  Equal<
+    typeof DeclarationCanonicalConstructorParentComposition.Message.EncodingServices,
+    never
   >
 >

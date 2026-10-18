@@ -3,7 +3,7 @@
 const SettingsComposition = SettingsDefinition.makeComposition()
 const requestThemeChange = Message.RequestedThemeChange
 
-export const block = SettingsComposition.makeBlock({
+export const block = SettingsComposition.assembleBlock({
   init,
   update,
   operations: { requestThemeChange },

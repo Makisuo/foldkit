@@ -50,16 +50,22 @@ DialogBinding.requestOpen('unexpected')
 
 PickerBinding.requestSelectItem('Apple', 'Apple')
 
-Slider.block.operations.informRangeChanged(
-  Slider.init({ id: 'relocated-range', min: 0, max: 100, step: 1 }),
+Slider.SliderBlock.operations.informRangeChanged(
+  Slider.SliderBlock.init({ id: 'relocated-range', min: 0, max: 100, step: 1 })
+    .model,
   { min: 10, max: 90 },
 )
 RootSlider.operations.informRangeChanged(
-  Slider.init({ id: 'relocated-root-range', min: 0, max: 100, step: 1 }),
+  Slider.SliderBlock.init({
+    id: 'relocated-root-range',
+    min: 0,
+    max: 100,
+    step: 1,
+  }).model,
   { min: 20, max: 80 },
 )
-Tooltip.block.operations.informShowDelayChanged(
-  Tooltip.init({ id: 'relocated-tooltip' }),
+Tooltip.TooltipBlock.operations.informShowDelayChanged(
+  Tooltip.TooltipBlock.init({ id: 'relocated-tooltip' }).model,
   Duration.millis(250),
 )
 ToastBlock.operations.requestShow(

@@ -20,12 +20,13 @@ import {
   staticMemberPath,
 } from '../guards.ts'
 
-const isBlockDefineCall = (
+const isBlockFactoryCall = (
   node: ESTree.CallExpression,
+  factoryName: 'makeDefinition' | 'makeNamespace',
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
   if (references === undefined) {
-    return AST.isCallOf(node, 'Block', 'define')
+    return AST.isCallOf(node, 'Block', factoryName)
   }
 
   return Option.exists(resolveFoldkitApiPath(references, node.callee), path => {
@@ -33,20 +34,20 @@ const isBlockDefineCall = (
 
     return (
       namespace === 'Block' &&
-      methodName === 'define' &&
+      methodName === factoryName &&
       extraMember === undefined
     )
   })
 }
 
-const isApplicationDefineCall = (
+const isApplicationDefinitionCall = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
   if (references === undefined) {
     return (
-      AST.isCallOf(node, 'Application', 'define') ||
-      isIdentifier(node.callee, 'defineApplication')
+      AST.isCallOf(node, 'Application', 'makeDefinition') ||
+      isIdentifier(node.callee, 'makeApplicationDefinition')
     )
   }
 
@@ -54,9 +55,9 @@ const isApplicationDefineCall = (
     const [namespace, methodName, extraMember] = path
 
     return (
-      (namespace === 'defineApplication' && methodName === undefined) ||
+      (namespace === 'makeApplicationDefinition' && methodName === undefined) ||
       (namespace === 'Application' &&
-        methodName === 'define' &&
+        methodName === 'makeDefinition' &&
         extraMember === undefined)
     )
   })
@@ -64,7 +65,7 @@ const isApplicationDefineCall = (
 
 type AuthoringStage = Readonly<{
   isApplication: boolean
-  isComposition: boolean
+  stage: 'Namespace' | 'Definition' | 'Composition'
   identity: string | undefined
 }>
 
@@ -77,12 +78,17 @@ const authoringStage = (
     return undefined
   }
 
-  const isBlock = isBlockDefineCall(node, references)
-  const isApplication = isApplicationDefineCall(node, references)
-  if (isBlock || isApplication) {
+  const isBlockNamespace = isBlockFactoryCall(node, 'makeNamespace', references)
+  const isBlockDefinition = isBlockFactoryCall(
+    node,
+    'makeDefinition',
+    references,
+  )
+  const isApplication = isApplicationDefinitionCall(node, references)
+  if (isBlockNamespace || isBlockDefinition || isApplication) {
     return {
       isApplication,
-      isComposition: false,
+      stage: isBlockNamespace ? 'Namespace' : 'Definition',
       identity: firstStringArgument(node)?.value,
     }
   }
@@ -96,7 +102,7 @@ const authoringStage = (
   }
 
   const methodName = node.callee.property.name
-  if (methodName !== 'define' && methodName !== 'makeComposition') {
+  if (methodName !== 'makeDefinition' && methodName !== 'makeComposition') {
     return undefined
   }
 
@@ -138,14 +144,21 @@ const authoringStage = (
     return undefined
   }
 
+  if (
+    (methodName === 'makeDefinition' &&
+      (precedingStage.isApplication || precedingStage.stage !== 'Namespace')) ||
+    (methodName === 'makeComposition' && precedingStage.stage !== 'Definition')
+  ) {
+    return undefined
+  }
+
   return {
     ...precedingStage,
-    isComposition:
-      precedingStage.isComposition || methodName === 'makeComposition',
+    stage: methodName === 'makeDefinition' ? 'Definition' : 'Composition',
   }
 }
 
-/** Requires Block and Application bindings to use Definition and Composition stage suffixes. */
+/** Requires Block and Application bindings to use their authoring stage suffix. */
 export const blockNameMatchesVariable = Rule.define({
   name: 'block-name-matches-variable',
   meta: Rule.meta({
@@ -176,9 +189,10 @@ export const blockNameMatchesVariable = Rule.define({
         }
 
         if (stage.isApplication) {
-          const expectedName = stage.isComposition
-            ? 'ApplicationComposition'
-            : 'ApplicationDefinition'
+          const expectedName =
+            stage.stage === 'Composition'
+              ? 'ApplicationComposition'
+              : 'ApplicationDefinition'
           if (node.id.name === expectedName) {
             return Effect.void
           }
@@ -196,7 +210,7 @@ export const blockNameMatchesVariable = Rule.define({
           return Effect.void
         }
 
-        const expectedName = `${identity}${stage.isComposition ? 'Composition' : 'Definition'}`
+        const expectedName = `${identity}${stage.stage}`
         const isValidName = node.id.name === expectedName
         if (isValidName) {
           return Effect.void
@@ -205,7 +219,7 @@ export const blockNameMatchesVariable = Rule.define({
         return ctx.report(
           Diagnostic.make({
             node: node.id,
-            message: `Block ${stage.isComposition ? 'Composition' : 'authoring'} identifier "${node.id.name}" must be "${expectedName}".`,
+            message: `Block ${stage.stage} identifier "${node.id.name}" must be "${expectedName}".`,
           }),
         )
       },

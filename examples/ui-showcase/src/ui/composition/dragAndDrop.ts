@@ -2,11 +2,12 @@ import { Array, Option, pipe } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { DragAndDrop } from '@foldkit/ui'
+import { DragAndDropBlock } from '@foldkit/ui'
 
 import { UiDefinition } from '../definition'
+import type { DemoColumn } from '../domain'
 import { Message } from '../message'
-import { type DemoColumn, Model } from '../model'
+import { Model } from '../model'
 
 const reorderColumns = (
   columns: ReadonlyArray<DemoColumn>,
@@ -47,7 +48,7 @@ const reorderColumns = (
   })
 }
 
-const foldDragAndDropDemoOutMessage = DragAndDrop.OutMessage.match<
+const foldDragAndDropDemoOutMessage = DragAndDropBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   Reordered:
@@ -64,15 +65,11 @@ const foldDragAndDropDemoOutMessage = DragAndDrop.OutMessage.match<
           ),
       }),
     }),
-  Cancelled: () => model => ({ model }),
+  Cancelled: () => UiDefinition.stepNoop(),
 })
 
-export const DragAndDropDemoBinding = UiDefinition.bindChild(
-  DragAndDrop.block,
-  {
-    field: 'dragAndDropDemo',
-    parentMessage: Message.GotDragAndDropDemoMessage,
-    init: { startupToArgs: () => [{ id: 'drag-and-drop-demo' }] },
-    outMessage: { fold: foldDragAndDropDemoOutMessage },
-  },
-)
+export const DragAndDropDemoBinding = UiDefinition.bindChild(DragAndDropBlock, {
+  field: 'dragAndDropDemo',
+  init: { contextToArgs: () => [{ id: 'drag-and-drop-demo' }] },
+  outMessage: { fold: foldDragAndDropDemoOutMessage },
+})

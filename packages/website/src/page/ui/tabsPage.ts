@@ -1,13 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import { UiComposition } from './composition'
+import { TabsPageContent } from './content'
 import * as Tabs from './demo/tabs'
-import raw from './tabsPage.md'
 
-const { tableOfContents, view: renderPage } = slotDocPage<
-  'horizontal' | 'vertical'
->(raw, 'ui/tabs')
+const { tableOfContents, view: renderPage } = TabsPageContent
 
 export { tableOfContents }
 

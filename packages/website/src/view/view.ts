@@ -13,24 +13,25 @@ import { Deployment } from '../deployment'
 import { Docs, Marketing } from '../layout'
 import { Message } from '../message'
 import { type Model } from '../model'
-import { Home, Newsletter } from '../page'
+import { HomeBlock, Newsletter } from '../page'
 import { routeToCanonicalUrl } from '../route'
 import { routeTitle } from '../routeTitle'
-import * as SnippetCopy from '../snippetCopy'
-import * as SnippetDisclosure from '../snippetDisclosure'
+import * as SnippetCopyRenderer from '../snippetCopyRenderer'
+import * as SnippetDisclosureRenderer from '../snippetDisclosureRenderer'
 import * as Blog from './blog'
 
 type HomeViewInput = Readonly<{
   model: Model
-  homeModel: typeof Home.Model.Type
+  homeModel: typeof HomeBlock.Model.Type
 }>
 
 const homeView = (
   { model, homeModel }: HomeViewInput,
   h: ApplicationViewBuilder,
 ) => {
-  const renderCopyButton = SnippetCopy.renderer(model.snippetCopy, config =>
-    h.block(SnippetCopyBinding.embedView(config)),
+  const renderCopyButton = SnippetCopyRenderer.renderer(
+    model.snippetCopy,
+    config => h.block(SnippetCopyBinding.embedView(config)),
   )
   const content = h.block(
     HomeBinding.embedView({
@@ -38,7 +39,7 @@ const homeView = (
       model: homeModel,
       viewInputs: {
         renderCopyButton,
-        renderSnippet: SnippetDisclosure.renderer(
+        renderSnippet: SnippetDisclosureRenderer.renderer(
           model.snippetDisclosure,
           renderCopyButton,
           config => h.block(SnippetDisclosureBinding.embedView(config)),

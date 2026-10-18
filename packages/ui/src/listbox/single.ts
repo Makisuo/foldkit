@@ -10,10 +10,10 @@ import {
   type BaseViewInputsCommon,
   EffectsLayer,
   type ItemToValueInput,
+  ListboxNamespace,
   Message,
   OutMessage,
   type OutMessageSchema,
-  ListboxDefinition as SharedListbox,
   baseInit,
   makeUpdate,
   makeView,
@@ -48,9 +48,6 @@ export type Model = typeof Model.Type
 
 /** Configuration for creating a single-select listbox model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). */
 export type InitConfig = BaseInitConfig
-
-/** Creates an initial single-select listbox model from a config. Defaults to closed with no active item. */
-export const init = (config: InitConfig): Model => baseInit(config)
 
 // VIEW
 
@@ -90,7 +87,7 @@ const makeBlockParts = <Item, Value extends string>() => {
   const RefinedOutMessage =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     OutMessage as unknown as OutMessageSchema<Value>
-  const ListboxDefinition = SharedListbox.define({
+  const ListboxDefinition = ListboxNamespace.makeDefinition({
     Model,
     Message,
     OutMessage: RefinedOutMessage,
@@ -115,7 +112,7 @@ const makeBlockParts = <Item, Value extends string>() => {
     result as unknown as RefinedReturn
   const ListboxComposition = ListboxDefinition.makeComposition({
     mounts,
-    childBindings: [itemUpdate.AnimationBinding],
+    bindings: [itemUpdate.AnimationBinding],
   })
   const authoredUpdate = ListboxDefinition.step(
     (model, message: Parameters<typeof itemUpdate.update>[1]) =>
@@ -124,12 +121,18 @@ const makeBlockParts = <Item, Value extends string>() => {
   const update = ListboxComposition.makeUpdate((model, message) =>
     authoredUpdate(model, message),
   )
+  const init = ListboxComposition.makeInit((config: InitConfig) => ({
+    model: baseInit(config),
+  }))
   const refinedView =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     singleViewImpl as unknown as (
       model: Model,
       viewInputs: ViewInputs<Item, Value>,
-      h: Parameters<typeof singleViewImpl>[2],
+      h: HtmlBuilder<
+        typeof ListboxComposition.Message.Type,
+        Mount.RequirementsOf<typeof mounts>
+      >,
     ) => Html
   const view = ListboxComposition.makeView.withInputs<ViewInputs<Item, Value>>(
     (model, viewInputs, h) => refinedView(model, viewInputs, h),
@@ -141,9 +144,7 @@ const makeBlockParts = <Item, Value extends string>() => {
   return {
     composition: ListboxComposition,
     implementation: {
-      init: ListboxComposition.makeInit((config: InitConfig) => ({
-        model: init(config),
-      })),
+      init,
       update,
       view,
       operations: { requestOpen, requestClose, requestSelectItem },
@@ -168,7 +169,7 @@ export interface Completed<
 const makeBlock = <Item, Value extends string>(): Completed<Item, Value> => {
   const { composition, implementation } = makeBlockParts<Item, Value>()
 
-  return composition.makeBlock(implementation)
+  return composition.assembleBlock(implementation)
 }
 
 /** Creates a complete single-select Listbox Block refined to one Item and
@@ -181,6 +182,9 @@ export const create = <
 
 /** Complete default single-select Listbox Block definition. */
 export const block = makeBlock<string, string>()
+
+/** Creates the initial single-select Listbox Model and Commands. Defaults to closed with no active item. */
+export const init = block.init
 
 // UPDATE
 

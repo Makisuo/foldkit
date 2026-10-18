@@ -6,26 +6,22 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Textarea } from '@foldkit/ui'
 
-export const Model = Schema.Struct({
+const Model = Schema.Struct({
   content: Schema.String,
 })
-export type Model = typeof Model.Type
-
-export const Message = defineMessageUnion({
+const Message = defineMessageUnion({
   UpdatedContent: { value: Schema.String },
 })
+const CoverLetterComposition = Block.makeDefinition('CoverLetter', {
+  Model,
+  Message,
+}).makeComposition()
 
-export type Message = typeof Message.Type
+const init = CoverLetterComposition.makeInit(() => ({
+  model: { content: '' },
+}))
 
-const CoverLetterDefinition = Block.define('CoverLetter', { Model, Message })
-
-const CoverLetterComposition = CoverLetterDefinition.makeComposition()
-
-export const init = (): Model => ({
-  content: '',
-})
-
-export const update = CoverLetterComposition.makeUpdate((model, message) =>
+const update = CoverLetterComposition.makeUpdate((model, message) =>
   Message.match(message, {
     UpdatedContent: ({ value }) => ({
       model: modifyFields(model, { content: () => value }),
@@ -95,8 +91,8 @@ export const view = CoverLetterComposition.makeView((model, h) => {
   )
 })
 
-export const block = CoverLetterComposition.makeBlock({
-  init: CoverLetterComposition.makeInit(() => ({ model: init() })),
+export const CoverLetterBlock = CoverLetterComposition.assembleBlock({
+  init,
   update,
   view,
 })

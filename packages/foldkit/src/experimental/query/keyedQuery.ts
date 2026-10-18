@@ -742,8 +742,11 @@ const makeHostKeyedQuery = <
   const Args = Schema.Struct(config.args)
   const Model = makeKeyedQueryModel(config.data, config.error, Args)
   const Message = makeKeyedQueryMessage(config.data, config.error, Args)
-  const QueryOwnerDefinition = Block.define(config.name)
-  const QueryDefinition = QueryOwnerDefinition.define({ Model, Message })
+  const QueryNamespace = Block.makeNamespace(config.name)
+  const QueryDefinition = QueryNamespace.makeDefinition({
+    Model,
+    Message,
+  })
   const Fetch = QueryDefinition.command('Fetch', {
     args: {
       args: Args,
@@ -755,7 +758,7 @@ const makeHostKeyedQuery = <
   const api = makeKeyedQueryApi(config, Args, Model, Message, Fetch)
   const QueryComposition = QueryDefinition.makeComposition()
   const init = QueryComposition.makeInit(api.init)
-  const block = QueryComposition.makeBlock({
+  const block = QueryComposition.assembleBlock({
     init,
     update: QueryComposition.makeUpdate(api.update),
     operations: {
@@ -821,8 +824,11 @@ const makeCanonicalKeyedQuery = <
   const Args = Schema.Struct(config.args)
   const Model = makeKeyedQueryModel(config.data, config.error, Args)
   const Message = makeKeyedQueryMessage(config.data, config.error, Args)
-  const QueryOwnerDefinition = Block.define(config.name)
-  const QueryDefinition = QueryOwnerDefinition.define({ Model, Message })
+  const QueryNamespace = Block.makeNamespace(config.name)
+  const QueryDefinition = QueryNamespace.makeDefinition({
+    Model,
+    Message,
+  })
   const Fetch = QueryDefinition.command('Fetch', {
     args: {
       args: Args,
@@ -834,7 +840,7 @@ const makeCanonicalKeyedQuery = <
   const api = makeKeyedQueryApi(config, Args, Model, Message, Fetch)
   const QueryComposition = QueryDefinition.makeComposition()
   const init = QueryComposition.makeInit(api.init)
-  const block = QueryComposition.makeBlock({
+  const block = QueryComposition.assembleBlock({
     init,
     update: QueryComposition.makeUpdate(api.update),
     operations: {

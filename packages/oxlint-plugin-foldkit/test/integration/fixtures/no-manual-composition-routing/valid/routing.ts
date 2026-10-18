@@ -1,45 +1,36 @@
 import { Option } from 'effect'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 import { foreignComposition, foreignDefinition } from 'third-party'
 
 const Message = defineMessageUnion({
-  GotDialogMessage: { message: Dialog.Message },
-  GotPickerMessage: { message: Picker.Message },
-  GotSharedMessage: { message: Shared.Message },
   ClickedSave: {},
 })
-const Application = defineApplication({ Model, Message })
+const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
 
-defineMessageUnion({
-  GotSettingsMessage: { message: Settings.Message },
-})
+defineMessageUnion({ ChangedSettings: {} })
 
-Application.bindChild(Silent.block, { field: 'silent' })
+ApplicationDefinition.bindChild(SilentBlock, { field: 'silent' })
 
-Application.bindChild(Dialog.block, {
+ApplicationDefinition.bindChild(DialogBlock, {
   field: 'dialog',
-  parentMessage: Message.GotDialogMessage,
 })
 
-Application.bindChild(Picker.block, {
+ApplicationDefinition.bindChild(PickerBlock, {
   field: 'picker',
-  toParentMessage: message => Message.GotPickerMessage({ message }),
-  fromParentMessage: {
-    parentMessage: Message.GotPickerMessage,
-    args: (_model, { message }) => Option.some([message]),
+  delivery: {
+    when: model => Option.isSome(model.maybePicker),
   },
 })
 
 const sharedMapping = {
   field: 'shared',
-  toParentMessage: message => Message.GotSharedMessage({ message }),
 }
 
-Application.bindChild(Shared.block, { ...sharedMapping })
+ApplicationDefinition.bindChild(SharedBlock, { ...sharedMapping })
 
-const ApplicationComposition = Application.makeComposition()
+const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {

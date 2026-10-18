@@ -8,7 +8,7 @@ Sortable lists and cross-container movement with pointer tracking, keyboard navi
 
 DragAndDrop is different from other Foldkit UI components in two ways. First, it doesn’t have a `view()` function. Instead, you spread `draggable()` and `droppable()` attributes onto your own elements. Second, its update function can return `Reordered` and `Cancelled` through the optional `outMessage` field. You handle those OutMessages to decide how to reorder your data.
 
-Integration requires four pieces: a `DragAndDrop.Model` field in your Model, one Binding created with `ParentDefinition.bindChild(DragAndDrop.block, config)` and included in the parent’s `childBindings`, an `outMessage.fold` policy, and `draggable()` / `droppable()` attributes in your view.
+Integration requires four pieces: a `DragAndDropBlock.Model` field in your Model, one Binding created with `ParentDefinition.bindChild(DragAndDropBlock, config)` and included in the parent’s `bindings`, an `outMessage.fold` policy, and an embedded view whose `toView` callback receives bound `draggable`, `droppable`, and `sortable` attribute helpers. The parent chooses all markup and spreads the supplied child attributes directly.
 
 :::Info{label="See it in an app"}
 Check out how DragAndDrop is wired up in the [kanban example](https://github.com/foldkit/foldkit/tree/main/examples/kanban/src) or the [UI showcase](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/dragAndDrop.ts).
@@ -74,15 +74,15 @@ Configuration object passed to `DragAndDrop.init()`.
 
 Functions for attaching drag-and-drop behavior to your elements and reading drag state.
 
-| Name                             | Type                       | Default | Description                                                                                                                                                           |
-| -------------------------------- | -------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `draggable(config)`              | `ReadonlyArray<Attribute>` | —       | Spread onto draggable items. Attaches pointer-down, keyboard activation, and ARIA attributes. Config requires model, toParentMessage, itemId, containerId, and index. |
-| `droppable(containerId, label?)` | `ReadonlyArray<Attribute>` | —       | Spread onto drop containers. Attaches the container ID for collision detection and optional ARIA label.                                                               |
-| `sortable(itemId)`               | `ReadonlyArray<Attribute>` | —       | Spread onto items that are both draggable and sortable targets.                                                                                                       |
-| `ghostStyle(model)`              | `Option<CSSProperties>`    | —       | Returns positioning styles for a ghost element that follows the pointer during drag. Use with Option.match to conditionally render.                                   |
-| `isDragging(model)`              | `boolean`                  | —       | Whether a drag is currently in progress.                                                                                                                              |
-| `maybeDraggedItemId(model)`      | `Option<string>`           | —       | The ID of the item being dragged, if any.                                                                                                                             |
-| `maybeDropTarget(model)`         | `Option<DropTarget>`       | —       | The current drop target (containerId + index), if any.                                                                                                                |
+| Name                             | Type                       | Default | Description                                                                                                                                                                                                                                  |
+| -------------------------------- | -------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `draggable(config)`              | `ReadonlyArray<Attribute>` | —       | Spread onto draggable items. Attaches pointer-down, keyboard activation, and ARIA attributes. The embedded view supplies this bound helper. Config requires itemId, containerId, and index; the Block captures its own Model and dispatcher. |
+| `droppable(containerId, label?)` | `ReadonlyArray<Attribute>` | —       | Spread onto drop containers. Attaches the container ID for collision detection and optional ARIA label.                                                                                                                                      |
+| `sortable(itemId)`               | `ReadonlyArray<Attribute>` | —       | Spread onto items that are both draggable and sortable targets.                                                                                                                                                                              |
+| `ghostStyle(model)`              | `Option<CSSProperties>`    | —       | Returns positioning styles for a ghost element that follows the pointer during drag. Use with Option.match to conditionally render.                                                                                                          |
+| `isDragging(model)`              | `boolean`                  | —       | Whether a drag is currently in progress.                                                                                                                                                                                                     |
+| `maybeDraggedItemId(model)`      | `Option<string>`           | —       | The ID of the item being dragged, if any.                                                                                                                                                                                                    |
+| `maybeDropTarget(model)`         | `Option<DropTarget>`       | —       | The current drop target (containerId + index), if any.                                                                                                                                                                                       |
 
 ### OutMessage {#out-message}
 

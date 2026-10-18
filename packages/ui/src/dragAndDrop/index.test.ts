@@ -10,7 +10,7 @@ import {
   type Model,
   OutMessage,
   ResolveKeyboardMove,
-  block,
+  DragAndDropBlock as block,
   ghostStyle,
   init,
   isDragging,
@@ -18,10 +18,10 @@ import {
   maybeDropTarget,
   subscriptions,
   update,
-} from './index.js'
+} from './block.js'
 import * as DragAndDropTest from './test.js'
 
-const defaultInit = () => init({ id: 'test' })
+const defaultInit = () => init({ id: 'test' }).model
 
 const waitForNextTurn = (): Promise<void> =>
   new Promise(resolve => setTimeout(resolve, 0))
@@ -78,7 +78,7 @@ describe('DragAndDrop', () => {
     })
 
     it('accepts a custom orientation', () => {
-      const model = init({ id: 'test', orientation: 'Horizontal' })
+      const model = init({ id: 'test', orientation: 'Horizontal' }).model
       expect(model.orientation).toBe('Horizontal')
     })
   })

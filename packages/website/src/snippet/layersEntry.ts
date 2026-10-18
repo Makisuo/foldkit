@@ -3,7 +3,7 @@ import { Runtime } from 'foldkit'
 import { ApplicationLayer, EffectsLayer } from './layers'
 import { ApplicationComposition, init, update, view } from './layersApplication'
 
-const application = ApplicationComposition.makeApplication({
+const application = ApplicationComposition.assembleApplication({
   init,
   update,
   view,

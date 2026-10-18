@@ -1,16 +1,15 @@
 import { Array, Match, Option, pipe } from 'effect'
 import { childAttributes } from 'foldkit/html'
 
-import { VirtualList } from '@foldkit/ui'
-
 import type { UiViewBuilder } from '../composition'
 import {
   VirtualListChatDemoBinding,
   VirtualListDemoBinding,
   VirtualListVariableDemoBinding,
 } from '../composition'
+import type { VirtualListChatMessage } from '../domain/domain'
 import { Message } from '../message'
-import type { VirtualListChatMessage } from '../model'
+import { ActivityVirtualListBlock } from './components'
 import { type Activity, ROW_COUNT } from './virtualListData'
 
 // SAMPLE DATA
@@ -140,7 +139,7 @@ const headerClassName =
   'flex flex-wrap items-center justify-between gap-3 text-sm text-gray-700 dark:text-gray-400'
 
 export const view = (
-  model: typeof VirtualList.Model.Type,
+  model: typeof ActivityVirtualListBlock.Model.Type,
   h: UiViewBuilder,
 ) => {
   return [
@@ -271,7 +270,7 @@ const variableArtifactClassName =
   'mt-1 inline-flex w-fit rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 font-mono text-[10px] text-gray-700 dark:text-gray-300'
 
 export const virtualListVariableDemo = (
-  model: typeof VirtualList.Model.Type,
+  model: typeof ActivityVirtualListBlock.Model.Type,
   h: UiViewBuilder,
 ) => {
   const variableTallRow = (row: Activity, summary: Summary) =>
@@ -428,7 +427,7 @@ const chatMessageView = (message: VirtualListChatMessage, h: UiViewBuilder) => {
 }
 
 export const virtualListChatDemo = (
-  model: typeof VirtualList.Model.Type,
+  model: typeof ActivityVirtualListBlock.Model.Type,
   messages: ReadonlyArray<VirtualListChatMessage>,
   h: UiViewBuilder,
 ) => [

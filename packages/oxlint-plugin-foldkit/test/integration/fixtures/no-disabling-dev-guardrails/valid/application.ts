@@ -1,11 +1,16 @@
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 
 import { init, Message, Model, update, view } from './implementation'
 
-const Application = defineApplication({ Model, Message })
+const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
 
-export const application = Application.makeComposition().makeApplication({ init, update, view })
+export const application =
+  ApplicationDefinition.makeComposition().assembleApplication({
+    init,
+    update,
+    view,
+  })
 
 export const makeLocal = (Application: {
   make: (config: unknown) => unknown
-}) => Application.makeComposition().makeApplication({ freezeModel: false })
+}) => Application.makeComposition().assembleApplication({ freezeModel: false })

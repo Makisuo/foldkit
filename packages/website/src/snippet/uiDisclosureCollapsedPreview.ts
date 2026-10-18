@@ -20,12 +20,10 @@ const Message = defineMessageUnion({
 })
 
 type Message = typeof Message.Type
-
-const ArticlePreviewDefinition = Block.define('ArticlePreview', {
+const ArticlePreviewComposition = Block.makeDefinition('ArticlePreview', {
   Model,
   Message,
-})
-const ArticlePreviewComposition = ArticlePreviewDefinition.makeComposition()
+}).makeComposition()
 
 // In your init function, start it closed:
 const init = ArticlePreviewComposition.makeInit(() => ({

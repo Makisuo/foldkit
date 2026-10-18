@@ -1,21 +1,29 @@
 import { Array, Option, pipe } from 'effect'
+import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { SubmitApplication } from './command'
-import { ApplicationComposition } from './composition'
+import {
+  ApplicationComposition,
+  EducationBinding,
+  PersonalInfoBinding,
+  SkillsBinding,
+  WorkHistoryBinding,
+} from './composition'
+import { ApplicationDefinition } from './definition'
 import { Step } from './domain'
 import { Message } from './message'
 import { type Model, Submission } from './model'
-import * as Education from './step/education'
-import * as PersonalInfo from './step/personalInfo'
-import * as Skills from './step/skills'
-import * as WorkHistory from './step/workHistory'
+import { isComplete as isEducationComplete } from './step/education/update'
+import { isComplete as isPersonalInfoComplete } from './step/personalInfo/update'
+import { isComplete as isSkillsComplete } from './step/skills/update'
+import { isComplete as isWorkHistoryComplete } from './step/workHistory/update'
 
 const isApplicationComplete = (model: Model): boolean =>
-  PersonalInfo.isComplete(model.personalInfo) &&
-  WorkHistory.isComplete(model.workHistory) &&
-  Education.isComplete(model.education) &&
-  Skills.isComplete(model.skills)
+  isPersonalInfoComplete(model.personalInfo) &&
+  isWorkHistoryComplete(model.workHistory) &&
+  isEducationComplete(model.education) &&
+  isSkillsComplete(model.skills)
 
 const toNextStep = (current: Step.Step): Step.Step =>
   pipe(
@@ -31,6 +39,23 @@ const toPreviousStep = (current: Step.Step): Step.Step =>
     Option.getOrElse(() => current),
   )
 
+const markSubmitAttempted = ApplicationDefinition.stepFields(() => ({
+  isSubmitAttempted: () => true,
+}))
+
+const submitWhenComplete = ApplicationDefinition.step(model => {
+  if (isApplicationComplete(model)) {
+    return {
+      model: modifyFields(model, {
+        submission: () => Submission.Submitting(),
+      }),
+      commands: [SubmitApplication()],
+    }
+  }
+
+  return { model }
+})
+
 export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedNext: () => ({
@@ -45,24 +70,15 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
       model: modifyFields(model, { isPreviewVisible: isVisible => !isVisible }),
     }),
 
-    ClickedSubmit: () => {
-      const revealedModel = modifyFields(model, {
-        personalInfo: PersonalInfo.revealErrors,
-        workHistory: WorkHistory.revealErrors,
-        education: Education.revealErrors,
-        skills: Skills.revealErrors,
-        isSubmitAttempted: () => true,
-      })
-      if (isApplicationComplete(revealedModel)) {
-        return {
-          model: modifyFields(revealedModel, {
-            submission: () => Submission.Submitting(),
-          }),
-          commands: [SubmitApplication()],
-        }
-      }
-      return { model: revealedModel }
-    },
+    ClickedSubmit: () =>
+      Update.combine(model, [
+        markSubmitAttempted,
+        PersonalInfoBinding.requestRevealErrors(),
+        WorkHistoryBinding.requestRevealErrors(),
+        EducationBinding.requestRevealErrors(),
+        SkillsBinding.requestRevealErrors(),
+        submitWhenComplete,
+      ]),
 
     SucceededSubmitApplication: () => ({
       model: modifyFields(model, {

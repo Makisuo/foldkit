@@ -1,17 +1,15 @@
 import type { Block } from 'foldkit'
 
 import { ApplicationDefinition } from './definition'
-import { Message } from './message'
-import * as Ui from './ui'
+import { UiBlock } from './ui'
 
-export const UiBinding = ApplicationDefinition.bindChild(Ui.block, {
+export const UiBinding = ApplicationDefinition.bindChild(UiBlock, {
   field: 'uiModel',
-  parentMessage: Message.GotUiMessage,
-  init: { startupToArgs: ({ today }) => [today] },
+  init: { contextToArgs: ({ today }) => [today] },
 })
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [UiBinding],
+  bindings: [UiBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition

@@ -442,8 +442,11 @@ const makeHostQuery = <Name extends string, A, AI, E, EI>(
 ): Query<Name, A, AI, E, EI> => {
   const Model = makeQueryModel(config.data, config.error)
   const Message = makeQueryMessage(config.data, config.error)
-  const QueryOwnerDefinition = Block.define(config.name)
-  const QueryDefinition = QueryOwnerDefinition.define({ Model, Message })
+  const QueryNamespace = Block.makeNamespace(config.name)
+  const QueryDefinition = QueryNamespace.makeDefinition({
+    Model,
+    Message,
+  })
   const Fetch = QueryDefinition.command('Fetch', {
     args: { generation: Schema.Number },
     messages: [Message.CompletedFetch],
@@ -451,7 +454,7 @@ const makeHostQuery = <Name extends string, A, AI, E, EI>(
   const api = makeQueryApi(config, Model, Message, Fetch)
   const QueryComposition = QueryDefinition.makeComposition()
   const init = QueryComposition.makeInit(api.init)
-  const block = QueryComposition.makeBlock({
+  const block = QueryComposition.assembleBlock({
     init,
     update: QueryComposition.makeUpdate(api.update),
     operations: {
@@ -502,8 +505,11 @@ const makeCanonicalQuery = <
 > => {
   const Model = makeQueryModel(config.data, config.error)
   const Message = makeQueryMessage(config.data, config.error)
-  const QueryOwnerDefinition = Block.define(config.name)
-  const QueryDefinition = QueryOwnerDefinition.define({ Model, Message })
+  const QueryNamespace = Block.makeNamespace(config.name)
+  const QueryDefinition = QueryNamespace.makeDefinition({
+    Model,
+    Message,
+  })
   const Fetch = QueryDefinition.command('Fetch', {
     args: { generation: Schema.Number },
     messages: [Message.CompletedFetch],
@@ -511,7 +517,7 @@ const makeCanonicalQuery = <
   const api = makeQueryApi(config, Model, Message, Fetch)
   const QueryComposition = QueryDefinition.makeComposition()
   const init = QueryComposition.makeInit(api.init)
-  const block = QueryComposition.makeBlock({
+  const block = QueryComposition.assembleBlock({
     init,
     update: QueryComposition.makeUpdate(api.update),
     operations: {

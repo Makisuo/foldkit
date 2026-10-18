@@ -2,7 +2,7 @@ import { Array, Option, pipe } from 'effect'
 
 import { ghostStyle, maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 
-import { ApplicationComposition } from '../composition'
+import { ApplicationComposition, DragAndDropBinding } from '../composition'
 import type { ApplicationViewBuilder } from '../composition'
 import type { Model } from '../model'
 import { ghostCardView } from './card'
@@ -51,17 +51,31 @@ export const view = ApplicationComposition.makeView((model, h) => ({
           ),
         ],
       ),
-      h.div(
-        [
-          h.Class(
-            'flex-1 p-6 grid grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] gap-6 items-start',
-          ),
-        ],
-        Array.map(model.columns, column =>
-          columnView(model, column, message => message, h),
-        ),
+      h.block(
+        DragAndDropBinding.embedView({
+          slotId: 'drag-and-drop',
+          model: model.dragAndDrop,
+          viewInputs: {
+            toView: render =>
+              h.div(
+                [],
+                [
+                  h.div(
+                    [
+                      h.Class(
+                        'flex-1 p-6 grid grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] gap-6 items-start',
+                      ),
+                    ],
+                    Array.map(model.columns, column =>
+                      columnView(model, column, render, message => message, h),
+                    ),
+                  ),
+                  ghostElement(model, h),
+                ],
+              ),
+          },
+        }),
       ),
-      ghostElement(model, h),
       h.div(
         [h.Class('sr-only'), h.AriaLive('assertive')],
         [model.announcement],

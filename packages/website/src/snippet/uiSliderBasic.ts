@@ -14,22 +14,20 @@ import type { SliderAttributes as SliderSliderAttributes } from '@foldkit/ui/sli
 // interaction state:
 const Model = Schema.Struct({
   ratingValue: Schema.Number,
-  ratingDemo: Slider.Model,
+  ratingDemo: Slider.SliderBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
 
-// Embed the Slider Message in your parent Message:
-const Message = defineMessageUnion({
-  GotSliderMessage: { message: Slider.Message },
-})
+// This excerpt has no parent-owned facts. The Composition derives delivery.
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 // At module scope, fold the OutMessage into your own Model. `ChangedValue`
 // carries the new number. Lift it to domain state, validate, or persist on
 // each commit. The arm returns an Update.Step over the parent Model, which
 // already has the next Slider Model written back:
-const foldSliderOutMessage = Slider.OutMessage.match<
+const foldSliderOutMessage = Slider.SliderBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   // The child has emitted `ChangedValue`. Store the new value in the field
@@ -40,25 +38,24 @@ const foldSliderOutMessage = Slider.OutMessage.match<
     model => ({ model: modifyFields(model, { ratingValue: () => value }) }),
 })
 
-// The Binding wires the completed child Block into the parent: it runs Slider.update,
-// writes the next Slider Model back, maps the Block's Commands into your
-// Message type, and hands any OutMessage to the OutMessage fold.
-const VolumeSliderDefinition = Block.define('VolumeSlider', {
+// The Binding wires the completed child Block into the parent: it runs Slider.SliderBlock.update,
+// writes the next Slider Model back, routes generated delivery and Command
+// results, and hands any OutMessage to the OutMessage fold.
+const VolumeSliderDefinition = Block.makeDefinition('VolumeSlider', {
   Model,
   Message,
 })
 
-const SliderBinding = VolumeSliderDefinition.bindChild(Slider.block, {
+const SliderBinding = VolumeSliderDefinition.bindChild(Slider.SliderBlock, {
   field: 'ratingDemo',
-  parentMessage: Message.GotSliderMessage,
   init: {
-    startupToArgs: () => Tuple.make({ id: 'rating', min: 0, max: 10, step: 1 }),
+    contextToArgs: () => Tuple.make({ id: 'rating', min: 0, max: 10, step: 1 }),
   },
   outMessage: { fold: foldSliderOutMessage },
 })
 
 const VolumeSliderComposition = VolumeSliderDefinition.makeComposition({
-  childBindings: [SliderBinding],
+  bindings: [SliderBinding],
 })
 
 // In your init function, seed the value (snapped to the range) and initialize
@@ -72,7 +69,7 @@ const init = VolumeSliderComposition.makeInit(() => ({
 
 const update = VolumeSliderComposition.makeUpdate()
 
-// Registering `SliderBinding` in `childBindings` also collects both drag Subscriptions.
+// Registering `SliderBinding` in `bindings` also collects both drag Subscriptions.
 
 // Inside your view function, render the slider. You control every element's
 // markup and classes through the `toView` callback. The `attributes` groups

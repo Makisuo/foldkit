@@ -211,7 +211,11 @@ const isCompletedBlockVariable = (
 
     return (
       isFoldkitUiFactoryCall(definition.node.init, references) ||
-      isOwnedDefinitionCall(definition.node.init, 'makeBlock', references) ||
+      isOwnedDefinitionCall(
+        definition.node.init,
+        'assembleBlock',
+        references,
+      ) ||
       hasBlockBindingUse(variable, references)
     )
   })

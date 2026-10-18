@@ -1,6 +1,6 @@
 import { Combobox } from '@foldkit/ui'
 
-import { City } from './model'
+import { City } from './domain/domain'
 
-export const CityCombobox = Combobox.create(City)
-export const CityMultiCombobox = Combobox.Multi.create(City)
+export const CityComboboxBlock = Combobox.create(City)
+export const CityMultiComboboxBlock = Combobox.Multi.create(City)

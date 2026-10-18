@@ -6,9 +6,9 @@ import { SearchBinding } from '../composition'
 import { Icon } from '../icon'
 import { Message } from '../message'
 import { type Model } from '../model'
-import * as Search from '../search'
+import { KEYBOARD_WARMUP_INPUT_ID } from '../searchDom'
 
-const keyboardWarmupSelector = `#${Search.KEYBOARD_WARMUP_INPUT_ID}`
+const keyboardWarmupSelector = `#${KEYBOARD_WARMUP_INPUT_ID}`
 
 const onClickOpenSearch = (h: ApplicationViewBuilder) =>
   h.OnClick(Message.ClickedOpenSearch(), {

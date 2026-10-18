@@ -29,7 +29,7 @@ The entry supplies the local handler recipe at completion, provides its remainin
 
 ::Snippet{name="layersEntry" label="Complete and run the application"}
 
-When the Command belongs to a child Block, pass its local `EffectsLayer` to `FeatureComposition.makeBlock` instead. Registering its Binding carries the checked handler graph upward. The root still supplies shared services once. The [Block guide](/core/block) shows that complete feature-to-root wiring.
+When the Command belongs to a child Block, pass its local `EffectsLayer` to `FeatureComposition.assembleBlock` instead. Registering its Binding carries the checked handler graph upward. The root still supplies shared services once. The [Block guide](/core/block) shows that complete feature-to-root wiring.
 
 Defining handlers, binding features, completing the Application, and calling `provide` all describe configuration. `Runtime.run` builds the Layers and starts execution. Attaching `handler` makes `.layer` available; the completed graph still needs to include that recipe.
 
@@ -85,13 +85,13 @@ For example, an editor feature can declare `SaveDocument` without choosing where
 
 ::Snippet{name="commandHostContract" label="Editor declaring its save operation"}
 
-The editor's update returns `SaveDocument({ contents })` when the user requests a save and handles `SucceededSaveDocument` or `FailedSaveDocument` when it finishes. Omitting `handler` gives the definition no `.layer`. At completion, `hostHandlers: [SaveDocument]` explicitly delegates that missing implementation to the host. Without a local recipe or that declaration, `makeBlock` rejects the incomplete feature.
+The editor's update returns `SaveDocument({ contents })` when the user requests a save and handles `SucceededSaveDocument` or `FailedSaveDocument` when it finishes. Omitting `handler` gives the definition no `.layer`. At completion, `hostHandlers: [SaveDocument]` explicitly delegates that missing implementation to the host. Without a local recipe or that declaration, `assembleBlock` rejects the incomplete feature.
 
 A standalone host can implement this contract using browser storage:
 
 ::Snippet{name="commandHostImplementation" label="Host saving a document to browser storage"}
 
-Here `Editor` is the imported feature namespace. The host constructs `SaveDocumentLayer` from the original definition and calls `Editor.block.provideHandlers(SaveDocumentLayer)` on the completed Block. Bind the resulting `editor` value in the parent. `ApplicationLayer` supplies the storage service beneath that handler. If the host leaves the handler unsupplied, its requirement reaches application assembly and TypeScript rejects running the application.
+The host constructs `SaveDocumentLayer` from the original contract definition and calls `EditorBlock.provideHandlers(SaveDocumentLayer)` on the completed Block. Bind the resulting `editor` value in the parent. `ApplicationLayer` supplies the storage service beneath that handler. If the host leaves the handler unsupplied, its requirement reaches application assembly and TypeScript rejects running the application.
 
 The same editor could be used inside a publishing application whose host saves through its document API. Both hosts use the editor's Command definition and report its declared result Messages, so the editor's Model and update need no storage-specific branches.
 
@@ -176,7 +176,7 @@ The entry completes the split Application from each implementation owner, then s
 
 If the service Layer fails to build, startup cannot reach init or the first render. There is no Model for a crash view yet. A service used only by one Flags Effect may be private to that Effect when the application should never select or share it. Shared services stay exposed from the root Layer with `Layer.provideMerge` so Flags and handlers receive the same instance.
 
-`ApplicationComposition.makeApplication` carries requirements from init, update, Subscriptions, composed Mounts, and ManagedResources. `Runtime.run` requires those requirements to be supplied. A Flags Effect can use a service produced by a Layer passed to `application.provide(layer)`, as shown above.
+`ApplicationComposition.assembleApplication` carries requirements from init, update, Subscriptions, composed Mounts, and ManagedResources. `Runtime.run` requires those requirements to be supplied. A Flags Effect can use a service produced by a Layer passed to `application.provide(layer)`, as shown above.
 
 A hydrating start validates the server handoff before acquiring the application Layer. [Init & Flags](/core/init-and-flags#server-rendering-and-hydration) covers server-supplied startup data.
 
@@ -193,7 +193,7 @@ Import Effect's module as `Layer`. Use these names to keep local implementations
 
 Compose local recipes directly with `Layer.mergeAll`. Name an individual provider `LoadUserLayer` only when it is intentionally public or independently reused outside that assembly. Name an external test alternative `LoadUserTestLayer`.
 
-A Block passes its local bundle to `FeatureComposition.makeBlock({ EffectsLayer })`. Registering its Binding in the parent contributes the child's checked handler graph, including descendants. The parent supplies only its own local recipes. Do not merge a registered child's bundle again. This works for static, optional, and keyed Bindings, so the entry point never needs to import every leaf handler.
+A Block passes its local bundle to `FeatureComposition.assembleBlock({ EffectsLayer })`. Registering its Binding in the parent contributes the child's checked handler graph, including descendants. The parent supplies only its own local recipes. Do not merge a registered child's bundle again. This works for static, optional, and keyed Bindings, so the entry point never needs to import every leaf handler.
 
 A feature can provide a business service it owns beneath its local `EffectsLayer`. Leave concrete environment providers open for the root to select. Those ordinary requirements flow through parents until `application.provide(ApplicationLayer)` satisfies them. `ServicesLayer` is a useful name for an intermediate service bundle when root composition needs one.
 
@@ -218,15 +218,15 @@ Most authored pieces infer their requirements. When a standalone signature needs
 
 The expanded forms require every protocol argument. Definitions, update helpers, Bindings, and handler recipes carry the same information without explicit annotations.
 
-`FeatureComposition.makeBlock` checks local requirements against `EffectsLayer` and definitions explicitly delegated through `hostHandlers`. Parent Bindings carry that checked graph. A completed Application or Element's `provide` method supplies its remaining ordinary service requirements.
+`FeatureComposition.assembleBlock` checks local requirements against `EffectsLayer` and definitions explicitly delegated through `hostHandlers`. Parent Bindings carry that checked graph. A completed Application or Element's `provide` method supplies its remaining ordinary service requirements.
 
 Owned definitions include the Block's name and local operation name. Each definition also retains a private runtime identity, checked when its handler runs. Create alternative implementations through that original definition's `toLayer` so the implementation retains the declared identity.
 
 ## UI Effects and Mount Registrations
 
-Bind a completed UI Block and include that Binding in the parent's `childBindings` list. Its handler recipes and Mount registrations then reach the parent together. This keeps the implementation graph aligned with the update and view placement.
+Bind a completed UI Block and include that Binding in the parent's `bindings` list. Its handler recipes and Mount registrations then reach the parent together. This keeps the implementation graph aligned with the update and view placement.
 
-View-only components need no Block. Stateful Foldkit UI components are completed values such as `Dialog.block` and `Combobox.block`; bind each used placement, including keyed collections, and include those Bindings under `childBindings`.
+View-only components need no Block. Stateful Foldkit UI components provide completed values such as `DialogBlock`. Generic factories such as `Combobox.create(ItemSchema)` return a completed Block; name that result `ItemComboboxBlock`. Bind each used placement, including keyed collections, and include those Bindings under `bindings`.
 
 Component factories such as a Schema-refined Combobox return a completed Block with the factory's inferred Model, Message, OutMessage, view inputs, and public API operations. Bind the returned value exactly like a non-generic component.
 

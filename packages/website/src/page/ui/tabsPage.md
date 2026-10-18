@@ -6,7 +6,7 @@ Tab panel navigation with roving tabindex keyboard support, horizontal and verti
 
 ### State Ownership and Completed Type
 
-`Tabs.block` and Blocks returned by `Tabs.create` keep their own keyboard-focus state, but the parent owns the active tab. Store the active value in your Model, pass it in as `selectedValue`, and fold the `Selected` OutMessage back into that field through the Binding’s `outMessage.fold` policy.
+`Tabs.create()` and Blocks returned by `Tabs.create` keep their own keyboard-focus state, but the parent owns the active tab. Store the active value in your Model, pass it in as `selectedValue`, and fold the `Selected` OutMessage back into that field through the Binding’s `outMessage.fold` policy.
 
 What `Tabs.create<Value>()` returns is typed [`Completed<Value>` from `@foldkit/ui/tabs`](/ui/selection-blocks#completed-type), for cases where a created Block has to be named.
 

@@ -20,9 +20,9 @@ import {
   scrollToKey,
   scrollToOffset,
   update,
-} from './index.js'
+} from './virtualList.js'
 
-const defaultInit = (): Model => init({ id: 'test', rowHeightPx: 30 })
+const defaultInit = (): Model => init({ id: 'test', rowHeightPx: 30 }).model
 
 type ScrollReturn = ReturnType<typeof scrollToIndex>
 
@@ -197,7 +197,7 @@ describe('VirtualList', () => {
         id: 'test',
         rowHeightPx: 30,
         initialScrollTop: 600,
-      })
+      }).model
       expect(model.scrollTop).toBe(600)
       expect(model.initialScroll._tag).toBe('Pending')
     })
@@ -208,7 +208,7 @@ describe('VirtualList', () => {
         rowHeightPx: 30,
         initialScroll: { target: ScrollTarget.End() },
         followEnd: { thresholdPx: 8 },
-      })
+      }).model
 
       expect(model.initialScroll._tag).toBe('Pending')
       expect(model.endBehavior).toStrictEqual({
@@ -222,7 +222,7 @@ describe('VirtualList', () => {
         id: 'test',
         rowHeightPx: 30,
         initialScroll: { target: ScrollTarget.End() },
-      })
+      }).model
       const measured = update(
         initialModel,
         Message.ResizedContainer({ containerWidth: 320, containerHeight: 90 }),
@@ -268,7 +268,7 @@ describe('VirtualList', () => {
         id: 'test',
         rowHeightPx: 30,
         initialScroll: { target: ScrollTarget.Key({ key: 'wanted' }) },
-      })
+      }).model
       const measured = update(
         initialModel,
         Message.ResizedContainer({ containerWidth: 320, containerHeight: 90 }),
@@ -300,7 +300,7 @@ describe('VirtualList', () => {
         id: 'test',
         rowHeightPx: 30,
         initialScroll: { target: ScrollTarget.Key({ key: 'wanted' }) },
-      })
+      }).model
       const explicitScroll = scrollToEnd(initialModel)
 
       expect(explicitScroll.model.initialScroll._tag).toBe('Applied')
@@ -315,7 +315,7 @@ describe('VirtualList', () => {
         id: 'test',
         rowHeightPx: 30,
         initialScroll: { target: ScrollTarget.End() },
-      })
+      }).model
       const measured = update(
         initialModel,
         Message.ResizedContainer({ containerWidth: 320, containerHeight: 90 }),
@@ -363,7 +363,7 @@ describe('VirtualList', () => {
         id: 'test',
         rowHeightPx: 30,
         followEnd: { thresholdPx: 5 },
-      })
+      }).model
       const atEnd = update(
         model,
         Message.ObservedContainerScroll({
@@ -502,7 +502,7 @@ describe('VirtualList', () => {
       Story.story(
         update,
         Story.given(
-          init({ id: 'test', rowHeightPx: 30, initialScrollTop: 600 }),
+          init({ id: 'test', rowHeightPx: 30, initialScrollTop: 600 }).model,
         ),
         Story.message(
           Message.ResizedContainer({

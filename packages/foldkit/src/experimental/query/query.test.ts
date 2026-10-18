@@ -696,24 +696,25 @@ describe('Query Model encoding', () => {
 describe('Query Block binding', () => {
   const Model = Schema.Struct({ notes: notes.Model })
   const Message = defineMessageUnion({
-    GotNotesMessage: { message: notes.Message },
     ClickedLoad: {},
   })
-  const QueryParentDefinition = Block.define('QueryParent', { Model, Message })
+  const QueryParentDefinition = Block.makeDefinition('QueryParent', {
+    Model,
+    Message,
+  })
   const NotesChildBinding = QueryParentDefinition.bindChild(notes, {
     field: 'notes',
-    parentMessage: Message.GotNotesMessage,
     init: false,
   })
   const Composition = QueryParentDefinition.makeComposition({
-    childBindings: [NotesChildBinding],
+    bindings: [NotesChildBinding],
   })
   const update = Composition.makeUpdate((model, message) =>
     Message.match(message, {
       ClickedLoad: () => NotesChildBinding.requestRevalidationOrLoad()(model),
     }),
   )
-  const Parent = Composition.makeBlock({
+  const Parent = Composition.assembleBlock({
     init: Composition.makeInit(() => ({
       model: Model.make({ notes: notes.init().model }),
     })),
@@ -744,15 +745,15 @@ describe('Query Block binding', () => {
 
   it('projects Query operations and folds the child completion Message', () => {
     const started = Parent.update(Parent.init().model, Message.ClickedLoad())
-    const folded = Parent.update(
-      started.model,
-      Message.GotNotesMessage({
-        message: notes.Message.CompletedFetch({
-          generation: started.model.notes.generation,
-          result: Result.succeed(hello),
-        }),
+    const folded = Parent.update(started.model, {
+      _tag: 'GotNotesMessage',
+      placement: 'notes',
+      generation: 0,
+      message: notes.Message.CompletedFetch({
+        generation: started.model.notes.generation,
+        result: Result.succeed(hello),
       }),
-    )
+    })
 
     expect(notes.read(folded.model.notes)).toEqual(
       AsyncData.Success({ data: hello }),
@@ -762,19 +763,17 @@ describe('Query Block binding', () => {
   it('binds one KeyedQuery Block whose entries remain cache data', () => {
     const KeyedModel = Schema.Struct({ notes: noteById.Model })
     const KeyedMessage = defineMessageUnion({
-      GotNoteMessage: { message: noteById.Message },
       RequestedLoad: { noteId: Schema.String },
     })
-    const KeyedDefinition = Block.define('KeyedQueryParent', {
+    const KeyedDefinition = Block.makeDefinition('KeyedQueryParent', {
       Model: KeyedModel,
       Message: KeyedMessage,
     })
     const KeyedNotesBinding = KeyedDefinition.bindChild(noteById, {
       field: 'notes',
-      parentMessage: KeyedMessage.GotNoteMessage,
     })
     const KeyedComposition = KeyedDefinition.makeComposition({
-      childBindings: [KeyedNotesBinding],
+      bindings: [KeyedNotesBinding],
     })
     const update = KeyedComposition.makeUpdate((model, message) =>
       KeyedMessage.match(message, {
@@ -786,22 +785,22 @@ describe('Query Block binding', () => {
       KeyedModel.make({ notes: noteById.init().model }),
       KeyedMessage.RequestedLoad({ noteId: '1' }),
     )
-    const folded = update(
-      started.model,
-      KeyedMessage.GotNoteMessage({
-        message: noteById.Message.CompletedFetch({
-          args: { noteId: '1' },
-          generation: started.model.notes.generation,
-          requestKey: noteRequestKey('1'),
-          result: Result.succeed({ id: '1', body: 'hello' }),
-        }),
+    const folded = update(started.model, {
+      _tag: 'GotNotesMessage',
+      placement: 'notes',
+      generation: 0,
+      message: noteById.Message.CompletedFetch({
+        args: { noteId: '1' },
+        generation: started.model.notes.generation,
+        requestKey: noteRequestKey('1'),
+        result: Result.succeed({ id: '1', body: 'hello' }),
       }),
-    )
+    })
 
     expect(noteById.read(folded.model.notes, { noteId: '1' })).toEqual(
       AsyncData.Success({ data: { id: '1', body: 'hello' } }),
     )
-    expect(noteById.childBindings).toEqual([])
+    expect(noteById.bindings).toEqual([])
   })
 })
 
@@ -1582,16 +1581,12 @@ describe('Query handler requirements', () => {
 
     const ParentModel = Schema.Struct({ notes: served.Model })
     type ParentModel = typeof ParentModel.Type
-    const ParentMessage = defineMessageUnion({
-      GotNotesMessage: { message: served.Message },
-    })
-    const ParentDefinition = Block.define('ServedNotesParent', {
+    const ParentDefinition = Block.makeDefinition('ServedNotesParent', {
       Model: ParentModel,
-      Message: ParentMessage,
+      Message: Schema.Never,
     })
     const ServedNotesBinding = ParentDefinition.bindChild(served, {
       field: 'notes',
-      parentMessage: ParentMessage.GotNotesMessage,
     })
 
     expectTypeOf(ServedNotesBinding.fold)
@@ -1698,16 +1693,12 @@ describe('Query types', () => {
   it('bindChild returns parent operations with precise types', () => {
     const ParentModel = Schema.Struct({ notes: notes.Model })
     type ParentModel = typeof ParentModel.Type
-    const ParentMessage = defineMessageUnion({
-      GotNotesMessage: { message: notes.Message },
-    })
-    const ParentDefinition = Block.define('TypedQueryParent', {
+    const ParentDefinition = Block.makeDefinition('TypedQueryParent', {
       Model: ParentModel,
-      Message: ParentMessage,
+      Message: Schema.Never,
     })
     const NotesChildBinding = ParentDefinition.bindChild(notes, {
       field: 'notes',
-      parentMessage: ParentMessage.GotNotesMessage,
     })
 
     expectTypeOf<
@@ -1721,16 +1712,15 @@ describe('Query types', () => {
     ).parameters.toEqualTypeOf<[]>()
 
     const KeyedParentModel = Schema.Struct({ notes: noteById.Model })
-    const KeyedParentMessage = defineMessageUnion({
-      GotNoteMessage: { message: noteById.Message },
-    })
-    const KeyedParentDefinition = Block.define('TypedKeyedQueryParent', {
-      Model: KeyedParentModel,
-      Message: KeyedParentMessage,
-    })
+    const KeyedParentDefinition = Block.makeDefinition(
+      'TypedKeyedQueryParent',
+      {
+        Model: KeyedParentModel,
+        Message: Schema.Never,
+      },
+    )
     const NoteByIdChildBinding = KeyedParentDefinition.bindChild(noteById, {
       field: 'notes',
-      parentMessage: KeyedParentMessage.GotNoteMessage,
     })
 
     expectTypeOf(

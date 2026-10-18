@@ -31,7 +31,7 @@ The starter examples apply to `spa` rendering. The `ssg` and `ssr` modes scaffol
 | Example                  | Description                                                                                            |
 | ------------------------ | ------------------------------------------------------------------------------------------------------ |
 | `counter`                | Simple increment/decrement with reset                                                                  |
-| `counters`               | A dynamic list of Counter Blocks with per-instance routing via a wrapper Message                       |
+| `counters`               | A dynamic list of Counter Blocks with generated per-instance delivery                                  |
 | `todo`                   | CRUD operations with localStorage persistence                                                          |
 | `stopwatch`              | Timer with start/stop/reset                                                                            |
 | `crash-view`             | Custom crash fallback UI with crash.view and crash.report                                              |

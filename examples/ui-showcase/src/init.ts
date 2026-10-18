@@ -6,7 +6,7 @@ import { urlToApplicationRoute } from './route'
 
 export const init = ApplicationComposition.makeInit(
   (flags: Flags, url: Url) => ({
-    startup: flags,
+    childInitContext: flags,
     model: {
       route: urlToApplicationRoute(url),
     },

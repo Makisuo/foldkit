@@ -10,12 +10,10 @@ const ThemePickerModel = Schema.Struct({ theme: Theme })
 const ThemePickerMessage = defineMessageUnion({
   ChangedTheme: { theme: Theme },
 })
-
-const ThemePickerDefinition = Block.define('ThemePicker', {
+const ThemePickerComposition = Block.makeDefinition('ThemePicker', {
   Model: ThemePickerModel,
   Message: ThemePickerMessage,
-})
-const ThemePickerComposition = ThemePickerDefinition.makeComposition()
+}).makeComposition()
 
 const themePickerInit = ThemePickerComposition.makeInit((theme: Theme) => ({
   model: ThemePickerModel.make({ theme }),
@@ -30,7 +28,7 @@ const themePickerUpdate = ThemePickerComposition.makeUpdate((model, message) =>
 const themePickerView = ThemePickerComposition.makeView((model, h) =>
   h.p([], [`Theme: ${model.theme}`]),
 )
-const themePickerBlock = ThemePickerComposition.makeBlock({
+const ThemePickerBlock = ThemePickerComposition.assembleBlock({
   init: themePickerInit,
   update: themePickerUpdate,
   view: themePickerView,
@@ -40,34 +38,33 @@ const ProfileModel = Schema.Struct({
   username: Schema.String,
   themePicker: ThemePickerModel,
 })
-const ProfileMessage = defineMessageUnion({
-  GotThemePickerMessage: { message: ThemePickerMessage },
-})
-const ProfileStartup = Schema.Struct({
+const ProfileMessage = defineMessageUnion({})
+const ProfileChildInitContext = Schema.Struct({
   username: Schema.String,
   savedTheme: Theme,
 })
-type ProfileStartup = typeof ProfileStartup.Type
+type ProfileChildInitContext = typeof ProfileChildInitContext.Type
 
-const ProfileDefinition = Block.define('Profile', {
+const ProfileDefinition = Block.makeDefinition('Profile', {
   Model: ProfileModel,
   Message: ProfileMessage,
-  Startup: ProfileStartup,
+  ChildInitContext: ProfileChildInitContext,
 })
 
-const ThemePickerBinding = ProfileDefinition.bindChild(themePickerBlock, {
+const ThemePickerBinding = ProfileDefinition.bindChild(ThemePickerBlock, {
   field: 'themePicker',
-  parentMessage: ProfileMessage.GotThemePickerMessage,
   init: {
-    startupToArgs: ({ savedTheme }) => [savedTheme],
+    contextToArgs: ({ savedTheme }) => [savedTheme],
   },
 })
 
 const ProfileComposition = ProfileDefinition.makeComposition({
-  childBindings: [ThemePickerBinding],
+  bindings: [ThemePickerBinding],
 })
 
-export const init = ProfileComposition.makeInit((startup: ProfileStartup) => ({
-  startup,
-  model: { username: startup.username },
-}))
+export const init = ProfileComposition.makeInit(
+  (childInitContext: ProfileChildInitContext) => ({
+    childInitContext,
+    model: { username: childInitContext.username },
+  }),
+)

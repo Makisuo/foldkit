@@ -1,8 +1,6 @@
-import type { HtmlBuilder } from 'foldkit/html'
-
 import { Progress } from '@foldkit/ui'
 
-import { Message } from '../message'
+import type { UiViewBuilder } from '../composition'
 
 // DEMO CONTENT
 
@@ -11,7 +9,7 @@ const trackClassName =
 
 const indicatorClassName = 'h-full rounded-full bg-blue-600 transition-all'
 
-export const basicDemo = (h: HtmlBuilder<Message>) => {
+export const basicDemo = (h: UiViewBuilder) => {
   return [
     Progress.view(
       {
@@ -61,7 +59,7 @@ export const basicDemo = (h: HtmlBuilder<Message>) => {
   ]
 }
 
-export const indeterminateDemo = (h: HtmlBuilder<Message>) => {
+export const indeterminateDemo = (h: UiViewBuilder) => {
   return [
     Progress.view(
       {

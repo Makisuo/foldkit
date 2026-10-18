@@ -10,7 +10,7 @@ import { init } from './init'
 import { update } from './update'
 
 const today = Calendar.make(2026, 4, 16)
-const givenInitial = given(init(today))
+const givenInitial = given(init(today).model)
 
 describe('personalInfo', () => {
   test('a valid first name is stored as Valid', () => {
@@ -71,7 +71,7 @@ describe('personalInfo', () => {
     story(
       update,
       given(
-        modifyFields(init(today), {
+        modifyFields(init(today).model, {
           email: () => Validating({ value: 'jane@example.com' }),
           emailValidationId: () => 5,
         }),

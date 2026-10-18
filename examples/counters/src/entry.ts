@@ -1,19 +1,13 @@
 import { Runtime } from 'foldkit'
 
-import {
-  ApplicationComposition,
-  Message,
-  init,
-  update,
-  view,
-} from './application'
+import { ApplicationComposition, init, update, view } from './application'
 
-const application = ApplicationComposition.makeApplication({
+const application = ApplicationComposition.assembleApplication({
   init,
   update,
   view,
   container: document.getElementById('root'),
-  devTools: { Message },
+  devTools: { Message: ApplicationComposition.Message },
 })
 
 Runtime.run(application)

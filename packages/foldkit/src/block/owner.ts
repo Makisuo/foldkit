@@ -10,7 +10,7 @@ export interface Owner<Id extends string, Concrete extends boolean = boolean> {
   readonly [ConcreteOwnerTypeId]: Concrete
 }
 
-/** @internal Creates the runtime identity behind `Block.define`. */
+/** @internal Creates the runtime identity behind `Block.makeDefinition`. */
 export const makeOwner = <const Id extends string>(
   id: Id,
 ): Owner<Id, true> => ({

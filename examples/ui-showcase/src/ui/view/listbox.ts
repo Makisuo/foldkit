@@ -1,7 +1,6 @@
 import { Array, Option } from 'effect'
 import { type Html, childAttributes } from 'foldkit/html'
 
-import { Listbox } from '@foldkit/ui'
 import { buttonId } from '@foldkit/ui/listbox'
 
 import * as Icon from '../../icon'
@@ -12,8 +11,13 @@ import {
   UiComposition,
 } from '../composition'
 import type { UiViewBuilder } from '../composition'
-import type { Character } from '../listbox'
-import type { ListboxItem } from '../model'
+import type { ListboxItem } from '../domain'
+import {
+  CharacterListboxBlock,
+  type Character,
+  ItemListboxBlock,
+  ItemMultiListboxBlock,
+} from '../listbox'
 
 const LISTBOX_ITEMS: ReadonlyArray<ListboxItem> = [
   'Michael Bluth',
@@ -113,7 +117,7 @@ const field = (
 // DEMOS
 
 const singleSelectDemo = (
-  listboxModel: typeof Listbox.Model.Type,
+  listboxModel: typeof ItemListboxBlock.Model.Type,
   maybeSelectedItem: Option.Option<ListboxItem>,
   h: UiViewBuilder,
 ): Html => {
@@ -147,7 +151,7 @@ const singleSelectDemo = (
 }
 
 const multiSelectDemo = (
-  listboxModel: typeof Listbox.Multi.Model.Type,
+  listboxModel: typeof ItemMultiListboxBlock.Model.Type,
   selectedItems: ReadonlyArray<ListboxItem>,
   h: UiViewBuilder,
 ): Html => {
@@ -184,7 +188,7 @@ const multiSelectDemo = (
 }
 
 const groupedDemo = (
-  listboxModel: typeof Listbox.Model.Type,
+  listboxModel: typeof CharacterListboxBlock.Model.Type,
   maybeSelectedItem: Option.Option<string>,
   h: UiViewBuilder,
 ): Html => {

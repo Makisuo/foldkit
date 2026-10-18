@@ -7,11 +7,9 @@ import * as Update from 'foldkit/update'
 import {
   ChildBlock,
   ParentDefinition,
-  ParentMessage,
   PersistLayer,
   RequiredRestBlock,
   RequiredRestParentDefinition,
-  RequiredRestParentMessage,
   RootComposition,
   SaveClient,
   makePendingApplication,
@@ -26,12 +24,12 @@ import {
 const Model = Schema.Struct({ count: Schema.Number })
 const Message = defineMessageUnion({ ChangedCount: { amount: Schema.Number } })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct Block or Application identity for type coverage.
-const CounterDefinition = Block.define('DualUpdateRejectedCounter', {
+
+// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct Block or Application identity for type coverage.
+const Composition = Block.makeDefinition('DualUpdateRejectedCounter', {
   Model,
   Message,
-})
-// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct Block or Application identity for type coverage.
-const Composition = CounterDefinition.makeComposition()
+}).makeComposition()
 const update = Composition.makeUpdate(
   (model, _message, _context: Readonly<{ multiplier: number }>) => ({ model }),
 )
@@ -52,42 +50,32 @@ update(message, { multiplier: 2 })
 update(model, message)
 
 RequiredRestParentDefinition.bindChild(RequiredRestBlock, {
-  // @ts-expect-error A required-rest contextual child must provide fromParentMessage.
+  // @ts-expect-error A required-rest contextual child must provide generated delivery context.
   field: 'child',
-  // @ts-expect-error A required-rest contextual child must provide fromParentMessage.
-  parentMessage: RequiredRestParentMessage.GotChildMessage,
+  // @ts-expect-error A required-rest contextual child must provide generated delivery context.
+  delivery: {},
 })
 
 const AlternativeChildBinding = ParentDefinition.bindChild(ChildBlock, {
   field: 'child',
   placement: 'alternative',
-  parentMessage: ParentMessage.GotChildMessage,
 })
 const OmittedComposition = ParentDefinition.makeComposition({
-  childBindings: [AlternativeChildBinding],
+  bindings: [AlternativeChildBinding],
 })
 const omittedDirectUpdate = OmittedComposition.makeUpdate((current, _message) =>
+  // @ts-expect-error An update from another child graph carries that graph's generated dispatch Schema.
   parentUpdate(parentMessage)(current),
 )
 const omittedComposedUpdate = OmittedComposition.makeUpdate(
+  // @ts-expect-error Update.combine preserves the originating graph's generated dispatch Schema.
   (current, _message) => Update.combine(current, [parentUpdate(parentMessage)]),
 )
 
-// @ts-expect-error A curried routed update retains its omitted Binding evidence.
-OmittedComposition.makeBlock({
-  init: () => ({ model: parentModel }),
-  update: omittedDirectUpdate,
-  EffectsLayer: Layer.empty,
-})
+void omittedDirectUpdate
+void omittedComposedUpdate
 
-// @ts-expect-error Update.combine retains the curried routed update's omitted Binding evidence.
-OmittedComposition.makeBlock({
-  init: () => ({ model: parentModel }),
-  update: omittedComposedUpdate,
-  EffectsLayer: Layer.empty,
-})
-
-OmittedComposition.makeBlock({
+OmittedComposition.assembleBlock({
   init: () => ({ model: parentModel }),
   update: OmittedComposition.makeUpdate((current, _message) => ({
     model: current,
@@ -98,7 +86,7 @@ OmittedComposition.makeBlock({
 })
 
 // @ts-expect-error Root completion still requires the update's Command handler Layer.
-RootComposition.makeApplication({
+RootComposition.assembleApplication({
   container: null,
   init: rootInit,
   update: rootUpdate,

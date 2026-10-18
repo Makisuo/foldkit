@@ -140,25 +140,23 @@ const assertBindingConfigurationDocs = async (): Promise<void> => {
     const checks = [
       {
         binding: 'StatusBinding',
-        fields: ['field', 'parentMessage', 'init'],
+        fields: ['field', 'init'],
         nested: [],
       },
       {
         binding: 'SettingsBinding',
-        fields: ['fromParentMessage'],
-        nested: [{ property: 'fromParentMessage', fields: ['args'] }],
+        fields: ['field', 'delivery', 'init', 'outMessage'],
+        nested: [
+          { property: 'delivery', fields: ['toUpdateContext'] },
+          { property: 'init', fields: ['contextToArgs'] },
+        ],
       },
       {
         binding: 'ProjectedStatusBinding',
-        fields: [
-          'placement',
-          'read',
-          'write',
-          'toParentMessage',
-          'fromParentMessage',
-          'init',
+        fields: ['placement', 'read', 'write', 'init'],
+        nested: [
+          { property: 'init', fields: ['contextToArgs', 'toParentFields'] },
         ],
-        nested: [{ property: 'init', fields: ['startupToArgs', 'model'] }],
       },
       {
         binding: 'RoomBinding',
@@ -166,13 +164,16 @@ const assertBindingConfigurationDocs = async (): Promise<void> => {
           'placement',
           'readAll',
           'key',
+          'keySchema',
           'read',
           'writeAt',
-          'toParentMessage',
-          'fromParentMessage',
+          'delivery',
           'subscriptions',
         ],
-        nested: [{ property: 'subscriptions', fields: ['when'] }],
+        nested: [
+          { property: 'delivery', fields: ['when', 'toUpdateContext'] },
+          { property: 'subscriptions', fields: ['when'] },
+        ],
       },
     ]
 
@@ -407,6 +408,24 @@ const checks: ReadonlyArray<
     consumers: ReadonlyArray<string>
   }>
 > = [
+  {
+    name: 'field-steps',
+    accepted: ['field-steps.accepted.ts'],
+    rejected: ['field-steps.rejected.ts'],
+    consumers: ['field-steps.consume.ts'],
+  },
+  {
+    name: 'generated-dispatch',
+    accepted: ['generated-dispatch.accepted.ts'],
+    rejected: ['generated-dispatch.rejected.ts'],
+    consumers: ['generated-dispatch.consume.ts'],
+  },
+  {
+    name: 'generated-bindings',
+    accepted: ['generated-bindings.accepted.ts'],
+    rejected: ['generated-bindings.rejected.ts'],
+    consumers: ['generated-bindings.consume.ts'],
+  },
   {
     name: 'subscription-registry',
     accepted: ['subscription-registry.accepted.ts'],

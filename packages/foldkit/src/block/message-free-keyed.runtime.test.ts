@@ -4,13 +4,13 @@ import { expect, expectTypeOf, it } from 'vitest'
 import * as Command from '../command/index.js'
 import { modifyFields } from '../struct/index.js'
 import * as Update from '../update/index.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 import type { Scoped } from './scope.js'
 
 const SilentModel = Schema.Struct({ ready: Schema.Boolean })
 type SilentModel = typeof SilentModel.Type
 
-const Silent = define('MessageFreeKeyedRuntimeChild', {
+const Silent = makeDefinition('MessageFreeKeyedRuntimeChild', {
   Model: SilentModel,
   Message: Schema.Never,
 })
@@ -26,7 +26,7 @@ const markReady = Silent.step(model => ({
 }))
 const SilentComposition = Silent.makeComposition()
 const silentUpdate = SilentComposition.makeUpdate()
-const SilentBlock = SilentComposition.makeBlock({
+const SilentBlock = SilentComposition.assembleBlock({
   view: SilentComposition.makeView((_model, h) => h.empty),
   init: () => ({
     model: SilentModel.make({ ready: false }),
@@ -49,13 +49,13 @@ if (false) {
     EffectsLayer: WaitForever.layer,
   }
   // @ts-expect-error A Message-free Block cannot expose a mutating operation.
-  SilentComposition.makeBlock(mutatingExposeConfig)
+  SilentComposition.assembleBlock(mutatingExposeConfig)
 }
 
 const Entry = Schema.Struct({ id: Schema.String, child: SilentModel })
 const ParentModel = Schema.Struct({ entries: Schema.Array(Entry) })
 type ParentModel = typeof ParentModel.Type
-const Parent = define('MessageFreeKeyedRuntimeParent', {
+const Parent = makeDefinition('MessageFreeKeyedRuntimeParent', {
   Model: ParentModel,
   Message: Schema.Never,
 })
@@ -74,9 +74,9 @@ const SilentBinding = Parent.bindChild(SilentBlock, {
     }),
 })
 const ParentComposition = Parent.makeComposition({
-  childBindings: [SilentBinding],
+  bindings: [SilentBinding],
 })
-const ParentBlock = ParentComposition.makeBlock({
+const ParentBlock = ParentComposition.assembleBlock({
   view: ParentComposition.makeView((_model, h) => h.empty),
   init: ParentComposition.makeInit(() =>
     SilentBinding.init({
@@ -123,4 +123,19 @@ it('keeps local Message-free Steps internal to the child', () => {
   expectTypeOf(result).toExtend<
     Update.Return<SilentModel, never, Command.HandlerOf<typeof WaitForever>>
   >()
+})
+
+it('rejects generated delivery configuration for a Message-free child', () => {
+  expect(() =>
+    Reflect.apply(Parent.bindChild, undefined, [
+      SilentBlock,
+      {
+        readAll: (model: ParentModel) => model.entries,
+        key: (entry: typeof Entry.Type) => entry.id,
+        read: (entry: typeof Entry.Type) => entry.child,
+        writeAt: (model: ParentModel) => model,
+        delivery: {},
+      },
+    ]),
+  ).toThrow('[foldkit] A Message-free child cannot configure Message delivery.')
 })

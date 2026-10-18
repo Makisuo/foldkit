@@ -5,8 +5,8 @@ import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import * as Animation from '../animation/index.js'
-import { Message, SwipeState, test as toastTest } from './index.js'
+import * as Animation from '../animation/block.js'
+import { Message, SwipeState, test as toastTest } from './toast.js'
 import { makeFixture } from './toast.js'
 
 const TestPayload = Schema.Struct({ body: Schema.String })
@@ -27,11 +27,26 @@ const SETTLING_SWIPE_VERSION = 2
 const ENTER_TRANSITION_GENERATION = 1
 const LEAVE_TRANSITION_GENERATION = 2
 
+const gotAnimationMessage = ({
+  entryId,
+  message,
+}: Readonly<{
+  entryId: string
+  message: typeof Animation.AnimationBlock.Message.Type
+}>) =>
+  Schema.decodeUnknownSync(block.Message)({
+    _tag: 'GotAnimationMessage',
+    placement: 'Animation',
+    generation: 0,
+    key: entryId,
+    message,
+  })
+
 const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
   id: 'test-entry-0',
   variant: 'Info',
   animation: modifyFields(
-    Animation.init({ id: 'test-entry-0', isShowing: true }),
+    Animation.init({ id: 'test-entry-0', isShowing: true }).model,
     { transitionGeneration: () => ENTER_TRANSITION_GENERATION },
   ),
   maybeDuration: Option.some(Duration.seconds(4)),
@@ -46,7 +61,7 @@ const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
 const makeFreshEntry = (overrides: Partial<Entry> = {}): Entry => ({
   id: 'test-entry-0',
   variant: 'Info',
-  animation: Animation.init({ id: 'test-entry-0' }),
+  animation: Animation.init({ id: 'test-entry-0' }).model,
   maybeDuration: Option.some(Duration.seconds(4)),
   pendingDismissVersion: 0,
   isHovered: false,
@@ -56,9 +71,9 @@ const makeFreshEntry = (overrides: Partial<Entry> = {}): Entry => ({
   ...overrides,
 })
 
-const givenEmpty = Story.given(toastInit({ id: 'test' }))
+const givenEmpty = Story.given(toastInit({ id: 'test' }).model)
 
-const swipeInit = toastInit({ id: 'test', swipeToDismiss: {} })
+const swipeInit = toastInit({ id: 'test', swipeToDismiss: {} }).model
 
 const firstEntryId = 'test-entry-0'
 
@@ -74,7 +89,7 @@ const requireEntry = (model: Model, index: number): Entry =>
 describe('Toast', () => {
   describe('init', () => {
     it('defaults to empty with a 4s default duration and swipe disabled', () => {
-      expect(toastInit({ id: 'test' })).toStrictEqual({
+      expect(toastInit({ id: 'test' }).model).toStrictEqual({
         id: 'test',
         defaultDuration: Duration.seconds(4),
         entries: [],
@@ -88,7 +103,7 @@ describe('Toast', () => {
         toastInit({
           id: 'test',
           defaultDuration: 1000,
-        }),
+        }).model,
       ).toStrictEqual({
         id: 'test',
         defaultDuration: Duration.millis(1000),
@@ -99,13 +114,15 @@ describe('Toast', () => {
     })
 
     it('opts into rightward swipe with the default threshold', () => {
-      expect(toastInit({ id: 'test', swipeToDismiss: {} })).toStrictEqual({
-        id: 'test',
-        defaultDuration: Duration.seconds(4),
-        entries: [],
-        nextEntryKey: 0,
-        maybeSwipeConfig: Option.some({ threshold: 40, direction: 'Right' }),
-      })
+      expect(toastInit({ id: 'test', swipeToDismiss: {} }).model).toStrictEqual(
+        {
+          id: 'test',
+          defaultDuration: Duration.seconds(4),
+          entries: [],
+          nextEntryKey: 0,
+          maybeSwipeConfig: Option.some({ threshold: 40, direction: 'Right' }),
+        },
+      )
     })
 
     it('accepts a custom swipe threshold', () => {
@@ -113,7 +130,7 @@ describe('Toast', () => {
         toastInit({
           id: 'test',
           swipeToDismiss: { threshold: 120 },
-        }),
+        }).model,
       ).toStrictEqual({
         id: 'test',
         defaultDuration: Duration.seconds(4),
@@ -125,7 +142,7 @@ describe('Toast', () => {
 
     it('accepts a leftward swipe direction', () => {
       expect(
-        toastInit({ id: 'test', swipeToDismiss: { direction: 'Left' } }),
+        toastInit({ id: 'test', swipeToDismiss: { direction: 'Left' } }).model,
       ).toStrictEqual({
         id: 'test',
         defaultDuration: Duration.seconds(4),
@@ -138,7 +155,7 @@ describe('Toast', () => {
 
   describe('show', () => {
     it('appends an entry and schedules enter + dismiss commands', () => {
-      const initial = toastInit({ id: 'test' })
+      const initial = toastInit({ id: 'test' }).model
       const toastShow = block.operations.requestShow(initial, {
         payload: { body: 'Saved' },
       })
@@ -155,7 +172,7 @@ describe('Toast', () => {
 
     it('does not schedule a dismiss command when sticky', () => {
       const toastShow = block.operations.requestShow(
-        toastInit({ id: 'test' }),
+        toastInit({ id: 'test' }).model,
         {
           payload: { body: 'Sticky' },
           sticky: true,
@@ -168,7 +185,7 @@ describe('Toast', () => {
 
     it('uses a caller-provided duration over the default', () => {
       const toastShow = block.operations.requestShow(
-        toastInit({ id: 'test' }),
+        toastInit({ id: 'test' }).model,
         {
           payload: { body: 'Quick' },
           duration: 100,
@@ -182,7 +199,7 @@ describe('Toast', () => {
 
     it('generates sequential entry ids using nextEntryKey', () => {
       const firstShow = block.operations.requestShow(
-        toastInit({ id: 'test' }),
+        toastInit({ id: 'test' }).model,
         {
           payload: { body: 'One' },
         },
@@ -197,7 +214,7 @@ describe('Toast', () => {
 
     it('sticky wins over an explicit duration', () => {
       const toastShow = block.operations.requestShow(
-        toastInit({ id: 'test' }),
+        toastInit({ id: 'test' }).model,
         {
           payload: { body: 'Sticky beats duration' },
           sticky: true,
@@ -212,7 +229,7 @@ describe('Toast', () => {
   describe('update', () => {
     describe('CompletedWaitBeforeDismissal', () => {
       it('ignores a stale version', () => {
-        const model: Model = modifyFields(toastInit({ id: 'test' }), {
+        const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
           entries: () => [makeSettledEntry()],
           nextEntryKey: () => 1,
         })
@@ -233,7 +250,7 @@ describe('Toast', () => {
       })
 
       it('starts the leave transition when the version matches', () => {
-        const model: Model = modifyFields(toastInit({ id: 'test' }), {
+        const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
           entries: () => [makeSettledEntry()],
           nextEntryKey: () => 1,
         })
@@ -291,7 +308,7 @@ describe('Toast', () => {
 
     describe('HoveredEntry / LeftEntry', () => {
       it('HoveredEntry flips isHovered true and bumps version to cancel the pending timer', () => {
-        const model: Model = modifyFields(toastInit({ id: 'test' }), {
+        const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
           entries: () => [makeSettledEntry()],
           nextEntryKey: () => 1,
         })
@@ -313,7 +330,7 @@ describe('Toast', () => {
           isHovered: true,
           pendingDismissVersion: 1,
         })
-        const model: Model = modifyFields(toastInit({ id: 'test' }), {
+        const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
           entries: () => [hoveredEntry],
           nextEntryKey: () => 1,
         })
@@ -342,7 +359,7 @@ describe('Toast', () => {
           maybeDuration: Option.none(),
           isHovered: true,
         })
-        const model: Model = modifyFields(toastInit({ id: 'test' }), {
+        const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
           entries: () => [stickyEntry],
           nextEntryKey: () => 1,
         })
@@ -355,7 +372,7 @@ describe('Toast', () => {
       })
 
       it('a hover arriving before the timer fires cancels the pending dismiss via version bump', () => {
-        const model: Model = modifyFields(toastInit({ id: 'test' }), {
+        const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
           entries: () => [makeSettledEntry()],
           nextEntryKey: () => 1,
         })
@@ -413,7 +430,7 @@ describe('Toast', () => {
 
     describe('Dismissed', () => {
       it('runs the full leave flow and removes the entry from the stack', () => {
-        const model: Model = modifyFields(toastInit({ id: 'test' }), {
+        const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
           entries: () => [makeSettledEntry()],
           nextEntryKey: () => 1,
         })
@@ -461,7 +478,7 @@ describe('Toast', () => {
             transitionGeneration: LEAVE_TRANSITION_GENERATION,
           },
         })
-        const model: Model = modifyFields(toastInit({ id: 'test' }), {
+        const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
           entries: () => [leavingEntry],
           nextEntryKey: () => 1,
         })
@@ -485,7 +502,7 @@ describe('Toast', () => {
             transitionGeneration: LEAVE_TRANSITION_GENERATION,
           },
         })
-        const model: Model = modifyFields(toastInit({ id: 'test' }), {
+        const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
           entries: () => [entry],
           nextEntryKey: () => 1,
         })
@@ -493,7 +510,7 @@ describe('Toast', () => {
           block.update,
           Story.given(model),
           Story.message(
-            Message.GotAnimationMessage({
+            gotAnimationMessage({
               entryId: firstEntryId,
               message: Animation.Message.EndedAnimation({
                 generation: LEAVE_TRANSITION_GENERATION,
@@ -515,18 +532,18 @@ describe('Toast', () => {
         const entryOne = makeSettledEntry({
           id: 'test-entry-0',
           animation: {
-            ...Animation.init({ id: 'test-entry-0', isShowing: true }),
+            ...Animation.init({ id: 'test-entry-0', isShowing: true }).model,
             transitionGeneration: ENTER_TRANSITION_GENERATION,
           },
         })
         const entryTwo = makeSettledEntry({
           id: 'test-entry-1',
           animation: {
-            ...Animation.init({ id: 'test-entry-1', isShowing: true }),
+            ...Animation.init({ id: 'test-entry-1', isShowing: true }).model,
             transitionGeneration: ENTER_TRANSITION_GENERATION,
           },
         })
-        const model: Model = modifyFields(toastInit({ id: 'test' }), {
+        const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
           entries: () => [entryOne, entryTwo],
           nextEntryKey: () => 2,
         })
@@ -737,7 +754,9 @@ describe('Toast', () => {
 
   describe('swipe', () => {
     it('ignores pointer presses when swipe is disabled', () => {
-      const model = withEntries(toastInit({ id: 'test' }), [makeSettledEntry()])
+      const model = withEntries(toastInit({ id: 'test' }).model, [
+        makeSettledEntry(),
+      ])
       Story.story(
         block.update,
         Story.given(model),
@@ -1423,7 +1442,7 @@ describe('Toast', () => {
 
     it('swipes left when configured with the leftward direction', () => {
       const initialModel = withEntries(
-        toastInit({ id: 'test', swipeToDismiss: { direction: 'Left' } }),
+        toastInit({ id: 'test', swipeToDismiss: { direction: 'Left' } }).model,
         [makeSettledEntry()],
       )
       Story.story(
@@ -1690,7 +1709,7 @@ describe('Toast', () => {
 
   describe('programmatic helpers', () => {
     it('requestDismiss(model, entryId) dispatches RequestedDismiss', () => {
-      const model: Model = modifyFields(toastInit({ id: 'test' }), {
+      const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
         entries: () => [makeSettledEntry()],
         nextEntryKey: () => 1,
       })
@@ -1701,7 +1720,7 @@ describe('Toast', () => {
     })
 
     it('requestDismissAll(model) dispatches RequestedDismissAll', () => {
-      const model: Model = modifyFields(toastInit({ id: 'test' }), {
+      const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
         entries: () => [
           makeSettledEntry({ id: 'test-entry-0' }),
           makeSettledEntry({ id: 'test-entry-1' }),

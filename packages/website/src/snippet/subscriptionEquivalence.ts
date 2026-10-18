@@ -13,7 +13,7 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const DragDefinition = Block.define('Drag', { Model, Message })
+const DragDefinition = Block.makeDefinition('Drag', { Model, Message })
 
 export const subscriptions = DragDefinition.subscriptions(entry => ({
   autoScrollDuringDrag: entry(

@@ -6,11 +6,10 @@ import { describe, expect, test } from 'vitest'
 
 import * as Shared from '@typing-game/shared'
 
-import { NavigateToRoom } from './composition'
+import { HomeBinding, NavigateToRoom, RoomBinding } from './composition'
 import { Message } from './message'
 import { Model, RoomInstance } from './model'
-import { Home, Room } from './page'
-import { Message as HomeMessage } from './page/home/message'
+import { HomeBlock, RoomBlock } from './page'
 import { HomeStep } from './page/home/model'
 import {
   ClearSession,
@@ -20,7 +19,6 @@ import {
   SavePlayerSession,
   StartGame,
 } from './page/room/command'
-import { Message as RoomMessage } from './page/room/message'
 import { RoomAsyncData } from './page/room/model'
 import { NavigateHome } from './page/room/update'
 import { ApplicationRoute } from './route'
@@ -43,7 +41,7 @@ const waitingRoom: Shared.Room = {
   usedGameTexts: [],
 }
 
-const selectActionHome: typeof Home.Model.Type = {
+const selectActionHome: typeof HomeBlock.Model.Type = {
   homeStep: HomeStep.SelectAction({
     username: 'alice',
     selectedAction: 'CreateRoom',
@@ -51,7 +49,7 @@ const selectActionHome: typeof Home.Model.Type = {
   formError: Option.none(),
 }
 
-const joinedRoom: typeof Room.Model.Type = {
+const joinedRoom: typeof RoomBlock.Model.Type = {
   roomAsyncData: RoomAsyncData.Success({ data: waitingRoom }),
   maybeSession: Option.some({ roomId: ROOM_A, player: alice }),
   userGameText: '',
@@ -60,6 +58,25 @@ const joinedRoom: typeof Room.Model.Type = {
   isRoomIdCopyIndicatorVisible: false,
   exitCountdownSecondsLeft: 0,
 }
+
+const emptyRoomView = RoomBlock.makeView((_model, h) => h.empty)
+
+const toHomeMessage = (message: typeof HomeBlock.Message.Type) =>
+  HomeBinding.embedView({
+    slotId: 'home',
+    model: selectActionHome,
+  }).toParentMessage(message)
+
+const toRoomMessage = (
+  roomId: string,
+  message: typeof RoomBlock.Message.Type,
+) =>
+  RoomBinding.embedView({
+    slotId: roomId,
+    key: roomId,
+    model: joinedRoom,
+    view: emptyRoomView,
+  }).toParentMessage(message)
 
 const givenHomeRoute = given<Model>({
   route: ApplicationRoute.Home(),
@@ -100,7 +117,7 @@ const getRoomInstance = (model: Model): RoomInstance =>
   pipe(model.maybeRoomInstance, Option.getOrThrow)
 
 const dirtyRoomModel = (roomId: string) =>
-  modifyFields(Room.block.init(Option.none()).model, {
+  modifyFields(RoomBlock.init(Option.none()).model, {
     roomAsyncData: () => RoomAsyncData.Success({ data: makeRoom(roomId, 37) }),
     maybeSession: () => Option.some({ roomId, player: alice }),
     userGameText: () => 'typed text',
@@ -129,9 +146,7 @@ describe('key presses on the Home route', () => {
       update,
       givenHomeRoute,
       message(
-        Message.GotHomeMessage({
-          message: HomeMessage.PressedKey({ key: 'ArrowDown' }),
-        }),
+        toHomeMessage(HomeBlock.Message.PressedKey({ key: 'ArrowDown' })),
       ),
       model(model => {
         expect(model.home.homeStep).toMatchObject({
@@ -149,10 +164,7 @@ describe('key presses on the Home route', () => {
       update,
       givenHomeRoute,
       message(
-        Message.GotRoomMessage({
-          roomId: 'r1',
-          message: RoomMessage.PressedKey({ key: 'Enter' }),
-        }),
+        toRoomMessage('r1', RoomBlock.Message.PressedKey({ key: 'Enter' })),
       ),
       model(model => {
         expect(model.maybeRoomInstance).toEqual(Option.none())
@@ -168,12 +180,9 @@ describe('key presses on the Room route', () => {
       update,
       givenRoomRoute,
       message(
-        Message.GotRoomMessage({
-          roomId: 'r1',
-          message: RoomMessage.PressedKey({ key: 'Enter' }),
-        }),
+        toRoomMessage('r1', RoomBlock.Message.PressedKey({ key: 'Enter' })),
       ),
-      Command.resolve(StartGame, RoomMessage.SucceededStartGame()),
+      Command.resolve(StartGame, RoomBlock.Message.SucceededStartGame()),
       model(model => {
         expect(model.home).toEqual(selectActionHome)
       }),
@@ -187,7 +196,7 @@ describe('Room navigation', () => {
       ApplicationRoute.Room({ roomId: ROOM_A }),
       ROOM_A,
     )
-    const expectedRoomInit = Room.block.init(Option.some(ROOM_B))
+    const expectedRoomInit = RoomBlock.init(Option.some(ROOM_B))
 
     story(
       update,
@@ -202,15 +211,17 @@ describe('Room navigation', () => {
       Command.resolveAllExact(
         [
           LoadSession({ roomId: ROOM_B }),
-          RoomMessage.CompletedLoadSession({ maybeSession: Option.none() }),
+          RoomBlock.Message.CompletedLoadSession({
+            maybeSession: Option.none(),
+          }),
         ],
         [
           FetchRoom({ roomId: ROOM_B }),
-          RoomMessage.SucceededFetchRoom({ room: makeRoom(ROOM_B, 100) }),
+          RoomBlock.Message.SucceededFetchRoom({ room: makeRoom(ROOM_B, 100) }),
         ],
         [
           FocusRoomPageUsernameInput,
-          RoomMessage.CompletedFocusRoomPageUsernameInput(),
+          RoomBlock.Message.CompletedFocusRoomPageUsernameInput(),
         ],
       ),
     )
@@ -260,30 +271,25 @@ describe('Room occurrence identity', () => {
       ApplicationRoute.Room({ roomId: ROOM_B }),
       ROOM_B,
     )
-    const staleMessages: ReadonlyArray<typeof RoomMessage.Type> = [
-      RoomMessage.SucceededJoinRoom({ player: alice }),
-      RoomMessage.CompletedLoadSession({
+    const staleMessages: ReadonlyArray<typeof RoomBlock.Message.Type> = [
+      RoomBlock.Message.SucceededJoinRoom({ player: alice }),
+      RoomBlock.Message.CompletedLoadSession({
         maybeSession: Option.some({ roomId: ROOM_A, player: alice }),
       }),
-      RoomMessage.SucceededFetchRoom({ room: makeRoom(ROOM_A, 90) }),
-      RoomMessage.UpdatedRoom({
+      RoomBlock.Message.SucceededFetchRoom({ room: makeRoom(ROOM_A, 90) }),
+      RoomBlock.Message.UpdatedRoom({
         room: makeRoom(ROOM_A, 91),
         maybePlayerProgress: Option.none(),
       }),
-      RoomMessage.SucceededCopyRoomId(),
-      RoomMessage.CompletedWaitForExitCountdownInterval(),
+      RoomBlock.Message.SucceededCopyRoomId(),
+      RoomBlock.Message.CompletedWaitForExitCountdownInterval(),
     ]
 
     for (const staleMessage of staleMessages) {
       story(
         update,
         given(initialModel),
-        message(
-          Message.GotRoomMessage({
-            roomId: ROOM_A,
-            message: staleMessage,
-          }),
-        ),
+        message(toRoomMessage(ROOM_A, staleMessage)),
         model(model => {
           expect(model).toBe(initialModel)
         }),
@@ -310,14 +316,17 @@ describe('Room occurrence identity', () => {
       update,
       given(initialModel),
       message(
-        Message.GotRoomMessage({
-          roomId: ROOM_A,
-          message: RoomMessage.PressedKey({ key: 'Backspace' }),
-        }),
+        toRoomMessage(
+          ROOM_A,
+          RoomBlock.Message.PressedKey({ key: 'Backspace' }),
+        ),
       ),
       Command.resolveAllExact(
-        [ClearSession({ roomId: ROOM_A }), RoomMessage.CompletedClearSession()],
-        [NavigateHome(), RoomMessage.CompletedNavigateHome()],
+        [
+          ClearSession({ roomId: ROOM_A }),
+          RoomBlock.Message.CompletedClearSession(),
+        ],
+        [NavigateHome(), RoomBlock.Message.CompletedNavigateHome()],
       ),
     )
   })
@@ -339,14 +348,11 @@ describe('Room occurrence identity', () => {
       update,
       given(initialModel),
       message(
-        Message.GotRoomMessage({
-          roomId: ROOM_A,
-          message: RoomMessage.PressedKey({ key: 'Enter' }),
-        }),
+        toRoomMessage(ROOM_A, RoomBlock.Message.PressedKey({ key: 'Enter' })),
       ),
       Command.resolveAllExact([
         StartGame({ roomId: ROOM_A, playerId: alice.id }),
-        RoomMessage.SucceededStartGame(),
+        RoomBlock.Message.SucceededStartGame(),
       ]),
     )
   })
@@ -356,11 +362,11 @@ describe('Home and Room coordination', () => {
   test.each([
     [
       'created',
-      HomeMessage.SucceededCreateRoom({ roomId: ROOM_A, player: alice }),
+      HomeBlock.Message.SucceededCreateRoom({ roomId: ROOM_A, player: alice }),
     ],
     [
       'joined',
-      HomeMessage.SucceededJoinRoomFromHome({
+      HomeBlock.Message.SucceededJoinRoomFromHome({
         roomId: ROOM_A,
         player: alice,
       }),
@@ -376,7 +382,7 @@ describe('Home and Room coordination', () => {
     story(
       update,
       given(initialModel),
-      message(Message.GotHomeMessage({ message: homeMessage })),
+      message(toHomeMessage(homeMessage)),
       model(model => {
         const roomInstance = getRoomInstance(model)
 
@@ -398,7 +404,7 @@ describe('Home and Room coordination', () => {
           SavePlayerSession({
             session: { roomId: ROOM_A, player: alice },
           }),
-          RoomMessage.CompletedSavePlayerSession(),
+          RoomBlock.Message.CompletedSavePlayerSession(),
         ],
         [NavigateToRoom({ roomId: ROOM_A }), Message.CompletedNavigateToRoom()],
       ),
@@ -415,12 +421,12 @@ describe('Home and Room coordination', () => {
       update,
       given(initialModel),
       message(
-        Message.GotHomeMessage({
-          message: HomeMessage.SucceededCreateRoom({
+        toHomeMessage(
+          HomeBlock.Message.SucceededCreateRoom({
             roomId: ROOM_A,
             player: bob,
           }),
-        }),
+        ),
       ),
       model(model => {
         expect(model).toBe(initialModel)

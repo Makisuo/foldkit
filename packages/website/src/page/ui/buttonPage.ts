@@ -1,14 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
-import raw from './buttonPage.md'
 import { UiComposition } from './composition'
+import { ButtonPageContent } from './content'
 import * as Button from './demo/button'
 
-const { tableOfContents, view: renderPage } = slotDocPage<'basic' | 'disabled'>(
-  raw,
-  'ui/button',
-)
+const { tableOfContents, view: renderPage } = ButtonPageContent
 
 export { tableOfContents }
 

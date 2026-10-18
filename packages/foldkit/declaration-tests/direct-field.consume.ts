@@ -1,4 +1,4 @@
-import { Option } from 'effect'
+import { Option, Schema } from 'effect'
 import type { Block } from 'foldkit'
 
 import {
@@ -7,6 +7,9 @@ import {
   CallableOptionalBinding,
   ChildMessage,
   CustomIgnoredMessageBinding,
+  GeneratedChildBinding,
+  GeneratedDirectFieldParentComposition,
+  GeneratedParentMessage,
   InitializedArgumentBinding,
   InitializedOptionalBinding,
   InitializedRequiredBinding,
@@ -19,6 +22,7 @@ import {
   SuspendedOptionalBinding,
   composition,
   foldOptional,
+  generatedUpdate,
   initial,
   initialize,
   setCallableCount,
@@ -72,6 +76,21 @@ export type InitializedArgumentPlacement = Assert<
 export type InitializedOptionalPlacement = Assert<
   Equal<typeof InitializedOptionalBinding.placement, 'maybeArgumentChild'>
 >
+export type GeneratedPlacement = Assert<
+  Equal<typeof GeneratedChildBinding.placement, 'child'>
+>
+export type GeneratedDispatch = Assert<
+  Equal<
+    typeof GeneratedDirectFieldParentComposition.Message.Type,
+    | typeof GeneratedParentMessage.Type
+    | Readonly<{
+        _tag: 'GotChildMessage'
+        placement: 'child'
+        generation: number
+        message: typeof ChildMessage.Type
+      }>
+  >
+>
 export type InitializeArguments = Assert<
   Equal<
     Parameters<typeof initialize>,
@@ -101,8 +120,22 @@ foldOptional(
   ParentMessage.IgnoredChildMessage(),
   ChildMessage.UpdatedCount({ count: 3 }),
 )
-ParentMessage.GotChildMessage({
-  message: ChildMessage.UpdatedCount({ count: 1 }),
+generatedUpdate(initial, GeneratedParentMessage.ClickedParent())
+generatedUpdate(
+  initial,
+  Schema.decodeUnknownSync(GeneratedDirectFieldParentComposition.Message)({
+    _tag: 'GotChildMessage',
+    placement: 'child',
+    generation: 0,
+    message: ChildMessage.UpdatedCount({ count: 2 }),
+  }),
+)
+generatedUpdate(initial, {
+  _tag: 'GotChildMessage',
+  // @ts-expect-error Generated delivery retains its exact placement.
+  placement: 'other',
+  generation: 0,
+  message: ChildMessage.UpdatedCount({ count: 2 }),
 })
 // @ts-expect-error Emitted exposed operation arguments retain their exact types.
 OptionalBinding.setCount('wrong')

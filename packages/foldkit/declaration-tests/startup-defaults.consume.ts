@@ -5,6 +5,7 @@ import {
   ApplicationDefinition,
   AutomaticBinding,
   ChildBlock,
+  ChildInitContext,
   DeclarationStartupDefaultsParentDefinition,
   DeclarationStartupGenericParentComposition,
   DeclarationStartupGenericParentDefinition,
@@ -18,11 +19,9 @@ import {
   OptionalBinding,
   OptionalChildBlock,
   ParentBlock,
-  ParentMessage,
   RequiredChildBlock,
   RequiredRestBinding,
   RestChildBlock,
-  Startup,
   StartupClient,
   initialize,
   initializeCompatibleStartup,
@@ -39,7 +38,10 @@ type Equal<Left, Right> =
 type Expect<Value extends true> = Value
 
 export type StartupArguments = Expect<
-  Equal<Parameters<typeof initialize>, [startup: typeof Startup.Type]>
+  Equal<
+    Parameters<typeof initialize>,
+    [childInitContext: typeof ChildInitContext.Type]
+  >
 >
 export type DefaultArguments = Expect<
   Equal<Parameters<typeof DefaultChildBlock.init>, [count?: number | undefined]>
@@ -59,13 +61,13 @@ export type RequiredRestArguments = Expect<
 export type CompatibleStartupArguments = Expect<
   Equal<
     Parameters<typeof initializeCompatibleStartup>,
-    [startup: Readonly<{ count: number; label: string }>]
+    [childInitContext: Readonly<{ count: number; label: string }>]
   >
 >
 export type MixedStartupArguments = Expect<
   Equal<
     Parameters<typeof initializeMixedStartup>,
-    [startup: Readonly<{ count: number }>]
+    [childInitContext: Readonly<{ count: number }>]
   >
 >
 export type StartupServices = Expect<
@@ -99,42 +101,41 @@ export type StartupRequirements = Expect<
 initialize({ count: 3, includeOptional: true, entryIds: ['first'] })
 initializeWithoutSelectorStartup()
 DeclarationStartupGenericParentComposition.makeInit(() => ({
-  startup: { count: 1, includeOptional: false, entryIds: [] },
+  childInitContext: { count: 1, includeOptional: false, entryIds: [] },
   model: {},
 }))
 
 DeclarationStartupGenericParentDefinition.bindChild(ChildBlock, {
   field: 'child',
   placement: 'external',
-  parentMessage: ParentMessage.GotChildMessage,
-  init: { startupToArgs: _startup => [] },
+
+  init: { contextToArgs: _childInitContext => [] },
 })
 ApplicationDefinition.bindChild(ChildBlock, {
   field: 'child',
   placement: 'external',
-  parentMessage: ParentMessage.GotChildMessage,
-  init: { startupToArgs: _startup => [] },
+
+  init: { contextToArgs: _childInitContext => [] },
 })
 DeclarationStartupDefaultsParentDefinition.bindChild(RequiredChildBlock, {
   field: 'automatic',
   placement: 'externalOptOut',
-  parentMessage: ParentMessage.GotChildMessage,
 
   init: false,
 })
 
 // @ts-expect-error The emitted required child still requires args or opt out.
 // oxfmt-ignore
-DeclarationStartupDefaultsParentDefinition.bindChild(RequiredChildBlock, { field: 'automatic', placement: 'externalMissingArgs', parentMessage: ParentMessage.GotChildMessage,  })
+DeclarationStartupDefaultsParentDefinition.bindChild(RequiredChildBlock, { field: 'automatic', placement: 'externalMissingArgs',   })
 
 DeclarationStartupGenericParentDefinition.bindChild(ChildBlock, {
   field: 'child',
   placement: 'externalMutation',
-  parentMessage: ParentMessage.GotChildMessage,
+
   init: {
-    startupToArgs: startup => {
-      // @ts-expect-error Emitted Startup fields remain readonly.
-      startup.count = 2
+    contextToArgs: childInitContext => {
+      // @ts-expect-error Emitted ChildInitContext fields remain readonly.
+      childInitContext.count = 2
       return []
     },
   },

@@ -3,15 +3,15 @@ import { Array, Match, Option, String, pipe } from 'effect'
 import { Html, inertHtml as ih } from 'foldkit/html'
 
 import { Icon } from '../icon'
+import { KEYBOARD_WARMUP_INPUT_ID, SEARCH_INPUT_ID } from '../searchDom'
 import {
   DialogBinding,
   SearchComposition,
   type SearchViewBuilder,
 } from './composition'
-import { Message, type SearchResult } from './message'
+import { SearchState, resultsFromState, type SearchResult } from './domain'
+import { Message } from './message'
 import type { Model } from './model'
-import { SearchState, resultsFromState } from './model'
-import { KEYBOARD_WARMUP_INPUT_ID, SEARCH_INPUT_ID } from './update'
 
 const RESULTS_LIST_ID = 'search-results'
 const resultItemId = (index: number): string => `search-result-${index}`

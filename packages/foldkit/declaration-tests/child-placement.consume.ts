@@ -21,18 +21,18 @@ const entriesByIdPlacement: 'entriesById' = EntriesByIdBinding.placement
 const entriesByIdLengthPlacement: 'entriesByIdLength' =
   EntriesByIdLengthBinding.placement
 
-const childBindings: readonly [
+const bindings: readonly [
   typeof PrimaryBinding,
   typeof SecondaryBinding,
   typeof OptionalBinding,
   typeof EntriesBinding,
-] = DeclarationChildPlacementParentComposition.childBindings
+] = DeclarationChildPlacementParentComposition.bindings
 
 const defaultPlacementChildren: readonly [
   typeof DefaultAccessorBinding,
   typeof EntriesByIdBinding,
   typeof EntriesByIdLengthBinding,
-] = DefaultPlacementComposition.childBindings
+] = DefaultPlacementComposition.bindings
 
 composeDynamicChildren([PrimaryBinding, PrimaryBinding])
 
@@ -43,5 +43,5 @@ void entriesPlacement
 void defaultAccessorPlacement
 void entriesByIdPlacement
 void entriesByIdLengthPlacement
-void childBindings
+void bindings
 void defaultPlacementChildren

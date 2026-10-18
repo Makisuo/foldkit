@@ -1,20 +1,30 @@
-import { Listbox, Menu, RadioGroup, Tabs } from '@foldkit/ui'
+import { Listbox, Menu, RadioGroup, Tabs, VirtualList } from '@foldkit/ui'
 
-import type { DemoTab, ListboxItem, Plan } from '../model'
+import type {
+  DemoTab,
+  ListboxItem,
+  Plan,
+  VirtualListChatMessage,
+} from '../domain/domain'
 
 export type Character = Readonly<{
   firstName: string
   lastName: string
 }>
 
-export const ItemListbox = Listbox.create<ListboxItem>()
-export const ItemMultiListbox = Listbox.Multi.create<ListboxItem>()
-export const CharacterListbox = Listbox.create<Character>()
+export const ItemListboxBlock = Listbox.create<ListboxItem>()
+export const ItemMultiListboxBlock = Listbox.Multi.create<ListboxItem>()
+export const CharacterListboxBlock = Listbox.create<Character>()
 
 export type MenuItem = 'Edit' | 'Duplicate' | 'Archive' | 'Move' | 'Delete'
 
-export const DemoMenu = Menu.create<MenuItem>()
+export const DemoMenuBlock = Menu.create<MenuItem>()
 
-export const PlanRadioGroup = RadioGroup.create<Plan>()
+export const PlanRadioGroupBlock = RadioGroup.create<Plan>()
 
-export const DemoTabs = Tabs.create<DemoTab>()
+export const DemoTabsBlock = Tabs.create<DemoTab>()
+
+import type { Activity } from './virtualListData'
+
+export const ActivityVirtualListBlock = VirtualList.create<Activity>()
+export const ChatVirtualListBlock = VirtualList.create<VirtualListChatMessage>()

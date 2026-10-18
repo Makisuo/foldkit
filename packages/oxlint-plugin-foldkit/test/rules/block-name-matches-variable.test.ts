@@ -27,7 +27,7 @@ describe('block-name-matches-variable', () => {
       'VariableDeclarator',
       variableDeclarator(
         'PeopleDefinition',
-        Testing.callOfMember('Block', 'define', [
+        Testing.callOfMember('Block', 'makeDefinition', [
           Testing.strLiteral('PeopleDirectory'),
         ]),
       ),
@@ -45,7 +45,42 @@ describe('block-name-matches-variable', () => {
       'VariableDeclarator',
       variableDeclarator(
         'PeopleDefinition',
-        Testing.callOfMember('Block', 'define', [Testing.strLiteral('People')]),
+        Testing.callOfMember('Block', 'makeDefinition', [
+          Testing.strLiteral('People'),
+        ]),
+      ),
+    )
+
+    expect(result).toHaveLength(0)
+  })
+
+  it('requires a Namespace suffix for makeNamespace', () => {
+    const result = Testing.runRule(
+      blockNameMatchesVariable,
+      'VariableDeclarator',
+      variableDeclarator(
+        'PeopleDefinition',
+        Testing.callOfMember('Block', 'makeNamespace', [
+          Testing.strLiteral('People'),
+        ]),
+      ),
+    )
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.diagnostic.message).toContain(
+      '"PeopleDefinition" must be "PeopleNamespace"',
+    )
+  })
+
+  it('allows the Block name with a Namespace suffix', () => {
+    const result = Testing.runRule(
+      blockNameMatchesVariable,
+      'VariableDeclarator',
+      variableDeclarator(
+        'PeopleNamespace',
+        Testing.callOfMember('Block', 'makeNamespace', [
+          Testing.strLiteral('People'),
+        ]),
       ),
     )
 
@@ -53,7 +88,7 @@ describe('block-name-matches-variable', () => {
   })
 
   it('checks the outer variable of a Composition', () => {
-    const defineCall = Testing.callOfMember('Block', 'define', [
+    const defineCall = Testing.callOfMember('Block', 'makeDefinition', [
       Testing.strLiteral('PeopleDirectory'),
     ])
     const result = Testing.runRule(
@@ -78,7 +113,7 @@ describe('block-name-matches-variable', () => {
   })
 
   it('allows the Block name with a Definition suffix', () => {
-    const defineCall = Testing.callOfMember('Block', 'define', [
+    const defineCall = Testing.callOfMember('Block', 'makeDefinition', [
       Testing.strLiteral('PeopleDirectory'),
     ])
     const result = Testing.runRule(
@@ -91,7 +126,7 @@ describe('block-name-matches-variable', () => {
   })
 
   it('allows the Block name with a Composition suffix', () => {
-    const defineCall = Testing.callOfMember('Block', 'define', [
+    const defineCall = Testing.callOfMember('Block', 'makeDefinition', [
       Testing.strLiteral('PeopleDirectory'),
     ])
     const result = Testing.runRule(
@@ -112,8 +147,8 @@ describe('block-name-matches-variable', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('unwraps an identity-first typed definition', () => {
-    const identity = Testing.callOfMember('Block', 'define', [
+  it('unwraps a Namespace-authored Definition', () => {
+    const namespace = Testing.callOfMember('Block', 'makeNamespace', [
       Testing.strLiteral('PeopleDirectory'),
     ])
     const result = Testing.runRule(
@@ -121,15 +156,15 @@ describe('block-name-matches-variable', () => {
       'VariableDeclarator',
       variableDeclarator(
         'PeopleDirectoryDefinition',
-        callMethod(identity, 'define'),
+        callMethod(namespace, 'makeDefinition'),
       ),
     )
 
     expect(result).toHaveLength(0)
   })
 
-  it('unwraps an identity-first Composition', () => {
-    const identity = Testing.callOfMember('Block', 'define', [
+  it('unwraps a Namespace-authored Composition', () => {
+    const namespace = Testing.callOfMember('Block', 'makeNamespace', [
       Testing.strLiteral('PeopleDirectory'),
     ])
     const result = Testing.runRule(
@@ -137,7 +172,7 @@ describe('block-name-matches-variable', () => {
       'VariableDeclarator',
       variableDeclarator(
         'PeopleDirectoryComposition',
-        callMethod(callMethod(identity, 'define'), 'makeComposition'),
+        callMethod(callMethod(namespace, 'makeDefinition'), 'makeComposition'),
       ),
     )
 
@@ -150,7 +185,7 @@ describe('block-name-matches-variable', () => {
       'VariableDeclarator',
       variableDeclarator(
         'Application',
-        Testing.callOfMember('Application', 'define', []),
+        Testing.callOfMember('Application', 'makeDefinition', []),
       ),
     )
 
@@ -167,7 +202,7 @@ describe('block-name-matches-variable', () => {
       variableDeclarator(
         'Application',
         callMethod(
-          Testing.callOfMember('Application', 'define', []),
+          Testing.callOfMember('Application', 'makeDefinition', []),
           'makeComposition',
         ),
       ),
@@ -179,26 +214,44 @@ describe('block-name-matches-variable', () => {
     )
   })
 
+  it('requires ApplicationDefinition for the root factory', () => {
+    const result = Testing.runRule(
+      blockNameMatchesVariable,
+      'VariableDeclarator',
+      variableDeclarator(
+        'Application',
+        Testing.callExpr('makeApplicationDefinition', []),
+      ),
+    )
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.diagnostic.message).toContain(
+      '"Application" must be "ApplicationDefinition"',
+    )
+  })
+
   it('ignores dynamic Block names', () => {
     const result = Testing.runRule(
       blockNameMatchesVariable,
       'VariableDeclarator',
       variableDeclarator(
         'People',
-        Testing.callOfMember('Block', 'define', [Testing.id('blockName')]),
+        Testing.callOfMember('Block', 'makeNamespace', [
+          Testing.id('blockName'),
+        ]),
       ),
     )
 
     expect(result).toHaveLength(0)
   })
 
-  it('ignores unrelated define methods', () => {
+  it('ignores unrelated makeDefinition methods', () => {
     const result = Testing.runRule(
       blockNameMatchesVariable,
       'VariableDeclarator',
       variableDeclarator(
         'People',
-        Testing.callOfMember('Registry', 'define', [
+        Testing.callOfMember('Registry', 'makeDefinition', [
           Testing.strLiteral('PeopleDirectory'),
         ]),
       ),
@@ -207,14 +260,19 @@ describe('block-name-matches-variable', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('ignores chains rooted in unrelated define methods', () => {
-    const unrelatedDefine = Testing.callOfMember('Registry', 'define', [
-      Testing.strLiteral('PeopleDirectory'),
-    ])
+  it('ignores chains rooted in unrelated makeNamespace methods', () => {
+    const unrelatedNamespace = Testing.callOfMember(
+      'Registry',
+      'makeNamespace',
+      [Testing.strLiteral('PeopleDirectory')],
+    )
     const result = Testing.runRule(
       blockNameMatchesVariable,
       'VariableDeclarator',
-      variableDeclarator('People', callMethod(unrelatedDefine, 'define')),
+      variableDeclarator(
+        'People',
+        callMethod(unrelatedNamespace, 'makeDefinition'),
+      ),
     )
 
     expect(result).toHaveLength(0)

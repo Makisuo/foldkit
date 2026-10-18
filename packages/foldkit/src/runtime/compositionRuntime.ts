@@ -23,6 +23,11 @@ import {
 } from '../block/instanceContext.js'
 import { invocationContextWithCursor } from '../block/scope.js'
 import * as Subscription from '../subscription/subscription.js'
+import {
+  commandResultMapper,
+  externalMessageGuard,
+  liftChildMessage,
+} from './childOrigin.js'
 import { forkManagedResourceFibers } from './managedResourceFibers.js'
 import type { ManagedResourceRef } from './resourceProvider.js'
 import type {
@@ -56,6 +61,7 @@ export type CapturedInvocation = Readonly<{
   context: Context.Context<never>
   scope: Scope.Scope
   isCurrent: () => boolean
+  mapResult?: (message: any) => any
 }>
 
 /** @internal Reconciles occurrence-owned lifecycles without rebuilding handler Layers. */
@@ -63,6 +69,7 @@ export type CompositionRuntime<Model> = Readonly<{
   context: Context.Context<never>
   synchronize: (model: Model) => void
   capture: (command: object) => CapturedInvocation | undefined
+  externalMessageGuard: (message: unknown) => (() => boolean) | undefined
   start: Effect.Effect<void>
 }>
 
@@ -146,7 +153,7 @@ export const makeCompositionRuntime = <Model, Message>({
       model: any,
       placement: string,
       parentContext: Context.Context<never>,
-      toRootMessage: (message: any) => any,
+      toParentMessage: (message: any) => any,
       parent?: InstanceNode,
       binding?: object,
       key?: InstanceKey,
@@ -193,7 +200,12 @@ export const makeCompositionRuntime = <Model, Message>({
         retiringChildren: new Set(),
         scope: Scope.makeUnsafe(),
         modelPubSub: Effect.runSync(PubSub.unbounded<any>({ replay: 1 })),
-        toRootMessage,
+        toRootMessage: message =>
+          parent === undefined
+            ? toParentMessage(message)
+            : parent.toRootMessage(
+                liftChildMessage(node, message, toParentMessage),
+              ),
       }
       node.context = invocationContextWithCursor(
         placement,
@@ -393,9 +405,9 @@ export const makeCompositionRuntime = <Model, Message>({
 
     type ReconciliationPlan = Readonly<{
       model: any
-      childBindings: ReadonlyArray<
+      bindings: ReadonlyArray<
         Readonly<{
-          binding: BindableBlock['childBindings'][number]
+          binding: BindableBlock['bindings'][number]
           occurrences: ReadonlyArray<
             Readonly<{
               key?: InstanceKey
@@ -411,7 +423,7 @@ export const makeCompositionRuntime = <Model, Message>({
       model: any,
     ): ReconciliationPlan => ({
       model,
-      childBindings: block.childBindings.map(binding => {
+      bindings: block.bindings.map(binding => {
         const policy = runtimeBindingOf(binding)
         const keys = new Set<InstanceKey | undefined>()
         const occurrences = policy.select(model).map(child => {
@@ -453,7 +465,7 @@ export const makeCompositionRuntime = <Model, Message>({
       ): void => {
         node.model = plan.model
         updated.push(node)
-        for (const { binding, occurrences } of plan.childBindings) {
+        for (const { binding, occurrences } of plan.bindings) {
           const policy = runtimeBindingOf(binding)
           const previous =
             node.children.get(binding) ??
@@ -467,8 +479,7 @@ export const makeCompositionRuntime = <Model, Message>({
                 childPlan.model,
                 binding.placement,
                 node.context,
-                message =>
-                  node.toRootMessage(policy.toParentMessage(key, message)),
+                message => policy.toParentMessage(key, message),
                 node,
                 binding,
                 key,
@@ -572,6 +583,7 @@ export const makeCompositionRuntime = <Model, Message>({
     return {
       context: rootContext,
       synchronize: reconcile,
+      externalMessageGuard: message => externalMessageGuard(root, message),
       capture: command => {
         const nodes: Array<InstanceNode> = []
         let node = root
@@ -584,6 +596,7 @@ export const makeCompositionRuntime = <Model, Message>({
           node = child
         }
         const target = node
+        const mapResult = commandResultMapper(nodes)
         return {
           context: Context.add(rootContext, CurrentInstance, {
             node: root,
@@ -591,6 +604,7 @@ export const makeCompositionRuntime = <Model, Message>({
           }),
           scope: runtimeScope,
           isCurrent: () => target.isActive,
+          ...(mapResult === undefined ? {} : { mapResult }),
         }
       },
       start: Effect.suspend(() => {

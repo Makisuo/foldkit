@@ -1,5 +1,5 @@
 import { Match, Schema } from 'effect'
-import { Update, defineApplication } from 'foldkit'
+import { Update, makeApplicationDefinition } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import { Url } from 'foldkit/url'
@@ -9,26 +9,30 @@ import { ApplicationRoute, urlToApplicationRoute } from './informingBlocksRoute'
 
 export const Model = Schema.Struct({
   route: ApplicationRoute,
-  people: People.Model,
+  people: People.PeopleBlock.Model,
 })
 export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ChangedUrl: { url: Url },
-  GotPeopleMessage: { message: People.Message },
 })
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
-
-export const PeopleBinding = ApplicationDefinition.bindChild(People.block, {
-  field: 'people',
-  parentMessage: Message.GotPeopleMessage,
-  init: false,
+export const ApplicationDefinition = makeApplicationDefinition({
+  Model,
+  Message,
 })
 
+export const PeopleBinding = ApplicationDefinition.bindChild(
+  People.PeopleBlock,
+  {
+    field: 'people',
+    init: false,
+  },
+)
+
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [PeopleBinding],
+  bindings: [PeopleBinding],
 })
 
 const setRoute =

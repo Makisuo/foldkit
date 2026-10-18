@@ -1,10 +1,10 @@
 import { Schema } from 'effect'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Model = Schema.Struct({ value: Schema.String })
 const Message = defineMessageUnion({ CompletedFetchUser: {} })
-const ApplicationDefinition = defineApplication({ Model, Message })
+const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
 
 export const SaveUser = ApplicationDefinition.command('FetchUser', {
   messages: [Message.CompletedFetchUser],

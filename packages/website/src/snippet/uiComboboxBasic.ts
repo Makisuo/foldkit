@@ -18,9 +18,7 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const Message = defineMessageUnion({
-  GotComboboxMessage: { message: CityCombobox.Message },
-})
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 // The parent stores the committed selection reported by the child.
@@ -32,22 +30,24 @@ const foldComboboxOutMessage = CityCombobox.OutMessage.match<
     model => ({
       model: modifyFields(model, { maybeCity: () => Option.some(value) }),
     }),
-  ClearedSelection: () => model => ({ model }),
+  ClearedSelection: () => CityPickerDefinition.stepNoop(),
 })
 
-const CityPickerDefinition = Block.define('CityPicker', { Model, Message })
+const CityPickerDefinition = Block.makeDefinition('CityPicker', {
+  Model,
+  Message,
+})
 
 const ComboboxBinding = CityPickerDefinition.bindChild(CityCombobox, {
   field: 'combobox',
-  parentMessage: Message.GotComboboxMessage,
-  init: { startupToArgs: () => Tuple.make({ id: 'city' }) },
+  init: { contextToArgs: () => Tuple.make({ id: 'city' }) },
   outMessage: { fold: foldComboboxOutMessage },
 })
 
 // Including the Binding collects its lifecycle and handler graph.
 
 const CityPickerComposition = CityPickerDefinition.makeComposition({
-  childBindings: [ComboboxBinding],
+  bindings: [ComboboxBinding],
 })
 
 const init = CityPickerComposition.makeInit(() => ({
@@ -114,10 +114,8 @@ const view = CityPickerComposition.makeView((model, h) => {
   )
 })
 
-export const block = CityPickerComposition.makeBlock({
+export const CityPickerBlock = CityPickerComposition.assembleBlock({
   init,
   update,
   view,
 })
-
-export { Model, Message, init }

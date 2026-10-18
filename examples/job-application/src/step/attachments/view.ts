@@ -1,13 +1,14 @@
 import clsx from 'clsx'
 import { Array, Match, Number, Option } from 'effect'
 import { File } from 'foldkit'
-import type { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
 import {
   AdditionalFilesDropBinding,
   AttachmentsComposition,
+  type AttachmentsViewBuilder,
   ResumeDropBinding,
 } from './composition'
 import { Message } from './definition'
@@ -31,7 +32,7 @@ const dropZoneClassName =
 const fileKey = (file: File.File): string =>
   `${File.name(file)}:${File.size(file)}:${file.lastModified}`
 
-const resumeView = (resume: File.File, h: HtmlBuilder<Message>): Html =>
+const resumeView = (resume: File.File, h: AttachmentsViewBuilder): Html =>
   h.div(
     [
       h.Class(
@@ -80,7 +81,7 @@ const resumeView = (resume: File.File, h: HtmlBuilder<Message>): Html =>
 const additionalFileView = (
   file: File.File,
   fileIndex: number,
-  h: HtmlBuilder<Message>,
+  h: AttachmentsViewBuilder,
 ): Html =>
   h.keyed('div')(
     fileKey(file),

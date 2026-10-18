@@ -1,6 +1,6 @@
 import * as Story from 'foldkit/story'
 
-import { FocusItem, Message, ResolveKeyboardMove } from './index.js'
+import { FocusItem, Message, ResolveKeyboardMove } from './block.js'
 
 /** Identifies the item whose focus Command {@link settleFocus} resolves. */
 export type SettleFocusInput = Readonly<{
@@ -14,13 +14,9 @@ export type SettleFocusInput = Readonly<{
  *  @example
  *  ```ts
  *  Story.story(
- *    update,
+ *    DragAndDropBlock.update,
  *    Story.given(model),
- *    Story.message(
- *      ParentMessage.GotDragAndDropMessage({
- *        message: DragAndDrop.Message.ConfirmedKeyboardDrop(),
- *      }),
- *    ),
+ *    Story.message(DragAndDropBlock.Message.ConfirmedKeyboardDrop()),
  *    DragAndDrop.test.settleFocus({ itemId: 'card-1' }),
  *  )
  *  ```
@@ -44,13 +40,11 @@ export type ResolveKeyboardMoveInput = Readonly<{
  *  @example
  *  ```ts
  *  Story.story(
- *    update,
+ *    DragAndDropBlock.update,
  *    Story.given(keyboardDraggingModel),
  *    Story.message(
- *      ParentMessage.GotDragAndDropMessage({
- *        message: DragAndDrop.Message.PressedArrowKey({
- *          direction: 'NextContainer',
- *        }),
+ *      DragAndDropBlock.Message.PressedArrowKey({
+ *        direction: 'NextContainer',
  *      }),
  *    ),
  *    DragAndDrop.test.resolveKeyboardMove({

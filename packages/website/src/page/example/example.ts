@@ -3,7 +3,7 @@ import { AsyncData } from 'foldkit'
 import { Html, inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
 
-import { Disclosure, Tabs } from '@foldkit/ui'
+import { Disclosure } from '@foldkit/ui'
 
 import { CodeBlock } from '../../component'
 import { Icon } from '../../icon'
@@ -22,6 +22,7 @@ import {
   SourceFileTabsBinding,
 } from './composition'
 import { ExampleDetailDefinition } from './definition'
+import { SourceFileTabsBlock } from './fileTabs'
 import { Message } from './message'
 import { type ExampleMeta, findBySlug } from './meta'
 import { CurrentSourcesAsyncData, Model } from './model'
@@ -100,16 +101,14 @@ const startLoadingExampleSources = (slug: string) =>
   })
 
 const showExampleSources = (sources: typeof ExampleSources.Type) =>
-  ExampleDetailDefinition.step(model => ({
-    model: modifyFields(model, {
-      maybeActiveSourceFilePath: () =>
-        pipe(
-          sources.files,
-          Array.head,
-          Option.map(file => file.path),
-        ),
-      currentSources: () => CurrentSourcesAsyncData.Success({ data: sources }),
-    }),
+  ExampleDetailDefinition.stepFields(() => ({
+    maybeActiveSourceFilePath: () =>
+      pipe(
+        sources.files,
+        Array.head,
+        Option.map(file => file.path),
+      ),
+    currentSources: () => CurrentSourcesAsyncData.Success({ data: sources }),
   }))
 
 const clearExampleSources = ExampleDetailDefinition.step(model => {
@@ -417,7 +416,7 @@ const TAB_BUTTON_INACTIVE =
 const sourceCodeView = (
   exampleSlug: string,
   files: ReadonlyArray<ExampleSourceFile>,
-  tabsModel: typeof Tabs.Model.Type,
+  tabsModel: typeof SourceFileTabsBlock.Model.Type,
   activeSourceFilePath: string,
   isNarrowViewport: boolean,
   renderSnippet: CodeBlock.RenderSnippet,
@@ -631,8 +630,8 @@ type ViewInputs = Readonly<{
  *
  * The page is dispatched through `h.block`, so it takes the snippet renderer
  * from its parent rather than building the interactive boundaries itself. The
- * renderer runs in the parent's boundary, so its Messages are wrapped for the
- * parent instead of being rejected by this page's `toParentMessage`.
+ * renderer retains the parent's dispatch frame, so its Messages reach their
+ * owning Binding rather than this page's update.
  */
 export const view = ExampleDetailComposition.makeView.withInputs<ViewInputs>(
   (model, { slug, isNarrowViewport, renderSnippet }, h) =>

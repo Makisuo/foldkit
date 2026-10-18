@@ -1,13 +1,13 @@
 import { Match, Option } from 'effect'
 import { type Html, childAttributes, inertHtml as ih } from 'foldkit/html'
 
-import { Menu } from '@foldkit/ui'
 import type { AnchorConfig as MenuAnchorConfig } from '@foldkit/ui/menu'
 
 import type { ApplicationViewBuilder } from '../composition'
 import { ThemeMenuBinding } from '../composition'
 import { Icon } from '../icon'
 import { type ThemePreference } from '../themePreference'
+import { ThemeMenuBlock } from './themeMenu'
 
 const THEME_PREFERENCES: ReadonlyArray<ThemePreference> = [
   'Dark',
@@ -21,7 +21,7 @@ const THEME_MENU_ANCHOR: MenuAnchorConfig = {
   padding: 8,
 }
 
-export { ThemeMenu } from './themeMenu'
+export { ThemeMenuBlock } from './themeMenu'
 
 const preferenceIcon = (preference: ThemePreference, className: string): Html =>
   Match.value(preference).pipe(
@@ -32,7 +32,7 @@ const preferenceIcon = (preference: ThemePreference, className: string): Html =>
   )
 
 export const view = (
-  menu: typeof Menu.Model.Type,
+  menu: typeof ThemeMenuBlock.Model.Type,
   maybeActivePreference: Option.Option<ThemePreference>,
   h: ApplicationViewBuilder,
 ): Html => {

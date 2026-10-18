@@ -1,19 +1,21 @@
 import { Schema } from 'effect'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
+import { Theme } from './blockDefinition'
 import * as Settings from './blockSettings'
 
 export const Model = Schema.Struct({
   displayName: Schema.String,
-  settings: Settings.Model,
-  previewTheme: Settings.Theme,
+  settings: Settings.SettingsBlock.Model,
+  previewTheme: Theme,
 })
 export type Model = typeof Model.Type
 
-export const Message = defineMessageUnion({
-  GotSettingsMessage: { message: Settings.Message },
-})
+export const Message = defineMessageUnion({})
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const ApplicationDefinition = makeApplicationDefinition({
+  Model,
+  Message,
+})

@@ -1,5 +1,5 @@
-import { Option, Schema } from 'effect'
-import { Block, Message } from 'foldkit'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
 
 import {
   Choice,
@@ -15,10 +15,7 @@ import {
   TextEntriesBinding,
   choiceOutMessagePolicy,
   firstChoiceId,
-  fromChoiceMessage,
-  fromTextMessage,
   initialize,
-  toChoiceMessage,
 } from './wrapped-keyed-field.accepted.js'
 
 const OpaqueChoiceEntry = Schema.declare(
@@ -91,18 +88,11 @@ const InvalidParentModel = Schema.Struct({
   widerChildChoices: Schema.Array(WiderChildChoiceEntry),
   narrowerChildChoices: Schema.Array(NarrowerChildChoiceEntry),
 })
-const DeclarationInvalidWrappedKeyedFieldParentDefinition = Block.define(
-  'DeclarationInvalidWrappedKeyedFieldParent',
-  {
+const DeclarationInvalidWrappedKeyedFieldParentDefinition =
+  Block.makeDefinition('DeclarationInvalidWrappedKeyedFieldParent', {
     Model: InvalidParentModel,
     Message: ParentMessage,
-  },
-)
-
-const toIgnoredChoiceMessage = (
-  _id: unknown,
-  message: typeof Choice.Message.Type,
-) => ParentMessage.GotChoiceMessage({ id: firstChoiceId, message })
+  })
 
 const idKey: 'id' = 'id'
 const choiceChildField: 'choice' = 'choice'
@@ -129,8 +119,6 @@ const opaqueConfig = {
   field: opaqueChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationInvalidWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -142,8 +130,6 @@ const unionConfig = {
   field: unionChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationInvalidWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -155,8 +141,6 @@ const indexConfig = {
   field: indexChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationInvalidWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -168,8 +152,6 @@ const optionalCollectionConfig = {
   field: optionalChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationInvalidWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -181,8 +163,6 @@ const optionCollectionConfig = {
   field: optionChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationInvalidWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -194,8 +174,6 @@ const mapCollectionConfig = {
   field: mapChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationInvalidWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -207,8 +185,6 @@ const tupleCollectionConfig = {
   field: tupleChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationInvalidWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -220,8 +196,6 @@ const missingCollectionConfig = {
   field: missingChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationInvalidWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -233,8 +207,6 @@ const optionalKeyConfig = {
   field: optionalKeyChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toIgnoredChoiceMessage,
 }
 DeclarationInvalidWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -246,8 +218,6 @@ const missingKeyConfig = {
   field: missingKeyChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toIgnoredChoiceMessage,
 }
 DeclarationInvalidWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -259,8 +229,6 @@ const booleanKeyConfig = {
   field: booleanKeyChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toIgnoredChoiceMessage,
 }
 DeclarationInvalidWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -272,8 +240,6 @@ const optionalChildConfig = {
   field: optionalChildChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationInvalidWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -285,8 +251,6 @@ const missingChildConfig = {
   field: missingChildChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationInvalidWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -298,8 +262,6 @@ const incompatibleChildConfig = {
   field: incompatibleChildChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationInvalidWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -311,8 +273,6 @@ const widerChildConfig = {
   field: widerChildChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationInvalidWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -324,8 +284,6 @@ const narrowerChildConfig = {
   field: narrowerChildChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationInvalidWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -336,8 +294,6 @@ DeclarationInvalidWrappedKeyedFieldParentDefinition.bindChild(
 const missingKeySelectorConfig = {
   field: plainChoicesField,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -348,8 +304,6 @@ DeclarationWrappedKeyedFieldParentDefinition.bindChild(
 const missingChildSelectorConfig = {
   field: plainChoicesField,
   key: idKey,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -364,8 +318,6 @@ const dynamicFieldConfig = {
   field: selectParentField(),
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -378,8 +330,6 @@ const dynamicKeyConfig = {
   field: plainChoicesField,
   key: selectEntryField(),
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -391,8 +341,6 @@ const dynamicChildConfig = {
   field: plainChoicesField,
   key: idKey,
   childField: selectEntryField(),
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -407,8 +355,6 @@ const readAllConflict = {
   readAll: (
     model: typeof DeclarationWrappedKeyedFieldParentDefinition.Model.Type,
   ) => model.plainChoices,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -421,8 +367,6 @@ const readConflict = {
   key: idKey,
   childField: choiceChildField,
   read: (entry: typeof ChoiceEntry.Type) => entry.choice,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -437,8 +381,6 @@ const writeConflict = {
   write: (
     model: typeof DeclarationWrappedKeyedFieldParentDefinition.Model.Type,
   ) => model,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -455,8 +397,6 @@ const writeAtConflict = {
     _id: typeof ChoiceId.Type,
     _nextChoice: typeof Choice.block.Model.Type,
   ) => model,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: toChoiceMessage,
 }
 DeclarationWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
@@ -464,43 +404,27 @@ DeclarationWrappedKeyedFieldParentDefinition.bindChild(
   writeAtConflict,
 )
 
-const WrongChildMessage = Message.defineMessageUnion({ WrongMessage: {} })
 const wrongChildMapping = {
   field: plainChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: (
-    id: typeof ChoiceId.Type,
-    _message: typeof WrongChildMessage.Type,
-  ) =>
-    ParentMessage.GotChoiceMessage({
-      id,
-      message: Choice.Message.CompletedRefresh(),
-    }),
+  toParentMessage: () => ParentMessage.IgnoredChildMessage(),
 }
+// @ts-expect-error Generated wrapped delivery does not accept an authored outgoing mapper.
 DeclarationWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
-  // @ts-expect-error The mapper must accept the bound child's Message type.
   wrongChildMapping,
 )
 
-const ForeignParentMessage = Message.defineMessageUnion({
-  GotChoiceMessage: { message: Choice.Message },
-})
 const wrongParentMapping = {
   field: plainChoicesField,
   key: idKey,
   childField: choiceChildField,
-  fromParentMessage: fromChoiceMessage,
-  toParentMessage: (
-    _id: typeof ChoiceId.Type,
-    message: typeof Choice.Message.Type,
-  ) => ForeignParentMessage.GotChoiceMessage({ message }),
+  fromParentMessage: {},
 }
+// @ts-expect-error Generated wrapped delivery does not accept an authored incoming mapper.
 DeclarationWrappedKeyedFieldParentDefinition.bindChild(
   PlainChoiceBlock,
-  // @ts-expect-error The mapper must return the owning parent's Message type.
   wrongParentMapping,
 )
 
@@ -508,7 +432,7 @@ const SameFieldEntry = Schema.Struct({ value: Schema.String })
 const SameFieldParentModel = Schema.Struct({
   values: Schema.Array(SameFieldEntry),
 })
-const DeclarationSameWrappedFieldParentDefinition = Block.define(
+const DeclarationSameWrappedFieldParentDefinition = Block.makeDefinition(
   'DeclarationSameWrappedFieldParent',
   {
     Model: SameFieldParentModel,
@@ -521,9 +445,6 @@ const sameFieldConfig = {
   field: valuesField,
   key: valueField,
   childField: valueField,
-  fromParentMessage: fromTextMessage,
-  toParentMessage: (id: string, message: typeof TextBlock.Message.Type) =>
-    ParentMessage.GotTextMessage({ id, message }),
 }
 DeclarationSameWrappedFieldParentDefinition.bindChild(
   TextBlock,
@@ -533,15 +454,15 @@ DeclarationSameWrappedFieldParentDefinition.bindChild(
 
 // @ts-expect-error Wrapped occurrence arguments must match the child init tuple.
 // oxfmt-ignore
-DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: fromChoiceMessage, outMessage: choiceOutMessagePolicy, init: { occurrences: () => [{ key: firstChoiceId, args: [1] }], toItem: ({ key }, choice) => ChoiceEntry.make({ id: key, choice }) } })
+DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', outMessage: choiceOutMessagePolicy, init: { instances: () => [{ key: firstChoiceId, args: [1] }], toItem: ({ key }, choice) => ChoiceEntry.make({ id: key, choice }) } })
 
 // @ts-expect-error Wrapped toItem must return the exact parent collection item.
 // oxfmt-ignore
-DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: fromChoiceMessage, outMessage: choiceOutMessagePolicy, init: { occurrences: () => [{ key: firstChoiceId, args: ['One'] }], toItem: (_occurrence, choice) => choice } })
+DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', outMessage: choiceOutMessagePolicy, init: { instances: () => [{ key: firstChoiceId, args: ['One'] }], toItem: (_occurrence, choice) => choice } })
 
 // @ts-expect-error Wrapped occurrence resolver context cannot be never.
 // oxfmt-ignore
-DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: fromChoiceMessage, outMessage: choiceOutMessagePolicy, init: { occurrences: (_context: never) => [{ key: firstChoiceId, args: ['One'] }], toItem: ({ key }, choice) => ChoiceEntry.make({ id: key, choice }) } })
+DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', outMessage: choiceOutMessagePolicy, init: { instances: (_context: never) => [{ key: firstChoiceId, args: ['One'] }], toItem: ({ key }, choice) => ChoiceEntry.make({ id: key, choice }) } })
 
 const DuplicateInitializedChoicesBinding =
   DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, {
@@ -549,20 +470,15 @@ const DuplicateInitializedChoicesBinding =
     key: 'id',
     childField: 'choice',
     placement: 'duplicateInitializedChoices',
-    toParentMessage: toChoiceMessage,
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotChoiceMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
     outMessage: choiceOutMessagePolicy,
     init: {
-      occurrences: () => [{ key: firstChoiceId, args: ['One'] }],
+      instances: () => [{ key: firstChoiceId, args: ['One'] }],
       toItem: ({ key }, choice) => ChoiceEntry.make({ id: key, choice }),
     },
   })
 // @ts-expect-error Initialized child fields must be unique across the graph.
 DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
-  childBindings: [
+  bindings: [
     InitializedChoicesBinding,
     DuplicateInitializedChoicesBinding,
     LiteralChoicesBinding,
@@ -572,14 +488,10 @@ DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
 
 const UnregisteredComposition =
   DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
-    childBindings: [
-      PlainChoicesBinding,
-      LiteralChoicesBinding,
-      TextEntriesBinding,
-    ],
+    bindings: [PlainChoicesBinding, LiteralChoicesBinding, TextEntriesBinding],
   })
-// @ts-expect-error An initializer retains registration evidence for its initialized child graph.
-UnregisteredComposition.makeBlock({
+UnregisteredComposition.assembleBlock({
+  // @ts-expect-error An initializer retains registration evidence for its initialized child graph.
   init: initialize,
   update: UnregisteredComposition.makeUpdate(model => ({ model })),
   EffectsLayer: Choice.ReadChoice.layer,
@@ -587,29 +499,23 @@ UnregisteredComposition.makeBlock({
 
 // @ts-expect-error Wrapped occurrence arguments preserve the child initializer's literal domain.
 // oxfmt-ignore
-DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: fromChoiceMessage, outMessage: choiceOutMessagePolicy, init: { occurrences: () => [{ key: firstChoiceId, args: ['Three'] }], toItem: ({ key }, choice) => ChoiceEntry.make({ id: key, choice }) } })
+DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', outMessage: choiceOutMessagePolicy, init: { instances: () => [{ key: firstChoiceId, args: ['Three'] }], toItem: ({ key }, choice) => ChoiceEntry.make({ id: key, choice }) } })
 
 // @ts-expect-error Wrapped occurrence arguments preserve the child initializer's tuple arity.
 // oxfmt-ignore
-DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: fromChoiceMessage, outMessage: choiceOutMessagePolicy, init: { occurrences: () => [{ key: firstChoiceId, args: ['One', 'Two'] }], toItem: ({ key }, choice) => ChoiceEntry.make({ id: key, choice }) } })
+DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', outMessage: choiceOutMessagePolicy, init: { instances: () => [{ key: firstChoiceId, args: ['One', 'Two'] }], toItem: ({ key }, choice) => ChoiceEntry.make({ id: key, choice }) } })
 
 // @ts-expect-error Extracted keyed policies must accept every key in the collection.
 // oxfmt-ignore
-DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, read: item => item.choice, writeAt: model => model, toParentMessage: (id, message) => ParentMessage.GotChoiceMessage({ id, message }), fromParentMessage: {
-                                                                                                                                                                                                                                                             parentMessage: ParentMessage.GotChoiceMessage,
-                                                                                                                                                                                                                                                             args: (_model, { id, message }) => Option.some([id, message]),
-                                                                                                                                                                                                                                                           }, outMessage: { fold: (_key: 'other', _outMessage: typeof Choice.OutMessage.Type) => DeclarationWrappedKeyedFieldParentDefinition.step(model => ({ model })) } })
+DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, keySchema: ChoiceEntry.fields.id, read: item => item.choice, writeAt: model => model, outMessage: { fold: (_key: 'other', _outMessage: typeof Choice.OutMessage.Type) => DeclarationWrappedKeyedFieldParentDefinition.step(model => ({ model })) } })
 
 // @ts-expect-error Extracted keyed policies must accept every refined OutMessage payload.
 // oxfmt-ignore
-DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, read: item => item.choice, writeAt: model => model, toParentMessage: (id, message) => ParentMessage.GotChoiceMessage({ id, message }), fromParentMessage: {
-                                                                                                                                                                                                                                                             parentMessage: ParentMessage.GotChoiceMessage,
-                                                                                                                                                                                                                                                             args: (_model, { id, message }) => Option.some([id, message]),
-                                                                                                                                                                                                                                                           }, outMessage: { fold: (_key: typeof ChoiceId.Type, _outMessage: Readonly<{ _tag: 'SelectedValue'; value: 'One' }>) => DeclarationWrappedKeyedFieldParentDefinition.step(model => ({ model })) } })
+DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, keySchema: ChoiceEntry.fields.id, read: item => item.choice, writeAt: model => model, outMessage: { fold: (_key: typeof ChoiceId.Type, _outMessage: Readonly<{ _tag: 'SelectedValue'; value: 'One' }>) => DeclarationWrappedKeyedFieldParentDefinition.step(model => ({ model })) } })
 
 // @ts-expect-error Wrapped keyed policies must accept every collection key.
 // oxfmt-ignore
-DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: fromChoiceMessage, outMessage: { fold: (_key: 'other', _outMessage: typeof Choice.OutMessage.Type) => DeclarationWrappedKeyedFieldParentDefinition.step(model => ({ model })) } })
+DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', outMessage: { fold: (_key: 'other', _outMessage: typeof Choice.OutMessage.Type) => DeclarationWrappedKeyedFieldParentDefinition.step(model => ({ model })) } })
 
 const wrongModelPolicy = {
   fold:
@@ -621,13 +527,10 @@ const wrongModelPolicy = {
     }),
 }
 // oxfmt-ignore
-const WrongModelPolicyBinding = DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, read: item => item.choice, writeAt: model => model, toParentMessage: (id, message) => ParentMessage.GotChoiceMessage({ id, message }), fromParentMessage: {
-                                                                                                                                                                                                                                                                                             parentMessage: ParentMessage.GotChoiceMessage,
-                                                                                                                                                                                                                                                                                             args: (_model, { id, message }) => Option.some([id, message]),
-                                                                                                                                                                                                                                                                                           }, outMessage: wrongModelPolicy })
+const WrongModelPolicyBinding = DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, keySchema: ChoiceEntry.fields.id, read: item => item.choice, writeAt: model => model, outMessage: wrongModelPolicy })
 // @ts-expect-error An extracted keyed policy Step must return the parent Model.
 DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
-  childBindings: [
+  bindings: [
     WrongModelPolicyBinding,
     LiteralChoicesBinding,
     TextEntriesBinding,
@@ -645,13 +548,10 @@ const foreignMessagePolicy = {
     }),
 }
 // oxfmt-ignore
-const ForeignMessagePolicyBinding = DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, read: item => item.choice, writeAt: model => model, toParentMessage: (id, message) => ParentMessage.GotChoiceMessage({ id, message }), fromParentMessage: {
-                                                                                                                                                                                                                                                                                                 parentMessage: ParentMessage.GotChoiceMessage,
-                                                                                                                                                                                                                                                                                                 args: (_model, { id, message }) => Option.some([id, message]),
-                                                                                                                                                                                                                                                                                               }, outMessage: foreignMessagePolicy })
+const ForeignMessagePolicyBinding = DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, keySchema: ChoiceEntry.fields.id, read: item => item.choice, writeAt: model => model, outMessage: foreignMessagePolicy })
 // @ts-expect-error An extracted keyed policy Command must produce a parent Message.
 DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
-  childBindings: [
+  bindings: [
     ForeignMessagePolicyBinding,
     LiteralChoicesBinding,
     TextEntriesBinding,
@@ -669,13 +569,10 @@ const undeclaredOutMessagePolicy = {
     }),
 }
 // oxfmt-ignore
-const UndeclaredOutMessagePolicyBinding = DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, read: item => item.choice, writeAt: model => model, toParentMessage: (id, message) => ParentMessage.GotChoiceMessage({ id, message }), fromParentMessage: {
-                                                                                                                                                                                                                                                                                                       parentMessage: ParentMessage.GotChoiceMessage,
-                                                                                                                                                                                                                                                                                                       args: (_model, { id, message }) => Option.some([id, message]),
-                                                                                                                                                                                                                                                                                                     }, outMessage: undeclaredOutMessagePolicy })
+const UndeclaredOutMessagePolicyBinding = DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { readAll: model => model.choices, key: item => item.id, keySchema: ChoiceEntry.fields.id, read: item => item.choice, writeAt: model => model, outMessage: undeclaredOutMessagePolicy })
 // @ts-expect-error An extracted keyed policy cannot emit an undeclared parent OutMessage.
 DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
-  childBindings: [
+  bindings: [
     UndeclaredOutMessagePolicyBinding,
     LiteralChoicesBinding,
     TextEntriesBinding,

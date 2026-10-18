@@ -72,7 +72,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     slug: 'counters',
     title: 'Counters',
     description:
-      'Add and remove independent Counter Blocks in a dynamic list. Each row is embedded through h.block and routed through a wrapper Message.',
+      'Add and remove independent Counter Blocks in a dynamic list. Each Counter instance is embedded through h.block and receives Messages through generated child delivery.',
     difficulty: 'Beginner',
     tags: ['Blocks'],
     hasRouting: false,
@@ -360,7 +360,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     description:
       'A Foldkit widget embedded in a plain TypeScript host page through Runtime.embed. The host seeds initial state with Flags, pushes a step value in through an inbound Port, mirrors the count the widget emits through an outbound Port, and mounts and unmounts the widget with dispose. All communication crosses one Schema-typed handle; the host never touches the Model.',
     difficulty: 'Advanced',
-    tags: ['Embedding', 'Ports', 'makeElement', 'Host Interop'],
+    tags: ['Embedding', 'Ports', 'assembleElement', 'Host Interop'],
     hasRouting: false,
     livePreview: 'Spa',
   },

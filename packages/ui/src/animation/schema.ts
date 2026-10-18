@@ -37,6 +37,7 @@ export const Message = defineMessageUnion({
   RequestedFinish: { generation: Schema.Number },
   RequestedToggle: {},
   RequestedResume: {},
+  RequestedImmediateReset: {},
   CompletedWaitForPaint: { generation: Schema.Number },
   EndedAnimation: { generation: Schema.Number },
 })
@@ -62,8 +63,8 @@ export type InitConfig = Readonly<{
   isShowing?: boolean
 }>
 
-/** Creates an initial animation model from a config. Defaults to hidden. */
-export const init = (config: InitConfig): Model => ({
+/** @internal Creates the initial Animation Model before Composition authoring. */
+export const makeInitialModel = (config: InitConfig): Model => ({
   id: config.id,
   isShowing: config.isShowing ?? false,
   transitionState: 'Idle',

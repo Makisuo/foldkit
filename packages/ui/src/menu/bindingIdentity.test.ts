@@ -4,8 +4,8 @@ import { defineMessageUnion } from 'foldkit/message'
 import type * as Update from 'foldkit/update'
 import { expect, it } from 'vitest'
 
-import * as Animation from '../animation/index.js'
-import * as Menu from './index.js'
+import * as Animation from '../animation/block.js'
+import * as Menu from './menu.js'
 
 const RefinedMenu = Menu.create<'Edit' | 'Delete'>()
 
@@ -13,7 +13,6 @@ const Model = Schema.Struct({ menu: RefinedMenu.Model })
 type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
-  GotMenuMessage: { message: RefinedMenu.Message },
   RequestedOpen: {},
 })
 type Message = typeof Message.Type
@@ -23,7 +22,7 @@ const OutMessage = defineMessageUnion({
 })
 type OutMessage = typeof OutMessage.Type
 
-const GenericMenuBindingIdentityDefinition = Block.define(
+const GenericMenuBindingIdentityDefinition = Block.makeDefinition(
   'GenericMenuBindingIdentity',
   {
     Model,
@@ -36,7 +35,6 @@ const MenuBinding = GenericMenuBindingIdentityDefinition.bindChild(
   RefinedMenu,
   {
     field: 'menu',
-    parentMessage: Message.GotMenuMessage,
     init: false,
     outMessage: {
       fold: RefinedMenu.OutMessage.match<
@@ -54,7 +52,7 @@ const MenuBinding = GenericMenuBindingIdentityDefinition.bindChild(
 
 const GenericMenuBindingIdentityComposition =
   GenericMenuBindingIdentityDefinition.makeComposition({
-    childBindings: [MenuBinding],
+    bindings: [MenuBinding],
   })
 
 const init = GenericMenuBindingIdentityComposition.makeInit(() =>
@@ -67,18 +65,35 @@ const update = GenericMenuBindingIdentityComposition.makeUpdate(model =>
   MenuBinding.requestOpen()(model),
 )
 const requestOpen = Message.RequestedOpen
-const block = GenericMenuBindingIdentityComposition.makeBlock({
+const block = GenericMenuBindingIdentityComposition.assembleBlock({
   init,
   update,
   operations: { requestOpen },
   EffectsLayer: RefinedMenu.EffectsLayer,
 })
 
-const deliverAnimationMessage = (model: Model, message: Animation.Message) =>
-  update(
+const deliverMenuMessage = (
+  model: Model,
+  message: typeof RefinedMenu.Message.Type,
+) =>
+  block.update(
     model,
-    Message.GotMenuMessage({
-      message: RefinedMenu.Message.GotAnimationMessage({ message }),
+    Schema.decodeUnknownSync(block.Message)({
+      _tag: 'GotMenuMessage',
+      placement: 'menu',
+      generation: 0,
+      message,
+    }),
+  )
+
+const deliverAnimationMessage = (model: Model, message: Animation.Message) =>
+  deliverMenuMessage(
+    model,
+    Schema.decodeUnknownSync(RefinedMenu.Message)({
+      _tag: 'GotAnimationMessage',
+      placement: 'animation',
+      generation: 0,
+      message,
     }),
   )
 
@@ -115,11 +130,9 @@ it('uses the factory Menu Animation Binding through open and completion', () => 
   expect(completedEnter.model.menu.animation.transitionState).toBe('Idle')
   expect(completedEnter.commands).toEqual([])
 
-  const selected = block.update(
+  const selected = deliverMenuMessage(
     completedEnter.model,
-    Message.GotMenuMessage({
-      message: RefinedMenu.Message.SelectedItem({ item: 'Edit', index: 0 }),
-    }),
+    RefinedMenu.Message.SelectedItem({ item: 'Edit', index: 0 }),
   )
 
   expect(selected.model.menu.isOpen).toBe(false)
@@ -144,12 +157,10 @@ it('uses the factory Menu Animation Binding through open and completion', () => 
     'menu/DetectMenuMovementOrAnimationEnd',
   ])
 
-  const completedLeave = update(
+  const completedLeave = deliverMenuMessage(
     startedLeave.model,
-    Message.GotMenuMessage({
-      message: RefinedMenu.Message.CompletedDetectMenuMovementOrAnimationEnd({
-        generation: 2,
-      }),
+    RefinedMenu.Message.CompletedDetectMenuMovementOrAnimationEnd({
+      generation: 2,
     }),
   )
 

@@ -2,7 +2,7 @@ import { Array, Match, Option, pipe } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { DragAndDrop } from '@foldkit/ui'
+import { DragAndDropBlock } from '@foldkit/ui'
 import { maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 
 import { SaveBoard } from '../command'
@@ -40,7 +40,7 @@ const findColumnName = (
 
 const announceKeyboardDrag = (
   model: Model,
-  nextDragAndDrop: typeof DragAndDrop.Model.Type,
+  nextDragAndDrop: typeof DragAndDropBlock.Model.Type,
 ): string =>
   Match.value(nextDragAndDrop.dragState).pipe(
     Match.withReturnType<string>(),
@@ -75,9 +75,9 @@ const announceKeyboardDrag = (
 
 const screenReaderTextForDrop = (
   model: Model,
-  outMessage: typeof DragAndDrop.OutMessage.Type,
+  outMessage: typeof DragAndDropBlock.OutMessage.Type,
 ): string =>
-  DragAndDrop.OutMessage.match<string>(outMessage, {
+  DragAndDropBlock.OutMessage.match<string>(outMessage, {
     Reordered: ({ itemId, toContainerId, toIndex }) => {
       const title = findCardTitle(model.columns, itemId)
       const columnName = findColumnName(model.columns, toContainerId)
@@ -94,7 +94,7 @@ const screenReaderTextForDrop = (
   })
 
 const foldDragAndDropOutMessage = (previousModel: Model) =>
-  DragAndDrop.OutMessage.match({
+  DragAndDropBlock.OutMessage.match({
     Reordered: outMessage =>
       ApplicationDefinition.step(model => {
         const { itemId, fromContainerId, toContainerId, toIndex } = outMessage
@@ -115,19 +115,16 @@ const foldDragAndDropOutMessage = (previousModel: Model) =>
         }
       }),
     Cancelled: outMessage =>
-      ApplicationDefinition.step(model => ({
-        model: modifyFields(model, {
-          announcement: () =>
-            screenReaderTextForDrop(previousModel, outMessage),
-        }),
+      ApplicationDefinition.stepFields(() => ({
+        announcement: () => screenReaderTextForDrop(previousModel, outMessage),
       })),
   })
 
 const dragAndDropOutMessagePolicy = {
   fold: (
-    outMessage: typeof DragAndDrop.OutMessage.Type,
+    outMessage: typeof DragAndDropBlock.OutMessage.Type,
     context: Update.FoldContext<
-      typeof DragAndDrop.Message.Type,
+      typeof DragAndDropBlock.Message.Type,
       Message,
       Model
     >,
@@ -135,7 +132,7 @@ const dragAndDropOutMessagePolicy = {
 }
 
 export const DragAndDropBinding = ApplicationDefinition.bindChild(
-  DragAndDrop.block,
+  DragAndDropBlock,
   {
     read: model => Option.some(model.dragAndDrop),
     write: (model, nextDragAndDrop) =>
@@ -143,14 +140,9 @@ export const DragAndDropBinding = ApplicationDefinition.bindChild(
         dragAndDrop: () => nextDragAndDrop,
         announcement: () => announceKeyboardDrag(model, nextDragAndDrop),
       }),
-    parentMessage: Message.GotDragAndDropMessage,
-    fromParentMessage: {
-      parentMessage: Message.GotDragAndDropMessage,
-      args: (_model, { message }) => Option.some([message]),
-    },
     init: {
-      startupToArgs: () => [{ id: 'kanban' }],
-      model: dragAndDrop => ({ dragAndDrop }),
+      contextToArgs: () => [{ id: 'kanban' }],
+      toParentFields: dragAndDrop => ({ dragAndDrop }),
     },
     outMessage: dragAndDropOutMessagePolicy,
   },

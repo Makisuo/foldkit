@@ -11,7 +11,7 @@ The example uses two files. `src/application.ts` defines `ApplicationDefinition`
 
 ### Runtime Entry
 
-The entry imports `ApplicationComposition` and the implementation pieces, then calls the Composition's owned `makeApplication` method. The returned lowercase `application` is passive configuration. `Runtime.run` constructs its Layers and starts the application.
+The entry imports `ApplicationComposition` and the implementation pieces, then calls the Composition's owned `assembleApplication` method. The returned lowercase `application` is passive configuration. `Runtime.run` constructs its Layers and starts the application.
 ::Snippet{name="counterEntry" label="Counter entry.ts"}
 
 ### Where to Go Next

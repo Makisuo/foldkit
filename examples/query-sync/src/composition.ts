@@ -3,8 +3,7 @@ import type { Block } from 'foldkit'
 
 import { ReplaceFilters } from './command'
 import { ApplicationDefinition } from './definition'
-import { Message } from './message'
-import { DietListbox, PeriodListbox } from './model'
+import { DietListboxBlock, PeriodListboxBlock } from './model'
 import { Diet, Period, routeToBrowseFields } from './route'
 
 const selectionToParam = <A extends string>(
@@ -20,7 +19,7 @@ const selectionToParam = <A extends string>(
   )
 }
 
-const foldDietListboxOutMessage = DietListbox.OutMessage.match({
+const foldDietListboxOutMessage = DietListboxBlock.OutMessage.match({
   Selected: ({ value }) =>
     ApplicationDefinition.step(model => {
       const fields = routeToBrowseFields(model.route)
@@ -36,14 +35,16 @@ const foldDietListboxOutMessage = DietListbox.OutMessage.match({
     }),
 })
 
-export const DietListboxBinding = ApplicationDefinition.bindChild(DietListbox, {
-  field: 'dietListbox',
-  parentMessage: Message.GotDietListboxMessage,
-  init: { startupToArgs: () => [{ id: 'diet-filter' }] },
-  outMessage: { fold: foldDietListboxOutMessage },
-})
+export const DietListboxBinding = ApplicationDefinition.bindChild(
+  DietListboxBlock,
+  {
+    field: 'dietListbox',
+    init: { contextToArgs: () => [{ id: 'diet-filter' }] },
+    outMessage: { fold: foldDietListboxOutMessage },
+  },
+)
 
-const foldPeriodListboxOutMessage = PeriodListbox.OutMessage.match({
+const foldPeriodListboxOutMessage = PeriodListboxBlock.OutMessage.match({
   Selected: ({ value }) =>
     ApplicationDefinition.step(model => {
       const fields = routeToBrowseFields(model.route)
@@ -60,17 +61,16 @@ const foldPeriodListboxOutMessage = PeriodListbox.OutMessage.match({
 })
 
 export const PeriodListboxBinding = ApplicationDefinition.bindChild(
-  PeriodListbox,
+  PeriodListboxBlock,
   {
     field: 'periodListbox',
-    parentMessage: Message.GotPeriodListboxMessage,
-    init: { startupToArgs: () => [{ id: 'period-filter' }] },
+    init: { contextToArgs: () => [{ id: 'period-filter' }] },
     outMessage: { fold: foldPeriodListboxOutMessage },
   },
 )
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [DietListboxBinding, PeriodListboxBinding],
+  bindings: [DietListboxBinding, PeriodListboxBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition

@@ -336,7 +336,7 @@ export type BindableBlock = Readonly<{
   OutMessage?: Readonly<{ Type: any }>
   mounts: ReadonlyArray<LayeredMountDefinition>
   [LocalMountsTypeId]: ReadonlyArray<LayeredMountDefinition>
-  childBindings: ReadonlyArray<AnyBinding>
+  bindings: ReadonlyArray<AnyBinding>
   init: AnyFunction
   update: AnyFunction
   operations: Readonly<Record<string, AnyFunction>>
@@ -362,7 +362,7 @@ type DefinitionLocalMounts<BlockValue> =
 type DefinitionViewMountRequirements<BlockValue> =
   | MountRequirementsOf<DefinitionLocalMounts<BlockValue>>
   | (BlockValue extends Readonly<{
-      childBindings: infer Children extends ReadonlyArray<AnyBinding>
+      bindings: infer Children extends ReadonlyArray<AnyBinding>
     }>
       ? RequirementsOfBindings<Children>
       : never)
@@ -786,6 +786,7 @@ export type BoundExposedOperations<
   ParentMessage,
   Placement extends string,
   Policy,
+  GeneratedSchema extends Schema.Top = never,
 > = Readonly<{
   [
     Key in keyof BlockValue['operations']
@@ -800,7 +801,7 @@ export type BoundExposedOperations<
       ) => (
         model: Update.GraphInput<
           ParentModel,
-          BindingRequirement<Placement, BlockValue>
+          BindingRequirement<Placement, BlockValue, GeneratedSchema>
         >,
       ) => BindingOperationRecipe<
         ParentModel,
@@ -809,7 +810,7 @@ export type BoundExposedOperations<
         Policy,
         Placement,
         BlockId<BlockValue>,
-        BindingRequirement<Placement, BlockValue>
+        BindingRequirement<Placement, BlockValue, GeneratedSchema>
       >
     : never
 }>
@@ -839,6 +840,7 @@ export interface BindingInitializer<
   Key = never,
   IsKeyed extends boolean = false,
   AllowedParentMessage = ParentMessage,
+  GeneratedSchema extends Schema.Top = never,
 > {
   <
     const InitializedParentModel extends ParentModel,
@@ -877,7 +879,7 @@ export interface BindingInitializer<
     ParentMessage | CommandMessageOfCommands<ParentCommands>,
     | Qualify<Placement, Update.RequirementsOf<BlockValue['init']>>
     | CommandRequirementsOf<ParentCommands>,
-    | BindingRequirement<Placement, BlockValue>
+    | BindingRequirement<Placement, BlockValue, GeneratedSchema>
     | Update.RegistrationEvidenceOf<Readonly<{ commands: ParentCommands }>>
   >
 }
@@ -913,6 +915,7 @@ export type Binding<
   OutgoingMessage = ParentMessage,
   IncomingMessage = never,
   InitializerMessage = ContractMessage,
+  GeneratedSchema extends Schema.Top = never,
 > = BindingEvidence<
   BlockValue,
   Qualify<Placement, HandlerEvidenceOfBlock<BlockValue>>,
@@ -995,7 +998,7 @@ export type Binding<
   >,
   false
 > &
-  BindingDeliveryEvidence<OutgoingMessage, IncomingMessage> &
+  BindingDeliveryEvidence<OutgoingMessage, IncomingMessage, GeneratedSchema> &
   BindingPolicyEvidence<Policy> &
   Readonly<{
     /** The stable identity of this Binding in the parent's composition graph. It
@@ -1008,11 +1011,12 @@ export type Binding<
     init: BindingInitializer<
       BlockValue,
       ParentModel,
-      ContractMessage,
+      ParentMessage,
       Placement,
       never,
       false,
-      InitializerMessage
+      InitializerMessage,
+      GeneratedSchema
     >
     /** Produces an opaque connected result for the child update, parent write,
      * lifted Commands, and OutMessage policy. Its Model input requires this exact
@@ -1021,7 +1025,7 @@ export type Binding<
     fold: (
       model: Update.GraphInput<
         ParentModel,
-        BindingRequirement<Placement, BlockValue>
+        BindingRequirement<Placement, BlockValue, GeneratedSchema>
       >,
       ...args: [
         message: BlockValue['Message']['Type'],
@@ -1040,7 +1044,7 @@ export type Binding<
       Policy,
       Placement,
       BlockId<BlockValue>,
-      BindingRequirement<Placement, BlockValue>
+      BindingRequirement<Placement, BlockValue, GeneratedSchema>
     >
     /** Builds the `h.block` config for this placement. The config carries the
      * Message mapping, composition identity, and Mount evidence. */
@@ -1124,7 +1128,8 @@ export type Binding<
     ParentModel,
     ParentMessage,
     Placement,
-    Policy
+    Policy,
+    GeneratedSchema
   > &
   OptionalParentBindingContract<
     ContractModel,
@@ -1256,16 +1261,18 @@ export type AnyBinding = Readonly<{
   fold: AnyFunction
   embedView: AnyFunction
 }> &
-  BindingDeliveryEvidence<any, any>
+  BindingDeliveryEvidence<any, any, any>
 
 /** Type-level evidence that an embedded view belongs to one registered Binding
  * placement. */
 export type BindingRequirement<
   Placement extends string,
   BlockValue,
+  GeneratedSchema extends Schema.Top = never,
 > = Readonly<{
   __blockBindingRequirement: Readonly<{
     placement: Placement
+    generatedSchema: () => GeneratedSchema
     block: BlockValue extends Readonly<{ mounts: infer Mounts }>
       ? Readonly<{
           owner: BlockValue extends Readonly<{ owner: infer OwnerValue }>
@@ -1334,7 +1341,21 @@ export type RequirementOfBinding<BindingValue> =
     placement: infer Placement extends string
     [ConnectionEvidenceTypeId]: Readonly<{ block: infer BlockValue }>
   }>
-    ? BindingRequirement<Placement, BlockValue>
+    ? BindingRequirement<
+        Placement,
+        BlockValue,
+        BindingValue extends BindingDeliveryEvidence<any, any, infer Generated>
+          ? Generated
+          : never
+      >
+    : never
+
+/** @internal Recovers generated child Messages proven by Binding registration. */
+export type GeneratedMessageOfRequirement<Requirement> =
+  Requirement extends BindingRequirement<any, any, infer GeneratedSchema>
+    ? GeneratedSchema extends Schema.Top
+      ? GeneratedSchema['Type']
+      : never
     : never
 
 /** Collects the registered view capability requirements of child Bindings. */
@@ -1374,7 +1395,7 @@ type RuntimeBindingConfig = Readonly<{
   toParentMessage: (message: any) => any
   subscriptions?: Readonly<{ when?: any }>
   outMessage?: RuntimeOutMessagePolicy | undefined
-  outgoingParentMessage?: Schema.Top & AnyFunction
+  outgoingParentMessage?: Schema.Top
   fromParentMessage?: RuntimeFromParentMessage
 }>
 
@@ -1563,9 +1584,7 @@ const bindRuntime = <
   )
   const update = (model: any, ...args: ReadonlyArray<any>) =>
     scopeReturn(
-      withOperationGraph(block.childBindings, () =>
-        block.update(model, ...args),
-      ),
+      withOperationGraph(block.bindings, () => block.update(model, ...args)),
       placement,
       block.owner,
       frame,
@@ -1576,9 +1595,7 @@ const bindRuntime = <
     operation =>
       (model: any, ...args: ReadonlyArray<any>) =>
         scopeReturn(
-          withOperationGraph(block.childBindings, () =>
-            operation(model, ...args),
-          ),
+          withOperationGraph(block.bindings, () => operation(model, ...args)),
           placement,
           block.owner,
           frame,
@@ -1646,7 +1663,7 @@ const bindRuntime = <
         identity: {
           owner: block.owner,
           mounts: block[LocalMountsTypeId],
-          childBindings: block.childBindings,
+          bindings: block.bindings,
         },
       },
       toParentMessage: config.toParentMessage,
@@ -1675,7 +1692,7 @@ const bindRuntime = <
   const initialize = (...args: ReadonlyArray<any>) => {
     assertRegisteredInitialization(binding, placement)
     const childInit = scopeReturn(
-      withOperationGraph(block.childBindings, () => block.init(...args)),
+      withOperationGraph(block.bindings, () => block.init(...args)),
       placement,
       block.owner,
       { ...frame, isInitialization: true },
@@ -1871,11 +1888,11 @@ export type AggregatedChildren<Children extends ReadonlyArray<AnyBinding>> =
 
 const mergeChildRecords = (
   kind: 'Subscription' | 'ManagedResource',
-  childBindings: ReadonlyArray<AnyBinding>,
+  bindings: ReadonlyArray<AnyBinding>,
 ): Record<string, unknown> => {
   const entries: Record<string, unknown> = {}
 
-  for (const childBinding of childBindings) {
+  for (const childBinding of bindings) {
     const inspection = inspectBinding(childBinding)
     const childEntries =
       inspection[kind === 'Subscription' ? 'subscriptions' : 'managedResources']
@@ -1903,16 +1920,16 @@ const mergeChildRecords = (
 export const aggregateChildren = <
   const Children extends ReadonlyArray<AnyBinding>,
 >(
-  childBindings: Children,
+  bindings: Children,
 ): AggregatedChildren<Children> => {
-  const subscriptions = mergeChildRecords('Subscription', childBindings)
-  const managedResources = mergeChildRecords('ManagedResource', childBindings)
+  const subscriptions = mergeChildRecords('Subscription', bindings)
+  const managedResources = mergeChildRecords('ManagedResource', bindings)
   const mounts: Array<LayeredMountDefinition> = []
   const seenMounts = new Set<LayeredMountDefinition>()
   const layers: Array<Layer.Any> = []
   const seenPlacements = new Set<string>()
 
-  for (const childBinding of childBindings) {
+  for (const childBinding of bindings) {
     if (seenPlacements.has(childBinding.placement)) {
       throw new Error(
         `[foldkit] Two child Blocks use placement "${childBinding.placement}". Give repeated child Bindings distinct local placements.`,

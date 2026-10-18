@@ -116,7 +116,7 @@ markdown({ islands: islandAttributes })
 ```typescript
 import { Schema } from 'effect'
 import { Block } from 'foldkit'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import type { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -132,15 +132,18 @@ const Message = defineMessageUnion({
   GotCounterMessage: { message: Counter.Message },
 })
 
-export const Application = defineApplication({ Model, Message })
+export const ApplicationDefinition = makeApplicationDefinition({
+  Model,
+  Message,
+})
 
-const CounterBinding = Application.bindChild(Counter.block, {
+const CounterBinding = ApplicationDefinition.bindChild(Counter.block, {
   field: 'counter',
   parentMessage: Message.GotCounterMessage,
 })
 
-export const ApplicationComposition = Application.makeComposition({
-  childBindings: [CounterBinding],
+export const ApplicationComposition = ApplicationDefinition.makeComposition({
+  bindings: [CounterBinding],
 })
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition

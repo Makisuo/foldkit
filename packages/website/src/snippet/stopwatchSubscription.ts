@@ -13,7 +13,10 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const StopwatchDefinition = Block.define('Stopwatch', { Model, Message })
+const StopwatchDefinition = Block.makeDefinition('Stopwatch', {
+  Model,
+  Message,
+})
 
 const subscriptions = StopwatchDefinition.subscriptions(entry => ({
   stopwatchTicks: entry(

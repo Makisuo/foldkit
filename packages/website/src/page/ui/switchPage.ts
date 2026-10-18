@@ -1,14 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import { UiComposition } from './composition'
+import { SwitchPageContent } from './content'
 import * as Switch from './demo/switch'
-import raw from './switchPage.md'
 
-const { tableOfContents, view: renderPage } = slotDocPage<'basic'>(
-  raw,
-  'ui/switch',
-)
+const { tableOfContents, view: renderPage } = SwitchPageContent
 
 export { tableOfContents }
 

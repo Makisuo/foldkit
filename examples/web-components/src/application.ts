@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Schema } from 'effect'
-import { CustomElement, defineApplication } from 'foldkit'
+import { CustomElement, makeApplicationDefinition } from 'foldkit'
 import type { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -25,9 +25,10 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
-
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const ApplicationComposition = makeApplicationDefinition({
+  Model,
+  Message,
+}).makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >

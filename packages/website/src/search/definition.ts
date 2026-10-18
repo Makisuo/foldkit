@@ -3,7 +3,7 @@ import { Block } from 'foldkit'
 import { Message } from './message'
 import { Model } from './model'
 
-export const SearchDefinition = Block.define('Search', {
+export const SearchDefinition = Block.makeDefinition('Search', {
   Model,
   Message,
 })

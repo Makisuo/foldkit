@@ -36,7 +36,7 @@ export const Model = Schema.Struct({
 
 export type Model = typeof Model.Type
 
-const TooltipDefinition = Block.define('Tooltip', {
+const TooltipDefinition = Block.makeDefinition('Tooltip', {
   Model,
   Message,
   OutMessage,
@@ -62,8 +62,7 @@ export type InitConfig = Readonly<{
   showDelay?: Duration.Input
 }>
 
-/** Creates an initial tooltip model from a config. Defaults to hidden. */
-export const init = (config: InitConfig): Model => ({
+const makeInitialModel = (config: InitConfig): Model => ({
   id: config.id,
   isOpen: false,
   isHovered: false,
@@ -127,6 +126,11 @@ export const EffectsLayer = Layer.mergeAll(
 )
 
 const TooltipComposition = TooltipDefinition.makeComposition({ mounts })
+
+/** Creates an initial Tooltip Model and Commands from a config. Defaults to hidden. */
+export const init = TooltipComposition.makeInit((config: InitConfig) => ({
+  model: makeInitialModel(config),
+}))
 
 const computeUpdate = (model: Model, message: Message) =>
   Message.match(message, {
@@ -360,10 +364,8 @@ export const view = TooltipComposition.makeView.withInputs<ViewInputs>(
 )
 
 /** Completed Tooltip Block for binding into a parent. */
-export const block = TooltipComposition.makeBlock({
-  init: TooltipComposition.makeInit((config: InitConfig) => ({
-    model: init(config),
-  })),
+export const TooltipBlock = TooltipComposition.assembleBlock({
+  init,
   update,
   view,
   operations: {

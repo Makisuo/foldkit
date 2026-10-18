@@ -12,7 +12,7 @@ describe('workHistory entry', () => {
   test('UpdatedCompany stores a valid company', () => {
     story(
       update,
-      given(init('entry-1', today)),
+      given(init('entry-1', today).model),
       message(Message.UpdatedCompany({ value: 'Foldkit Inc.' })),
       model(model => {
         expect(model.company.value).toBe('Foldkit Inc.')
@@ -24,7 +24,7 @@ describe('workHistory entry', () => {
   test('clearing company after a value makes the field Invalid', () => {
     story(
       update,
-      given(init('entry-1', today)),
+      given(init('entry-1', today).model),
       message(Message.UpdatedCompany({ value: 'Foldkit Inc.' })),
       message(Message.UpdatedCompany({ value: '' })),
       model(model => {
@@ -36,7 +36,7 @@ describe('workHistory entry', () => {
   test('ClickedRemoveSelf emits Removed', () => {
     story(
       update,
-      given(init('entry-1', today)),
+      given(init('entry-1', today).model),
       message(Message.ClickedRemoveSelf()),
       expectOutMessage(OutMessage.Removed()),
     )

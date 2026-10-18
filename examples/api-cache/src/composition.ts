@@ -4,9 +4,8 @@ import { modifyFields } from 'foldkit/struct'
 
 import { FetchPosts, FetchStats } from './command'
 import { ApplicationDefinition } from './definition'
-import { Message } from './message'
 import {
-  ApplicationTabs,
+  ApplicationTabsBlock,
   type Model,
   type PostsData,
   type StatsData,
@@ -58,19 +57,21 @@ const activateTab = (tab: Tab) => (model: Model) => {
   )
 }
 
-const foldTabsOutMessage = ApplicationTabs.OutMessage.match({
+const foldTabsOutMessage = ApplicationTabsBlock.OutMessage.match({
   Selected: ({ value }) => ApplicationDefinition.step(activateTab(value)),
 })
 
-export const TabsBinding = ApplicationDefinition.bindChild(ApplicationTabs, {
-  field: 'tabs',
-  parentMessage: Message.GotTabsMessage,
-  init: { startupToArgs: () => [{ id: TABS_ID }] },
-  outMessage: { fold: foldTabsOutMessage },
-})
+export const TabsBinding = ApplicationDefinition.bindChild(
+  ApplicationTabsBlock,
+  {
+    field: 'tabs',
+    init: { contextToArgs: () => [{ id: TABS_ID }] },
+    outMessage: { fold: foldTabsOutMessage },
+  },
+)
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [TabsBinding],
+  bindings: [TabsBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition

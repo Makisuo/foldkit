@@ -11,18 +11,18 @@ const SaveState = defineTaggedUnion({
   Failed: { reason: Schema.String },
 })
 
-export const Model = Schema.Struct({ contents: Schema.String, save: SaveState })
+const Model = Schema.Struct({ contents: Schema.String, save: SaveState })
 
-export const Message = defineMessageUnion({
+const Message = defineMessageUnion({
   ClickedSave: {},
   SucceededSaveDocument: {},
   FailedSaveDocument: { reason: Schema.String },
 })
 
-const EditorDefinition = Block.define('Editor', { Model, Message })
+const EditorDefinition = Block.makeDefinition('Editor', { Model, Message })
 const EditorComposition = EditorDefinition.makeComposition()
 
-export const SaveDocument = EditorDefinition.command('SaveDocument', {
+const SaveDocument = EditorDefinition.command('SaveDocument', {
   args: { contents: Schema.String },
   messages: [Message.SucceededSaveDocument, Message.FailedSaveDocument],
 })
@@ -46,7 +46,7 @@ const update = EditorComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const block = EditorComposition.makeBlock({
+export const EditorBlock = EditorComposition.assembleBlock({
   init,
   update,
   hostHandlers: [SaveDocument],

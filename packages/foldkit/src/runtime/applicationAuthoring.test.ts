@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest'
 
-import { define } from '../block/define.js'
+import { makeNamespace } from '../block/define.js'
 import type * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
@@ -20,7 +20,7 @@ import type {
   Element as ElementProgram,
   ViewBuilderFor,
 } from './applicationPublic.js'
-import { define as defineApplication } from './applicationPublic.js'
+import { makeDefinition as makeApplicationDefinition } from './applicationPublic.js'
 import * as ModelPreservationBridge from './modelPreservationBridge.js'
 import { embed } from './start.js'
 
@@ -29,17 +29,17 @@ class ValueSource extends Context.Service<
   Readonly<{ value: string }>
 >()('ApplicationAuthoring/ValueSource') {}
 
-const ChildOwnerDefinition = define('ApplicationAuthoringChild')
+const ChildOwnerNamespace = makeNamespace('ApplicationAuthoringChild')
 const ChildModel = Schema.Struct({ value: Schema.String })
 const ChildMessage = defineMessageUnion({
   UpdatedChildValue: { value: Schema.String },
 })
-const ChildDefinition = ChildOwnerDefinition.define({
+
+const ChildComposition = ChildOwnerNamespace.makeDefinition({
   Model: ChildModel,
   Message: ChildMessage,
-})
-const ChildComposition = ChildDefinition.makeComposition()
-const childBlock = ChildComposition.makeBlock({
+}).makeComposition()
+const childBlock = ChildComposition.assembleBlock({
   init: () => ({ model: { value: 'child' } }),
   update: ChildComposition.makeUpdate((model, { value }) => ({
     model: modifyFields(model, { value: () => value }),
@@ -54,17 +54,15 @@ const Model = Schema.Struct({
 const Message = defineMessageUnion({
   ClickedReadRootValue: {},
   CompletedReadRootValue: { value: Schema.String },
-  GotChildMessage: { message: ChildMessage },
 })
 const ForeignMessage = defineMessageUnion({ ForeignCompleted: {} })
-const ApplicationDefinition = defineApplication({ Model, Message })
+const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
 const ChildBinding = ApplicationDefinition.bindChild(childBlock, {
   read: model => Option.some(model.child),
   write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
-  parentMessage: Message.GotChildMessage,
 })
 const graphlessComposition = ApplicationDefinition.makeComposition({
-  childBindings: [ChildBinding],
+  bindings: [ChildBinding],
 })
 const ReadRootValue = ApplicationDefinition.command('ReadRootValue', {
   messages: [Message.CompletedReadRootValue],
@@ -91,13 +89,13 @@ const ObserveRoot = ApplicationDefinition.mount('ObserveRoot', {
 })
 const mountedComposition = ApplicationDefinition.makeComposition({
   mounts: [ObserveRoot],
-  childBindings: [ChildBinding],
+  bindings: [ChildBinding],
 })
 const mountedView = mountedComposition.makeView((model, h) =>
   h.div([h.OnMount(ObserveRoot())], [model.rootValue]),
 )
 const composition = ApplicationDefinition.makeComposition({
-  childBindings: [ChildBinding],
+  bindings: [ChildBinding],
 })
 const initSource = () =>
   ChildBinding.init({
@@ -138,11 +136,11 @@ const rootBody = (
 const view = composition.makeView(rootBody)
 
 const NoMessageModel = Schema.Null
-const NoMessageApplicationDefinition = defineApplication({
+
+const NoMessageComposition = makeApplicationDefinition({
   Model: NoMessageModel,
   Message: Schema.Never,
-})
-const NoMessageComposition = NoMessageApplicationDefinition.makeComposition()
+}).makeComposition()
 const noMessageInit = () => ({ model: null })
 const noMessageUpdate = NoMessageComposition.makeUpdate()
 const noMessageDocumentView = NoMessageComposition.makeView((_model, h) => ({
@@ -185,15 +183,13 @@ const typecheckRootCompletion = (): void => {
   composition.command
 
   composition.makeUpdate((model, message) =>
-    // @ts-expect-error Composition routes the registered child Message.
     Message.match(message, {
       ClickedReadRootValue: () => ({ model }),
       CompletedReadRootValue: () => ({ model }),
-      GotChildMessage: () => ({ model }),
     }),
   )
 
-  composition.makeElement({
+  composition.assembleElement({
     container: null,
     init,
     update,
@@ -201,7 +197,7 @@ const typecheckRootCompletion = (): void => {
     EffectsLayer: ReadRootValue.layer,
   })
 
-  const application = composition.makeApplication({
+  const application = composition.assembleApplication({
     container: null,
     init,
     update,
@@ -217,21 +213,21 @@ const typecheckRootCompletion = (): void => {
   > = application
   void pendingApplication
 
-  NoMessageComposition.makeApplication({
+  NoMessageComposition.assembleApplication({
     container: null,
     init: noMessageInit,
     update: noMessageUpdate,
     view: noMessageDocumentView,
   })
-  NoMessageComposition.makeElement({
+  NoMessageComposition.assembleElement({
     container: null,
     init: noMessageInit,
     update: noMessageUpdate,
     view: noMessageElementView,
   })
 
-  // @ts-expect-error makeApplication requires the registered Document view.
-  composition.makeApplication({
+  // @ts-expect-error assembleApplication requires the registered Document view.
+  composition.assembleApplication({
     container: null,
     init,
     update,
@@ -239,8 +235,8 @@ const typecheckRootCompletion = (): void => {
     EffectsLayer: ReadRootValue.layer,
   })
 
-  // @ts-expect-error makeElement requires the registered Element view.
-  composition.makeElement({
+  // @ts-expect-error assembleElement requires the registered Element view.
+  composition.assembleElement({
     container: null,
     init,
     update,
@@ -249,7 +245,7 @@ const typecheckRootCompletion = (): void => {
   })
 
   // @ts-expect-error The graphless Composition has not registered the child used by this view.
-  ApplicationDefinition.makeComposition().makeElement({
+  ApplicationDefinition.makeComposition().assembleElement({
     container: null,
     init,
     update,
@@ -258,7 +254,7 @@ const typecheckRootCompletion = (): void => {
   })
 
   // @ts-expect-error The graphless Composition has not registered the Mount used by this view.
-  ApplicationDefinition.makeComposition().makeElement({
+  ApplicationDefinition.makeComposition().assembleElement({
     container: null,
     init,
     update,
@@ -267,15 +263,15 @@ const typecheckRootCompletion = (): void => {
   })
 
   // @ts-expect-error root handler definitions must be included in EffectsLayer.
-  composition.makeElement({
+  composition.assembleElement({
     container: null,
     init,
     update,
     view,
   })
 
-  composition.makeElement({
-    // @ts-expect-error Model is established by defineApplication.
+  composition.assembleElement({
+    // @ts-expect-error Model is established by makeApplicationDefinition.
     Model,
     container: null,
     init,
@@ -291,7 +287,7 @@ const typecheckRootCompletion = (): void => {
       child: { value: 'child' },
     },
   })
-  const elementWithFlags = composition.makeElement({
+  const elementWithFlags = composition.assembleElement({
     Flags,
     flags: Effect.succeed({ initialValue: 'from flags' }),
     container: null,
@@ -314,7 +310,7 @@ const typecheckRootCompletion = (): void => {
     view: documentView,
     EffectsLayer: ReadRootValue.layer,
   }
-  const routedApplication = composition.makeApplication({
+  const routedApplication = composition.assembleApplication({
     ...routedImplementation,
     container: null,
     routing: {
@@ -344,7 +340,7 @@ const typecheckRootCompletion = (): void => {
     view: documentView,
     EffectsLayer: ReadRootValue.layer,
   }
-  const routedFlagsApplication = composition.makeApplication({
+  const routedFlagsApplication = composition.assembleApplication({
     ...routedFlagsImplementation,
     Flags,
     container: null,
@@ -369,7 +365,7 @@ const typecheckRootCompletion = (): void => {
   void pendingRoutedFlagsApplication
 
   // @ts-expect-error a Flags application init must receive its Flags.
-  composition.makeElement({
+  composition.assembleElement({
     Flags,
     flags: Effect.succeed({ initialValue: 'from flags' }),
     container: null,
@@ -424,14 +420,14 @@ describe('Application authoring', () => {
     // @ts-expect-error an application root is not a reusable Block.
     void ApplicationDefinition.bind
     // @ts-expect-error an Application composition does not expose Block completion.
-    void composition.makeBlock
+    void composition.assembleBlock
     // @ts-expect-error an application can only be composed once.
     void composition.makeComposition
   })
 
   it('completes an empty composition through its owned method', () => {
     expect(() =>
-      NoMessageComposition.makeElement({
+      NoMessageComposition.assembleElement({
         container: document.createElement('div'),
         init: noMessageInit,
         update: noMessageUpdate,
@@ -445,7 +441,7 @@ describe('Application authoring', () => {
     container.id = 'application-authoring'
     document.body.append(container)
 
-    const element = composition.makeElement({
+    const element = composition.assembleElement({
       container,
       init,
       update,

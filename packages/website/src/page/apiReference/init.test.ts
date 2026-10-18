@@ -3,8 +3,10 @@ import { Command, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
-import { block } from './block'
+import { ApiReferenceBlock } from './block'
 import {
+  ApiData,
+  ApiDataAsyncData,
   ApiFunction,
   ApiModule,
   SIGNATURE_COLLAPSE_THRESHOLD,
@@ -12,7 +14,7 @@ import {
 } from './domain'
 import { init } from './init'
 import { Message } from './message'
-import { ApiData, ApiDataAsyncData, type Model } from './model'
+import { type Model } from './model'
 import { LoadApiData, update } from './update'
 
 const apiModule = ApiModule.make({
@@ -62,7 +64,7 @@ describe('API Reference startup', () => {
   })
 
   test('cold startup schedules the full reference load', () => {
-    const initialDataLoad = block.operations.requestLoadInitialData(
+    const initialDataLoad = ApiReferenceBlock.operations.requestLoadInitialData(
       init().model,
     )
 
@@ -72,12 +74,14 @@ describe('API Reference startup', () => {
       LoadApiData.name,
     ])
     expectTypeOf<
-      Update.RequirementsOf<typeof block.operations.requestLoadInitialData>
+      Update.RequirementsOf<
+        typeof ApiReferenceBlock.operations.requestLoadInitialData
+      >
     >().toEqualTypeOf<Command.HandlerOf<typeof LoadApiData>>()
   })
 
   test('prerendered data stays visible while the full reference loads', () => {
-    const initialDataLoad = block.operations.requestLoadInitialData(
+    const initialDataLoad = ApiReferenceBlock.operations.requestLoadInitialData(
       init().model,
       Option.some(seededData),
     )
@@ -89,17 +93,21 @@ describe('API Reference startup', () => {
     expect(initialDataLoad.commands?.map(command => command.name)).toEqual([
       LoadApiData.name,
     ])
-    expect(block.operations.informRouteChanged(initialDataLoad.model)).toEqual({
+    expect(
+      ApiReferenceBlock.operations.informRouteChanged(initialDataLoad.model),
+    ).toEqual({
       model: initialDataLoad.model,
     })
   })
 
   test('failed cold loads can be requested again', () => {
-    const initialDataLoad = block.operations.requestLoadInitialData(
+    const initialDataLoad = ApiReferenceBlock.operations.requestLoadInitialData(
       init().model,
     )
     const apiReferenceFailure = failedLoad(initialDataLoad.model)
-    const retry = block.operations.informRouteChanged(apiReferenceFailure.model)
+    const retry = ApiReferenceBlock.operations.informRouteChanged(
+      apiReferenceFailure.model,
+    )
 
     expect(apiReferenceFailure.model.apiData).toEqual(
       ApiDataAsyncData.Failure({ error: 'Offline' }),
@@ -111,12 +119,14 @@ describe('API Reference startup', () => {
   })
 
   test('failed full loads retain the seeded slice and retry on entry', () => {
-    const initialDataLoad = block.operations.requestLoadInitialData(
+    const initialDataLoad = ApiReferenceBlock.operations.requestLoadInitialData(
       init().model,
       Option.some(seededData),
     )
     const apiReferenceFailure = failedLoad(initialDataLoad.model)
-    const retry = block.operations.informRouteChanged(apiReferenceFailure.model)
+    const retry = ApiReferenceBlock.operations.informRouteChanged(
+      apiReferenceFailure.model,
+    )
 
     expect(apiReferenceFailure.model.apiData).toEqual(
       ApiDataAsyncData.Stale({ data: seededData, error: 'Offline' }),
@@ -130,13 +140,15 @@ describe('API Reference startup', () => {
     expect(retry.commands?.map(command => command.name)).toEqual([
       LoadApiData.name,
     ])
-    expect(block.operations.informRouteChanged(retry.model)).toEqual({
+    expect(
+      ApiReferenceBlock.operations.informRouteChanged(retry.model),
+    ).toEqual({
       model: retry.model,
     })
   })
 
   test('full success adds disclosures without resetting the seeded selection', () => {
-    const initialDataLoad = block.operations.requestLoadInitialData(
+    const initialDataLoad = ApiReferenceBlock.operations.requestLoadInitialData(
       init().model,
       Option.some(seededData),
     )
@@ -155,7 +167,9 @@ describe('API Reference startup', () => {
       [signatureId]: true,
       [scopedId('function', 'Update', 'define')]: false,
     })
-    expect(block.operations.informRouteChanged(succeededLoad.model)).toEqual({
+    expect(
+      ApiReferenceBlock.operations.informRouteChanged(succeededLoad.model),
+    ).toEqual({
       model: succeededLoad.model,
     })
   })

@@ -3,15 +3,14 @@ import { Tuple } from 'effect'
 // Use the basic example's Model, Messages, update and OutMessage fold.
 const MenuBinding = ActionMenuExample.bindChild(ActionMenu, {
   field: 'menu',
-  parentMessage: Message.GotMenuMessage,
   outMessage: { fold: foldMenuOutMessage },
   init: {
-    startupToArgs: () => Tuple.make({ id: 'actions', isAnimated: true }),
+    contextToArgs: () => Tuple.make({ id: 'actions', isAnimated: true }),
   },
 })
 
 const ActionMenuExampleComposition = ActionMenuExample.makeComposition({
-  childBindings: [MenuBinding],
+  bindings: [MenuBinding],
 })
 
 const init = ActionMenuExampleComposition.makeInit(() => ({ model: {} }))

@@ -1,15 +1,15 @@
-import { Array, Option } from 'effect'
+import { Array } from 'effect'
 import { type Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { Message, type Model, SkillsDefinition } from './definition'
-import * as Entry from './entry'
+import { SkillsEntryBlock } from './entry'
 
 const foldEntryOutMessage = (
   entryId: string,
-  outMessage: typeof Entry.OutMessage.Type,
+  outMessage: typeof SkillsEntryBlock.OutMessage.Type,
 ) =>
-  Entry.OutMessage.match<Update.Step<Model, Message>>(outMessage, {
+  SkillsEntryBlock.OutMessage.match<Update.Step<Model, Message>>(outMessage, {
     Removed: () => model => ({
       model: modifyFields(model, {
         entries: Array.filter(entry => entry.id !== entryId),
@@ -17,17 +17,11 @@ const foldEntryOutMessage = (
     }),
   })
 
-export const EntriesBinding = SkillsDefinition.bindChild(Entry.block, {
+export const EntriesBinding = SkillsDefinition.bindChild(SkillsEntryBlock, {
   field: 'entries',
   key: 'id',
-  toParentMessage: (entryId, message) =>
-    Message.GotEntryMessage({ entryId, message }),
-  fromParentMessage: {
-    parentMessage: Message.GotEntryMessage,
-    args: (_model, { entryId, message }) => Option.some([entryId, message]),
-  },
   init: {
-    occurrences: initialEntryId => [
+    instances: initialEntryId => [
       { key: initialEntryId, args: [initialEntryId] },
     ],
     toItem: (_occurrence, entry) => entry,
@@ -36,5 +30,5 @@ export const EntriesBinding = SkillsDefinition.bindChild(Entry.block, {
 })
 
 export const SkillsComposition = SkillsDefinition.makeComposition({
-  childBindings: [EntriesBinding],
+  bindings: [EntriesBinding],
 })

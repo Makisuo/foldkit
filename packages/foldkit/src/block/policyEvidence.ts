@@ -1,7 +1,10 @@
 import type { Effect } from 'effect'
 
 import type * as Update from '../update/index.js'
-import type { RequirementsOfBindings } from './binding.js'
+import type {
+  GeneratedMessageOfRequirement,
+  RequirementsOfBindings,
+} from './binding.js'
 
 declare const BindingPolicyTypeId: unique symbol
 
@@ -109,7 +112,7 @@ type HasErasedFields<Output> =
       : false
     : true
 
-type ValidStep<Step, Model, Message, OutMessage> =
+type ValidStep<Step, Model, Message, OutMessage, Registration> =
   IsAny<Step> extends true
     ? false
     : Step extends AnyFunction
@@ -137,17 +140,32 @@ type ValidStep<Step, Model, Message, OutMessage> =
                             ReturnType<Step>
                           > extends PolicyStepReturn<Model, Message, OutMessage>
                           ? true
-                          : false
+                          : Update.ResolvedOperationOutput<
+                                ReturnType<Step>
+                              > extends PolicyStepReturn<
+                                Model,
+                                | Message
+                                | GeneratedMessageOfRequirement<Registration>,
+                                OutMessage
+                              >
+                            ? true
+                            : false
                         : false
                   : false
             : false
       : false
 
-type ValidFold<Fold, Model, Message, OutMessage> =
+type ValidFold<Fold, Model, Message, OutMessage, Policy> =
   IsAny<Fold> extends true
     ? false
     : Fold extends AnyFunction
-      ? false extends ValidStep<ReturnType<Fold>, Model, Message, OutMessage>
+      ? false extends ValidStep<
+          ReturnType<Fold>,
+          Model,
+          Message,
+          OutMessage,
+          PolicyRegistration<Policy>
+        >
         ? false
         : true
       : false
@@ -180,7 +198,8 @@ type InvalidPolicy<Policy, Model, Message, OutMessage> =
                         FieldOf<Policy, 'fold'>,
                         Model,
                         Message,
-                        OutMessage
+                        OutMessage,
+                        Policy
                       > extends true
                     ? never
                     : 'Invalid fold output')

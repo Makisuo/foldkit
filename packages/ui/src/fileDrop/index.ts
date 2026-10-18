@@ -1,12 +1,6 @@
 export {
-  Model,
-  Message,
-  OutMessage,
+  FileDropBlock,
   type InitConfig,
-  init,
-  update,
   type FileDropAttributes,
   type ViewInputs,
-  view,
-  block,
 } from './block.js'

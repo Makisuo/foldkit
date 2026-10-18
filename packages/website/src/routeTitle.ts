@@ -2,7 +2,8 @@ import { Array, Match, Option, pipe } from 'effect'
 import { AsyncData } from 'foldkit'
 
 import { allPages } from './docsNav'
-import { ApiReference, Blog } from './page'
+import { Blog } from './page'
+import * as ApiReference from './page/apiReference/domain'
 import { type ApplicationRoute } from './route'
 
 const SITE_NAME = 'Foldkit'

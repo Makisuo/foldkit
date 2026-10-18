@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
@@ -8,7 +8,7 @@ import { Message } from '../message'
 import { CheckoutState } from '../model'
 import { primaryButtonClassName } from './shared'
 
-export const placingView = (h: HtmlBuilder<Message>): Html =>
+export const placingView = (h: ApplicationViewBuilder): Html =>
   h.div(
     [
       h.Role('status'),
@@ -35,7 +35,7 @@ export const placingView = (h: HtmlBuilder<Message>): Html =>
 
 export const confirmedView = (
   state: typeof CheckoutState.Confirmed.Type,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.div(
     [
@@ -89,7 +89,7 @@ export const confirmedView = (
     ],
   )
 
-export const cancelledView = (h: HtmlBuilder<Message>): Html =>
+export const cancelledView = (h: ApplicationViewBuilder): Html =>
   h.div(
     [
       h.Class(
@@ -128,3 +128,4 @@ export const cancelledView = (h: HtmlBuilder<Message>): Html =>
       ),
     ],
   )
+import type { ApplicationViewBuilder } from '../composition'

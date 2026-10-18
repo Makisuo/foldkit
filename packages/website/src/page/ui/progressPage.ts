@@ -1,13 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import { UiComposition } from './composition'
+import { ProgressPageContent } from './content'
 import * as Progress from './demo/progress'
-import raw from './progressPage.md'
 
-const { tableOfContents, view: renderPage } = slotDocPage<
-  'basic' | 'indeterminate'
->(raw, 'ui/progress')
+const { tableOfContents, view: renderPage } = ProgressPageContent
 
 export { tableOfContents }
 

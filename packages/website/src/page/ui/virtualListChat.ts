@@ -1,22 +1,18 @@
 import { Array, Option, Tuple, pipe } from 'effect'
 import { Update } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
 
-import { VirtualList } from '@foldkit/ui'
 import { ScrollTarget } from '@foldkit/ui/virtualList'
 
 import { UiDefinition } from './definition'
-import { Message } from './message'
+import { ChatVirtualListBlock } from './demo/components'
 import {
-  Model,
   type VirtualListChatMessage,
   VirtualListChatStartProximity,
-} from './model'
+} from './domain/domain'
+import { Model } from './model'
 
 const VIRTUAL_LIST_CHAT_START_THRESHOLD_PX = 48
 const VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE = 8
-
-const ChatVirtualList = VirtualList.create<VirtualListChatMessage>()
 
 const olderVirtualListChatMessages = (model: Model) => {
   const firstId = pipe(
@@ -42,18 +38,15 @@ const olderVirtualListChatMessages = (model: Model) => {
   return [...olderMessages, ...model.virtualListChatMessages]
 }
 
-const foldVirtualListChatOutMessage = VirtualList.OutMessage.match({
+const foldVirtualListChatOutMessage = ChatVirtualListBlock.OutMessage.match({
   ObservedContainerScroll: ({ scrollTop }) =>
     UiDefinition.step(model => {
       const isNearStart = scrollTop <= VIRTUAL_LIST_CHAT_START_THRESHOLD_PX
       const nextVirtualListChatStartProximity = isNearStart
         ? VirtualListChatStartProximity.Near()
         : VirtualListChatStartProximity.Away()
-      const updateStartProximity = UiDefinition.step(stepModel => ({
-        model: modifyFields(stepModel, {
-          virtualListChatStartProximity: () =>
-            nextVirtualListChatStartProximity,
-        }),
+      const updateStartProximity = UiDefinition.stepFields(() => ({
+        virtualListChatStartProximity: () => nextVirtualListChatStartProximity,
       }))
 
       if (!isNearStart || model.virtualListChatStartProximity._tag === 'Near') {
@@ -61,10 +54,8 @@ const foldVirtualListChatOutMessage = VirtualList.OutMessage.match({
       }
 
       const nextMessages = olderVirtualListChatMessages(model)
-      const updateMessages = UiDefinition.step(stepModel => ({
-        model: modifyFields(stepModel, {
-          virtualListChatMessages: () => nextMessages,
-        }),
+      const updateMessages = UiDefinition.stepFields(() => ({
+        virtualListChatMessages: () => nextMessages,
       }))
 
       return Update.combine([
@@ -78,13 +69,12 @@ const foldVirtualListChatOutMessage = VirtualList.OutMessage.match({
 })
 
 export const VirtualListChatDemoBinding = UiDefinition.bindChild(
-  ChatVirtualList,
+  ChatVirtualListBlock,
   {
     field: 'virtualListChatDemo',
-    parentMessage: Message.GotVirtualListChatDemoMessage,
     outMessage: { fold: foldVirtualListChatOutMessage },
     init: {
-      startupToArgs: () =>
+      contextToArgs: () =>
         Tuple.make({
           id: 'virtual-list-chat-demo',
           rowHeightPx: 64,
@@ -102,11 +92,9 @@ export const updateVirtualListChatMessages = (
   UiDefinition.step(model => {
     const nextVirtualListChatNextId =
       nextId === undefined ? model.virtualListChatNextId : nextId
-    const updateMessages = UiDefinition.step(stepModel => ({
-      model: modifyFields(stepModel, {
-        virtualListChatMessages: () => nextMessages,
-        virtualListChatNextId: () => nextVirtualListChatNextId,
-      }),
+    const updateMessages = UiDefinition.stepFields(() => ({
+      virtualListChatMessages: () => nextMessages,
+      virtualListChatNextId: () => nextVirtualListChatNextId,
     }))
 
     return Update.combine([

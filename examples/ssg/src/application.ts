@@ -1,5 +1,5 @@
 import { Effect, Layer, Schema } from 'effect'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import type { Block } from 'foldkit'
 import { type Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -30,7 +30,10 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const ApplicationDefinition = makeApplicationDefinition({
+  Model,
+  Message,
+})
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<

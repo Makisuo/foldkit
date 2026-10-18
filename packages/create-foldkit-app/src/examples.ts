@@ -48,7 +48,7 @@ export const examples: ReadonlyArray<{
     value: 'counters',
     title: 'counters',
     description:
-      'A dynamic list of Counter Blocks with per-instance routing via a wrapper Message',
+      'A dynamic list of Counter Blocks with generated per-instance delivery',
   },
   {
     value: 'todo',

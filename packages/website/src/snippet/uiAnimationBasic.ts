@@ -6,28 +6,26 @@ import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 import { Animation } from '@foldkit/ui'
-import type {
-  Message as AnimationMessage,
-  OutMessage as AnimationOutMessage,
-} from '@foldkit/ui/animation'
 import { defaultLeaveCommand as AnimationDefaultLeaveCommand } from '@foldkit/ui/animation'
+
+type AnimationMessage = typeof Animation.AnimationBlock.Message.Type
+type AnimationOutMessage = typeof Animation.AnimationBlock.OutMessage.Type
 
 // Add a field to your Model for the Animation Block. Animation tracks
 // its own visibility and lifecycle state. No need for a separate flag:
 const Model = Schema.Struct({
-  animation: Animation.Model,
+  animation: Animation.AnimationBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
 
-// Embed the Animation Message in your parent Message:
+// Declare only parent-owned facts. The Composition derives Animation delivery.
 const Message = defineMessageUnion({
-  GotAnimationMessage: { message: Animation.Message },
   ClickedToggleAnimation: {},
 })
 type Message = typeof Message.Type
 
-const AnimationExampleDefinition = Block.define('AnimationExample', {
+const AnimationExampleDefinition = Block.makeDefinition('AnimationExample', {
   Model,
   Message,
 })
@@ -41,9 +39,9 @@ const AnimationExampleDefinition = Block.define('AnimationExample', {
 // which already has the next Animation Model written back:
 const foldAnimationOutMessage = (
   outMessage: AnimationOutMessage,
-  { liftCommand }: Update.FoldContext<AnimationMessage, Message, Model>,
+  { liftCommand }: Update.FoldContext<AnimationMessage, Message>,
 ) =>
-  Animation.OutMessage.match(outMessage, {
+  Animation.AnimationBlock.OutMessage.match(outMessage, {
     // Animation handles enter completion internally but hands leave
     // settlement detection to you here, because the strategy varies
     // by consumer. For example, Foldkit's Dialog just waits for CSS,
@@ -51,7 +49,7 @@ const foldAnimationOutMessage = (
     // off-screen. defaultLeaveCommand is the default strategy: it
     // waits for every CSS transition and keyframe animation on the
     // element to settle, then dispatches EndedAnimation back into
-    // Animation.update. Use it unless you need a custom strategy.
+    // Animation.AnimationBlock.update. Use it unless you need a custom strategy.
     StartedLeaveAnimating: () =>
       AnimationExampleDefinition.step(model => ({
         model,
@@ -64,22 +62,23 @@ const foldAnimationOutMessage = (
     // release a resource. No Commands here because animateSize keeps the
     // element mounted (collapsed to zero height) so there's nothing to
     // tear down.
-    TransitionedOut: () =>
-      AnimationExampleDefinition.step(model => ({ model })),
+    TransitionedOut: () => AnimationExampleDefinition.stepNoop(),
   })
 
-// The Binding wires the completed child Block into the parent: it runs Animation.update,
-// writes the next Animation Model back, maps the Block's Commands into your
-// Message type, and hands any OutMessage to the OutMessage fold.
-const AnimationBinding = AnimationExampleDefinition.bindChild(Animation.block, {
-  field: 'animation',
-  parentMessage: Message.GotAnimationMessage,
-  init: { startupToArgs: () => Tuple.make({ id: 'content' }) },
-  outMessage: { fold: foldAnimationOutMessage },
-})
+// The Binding wires the completed child Block into the parent: it runs Animation.AnimationBlock.update,
+// writes the next Animation Model back, delivers Command results through the
+// generated boundary, and hands any OutMessage to the OutMessage fold.
+const AnimationBinding = AnimationExampleDefinition.bindChild(
+  Animation.AnimationBlock,
+  {
+    field: 'animation',
+    init: { contextToArgs: () => Tuple.make({ id: 'content' }) },
+    outMessage: { fold: foldAnimationOutMessage },
+  },
+)
 
 const AnimationExampleComposition = AnimationExampleDefinition.makeComposition({
-  childBindings: [AnimationBinding],
+  bindings: [AnimationBinding],
 })
 
 // In your init function, specify the fields the parent owns. The Composition

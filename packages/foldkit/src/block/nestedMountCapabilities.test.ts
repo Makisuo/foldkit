@@ -2,11 +2,11 @@ import { Effect, Schema } from 'effect'
 import { expect, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 
 const LeafModel = Schema.Struct({ count: Schema.Number })
 const LeafMessage = defineMessageUnion({ CompletedObserveLeaf: {} })
-const MountCapabilityLeaf = define('MountCapabilityLeaf', {
+const MountCapabilityLeaf = makeDefinition('MountCapabilityLeaf', {
   Model: LeafModel,
   Message: LeafMessage,
 })
@@ -22,7 +22,7 @@ const leafRegistered = MountCapabilityLeaf.makeComposition({
 const leafView = leafRegistered.makeView((model, h) =>
   h.div([h.OnMount(ObserveLeaf())], [globalThis.String(model.count)]),
 )
-const leafBlock = leafRegistered.makeBlock({
+const leafBlock = leafRegistered.assembleBlock({
   init: () => ({ model: LeafModel.make({ count: 0 }) }),
   update: leafRegistered.makeUpdate(model => ({ model })),
   view: leafView,
@@ -30,22 +30,18 @@ const leafBlock = leafRegistered.makeBlock({
 })
 
 const MiddleModel = Schema.Struct({ leaf: LeafModel })
-const MiddleMessage = defineMessageUnion({
-  GotLeafMessage: { message: LeafMessage },
-})
-const MountCapabilityMiddle = define('MountCapabilityMiddle', {
+const MountCapabilityMiddle = makeDefinition('MountCapabilityMiddle', {
   Model: MiddleModel,
-  Message: MiddleMessage,
+  Message: Schema.Never,
 })
 const LeafBinding = MountCapabilityMiddle.bindChild(leafBlock, {
   field: 'leaf',
-  parentMessage: MiddleMessage.GotLeafMessage,
   init: false,
 })
 const middleRegistered = MountCapabilityMiddle.makeComposition({
-  childBindings: [LeafBinding],
+  bindings: [LeafBinding],
 })
-const middleGraphless = define('MountCapabilityMiddleGraphless', {
+const middleGraphless = makeDefinition('MountCapabilityMiddleGraphless', {
   Model: MiddleModel,
   Message: Schema.Never,
 }).makeComposition()
@@ -57,7 +53,7 @@ const middleView = middleRegistered.makeView((model, h) =>
     }),
   ),
 )
-const middleBlock = middleRegistered.makeBlock({
+const middleBlock = middleRegistered.assembleBlock({
   init: middleRegistered.makeInit(() =>
     LeafBinding.init({
       args: [],
@@ -69,22 +65,18 @@ const middleBlock = middleRegistered.makeBlock({
 })
 
 const RootModel = Schema.Struct({ middle: MiddleModel })
-const RootMessage = defineMessageUnion({
-  GotMiddleMessage: { message: MiddleMessage },
-})
-const MountCapabilityRoot = define('MountCapabilityRoot', {
+const MountCapabilityRoot = makeDefinition('MountCapabilityRoot', {
   Model: RootModel,
-  Message: RootMessage,
+  Message: Schema.Never,
 })
 const MiddleBinding = MountCapabilityRoot.bindChild(middleBlock, {
   field: 'middle',
-  parentMessage: RootMessage.GotMiddleMessage,
   init: false,
 })
 const rootRegistered = MountCapabilityRoot.makeComposition({
-  childBindings: [MiddleBinding],
+  bindings: [MiddleBinding],
 })
-const rootGraphless = define('MountCapabilityRootGraphless', {
+const rootGraphless = makeDefinition('MountCapabilityRootGraphless', {
   Model: RootModel,
   Message: Schema.Never,
 }).makeComposition()
@@ -96,7 +88,7 @@ const rootView = rootRegistered.makeView((model, h) =>
     }),
   ),
 )
-const rootBlock = rootRegistered.makeBlock({
+const rootBlock = rootRegistered.assembleBlock({
   init: rootRegistered.makeInit(() =>
     MiddleBinding.init({
       args: [],
@@ -108,7 +100,7 @@ const rootBlock = rootRegistered.makeBlock({
 })
 
 const SiblingMessage = defineMessageUnion({ CompletedObserveSibling: {} })
-const MountCapabilitySibling = define('MountCapabilitySibling', {
+const MountCapabilitySibling = makeDefinition('MountCapabilitySibling', {
   Model: MiddleModel,
   Message: SiblingMessage,
 })

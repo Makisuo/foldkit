@@ -22,7 +22,7 @@ const Message = defineMessageUnion({
 })
 const ForeignMessage = defineMessageUnion({ ForeignCompleted: {} })
 const OutMessage = defineMessageUnion({ Saved: { value: Schema.String } })
-const Search = Block.define('Search', { Model, Message, OutMessage })
+const Search = Block.makeDefinition('Search', { Model, Message, OutMessage })
 const Save = Search.command('Save', {
   args: { value: Schema.String },
   messages: [Message.CompletedSave],
@@ -81,7 +81,7 @@ const update = search.makeUpdate((model, message) =>
     }),
   }),
 )
-const block = search.makeBlock({
+const block = search.assembleBlock({
   init: () => ({ model: Model.make({ value: '' }) }),
   update,
   operations: { clear: () => Tuple.make(Message.RequestedClear()) },
@@ -102,18 +102,23 @@ expectTypeOf<
 expectTypeOf(clear(Model.make({ value: 'before' })).model).toEqualTypeOf<
   typeof Model.Type
 >()
-const Early = Block.define('Early')
-const Shared = Early.command('Shared', {
+const EarlyNamespace = Block.makeNamespace('Early')
+const Shared = EarlyNamespace.command('Shared', {
   messages: [Message.CompletedSave],
   handler: function* () {
     return () => Effect.succeed(Message.CompletedSave())
   },
 })
-const FirstDefinition = Early.define({ Model, Message })
-const SecondDefinition = Early.define({ Model, Message })
-const firstComposition = FirstDefinition.makeComposition()
-const secondComposition = SecondDefinition.makeComposition()
-const firstBlock = firstComposition.makeBlock({
+
+const firstComposition = EarlyNamespace.makeDefinition({
+  Model,
+  Message,
+}).makeComposition()
+const secondComposition = EarlyNamespace.makeDefinition({
+  Model,
+  Message,
+}).makeComposition()
+const firstBlock = firstComposition.assembleBlock({
   init: () => ({ model: Model.make({ value: '' }) }),
   update: firstComposition.makeUpdate(model => ({
     model,
@@ -121,7 +126,7 @@ const firstBlock = firstComposition.makeBlock({
   })),
   EffectsLayer: Shared.layer,
 })
-const secondBlock = secondComposition.makeBlock({
+const secondBlock = secondComposition.assembleBlock({
   init: () => ({ model: Model.make({ value: '' }) }),
   update: secondComposition.makeUpdate(model => ({
     model,
@@ -129,6 +134,54 @@ const secondBlock = secondComposition.makeBlock({
   })),
   EffectsLayer: Shared.layer,
 })
+it('requires Model and Message Schemas for a typed Definition', () => {
+  expect(() =>
+    Reflect.apply(Block.makeDefinition, undefined, ['MissingContracts']),
+  ).toThrow('Block.makeDefinition requires Model and Message Schemas')
+})
+
+it('accepts an erased Composition graph with the documented fields and symbol metadata', () => {
+  const metadata = Symbol('metadata')
+  const composition = Reflect.apply(Search.makeComposition, undefined, [
+    { mounts: [], bindings: [], [metadata]: true },
+  ])
+
+  expect(composition.mounts).toEqual([])
+  expect(composition.bindings).toEqual([])
+})
+
+it('rejects malformed erased Composition graph configuration', () => {
+  expect(() =>
+    Reflect.apply(Search.makeComposition, undefined, [null]),
+  ).toThrow('Definition.makeComposition configuration must be an object')
+  expect(() => Reflect.apply(Search.makeComposition, undefined, [[]])).toThrow(
+    'Definition.makeComposition configuration must be an object',
+  )
+  expect(() =>
+    Reflect.apply(Search.makeComposition, undefined, [{ bindings: {} }]),
+  ).toThrow('configuration field "bindings" must be an array when present')
+  expect(() =>
+    Reflect.apply(Search.makeComposition, undefined, [{ mounts: {} }]),
+  ).toThrow('configuration field "mounts" must be an array when present')
+})
+
+it('rejects unexpected erased Composition graph fields', () => {
+  expect(() =>
+    Reflect.apply(Search.makeComposition, undefined, [
+      { bindigns: [], Model: Schema.String },
+    ]),
+  ).toThrow(
+    'Definition.makeComposition does not support the configuration field "bindigns"',
+  )
+  expect(() =>
+    Reflect.apply(Search.makeComposition, undefined, [
+      { Model: Schema.String },
+    ]),
+  ).toThrow(
+    'Definition.makeComposition does not support the configuration field "Model"',
+  )
+})
+
 it('shares one owner across specialized contracts', () => {
   expect(firstBlock.owner).toBe(secondBlock.owner)
 })
@@ -185,34 +238,37 @@ if (false) {
   // @ts-expect-error Primitive authoring remains on the Definition.
   search.command
 
-  const DeferredCommand = Early.command('DeferredCommand', {
+  const DeferredCommand = EarlyNamespace.command('DeferredCommand', {
     messages: [ForeignMessage.ForeignCompleted],
   })
-  const DeferredMount = Early.mount('DeferredMount', {
+  const DeferredMount = EarlyNamespace.mount('DeferredMount', {
     messages: [ForeignMessage.ForeignCompleted],
   })
-  const DeferredMountStream = Early.mountStream('DeferredMountStream', {
-    messages: [ForeignMessage.ForeignCompleted],
-  })
+  const DeferredMountStream = EarlyNamespace.mountStream(
+    'DeferredMountStream',
+    {
+      messages: [ForeignMessage.ForeignCompleted],
+    },
+  )
   void [DeferredCommand, DeferredMount, DeferredMountStream]
 
   // @ts-expect-error Typed helpers retain the declared Message payload.
   update(Model.make({ value: '' }), Message.RequestedSave({ value: 1 }))
   // @ts-expect-error Missing local handler remains rejected.
-  firstComposition.makeBlock({
+  firstComposition.assembleBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: firstComposition.makeUpdate(model => ({
       model,
       commands: [Shared()],
     })),
   })
-  const Foreign = Block.define('Foreign', { Model, Message })
+  const Foreign = Block.makeDefinition('Foreign', { Model, Message })
   const ForeignShared = Foreign.command('Shared', {
     messages: [Message.CompletedSave],
   })
   const ForeignComposition = Foreign.makeComposition()
   // @ts-expect-error A different owner cannot provide the local handler.
-  ForeignComposition.makeBlock({
+  ForeignComposition.assembleBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: ForeignComposition.makeUpdate(model => ({
       model,

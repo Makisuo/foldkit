@@ -6,7 +6,7 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-export const block = RoomComposition.makeBlock({
+export const RoomBlock = RoomComposition.assembleBlock({
   init,
   update,
   view,

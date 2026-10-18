@@ -1,11 +1,6 @@
 export {
-  init,
-  update,
-  view,
-  block,
-  Model,
-  Message,
-  OutMessage,
+  FileDropBlock,
+  type InitConfig,
+  type FileDropAttributes,
+  type ViewInputs,
 } from './index.js'
-
-export type { InitConfig, ViewInputs, FileDropAttributes } from './index.js'

@@ -3,6 +3,8 @@ import { Block, Update } from 'foldkit'
 import {
   GeneralKeyedBinding,
   ParentBlock,
+  ParentComposition,
+  ParentMessage,
   ParentModel,
   initializeGeneral,
 } from './message-free-keyed.accepted.js'
@@ -39,6 +41,19 @@ export type ExactRegistration = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<typeof operation>>,
     Block.RequirementOfBinding<typeof GeneralKeyedBinding>
+  >
+>
+export type SilentDispatchStaysLocal = Expect<
+  Equal<typeof ParentComposition.Message.Type, typeof ParentMessage.Type>
+>
+export type SilentRegistrationHasNoGeneratedSchema = Expect<
+  Equal<
+    ReturnType<
+      Block.RequirementOfBinding<
+        typeof GeneralKeyedBinding
+      >['__blockBindingRequirement']['generatedSchema']
+    >,
+    never
   >
 >
 void ParentModel

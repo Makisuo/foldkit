@@ -1,12 +1,8 @@
-import { modifyFields } from 'foldkit/struct'
-
 import { SearchDefinition } from './definition'
-import { SearchState } from './model'
+import { SearchState } from './domain'
 
-export const clearSearchQuery = SearchDefinition.step(model => ({
-  model: modifyFields(model, {
-    query: () => '',
-    searchState: () => SearchState.Idle(),
-    activeResultIndex: () => -1,
-  }),
+export const clearSearchQuery = SearchDefinition.stepFields(() => ({
+  query: () => '',
+  searchState: () => SearchState.Idle(),
+  activeResultIndex: () => -1,
 }))

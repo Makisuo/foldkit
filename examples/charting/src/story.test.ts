@@ -3,9 +3,12 @@ import { modifyFields } from 'foldkit/struct'
 import { expect, test } from 'vitest'
 
 import { RadioGroup } from '@foldkit/ui'
-import { FocusOption } from '@foldkit/ui/radioGroup'
 
 import { FetchTelemetry, SyncChart } from './command'
+import {
+  ChartModeRadioGroupBinding,
+  PackageRadioGroupBinding,
+} from './composition'
 import {
   type ChartMode,
   type PackageId,
@@ -15,27 +18,43 @@ import {
 import { Message } from './message'
 import { TelemetryAsyncData } from './model'
 import { loadingModel, readyModel, sampleTelemetry } from './model.fixture'
+import { ChartModeRadioGroupBlock, PackageRadioGroupBlock } from './radioGroups'
 import { update } from './update'
 
+const emptyChartModeRadioGroupView = ChartModeRadioGroupBlock.makeView(
+  (_model, h) => h.empty,
+)
+const emptyPackageRadioGroupView = PackageRadioGroupBlock.makeView(
+  (_model, h) => h.empty,
+)
+
 const selectedChartMode = (chartMode: ChartMode) =>
-  Message.GotChartModeRadioGroupMessage({
-    message: RadioGroup.Message.SelectedOption({
+  ChartModeRadioGroupBinding.embedView({
+    slotId: 'chartModeRadioGroup',
+    model: readyModel.chartModeRadioGroup,
+    view: emptyChartModeRadioGroupView,
+  }).toParentMessage(
+    ChartModeRadioGroupBlock.Message.SelectedOption({
       index: chartModes.indexOf(chartMode),
       value: chartMode,
     }),
-  })
+  )
 
 const selectedPackage = (packageId: PackageId) =>
-  Message.GotPackageRadioGroupMessage({
-    message: RadioGroup.Message.SelectedOption({
+  PackageRadioGroupBinding.embedView({
+    slotId: 'packageRadioGroup',
+    model: readyModel.packageRadioGroup,
+    view: emptyPackageRadioGroupView,
+  }).toParentMessage(
+    PackageRadioGroupBlock.Message.SelectedOption({
       index: packageIds.indexOf(packageId),
       value: packageId,
     }),
-  })
+  )
 
 const resolveChartModeFocus = Command.resolve(
-  FocusOption,
-  RadioGroup.Message.CompletedFocusOption(),
+  RadioGroup.test.FocusOption,
+  ChartModeRadioGroupBlock.Message.CompletedFocusOption(),
 )
 
 test('mounting the chart syncs current telemetry into ECharts', () => {

@@ -4,7 +4,7 @@
 
 A file drop zone that accepts files via both drag-and-drop and a hidden `<input type="file">`. FileDrop is headless. The component owns drag state and file-arrival events; your `toView` callback owns the visual.
 
-`FileDrop.block` is the completed Block to connect in the parent. Declare its startup arguments on the Binding, register that Binding in the parent Composition, and render with `h.block(Binding.embedView(...))`. The Composition update routes the wrapper Message through the Binding automatically. The update function returns `Update.ReturnWithOutMessage<Model, Message, OutMessage>`. `ReceivedFiles` fires when files arrive with a guaranteed non-empty list. `RejectedNonFiles` fires when a drop or change event produced no files, for example when someone drags non-file data. Match both in the Binding’s `outMessage.fold` policy.
+`FileDropBlock` is the completed Block to connect in the parent. Declare its startup arguments on the Binding, register that Binding in the parent Composition, and render with `h.block(Binding.embedView(...))`. The Composition update routes the generated child envelope through the Binding automatically. The update function returns `Update.ReturnWithOutMessage<Model, Message, OutMessage>`. `ReceivedFiles` fires when files arrive with a guaranteed non-empty list. `RejectedNonFiles` fires when a drop or change event produced no files, for example when someone drags non-file data. Match both in the Binding’s `outMessage.fold` policy.
 
 :::Info{label="See it in an app"}
 Check out how FileDrop is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/fileDrop.ts).

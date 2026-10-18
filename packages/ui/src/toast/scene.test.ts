@@ -5,13 +5,13 @@ import { modifyFields } from 'foldkit/struct'
 
 import { describe, it } from '@effect/vitest'
 
-import * as Animation from '../animation/index.js'
+import * as Animation from '../animation/block.js'
 import {
   type EntryHandlers,
   SwipeState,
   type Variant,
   test as toastTest,
-} from './index.js'
+} from './toast.js'
 import { makeFixture } from './toast.js'
 
 const TestPayload = Schema.Struct({ body: Schema.String })
@@ -32,7 +32,7 @@ const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
   id: 'test-entry-0',
   variant: 'Info',
   animation: modifyFields(
-    Animation.init({ id: 'test-entry-0', isShowing: true }),
+    Animation.init({ id: 'test-entry-0', isShowing: true }).model,
     { transitionGeneration: () => ENTER_TRANSITION_GENERATION },
   ),
   maybeDuration: Option.some(Duration.seconds(4)),
@@ -75,13 +75,13 @@ const POINTER_ID = 0
 const SETTLING_SWIPE_VERSION = 2
 
 const withEntry = (overrides: Partial<Entry> = {}): Model =>
-  modifyFields(toastInit({ id: 'test', swipeToDismiss: {} }), {
+  modifyFields(toastInit({ id: 'test', swipeToDismiss: {} }).model, {
     entries: () => [makeSettledEntry(overrides)],
     nextEntryKey: () => 1,
   })
 
 const withDisabledEntry = (overrides: Partial<Entry> = {}): Model =>
-  modifyFields(toastInit({ id: 'test' }), {
+  modifyFields(toastInit({ id: 'test' }).model, {
     entries: () => [makeSettledEntry(overrides)],
     nextEntryKey: () => 1,
   })
@@ -91,7 +91,7 @@ describe('Toast', () => {
     it('renders the container with role=region and aria-live=polite', () => {
       Scene.scene(
         { update: block.update, view: sceneView() },
-        Scene.given(toastInit({ id: 'test' })),
+        Scene.given(toastInit({ id: 'test' }).model),
         Scene.expect(container).toExist(),
         Scene.expect(container).toHaveAttr('role', 'region'),
         Scene.expect(container).toHaveAttr('aria-live', 'polite'),
@@ -101,7 +101,7 @@ describe('Toast', () => {
     it('renders the container even when empty, for a11y live-region setup', () => {
       Scene.scene(
         { update: block.update, view: sceneView() },
-        Scene.given(toastInit({ id: 'test' })),
+        Scene.given(toastInit({ id: 'test' }).model),
         Scene.expect(container).toExist(),
       )
     })
@@ -135,13 +135,13 @@ describe('Toast', () => {
       const enteringEntry: Entry = modifyFields(makeSettledEntry(), {
         animation: () =>
           modifyFields(
-            Animation.init({ id: 'test-entry-0', isShowing: true }),
+            Animation.init({ id: 'test-entry-0', isShowing: true }).model,
             {
               transitionState: () => 'EnterAnimating',
             },
           ),
       })
-      const model: Model = modifyFields(toastInit({ id: 'test' }), {
+      const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
         entries: () => [enteringEntry],
         nextEntryKey: () => 1,
       })
@@ -157,13 +157,13 @@ describe('Toast', () => {
       const leavingEntry: Entry = modifyFields(makeSettledEntry(), {
         animation: () =>
           modifyFields(
-            Animation.init({ id: 'test-entry-0', isShowing: false }),
+            Animation.init({ id: 'test-entry-0', isShowing: false }).model,
             {
               transitionState: () => 'LeaveAnimating',
             },
           ),
       })
-      const model: Model = modifyFields(toastInit({ id: 'test' }), {
+      const model: Model = modifyFields(toastInit({ id: 'test' }).model, {
         entries: () => [leavingEntry],
         nextEntryKey: () => 1,
       })
@@ -187,7 +187,7 @@ describe('Toast', () => {
     it('uses a custom aria-label when provided', () => {
       Scene.scene(
         { update: block.update, view: sceneView({ ariaLabel: 'Toasts' }) },
-        Scene.given(toastInit({ id: 'test' })),
+        Scene.given(toastInit({ id: 'test' }).model),
         Scene.expect(container).toHaveAttr('aria-label', 'Toasts'),
       )
     })

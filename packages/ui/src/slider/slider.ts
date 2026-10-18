@@ -92,7 +92,11 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-const SliderDefinition = Block.define('Slider', { Model, Message, OutMessage })
+const SliderDefinition = Block.makeDefinition('Slider', {
+  Model,
+  Message,
+  OutMessage,
+})
 
 const SliderComposition = SliderDefinition.makeComposition()
 type SliderViewBuilder = Block.ViewBuilderFor<typeof SliderComposition>
@@ -107,15 +111,19 @@ export type InitConfig = Readonly<{
   step: number
 }>
 
-/** Creates an initial Slider Model from a config. The value lives in the
- *  parent Model; initialize it there and snap it with {@link snapAndClamp}. */
-export const init = (config: InitConfig): Model => ({
+const makeInitialModel = (config: InitConfig): Model => ({
   id: config.id,
   min: config.min,
   max: config.max,
   step: config.step,
   dragState: DragState.Idle(),
 })
+
+/** Creates an initial Slider Model and Commands from a config. The value lives in the
+ *  parent Model; initialize it there and snap it with {@link snapAndClamp}. */
+export const init = SliderComposition.makeInit((config: InitConfig) => ({
+  model: makeInitialModel(config),
+}))
 
 // HELPERS
 
@@ -832,10 +840,8 @@ const operations = {
 }
 
 /** Completed Slider Block. */
-export const block = SliderComposition.makeBlock({
-  init: SliderComposition.makeInit((config: InitConfig) => ({
-    model: init(config),
-  })),
+export const SliderBlock = SliderComposition.assembleBlock({
+  init,
   update,
   view,
   operations,
@@ -848,12 +854,15 @@ export const block = SliderComposition.makeBlock({
  * a custom document or Shadow DOM root.
  */
 export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
-  const SliderDefinition = Block.define('Slider', {
+  const SliderDefinition = Block.makeDefinition('Slider', {
     Model,
     Message,
     OutMessage,
   })
   const SliderComposition = SliderDefinition.makeComposition()
+  const init = SliderComposition.makeInit((config: InitConfig) => ({
+    model: makeInitialModel(config),
+  }))
   const rootUpdate = SliderComposition.makeUpdate(update)
   const rootView = SliderComposition.makeView.withInputs<ViewInputs>(renderView)
   const subscriptions = defineSubscriptionsForRoot(
@@ -865,10 +874,8 @@ export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
     informRangeChanged: Message.InformedOfRangeChange,
   }
 
-  return SliderComposition.makeBlock({
-    init: SliderComposition.makeInit((config: InitConfig) => ({
-      model: init(config),
-    })),
+  return SliderComposition.assembleBlock({
+    init,
     update: rootUpdate,
     view: rootView,
     operations,

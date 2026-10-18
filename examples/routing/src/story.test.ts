@@ -4,9 +4,12 @@ import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { NavigateInternal } from './command'
+import { PeoplePageBinding } from './composition'
 import { Message } from './message'
 import { Model } from './model'
-import { FetchPeople, People, SearchResults, searchPeople } from './page'
+import { PeopleBlock } from './page'
+import { FetchPeople } from './page/people/command'
+import { SearchResults, searchPeople } from './page/people/model'
 import {
   ApplicationRoute,
   filesIndexRouter,
@@ -17,7 +20,7 @@ import {
 import { update } from './update'
 
 const peoplePageWith = (searchInput: string) =>
-  People.Model.make({
+  PeopleBlock.Model.make({
     searchInput,
     searchHistory: Array.liftPredicate(String.isNonEmpty)(searchInput),
     results: SearchResults.Loaded({
@@ -27,6 +30,12 @@ const peoplePageWith = (searchInput: string) =>
   })
 
 const initialPeoplePage = peoplePageWith('')
+
+const peopleMessage = (message: typeof PeopleBlock.Message.Type) =>
+  PeoplePageBinding.embedView({
+    slotId: 'peoplePage',
+    model: initialPeoplePage,
+  }).toParentMessage(message)
 
 const home = Model.make({
   route: ApplicationRoute.Home(),
@@ -50,7 +59,7 @@ const urlOrThrow = (raw: string) =>
 const resolveFetch = (searchText: string) =>
   Command.resolve(
     FetchPeople,
-    People.Message.CompletedFetchPeople({
+    PeopleBlock.Message.CompletedFetchPeople({
       query: searchText,
       people: searchPeople(searchText),
     }),
@@ -252,15 +261,13 @@ describe('update', () => {
     })
   })
 
-  describe('GotPeopleMessage', () => {
-    test('GotPeopleMessage writes through to peoplePage', () => {
+  describe('generated People Message', () => {
+    test('writes through to peoplePage', () => {
       story(
         update,
         given(onPeople('')),
         message(
-          Message.GotPeopleMessage({
-            message: People.Message.ChangedSearchInput({ value: 'd' }),
-          }),
+          peopleMessage(PeopleBlock.Message.ChangedSearchInput({ value: 'd' })),
         ),
         model(model => {
           expect(model.peoplePage.searchInput).toBe('d')

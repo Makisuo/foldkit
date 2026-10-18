@@ -2,11 +2,11 @@ import { Schema } from 'effect'
 import type * as Update from 'foldkit/update'
 import { expect, expectTypeOf, it } from 'vitest'
 
-import * as MultiListbox from './listbox/multiPublic.js'
-import * as Listbox from './listbox/public.js'
-import * as Menu from './menu/public.js'
-import * as RadioGroup from './radioGroup/public.js'
-import * as Tabs from './tabs/public.js'
+import * as MultiListbox from './listbox/multi.js'
+import * as Listbox from './listbox/single.js'
+import * as Menu from './menu/menu.js'
+import * as RadioGroup from './radioGroup/radioGroup.js'
+import * as Tabs from './tabs/tabs.js'
 
 const Fruit = Schema.Literals(['Apple', 'Pear'])
 type Fruit = typeof Fruit.Type
@@ -20,24 +20,13 @@ const FruitTabs = Tabs.create<Fruit>()
 it('preserves refined OutMessage constructors and matchers on completed factories', () => {
   expectTypeOf<typeof FruitListbox.Model.Type>().toEqualTypeOf<Listbox.Model>()
   expectTypeOf<
-    typeof FruitListbox.Message.Type
-  >().toEqualTypeOf<Listbox.Message>()
-  expectTypeOf<
     typeof FruitMultiListbox.Model.Type
   >().toEqualTypeOf<MultiListbox.Model>()
-  expectTypeOf<
-    typeof FruitMultiListbox.Message.Type
-  >().toEqualTypeOf<Listbox.Message>()
   expectTypeOf<typeof FruitMenu.Model.Type>().toEqualTypeOf<Menu.Model>()
-  expectTypeOf<typeof FruitMenu.Message.Type>().toEqualTypeOf<Menu.Message>()
   expectTypeOf<
     typeof FruitRadioGroup.Model.Type
   >().toEqualTypeOf<RadioGroup.Model>()
-  expectTypeOf<
-    typeof FruitRadioGroup.Message.Type
-  >().toEqualTypeOf<RadioGroup.Message>()
   expectTypeOf<typeof FruitTabs.Model.Type>().toEqualTypeOf<Tabs.Model>()
-  expectTypeOf<typeof FruitTabs.Message.Type>().toEqualTypeOf<Tabs.Message>()
 
   expectTypeOf(FruitListbox.operations.requestSelectItem)
     .parameter(1)

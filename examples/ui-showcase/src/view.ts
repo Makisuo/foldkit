@@ -40,7 +40,7 @@ import {
   tooltipRouter,
   virtualListRouter,
 } from './route'
-import * as Ui from './ui'
+import * as UiView from './ui/view'
 
 type NavItem = Readonly<{
   label: string
@@ -193,7 +193,7 @@ const sidebarView = (
 const mobileMenuContent =
   (
     currentRoute: ApplicationRoute,
-  ): Ui.View.MobileMenuViewInputs['renderContent'] =>
+  ): UiView.MobileMenuViewInputs['renderContent'] =>
   (closeButton, h) => {
     const mobileNavView = ({ nav, items }: Nav.RenderInfo): Html =>
       h.nav(
@@ -296,7 +296,7 @@ const mobileMenuView = (model: Model, h: ApplicationViewBuilder) =>
     UiBinding.embedView({
       slotId: 'mobile-menu',
       model: model.uiModel,
-      view: Ui.View.mobileMenu,
+      view: UiView.mobileMenu,
       viewInputs: { renderContent: mobileMenuContent(model.route) },
     }),
   )
@@ -344,7 +344,7 @@ const notFoundView = (path: string, h: ApplicationViewBuilder) =>
   )
 
 const contentView = (model: Model, h: ApplicationViewBuilder) => {
-  const embedUi = (id: string, view: typeof Ui.View.button): Html =>
+  const embedUi = (id: string, view: typeof UiView.button): Html =>
     h.block(
       UiBinding.embedView({
         slotId: id,
@@ -355,33 +355,33 @@ const contentView = (model: Model, h: ApplicationViewBuilder) => {
 
   return ApplicationRoute.match(model.route, {
     Home: () => homeView(h),
-    Button: () => embedUi('ui-button', Ui.View.button),
-    Calendar: () => embedUi('ui-calendar', Ui.View.calendar),
-    Checkbox: () => embedUi('ui-checkbox', Ui.View.checkbox),
-    Combobox: () => embedUi('ui-combobox', Ui.View.combobox),
-    DatePicker: () => embedUi('ui-date-picker', Ui.View.datePicker),
-    Dialog: () => embedUi('ui-dialog', Ui.View.dialog),
-    Disclosure: () => embedUi('ui-disclosure', Ui.View.disclosure),
-    DragAndDrop: () => embedUi('ui-drag-and-drop', Ui.View.dragAndDrop),
-    Fieldset: () => embedUi('ui-fieldset', Ui.View.fieldset),
-    FileDrop: () => embedUi('ui-file-drop', Ui.View.fileDrop),
-    HoverIntent: () => embedUi('ui-hover-intent', Ui.View.hoverIntent),
-    Input: () => embedUi('ui-input', Ui.View.input),
-    Listbox: () => embedUi('ui-listbox', Ui.View.listbox),
-    Menu: () => embedUi('ui-menu', Ui.View.menu),
-    Meter: () => embedUi('ui-meter', Ui.View.meter),
-    Popover: () => embedUi('ui-popover', Ui.View.popover),
-    Progress: () => embedUi('ui-progress', Ui.View.progress),
-    RadioGroup: () => embedUi('ui-radio-group', Ui.View.radioGroup),
-    Select: () => embedUi('ui-select', Ui.View.select),
-    Slider: () => embedUi('ui-slider', Ui.View.slider),
-    Switch: () => embedUi('ui-switch', Ui.View.switch_),
-    Tabs: () => embedUi('ui-tabs', Ui.View.tabs),
-    Textarea: () => embedUi('ui-textarea', Ui.View.textarea),
-    Toast: () => embedUi('ui-toast', Ui.View.toast),
-    Tooltip: () => embedUi('ui-tooltip', Ui.View.tooltip),
-    Animation: () => embedUi('ui-animation', Ui.View.animation),
-    VirtualList: () => embedUi('ui-virtual-list', Ui.View.virtualList),
+    Button: () => embedUi('ui-button', UiView.button),
+    Calendar: () => embedUi('ui-calendar', UiView.calendar),
+    Checkbox: () => embedUi('ui-checkbox', UiView.checkbox),
+    Combobox: () => embedUi('ui-combobox', UiView.combobox),
+    DatePicker: () => embedUi('ui-date-picker', UiView.datePicker),
+    Dialog: () => embedUi('ui-dialog', UiView.dialog),
+    Disclosure: () => embedUi('ui-disclosure', UiView.disclosure),
+    DragAndDrop: () => embedUi('ui-drag-and-drop', UiView.dragAndDrop),
+    Fieldset: () => embedUi('ui-fieldset', UiView.fieldset),
+    FileDrop: () => embedUi('ui-file-drop', UiView.fileDrop),
+    HoverIntent: () => embedUi('ui-hover-intent', UiView.hoverIntent),
+    Input: () => embedUi('ui-input', UiView.input),
+    Listbox: () => embedUi('ui-listbox', UiView.listbox),
+    Menu: () => embedUi('ui-menu', UiView.menu),
+    Meter: () => embedUi('ui-meter', UiView.meter),
+    Popover: () => embedUi('ui-popover', UiView.popover),
+    Progress: () => embedUi('ui-progress', UiView.progress),
+    RadioGroup: () => embedUi('ui-radio-group', UiView.radioGroup),
+    Select: () => embedUi('ui-select', UiView.select),
+    Slider: () => embedUi('ui-slider', UiView.slider),
+    Switch: () => embedUi('ui-switch', UiView.switch_),
+    Tabs: () => embedUi('ui-tabs', UiView.tabs),
+    Textarea: () => embedUi('ui-textarea', UiView.textarea),
+    Toast: () => embedUi('ui-toast', UiView.toast),
+    Tooltip: () => embedUi('ui-tooltip', UiView.tooltip),
+    Animation: () => embedUi('ui-animation', UiView.animation),
+    VirtualList: () => embedUi('ui-virtual-list', UiView.virtualList),
     NotFound: ({ path }) => notFoundView(path, h),
   })
 }

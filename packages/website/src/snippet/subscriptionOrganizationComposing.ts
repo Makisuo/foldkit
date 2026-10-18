@@ -5,23 +5,25 @@ import { Message } from './message'
 import { Model } from './model'
 import * as ThemeMenu from './themeMenu'
 
-const foldThemeMenuOutMessage = ThemeMenu.OutMessage.match<
+const foldThemeMenuOutMessage = ThemeMenu.ThemeMenuBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
-  Selected: () => model => ({ model }),
+  Selected: () => SettingsDefinition.stepNoop(),
 })
 
-export const SettingsDefinition = Block.define('Settings', {
+export const SettingsDefinition = Block.makeDefinition('Settings', {
   Model,
   Message,
 })
 
-const ThemeMenuBinding = SettingsDefinition.bindChild(ThemeMenu.block, {
-  field: 'themeMenu',
-  parentMessage: Message.GotThemeMenuMessage,
-  outMessage: { fold: foldThemeMenuOutMessage },
-})
+const ThemeMenuBinding = SettingsDefinition.bindChild(
+  ThemeMenu.ThemeMenuBlock,
+  {
+    field: 'themeMenu',
+    outMessage: { fold: foldThemeMenuOutMessage },
+  },
+)
 
 export const SettingsComposition = SettingsDefinition.makeComposition({
-  childBindings: [ThemeMenuBinding],
+  bindings: [ThemeMenuBinding],
 })

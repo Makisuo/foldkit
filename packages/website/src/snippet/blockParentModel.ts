@@ -4,6 +4,6 @@ import { Settings } from './page'
 
 export const Model = Schema.Struct({
   username: Schema.String,
-  settings: Settings.Model,
+  settings: Settings.SettingsBlock.Model,
 })
 export type Model = typeof Model.Type

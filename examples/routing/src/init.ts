@@ -13,7 +13,7 @@ export const init = ApplicationComposition.makeInit((url: Url) => {
   )
 
   return {
-    startup: initialPeopleRoute,
+    childInitContext: initialPeopleRoute,
     model: { route },
   }
 })

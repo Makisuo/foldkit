@@ -6,8 +6,6 @@ import {
   inertHtml as ih,
 } from 'foldkit/html'
 
-import { Menu } from '@foldkit/ui'
-
 import { type ResolvedTheme } from '../../colorScheme'
 import { type CodeBlock, Shared } from '../../component'
 import { Icon } from '../../icon'
@@ -16,8 +14,8 @@ import {
   type ExampleSlug,
   examples,
   findBySlug,
-} from '../example'
-import * as AsyncCounterDemo from './asyncCounterDemo'
+} from '../example/domain'
+import { AsyncCounterDemoBlock } from './asyncCounterDemo'
 import {
   AsyncCounterDemoBinding,
   DemoTabsBinding,
@@ -29,7 +27,8 @@ import {
 import { contentView } from './content'
 import * as DemoTab from './demoTab'
 import { Message } from './message'
-import * as NotePlayerDemo from './notePlayerDemo'
+import { NotePlayerDemoBlock } from './notePlayerDemo'
+import { PlaygroundMenuBlock } from './playgroundMenu'
 
 // DEMO TABS
 
@@ -40,7 +39,7 @@ const demoTabPanelClassName =
   'flex-1 min-w-0 p-4 bg-cream dark:bg-gray-900 rounded-b-lg rounded-tr-lg lg:rounded-bl-lg lg:rounded-r-lg lg:rounded-tl-none border border-gray-300 dark:border-gray-800'
 
 const renderAsyncCounterDemo = (
-  model: AsyncCounterDemo.Model,
+  model: typeof AsyncCounterDemoBlock.Model.Type,
   h: HomeViewBuilder,
 ) =>
   h.block(
@@ -51,7 +50,7 @@ const renderAsyncCounterDemo = (
   )
 
 const renderNotePlayerDemo = (
-  model: NotePlayerDemo.Model,
+  model: typeof NotePlayerDemoBlock.Model.Type,
   h: HomeViewBuilder,
 ) =>
   h.block(
@@ -115,7 +114,7 @@ const playgroundItemContent = (meta: ExampleMeta): Html =>
   )
 
 type PlaygroundMenuViewInput = Readonly<{
-  model: typeof Menu.Model.Type
+  model: typeof PlaygroundMenuBlock.Model.Type
   slugs: ReadonlyArray<ExampleSlug>
 }>
 

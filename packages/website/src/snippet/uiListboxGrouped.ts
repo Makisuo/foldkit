@@ -31,10 +31,8 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// Wrap Listbox's Messages so they can flow through your update:
-const Message = defineMessageUnion({
-  GotListboxMessage: { message: CharacterListbox.Message },
-})
+// This excerpt has no parent-owned facts. The Composition derives delivery.
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 // At module scope, fold the OutMessage into your own Model. On selection, the
@@ -53,9 +51,9 @@ const foldListboxOutMessage = CharacterListbox.OutMessage.match<
 
 // The Binding wires the completed child Block into the parent: it delegates keyboard
 // navigation, typeahead, and open/close to CharacterListbox.update, writes the
-// next Listbox Model back, maps the Block's Commands into your Message
-// type, and hands any OutMessage to the OutMessage fold.
-const CharacterPickerDefinition = Block.define('CharacterPicker', {
+// next Listbox Model back, routes generated delivery and Command results, and
+// hands any OutMessage to the OutMessage fold.
+const CharacterPickerDefinition = Block.makeDefinition('CharacterPicker', {
   Model,
   Message,
 })
@@ -64,14 +62,13 @@ const CharacterListboxBinding = CharacterPickerDefinition.bindChild(
   CharacterListbox,
   {
     field: 'listbox',
-    parentMessage: Message.GotListboxMessage,
-    init: { startupToArgs: () => Tuple.make({ id: 'character' }) },
+    init: { contextToArgs: () => Tuple.make({ id: 'character' }) },
     outMessage: { fold: foldListboxOutMessage },
   },
 )
 
 const CharacterPickerComposition = CharacterPickerDefinition.makeComposition({
-  childBindings: [CharacterListboxBinding],
+  bindings: [CharacterListboxBinding],
 })
 
 // Initialize the fields the parent owns. The Composition initializes the

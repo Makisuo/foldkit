@@ -3,7 +3,7 @@ import { type CalendarDate } from 'foldkit/calendar'
 import { Valid } from 'foldkit/fieldValidation'
 import { type Html, childAttributes } from 'foldkit/html'
 
-import { DatePicker as UiDatePicker } from '@foldkit/ui'
+import { DatePickerBlock as UiDatePickerBlock } from '@foldkit/ui'
 
 import { PronounOption } from '../../domain'
 import { DatePicker, Field, Icon } from '../../view'
@@ -185,7 +185,7 @@ export const view = PersonalInfoComposition.makeView((model, h) => {
 })
 
 const availableDatePickerView = (
-  model: typeof UiDatePicker.Model.Type,
+  model: typeof UiDatePickerBlock.Model.Type,
   maybeSelectedDate: Option.Option<CalendarDate>,
   h: PersonalInfoViewBuilder,
 ): Html =>

@@ -9,12 +9,12 @@ import {
   EntriesBinding,
 } from './composition'
 import { Message } from './definition'
-import * as Entry from './entry'
+import { EducationEntryBlock } from './entry'
 
 const lazyEntry = createKeyedLazy()
 
 const entryView = (
-  entry: typeof Entry.Model.Type,
+  entry: typeof EducationEntryBlock.Model.Type,
   today: CalendarDate,
   h: EducationViewBuilder,
 ): Html =>

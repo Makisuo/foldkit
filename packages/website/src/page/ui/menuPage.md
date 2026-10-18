@@ -10,7 +10,7 @@ Programmatic operations are exposed through the Binding. Call `menu.requestOpen(
 
 What `Menu.create<Item>()` returns is typed [`Completed<Item>` from `@foldkit/ui/menu`](/ui/selection-blocks#completed-type), for the cases where a created Block has to be named rather than called directly.
 
-Use `Menu.block` for plain strings. Connect the completed Block returned by `Menu.create<Item>()` when the item type is narrower.
+Use `Menu.create()` for plain strings. Connect the completed Block returned by `Menu.create<Item>()` when the item type is narrower.
 
 :::Info{label="See it in an app"}
 Check out how Menu is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/menu.ts).

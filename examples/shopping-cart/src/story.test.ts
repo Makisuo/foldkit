@@ -4,10 +4,11 @@ import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
+import { ProductsPageBinding } from './composition'
 import { products } from './data/products'
 import { Message } from './message'
 import type { Model } from './model'
-import { Products } from './page'
+import { ProductsBlock } from './page'
 import { ApplicationRoute } from './route'
 import { update } from './update'
 
@@ -19,8 +20,15 @@ const baseModel: Model = {
   cart: [],
   deliveryInstructions: '',
   orderPlaced: false,
-  productsPage: Products.init(products).model,
+  productsPage: ProductsBlock.init(products).model,
 }
+
+const productsMessage = (message: typeof ProductsBlock.Message.Type) =>
+  ProductsPageBinding.embedView({
+    slotId: 'productsPage',
+    model: baseModel.productsPage,
+    viewInputs: { cart: baseModel.cart },
+  }).toParentMessage(message)
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
@@ -91,9 +99,9 @@ describe('update', () => {
         update,
         given(baseModel),
         message(
-          Message.GotProductsMessage({
-            message: Products.Message.ClickedAddToCart({ item: apple }),
-          }),
+          productsMessage(
+            ProductsBlock.Message.ClickedAddToCart({ item: apple }),
+          ),
         ),
         model(model => {
           expect(model.cart).toHaveLength(1)
@@ -108,14 +116,14 @@ describe('update', () => {
         update,
         given(baseModel),
         message(
-          Message.GotProductsMessage({
-            message: Products.Message.ClickedAddToCart({ item: apple }),
-          }),
+          productsMessage(
+            ProductsBlock.Message.ClickedAddToCart({ item: apple }),
+          ),
         ),
         message(
-          Message.GotProductsMessage({
-            message: Products.Message.ClickedAddToCart({ item: apple }),
-          }),
+          productsMessage(
+            ProductsBlock.Message.ClickedAddToCart({ item: apple }),
+          ),
         ),
         model(model => {
           expect(model.cart).toHaveLength(1)

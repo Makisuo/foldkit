@@ -19,6 +19,8 @@ export const initModel = (): Model => ({
   isSubmitting: false,
 })
 
+export const init = LoginComposition.makeInit(() => ({ model: initModel() }))
+
 const emailRules = makeRules({
   required: 'Email is required',
   rules: [Rule.email('Please enter a valid email')],

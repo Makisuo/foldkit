@@ -7,9 +7,9 @@ import * as Icon from '../../icon'
 import { ToastDemoBinding, UiComposition } from '../composition'
 import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
-import { Toast } from '../toast'
+import { ToastBlock } from '../toast'
 
-type Entry = (typeof Toast.Model.Type)['entries'][number]
+type Entry = (typeof ToastBlock.Model.Type)['entries'][number]
 
 const variantClassName = (variant: Variant): string =>
   Match.value(variant).pipe(

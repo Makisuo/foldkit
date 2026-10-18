@@ -21,12 +21,12 @@ const ChildMessage = Message.defineMessageUnion({
 })
 type ChildMessage = typeof ChildMessage.Type
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const ChildDefinition = Block.define('EmittedRestChild', {
+
+// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
+const ChildComposition = Block.makeDefinition('EmittedRestChild', {
   Model: ChildModel,
   Message: ChildMessage,
-})
-// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const ChildComposition = ChildDefinition.makeComposition()
+}).makeComposition()
 const childUpdate = ChildComposition.makeUpdate((model, message) =>
   ChildMessage.match(message, {
     RequestedDefaultIncrement: ({ amount = 1 }) => ({
@@ -56,7 +56,7 @@ const childUpdate = ChildComposition.makeUpdate((model, message) =>
     RequestedReset: () => ({ model: ChildModel.make({ count: 0 }) }),
   }),
 )
-export const ChildBlock = ChildComposition.makeBlock({
+export const ChildBlock = ChildComposition.assembleBlock({
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
   update: childUpdate,
   operations: {
@@ -94,14 +94,13 @@ const ParentMessage = Message.defineMessageUnion({
   GotChildMessage: { message: ChildMessage },
 })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const ParentDefinition = Block.define('EmittedRestParent', {
+const ParentDefinition = Block.makeDefinition('EmittedRestParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
 export const ChildBinding = ParentDefinition.bindChild(ChildBlock, {
   read: model => Option.some(model.child),
   write: (model, child) => Struct.modifyFields(model, { child: () => child }),
-  parentMessage: ParentMessage.GotChildMessage,
 })
 
 type Equal<Left, Right> =

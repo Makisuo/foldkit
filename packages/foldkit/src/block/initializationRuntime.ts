@@ -14,7 +14,7 @@ type RuntimeReturn = Readonly<{
 type RuntimeStep = (model: any) => RuntimeReturn
 
 type RuntimeInitializationPlan = Readonly<{
-  startup?: unknown
+  childInitContext?: unknown
   model: any
   commands?: ReadonlyArray<any> | undefined
   steps?: ReadonlyArray<RuntimeStep> | undefined
@@ -153,6 +153,19 @@ const assertInitializationPlan: (
       '[foldkit] Composition.makeInit callback cannot return an OutMessage.',
     )
   }
+
+  for (const field of Object.getOwnPropertyNames(value)) {
+    if (
+      field !== 'model' &&
+      field !== 'commands' &&
+      field !== 'steps' &&
+      field !== 'childInitContext'
+    ) {
+      throw new Error(
+        `[foldkit] Composition.makeInit callback returned unknown field "${field}". Return model, commands, steps, and childInitContext only.`,
+      )
+    }
+  }
 }
 
 const assertStepReturn: (
@@ -210,8 +223,8 @@ const assertParentDoesNotOwnInitialField = (
 }
 
 const preflightPlans = (
-  childBindings: ReadonlyArray<RuntimeBindingValue>,
-  startup: unknown,
+  bindings: ReadonlyArray<RuntimeBindingValue>,
+  childInitContext: unknown,
 ): Readonly<{
   plans: ReadonlyArray<PreflightedPlan>
   initializedFields: Map<string, string>
@@ -219,7 +232,7 @@ const preflightPlans = (
   const plans: globalThis.Array<PreflightedPlan> = []
   const initializedFields = new Map<string, string>()
 
-  for (const binding of childBindings) {
+  for (const binding of bindings) {
     const initial = runtimeBindingOf(binding).initial
     if (initial === undefined) {
       continue
@@ -231,7 +244,7 @@ const preflightPlans = (
         kind: 'Direct',
         binding,
         initial,
-        maybeArguments: initial.resolveArguments(startup),
+        maybeArguments: initial.resolveArguments(childInitContext),
       })
       continue
     }
@@ -242,7 +255,7 @@ const preflightPlans = (
         kind: 'WrappedKeyed',
         binding,
         initial,
-        occurrences: initial.resolveOccurrences(startup),
+        occurrences: initial.resolveOccurrences(childInitContext),
       })
       continue
     }
@@ -251,7 +264,7 @@ const preflightPlans = (
       kind: 'Projected',
       binding,
       initial,
-      arguments: initial.resolveArguments(startup),
+      arguments: initial.resolveArguments(childInitContext),
     })
   }
 
@@ -446,20 +459,17 @@ const keepSurvivingOccurrences = (
 
 /** @internal Creates the runtime authoring helper for one exact Composition. */
 export const makeInit =
-  (
-    Model: RuntimeModelSchema,
-    childBindings: ReadonlyArray<RuntimeBindingValue>,
-  ) =>
+  (Model: RuntimeModelSchema, bindings: ReadonlyArray<RuntimeBindingValue>) =>
   (create: (...args: ReadonlyArray<any>) => unknown) =>
   (...args: ReadonlyArray<any>): RuntimeReturn =>
-    withOperationGraph(childBindings, () => {
+    withOperationGraph(bindings, () => {
       const created = create(...args)
       const planValue = isBindingInitRecipe(created)
         ? runBindingInitRecipe(created)
         : created
       assertInitializationPlan(planValue)
 
-      const preflight = preflightPlans(childBindings, planValue.startup)
+      const preflight = preflightPlans(bindings, planValue.childInitContext)
       const initializedFields: Record<string, unknown> = Object.create(null)
       const initializedOccurrences: globalThis.Array<InitializedOccurrence> = []
       const projectedChildren: globalThis.Array<

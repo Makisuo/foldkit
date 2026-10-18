@@ -3,8 +3,8 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import { Counter } from './island'
-import { Message as CounterMessage } from './island/counter'
+import { CounterBinding } from './composition'
+import { CounterBlock } from './island'
 import { Message } from './message'
 import { Model } from './model'
 import { ApplicationRoute } from './route'
@@ -12,8 +12,14 @@ import { update } from './update'
 
 const home = Model.make({
   route: ApplicationRoute.Home(),
-  counter: Counter.init().model,
+  counter: CounterBlock.init().model,
 })
+
+const counterMessage = (message: typeof CounterBlock.Message.Type) =>
+  CounterBinding.embedView({
+    slotId: 'counter',
+    model: home.counter,
+  }).toParentMessage(message)
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
@@ -84,21 +90,13 @@ describe('update', () => {
     })
   })
 
-  describe('GotCounterMessage', () => {
+  describe('generated Counter Message', () => {
     test('increments route through the Counter Block without commands', () => {
       story(
         update,
         given(home),
-        message(
-          Message.GotCounterMessage({
-            message: CounterMessage.ClickedIncrement(),
-          }),
-        ),
-        message(
-          Message.GotCounterMessage({
-            message: CounterMessage.ClickedIncrement(),
-          }),
-        ),
+        message(counterMessage(CounterBlock.Message.ClickedIncrement())),
+        message(counterMessage(CounterBlock.Message.ClickedIncrement())),
         Command.expectNone(),
         model(model => {
           expect(model.counter.count).toBe(2)
@@ -110,11 +108,7 @@ describe('update', () => {
       story(
         update,
         given(home),
-        message(
-          Message.GotCounterMessage({
-            message: CounterMessage.ClickedIncrement(),
-          }),
-        ),
+        message(counterMessage(CounterBlock.Message.ClickedIncrement())),
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/posts') }),
         ),

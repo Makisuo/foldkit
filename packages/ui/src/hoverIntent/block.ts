@@ -24,7 +24,7 @@ export const Model = Schema.Struct({
 })
 export type Model = typeof Model.Type
 
-const HoverIntentDefinition = Block.define('HoverIntent', {
+const HoverIntentDefinition = Block.makeDefinition('HoverIntent', {
   Model,
   Message,
   OutMessage,
@@ -41,24 +41,28 @@ export type InitConfig = Readonly<{
   closeDelay?: Duration.Input
 }>
 
-/** Creates a HoverIntent Model. Pointer entry opens after 200 milliseconds and pointer departure closes after a 300-millisecond grace period by default. Focus entry opens immediately, and focus departure closes without that pointer grace period. */
-export const init = (config: InitConfig = {}): Model => ({
-  isOpen: false,
-  isTriggerHovered: false,
-  isPanelHovered: false,
-  maybeFocusLocation: Option.none(),
-  isDismissed: false,
-  openDelay:
-    config.openDelay === undefined
-      ? DEFAULT_OPEN_DELAY
-      : Duration.fromInputUnsafe(config.openDelay),
-  closeDelay:
-    config.closeDelay === undefined
-      ? DEFAULT_CLOSE_DELAY
-      : Duration.fromInputUnsafe(config.closeDelay),
-  pendingOpenVersion: 0,
-  pendingCloseVersion: 0,
-})
+/** Creates the initial HoverIntent Model and Commands. Pointer entry opens after 200 milliseconds and pointer departure closes after a 300-millisecond grace period by default. Focus entry opens immediately, and focus departure closes without that pointer grace period. */
+export const init = HoverIntentComposition.makeInit(
+  (config: InitConfig = {}) => ({
+    model: {
+      isOpen: false,
+      isTriggerHovered: false,
+      isPanelHovered: false,
+      maybeFocusLocation: Option.none(),
+      isDismissed: false,
+      openDelay:
+        config.openDelay === undefined
+          ? DEFAULT_OPEN_DELAY
+          : Duration.fromInputUnsafe(config.openDelay),
+      closeDelay:
+        config.closeDelay === undefined
+          ? DEFAULT_CLOSE_DELAY
+          : Duration.fromInputUnsafe(config.closeDelay),
+      pendingOpenVersion: 0,
+      pendingCloseVersion: 0,
+    },
+  }),
+)
 
 // COMMAND
 
@@ -357,10 +361,8 @@ export const view = HoverIntentComposition.makeView.withInputs<ViewInputs>(
 )
 
 /** Complete HoverIntent Block definition for connecting to a parent. */
-export const block = HoverIntentComposition.makeBlock({
-  init: HoverIntentComposition.makeInit((config?: InitConfig) => ({
-    model: init(config),
-  })),
+export const HoverIntentBlock = HoverIntentComposition.assembleBlock({
+  init,
   update,
   view,
   operations: {

@@ -10,7 +10,7 @@ import {
 } from './application'
 import './styles.css'
 
-const application = ApplicationComposition.makeApplication({
+const application = ApplicationComposition.assembleApplication({
   init,
   update,
   view,
@@ -20,7 +20,7 @@ const application = ApplicationComposition.makeApplication({
     onUrlRequest: request => Message.ClickedLink({ request }),
     onUrlChange: url => Message.ChangedUrl({ url }),
   },
-  devTools: { Message },
+  devTools: { Message: ApplicationComposition.Message },
 })
 
 Runtime.hydrate(application)

@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import type { Element as ElementProgram } from 'foldkit/application'
 import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
@@ -12,9 +12,9 @@ const WarmupMessage = defineMessageUnion({ CompletedWarmup: {} })
 Effect.void
 Layer.empty
 Option.none()
-defineApplication({ Model: WarmupModel, Message: WarmupMessage })
+makeApplicationDefinition({ Model: WarmupModel, Message: WarmupMessage })
 Context.Service
-Block.define('TypePerformanceWarmup', {
+Block.makeDefinition('TypePerformanceWarmup', {
   Model: WarmupModel,
   Message: WarmupMessage,
 })

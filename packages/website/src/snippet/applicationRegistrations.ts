@@ -1,17 +1,17 @@
 import { ApplicationDefinition } from '../definition'
-import { Message } from '../message'
 import { Home, Products } from '../page'
 
-export const HomeBinding = ApplicationDefinition.bindChild(Home.block, {
+export const HomeBinding = ApplicationDefinition.bindChild(Home.HomeBlock, {
   field: 'home',
-  parentMessage: Message.GotHomeMessage,
 })
 
-export const ProductsBinding = ApplicationDefinition.bindChild(Products.block, {
-  field: 'products',
-  parentMessage: Message.GotProductsMessage,
-})
+export const ProductsBinding = ApplicationDefinition.bindChild(
+  Products.ProductsBlock,
+  {
+    field: 'products',
+  },
+)
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [HomeBinding, ProductsBinding],
+  bindings: [HomeBinding, ProductsBinding],
 })

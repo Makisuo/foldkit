@@ -10,51 +10,51 @@ import type { RenderInfo as TooltipRenderInfo } from '@foldkit/ui/tooltip'
 
 // Add a field to your Model for the Tooltip Block:
 const Model = Schema.Struct({
-  tooltip: Tooltip.Model,
+  tooltip: Tooltip.TooltipBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
 
-// Embed the Tooltip Message in your parent Message:
-const Message = defineMessageUnion({
-  GotTooltipMessage: { message: Tooltip.Message },
-})
+// This excerpt has no parent-owned facts. The Composition derives delivery.
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 // At module scope, fold the OutMessage into your own Model. `Shown` and
 // `Hidden` mark the visibility transitions. Fire analytics or coordinate with
 // the rest of your UI from the parent. Each arm returns an Update.Step over
 // the parent Model, which already has the next Tooltip Model written back:
-const foldTooltipOutMessage = Tooltip.OutMessage.match<
+const foldTooltipOutMessage = Tooltip.TooltipBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   // The child has emitted `Shown`. In this arm the parent can update its
   // own state or dispatch its own Commands, for example log analytics,
   // prefetch content, or trigger a downstream Command.
-  Shown: () => model => ({ model }),
+  Shown: () => TooltipExampleDefinition.stepNoop(),
   // The child has emitted `Hidden`. In this arm the parent can update its
   // own state or dispatch its own Commands, for example clear ephemeral
   // state, fire analytics, or trigger a downstream Command.
-  Hidden: () => model => ({ model }),
+  Hidden: () => TooltipExampleDefinition.stepNoop(),
 })
 
-// The Binding wires the completed child Block into the parent: it runs Tooltip.update,
-// writes the next Tooltip Model back, maps the Block's Commands into your
-// Message type, and hands any OutMessage to the OutMessage fold.
-const TooltipExampleDefinition = Block.define('TooltipExample', {
+// The Binding wires the completed child Block into the parent: it runs Tooltip.TooltipBlock.update,
+// writes the next Tooltip Model back, routes generated delivery and Command
+// results, and hands any OutMessage to the OutMessage fold.
+const TooltipExampleDefinition = Block.makeDefinition('TooltipExample', {
   Model,
   Message,
 })
 
-const TooltipBinding = TooltipExampleDefinition.bindChild(Tooltip.block, {
-  field: 'tooltip',
-  parentMessage: Message.GotTooltipMessage,
-  init: { startupToArgs: () => Tuple.make({ id: 'save-button' }) },
-  outMessage: { fold: foldTooltipOutMessage },
-})
+const TooltipBinding = TooltipExampleDefinition.bindChild(
+  Tooltip.TooltipBlock,
+  {
+    field: 'tooltip',
+    init: { contextToArgs: () => Tuple.make({ id: 'save-button' }) },
+    outMessage: { fold: foldTooltipOutMessage },
+  },
+)
 
 const TooltipExampleComposition = TooltipExampleDefinition.makeComposition({
-  childBindings: [TooltipBinding],
+  bindings: [TooltipBinding],
 })
 
 // In your init function, initialize the Tooltip Block with a unique id:

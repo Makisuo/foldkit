@@ -2,16 +2,21 @@ import { Option, Predicate, Schema, SchemaAST } from 'effect'
 
 import type * as Update from '../update/index.js'
 import { resolveOperationOutput } from '../update/operationRecipe.js'
-import type { AnyBinding, RequirementsOfBindings } from './binding.js'
+import type {
+  AnyBinding,
+  GeneratedMessageOfRequirement,
+  RequirementsOfBindings,
+} from './binding.js'
+import type { GeneratedEnvelopeOf } from './childEnvelope.js'
 import type { ResolveCompositionOutput } from './deferredPolicy.js'
 import type { DefinedUpdate, DefinedUpdateSource } from './definition.js'
 import {
   type AnyBindingInitRecipe,
-  type BindingInitRecipe,
   type BindingInitRecipeReturn,
   isBindingInitRecipe,
   runBindingInitRecipe,
 } from './initRecipe.js'
+import { runtimeMessageSchemaContract } from './messageSchemaContract.js'
 import { withOperationGraph } from './operationGraph.js'
 
 type AnyFunction = (...args: ReadonlyArray<any>) => any
@@ -37,22 +42,27 @@ type AnyUpdateReturn = Readonly<{
 declare const BindingDeliveryTypeId: unique symbol
 
 /** @internal Exact delivery evidence retained by a Binding. */
-export interface BindingDeliveryEvidence<OutgoingMessage, IncomingMessage> {
+export interface BindingDeliveryEvidence<
+  OutgoingMessage,
+  IncomingMessage,
+  GeneratedSchema extends Schema.Top = never,
+> {
   readonly [BindingDeliveryTypeId]: Readonly<{
     outgoingMessage: OutgoingMessage
     incomingMessage: IncomingMessage
+    generatedSchema: GeneratedSchema
   }>
 }
 
 /** @internal Recovers the exact parent Message produced by a Binding mapper. */
 export type OutgoingMessageOfBinding<BindingValue> =
-  BindingValue extends BindingDeliveryEvidence<infer OutgoingMessage, any>
+  BindingValue extends BindingDeliveryEvidence<infer OutgoingMessage, any, any>
     ? OutgoingMessage
     : never
 
 /** @internal Recovers the exact parent Message variant claimed by a Binding. */
 export type IncomingMessageOfBinding<BindingValue> =
-  BindingValue extends BindingDeliveryEvidence<any, infer IncomingMessage>
+  BindingValue extends BindingDeliveryEvidence<any, infer IncomingMessage, any>
     ? IncomingMessage
     : never
 
@@ -261,7 +271,19 @@ type MissingDeliveryTags<Message, Bindings extends ReadonlyArray<unknown>> =
 type CompositionDeliveryErrors<
   Message,
   Bindings extends ReadonlyArray<unknown>,
-> = DeliveryConflicts<Bindings> | MissingDeliveryTags<Message, Bindings>
+> =
+  | DeliveryConflicts<Bindings>
+  | MissingDeliveryTags<Message, Bindings>
+  | (Extract<
+      MessageTag<Message>,
+      MessageTag<GeneratedEnvelopeOf<Bindings[number]>['Type']>
+    > extends infer Conflict
+      ? [Conflict] extends [never]
+        ? never
+        : Readonly<{
+            'Local facts and generated child Messages must have distinct tags': Conflict
+          }>
+      : never)
 
 /** Rejects missing or conflicting child wrapper ownership in a Composition. */
 export type ValidateCompositionDelivery<
@@ -353,9 +375,120 @@ type AuthoredRecipeOutput<Output> = Output extends AnyBindingInitRecipe
   ? BindingInitRecipeReturn<Output>
   : Output
 
-type ValidateAuthoredEvidence<Output> = Update.ValidateConcreteResultEvidence<
-  AuthoredRecipeOutput<Output>
->
+type ValidateAuthoredEvidence<Output> = [
+  Update.ValidateConcreteResultEvidence<AuthoredRecipeOutput<Output>>,
+] extends [never]
+  ? Readonly<{
+      'Composition results must preserve concrete Binding graph evidence': Output
+    }>
+  : unknown
+
+type AuthoredOutputModel<Output> =
+  AuthoredRecipeOutput<Output> extends infer Value
+    ? Update.ResolvedOperationOutput<Value> extends Readonly<{
+        model: infer Model
+      }>
+      ? Model
+      : never
+    : never
+
+type AuthoredOutputMessage<Output> =
+  AuthoredRecipeOutput<Output> extends infer Value
+    ? Update.ResolvedOperationOutput<Value> extends infer Resolved
+      ? Resolved extends unknown
+        ? 'commands' extends keyof Resolved
+          ? Resolved extends Readonly<{ commands?: infer Commands }>
+            ? NonNullable<Commands> extends ReadonlyArray<infer CommandValue>
+              ? CommandValue extends import('../command/index.js').Command<
+                  infer Message,
+                  any,
+                  any
+                >
+                ? Message
+                : never
+              : never
+            : never
+          : never
+        : never
+      : never
+    : never
+
+type AuthoredOutputOutMessage<Output> =
+  AuthoredRecipeOutput<Output> extends infer Value
+    ? Update.ResolvedOperationOutput<Value> extends infer Resolved
+      ? Resolved extends unknown
+        ? 'outMessage' extends keyof Resolved
+          ? Resolved extends Readonly<{ outMessage?: infer OutputOutMessage }>
+            ? Exclude<OutputOutMessage, undefined>
+            : never
+          : never
+        : never
+      : never
+    : never
+
+type ValidateAuthoredRecipeChannels<Model, Message, OutMessage, Output> =
+  Output extends Update.AnyResultRecipe | AnyBindingInitRecipe
+    ? true extends
+        | IsAny<AuthoredOutputModel<Output>>
+        | IsUnknown<AuthoredOutputModel<Output>>
+        | IsAny<AuthoredOutputMessage<Output>>
+        | IsUnknown<AuthoredOutputMessage<Output>>
+        | IsAny<AuthoredOutputOutMessage<Output>>
+        | IsUnknown<AuthoredOutputOutMessage<Output>>
+      ? Readonly<{
+          'Composition result channels must remain concrete': Output
+        }>
+      : Output extends AnyBindingInitRecipe
+        ? [AuthoredOutputModel<Output>] extends [Model]
+          ? [AuthoredOutputMessage<Output>] extends [
+              | Message
+              | GeneratedMessageOfRequirement<
+                  Update.RegistrationEvidenceOf<AuthoredRecipeOutput<Output>>
+                >,
+            ]
+            ? [AuthoredOutputOutMessage<Output>] extends [OutMessage]
+              ? unknown
+              : Readonly<{
+                  'Composition result OutMessages must belong to the Definition': AuthoredOutputOutMessage<Output>
+                }>
+            : Readonly<{
+                'Composition result Messages require local ownership or registered generated delivery': AuthoredOutputMessage<Output>
+              }>
+          : Readonly<{
+              'Composition result Model must match the Definition': AuthoredOutputModel<Output>
+            }>
+        : [AuthoredOutputModel<Output>, Model] extends [
+              Model,
+              AuthoredOutputModel<Output>,
+            ]
+          ? [AuthoredOutputMessage<Output>] extends [
+              | Message
+              | GeneratedMessageOfRequirement<
+                  Update.RegistrationEvidenceOf<AuthoredRecipeOutput<Output>>
+                >,
+            ]
+            ? [AuthoredOutputOutMessage<Output>] extends [OutMessage]
+              ? unknown
+              : Readonly<{
+                  'Composition result OutMessages must belong to the Definition': AuthoredOutputOutMessage<Output>
+                }>
+            : Readonly<{
+                'Composition result Messages require local ownership or registered generated delivery': AuthoredOutputMessage<Output>
+              }>
+          : Readonly<{
+              'Composition result Model must match the Definition': AuthoredOutputModel<Output>
+            }>
+    : unknown
+
+type ValidateAuthoredOutputKind<Model, Message, OutMessage, Output> =
+  Output extends
+    | OwnedReturn<Model, Message, OutMessage>
+    | AnyBindingInitRecipe
+    | Update.AnyResultRecipe
+    ? unknown
+    : Readonly<{
+        'Composition updates must return an update result or Binding recipe': Output
+      }>
 
 type RouteRequirements<Bindings extends ReadonlyArray<AnyBinding>> =
   RouteFold<Bindings> extends infer Fold extends AnyFunction
@@ -463,25 +596,22 @@ type ValidDefineCompositionUpdate<
   OutMessage,
   Bindings extends ReadonlyArray<AnyBinding>,
   PreserveSource extends boolean,
+  DispatchMessage,
 > = [AuthoredMessage<Message, Bindings>] extends [never]
-  ? () => RoutedOnlyUpdate<Model, Message, Bindings, PreserveSource>
-  : <
-      const Context extends ReadonlyArray<unknown>,
-      const Output extends (
-        | OwnedReturn<Model, Message, OutMessage>
-        | BindingInitRecipe<Model, Message, any, any>
-        | Update.ResultRecipe<Model, Message, OutMessage, any, unknown>
-      ) &
-        ValidateAnnotatedContext<Context>,
-    >(
+  ? () => RoutedOnlyUpdate<Model, DispatchMessage, Bindings, PreserveSource>
+  : <const Context extends ReadonlyArray<unknown>, const Output>(
       update: (
         model: Update.CompositionInput<Model, RequirementsOfBindings<Bindings>>,
         message: AuthoredMessage<Message, Bindings>,
         ...context: Context
-      ) => Output & ValidateAuthoredEvidence<NoInfer<Output>>,
+      ) => Output &
+        ValidateAnnotatedContext<Context> &
+        ValidateAuthoredOutputKind<Model, Message, OutMessage, Output> &
+        ValidateAuthoredEvidence<Output> &
+        ValidateAuthoredRecipeChannels<Model, Message, OutMessage, Output>,
     ) => CompositionDefinedUpdate<
       Model,
-      Message,
+      DispatchMessage,
       Context,
       Output,
       Bindings,
@@ -499,17 +629,19 @@ export type DefineCompositionUpdate<
   OutMessage,
   Bindings extends ReadonlyArray<AnyBinding>,
   PreserveSource extends boolean = false,
+  DispatchMessage = Message,
 > = [CompositionDeliveryErrors<Message, Bindings>] extends [never]
   ? ValidDefineCompositionUpdate<
       Model,
       Message,
       OutMessage,
       Bindings,
-      PreserveSource
+      PreserveSource,
+      DispatchMessage
     >
   : CompositionDeliveryErrors<Message, Bindings>
 
-type RuntimeMessageConstructor = Schema.Top & AnyFunction
+type RuntimeMessageConstructor = Schema.Top
 
 /** @internal Runtime parent Message route retained outside the public Binding. */
 export type RuntimeFromParentMessage = Readonly<{
@@ -649,69 +781,6 @@ export const assertLocalOperationMessage = (
   bindings: ReadonlyArray<AnyBinding>,
 ): void => assertLocalOperationTag(messageTagOf(constructor), bindings)
 
-type RuntimeMessageSchemaContract = Readonly<{
-  tags: ReadonlySet<string>
-  gotWrapperTags: ReadonlySet<string>
-}>
-
-const runtimeMessageSchemaContract = (
-  schema: Schema.Top,
-): RuntimeMessageSchemaContract => {
-  const tags = new Set<string>()
-  const gotWrapperTags = new Set<string>()
-  const visited = new Set<SchemaAST.AST>()
-
-  const visit = (sourceAst: SchemaAST.AST): void => {
-    const ast = SchemaAST.toType(sourceAst)
-    if (visited.has(ast)) {
-      return
-    }
-    visited.add(ast)
-
-    if (SchemaAST.isSuspend(ast)) {
-      visit(ast.thunk())
-      return
-    }
-    if (SchemaAST.isUnion(ast)) {
-      for (const member of ast.types) {
-        visit(member)
-      }
-      return
-    }
-    if (!SchemaAST.isObjects(ast)) {
-      return
-    }
-
-    const tagProperty = ast.propertySignatures.find(
-      property => property.name === '_tag',
-    )
-    const tagAst =
-      tagProperty === undefined ? undefined : SchemaAST.toType(tagProperty.type)
-    if (
-      tagAst === undefined ||
-      !SchemaAST.isLiteral(tagAst) ||
-      !Predicate.isString(tagAst.literal)
-    ) {
-      return
-    }
-
-    tags.add(tagAst.literal)
-    if (
-      gotMessagePattern.test(tagAst.literal) &&
-      !ast.propertySignatures.some(
-        property =>
-          !SchemaAST.isOptional(property.type) &&
-          SchemaAST.isNever(SchemaAST.toType(property.type)),
-      )
-    ) {
-      gotWrapperTags.add(tagAst.literal)
-    }
-  }
-
-  visit(schema.ast)
-  return { tags, gotWrapperTags }
-}
-
 const observableUpdateContextArities = new WeakMap<object, number>()
 
 const observableUpdateContextArity = (update: AnyFunction): number =>
@@ -738,9 +807,7 @@ const assertUnambiguousSource = (
 /** @internal Creates the runtime Composition update delivery dispatcher. */
 export const makeCompositionUpdate = (
   parentMessageSchema: Schema.Top,
-  childBindings: ReadonlyArray<
-    Readonly<{ placement: string; fold: AnyFunction }>
-  >,
+  bindings: ReadonlyArray<Readonly<{ placement: string; fold: AnyFunction }>>,
   validateCoverage = true,
 ): RuntimeDefineCompositionUpdate => {
   const messageContract = runtimeMessageSchemaContract(parentMessageSchema)
@@ -750,7 +817,7 @@ export const makeCompositionUpdate = (
     Array<Readonly<{ placement: string; source: object }>>
   >()
 
-  for (const childBinding of childBindings) {
+  for (const childBinding of bindings) {
     const delivery = bindingDeliveries.get(childBinding)
     if (delivery === undefined) {
       throw new Error(
@@ -833,7 +900,7 @@ export const makeCompositionUpdate = (
       message: any,
       ...context: ReadonlyArray<any>
     ) =>
-      withOperationGraph(childBindings, () => {
+      withOperationGraph(bindings, () => {
         const messageTag = Predicate.isObject(message)
           ? Reflect.get(message, '_tag')
           : undefined

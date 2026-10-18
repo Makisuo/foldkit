@@ -5,7 +5,7 @@ import { view } from './view'
 
 export { view } from './view'
 
-export const block = HomeComposition.makeBlock({
+export const HomeBlock = HomeComposition.assembleBlock({
   init,
   update,
   view,

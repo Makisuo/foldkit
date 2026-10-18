@@ -1,11 +1,31 @@
 import { given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
-import { FileDrop } from '@foldkit/ui'
+import { FileDropBlock } from '@foldkit/ui'
 
-import { Message } from './definition'
+import { AdditionalFilesDropBinding, ResumeDropBinding } from './composition'
 import { init } from './init'
 import { update } from './update'
+
+const initialModel = init().model
+
+const emptyFileDropView = FileDropBlock.makeView((_model, h) => h.empty)
+
+const resumeDropMessage = (message: typeof FileDropBlock.Message.Type) =>
+  ResumeDropBinding.embedView({
+    slotId: 'resumeDrop',
+    model: initialModel.resumeDrop,
+    view: emptyFileDropView,
+  }).toParentMessage(message)
+
+const additionalFilesDropMessage = (
+  message: typeof FileDropBlock.Message.Type,
+) =>
+  AdditionalFilesDropBinding.embedView({
+    slotId: 'additionalFilesDrop',
+    model: initialModel.additionalFilesDrop,
+    view: emptyFileDropView,
+  }).toParentMessage(message)
 
 describe('attachments', () => {
   test('a dropped resume is stored as maybeResume', () => {
@@ -15,11 +35,11 @@ describe('attachments', () => {
 
     story(
       update,
-      given(init()),
+      given(initialModel),
       message(
-        Message.GotResumeDropMessage({
-          message: FileDrop.Message.DroppedFiles({ files: [resume] }),
-        }),
+        resumeDropMessage(
+          FileDropBlock.Message.DroppedFiles({ files: [resume] }),
+        ),
       ),
       model(model => {
         expect(model.maybeResume._tag).toBe('Some')
@@ -34,11 +54,11 @@ describe('attachments', () => {
 
     story(
       update,
-      given(init()),
+      given(initialModel),
       message(
-        Message.GotAdditionalFilesDropMessage({
-          message: FileDrop.Message.DroppedFiles({ files: [file] }),
-        }),
+        additionalFilesDropMessage(
+          FileDropBlock.Message.DroppedFiles({ files: [file] }),
+        ),
       ),
       model(model => {
         expect(model.additionalFiles).toHaveLength(1)

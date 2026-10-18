@@ -9,7 +9,7 @@ type RuntimeParentContract = Readonly<{
   Model: Schema.Top
   Message: Schema.Top
   OutMessage: Schema.Top | undefined
-  Startup?: Schema.Top | undefined
+  ChildInitContext?: Schema.Top | undefined
 }>
 
 /** @internal Direct child initialization policy retained outside the public Binding. */
@@ -39,7 +39,7 @@ export type RuntimeWrappedKeyedInitialPolicy = Readonly<{
   readItemKey: (item: unknown) => InstanceKey
 }>
 
-/** @internal Startup projection for one custom child storage relationship. */
+/** @internal Initial Model projection for one custom child storage relationship. */
 export type RuntimeProjectedBindingInitialPolicy = Readonly<{
   kind: 'Projected'
   allowedFields: ReadonlyArray<string>
@@ -142,12 +142,12 @@ export const registerBindingInitialPolicy = (
 export const assertBindingParentContracts = (
   parentContract: RuntimeParentContract,
   parentId: string,
-  childBindings: ReadonlyArray<Readonly<{ placement: string }>>,
+  bindings: ReadonlyArray<Readonly<{ placement: string }>>,
 ): void => {
   const placementIndexes = new Map<string, number>()
   const initialFieldIndexes = new Map<string, number>()
 
-  for (const [index, childBinding] of childBindings.entries()) {
+  for (const [index, childBinding] of bindings.entries()) {
     const runtime = runtimeBindingOf(childBinding)
     const bindingParent = runtime.parentContract
     const previousIndex = placementIndexes.get(childBinding.placement)
@@ -176,7 +176,7 @@ export const assertBindingParentContracts = (
         bindingParent.Model !== parentContract.Model ||
         bindingParent.Message !== parentContract.Message ||
         bindingParent.OutMessage !== parentContract.OutMessage ||
-        bindingParent.Startup !== parentContract.Startup)
+        bindingParent.ChildInitContext !== parentContract.ChildInitContext)
     ) {
       throw new Error(
         `[foldkit] Child Binding "${childBinding.placement}" belongs to a different parent Definition contract. Create it through the exact "${parentId}" Definition.bindChild method.`,
@@ -187,7 +187,7 @@ export const assertBindingParentContracts = (
 
 /** @internal Collects every named owner below a block's direct bindings. */
 export const descendantOwnersOf = (
-  childBindings: ReadonlyArray<object>,
+  bindings: ReadonlyArray<object>,
 ): ReadonlySet<NamedIdentity> => {
   const owners = new Set<NamedIdentity>()
 
@@ -195,12 +195,12 @@ export const descendantOwnersOf = (
     const { block } = runtimeBindingOf(binding)
     owners.add(block.owner)
 
-    for (const childBinding of block.childBindings) {
+    for (const childBinding of block.bindings) {
       visit(childBinding)
     }
   }
 
-  for (const childBinding of childBindings) {
+  for (const childBinding of bindings) {
     visit(childBinding)
   }
 

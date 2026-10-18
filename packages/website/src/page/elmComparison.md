@@ -37,13 +37,13 @@ The Elm application has 21 `Msg` variants:
 
 ### Foldkit Message union {#foldkit-message}
 
-The current Foldkit application has 25 parent Messages:
+The Foldkit application authors 19 local Message variants:
 
 ::Snippet{name="comparisonFoldkitMessage" label="Foldkit Messages"}
 
-The count differs because the component and effect boundaries differ. Foldkit has `SucceededExportPng` and `CompletedSaveCanvas` for Command completion, plus six `Got*Message` wrappers for two Dialogs, one Listbox, and three RadioGroups. The Elm version hand-rolls those controls and represents their application-facing events with four direct Msgs: `ToggledThemePicker`, `SelectedPaletteTheme`, `DismissedErrorDialog`, and `DismissedGridSizeDialog`.
+The component and effect boundaries differ. Foldkit has `SucceededExportPng` and `CompletedSaveCanvas` for Command completion. Its Composition also derives six child delivery cases for two Dialogs, one Listbox, and three RadioGroups, bringing `ApplicationComposition.Message` to 25 variants. Those generated envelopes route to the child Blocks before the local update callback runs; the application does not declare or match them itself.
 
-Both unions are the total input domain of their application update functions. Foldkit’s child wrapper Messages lead to another Message union and update function inside each Block.
+The Elm version hand-rolls those controls and represents their application-facing events with four direct Msgs: `ToggledThemePicker`, `SelectedPaletteTheme`, `DismissedErrorDialog`, and `DismissedGridSizeDialog`. Elm’s `Msg` is the complete input to its update. Foldkit separates authored local facts from the complete Message Codec derived by Composition.
 
 Elm custom-type values and Foldkit Schema values both have runtime tags. Schema also supplies runtime decoding and encoding when a Message is deliberately used at an external boundary. That does not make an application Message union a wire protocol automatically. A network boundary still needs an explicit Schema and compatibility policy.
 

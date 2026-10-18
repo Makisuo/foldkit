@@ -6,7 +6,7 @@ import { view } from './view'
 
 export const EffectsLayer = MeasurePanel.layer
 
-export const block = PanelComposition.makeBlock({
+export const PanelBlock = PanelComposition.assembleBlock({
   init,
   update,
   view,

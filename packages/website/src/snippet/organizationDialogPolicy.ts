@@ -2,11 +2,10 @@ import { Dialog } from '@foldkit/ui'
 
 import { SaveDraft } from '../command'
 import { EditorDefinition } from '../definition'
-import { Message } from '../message'
 
-const foldDialogOutMessage = Dialog.OutMessage.match({
-  Opened: () => EditorDefinition.step(model => ({ model })),
-  CompletedClose: () => EditorDefinition.step(model => ({ model })),
+const foldDialogOutMessage = Dialog.DialogBlock.OutMessage.match({
+  Opened: () => EditorDefinition.stepNoop(),
+  CompletedClose: () => EditorDefinition.stepNoop(),
   Closed: () =>
     EditorDefinition.step(model => ({
       model,
@@ -14,8 +13,7 @@ const foldDialogOutMessage = Dialog.OutMessage.match({
     })),
 })
 
-export const DialogBinding = EditorDefinition.bindChild(Dialog.block, {
+export const DialogBinding = EditorDefinition.bindChild(Dialog.DialogBlock, {
   field: 'dialog',
-  parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
 })

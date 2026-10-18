@@ -9,6 +9,7 @@ import {
   Record,
   String,
   SubscriptionRef,
+  Tuple,
   pipe,
 } from 'effect'
 
@@ -306,41 +307,55 @@ export const createDevToolsStore = (
       isModelChanged: boolean,
     ) =>
       Effect.gen(function* () {
-        const didAutoResume = yield* SubscriptionRef.modify(stateRef, state => {
-          const absoluteIndex = nextEntryIndex(state)
+        const [didAutoResume, absoluteIndex] = yield* SubscriptionRef.modify(
+          stateRef,
+          state => {
+            const absoluteIndex = nextEntryIndex(state)
 
-          const diff = isModelChanged
-            ? computeDiff(modelBeforeUpdate, modelAfterUpdate)
-            : emptyDiff
+            const diff = isModelChanged
+              ? computeDiff(modelBeforeUpdate, modelAfterUpdate)
+              : emptyDiff
 
-          const hasChangedFields = HashSet.size(diff.changedPaths) > 0
+            const hasChangedFields = HashSet.size(diff.changedPaths) > 0
 
-          const nextState = modifyFields(state, {
-            entries: Array.append({
-              tag: message._tag,
-              message,
-              commands,
-              mountStarts: [],
-              mountEnds: [],
-              timestamp: performance.now(),
-              isModelChanged: hasChangedFields,
-              diff,
-            }),
-            keyframes: addKeyframeIfNeeded(absoluteIndex + 1, modelAfterUpdate),
-            maybeLatestModel: () => Option.some(modelAfterUpdate),
-          })
+            const nextState = modifyFields(state, {
+              entries: Array.append({
+                tag: message._tag,
+                message,
+                commands,
+                mountStarts: [],
+                mountEnds: [],
+                timestamp: performance.now(),
+                isModelChanged: hasChangedFields,
+                diff,
+              }),
+              keyframes: addKeyframeIfNeeded(
+                absoluteIndex + 1,
+                modelAfterUpdate,
+              ),
+              maybeLatestModel: () => Option.some(modelAfterUpdate),
+            })
 
-          const recordedState =
-            nextState.entries.length > maxEntries
-              ? evictOldestSegment(nextState)
-              : nextState
+            const recordedState =
+              nextState.entries.length > maxEntries
+                ? evictOldestSegment(nextState)
+                : nextState
 
-          return [state.isPaused && !recordedState.isPaused, recordedState]
-        })
+            return Tuple.make(
+              Tuple.make(
+                state.isPaused && !recordedState.isPaused,
+                absoluteIndex,
+              ),
+              recordedState,
+            )
+          },
+        )
 
         if (didAutoResume) {
           yield* bridge.markRenderPending
         }
+
+        return absoluteIndex
       })
 
     const recordResolvedCommand = (
@@ -586,7 +601,7 @@ export type DevToolsStore = Readonly<{
     modelAfterUpdate: unknown,
     commands: ReadonlyArray<CommandRecord>,
     isModelChanged: boolean,
-  ) => Effect.Effect<void>
+  ) => Effect.Effect<number>
   recordResolvedCommand: (
     id: number,
     blockPath: ReadonlyArray<string>,

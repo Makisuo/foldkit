@@ -14,14 +14,14 @@ import {
 } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { define } from '../block/define.js'
+import { makeNamespace } from '../block/define.js'
 import { createKeyedLazy } from '../html/index.js'
 import { requireDispatch } from '../html/runtimeSingleton.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import {
   type ViewBuilderFor,
-  define as defineApplication,
+  makeDefinition as makeApplicationDefinition,
 } from './applicationPublic.js'
 import * as ModelPreservationBridge from './modelPreservationBridge.js'
 import { embed } from './start.js'
@@ -45,7 +45,7 @@ class TestControls extends Context.Service<TestControls, Controls>()(
 const dispatches = new Map<string, (message: unknown) => void>()
 const subscriptionEmitters = new Map<string, (value: string) => void>()
 
-const ItemDefinition = define('CollectionItem')
+const ItemNamespace = makeNamespace('CollectionItem')
 const ItemModel = Schema.Struct({
   id: Schema.Number,
   source: Schema.String,
@@ -60,8 +60,8 @@ const ItemMessage = defineMessageUnion({
   FailedAcquireValue: {},
   EmittedPulse: { value: Schema.String },
 })
-const Value = ItemDefinition.resource<string>()('Value')
-const ReadValue = ItemDefinition.command('ReadValue', {
+const Value = ItemNamespace.resource<string>()('Value')
+const ReadValue = ItemNamespace.command('ReadValue', {
   messages: [ItemMessage.CompletedReadValue, ItemMessage.FailedReadValue],
   handler: function* () {
     const controls = yield* TestControls
@@ -75,7 +75,7 @@ const ReadValue = ItemDefinition.command('ReadValue', {
       )
   },
 })
-const ObserveValue = ItemDefinition.mountStream('ObserveValue', {
+const ObserveValue = ItemNamespace.mountStream('ObserveValue', {
   messages: [ItemMessage.EmittedPulse],
   handler: function* () {
     const controls = yield* TestControls
@@ -97,7 +97,7 @@ const ObserveValue = ItemDefinition.mountStream('ObserveValue', {
       )
   },
 })
-const ItemBaseDefinition = ItemDefinition.define({
+const ItemBaseDefinition = ItemNamespace.makeDefinition({
   Model: ItemModel,
   Message: ItemMessage,
 })
@@ -204,30 +204,24 @@ const itemImplementation = {
   managedResources,
   EffectsLayer: ItemEffectsLayer,
 }
-const itemBlock = item.makeBlock(itemImplementation)
+const itemBlock = item.assembleBlock(itemImplementation)
 
 const RootModel = Schema.Struct({ entries: Schema.Array(ItemModel) })
 const RootMessage = defineMessageUnion({
-  GotItemMessage: { id: Schema.Number, message: ItemMessage },
   ClickedRemoveFirst: {},
   ClickedAddReplacement: {},
   ClickedRestoreFirst: {},
 })
-const RootBaseDefinition = defineApplication({
+const RootBaseDefinition = makeApplicationDefinition({
   Model: RootModel,
   Message: RootMessage,
 })
 const EntriesBinding = RootBaseDefinition.bindChild(itemBlock, {
   field: 'entries',
   key: 'id',
-  toParentMessage: (id, message) => RootMessage.GotItemMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: RootMessage.GotItemMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
 })
 const root = RootBaseDefinition.makeComposition({
-  childBindings: [EntriesBinding],
+  bindings: [EntriesBinding],
 })
 const firstEntry = itemBlock.init(1, 'old').model
 const rootInit = () => ({
@@ -342,7 +336,7 @@ describe('keyed Block occurrences', () => {
     const container = document.createElement('div')
     container.id = 'memoized-keyed-composition'
     document.body.append(container)
-    const element = root.makeElement({
+    const element = root.assembleElement({
       container,
       init: rootInit,
       update: rootUpdate,
@@ -440,7 +434,7 @@ describe('keyed Block occurrences', () => {
     container.id = 'keyed-composition'
     document.body.append(container)
     const application = root
-      .makeElement({
+      .assembleElement({
         container,
         init: rootInit,
         update: rootUpdate,
@@ -543,7 +537,7 @@ describe('keyed Block occurrences', () => {
     container.id = 'keyed-mount-barrier'
     document.body.append(container)
     const application = root
-      .makeElement({
+      .assembleElement({
         container,
         init: rootInit,
         update: rootUpdate,

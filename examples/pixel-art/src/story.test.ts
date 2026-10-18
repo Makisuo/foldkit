@@ -3,10 +3,16 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
-import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
-import { CloseDialog, ShowDialog } from '@foldkit/ui/dialog'
+import { Dialog, DialogBlock } from '@foldkit/ui'
 
 import { ExportPng, SaveCanvas } from './command'
+import {
+  GridSizeRadioGroupBlock,
+  PaletteRadioGroupBlock,
+  ThemeListboxBlock,
+  ToolRadioGroupBlock,
+} from './components'
+import { ErrorDialogBinding } from './composition'
 import { createEmptyGrid } from './grid'
 import { Message } from './message'
 import { type Model, type PaletteIndex } from './model'
@@ -22,16 +28,28 @@ const emptyModel: Model = {
   mirrorMode: 'None' as const,
   isDrawing: false,
   maybeHoveredCell: Option.none(),
-  errorDialog: Dialog.init({ id: 'export-error-dialog' }),
+  errorDialog: DialogBlock.init({ id: 'export-error-dialog' }).model,
   maybeExportError: Option.none(),
   paletteThemeIndex: 0,
-  gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
+  gridSizeConfirmDialog: DialogBlock.init({ id: 'grid-size-confirm-dialog' })
+    .model,
   maybePendingGridSize: Option.none(),
-  themeListbox: Listbox.init({ id: 'theme-picker' }),
-  toolRadioGroup: RadioGroup.init({ id: 'tool-picker' }),
-  gridSizeRadioGroup: RadioGroup.init({ id: 'grid-size-picker' }),
-  paletteRadioGroup: RadioGroup.init({ id: 'palette-picker' }),
+  themeListbox: ThemeListboxBlock.init({ id: 'theme-picker' }).model,
+  toolRadioGroup: ToolRadioGroupBlock.init({ id: 'tool-picker' }).model,
+  gridSizeRadioGroup: GridSizeRadioGroupBlock.init({ id: 'grid-size-picker' })
+    .model,
+  paletteRadioGroup: PaletteRadioGroupBlock.init({ id: 'palette-picker' })
+    .model,
 }
+
+const emptyErrorDialogView = DialogBlock.makeView((_model, h) => h.empty)
+
+const errorDialogMessage = (message: typeof DialogBlock.Message.Type) =>
+  ErrorDialogBinding.embedView({
+    slotId: 'errorDialog',
+    model: emptyModel.errorDialog,
+    view: emptyErrorDialogView,
+  }).toParentMessage(message)
 
 describe('brush tool', () => {
   test('painting a cell sets its color and pushes undo history', () => {
@@ -304,7 +322,10 @@ describe('grid size', () => {
       update,
       given(paintedModel),
       message(Message.SelectedGridSize({ size: 8 })),
-      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(
+        Dialog.test.ShowDialog,
+        DialogBlock.Message.SucceededShowDialog(),
+      ),
       model(model => {
         expect(model.maybePendingGridSize).toEqual(Option.some(8))
         expect(model.gridSizeConfirmDialog.isOpen).toBe(true)
@@ -328,9 +349,15 @@ describe('grid size', () => {
       update,
       given(paintedModel),
       message(Message.SelectedGridSize({ size: 8 })),
-      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(
+        Dialog.test.ShowDialog,
+        DialogBlock.Message.SucceededShowDialog(),
+      ),
       message(Message.ConfirmedGridSizeChange()),
-      Command.resolve(CloseDialog, Dialog.Message.CompletedCloseDialog()),
+      Command.resolve(
+        Dialog.test.CloseDialog,
+        DialogBlock.Message.CompletedCloseDialog(),
+      ),
       Command.resolve(SaveCanvas, Message.CompletedSaveCanvas()),
       model(model => {
         expect(model.gridSize).toBe(8)
@@ -451,7 +478,10 @@ describe('export failure', () => {
       message(
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(
+        Dialog.test.ShowDialog,
+        DialogBlock.Message.SucceededShowDialog(),
+      ),
       model(model => {
         expect(model.maybeExportError).toEqual(
           Option.some('Canvas 2D context not available'),
@@ -468,13 +498,15 @@ describe('export failure', () => {
       message(
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
-      message(
-        Message.GotErrorDialogMessage({
-          message: Dialog.Message.RequestedClose(),
-        }),
+      Command.resolve(
+        Dialog.test.ShowDialog,
+        DialogBlock.Message.SucceededShowDialog(),
       ),
-      Command.resolve(CloseDialog, Dialog.Message.CompletedCloseDialog()),
+      message(errorDialogMessage(DialogBlock.Message.RequestedClose())),
+      Command.resolve(
+        Dialog.test.CloseDialog,
+        DialogBlock.Message.CompletedCloseDialog(),
+      ),
       model(model => {
         expect(model.maybeExportError).toEqual(Option.none())
         expect(model.errorDialog.isOpen).toBe(false)

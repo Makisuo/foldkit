@@ -9,38 +9,39 @@ import { HoverIntent } from '@foldkit/ui'
 import type { RenderInfo as HoverIntentRenderInfo } from '@foldkit/ui/hoverIntent'
 
 const Model = Schema.Struct({
-  hoverMenu: HoverIntent.Model,
+  hoverMenu: HoverIntent.HoverIntentBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
-  GotHoverMenuMessage: { message: HoverIntent.Message },
   ClickedHoverMenuItem: {},
 })
 type Message = typeof Message.Type
 
-const foldHoverMenuOutMessage = HoverIntent.OutMessage.match<
+const foldHoverMenuOutMessage = HoverIntent.HoverIntentBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
-  Opened: () => model => ({ model }),
-  Closed: () => model => ({ model }),
+  Opened: () => HoverMenuDefinition.stepNoop(),
+  Closed: () => HoverMenuDefinition.stepNoop(),
 })
 
-const HoverMenuDefinition = Block.define('HoverMenu', {
+const HoverMenuDefinition = Block.makeDefinition('HoverMenu', {
   Model,
   Message,
 })
 
-const HoverMenuBinding = HoverMenuDefinition.bindChild(HoverIntent.block, {
-  field: 'hoverMenu',
-  parentMessage: Message.GotHoverMenuMessage,
-  init: true,
-  outMessage: { fold: foldHoverMenuOutMessage },
-})
+const HoverMenuBinding = HoverMenuDefinition.bindChild(
+  HoverIntent.HoverIntentBlock,
+  {
+    field: 'hoverMenu',
+    init: true,
+    outMessage: { fold: foldHoverMenuOutMessage },
+  },
+)
 
 const HoverMenuComposition = HoverMenuDefinition.makeComposition({
-  childBindings: [HoverMenuBinding],
+  bindings: [HoverMenuBinding],
 })
 
 const init = HoverMenuComposition.makeInit(() => ({

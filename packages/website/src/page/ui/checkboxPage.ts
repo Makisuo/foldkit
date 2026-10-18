@@ -1,13 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
-import raw from './checkboxPage.md'
 import { UiComposition } from './composition'
+import { CheckboxPageContent } from './content'
 import * as Checkbox from './demo/checkbox'
 
-const { tableOfContents, view: renderPage } = slotDocPage<
-  'basic' | 'indeterminate'
->(raw, 'ui/checkbox')
+const { tableOfContents, view: renderPage } = CheckboxPageContent
 
 export { tableOfContents }
 

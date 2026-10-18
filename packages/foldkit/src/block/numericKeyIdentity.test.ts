@@ -3,13 +3,13 @@ import { expect, it, vi } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 const ChildMessage = defineMessageUnion({
   CompletedRead: { value: Schema.Number },
 })
-const Child = define('NumericIdentityChild', {
+const Child = makeDefinition('NumericIdentityChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
@@ -21,7 +21,7 @@ const Read = Child.command('Read', {
 })
 const initialized = vi.fn()
 const ChildComposition = Child.makeComposition()
-const child = ChildComposition.makeBlock({
+const child = ChildComposition.assembleBlock({
   init: ChildComposition.makeInit(() => {
     initialized()
     return { model: { count: 0 }, commands: [Read()] }
@@ -36,22 +36,17 @@ const Model = Schema.Struct({
     Schema.Struct({ id: Schema.Number, child: ChildModel }),
   ),
 })
-const Message = defineMessageUnion({
-  GotChildMessage: { id: Schema.Number, message: ChildMessage },
+const Parent = makeDefinition('NumericIdentityParent', {
+  Model,
+  Message: Schema.Never,
 })
-const Parent = define('NumericIdentityParent', { Model, Message })
 const EntriesBinding = Parent.bindChild(child, {
   field: 'entries',
   key: 'id',
   childField: 'child',
-  toParentMessage: (id, message) => Message.GotChildMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: Message.GotChildMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
 })
 const ParentComposition = Parent.makeComposition({
-  childBindings: [EntriesBinding],
+  bindings: [EntriesBinding],
 })
 
 it('uses one zero identity for connected initialization and later dispatch', async () => {
@@ -62,7 +57,7 @@ it('uses one zero identity for connected initialization and later dispatch', asy
       toParentModel: child => Model.make({ entries: [{ id: 0, child }] }),
     }),
   )
-  const parent = ParentComposition.makeBlock({
+  const parent = ParentComposition.assembleBlock({
     init,
     update: ParentComposition.makeUpdate(),
   })
@@ -77,13 +72,13 @@ it('uses one zero identity for connected initialization and later dispatch', asy
     4,
   )
   expect(
-    parent.update(
-      updated.model,
-      Message.GotChildMessage({
-        id: 0,
-        message: ChildMessage.CompletedRead({ value: 9 }),
-      }),
-    ).model.entries,
+    parent.update(updated.model, {
+      _tag: 'GotNumericIdentityChildMessage',
+      placement: 'NumericIdentityChild',
+      generation: 0,
+      key: 0,
+      message: ChildMessage.CompletedRead({ value: 9 }),
+    }).model.entries,
   ).toEqual([{ id: 0, child: { count: 9 } }])
 })
 
@@ -110,18 +105,13 @@ it('retains automatic startup Commands when Schema storage normalizes a zero key
     field: 'entries',
     key: 'id',
     childField: 'child',
-    toParentMessage: (id, message) => Message.GotChildMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: Message.GotChildMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
     init: {
-      occurrences: () => [{ key: -0, args: Tuple.make() }],
+      instances: () => [{ key: -0, args: Tuple.make() }],
       toItem: (_occurrence, child) => ({ id: 0, child }),
     },
   })
   const StartupComposition = Parent.makeComposition({
-    childBindings: [StartupBinding],
+    bindings: [StartupBinding],
   })
   const init = StartupComposition.makeInit(() => ({ model: {} }))
 
@@ -133,13 +123,8 @@ it('rejects duplicate signed-zero startup keys before initializing either occurr
     field: 'entries',
     key: 'id',
     childField: 'child',
-    toParentMessage: (id, message) => Message.GotChildMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: Message.GotChildMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
     init: {
-      occurrences: () => [
+      instances: () => [
         { key: -0, args: Tuple.make() },
         { key: 0, args: Tuple.make() },
       ],
@@ -147,7 +132,7 @@ it('rejects duplicate signed-zero startup keys before initializing either occurr
     },
   })
   const StartupComposition = Parent.makeComposition({
-    childBindings: [StartupBinding],
+    bindings: [StartupBinding],
   })
   const init = StartupComposition.makeInit(() => ({ model: {} }))
   initialized.mockClear()

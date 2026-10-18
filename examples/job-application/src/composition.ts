@@ -4,32 +4,30 @@ import { modifyFields } from 'foldkit/struct'
 import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 import { Model } from './model'
-import { StepMenu, StepTabs } from './navigationComponents'
+import { StepMenuBlock, StepTabsBlock } from './navigationComponents'
 import {
-  Attachments,
-  CoverLetter,
-  Education,
-  PersonalInfo,
-  Skills,
-  WorkHistory,
+  AttachmentsBlock,
+  CoverLetterBlock,
+  EducationBlock,
+  PersonalInfoBlock,
+  SkillsBlock,
+  WorkHistoryBlock,
 } from './step'
 
 export const PersonalInfoBinding = ApplicationDefinition.bindChild(
-  PersonalInfo.block,
+  PersonalInfoBlock,
   {
     field: 'personalInfo',
-    parentMessage: Message.GotPersonalInfoMessage,
-    init: { startupToArgs: ({ today }) => [today] },
+    init: { contextToArgs: ({ today }) => [today] },
   },
 )
 
 export const WorkHistoryBinding = ApplicationDefinition.bindChild(
-  WorkHistory.block,
+  WorkHistoryBlock,
   {
     field: 'workHistory',
-    parentMessage: Message.GotWorkHistoryMessage,
     init: {
-      startupToArgs: ({ today, initialWorkHistoryEntryId }) => [
+      contextToArgs: ({ today, initialWorkHistoryEntryId }) => [
         today,
         initialWorkHistoryEntryId,
       ],
@@ -38,12 +36,11 @@ export const WorkHistoryBinding = ApplicationDefinition.bindChild(
 )
 
 export const EducationBinding = ApplicationDefinition.bindChild(
-  Education.block,
+  EducationBlock,
   {
     field: 'education',
-    parentMessage: Message.GotEducationMessage,
     init: {
-      startupToArgs: ({ today, initialEducationEntryId }) => [
+      contextToArgs: ({ today, initialEducationEntryId }) => [
         today,
         initialEducationEntryId,
       ],
@@ -51,33 +48,30 @@ export const EducationBinding = ApplicationDefinition.bindChild(
   },
 )
 
-export const SkillsBinding = ApplicationDefinition.bindChild(Skills.block, {
+export const SkillsBinding = ApplicationDefinition.bindChild(SkillsBlock, {
   field: 'skills',
-  parentMessage: Message.GotSkillsMessage,
   init: {
-    startupToArgs: ({ initialSkillsEntryId }) => [initialSkillsEntryId],
+    contextToArgs: ({ initialSkillsEntryId }) => [initialSkillsEntryId],
   },
 })
 
 export const CoverLetterBinding = ApplicationDefinition.bindChild(
-  CoverLetter.block,
+  CoverLetterBlock,
   {
     field: 'coverLetter',
-    parentMessage: Message.GotCoverLetterMessage,
   },
 )
 
 export const AttachmentsBinding = ApplicationDefinition.bindChild(
-  Attachments.block,
+  AttachmentsBlock,
   {
     field: 'attachments',
-    parentMessage: Message.GotAttachmentsMessage,
   },
 )
 
-const foldStepMenuOutMessage = StepMenu.OutMessage.match<
+const foldStepMenuOutMessage = StepMenuBlock.OutMessage.match<
   Update.Step<Model, Message>,
-  typeof StepMenu.OutMessage.Type
+  typeof StepMenuBlock.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -86,16 +80,15 @@ const foldStepMenuOutMessage = StepMenu.OutMessage.match<
     }),
 })
 
-export const StepMenuBinding = ApplicationDefinition.bindChild(StepMenu, {
+export const StepMenuBinding = ApplicationDefinition.bindChild(StepMenuBlock, {
   field: 'stepMenu',
-  parentMessage: Message.GotStepMenuMessage,
   outMessage: { fold: foldStepMenuOutMessage },
-  init: { startupToArgs: () => [{ id: 'step-menu' }] },
+  init: { contextToArgs: () => [{ id: 'step-menu' }] },
 })
 
-const foldStepTabsOutMessage = StepTabs.OutMessage.match<
+const foldStepTabsOutMessage = StepTabsBlock.OutMessage.match<
   Update.Step<Model, Message>,
-  typeof StepTabs.OutMessage.Type
+  typeof StepTabsBlock.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -104,15 +97,14 @@ const foldStepTabsOutMessage = StepTabs.OutMessage.match<
     }),
 })
 
-export const StepTabsBinding = ApplicationDefinition.bindChild(StepTabs, {
+export const StepTabsBinding = ApplicationDefinition.bindChild(StepTabsBlock, {
   field: 'stepTabs',
-  parentMessage: Message.GotStepTabsMessage,
   outMessage: { fold: foldStepTabsOutMessage },
-  init: { startupToArgs: () => [{ id: 'step-tabs' }] },
+  init: { contextToArgs: () => [{ id: 'step-tabs' }] },
 })
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [
+  bindings: [
     PersonalInfoBinding,
     WorkHistoryBinding,
     EducationBinding,

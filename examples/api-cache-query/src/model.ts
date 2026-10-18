@@ -10,10 +10,10 @@ export const Tab = Schema.Literals(['Posts', 'Stats'])
 
 export type Tab = typeof Tab.Type
 
-export const AppTabs = Tabs.create<Tab>()
+export const AppTabsBlock = Tabs.create<Tab>()
 
 export const Model = Schema.Struct({
-  tabs: AppTabs.Model,
+  tabs: AppTabsBlock.Model,
   activeTab: Tab,
   posts: postsQuery.Model,
   postDetails: postQuery.Model,

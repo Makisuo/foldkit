@@ -43,7 +43,7 @@ const init = SettingsComposition.makeInit(() => ({
   model: Model.make({ theme: 'System' }),
 }))
 
-export const block = SettingsComposition.makeBlock({
+export const SettingsBlock = SettingsComposition.assembleBlock({
   init,
   update,
   view,
@@ -52,5 +52,3 @@ export const block = SettingsComposition.makeBlock({
   },
   EffectsLayer: SaveTheme.layer,
 })
-
-export { Message, Model, OutMessage, Theme }

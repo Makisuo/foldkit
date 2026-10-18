@@ -3,7 +3,7 @@
 'create-foldkit-app': patch
 ---
 
-Author initializers through the named Composition. `ApplicationComposition.makeInit(fn)` and `SearchComposition.makeInit(fn)` check parent-owned Model fields, shared child input, returned Commands, and startup Steps against the registered graph while preserving the callback's arguments and requirements.
+Author initializers through the named Composition. `ApplicationComposition.makeInit(fn)` and `SearchComposition.makeInit(fn)` check parent-owned Model fields, shared child init context, returned Commands, and startup Steps against the registered graph while preserving the callback's arguments and requirements.
 
 Before:
 
@@ -30,23 +30,19 @@ export const init = ApplicationComposition.makeInit((flags: Flags) => ({
 }))
 ```
 
-For a split graphless Block, create and reuse a named empty Composition from `composition.ts`:
+For a split graphless Block, create and reuse a named empty Composition from `composition.ts`. When the Definition factory has no other use, keep its owner identity at module scope and chain it directly into the Composition:
 
 ```ts
-// definition.ts
+// composition.ts
 import { Block } from 'foldkit'
 
 import { Message } from './message'
 import { Model } from './model'
 
-export const SearchDefinition = Block.define('Search', { Model, Message })
-```
-
-```ts
-// composition.ts
-import { SearchDefinition } from './definition'
-
-export const SearchComposition = SearchDefinition.makeComposition()
+export const SearchComposition = Block.makeDefinition('Search', {
+  Model,
+  Message,
+}).makeComposition()
 ```
 
 ```ts
@@ -61,13 +57,13 @@ export const init = SearchComposition.makeInit((query: string) => ({
 
 Initializers use one concrete function signature. Optional, default, and rest parameters are supported. Wrap an overloaded domain helper in a concretely typed initializer callback instead of passing its overload set to `init`. Generic Block factories can capture their type parameters outside the initializer. Foldkit rejects callable shapes it cannot check without changing their argument or result types.
 
-Pass the authored `init` to that same Composition's `makeApplication`, `makeElement`, or `makeBlock` completion method. Completion still checks the initializer against Application Flags and routing configuration, handler provision, and registered child Bindings. Definitions continue to own effects, Steps, lifecycle definitions, and `bindChild`; they no longer expose `init` or `update` authoring aliases.
+Pass the authored `init` to that same Composition's `assembleApplication`, `assembleElement`, or `assembleBlock` completion method. Completion still checks the initializer against Application Flags and routing configuration, handler provision, and registered child Bindings. Definitions continue to own effects, Steps, lifecycle definitions, and `bindChild`; they no longer expose `init` or `update` authoring aliases.
 
-The helper neither calls the initializer nor starts effects. The Runtime invokes Application initialization and executes returned Commands. Public UI helpers that directly construct a Model keep their existing return shape; their Block initializer adapters use the owned helper.
+The helper neither calls the initializer nor starts effects. The Runtime invokes Application initialization and executes returned Commands. Canonical UI initializers are authored once through their Composition and return the standard initialization record. Parent automatic child initialization and `Binding.init` retain any child Commands instead of projecting only `.model`. Pure fixture construction may project `.model` when the initializer is known to produce no Commands.
 
 ## Initialize children in their registered graph
 
-For a required exact direct field, omit `init` when the child's initializer can be called without arguments. Use `init: { startupToArgs }` for required inputs, or `init: false` when the parent supplies that required field. Optional, keyed, and accessor storage remains parent-owned when `init` is omitted; explicit `init.startupToArgs` or `init.occurrences` chooses automatic presence. For dynamic children or custom storage, `Binding.init` returns a passive initialization recipe. Supply the child arguments, the keyed occurrence's `key` when applicable, and `toParentModel` to store the initialized child. Return the recipe directly from `Composition.makeInit` or `Composition.makeUpdate`, or preserve it through a Definition-owned Step. The Composition callbacks interpret it directly; a completed operation may dispatch a Message whose update branch returns the recipe. The recipe has no `.model` or `.commands` fields.
+For a required exact direct field, omit `init` when the child's initializer can be called without arguments. Use `init: { contextToArgs }` for required inputs, or `init: false` when the parent supplies that required field. Optional, keyed, and accessor storage remains parent-owned when `init` is omitted; explicit `init.contextToArgs` or `init.instances` chooses automatic presence. For dynamic children or custom storage, `Binding.init` returns a passive initialization recipe. Supply the child arguments, the keyed occurrence's `key` when applicable, and `toParentModel` to store the initialized child. Return the recipe directly from `Composition.makeInit` or `Composition.makeUpdate`, or preserve it through a Definition-owned Step. The Composition callbacks interpret it directly; a completed operation may dispatch a Message whose update branch returns the recipe. The recipe has no `.model` or `.commands` fields.
 
 Earlier interim Binding prototype:
 

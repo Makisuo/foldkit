@@ -91,6 +91,16 @@ export const update = PersonalInfoComposition.makeUpdate((model, message) =>
       model: modifyFields(model, { phone: () => validatePhone(value) }),
     }),
 
+    RequestedRevealErrors: () => ({
+      model: modifyFields(model, {
+        firstName: revealFieldErrors(firstNameRules),
+        lastName: revealFieldErrors(lastNameRules),
+        email: revealFieldErrors(emailRules),
+        phone: revealFieldErrors(phoneRules),
+        portfolioUrl: revealFieldErrors(portfolioUrlRules),
+      }),
+    }),
+
     UpdatedCustomPronouns: ({ value }) => ({
       model: modifyFields(model, { customPronouns: () => value }),
     }),
@@ -122,12 +132,3 @@ export const isComplete = (model: Model): boolean =>
     [model.phone, phoneRules],
     [model.portfolioUrl, portfolioUrlRules],
   ])
-
-export const revealErrors = (model: Model): Model =>
-  modifyFields(model, {
-    firstName: revealFieldErrors(firstNameRules),
-    lastName: revealFieldErrors(lastNameRules),
-    email: revealFieldErrors(emailRules),
-    phone: revealFieldErrors(phoneRules),
-    portfolioUrl: revealFieldErrors(portfolioUrlRules),
-  })

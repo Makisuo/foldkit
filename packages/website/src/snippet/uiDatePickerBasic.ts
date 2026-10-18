@@ -21,7 +21,7 @@ import { triggerId as DatePickerTriggerId } from '@foldkit/ui/datePicker'
 // parent owns for the selected date. The picker no longer stores the
 // selection; the parent holds it and passes it back in as `maybeSelectedDate`.
 const Model = Schema.Struct({
-  datePickerDemo: DatePicker.Model,
+  datePickerDemo: DatePicker.DatePickerBlock.Model,
   maybeSelectedDate: Schema.Option(Calendar.CalendarDate),
   // ...your other fields
 })
@@ -39,11 +39,9 @@ const flags = Effect.gen(function* () {
   return { today /* ...your other flags */ }
 })
 
-// Embed the DatePicker Message in your parent Message. DatePicker handles
-// Calendar + Popover routing internally. You only need one wrapper:
-const Message = defineMessageUnion({
-  GotDatePickerMessage: { message: DatePicker.Message },
-})
+// This excerpt has no parent-owned facts. DatePicker handles its Calendar and
+// Popover children internally, and the parent Composition derives delivery.
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 // At module scope, fold the OutMessage into your own Model. `SelectedDate`
@@ -53,7 +51,7 @@ type Message = typeof Message.Type
 // `ChangedViewMonth` fires when calendar navigation shifts the visible month
 // without selecting a date. Each arm returns an Update.Step over the parent
 // Model, which already has the next DatePicker Model written back:
-const foldDatePickerOutMessage = DatePicker.OutMessage.match<
+const foldDatePickerOutMessage = DatePicker.DatePickerBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   // The child has emitted `SelectedDate`. This is where the parent lifts
@@ -74,25 +72,24 @@ const foldDatePickerOutMessage = DatePicker.OutMessage.match<
   // The child has emitted `ChangedViewMonth`. In this arm the parent can
   // update its own state or dispatch its own Commands, for example
   // prefetch month data, fire analytics, or trigger a downstream Command.
-  ChangedViewMonth: () => model => ({ model }),
+  ChangedViewMonth: () => DatePickerExampleDefinition.stepNoop(),
 })
 
 // The Binding wires the completed child Block into the parent: it delegates navigation,
-// focus, and popover messages to DatePicker.update, writes the next DatePicker
-// Model back, maps the Block's Commands into your Message type, and hands
+// focus, and popover messages to DatePicker.DatePickerBlock.update, writes the next DatePicker
+// Model back, routes generated delivery and Command results, and hands
 // any OutMessage to the OutMessage fold.
-const DatePickerExampleDefinition = Block.define('DatePickerExample', {
+const DatePickerExampleDefinition = Block.makeDefinition('DatePickerExample', {
   Model,
   Message,
 })
 
 const DatePickerBinding = DatePickerExampleDefinition.bindChild(
-  DatePicker.block,
+  DatePicker.DatePickerBlock,
   {
     field: 'datePickerDemo',
-    parentMessage: Message.GotDatePickerMessage,
     init: {
-      startupToArgs: (flags: Flags) =>
+      contextToArgs: (flags: Flags) =>
         Tuple.make({
           id: 'date-picker-demo',
           today: flags.today,
@@ -106,16 +103,16 @@ const DatePickerBinding = DatePickerExampleDefinition.bindChild(
 
 const DatePickerExampleComposition =
   DatePickerExampleDefinition.makeComposition({
-    childBindings: [DatePickerBinding],
+    bindings: [DatePickerBinding],
   })
 type DatePickerExampleViewBuilder = Block.ViewBuilderFor<
   typeof DatePickerExampleComposition
 >
 
-// Pass the flags-resolved date through the startup input. The Composition
+// Pass the flags-resolved date through the child init context. The Composition
 // supplies it to DatePickerBinding and initializes the bound Model.
 const init = DatePickerExampleComposition.makeInit((flags: Flags) => ({
-  startup: flags,
+  childInitContext: flags,
   model: {
     maybeSelectedDate: Option.none(),
     // ...your other fields

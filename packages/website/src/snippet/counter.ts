@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -14,9 +14,10 @@ export const Message = defineMessageUnion({
   ClickedReset: {},
 })
 export type Message = typeof Message.Type
-
-export const ApplicationDefinition = defineApplication({ Model, Message })
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const ApplicationComposition = makeApplicationDefinition({
+  Model,
+  Message,
+}).makeComposition()
 
 export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {

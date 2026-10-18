@@ -9,8 +9,12 @@ export const Message = defineMessageUnion({
   InformedOfThemeChange: { theme: Schema.String },
 })
 export type Message = typeof Message.Type
-const KeyedEntry = Block.define('NoDirectStateKeyedEntry', { Model, Message })
-const KeyedEntryComposition = KeyedEntry.makeComposition()
+const NoDirectStateKeyedEntryDefinition = Block.makeDefinition(
+  'NoDirectStateKeyedEntry',
+  { Model, Message },
+)
+const KeyedEntryComposition =
+  NoDirectStateKeyedEntryDefinition.makeComposition()
 const init = KeyedEntryComposition.makeInit(() => ({
   model: Model.make({ id: 'initial', theme: 'System' }),
 }))
@@ -21,7 +25,7 @@ const update = KeyedEntryComposition.makeUpdate((model, message) =>
     }),
   }),
 )
-export const Entry = KeyedEntryComposition.makeBlock({
+export const Entry = KeyedEntryComposition.assembleBlock({
   init,
   update,
   operations: {

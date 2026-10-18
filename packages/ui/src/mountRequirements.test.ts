@@ -1,20 +1,27 @@
-import { Option } from 'effect'
+import { Option, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import type { ChildAttribute } from 'foldkit/html'
-import { defineMessageUnion } from 'foldkit/message'
 import type * as Mount from 'foldkit/mount'
 import type * as Update from 'foldkit/update'
 import { expectTypeOf, it } from 'vitest'
 
-import * as Calendar from './calendar/public.js'
+import * as CalendarInternal from './calendar/block.js'
 import * as Combobox from './combobox/public.js'
+import * as ComboboxInternal from './combobox/shared.js'
+import * as DatePickerInternal from './datePicker/block.js'
 import * as DatePicker from './datePicker/public.js'
+import * as DialogInternal from './dialog/block.js'
 import * as Dialog from './dialog/public.js'
 import * as Listbox from './listbox/public.js'
+import * as ListboxInternal from './listbox/shared.js'
+import * as MenuInternal from './menu/menu.js'
 import * as Menu from './menu/public.js'
+import * as PopoverInternal from './popover/block.js'
 import * as Popover from './popover/public.js'
+import * as TooltipInternal from './tooltip/block.js'
 import * as Tooltip from './tooltip/public.js'
 import * as VirtualList from './virtualList/public.js'
+import * as VirtualListInternal from './virtualList/virtualList.js'
 
 type RequirementsOfView<View> =
   View extends Block.View<
@@ -28,14 +35,21 @@ type RequirementsOfView<View> =
 
 type RequirementsOfBlock<CompletedBlock extends Block.AnyBlock> =
   | Mount.RequirementsOf<CompletedBlock[typeof Block.LocalMountsTypeId]>
-  | Block.RequirementsOfBindings<CompletedBlock['childBindings']>
+  | Block.RequirementsOfBindings<CompletedBlock['bindings']>
 
-const ComboboxMountRequirementsMessage = defineMessageUnion({
-  GotComboboxMessage: { message: Combobox.Message },
-})
+type MountRequirementsOfBindingRequirement<Requirement> =
+  Requirement extends Readonly<{
+    __blockBindingRequirement: Readonly<{
+      block: Readonly<{ mountRequirements: () => infer Requirements }>
+    }>
+  }>
+    ? Requirements
+    : never
 
-const foldComboboxOutMessage = Combobox.OutMessage.match<
-  Update.Step<Combobox.Model, typeof ComboboxMountRequirementsMessage.Type>
+const TestCombobox = Combobox.create()
+
+const foldComboboxOutMessage = TestCombobox.OutMessage.match<
+  Update.Step<typeof TestCombobox.Model.Type, never>
 >({
   Selected: () =>
     ComboboxMountRequirementsDefinition.step(model => ({ model })),
@@ -43,27 +57,26 @@ const foldComboboxOutMessage = Combobox.OutMessage.match<
     ComboboxMountRequirementsDefinition.step(model => ({ model })),
 })
 
-const ComboboxMountRequirementsDefinition = Block.define(
+const ComboboxMountRequirementsDefinition = Block.makeDefinition(
   'ComboboxMountRequirements',
   {
-    Model: Combobox.Model,
-    Message: ComboboxMountRequirementsMessage,
+    Model: TestCombobox.Model,
+    Message: Schema.Never,
   },
 )
 
 const ComboboxBinding = ComboboxMountRequirementsDefinition.bindChild(
-  Combobox.block,
+  TestCombobox,
   {
     read: model => Option.some(model),
     write: (_model, nextCombobox) => nextCombobox,
-    parentMessage: ComboboxMountRequirementsMessage.GotComboboxMessage,
     outMessage: { fold: foldComboboxOutMessage },
   },
 )
 
 const embeddedCombobox = ComboboxBinding.embedView({
   slotId: 'combobox',
-  model: Combobox.init({ id: 'combobox' }),
+  model: TestCombobox.init({ id: 'combobox' }).model,
   viewInputs: {
     items: [],
     restingInputValue: '',
@@ -74,37 +87,34 @@ const embeddedCombobox = ComboboxBinding.embedView({
   },
 })
 
-const ListboxMountRequirementsMessage = defineMessageUnion({
-  GotListboxMessage: { message: Listbox.Message },
-})
+const TestListbox = Listbox.create()
 
-const foldListboxOutMessage = Listbox.OutMessage.match<
-  Update.Step<Listbox.Model, typeof ListboxMountRequirementsMessage.Type>
+const foldListboxOutMessage = TestListbox.OutMessage.match<
+  Update.Step<typeof TestListbox.Model.Type, never>
 >({
   Selected: () => ListboxMountRequirementsDefinition.step(model => ({ model })),
 })
 
-const ListboxMountRequirementsDefinition = Block.define(
+const ListboxMountRequirementsDefinition = Block.makeDefinition(
   'ListboxMountRequirements',
   {
-    Model: Listbox.Model,
-    Message: ListboxMountRequirementsMessage,
+    Model: TestListbox.Model,
+    Message: Schema.Never,
   },
 )
 
 const ListboxBinding = ListboxMountRequirementsDefinition.bindChild(
-  Listbox.block,
+  TestListbox,
   {
     read: model => Option.some(model),
     write: (_model, nextListbox) => nextListbox,
-    parentMessage: ListboxMountRequirementsMessage.GotListboxMessage,
     outMessage: { fold: foldListboxOutMessage },
   },
 )
 
 const embeddedListbox = ListboxBinding.embedView({
   slotId: 'listbox',
-  model: Listbox.init({ id: 'listbox' }),
+  model: TestListbox.init({ id: 'listbox' }).model,
   viewInputs: {
     items: [],
     itemToConfig: () => ({ content: null }),
@@ -114,31 +124,31 @@ const embeddedListbox = ListboxBinding.embedView({
   },
 })
 
-const MenuMountRequirementsMessage = defineMessageUnion({
-  GotMenuMessage: { message: Menu.Message },
-})
+const TestMenu = Menu.create()
 
-const foldMenuOutMessage = Menu.OutMessage.match<
-  Update.Step<Menu.Model, typeof MenuMountRequirementsMessage.Type>
+const foldMenuOutMessage = TestMenu.OutMessage.match<
+  Update.Step<typeof TestMenu.Model.Type, never>
 >({
   Selected: () => MenuMountRequirementsDefinition.step(model => ({ model })),
 })
 
-const MenuMountRequirementsDefinition = Block.define('MenuMountRequirements', {
-  Model: Menu.Model,
-  Message: MenuMountRequirementsMessage,
-})
+const MenuMountRequirementsDefinition = Block.makeDefinition(
+  'MenuMountRequirements',
+  {
+    Model: TestMenu.Model,
+    Message: Schema.Never,
+  },
+)
 
-const MenuBinding = MenuMountRequirementsDefinition.bindChild(Menu.block, {
+const MenuBinding = MenuMountRequirementsDefinition.bindChild(TestMenu, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
-  parentMessage: MenuMountRequirementsMessage.GotMenuMessage,
   outMessage: { fold: foldMenuOutMessage },
 })
 
 const embeddedMenu = MenuBinding.embedView({
   slotId: 'menu',
-  model: Menu.init({ id: 'menu' }),
+  model: TestMenu.init({ id: 'menu' }).model,
   viewInputs: {
     items: [],
     itemToConfig: () => ({ content: null }),
@@ -146,55 +156,61 @@ const embeddedMenu = MenuBinding.embedView({
   },
 })
 
+const TestVirtualList = VirtualList.create<string>()
+
 it('carries each mounted component registry through its view type', () => {
-  expectTypeOf<RequirementsOfView<typeof DatePicker.view>>().toEqualTypeOf<
-    RequirementsOfBlock<typeof DatePicker.block>
+  expectTypeOf<
+    RequirementsOfView<typeof DatePickerInternal.view>
+  >().toEqualTypeOf<RequirementsOfBlock<typeof DatePicker.DatePickerBlock>>()
+  expectTypeOf<RequirementsOfView<typeof DialogInternal.view>>().toEqualTypeOf<
+    RequirementsOfBlock<typeof Dialog.DialogBlock>
   >()
-  expectTypeOf<RequirementsOfView<typeof Dialog.view>>().toEqualTypeOf<
-    RequirementsOfBlock<typeof Dialog.block>
+  expectTypeOf<RequirementsOfView<typeof PopoverInternal.view>>().toEqualTypeOf<
+    RequirementsOfBlock<typeof Popover.PopoverBlock>
   >()
-  expectTypeOf<RequirementsOfView<typeof Popover.view>>().toEqualTypeOf<
-    RequirementsOfBlock<typeof Popover.block>
-  >()
-  expectTypeOf<RequirementsOfView<typeof Tooltip.view>>().toEqualTypeOf<
-    RequirementsOfBlock<typeof Tooltip.block>
+  expectTypeOf<RequirementsOfView<typeof TooltipInternal.view>>().toEqualTypeOf<
+    RequirementsOfBlock<typeof Tooltip.TooltipBlock>
   >()
   expectTypeOf<
-    RequirementsOfView<ReturnType<typeof VirtualList.view<string>>>
-  >().toEqualTypeOf<
-    RequirementsOfBlock<ReturnType<typeof VirtualList.create<string>>>
-  >()
+    RequirementsOfView<ReturnType<typeof VirtualListInternal.view<string>>>
+  >().toEqualTypeOf<RequirementsOfBlock<typeof TestVirtualList>>()
   expectTypeOf<
-    RequirementsOfView<typeof embeddedCombobox.view>
-  >().toEqualTypeOf<Block.RequirementOfBinding<typeof ComboboxBinding>>()
-  expectTypeOf<
-    Mount.RequirementsOf<
-      (typeof Combobox.block)[typeof Block.LocalMountsTypeId]
+    MountRequirementsOfBindingRequirement<
+      RequirementsOfView<typeof embeddedCombobox.view>
     >
-  >().toEqualTypeOf<Mount.RequirementsOf<typeof Combobox.mounts>>()
-  expectTypeOf<RequirementsOfView<typeof embeddedListbox.view>>().toEqualTypeOf<
-    Block.RequirementOfBinding<typeof ListboxBinding>
-  >()
+  >().toEqualTypeOf<Mount.RequirementsOf<typeof ComboboxInternal.mounts>>()
   expectTypeOf<
-    Mount.RequirementsOf<(typeof Listbox.block)[typeof Block.LocalMountsTypeId]>
-  >().toEqualTypeOf<Mount.RequirementsOf<typeof Listbox.mounts>>()
-  expectTypeOf<RequirementsOfView<typeof embeddedMenu.view>>().toEqualTypeOf<
-    Block.RequirementOfBinding<typeof MenuBinding>
-  >()
+    Mount.RequirementsOf<(typeof TestCombobox)[typeof Block.LocalMountsTypeId]>
+  >().toEqualTypeOf<Mount.RequirementsOf<typeof ComboboxInternal.mounts>>()
   expectTypeOf<
-    Mount.RequirementsOf<(typeof Menu.block)[typeof Block.LocalMountsTypeId]>
-  >().toEqualTypeOf<Mount.RequirementsOf<typeof Menu.mounts>>()
+    MountRequirementsOfBindingRequirement<
+      RequirementsOfView<typeof embeddedListbox.view>
+    >
+  >().toEqualTypeOf<Mount.RequirementsOf<typeof ListboxInternal.mounts>>()
+  expectTypeOf<
+    Mount.RequirementsOf<(typeof TestListbox)[typeof Block.LocalMountsTypeId]>
+  >().toEqualTypeOf<Mount.RequirementsOf<typeof ListboxInternal.mounts>>()
+  expectTypeOf<
+    MountRequirementsOfBindingRequirement<
+      RequirementsOfView<typeof embeddedMenu.view>
+    >
+  >().toEqualTypeOf<Mount.RequirementsOf<typeof MenuInternal.mounts>>()
+  expectTypeOf<
+    Mount.RequirementsOf<(typeof TestMenu)[typeof Block.LocalMountsTypeId]>
+  >().toEqualTypeOf<Mount.RequirementsOf<typeof MenuInternal.mounts>>()
 })
 
 it('keeps the pure Calendar wrapper free of Mount requirements', () => {
   expectTypeOf<
-    RequirementsOfView<typeof Calendar.view>
+    RequirementsOfView<typeof CalendarInternal.view>
   >().toEqualTypeOf<never>()
 })
 
 it('marks only the slot groups that carry Mount attributes', () => {
   expectTypeOf<Dialog.RenderInfo['dialog']>().toEqualTypeOf<
-    ReadonlyArray<ChildAttribute<Mount.RequirementsOf<typeof Dialog.mounts>>>
+    ReadonlyArray<
+      ChildAttribute<Mount.RequirementsOf<typeof DialogInternal.mounts>>
+    >
   >()
   expectTypeOf<Dialog.RenderInfo['panel']>().toEqualTypeOf<
     ReadonlyArray<ChildAttribute>
@@ -202,12 +218,14 @@ it('marks only the slot groups that carry Mount attributes', () => {
 
   expectTypeOf<Popover.RenderInfo['panel']>().toEqualTypeOf<
     ReadonlyArray<
-      ChildAttribute<Mount.RequirementsOf<typeof Popover.AnchorPopover>>
+      ChildAttribute<Mount.RequirementsOf<typeof PopoverInternal.AnchorPopover>>
     >
   >()
   expectTypeOf<Popover.RenderInfo['backdrop']>().toEqualTypeOf<
     ReadonlyArray<
-      ChildAttribute<Mount.RequirementsOf<typeof Popover.PortalPopoverBackdrop>>
+      ChildAttribute<
+        Mount.RequirementsOf<typeof PopoverInternal.PortalPopoverBackdrop>
+      >
     >
   >()
   expectTypeOf<Popover.RenderInfo['button']>().toEqualTypeOf<
@@ -215,7 +233,9 @@ it('marks only the slot groups that carry Mount attributes', () => {
   >()
 
   expectTypeOf<Tooltip.RenderInfo['panel']>().toEqualTypeOf<
-    ReadonlyArray<ChildAttribute<Mount.RequirementsOf<typeof Tooltip.mounts>>>
+    ReadonlyArray<
+      ChildAttribute<Mount.RequirementsOf<typeof TooltipInternal.mounts>>
+    >
   >()
   expectTypeOf<Tooltip.RenderInfo['trigger']>().toEqualTypeOf<
     ReadonlyArray<ChildAttribute>

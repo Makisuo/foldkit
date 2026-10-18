@@ -1,12 +1,9 @@
 import { Option } from 'effect'
-import { Html, HtmlBuilder } from 'foldkit/html'
-
-import { RadioGroup } from '@foldkit/ui'
+import type { Html } from 'foldkit/html'
 
 import type { ApplicationViewBuilder } from '../composition'
 import * as Icon from '../icon'
-import { Message } from '../message'
-import { CheckoutState, editionName } from '../model'
+import { CheckoutState, EditionRadioGroupBlock, editionName } from '../model'
 import { cartView } from './cart'
 import { bookCoverView } from './header'
 import { paymentView } from './payment'
@@ -24,7 +21,7 @@ import { cancelledView, confirmedView, placingView } from './status'
 
 export const checkoutContentView = (
   state: typeof CheckoutState.Type,
-  editionRadioGroup: typeof RadioGroup.Model.Type,
+  editionRadioGroup: typeof EditionRadioGroupBlock.Model.Type,
   h: ApplicationViewBuilder,
 ): Html =>
   CheckoutState.match(state, {
@@ -39,7 +36,7 @@ export const checkoutContentView = (
 
 export const checkoutPanelView = (
   state: typeof CheckoutState.Type,
-  editionRadioGroup: typeof RadioGroup.Model.Type,
+  editionRadioGroup: typeof EditionRadioGroupBlock.Model.Type,
   h: ApplicationViewBuilder,
 ): Html =>
   h.section(
@@ -76,7 +73,7 @@ export const checkoutPanelView = (
 
 export const orderSummaryView = (
   state: typeof CheckoutState.Type,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ): Html => {
   const pricing = orderPricing(
     state.isShippingRequired,

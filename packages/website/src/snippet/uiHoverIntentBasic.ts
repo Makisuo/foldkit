@@ -10,36 +10,36 @@ import type { RenderInfo as HoverIntentRenderInfo } from '@foldkit/ui/hoverInten
 
 // Add a field to your Model:
 const Model = Schema.Struct({
-  hoverIntent: HoverIntent.Model,
+  hoverIntent: HoverIntent.HoverIntentBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
 
-// Embed child Messages in your parent Message:
-const Message = defineMessageUnion({
-  GotHoverIntentMessage: { message: HoverIntent.Message },
-})
+// This excerpt has no parent-owned facts. The Composition derives delivery.
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const foldHoverIntentOutMessage = HoverIntent.OutMessage.match<
+const foldHoverIntentOutMessage = HoverIntent.HoverIntentBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
-  Opened: () => model => ({ model }),
-  Closed: () => model => ({ model }),
+  Opened: () => HoverIntentExampleDefinition.stepNoop(),
+  Closed: () => HoverIntentExampleDefinition.stepNoop(),
 })
 
-const HoverIntentExampleDefinition = Block.define('HoverIntentExample', {
-  Model,
-  Message,
-})
+const HoverIntentExampleDefinition = Block.makeDefinition(
+  'HoverIntentExample',
+  {
+    Model,
+    Message,
+  },
+)
 
 const HoverIntentBinding = HoverIntentExampleDefinition.bindChild(
-  HoverIntent.block,
+  HoverIntent.HoverIntentBlock,
   {
     field: 'hoverIntent',
-    parentMessage: Message.GotHoverIntentMessage,
     init: {
-      startupToArgs: () => Tuple.make({ openDelay: 200, closeDelay: 300 }),
+      contextToArgs: () => Tuple.make({ openDelay: 200, closeDelay: 300 }),
     },
     outMessage: { fold: foldHoverIntentOutMessage },
   },
@@ -47,7 +47,7 @@ const HoverIntentBinding = HoverIntentExampleDefinition.bindChild(
 
 const HoverIntentExampleComposition =
   HoverIntentExampleDefinition.makeComposition({
-    childBindings: [HoverIntentBinding],
+    bindings: [HoverIntentBinding],
   })
 
 // Initialize it. This behavior primitive owns no DOM id:

@@ -1,16 +1,15 @@
 import { clsx } from 'clsx'
 import { Array } from 'effect'
-import { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
 import * as Icon from '../icon'
-import { Message } from '../message'
 import { CheckoutState } from '../model'
 import { currentProgressIndex, progressSteps } from './shared'
 
 export const bookCoverView = (
   className: string,
   isCompact: boolean,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ): Html => {
   const coverClassName = clsx(
     'relative grid content-start overflow-hidden bg-orange-800 text-orange-50',
@@ -57,7 +56,7 @@ export const bookCoverView = (
   )
 }
 
-export const pageHeaderView = (h: HtmlBuilder<Message>): Html =>
+export const pageHeaderView = (h: ApplicationViewBuilder): Html =>
   h.header(
     [h.Class('border-b border-stone-300 bg-stone-50')],
     [
@@ -133,7 +132,7 @@ export const progressIndicatorClassName = (
 
 export const progressView = (
   state: typeof CheckoutState.Type,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ): Html => {
   const progressIndex = currentProgressIndex(state)
 
@@ -191,3 +190,4 @@ export const progressView = (
     ],
   )
 }
+import type { ApplicationViewBuilder } from '../composition'

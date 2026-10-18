@@ -1,47 +1,32 @@
-import { Option } from 'effect'
+import { Option, Schema } from 'effect'
 import { Block } from 'foldkit'
-import { defineMessageUnion } from 'foldkit/message'
 import * as Scene from 'foldkit/scene'
 import * as Update from 'foldkit/update'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import {
-  AnchorTooltip,
-  Message,
-  Model,
-  OutMessage,
-  block,
-  init,
-  triggerId,
-} from './index.js'
+import { AnchorTooltip, Model, TooltipBlock, triggerId } from './block.js'
+import { Message, OutMessage } from './message.js'
 
-const TooltipSceneMessage = defineMessageUnion({
-  GotTooltipMessage: { message: Message },
+const TooltipSceneDefinition = Block.makeDefinition('TooltipScene', {
+  Model,
+  Message: Schema.Never,
 })
 
-const TooltipSceneDefinition = Block.define('TooltipScene', {
-  Model,
-  Message: TooltipSceneMessage,
-})
-
-const foldTooltipOutMessage = OutMessage.match<
-  Update.Step<Model, typeof TooltipSceneMessage.Type>
->({
+const foldTooltipOutMessage = OutMessage.match<Update.Step<Model, never>>({
   Shown: () => TooltipSceneDefinition.step(model => ({ model })),
   Hidden: () => TooltipSceneDefinition.step(model => ({ model })),
 })
 
-const TooltipBinding = TooltipSceneDefinition.bindChild(block, {
+const TooltipBinding = TooltipSceneDefinition.bindChild(TooltipBlock, {
   read: model => Option.some(model),
   write: (_model, nextTooltip) => nextTooltip,
-  parentMessage: TooltipSceneMessage.GotTooltipMessage,
   outMessage: { fold: foldTooltipOutMessage },
 })
 
 const TooltipSceneComposition = TooltipSceneDefinition.makeComposition({
-  childBindings: [TooltipBinding],
+  bindings: [TooltipBinding],
 })
 
 const update = TooltipSceneComposition.makeUpdate()
@@ -84,10 +69,15 @@ const sceneView = Scene.withViewInputs(rootView, {})
 const trigger = Scene.selector('#test-trigger')
 const panel = Scene.selector('#test-panel')
 
-const hiddenModel = init({ id: 'test' })
+const hiddenModel = TooltipBlock.init({ id: 'test' }).model
 const triggerFocus = update(
-  init({ id: 'test' }),
-  TooltipSceneMessage.GotTooltipMessage({ message: Message.FocusedTrigger() }),
+  TooltipBlock.init({ id: 'test' }).model,
+  Schema.decodeUnknownSync(TooltipSceneComposition.Message)({
+    _tag: 'GotTooltipMessage',
+    placement: 'Tooltip',
+    generation: 0,
+    message: Message.FocusedTrigger(),
+  }),
 )
 
 describe('Tooltip', () => {

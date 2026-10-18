@@ -92,7 +92,7 @@ The Effect type tracks the resource value, failure, and requirements, but not wh
 
 ### foldkit/prefer-command-mapmessage {#prefer-command-mapmessage}
 
-Lifts a Command result Message with `Command.mapMessage` or `Command.mapMessages`, not by mapping the Effect inside `Command.mapEffect`. Mapping the Effect dispatches correctly in production but records nothing on the message-mapping chain, so Story and Scene `resolve` see the raw child Message.
+Lifts a Command result Message with `Command.mapMessage` or `Command.mapMessages`, not by mapping the Effect inside `Command.mapEffect`. Mapping the Effect dispatches correctly in production but records nothing on the message-mapping chain, so Story and Scene `resolve` see the original Message. Bindings already lift child Block Commands; this rule applies to explicit Message transformations within a feature or a standalone utility.
 
 `Command.mapEffect` is appropriate when the result Message stays the same and the Effect's execution changes, such as providing a service, adding retry or delay behavior, or changing its error or requirement channel. Its type preserves the result Message; use the Message-specific helpers when the result itself changes.
 
@@ -256,7 +256,7 @@ Flags turning off the freezeModel or slow dev guardrails. Fix the mutation or sl
 
 ### foldkit/block-name-matches-variable {#block-name-matches-variable}
 
-Requires a direct `Block.define` declaration with a literal name to use `<BlockId>Definition` while preserving the runtime Block ID, such as `SearchDefinition = Block.define('Search', ...)`. Root authoring uses `ApplicationDefinition`; Composition values keep `<BlockId>Composition` and `ApplicationComposition`. The rule follows imports from `foldkit` and `foldkit/block`, including aliases and namespace imports. It leaves dynamic names, locally shadowed bindings, and unrelated `define` methods alone.
+Requires a direct `Block.makeDefinition` declaration with a literal name to use `<BlockId>Definition` while preserving the runtime Block ID, such as `SearchDefinition = Block.makeDefinition('Search', ...)`. Root authoring uses `ApplicationDefinition`; Composition values keep `<BlockId>Composition` and `ApplicationComposition`. The rule follows imports from `foldkit` and `foldkit/block`, including aliases and namespace imports. It leaves dynamic names, locally shadowed bindings, and unrelated `makeDefinition` methods alone.
 
 The rule reports without changing the source. Whether the identifier or runtime name should change depends on the Block's public identity.
 
@@ -276,47 +276,34 @@ The rule fixes straightforward object literals. If removal could disturb a comme
 
 ::Snippet{name="lintNoEmptyToParentOutMessage" label="Rule: foldkit/no-empty-to-parent-out-message"}
 
-### foldkit/got-block-message-name {#got-block-message-name}
+### Legacy wrapper rules
 
-Requires wrapper Messages around Block Messages to use the Got\*Message convention.
+The following published rule IDs remain available for projects maintaining authored child wrappers. They are disabled in both current presets. Current Bindings derive their envelopes, so new Blocks do not declare or map these wrappers.
 
-::Snippet{name="lintGotBlockMessageName" label="Rule: foldkit/got-block-message-name"}
-
-### foldkit/got-prefix-requires-block-payload {#got-prefix-requires-block-payload}
-
-Reserves the Got\* prefix for Block wrappers. Any Got-prefixed Message must include a child Message payload named message.
-
-::Snippet{name="lintGotPrefixRequiresBlockPayload" label="Rule: foldkit/got-prefix-requires-block-payload"}
-
-### foldkit/wrap-child-output-in-got-message {#wrap-child-output-in-got-message}
-
-Requires child Command and Subscription output to be wrapped through a Got\*Message constructor, preserving the one-wrap-per-level Block convention.
-
-::Snippet{name="lintWrapChildOutputInGotMessage" label="Rule: foldkit/wrap-child-output-in-got-message"}
-
-### foldkit/got-wrapper-carries-only-routing {#got-wrapper-carries-only-routing}
-
-Keeps a Got wrapper payload to the child Message plus routing keys: `message`, `id`, `key`, or keys ending in `Id`. Unrelated business fields are rejected.
-
-::Snippet{name="lintGotWrapperCarriesOnlyRouting" label="Rule: foldkit/got-wrapper-carries-only-routing"}
+- `foldkit/got-block-message-name` requires legacy wrapper names to follow `Got*Message`.
+- `foldkit/got-prefix-requires-block-payload` requires a legacy `Got*` variant to carry a child Message.
+- `foldkit/wrap-child-output-in-got-message` checks legacy child output wrapping.
+- `foldkit/got-wrapper-carries-only-routing` restricts legacy wrapper payloads to the child Message and routing fields.
 
 ### foldkit/no-manual-composition-routing {#no-manual-composition-routing}
 
-Keeps registered child wrapper routing out of authored Composition updates. It reports `fromParentMessage: false`, a custom inline `toParentMessage` mapping with no incoming route, `Got*` handlers in an owned `makeUpdate` callback, and inspection of the child Message inside a wrapper. Register the exact incoming route and move parent reactions to the Binding's OutMessage policy. A Message-free Binding omits Message mapping.
+Keeps generated child delivery out of authored updates. It reports authored `parentMessage`, `toParentMessage`, and `fromParentMessage` fields in recognized Binding configurations, including paired mappings. It also reports `Got*` handlers in an owned `makeUpdate` callback and inspection of internal child Message tags. Composition routes registered Bindings automatically. Use `delivery.when` and `delivery.toUpdateContext` for delivery policy, and the Binding's OutMessage policy for parent coordination.
 
-The rule follows inline and top-level extracted update callbacks and handler records in the same file. The missing-route check is limited to inline Binding configs without spreads. Wrapper Schema declarations, standalone `Binding.fold` calls, foreign `makeUpdate` APIs, and test files remain valid.
+The rule follows inline and top-level extracted update callbacks and handler records in the same file. It does not perform cross-file type analysis. Standalone `Binding.fold` calls, unrelated `makeUpdate` APIs, and test fixtures remain valid. Runtime and type checks establish the actual graph; lint checks the recognized source patterns.
 
 ::Snippet{name="lintNoManualCompositionRouting" label="Rule: foldkit/no-manual-composition-routing"}
 
 ### foldkit/no-child-message-construction-in-root {#no-child-message-construction-in-root}
 
-Rejects constructing a child Message variant from a parent, including through a local `const` alias of the child constructor or namespace. Expose a local Message constructor or a Message tuple producer under the child Block’s `operations`, then call the direct Binding method, such as `PeopleBinding.requestClearSelection()`. Forward received child Messages through `people.fold(model, message)` instead. Child-owned authoring helpers may construct that child's Messages. Schema/type references remain valid for parent wrapper Messages, and tests may construct Messages to exercise updates. The rule cannot infer the origin of an arbitrary prebuilt Message value. See [Informing Blocks](/patterns/informing-blocks) for the complete pattern.
+Rejects constructing a child Message variant from a parent, including through a local `const` alias of the child constructor or namespace. Expose a local Message constructor or a Message tuple producer under the child Block’s `operations`, then call the direct Binding method, such as `PeopleBinding.requestClearSelection()`. Forward received child Messages through `PeopleBinding.fold(model, message)` instead. Child-owned authoring helpers may construct that child's Messages. Schema/type references to the completed Block remain valid, and tests may construct local Messages to exercise updates. The rule cannot infer the origin of an arbitrary prebuilt Message value. See [Informing Blocks](/patterns/informing-blocks) for the complete pattern.
 
 ::Snippet{name="lintNoChildMessageConstructionInRoot" label="Rule: foldkit/no-child-message-construction-in-root"}
 
 ### foldkit/no-direct-block-state-update {#no-direct-block-state-update}
 
-Flags a parent update that uses nested `modifyFields` or a namespace `reflect*` helper to change a known Block field directly. The child update does not run, so validation, Commands, and OutMessages can be skipped. The rule establishes ownership from a module-scope child Binding whose `read` and `write` point to the same field, then checks the parent Model passed through that Binding. Call a Message-producing child operation through the Binding so the child update owns the transition. The rule also reports copying only `.model` from a child update or operation result, which can discard Commands or an OutMessage. Use a named Binding operation or forward a received child Message through `fold` to preserve the whole transition. It leaves initial Model assembly, parent-owned collection reconciliation, unrelated Models with the same field name, and Binding `write` callbacks alone. This rule includes the former `require-fold-for-child-update-result` checks; replace that retired rule ID in explicit configurations.
+Flags parent transformations that change a known child Block Model without invoking its update. This includes nested `modifyFields`, helper references, aliases, and collection transformations such as `Array.map(Entry.revealErrors)` where the rule can establish child ownership. Call a Message-backed Binding operation instead, so Commands, OutMessages, and registration evidence are preserved.
+
+The rule also reports copying only `.model` from a child update or operation result. It leaves initial Model assembly, parent-owned collection insertion and removal, ordinary domain transformations, and Binding writers alone. It derives ownership from recognized Bindings and follows local helper references; arbitrary cross-file transformations or erased ownership information are outside its analysis. This rule includes the former `require-fold-for-child-update-result` checks; replace that retired rule ID in explicit configurations.
 
 ::Snippet{name="lintNoDirectBlockStateUpdate" label="Rule: foldkit/no-direct-block-state-update"}
 

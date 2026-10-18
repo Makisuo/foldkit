@@ -1,9 +1,9 @@
 import { Array, Option, pipe } from 'effect'
-import { type Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
+import { type Html, inertHtml as ih } from 'foldkit/html'
 
-import { DragAndDrop } from '@foldkit/ui'
+import { DragAndDropBlock } from '@foldkit/ui'
 import {
-  draggable,
+  type RenderInfo,
   droppable,
   ghostStyle,
   isDragging,
@@ -12,8 +12,9 @@ import {
   sortable,
 } from '@foldkit/ui/dragAndDrop'
 
-import { Message } from '../message'
-import type { DemoCard, DemoColumn, Model } from '../model'
+import { DragAndDropDemoBinding, type UiViewBuilder } from '../composition'
+import type { DemoCard, DemoColumn } from '../domain/domain'
+import type { Model } from '../model'
 
 // HELPERS
 
@@ -42,8 +43,9 @@ const cardView = (
   card: DemoCardType,
   index: number,
   containerId: string,
-  dragAndDropModel: typeof DragAndDrop.Model.Type,
-  h: HtmlBuilder<Message>,
+  dragAndDropModel: typeof DragAndDropBlock.Model.Type,
+  draggable: RenderInfo['draggable'],
+  h: UiViewBuilder,
 ): Html => {
   const maybeItemId = maybeDraggedItemId(dragAndDropModel)
   const isBeingDragged = Option.exists(maybeItemId, id => id === card.id)
@@ -61,17 +63,7 @@ const cardView = (
   return h.div(
     [
       h.Class(cardClassName + opacityClass + keyboardClass),
-      ...draggable(
-        {
-          model: dragAndDropModel,
-          toParentMessage: message =>
-            Message.GotDragAndDropDemoMessage({ message }),
-          itemId: card.id,
-          containerId,
-          index,
-        },
-        h,
-      ),
+      ...draggable({ itemId: card.id, containerId, index }),
       ...sortable(card.id),
     ],
     [card.label],
@@ -81,8 +73,9 @@ const cardView = (
 const columnView = (
   columns: ReadonlyArray<DemoColumnType>,
   column: DemoColumnType,
-  dragAndDropModel: typeof DragAndDrop.Model.Type,
-  h: HtmlBuilder<Message>,
+  dragAndDropModel: typeof DragAndDropBlock.Model.Type,
+  draggable: RenderInfo['draggable'],
+  h: UiViewBuilder,
 ): Html => {
   const dropPlaceholder: Html = h.div([
     h.Class(
@@ -111,7 +104,7 @@ const columnView = (
   )
 
   const cardElements = Array.map(visibleCards, (card, index) =>
-    cardView(card, index, column.id, dragAndDropModel, h),
+    cardView(card, index, column.id, dragAndDropModel, draggable, h),
   )
 
   if (!isTargetColumn) {
@@ -131,7 +124,14 @@ const columnView = (
     : Option.match(findDraggedCard(columns, maybeItemId), {
         onNone: () => dropPlaceholder,
         onSome: card =>
-          cardView(card, targetIndex, column.id, dragAndDropModel, h),
+          cardView(
+            card,
+            targetIndex,
+            column.id,
+            dragAndDropModel,
+            draggable,
+            h,
+          ),
       })
 
   const withInsert: ReadonlyArray<Html> = pipe(
@@ -145,9 +145,9 @@ const columnView = (
 
 const renderColumn = (
   column: DemoColumnType,
-  dragAndDropModel: typeof DragAndDrop.Model.Type,
+  dragAndDropModel: typeof DragAndDropBlock.Model.Type,
   children: ReadonlyArray<Html>,
-  h: HtmlBuilder<Message>,
+  h: UiViewBuilder,
 ): Html => {
   const maybeTarget = maybeDropTarget(dragAndDropModel)
   const isDropTarget =
@@ -184,7 +184,7 @@ const renderColumn = (
 
 const ghostView = (
   columns: ReadonlyArray<DemoColumnType>,
-  dragAndDropModel: typeof DragAndDrop.Model.Type,
+  dragAndDropModel: typeof DragAndDropBlock.Model.Type,
 ): Html => {
   const maybeItemId = maybeDraggedItemId(dragAndDropModel)
 
@@ -212,31 +212,38 @@ const ghostView = (
   )
 }
 
-export const demo = (
-  model: Model,
-  h: HtmlBuilder<Message>,
-): ReadonlyArray<Html> => {
+export const demo = (model: Model, h: UiViewBuilder): ReadonlyArray<Html> => {
   return [
-    h.div(
-      [h.Class('mb-8 w-full max-w-md')],
-      [
-        h.div(
-          [h.Class('grid grid-cols-2 gap-4')],
-          Array.map(model.dragAndDropDemoColumns, column =>
-            columnView(
-              model.dragAndDropDemoColumns,
-              column,
-              model.dragAndDropDemo,
-              h,
+    h.block(
+      DragAndDropDemoBinding.embedView({
+        slotId: model.dragAndDropDemo.id,
+        model: model.dragAndDropDemo,
+        viewInputs: {
+          toView: ({ draggable }) =>
+            h.div(
+              [h.Class('mb-8 w-full max-w-md')],
+              [
+                h.div(
+                  [h.Class('grid grid-cols-2 gap-4')],
+                  Array.map(model.dragAndDropDemoColumns, column =>
+                    columnView(
+                      model.dragAndDropDemoColumns,
+                      column,
+                      model.dragAndDropDemo,
+                      draggable,
+                      h,
+                    ),
+                  ),
+                ),
+                ghostView(model.dragAndDropDemoColumns, model.dragAndDropDemo),
+                h.div(
+                  [h.Class('sr-only'), h.AriaLive('assertive')],
+                  [model.dragAndDropDemoAnnouncement],
+                ),
+              ],
             ),
-          ),
-        ),
-        ghostView(model.dragAndDropDemoColumns, model.dragAndDropDemo),
-        h.div(
-          [h.Class('sr-only'), h.AriaLive('assertive')],
-          [model.dragAndDropDemoAnnouncement],
-        ),
-      ],
+        },
+      }),
     ),
   ]
 }

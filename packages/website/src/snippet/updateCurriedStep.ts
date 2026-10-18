@@ -8,9 +8,15 @@ const Message = defineMessageUnion({
   InformedOfRouteChange: {},
   ClickedReset: {},
 })
-const RouteAwareDefinition = Block.define('RouteAware', { Model, Message })
-const RouteAwareComposition = RouteAwareDefinition.makeComposition()
+const RouteAwareComposition = Block.makeDefinition('RouteAware', {
+  Model,
+  Message,
+}).makeComposition()
 const informRouteChanged = Message.InformedOfRouteChange
+
+const init = RouteAwareComposition.makeInit(() => ({
+  model: Model.make({ routeChangeCount: 0 }),
+}))
 
 const update = RouteAwareComposition.makeUpdate((model, message) =>
   Message.match(message, {
@@ -25,10 +31,8 @@ const update = RouteAwareComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const block = RouteAwareComposition.makeBlock({
-  init: RouteAwareComposition.makeInit(() => ({
-    model: Model.make({ routeChangeCount: 0 }),
-  })),
+export const RouteAwareBlock = RouteAwareComposition.assembleBlock({
+  init,
   update,
   operations: { informRouteChanged },
 })

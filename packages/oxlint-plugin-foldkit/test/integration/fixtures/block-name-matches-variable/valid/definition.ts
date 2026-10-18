@@ -4,4 +4,7 @@ import { Block } from 'foldkit'
 const Model = Schema.Null
 const Message = Schema.Never
 
-export const ImportedDefinition = Block.define('Imported', { Model, Message })
+export const ImportedDefinition = Block.makeDefinition('Imported', {
+  Model,
+  Message,
+})

@@ -105,10 +105,10 @@ export const ForeignCanonicalNoteByIdLayer =
   ForeignCanonicalNoteById.EffectsLayer
 
 const ParentModel = Schema.Struct({ notes: Notes.Model })
-const ParentMessage = Message.defineMessageUnion({
-  GotNotesMessage: { message: Notes.Message },
+export const ParentMessage = Message.defineMessageUnion({
+  ClickedParent: {},
 })
-const DeclarationQueryParentDefinition = Block.define(
+const DeclarationQueryParentDefinition = Block.makeDefinition(
   'DeclarationQueryParent',
   {
     Model: ParentModel,
@@ -120,11 +120,10 @@ export const NotesChildBinding = DeclarationQueryParentDefinition.bindChild(
   Notes,
   {
     field: 'notes',
-    parentMessage: ParentMessage.GotNotesMessage,
   },
 )
 
 export const DeclarationQueryParentComposition =
   DeclarationQueryParentDefinition.makeComposition({
-    childBindings: [NotesChildBinding],
+    bindings: [NotesChildBinding],
   })

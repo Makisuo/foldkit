@@ -45,8 +45,8 @@ export type StreamFromMediaQueryConfig<Output> = Readonly<{
  *
  * @example
  * ```typescript
- * const AppDefinition = Block.define('App', { Model, Message })
- * const subscriptions = AppDefinition.subscriptions(entry => ({
+ * const ExampleDefinition = Block.makeDefinition('Example', { Model, Message })
+ * const subscriptions = ExampleDefinition.subscriptions(entry => ({
  *   reducedMotion: entry('ReducedMotion', {
  *     messages: [Message.ChangedReducedMotion],
  *     handler: function* () {

@@ -27,10 +27,8 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// Wrap Listbox's Messages so they can flow through your update:
-const Message = defineMessageUnion({
-  GotListboxMessage: { message: PlanListbox.Message },
-})
+// This excerpt has no parent-owned facts. The Composition derives delivery.
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 // At module scope, fold the OutMessage into your own Model. When the user
@@ -49,22 +47,21 @@ const foldListboxOutMessage = PlanListbox.OutMessage.match<
 
 // The Binding wires the completed child Block into the parent: it delegates keyboard
 // navigation, typeahead, and open/close to PlanListbox.update, writes the next
-// Listbox Model back, maps the Block's Commands into your Message type, and
+// Listbox Model back, routes generated delivery and Command results, and
 // hands any OutMessage to the OutMessage fold.
-const PlanPickerDefinition = Block.define('PlanPicker', {
+const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
   Model,
   Message,
 })
 
 const PlanListboxBinding = PlanPickerDefinition.bindChild(PlanListbox, {
   field: 'listbox',
-  parentMessage: Message.GotListboxMessage,
-  init: { startupToArgs: () => Tuple.make({ id: 'plan' }) },
+  init: { contextToArgs: () => Tuple.make({ id: 'plan' }) },
   outMessage: { fold: foldListboxOutMessage },
 })
 
 const PlanPickerComposition = PlanPickerDefinition.makeComposition({
-  childBindings: [PlanListboxBinding],
+  bindings: [PlanListboxBinding],
 })
 
 // In your init function, initialize the Listbox Block with a unique id:
@@ -75,13 +72,13 @@ const init = PlanPickerComposition.makeInit(() => ({
   },
 }))
 
-// The Composition routes GotListboxMessage through PlanListboxBinding.
+// The Composition routes generated Listbox delivery through the Binding.
 const update = PlanPickerComposition.makeUpdate()
 
 const plans: ReadonlyArray<Plan> = ['Free', 'Pro', 'Enterprise']
 
 // Inside your view function, embed the Listbox via h.block using
-// `PlanListbox.view`. Associate a visible label with the trigger via a native
+// its canonical view. Associate a visible label with the trigger via a native
 // `<label for>`: target the trigger id with `buttonId('plan')` from `@foldkit/ui/listbox`. The
 // `for` association gives the trigger both its accessible name and
 // click-to-focus, so ariaLabelledBy is not needed here.

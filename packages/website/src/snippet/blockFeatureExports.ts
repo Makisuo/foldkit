@@ -1,7 +1,7 @@
 // page/settings/block.ts
 const requestReset = Message.RequestedReset
 
-export const block = SettingsComposition.makeBlock({
+export const SettingsBlock = SettingsComposition.assembleBlock({
   init,
   update,
   view,
@@ -10,17 +10,16 @@ export const block = SettingsComposition.makeBlock({
 })
 
 // page/settings/index.ts
-export { block } from './block'
-export { Model, Theme } from './model'
-export { Message, OutMessage } from './message'
-
-// page/index.ts
-export * as Settings from './settings'
+export { SettingsBlock } from './block'
 
 // Parent
-import { Settings } from './page'
+import { SettingsBlock } from './page/settings'
 
-Settings.Model
-Settings.Message
-Settings.OutMessage.match
-Settings.block
+SettingsBlock.Model
+SettingsBlock.Message
+SettingsBlock.OutMessage.match
+ApplicationDefinition.bindChild(SettingsBlock, {
+  field: 'settings',
+  init: false,
+  outMessage: { fold: foldSettingsOutMessage },
+})

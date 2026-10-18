@@ -9,6 +9,7 @@ import {
   Option,
   Predicate,
   PubSub,
+  Result,
   Schema,
   pipe,
 } from 'effect'
@@ -552,18 +553,63 @@ export const makeRuntime = <
         // annotation is needed too: the `crashWith` wrapper calls the
         // renderer's, and the renderer takes this queue, so without it
         // TypeScript cannot infer either one.
-        const messageQueue: MessageQueue<Message> =
-          yield* makeMessageQueue<Message>({
-            status,
-            processMessage: message => processMessagePlain(message),
-            crashWith: (cause, maybeMessage) => crashWith(cause, maybeMessage),
-          })
-        const { enqueueMessage, enqueueMessageEffect, completeBoot } =
-          messageQueue
+        const messageQueue: MessageQueue<
+          Message,
+          Effect.Effect<Option.Option<number>>
+        > = yield* makeMessageQueue<
+          Message,
+          Effect.Effect<Option.Option<number>>
+        >({
+          status,
+          processMessage: message => processMessagePlain(message),
+          crashWith: (cause, maybeMessage) => crashWith(cause, maybeMessage),
+        })
+        const {
+          enqueueMessage,
+          enqueueMessageEffect,
+          enqueueMessageReceiptEffect,
+          completeBoot,
+        } = messageQueue
 
         const initModel = maybeFreezeModel(initModelRaw)
 
         const modelPubSub = yield* PubSub.unbounded<Model>()
+        let composition: CompositionRuntime<Model> | undefined
+        const enqueuePreparedDispatch = (
+          message: Message,
+          isCurrent?: () => boolean,
+        ): Effect.Effect<Result.Result<Option.Option<number>, string>> =>
+          Effect.flatMap(
+            enqueueMessageReceiptEffect(message, isCurrent),
+            Result.match({
+              onFailure: (
+                reason,
+              ): Effect.Effect<Result.Result<Option.Option<number>, string>> =>
+                Effect.succeed(Result.fail(reason)),
+              onSuccess: (
+                maybeRecording,
+              ): Effect.Effect<Result.Result<Option.Option<number>, string>> =>
+                Option.match(maybeRecording, {
+                  onNone: () =>
+                    Effect.succeed(Result.succeed(Option.none<number>())),
+                  onSome: recording => Effect.map(recording, Result.succeed),
+                }),
+            }),
+          )
+        const prepareDispatch = (message: unknown) => {
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          const decodedMessage = message as Message
+          if (composition === undefined) {
+            return Result.succeed(enqueuePreparedDispatch(decodedMessage))
+          }
+
+          const isCurrent = composition.externalMessageGuard(decodedMessage)
+          return isCurrent === undefined
+            ? Result.fail(
+                'Rejected stale child Message: its placement, key, or generation does not identify the currently active occurrence.',
+              )
+            : Result.succeed(enqueuePreparedDispatch(decodedMessage, isCurrent))
+        }
         const devToolsIntegration = yield* makeDevToolsIntegration<
           Model,
           Message
@@ -571,7 +617,7 @@ export const makeRuntime = <
           devTools,
           update,
           maybeFreezeModel,
-          enqueueMessageEffect,
+          prepareDispatch,
         })
         const {
           isRecordingCommands,
@@ -625,7 +671,6 @@ export const makeRuntime = <
           applicationContext,
         )
         const compositionRoot = runtimeInternals.get(program)?.compositionRoot
-        let composition: CompositionRuntime<Model> | undefined
         const runtimeContext: Context.Context<never> =
           compositionRoot === undefined
             ? nativeRuntimeContext
@@ -729,14 +774,19 @@ export const makeRuntime = <
                 attributes: command.args ?? {},
               }),
             )
+            const mapResult = captured?.mapResult
+            const deliveredCommand =
+              mapResult === undefined
+                ? providedCommand
+                : providedCommand.pipe(Effect.map(result => mapResult(result)))
             const recordedCommand =
               id !== undefined
-                ? providedCommand.pipe(
+                ? deliveredCommand.pipe(
                     Effect.tap(result =>
                       Effect.sync(() => recordCommandResult(id, result)),
                     ),
                   )
-                : providedCommand
+                : deliveredCommand
 
             Effect.runForkWith(runtimeContext)(
               Effect.forkIn(captured?.scope ?? runtimeScope)(
@@ -751,7 +801,9 @@ export const makeRuntime = <
           })
         }
 
-        const processMessagePlain = (message: Message): void => {
+        const processMessagePlain = (
+          message: Message,
+        ): Effect.Effect<Option.Option<number>> => {
           const currentModel = liveModel
 
           const [messageUpdate, maybeUpdateDuration] = measureSlowPhase(
@@ -818,7 +870,15 @@ export const makeRuntime = <
               )
             }
 
-            recordMessage(message, currentModel, nextModel, commandInvocations)
+            const recording = Effect.runForkWith(runtimeContext)(
+              recordMessage(
+                message,
+                currentModel,
+                nextModel,
+                commandInvocations,
+              ),
+            )
+            return Fiber.join(recording)
           } else {
             for (const command of commands) {
               forkCommand(
@@ -833,6 +893,7 @@ export const makeRuntime = <
                 commandOrigins.get(command),
               )
             }
+            return Effect.succeed(Option.none())
           }
         }
 

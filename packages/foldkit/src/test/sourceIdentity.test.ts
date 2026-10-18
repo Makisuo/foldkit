@@ -1,7 +1,7 @@
 import { Option, Schema } from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import { define } from '../block/define.js'
+import { makeNamespace } from '../block/define.js'
 import { qualifyCommand, qualifyEntry } from '../block/scope.js'
 import * as Command from '../command/index.js'
 import type { HtmlBuilder } from '../html/index.js'
@@ -31,10 +31,10 @@ const SecondMount = Mount.define('SharedObserve', {
 })
 
 const Model = Schema.Struct({ value: Schema.Number })
-const FirstOwnerDefinition = define('SharedFeature')
-const SecondOwnerDefinition = define('SharedFeature')
-const FirstDefinition = FirstOwnerDefinition.define({ Model, Message })
-const SecondDefinition = SecondOwnerDefinition.define({ Model, Message })
+const FirstOwnerNamespace = makeNamespace('SharedFeature')
+const SecondOwnerNamespace = makeNamespace('SharedFeature')
+const FirstDefinition = FirstOwnerNamespace.makeDefinition({ Model, Message })
+const SecondDefinition = SecondOwnerNamespace.makeDefinition({ Model, Message })
 const subscriptions = FirstDefinition.subscriptions(entry => ({
   values: entry('Values', { messages: [Message.CompletedRead] }),
 }))

@@ -41,13 +41,11 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-const FileDropDefinition = Block.define('FileDrop', {
+const FileDropComposition = Block.makeDefinition('FileDrop', {
   Model,
   Message,
   OutMessage,
-})
-
-const FileDropComposition = FileDropDefinition.makeComposition()
+}).makeComposition()
 
 // INIT
 
@@ -56,11 +54,13 @@ export type InitConfig = Readonly<{
   id: string
 }>
 
-/** Creates an initial file-drop model. Drag state starts cleared. */
-export const init = (config: InitConfig): Model => ({
-  id: config.id,
-  isDragOver: false,
-})
+/** Creates the initial FileDrop Model and Commands. Drag state starts cleared. */
+export const init = FileDropComposition.makeInit((config: InitConfig) => ({
+  model: {
+    id: config.id,
+    isDragOver: false,
+  },
+}))
 
 // UPDATE
 
@@ -161,10 +161,8 @@ export const view = FileDropComposition.makeView.withInputs<ViewInputs>(
 )
 
 /** Complete FileDrop Block definition for connecting to a parent. */
-export const block = FileDropComposition.makeBlock({
-  init: FileDropComposition.makeInit((config: InitConfig) => ({
-    model: init(config),
-  })),
+export const FileDropBlock = FileDropComposition.assembleBlock({
+  init,
   update,
   view,
   EffectsLayer: Layer.empty,

@@ -1,29 +1,22 @@
 import { Option, Schema } from 'effect'
 import { Block, Update } from 'foldkit'
-import { defineMessageUnion } from 'foldkit/message'
 import * as Scene from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
 
 import { describe, it } from '@effect/vitest'
 
-import type { ViewInputs } from './index.js'
+import type { ViewInputs } from './radioGroup.js'
 import {
   FocusOption,
   Message as RadioGroupMessage,
   OutMessage as RadioGroupOutMessage,
   create,
-  init,
-} from './index.js'
+} from './radioGroup.js'
 
 const RADIO_ID = 'test'
 const options: ReadonlyArray<string> = ['Brush', 'Fill', 'Eraser']
 
 const TestRadioGroup = create()
-
-const Message = defineMessageUnion({
-  GotRadioGroupMessage: { message: RadioGroupMessage },
-})
-type Message = typeof Message.Type
 
 const Model = Schema.Struct({
   radioGroup: TestRadioGroup.Model,
@@ -31,20 +24,20 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const RadioGroupSceneDefinition = Block.define('RadioGroupScene', {
+const RadioGroupSceneDefinition = Block.makeDefinition('RadioGroupScene', {
   Model,
-  Message,
+  Message: Schema.Never,
 })
 
 const modelWith = (maybeSelectedValue: Option.Option<string>): Model => ({
-  radioGroup: init({ id: RADIO_ID }),
+  radioGroup: TestRadioGroup.init({ id: RADIO_ID }).model,
   maybeSelectedValue,
 })
 
 const nothingSelected = modelWith(Option.none())
 
 const foldRadioGroupOutMessage = RadioGroupOutMessage.match<
-  Update.Step<Model, Message>,
+  Update.Step<Model, never>,
   RadioGroupOutMessage<string>
 >({
   Selected:
@@ -58,13 +51,12 @@ const foldRadioGroupOutMessage = RadioGroupOutMessage.match<
 
 const RadioGroupBinding = RadioGroupSceneDefinition.bindChild(TestRadioGroup, {
   field: 'radioGroup',
-  parentMessage: Message.GotRadioGroupMessage,
   init: false,
   outMessage: { fold: foldRadioGroupOutMessage },
 })
 
 const RadioGroupSceneComposition = RadioGroupSceneDefinition.makeComposition({
-  childBindings: [RadioGroupBinding],
+  bindings: [RadioGroupBinding],
 })
 
 const update = RadioGroupSceneComposition.makeUpdate()

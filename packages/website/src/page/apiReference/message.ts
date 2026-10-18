@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { ApiData } from './model'
+import { ApiData } from './domain'
 
 export const Message = defineMessageUnion({
   RequestedLoadInitialData: { maybeApiData: Schema.Option(ApiData) },

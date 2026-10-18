@@ -1,10 +1,8 @@
 import { Option, Result } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import * as Tabs from '@foldkit/ui/tabs'
-
 import type { Post, PostDetail, Stats } from './data'
-import { Model, TABS_ID } from './model'
+import { AppTabsBlock, Model, TABS_ID } from './model'
 import { postQuery, postsQuery, statsQuery } from './query'
 
 export const FETCHED_AT = 1_750_000_000_000
@@ -43,7 +41,7 @@ const loadingPostsQueryModel = postsQuery.requestRevalidationOrLoad(
 ).model
 
 export const loadingPostsModel = Model.make({
-  tabs: Tabs.init({ id: TABS_ID }),
+  tabs: AppTabsBlock.init({ id: TABS_ID }).model,
   activeTab: 'Posts',
   posts: loadingPostsQueryModel,
   postDetails: postQuery.init().model,

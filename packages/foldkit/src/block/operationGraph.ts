@@ -2,11 +2,11 @@ let currentChildBindings: ReadonlyArray<object> | undefined
 
 /** @internal Runs a synchronous Block operation with its direct child graph active. */
 export const withOperationGraph = <Value>(
-  childBindings: ReadonlyArray<object>,
+  bindings: ReadonlyArray<object>,
   operation: () => Value,
 ): Value => {
   const previousChildBindings = currentChildBindings
-  currentChildBindings = childBindings
+  currentChildBindings = bindings
 
   try {
     return operation()

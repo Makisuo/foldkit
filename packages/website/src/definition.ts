@@ -1,11 +1,11 @@
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 
+import { ChildInitContext } from './childInitContext'
 import { Message } from './message'
 import { Model } from './model'
-import { Startup } from './startup'
 
-export const ApplicationDefinition = defineApplication({
+export const ApplicationDefinition = makeApplicationDefinition({
   Model,
   Message,
-  Startup,
+  ChildInitContext,
 })

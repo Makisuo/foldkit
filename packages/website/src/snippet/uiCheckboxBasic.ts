@@ -21,9 +21,10 @@ const Message = defineMessageUnion({
 })
 
 type Message = typeof Message.Type
-
-const TermsFormDefinition = Block.define('TermsForm', { Model, Message })
-const TermsFormComposition = TermsFormDefinition.makeComposition()
+const TermsFormComposition = Block.makeDefinition('TermsForm', {
+  Model,
+  Message,
+}).makeComposition()
 
 // In your init function, start it unchecked:
 const init = TermsFormComposition.makeInit(() => ({

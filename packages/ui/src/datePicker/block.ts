@@ -20,8 +20,8 @@ import * as Popover from '../popover/index.js'
  * transition layer). */
 export const Model = Schema.Struct({
   id: Schema.String,
-  calendar: UiCalendar.Model,
-  popover: Popover.Model,
+  calendar: UiCalendar.CalendarBlock.Model,
+  popover: Popover.PopoverBlock.Model,
 })
 export type Model = typeof Model.Type
 
@@ -29,8 +29,6 @@ export type Model = typeof Model.Type
 
 /** Union of all messages the date picker component can produce. */
 export const Message = defineMessageUnion({
-  GotCalendarMessage: { message: UiCalendar.Message },
-  GotPopoverMessage: { message: Popover.Message },
   RequestedOpen: {},
   RequestedClose: {},
   RequestedSelectDate: { date: Calendar.CalendarDate },
@@ -71,7 +69,7 @@ export type ChangedViewMonth = typeof OutMessage.ChangedViewMonth.Type
 export type SelectedDate = typeof OutMessage.SelectedDate.Type
 export type ClearedDate = typeof OutMessage.ClearedDate.Type
 
-const DatePickerDefinition = Block.define('DatePicker', {
+const DatePickerDefinition = Block.makeDefinition('DatePicker', {
   Model,
   Message,
   OutMessage,
@@ -92,15 +90,9 @@ export type InitConfig = Readonly<{
   disabledDates?: ReadonlyArray<CalendarDate>
 }>
 
-/** Creates an initial date picker model from a config. The selected date is
- * owned by the parent; pass its current value as `initialViewDate` to open the
- * calendar onto that month. The Calendar and Popover Blocks are created
- * with derived ids so their DOM elements stay addressable. The popover is
- * opened in `contentFocus` mode so focus lands on the calendar grid instead of
- * the panel. */
-export const init = (config: InitConfig): Model => ({
+const makeInitialModel = (config: InitConfig): Model => ({
   id: config.id,
-  calendar: UiCalendar.init({
+  calendar: UiCalendar.CalendarBlock.init({
     id: `${config.id}-calendar`,
     today: config.today,
     ...(config.initialViewDate !== undefined && {
@@ -115,52 +107,71 @@ export const init = (config: InitConfig): Model => ({
     ...(config.disabledDates !== undefined && {
       disabledDates: config.disabledDates,
     }),
-  }),
-  popover: Popover.init({
+  }).model,
+  popover: Popover.PopoverBlock.init({
     id: `${config.id}-popover`,
     contentFocus: true,
     ...(config.isAnimated !== undefined && { isAnimated: config.isAnimated }),
-  }),
+  }).model,
 })
 
 // UPDATE
 
-const foldPopoverOutMessage = Popover.OutMessage.match({
+const foldPopoverOutMessage = Popover.PopoverBlock.OutMessage.match({
   Opened: () => CalendarBinding.requestDropToDays(),
   Closed: () => CalendarBinding.requestDropToDays(),
 })
 
-const PopoverBinding = DatePickerDefinition.bindChild(Popover.block, {
+const PopoverBinding = DatePickerDefinition.bindChild(Popover.PopoverBlock, {
   field: 'popover',
-  parentMessage: Message.GotPopoverMessage,
   init: false,
   outMessage: { fold: foldPopoverOutMessage },
 })
 
-const foldCalendarOutMessage = UiCalendar.OutMessage.match({
-  ChangedViewMonth: () => DatePickerDefinition.step(model => ({ model })),
+const foldCalendarOutMessage = UiCalendar.CalendarBlock.OutMessage.match({
+  ChangedViewMonth: () => DatePickerDefinition.stepNoop(),
   SelectedDate: () => PopoverBinding.requestClose(),
 })
 
-const toDatePickerOutMessage = UiCalendar.OutMessage.match<OutMessage>({
-  ChangedViewMonth: ({ year, month }) =>
-    OutMessage.ChangedViewMonth({ year, month }),
-  SelectedDate: ({ date }) => OutMessage.SelectedDate({ date }),
-})
+const toDatePickerOutMessage =
+  UiCalendar.CalendarBlock.OutMessage.match<OutMessage>({
+    ChangedViewMonth: ({ year, month }) =>
+      OutMessage.ChangedViewMonth({ year, month }),
+    SelectedDate: ({ date }) => OutMessage.SelectedDate({ date }),
+  })
 
-const CalendarBinding = DatePickerDefinition.bindChild(UiCalendar.block, {
-  field: 'calendar',
-  parentMessage: Message.GotCalendarMessage,
-  init: false,
-  outMessage: {
-    forward: toDatePickerOutMessage,
-    fold: foldCalendarOutMessage,
+const CalendarBinding = DatePickerDefinition.bindChild(
+  UiCalendar.CalendarBlock,
+  {
+    field: 'calendar',
+    init: false,
+    outMessage: {
+      forward: toDatePickerOutMessage,
+      fold: foldCalendarOutMessage,
+    },
   },
+)
+
+const DatePickerComposition: Block.Composition<
+  typeof DatePickerDefinition.owner,
+  typeof Model,
+  typeof Message,
+  typeof OutMessage,
+  readonly [],
+  readonly [typeof PopoverBinding, typeof CalendarBinding]
+> = DatePickerDefinition.makeComposition({
+  bindings: [PopoverBinding, CalendarBinding],
 })
 
-const DatePickerComposition = DatePickerDefinition.makeComposition({
-  childBindings: [PopoverBinding, CalendarBinding],
-})
+/** Creates an initial DatePicker Model and Commands from a config. The selected date is
+ * owned by the parent; pass its current value as `initialViewDate` to open the
+ * calendar onto that month. The Calendar and Popover Blocks are created
+ * with derived ids so their DOM elements stay addressable. The popover is
+ * opened in `contentFocus` mode so focus lands on the calendar grid instead of
+ * the panel. */
+export const init = DatePickerComposition.makeInit((config: InitConfig) => ({
+  model: makeInitialModel(config),
+}))
 
 /** Mount Definitions rendered by DatePicker's Popover child. */
 export const mounts = DatePickerComposition.mounts
@@ -418,11 +429,8 @@ export const view = DatePickerComposition.makeView.withInputs<ViewInputs>(
   },
 )
 
-/** Complete DatePicker Block definition. */
-export const block = DatePickerComposition.makeBlock({
-  init: DatePickerComposition.makeInit((config: InitConfig) => ({
-    model: init(config),
-  })),
+const implementation = {
+  init,
   update,
   view,
   operations: {
@@ -447,7 +455,13 @@ export const block = DatePickerComposition.makeBlock({
       ),
   },
   EffectsLayer: Layer.empty,
-})
+}
+
+/** Complete DatePicker Block definition. */
+export const DatePickerBlock: Block.CompletedWithViewAndOutMessage<
+  typeof DatePickerComposition,
+  typeof implementation
+> = DatePickerComposition.assembleBlock(implementation)
 
 /** Moves the embedded Calendar view and cursor through DatePicker update. */
-export const focusDate = block.operations.requestFocusDate
+export const focusDate = DatePickerBlock.operations.requestFocusDate

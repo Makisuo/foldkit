@@ -1,9 +1,10 @@
-import { Option, Schema } from 'effect'
+import { Schema } from 'effect'
 import { Block } from 'foldkit'
 
 import {
   ApplicationDefinition,
   ChildBlock,
+  ChildInitContext,
   ChildModel,
   DeclarationStartupDefaultsParentComposition,
   DeclarationStartupDefaultsParentDefinition,
@@ -13,38 +14,35 @@ import {
   ForeignGenericBinding,
   ParentMessage,
   RequiredChildBlock,
-  Startup,
 } from './startup-defaults.accepted.js'
 
-// @ts-expect-error The startup selector is named startupToArgs.
+// @ts-expect-error The startup selector is named contextToArgs.
 // oxfmt-ignore
-DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotChildMessage, init: { args: () => [] } })
+DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, { field: 'automatic', init: { args: () => [] } })
 
-// @ts-expect-error The removed args key cannot accompany startupToArgs.
+// @ts-expect-error The removed args key cannot accompany contextToArgs.
 // oxfmt-ignore
-DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotChildMessage, init: { startupToArgs: () => [], args: () => [] } })
+DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, { field: 'automatic', init: { contextToArgs: () => [], args: () => [] } })
 
-// @ts-expect-error A required-argument child needs init.startupToArgs or init: false.
+// @ts-expect-error A required-argument child needs init.contextToArgs or init: false.
 // oxfmt-ignore
-DeclarationStartupDefaultsParentDefinition.bindChild(RequiredChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotChildMessage,  })
+DeclarationStartupDefaultsParentDefinition.bindChild(RequiredChildBlock, { field: 'automatic',   })
 
 // @ts-expect-error Child init arguments retain their exact tuple.
 // oxfmt-ignore
-DeclarationStartupDefaultsParentDefinition.bindChild(RequiredChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotChildMessage,  init: { startupToArgs: () => ['wrong'] } })
+DeclarationStartupDefaultsParentDefinition.bindChild(RequiredChildBlock, { field: 'automatic', init: { contextToArgs: () => ['wrong'] } })
 
-// @ts-expect-error A selector must accept every value allowed by Startup.
+// @ts-expect-error A selector must accept every value allowed by ChildInitContext.
 // oxfmt-ignore
-DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, { field: 'automatic', placement: 'narrowStartup', parentMessage: ParentMessage.GotChildMessage,  init: { startupToArgs: (_startup: Readonly<{ count: 1 }>) => [] } })
+DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, { field: 'automatic', placement: 'narrowStartup', init: { contextToArgs: (_childInitContext: Readonly<{ count: 1 }>) => [] } })
 
 DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, {
   field: 'automatic',
   placement: 'readonlyStartup',
-  parentMessage: ParentMessage.GotChildMessage,
-
   init: {
-    startupToArgs: startup => {
-      // @ts-expect-error Startup Schema fields remain readonly.
-      startup.count = 2
+    contextToArgs: childInitContext => {
+      // @ts-expect-error ChildInitContext Schema fields remain readonly.
+      childInitContext.count = 2
       return []
     },
   },
@@ -52,19 +50,17 @@ DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, {
 
 // @ts-expect-error Optional child initialization requires an explicit presence selector.
 // oxfmt-ignore
-DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, { field: 'maybeChild', parentMessage: ParentMessage.GotChildMessage,  init: true })
+DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, { field: 'maybeChild', init: true })
 
 // @ts-expect-error Keyed init false cannot replace an occurrence policy.
 // oxfmt-ignore
-DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, { field: 'entries', key: 'id', childField: 'child', toParentMessage: (id, message) => ParentMessage.GotEntryMessage({ id, message }), fromParentMessage: { parentMessage: ParentMessage.GotEntryMessage, args: (_model, { id, message }) => Option.some([id, message]) }, init: false })
+DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, { field: 'entries', key: 'id', childField: 'child', init: false })
 
 const optionalInitConfig: Readonly<{
   field: 'automatic'
-  parentMessage: typeof ParentMessage.GotChildMessage
   init?: false
 }> = {
   field: 'automatic',
-  parentMessage: ParentMessage.GotChildMessage,
 }
 DeclarationStartupDefaultsParentDefinition.bindChild(
   ChildBlock,
@@ -74,12 +70,9 @@ DeclarationStartupDefaultsParentDefinition.bindChild(
 
 const unionInitConfig: Readonly<{
   field: 'automatic'
-  parentMessage: typeof ParentMessage.GotChildMessage
   init: true | false
 }> = {
   field: 'automatic',
-  parentMessage: ParentMessage.GotChildMessage,
-
   init: true,
 }
 DeclarationStartupDefaultsParentDefinition.bindChild(
@@ -90,8 +83,8 @@ DeclarationStartupDefaultsParentDefinition.bindChild(
 
 DeclarationStartupDefaultsParentComposition.makeInit(
   // @ts-expect-error A default-initialized child field is omitted from the parent-owned Model.
-  (startup: typeof Startup.Type) => ({
-    startup,
+  (childInitContext: typeof ChildInitContext.Type) => ({
+    childInitContext,
     model: {
       automatic: ChildModel.make({ count: 1 }),
       optedOut: ChildModel.make({ count: 9 }),
@@ -102,37 +95,37 @@ DeclarationStartupDefaultsParentComposition.makeInit(
 
 DeclarationStartupDefaultsParentComposition.makeInit(
   // @ts-expect-error An opted-out required child remains a mandatory parent-owned field.
-  (startup: typeof Startup.Type) => ({
-    startup,
+  (childInitContext: typeof ChildInitContext.Type) => ({
+    childInitContext,
     model: { status: 'Ready' },
   }),
 )
 
 DeclarationStartupGenericParentComposition.makeInit(() => ({
-  // @ts-expect-error A wider selector annotation cannot widen the declared Startup Schema.
-  startup: {},
+  // @ts-expect-error A wider selector annotation cannot widen the declared ChildInitContext Schema.
+  childInitContext: {},
   model: {},
 }))
 
-// @ts-expect-error A Binding cannot change another Definition's Startup contract.
+// @ts-expect-error A Binding cannot change another Definition's ChildInitContext contract.
 DeclarationStartupGenericParentDefinition.makeComposition({
-  childBindings: [ForeignGenericBinding],
+  bindings: [ForeignGenericBinding],
 })
 
-// @ts-expect-error Application startup selectors use the exact declared Startup.
+// @ts-expect-error Application startup selectors use the exact declared ChildInitContext.
 // oxfmt-ignore
-ApplicationDefinition.bindChild(ChildBlock, { field: 'child', parentMessage: ParentMessage.GotChildMessage, init: { startupToArgs: (_startup: Readonly<{ entryIds: readonly [] }>) => [] } })
+ApplicationDefinition.bindChild(ChildBlock, { field: 'child', init: { contextToArgs: (_childInitContext: Readonly<{ entryIds: readonly [] }>) => [] } })
 
 // @ts-expect-error A keyed startup Binding cannot be registered under an unrelated parent Model.
 DeclarationStartupGenericParentDefinition.makeComposition({
-  childBindings: [EntriesBinding],
+  bindings: [EntriesBinding],
 })
 
 const IncompatibleStartupModel = Schema.Struct({
   first: ChildModel,
   second: ChildModel,
 })
-const DeclarationIncompatibleStartupParentDefinition = Block.define(
+const DeclarationIncompatibleStartupParentDefinition = Block.makeDefinition(
   'DeclarationIncompatibleStartupParent',
   {
     Model: IncompatibleStartupModel,
@@ -142,23 +135,23 @@ const DeclarationIncompatibleStartupParentDefinition = Block.define(
 const FirstDiscriminantBinding =
   DeclarationIncompatibleStartupParentDefinition.bindChild(ChildBlock, {
     field: 'first',
-    parentMessage: ParentMessage.GotChildMessage,
-
-    init: { startupToArgs: (_startup: Readonly<{ kind: 'First' }>) => [] },
+    init: {
+      contextToArgs: (_childInitContext: Readonly<{ kind: 'First' }>) => [],
+    },
   })
 const SecondDiscriminantBinding =
   DeclarationIncompatibleStartupParentDefinition.bindChild(ChildBlock, {
     field: 'second',
-    parentMessage: ParentMessage.GotChildMessage,
-
-    init: { startupToArgs: (_startup: Readonly<{ kind: 'Second' }>) => [] },
+    init: {
+      contextToArgs: (_childInitContext: Readonly<{ kind: 'Second' }>) => [],
+    },
   })
 // @ts-expect-error Disjoint discriminants cannot form one shared startup input.
 DeclarationIncompatibleStartupParentDefinition.makeComposition({
-  childBindings: [FirstDiscriminantBinding, SecondDiscriminantBinding],
+  bindings: [FirstDiscriminantBinding, SecondDiscriminantBinding],
 })
 
-const DeclarationPrimitiveStartupParentDefinition = Block.define(
+const DeclarationPrimitiveStartupParentDefinition = Block.makeDefinition(
   'DeclarationPrimitiveStartupParent',
   {
     Model: IncompatibleStartupModel,
@@ -168,18 +161,14 @@ const DeclarationPrimitiveStartupParentDefinition = Block.define(
 const StringStartupBinding =
   DeclarationPrimitiveStartupParentDefinition.bindChild(ChildBlock, {
     field: 'first',
-    parentMessage: ParentMessage.GotChildMessage,
-
-    init: { startupToArgs: (_startup: string) => [] },
+    init: { contextToArgs: (_childInitContext: string) => [] },
   })
 const NumberStartupBinding =
   DeclarationPrimitiveStartupParentDefinition.bindChild(ChildBlock, {
     field: 'second',
-    parentMessage: ParentMessage.GotChildMessage,
-
-    init: { startupToArgs: (_startup: number) => [] },
+    init: { contextToArgs: (_childInitContext: number) => [] },
   })
 // @ts-expect-error Primitive selector inputs cannot form one shared startup input.
 DeclarationPrimitiveStartupParentDefinition.makeComposition({
-  childBindings: [StringStartupBinding, NumberStartupBinding],
+  bindings: [StringStartupBinding, NumberStartupBinding],
 })

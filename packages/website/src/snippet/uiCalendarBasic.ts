@@ -20,7 +20,7 @@ import type {
 // parent owns for the selected date. The calendar no longer stores the
 // selection; the parent holds it and passes it back in as `maybeSelectedDate`.
 const Model = Schema.Struct({
-  calendarDemo: UiCalendar.Model,
+  calendarDemo: UiCalendar.CalendarBlock.Model,
   maybeSelectedDate: Schema.Option(Calendar.CalendarDate),
   // ...your other fields
 })
@@ -38,11 +38,9 @@ const flags = Effect.gen(function* () {
   return { today /* ...your other flags */ }
 })
 
-// Embed the Calendar Message in your parent Message for navigation and
-// keyboard routing:
-const Message = defineMessageUnion({
-  GotCalendarMessage: { message: UiCalendar.Message },
-})
+// This excerpt has no parent-owned facts. The Composition derives Calendar
+// delivery from the Binding.
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 // At module scope, fold the OutMessage into your own Model. When the user
@@ -50,7 +48,7 @@ type Message = typeof Message.Type
 // `ChangedViewMonth` fires when navigation shifts the visible month without
 // selecting a date. Each arm returns an Update.Step over the parent Model,
 // which already has the next Calendar Model written back:
-const foldCalendarOutMessage = UiCalendar.OutMessage.match<
+const foldCalendarOutMessage = UiCalendar.CalendarBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   // The child has emitted `SelectedDate`. This is where the parent lifts
@@ -67,43 +65,45 @@ const foldCalendarOutMessage = UiCalendar.OutMessage.match<
   // The child has emitted `ChangedViewMonth`. In this arm the parent can
   // update its own state or dispatch its own Commands, for example
   // prefetch month data, fire analytics, or trigger a downstream Command.
-  ChangedViewMonth: () => model => ({ model }),
+  ChangedViewMonth: () => CalendarExampleDefinition.stepNoop(),
 })
 
 // The Binding wires the completed child Block into the parent: it delegates navigation,
-// focus, and picker-mode transitions to UiCalendar.update, writes the next
-// Calendar Model back, maps the Block's Commands into your Message type,
+// focus, and picker-mode transitions to UiCalendar.CalendarBlock.update, writes the next
+// Calendar Model back, routes generated delivery and Command results,
 // and hands any OutMessage to the OutMessage fold.
-const CalendarExampleDefinition = Block.define('CalendarExample', {
+const CalendarExampleDefinition = Block.makeDefinition('CalendarExample', {
   Model,
   Message,
 })
 
-const CalendarBinding = CalendarExampleDefinition.bindChild(UiCalendar.block, {
-  field: 'calendarDemo',
-  parentMessage: Message.GotCalendarMessage,
-  init: {
-    startupToArgs: (flags: Flags) =>
-      Tuple.make({
-        id: 'calendar-demo',
-        today: flags.today,
-        initialViewDate: flags.today,
-      }),
+const CalendarBinding = CalendarExampleDefinition.bindChild(
+  UiCalendar.CalendarBlock,
+  {
+    field: 'calendarDemo',
+    init: {
+      contextToArgs: (flags: Flags) =>
+        Tuple.make({
+          id: 'calendar-demo',
+          today: flags.today,
+          initialViewDate: flags.today,
+        }),
+    },
+    outMessage: { fold: foldCalendarOutMessage },
   },
-  outMessage: { fold: foldCalendarOutMessage },
-})
+)
 
 const CalendarExampleComposition = CalendarExampleDefinition.makeComposition({
-  childBindings: [CalendarBinding],
+  bindings: [CalendarBinding],
 })
 type CalendarExampleViewBuilder = Block.ViewBuilderFor<
   typeof CalendarExampleComposition
 >
 
-// Pass the flags-resolved date through the startup input. `initialViewDate`
+// Pass the flags-resolved date through the child init context. `initialViewDate`
 // seeds the month the calendar opens onto. The parent owns the selection.
 const init = CalendarExampleComposition.makeInit((flags: Flags) => ({
-  startup: flags,
+  childInitContext: flags,
   model: {
     maybeSelectedDate: Option.none(),
     // ...your other fields

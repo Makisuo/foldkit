@@ -2,7 +2,7 @@ import { ProductsComposition } from './composition'
 import { ReplaceSearchUrl, init, update } from './products'
 import { view } from './view'
 
-export const block = ProductsComposition.makeBlock({
+export const ProductsBlock = ProductsComposition.assembleBlock({
   init,
   update,
   view,

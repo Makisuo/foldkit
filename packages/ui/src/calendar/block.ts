@@ -107,7 +107,7 @@ export type OutMessage = typeof OutMessage.Type
 export type ChangedViewMonth = typeof OutMessage.ChangedViewMonth.Type
 export type SelectedDate = typeof OutMessage.SelectedDate.Type
 
-const CalendarDefinition = Block.define('Calendar', {
+const CalendarDefinition = Block.makeDefinition('Calendar', {
   Model,
   Message,
   OutMessage,
@@ -130,27 +130,29 @@ export type InitConfig = Readonly<{
   disabledDates?: ReadonlyArray<CalendarDate>
 }>
 
-/** Creates an initial calendar model. The selected date is owned by the
+/** Creates the initial Calendar Model and Commands. The selected date is owned by the
  * parent and passed in via `ViewInputs.maybeSelectedDate`. The view month
  * defaults to `initialViewDate` (pass the parent's selected date to open onto
  * it), or today when omitted. */
-export const init = (config: InitConfig): Model => {
+export const init = CalendarComposition.makeInit((config: InitConfig) => {
   const initialFocus = config.initialViewDate ?? config.today
   return {
-    id: config.id,
-    today: config.today,
-    viewYear: initialFocus.year,
-    viewMonth: initialFocus.month,
-    viewMode: 'Days',
-    maybeFocusedDate: Option.some(initialFocus),
-    isGridFocused: false,
-    locale: config.locale ?? CalendarDomain.defaultEnglishLocale,
-    maybeMinDate: Option.fromNullishOr(config.minDate),
-    maybeMaxDate: Option.fromNullishOr(config.maxDate),
-    disabledDaysOfWeek: config.disabledDaysOfWeek ?? [],
-    disabledDates: config.disabledDates ?? [],
+    model: {
+      id: config.id,
+      today: config.today,
+      viewYear: initialFocus.year,
+      viewMonth: initialFocus.month,
+      viewMode: 'Days',
+      maybeFocusedDate: Option.some(initialFocus),
+      isGridFocused: false,
+      locale: config.locale ?? CalendarDomain.defaultEnglishLocale,
+      maybeMinDate: Option.fromNullishOr(config.minDate),
+      maybeMaxDate: Option.fromNullishOr(config.maxDate),
+      disabledDaysOfWeek: config.disabledDaysOfWeek ?? [],
+      disabledDates: config.disabledDates ?? [],
+    },
   }
-}
+})
 
 // UPDATE
 
@@ -1381,10 +1383,8 @@ export const view = CalendarComposition.makeView.withInputs<ViewInputs>(
 )
 
 /** Complete Calendar Block definition for connecting to a parent. */
-export const block = CalendarComposition.makeBlock({
-  init: CalendarComposition.makeInit((config: InitConfig) => ({
-    model: init(config),
-  })),
+export const CalendarBlock = CalendarComposition.assembleBlock({
+  init,
   update,
   view,
   operations: {
@@ -1415,8 +1415,8 @@ export const block = CalendarComposition.makeBlock({
 
 /** Moves the Calendar view and cursor to a date without changing the
  * parent-owned selection. */
-export const focusDate = block.operations.requestFocusDate
+export const focusDate = CalendarBlock.operations.requestFocusDate
 
 /** Returns the Calendar to Days mode and rebuilds its focused date from the
  * visible year and month. */
-export const dropToDays = block.operations.requestDropToDays
+export const dropToDays = CalendarBlock.operations.requestDropToDays

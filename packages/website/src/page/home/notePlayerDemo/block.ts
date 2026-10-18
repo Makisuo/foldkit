@@ -7,7 +7,7 @@ import {
   view,
 } from './notePlayerDemo'
 
-export const block = NotePlayerDemoComposition.makeBlock({
+export const NotePlayerDemoBlock = NotePlayerDemoComposition.assembleBlock({
   init,
   update,
   view,

@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option, Schema } from 'effect'
+import { Context, Effect, Layer, Schema } from 'effect'
 import { Block, Message, Struct, Update } from 'foldkit'
 
 export class ChoiceService extends Context.Service<
@@ -26,7 +26,7 @@ const makeChoice = <const Values extends ReadonlyArray<string>>(
   const ChoiceOutMessage = Message.defineMessageUnion({
     SelectedValue: { value: Value },
   })
-  const DeclarationWrappedKeyedFieldChoiceDefinition = Block.define(
+  const DeclarationWrappedKeyedFieldChoiceDefinition = Block.makeDefinition(
     'DeclarationWrappedKeyedFieldChoice',
     {
       Model,
@@ -62,7 +62,7 @@ const makeChoice = <const Values extends ReadonlyArray<string>>(
   }))
   const DeclarationWrappedKeyedFieldChoiceComposition =
     DeclarationWrappedKeyedFieldChoiceDefinition.makeComposition()
-  const block = DeclarationWrappedKeyedFieldChoiceComposition.makeBlock({
+  const block = DeclarationWrappedKeyedFieldChoiceComposition.assembleBlock({
     init: DeclarationWrappedKeyedFieldChoiceComposition.makeInit(
       (value: Value) => ({
         model: Model.make({ value }),
@@ -96,17 +96,15 @@ const makeChoice = <const Values extends ReadonlyArray<string>>(
 
 export const Choice = makeChoice(Schema.Literals(['One', 'Two']))
 
-const DeclarationWrappedKeyedFieldPlainChoiceDefinition = Block.define(
+const DeclarationWrappedKeyedFieldPlainChoiceComposition = Block.makeDefinition(
   'DeclarationWrappedKeyedFieldPlainChoice',
   {
     Model: Choice.block.Model,
     Message: Choice.Message,
   },
-)
-const DeclarationWrappedKeyedFieldPlainChoiceComposition =
-  DeclarationWrappedKeyedFieldPlainChoiceDefinition.makeComposition()
+).makeComposition()
 export const PlainChoiceBlock =
-  DeclarationWrappedKeyedFieldPlainChoiceComposition.makeBlock({
+  DeclarationWrappedKeyedFieldPlainChoiceComposition.assembleBlock({
     init: DeclarationWrappedKeyedFieldPlainChoiceComposition.makeInit(() => ({
       model: Choice.block.Model.make({ value: 'One' }),
     })),
@@ -140,24 +138,24 @@ export const LiteralChoiceEntry = Schema.Struct({
 export const TextMessage = Message.defineMessageUnion({
   ReplacedText: { value: Schema.String },
 })
-const DeclarationWrappedKeyedFieldTextDefinition = Block.define(
+
+const DeclarationWrappedKeyedFieldTextComposition = Block.makeDefinition(
   'DeclarationWrappedKeyedFieldText',
   {
     Model: Schema.String,
     Message: TextMessage,
   },
-)
-const DeclarationWrappedKeyedFieldTextComposition =
-  DeclarationWrappedKeyedFieldTextDefinition.makeComposition()
-export const TextBlock = DeclarationWrappedKeyedFieldTextComposition.makeBlock({
-  init: DeclarationWrappedKeyedFieldTextComposition.makeInit(() => ({
-    model: '',
-  })),
-  update: DeclarationWrappedKeyedFieldTextComposition.makeUpdate(
-    (_model, { value }) => ({ model: value }),
-  ),
-  EffectsLayer: Layer.empty,
-})
+).makeComposition()
+export const TextBlock =
+  DeclarationWrappedKeyedFieldTextComposition.assembleBlock({
+    init: DeclarationWrappedKeyedFieldTextComposition.makeInit(() => ({
+      model: '',
+    })),
+    update: DeclarationWrappedKeyedFieldTextComposition.makeUpdate(
+      (_model, { value }) => ({ model: value }),
+    ),
+    EffectsLayer: Layer.empty,
+  })
 export const TextEntry = Schema.Struct({
   id: Schema.String,
   text: Schema.String,
@@ -190,21 +188,13 @@ export const ParentModel = Schema.Struct({
   textEntries: Schema.Array(TextEntry),
 })
 export const ParentMessage = Message.defineMessageUnion({
-  GotChoiceMessage: { id: ChoiceId, message: Choice.Message },
-  GotLiteralChoiceMessage: {
-    kind: Schema.Literals(['Primary', 'Secondary']),
-    message: Choice.Message,
-  },
-  GotTextMessage: { id: Schema.String, message: TextBlock.Message },
   IgnoredChildMessage: {},
 })
-export const DeclarationWrappedKeyedFieldParentDefinition = Block.define(
-  'DeclarationWrappedKeyedFieldParent',
-  {
+export const DeclarationWrappedKeyedFieldParentDefinition =
+  Block.makeDefinition('DeclarationWrappedKeyedFieldParent', {
     Model: ParentModel,
     Message: ParentMessage,
-  },
-)
+  })
 
 export const makePayloadParent = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const Entry = Schema.Struct({
@@ -213,25 +203,17 @@ export const makePayloadParent = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     payload: payloadSchema,
   })
   const Model = Schema.Struct({ entries: Schema.Array(Entry) })
-  const DeclarationWrappedKeyedFieldPayloadParentDefinition = Block.define(
-    'DeclarationWrappedKeyedFieldPayloadParent',
-    {
+  const DeclarationWrappedKeyedFieldPayloadParentDefinition =
+    Block.makeDefinition('DeclarationWrappedKeyedFieldPayloadParent', {
       Model,
       Message: ParentMessage,
-    },
-  )
+    })
   const Binding = DeclarationWrappedKeyedFieldPayloadParentDefinition.bindChild(
     PlainChoiceBlock,
     {
       field: 'entries',
       key: 'id',
       childField: 'choice',
-      toParentMessage: (id, message) =>
-        ParentMessage.GotChoiceMessage({ id, message }),
-      fromParentMessage: {
-        parentMessage: ParentMessage.GotChoiceMessage,
-        args: (_model, { id, message }) => Option.some([id, message]),
-      },
     },
   )
 
@@ -243,28 +225,6 @@ export const payloadParent = makePayloadParent(
 )
 
 export const firstChoiceId = Schema.decodeSync(ChoiceId)('first')
-
-export const toChoiceMessage = (
-  id: typeof ChoiceId.Type,
-  message: typeof Choice.Message.Type,
-) => ParentMessage.GotChoiceMessage({ id, message })
-export const fromChoiceMessage = {
-  parentMessage: ParentMessage.GotChoiceMessage,
-  args: (
-    _model: unknown,
-    { id, message }: typeof ParentMessage.GotChoiceMessage.Type,
-  ): Option.Option<
-    readonly [typeof ChoiceId.Type, typeof Choice.Message.Type]
-  > => Option.some([id, message]),
-}
-export const fromTextMessage = {
-  parentMessage: ParentMessage.GotTextMessage,
-  args: (
-    _model: unknown,
-    { id, message }: typeof ParentMessage.GotTextMessage.Type,
-  ): Option.Option<readonly [string, typeof TextMessage.Type]> =>
-    Option.some([id, message]),
-}
 
 export const choiceOutMessagePolicy = {
   fold: (
@@ -301,32 +261,6 @@ export const ChoicesBinding =
     field: 'choices',
     key: 'id',
     childField: 'choice',
-    toParentMessage: toChoiceMessage,
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotChoiceMessage,
-      args: (model, { id, message }) => {
-        expectNotAnyOrUnknown(model)
-        expectNotAnyOrUnknown(id)
-        expectNotAnyOrUnknown(message)
-        type ParentModelContextIsExact = Expect<
-          MutuallyAssignable<typeof model, typeof ParentModel.Type>
-        >
-        type KeyContextIsExact = Expect<
-          MutuallyAssignable<typeof id, typeof ChoiceId.Type>
-        >
-        type MessageContextIsExact = Expect<
-          MutuallyAssignable<typeof message, typeof Choice.Message.Type>
-        >
-        const parentModelContextIsExact: ParentModelContextIsExact = true
-        const keyContextIsExact: KeyContextIsExact = true
-        const messageContextIsExact: MessageContextIsExact = true
-        void parentModelContextIsExact
-        void keyContextIsExact
-        void messageContextIsExact
-
-        return Option.some([id, message])
-      },
-    },
     subscriptions: {
       when: (model, id) => {
         expectNotAnyOrUnknown(model)
@@ -358,14 +292,9 @@ export const InitializedChoicesBinding =
     field: 'choices',
     key: 'id',
     childField: 'choice',
-    toParentMessage: toChoiceMessage,
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotChoiceMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
     outMessage: choiceOutMessagePolicy,
     init: {
-      occurrences: (context: InitializationContext) => {
+      instances: (context: InitializationContext) => {
         expectNotAnyOrUnknown(context)
         type ContextIsExact = Expect<
           MutuallyAssignable<typeof context, InitializationContext>
@@ -400,14 +329,9 @@ export const LiteralInitializedChoicesBinding =
     key: 'id',
     childField: 'choice',
     placement: 'literalInitializedChoices',
-    toParentMessage: toChoiceMessage,
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotChoiceMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
     outMessage: choiceOutMessagePolicy,
     init: {
-      occurrences: () => [{ key: firstChoiceId, args: ['One'] }],
+      instances: () => [{ key: firstChoiceId, args: ['One'] }],
       toItem: ({ key, args }, choice) => {
         expectNotAnyOrUnknown(key)
         expectNotAnyOrUnknown(args)
@@ -428,14 +352,9 @@ export const GeneralChoicesBinding =
     placement: 'generalChoices',
     readAll: model => model.choices,
     key: item => item.id,
+    keySchema: ChoiceEntry.fields.id,
     read: item => item.choice,
     writeAt: model => model,
-    toParentMessage: (id, message) =>
-      ParentMessage.GotChoiceMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotChoiceMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
     outMessage: {
       fold: (key, outMessage, context) => {
         expectNotAnyOrUnknown(key)
@@ -483,14 +402,9 @@ export const GeneralExtractedPolicyChoicesBinding =
     placement: 'generalExtractedPolicyChoices',
     readAll: model => model.choices,
     key: item => item.id,
+    keySchema: ChoiceEntry.fields.id,
     read: item => item.choice,
     writeAt: model => model,
-    toParentMessage: (id, message) =>
-      ParentMessage.GotChoiceMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotChoiceMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
     outMessage: choiceOutMessagePolicy,
   })
 
@@ -499,24 +413,14 @@ export const PlainChoicesBinding =
     field: 'plainChoices',
     key: 'id',
     childField: 'choice',
-    toParentMessage: toChoiceMessage,
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotChoiceMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
   })
 
 export const LiteralChoicesBinding =
   DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, {
+    placement: 'literalChoices',
     field: 'literalChoices',
     key: 'kind',
     childField: 'choice',
-    toParentMessage: (kind, message) =>
-      ParentMessage.GotLiteralChoiceMessage({ kind, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotLiteralChoiceMessage,
-      args: (_model, { kind, message }) => Option.some([kind, message]),
-    },
     outMessage: {
       fold: (kind, outMessage) => {
         const exactKind: 'Primary' | 'Secondary' = kind
@@ -536,25 +440,19 @@ export const TextEntriesBinding =
     field: 'textEntries',
     key: 'id',
     childField: 'text',
-    toParentMessage: (id, message) =>
-      ParentMessage.GotTextMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotTextMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
   })
 
 export const choiceInspection = Block.inspectBinding(ChoicesBinding)
 
 export const DeclarationWrappedKeyedFieldParentComposition =
   DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
-    childBindings: [ChoicesBinding, LiteralChoicesBinding, TextEntriesBinding],
+    bindings: [ChoicesBinding, LiteralChoicesBinding, TextEntriesBinding],
   })
 
 // eslint-disable-next-line foldkit/block-name-matches-variable
 export const initialComposition =
   DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
-    childBindings: [
+    bindings: [
       InitializedChoicesBinding,
       LiteralChoicesBinding,
       TextEntriesBinding,
@@ -563,7 +461,7 @@ export const initialComposition =
 
 export const initialize = initialComposition.makeInit(
   (context: InitializationContext) => ({
-    startup: context,
+    childInitContext: context,
     model: {
       plainChoices: [],
       literalChoices: [],
@@ -572,7 +470,7 @@ export const initialize = initialComposition.makeInit(
   }),
 )
 
-export const initializedBlock = initialComposition.makeBlock({
+export const initializedBlock = initialComposition.assembleBlock({
   init: initialize,
   update: initialComposition.makeUpdate(model => ({ model })),
   EffectsLayer: Layer.empty,
@@ -598,17 +496,17 @@ export const initialParentModel = ParentModel.make({
 // eslint-disable-next-line foldkit/block-name-matches-variable
 const choicesExecutionComposition =
   DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
-    childBindings: [ChoicesBinding, LiteralChoicesBinding, TextEntriesBinding],
+    bindings: [ChoicesBinding, LiteralChoicesBinding, TextEntriesBinding],
   })
 // eslint-disable-next-line foldkit/block-name-matches-variable
 const literalChoicesExecutionComposition =
   DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
-    childBindings: [ChoicesBinding, LiteralChoicesBinding, TextEntriesBinding],
+    bindings: [ChoicesBinding, LiteralChoicesBinding, TextEntriesBinding],
   })
 // eslint-disable-next-line foldkit/block-name-matches-variable
 const textEntriesExecutionComposition =
   DeclarationWrappedKeyedFieldParentDefinition.makeComposition({
-    childBindings: [ChoicesBinding, LiteralChoicesBinding, TextEntriesBinding],
+    bindings: [ChoicesBinding, LiteralChoicesBinding, TextEntriesBinding],
   })
 
 export const foldChoice = choicesExecutionComposition.makeUpdate(
@@ -672,21 +570,23 @@ const initializedModelIsExact: InitializedModelIsExact = true
 void initializedModelIsExact
 
 const UnassembledMessage = Schema.Never
-const DeclarationUnassembledWrappedKeyedFieldParentDefinition = Block.define(
+
+export const unassembledInitialize = Block.makeDefinition(
   'DeclarationUnassembledWrappedKeyedFieldParent',
-  { Model: ParentModel, Message: UnassembledMessage },
+  {
+    Model: ParentModel,
+    Message: UnassembledMessage,
+  },
 )
-export const unassembledInitialize =
-  DeclarationUnassembledWrappedKeyedFieldParentDefinition.makeComposition().makeInit(
-    () => ({
-      model: {
-        choices: [],
-        plainChoices: [],
-        literalChoices: [],
-        textEntries: [],
-      },
-    }),
-  )
+  .makeComposition()
+  .makeInit(() => ({
+    model: {
+      choices: [],
+      plainChoices: [],
+      literalChoices: [],
+      textEntries: [],
+    },
+  }))
 type UnassembledModelRemainsExact = Expect<
   MutuallyAssignable<
     ReturnType<typeof unassembledInitialize>['model']['choices'],

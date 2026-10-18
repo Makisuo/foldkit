@@ -269,9 +269,19 @@ const main = (): void => {
       join(output, 'generic-composition.accepted.d.ts'),
       'utf8',
     )
-    if (!acceptedDeclaration.includes('Combobox.Completed<"Apple" | "Pear">')) {
+    if (
+      !acceptedDeclaration.includes(
+        'Combobox.Completed<"Apple" | "Pear", "Apple" | "Pear">',
+      )
+    ) {
       fail(
         'The generic Combobox export did not retain its public Completed type.',
+      )
+    }
+
+    if (!acceptedDeclaration.includes('Combobox.Completed<string, number>')) {
+      fail(
+        'The generic Combobox export did not retain a transformed Item Codec encoded type.',
       )
     }
 

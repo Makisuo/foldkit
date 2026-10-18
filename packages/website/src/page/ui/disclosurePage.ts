@@ -1,13 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import { UiComposition } from './composition'
+import { DisclosurePageContent } from './content'
 import * as Disclosure from './demo/disclosure'
-import raw from './disclosurePage.md'
 
-const { tableOfContents, view: renderPage } = slotDocPage<
-  'basic' | 'collapsedPreview'
->(raw, 'ui/disclosure')
+const { tableOfContents, view: renderPage } = DisclosurePageContent
 
 export { tableOfContents }
 

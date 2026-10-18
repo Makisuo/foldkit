@@ -4,18 +4,15 @@ import * as Dom from 'foldkit/dom'
 import { pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 
+import { PagefindService } from '../pagefind'
+import { SEARCH_INPUT_ID } from '../searchDom'
 import { clearSearchQuery } from './clear'
-import { SearchComposition } from './composition'
-import { DialogBinding } from './composition'
+import { DialogBinding, SearchComposition } from './composition'
 import { SearchDefinition } from './definition'
-import { Message, SearchResult } from './message'
-import { SearchState, resultsFromState } from './model'
-import { PagefindService } from './pagefind'
+import { SearchResult, SearchState, resultsFromState } from './domain'
+import { Message } from './message'
 
 const MAX_RESULTS = 8
-
-export const SEARCH_INPUT_ID = 'search-input'
-export const KEYBOARD_WARMUP_INPUT_ID = 'search-keyboard-warmup'
 
 const SEARCH_RESULT_SELECTOR = '[data-search-result-index='
 

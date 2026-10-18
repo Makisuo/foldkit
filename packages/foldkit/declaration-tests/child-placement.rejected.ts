@@ -53,25 +53,25 @@ const DefaultKeyedByIdLengthBinding =
 
 // @ts-expect-error A direct field default and explicit placement cannot resolve to the same sibling placement.
 DeclarationChildPlacementParentDefinition.makeComposition({
-  childBindings: [PrimaryBinding, DirectAtPrimaryBinding],
+  bindings: [PrimaryBinding, DirectAtPrimaryBinding],
 })
 
 // @ts-expect-error Static and keyed Bindings cannot resolve to the same sibling placement.
 DeclarationChildPlacementParentDefinition.makeComposition({
-  childBindings: [OptionalBinding, KeyedAtOptionalBinding],
+  bindings: [OptionalBinding, KeyedAtOptionalBinding],
 })
 
 // @ts-expect-error Pure siblings cannot repeat a resolved placement.
 DeclarationChildPlacementParentDefinition.makeComposition({
-  childBindings: [PrimaryBinding, AccessorAtPrimaryBinding],
+  bindings: [PrimaryBinding, AccessorAtPrimaryBinding],
 })
 
 // @ts-expect-error Default accessor and keyed Bindings of the same child Block resolve to the same placement.
 DeclarationChildPlacementParentDefinition.makeComposition({
-  childBindings: [DefaultAccessorBinding, DefaultKeyedByIdBinding],
+  bindings: [DefaultAccessorBinding, DefaultKeyedByIdBinding],
 })
 
 // @ts-expect-error Keyed occurrence keys do not distinguish sibling Binding placements.
 DeclarationChildPlacementParentDefinition.makeComposition({
-  childBindings: [DefaultKeyedByIdBinding, DefaultKeyedByIdLengthBinding],
+  bindings: [DefaultKeyedByIdBinding, DefaultKeyedByIdLengthBinding],
 })

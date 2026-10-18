@@ -1,4 +1,4 @@
-import { Slider } from '@foldkit/ui'
+import { SliderBlock } from '@foldkit/ui'
 
 import type { UiViewBuilder } from '../composition'
 import {
@@ -49,7 +49,7 @@ const volumeFormatted = (value: number): string =>
   `${String(Math.round(value * 100))}%`
 
 export const horizontalDemo = (
-  ratingModel: typeof Slider.Model.Type,
+  ratingModel: typeof SliderBlock.Model.Type,
   ratingValue: number,
   h: UiViewBuilder,
 ) => {
@@ -102,7 +102,7 @@ export const horizontalDemo = (
 }
 
 export const verticalDemo = (
-  volumeModel: typeof Slider.Model.Type,
+  volumeModel: typeof SliderBlock.Model.Type,
   volumeValue: number,
   h: UiViewBuilder,
 ) => {

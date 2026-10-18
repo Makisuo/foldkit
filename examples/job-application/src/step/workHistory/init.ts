@@ -1,9 +1,10 @@
 import { type CalendarDate } from 'foldkit/calendar'
 
-import { type Model } from './definition'
-import * as Entry from './entry'
+import { WorkHistoryComposition } from './composition'
 
-export const init = (today: CalendarDate, initialEntryId: string): Model => ({
-  entries: [Entry.init(initialEntryId, today)],
-  today,
-})
+export const init = WorkHistoryComposition.makeInit(
+  (today: CalendarDate, initialEntryId: string) => ({
+    childInitContext: { today, initialEntryId },
+    model: { today },
+  }),
+)

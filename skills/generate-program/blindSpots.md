@@ -93,6 +93,14 @@ OutMessage type as the second matcher generic. A Command-producing branch uses
 `FeatureDefinition.step` and keeps its inferred requirements instead of forcing the
 whole matcher to a requirement-free `Update.Step`.
 
+For an actual unary Model-only field Step, use
+`FeatureDefinition.stepFields(callback)` and return only field transformers. A
+named child OutMessage branch that intentionally preserves the parent Model uses
+`FeatureDefinition.stepNoop()`. Parameterized, Command-producing,
+OutMessage-producing, connected Binding, initialization, delegated, conditional,
+and composed results stay on `FeatureDefinition.step`. Do not construct and
+immediately invoke one of these helpers in an ordinary update branch.
+
 When several operations update the same Model in sequence, use `Update.combine`. Initialize each child through its registered Binding recipe so Composition assembles the parent Model and mapped Commands.
 
 ### `functions-doing-two-things`
@@ -133,7 +141,7 @@ Mixing `items.map(f)` and `Array.map(items, f)` in the same file. Mixing `Option
 
 ### `stuttery-modifyFields-setters`
 
-A `modifyFields` setter that only transforms that same field should be point-free: `entries: Array.map(revealErrors)` or `count: Number.increment`. Flag `entries: () => Array.map(model.entries, revealErrors)` and friends. Replacement values from Messages, child updates, Commands, or other Model fields still use `() => value`. A parent must not pass a child Block helper as a field transformer. Call the child Binding's named operation so the child update owns the transition.
+A `modifyFields` setter that only transforms that same field should be point-free: `selectedEntryIds: Array.filter(id => id !== removedEntryId)` or `count: Number.increment`. Flag `selectedEntryIds: () => Array.filter(model.selectedEntryIds, id => id !== removedEntryId)` and friends. Replacement values from Messages, child updates, Commands, or other Model fields still use `() => value`. A parent must not pass a child Block helper as a field transformer. Call the child Binding's named operation, and use `Update.combine` when applying operations to several children, so each child update owns its transition.
 
 ### `empty-object-constructors`
 
@@ -169,9 +177,9 @@ Rows in `Array.map(items, ...)` carrying `OnClick` handlers bound to specific it
 
 A `keyed(...)` whose key is built from displayed data (concatenated booleans, a formatted summary string, a restated field the subtree renders) is keying used as change detection. The key changes while the same conceptual thing stays on screen, so every content change tears the subtree down, discarding focus, scroll position, and open `details` elements. Keys carry identity: a branch tag, a route tag, a stable id. If removing the key leaves the same structure rendering at that position, remove it.
 
-### `flat-parent-message-union`
+### `authored-child-delivery-message`
 
-Flattening a child's Message variants into the parent's `defineMessageUnion()` record makes every parent handler know the child's tag names, and the child can't grow its vocabulary without leaking into the parent. The canonical Block pattern adds `GotChildMessage: { message: Child.Message }` to the parent Message and declares that constructor as the Binding's `parentMessage`. The parent Composition then routes that wrapper through the child Binding automatically. Flat unions work for trivial cases but don't isolate child concerns. Suggest `Got*` wrapping for any Block likely to grow, or any child that needs an OutMessage.
+Flattening a child's Message variants into the parent's `defineMessageUnion()` record makes every parent handler know the child's tag names, and an authored `GotChildMessage` wrapper duplicates routing metadata that the Binding already owns. The canonical Block pattern keeps the authored parent Message local and lets `bindChild` derive a generated envelope from the completed child Block. The parent Composition's complete Message Schema adds that envelope and routes it to the exact placement, key, and live generation. Use `delivery.when`, `delivery.toUpdateContext`, and `keySchema` for parent policy instead of adding child variants or mappers to the authored union.
 
 ## Accessibility
 

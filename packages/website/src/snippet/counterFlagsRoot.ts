@@ -1,5 +1,5 @@
 import { Option, Schema } from 'effect'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -14,9 +14,10 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({ ClickedIncrement: {} })
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
-
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+export const ApplicationComposition = makeApplicationDefinition({
+  Model,
+  Message,
+}).makeComposition()
 
 export const init = ApplicationComposition.makeInit((flags: Flags) => ({
   model: Model.make({

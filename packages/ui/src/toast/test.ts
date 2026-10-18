@@ -1,6 +1,7 @@
 import * as Story from 'foldkit/story'
 
-import * as Animation from '../animation/index.js'
+import { WaitForAnimationSettled, WaitForPaint } from '../animation/block.js'
+import { Message as AnimationMessage } from '../animation/schema.js'
 
 /** Input for {@link drainEntry}. `entryId` selects the entry whose lifecycle
  *  to drain. `waitBeforeDismissal` pairs the Toast instance's timer Command
@@ -15,7 +16,7 @@ const LEAVE_TRANSITION_GENERATION = 2
 
 /** Matches the placement-qualified Animation paint Command for one Toast entry. */
 export const matchWaitForPaint = (entryId: string, generation: number) => ({
-  ...Animation.WaitForPaint({ generation }),
+  ...WaitForPaint({ generation }),
   name: `Animation[${entryId}]/WaitForPaint`,
 })
 
@@ -24,7 +25,7 @@ export const matchWaitForAnimationSettled = (
   entryId: string,
   generation: number,
 ) => ({
-  ...Animation.WaitForAnimationSettled({ id: entryId, generation }),
+  ...WaitForAnimationSettled({ id: entryId, generation }),
   name: `Animation[${entryId}]/WaitForAnimationSettled`,
 })
 
@@ -69,26 +70,26 @@ export const drainEntry = ({ entryId, waitBeforeDismissal }: DrainEntryInput) =>
   Story.Command.resolveAll(
     [
       matchWaitForPaint(entryId, ENTER_TRANSITION_GENERATION),
-      Animation.Message.CompletedWaitForPaint({
+      AnimationMessage.CompletedWaitForPaint({
         generation: ENTER_TRANSITION_GENERATION,
       }),
     ],
     [
       matchWaitForAnimationSettled(entryId, ENTER_TRANSITION_GENERATION),
-      Animation.Message.EndedAnimation({
+      AnimationMessage.EndedAnimation({
         generation: ENTER_TRANSITION_GENERATION,
       }),
     ],
     waitBeforeDismissal,
     [
       matchWaitForPaint(entryId, LEAVE_TRANSITION_GENERATION),
-      Animation.Message.CompletedWaitForPaint({
+      AnimationMessage.CompletedWaitForPaint({
         generation: LEAVE_TRANSITION_GENERATION,
       }),
     ],
     [
       matchWaitForAnimationSettled(entryId, LEAVE_TRANSITION_GENERATION),
-      Animation.Message.EndedAnimation({
+      AnimationMessage.EndedAnimation({
         generation: LEAVE_TRANSITION_GENERATION,
       }),
     ],

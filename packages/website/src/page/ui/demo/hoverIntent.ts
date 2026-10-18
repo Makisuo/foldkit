@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import { HoverIntent } from '@foldkit/ui'
+import { HoverIntentBlock } from '@foldkit/ui'
 import type { RenderInfo as HoverIntentRenderInfo } from '@foldkit/ui/hoverIntent'
 
 import type { UiViewBuilder } from '../composition'
@@ -74,7 +74,7 @@ const hoverCard = (
   )
 
 export const hoverCardDemo = (
-  hoverIntentCardDemo: typeof HoverIntent.Model.Type,
+  hoverIntentCardDemo: typeof HoverIntentBlock.Model.Type,
   h: UiViewBuilder,
 ): ReadonlyArray<Html> => [
   h.div(
@@ -149,7 +149,7 @@ const hoverMenu = (
   )
 
 export const hoverMenuDemo = (
-  hoverIntentMenuDemo: typeof HoverIntent.Model.Type,
+  hoverIntentMenuDemo: typeof HoverIntentBlock.Model.Type,
   h: UiViewBuilder,
 ): ReadonlyArray<Html> => [
   h.div(

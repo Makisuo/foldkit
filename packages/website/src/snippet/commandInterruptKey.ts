@@ -14,7 +14,7 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 const Model = Schema.Struct({})
-const UploadsDefinition = Block.define('Uploads', { Model, Message })
+const UploadsDefinition = Block.makeDefinition('Uploads', { Model, Message })
 
 export const UploadFile = UploadsDefinition.command('UploadFile', {
   args: {

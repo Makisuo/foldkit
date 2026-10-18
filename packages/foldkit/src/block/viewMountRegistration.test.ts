@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option, Schema } from 'effect'
+import { Context, Effect, Layer, Schema } from 'effect'
 import { describe, expect, it, vi } from 'vitest'
 
 import { renderToString } from '../experimental/server/server.js'
@@ -6,9 +6,9 @@ import type { AnyAuthoredView } from '../html/block.js'
 import { __htmlBuilder } from '../html/index.js'
 import { clearRuntime, setRuntime } from '../html/runtimeSingleton.js'
 import { defineMessageUnion } from '../message/index.js'
-import { define as defineApplication } from '../runtime/applicationPublic.js'
+import { makeDefinition as makeApplicationDefinition } from '../runtime/applicationPublic.js'
 import * as Scene from '../test/scene.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 import { lowerBlock } from './lowering.js'
 
 const Model = Schema.Struct({ count: Schema.Number })
@@ -16,7 +16,10 @@ const Message = defineMessageUnion({
   CompletedObserveFirst: {},
   CompletedObserveSecond: {},
 })
-const MountRegistration = define('MountRegistration', { Model, Message })
+const MountRegistration = makeDefinition('MountRegistration', {
+  Model,
+  Message,
+})
 const constructed = vi.fn()
 const ObserveFirst = MountRegistration.mount('ObserveFirst', {
   messages: [Message.CompletedObserveFirst],
@@ -50,7 +53,7 @@ const firstView = first.makeView((_model, h) =>
 const secondView = second.makeView((_model, h) =>
   h.div([h.OnMount(ObserveSecond())]),
 )
-const firstBlock = first.makeBlock({
+const firstBlock = first.assembleBlock({
   init,
   update,
   view: firstView,
@@ -70,31 +73,20 @@ const ParentModel = Schema.Struct({
   child: Model,
   entries: Schema.Array(Entry),
 })
-const ParentMessage = defineMessageUnion({
-  GotChildMessage: { message: Message },
-  GotEntryMessage: { id: Schema.String, message: Message },
-})
-const MountParent = define('MountParent', {
+const MountParent = makeDefinition('MountParent', {
   Model: ParentModel,
-  Message: ParentMessage,
+  Message: Schema.Never,
 })
 const ChildBinding = MountParent.bindChild(firstBlock, {
   field: 'child',
-  parentMessage: ParentMessage.GotChildMessage,
 })
 const EntriesBinding = MountParent.bindChild(firstBlock, {
   field: 'entries',
   key: 'id',
   childField: 'child',
-  toParentMessage: (id, message) =>
-    ParentMessage.GotEntryMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotEntryMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
 })
 const parent = MountParent.makeComposition({
-  childBindings: [ChildBinding, EntriesBinding],
+  bindings: [ChildBinding, EntriesBinding],
 })
 const parentUpdate = parent.makeUpdate()
 const parentModel = ParentModel.make({
@@ -114,7 +106,7 @@ describe('captured local Mount registrations', () => {
   })
 
   it('rejects a view completed against a different local Mount set', () => {
-    const block = first.makeBlock({
+    const block = first.assembleBlock({
       init,
       update,
       // @ts-expect-error The view requires a different local Mount registration.
@@ -135,7 +127,7 @@ describe('captured local Mount registrations', () => {
         h.OnMount(ObserveSecond()),
       ]),
     )
-    const block = both.makeBlock({
+    const block = both.assembleBlock({
       init,
       update: bothUpdate,
       view,
@@ -230,7 +222,7 @@ describe('captured local Mount registrations', () => {
   })
 
   it('checks captured Mount sets during server rendering without building Layers', async () => {
-    const ApplicationDefinition = defineApplication({ Model, Message })
+    const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
     const FocusFirst = ApplicationDefinition.mount('FocusFirst', {
       messages: [Message.CompletedObserveFirst],
       handler: function* () {

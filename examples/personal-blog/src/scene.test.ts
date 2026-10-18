@@ -1,7 +1,7 @@
 import { expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { Counter } from './island'
+import { CounterBlock } from './island'
 import { Model } from './model'
 import { ApplicationRoute } from './route'
 import { update } from './update'
@@ -9,21 +9,21 @@ import { view } from './view'
 
 const home = Model.make({
   route: ApplicationRoute.Home(),
-  counter: Counter.init().model,
+  counter: CounterBlock.init().model,
 })
 const postsIndex = Model.make({
   route: ApplicationRoute.Posts(),
-  counter: Counter.init().model,
+  counter: CounterBlock.init().model,
 })
 const post = (slug: string) =>
   Model.make({
     route: ApplicationRoute.Post({ slug }),
-    counter: Counter.init().model,
+    counter: CounterBlock.init().model,
   })
 const notFound = (path: string) =>
   Model.make({
     route: ApplicationRoute.NotFound({ path }),
-    counter: Counter.init().model,
+    counter: CounterBlock.init().model,
   })
 
 describe('view', () => {

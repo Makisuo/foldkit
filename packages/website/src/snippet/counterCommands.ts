@@ -1,5 +1,5 @@
 import { Effect, Number, Schema } from 'effect'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -12,7 +12,10 @@ export const Message = defineMessageUnion({
   CompletedWaitBeforeReset: {},
 })
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const ApplicationDefinition = makeApplicationDefinition({
+  Model,
+  Message,
+})
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 export type Message = typeof Message.Type

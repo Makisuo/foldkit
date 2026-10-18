@@ -11,9 +11,9 @@ import {
 } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import * as Tabs from '@foldkit/ui/tabs'
-import { FocusTab } from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
+import { AppTabsBlock } from './model'
 import {
   FETCHED_AT,
   FIRST_POST_REQUEST_KEY,
@@ -30,8 +30,8 @@ import { view } from './view'
 const FIRST_REQUEST_GENERATION = 1
 
 const resolveFocusTab = Command.resolve(
-  FocusTab,
-  Tabs.Message.CompletedFocusTab(),
+  Tabs.test.FocusTab,
+  AppTabsBlock.Message.CompletedFocusTab(),
 )
 
 describe('view', () => {

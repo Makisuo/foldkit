@@ -1,16 +1,18 @@
-import { Layer, Option } from 'effect'
+import { Layer, Option, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import * as Update from 'foldkit/update'
 
 import {
+  ApplicationComposition,
   ApplicationDefinition,
-  ApplicationMessage,
   DirectReciprocalApplicationDefinition,
+  DirectReciprocalComposition,
   DraftStore,
   HomeBinding,
   HomeBlock,
   HomeOutMessage,
   KeyedReciprocalApplicationDefinition,
+  KeyedReciprocalComposition,
   LeftHomeBinding,
   LeftKeyedHomeBinding,
   NestedPolicy,
@@ -19,6 +21,7 @@ import {
   RoomBinding,
   RoomBlock,
   RoomContext,
+  RoomInstance,
   applicationUpdate,
   directReciprocalUpdate,
   keyedReciprocalUpdate,
@@ -65,6 +68,14 @@ type ReturnOutMessage<Output> =
           : never
         : never
       : never
+type OutgoingMessageOf<BindingValue> =
+  BindingValue extends Block.BindingDeliveryEvidence<
+    infer OutgoingMessage,
+    infer _IncomingMessage,
+    infer _GeneratedSchema
+  >
+    ? OutgoingMessage
+    : never
 
 type HomeReset = ReturnType<typeof HomeBinding.resetJoinForm>
 type HomeRequestJoin = ReturnType<typeof HomeBinding.requestJoin>
@@ -139,31 +150,31 @@ type HomeRequestOutMessageIsConsumed = Expect<
 type HomeRegistrationIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<HomeReset>>,
-    Block.BindingRequirement<'home', typeof HomeBlock>
+    Block.RequirementOfBinding<typeof HomeBinding>
   >
 >
 type RoomRegistrationIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<RoomInform>>,
-    Block.BindingRequirement<'DeclarationReciprocalRoom', typeof RoomBlock>
+    Block.RequirementOfBinding<typeof RoomBinding>
   >
 >
 type HomeRequestRegistrationIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<HomeRequestJoin>>,
-    Block.BindingRequirement<'home', typeof HomeBlock>
+    Block.RequirementOfBinding<typeof HomeBinding>
   >
 >
 type HomeFoldRegistrationIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<HomeFold>,
-    Block.BindingRequirement<'home', typeof HomeBlock>
+    Block.RequirementOfBinding<typeof HomeBinding>
   >
 >
 type RoomFoldRegistrationIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<RoomFold>,
-    Block.BindingRequirement<'DeclarationReciprocalRoom', typeof RoomBlock>
+    Block.RequirementOfBinding<typeof RoomBinding>
   >
 >
 type ApplicationRequirementsAreExact = Expect<
@@ -178,10 +189,73 @@ type ApplicationRequirementsAreExact = Expect<
 type ApplicationRegistrationIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<typeof applicationUpdate>>,
-    | Block.BindingRequirement<'home', typeof HomeBlock>
-    | Block.BindingRequirement<'DeclarationReciprocalRoom', typeof RoomBlock>
+    | Block.RequirementOfBinding<typeof HomeBinding>
+    | Block.RequirementOfBinding<typeof RoomBinding>
   >
 >
+type ApplicationDispatchIsExact = Expect<
+  Equal<
+    typeof ApplicationComposition.Message.Type,
+    | Readonly<{
+        _tag: 'GotHomeMessage'
+        placement: 'home'
+        generation: number
+        message: typeof HomeBlock.Message.Type
+      }>
+    | Readonly<{
+        _tag: 'GotDeclarationReciprocalRoomMessage'
+        placement: 'DeclarationReciprocalRoom'
+        generation: number
+        key: string
+        message: typeof RoomBlock.Message.Type
+      }>
+  >
+>
+type DirectDispatchIsExact = Expect<
+  Equal<
+    typeof DirectReciprocalComposition.Message.Type,
+    | Readonly<{
+        _tag: 'GotLeftHomeMessage'
+        placement: 'leftHome'
+        generation: number
+        message: typeof HomeBlock.Message.Type
+      }>
+    | Readonly<{
+        _tag: 'GotRightHomeMessage'
+        placement: 'rightHome'
+        generation: number
+        message: typeof HomeBlock.Message.Type
+      }>
+  >
+>
+type KeyedDispatchIsExact = Expect<
+  Equal<
+    typeof KeyedReciprocalComposition.Message.Type,
+    | Readonly<{
+        _tag: 'GotLeftHomesMessage'
+        placement: 'leftHomes'
+        generation: number
+        key: string
+        message: typeof HomeBlock.Message.Type
+      }>
+    | Readonly<{
+        _tag: 'GotRightHomesMessage'
+        placement: 'rightHomes'
+        generation: number
+        key: string
+        message: typeof HomeBlock.Message.Type
+      }>
+  >
+>
+
+const roomDelivery = Schema.decodeUnknownSync(ApplicationComposition.Message)({
+  _tag: 'GotDeclarationReciprocalRoomMessage',
+  placement: 'DeclarationReciprocalRoom',
+  generation: 0,
+  key: 'room-1',
+  message: RoomBlock.Message.InformedOfJoin({ username: 'alice' }),
+})
+void roomDelivery
 
 type LeftHomeRequest = ReturnType<typeof LeftHomeBinding.requestJoin>
 type LeftHomeArgumentsAreExact = Expect<
@@ -203,7 +277,7 @@ type LeftHomeRequirementsAreExact = Expect<
 type LeftHomeRegistrationIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<LeftHomeRequest>>,
-    Block.BindingRequirement<'leftHome', typeof HomeBlock>
+    Block.RequirementOfBinding<typeof LeftHomeBinding>
   >
 >
 type LeftKeyedHomeRequest = ReturnType<typeof LeftKeyedHomeBinding.requestJoin>
@@ -226,39 +300,37 @@ type LeftKeyedHomeRequirementsAreExact = Expect<
 type LeftKeyedHomeRegistrationIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<LeftKeyedHomeRequest>>,
-    Block.BindingRequirement<'leftHomes', typeof HomeBlock>
+    Block.RequirementOfBinding<typeof LeftKeyedHomeBinding>
   >
 >
 
 // @ts-expect-error Emitted Room policy retains its Home Binding registration.
 const MissingHomeComposition = ApplicationDefinition.makeComposition({
-  childBindings: [RoomBinding],
+  bindings: [RoomBinding],
 })
-// @ts-expect-error Emitted Room policy retains its Home Binding registration.
-MissingHomeComposition.makeUpdate()
+void MissingHomeComposition
 
 // @ts-expect-error Emitted Home policy retains its Room Binding registration.
 const MissingRoomComposition = ApplicationDefinition.makeComposition({
-  childBindings: [HomeBinding],
+  bindings: [HomeBinding],
 })
-// @ts-expect-error Emitted Home policy retains its Room Binding registration.
-MissingRoomComposition.makeUpdate()
+void MissingRoomComposition
 
 // @ts-expect-error Emitted direct policy retains its sibling registration.
 DirectReciprocalApplicationDefinition.makeComposition({
-  childBindings: [LeftHomeBinding],
+  bindings: [LeftHomeBinding],
 })
 // @ts-expect-error Emitted direct policy retains its sibling registration.
 DirectReciprocalApplicationDefinition.makeComposition({
-  childBindings: [RightHomeBinding],
+  bindings: [RightHomeBinding],
 })
 // @ts-expect-error Emitted keyed policy retains its sibling registration.
 KeyedReciprocalApplicationDefinition.makeComposition({
-  childBindings: [LeftKeyedHomeBinding],
+  bindings: [LeftKeyedHomeBinding],
 })
 // @ts-expect-error Emitted keyed policy retains its sibling registration.
 KeyedReciprocalApplicationDefinition.makeComposition({
-  childBindings: [RightKeyedHomeBinding],
+  bindings: [RightKeyedHomeBinding],
 })
 
 // @ts-expect-error Emitted resetJoinForm requires one username.
@@ -267,19 +339,36 @@ HomeBinding.resetJoinForm()
 RoomBinding.informJoined('room-1', 'alice')
 
 // @ts-expect-error Emitted OutMessage children still require a policy.
-// oxfmt-ignore
-ApplicationDefinition.bindChild(HomeBlock, { field: 'home', parentMessage: ApplicationMessage.GotHomeMessage })
+ApplicationDefinition.bindChild(HomeBlock, { field: 'home' })
 
 // @ts-expect-error Emitted keyed OutMessage children still require a policy.
-// oxfmt-ignore
-ApplicationDefinition.bindChild(RoomBlock, { readAll: model => Option.toArray(model.maybeRoomInstance), key: instance => instance.roomId, read: instance => instance.model, writeAt: model => model, toParentMessage: (roomId, message) => ApplicationMessage.GotRoomMessage({ roomId, message }), fromParentMessage: {
-                                                                                                                                                                                                                                                                                           parentMessage: ApplicationMessage.GotRoomMessage,
-                                                                                                                                                                                                                                                                                           args: (_model, { roomId, message }) => Option.some([roomId, message]),
-                                                                                                                                                                                                                                                                                         } })
+ApplicationDefinition.bindChild(RoomBlock, {
+  readAll: (model: typeof ApplicationDefinition.Model.Type) =>
+    Option.toArray(model.maybeRoomInstance),
+  key: (instance: typeof RoomInstance.Type) => instance.roomId,
+  keySchema: Schema.String,
+  read: (instance: typeof RoomInstance.Type) => instance.model,
+  writeAt: (model: typeof ApplicationDefinition.Model.Type) => model,
+  delivery: {
+    toUpdateContext: (
+      _model: typeof ApplicationDefinition.Model.Type,
+      roomId: string,
+    ) => [{ roomId }],
+  },
+})
 
 // @ts-expect-error Emitted static policies must accept every refined child OutMessage.
-// oxfmt-ignore
-ApplicationDefinition.bindChild(HomeBlock, { field: 'home', parentMessage: ApplicationMessage.GotHomeMessage, outMessage: { fold: (_outMessage: Extract<typeof HomeOutMessage.Type, Readonly<{ username: 'alice' }>>) => ApplicationDefinition.step(model => ({ model })) } })
+ApplicationDefinition.bindChild(HomeBlock, {
+  field: 'home',
+  outMessage: {
+    fold: (
+      _outMessage: Extract<
+        typeof HomeOutMessage.Type,
+        Readonly<{ username: 'alice' }>
+      >,
+    ) => ApplicationDefinition.step(model => ({ model })),
+  },
+})
 
 export type EmittedReciprocalCoordinationAssertions = [
   HomeLayerServicesAreExact,
@@ -304,6 +393,9 @@ export type EmittedReciprocalCoordinationAssertions = [
   RoomFoldRegistrationIsExact,
   ApplicationRequirementsAreExact,
   ApplicationRegistrationIsExact,
+  ApplicationDispatchIsExact,
+  DirectDispatchIsExact,
+  KeyedDispatchIsExact,
   LeftHomeArgumentsAreExact,
   LeftHomeRequirementsAreExact,
   LeftHomeRegistrationIsExact,
@@ -338,7 +430,7 @@ type NestedPolicyDirectChannelsAreExact = Expect<
     Omit<NestedPolicyChannels<NestedPolicyRecipe>, 'evidence'>,
     Readonly<{
       model: typeof NestedPolicy.ParentModel.Type
-      message: typeof NestedPolicy.ParentMessage.Type
+      message: OutgoingMessageOf<typeof NestedPolicy.HomeBinding>
       outMessage: never
       requirements: never
     }>
@@ -414,8 +506,8 @@ export type EmittedDirectReciprocalRequirements = Expect<
 export type EmittedDirectReciprocalRegistration = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<typeof directReciprocalUpdate>>,
-    | Block.BindingRequirement<'leftHome', typeof HomeBlock>
-    | Block.BindingRequirement<'rightHome', typeof HomeBlock>
+    | Block.RequirementOfBinding<typeof LeftHomeBinding>
+    | Block.RequirementOfBinding<typeof RightHomeBinding>
   >
 >
 
@@ -435,7 +527,7 @@ export type EmittedKeyedReciprocalRequirements = Expect<
 export type EmittedKeyedReciprocalRegistration = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<typeof keyedReciprocalUpdate>>,
-    | Block.BindingRequirement<'leftHomes', typeof HomeBlock>
-    | Block.BindingRequirement<'rightHomes', typeof HomeBlock>
+    | Block.RequirementOfBinding<typeof LeftKeyedHomeBinding>
+    | Block.RequirementOfBinding<typeof RightKeyedHomeBinding>
   >
 >

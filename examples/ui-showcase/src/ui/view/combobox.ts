@@ -18,7 +18,7 @@ import {
   UiComposition,
 } from '../composition'
 import type { UiViewBuilder } from '../composition'
-import type { City } from '../model'
+import type { City } from '../domain'
 
 const CITIES: ReadonlyArray<City> = [
   'Johannesburg',

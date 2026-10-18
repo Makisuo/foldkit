@@ -35,6 +35,7 @@ import { type BindChild, makeBindChild } from './bindChild.js'
 import {
   type AggregatedChildren,
   type AnyBinding,
+  type GeneratedMessageOfRequirement,
   type InspectionOfBinding,
   type ParentContractOfBinding,
   type RequirementsOfBindings,
@@ -42,6 +43,11 @@ import {
   aggregateChildren,
   assertValidBindingOperationNames,
 } from './binding.js'
+import {
+  type DispatchSchemaFor,
+  generatedEnvelopeSchemas,
+  makeDispatchSchema,
+} from './childEnvelope.js'
 import {
   assertBindingParentContracts,
   descendantOwnersOf,
@@ -57,6 +63,12 @@ import {
   makeCompositionUpdate,
 } from './delivery.js'
 import {
+  type DefineStepFields,
+  type DefineStepNoop,
+  makeStepFields,
+  makeStepNoop,
+} from './fieldStep.js'
+import {
   type DefinitionIdentity,
   LocalMountsTypeId,
   identityOf,
@@ -71,7 +83,7 @@ import {
 } from './initRecipe.js'
 import type {
   CompositionInit,
-  ValidateChildStartup,
+  ValidateChildInitContext,
   ValidateUniqueInitialFields,
 } from './initialization.js'
 import { makeInit } from './initializationRuntime.js'
@@ -406,7 +418,7 @@ export interface DefineView<
  * initialization recipe. The helper preserves graph obligations until the
  * matching Composition interprets them under its registered graph.
  *
- * Public parent-driven operations belong in `makeBlock({ operations })`. Each
+ * Public parent-driven operations belong in `assembleBlock({ operations })`. Each
  * exposed producer returns a local Message and its update context instead of a
  * Model transformation.
  */
@@ -424,7 +436,7 @@ export interface DefineStep<Model, Message, OutMessage> {
       ValidateAnnotatedContext<Context>,
   ): DefinedStep<
     Model,
-    Message,
+    DeferredStepMessage<Message, Output>,
     Context,
     OutMessageOfReturn<DeferredStepReturn<Output>>,
     CommandRequirements<DeferredStepReturn<Output>>,
@@ -454,6 +466,13 @@ type DeferredStepReturn<Output> = Output extends AnyFunction
   ? DeferredValueReturn<ReturnType<Output>>
   : DeferredValueReturn<Output>
 
+type DeferredStepMessage<Message, Output> =
+  CommandMessageOfReturn<DeferredStepReturn<Output>> extends infer ResultMessage
+    ? [ResultMessage] extends [never]
+      ? Message
+      : ResultMessage
+    : never
+
 type ValidateResultRecipe<Model, Message, OutMessage, Value> =
   Value extends Update.ResultRecipe<
     infer ResultModel,
@@ -475,7 +494,9 @@ type ValidateResultRecipe<Model, Message, OutMessage, Value> =
         | IsUnknown<Evidence>
       ? never
       : [ResultModel, Model] extends [Model, ResultModel]
-        ? [ResultMessage] extends [Message]
+        ? [ResultMessage] extends [
+            Message | GeneratedMessageOfRequirement<Evidence>,
+          ]
           ? [ResultOutMessage] extends [OutMessage]
             ? unknown
             : never
@@ -483,12 +504,36 @@ type ValidateResultRecipe<Model, Message, OutMessage, Value> =
         : never
     : never
 
+type ValidateDeferredReturn<Model, Message, OutMessage, Value> =
+  DeferredValueReturn<Value> extends infer Result
+    ? Result extends Readonly<{ model: infer ResultModel }>
+      ? true extends
+          | IsAny<ResultModel>
+          | IsUnknown<ResultModel>
+          | IsAny<CommandMessageOfReturn<Result>>
+          | IsUnknown<CommandMessageOfReturn<Result>>
+          | IsAny<OutMessageOfReturn<Result>>
+          | IsUnknown<OutMessageOfReturn<Result>>
+        ? never
+        : [ResultModel] extends [Model]
+          ? [CommandMessageOfReturn<Result>] extends [
+              | Message
+              | GeneratedMessageOfRequirement<
+                  Update.RegistrationEvidenceOf<Result>
+                >,
+            ]
+            ? [OutMessageOfReturn<Result>] extends [OutMessage]
+              ? Update.ValidateConcreteResultEvidence<Result>
+              : never
+            : never
+          : never
+      : never
+    : never
+
 type ValidateDeferredValue<Model, Message, OutMessage, Value> =
   Value extends Update.AnyResultRecipe
     ? ValidateResultRecipe<Model, Message, OutMessage, Value>
-    : DeferredValueReturn<Value> extends OwnedReturn<Model, Message, OutMessage>
-      ? unknown
-      : never
+    : ValidateDeferredReturn<Model, Message, OutMessage, Value>
 
 type ValidateDeferredStepOutput<Model, Message, OutMessage, Output> =
   Output extends AnyFunction
@@ -516,18 +561,10 @@ type ValidateDeferredStepOutput<Model, Message, OutMessage, Output> =
             : never
       : never
     : Output extends AnyBindingInitRecipe
-      ? BindingInitRecipeReturn<Output> extends OwnedReturn<
-          Model,
-          Message,
-          OutMessage
-        >
-        ? unknown
-        : never
+      ? ValidateDeferredReturn<Model, Message, OutMessage, Output>
       : Output extends Update.AnyResultRecipe
         ? ValidateResultRecipe<Model, Message, OutMessage, Output>
-        : Output extends OwnedReturn<Model, Message, OutMessage>
-          ? unknown
-          : never
+        : ValidateDeferredReturn<Model, Message, OutMessage, Output>
 
 type EmittedMessage<Messages extends ReadonlyArray<Schema.Top>> =
   Messages[number]['Type']
@@ -1118,7 +1155,7 @@ type ImplementationHostHandlers<Implementation> =
     : readonly []
 
 /**
- * The channels supplied to a Block Composition's `makeBlock` method. The
+ * The channels supplied to a Block Composition's `assembleBlock` method. The
  * block retains the exact types of the supplied functions,
  * registrations, and local Layer recipe. Check an implementation with
  * `satisfies Implementation<Model, Message, OutMessage>` to retain its inferred
@@ -1162,7 +1199,7 @@ type ImplementationChannels<Model, Message, OutMessage, Operations> = Readonly<{
   /** The complete local handler recipe for this Block. Child Bindings contribute
    * their recipes automatically. Ordinary Service requirements remain for the
    * application root to provide. This field is explicit on the broad
-   * `Implementation` contract. An inferred concrete `makeBlock` argument may
+   * `Implementation` contract. An inferred concrete `assembleBlock` argument may
    * omit it, in which case completion uses `Layer.empty`. */
   EffectsLayer: Layer.Layer<never, any, any> | Layer.Layer<any, any, any>
   /** Handler service contracts intentionally left for the host to provide before
@@ -1172,7 +1209,7 @@ type ImplementationChannels<Model, Message, OutMessage, Operations> = Readonly<{
 
 /**
  * The implementation channels accepted by a Block Composition. Use this type
- * with `satisfies` so `makeBlock` can retain each channel's exact inferred
+ * with `satisfies` so `assembleBlock` can retain each channel's exact inferred
  * service requirements.
  */
 export type Implementation<
@@ -1683,7 +1720,7 @@ type ImplementationForValidation<
   }>,
 > = Readonly<{
   [LocalMountsTypeId]: Mounts
-  childBindings: Children
+  bindings: Children
   init: ImplementationValue['init']
   update: ImplementationValue['update']
   subscriptions: ImplementationSubscriptions<ImplementationValue>
@@ -1877,7 +1914,7 @@ interface BlockContractFields<
   /** @internal Retains the exact Mount definitions owned by this block. */
   readonly [LocalMountsTypeId]: Mounts
   /** Child Bindings registered in this Block's Composition. */
-  readonly childBindings: Children
+  readonly bindings: Children
   /** Creates the initial child Model and any Commands. A parent initializes a
    * connected occurrence through its registered Binding's init operation,
    * which constructs the parent Model and retains the lifted Commands. */
@@ -2087,7 +2124,7 @@ type CompletedArguments<DefinitionValue, ImplementationValue> =
     OutMessage: infer OutMessageSchema extends AnySchema
     [LocalMountsTypeId]: infer Mounts extends
       ReadonlyArray<Mount.LayeredMountDefinition>
-    childBindings: infer Children extends ReadonlyArray<AnyBinding>
+    bindings: infer Children extends ReadonlyArray<AnyBinding>
   }>
     ? CompletedImplementationValue<ImplementationValue> extends infer CompletedImplementation extends
         Readonly<{
@@ -2227,7 +2264,7 @@ export type CompletedBlock<
         >
 
 /**
- * The completed Block produced by a Composition's `makeBlock` method.
+ * The completed Block produced by a Composition's `assembleBlock` method.
  * It derives the exact graph and implementation channels from the Definition
  * and implementation values.
  */
@@ -2238,7 +2275,7 @@ export type Completed<DefinitionValue, ImplementationValue> =
     Message: infer MessageSchema extends AnySchema
     [LocalMountsTypeId]: infer Mounts extends
       ReadonlyArray<Mount.LayeredMountDefinition>
-    childBindings: infer Children extends ReadonlyArray<AnyBinding>
+    bindings: infer Children extends ReadonlyArray<AnyBinding>
   }>
     ? CompletedImplementationValue<ImplementationValue> extends infer CompletedImplementation extends
         Readonly<{
@@ -2274,7 +2311,7 @@ export type CompletedForValidation<DefinitionValue, ImplementationValue> =
     Message: infer MessageSchema extends AnySchema
     [LocalMountsTypeId]: infer Mounts extends
       ReadonlyArray<Mount.LayeredMountDefinition>
-    childBindings: infer Children extends ReadonlyArray<AnyBinding>
+    bindings: infer Children extends ReadonlyArray<AnyBinding>
   }>
     ? CompletedImplementationValue<ImplementationValue> extends infer CompletedImplementation extends
         Readonly<{
@@ -2307,7 +2344,7 @@ export type AnyBlock = Readonly<{
   Message: AnySchema
   mounts: ReadonlyArray<Mount.LayeredMountDefinition>
   [LocalMountsTypeId]: ReadonlyArray<Mount.LayeredMountDefinition>
-  childBindings: ReadonlyArray<AnyBinding>
+  bindings: ReadonlyArray<AnyBinding>
   init: AnyFunction
   update: AnyFunction
   operations: Readonly<Record<string, AnyFunction>>
@@ -2340,11 +2377,11 @@ type ManagedExposedOperationsImplementation<
 > &
   Readonly<{ operations: ExposedOperations }>
 
-type MakeBlockDefinition<OwnerValue extends Owner<string>> = Readonly<{
+type AssembleBlockDefinition<OwnerValue extends Owner<string>> = Readonly<{
   owner: OwnerValue
 }>
 
-type MakeBlockCompositionForValidation<
+type AssembleBlockCompositionForValidation<
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
   ImplementationValue,
@@ -2354,7 +2391,7 @@ type MakeBlockCompositionForValidation<
   CheckedImplementationValue<ImplementationValue>
 >
 
-type ValidateMakeBlockComposition<
+type ValidateAssembleBlockComposition<
   OwnerValue extends Owner<string>,
   _ModelSchema extends AnySchema,
   _MessageSchema extends AnySchema,
@@ -2363,8 +2400,8 @@ type ValidateMakeBlockComposition<
   Children extends ReadonlyArray<AnyBinding>,
   ImplementationValue,
 > = ValidateImplementationComposition<
-  MakeBlockDefinition<OwnerValue>,
-  MakeBlockCompositionForValidation<Mounts, Children, ImplementationValue>
+  AssembleBlockDefinition<OwnerValue>,
+  AssembleBlockCompositionForValidation<Mounts, Children, ImplementationValue>
 > &
   ValidateBindingOperationNames<
     ImplementationExposedOperations<ImplementationValue>
@@ -2376,7 +2413,7 @@ type ValidateMakeBlockComposition<
       >
     : unknown)
 
-type PublicMakeBlockImplementation<
+type PublicAssembleBlockImplementation<
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
   ImplementationValue,
@@ -2397,7 +2434,7 @@ type PublicMakeBlockImplementation<
  * lifecycle work. `EffectsLayer` contains the Block's local handler recipes;
  * child Bindings contribute their recipes automatically, and ordinary Service
  * requirements remain for the application root to provide. */
-export interface MakeBlock<
+export interface AssembleBlock<
   OwnerValue extends Owner<string>,
   ModelSchema extends Schema.Codec<any, any, any, any>,
   MessageSchema extends Schema.Codec<any, any, any, any>,
@@ -2415,7 +2452,7 @@ export interface MakeBlock<
     implementation: ImplementationValue &
       Readonly<{ view?: never }> &
       ExactImplementationKeys<ImplementationValue> &
-      ValidateMakeBlockComposition<
+      ValidateAssembleBlockComposition<
         OwnerValue,
         ModelSchema,
         MessageSchema,
@@ -2431,7 +2468,7 @@ export interface MakeBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicMakeBlockImplementation<
+    PublicAssembleBlockImplementation<
       ModelSchema,
       MessageSchema,
       ImplementationValue
@@ -2464,7 +2501,7 @@ export interface MakeBlock<
       hostHandlers?: never
       EffectsLayer: EffectsLayer &
         NoInfer<
-          ValidateMakeBlockComposition<
+          ValidateAssembleBlockComposition<
             OwnerValue,
             ModelSchema,
             MessageSchema,
@@ -2495,7 +2532,7 @@ export interface MakeBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicMakeBlockImplementation<
+    PublicAssembleBlockImplementation<
       ModelSchema,
       MessageSchema,
       ViewImplementation<Init, UpdateFunction, View, EffectsLayer>
@@ -2535,7 +2572,7 @@ export interface MakeBlock<
       hostHandlers?: never
       EffectsLayer: EffectsLayer &
         NoInfer<
-          ValidateMakeBlockComposition<
+          ValidateAssembleBlockComposition<
             OwnerValue,
             ModelSchema,
             MessageSchema,
@@ -2572,7 +2609,7 @@ export interface MakeBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicMakeBlockImplementation<
+    PublicAssembleBlockImplementation<
       ModelSchema,
       MessageSchema,
       ViewSubscriptionsImplementation<
@@ -2618,7 +2655,7 @@ export interface MakeBlock<
         subscriptions: Subscriptions
         EffectsLayer: EffectsLayer &
           NoInfer<
-            ValidateMakeBlockComposition<
+            ValidateAssembleBlockComposition<
               OwnerValue,
               ModelSchema,
               MessageSchema,
@@ -2656,7 +2693,7 @@ export interface MakeBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicMakeBlockImplementation<
+    PublicAssembleBlockImplementation<
       ModelSchema,
       MessageSchema,
       ViewSubscriptionImplementation<
@@ -2691,7 +2728,7 @@ export interface MakeBlock<
         MessageSchema['Type'],
         DefinitionViewRequirements<Mounts, Children>
       > &
-      ValidateMakeBlockComposition<
+      ValidateAssembleBlockComposition<
         OwnerValue,
         ModelSchema,
         MessageSchema,
@@ -2707,7 +2744,7 @@ export interface MakeBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicMakeBlockImplementation<
+    PublicAssembleBlockImplementation<
       ModelSchema,
       MessageSchema,
       DefaultEffectsImplementation<ImplementationValue>
@@ -2747,7 +2784,7 @@ export interface MakeBlock<
         MessageSchema['Type'],
         DefinitionViewRequirements<Mounts, Children>
       > &
-      ValidateMakeBlockComposition<
+      ValidateAssembleBlockComposition<
         OwnerValue,
         ModelSchema,
         MessageSchema,
@@ -2763,7 +2800,7 @@ export interface MakeBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicMakeBlockImplementation<
+    PublicAssembleBlockImplementation<
       ModelSchema,
       MessageSchema,
       ImplementationValue
@@ -2804,7 +2841,7 @@ export interface MakeBlock<
       EffectsLayer: EffectsLayer
     }> &
       NoInfer<
-        ValidateMakeBlockComposition<
+        ValidateAssembleBlockComposition<
           OwnerValue,
           ModelSchema,
           MessageSchema,
@@ -2841,7 +2878,7 @@ export interface MakeBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicMakeBlockImplementation<
+    PublicAssembleBlockImplementation<
       ModelSchema,
       MessageSchema,
       ManagedExposedOperationsImplementation<
@@ -2885,7 +2922,7 @@ export interface MakeBlock<
       managedResources: ManagedResources
       EffectsLayer: EffectsLayer &
         NoInfer<
-          ValidateMakeBlockComposition<
+          ValidateAssembleBlockComposition<
             OwnerValue,
             ModelSchema,
             MessageSchema,
@@ -2922,7 +2959,7 @@ export interface MakeBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicMakeBlockImplementation<
+    PublicAssembleBlockImplementation<
       ModelSchema,
       MessageSchema,
       ManagedImplementation<
@@ -2968,7 +3005,7 @@ export interface MakeBlock<
       managedResources: ManagedResources
       EffectsLayer: EffectsLayer &
         NoInfer<
-          ValidateMakeBlockComposition<
+          ValidateAssembleBlockComposition<
             OwnerValue,
             ModelSchema,
             MessageSchema,
@@ -3006,7 +3043,7 @@ export interface MakeBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicMakeBlockImplementation<
+    PublicAssembleBlockImplementation<
       ModelSchema,
       MessageSchema,
       ManagedSubscriptionImplementation<
@@ -3051,7 +3088,7 @@ export interface MakeBlock<
       EffectsLayer: EffectsLayer
     }> &
       NoInfer<
-        ValidateMakeBlockComposition<
+        ValidateAssembleBlockComposition<
           OwnerValue,
           ModelSchema,
           MessageSchema,
@@ -3087,7 +3124,7 @@ export interface MakeBlock<
     OutMessageSchema,
     Mounts,
     Children,
-    PublicMakeBlockImplementation<
+    PublicAssembleBlockImplementation<
       ModelSchema,
       MessageSchema,
       ViewExposedOperationsImplementation<
@@ -3119,12 +3156,12 @@ export type ViewBuilderFor<CompositionValue> =
     Message: Readonly<{ Type: infer Message }>
     [LocalMountsTypeId]: infer Mounts extends
       ReadonlyArray<Mount.LayeredMountDefinition>
-    childBindings: infer Children extends ReadonlyArray<AnyBinding>
+    bindings: infer Children extends ReadonlyArray<AnyBinding>
   }>
     ? HtmlBuilder<Message, DefinitionViewRequirements<Mounts, Children>>
     : never
 
-/** The passive typed authoring contract created by `Block.define`. A Definition
+/** The passive typed authoring contract created by `Block.makeDefinition`. A Definition
  * owns local identities and Schemas; call `makeComposition` to register child and
  * Mount capabilities before completing the Block. */
 export type Definition<
@@ -3134,7 +3171,7 @@ export type Definition<
   OutMessageSchema extends Schema.Codec<any, any, any, any> | undefined,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
-  StartupSchema extends AnySchema | undefined = undefined,
+  ChildInitContextSchema extends AnySchema | undefined = undefined,
 > = Readonly<{
   /** @internal Runtime identity shared by the definition and completed block. */
   owner: OwnerValue
@@ -3151,10 +3188,10 @@ export type Definition<
   /** @internal Retains the exact Mount definitions owned by this definition. */
   [LocalMountsTypeId]: Mounts
   /** Child Bindings registered in this Definition's composition graph. */
-  childBindings: Children
+  bindings: Children
   /** Authors an internal Model transformation for update, init, or child
    * OutMessage policy composition. Declare parent-driven operations as local
-   * Message producers under `makeBlock({ operations })`. */
+   * Message producers under `assembleBlock({ operations })`. */
   step: DefineStep<
     ModelSchema['Type'],
     MessageSchema['Type'],
@@ -3162,6 +3199,10 @@ export type Definition<
       ? OutMessageSchema['Type']
       : never
   >
+  /** Authors a Model-only Step from transformations of this Block's fields. */
+  stepFields: DefineStepFields<ModelSchema['Type']>
+  /** Creates a Step preserving the incoming Model, with no Commands or OutMessage. */
+  stepNoop: DefineStepNoop<ModelSchema['Type']>
   /** Defines Subscription entries owned directly by this Block. */
   subscriptions: DefineSubscriptions<
     OwnerValue['id'],
@@ -3180,7 +3221,9 @@ export type Definition<
     ModelSchema,
     MessageSchema,
     OutMessageSchema,
-    StartupSchema extends AnySchema ? StartupSchema['Type'] : never
+    ChildInitContextSchema extends AnySchema
+      ? ChildInitContextSchema['Type']
+      : never
   >
   /** Registers the child and Mount graph and returns the Composition used to
    * author its view and complete its Block. */
@@ -3189,13 +3232,13 @@ export type Definition<
     ModelSchema,
     MessageSchema,
     OutMessageSchema,
-    StartupSchema
+    ChildInitContextSchema
   >
 }> &
-  (StartupSchema extends AnySchema
+  (ChildInitContextSchema extends AnySchema
     ? Readonly<{
-        /** Schema establishing the shared input type for Binding startup selectors. */
-        Startup: StartupSchema
+        /** Schema for the context parent init prepares for its child Binding init policies. */
+        ChildInitContext: ChildInitContextSchema
       }>
     : unknown) &
   (OutMessageSchema extends Schema.Codec<any, any, any, any>
@@ -3223,21 +3266,24 @@ export type Composition<
   >,
   | 'owner'
   | 'Model'
-  | 'Message'
   | 'OutMessage'
   | 'mounts'
   | typeof LocalMountsTypeId
-  | 'childBindings'
+  | 'bindings'
 > & {
-  /** Authors startup for this registered graph. The callback supplies shared
-   * startup inputs and parent-owned fields; child initialization and internal
-   * startup Steps are assembled into the complete Model and lifted Commands.
+  /** Complete dispatch Codec, including this Composition's generated child Messages. */
+  readonly Message: DispatchSchemaFor<MessageSchema, Children>
+  /** Authors initialization for this registered graph. The callback supplies
+   * parent-owned fields and may prepare one shared ChildInitContext for its
+   * child Binding init policies. Child initialization and listed Steps produce the
+   * complete Model and lifted Commands when the returned initializer is called.
    * Policy obligations retained by raw Binding operations resolve against this
    * Composition's complete registered graph. */
   readonly makeInit: CompositionInit<
     ModelSchema['Type'],
     MessageSchema['Type'],
-    Children
+    Children,
+    DispatchSchemaFor<MessageSchema, Children>['Type']
   >
   /** Authors parent transitions while registered child delivery policies route
    * their wrapper Messages through the native Binding folds. Raw Binding
@@ -3248,22 +3294,24 @@ export type Composition<
     ModelSchema['Type'],
     MessageSchema['Type'],
     OutMessageSchema extends AnySchema ? OutMessageSchema['Type'] : never,
-    Children
+    Children,
+    false,
+    DispatchSchemaFor<MessageSchema, Children>['Type']
   >
   /** Authors a view against this Composition's Model, Message, local Mounts,
    * and registered child Bindings. */
   readonly makeView: DefineView<
     OwnerValue,
     ModelSchema['Type'],
-    MessageSchema['Type'],
+    DispatchSchemaFor<MessageSchema, Children>['Type'],
     DefinitionViewRequirements<Mounts, Children>
   >
   /** Completes this Composition with its implementation channels and returns
    * a passive Block. */
-  readonly makeBlock: MakeBlock<
+  readonly assembleBlock: AssembleBlock<
     OwnerValue,
     ModelSchema,
-    MessageSchema,
+    DispatchSchemaFor<MessageSchema, Children>,
     OutMessageSchema,
     Mounts,
     Children
@@ -3279,7 +3327,7 @@ export interface MakeComposition<
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
-  StartupSchema extends AnySchema | undefined = undefined,
+  ChildInitContextSchema extends AnySchema | undefined = undefined,
 > {
   (
     ...validation: CompositionDeliveryArguments<
@@ -3304,12 +3352,14 @@ export interface MakeComposition<
        * to an empty registry. */
       mounts?: Mounts & Mount.PreciseMountRegistry<Mounts>
       /** Child Bindings registered in this Block's composition graph. Omitted
-       * childBindings default to an empty tuple. */
-      childBindings?: Children
+       * bindings default to an empty tuple. */
+      bindings?: Children
     }> &
-      ValidateChildStartup<
+      ValidateChildInitContext<
         Children,
-        StartupSchema extends AnySchema ? StartupSchema['Type'] : never
+        ChildInitContextSchema extends AnySchema
+          ? ChildInitContextSchema['Type']
+          : never
       > &
       ValidateChildBindings<
         Children,
@@ -3334,7 +3384,7 @@ export type Base<
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
-  StartupSchema extends AnySchema | undefined = undefined,
+  ChildInitContextSchema extends AnySchema | undefined = undefined,
 > = Definition<
   OwnerValue,
   ModelSchema,
@@ -3342,7 +3392,7 @@ export type Base<
   OutMessageSchema,
   readonly [],
   readonly [],
-  StartupSchema
+  ChildInitContextSchema
 >
 
 /** Establishes Model, Message, and optional OutMessage contracts for Block
@@ -3352,7 +3402,7 @@ export interface DefineBlock<OwnerValue extends Owner<string>> {
     const ModelSchema extends AnySchema,
     const MessageSchema extends AnySchema,
     const OutMessageSchema extends AnySchema,
-    const StartupSchema extends AnySchema | undefined = undefined,
+    const ChildInitContextSchema extends AnySchema | undefined = undefined,
   >(
     config: Readonly<{
       /** Schema for the Block's Model. */
@@ -3362,21 +3412,21 @@ export interface DefineBlock<OwnerValue extends Owner<string>> {
       /** Schema for facts the Block can report to a parent. */
       OutMessage: OutMessageSchema
       /** Shared input Schema for Binding init selectors; this value is not stored in the Model. */
-      Startup?: StartupSchema
+      ChildInitContext?: ChildInitContextSchema
       mounts?: never
-      childBindings?: never
+      bindings?: never
     }>,
   ): Base<
     OwnerValue,
     ModelSchema,
     MessageSchema,
     OutMessageSchema,
-    StartupSchema
+    ChildInitContextSchema
   >
   <
     const ModelSchema extends AnySchema,
     const MessageSchema extends AnySchema,
-    const StartupSchema extends AnySchema | undefined = undefined,
+    const ChildInitContextSchema extends AnySchema | undefined = undefined,
   >(
     config: Readonly<{
       /** Schema for the Block's Model. */
@@ -3384,12 +3434,18 @@ export interface DefineBlock<OwnerValue extends Owner<string>> {
       /** Schema for facts the Block's update function handles. */
       Message: MessageSchema
       /** Shared input Schema for Binding init selectors; this value is not stored in the Model. */
-      Startup?: StartupSchema
+      ChildInitContext?: ChildInitContextSchema
       OutMessage?: never
       mounts?: never
-      childBindings?: never
+      bindings?: never
     }>,
-  ): Base<OwnerValue, ModelSchema, MessageSchema, undefined, StartupSchema>
+  ): Base<
+    OwnerValue,
+    ModelSchema,
+    MessageSchema,
+    undefined,
+    ChildInitContextSchema
+  >
 }
 
 const makeDefineView = <
@@ -3400,7 +3456,7 @@ const makeDefineView = <
 >(
   owner: OwnerValue,
   mounts: ReadonlyArray<Mount.LayeredMountDefinition>,
-  childBindings: ReadonlyArray<AnyBinding>,
+  bindings: ReadonlyArray<AnyBinding>,
 ): DefineView<OwnerValue, Model, Message, RequiredViewRequirements> => {
   function defineView(
     view: (
@@ -3446,7 +3502,7 @@ const makeDefineView = <
         Message,
         RequiredViewRequirements
       > {
-    const ownedView = withViewIdentity(owner, mounts, childBindings, view)
+    const ownedView = withViewIdentity(owner, mounts, bindings, view)
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     return defineHtmlView(ownedView as any) as
       | OwnedAuthoredView<
@@ -3479,7 +3535,7 @@ const makeDefineView = <
     Message,
     RequiredViewRequirements
   > => {
-    const ownedView = withViewIdentity(owner, mounts, childBindings, view)
+    const ownedView = withViewIdentity(owner, mounts, bindings, view)
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     return defineHtmlView(ownedView as any) as OwnedAuthoredView<
       BlockView<
@@ -3518,7 +3574,7 @@ const makeDefineStep = <Model, Message, OutMessage>(): DefineStep<
       ValidateAnnotatedContext<Context>,
   ): DefinedStep<
     Model,
-    Message,
+    DeferredStepMessage<Message, Output>,
     Context,
     OutMessageOfReturn<DeferredStepReturn<Output>>,
     CommandRequirements<DeferredStepReturn<Output>>,
@@ -3722,43 +3778,49 @@ export const makeDefinition = (
     Model: AnySchema
     Message: AnySchema
     OutMessage?: AnySchema
-    Startup?: AnySchema
+    ChildInitContext?: AnySchema
     mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
-    childBindings?: ReadonlyArray<AnyBinding>
+    bindings?: ReadonlyArray<AnyBinding>
   }>,
   authoring?: Readonly<{
     step: AnyFunction
+    stepFields: AnyFunction
+    stepNoop: AnyFunction
     subscriptions: AnyFunction
     managedResources: AnyFunction
   }>,
 ): any => {
   const localMounts = Object.freeze(globalThis.Array.from(config.mounts ?? []))
-  const childBindings = Object.freeze(
-    globalThis.Array.from(config.childBindings ?? []),
-  )
+  const bindings = Object.freeze(globalThis.Array.from(config.bindings ?? []))
 
   const parentContract = {
     ownerToken: owner.token,
     Model: config.Model,
     Message: config.Message,
     OutMessage: config.OutMessage,
-    Startup: config.Startup,
+    ChildInitContext: config.ChildInitContext,
   }
 
-  assertBindingParentContracts(parentContract, owner.id, childBindings)
+  assertBindingParentContracts(parentContract, owner.id, bindings)
 
-  const childChannels = aggregateChildren(childBindings)
+  const childChannels = aggregateChildren(bindings)
   const mounts = mergeMounts(localMounts, childChannels.mounts)
+  const dispatchMessage = makeDispatchSchema(
+    config.Message,
+    generatedEnvelopeSchemas(bindings),
+  )
 
   const assertOperationMessage = makeOperationMessageValidator(config.Message)
-  const defineView = makeDefineView(owner, localMounts, childBindings)
-  const init = makeInit(config.Model, childBindings)
+  const defineView = makeDefineView(owner, localMounts, bindings)
+  const init = makeInit(config.Model, bindings)
   const update = makeCompositionUpdate(
-    config.Message,
-    childBindings,
+    dispatchMessage,
+    bindings,
     authoring !== undefined,
   )
   const defineStep = authoring?.step ?? makeDefineStep()
+  const stepFields = authoring?.stepFields ?? makeStepFields()
+  const stepNoop = authoring?.stepNoop ?? makeStepNoop
   const defineSubscriptions =
     authoring?.subscriptions ?? makeDefineSubscriptions(owner)
   const defineManagedResources =
@@ -3791,7 +3853,7 @@ export const makeDefinition = (
     const completed = Record.map(source, (operation, name) => {
       if (isOperationMessageConstructor(operation)) {
         assertOperationMessage(operation)
-        assertLocalOperationMessage(operation, childBindings)
+        assertLocalOperationMessage(operation, bindings)
       } else if (!Predicate.isFunction(operation)) {
         throw new Error(
           `[foldkit] Block "${owner.id}" operation "${name}" must be a local Message constructor or a Message tuple producer.`,
@@ -3803,7 +3865,7 @@ export const makeDefinition = (
         : operation
 
       return (model: unknown, ...args: ReadonlyArray<any>) =>
-        withOperationGraph(childBindings, () => {
+        withOperationGraph(bindings, () => {
           const input = produce(...args)
           if (!globalThis.Array.isArray(input) || Array.isArrayEmpty(input)) {
             throw new Error(
@@ -3816,7 +3878,7 @@ export const makeDefinition = (
               `[foldkit] Block "${owner.id}" exposed operation "${name}" returned a Message outside this Block's Message Schema.`,
             )
           }
-          assertLocalOperationTag(Reflect.get(message, '_tag'), childBindings)
+          assertLocalOperationTag(Reflect.get(message, '_tag'), bindings)
           const output = update(model, ...input)
           const resolved = resolveOperationOutput(output, model)
           return isBindingInitRecipe(resolved)
@@ -3832,7 +3894,7 @@ export const makeDefinition = (
     return completed
   }
 
-  function makeBlock(
+  function assembleBlock(
     implementation: {
       readonly view?: AnyAuthoredView
       readonly init: AnyFunction
@@ -3888,7 +3950,7 @@ export const makeDefinition = (
     const localEffectsLayer = implementation.EffectsLayer ?? Layer.empty
     const selectedLayer = selectLayer(owner, localEffectsLayer, {
       allowedIdentities: hostIdentities,
-      descendantOwners: descendantOwnersOf(childBindings),
+      descendantOwners: descendantOwnersOf(bindings),
       ...(areHostHandlersProvided
         ? {
             requiredIdentities: new Set(
@@ -3897,7 +3959,7 @@ export const makeDefinition = (
           }
         : {}),
     })
-    const EffectsLayer = Array.isReadonlyArrayEmpty(childBindings)
+    const EffectsLayer = Array.isReadonlyArrayEmpty(bindings)
       ? selectedLayer
       : Layer.merge(selectedLayer, childChannels.EffectsLayer)
     const hostHandlers = implementation.hostHandlers ?? []
@@ -3905,7 +3967,7 @@ export const makeDefinition = (
     assertDistinctManagedResourceOwners(managedResources)
 
     function replaceEffectsLayer(EffectsLayer: AnyLayer): AnyBlock {
-      return makeBlock(
+      return assembleBlock(
         { ...implementation, EffectsLayer },
         hostIdentities,
         areHostHandlersProvided,
@@ -3913,7 +3975,7 @@ export const makeDefinition = (
     }
 
     function provideHandlers(HandlersLayer: AnyLayer): AnyBlock {
-      return makeBlock(
+      return assembleBlock(
         {
           ...implementation,
           EffectsLayer: Layer.merge(localEffectsLayer, HandlersLayer),
@@ -3927,14 +3989,14 @@ export const makeDefinition = (
     const block = {
       owner,
       Model: config.Model,
-      Message: config.Message,
+      Message: dispatchMessage,
       ...(config.OutMessage === undefined
         ? {}
         : { OutMessage: config.OutMessage }),
       makeView: defineView,
       mounts,
       [LocalMountsTypeId]: localMounts,
-      childBindings,
+      bindings,
       init: implementation.init,
       update: completedUpdate,
       operations,
@@ -3960,24 +4022,65 @@ export const makeDefinition = (
   return {
     owner,
     Model: config.Model,
-    Message: config.Message,
-    ...(config.Startup === undefined ? {} : { Startup: config.Startup }),
+    Message: dispatchMessage,
+    ...(config.ChildInitContext === undefined
+      ? {}
+      : { ChildInitContext: config.ChildInitContext }),
     ...(config.OutMessage === undefined
       ? {}
       : { OutMessage: config.OutMessage }),
     mounts,
     [LocalMountsTypeId]: localMounts,
-    childBindings,
+    bindings,
     makeView: defineView,
     makeInit: init,
     makeUpdate: update,
     step: defineStep,
+    stepFields,
+    stepNoop,
     subscriptions: defineSubscriptions,
     managedResources: defineManagedResources,
     bindChild,
-    makeBlock,
+    assembleBlock,
   }
 }
+type RuntimeCompositionGraph = Readonly<{
+  mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
+  bindings?: ReadonlyArray<AnyBinding>
+}>
+
+const assertCompositionGraph: (
+  value: unknown,
+) => asserts value is RuntimeCompositionGraph = value => {
+  if (!Predicate.isObject(value) || globalThis.Array.isArray(value)) {
+    throw new Error(
+      '[foldkit] Definition.makeComposition configuration must be an object.',
+    )
+  }
+
+  for (const field of Object.getOwnPropertyNames(value)) {
+    if (field !== 'mounts' && field !== 'bindings') {
+      throw new Error(
+        `[foldkit] Definition.makeComposition does not support the configuration field "${field}".`,
+      )
+    }
+  }
+
+  const mounts = Reflect.get(value, 'mounts')
+  if (mounts !== undefined && !globalThis.Array.isArray(mounts)) {
+    throw new Error(
+      '[foldkit] Definition.makeComposition configuration field "mounts" must be an array when present.',
+    )
+  }
+
+  const bindings = Reflect.get(value, 'bindings')
+  if (bindings !== undefined && !globalThis.Array.isArray(bindings)) {
+    throw new Error(
+      '[foldkit] Definition.makeComposition configuration field "bindings" must be an array when present.',
+    )
+  }
+}
+
 /** @internal Creates a typed definition before its composition graph. */
 export const makeBaseDefinition = (
   owner: Owner<any>,
@@ -3985,16 +4088,13 @@ export const makeBaseDefinition = (
     Model: AnySchema
     Message: AnySchema
     OutMessage?: AnySchema
-    Startup?: AnySchema
+    ChildInitContext?: AnySchema
   }>,
 ): any => {
   const base = makeDefinition(owner, config)
-  const makeComposition = (
-    graph: Readonly<{
-      mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
-      childBindings?: ReadonlyArray<AnyBinding>
-    }> = {},
-  ) => {
+
+  const makeComposition = (graph: RuntimeCompositionGraph = {}) => {
+    assertCompositionGraph(graph)
     const composition = makeDefinition(owner, { ...config, ...graph }, base)
 
     return {
@@ -4006,11 +4106,11 @@ export const makeBaseDefinition = (
         : { OutMessage: composition.OutMessage }),
       mounts: composition.mounts,
       [LocalMountsTypeId]: composition[LocalMountsTypeId],
-      childBindings: composition.childBindings,
+      bindings: composition.bindings,
       makeInit: composition.makeInit,
       makeUpdate: composition.makeUpdate,
       makeView: composition.makeView,
-      makeBlock: composition.makeBlock,
+      assembleBlock: composition.assembleBlock,
     }
   }
 
@@ -4018,12 +4118,16 @@ export const makeBaseDefinition = (
     owner: base.owner,
     Model: base.Model,
     Message: base.Message,
-    ...(base.Startup === undefined ? {} : { Startup: base.Startup }),
+    ...(base.ChildInitContext === undefined
+      ? {}
+      : { ChildInitContext: base.ChildInitContext }),
     ...(base.OutMessage === undefined ? {} : { OutMessage: base.OutMessage }),
     mounts: base.mounts,
     [LocalMountsTypeId]: base[LocalMountsTypeId],
-    childBindings: base.childBindings,
+    bindings: base.bindings,
     step: base.step,
+    stepFields: base.stepFields,
+    stepNoop: base.stepNoop,
     subscriptions: base.subscriptions,
     managedResources: base.managedResources,
     bindChild: base.bindChild,

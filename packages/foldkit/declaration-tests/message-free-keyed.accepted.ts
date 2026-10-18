@@ -25,10 +25,13 @@ class SilentClient extends Context.Service<
 >()('StrictRoutingGeneralKeyedNever/SilentClient') {}
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const SilentDefinition = Block.define('StrictRoutingGeneralKeyedNeverChild', {
-  Model: SilentModel,
-  Message: Schema.Never,
-})
+const SilentDefinition = Block.makeDefinition(
+  'StrictRoutingGeneralKeyedNeverChild',
+  {
+    Model: SilentModel,
+    Message: Schema.Never,
+  },
+)
 const WaitForever = SilentDefinition.command('WaitForever', {
   messages: [],
   handler: function* () {
@@ -38,7 +41,7 @@ const WaitForever = SilentDefinition.command('WaitForever', {
 })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 const SilentComposition = SilentDefinition.makeComposition()
-export const SilentBlock = SilentComposition.makeBlock({
+export const SilentBlock = SilentComposition.assembleBlock({
   init: SilentComposition.makeInit((id: string) => ({
     model: SilentModel.make({ id, ready: false }),
     commands: [WaitForever()],
@@ -52,9 +55,9 @@ export const Entry = Schema.Struct({
   silent: SilentModel,
 })
 export const ParentModel = Schema.Struct({ entries: Schema.Array(Entry) })
-const ParentMessage = defineMessageUnion({ ClickedParent: {} })
+export const ParentMessage = defineMessageUnion({ ClickedParent: {} })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-export const ParentDefinition = Block.define(
+export const ParentDefinition = Block.makeDefinition(
   'StrictRoutingGeneralKeyedNeverParent',
   {
     Model: ParentModel,
@@ -102,7 +105,7 @@ export const GeneralKeyedBinding = ParentDefinition.bindChild(SilentBlock, {
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 export const ParentComposition = ParentDefinition.makeComposition({
-  childBindings: [GeneralKeyedBinding],
+  bindings: [GeneralKeyedBinding],
 })
 export const initializeGeneral = ParentDefinition.step((model, key: string) =>
   GeneralKeyedBinding.init({
@@ -114,7 +117,7 @@ export const initializeGeneral = ParentDefinition.step((model, key: string) =>
       }),
   }),
 )
-export const ParentBlock = ParentComposition.makeBlock({
+export const ParentBlock = ParentComposition.assembleBlock({
   init: ParentComposition.makeInit(() => ({ model: { entries: [] } })),
   update: ParentComposition.makeUpdate(model => ({ model })),
 })

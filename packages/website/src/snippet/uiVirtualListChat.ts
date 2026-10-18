@@ -18,30 +18,31 @@ const Model = Schema.Struct({
 type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
-  GotMessageListMessage: { message: MessageList.Message },
   ReceivedMessage: { message: ChatMessage },
 })
 type Message = typeof Message.Type
 
 const initialMessages: ReadonlyArray<typeof ChatMessage.Type> = []
 
-const MessageListExampleDefinition = Block.define('MessageListExample', {
-  Model,
-  Message,
-})
+const MessageListExampleDefinition = Block.makeDefinition(
+  'MessageListExample',
+  {
+    Model,
+    Message,
+  },
+)
 
 const foldMessageListOutMessage = MessageList.OutMessage.match<
   Update.Step<Model, Message>
 >({
-  ObservedContainerScroll: () => model => ({ model }),
+  ObservedContainerScroll: () => MessageListExampleDefinition.stepNoop(),
 })
 
 const MessageListBinding = MessageListExampleDefinition.bindChild(MessageList, {
   field: 'messageList',
-  parentMessage: Message.GotMessageListMessage,
   outMessage: { fold: foldMessageListOutMessage },
   init: {
-    startupToArgs: () =>
+    contextToArgs: () =>
       Tuple.make({
         id: 'message-list',
         rowHeightPx: 64,
@@ -53,7 +54,7 @@ const MessageListBinding = MessageListExampleDefinition.bindChild(MessageList, {
 
 const MessageListExampleComposition =
   MessageListExampleDefinition.makeComposition({
-    childBindings: [MessageListBinding],
+    bindings: [MessageListBinding],
   })
 
 const init = MessageListExampleComposition.makeInit(() => ({

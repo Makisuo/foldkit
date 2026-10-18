@@ -29,7 +29,7 @@ import {
 const pascalIdentifierPattern = /^[A-Z][A-Za-z0-9]*$/
 
 const childMessageConstructionMessage = (calleeLabel: string): string =>
-  `Do not construct the child Message \`${calleeLabel}(...)\` from a parent. Pass a received child Message to \`child.fold(model, message)\`. For parent-driven behavior, expose the local Message constructor through the child Block's \`operations\` record and call the named Binding method, such as \`child.requestClearSelection()(model)\`. Child-owned views, Steps, Commands, and Subscriptions may construct their own Messages.`
+  `Do not construct the child Message \`${calleeLabel}(...)\` from a parent. Generated child delivery is owned by the registered Binding. For parent-driven behavior, expose the local Message constructor through the child Block's \`operations\` record and call the named Binding method, such as \`child.requestClearSelection()(model)\`. Child-owned views, Steps, Commands, and Subscriptions may construct their own Messages.`
 
 type ImportedMessagePath = Pick<ImportedPath, 'source' | 'members'>
 
@@ -574,7 +574,7 @@ const localDefinitionMessagePath = (
 
     const defineCall = definition.node.init
     const definePath = yield* staticMemberPath(defineCall.callee)
-    if (!Option.contains(Array.last(definePath.members), 'define')) {
+    if (!Option.contains(Array.last(definePath.members), 'makeDefinition')) {
       return yield* Option.none()
     }
 
@@ -907,9 +907,9 @@ const importedOperationOwnsMessage = (
           Option.fromNullishOr(previousOperation),
         ) !== undefined
       const isCompletion =
-        operation === 'makeApplication' ||
-        operation === 'makeBlock' ||
-        operation === 'makeElement'
+        operation === 'assembleApplication' ||
+        operation === 'assembleBlock' ||
+        operation === 'assembleElement'
       if (!isDefinitionOperation && !isViewWithInputs && !isCompletion) {
         return false
       }

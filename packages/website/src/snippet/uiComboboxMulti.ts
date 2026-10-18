@@ -18,9 +18,7 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const Message = defineMessageUnion({
-  GotComboboxMultiMessage: { message: CitiesCombobox.Message },
-})
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 // The parent toggles the committed value in the selection it owns.
@@ -37,22 +35,24 @@ const foldComboboxMultiOutMessage = CitiesCombobox.OutMessage.match<
             : Array.append(selectedCities, value),
       }),
     }),
-  ClearedSelection: () => model => ({ model }),
+  ClearedSelection: () => CitiesPickerDefinition.stepNoop(),
 })
 
-const CitiesPickerDefinition = Block.define('CitiesPicker', { Model, Message })
+const CitiesPickerDefinition = Block.makeDefinition('CitiesPicker', {
+  Model,
+  Message,
+})
 
 const ComboboxBinding = CitiesPickerDefinition.bindChild(CitiesCombobox, {
   field: 'comboboxMulti',
-  parentMessage: Message.GotComboboxMultiMessage,
-  init: { startupToArgs: () => Tuple.make({ id: 'cities-multi' }) },
+  init: { contextToArgs: () => Tuple.make({ id: 'cities-multi' }) },
   outMessage: { fold: foldComboboxMultiOutMessage },
 })
 
 // Including the Binding collects its lifecycle and handler graph.
 
 const CitiesPickerComposition = CitiesPickerDefinition.makeComposition({
-  childBindings: [ComboboxBinding],
+  bindings: [ComboboxBinding],
 })
 
 const init = CitiesPickerComposition.makeInit(() => ({
@@ -126,10 +126,8 @@ const view = CitiesPickerComposition.makeView((model, h) => {
   )
 })
 
-export const block = CitiesPickerComposition.makeBlock({
+export const CitiesPickerBlock = CitiesPickerComposition.assembleBlock({
   init,
   update,
   view,
 })
-
-export { Model, Message, init }

@@ -2,12 +2,12 @@ import { Effect, Option, Schema } from 'effect'
 import { expect, it, vi } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 
 const Config = Schema.Struct({ count: Schema.Number })
 const ChildModel = Schema.Struct({ count: Schema.Number })
 const ChildMessage = defineMessageUnion({ CompletedChildInit: {} })
-const Child = define('InitRecipeSnapshotChild', {
+const Child = makeDefinition('InitRecipeSnapshotChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
@@ -19,7 +19,7 @@ const CompleteChildInit = Child.command('CompleteChildInit', {
     return () => Effect.succeed(ChildMessage.CompletedChildInit())
   },
 })
-const childBlock = ChildComposition.makeBlock({
+const childBlock = ChildComposition.assembleBlock({
   init: ChildComposition.makeInit((config: typeof Config.Type) => ({
     model: ChildModel.make({ count: childInitialized(config) }),
     commands: [CompleteChildInit()],
@@ -30,10 +30,9 @@ const childBlock = ChildComposition.makeBlock({
 
 const ParentModel = Schema.Struct({ child: Schema.Option(ChildModel) })
 const ParentMessage = defineMessageUnion({
-  GotChildMessage: { message: ChildMessage },
   CompletedParentInit: { label: Schema.String },
 })
-const Parent = define('InitRecipeSnapshotParent', {
+const Parent = makeDefinition('InitRecipeSnapshotParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -47,11 +46,10 @@ const CompleteParentInit = Parent.command('CompleteParentInit', {
 })
 const ChildBinding = Parent.bindChild(childBlock, {
   field: 'child',
-  parentMessage: ParentMessage.GotChildMessage,
   init: false,
 })
 const ParentComposition = Parent.makeComposition({
-  childBindings: [ChildBinding],
+  bindings: [ChildBinding],
 })
 
 it('snapshots a passive child init recipe without cloning its argument values', () => {
@@ -95,26 +93,17 @@ it('snapshots a passive child init recipe without cloning its argument values', 
 
 const Item = Schema.Struct({ id: Schema.String, child: ChildModel })
 const KeyedModel = Schema.Struct({ items: Schema.Array(Item) })
-const KeyedMessage = defineMessageUnion({
-  GotChildMessage: { id: Schema.String, message: ChildMessage },
-})
-const Keyed = define('InitRecipeSnapshotKeyedParent', {
+const Keyed = makeDefinition('InitRecipeSnapshotKeyedParent', {
   Model: KeyedModel,
-  Message: KeyedMessage,
+  Message: Schema.Never,
 })
 const KeyedBinding = Keyed.bindChild(childBlock, {
   field: 'items',
   key: 'id',
   childField: 'child',
-  toParentMessage: (id, message) =>
-    KeyedMessage.GotChildMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: KeyedMessage.GotChildMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
 })
 const KeyedComposition = Keyed.makeComposition({
-  childBindings: [KeyedBinding],
+  bindings: [KeyedBinding],
 })
 
 it('snapshots the keyed identity and mapper before deferred child initialization', () => {

@@ -14,16 +14,15 @@ const ChildMessage = Message.defineMessageUnion({
   RequestedRefresh: {},
   RequestedSelect: {},
 })
-const DeclarationKeyedFieldChildDefinition = Block.define(
+
+const DeclarationKeyedFieldChildComposition = Block.makeDefinition(
   'DeclarationKeyedFieldChild',
   {
     Model: ChildModel,
     Message: ChildMessage,
   },
-)
-const DeclarationKeyedFieldChildComposition =
-  DeclarationKeyedFieldChildDefinition.makeComposition()
-export const ChildBlock = DeclarationKeyedFieldChildComposition.makeBlock({
+).makeComposition()
+export const ChildBlock = DeclarationKeyedFieldChildComposition.assembleBlock({
   init: DeclarationKeyedFieldChildComposition.makeInit(() => ({
     model: ChildModel.make({ id: 'initial', count: 0 }),
   })),
@@ -46,17 +45,16 @@ export const CallableChildModel = FoldkitSchema.taggedStruct(
   'DeclarationCallableKeyedFieldChild',
   { id: Schema.String, count: Schema.Number },
 )
-const DeclarationCallableKeyedFieldChildDefinition = Block.define(
+
+const DeclarationCallableKeyedFieldChildComposition = Block.makeDefinition(
   'DeclarationCallableKeyedFieldChild',
   {
     Model: CallableChildModel,
     Message: ChildMessage,
   },
-)
-const DeclarationCallableKeyedFieldChildComposition =
-  DeclarationCallableKeyedFieldChildDefinition.makeComposition()
+).makeComposition()
 export const CallableChildBlock =
-  DeclarationCallableKeyedFieldChildComposition.makeBlock({
+  DeclarationCallableKeyedFieldChildComposition.assembleBlock({
     init: DeclarationCallableKeyedFieldChildComposition.makeInit(() => ({
       model: CallableChildModel({ id: 'initial', count: 0 }),
     })),
@@ -85,49 +83,49 @@ const RefinedKeyModel = Schema.Struct({
   count: Schema.Number,
 })
 const RefinedKeyMessage = Message.defineMessageUnion({ UpdatedCount: {} })
-const DeclarationRefinedKeyChildDefinition = Block.define(
+
+const DeclarationRefinedKeyChildComposition = Block.makeDefinition(
   'DeclarationRefinedKeyChild',
   {
     Model: RefinedKeyModel,
     Message: RefinedKeyMessage,
   },
-)
-const DeclarationRefinedKeyChildComposition =
-  DeclarationRefinedKeyChildDefinition.makeComposition()
-export const RefinedKeyBlock = DeclarationRefinedKeyChildComposition.makeBlock({
-  init: DeclarationRefinedKeyChildComposition.makeInit(() => ({
-    model: RefinedKeyModel.make({
-      id: Schema.decodeSync(RefinedId)('initial'),
-      kind: 'Child',
-      count: 0,
-    }),
-  })),
-  update: DeclarationRefinedKeyChildComposition.makeUpdate(model => ({
-    model,
-  })),
-  EffectsLayer: Layer.empty,
-})
+).makeComposition()
+export const RefinedKeyBlock =
+  DeclarationRefinedKeyChildComposition.assembleBlock({
+    init: DeclarationRefinedKeyChildComposition.makeInit(() => ({
+      model: RefinedKeyModel.make({
+        id: Schema.decodeSync(RefinedId)('initial'),
+        kind: 'Child',
+        count: 0,
+      }),
+    })),
+    update: DeclarationRefinedKeyChildComposition.makeUpdate(model => ({
+      model,
+    })),
+    EffectsLayer: Layer.empty,
+  })
 
 const ArrayChildModel = Schema.Array(Schema.String)
 const ArrayChildMessage = Message.defineMessageUnion({ IgnoredValue: {} })
-const DeclarationArrayModelChildDefinition = Block.define(
+
+const DeclarationArrayModelChildComposition = Block.makeDefinition(
   'DeclarationArrayModelChild',
   {
     Model: ArrayChildModel,
     Message: ArrayChildMessage,
   },
-)
-const DeclarationArrayModelChildComposition =
-  DeclarationArrayModelChildDefinition.makeComposition()
-export const ArrayChildBlock = DeclarationArrayModelChildComposition.makeBlock({
-  init: DeclarationArrayModelChildComposition.makeInit(() => ({
-    model: ArrayChildModel.make(['initial']),
-  })),
-  update: DeclarationArrayModelChildComposition.makeUpdate(model => ({
-    model,
-  })),
-  EffectsLayer: Layer.empty,
-})
+).makeComposition()
+export const ArrayChildBlock =
+  DeclarationArrayModelChildComposition.assembleBlock({
+    init: DeclarationArrayModelChildComposition.makeInit(() => ({
+      model: ArrayChildModel.make(['initial']),
+    })),
+    update: DeclarationArrayModelChildComposition.makeUpdate(model => ({
+      model,
+    })),
+    EffectsLayer: Layer.empty,
+  })
 
 export class ChildCounter extends Context.Service<
   ChildCounter,
@@ -136,7 +134,7 @@ export class ChildCounter extends Context.Service<
 export const ChildOutMessage = Message.defineMessageUnion({
   RequestedSelection: {},
 })
-const DeclarationKeyedFieldOutChildDefinition = Block.define(
+const DeclarationKeyedFieldOutChildDefinition = Block.makeDefinition(
   'DeclarationKeyedFieldOutChild',
   {
     Model: ChildModel,
@@ -160,8 +158,8 @@ export const ReadChildCount = DeclarationKeyedFieldOutChildDefinition.command(
 )
 const DeclarationKeyedFieldOutChildComposition =
   DeclarationKeyedFieldOutChildDefinition.makeComposition()
-export const OutChildBlock = DeclarationKeyedFieldOutChildComposition.makeBlock(
-  {
+export const OutChildBlock =
+  DeclarationKeyedFieldOutChildComposition.assembleBlock({
     init: DeclarationKeyedFieldOutChildComposition.makeInit(() => ({
       model: ChildModel.make({ id: 'initial', count: 0 }),
     })),
@@ -186,8 +184,7 @@ export const OutChildBlock = DeclarationKeyedFieldOutChildComposition.makeBlock(
       select: () => [ChildMessage.RequestedSelect()],
     },
     EffectsLayer: ReadChildCount.layer,
-  },
-)
+  })
 
 const WrappedRow = Schema.Struct({
   rowId: Schema.String,
@@ -229,18 +226,9 @@ const ParentModel = Schema.Struct({
   maybeRoom: Schema.Option(ChildModel),
 })
 export const ParentMessage = Message.defineMessageUnion({
-  GotEntryMessage: { id: Schema.String, message: ChildBlock.Message },
-  GotWrappedMessage: { rowId: Schema.String, message: ChildBlock.Message },
-  GotRoomMessage: { roomId: Schema.String, message: ChildBlock.Message },
-  GotBrandedMessage: { id: RefinedId, message: RefinedKeyBlock.Message },
-  GotLiteralMessage: {
-    kind: Schema.Literal('Child'),
-    message: RefinedKeyBlock.Message,
-  },
-  GotArrayChildMessage: { message: ArrayChildBlock.Message },
   IgnoredChildMessage: {},
 })
-export const DeclarationKeyedFieldParentDefinition = Block.define(
+export const DeclarationKeyedFieldParentDefinition = Block.makeDefinition(
   'DeclarationKeyedFieldParent',
   {
     Model: ParentModel,
@@ -253,30 +241,21 @@ export const CallableParentModel = FoldkitSchema.taggedStruct(
   { entries: Schema.Array(CallableChildModel) },
 )
 export const CallableParentMessage = Message.defineMessageUnion({
-  GotEntryMessage: { id: Schema.String, message: CallableChildBlock.Message },
   IgnoredChildMessage: {},
 })
-export const DeclarationCallableKeyedFieldParentDefinition = Block.define(
-  'DeclarationCallableKeyedFieldParent',
-  {
+export const DeclarationCallableKeyedFieldParentDefinition =
+  Block.makeDefinition('DeclarationCallableKeyedFieldParent', {
     Model: CallableParentModel,
     Message: CallableParentMessage,
-  },
-)
+  })
 export const CallableEntriesBinding =
   DeclarationCallableKeyedFieldParentDefinition.bindChild(CallableChildBlock, {
     field: 'entries',
     key: 'id',
-    toParentMessage: (id, message) =>
-      CallableParentMessage.GotEntryMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: CallableParentMessage.GotEntryMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
   })
 const DeclarationCallableKeyedFieldParentComposition =
   DeclarationCallableKeyedFieldParentDefinition.makeComposition({
-    childBindings: [CallableEntriesBinding],
+    bindings: [CallableEntriesBinding],
   })
 export const foldCallableEntry =
   DeclarationCallableKeyedFieldParentComposition.makeUpdate(
@@ -292,12 +271,6 @@ export const EntriesBinding = DeclarationKeyedFieldParentDefinition.bindChild(
   {
     field: 'entries',
     key: 'id',
-    toParentMessage: (id, message) =>
-      ParentMessage.GotEntryMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotEntryMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
     subscriptions: {
       when: (model, id) => {
         expectNotAnyOrUnknown(model)
@@ -321,39 +294,30 @@ const InitializedParentModel = Schema.Struct({
   entries: Schema.Array(ChildModel),
   status: Schema.Literal('Ready'),
 })
-const InitializedParentMessage = Message.defineMessageUnion({
-  GotEntryMessage: { id: Schema.String, message: ChildBlock.Message },
-})
-const DeclarationInitializedKeyedFieldParentDefinition = Block.define(
+const DeclarationInitializedKeyedFieldParentDefinition = Block.makeDefinition(
   'DeclarationInitializedKeyedFieldParent',
   {
     Model: InitializedParentModel,
-    Message: InitializedParentMessage,
+    Message: Schema.Never,
   },
 )
 export const InitializedEntriesBinding =
   DeclarationInitializedKeyedFieldParentDefinition.bindChild(ChildBlock, {
     field: 'entries',
     key: 'id',
-    toParentMessage: (id, message) =>
-      InitializedParentMessage.GotEntryMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: InitializedParentMessage.GotEntryMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
     init: {
-      occurrences: (_status: 'Ready') => [{ key: 'initial', args: [] }],
+      instances: (_status: 'Ready') => [{ key: 'initial', args: [] }],
       toItem: (_occurrence, child) => child,
     },
   })
 const DeclarationInitializedKeyedFieldParentComposition =
   DeclarationInitializedKeyedFieldParentDefinition.makeComposition({
-    childBindings: [InitializedEntriesBinding],
+    bindings: [InitializedEntriesBinding],
   })
 export const initializeKeyedParent =
   DeclarationInitializedKeyedFieldParentComposition.makeInit(
     (status: 'Ready') => ({
-      startup: status,
+      childInitContext: status,
       model: { status },
     }),
   )
@@ -362,70 +326,36 @@ export const EquivalentEntriesBinding =
   DeclarationKeyedFieldParentDefinition.bindChild(ChildBlock, {
     field: 'equivalentEntries',
     key: 'id',
-    toParentMessage: (id, message) =>
-      ParentMessage.GotEntryMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotEntryMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
   })
 
 export const SuspendedEntriesBinding =
   DeclarationKeyedFieldParentDefinition.bindChild(ChildBlock, {
     field: 'suspendedEntries',
     key: 'id',
-    toParentMessage: (id, message) =>
-      ParentMessage.GotEntryMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotEntryMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
   })
 
 export const BrandedEntriesBinding =
   DeclarationKeyedFieldParentDefinition.bindChild(RefinedKeyBlock, {
     field: 'brandedEntries',
     key: 'id',
-    toParentMessage: (id, message) =>
-      ParentMessage.GotBrandedMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotBrandedMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
   })
 
 export const LiteralEntriesBinding =
   DeclarationKeyedFieldParentDefinition.bindChild(RefinedKeyBlock, {
+    placement: 'literalEntries',
     field: 'literalEntries',
     key: 'kind',
-    toParentMessage: (kind, message) =>
-      ParentMessage.GotLiteralMessage({ kind, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotLiteralMessage,
-      args: (_model, { kind, message }) => Option.some([kind, message]),
-    },
   })
 
 export const ArrayChildBinding =
   DeclarationKeyedFieldParentDefinition.bindChild(ArrayChildBlock, {
     field: 'arrayChild',
-    toParentMessage: message => ParentMessage.GotArrayChildMessage({ message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotArrayChildMessage,
-      args: (_model, { message }) => Option.some([message]),
-    },
   })
 
 export const OutEntriesBinding =
   DeclarationKeyedFieldParentDefinition.bindChild(OutChildBlock, {
     field: 'outEntries',
     key: 'id',
-    toParentMessage: (id, message) =>
-      ParentMessage.GotEntryMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotEntryMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
     outMessage: {
       fold: (id, outMessage, context) => {
         const exactId: string = id
@@ -450,6 +380,7 @@ export const WrappedRowsBinding =
     placement: 'wrappedRows',
     readAll: model => model.wrappedRows,
     key: row => row.rowId,
+    keySchema: WrappedRow.fields.rowId,
     read: row => row.child,
     writeAt: (model, rowId, nextChild) =>
       Struct.modifyFields(model, {
@@ -459,34 +390,24 @@ export const WrappedRowsBinding =
             : row,
         ),
       }),
-    toParentMessage: (rowId, message) =>
-      ParentMessage.GotWrappedMessage({ rowId, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotWrappedMessage,
-      args: (_model, { rowId, message }) => Option.some([rowId, message]),
-    },
   })
 
 export const RoomBinding = DeclarationKeyedFieldParentDefinition.bindChild(
   ChildBlock,
   {
+    placement: 'room',
     readAll: model => Option.toArray(model.maybeRoom),
     key: child => child.id,
+    keySchema: ChildModel.fields.id,
     read: child => child,
     writeAt: (model, _roomId, nextRoom) =>
       Struct.modifyFields(model, { maybeRoom: () => Option.some(nextRoom) }),
-    toParentMessage: (roomId, message) =>
-      ParentMessage.GotRoomMessage({ roomId, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotRoomMessage,
-      args: (_model, { roomId, message }) => Option.some([roomId, message]),
-    },
   },
 )
 
 export const DeclarationKeyedFieldParentComposition =
   DeclarationKeyedFieldParentDefinition.makeComposition({
-    childBindings: [
+    bindings: [
       EntriesBinding,
       BrandedEntriesBinding,
       LiteralEntriesBinding,

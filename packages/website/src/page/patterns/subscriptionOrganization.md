@@ -2,7 +2,7 @@
 
 ## Overview
 
-A Block owns the Subscriptions that produce its Messages. Its completed Block carries those registrations and their handler recipes. A parent Binding lifts them through the same Model accessor and Message wrapper used for update and view.
+A Block owns the Subscriptions that produce its Messages. Its completed Block carries those registrations and their handler recipes. A parent Binding lifts them through the same Model accessor and generated delivery used for update and view.
 
 This keeps one parent-child relationship in one place. The parent does not separately lift and aggregate a child's Subscription record, and the application entry does not import leaf Subscription handlers.
 
@@ -12,7 +12,7 @@ Use the Block definition's `subscriptions` helper. It fixes the Model and Messag
 
 ::Snippet{name="subscriptionOrganizationChild" label="Block Subscription definitions"}
 
-Compose the attached entry recipes in the feature's local `EffectsLayer`. Pass that bundle to `FeatureComposition.makeBlock`. A parent Binding contributes it automatically.
+Compose the attached entry recipes in the feature's local `EffectsLayer`. Pass that bundle to `FeatureComposition.assembleBlock`. A parent Binding contributes it automatically.
 
 ## Connect the Child Once
 
@@ -23,14 +23,14 @@ The parent binds the completed child and includes the Binding in its Composition
 The Binding derives three things from the same policy:
 
 - `read` locates the child Model for update and every lifecycle.
-- `parentMessage` wraps update, Command, Subscription, Mount, and ManagedResource Messages, and supplies the canonical unkeyed route back through the Binding.
+- Generated delivery wraps view, Command, Subscription, Mount, and ManagedResource Messages with their captured Binding occurrence. Composition routes them through the same Binding.
 - `placement` qualifies the child's runtime identities and registration keys.
 
 Nested Blocks repeat the same pattern. By the time a Stream reaches the root, every emitted Message has been wrapped through each parent boundary.
 
 ## Install the Root
 
-The Application Composition already contains the Subscription and handler graph. Its owned `makeApplication` method completes the browser program with the implementation:
+The Application Composition already contains the Subscription and handler graph. Its owned `assembleApplication` method completes the browser program with the implementation:
 
 ::Snippet{name="subscriptionOrganizationRoot" label="Installing the root Subscription graph"}
 
@@ -64,7 +64,7 @@ An omitted entry has no additional parent gate. It still stops when `read` retur
 
 ## Keyed Children
 
-For an array storing child Models directly, use `ParentDefinition.bindChild` with `field`, a string-valued `key`, and `toParentMessage`. The child Schema must expose its declared Struct fields. An exact array of closed Struct wrappers adds `childField`, whose required Schema has exactly the same decoded shape as the child Model; its distinct required `key` belongs to the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration use `readAll`, function-valued `key`, `read`, and `writeAt`. The Binding declares storage, stable identity, and parent Message routing once. Every active key receives independent Stream scopes and its own gate evaluation.
+For an array storing child Models directly, use `ParentDefinition.bindChild` with `field` and a string-valued `key`. The child Schema must expose its declared Struct fields. An exact array of closed Struct wrappers adds `childField`, whose required Schema has exactly the same decoded shape as the child Model; its distinct required `key` belongs to the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration use `readAll`, function-valued `key`, `read`, and `writeAt`. The Binding declares storage, stable identity, and generated child delivery once. Every active key receives independent Stream scopes and its own gate evaluation.
 
 Removing a key stops those Streams. Reusing the key later creates a fresh occurrence, so callbacks captured by the old occurrence cannot dispatch into the replacement.
 

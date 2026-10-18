@@ -6,7 +6,8 @@ import type {
   InspectionOfBinding,
   RequirementsOfBindings,
 } from '../block/binding.js'
-import { define as defineBlock } from '../block/define.js'
+import type { DispatchSchemaFor } from '../block/childEnvelope.js'
+import { makeDefinition as makeBlockDefinition } from '../block/define.js'
 import {
   type Definition as BlockDefinition,
   type CompletedForValidation,
@@ -22,9 +23,10 @@ import type {
   CompositionDeliveryArguments,
   DefineCompositionUpdate,
 } from '../block/delivery.js'
+import type { DefineStepFields, DefineStepNoop } from '../block/fieldStep.js'
 import type {
   CompositionInit,
-  ValidateChildStartup,
+  ValidateChildInitContext,
 } from '../block/initialization.js'
 import {
   type DefineCommand,
@@ -35,7 +37,7 @@ import {
 import type { Owner } from '../block/owner.js'
 import type { HtmlBuilder } from '../html/index.js'
 import type * as Mount from '../mount/index.js'
-import type { MakeApplication, MakeElement } from './application.js'
+import type { AssembleApplication, AssembleElement } from './application.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
 type RootOwner = Owner<'Application', true>
@@ -69,6 +71,10 @@ type AuthoringHelpers<
    * and Command requirements. The Runtime executes returned Commands later.
    */
   step: DefineStep<ModelSchema['Type'], MessageSchema['Type'], never>
+  /** Authors a Model-only Step from transformations of root-owned fields. */
+  stepFields: DefineStepFields<ModelSchema['Type']>
+  /** Creates a Step preserving the incoming Model, with no Commands or OutMessage. */
+  stepNoop: DefineStepNoop<ModelSchema['Type']>
   /**
    * Declares named root Streams, their result Messages and Model dependencies.
    * Implementations are handler recipes; the Runtime manages active Streams.
@@ -128,7 +134,7 @@ type CompletionHelpers<
    * Supply its implementation and browser inputs; provision ordinary Services
    * on the returned value before passing it to Runtime.run.
    */
-  makeApplication: MakeApplication<
+  assembleApplication: AssembleApplication<
     CompositionIdentity<ModelSchema, MessageSchema, Mounts, Children>
   >
   /**
@@ -136,7 +142,7 @@ type CompletionHelpers<
    * Its view returns Html and it does not own document metadata or URL routing.
    * The Runtime constructs its Layers and starts its lifecycle effects later.
    */
-  makeElement: MakeElement<
+  assembleElement: AssembleElement<
     CompositionIdentity<ModelSchema, MessageSchema, Mounts, Children>
   >
 }>
@@ -212,7 +218,7 @@ export type ViewRequirementsOf<CompositionValue> =
 
 /**
  * A passive application root after its child and Mount graph is known. Call
- * its `makeApplication` or `makeElement` method to complete it. It cannot be bound into
+ * its `assembleApplication` or `assembleElement` method to complete it. It cannot be bound into
  * another composition.
  */
 export type Composition<
@@ -222,13 +228,13 @@ export type Composition<
   Children extends ReadonlyArray<AnyBinding>,
 > = Readonly<{
   /**
-   * The root Model Schema established by defineApplication.
+   * The root Model Schema established by makeApplicationDefinition.
    */
   Model: ModelSchema
   /**
-   * The root Message Schema established by defineApplication.
+   * The complete root dispatch Codec, including generated child Messages.
    */
-  Message: MessageSchema
+  Message: DispatchSchemaFor<MessageSchema, Children>
   /**
    * Local and lifted child Mount definitions available to the owned view.
    * Local registrations are supplied to makeComposition; child registrations
@@ -243,16 +249,17 @@ export type Composition<
    * The registered child Bindings. Their handlers and lifecycle definitions
    * are included automatically at completion.
    */
-  childBindings: Children
+  bindings: Children
   /**
    * Authors root startup. The callback supplies parent-owned fields, optional
-   * shared startup inputs, Commands and ordinary Steps. The initializer
+   * shared ChildInitContext for its child Bindings, Commands and ordinary Steps. The initializer
    * assembles registered children before applying the Steps.
    */
   makeInit: CompositionInit<
     ModelSchema['Type'],
     MessageSchema['Type'],
-    Children
+    Children,
+    DispatchSchemaFor<MessageSchema, Children>['Type']
   >
   /**
    * Authors root transitions for Messages not claimed by child delivery
@@ -263,7 +270,8 @@ export type Composition<
     MessageSchema['Type'],
     never,
     Children,
-    true
+    true,
+    DispatchSchemaFor<MessageSchema, Children>['Type']
   >
   /**
    * Authors the canonical root view with the registered child and Mount
@@ -272,17 +280,22 @@ export type Composition<
   makeView: DefineView<
     RootOwner,
     ModelSchema['Type'],
-    MessageSchema['Type'],
+    DispatchSchemaFor<MessageSchema, Children>['Type'],
     Mount.RequirementsOf<Mounts> | RequirementsOfBindings<Children>
   >
   [CompositionTypeId]: CompositionEvidence<
     ModelSchema,
-    MessageSchema,
+    DispatchSchemaFor<MessageSchema, Children>,
     Mounts,
     Children
   >
 }> &
-  CompletionHelpers<ModelSchema, MessageSchema, Mounts, Children>
+  CompletionHelpers<
+    ModelSchema,
+    DispatchSchemaFor<MessageSchema, Children>,
+    Mounts,
+    Children
+  >
 
 /**
  * The `HtmlBuilder` type supplied by an Application Composition. Pass
@@ -340,7 +353,7 @@ export type CompletedComposition<CompositionValue, Implementation> =
 export interface MakeComposition<
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
-  StartupSchema extends AnySchema | undefined = undefined,
+  ChildInitContextSchema extends AnySchema | undefined = undefined,
 > {
   (
     ...validation: CompositionDeliveryArguments<
@@ -356,7 +369,7 @@ export interface MakeComposition<
     config: Readonly<{
       /**
        * Local Mount definitions permitted in owned views. Defaults to an empty
-       * registry; child Mounts are collected from childBindings automatically.
+       * registry; child Mounts are collected from bindings automatically.
        */
       mounts?: Mounts & Mount.PreciseMountRegistry<Mounts>
       /**
@@ -364,11 +377,13 @@ export interface MakeComposition<
        * an empty tuple. The Composition snapshots this graph and includes its
        * handler recipes and occurrence lifecycle registrations at completion.
        */
-      childBindings?: Children
+      bindings?: Children
     }> &
-      ValidateChildStartup<
+      ValidateChildInitContext<
         Children,
-        StartupSchema extends AnySchema ? StartupSchema['Type'] : never
+        ChildInitContextSchema extends AnySchema
+          ? ChildInitContextSchema['Type']
+          : never
       > &
       ValidateChildBindings<
         Children,
@@ -386,7 +401,7 @@ export interface MakeComposition<
 export type Definition<
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
-  StartupSchema extends AnySchema | undefined = undefined,
+  ChildInitContextSchema extends AnySchema | undefined = undefined,
 > = Readonly<{
   /**
    * The root Model Schema, shared by its authoring helpers.
@@ -403,7 +418,7 @@ export type Definition<
   /**
    * An empty child graph before makeComposition registers Bindings.
    */
-  childBindings: readonly []
+  bindings: readonly []
   /**
    * Creates a passive Binding with contextual root Model and Message types.
    * The parent selects storage, Message mapping and OutMessage policy.
@@ -412,19 +427,25 @@ export type Definition<
     ModelSchema,
     MessageSchema,
     undefined,
-    StartupSchema extends AnySchema ? StartupSchema['Type'] : never
+    ChildInitContextSchema extends AnySchema
+      ? ChildInitContextSchema['Type']
+      : never
   >
   /**
    * Establishes the child and Mount graph and returns the root Composition.
    * Omitted registries are empty. This step validates passive configuration;
    * it neither constructs Layers nor starts lifecycle work.
    */
-  makeComposition: MakeComposition<ModelSchema, MessageSchema, StartupSchema>
+  makeComposition: MakeComposition<
+    ModelSchema,
+    MessageSchema,
+    ChildInitContextSchema
+  >
 }> &
-  (StartupSchema extends AnySchema
+  (ChildInitContextSchema extends AnySchema
     ? Readonly<{
-        /** Schema establishing the shared input type for Binding startup selectors. */
-        Startup: StartupSchema
+        /** Schema for the context parent init prepares for its child Binding init policies. */
+        ChildInitContext: ChildInitContextSchema
       }>
     : unknown) &
   AuthoringHelpers<ModelSchema, MessageSchema>
@@ -432,23 +453,23 @@ export type Definition<
 /**
  * Defines a passive root authoring value from its Model and Message Schemas.
  * Establish its graph with makeComposition, then complete that Composition with
- * makeApplication or makeElement. The Runtime constructs Layers and runs effects.
+ * assembleApplication or assembleElement. The Runtime constructs Layers and runs effects.
  */
 export interface Define {
   <
     const ModelSchema extends AnySchema,
     const MessageSchema extends AnySchema,
-    const StartupSchema extends AnySchema | undefined = undefined,
+    const ChildInitContextSchema extends AnySchema | undefined = undefined,
   >(
     config: Readonly<{
       /** The root Model Schema used to type init, update, views and bindings. */
       Model: ModelSchema
       /** The root Message Schema used by Commands, lifecycle work and dispatch. */
       Message: MessageSchema
-      /** Shared input Schema for Binding startup selectors, separate from Model state. */
-      Startup?: StartupSchema
+      /** Schema for the parent-prepared context shared with its child Binding init policies. */
+      ChildInitContext?: ChildInitContextSchema
     }>,
-  ): Definition<ModelSchema, MessageSchema, StartupSchema>
+  ): Definition<ModelSchema, MessageSchema, ChildInitContextSchema>
 }
 
 const definitions = new WeakMap<
@@ -457,8 +478,8 @@ const definitions = new WeakMap<
 >()
 
 type Completion = Readonly<{
-  makeApplication: (composition: AnyComposition, config: any) => any
-  makeElement: (composition: AnyComposition, config: any) => any
+  assembleApplication: (composition: AnyComposition, config: any) => any
+  assembleElement: (composition: AnyComposition, config: any) => any
 }>
 
 const makeApplicationComposition = (
@@ -470,16 +491,16 @@ const makeApplicationComposition = (
     Message: definition.Message,
     mounts: definition.mounts,
     [LocalMountsTypeId]: definition[LocalMountsTypeId],
-    childBindings: definition.childBindings,
+    bindings: definition.bindings,
     makeInit: definition.makeInit,
     makeUpdate: definition.makeUpdate,
     makeView: definition.makeView,
-    makeApplication: (config: any) =>
+    assembleApplication: (config: any) =>
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      completion.makeApplication(composition as never, config),
-    makeElement: (config: any) =>
+      completion.assembleApplication(composition as never, config),
+    assembleElement: (config: any) =>
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      completion.makeElement(composition as never, config),
+      completion.assembleElement(composition as never, config),
   }
   definitions.set(composition, definition)
   return composition
@@ -492,7 +513,7 @@ export const definitionOf = (
   const definition = definitions.get(composition)
   if (definition === undefined) {
     throw new Error(
-      '[foldkit] Application composition must come from defineApplication(...).makeComposition(...).',
+      '[foldkit] Application composition must come from makeApplicationDefinition(...).makeComposition(...).',
     )
   }
   return definition
@@ -507,13 +528,13 @@ export const complete = <
   implementation: Implementation,
 ): CompletedComposition<CompositionValue, Implementation> =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  definitionOf(composition).makeBlock(implementation as never)
+  definitionOf(composition).assembleBlock(implementation as never)
 
 /** @internal Creates the public staged application definition function. */
-export const makeDefine =
+export const makeDefinitionFactory =
   (completion: Completion): Define =>
   config => {
-    const BaseDefinition = defineBlock('Application', config)
+    const BaseDefinition = makeBlockDefinition('Application', config)
     const primitives = {
       command: BaseDefinition.command,
       mount: BaseDefinition.mount,
@@ -524,7 +545,7 @@ export const makeDefine =
     const makeComposition = (
       graph: Readonly<{
         mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
-        childBindings?: ReadonlyArray<AnyBinding>
+        bindings?: ReadonlyArray<AnyBinding>
       }> = {},
     ) => {
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -535,15 +556,19 @@ export const makeDefine =
     const definition = {
       Model: BaseDefinition.Model,
       Message: BaseDefinition.Message,
-      ...(config.Startup === undefined ? {} : { Startup: config.Startup }),
+      ...(config.ChildInitContext === undefined
+        ? {}
+        : { ChildInitContext: config.ChildInitContext }),
       mounts: BaseDefinition.mounts,
-      childBindings: BaseDefinition.childBindings,
+      bindings: BaseDefinition.bindings,
       bindChild: BaseDefinition.bindChild,
       command: primitives.command,
       mount: primitives.mount,
       mountStream: primitives.mountStream,
       resource: primitives.resource,
       step: BaseDefinition.step,
+      stepFields: BaseDefinition.stepFields,
+      stepNoop: BaseDefinition.stepNoop,
       subscriptions: BaseDefinition.subscriptions,
       managedResources: BaseDefinition.managedResources,
       makeComposition,

@@ -4,7 +4,7 @@
 
 A non-interactive floating label anchored to a trigger. Tooltips appear on hover after a short delay, or immediately on keyboard focus. They hide on pointer-leave, blur, or Escape. Use tooltips for short hints about a control. Because they rely on hover and keyboard focus, don’t use them for content that must be reachable on touch; for that, or for rich or interactive content, use `Popover` instead.
 
-Bind `Tooltip.block` in the parent. The positioning engine is shared with `Popover` and `Menu`. Pass `anchor` to control placement and spacing.
+Bind `TooltipBlock` in the parent. The positioning engine is shared with `Popover` and `Menu`. Pass `anchor` to control placement and spacing.
 
 :::Info{label="See it in an app"}
 Check out how Tooltip is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/tooltip.ts).

@@ -10,10 +10,11 @@ import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import * as Animation from '../animation/index.js'
+import * as Animation from '../animation/block.js'
 import {
   AcquireResources,
   CloseDialog,
+  DialogBlock,
   type InitConfig,
   Message,
   Model,
@@ -21,7 +22,7 @@ import {
   ReleaseDialogResources,
   type RenderInfo,
   ShowDialog,
-  block,
+  DialogBlock as block,
   descriptionId,
   init,
   initialFocusMarkerAttribute,
@@ -29,7 +30,7 @@ import {
   titleId,
   update,
   view,
-} from './index.js'
+} from './block.js'
 
 type TestHtmlBuilder = Parameters<typeof view>[2]
 
@@ -43,13 +44,12 @@ const acknowledgeAcquireResources = Scene.Mount.resolve(
 const DialogEvent = Schema.Literals(['Opened', 'Closed'])
 
 const ParentModel = Schema.Struct({
-  dialog: Model,
+  dialog: DialogBlock.Model,
   dialogEvents: Schema.Array(DialogEvent),
 })
 type ParentModel = typeof ParentModel.Type
 
 const ParentMessage = defineMessageUnion({
-  GotDialogMessage: { message: Message },
   CompletedLoadParentData: {},
 })
 type ParentMessage = typeof ParentMessage.Type
@@ -70,7 +70,7 @@ const foldDialogOutMessage = OutMessage.match<
   CompletedClose: () => model => ({ model }),
 })
 
-const DialogParentTestDefinition = Block.define('DialogParentTest', {
+const DialogParentTestDefinition = Block.makeDefinition('DialogParentTest', {
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -84,15 +84,14 @@ const loadParentData = DialogParentTestDefinition.step(model => ({
   commands: [LoadParentData()],
 }))
 
-const DialogBinding = DialogParentTestDefinition.bindChild(block, {
+const DialogBinding = DialogParentTestDefinition.bindChild(DialogBlock, {
   field: 'dialog',
-  parentMessage: ParentMessage.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
-  init: { startupToArgs: () => [{ id: 'initial-dialog' }] },
+  init: { contextToArgs: () => [{ id: 'initial-dialog' }] },
 })
 
 const DialogParentTestComposition = DialogParentTestDefinition.makeComposition({
-  childBindings: [DialogBinding],
+  bindings: [DialogBinding],
 })
 
 const parentInit = DialogParentTestComposition.makeInit(() => ({
@@ -101,7 +100,7 @@ const parentInit = DialogParentTestComposition.makeInit(() => ({
 }))
 
 const openDialog = (config: InitConfig) =>
-  update(init(config), Message.RequestedOpen())
+  update(init(config).model, Message.RequestedOpen())
 
 const isDialogVisible = (model: Model): boolean =>
   model.isOpen || model.animation.transitionState !== 'Idle'
@@ -259,11 +258,11 @@ const hasEscapeCancelMapping = <RequiredMountRequirements>(
 describe('Dialog', () => {
   describe('init', () => {
     it('defaults isOpen to false', () => {
-      expect(init({ id: 'test' })).toStrictEqual({
+      expect(init({ id: 'test' }).model).toStrictEqual({
         id: 'test',
         isOpen: false,
         isAnimated: false,
-        animation: Animation.init({ id: 'test-panel' }),
+        animation: Animation.init({ id: 'test-panel' }).model,
         maybeFocusSelector: Option.none(),
       })
     })
@@ -275,7 +274,7 @@ describe('Dialog', () => {
         id: 'test',
         isOpen: true,
         isAnimated: false,
-        animation: Animation.init({ id: 'test-panel' }),
+        animation: Animation.init({ id: 'test-panel' }).model,
         maybeFocusSelector: Option.none(),
       })
       expect(
@@ -316,12 +315,12 @@ describe('Dialog', () => {
 
     it('accepts a focusSelector', () => {
       expect(
-        init({ id: 'test', focusSelector: '#search-input' }),
+        init({ id: 'test', focusSelector: '#search-input' }).model,
       ).toStrictEqual({
         id: 'test',
         isOpen: false,
         isAnimated: false,
-        animation: Animation.init({ id: 'test-panel' }),
+        animation: Animation.init({ id: 'test-panel' }).model,
         maybeFocusSelector: Option.some('#search-input'),
       })
     })
@@ -332,7 +331,7 @@ describe('Dialog', () => {
       it('opens when closed on RequestedOpen and emits Opened', () => {
         Story.story(
           update,
-          Story.given(init({ id: 'test' })),
+          Story.given(init({ id: 'test' }).model),
           Story.message(Message.RequestedOpen()),
           Story.expectOutMessage(OutMessage.Opened()),
           Story.Command.resolve(ShowDialog, Message.SucceededShowDialog()),
@@ -345,7 +344,7 @@ describe('Dialog', () => {
       it('shows with the initialFocus marker selector when no focusSelector is configured', () => {
         Story.story(
           update,
-          Story.given(init({ id: 'test' })),
+          Story.given(init({ id: 'test' }).model),
           Story.message(Message.RequestedOpen()),
           Story.Command.resolve(
             ShowDialog({
@@ -360,7 +359,9 @@ describe('Dialog', () => {
       it('shows with the configured focusSelector, which wins over the marker', () => {
         Story.story(
           update,
-          Story.given(init({ id: 'test', focusSelector: '#search-input' })),
+          Story.given(
+            init({ id: 'test', focusSelector: '#search-input' }).model,
+          ),
           Story.message(Message.RequestedOpen()),
           Story.Command.resolve(
             ShowDialog({ id: 'test', focusSelector: '#search-input' }),
@@ -397,7 +398,7 @@ describe('Dialog', () => {
       it('closes without command or OutMessage when already closed on RequestedClose', () => {
         Story.story(
           update,
-          Story.given(init({ id: 'test' })),
+          Story.given(init({ id: 'test' }).model),
           Story.message(Message.RequestedClose()),
           Story.expectNoOutMessage(),
           Story.model(model => {
@@ -422,7 +423,7 @@ describe('Dialog', () => {
       it('dispatches CloseDialog when the show succeeds after the dialog closed', () => {
         Story.story(
           update,
-          Story.given(init({ id: 'test' })),
+          Story.given(init({ id: 'test' }).model),
           Story.message(Message.SucceededShowDialog()),
           Story.expectNoOutMessage(),
           Story.Command.resolve(CloseDialog, Message.CompletedCloseDialog()),
@@ -435,7 +436,7 @@ describe('Dialog', () => {
       it('dispatches CloseDialog when Mount acquisition succeeds after the dialog closed', () => {
         Story.story(
           update,
-          Story.given(init({ id: 'test' })),
+          Story.given(init({ id: 'test' }).model),
           Story.message(Message.SucceededAcquireResources()),
           Story.expectNoOutMessage(),
           Story.Command.resolve(CloseDialog, Message.CompletedCloseDialog()),
@@ -457,13 +458,43 @@ describe('Dialog', () => {
           Story.Command.expectNone(),
         )
       })
+
+      it('immediately resets an entering animation when Mount acquisition fails', () => {
+        const enteringModel = modifyFields(
+          openDialog({ id: 'test', isAnimated: true }).model,
+          {
+            animation: () =>
+              modifyFields(
+                Animation.init({ id: 'test-panel', isShowing: true }).model,
+                {
+                  transitionState: () => 'EnterAnimating',
+                  transitionGeneration: () => 1,
+                },
+              ),
+          },
+        )
+
+        Story.story(
+          update,
+          Story.given(enteringModel),
+          Story.message(Message.FailedAcquireResources()),
+          Story.expectNoOutMessage(),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
+            expect(model.animation.isShowing).toBe(false)
+            expect(model.animation.transitionState).toBe('Idle')
+            expect(model.animation.transitionGeneration).toBe(1)
+          }),
+          Story.Command.expectNone(),
+        )
+      })
     })
 
     describe('animated', () => {
       it('opens with enter animation on RequestedOpen', () => {
         Story.story(
           update,
-          Story.given(init({ id: 'test', isAnimated: true })),
+          Story.given(init({ id: 'test', isAnimated: true }).model),
           Story.message(Message.RequestedOpen()),
           Story.Command.expectHas(ShowDialog, Animation.WaitForPaint),
           Story.Command.resolveAll(
@@ -639,7 +670,7 @@ describe('Dialog', () => {
             isOpen: () => false,
             animation: () =>
               modifyFields(
-                Animation.init({ id: 'test-panel', isShowing: false }),
+                Animation.init({ id: 'test-panel', isShowing: false }).model,
                 {
                   transitionState: () => 'LeaveStart',
                 },
@@ -664,7 +695,7 @@ describe('Dialog', () => {
             isOpen: () => false,
             animation: () =>
               modifyFields(
-                Animation.init({ id: 'test-panel', isShowing: false }),
+                Animation.init({ id: 'test-panel', isShowing: false }).model,
                 {
                   transitionState: () => 'LeaveStart',
                 },
@@ -689,7 +720,7 @@ describe('Dialog', () => {
             isOpen: () => false,
             animation: () =>
               modifyFields(
-                Animation.init({ id: 'test-panel', isShowing: false }),
+                Animation.init({ id: 'test-panel', isShowing: false }).model,
                 {
                   transitionState: () => 'LeaveAnimating',
                 },
@@ -732,7 +763,7 @@ describe('Dialog', () => {
             isOpen: () => false,
             animation: () =>
               modifyFields(
-                Animation.init({ id: 'test-panel', isShowing: false }),
+                Animation.init({ id: 'test-panel', isShowing: false }).model,
                 {
                   transitionState: () => 'LeaveAnimating',
                   transitionGeneration: () => 2,
@@ -747,6 +778,7 @@ describe('Dialog', () => {
           Story.expectNoOutMessage(),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
+            expect(model.animation.isShowing).toBe(false)
             expect(model.animation.transitionState).toBe('Idle')
             expect(model.animation.transitionGeneration).toBe(2)
           }),
@@ -758,7 +790,7 @@ describe('Dialog', () => {
       })
 
       it('is a no-op when the dialog is already closed', () => {
-        const closedModel = init({ id: 'test' })
+        const closedModel = init({ id: 'test' }).model
         Story.story(
           update,
           Story.given(closedModel),
@@ -772,7 +804,7 @@ describe('Dialog', () => {
       })
 
       it('returns the model unchanged on CompletedReleaseDialogResources', () => {
-        const originalModel = init({ id: 'test' })
+        const originalModel = init({ id: 'test' }).model
         Story.story(
           update,
           Story.given(originalModel),
@@ -804,7 +836,7 @@ describe('Dialog', () => {
           {
             animation: () =>
               modifyFields(
-                Animation.init({ id: 'test-panel', isShowing: true }),
+                Animation.init({ id: 'test-panel', isShowing: true }).model,
                 {
                   transitionState: () => 'EnterAnimating',
                   transitionGeneration: () => 1,
@@ -819,6 +851,7 @@ describe('Dialog', () => {
           Story.expectNoOutMessage(),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
+            expect(model.animation.isShowing).toBe(false)
             expect(model.animation.transitionState).toBe('Idle')
             expect(model.animation.transitionGeneration).toBe(1)
           }),
@@ -833,7 +866,7 @@ describe('Dialog', () => {
             isOpen: () => false,
             animation: () =>
               modifyFields(
-                Animation.init({ id: 'test-panel', isShowing: false }),
+                Animation.init({ id: 'test-panel', isShowing: false }).model,
                 {
                   transitionState: () => 'LeaveAnimating',
                 },
@@ -847,6 +880,7 @@ describe('Dialog', () => {
           Story.expectNoOutMessage(),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
+            expect(model.animation.isShowing).toBe(false)
             expect(model.animation.transitionState).toBe('Idle')
           }),
           Story.Command.expectNone(),
@@ -854,7 +888,7 @@ describe('Dialog', () => {
       })
 
       it('does nothing when the dialog is already closed', () => {
-        const closedModel = init({ id: 'test' })
+        const closedModel = init({ id: 'test' }).model
         Story.story(
           update,
           Story.given(closedModel),
@@ -882,21 +916,21 @@ describe('Dialog', () => {
 
   describe('titleId', () => {
     it('returns the id suffixed with -dialog-title', () => {
-      const model = init({ id: 'my-dialog' })
+      const model = init({ id: 'my-dialog' }).model
       expect(titleId(model)).toBe('my-dialog-dialog-title')
     })
   })
 
   describe('descriptionId', () => {
     it('returns the id suffixed with -dialog-description', () => {
-      const model = init({ id: 'my-dialog' })
+      const model = init({ id: 'my-dialog' }).model
       expect(descriptionId(model)).toBe('my-dialog-dialog-description')
     })
   })
 
   describe('RenderInfo title and description', () => {
     it('publishes the title id the dialog labels itself by', () => {
-      const model = init({ id: 'my-dialog' })
+      const model = init({ id: 'my-dialog' }).model
       expect(
         hasIdAttribute(
           renderGroup(model, render => render.title),
@@ -906,7 +940,7 @@ describe('Dialog', () => {
     })
 
     it('publishes the description id the dialog describes itself by', () => {
-      const model = init({ id: 'my-dialog' })
+      const model = init({ id: 'my-dialog' }).model
       expect(
         hasIdAttribute(
           renderGroup(model, render => render.description),
@@ -920,7 +954,7 @@ describe('Dialog', () => {
     it('omits aria-describedby by default', () => {
       expect(
         hasAriaDescribedBy(
-          renderGroup(init({ id: 'my-dialog' }), render => render.dialog),
+          renderGroup(init({ id: 'my-dialog' }).model, render => render.dialog),
           'my-dialog-dialog-description',
         ),
       ).toBe(false)
@@ -929,7 +963,11 @@ describe('Dialog', () => {
     it('references the description when opted in', () => {
       expect(
         hasAriaDescribedBy(
-          renderGroup(init({ id: 'my-dialog' }), render => render.dialog, true),
+          renderGroup(
+            init({ id: 'my-dialog' }).model,
+            render => render.dialog,
+            true,
+          ),
           'my-dialog-dialog-description',
         ),
       ).toBe(true)
@@ -938,7 +976,7 @@ describe('Dialog', () => {
     it('suppresses native cancel events', () => {
       expect(
         hasCancelPrevention(
-          renderGroup(init({ id: 'my-dialog' }), render => render.dialog),
+          renderGroup(init({ id: 'my-dialog' }).model, render => render.dialog),
         ),
       ).toBe(true)
     })
@@ -946,7 +984,7 @@ describe('Dialog', () => {
     it('maps the showDialog Escape signal', () => {
       expect(
         hasEscapeCancelMapping(
-          renderGroup(init({ id: 'my-dialog' }), render => render.dialog),
+          renderGroup(init({ id: 'my-dialog' }).model, render => render.dialog),
         ),
       ).toBe(true)
     })
@@ -967,7 +1005,7 @@ describe('Dialog', () => {
           isOpen: () => false,
           animation: () =>
             modifyFields(
-              Animation.init({ id: 'my-dialog-panel', isShowing: false }),
+              Animation.init({ id: 'my-dialog-panel', isShowing: false }).model,
               {
                 transitionState: () => 'LeaveStart',
                 transitionGeneration: () => 2,
@@ -983,7 +1021,7 @@ describe('Dialog', () => {
 
   describe('RenderInfo initialFocus', () => {
     it('publishes the marker the dialog focuses on open', () => {
-      const model = init({ id: 'my-dialog' })
+      const model = init({ id: 'my-dialog' }).model
       expect(
         hasDataAttribute(
           renderGroup(model, render => render.initialFocus),
@@ -1254,7 +1292,7 @@ describe('Dialog', () => {
     })
 
     it('omits the OnUnmount backstop while the dialog is closed', () => {
-      expect(dialogHasOnUnmount(init({ id: 'test' }))).toBe(false)
+      expect(dialogHasOnUnmount(init({ id: 'test' }).model)).toBe(false)
     })
 
     it('renders the dialog closed with no OnUnmount backstop after a failed show', () => {
@@ -1289,7 +1327,7 @@ describe('Dialog', () => {
     it('omits modal semantics while closed', () => {
       Scene.scene(
         { update, view: sceneView },
-        Scene.given(init({ id: 'test' })),
+        Scene.given(init({ id: 'test' }).model),
         Scene.expect(Scene.selector('dialog')).not.toHaveAttr('aria-modal'),
       )
     })

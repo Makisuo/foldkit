@@ -1,12 +1,12 @@
 import { Array, Option } from 'effect'
-import { type Update } from 'foldkit'
+import { type Block, type Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { FileDrop } from '@foldkit/ui'
+import { FileDropBlock } from '@foldkit/ui'
 
 import { AttachmentsDefinition, Message, type Model } from './definition'
 
-const foldResumeDropOutMessage = FileDrop.OutMessage.match<
+const foldResumeDropOutMessage = FileDropBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   ReceivedFiles:
@@ -17,20 +17,19 @@ const foldResumeDropOutMessage = FileDrop.OutMessage.match<
           Option.orElse(Array.head(files), () => model.maybeResume),
       }),
     }),
-  RejectedNonFiles: () => model => ({ model }),
+  RejectedNonFiles: () => AttachmentsDefinition.stepNoop(),
 })
 
 export const ResumeDropBinding = AttachmentsDefinition.bindChild(
-  FileDrop.block,
+  FileDropBlock,
   {
     field: 'resumeDrop',
-    parentMessage: Message.GotResumeDropMessage,
-    init: { startupToArgs: () => [{ id: 'attachments-resume' }] },
+    init: { contextToArgs: () => [{ id: 'attachments-resume' }] },
     outMessage: { fold: foldResumeDropOutMessage },
   },
 )
 
-const foldAdditionalFilesDropOutMessage = FileDrop.OutMessage.match<
+const foldAdditionalFilesDropOutMessage = FileDropBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   ReceivedFiles:
@@ -40,19 +39,21 @@ const foldAdditionalFilesDropOutMessage = FileDrop.OutMessage.match<
         additionalFiles: Array.appendAll(files),
       }),
     }),
-  RejectedNonFiles: () => model => ({ model }),
+  RejectedNonFiles: () => AttachmentsDefinition.stepNoop(),
 })
 
 export const AdditionalFilesDropBinding = AttachmentsDefinition.bindChild(
-  FileDrop.block,
+  FileDropBlock,
   {
     field: 'additionalFilesDrop',
-    parentMessage: Message.GotAdditionalFilesDropMessage,
-    init: { startupToArgs: () => [{ id: 'attachments-additional' }] },
+    init: { contextToArgs: () => [{ id: 'attachments-additional' }] },
     outMessage: { fold: foldAdditionalFilesDropOutMessage },
   },
 )
 
 export const AttachmentsComposition = AttachmentsDefinition.makeComposition({
-  childBindings: [ResumeDropBinding, AdditionalFilesDropBinding],
+  bindings: [ResumeDropBinding, AdditionalFilesDropBinding],
 })
+export type AttachmentsViewBuilder = Block.ViewBuilderFor<
+  typeof AttachmentsComposition
+>

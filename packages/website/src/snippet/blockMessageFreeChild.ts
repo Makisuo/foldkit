@@ -3,21 +3,21 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const PreviewModel = Schema.Struct({ content: Schema.String })
-const PreviewDefinition = Block.define('Preview', {
+const PreviewComposition = Block.makeDefinition('Preview', {
   Model: PreviewModel,
   Message: Schema.Never,
-})
-const PreviewComposition = PreviewDefinition.makeComposition()
-const PreviewBlock = PreviewComposition.makeBlock({
-  init: PreviewComposition.makeInit(() => ({
-    model: PreviewModel.make({ content: '' }),
-  })),
+}).makeComposition()
+const previewInit = PreviewComposition.makeInit(() => ({
+  model: PreviewModel.make({ content: '' }),
+}))
+const PreviewBlock = PreviewComposition.assembleBlock({
+  init: previewInit,
   update: PreviewComposition.makeUpdate(),
 })
 
 const PageModel = Schema.Struct({ preview: PreviewModel })
 const PageMessage = defineMessageUnion({ ClickedPublish: {} })
-const PageDefinition = Block.define('Page', {
+const PageDefinition = Block.makeDefinition('Page', {
   Model: PageModel,
   Message: PageMessage,
 })

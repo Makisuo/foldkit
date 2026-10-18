@@ -5,7 +5,7 @@ import { describe, test } from 'vitest'
 
 import { products } from './data/products'
 import type { Model } from './model'
-import { Products } from './page'
+import { ProductsBlock } from './page'
 import { ApplicationRoute } from './route'
 import { update } from './update'
 import { view } from './view'
@@ -18,7 +18,7 @@ const baseModel: Model = {
   cart: [],
   deliveryInstructions: '',
   orderPlaced: false,
-  productsPage: Products.init(products).model,
+  productsPage: ProductsBlock.init(products).model,
 }
 
 describe('view', () => {

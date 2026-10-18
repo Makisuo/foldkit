@@ -29,7 +29,7 @@ export const OutMessage = defineMessageUnion({
 
 export type OutMessage = typeof OutMessage.Type
 
-export const LoginDefinition = Block.define('Login', {
+export const LoginDefinition = Block.makeDefinition('Login', {
   Model,
   Message,
   OutMessage,

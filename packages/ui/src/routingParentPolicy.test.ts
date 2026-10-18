@@ -1,11 +1,11 @@
 import { expect, expectTypeOf, test } from 'vitest'
 
-import * as Dialog from './dialog/index.js'
-import * as VirtualList from './virtualList/index.js'
+import * as Dialog from './dialog/block.js'
+import * as VirtualList from './virtualList/virtualList.js'
 
 test('Dialog distinguishes the Model close transition from native cleanup completion', () => {
   const opened = Dialog.update(
-    Dialog.init({ id: 'routing-proof' }),
+    Dialog.init({ id: 'routing-proof' }).model,
     Dialog.Message.RequestedOpen(),
   )
   const transitioned = Dialog.update(
@@ -23,7 +23,7 @@ test('Dialog distinguishes the Model close transition from native cleanup comple
 
 test('Dialog reports every completed native close, including after a reopen', () => {
   const opened = Dialog.update(
-    Dialog.init({ id: 'routing-proof' }),
+    Dialog.init({ id: 'routing-proof' }).model,
     Dialog.Message.RequestedOpen(),
   )
   const transitioned = Dialog.update(
@@ -62,7 +62,7 @@ test('VirtualList exposes the full observed scroll snapshot as an OutMessage', (
     }),
   }
   const observed = VirtualList.update(
-    VirtualList.init({ id: 'routing-proof', rowHeightPx: 40 }),
+    VirtualList.init({ id: 'routing-proof', rowHeightPx: 40 }).model,
     VirtualList.Message.ObservedContainerScroll(snapshot),
   )
 

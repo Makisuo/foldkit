@@ -1,33 +1,38 @@
-import { HashSet, Option, pipe } from 'effect'
+import { HashSet, Option, pipe, Schema } from 'effect'
 import { Block, Calendar } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
 import * as Url from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import { Dialog, Menu } from '@foldkit/ui'
-import { ShowDialog } from '@foldkit/ui/dialog'
+import { DialogBlock } from '@foldkit/ui'
+import { test as DialogTest } from '@foldkit/ui/dialog'
 
 import { ScrollSidebarActiveLinkIntoView, ScrollToTop } from './command'
-import { HomeBinding, LoadPlayground } from './composition'
+import {
+  ApplicationComposition,
+  HomeBinding,
+  LoadPlayground,
+} from './composition'
 import { Deployment } from './deployment'
 import { init } from './init'
 import { Message } from './message'
 import { type Model } from './model'
-import { ApiReference, ExampleDetail, Home as HomePage } from './page'
-import * as NotePlayerDemo from './page/home/notePlayerDemo'
-import * as Search from './search'
+import { ApiReferenceBlock, ExampleDetailBlock } from './page'
+import * as ApiReference from './page/apiReference/domain'
+import { HomeBlock } from './page/home'
+import { NotePlayerDemoBlock } from './page/home/notePlayerDemo'
+import { SearchBlock } from './search'
 import { FocusSearchInput } from './search/update'
-import * as SnippetCopy from './snippetCopy'
+import { SnippetCopyBlock } from './snippetCopy'
 import {
   CopySnippet,
   WaitBeforeHidingCopiedIndicator,
 } from './snippetCopy/update'
-import * as SnippetDisclosure from './snippetDisclosure'
+import { SnippetDisclosureBlock } from './snippetDisclosure'
 import { update } from './update'
-
+import { ThemeMenuBlock } from './view/themeMenu'
 const parseUrl = (value: string): Url.Url =>
   pipe(Url.fromString(value), Option.getOrThrow)
-
 const homeUrl = parseUrl('https://foldkit.dev/')
 const newsletterUrl = parseUrl('https://foldkit.dev/newsletter')
 const playgroundCounterUrl = parseUrl('https://foldkit.dev/playground/counter')
@@ -45,7 +50,6 @@ const commandApiUrlWithHash = parseUrl(
 const counterExampleUrlWithHash = parseUrl(
   'https://foldkit.dev/example-apps/counter#application',
 )
-
 const flags = {
   currentYear: 2026,
   today: Calendar.make(2026, 8, 30),
@@ -53,9 +57,7 @@ const flags = {
   maybeApiData: Option.none(),
   maybeExampleSources: Option.none(),
 }
-
 const initAt = (url: Url.Url): Model => init(flags, url).model
-
 const expectHomePresent = (model: Model): void => {
   expect(Option.isSome(model.maybeHome)).toBe(true)
   expect(
@@ -66,7 +68,6 @@ const expectHomePresent = (model: Model): void => {
     ),
   ).toBe(true)
 }
-
 const expectHomeAbsent = (model: Model): void => {
   expect(Option.isNone(model.maybeHome)).toBe(true)
   expect(
@@ -77,14 +78,12 @@ const expectHomeAbsent = (model: Model): void => {
     ),
   ).toBe(true)
 }
-
-const expectDefaultHome = (home: typeof HomePage.Model.Type): void => {
+const expectDefaultHome = (home: typeof HomeBlock.Model.Type): void => {
   expect(home.activeDemoTab).toBe('AsyncCounter')
   expect(home.asyncCounterDemo.count).toBe(0)
   expect(home.notePlayerDemo.noteInput.value).toBe('CDEFGABC')
   expect(home.notePlayerDemo.playbackState._tag).toBe('Idle')
 }
-
 const resolvePathChangeCommands = () => [
   Command.resolve(ScrollToTop, Message.CompletedScrollToTop()),
   Command.resolve(
@@ -92,14 +91,12 @@ const resolvePathChangeCommands = () => [
     Message.CompletedScrollSidebarActiveLinkIntoView(),
   ),
 ]
-
 describe('application', () => {
   test('cold startup preserves the established Command ordering', () => {
     const initialization = init(
       { ...flags, deployment: Deployment.Production() },
       counterExampleUrl,
     )
-
     expect(initialization.commands?.map(command => command.name)).toEqual([
       'Application/LoadBrowserEnvironment',
       'Application/InjectAnalytics',
@@ -109,34 +106,27 @@ describe('application', () => {
       'Application/ScrollSidebarActiveLinkIntoView',
     ])
   })
-
   test('navigation opens an existing closed sidebar group', () => {
     const initialModel = initAt(homeUrl)
     expect(initialModel.sidebarGroups.apiReference).toBe(false)
-
     const routeChange = update(
       initialModel,
       Message.ChangedUrl({ url: commandApiUrl }),
     )
-
     expect(routeChange.model.sidebarGroups.apiReference).toBe(true)
     expect(routeChange.model.sidebarGroups.examples).toBe(
       initialModel.sidebarGroups.examples,
     )
   })
-
   test('navigation within an open sidebar group preserves its state', () => {
     const initialModel = initAt(commandApiUrl)
     expect(initialModel.sidebarGroups.apiReference).toBe(true)
-
     const routeChange = update(
       initialModel,
       Message.ChangedUrl({ url: updateApiUrl }),
     )
-
     expect(routeChange.model.sidebarGroups).toBe(initialModel.sidebarGroups)
   })
-
   test('prerendered API startup retains its slice through failure and route retry', () => {
     const seededData = ApiReference.ApiData.make({
       parsedApi: { modules: [] },
@@ -146,25 +136,27 @@ describe('application', () => {
       { ...flags, maybeApiData: Option.some(seededData) },
       commandApiUrl,
     )
-
     expect(initialization.model.apiReference.apiData).toEqual(
       ApiReference.ApiDataAsyncData.Refreshing({ data: seededData }),
     )
     expect(initialization.commands?.map(command => command.name)).toContain(
       'apiReference/LoadApiData',
     )
-
     const failedLoad = update(
       initialization.model,
-      Message.GotApiReferenceMessage({
-        message: ApiReference.Message.FailedLoadApiData({ error: 'Offline' }),
+      Schema.decodeUnknownSync(ApplicationComposition.Message)({
+        _tag: 'GotApiReferenceMessage',
+        placement: 'apiReference',
+        generation: 0,
+        message: ApiReferenceBlock.Message.FailedLoadApiData({
+          error: 'Offline',
+        }),
       }),
     )
     const routeChange = update(
       failedLoad.model,
       Message.ChangedUrl({ url: updateApiUrl }),
     )
-
     expect(failedLoad.model.apiReference.apiData).toEqual(
       ApiReference.ApiDataAsyncData.Stale({
         data: seededData,
@@ -178,21 +170,18 @@ describe('application', () => {
       'apiReference/LoadApiData',
     )
   })
-
   test('remaining on a Playground slug preserves its Model', () => {
     const initialModel = initAt(playgroundCounterUrl)
     const initialPlayground = Option.getOrThrow(initialModel.playground)
     const urlWithHash = parseUrl(
       'https://foldkit.dev/playground/counter#src/application.ts',
     )
-
     const routeChange = update(
       initialModel,
       Message.ChangedUrl({
         url: urlWithHash,
       }),
     )
-
     expect(Option.getOrThrow(routeChange.model.playground)).toBe(
       initialPlayground,
     )
@@ -200,21 +189,17 @@ describe('application', () => {
       'Application/ScrollToAnchor',
     ])
   })
-
   test('changing Playground slugs initializes a fresh Model', () => {
     const initialModel = initAt(playgroundCounterUrl)
     const initialPlayground = Option.getOrThrow(initialModel.playground)
-
     const routeChange = update(
       initialModel,
       Message.ChangedUrl({ url: playgroundCountersUrl }),
     )
     const nextPlayground = Option.getOrThrow(routeChange.model.playground)
-
     expect(nextPlayground).not.toBe(initialPlayground)
     expect(nextPlayground.slug).toBe('counters')
   })
-
   test.each([
     { isPlaygroundSupported: true },
     { isPlaygroundSupported: false },
@@ -232,24 +217,20 @@ describe('application', () => {
           today: flags.today,
         }),
       )
-
       const enteredPlayground = update(
         loadedBrowserEnvironment.model,
         Message.ChangedUrl({ url: playgroundCounterUrl }),
       )
-
       expect(
         Option.getOrThrow(enteredPlayground.model.playground).maybeIsSupported,
       ).toEqual(Option.some(isPlaygroundSupported))
     },
   )
-
   test('entering and exiting Playground adds and removes its Model', () => {
     const enteredPlayground = update(
       initAt(newsletterUrl),
       Message.ChangedUrl({ url: playgroundCounterUrl }),
     )
-
     expect(Option.getOrThrow(enteredPlayground.model.playground).slug).toBe(
       'counter',
     )
@@ -257,19 +238,16 @@ describe('application', () => {
       'Application/ScrollToTop',
       'Application/ScrollSidebarActiveLinkIntoView',
     ])
-
     const exitedPlayground = update(
       enteredPlayground.model,
       Message.ChangedUrl({ url: newsletterUrl }),
     )
-
     expect(Option.isNone(exitedPlayground.model.playground)).toBe(true)
     expect(exitedPlayground.commands?.map(command => command.name)).toEqual([
       'Application/ScrollToTop',
       'Application/ScrollSidebarActiveLinkIntoView',
     ])
   })
-
   test.each([
     {
       routeName: 'API module',
@@ -288,24 +266,20 @@ describe('application', () => {
         initAt(initialUrl),
         Message.ChangedUrl({ url: urlWithHash }),
       )
-
       expect(routeChange.commands?.map(command => command.name)).toEqual([
         'Application/ScrollToAnchor',
       ])
     },
   )
-
   test('route cleanup precedes scrolling to an anchor on a new path', () => {
     const openedSearch = update(
       initAt(newsletterUrl),
       Message.ClickedOpenSearch(),
     )
-
     const routeChange = update(
       openedSearch.model,
       Message.ChangedUrl({ url: homeUrlWithHash }),
     )
-
     expect(routeChange.model.search.dialog.isOpen).toBe(false)
     expect(routeChange.commands?.map(command => command.name)).toEqual([
       'search/dialog/CloseDialog',
@@ -313,54 +287,58 @@ describe('application', () => {
       'Application/ScrollSidebarActiveLinkIntoView',
     ])
   })
-
   test('changing API module slugs retries missing API data', () => {
     const failedLoad = update(
       initAt(commandApiUrl),
-      Message.GotApiReferenceMessage({
-        message: ApiReference.Message.FailedLoadApiData({ error: 'failed' }),
+      Schema.decodeUnknownSync(ApplicationComposition.Message)({
+        _tag: 'GotApiReferenceMessage',
+        placement: 'apiReference',
+        generation: 0,
+        message: ApiReferenceBlock.Message.FailedLoadApiData({
+          error: 'failed',
+        }),
       }),
     )
-
     const routeChange = update(
       failedLoad.model,
       Message.ChangedUrl({ url: updateApiUrl }),
     )
-
     expect(routeChange.model.apiReference.apiData._tag).toBe('Loading')
     expect(routeChange.commands?.map(command => command.name)).toContain(
       'apiReference/LoadApiData',
     )
   })
-
   test('changing example slugs requests the next example sources', () => {
     const failedLoad = update(
       initAt(counterExampleUrl),
-      Message.GotExampleDetailMessage({
-        message: ExampleDetail.Message.FailedLoadExampleSources({
+      Schema.decodeUnknownSync(ApplicationComposition.Message)({
+        _tag: 'GotExampleDetailMessage',
+        placement: 'exampleDetail',
+        generation: 0,
+        message: ExampleDetailBlock.Message.FailedLoadExampleSources({
           error: 'failed',
         }),
       }),
     )
-
     const routeChange = update(
       failedLoad.model,
       Message.ChangedUrl({ url: countersExampleUrl }),
     )
-
     expect(routeChange.model.exampleDetail.currentSources._tag).toBe('Loading')
     expect(routeChange.commands?.map(command => command.name)).toContain(
       'exampleDetail/LoadExampleSources',
     )
   })
-
   test('newsletter email follows navigation between Home and Newsletter', () => {
     story(
       update,
       given(initAt(homeUrl)),
       message(
-        Message.GotHomeMessage({
-          message: HomePage.Message.UpdatedNewsletterEmail({
+        Schema.decodeUnknownSync(ApplicationComposition.Message)({
+          _tag: 'GotMaybeHomeMessage',
+          placement: 'maybeHome',
+          generation: 0,
+          message: HomeBlock.Message.UpdatedNewsletterEmail({
             value: 'alice@example.com',
           }),
         }),
@@ -384,7 +362,6 @@ describe('application', () => {
       }),
     )
   })
-
   test('entering Home initializes fresh state', () => {
     story(
       update,
@@ -398,7 +375,6 @@ describe('application', () => {
       ...resolvePathChangeCommands(),
     )
   })
-
   test('leaving Home removes the Home Block', () => {
     story(
       update,
@@ -409,11 +385,9 @@ describe('application', () => {
       ...resolvePathChangeCommands(),
     )
   })
-
   test('remaining on Home preserves the existing Home Model', () => {
     const initialModel = initAt(homeUrl)
     const initialHome = Option.getOrThrow(initialModel.maybeHome)
-
     story(
       update,
       given(initialModel),
@@ -423,15 +397,22 @@ describe('application', () => {
       }),
     )
   })
-
   test('returning to Home initializes fresh default state', () => {
     story(
       update,
       given(initAt(homeUrl)),
       message(
-        Message.GotHomeMessage({
-          message: HomePage.Message.GotNotePlayerDemoMessage({
-            message: NotePlayerDemo.Message.ChangedNoteInput({ value: 'ABC' }),
+        Schema.decodeUnknownSync(ApplicationComposition.Message)({
+          _tag: 'GotMaybeHomeMessage',
+          placement: 'maybeHome',
+          generation: 0,
+          message: Schema.decodeUnknownSync(HomeBlock.Message)({
+            _tag: 'GotNotePlayerDemoMessage',
+            placement: 'notePlayerDemo',
+            generation: 0,
+            message: NotePlayerDemoBlock.Message.ChangedNoteInput({
+              value: 'ABC',
+            }),
           }),
         }),
       ),
@@ -450,15 +431,22 @@ describe('application', () => {
       ...resolvePathChangeCommands(),
     )
   })
-
   test('late Home Messages are ignored while Home is absent', () => {
     story(
       update,
       given(initAt(newsletterUrl)),
       message(
-        Message.GotHomeMessage({
-          message: HomePage.Message.GotNotePlayerDemoMessage({
-            message: NotePlayerDemo.Message.ChangedNoteInput({ value: 'ABC' }),
+        Schema.decodeUnknownSync(ApplicationComposition.Message)({
+          _tag: 'GotMaybeHomeMessage',
+          placement: 'maybeHome',
+          generation: 0,
+          message: Schema.decodeUnknownSync(HomeBlock.Message)({
+            _tag: 'GotNotePlayerDemoMessage',
+            placement: 'notePlayerDemo',
+            generation: 0,
+            message: NotePlayerDemoBlock.Message.ChangedNoteInput({
+              value: 'ABC',
+            }),
           }),
         }),
       ),
@@ -468,15 +456,20 @@ describe('application', () => {
       Command.expectNone(),
     )
   })
-
   test('Home playground selections load a fresh document', () => {
     story(
       update,
       given(initAt(homeUrl)),
       message(
-        Message.GotHomeMessage({
-          message: HomePage.Message.GotPlaygroundMenuMessage({
-            message: Menu.Message.SelectedItem({
+        Schema.decodeUnknownSync(ApplicationComposition.Message)({
+          _tag: 'GotMaybeHomeMessage',
+          placement: 'maybeHome',
+          generation: 0,
+          message: Schema.decodeUnknownSync(HomeBlock.Message)({
+            _tag: 'GotPlaygroundMenuMessage',
+            placement: 'playgroundMenu',
+            generation: 0,
+            message: ThemeMenuBlock.Message.SelectedItem({
               index: 0,
               item: 'counter',
             }),
@@ -486,7 +479,6 @@ describe('application', () => {
       Command.resolve(LoadPlayground, Message.CompletedLoadPlayground()),
     )
   })
-
   test('the parent opens Search through its child update capability', () => {
     story(
       update,
@@ -495,23 +487,27 @@ describe('application', () => {
       model(model => {
         expect(model.search.dialog.isOpen).toBe(true)
       }),
-      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(
+        DialogTest.ShowDialog,
+        DialogBlock.Message.SucceededShowDialog(),
+      ),
       Command.resolve(
         FocusSearchInput,
-        Search.Message.CompletedFocusSearchInput(),
+        SearchBlock.Message.CompletedFocusSearchInput(),
       ),
     )
   })
-
   test('the parent delegates snippet copying to the child Block', () => {
     const snippetId = 'root-story-snippet'
-
     story(
       update,
       given(initAt(homeUrl)),
       message(
-        Message.GotSnippetCopyMessage({
-          message: SnippetCopy.Message.ClickedCopySnippet({
+        Schema.decodeUnknownSync(ApplicationComposition.Message)({
+          _tag: 'GotSnippetCopyMessage',
+          placement: 'snippetCopy',
+          generation: 0,
+          message: SnippetCopyBlock.Message.ClickedCopySnippet({
             snippetId,
             text: 'const count = 0',
           }),
@@ -519,7 +515,7 @@ describe('application', () => {
       ),
       Command.resolve(
         CopySnippet,
-        SnippetCopy.Message.SucceededCopySnippet({ snippetId }),
+        SnippetCopyBlock.Message.SucceededCopySnippet({ snippetId }),
       ),
       model(model => {
         expect(HashSet.has(model.snippetCopy.copiedSnippetIds, snippetId)).toBe(
@@ -528,22 +524,23 @@ describe('application', () => {
       }),
       Command.resolve(
         WaitBeforeHidingCopiedIndicator,
-        SnippetCopy.Message.CompletedWaitBeforeHidingCopiedIndicator({
+        SnippetCopyBlock.Message.CompletedWaitBeforeHidingCopiedIndicator({
           snippetId,
         }),
       ),
     )
   })
-
   test('the parent owns each snippet disclosure state', () => {
     const disclosureId = 'root-story-snippet'
-
     story(
       update,
       given(initAt(homeUrl)),
       message(
-        Message.GotSnippetDisclosureMessage({
-          message: SnippetDisclosure.Message.ToggledCodeDisclosure({
+        Schema.decodeUnknownSync(ApplicationComposition.Message)({
+          _tag: 'GotSnippetDisclosureMessage',
+          placement: 'snippetDisclosure',
+          generation: 0,
+          message: SnippetDisclosureBlock.Message.ToggledCodeDisclosure({
             disclosureId,
             isOpen: true,
           }),

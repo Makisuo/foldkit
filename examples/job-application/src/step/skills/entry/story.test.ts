@@ -9,7 +9,7 @@ describe('skills entry', () => {
   test('UpdatedName stores a valid skill name', () => {
     story(
       update,
-      given(init('entry-1')),
+      given(init('entry-1').model),
       message(Message.UpdatedName({ value: 'TypeScript' })),
       model(model => {
         expect(model.name.value).toBe('TypeScript')
@@ -21,7 +21,7 @@ describe('skills entry', () => {
   test('ClickedRemoveSelf emits Removed', () => {
     story(
       update,
-      given(init('entry-1')),
+      given(init('entry-1').model),
       message(Message.ClickedRemoveSelf()),
       expectOutMessage(OutMessage.Removed()),
     )

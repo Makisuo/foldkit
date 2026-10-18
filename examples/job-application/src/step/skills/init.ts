@@ -1,6 +1,6 @@
-import { type Model } from './definition'
-import * as Entry from './entry'
+import { SkillsComposition } from './composition'
 
-export const init = (initialEntryId: string): Model => ({
-  entries: [Entry.init(initialEntryId)],
-})
+export const init = SkillsComposition.makeInit((initialEntryId: string) => ({
+  childInitContext: initialEntryId,
+  model: {},
+}))

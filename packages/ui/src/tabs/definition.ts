@@ -1,4 +1,4 @@
 import * as Block from 'foldkit/block'
 
-/** @internal Shared Tabs identity used by refined Value contracts. */
-export const TabsDefinition = Block.define('Tabs')
+/** @internal Shared Tabs namespace for refined definitions and effects. */
+export const TabsNamespace = Block.makeNamespace('Tabs')

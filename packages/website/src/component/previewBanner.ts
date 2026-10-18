@@ -35,7 +35,7 @@ export const view = (release: PreviewRelease): Html => {
     [
       ih.AriaLabel('Integration preview'),
       ih.Class(
-        'fixed bottom-3 left-1/2 z-[90] w-[min(52rem,calc(100vw-1.5rem))] -translate-x-1/2 rounded-lg border border-amber-300 bg-amber-100/95 px-3 py-2 text-xs text-amber-950 shadow-lg backdrop-blur-sm dark:border-amber-700 dark:bg-amber-950/95 dark:text-amber-100',
+        'relative z-50 mx-auto my-3 w-[min(52rem,calc(100vw-1.5rem))] rounded-lg border border-amber-300 bg-amber-100/95 px-3 py-2 text-xs text-amber-950 shadow-lg backdrop-blur-sm dark:border-amber-700 dark:bg-amber-950/95 dark:text-amber-100',
       ),
     ],
     [

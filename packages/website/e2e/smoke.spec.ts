@@ -16,6 +16,9 @@ test('renders the experimental API reference', async ({ page }) => {
       exact: true,
     }),
   ).toBeVisible()
+  await expect(page.locator('[data-api-reference-loaded]')).toHaveCount(1, {
+    timeout: CLIENT_RUNTIME_READY_TIMEOUT_MS,
+  })
   await docsNav
     .getByRole('link', { name: 'Experimental/Server', exact: true })
     .click()

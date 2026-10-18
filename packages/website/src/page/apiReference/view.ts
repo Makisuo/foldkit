@@ -1,5 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Option, Record, Result, pipe } from 'effect'
+import { AsyncData } from 'foldkit'
 import {
   Html,
   type HtmlBuilder,
@@ -613,7 +614,12 @@ type ViewInputs = Readonly<{
 export const view = ApiReferenceComposition.makeView.withInputs<ViewInputs>(
   (model, { module, highlights, renderHeadingLink }, h) =>
     h.div(
-      [h.DataAttribute('pagefind-meta', 'kind:API Reference')],
+      [
+        h.DataAttribute('pagefind-meta', 'kind:API Reference'),
+        ...(AsyncData.isSuccess(model.apiData)
+          ? [h.DataAttribute('api-reference-loaded', '')]
+          : []),
+      ],
       [
         pageTitle(module.name, module.name),
         ...section(

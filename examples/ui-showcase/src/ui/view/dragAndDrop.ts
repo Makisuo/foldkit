@@ -4,11 +4,11 @@ import type { Html } from 'foldkit/html'
 
 import { DragAndDropBlock } from '@foldkit/ui'
 import {
+  type RenderInfo,
   ghostStyle,
   isDragging,
   maybeDraggedItemId,
   maybeDropTarget,
-  type RenderInfo,
 } from '@foldkit/ui/dragAndDrop'
 
 import { DragAndDropDemoBinding, UiComposition } from '../composition'

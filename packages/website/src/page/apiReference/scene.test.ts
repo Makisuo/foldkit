@@ -1,4 +1,4 @@
-import { Option, pipe, Schema } from 'effect'
+import { Option, Schema, pipe } from 'effect'
 import { Calendar } from 'foldkit'
 import { expect, given, role, scene } from 'foldkit/scene'
 import * as Url from 'foldkit/url'

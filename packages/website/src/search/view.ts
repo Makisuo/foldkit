@@ -9,7 +9,7 @@ import {
   SearchComposition,
   type SearchViewBuilder,
 } from './composition'
-import { SearchState, resultsFromState, type SearchResult } from './domain'
+import { type SearchResult, SearchState, resultsFromState } from './domain'
 import { Message } from './message'
 import type { Model } from './model'
 

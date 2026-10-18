@@ -13,8 +13,8 @@ import {
 import type { UiViewBuilder } from '../composition'
 import type { ListboxItem } from '../domain'
 import {
-  CharacterListboxBlock,
   type Character,
+  CharacterListboxBlock,
   ItemListboxBlock,
   ItemMultiListboxBlock,
 } from '../listbox'

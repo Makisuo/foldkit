@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { Option, String } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { maybeDraggedItemId, type RenderInfo } from '@foldkit/ui/dragAndDrop'
+import { type RenderInfo, maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 
 import type { ApplicationViewBuilder } from '../composition'
 import { Card } from '../domain'

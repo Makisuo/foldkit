@@ -4,10 +4,10 @@ import type { Html } from 'foldkit/html'
 
 import { Button, Input } from '@foldkit/ui'
 import {
+  type RenderInfo,
   isDragging,
   maybeDraggedItemId,
   maybeDropTarget,
-  type RenderInfo,
 } from '@foldkit/ui/dragAndDrop'
 
 import type { ApplicationViewBuilder } from '../composition'

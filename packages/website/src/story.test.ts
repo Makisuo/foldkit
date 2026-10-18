@@ -1,4 +1,4 @@
-import { HashSet, Option, pipe, Schema } from 'effect'
+import { HashSet, Option, Schema, pipe } from 'effect'
 import { Block, Calendar } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
 import * as Url from 'foldkit/url'

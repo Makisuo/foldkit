@@ -23,16 +23,16 @@ import {
   isComplete as isEducationComplete,
 } from '../step/education/update'
 import {
-  hasErrors as personalInfoHasErrors,
   isComplete as isPersonalInfoComplete,
+  hasErrors as personalInfoHasErrors,
 } from '../step/personalInfo/update'
 import {
-  hasErrors as skillsHasErrors,
   isComplete as isSkillsComplete,
+  hasErrors as skillsHasErrors,
 } from '../step/skills/update'
 import {
-  hasErrors as workHistoryHasErrors,
   isComplete as isWorkHistoryComplete,
+  hasErrors as workHistoryHasErrors,
 } from '../step/workHistory/update'
 import { preview } from './preview'
 import { review } from './review'

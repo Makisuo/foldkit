@@ -15,8 +15,8 @@ import {
   CHART_MODE_RADIO_GROUP_ID,
   ChartModeRadioGroupBlock,
   PACKAGE_RADIO_GROUP_ID,
-  PackageRadioGroupBlock,
   PERIOD_RADIO_GROUP_ID,
+  PackageRadioGroupBlock,
   PeriodRadioGroupBlock,
 } from './radioGroups'
 

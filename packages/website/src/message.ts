@@ -61,6 +61,7 @@ export const Message = defineMessageUnion({
   ToggledMobileTableOfContents: { isOpen: Schema.Boolean },
   ClickedMobileTableOfContentsLink: { sectionId: Schema.String },
   ChangedActiveSection: { sectionId: Schema.String },
+  UpdatedNewsletterEmail: { value: Schema.String },
   GotThemeMenuMessage: { message: ThemeMenu.Message },
   ChangedSystemTheme: { theme: ResolvedTheme },
   ChangedViewportWidth: { isNarrow: Schema.Boolean },

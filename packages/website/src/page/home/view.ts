@@ -28,6 +28,7 @@ import {
 } from './composition'
 import { contentView } from './content'
 import * as DemoTab from './demoTab'
+import { Message } from './message'
 import * as NotePlayerDemo from './notePlayerDemo'
 
 // DEMO TABS
@@ -174,6 +175,7 @@ type ViewInputs = Readonly<{
   maybeGitHubStarCount: Option.Option<number>
   resolvedTheme: ResolvedTheme
   isBrowserEnvironmentLoaded: boolean
+  newsletterEmail: string
 }>
 
 export const view = HomeComposition.makeView.withInputs<ViewInputs>(
@@ -250,7 +252,11 @@ export const view = HomeComposition.makeView.withInputs<ViewInputs>(
       viewInputs.renderCopyButton,
       viewInputs.renderSnippet,
       demoTabsView,
-      Shared.emailSignupContent,
+      Shared.emailSignupContent(
+        viewInputs.newsletterEmail,
+        value => Message.UpdatedNewsletterEmail({ value }),
+        h,
+      ),
       playgroundMenu,
       viewInputs.maybeGitHubStarCount,
       viewInputs.resolvedTheme,

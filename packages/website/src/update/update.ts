@@ -88,6 +88,10 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
       }),
     }),
 
+    UpdatedNewsletterEmail: ({ value }) => ({
+      model: modifyFields(model, { newsletterEmail: () => value }),
+    }),
+
     ChangedViewportWidth: ({ isNarrow }) => ({
       model: modifyFields(model, { isNarrowViewport: () => isNarrow }),
     }),

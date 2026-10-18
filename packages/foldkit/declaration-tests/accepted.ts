@@ -9,6 +9,7 @@ import * as Command from 'foldkit/command'
 import { Server } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Port from 'foldkit/port'
+import { Lazy } from 'foldkit/test'
 import * as Update from 'foldkit/update'
 import type { Url } from 'foldkit/url'
 
@@ -995,3 +996,6 @@ export type ExactRecordApplicationModel = Expect<
     typeof RecordModel.Type
   >
 >
+
+export const assertParentLazyReuse = (model: typeof ParentModel.Type) =>
+  Lazy.expectAllReused({ view: parentView, model })

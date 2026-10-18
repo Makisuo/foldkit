@@ -160,10 +160,7 @@ export const headerView = (model: Model, h: ApplicationViewBuilder) =>
 
 // DOCS FOOTER
 
-export const footerView = (
-  currentYear: number,
-  h: ApplicationViewBuilder,
-): Html =>
+export const footerView = (model: Model, h: ApplicationViewBuilder): Html =>
   h.footer(
     [
       h.Class(
@@ -179,7 +176,11 @@ export const footerView = (
         [h.Class('text-sm text-gray-700 dark:text-gray-300 mb-4')],
         ['New releases, patterns, and the occasional deep dive.'],
       ),
-      Shared.emailForm,
+      Shared.emailForm(
+        model.newsletterEmail,
+        value => Message.UpdatedNewsletterEmail({ value }),
+        h,
+      ),
       h.hr([
         h.Class(
           'my-6 -mx-6 md:-mx-8 xl:-mx-12 border-t border-gray-200 dark:border-gray-800',
@@ -204,7 +205,7 @@ export const footerView = (
               '.',
             ],
           ),
-          h.p([h.Class('mt-1')], [`© ${currentYear} Devin Jameson`]),
+          h.p([h.Class('mt-1')], [`© ${model.currentYear} Devin Jameson`]),
           Shared.siteLinks,
         ],
       ),
@@ -1377,7 +1378,7 @@ export const view = (
                   ),
                 ],
               ),
-              h.div([PagefindIgnore], [footerView(model.currentYear, h)]),
+              h.div([PagefindIgnore], [footerView(model, h)]),
             ],
           ),
           Option.match(currentPageTableOfContents, {

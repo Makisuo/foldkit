@@ -31,7 +31,10 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   GotCalendarMessage: { message: UiCalendar.Message },
   GotPopoverMessage: { message: Popover.Message },
+  RequestedOpen: {},
+  RequestedClose: {},
   RequestedSelectDate: { date: Calendar.CalendarDate },
+  RequestedClear: {},
   Cleared: {},
   Opened: {},
   Closed: {},
@@ -122,11 +125,10 @@ export const init = (config: InitConfig): Model => ({
 
 // UPDATE
 
-const foldPopoverOutMessage = (outMessage: Popover.OutMessage) =>
-  Popover.OutMessage.match(outMessage, {
-    Opened: () => CalendarBinding.dropToDays(),
-    Closed: () => CalendarBinding.dropToDays(),
-  })
+const foldPopoverOutMessage = Popover.OutMessage.match({
+  Opened: () => CalendarBinding.requestDropToDays(),
+  Closed: () => CalendarBinding.requestDropToDays(),
+})
 
 const PopoverBinding = DatePickerDefinition.bindChild(Popover.block, {
   field: 'popover',
@@ -137,7 +139,7 @@ const PopoverBinding = DatePickerDefinition.bindChild(Popover.block, {
 
 const foldCalendarOutMessage = UiCalendar.OutMessage.match({
   ChangedViewMonth: () => DatePickerDefinition.step(model => ({ model })),
-  SelectedDate: () => PopoverBinding.close(),
+  SelectedDate: () => PopoverBinding.requestClose(),
 })
 
 const toDatePickerOutMessage = UiCalendar.OutMessage.match<OutMessage>({
@@ -165,25 +167,38 @@ export const mounts = DatePickerComposition.mounts
 
 /** Processes a DatePicker Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. */
-export const update = DatePickerComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    Opened: () =>
-      Update.combine(model, [
-        PopoverBinding.open(),
-        CalendarBinding.dropToDays(),
-      ]),
+export const update = DatePickerComposition.makeUpdate((model, message) => {
+  const openDatePicker = () =>
+    Update.combine(model, [
+      PopoverBinding.requestOpen(),
+      CalendarBinding.requestDropToDays(),
+    ])
 
-    Closed: () =>
-      Update.combine(model, [
-        PopoverBinding.close(),
-        CalendarBinding.dropToDays(),
-      ]),
+  const closeDatePicker = () =>
+    Update.combine(model, [
+      PopoverBinding.requestClose(),
+      CalendarBinding.requestDropToDays(),
+    ])
 
-    RequestedSelectDate: ({ date }) => CalendarBinding.selectDate(date)(model),
+  const clearDatePicker = () => ({
+    model,
+    outMessage: OutMessage.ClearedDate(),
+  })
 
-    Cleared: () => ({ model, outMessage: OutMessage.ClearedDate() }),
+  return Message.match(message, {
+    RequestedOpen: openDatePicker,
+    RequestedClose: closeDatePicker,
+    RequestedClear: clearDatePicker,
+    Opened: openDatePicker,
+    Closed: closeDatePicker,
 
-    RequestedFocusDate: ({ date }) => CalendarBinding.focusDate(date)(model),
+    RequestedSelectDate: ({ date }) =>
+      CalendarBinding.requestSelectDate(date)(model),
+
+    Cleared: clearDatePicker,
+
+    RequestedFocusDate: ({ date }) =>
+      CalendarBinding.requestFocusDate(date)(model),
 
     InformedOfMinDateChange: ({ maybeMinDate }) =>
       CalendarBinding.informMinDateChanged(maybeMinDate)(model),
@@ -198,8 +213,8 @@ export const update = DatePickerComposition.makeUpdate((model, message) =>
       CalendarBinding.informDisabledDaysOfWeekChanged(disabledDaysOfWeek)(
         model,
       ),
-  }),
-)
+  })
+})
 
 // SELECTORS
 
@@ -411,12 +426,12 @@ export const block = DatePickerComposition.makeBlock({
   update,
   view,
   operations: {
-    open: DatePickerComposition.makeOperation(Message.Opened),
-    close: DatePickerComposition.makeOperation(Message.Closed),
-    selectDate: (date: CalendarDate) =>
+    requestOpen: Message.RequestedOpen,
+    requestClose: Message.RequestedClose,
+    requestSelectDate: (date: CalendarDate) =>
       Tuple.make(Message.RequestedSelectDate({ date })),
-    clear: DatePickerComposition.makeOperation(Message.Cleared),
-    focusDate: (date: CalendarDate) =>
+    requestClear: Message.RequestedClear,
+    requestFocusDate: (date: CalendarDate) =>
       Tuple.make(Message.RequestedFocusDate({ date })),
     informMinDateChanged: (maybeMinDate: Option.Option<CalendarDate>) =>
       Tuple.make(Message.InformedOfMinDateChange({ maybeMinDate })),
@@ -435,4 +450,4 @@ export const block = DatePickerComposition.makeBlock({
 })
 
 /** Moves the embedded Calendar view and cursor through DatePicker update. */
-export const focusDate = block.operations.focusDate
+export const focusDate = block.operations.requestFocusDate

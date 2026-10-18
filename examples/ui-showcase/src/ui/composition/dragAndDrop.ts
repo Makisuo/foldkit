@@ -72,7 +72,7 @@ export const DragAndDropDemoBinding = UiDefinition.bindChild(
   {
     field: 'dragAndDropDemo',
     parentMessage: Message.GotDragAndDropDemoMessage,
-    init: { args: () => [{ id: 'drag-and-drop-demo' }] },
+    init: { startupToArgs: () => [{ id: 'drag-and-drop-demo' }] },
     outMessage: { fold: foldDragAndDropDemoOutMessage },
   },
 )

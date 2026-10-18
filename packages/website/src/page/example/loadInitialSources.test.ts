@@ -1,22 +1,9 @@
 import { Array, Option, pipe } from 'effect'
-import { type Block, Calendar, Command, Update } from 'foldkit'
-import type { StorySimulation } from 'foldkit/story'
-import {
-  Command as StoryCommand,
-  model as expectModel,
-  given,
-  story,
-} from 'foldkit/story'
-import * as Url from 'foldkit/url'
+import { type Block, Command, Update } from 'foldkit'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import { Tabs } from '@foldkit/ui'
 
-import { Deployment } from '../../deployment'
-import { init as initApplication } from '../../init'
-import type { Message as ApplicationMessage } from '../../message'
-import type { Model as ApplicationModel } from '../../model'
-import { update as updateApplication } from '../../update'
 import { block } from './block'
 import type { SourceFileTabs } from './composition'
 import { LoadExampleSources, Message, init, update } from './example'
@@ -35,7 +22,9 @@ const sources: ExampleSources = {
 const initialModel = () => init().model
 
 const commandNames = (
-  commands: ReturnType<typeof block.operations.loadInitialSources>['commands'],
+  commands: ReturnType<
+    typeof block.operations.requestLoadInitialSources
+  >['commands'],
 ): ReadonlyArray<string> =>
   pipe(
     commands ?? [],
@@ -45,12 +34,12 @@ const commandNames = (
 describe('example detail initial sources', () => {
   test('preserves the initialized Model when there is no initial slug', () => {
     const model = initialModel()
-    const unseededSourcesLoad = block.operations.loadInitialSources(
+    const unseededSourcesLoad = block.operations.requestLoadInitialSources(
       model,
       Option.none(),
       Option.none(),
     )
-    const seededSourcesLoad = block.operations.loadInitialSources(
+    const seededSourcesLoad = block.operations.requestLoadInitialSources(
       model,
       Option.none(),
       Option.some(sources),
@@ -78,7 +67,7 @@ describe('example detail initial sources', () => {
       Message.ChangedExampleUrl({ url: 'https://example.test' }),
     )
 
-    const unseededSourcesLoad = block.operations.loadInitialSources(
+    const unseededSourcesLoad = block.operations.requestLoadInitialSources(
       withExampleUrl.model,
       Option.some('counter'),
       Option.none(),
@@ -96,7 +85,7 @@ describe('example detail initial sources', () => {
       'ExampleDetail/LoadExampleSources',
     ])
     expectTypeOf<
-      Update.RequirementsOf<typeof block.operations.loadInitialSources>
+      Update.RequirementsOf<typeof block.operations.requestLoadInitialSources>
     >().toEqualTypeOf<
       | Command.HandlerOf<typeof LoadExampleSources>
       | Block.Scoped<
@@ -107,7 +96,7 @@ describe('example detail initial sources', () => {
   })
 
   test('shows supplied sources without fetching them', () => {
-    const seededSourcesLoad = block.operations.loadInitialSources(
+    const seededSourcesLoad = block.operations.requestLoadInitialSources(
       initialModel(),
       Option.some('counter'),
       Option.some(sources),
@@ -125,12 +114,12 @@ describe('example detail initial sources', () => {
 
   test('leaves unavailable examples unchanged with or without supplied sources', () => {
     const model = initialModel()
-    const unseededSourcesLoad = block.operations.loadInitialSources(
+    const unseededSourcesLoad = block.operations.requestLoadInitialSources(
       model,
       Option.some('livestore'),
       Option.none(),
     )
-    const seededSourcesLoad = block.operations.loadInitialSources(
+    const seededSourcesLoad = block.operations.requestLoadInitialSources(
       model,
       Option.some('livestore'),
       Option.some(sources),
@@ -143,7 +132,7 @@ describe('example detail initial sources', () => {
   })
 
   test('clears existing sources when routing to an unavailable example', () => {
-    const loaded = block.operations.loadInitialSources(
+    const loaded = block.operations.requestLoadInitialSources(
       initialModel(),
       Option.some('counter'),
       Option.some(sources),
@@ -165,58 +154,5 @@ describe('example detail initial sources', () => {
       Tabs.init({ id: 'source-file-tabs' }),
     )
     expect(routeChange.commands).toEqual([])
-  })
-
-  test('lifts the loading Command and its result through the application binding', () => {
-    const url = pipe(
-      Url.fromString('https://foldkit.dev/example-apps/counter'),
-      Option.getOrThrow,
-    )
-    const applicationInit = initApplication(
-      {
-        currentYear: 2026,
-        today: Calendar.make(2026, 8, 30),
-        deployment: Deployment.Canary({ commit: 'test' }),
-        maybeApiData: Option.none(),
-        maybeExampleSources: Option.none(),
-      },
-      url,
-    )
-    const loadInitialSourcesCommands = pipe(
-      applicationInit.commands ?? [],
-      Array.filter(
-        command => command.name === 'exampleDetail/LoadExampleSources',
-      ),
-    )
-
-    expect(applicationInit.model.exampleDetail.currentSources._tag).toBe(
-      'Loading',
-    )
-    expect(
-      pipe(
-        loadInitialSourcesCommands,
-        Array.map(command => command.name),
-      ),
-    ).toEqual(['exampleDetail/LoadExampleSources'])
-
-    story(
-      updateApplication,
-      given(applicationInit.model),
-      (simulation: StorySimulation<ApplicationModel, ApplicationMessage>) => ({
-        ...simulation,
-        model: applicationInit.model,
-        commands: loadInitialSourcesCommands,
-      }),
-      StoryCommand.resolve(
-        LoadExampleSources,
-        Message.SucceededLoadExampleSources({ sources }),
-      ),
-      expectModel(model => {
-        expect(model.exampleDetail.currentSources).toEqual({
-          _tag: 'Success',
-          data: sources,
-        })
-      }),
-    )
   })
 })

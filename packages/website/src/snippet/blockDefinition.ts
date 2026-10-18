@@ -11,6 +11,7 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   ChangedTheme: { theme: Theme },
   RequestedThemeChange: { theme: Theme },
+  RequestedReset: {},
   CompletedSaveTheme: {},
   FailedSaveTheme: {},
 })

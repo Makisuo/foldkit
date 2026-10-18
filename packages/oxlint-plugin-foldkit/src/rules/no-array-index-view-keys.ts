@@ -150,17 +150,23 @@ const keySinkExpression = (
   node: ESTree.CallExpression,
   slots: ReadonlyArray<KeyedLazySlot>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  filename?: string,
 ): Option.Option<ESTree.Expression> => {
   if (
     isCallExpression(node.callee) &&
-    isFoldkitHtmlBuilderMember(node.callee.callee, 'keyed', references)
+    isFoldkitHtmlBuilderMember(
+      node.callee.callee,
+      'keyed',
+      references,
+      filename,
+    )
   ) {
     return firstNonSpreadArgument(node)
   }
-  if (isFoldkitHtmlBuilderMember(node.callee, 'Key', references)) {
+  if (isFoldkitHtmlBuilderMember(node.callee, 'Key', references, filename)) {
     return firstNonSpreadArgument(node)
   }
-  if (isFoldkitHtmlBuilderMember(node.callee, 'block', references)) {
+  if (isFoldkitHtmlBuilderMember(node.callee, 'block', references, filename)) {
     const [configArgument] = node.arguments
     if (isObjectExpression(configArgument)) {
       return slotIdValue(configArgument)
@@ -320,6 +326,7 @@ export const noArrayIndexViewKeys = Rule.define({
             node,
             registeredSlots,
             references,
+            ctx.filename,
           )
           if (Option.isNone(maybeKeyExpression)) {
             return

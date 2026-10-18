@@ -25,12 +25,12 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
 const init = ApplicationComposition.makeInit(() => ({
   model: {},
   // Start loading after the Query Model is stored in its parent.
-  steps: [PostsBinding.loadIfMissing()],
+  steps: [PostsBinding.requestLoadIfMissing()],
 }))
 
 const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     // Return the transition and Command for either missing or retained data.
-    ClickedRefreshPosts: () => PostsBinding.revalidateOrLoad()(model),
+    ClickedRefreshPosts: () => PostsBinding.requestRevalidationOrLoad()(model),
   }),
 )

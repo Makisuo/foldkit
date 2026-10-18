@@ -32,7 +32,7 @@ const foldHomeOutMessage = Home.OutMessage.match({
 export const HomeBinding = ApplicationDefinition.bindChild(Home.block, {
   field: 'maybeHome',
   init: {
-    args: ({ route }) =>
+    startupToArgs: ({ route }) =>
       route._tag === 'Home' ? Option.some([]) : Option.none(),
   },
   parentMessage: Message.GotHomeMessage,

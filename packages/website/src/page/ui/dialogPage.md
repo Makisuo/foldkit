@@ -12,7 +12,7 @@ Check out how Dialog is wired up in a [real Foldkit app](https://github.com/fold
 
 ### Basic
 
-Open the Dialog from a trigger by dispatching your own Message. Call the Binding’s `open()` and `close()` operations. Spread the `closeButton` bundle onto a Cancel button to dismiss it. Spread `...title` onto a heading element so the Dialog is labeled for screen readers.
+Open the Dialog from a trigger by dispatching your own Message. Call the Binding’s `requestOpen()` and `requestClose()` operations. Spread the `closeButton` bundle onto a Cancel button to dismiss it. Spread `...title` onto a heading element so the Dialog is labeled for screen readers.
 
 ::Demo{name="dialog"}
 
@@ -58,7 +58,7 @@ When `isAnimated` is true, enter/leave animations flow through the [Animation](/
 
 ## Starting with an Open Dialog
 
-When a Dialog should be open at application startup, declare its init inputs on the Binding as in the basic example. Put `DialogBinding.open()` in the Composition init plan's `steps` array. The open operation returns a `ShowDialog` Command and emits `Opened` through the Binding's OutMessage policy. The Composition retains init Commands and collects the open operation's Commands. The Runtime executes them after root init returns.
+When a Dialog should be open at application startup, declare its init inputs on the Binding as in the basic example. Put `DialogBinding.requestOpen()` in the Composition init plan's `steps` array. The open operation returns a `ShowDialog` Command and emits `Opened` through the Binding's OutMessage policy. The Composition retains init Commands and collects the open operation's Commands. The Runtime executes them after root init returns.
 
 ::Snippet{name="uiDialogInitiallyOpen" label="Starting with an open Dialog"}
 
@@ -125,7 +125,7 @@ Payload delivered to the `toView` callback each render.
 
 Messages emitted to the parent through the optional `outMessage` field. Match on the OutMessage in the Binding’s `outMessage.fold` policy.
 
-| Name     | Type | Default | Description                                                                                                                                                                                                                       |
-| -------- | ---- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Opened` | `{}` | —       | Emitted once the dialog has transitioned to open. Fires after `update` has processed `RequestedOpen` and `isOpen` reflects the new state.                                                                                         |
-| `Closed` | `{}` | —       | Emitted once the dialog has transitioned to closed. Calling the bound `dialog.close()` operation on an already-closed Model is a no-op that does not re-emit, as is calling close while a leave animation is already in progress. |
+| Name     | Type | Default | Description                                                                                                                                                                                                                              |
+| -------- | ---- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Opened` | `{}` | —       | Emitted once the dialog has transitioned to open. Fires after `update` has processed `RequestedOpen` and `isOpen` reflects the new state.                                                                                                |
+| `Closed` | `{}` | —       | Emitted once the dialog has transitioned to closed. Calling the bound `dialog.requestClose()` operation on an already-closed Model is a no-op that does not re-emit, as is calling close while a leave animation is already in progress. |

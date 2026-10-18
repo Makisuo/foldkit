@@ -10,7 +10,6 @@
     "noPropertyAccessFromIndexSignature": false
   },
   "include": [
-    "test/integration/fixtures/no-direct-block-state-update/valid/**/*.ts",
-    "test/integration/fixtures/require-fold-for-child-update-result/valid/**/*.ts"
+    "test/integration/fixtures/no-direct-block-state-update/valid/**/*.ts"
   ]
 }

@@ -70,7 +70,7 @@ export type KeyedRunArgs = Expect<
 >
 export type KeyedOperationArgs = Expect<
   Equal<
-    Parameters<typeof NoteById.operations.loadIfMissing>[1],
+    Parameters<typeof NoteById.operations.requestLoadIfMissing>[1],
     Readonly<{ noteId: string }>
   >
 >
@@ -103,7 +103,9 @@ export type CanonicalKeyedReplacementFetch = Expect<
 >
 export type ChildOperationRequirements = Expect<
   Equal<
-    Update.RequirementsOf<ReturnType<typeof NotesChildBinding.loadIfMissing>>,
+    Update.RequirementsOf<
+      ReturnType<typeof NotesChildBinding.requestLoadIfMissing>
+    >,
     Block.Scoped<'notes', Command.HandlerOf<typeof Notes.Fetch>>
   >
 >

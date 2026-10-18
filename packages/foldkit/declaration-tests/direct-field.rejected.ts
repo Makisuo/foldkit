@@ -178,55 +178,55 @@ ParentDefinition.bindChild(argumentChildBlock, { field: 'argumentChild', parentM
 ParentDefinition.bindChild(childBlock, { field: 'child', parentMessage: ParentMessage.GotChildMessage, initial: true })
 // @ts-expect-error Required child storage requires the exact child init argument tuple.
 // oxfmt-ignore
-ParentDefinition.bindChild(argumentChildBlock, { field: 'argumentChild', parentMessage: ParentMessage.GotChildMessage, init: { args: () => ['wrong'] } })
+ParentDefinition.bindChild(argumentChildBlock, { field: 'argumentChild', parentMessage: ParentMessage.GotChildMessage, init: { startupToArgs: () => ['wrong'] } })
 // @ts-expect-error Required child storage does not accept an optional argument tuple.
 // oxfmt-ignore
-ParentDefinition.bindChild(argumentChildBlock, { field: 'argumentChild', parentMessage: ParentMessage.GotChildMessage, init: { args: () => Option.some([1]) } })
+ParentDefinition.bindChild(argumentChildBlock, { field: 'argumentChild', parentMessage: ParentMessage.GotChildMessage, init: { startupToArgs: () => Option.some([1]) } })
 // @ts-expect-error Optional child storage requires an Option of the exact child init argument tuple.
 // oxfmt-ignore
-ParentDefinition.bindChild(argumentChildBlock, { field: 'maybeArgumentChild', parentMessage: ParentMessage.GotChildMessage, init: { args: () => [1] } })
+ParentDefinition.bindChild(argumentChildBlock, { field: 'maybeArgumentChild', parentMessage: ParentMessage.GotChildMessage, init: { startupToArgs: () => [1] } })
 // @ts-expect-error An accessor Binding init policy requires a model projection.
 // oxfmt-ignore
-ParentDefinition.bindChild(argumentChildBlock, { read: model => Option.some(model.argumentChild), write: (model, nextChild) => ({ ...model, argumentChild: nextChild }), parentMessage: ParentMessage.GotChildMessage, init: { args: () => [1] } })
+ParentDefinition.bindChild(argumentChildBlock, { read: model => Option.some(model.argumentChild), write: (model, nextChild) => ({ ...model, argumentChild: nextChild }), parentMessage: ParentMessage.GotChildMessage, init: { startupToArgs: () => [1] } })
 
 // @ts-expect-error An accessor Binding init projection must use a declared exact child Model field.
 // oxfmt-ignore
-ParentDefinition.bindChild(argumentChildBlock, { read: model => Option.some(model.argumentChild), write: (model, nextChild) => ({ ...model, argumentChild: nextChild }), parentMessage: ParentMessage.GotChildMessage, init: { args: () => [1], model: childModel => ({ route: childModel }) } })
+ParentDefinition.bindChild(argumentChildBlock, { read: model => Option.some(model.argumentChild), write: (model, nextChild) => ({ ...model, argumentChild: nextChild }), parentMessage: ParentMessage.GotChildMessage, init: { startupToArgs: () => [1], model: childModel => ({ route: childModel }) } })
 
 // @ts-expect-error An accessor Binding init projection cannot use Option child storage.
 // oxfmt-ignore
-ParentDefinition.bindChild(argumentChildBlock, { read: model => Option.some(model.argumentChild), write: (model, nextChild) => ({ ...model, argumentChild: nextChild }), parentMessage: ParentMessage.GotChildMessage, init: { args: () => [1], model: childModel => ({ maybeArgumentChild: Option.some(childModel) }) } })
+ParentDefinition.bindChild(argumentChildBlock, { read: model => Option.some(model.argumentChild), write: (model, nextChild) => ({ ...model, argumentChild: nextChild }), parentMessage: ParentMessage.GotChildMessage, init: { startupToArgs: () => [1], model: childModel => ({ maybeArgumentChild: Option.some(childModel) }) } })
 
 // @ts-expect-error An accessor Binding init projection contributes exactly one parent Model field.
 // oxfmt-ignore
-ParentDefinition.bindChild(argumentChildBlock, { read: model => Option.some(model.argumentChild), write: (model, nextChild) => ({ ...model, argumentChild: nextChild }), parentMessage: ParentMessage.GotChildMessage, init: { args: () => [1], model: childModel => ({ argumentChild: childModel, child: childModel }) } })
+ParentDefinition.bindChild(argumentChildBlock, { read: model => Option.some(model.argumentChild), write: (model, nextChild) => ({ ...model, argumentChild: nextChild }), parentMessage: ParentMessage.GotChildMessage, init: { startupToArgs: () => [1], model: childModel => ({ argumentChild: childModel, child: childModel }) } })
 
 // @ts-expect-error An accessor Binding init projection cannot contribute an undeclared field.
 // oxfmt-ignore
-ParentDefinition.bindChild(argumentChildBlock, { read: model => Option.some(model.argumentChild), write: (model, nextChild) => ({ ...model, argumentChild: nextChild }), parentMessage: ParentMessage.GotChildMessage, init: { args: () => [1], model: childModel => ({ argumentChild: childModel, undeclared: childModel }) } })
+ParentDefinition.bindChild(argumentChildBlock, { read: model => Option.some(model.argumentChild), write: (model, nextChild) => ({ ...model, argumentChild: nextChild }), parentMessage: ParentMessage.GotChildMessage, init: { startupToArgs: () => [1], model: childModel => ({ argumentChild: childModel, undeclared: childModel }) } })
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const returnAny = (): any => [1]
 // @ts-expect-error An init argument resolver cannot return any.
 // oxfmt-ignore
-ParentDefinition.bindChild(argumentChildBlock, { field: 'argumentChild', parentMessage: ParentMessage.GotChildMessage, init: { args: returnAny } })
+ParentDefinition.bindChild(argumentChildBlock, { field: 'argumentChild', parentMessage: ParentMessage.GotChildMessage, init: { startupToArgs: returnAny } })
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const resolverAny: any = () => [1]
 // @ts-expect-error An init argument resolver cannot itself be any.
 // oxfmt-ignore
-ParentDefinition.bindChild(argumentChildBlock, { field: 'argumentChild', parentMessage: ParentMessage.GotChildMessage, init: { args: resolverAny } })
+ParentDefinition.bindChild(argumentChildBlock, { field: 'argumentChild', parentMessage: ParentMessage.GotChildMessage, init: { startupToArgs: resolverAny } })
 
 // @ts-expect-error An init argument resolver context cannot be never.
 // oxfmt-ignore
-ParentDefinition.bindChild(argumentChildBlock, { field: 'argumentChild', parentMessage: ParentMessage.GotChildMessage, init: { args: (_context: never) => [1] } })
+ParentDefinition.bindChild(argumentChildBlock, { field: 'argumentChild', parentMessage: ParentMessage.GotChildMessage, init: { startupToArgs: (_context: never) => [1] } })
 
 const genericResolver = <Context extends Readonly<{ count: number }>>(
   context: Context,
 ): readonly [number] => [context.count]
 // @ts-expect-error An init argument resolver must have one concrete call signature.
 // oxfmt-ignore
-ParentDefinition.bindChild(argumentChildBlock, { field: 'argumentChild', parentMessage: ParentMessage.GotChildMessage, init: { args: genericResolver } })
+ParentDefinition.bindChild(argumentChildBlock, { field: 'argumentChild', parentMessage: ParentMessage.GotChildMessage, init: { startupToArgs: genericResolver } })
 
 const concreteResolver = (
   context: Readonly<{ count: number }>,
@@ -242,15 +242,16 @@ function overloadedResolver(
 }
 // @ts-expect-error An init argument resolver must not be overloaded.
 // oxfmt-ignore
-ParentDefinition.bindChild(argumentChildBlock, { field: 'argumentChild', parentMessage: ParentMessage.GotChildMessage, init: { args: overloadedResolver } })
+ParentDefinition.bindChild(argumentChildBlock, { field: 'argumentChild', parentMessage: ParentMessage.GotChildMessage, init: { startupToArgs: overloadedResolver } })
 
 const selectInitializedField = (): 'child' | 'argumentChild' => 'child'
 // @ts-expect-error An initialized direct Binding requires one literal parent field.
 // oxfmt-ignore
 ParentDefinition.bindChild(childBlock, { field: selectInitializedField(), parentMessage: ParentMessage.GotChildMessage, init: true })
 
-const selectInitialPolicy = (): true | Readonly<{ args: () => readonly [] }> =>
-  true
+const selectInitialPolicy = ():
+  | true
+  | Readonly<{ startupToArgs: () => readonly [] }> => true
 // @ts-expect-error An initialized direct Binding requires one concrete init policy.
 // oxfmt-ignore
 ParentDefinition.bindChild(childBlock, { field: 'child', parentMessage: ParentMessage.GotChildMessage, init: selectInitialPolicy() })

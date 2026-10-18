@@ -84,7 +84,7 @@ export const VirtualListChatDemoBinding = UiDefinition.bindChild(
     parentMessage: Message.GotVirtualListChatDemoMessage,
     outMessage: { fold: foldVirtualListChatOutMessage },
     init: {
-      args: () =>
+      startupToArgs: () =>
         Tuple.make({
           id: 'virtual-list-chat-demo',
           rowHeightPx: 64,

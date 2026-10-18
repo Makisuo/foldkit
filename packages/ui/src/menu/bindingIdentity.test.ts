@@ -1,4 +1,4 @@
-import { Schema, Tuple } from 'effect'
+import { Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
 import type * as Update from 'foldkit/update'
@@ -64,13 +64,13 @@ const init = GenericMenuBindingIdentityComposition.makeInit(() =>
   }),
 )
 const update = GenericMenuBindingIdentityComposition.makeUpdate(model =>
-  MenuBinding.open()(model),
+  MenuBinding.requestOpen()(model),
 )
-const open = () => Tuple.make(Message.RequestedOpen())
+const requestOpen = Message.RequestedOpen
 const block = GenericMenuBindingIdentityComposition.makeBlock({
   init,
   update,
-  operations: { open },
+  operations: { requestOpen },
   EffectsLayer: RefinedMenu.EffectsLayer,
 })
 
@@ -86,7 +86,7 @@ it('uses the factory Menu Animation Binding through open and completion', () => 
   const menuInit = block.init()
   const model = menuInit.model
 
-  const menuOpen = block.operations.open(model)
+  const menuOpen = block.operations.requestOpen(model)
 
   expect(menuOpen.model.menu.isOpen).toBe(true)
   expect(menuOpen.model.menu.animation.transitionState).toBe('EnterStart')

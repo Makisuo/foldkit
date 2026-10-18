@@ -19,9 +19,10 @@ import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './virtualList'
 
 export const update = UiComposition.makeUpdate((model, message) =>
   Message.match(message, {
-    RequestedOpenMobileMenu: () => MobileMenuDialogBinding.open()(model),
+    RequestedOpenMobileMenu: () => MobileMenuDialogBinding.requestOpen()(model),
 
-    RequestedCloseMobileMenu: () => MobileMenuDialogBinding.close()(model),
+    RequestedCloseMobileMenu: () =>
+      MobileMenuDialogBinding.requestClose()(model),
 
     UpdatedInputDemoValue: ({ value }) => ({
       model: modifyFields(model, { inputDemoValue: () => value }),
@@ -80,16 +81,18 @@ export const update = UiComposition.makeUpdate((model, message) =>
       }),
     }),
 
-    ClickedDeleteProject: () => NestedDialogChildDemoBinding.open()(model),
+    ClickedDeleteProject: () =>
+      NestedDialogChildDemoBinding.requestOpen()(model),
 
-    ClickedOpenDialog: () => DialogDemoBinding.open()(model),
+    ClickedOpenDialog: () => DialogDemoBinding.requestOpen()(model),
 
-    ClickedOpenAnimatedDialog: () => DialogAnimatedDemoBinding.open()(model),
+    ClickedOpenAnimatedDialog: () =>
+      DialogAnimatedDemoBinding.requestOpen()(model),
 
-    ClickedEditFilters: () => OverlayDialogDemoBinding.open()(model),
+    ClickedEditFilters: () => OverlayDialogDemoBinding.requestOpen()(model),
 
     ClickedOpenProjectSettings: () =>
-      NestedDialogParentDemoBinding.open()(model),
+      NestedDialogParentDemoBinding.requestOpen()(model),
 
     ToggledDisclosureBasicDemo: ({ isOpen }) => ({
       model: modifyFields(model, {
@@ -123,7 +126,7 @@ export const update = UiComposition.makeUpdate((model, message) =>
     }),
 
     ClickedShowInfoToast: () =>
-      ToastDemoBinding.show({
+      ToastDemoBinding.requestShow({
         variant: 'Info',
         payload: {
           title: 'Changes saved',
@@ -132,7 +135,7 @@ export const update = UiComposition.makeUpdate((model, message) =>
       })(model),
 
     ClickedShowSuccessToast: () =>
-      ToastDemoBinding.show({
+      ToastDemoBinding.requestShow({
         variant: 'Success',
         payload: {
           title: 'Uploaded successfully',
@@ -141,7 +144,7 @@ export const update = UiComposition.makeUpdate((model, message) =>
       })(model),
 
     ClickedShowWarningToast: () =>
-      ToastDemoBinding.show({
+      ToastDemoBinding.requestShow({
         variant: 'Warning',
         payload: {
           title: 'Network slow',
@@ -152,7 +155,7 @@ export const update = UiComposition.makeUpdate((model, message) =>
       })(model),
 
     ClickedShowErrorToast: () =>
-      ToastDemoBinding.show({
+      ToastDemoBinding.requestShow({
         variant: 'Error',
         payload: {
           title: 'Failed to save',
@@ -161,7 +164,7 @@ export const update = UiComposition.makeUpdate((model, message) =>
       })(model),
 
     ClickedShowStickyToast: () =>
-      ToastDemoBinding.show({
+      ToastDemoBinding.requestShow({
         variant: 'Info',
         payload: {
           title: 'Review pending',
@@ -172,20 +175,20 @@ export const update = UiComposition.makeUpdate((model, message) =>
         sticky: true,
       })(model),
 
-    ClickedDismissAllToasts: () => ToastDemoBinding.dismissAll()(model),
+    ClickedDismissAllToasts: () => ToastDemoBinding.requestDismissAll()(model),
 
     ToggledAnimationDemo: () =>
       model.animationDemo.isShowing
-        ? AnimationDemoBinding.hide()(model)
-        : AnimationDemoBinding.show()(model),
+        ? AnimationDemoBinding.requestHide()(model)
+        : AnimationDemoBinding.requestShow()(model),
 
     ClickedVirtualListScrollToMiddle: () =>
-      VirtualListDemoBinding.scrollToIndex(
+      VirtualListDemoBinding.requestScrollToIndex(
         Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
       )(model),
 
     ClickedVirtualListVariableScrollToMiddle: () =>
-      VirtualListVariableDemoBinding.scrollToIndex(
+      VirtualListVariableDemoBinding.requestScrollToIndex(
         Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
       )(model),
   }),

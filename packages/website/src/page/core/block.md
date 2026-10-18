@@ -101,31 +101,47 @@ The parent Composition routes a canonical unkeyed wrapper declared with `parentM
 
 ::Snippet{name="blockFoldChild" label="Routing a bound child Message"}
 
-Declare parent-driven operations under `operations`, then call them through the Binding. Prefer `Composition.makeOperation(Message.Constructor)` when the operation forwards its arguments directly into a Message. The descriptor remains passive and noncallable; `makeBlock` turns its `operations` entry into a completed callable operation. A constructor with fields takes one constructor payload object, with constructor defaults honored, followed by any update context. A constructor without fields takes no payload placeholder. The completed Block and its Bindings pass that Message through the child's update synchronously as part of the pure transition; they do not enqueue another Runtime Message. The update remains the only place that enforces the child invariant and changes the child Model. Let the Composition route received child Messages; use named operations for changes the parent initiates. Settings declares `reset`, so Profile can apply that exact operation:
+Declare parent-driven operations under `operations`, then call them through the Binding. Put the local Message constructor directly under `operations` when the public arguments map directly to its payload. Block completion creates the callable operation without constructing a Message. A constructor with payload fields takes one constructor payload object, with constructor defaults honored, followed by any update context. A constructor without payload fields takes no payload placeholder. The completed Block and its Bindings pass that Message through the child's update synchronously as part of the pure transition; they do not enqueue another Runtime Message. The update remains the only place that enforces the child invariant and changes the child Model. Let the Composition route received child Messages; use named operations for changes the parent initiates. Settings declares `requestReset`, so Profile can apply that exact operation:
 
 ::Snippet{name="blockProjectedSteps" label="Calling a bound public operation"}
 
 These calls are pure. A Binding operation produces a connected parent Update.Step whose Model input requires the exact registered graph. A raw domain Model cannot satisfy that input. Return or compose the connected result intact from `makeUpdate` or startup processing; its public type exposes no `.model` or `.commands` before checked execution. A Definition-owned `step` may preserve or wrap a connected Step for later execution. The Composition consumes it while the graph is active and returns the readable next Model, optional Commands, and optional OutMessage. A completed Block operation is also a checked executor: it accepts the raw Block Model, dispatches its produced Message through update, and returns the readable result. Completion gives the operation the update function's complete Command requirements and OutMessage type even when its selected Message branch returns less. Calling a pure operation does not run effects returned by another branch. Ordinary internal Update.Steps remain directly callable. The Runtime executes returned Commands later.
 
-The direction carries meaning. A child Message records something that happened inside the child. A public operation records how the parent informed or requested something of the child. Use `InformedOf*` for parent notifications and `Requested*` for parent-requested actions. The operation below produces `InformedOfRouteChange`; update owns the resulting transition:
+Name an operation for what the parent communicates, and its Message for what the child received:
+
+| Binding operation    | Child Message           |
+| -------------------- | ----------------------- |
+| `requestCloseMenu`   | `RequestedCloseMenu`    |
+| `informJoined`       | `InformedOfJoin`        |
+| `informRouteChanged` | `InformedOfRouteChange` |
+
+A `request*` operation asks the child to act; its `Requested*` Message records the request, not completion. An `inform*` operation tells the child about an external fact; its `InformedOf*` Message records that notification. Keep actual UI facts separate when they have a different cause. For example, a parent request to close a menu should not impersonate a click on its close button.
+
+Both forms enter the child's update. Even when a notification only synchronizes Model state, update owns that transition and any validation, Commands, or OutMessages. Do not expose a `reflect*` helper that changes child state silently.
+
+The operation below produces `InformedOfRouteChange`; update owns the resulting transition:
 
 ::Snippet{name="updateCurriedStep" label="Declaring an informRouteChanged operation"}
 
-Use a tuple producer under `operations` when the public inputs need mapping, refinement, defaults, or an exact context tuple. It returns `[Message, ...context]`; inline array literals receive tuple context from `makeBlock`, and an extracted producer uses `Tuple.make`. Constructor descriptors and tuple producers complete through the same update path. Keep pure helpers for selectors and derived view inputs. Use standalone or Definition-owned Steps for internal composition, and omit `operations` when the Block declares no named operations. See [Calling update as a Step](/core/update#calling-update-as-a-step) for internal curried update composition and the required-context adapter.
+Use a tuple producer under `operations` when the public inputs need mapping, refinement, defaults, or an exact context tuple. It returns `[Message, ...context]`; inline array literals receive tuple context from `makeBlock`, and an extracted producer uses `Tuple.make`. Message constructors and tuple producers complete through the same update path. Keep pure helpers for selectors and derived view inputs. Use standalone or Definition-owned Steps for internal composition, and omit `operations` when the Block declares no named operations. See [Calling update as a Step](/core/update#calling-update-as-a-step) for internal curried update composition and the required-context adapter.
 
 Binding operations retain the exact argument types, Command requirements, Binding requirement, and OutMessage behavior of the child operation.
+
+:::Info{label="Completion inference"}
+Author `update` as a named value with `Composition.makeUpdate`, then pass it to `makeBlock`. With a view, operations, Subscriptions, and ManagedResources in one completion record, nesting `makeUpdate` directly in that record can make the current overloads infer an incomplete handler Layer. Naming the authored update first retains its full inferred type without annotations.
+:::
 
 ### Initialize the child
 
 The Binding also declares how its child joins the initial parent Model. A required direct child whose initializer takes no arguments needs no `init` property. The basic `SettingsBinding` omits it, so Composition calls the initializer packaged in `Settings.block` and supplies `model.settings` while Profile init returns only `displayName` and `previewTheme`.
 
-Use `init: { args }` when another child needs inputs, or `init: false` when the parent will supply that field itself. This separate Profile contains a ThemePicker whose initializer requires a Theme. The Binding selects the saved theme, while Profile owns the username:
+Use `init: { startupToArgs }` when another child needs inputs, or `init: false` when the parent will supply that field itself. This separate Profile contains a ThemePicker whose initializer requires a Theme. The Binding selects the saved theme, while Profile owns the username:
 
 ::Snippet{name="blockFoldChildInit" label="Assembling an initial child Model"}
 
 The parent init callback returns only parent-owned fields. Composition calls the selected child initializer, stores its Model, and retains its Commands. See [Init & Flags](/core/init-and-flags#child-initialization) for optional children, keyed occurrences, custom storage, Command order, and initial Steps.
 
-Block init cannot emit an OutMessage. Author it through the Block Composition, then pass that same `init` function to `FeatureComposition.makeBlock`. An optional `boot` helper is an ordinary initial Step listed in the parent's init plan after the child Model exists; Foldkit has no special Runtime boot phase. When an existing domain operation such as `restore` or `open` already describes the transition, declare that Message-producing operation and call it through the Binding. The same operation may run later from update. Do not create a separate startup-only Message when an existing Message already records the transition.
+Block init cannot emit an OutMessage. Author it through the Block Composition, then pass that same `init` function to `FeatureComposition.makeBlock`. An optional `boot` helper is an ordinary initial Step listed in the parent's init plan after the child Model exists; Foldkit has no special Runtime boot phase. When an existing domain operation such as `requestRestore` or `requestOpen` already describes the transition, declare that Message-producing operation and call it through the Binding. The same operation may run later from update. Do not create a separate startup-only Message when an existing Message already records the transition.
 
 The Binding's `outMessage.fold` policy can handle a fact from that initial Step against the complete parent Model. Parent init cannot forward an OutMessage, so a startup Step used there must finish with a plain update result.
 
@@ -240,7 +256,7 @@ The gate controls Streams. It does not remove the child or disable its update.
 
 A policy may return a parent Step that calls a registered sibling Binding operation. This supports parent-owned coordination in either direction: one child's OutMessage can initialize, update, or remove another child while preserving both boundaries. Keep reciprocal policies together in the same parent `composition.ts` or `composition/composition.ts`, and defer each sibling call through its policy callback. The callback may close over a Binding declared later in that module. `makeComposition` validates the policy's captured output and confirms that every sibling Binding used by the policy is registered in `childBindings`. Keep the chain synchronous and finite; one policy may invoke another Binding policy before the original update returns.
 
-This parent opens the selected Room when Home reports `SelectedRoom`. When Room later reports `SavedRoom`, the parent marks that Room as saved in Home. The omitted child contracts provide both operations: `RoomBinding.open` returns a pure connected Step, while `HomeBinding.markRoomSaved` returns a connected Step with a persistence Command. Neither operation emits another sibling OutMessage:
+This parent opens the selected Room when Home reports `SelectedRoom`. When Room later reports `SavedRoom`, the parent marks that Room as saved in Home. The omitted child contracts provide both operations: `RoomBinding.requestOpen` returns a pure connected Step, while `HomeBinding.informRoomSaved` returns a connected Step with a persistence Command. Neither operation emits another sibling OutMessage:
 
 ::Snippet{name="blockSiblingCoordination" label="Coordinating sibling Blocks in both directions"}
 
@@ -383,11 +399,13 @@ For shared definitions specialized by a generic factory, `Block.define(id)` supp
 
 ### FeatureDefinition.step
 
-`FeatureDefinition.step(producer)` authors an internal pure operation over the child Model. Its producer may return an owned update result, a connected Step, or a Binding initialization recipe. The helper preserves or wraps a connected value until a Composition interprets it under the registered graph. It infers the operation's arguments, result Messages, Command requirements, and Binding requirements. Ordinary pure Steps remain directly callable. Public operations belong in the completed Block's `operations` record as constructor descriptors or Message tuple producers.
+`FeatureDefinition.step(producer)` authors an internal pure operation over the child Model. Its producer may return an owned update result, a connected Step, or a Binding initialization recipe. The helper preserves or wraps a connected value until a Composition interprets it under the registered graph. It infers the operation's arguments, result Messages, Command requirements, and Binding requirements. Ordinary pure Steps remain directly callable. Public operations belong in the completed Block's `operations` record as local Message constructors or Message tuple producers.
 
-### FeatureComposition.makeOperation
+### Declaring operations
 
-`FeatureComposition.makeOperation(Message.Constructor)` creates a passive, noncallable descriptor for a local Message constructor. Put that descriptor in `makeBlock({ operations })`. TypeScript checks that the constructor produces this Block's Message shape. Runtime creation and completion verify that it is an actual constructor member owned by this Block; routed `Got*` wrappers remain Binding delivery and cannot become local operations. Completion gives the operation the update's full return contract. A constructor with fields becomes `(model, payload, ...context)` on `block.operations`; an empty-fields constructor becomes `(model, ...context)`. The corresponding Binding method omits the child Model, and a keyed Binding prepends its key.
+Put a local Message constructor directly in `makeBlock({ operations })`, using the operation name as its key. TypeScript checks its Message shape, and completion verifies that the constructor is an actual member of this Block's declared Message Schema. A same-shaped constructor from another union is rejected at runtime. Routed `Got*` wrappers remain Binding delivery and cannot become local operations.
+
+Completion combines each constructor with the Block's update. A constructor with fields becomes `(model, payload, ...context)` on `block.operations`; a constructor with no fields becomes `(model, ...context)`. The Binding method omits the child Model, and a keyed Binding prepends its key. All operations retain update's complete Command requirements and OutMessage contract.
 
 ### binding.fold
 
@@ -395,7 +413,7 @@ For shared definitions specialized by a generic factory, `Block.define(id)` supp
 
 ### Binding operations
 
-A declared operation such as `clearSelection` becomes `binding.clearSelection(...args)`. It returns a connected parent Update.Step through the same Model access, Command lifting, resource access, and OutMessage policy as `fold`. Return or compose its opaque result intact after applying it to the contextual Model inside `makeUpdate`, or list the Step in Composition startup. Typed calls with a raw Model fail the graph-input check, and the opaque result cannot be narrowed to a useful `{ model }` return. TypeScript can still erase a function result when assigning it to a method that returns `void`; outside the exact graph, invoking that erased method only constructs and discards passive configuration and executes no child work. A completed `block.operations.clearSelection(model, ...args)` dispatches the produced Message through the Block's update and returns the readable executed result. A keyed Binding takes the occurrence key before the operation arguments. Operation names cannot collide with Binding members such as `fold`, `init`, or `embedView`.
+A declared operation such as `requestClearSelection` becomes `binding.requestClearSelection(...args)`. It returns a connected parent Update.Step through the same Model access, Command lifting, resource access, and OutMessage policy as `fold`. Return or compose its opaque result intact after applying it to the contextual Model inside `makeUpdate`, or list the Step in Composition startup. Typed calls with a raw Model fail the graph-input check, and the opaque result cannot be narrowed to a useful `{ model }` return. TypeScript can still erase a function result when assigning it to a method that returns `void`; outside the exact graph, invoking that erased method only constructs and discards passive configuration and executes no child work. A completed `block.operations.requestClearSelection(model, ...args)` dispatches the produced Message through the Block's update and returns the readable executed result. A keyed Binding takes the occurrence key before the operation arguments. Operation names cannot collide with Binding members such as `fold`, `init`, or `embedView`.
 
 ### binding.init
 

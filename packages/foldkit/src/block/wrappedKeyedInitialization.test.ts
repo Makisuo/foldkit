@@ -363,7 +363,7 @@ it('preflights every Binding selector before calling any child init', () => {
     {
       field: 'direct',
       parentMessage: AllPlansMessage.GotDirectMessage,
-      init: { args: () => single(9) },
+      init: { startupToArgs: () => single(9) },
     },
   ])
   const keyedBinding = Reflect.apply(AllPlansParent.bindChild, undefined, [

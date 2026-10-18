@@ -43,7 +43,7 @@ const DialogBinding = DisabledButtonTestDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
-  init: { args: () => [{ id: 'test-dialog' }] },
+  init: { startupToArgs: () => [{ id: 'test-dialog' }] },
 })
 
 const DisabledButtonTestComposition =
@@ -60,7 +60,7 @@ const makeInitialModel = (): Model => ({
 
 const init = DisabledButtonTestComposition.makeInit(() => ({
   model: { isEnabled: false },
-  steps: [DialogBinding.open()],
+  steps: [DialogBinding.requestOpen()],
 }))
 
 export const initialModel = modifyFields(makeInitialModel(), {

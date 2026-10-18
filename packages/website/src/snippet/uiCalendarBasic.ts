@@ -83,7 +83,7 @@ const CalendarBinding = CalendarExampleDefinition.bindChild(UiCalendar.block, {
   field: 'calendarDemo',
   parentMessage: Message.GotCalendarMessage,
   init: {
-    args: (flags: Flags) =>
+    startupToArgs: (flags: Flags) =>
       Tuple.make({
         id: 'calendar-demo',
         today: flags.today,

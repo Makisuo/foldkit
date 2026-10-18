@@ -410,7 +410,7 @@ const foldInspectorTabsOutMessage = Tabs.OutMessage.match<
 
 const InspectorTabsBinding = ApplicationDefinition.bindChild(InspectorTabs, {
   field: 'inspectorTabs',
-  init: { args: () => [{ id: INSPECTOR_TABS_ID }] },
+  init: { startupToArgs: () => [{ id: INSPECTOR_TABS_ID }] },
   parentMessage: Message.GotInspectorTabsMessage,
   outMessage: { fold: foldInspectorTabsOutMessage },
 })
@@ -432,7 +432,7 @@ const BlockFilterListboxBinding = ApplicationDefinition.bindChild(
   BlockFilterListbox,
   {
     field: 'blockFilterListbox',
-    init: { args: () => [{ id: BLOCK_FILTER_ID }] },
+    init: { startupToArgs: () => [{ id: BLOCK_FILTER_ID }] },
     parentMessage: Message.GotBlockFilterMessage,
     outMessage: { fold: foldBlockFilterOutMessage },
   },
@@ -461,7 +461,7 @@ const makeApplicationComposition = (scrubberSlider: DevToolsScrubber) => {
   const ScrubberBinding = ApplicationDefinition.bindChild(scrubberSlider, {
     field: 'scrubberSlider',
     init: {
-      args: flags => [
+      startupToArgs: flags => [
         {
           id: SCRUBBER_SLIDER_ID,
           min: 0,

@@ -315,10 +315,10 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   })
 
   const foldEntryAnimationShow = (entry: Entry) =>
-    EntryAnimationBinding.show(entry.id)
+    EntryAnimationBinding.requestShow(entry.id)
 
   const foldEntryAnimationHide = (entry: Entry) =>
-    EntryAnimationBinding.hide(entry.id)
+    EntryAnimationBinding.requestHide(entry.id)
 
   const createEntry = (
     model: Model,
@@ -399,31 +399,33 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   /** Processes a Toast Message and returns the next Model, optional Commands,
    *  and an optional `DismissedToast` OutMessage emitted once an entry has
    *  finished its leave animation. */
-  const update = ToastComposition.makeUpdate((model, message) =>
-    MessageSchema.match(message, {
+  const update = ToastComposition.makeUpdate((model, message) => {
+    const dismissEntry = (entryId: string) => {
+      const maybeEntry = Array.findFirst(
+        model.entries,
+        ({ id }) => id === entryId,
+      )
+
+      return Option.match(maybeEntry, {
+        onNone: () => ({ model }),
+        onSome: entry => {
+          if (isEntryLeaving(entry)) {
+            return { model }
+          } else {
+            return foldEntryAnimationHide(entry)(model)
+          }
+        },
+      })
+    }
+
+    return MessageSchema.match(message, {
       RequestedShow: input => addEntry(createEntry(model, input))(model),
 
       Added: ({ entry }) => addEntry(entry)(model),
 
-      Dismissed: ({ entryId }) => {
-        const maybeEntry = Array.findFirst(
-          model.entries,
-          ({ id }) => id === entryId,
-        )
+      RequestedDismiss: ({ entryId }) => dismissEntry(entryId),
 
-        return Option.match(maybeEntry, {
-          onNone: () => ({ model }),
-          onSome: entry => {
-            if (isEntryLeaving(entry)) {
-              return { model }
-            } else {
-              return foldEntryAnimationHide(entry)(model)
-            }
-          },
-        })
-      },
-
-      DismissedAll: () => {
+      RequestedDismissAll: () => {
         const dismissVisibleEntries = pipe(
           model.entries,
           Array.filter(entry => !isEntryLeaving(entry)),
@@ -432,6 +434,8 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
         return dismissVisibleEntries(model)
       },
+
+      Dismissed: ({ entryId }) => dismissEntry(entryId),
 
       CompletedWaitBeforeDismissal: ({ entryId, version }) => {
         const maybeEntry = Array.findFirst(
@@ -623,13 +627,13 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
             },
           },
         ),
-    }),
-  )
+    })
+  })
 
   const operations = {
     /** Requests a new entry. The update allocates its identity and applies the
      * container's default duration when no duration is supplied. */
-    show: (input: ShowInput<A>) =>
+    requestShow: (input: ShowInput<A>) =>
       Tuple.make(
         MessageSchema.RequestedShow({
           payload: input.payload,
@@ -642,10 +646,10 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         }),
       ),
     /** Begins the selected entry's leave animation. Missing entries are ignored. */
-    dismiss: (entryId: string) =>
-      Tuple.make(MessageSchema.Dismissed({ entryId })),
+    requestDismiss: (entryId: string) =>
+      Tuple.make(MessageSchema.RequestedDismiss({ entryId })),
     /** Begins leave animations for every visible entry. */
-    dismissAll: ToastComposition.makeOperation(MessageSchema.DismissedAll),
+    requestDismissAll: MessageSchema.RequestedDismissAll,
   }
 
   const swipeDependencies = (model: Model) => ({
@@ -744,11 +748,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   }))
 
   /** Provides this Toast instance's Command and Subscription handlers. */
-  const EffectsLayer = Layer.mergeAll(
-    SharedEffectsLayer,
-    subscriptions.swipePointer.layer,
-    subscriptions.swipeEscape.layer,
-  )
+  const EffectsLayer = Layer.mergeAll(SharedEffectsLayer, subscriptions.layer)
 
   return {
     ToastComposition,

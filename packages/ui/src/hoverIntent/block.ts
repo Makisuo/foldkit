@@ -364,7 +364,7 @@ export const block = HoverIntentComposition.makeBlock({
   update,
   view,
   operations: {
-    close: HoverIntentComposition.makeOperation(Message.RequestedClose),
+    requestClose: Message.RequestedClose,
   },
   EffectsLayer,
 })

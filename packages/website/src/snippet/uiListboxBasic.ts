@@ -59,7 +59,7 @@ const PlanPickerDefinition = Block.define('PlanPicker', {
 const PlanListboxBinding = PlanPickerDefinition.bindChild(PlanListbox, {
   field: 'listbox',
   parentMessage: Message.GotListboxMessage,
-  init: { args: () => Tuple.make({ id: 'plan' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'plan' }) },
   outMessage: { fold: foldListboxOutMessage },
 })
 

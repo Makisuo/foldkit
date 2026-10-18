@@ -84,11 +84,11 @@ describe('Combobox.Multi', () => {
       expect(FruitCombobox.owner).toBe(TestCombobox.owner)
       expect(FruitCombobox.mounts).toEqual(mounts)
 
-      const selected = FruitCombobox.operations.selectItem(
+      const selected = FruitCombobox.operations.requestSelectItem(
         init({ id: 'fruit-multi' }),
         'Apple',
       )
-      const closed = FruitCombobox.operations.close(selected.model)
+      const closed = FruitCombobox.operations.requestClose(selected.model)
 
       expect(selected.outMessage).toStrictEqual(
         FruitCombobox.OutMessage.Selected({ value: 'Apple' }),

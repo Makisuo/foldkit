@@ -149,7 +149,7 @@ export const DragAndDropBinding = ApplicationDefinition.bindChild(
       args: (_model, { message }) => Option.some([message]),
     },
     init: {
-      args: () => [{ id: 'kanban' }],
+      startupToArgs: () => [{ id: 'kanban' }],
       model: dragAndDrop => ({ dragAndDrop }),
     },
     outMessage: dragAndDropOutMessagePolicy,

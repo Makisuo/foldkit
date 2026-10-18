@@ -13,5 +13,5 @@ export const EffectsLayer = Layer.mergeAll(
   TimestampReceivedMessage.layer,
   SendMessage.layer,
   managedResources.chatSocket.layer,
-  subscriptions.chatSocketMessages.layer,
+  subscriptions.layer,
 )

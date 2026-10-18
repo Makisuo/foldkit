@@ -20,7 +20,17 @@ const ApplicationComposition = Application.makeComposition({
   childBindings: [SettingsBinding],
 })
 
-export const update = ApplicationComposition.makeUpdate(model => ({
+export const update = ApplicationComposition.makeUpdate(model => {
+  const settingsChange = BoundSettings.setTheme(model.settings, 'Light')
+
+  return {
+    model: modifyFields(model, {
+      settings: () => settingsChange.model,
+    }),
+  }
+})
+
+export const updateDirectly = ApplicationComposition.makeUpdate(model => ({
   model: modifyFields(model, {
     settings: settings =>
       modifyFields(settings, { theme: () => 'Light' }),

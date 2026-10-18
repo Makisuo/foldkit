@@ -754,10 +754,7 @@ export const subscriptions = DragAndDropDefinition.subscriptions(entry => ({
 export const EffectsLayer = Layer.mergeAll(
   FocusItem.layer,
   ResolveKeyboardMove.layer,
-  subscriptions.documentPointer.layer,
-  subscriptions.documentEscape.layer,
-  subscriptions.documentKeyboard.layer,
-  subscriptions.autoScroll.layer,
+  subscriptions.layer,
 )
 
 // VIEW

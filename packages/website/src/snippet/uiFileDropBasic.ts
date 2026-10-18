@@ -53,7 +53,7 @@ const FileDropExampleDefinition = Block.define('FileDropExample', {
 const FileDropBinding = FileDropExampleDefinition.bindChild(FileDrop.block, {
   field: 'uploader',
   parentMessage: Message.GotFileDropMessage,
-  init: { args: () => Tuple.make({ id: 'uploader' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'uploader' }) },
   outMessage: { fold: foldFileDropOutMessage },
 })
 

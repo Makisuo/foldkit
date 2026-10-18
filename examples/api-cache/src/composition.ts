@@ -65,7 +65,7 @@ const foldTabsOutMessage = ApplicationTabs.OutMessage.match({
 export const TabsBinding = ApplicationDefinition.bindChild(ApplicationTabs, {
   field: 'tabs',
   parentMessage: Message.GotTabsMessage,
-  init: { args: () => [{ id: TABS_ID }] },
+  init: { startupToArgs: () => [{ id: TABS_ID }] },
   outMessage: { fold: foldTabsOutMessage },
 })
 

@@ -1,12 +1,13 @@
-import { Command } from 'foldkit'
-
-// ❌ Bad
-// A Command binding should be PascalCase, like the Command name it holds.
-const fetchWeather = Command.define('FetchWeather', {
-  messages: [SucceededFetchWeather],
+// ❌ Bad: the binding must be PascalCase and match the declared Command name.
+const fetchWeather = WeatherDefinition.command('FetchWeather', {
+  messages: [Message.CompletedFetchWeather],
 })
 
-// ✅ Good
-const FetchWeather = Command.define('FetchWeather', {
-  messages: [SucceededFetchWeather],
+const SaveWeather = WeatherDefinition.command('FetchWeather', {
+  messages: [Message.CompletedFetchWeather],
+})
+
+// ✅ Good: the declaration and binding name match.
+const FetchWeather = WeatherDefinition.command('FetchWeather', {
+  messages: [Message.CompletedFetchWeather],
 })

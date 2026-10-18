@@ -16,17 +16,25 @@ import {
   Startup,
 } from './startup-defaults.accepted.js'
 
-// @ts-expect-error A required-argument child needs init.args or init: false.
+// @ts-expect-error The startup selector is named startupToArgs.
+// oxfmt-ignore
+DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotChildMessage, init: { args: () => [] } })
+
+// @ts-expect-error The removed args key cannot accompany startupToArgs.
+// oxfmt-ignore
+DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotChildMessage, init: { startupToArgs: () => [], args: () => [] } })
+
+// @ts-expect-error A required-argument child needs init.startupToArgs or init: false.
 // oxfmt-ignore
 DeclarationStartupDefaultsParentDefinition.bindChild(RequiredChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotChildMessage,  })
 
 // @ts-expect-error Child init arguments retain their exact tuple.
 // oxfmt-ignore
-DeclarationStartupDefaultsParentDefinition.bindChild(RequiredChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotChildMessage,  init: { args: () => ['wrong'] } })
+DeclarationStartupDefaultsParentDefinition.bindChild(RequiredChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotChildMessage,  init: { startupToArgs: () => ['wrong'] } })
 
 // @ts-expect-error A selector must accept every value allowed by Startup.
 // oxfmt-ignore
-DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, { field: 'automatic', placement: 'narrowStartup', parentMessage: ParentMessage.GotChildMessage,  init: { args: (_startup: Readonly<{ count: 1 }>) => [] } })
+DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, { field: 'automatic', placement: 'narrowStartup', parentMessage: ParentMessage.GotChildMessage,  init: { startupToArgs: (_startup: Readonly<{ count: 1 }>) => [] } })
 
 DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, {
   field: 'automatic',
@@ -34,7 +42,7 @@ DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, {
   parentMessage: ParentMessage.GotChildMessage,
 
   init: {
-    args: startup => {
+    startupToArgs: startup => {
       // @ts-expect-error Startup Schema fields remain readonly.
       startup.count = 2
       return []
@@ -113,7 +121,7 @@ DeclarationStartupGenericParentDefinition.makeComposition({
 
 // @ts-expect-error Application startup selectors use the exact declared Startup.
 // oxfmt-ignore
-ApplicationDefinition.bindChild(ChildBlock, { field: 'child', parentMessage: ParentMessage.GotChildMessage, init: { args: (_startup: Readonly<{ entryIds: readonly [] }>) => [] } })
+ApplicationDefinition.bindChild(ChildBlock, { field: 'child', parentMessage: ParentMessage.GotChildMessage, init: { startupToArgs: (_startup: Readonly<{ entryIds: readonly [] }>) => [] } })
 
 // @ts-expect-error A keyed startup Binding cannot be registered under an unrelated parent Model.
 DeclarationStartupGenericParentDefinition.makeComposition({
@@ -136,14 +144,14 @@ const FirstDiscriminantBinding =
     field: 'first',
     parentMessage: ParentMessage.GotChildMessage,
 
-    init: { args: (_startup: Readonly<{ kind: 'First' }>) => [] },
+    init: { startupToArgs: (_startup: Readonly<{ kind: 'First' }>) => [] },
   })
 const SecondDiscriminantBinding =
   DeclarationIncompatibleStartupParentDefinition.bindChild(ChildBlock, {
     field: 'second',
     parentMessage: ParentMessage.GotChildMessage,
 
-    init: { args: (_startup: Readonly<{ kind: 'Second' }>) => [] },
+    init: { startupToArgs: (_startup: Readonly<{ kind: 'Second' }>) => [] },
   })
 // @ts-expect-error Disjoint discriminants cannot form one shared startup input.
 DeclarationIncompatibleStartupParentDefinition.makeComposition({
@@ -162,14 +170,14 @@ const StringStartupBinding =
     field: 'first',
     parentMessage: ParentMessage.GotChildMessage,
 
-    init: { args: (_startup: string) => [] },
+    init: { startupToArgs: (_startup: string) => [] },
   })
 const NumberStartupBinding =
   DeclarationPrimitiveStartupParentDefinition.bindChild(ChildBlock, {
     field: 'second',
     parentMessage: ParentMessage.GotChildMessage,
 
-    init: { args: (_startup: number) => [] },
+    init: { startupToArgs: (_startup: number) => [] },
   })
 // @ts-expect-error Primitive selector inputs cannot form one shared startup input.
 DeclarationPrimitiveStartupParentDefinition.makeComposition({

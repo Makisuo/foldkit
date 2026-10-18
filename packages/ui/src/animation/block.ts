@@ -157,27 +157,27 @@ export const block = AnimationComposition.makeBlock({
   update,
   view,
   operations: {
-    show: AnimationComposition.makeOperation(Message.RequestedShow),
-    hide: AnimationComposition.makeOperation(Message.RequestedHide),
-    finish: (generation: number) =>
+    requestShow: Message.RequestedShow,
+    requestHide: Message.RequestedHide,
+    requestFinish: (generation: number) =>
       Tuple.make(Message.RequestedFinish({ generation })),
-    toggle: AnimationComposition.makeOperation(Message.RequestedToggle),
-    resume: AnimationComposition.makeOperation(Message.RequestedResume),
+    requestToggle: Message.RequestedToggle,
+    requestResume: Message.RequestedResume,
   },
   EffectsLayer,
 })
 
 /** Programmatically starts the enter lifecycle through Animation update. */
-export const show = block.operations.show
+export const show = block.operations.requestShow
 
 /** Programmatically starts the leave lifecycle through Animation update. */
-export const hide = block.operations.hide
+export const hide = block.operations.requestHide
 
 /** Completes the current transition generation through Animation update. */
-export const finish = block.operations.finish
+export const finish = block.operations.requestFinish
 
 /** Toggles between the shown and hidden states through Animation update. */
-export const toggle = block.operations.toggle
+export const toggle = block.operations.requestToggle
 
 /** Resumes the pending transition lifecycle through Animation update. */
-export const resume = block.operations.resume
+export const resume = block.operations.requestResume

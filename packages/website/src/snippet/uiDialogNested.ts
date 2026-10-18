@@ -42,14 +42,14 @@ const ProjectDialogsDefinition = Block.define('ProjectDialogs', {
 const SettingsDialogBinding = ProjectDialogsDefinition.bindChild(Dialog.block, {
   field: 'settingsDialog',
   parentMessage: Message.GotSettingsDialogMessage,
-  init: { args: () => Tuple.make({ id: 'settings' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'settings' }) },
   outMessage: { fold: foldConfirmDialogOutMessage },
 })
 
 const ConfirmDialogBinding = ProjectDialogsDefinition.bindChild(Dialog.block, {
   field: 'confirmDialog',
   parentMessage: Message.GotConfirmDialogMessage,
-  init: { args: () => Tuple.make({ id: 'confirm-delete' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'confirm-delete' }) },
   outMessage: { fold: foldConfirmDialogOutMessage },
 })
 
@@ -65,12 +65,12 @@ const init = ProjectDialogsComposition.makeInit(() => ({
 
 // Opening the confirmation is a parent fact, not a hand-wrapped child message.
 // The button dispatches ClickedDeleteProject; the update opens the confirmation
-// through `ConfirmDialogBinding.open()`, keeping Got* for genuine child results.
+// through `ConfirmDialogBinding.requestOpen()`, keeping Got* for genuine child results.
 
 const update = ProjectDialogsComposition.makeUpdate((model, message) =>
   Message.match(message, {
-    ClickedDeleteProject: () => ConfirmDialogBinding.open()(model),
-    ConfirmedDeleteProject: () => ConfirmDialogBinding.close()(model),
+    ClickedDeleteProject: () => ConfirmDialogBinding.requestOpen()(model),
+    ConfirmedDeleteProject: () => ConfirmDialogBinding.requestClose()(model),
   }),
 )
 
@@ -78,7 +78,7 @@ const update = ProjectDialogsComposition.makeUpdate((model, message) =>
 // focus in the topmost, and Escape closes the topmost before the one beneath
 // it. Cancel dismisses the confirmation through the `closeButton` bundle.
 // Delete dispatches a fact that runs the work and closes through
-// `ConfirmDialogBinding.close()`.
+// `ConfirmDialogBinding.requestClose()`.
 const view = ProjectDialogsComposition.makeView((model, h) => {
   const confirmDialogView = ({
     dialog,

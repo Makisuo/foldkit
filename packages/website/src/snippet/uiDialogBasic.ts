@@ -41,7 +41,7 @@ const DialogExampleDefinition = Block.define('DialogExample', {
 const DialogBinding = DialogExampleDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
-  init: { args: () => Tuple.make({ id: 'confirm' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'confirm' }) },
   outMessage: { fold: foldDialogOutMessage },
 })
 
@@ -58,7 +58,7 @@ const init = DialogExampleComposition.makeInit(() => ({
 
 const update = DialogExampleComposition.makeUpdate((model, message) =>
   Message.match(message, {
-    ClickedOpenDialog: () => DialogBinding.open()(model),
+    ClickedOpenDialog: () => DialogBinding.requestOpen()(model),
   }),
 )
 

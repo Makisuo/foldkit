@@ -92,7 +92,7 @@ const DatePickerBinding = DatePickerExampleDefinition.bindChild(
     field: 'datePickerDemo',
     parentMessage: Message.GotDatePickerMessage,
     init: {
-      args: (flags: Flags) =>
+      startupToArgs: (flags: Flags) =>
         Tuple.make({
           id: 'date-picker-demo',
           today: flags.today,

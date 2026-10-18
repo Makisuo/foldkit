@@ -28,7 +28,7 @@ export const PronounsListboxBinding = PersonalInfoDefinition.bindChild(
   {
     field: 'pronouns',
     parentMessage: Message.GotPronounsMessage,
-    init: { args: () => [{ id: 'pronouns' }] },
+    init: { startupToArgs: () => [{ id: 'pronouns' }] },
     outMessage: { fold: foldPronounsOutMessage },
   },
 )
@@ -55,7 +55,7 @@ export const AvailableDatePickerBinding = PersonalInfoDefinition.bindChild(
     field: 'availableDate',
     parentMessage: Message.GotAvailableDateMessage,
     init: {
-      args: today => [{ id: 'available-date', today, minDate: today }],
+      startupToArgs: today => [{ id: 'available-date', today, minDate: today }],
     },
     outMessage: { fold: foldAvailableDateOutMessage },
   },

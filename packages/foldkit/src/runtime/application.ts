@@ -28,7 +28,7 @@ import {
   type PreciseMountRegistry,
 } from '../mount/index.js'
 import type { Ports } from '../port/index.js'
-import type { Subscriptions } from '../subscription/subscription.js'
+import type { Registrations } from '../subscription/subscription.js'
 import type {
   Commands as UpdateCommands,
   Return as UpdateReturn,
@@ -779,7 +779,7 @@ type RootReturn<Model, Message> = Readonly<{
 }>
 
 type RootLifecycleConfig<CompositionValue extends AnyComposition> = Readonly<{
-  subscriptions?: Subscriptions<
+  subscriptions?: Registrations<
     CompositionModel<CompositionValue>,
     CompositionMessage<CompositionValue>,
     any

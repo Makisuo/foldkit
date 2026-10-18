@@ -2,7 +2,7 @@
 
 ## Overview
 
-Animation coordinates CSS enter and leave phases with a state machine and data attributes. Bind `Animation.block` in the parent. Its Binding projects the child-owned `show`, `hide`, and `toggle` operations into connected parent Steps; Animation applies its internal `Showed` or `Hid` fact, records each lifecycle phase in its Model, and exposes the resulting Commands through the fold. The transitions stay visible in DevTools and can be tested through update without waiting for a browser animation.
+Animation coordinates CSS enter and leave phases with a state machine and data attributes. Bind `Animation.block` in the parent. Its Binding projects the child-owned `requestShow`, `requestHide`, and `requestToggle` operations into connected parent Steps. Each operation constructs its matching `RequestedShow`, `RequestedHide`, or `RequestedToggle` Message. Animation update records each lifecycle phase in its Model and returns any Commands through the fold. The transitions stay visible in DevTools and can be tested through update without waiting for a browser animation.
 
 Animation uses the [OutMessage](/core/block#surfacing-facts) pattern. The Binding’s `outMessage.fold` policy handles `StartedLeaveAnimating` by providing a Command that detects settlement, then handles `TransitionedOut` when post-animation cleanup can begin. Dialog, Menu, Popover, Listbox, and Combobox use the same Block internally when `isAnimated` is true.
 
@@ -32,7 +32,7 @@ Check out how Animation is wired up in a [real Foldkit app](https://github.com/f
 
 ## Examples
 
-Call the Binding’s `show()` operation to start the enter animation and `hide()` to start the leave animation. Style with Tailwind data-attribute selectors like `data-[closed]:opacity-0`.
+Call the Binding’s `requestShow()` operation to start the enter animation and `requestHide()` to start the leave animation. Style with Tailwind data-attribute selectors like `data-[closed]:opacity-0`.
 
 ::Demo{name="animation"}
 
@@ -44,13 +44,13 @@ Call the Binding’s `show()` operation to start the enter animation and `hide()
 
 Animation drives the enter phase to completion on its own. The leave phase hands control back to the parent halfway through so the parent can decide how settlement is detected. For example, Foldkit's [Dialog](/ui/dialog) just waits for CSS, while its [Popover](/ui/popover) races CSS against the anchor button scrolling off-screen. The asymmetry exists because leave detection varies by consumer, while enter detection does not.
 
-Internally, the `show`, `hide`, and `toggle` capabilities apply the `Showed` or `Hid` Message according to the current Animation Model and requested transition.
+The `requestShow`, `requestHide`, and `requestToggle` operations apply `RequestedShow`, `RequestedHide`, and `RequestedToggle` respectively. Animation update decides which transition to start from its current Model.
 
 ```diagram
 ENTER                                LEAVE
 Animation drives completion          Parent detects settlement
 
-show()                                hide()
+requestShow()                         requestHide()
    |                                    |
    v                                    v
 EnterStart                           LeaveStart
@@ -72,11 +72,11 @@ The double-rAF timing (one frame to set the start state, another to trigger the 
 
 ### Interrupted Transitions
 
-Say a user closes a panel while it is still sliding in. `hide` starts the leave, and the browser reverses the running transition. Reversing cancels the enter transition, so the Command waiting for the enter to settle resolves and returns `EndedAnimation` while Animation is already leaving.
+Say a user closes a panel while it is still sliding in. `requestHide` starts the leave, and the browser reverses the running transition. Reversing cancels the enter transition, so the Command waiting for the enter to settle resolves and returns `EndedAnimation` while Animation is already leaving.
 
 #### Ignore Stale Settlement
 
-Animation ignores that late result. Each time `show` or `hide` starts an enter or leave transition, Animation increases `transitionGeneration` in its Model. Every paint and settlement Command reports the transition generation that scheduled it, and update ignores a result whose generation is no longer current. The leave keeps running until its own settlement result arrives. The same holds when `show` interrupts a leave.
+Animation ignores that late result. Each time `requestShow` or `requestHide` starts an enter or leave transition, Animation increases `transitionGeneration` in its Model. Every paint and settlement Command reports the transition generation that scheduled it, and update ignores a result whose generation is no longer current. The leave keeps running until its own settlement result arrives. The same holds when `requestShow` interrupts a leave.
 
 #### Build a Custom Leave Command
 
@@ -111,9 +111,9 @@ The `animateSize` option uses CSS grid (`grid-template-rows: 0fr` → `1fr`) for
 
 ## API Reference
 
-### toggle
+### requestToggle
 
-Call the bound `AnimationBinding.toggle()` operation to start the enter or leave lifecycle according to the child Model's `isShowing` value. It returns a connected parent Step that reads and writes the child Model through the Binding. Apply it to the contextual Model and return or compose its opaque result inside the registered Composition.
+Call the bound `AnimationBinding.requestToggle()` operation to start the enter or leave lifecycle according to the child Model's `isShowing` value. It returns a connected parent Step that reads and writes the child Model through the Binding. Apply it to the contextual Model and return or compose its opaque result inside the registered Composition.
 
 ### InitConfig {#init-config}
 
@@ -124,13 +124,13 @@ Configuration object passed to `Animation.init()`.
 | `id`        | `string`  | —       | Unique ID for the animation instance. |
 | `isShowing` | `boolean` | `false` | Initial visibility state.             |
 
-### show and hide
+### requestShow and requestHide
 
-Call the bound `AnimationBinding.show()` and `AnimationBinding.hide()` operations from the parent. Apply these connected parent Steps to the contextual Model and return or compose their opaque results inside the registered Composition. Checked execution produces the readable next Animation Model and any Commands. Do not construct `Animation.Message.Showed()` or `Animation.Message.Hid()` from the parent.
+Call the bound `AnimationBinding.requestShow()` and `AnimationBinding.requestHide()` operations from the parent. Apply these connected parent Steps to the contextual Model and return or compose their opaque results inside the registered Composition. Checked execution produces the readable next Animation Model and any Commands. Parents invoke the Binding operations; Animation owns the Messages that drive its update.
 
-### finish
+### requestFinish
 
-Call the Binding-projected `AnimationBinding.finish(generation)` operation when a parent observes that the current animation has ended. It returns a connected parent Step and preserves the Animation's generation check: a result from an older transition does not finish a newer one. A parent-owned Command reports its own completion Message; the parent handles that result by invoking this operation inside its Composition-authored update.
+Call the Binding-projected `AnimationBinding.requestFinish(generation)` operation when a parent observes that the current animation has ended. It returns a connected parent Step and preserves the Animation's generation check: a result from an older transition does not finish a newer one. A parent-owned Command reports its own completion Message; the parent handles that result by invoking this operation inside its Composition-authored update.
 
 ### ViewInputs {#view-config}
 

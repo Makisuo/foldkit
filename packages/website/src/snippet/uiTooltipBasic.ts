@@ -49,7 +49,7 @@ const TooltipExampleDefinition = Block.define('TooltipExample', {
 const TooltipBinding = TooltipExampleDefinition.bindChild(Tooltip.block, {
   field: 'tooltip',
   parentMessage: Message.GotTooltipMessage,
-  init: { args: () => Tuple.make({ id: 'save-button' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'save-button' }) },
   outMessage: { fold: foldTooltipOutMessage },
 })
 

@@ -47,7 +47,7 @@ const subscriptions = FeatureDefinition.subscriptions(entry => ({
   ),
 }))
 
-const EffectsLayer = subscriptions.animationFrameTicks.layer
+const EffectsLayer = subscriptions.layer
 const FeatureComposition = FeatureDefinition.makeComposition()
 
 export const block = FeatureComposition.makeBlock({
@@ -92,7 +92,7 @@ const subscriptions = FeatureDefinition.subscriptions(entry => ({
   }),
 }))
 
-const EffectsLayer = subscriptions.hostStep.layer
+const EffectsLayer = subscriptions.layer
 const FeatureComposition = FeatureDefinition.makeComposition()
 
 export const block = FeatureComposition.makeBlock({

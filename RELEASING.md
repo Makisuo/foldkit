@@ -100,15 +100,17 @@ The Release workflow builds a canary for every package-affecting push to `main`
 or `codex/layers-and-submodels`. Every public package receives a prerelease
 version containing the commit SHA, for example
 `0.148.2-canary.0123456789ab`. Internal package references are rewritten to
-those exact versions before packing.
+those exact versions before packing. This does not use Changesets prerelease
+mode and does not create a moving npm `canary` tag.
 
 Merge reviewed and approved candidate changes into
 `codex/layers-and-submodels` for integration testing. A push to that branch runs
 the package canary job. It does not create or update the Version Packages pull
 request, publish or promote a stable release, finalize release metadata, or
-deploy either website. After the package canary job succeeds, copy the exact
-package versions and the `create-foldkit-app` scaffold command from its workflow
-summary. Use that commit-addressed snapshot for integration testing.
+deploy the production or main canary website. After npm verifies the complete
+package snapshot, the workflow preserves that verified manifest and deploys the
+website, documentation, and embedded examples from the same source commit to a
+dedicated Vercel preview project.
 
 Canaries use a commit-specific non-consumer tag such as
 `foldkit-canary-upload-0123456789ab` only for upload. The workflow does not
@@ -116,6 +118,28 @@ advertise a moving npm `canary` tag. After the complete registry check passes,
 the workflow summary prints every exact package version and the exact
 `create-foldkit-app` command. Rerunning a commit uses the same versions and
 skips artifacts that already match.
+
+The preview build accepts only the manifest produced after that registry check.
+It checks that the manifest's full source commit, upload tag, complete package
+set, and commit-addressed versions match the checked-out workspace. The build
+embeds the manifest in the banner, publishes the same bytes at
+`/preview-release.json`, and checks the rendered assets for the commit and every
+version before upload. The live smoke checks fetch that manifest back from the
+immutable Vercel deployment URL and compare it byte-for-byte with the verified
+input.
+
+In-browser playground projects also pin their Foldkit dependencies to that
+verified manifest. The preview build rejects missing
+packages, versions from another commit, and mixed main-canary/preview inputs.
+The main production and main-canary version selection remains unchanged.
+
+Only after the deployed SSR and SSG playgrounds, Monaco worker isolation, and
+live manifest checks succeed does the workflow print **Integration preview
+ready**. That report is the source of truth for review. It includes the exact
+source commit, immutable website URL, linked package versions, scaffold command,
+and complete exact-version install command. A package upload by itself is not a
+ready preview, and this document does not identify any current preview as
+published or ready.
 
 For a new project, run the exact `create-foldkit-app` command from the workflow
 summary. For an existing project, install every Foldkit package the project
@@ -201,3 +225,17 @@ before the deployment completes.
 Website-only pushes still use the normal production deployment workflow. Its
 package-source authorization prevents unreleased package work from reaching
 the site.
+
+The integration preview uses `VERCEL_WEBSITE_PREVIEW_PROJECT_ID`, which must
+identify a Vercel project separate from both `VERCEL_WEBSITE_PROJECT_ID` and
+`VERCEL_WEBSITE_CANARY_PROJECT_ID`. Configure that repository secret before the
+first approved merge to `codex/layers-and-submodels`. The preview deploy uses
+Vercel's returned deployment URL and does not promote a shared hostname or
+invent a repository-owned preview domain. Missing Vercel credentials or the
+separate project ID stop deployment, so the workflow cannot emit a ready report.
+
+`main` keeps both existing paths: stable finalization can deploy
+`foldkit.dev`, and its verified package canary can promote `canary.foldkit.dev`.
+Integration previews cannot promote either hostname because the promotion step
+runs only for the `canary` channel and the preview calls the shared builder with
+the `preview` channel and its own project ID.

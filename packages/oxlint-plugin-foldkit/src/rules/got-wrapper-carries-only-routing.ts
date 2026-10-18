@@ -21,6 +21,7 @@ const routingKeySuffixPattern = /Id$/
 
 const isRoutingKey = (keyName: string): boolean =>
   keyName === 'message' ||
+  keyName === 'key' ||
   keyName === 'id' ||
   routingKeySuffixPattern.test(keyName)
 
@@ -45,7 +46,7 @@ const staticPropertyKey = (
 }
 
 const extraFieldMessage = (wrapperTag: string, keyName: string): string =>
-  `Got wrapper \`${wrapperTag}\` declares an extra field \`${keyName}\`. A Got wrapper carries the child Message plus routing context only: \`message\`, \`id\`, or keys ending in \`Id\`. Move other data onto the child Message or a dedicated parent Message.`
+  `Got wrapper \`${wrapperTag}\` declares an extra field \`${keyName}\`. A Got wrapper carries the child Message plus routing context only: \`message\`, a keyed Binding's \`key\`, \`id\`, or keys ending in \`Id\`. Move other data onto the child Message or a dedicated parent Message.`
 
 /**
  * Flags extra payload fields on a Got wrapper Message definition so wrappers

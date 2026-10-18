@@ -6,13 +6,11 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const informJoined = RoomComposition.makeOperation(Message.InformedOfJoin)
-
 export const block = RoomComposition.makeBlock({
   init,
   update,
   view,
-  operations: { informJoined },
+  operations: { informJoined: Message.InformedOfJoin },
   subscriptions,
   EffectsLayer,
 })

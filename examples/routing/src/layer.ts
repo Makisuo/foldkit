@@ -6,5 +6,5 @@ import { subscriptions } from './subscription'
 export const EffectsLayer = Layer.mergeAll(
   NavigateInternal.layer,
   LoadExternal.layer,
-  subscriptions.navigationShortcutPresses.layer,
+  subscriptions.layer,
 )

@@ -115,8 +115,9 @@ export const makeModel = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
 
 /** Payload-independent Message variants shared by every Toast Block. */
 export const Message = defineMessageUnion({
+  RequestedDismiss: { entryId: Schema.String },
+  RequestedDismissAll: {},
   Dismissed: { entryId: Schema.String },
-  DismissedAll: {},
   CompletedWaitBeforeDismissal: {
     entryId: Schema.String,
     version: Schema.Number,
@@ -143,7 +144,8 @@ export const Message = defineMessageUnion({
 })
 
 export type Dismissed = typeof Message.Dismissed.Type
-export type DismissedAll = typeof Message.DismissedAll.Type
+export type RequestedDismiss = typeof Message.RequestedDismiss.Type
+export type RequestedDismissAll = typeof Message.RequestedDismissAll.Type
 export type CompletedWaitBeforeDismissal =
   typeof Message.CompletedWaitBeforeDismissal.Type
 export type HoveredEntry = typeof Message.HoveredEntry.Type
@@ -167,8 +169,9 @@ export const makeMessage = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
       isSticky: Schema.Boolean,
     },
     Added: { entry: makeEntry(payloadSchema) },
+    RequestedDismiss: { entryId: Schema.String },
+    RequestedDismissAll: {},
     Dismissed: { entryId: Schema.String },
-    DismissedAll: {},
     CompletedWaitBeforeDismissal: {
       entryId: Schema.String,
       version: Schema.Number,

@@ -10,9 +10,7 @@ import {
   routeSearchText,
 } from './informingBlocksModel'
 
-export const informRouteChanged = PeopleComposition.makeOperation(
-  Message.InformedOfRouteChange,
-)
+export const informRouteChanged = Message.InformedOfRouteChange
 
 export const update = PeopleComposition.makeUpdate((model, message) =>
   Message.match(message, {

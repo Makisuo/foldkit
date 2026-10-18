@@ -54,7 +54,7 @@ const ActionMenuExampleDefinition = Block.define('ActionMenuExample', {
 const MenuBinding = ActionMenuExampleDefinition.bindChild(ActionMenu, {
   field: 'menu',
   parentMessage: Message.GotMenuMessage,
-  init: { args: () => Tuple.make({ id: 'actions' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'actions' }) },
   outMessage: { fold: foldMenuOutMessage },
 })
 

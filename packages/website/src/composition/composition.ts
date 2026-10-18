@@ -18,7 +18,7 @@ import * as Search from '../search'
 import * as SnippetCopy from '../snippetCopy'
 import * as SnippetDisclosure from '../snippetDisclosure'
 import { selectThemePreference } from '../theme'
-import { ThemeMenu } from '../view/themeMenu'
+import { ThemeMenu } from '../view'
 import { HomeBinding } from './home'
 
 export const SearchBinding = ApplicationDefinition.bindChild(Search.block, {
@@ -56,7 +56,7 @@ export const PlaygroundBinding = ApplicationDefinition.bindChild(
     field: 'playground',
     parentMessage: Message.GotPlaygroundMessage,
     init: {
-      args: ({ route }) =>
+      startupToArgs: ({ route }) =>
         pipe(
           route,
           Option.liftPredicate(ApplicationRoute.guards.Playground),
@@ -69,7 +69,7 @@ export const PlaygroundBinding = ApplicationDefinition.bindChild(
 export const UiPagesBinding = ApplicationDefinition.bindChild(Ui.block, {
   field: 'uiPages',
   parentMessage: Message.GotUiPageMessage,
-  init: { args: ({ today }) => [today] },
+  init: { startupToArgs: ({ today }) => [today] },
 })
 
 export const ApiReferenceBinding = ApplicationDefinition.bindChild(
@@ -108,20 +108,23 @@ export const MobileMenuDialogBinding = ApplicationDefinition.bindChild(
     field: 'mobileMenuDialog',
     parentMessage: Message.GotMobileMenuDialogMessage,
     outMessage: { fold: foldMobileMenuDialogOutMessage },
-    init: { args: () => [{ id: 'mobile-menu' }] },
+    init: { startupToArgs: () => [{ id: 'mobile-menu' }] },
   },
 )
 
-const foldThemeMenuOutMessage = ThemeMenu.OutMessage.match({
+const foldThemeMenuOutMessage = ThemeMenu.ThemeMenu.OutMessage.match({
   Selected: ({ value }) => selectThemePreference(value),
 })
 
-export const ThemeMenuBinding = ApplicationDefinition.bindChild(ThemeMenu, {
-  field: 'themeMenu',
-  parentMessage: Message.GotThemeMenuMessage,
-  outMessage: { fold: foldThemeMenuOutMessage },
-  init: { args: () => [{ id: 'theme-menu' }] },
-})
+export const ThemeMenuBinding = ApplicationDefinition.bindChild(
+  ThemeMenu.ThemeMenu,
+  {
+    field: 'themeMenu',
+    parentMessage: Message.GotThemeMenuMessage,
+    outMessage: { fold: foldThemeMenuOutMessage },
+    init: { startupToArgs: () => [{ id: 'theme-menu' }] },
+  },
+)
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   childBindings: [

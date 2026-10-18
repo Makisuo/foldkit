@@ -21,7 +21,7 @@ export const DialogBinding = SearchDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotSearchDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
-  init: { args: () => Tuple.make({ id: 'search-dialog' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'search-dialog' }) },
 })
 
 export const SearchComposition = SearchDefinition.makeComposition({

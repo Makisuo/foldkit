@@ -25,7 +25,7 @@ export const ResumeDropBinding = AttachmentsDefinition.bindChild(
   {
     field: 'resumeDrop',
     parentMessage: Message.GotResumeDropMessage,
-    init: { args: () => [{ id: 'attachments-resume' }] },
+    init: { startupToArgs: () => [{ id: 'attachments-resume' }] },
     outMessage: { fold: foldResumeDropOutMessage },
   },
 )
@@ -48,7 +48,7 @@ export const AdditionalFilesDropBinding = AttachmentsDefinition.bindChild(
   {
     field: 'additionalFilesDrop',
     parentMessage: Message.GotAdditionalFilesDropMessage,
-    init: { args: () => [{ id: 'attachments-additional' }] },
+    init: { startupToArgs: () => [{ id: 'attachments-additional' }] },
     outMessage: { fold: foldAdditionalFilesDropOutMessage },
   },
 )

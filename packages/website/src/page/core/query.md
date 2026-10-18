@@ -26,7 +26,7 @@ Use Query when a request produces one retained resource, or one entry in a retai
 
 ### The Parent Controls Loading and Refreshing
 
-The parent controls when a Query loads or refreshes. In response to one of its Messages—for example, a route change, button click, mutation result, or Subscription tick—it calls `loadIfMissing`, `revalidate`, or `revalidateOrLoad`. The Query operation checks the current `AsyncData` state and returns an update result containing either the unchanged Model or the next Model and a fetch Command.
+The parent controls when a Query loads or refreshes. In response to one of its Messages—for example, a route change, button click, mutation result, or Subscription tick—it calls `requestLoadIfMissing`, `requestRevalidation`, or `requestRevalidationOrLoad`. The Query operation checks the current `AsyncData` state and returns an update result containing either the unchanged Model or the next Model and a fetch Command.
 
 Query does not react to rendering, expire data after a duration, poll, or refresh related resources on its own. The parent owns those decisions and expresses them through its Messages, update branches, and Subscriptions.
 
@@ -54,7 +54,7 @@ The `data` and `error` values must be Schema Codecs that require no encoding or 
 
 #### Returned Definition
 
-The returned `postsQuery` is a completed viewless Block with a Model Schema, a Message union, and public operations. Each operation produces a Query-owned `Requested*` Message that the completed Block passes through Query update synchronously. Put `postsQuery.Model` in the parent Model Schema and bind it through the parent Definition. Its zero-argument initializer starts the required direct field automatically. Put `PostsBinding.loadIfMissing()` in the Composition init plan's `steps` array to begin the first request after the Query Model exists.
+The returned `postsQuery` is a completed viewless Block with a Model Schema, a Message union, and public operations. Each operation produces a Query-owned `Requested*` Message that the completed Block passes through Query update synchronously. Put `postsQuery.Model` in the parent Model Schema and bind it through the parent Definition. Its zero-argument initializer starts the required direct field automatically. Put `PostsBinding.requestLoadIfMissing()` in the Composition init plan's `steps` array to begin the first request after the Query Model exists.
 
 ### Bind the Query to Its Parent
 
@@ -69,8 +69,8 @@ The `field` form tells `bindChild` which exact field contains the Query Model or
 #### Bound Operations
 
 - The parent Composition delegates `GotPostsMessage` to the Binding and writes the returned Query Model back to `model.posts`.
-- `PostsBinding.loadIfMissing()`, `PostsBinding.revalidate()`, and `PostsBinding.revalidateOrLoad()` return connected parent Steps that apply their loading rule to the current `AsyncData`. Their connected results expose no `.model` or `.commands` before the Composition consumes them. After checked execution, a requested load produces the readable next parent Model and the Query's `Fetch` Command; otherwise the readable result contains only the unchanged Model.
-- `PostsBinding.reset()` returns a connected parent Step. After checked execution, the Query value is `Idle` and retains its request identity. Its type still carries Query update's complete Fetch handler requirements even though reset itself returns no Fetch Command.
+- `PostsBinding.requestLoadIfMissing()`, `PostsBinding.requestRevalidation()`, and `PostsBinding.requestRevalidationOrLoad()` return connected parent Steps that apply their loading rule to the current `AsyncData`. Their connected results expose no `.model` or `.commands` before the Composition consumes them. After checked execution, a requested load produces the readable next parent Model and the Query's `Fetch` Command; otherwise the readable result contains only the unchanged Model.
+- `PostsBinding.requestReset()` returns a connected parent Step. After checked execution, the Query value is `Idle` and retains its request identity. Its type still carries Query update's complete Fetch handler requirements even though reset itself returns no Fetch Command.
 
 #### Optional and Nested Queries
 
@@ -78,7 +78,7 @@ Use `field` when an optional Query occupies an exact Option field. After checked
 
 #### Starting a Load
 
-Call a loading operation from init or a parent Message handler. In the example, `loadIfMissing` is a startup Step. A route-change handler can return the same operation when a screen becomes active. Rendering the screen does not return a fetch Command or cause a request.
+Call a loading operation from init or a parent Message handler. In the example, `requestLoadIfMissing` is a startup Step. A route-change handler can return the same operation when a screen becomes active. Rendering the screen does not return a fetch Command or cause a request.
 
 ### Read and Render Query Data
 
@@ -94,11 +94,11 @@ The parent passes the Query Model to a child-owned accessor; it does not inspect
 
 Query provides three operations for loading and refreshing data. Each operation applies its transition rule to the current `AsyncData` state. When that rule calls for a request, the operation returns the next Model together with the fetch Command. The Runtime performs that Command after it receives the update result. A first load enters `Loading`; a refresh enters `Refreshing` and keeps the previous data available.
 
-| Current state           | `loadIfMissing` | `revalidate`       | `revalidateOrLoad` |
-| ----------------------- | --------------- | ------------------ | ------------------ |
-| `Idle`, `Failure`       | enter `Loading` | no change          | enter `Loading`    |
-| `Loading`, `Refreshing` | no change       | no change          | no change          |
-| `Success`, `Stale`      | no change       | enter `Refreshing` | enter `Refreshing` |
+| Current state           | `requestLoadIfMissing` | `requestRevalidation` | `requestRevalidationOrLoad` |
+| ----------------------- | ---------------------- | --------------------- | --------------------------- |
+| `Idle`, `Failure`       | enter `Loading`        | no change             | enter `Loading`             |
+| `Loading`, `Refreshing` | no change              | no change             | no change                   |
+| `Success`, `Stale`      | no change              | enter `Refreshing`    | enter `Refreshing`          |
 
 The no-change cases return no Command. Calling the same operation again while its Query is pending therefore does not duplicate the request. A KeyedQuery applies this check to the selected entry, so different keys may load concurrently.
 
@@ -127,21 +127,21 @@ During a Vite development reload, Foldkit can restore the Model but cannot resta
 
 Choose the operation that matches why the parent is loading or refreshing:
 
-- Use `loadIfMissing` on first entry to a screen or entity when retained data should be reused without a background refresh.
-- Use `revalidateOrLoad` for a Refresh or Retry action that should work whether data is present or absent.
-- Use `revalidate` when an event affects only resources that have already loaded. A mutation result or interval tick can refresh visible data without cold-loading every related Query.
+- Use `requestLoadIfMissing` on first entry to a screen or entity when retained data should be reused without a background refresh.
+- Use `requestRevalidationOrLoad` for a Refresh or Retry action that should work whether data is present or absent.
+- Use `requestRevalidation` when an event affects only resources that have already loaded. A mutation result or interval tick can refresh visible data without cold-loading every related Query.
 
 #### Automatic Refreshes
 
-Automatic behavior is still ordinary Foldkit architecture. For interval refetching, a [Subscription](/core/subscriptions) dispatches a tick Message while a Model condition is true, and that Message calls `revalidate`. For retries, compose the fetch Effect with Effect's retry and Schedule APIs. To refresh related resources after a mutation, have the mutation result Message call the appropriate loading operation for each affected Query. Query supplies the transition; the parent records the reason and chooses when it happens.
+Automatic behavior is still ordinary Foldkit architecture. For interval refetching, a [Subscription](/core/subscriptions) dispatches a tick Message while a Model condition is true, and that Message calls `requestRevalidation`. For retries, compose the fetch Effect with Effect's retry and Schedule APIs. To refresh related resources after a mutation, have the mutation result Message call the appropriate loading operation for each affected Query. Query supplies the transition; the parent records the reason and chooses when it happens.
 
 The [API Cache Query example](/example-apps/api-cache-query) shows all three shapes together: a Query loaded at startup, a KeyedQuery that retains post details by id, and a Query revalidated by a Subscription while its tab is active.
 
 ### Reset a Query
 
-Call `reset` to clear a live Query. Do not replace a live Query Model with a fresh result from `init()`. Query uses a generation number to reject late completions. `reset` clears the data while preserving that request identity, so a request started afterwards cannot share a generation with work started before the reset.
+Call `requestReset` to clear a live Query. Do not replace a live Query Model with a fresh result from `init()`. Query uses a generation number to reject late completions. `requestReset` clears the data while preserving that request identity, so a request started afterwards cannot share a generation with work started before the reset.
 
-`reset` does not interrupt a running Command. A completion that arrives while the reset Query is no longer pending is ignored. If the application needs the work itself to stop, use a hand-managed interruptible Command instead of relying on reset as cancellation.
+`requestReset` does not interrupt a running Command. A completion that arrives while the reset Query is no longer pending is ignored. If the application needs the work itself to stop, use a hand-managed interruptible Command instead of relying on reset as cancellation.
 
 ## Define a KeyedQuery
 
@@ -153,12 +153,12 @@ Add a non-empty `args` record to `Query.define` when one definition should retai
 
 ### Per-Key Operations
 
-Adding `args` makes `Query.define` return a KeyedQuery. Each distinct argument key has its own `AsyncData` entry. The operations now receive the arguments they should act on:
+Adding `args` makes `Query.define` return a KeyedQuery. Each distinct argument key has its own `AsyncData` entry. Bind `postQuery` to the parent’s `postDetails` field as `PostDetailsBinding`, following the parent-binding pattern above. Its operations receive the arguments they should act on:
 
 - `postQuery.read(model.postDetails, { postId })` returns that entry's `AsyncData`, or `Idle` when the entry does not exist.
-- `postDetails.loadIfMissing({ postId })(model)` changes a missing entry to `Loading` and includes its fetch Command in the update result. An entry that already has data is unchanged.
-- `postDetails.revalidate({ postId })(model)` changes a data-bearing entry to `Refreshing` and includes its fetch Command. An entry without data is unchanged.
-- `postDetails.revalidateOrLoad({ postId })(model)` chooses the loading or refreshing transition from that entry's current state.
+- `PostDetailsBinding.requestLoadIfMissing({ postId })(model)` changes a missing entry to `Loading` and includes its fetch Command in the update result. An entry that already has data is unchanged.
+- `PostDetailsBinding.requestRevalidation({ postId })(model)` changes a data-bearing entry to `Refreshing` and includes its fetch Command. An entry without data is unchanged.
+- `PostDetailsBinding.requestRevalidationOrLoad({ postId })(model)` chooses the loading or refreshing transition from that entry's current state.
 
 ### Default Keys
 
@@ -178,11 +178,11 @@ Provide `toKey` when several argument values deliberately identify the same reta
 
 ### Retention Limits
 
-A KeyedQuery retains entries until `reset` clears all of them. It does not currently expire entries, cap their number, or remove one key. Use it for a set whose lifetime and size fit the parent Model. Manage a different cache shape directly when entries need individual eviction or another retention policy.
+A KeyedQuery retains entries until `requestReset` clears all of them. It does not currently expire entries, cap their number, or remove one key. Use it for a set whose lifetime and size fit the parent Model. Manage a different cache shape directly when entries need individual eviction or another retention policy.
 
 ## Test Query Commands
 
-The generated `Fetch` definition is public so Story and Scene tests can match and resolve the Command. Obtain application fetch Commands through `loadIfMissing`, `revalidate`, or `revalidateOrLoad`; calling `Fetch` directly would skip the Model transition and generation update that make completion handling safe.
+The generated `Fetch` definition is public so Story and Scene tests can match and resolve the Command. Obtain application fetch Commands through `requestLoadIfMissing`, `requestRevalidation`, or `requestRevalidationOrLoad`; calling `Fetch` directly would skip the Model transition and generation update that make completion handling safe.
 
 KeyedQuery's generated Fetch args and `CompletedFetch` Message include `requestKey` alongside `args` and `generation`. Loading operations supply it automatically. When manually resolving a Fetch Command, copy its `requestKey` into the completion Message; do not recompute the key. The [API Cache Query example](/example-apps/api-cache-query) includes Story and Scene tests that resolve Query Commands without running their Effects.
 

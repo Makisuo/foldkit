@@ -67,7 +67,7 @@ const TabsExampleDefinition = Block.define('TabsExample', {
 const TabsBinding = TabsExampleDefinition.bindChild(FrameworkTabs, {
   field: 'tabs',
   parentMessage: Message.GotTabsMessage,
-  init: { args: () => Tuple.make({ id: 'framework-tabs' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'framework-tabs' }) },
   outMessage: { fold: foldTabsOutMessage },
 })
 

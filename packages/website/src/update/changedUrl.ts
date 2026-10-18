@@ -26,23 +26,23 @@ export const handleChangedUrl = ApplicationDefinition.step(
     const { route: previousRoute } = model
     const nextRoute = urlToApplicationRoute(url)
     const transition = Transition.make(previousRoute, nextRoute)
-    const isChangingPathname = model.url.pathname !== url.pathname
-
-    const nextModel = modifyFields(model, {
-      route: () => nextRoute,
-      url: () => url,
-      sidebarGroups: () => nextSidebarGroups(model, nextRoute),
-    })
+    const isDifferentPathname = model.url.pathname !== url.pathname
 
     return Update.combine([
-      ApplicationDefinition.step(() => ({ model: nextModel })),
+      ApplicationDefinition.step(model => ({
+        model: modifyFields(model, {
+          route: () => nextRoute,
+          url: () => url,
+          sidebarGroups: () => nextSidebarGroups(model, nextRoute),
+        }),
+      })),
       stepHome(transition),
       stepPlayground(transition),
-      MobileMenuDialogBinding.close(),
-      ThemeMenuBinding.close(),
+      MobileMenuDialogBinding.requestClose(),
+      ThemeMenuBinding.requestClose(),
       SearchBinding.informRouteChanged(),
       loadRouteData(transition),
-      scrollAfterUrlChange(url, isChangingPathname),
+      scrollAfterUrlChange(url, isDifferentPathname),
     ])
   },
 )

@@ -39,7 +39,8 @@ const AccountPopoverBinding = AccountMenuDefinition.bindChild(Popover.block, {
   field: 'accountPopover',
   parentMessage: Message.GotAccountPopoverMessage,
   init: {
-    args: () => Tuple.make({ id: 'account-popover', contentFocus: true }),
+    startupToArgs: () =>
+      Tuple.make({ id: 'account-popover', contentFocus: true }),
   },
   outMessage: { fold: foldPopoverOutMessage },
 })
@@ -50,7 +51,7 @@ const AccountDetailsPopoverBinding = AccountMenuDefinition.bindChild(
     field: 'accountDetailsPopover',
     parentMessage: Message.GotAccountDetailsPopoverMessage,
     init: {
-      args: () => Tuple.make({ id: 'account-details-popover' }),
+      startupToArgs: () => Tuple.make({ id: 'account-details-popover' }),
     },
     outMessage: { fold: foldPopoverOutMessage },
   },

@@ -94,8 +94,7 @@ export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
 
 export const EffectsLayer = Layer.mergeAll(
   ReportCount.layer,
-  subscriptions.widgetTicks.layer,
-  subscriptions.hostStepChanges.layer,
+  subscriptions.layer,
 )
 
 export const view = ApplicationComposition.makeView((model, h) =>

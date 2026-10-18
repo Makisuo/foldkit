@@ -52,7 +52,7 @@ const SliderBinding = VolumeSliderDefinition.bindChild(Slider.block, {
   field: 'ratingDemo',
   parentMessage: Message.GotSliderMessage,
   init: {
-    args: () => Tuple.make({ id: 'rating', min: 0, max: 10, step: 1 }),
+    startupToArgs: () => Tuple.make({ id: 'rating', min: 0, max: 10, step: 1 }),
   },
   outMessage: { fold: foldSliderOutMessage },
 })

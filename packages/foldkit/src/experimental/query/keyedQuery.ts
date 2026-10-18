@@ -362,11 +362,11 @@ const makeKeyedQueryApi = <
       },
     })
   const operations = {
-    revalidate: (args: Args) =>
+    requestRevalidation: (args: Args) =>
       Tuple.make(Message.RequestedRevalidation({ args })),
-    revalidateOrLoad: (args: Args) =>
+    requestRevalidationOrLoad: (args: Args) =>
       Tuple.make(Message.RequestedRevalidationOrLoad({ args })),
-    loadIfMissing: (args: Args) =>
+    requestLoadIfMissing: (args: Args) =>
       Tuple.make(Message.RequestedLoadIfMissing({ args })),
   }
   const run = (args: Args) => {
@@ -488,14 +488,14 @@ type KeyedQueryExposedOperations<
   Fields extends SyncFields,
 > = Readonly<{
   /** Clears every cached entry without starting a fetch. */
-  reset: Update.Step<
+  requestReset: Update.Step<
     KeyedQueryModelType<A, AI, E, EI, Fields>,
     KeyedQueryMessageType<A, AI, E, EI, Fields>,
     KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>
   >
   /** Starts a fetch for `Success` or `Stale` data at the selected key while
    * retaining that data. Other states and a missing entry remain unchanged. */
-  revalidate: (
+  requestRevalidation: (
     model: KeyedQueryModelType<A, AI, E, EI, Fields>,
     args: KeyedArgs<Fields>,
   ) => Update.Return<
@@ -505,7 +505,7 @@ type KeyedQueryExposedOperations<
   >
   /** Revalidates retained data and starts an initial or retry fetch when the
    * selected key has no successful data. */
-  revalidateOrLoad: (
+  requestRevalidationOrLoad: (
     model: KeyedQueryModelType<A, AI, E, EI, Fields>,
     args: KeyedArgs<Fields>,
   ) => Update.Return<
@@ -515,7 +515,7 @@ type KeyedQueryExposedOperations<
   >
   /** Starts a fetch when the selected key has no cache entry or is in
    * `Failure`. Loaded and pending entries remain unchanged. */
-  loadIfMissing: (
+  requestLoadIfMissing: (
     model: KeyedQueryModelType<A, AI, E, EI, Fields>,
     args: KeyedArgs<Fields>,
   ) => Update.Return<
@@ -580,14 +580,14 @@ type KeyedQueryConveniences<
    * function. */
   toLayer: KeyedQueryToLayer<Name, A, AI, E, EI, Fields>
   /** Clears every cached entry without starting a fetch. */
-  reset: Update.Step<
+  requestReset: Update.Step<
     KeyedQueryModelType<A, AI, E, EI, Fields>,
     KeyedQueryMessageType<A, AI, E, EI, Fields>,
     KeyedQueryFetchHandler<Name, A, AI, E, EI, Fields>
   >
   /** Starts a fetch for `Success` or `Stale` data at the selected key while
    * retaining that data. Other states and a missing entry remain unchanged. */
-  revalidate: Update.Fold<
+  requestRevalidation: Update.Fold<
     KeyedQueryModelType<A, AI, E, EI, Fields>,
     KeyedQueryMessageType<A, AI, E, EI, Fields>,
     KeyedArgs<Fields>,
@@ -595,7 +595,7 @@ type KeyedQueryConveniences<
   >
   /** Revalidates retained data or starts an initial or retry fetch for the
    * selected key. */
-  revalidateOrLoad: Update.Fold<
+  requestRevalidationOrLoad: Update.Fold<
     KeyedQueryModelType<A, AI, E, EI, Fields>,
     KeyedQueryMessageType<A, AI, E, EI, Fields>,
     KeyedArgs<Fields>,
@@ -603,7 +603,7 @@ type KeyedQueryConveniences<
   >
   /** Starts a fetch when the selected key has no cache entry or is in
    * `Failure`. Loaded and pending entries remain unchanged. */
-  loadIfMissing: Update.Fold<
+  requestLoadIfMissing: Update.Fold<
     KeyedQueryModelType<A, AI, E, EI, Fields>,
     KeyedQueryMessageType<A, AI, E, EI, Fields>,
     KeyedArgs<Fields>,
@@ -760,7 +760,7 @@ const makeHostKeyedQuery = <
     update: QueryComposition.makeUpdate(api.update),
     operations: {
       ...api.operations,
-      reset: QueryComposition.makeOperation(Message.RequestedReset),
+      requestReset: Message.RequestedReset,
     },
     EffectsLayer: Layer.empty,
     hostHandlers: [Fetch],
@@ -772,10 +772,19 @@ const makeHostKeyedQuery = <
     run: api.run,
     toLayer: api.toLayer,
     operations: {
-      reset: block.operations.reset,
-      revalidate: Function.dual(2, block.operations.revalidate),
-      revalidateOrLoad: Function.dual(2, block.operations.revalidateOrLoad),
-      loadIfMissing: Function.dual(2, block.operations.loadIfMissing),
+      requestReset: block.operations.requestReset,
+      requestRevalidation: Function.dual(
+        2,
+        block.operations.requestRevalidation,
+      ),
+      requestRevalidationOrLoad: Function.dual(
+        2,
+        block.operations.requestRevalidationOrLoad,
+      ),
+      requestLoadIfMissing: Function.dual(
+        2,
+        block.operations.requestLoadIfMissing,
+      ),
     },
   })
 }
@@ -830,7 +839,7 @@ const makeCanonicalKeyedQuery = <
     update: QueryComposition.makeUpdate(api.update),
     operations: {
       ...api.operations,
-      reset: QueryComposition.makeOperation(Message.RequestedReset),
+      requestReset: Message.RequestedReset,
     },
     EffectsLayer: api.toLayer(handler),
   })
@@ -841,10 +850,19 @@ const makeCanonicalKeyedQuery = <
     run: api.run,
     toLayer: api.toLayer,
     operations: {
-      reset: block.operations.reset,
-      revalidate: Function.dual(2, block.operations.revalidate),
-      revalidateOrLoad: Function.dual(2, block.operations.revalidateOrLoad),
-      loadIfMissing: Function.dual(2, block.operations.loadIfMissing),
+      requestReset: block.operations.requestReset,
+      requestRevalidation: Function.dual(
+        2,
+        block.operations.requestRevalidation,
+      ),
+      requestRevalidationOrLoad: Function.dual(
+        2,
+        block.operations.requestRevalidationOrLoad,
+      ),
+      requestLoadIfMissing: Function.dual(
+        2,
+        block.operations.requestLoadIfMissing,
+      ),
     },
   })
 }

@@ -339,21 +339,25 @@ describe('DatePicker', () => {
   describe('programmatic helpers', () => {
     it('open(model) behaves like dispatching Opened', () => {
       const model = init({ id: 'picker', today })
-      const pickerOpen = block.operations.open(model)
+      const pickerOpen = block.operations.requestOpen(model)
       expect(pickerOpen.model.popover.isOpen).toBe(true)
     })
 
     it('close(model) behaves like dispatching Closed', () => {
-      const pickerOpen = block.operations.open(init({ id: 'picker', today }))
-      const pickerClose = block.operations.close(pickerOpen.model)
+      const pickerOpen = block.operations.requestOpen(
+        init({ id: 'picker', today }),
+      )
+      const pickerClose = block.operations.requestClose(pickerOpen.model)
       expect(pickerClose.model.popover.isOpen).toBe(false)
       expect((pickerClose.commands ?? []).length).toBeGreaterThan(0)
     })
 
     it('selectDate(model, date) commits the date, closes the popover, and emits SelectedDate', () => {
       const target = Calendar.make(2026, 4, 20)
-      const pickerOpen = block.operations.open(init({ id: 'picker', today }))
-      const dateSelection = block.operations.selectDate(
+      const pickerOpen = block.operations.requestOpen(
+        init({ id: 'picker', today }),
+      )
+      const dateSelection = block.operations.requestSelectDate(
         pickerOpen.model,
         target,
       )
@@ -369,7 +373,7 @@ describe('DatePicker', () => {
         today,
         initialViewDate: Calendar.make(2026, 4, 20),
       })
-      const selectionClear = block.operations.clear(seeded)
+      const selectionClear = block.operations.requestClear(seeded)
       expect(selectionClear.outMessage).toStrictEqual(OutMessage.ClearedDate())
     })
 

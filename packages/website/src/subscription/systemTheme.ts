@@ -34,4 +34,4 @@ export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   ),
 }))
 
-export const EffectsLayer = subscriptions.systemThemeChanges.layer
+export const EffectsLayer = subscriptions.layer

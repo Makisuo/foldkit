@@ -18,7 +18,7 @@ import type {
   PreciseMountRegistry,
 } from '../mount/index.js'
 import type { Ports } from '../port/index.js'
-import type { Subscriptions } from '../subscription/subscription.js'
+import type { Registrations } from '../subscription/subscription.js'
 import type {
   RequirementsOf as UpdateRequirementsOf,
   Return as UpdateReturn,
@@ -56,7 +56,7 @@ type BaseElementConfig<
     model: Model,
     h: HtmlBuilder<Message, MountRequirementsOf<NoInfer<Mounts>>>,
   ) => Html
-  subscriptions?: Subscriptions<
+  subscriptions?: Registrations<
     Model,
     Message,
     Resources | ManagedResourceServices

@@ -2,7 +2,7 @@
 '@foldkit/oxlint-plugin': minor
 ---
 
-Recognize completed Block Bindings in the architecture rules. `no-direct-block-state-update` tracks a parent Model passed to a Binding’s `fold` or a Step composed through `Update.combine`. `require-fold-for-child-update-result` uses a Binding’s matching `read` and `write` to detect discarded child Commands and OutMessages. The Command naming and Mount element checks recognize named Block definition methods. Development guard checks recognize `ApplicationComposition.makeApplication` and `ApplicationComposition.makeElement`. OutMessage forwarding and Message wrapper checks recognize Binding configuration. Diagnostics point to registered Binding operations.
+Recognize completed Block Bindings in the architecture rules. `no-direct-block-state-update` tracks a parent Model passed to a Binding’s `fold` or a Step composed through `Update.combine`, including copied child operation and update Models that would discard Commands or an OutMessage. The Command naming and Mount element checks recognize named Block definition methods. Development guard checks recognize `ApplicationComposition.makeApplication` and `ApplicationComposition.makeElement`. OutMessage forwarding and Message wrapper checks recognize Binding configuration. Diagnostics point to registered Binding operations.
 
 For wrapped keyed Bindings, `no-direct-block-state-update` rejects parent replacement of the nested child Model while allowing the parent to update wrapper metadata and collection membership.
 
@@ -11,3 +11,7 @@ Recognize root-owned Messages in Application completion callbacks and view helpe
 Recognize a feature's own Messages imported from an early `definition.ts` inside owned authoring callbacks and completion configuration. Views and helpers can import their Composition or owner-specific ViewBuilder alias, such as `SearchViewBuilder`, from the owning `composition.ts` or explicit `composition/index.ts` barrel. External consumers do not import `composition/composition.ts`; internal implementation modules may use direct relative sibling imports to avoid barrel cycles. Relative imports from the feature's view, update, and composition directories resolve against that same feature's Definition. Foreign child aliases and paths into another feature retain their diagnostics.
 
 Trace locally named Compositions back to their exact Definition when recognizing owned view callbacks, including `makeView.withInputs`. Both ordinary `Block.define(id, contracts)` and specialized `.define(contracts)` preserve their own Message allowance; foreign child Messages retain their diagnostics.
+
+Consolidate the Command declaration checks under `command-define-pascal-const` and child state ownership checks under `no-direct-block-state-update`. Explicit configurations must replace `foldkit/command-binding-matches-name` with `foldkit/command-define-pascal-const` and `foldkit/require-fold-for-child-update-result` with `foldkit/no-direct-block-state-update`.
+
+Recognize owner-specific `ViewBuilderFor` aliases imported from Composition modules in every HTML builder rule, including extracted helpers and `makeView.withInputs`, without treating unrelated `*ViewBuilder` types as Foldkit builders. Got wrappers may carry the generic `key` supplied by a keyed Binding while business payload remains rejected.

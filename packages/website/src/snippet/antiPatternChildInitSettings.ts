@@ -15,7 +15,7 @@ export const OutMessage = defineMessageUnion({
 })
 
 const SettingsComposition = SettingsDefinition.makeComposition()
-const restore = SettingsComposition.makeOperation(Message.RequestedRestore)
+const requestRestore = Message.RequestedRestore
 
 export const init = SettingsComposition.makeInit(() => ({
   model: Model.make({ theme: 'Light' }),
@@ -35,6 +35,6 @@ export const update = SettingsComposition.makeUpdate((model, message) =>
 export const block = SettingsComposition.makeBlock({
   init,
   update,
-  operations: { restore },
+  operations: { requestRestore },
   EffectsLayer,
 })

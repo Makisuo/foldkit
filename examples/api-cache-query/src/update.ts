@@ -12,7 +12,7 @@ import { Message } from './message'
 export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedPost: ({ postId }) =>
-      PostDetailsBinding.loadIfMissing({ postId })(
+      PostDetailsBinding.requestLoadIfMissing({ postId })(
         modifyFields(model, {
           maybeSelectedPostId: () => Option.some(postId),
         }),
@@ -22,14 +22,14 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
       model: modifyFields(model, { maybeSelectedPostId: () => Option.none() }),
     }),
 
-    ClickedRefreshPosts: () => PostsBinding.revalidateOrLoad()(model),
-    ClickedRetryPosts: () => PostsBinding.revalidateOrLoad()(model),
+    ClickedRefreshPosts: () => PostsBinding.requestRevalidationOrLoad()(model),
+    ClickedRetryPosts: () => PostsBinding.requestRevalidationOrLoad()(model),
 
     ClickedRetryPost: ({ postId }) =>
-      PostDetailsBinding.revalidateOrLoad({ postId })(model),
+      PostDetailsBinding.requestRevalidationOrLoad({ postId })(model),
 
-    ClickedRefreshStats: () => StatsBinding.revalidateOrLoad()(model),
-    ClickedRetryStats: () => StatsBinding.revalidateOrLoad()(model),
-    TickedStatsRefreshInterval: () => StatsBinding.revalidate()(model),
+    ClickedRefreshStats: () => StatsBinding.requestRevalidationOrLoad()(model),
+    ClickedRetryStats: () => StatsBinding.requestRevalidationOrLoad()(model),
+    TickedStatsRefreshInterval: () => StatsBinding.requestRevalidation()(model),
   }),
 )

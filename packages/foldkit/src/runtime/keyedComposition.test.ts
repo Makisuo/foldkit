@@ -6,6 +6,7 @@ import {
   Function,
   Layer,
   Option,
+  Queue,
   Schedule,
   Schema,
   Stream,
@@ -42,6 +43,7 @@ class TestControls extends Context.Service<TestControls, Controls>()(
 ) {}
 
 const dispatches = new Map<string, (message: unknown) => void>()
+const subscriptionEmitters = new Map<string, (value: string) => void>()
 
 const ItemDefinition = define('CollectionItem')
 const ItemModel = Schema.Struct({
@@ -56,7 +58,7 @@ const ItemMessage = defineMessageUnion({
   AcquiredValue: {},
   ReleasedValue: {},
   FailedAcquireValue: {},
-  EmittedPulse: {},
+  EmittedPulse: { value: Schema.String },
 })
 const Value = ItemDefinition.resource<string>()('Value')
 const ReadValue = ItemDefinition.command('ReadValue', {
@@ -111,9 +113,14 @@ const subscriptions = ItemBaseDefinition.subscriptions(entry => ({
         const controls = yield* TestControls
 
         return ({ source }) =>
-          Stream.callback<never>(() =>
+          Stream.callback<typeof ItemMessage.EmittedPulse.Type>(queue =>
             Effect.acquireRelease(
-              Effect.sync(() => controls.streamStarted(source)),
+              Effect.sync(() => {
+                controls.streamStarted(source)
+                subscriptionEmitters.set(source, value => {
+                  Queue.offerUnsafe(queue, ItemMessage.EmittedPulse({ value }))
+                })
+              }),
               () => Effect.sync(() => controls.streamStopped(source)),
             ).pipe(Effect.andThen(Effect.never)),
           )
@@ -169,7 +176,11 @@ const itemImplementation = {
       AcquiredValue: () => ({ model }),
       ReleasedValue: () => ({ model }),
       FailedAcquireValue: () => ({ model }),
-      EmittedPulse: () => ({ model }),
+      EmittedPulse: ({ value }) => ({
+        model: modifyFields(model, {
+          maybeObserved: () => Option.some(value),
+        }),
+      }),
     }),
   ),
   view: item.makeView((model, h) => {
@@ -298,6 +309,7 @@ afterEach(() => {
   vi.restoreAllMocks()
   document.body.innerHTML = ''
   dispatches.clear()
+  subscriptionEmitters.clear()
   entryRenderCounts.clear()
 })
 
@@ -462,6 +474,17 @@ describe('keyed Block occurrences', () => {
       expect(interrupted).toEqual([])
       staleDispatch(ItemMessage.ClickedReadValue())
       expect(reads).toEqual(['old', 'other'])
+      subscriptionEmitters.get('new')!('fresh pulse')
+      await vi.waitFor(() => {
+        expect(document.getElementById('observed-1')?.textContent).toBe(
+          'fresh pulse',
+        )
+      })
+      subscriptionEmitters.get('old')!('stale pulse')
+      await Effect.runPromise(Effect.sleep('10 millis'))
+      expect(document.getElementById('observed-1')?.textContent).toBe(
+        'fresh pulse',
+      )
       click('read-1')
       await vi.waitFor(() => expect(reads).toEqual(['old', 'other', 'new']))
       for (const ready of waiting.values()) {

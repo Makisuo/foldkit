@@ -41,7 +41,7 @@ const MessageListBinding = MessageListExampleDefinition.bindChild(MessageList, {
   parentMessage: Message.GotMessageListMessage,
   outMessage: { fold: foldMessageListOutMessage },
   init: {
-    args: () =>
+    startupToArgs: () =>
       Tuple.make({
         id: 'message-list',
         rowHeightPx: 64,

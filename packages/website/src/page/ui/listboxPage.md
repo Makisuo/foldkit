@@ -12,7 +12,7 @@ What the factory returns is typed [`Completed<Item, Value>` from `@foldkit/ui/li
 
 ### Programmatic Helpers
 
-Programmatic operations are exposed through the Binding. Call `listbox.open()` and `listbox.close()`. Call `listbox.selectItem(item)` with the selected item.
+Programmatic operations are exposed through the Binding. Call `listbox.requestOpen()` and `listbox.requestClose()`. Call `listbox.requestSelectItem(item)` with the selected item.
 
 :::Info{label="See it in an app"}
 Check out how Listbox is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/listbox.ts).
@@ -50,7 +50,7 @@ Pass `itemGroupKey` to group contiguous items by key, and `groupToHeading` to re
 
 `isReadOnly` keeps the Listbox browsable but not committable. It still opens from the button by click, `Enter`, `Space`, `Arrow Down`, and `Arrow Up`, and still closes by `Escape`, a backdrop click, and blur. Arrow, `Home`, `End`, `PageUp`, and `PageDown` navigation, typeahead search, and pointer hover all keep moving the active item. What a read-only Listbox never does is commit: items carry no click handler, and `Enter` or `Space` on the active item inside the items panel reports a `SuppressedItemCommit` Message that leaves the Model unchanged, so no `Selected` OutMessage ever reaches the parent. `Space` still types into a pending typeahead query, because there the key is a search character rather than a commit.
 
-`isReadOnly` describes what the user may do, not what the program may do. `selectItem` and the `SelectedItem` Message still select, because the parent owns the selection.
+`isReadOnly` describes what the user may do, not what the program may do. `requestSelectItem` and the `SelectedItem` Message still select, because the parent owns the selection.
 
 ### Read-Only and Disabled States
 

@@ -19,7 +19,7 @@ export const PersonalInfoBinding = ApplicationDefinition.bindChild(
   {
     field: 'personalInfo',
     parentMessage: Message.GotPersonalInfoMessage,
-    init: { args: ({ today }) => [today] },
+    init: { startupToArgs: ({ today }) => [today] },
   },
 )
 
@@ -29,7 +29,7 @@ export const WorkHistoryBinding = ApplicationDefinition.bindChild(
     field: 'workHistory',
     parentMessage: Message.GotWorkHistoryMessage,
     init: {
-      args: ({ today, initialWorkHistoryEntryId }) => [
+      startupToArgs: ({ today, initialWorkHistoryEntryId }) => [
         today,
         initialWorkHistoryEntryId,
       ],
@@ -43,7 +43,7 @@ export const EducationBinding = ApplicationDefinition.bindChild(
     field: 'education',
     parentMessage: Message.GotEducationMessage,
     init: {
-      args: ({ today, initialEducationEntryId }) => [
+      startupToArgs: ({ today, initialEducationEntryId }) => [
         today,
         initialEducationEntryId,
       ],
@@ -55,7 +55,7 @@ export const SkillsBinding = ApplicationDefinition.bindChild(Skills.block, {
   field: 'skills',
   parentMessage: Message.GotSkillsMessage,
   init: {
-    args: ({ initialSkillsEntryId }) => [initialSkillsEntryId],
+    startupToArgs: ({ initialSkillsEntryId }) => [initialSkillsEntryId],
   },
 })
 
@@ -90,7 +90,7 @@ export const StepMenuBinding = ApplicationDefinition.bindChild(StepMenu, {
   field: 'stepMenu',
   parentMessage: Message.GotStepMenuMessage,
   outMessage: { fold: foldStepMenuOutMessage },
-  init: { args: () => [{ id: 'step-menu' }] },
+  init: { startupToArgs: () => [{ id: 'step-menu' }] },
 })
 
 const foldStepTabsOutMessage = StepTabs.OutMessage.match<
@@ -108,7 +108,7 @@ export const StepTabsBinding = ApplicationDefinition.bindChild(StepTabs, {
   field: 'stepTabs',
   parentMessage: Message.GotStepTabsMessage,
   outMessage: { fold: foldStepTabsOutMessage },
-  init: { args: () => [{ id: 'step-tabs' }] },
+  init: { startupToArgs: () => [{ id: 'step-tabs' }] },
 })
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({

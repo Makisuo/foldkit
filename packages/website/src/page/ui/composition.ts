@@ -230,7 +230,7 @@ export const CalendarBasicDemoBinding = UiDefinition.bindChild(
     parentMessage: Message.GotCalendarBasicDemoMessage,
     outMessage: { fold: foldCalendarBasicDemoOutMessage },
     init: {
-      args: today =>
+      startupToArgs: today =>
         Tuple.make({
           id: 'calendar-basic-demo',
           today,
@@ -266,7 +266,7 @@ export const DatePickerBasicDemoBinding = UiDefinition.bindChild(
     parentMessage: Message.GotDatePickerBasicDemoMessage,
     outMessage: { fold: foldDatePickerBasicDemoOutMessage },
     init: {
-      args: today =>
+      startupToArgs: today =>
         Tuple.make({
           id: 'date-picker-basic-demo',
           today,
@@ -295,7 +295,7 @@ export const ComboboxDemoBinding = UiDefinition.bindChild(CityCombobox, {
   field: 'comboboxDemo',
   parentMessage: Message.GotComboboxDemoMessage,
   outMessage: { fold: foldComboboxDemoOutMessage },
-  init: { args: () => Tuple.make({ id: 'combobox-demo' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'combobox-demo' }) },
 })
 
 const foldComboboxPlacementLockDemoOutMessage = CityCombobox.OutMessage.match<
@@ -318,7 +318,9 @@ export const ComboboxPlacementLockDemoBinding = UiDefinition.bindChild(
     field: 'comboboxPlacementLockDemo',
     parentMessage: Message.GotComboboxPlacementLockDemoMessage,
     outMessage: { fold: foldComboboxPlacementLockDemoOutMessage },
-    init: { args: () => Tuple.make({ id: 'combobox-placement-lock-demo' }) },
+    init: {
+      startupToArgs: () => Tuple.make({ id: 'combobox-placement-lock-demo' }),
+    },
   },
 )
 
@@ -351,7 +353,8 @@ export const ComboboxNullableDemoBinding = UiDefinition.bindChild(
     parentMessage: Message.GotComboboxNullableDemoMessage,
     outMessage: { fold: foldComboboxNullableDemoOutMessage },
     init: {
-      args: () => Tuple.make({ id: 'combobox-nullable-demo', nullable: true }),
+      startupToArgs: () =>
+        Tuple.make({ id: 'combobox-nullable-demo', nullable: true }),
     },
   },
 )
@@ -382,7 +385,7 @@ export const ComboboxMultiDemoBinding = UiDefinition.bindChild(
     field: 'comboboxMultiDemo',
     parentMessage: Message.GotComboboxMultiDemoMessage,
     outMessage: { fold: foldComboboxMultiDemoOutMessage },
-    init: { args: () => Tuple.make({ id: 'combobox-multi-demo' }) },
+    init: { startupToArgs: () => Tuple.make({ id: 'combobox-multi-demo' }) },
   },
 )
 
@@ -407,7 +410,7 @@ export const ComboboxSelectOnFocusDemoBinding = UiDefinition.bindChild(
     parentMessage: Message.GotComboboxSelectOnFocusDemoMessage,
     outMessage: { fold: foldComboboxSelectOnFocusDemoOutMessage },
     init: {
-      args: () =>
+      startupToArgs: () =>
         Tuple.make({
           id: 'combobox-select-on-focus-demo',
           selectInputOnFocus: true,
@@ -420,7 +423,7 @@ export const DialogDemoBinding = UiDefinition.bindChild(Dialog.block, {
   field: 'dialogDemo',
   parentMessage: Message.GotDialogDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
-  init: { args: () => Tuple.make({ id: 'dialog-demo' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'dialog-demo' }) },
 })
 
 export const DialogAnimatedDemoBinding = UiDefinition.bindChild(Dialog.block, {
@@ -428,7 +431,8 @@ export const DialogAnimatedDemoBinding = UiDefinition.bindChild(Dialog.block, {
   parentMessage: Message.GotDialogAnimatedDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
   init: {
-    args: () => Tuple.make({ id: 'dialog-animated-demo', isAnimated: true }),
+    startupToArgs: () =>
+      Tuple.make({ id: 'dialog-animated-demo', isAnimated: true }),
   },
 })
 
@@ -436,7 +440,7 @@ export const OverlayDialogDemoBinding = UiDefinition.bindChild(Dialog.block, {
   field: 'overlayDialogDemo',
   parentMessage: Message.GotOverlayDialogDemoMessage,
   outMessage: { fold: foldDialogOutMessage },
-  init: { args: () => Tuple.make({ id: 'overlay-dialog-demo' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'overlay-dialog-demo' }) },
 })
 
 const foldOverlayComboboxDemoOutMessage = CityCombobox.OutMessage.match<
@@ -457,7 +461,7 @@ export const OverlayComboboxDemoBinding = UiDefinition.bindChild(CityCombobox, {
   field: 'overlayComboboxDemo',
   parentMessage: Message.GotOverlayComboboxDemoMessage,
   outMessage: { fold: foldOverlayComboboxDemoOutMessage },
-  init: { args: () => Tuple.make({ id: 'overlay-combobox-demo' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'overlay-combobox-demo' }) },
 })
 
 export const NestedDialogParentDemoBinding = UiDefinition.bindChild(
@@ -466,7 +470,9 @@ export const NestedDialogParentDemoBinding = UiDefinition.bindChild(
     field: 'nestedDialogParentDemo',
     parentMessage: Message.GotNestedDialogParentDemoMessage,
     outMessage: { fold: foldDialogOutMessage },
-    init: { args: () => Tuple.make({ id: 'nested-dialog-parent-demo' }) },
+    init: {
+      startupToArgs: () => Tuple.make({ id: 'nested-dialog-parent-demo' }),
+    },
   },
 )
 
@@ -476,7 +482,9 @@ export const NestedDialogChildDemoBinding = UiDefinition.bindChild(
     field: 'nestedDialogChildDemo',
     parentMessage: Message.GotNestedDialogChildDemoMessage,
     outMessage: { fold: foldDialogOutMessage },
-    init: { args: () => Tuple.make({ id: 'nested-dialog-child-demo' }) },
+    init: {
+      startupToArgs: () => Tuple.make({ id: 'nested-dialog-child-demo' }),
+    },
   },
 )
 
@@ -497,7 +505,7 @@ export const ListboxDemoBinding = UiDefinition.bindChild(ItemListbox, {
   field: 'listboxDemo',
   parentMessage: Message.GotListboxDemoMessage,
   outMessage: { fold: foldListboxDemoOutMessage },
-  init: { args: () => Tuple.make({ id: 'listbox-demo' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'listbox-demo' }) },
 })
 
 const foldListboxMultiDemoOutMessage = ItemMultiListbox.OutMessage.match<
@@ -525,7 +533,7 @@ export const ListboxMultiDemoBinding = UiDefinition.bindChild(
     field: 'listboxMultiDemo',
     parentMessage: Message.GotListboxMultiDemoMessage,
     outMessage: { fold: foldListboxMultiDemoOutMessage },
-    init: { args: () => Tuple.make({ id: 'listbox-multi-demo' }) },
+    init: { startupToArgs: () => Tuple.make({ id: 'listbox-multi-demo' }) },
   },
 )
 
@@ -548,7 +556,7 @@ export const ListboxGroupedDemoBinding = UiDefinition.bindChild(
     field: 'listboxGroupedDemo',
     parentMessage: Message.GotListboxGroupedDemoMessage,
     outMessage: { fold: foldListboxGroupedDemoOutMessage },
-    init: { args: () => Tuple.make({ id: 'listbox-grouped-demo' }) },
+    init: { startupToArgs: () => Tuple.make({ id: 'listbox-grouped-demo' }) },
   },
 )
 
@@ -556,7 +564,7 @@ export const MenuBasicDemoBinding = UiDefinition.bindChild(DemoMenu, {
   field: 'menuBasicDemo',
   parentMessage: Message.GotMenuBasicDemoMessage,
   outMessage: { fold: foldMenuOutMessage },
-  init: { args: () => Tuple.make({ id: 'menu-basic-demo' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'menu-basic-demo' }) },
 })
 
 export const MenuAnimatedDemoBinding = UiDefinition.bindChild(DemoMenu, {
@@ -564,7 +572,8 @@ export const MenuAnimatedDemoBinding = UiDefinition.bindChild(DemoMenu, {
   parentMessage: Message.GotMenuAnimatedDemoMessage,
   outMessage: { fold: foldMenuOutMessage },
   init: {
-    args: () => Tuple.make({ id: 'menu-animated-demo', isAnimated: true }),
+    startupToArgs: () =>
+      Tuple.make({ id: 'menu-animated-demo', isAnimated: true }),
   },
 })
 
@@ -572,7 +581,7 @@ export const PopoverBasicDemoBinding = UiDefinition.bindChild(Popover.block, {
   field: 'popoverBasicDemo',
   parentMessage: Message.GotPopoverBasicDemoMessage,
   outMessage: { fold: foldPopoverOutMessage },
-  init: { args: () => Tuple.make({ id: 'popover-basic-demo' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'popover-basic-demo' }) },
 })
 
 export const PopoverAnimatedDemoBinding = UiDefinition.bindChild(
@@ -582,7 +591,8 @@ export const PopoverAnimatedDemoBinding = UiDefinition.bindChild(
     parentMessage: Message.GotPopoverAnimatedDemoMessage,
     outMessage: { fold: foldPopoverOutMessage },
     init: {
-      args: () => Tuple.make({ id: 'popover-animated-demo', isAnimated: true }),
+      startupToArgs: () =>
+        Tuple.make({ id: 'popover-animated-demo', isAnimated: true }),
     },
   },
 )
@@ -591,7 +601,7 @@ export const PopoverArrowDemoBinding = UiDefinition.bindChild(Popover.block, {
   field: 'popoverArrowDemo',
   parentMessage: Message.GotPopoverArrowDemoMessage,
   outMessage: { fold: foldPopoverOutMessage },
-  init: { args: () => Tuple.make({ id: 'popover-arrow-demo' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'popover-arrow-demo' }) },
 })
 
 export const PopoverNestedParentDemoBinding = UiDefinition.bindChild(
@@ -601,7 +611,7 @@ export const PopoverNestedParentDemoBinding = UiDefinition.bindChild(
     parentMessage: Message.GotPopoverNestedParentDemoMessage,
     outMessage: { fold: foldPopoverOutMessage },
     init: {
-      args: () =>
+      startupToArgs: () =>
         Tuple.make({ id: 'popover-nested-parent-demo', contentFocus: true }),
     },
   },
@@ -613,7 +623,9 @@ export const PopoverNestedChildDemoBinding = UiDefinition.bindChild(
     field: 'popoverNestedChildDemo',
     parentMessage: Message.GotPopoverNestedChildDemoMessage,
     outMessage: { fold: foldPopoverOutMessage },
-    init: { args: () => Tuple.make({ id: 'popover-nested-child-demo' }) },
+    init: {
+      startupToArgs: () => Tuple.make({ id: 'popover-nested-child-demo' }),
+    },
   },
 )
 
@@ -632,7 +644,7 @@ export const SliderRatingDemoBinding = UiDefinition.bindChild(Slider.block, {
   parentMessage: Message.GotSliderRatingDemoMessage,
   outMessage: { fold: foldSliderRatingDemoOutMessage },
   init: {
-    args: () =>
+    startupToArgs: () =>
       Tuple.make({ id: 'slider-rating-demo', min: 0, max: 10, step: 1 }),
   },
 })
@@ -652,7 +664,7 @@ export const SliderVolumeDemoBinding = UiDefinition.bindChild(Slider.block, {
   parentMessage: Message.GotSliderVolumeDemoMessage,
   outMessage: { fold: foldSliderVolumeDemoOutMessage },
   init: {
-    args: () =>
+    startupToArgs: () =>
       Tuple.make({ id: 'slider-volume-demo', min: 0, max: 1, step: 0.05 }),
   },
 })
@@ -672,7 +684,7 @@ export const HorizontalTabsDemoBinding = UiDefinition.bindChild(DemoTabs, {
   field: 'horizontalTabsDemo',
   parentMessage: Message.GotHorizontalTabsDemoMessage,
   outMessage: { fold: foldHorizontalTabsDemoOutMessage },
-  init: { args: () => Tuple.make({ id: 'horizontal-tabs-demo' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'horizontal-tabs-demo' }) },
 })
 
 const foldVerticalTabsDemoOutMessage = DemoTabs.OutMessage.match<
@@ -690,7 +702,7 @@ export const VerticalTabsDemoBinding = UiDefinition.bindChild(DemoTabs, {
   field: 'verticalTabsDemo',
   parentMessage: Message.GotVerticalTabsDemoMessage,
   outMessage: { fold: foldVerticalTabsDemoOutMessage },
-  init: { args: () => Tuple.make({ id: 'vertical-tabs-demo' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'vertical-tabs-demo' }) },
 })
 
 const foldTooltipOutMessage = Tooltip.OutMessage.match<
@@ -704,7 +716,7 @@ export const TooltipDemoBinding = UiDefinition.bindChild(Tooltip.block, {
   field: 'tooltipDemo',
   parentMessage: Message.GotTooltipDemoMessage,
   outMessage: { fold: foldTooltipOutMessage },
-  init: { args: () => Tuple.make({ id: 'tooltip-demo' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'tooltip-demo' }) },
 })
 
 const foldHoverIntentOutMessage = HoverIntent.OutMessage.match<
@@ -749,7 +761,7 @@ export const ToastDemoBinding = UiDefinition.bindChild(Toast, {
   parentMessage: Message.GotToastDemoMessage,
   outMessage: { fold: foldToastDemoOutMessage },
   init: {
-    args: () => Tuple.make({ id: 'toast-demo', swipeToDismiss: {} }),
+    startupToArgs: () => Tuple.make({ id: 'toast-demo', swipeToDismiss: {} }),
   },
 })
 
@@ -770,7 +782,7 @@ export const AnimationDemoBinding = UiDefinition.bindChild(Animation.block, {
   field: 'animationDemo',
   parentMessage: Message.GotAnimationDemoMessage,
   outMessage: { fold: foldAnimationDemoOutMessage },
-  init: { args: () => Tuple.make({ id: 'animation-demo' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'animation-demo' }) },
 })
 
 const foldFileDropBasicDemoOutMessage = FileDrop.OutMessage.match<
@@ -790,7 +802,7 @@ export const FileDropBasicDemoBinding = UiDefinition.bindChild(FileDrop.block, {
   field: 'fileDropBasicDemo',
   parentMessage: Message.GotFileDropBasicDemoMessage,
   outMessage: { fold: foldFileDropBasicDemoOutMessage },
-  init: { args: () => Tuple.make({ id: 'file-drop-basic-demo' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'file-drop-basic-demo' }) },
 })
 
 const foldDragAndDropDemoOutMessage = DragAndDrop.OutMessage.match<
@@ -860,7 +872,7 @@ export const DragAndDropDemoBinding = UiDefinition.bindChild(
       }),
     parentMessage: Message.GotDragAndDropDemoMessage,
     init: {
-      args: () => [{ id: 'drag-and-drop-demo' }],
+      startupToArgs: () => [{ id: 'drag-and-drop-demo' }],
       model: dragAndDropDemo => ({ dragAndDropDemo }),
     },
     outMessage: { fold: foldDragAndDropDemoOutMessage },
@@ -882,7 +894,8 @@ export const VirtualListDemoBinding = UiDefinition.bindChild(
     parentMessage: Message.GotVirtualListDemoMessage,
     outMessage: { fold: foldVirtualListOutMessage },
     init: {
-      args: () => Tuple.make({ id: 'virtual-list-demo', rowHeightPx: 56 }),
+      startupToArgs: () =>
+        Tuple.make({ id: 'virtual-list-demo', rowHeightPx: 56 }),
     },
   },
 )
@@ -894,7 +907,7 @@ export const VirtualListVariableDemoBinding = UiDefinition.bindChild(
     parentMessage: Message.GotVirtualListVariableDemoMessage,
     outMessage: { fold: foldVirtualListOutMessage },
     init: {
-      args: () =>
+      startupToArgs: () =>
         Tuple.make({ id: 'virtual-list-variable-demo', rowHeightPx: 56 }),
     },
   },
@@ -919,7 +932,9 @@ export const VerticalRadioGroupDemoBinding = UiDefinition.bindChild(
     field: 'verticalRadioGroupDemo',
     parentMessage: Message.GotVerticalRadioGroupDemoMessage,
     outMessage: { fold: foldVerticalRadioGroupDemoOutMessage },
-    init: { args: () => Tuple.make({ id: 'vertical-radio-group-demo' }) },
+    init: {
+      startupToArgs: () => Tuple.make({ id: 'vertical-radio-group-demo' }),
+    },
   },
 )
 
@@ -942,7 +957,9 @@ export const HorizontalRadioGroupDemoBinding = UiDefinition.bindChild(
     field: 'horizontalRadioGroupDemo',
     parentMessage: Message.GotHorizontalRadioGroupDemoMessage,
     outMessage: { fold: foldHorizontalRadioGroupDemoOutMessage },
-    init: { args: () => Tuple.make({ id: 'horizontal-radio-group-demo' }) },
+    init: {
+      startupToArgs: () => Tuple.make({ id: 'horizontal-radio-group-demo' }),
+    },
   },
 )
 

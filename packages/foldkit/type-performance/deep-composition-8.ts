@@ -69,9 +69,7 @@ const Leaf = TypePerformanceDeepLeafComposition.makeBlock({
     }),
   ),
   operations: {
-    runLeaf: TypePerformanceDeepLeafComposition.makeOperation(
-      LeafMessage.RequestedRun,
-    ),
+    runLeaf: LeafMessage.RequestedRun,
   },
   EffectsLayer: RunLeaf.layer,
 })

@@ -66,7 +66,7 @@ const SortableListDefinition = Block.define('SortableList', {
 const DragAndDropBinding = SortableListDefinition.bindChild(DragAndDrop.block, {
   field: 'dragAndDrop',
   parentMessage: Message.GotDragAndDropMessage,
-  init: { args: () => Tuple.make({ id: 'sortable-list' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'sortable-list' }) },
   outMessage: { fold: foldDragAndDropOutMessage },
 })
 

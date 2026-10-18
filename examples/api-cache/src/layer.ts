@@ -7,5 +7,5 @@ export const EffectsLayer = Layer.mergeAll(
   FetchPosts.layer,
   FetchPostDetail.layer,
   FetchStats.layer,
-  subscriptions.statsRevalidationTicks.layer,
+  subscriptions.layer,
 )

@@ -1,3 +1,3 @@
 import { SettingsBinding } from './blockProfile'
 
-export const resetSettings = SettingsBinding.reset()
+export const resetSettings = SettingsBinding.requestReset()

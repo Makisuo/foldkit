@@ -8,5 +8,5 @@ const init = WorkspaceComposition.makeInit(() => ({
     maybeSelectedDocumentId: Option.none(),
     maybeOpenedDocumentId: Option.none(),
   },
-  steps: [SearchBinding.restore(), EditorBinding.restore()],
+  steps: [SearchBinding.requestRestore(), EditorBinding.requestRestore()],
 }))

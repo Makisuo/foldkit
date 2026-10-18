@@ -158,7 +158,7 @@ const assertBindingConfigurationDocs = async (): Promise<void> => {
           'fromParentMessage',
           'init',
         ],
-        nested: [{ property: 'init', fields: ['args', 'model'] }],
+        nested: [{ property: 'init', fields: ['startupToArgs', 'model'] }],
       },
       {
         binding: 'RoomBinding',
@@ -407,6 +407,12 @@ const checks: ReadonlyArray<
     consumers: ReadonlyArray<string>
   }>
 > = [
+  {
+    name: 'subscription-registry',
+    accepted: ['subscription-registry.accepted.ts'],
+    rejected: ['subscription-registry.rejected.ts'],
+    consumers: ['subscription-registry.consume.ts'],
+  },
   {
     name: 'operation-constructor',
     accepted: ['operation-constructor.accepted.ts'],

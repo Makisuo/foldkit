@@ -65,14 +65,14 @@ const FilterDialogDefinition = Block.define('FilterDialog', {
 const DialogBinding = FilterDialogDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
-  init: { args: () => Tuple.make({ id: 'edit-filters' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'edit-filters' }) },
   outMessage: { fold: foldDialogOutMessage },
 })
 
 const ComboboxBinding = FilterDialogDefinition.bindChild(CityCombobox, {
   field: 'combobox',
   parentMessage: Message.GotComboboxMessage,
-  init: { args: () => Tuple.make({ id: 'city' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'city' }) },
   outMessage: { fold: foldComboboxOutMessage },
 })
 

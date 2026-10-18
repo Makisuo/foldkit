@@ -371,7 +371,7 @@ export const SettingsBinding = ParentDefinition.bindChild(SettingsBlock, {
     },
   },
   init: {
-    args: (startup: ParentStartup) => {
+    startupToArgs: (startup: ParentStartup) => {
       expectExactParentStartup(startup)
 
       return [startup.theme]
@@ -404,7 +404,7 @@ export const ProjectedStatusBinding = ParentDefinition.bindChild(StatusBlock, {
     args: (_model, { message }) => Option.some([message]),
   },
   init: {
-    args: () => [],
+    startupToArgs: () => [],
     model: status => {
       expectExactStatusModel(status)
 

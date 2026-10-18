@@ -67,7 +67,7 @@ const ToastBinding = NotificationsDefinition.bindChild(Toast, {
   field: 'toast',
   parentMessage: Message.GotToastMessage,
   init: {
-    args: () => Tuple.make({ id: 'app-toast', swipeToDismiss: {} }),
+    startupToArgs: () => Tuple.make({ id: 'app-toast', swipeToDismiss: {} }),
   },
   outMessage: { fold: foldToastOutMessage },
 })
@@ -92,7 +92,7 @@ declare const changesRouter: () => string
 const update = NotificationsComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedSave: () =>
-      ToastBinding.show({
+      ToastBinding.requestShow({
         variant: 'Success',
         payload: {
           bodyText: 'Changes saved',

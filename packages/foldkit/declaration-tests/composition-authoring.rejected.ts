@@ -255,7 +255,7 @@ ParentDefinition.bindChild(StatusBlock, {
   // @ts-expect-error The invalid Binding config is uninhabitable.
   parentMessage: ParentMessage.GotStatusMessage,
   // @ts-expect-error The invalid Binding config is uninhabitable.
-  init: { args: () => [], unknownInitField: true },
+  init: { startupToArgs: () => [], unknownInitField: true },
 })
 
 ParentDefinition.bindChild(StatusBlock, {
@@ -282,7 +282,7 @@ ParentDefinition.bindChild(StatusBlock, {
   parentMessage: ParentMessage.GotStatusMessage,
   // @ts-expect-error The invalid Binding config is uninhabitable.
   init: {
-    args: () => [],
+    startupToArgs: () => [],
     model: status => ({ status, secondaryStatus: status }),
   },
 })
@@ -299,7 +299,7 @@ ParentDefinition.bindChild(StatusBlock, {
   parentMessage: ParentMessage.GotStatusMessage,
   // @ts-expect-error The invalid Binding config is uninhabitable.
   init: {
-    args: () => [],
+    startupToArgs: () => [],
     model: status => ({ status, undeclaredStatus: status }),
   },
 })

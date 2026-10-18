@@ -107,7 +107,11 @@ const EMBEDDABLE_IMAGE_PATTERN =
   '^/(?:og/.*\\.png|blog/.*\\.(?:avif|gif|jpe?g|png|svg|webp))$'
 
 export const websiteVercelConfig = channel => {
-  if (channel !== 'production' && channel !== 'canary') {
+  if (
+    channel !== 'production' &&
+    channel !== 'canary' &&
+    channel !== 'preview'
+  ) {
     throw new Error(`Unknown website deployment channel: ${channel}`)
   }
 

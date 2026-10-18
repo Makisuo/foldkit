@@ -30,7 +30,9 @@ export const StartDatePickerBinding = WorkHistoryEntryDefinition.bindChild(
     field: 'startDate',
     parentMessage: Message.GotStartDateMessage,
     init: {
-      args: ({ entryId, today }) => [{ id: `${entryId}-start`, today }],
+      startupToArgs: ({ entryId, today }) => [
+        { id: `${entryId}-start`, today },
+      ],
     },
     outMessage: { fold: foldStartDateOutMessage },
   },
@@ -60,7 +62,7 @@ export const EndDatePickerBinding = WorkHistoryEntryDefinition.bindChild(
     field: 'endDate',
     parentMessage: Message.GotEndDateMessage,
     init: {
-      args: ({ entryId, today }) => [{ id: `${entryId}-end`, today }],
+      startupToArgs: ({ entryId, today }) => [{ id: `${entryId}-end`, today }],
     },
     outMessage: { fold: foldEndDateOutMessage },
   },

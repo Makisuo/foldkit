@@ -56,7 +56,7 @@ const AccessorBinding = Parent.bindChild(ChildBlock, {
   write: (model, nextChild) => modifyFields(model, { first: () => nextChild }),
   parentMessage: ParentMessage.GotChildMessage,
   init: {
-    args: () => [{ count: 2 }],
+    startupToArgs: () => [{ count: 2 }],
     model: childModel => {
       expectTypeOf(childModel).toEqualTypeOf<ChildModel>()
       return { second: childModel }
@@ -73,14 +73,14 @@ expectTypeOf<AccessorInitialEvidence['startup']>().toEqualTypeOf<never>()
 Parent.bindChild(ChildBlock, {
   field: 'first',
   parentMessage: ParentMessage.GotChildMessage,
-  init: { args: () => [{ count: 3 }] },
+  init: { startupToArgs: () => [{ count: 3 }] },
 })
 
 Parent.bindChild(ChildBlock, {
   field: 'maybeChild',
   parentMessage: ParentMessage.GotChildMessage,
   init: {
-    args: (context: Readonly<{ count: number }>) =>
+    startupToArgs: (context: Readonly<{ count: number }>) =>
       Option.some([{ count: context.count }]),
   },
 })
@@ -94,7 +94,7 @@ Parent.bindChild(ChildBlock, {
   parentMessage: ParentMessage.GotChildMessage,
   // @ts-expect-error A projected init field must have the exact child Model type.
   init: {
-    args: () => [{ count: 1 }],
+    startupToArgs: () => [{ count: 1 }],
     model: childModel => ({ label: childModel }),
   },
 })
@@ -108,7 +108,7 @@ Parent.bindChild(ChildBlock, {
   parentMessage: ParentMessage.GotChildMessage,
   // @ts-expect-error Option storage is not one exact required child Model field.
   init: {
-    args: () => [{ count: 1 }],
+    startupToArgs: () => [{ count: 1 }],
     model: childModel => ({ maybeChild: Option.some(childModel) }),
   },
 })
@@ -122,7 +122,7 @@ Parent.bindChild(ChildBlock, {
   parentMessage: ParentMessage.GotChildMessage,
   // @ts-expect-error Optional storage is not one exact required child Model field.
   init: {
-    args: () => [{ count: 1 }],
+    startupToArgs: () => [{ count: 1 }],
     model: childModel => ({ optionalChild: childModel }),
   },
 })
@@ -136,7 +136,7 @@ Parent.bindChild(ChildBlock, {
   parentMessage: ParentMessage.GotChildMessage,
   // @ts-expect-error A projected init contributes exactly one parent Model field.
   init: {
-    args: () => [{ count: 1 }],
+    startupToArgs: () => [{ count: 1 }],
     model: childModel => ({
       first: childModel,
       second: childModel,
@@ -153,7 +153,7 @@ Parent.bindChild(ChildBlock, {
   parentMessage: ParentMessage.GotChildMessage,
   // @ts-expect-error A projected init cannot contribute an undeclared field.
   init: {
-    args: () => [{ count: 1 }],
+    startupToArgs: () => [{ count: 1 }],
     model: childModel => ({
       first: childModel,
       undeclared: childModel,
@@ -171,7 +171,7 @@ const runtimeAccessorBinding = (model: (childModel: ChildModel) => unknown) =>
       write: (parentModel: typeof ParentModel.Type, nextChild: ChildModel) =>
         modifyFields(parentModel, { first: () => nextChild }),
       parentMessage: ParentMessage.GotChildMessage,
-      init: { args: () => [{ count: 1 }], model },
+      init: { startupToArgs: () => [{ count: 1 }], model },
     },
   ])
 

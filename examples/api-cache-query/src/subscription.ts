@@ -32,4 +32,4 @@ export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   ),
 }))
 
-export const EffectsLayer = subscriptions.statsRefreshTicks.layer
+export const EffectsLayer = subscriptions.layer

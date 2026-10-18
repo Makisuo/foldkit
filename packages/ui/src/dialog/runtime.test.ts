@@ -47,7 +47,7 @@ const DialogBinding = ApplicationDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: RuntimeMessage.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
-  init: { args: () => [{ id: dialogId }] },
+  init: { startupToArgs: () => [{ id: dialogId }] },
 })
 
 const ApplicationComposition = ApplicationDefinition.makeComposition({
@@ -88,7 +88,7 @@ const view = ApplicationComposition.makeView((model, h) =>
 
 const init = ApplicationComposition.makeInit(() => ({
   model: { dialogEvents: [] },
-  steps: [DialogBinding.open()],
+  steps: [DialogBinding.requestOpen()],
 }))
 
 const preservedModel = (dialogModel: Dialog.Model): Model => ({

@@ -27,8 +27,8 @@ const activateTab = (tab: Tab) => {
     model: modifyFields(model, { activeTab: () => tab }),
   }))
   const loadTab = Match.value(tab).pipe(
-    Match.when('Posts', () => PostsBinding.loadIfMissing()),
-    Match.when('Stats', () => StatsBinding.loadIfMissing()),
+    Match.when('Posts', () => PostsBinding.requestLoadIfMissing()),
+    Match.when('Stats', () => StatsBinding.requestLoadIfMissing()),
     Match.exhaustive,
   )
 
@@ -42,7 +42,7 @@ const foldTabsOutMessage = AppTabs.OutMessage.match({
 export const TabsBinding = ApplicationDefinition.bindChild(AppTabs, {
   field: 'tabs',
   parentMessage: Message.GotTabsMessage,
-  init: { args: () => [{ id: TABS_ID }] },
+  init: { startupToArgs: () => [{ id: TABS_ID }] },
   outMessage: { fold: foldTabsOutMessage },
 })
 

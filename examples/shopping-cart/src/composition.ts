@@ -34,7 +34,7 @@ export const ProductsPageBinding = ApplicationDefinition.bindChild(
   {
     field: 'productsPage',
     parentMessage: Message.GotProductsMessage,
-    init: { args: () => [products] },
+    init: { startupToArgs: () => [products] },
     outMessage: { fold: foldProductsOutMessage },
   },
 )

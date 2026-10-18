@@ -42,4 +42,4 @@ export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   ),
 }))
 
-export const EffectsLayer = subscriptions.gameClockTicks.layer
+export const EffectsLayer = subscriptions.layer

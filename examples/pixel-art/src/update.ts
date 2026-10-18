@@ -241,7 +241,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
             maybeExportError: () => Option.some(error),
           }),
         }),
-        ErrorDialogBinding.open(),
+        ErrorDialogBinding.requestOpen(),
       ]),
 
     ConfirmedGridSizeChange: () =>
@@ -250,7 +250,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
         onSome: pendingSize =>
           Update.combine(model, [
             stepModel => applyGridSizeChange(stepModel, pendingSize),
-            GridSizeConfirmDialogBinding.close(),
+            GridSizeConfirmDialogBinding.requestClose(),
             stepModel => ({
               model: stepModel,
               commands: [saveCanvas(stepModel)],

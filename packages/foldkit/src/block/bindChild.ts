@@ -380,24 +380,24 @@ type ValidateInitialResolver<
   Resolver extends (...args: ReadonlyArray<any>) => any,
 > =
   IsAny<Resolver> extends true
-    ? Readonly<{ 'Binding init args cannot use any': Resolver }>
+    ? Readonly<{ 'Binding init startupToArgs cannot use any': Resolver }>
     : IsAny<ReturnType<Resolver>> extends true
       ? Readonly<{
-          'Binding init args return cannot use any': ReturnType<Resolver>
+          'Binding init startupToArgs return cannot use any': ReturnType<Resolver>
         }>
       : Equal<
             Resolver,
             (...args: Parameters<Resolver>) => ReturnType<Resolver>
           > extends false
         ? Readonly<{
-            'Binding init args requires one concrete call signature': Resolver
+            'Binding init startupToArgs requires one concrete call signature': Resolver
           }>
         : Parameters<Resolver> extends readonly []
           ? unknown
           : Parameters<Resolver> extends readonly [infer Context]
             ? ValidateInitialContext<Context>
             : Readonly<{
-                'Binding init args accepts zero or one context argument': Parameters<Resolver>
+                'Binding init startupToArgs accepts zero or one context argument': Parameters<Resolver>
               }>
 
 type ValidateInitialResolverStorage<
@@ -410,12 +410,12 @@ type ValidateInitialResolverStorage<
     ? ReturnType<Resolver> extends Option.Option<ReadonlyArray<unknown>>
       ? unknown
       : Readonly<{
-          'Optional Binding init args must return Option<InitArgs>': ReturnType<Resolver>
+          'Optional Binding init startupToArgs must return Option<InitArgs>': ReturnType<Resolver>
         }>
     : ReturnType<Resolver> extends ReadonlyArray<unknown>
       ? unknown
       : Readonly<{
-          'Required Binding init args must return InitArgs': ReturnType<Resolver>
+          'Required Binding init startupToArgs must return InitArgs': ReturnType<Resolver>
         }>
 
 type InitializedBinding<
@@ -467,7 +467,7 @@ type ValidateDirectInitialPolicy<
   ValidateDirectInitialValue<Initial> &
   (Initial extends Readonly<{
     init: Readonly<{
-      args: infer Resolver extends (...args: ReadonlyArray<any>) => any
+      startupToArgs: infer Resolver extends (...args: ReadonlyArray<any>) => any
     }>
   }>
     ? ValidateInitialResolver<Resolver> &
@@ -490,7 +490,11 @@ type DirectBindingResult<
   Initial extends Readonly<{ init: false }>
     ? false
     : Initial extends Readonly<{
-          init: true | Readonly<{ args: (...args: ReadonlyArray<any>) => any }>
+          init:
+            | true
+            | Readonly<{
+                startupToArgs: (...args: ReadonlyArray<any>) => any
+              }>
         }>
       ? true
       : [Initial] extends [undefined]
@@ -514,7 +518,9 @@ type DirectBindingResult<
       Placement,
       Initial extends Readonly<{
         init: Readonly<{
-          args: infer Resolver extends (...args: ReadonlyArray<any>) => any
+          startupToArgs: infer Resolver extends (
+            ...args: ReadonlyArray<any>
+          ) => any
         }>
       }>
         ? InitialResolverContext<Resolver, Startup>
@@ -710,14 +716,14 @@ type ValidateInitialKeys<Config> = 'init' extends keyof Config
       ? readonly []
       : Exclude<
             keyof Initial,
-            'args' | 'model' | 'occurrences' | 'toItem'
+            'startupToArgs' | 'model' | 'occurrences' | 'toItem'
           > extends never
         ? readonly []
         : InvalidBindChildConfig<
             Readonly<{
               'init contains unsupported fields': Exclude<
                 keyof Initial,
-                'args' | 'model' | 'occurrences' | 'toItem'
+                'startupToArgs' | 'model' | 'occurrences' | 'toItem'
               >
             }>
           >
@@ -929,7 +935,7 @@ type ValidateStaticInitialPolicy<
           ? Equal<ParentModel[Field], BlockValue['Model']['Type']> extends true
             ? [] extends Parameters<BlockValue['init']>
               ? readonly []
-              : InvalidBindChildConfig<'A child requiring init arguments needs init.args or init: false'>
+              : InvalidBindChildConfig<'A child requiring init arguments needs init.startupToArgs or init: false'>
             : InvalidBindChildConfig<'Optional child initialization requires an explicit presence policy'>
           : ValidationResult<
               ValidateDirectInitialPolicy<
@@ -941,7 +947,7 @@ type ValidateStaticInitialPolicy<
             >
         : Config extends Readonly<{
               init: Readonly<{
-                args: infer Resolver extends (
+                startupToArgs: infer Resolver extends (
                   ...args: ReadonlyArray<any>
                 ) => any
                 model: (...args: ReadonlyArray<any>) => infer ProjectedModel
@@ -962,7 +968,7 @@ type ValidateStaticInitialPolicy<
                 > extends true
                 ? [] extends Parameters<BlockValue['init']>
                   ? readonly []
-                  : InvalidBindChildConfig<'A child requiring init arguments needs init.args or init: false'>
+                  : InvalidBindChildConfig<'A child requiring init arguments needs init.startupToArgs or init: false'>
                 : readonly []
               : readonly []
 
@@ -1414,11 +1420,11 @@ type InitialContext<
 > =
   | ('field' extends Keys ? ('key' extends Keys ? never : false) : never)
   | ([] extends Parameters<BlockValue['init']>
-      ? true & Readonly<{ args?: never }>
+      ? true & Readonly<{ startupToArgs?: never }>
       : never)
   | Readonly<{
-      /** Selects the exact child init tuple; an Option selector may leave direct optional storage absent. */
-      args: (
+      /** Maps startup to the exact child init tuple; Option may leave direct optional storage absent. */
+      startupToArgs: (
         ...context: [Startup] extends [never]
           ? ReadonlyArray<any>
           : [startup: Startup]
@@ -1430,8 +1436,8 @@ type InitialContext<
       toItem?: never
     }>
   | Readonly<{
-      /** Selects the exact child init tuple; an Option selector may leave direct optional storage absent. */
-      args: (
+      /** Maps startup to the exact child init tuple. */
+      startupToArgs: (
         ...context: [Startup] extends [never]
           ? ReadonlyArray<any>
           : [startup: Startup]
@@ -1479,7 +1485,7 @@ type InitialContext<
         ParentModelSchema['Type'],
         Extract<Field, keyof ParentModelSchema['Type'] & string>
       >
-      args?: never
+      startupToArgs?: never
       model?: never
     }>
 
@@ -1713,7 +1719,7 @@ type InitialOfConfig<Config> =
 type ResolverOfConfig<Config> =
   Config extends Readonly<{
     init: Readonly<{
-      args: infer Resolver extends (...args: ReadonlyArray<any>) => any
+      startupToArgs: infer Resolver extends (...args: ReadonlyArray<any>) => any
     }>
   }>
     ? Resolver
@@ -2360,26 +2366,27 @@ const registerDirectInitialPolicy = (
 
   if (init !== true && !Predicate.isObject(init)) {
     throw new Error(
-      `[foldkit] Direct Binding field "${field}" init must be false, true, or an object with an args function.`,
+      `[foldkit] Direct Binding field "${field}" init must be false, true, or an object with a startupToArgs function.`,
     )
   }
 
   if (init === true && isOptional) {
     throw new Error(
-      `[foldkit] Direct optional Binding field "${field}" requires an explicit init.args presence policy.`,
+      `[foldkit] Direct optional Binding field "${field}" requires an explicit init.startupToArgs presence policy.`,
     )
   }
 
-  const argumentResolver = init === true ? () => [] : Reflect.get(init, 'args')
+  const argumentResolver =
+    init === true ? () => [] : Reflect.get(init, 'startupToArgs')
   if (!Predicate.isFunction(argumentResolver)) {
     throw new Error(
-      `[foldkit] Direct Binding field "${field}" init must be false, true, or an object with an args function.`,
+      `[foldkit] Direct Binding field "${field}" init must be false, true, or an object with a startupToArgs function.`,
     )
   }
 
   if (Predicate.isObject(init)) {
     for (const policyField of Reflect.ownKeys(init)) {
-      if (policyField !== 'args') {
+      if (policyField !== 'startupToArgs') {
         throw new Error(
           `[foldkit] Direct Binding field "${field}" init does not support the policy field "${globalThis.String(policyField)}".`,
         )
@@ -2396,7 +2403,7 @@ const registerDirectInitialPolicy = (
       if (isOptional) {
         if (!Option.isOption(result)) {
           throw new Error(
-            `[foldkit] Direct optional Binding field "${field}" init.args must return an Option of child init arguments.`,
+            `[foldkit] Direct optional Binding field "${field}" init.startupToArgs must return an Option of child init arguments.`,
           )
         }
         if (Option.isNone(result)) {
@@ -2404,7 +2411,7 @@ const registerDirectInitialPolicy = (
         }
         if (!globalThis.Array.isArray(result.value)) {
           throw new Error(
-            `[foldkit] Direct optional Binding field "${field}" init.args must contain a child init argument tuple.`,
+            `[foldkit] Direct optional Binding field "${field}" init.startupToArgs must contain a child init argument tuple.`,
           )
         }
         return Option.some(result.value)
@@ -2412,7 +2419,7 @@ const registerDirectInitialPolicy = (
 
       if (!globalThis.Array.isArray(result)) {
         throw new Error(
-          `[foldkit] Direct Binding field "${field}" init.args must return a child init argument tuple.`,
+          `[foldkit] Direct Binding field "${field}" init.startupToArgs must return a child init argument tuple.`,
         )
       }
       return Option.some(result)
@@ -2452,26 +2459,26 @@ const registerAccessorInitialPolicy = (
   const init = Reflect.get(config, 'init')
   if (!Predicate.isObject(init)) {
     throw new Error(
-      '[foldkit] An accessor Binding init policy must be an object with args and model functions.',
+      '[foldkit] An accessor Binding init policy must be an object with startupToArgs and model functions.',
     )
   }
 
   for (const policyField of Reflect.ownKeys(init)) {
-    if (policyField !== 'args' && policyField !== 'model') {
+    if (policyField !== 'startupToArgs' && policyField !== 'model') {
       throw new Error(
         `[foldkit] An accessor Binding init policy does not support the field "${globalThis.String(policyField)}".`,
       )
     }
   }
 
-  const argumentResolver = Reflect.get(init, 'args')
+  const argumentResolver = Reflect.get(init, 'startupToArgs')
   const projectModel = Reflect.get(init, 'model')
   if (
     !Predicate.isFunction(argumentResolver) ||
     !Predicate.isFunction(projectModel)
   ) {
     throw new Error(
-      '[foldkit] An accessor Binding init policy must supply args and model functions.',
+      '[foldkit] An accessor Binding init policy must supply startupToArgs and model functions.',
     )
   }
 
@@ -2511,7 +2518,7 @@ const registerAccessorInitialPolicy = (
       const result = Reflect.apply(argumentResolver, undefined, [context])
       if (!globalThis.Array.isArray(result)) {
         throw new Error(
-          '[foldkit] An accessor Binding init.args function must return a child init argument tuple.',
+          '[foldkit] An accessor Binding init.startupToArgs function must return a child init argument tuple.',
         )
       }
       return result

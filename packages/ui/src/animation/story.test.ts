@@ -355,7 +355,9 @@ describe('Animation', () => {
 
   describe('toggle', () => {
     it('shows a hidden animation', () => {
-      const animationToggle = block.operations.toggle(init({ id: 'test' }))
+      const animationToggle = block.operations.requestToggle(
+        init({ id: 'test' }),
+      )
 
       expect(animationToggle.model.isShowing).toBe(true)
       expect(animationToggle.model.transitionState).toBe('EnterStart')
@@ -363,7 +365,7 @@ describe('Animation', () => {
     })
 
     it('hides a shown animation', () => {
-      const animationToggle = block.operations.toggle(
+      const animationToggle = block.operations.requestToggle(
         init({ id: 'test', isShowing: true }),
       )
 
@@ -375,7 +377,7 @@ describe('Animation', () => {
 
   describe('programmatic capabilities', () => {
     it('shows a hidden Animation', () => {
-      const animationShow = block.operations.show(init({ id: 'test' }))
+      const animationShow = block.operations.requestShow(init({ id: 'test' }))
 
       expect(animationShow.model.isShowing).toBe(true)
       expect(animationShow.model.transitionState).toBe('EnterStart')
@@ -383,7 +385,7 @@ describe('Animation', () => {
     })
 
     it('hides a showing Animation', () => {
-      const animationHide = block.operations.hide(
+      const animationHide = block.operations.requestHide(
         init({ id: 'test', isShowing: true }),
       )
 

@@ -7,7 +7,7 @@ import { People } from './page'
 export const PeoplePageBinding = ApplicationDefinition.bindChild(People.block, {
   field: 'peoplePage',
   parentMessage: Message.GotPeopleMessage,
-  init: { args: route => [route] },
+  init: { startupToArgs: route => [route] },
 })
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({

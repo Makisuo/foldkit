@@ -1,10 +1,12 @@
 import { Option } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
+import * as Child from './child'
 
 type SettingsModel = Readonly<{ theme: string }>
 type Model = Readonly<{
   settings: SettingsModel
+  child: Child.Model
   keyedSettings: SettingsModel
   preferences: SettingsModel
 }>
@@ -34,6 +36,14 @@ const foldKeyedSettings = Update.foldChildAt({
   writeAt: (model, _key, nextSettings) =>
     modifyFields(model, { keyedSettings: () => nextSettings }),
   toParentMessage: (_key, message) => message,
+})
+
+const foldChild = Update.foldChild({
+  update: Child.update,
+  read: (model: Model) => Option.some(model.child),
+  write: (model, nextChild) =>
+    modifyFields(model, { child: () => nextChild }),
+  toParentMessage: message => message,
 })
 
 const Settings = {
@@ -144,3 +154,31 @@ export const reflectSettings = (model: Model, message: unknown) => {
     commands: settingsUpdate.commands,
   }
 }
+
+export const copyChildUpdateModel = (
+  model: Model,
+  message: Child.Message,
+) => {
+  const childFold = foldChild(model, message)
+  const childUpdate = Child.update(model.child, message)
+
+  return {
+    model: modifyFields(model, { child: () => childUpdate.model }),
+    commands: childFold.commands,
+  }
+}
+
+export const copyChildOperationModel = (
+  model: Model,
+  message: Child.Message,
+) => {
+  const childFold = foldChild(model, message)
+  const childClose = Child.close(model.child)
+
+  return {
+    model: modifyFields(model, { child: () => childClose.model }),
+    commands: childFold.commands,
+  }
+}
+
+export const folds = { foldChild }

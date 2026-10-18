@@ -1,7 +1,6 @@
 import {
   Effect,
   Equal,
-  Layer,
   Match,
   Option,
   Schema,
@@ -824,17 +823,12 @@ export const subscriptions = defineSubscriptionsForRoot(
   () => document,
 )
 
-const EffectsLayer = Layer.mergeAll(
-  subscriptions.dragPointer.layer,
-  subscriptions.dragEscape.layer,
-)
+const EffectsLayer = subscriptions.layer
 
 const operations = {
   /** Updates the range through the Slider's update. The parent owns the value;
    * snap it to the new bounds with `snapAndClamp` in the same parent transition. */
-  informRangeChanged: SliderComposition.makeOperation(
-    Message.InformedOfRangeChange,
-  ),
+  informRangeChanged: Message.InformedOfRangeChange,
 }
 
 /** Completed Slider Block. */
@@ -866,14 +860,9 @@ export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
     SliderDefinition.subscriptions,
     getTrackRoot,
   )
-  const EffectsLayer = Layer.mergeAll(
-    subscriptions.dragPointer.layer,
-    subscriptions.dragEscape.layer,
-  )
+  const EffectsLayer = subscriptions.layer
   const operations = {
-    informRangeChanged: SliderComposition.makeOperation(
-      Message.InformedOfRangeChange,
-    ),
+    informRangeChanged: Message.InformedOfRangeChange,
   }
 
   return SliderComposition.makeBlock({

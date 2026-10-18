@@ -88,7 +88,7 @@ const DialogBinding = DialogParentTestDefinition.bindChild(block, {
   field: 'dialog',
   parentMessage: ParentMessage.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
-  init: { args: () => [{ id: 'initial-dialog' }] },
+  init: { startupToArgs: () => [{ id: 'initial-dialog' }] },
 })
 
 const DialogParentTestComposition = DialogParentTestDefinition.makeComposition({
@@ -97,7 +97,7 @@ const DialogParentTestComposition = DialogParentTestDefinition.makeComposition({
 
 const parentInit = DialogParentTestComposition.makeInit(() => ({
   model: { dialogEvents: [] },
-  steps: [loadParentData, DialogBinding.open()],
+  steps: [loadParentData, DialogBinding.requestOpen()],
 }))
 
 const openDialog = (config: InitConfig) =>

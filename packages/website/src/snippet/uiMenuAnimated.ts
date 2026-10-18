@@ -6,7 +6,7 @@ const MenuBinding = ActionMenuExample.bindChild(ActionMenu, {
   parentMessage: Message.GotMenuMessage,
   outMessage: { fold: foldMenuOutMessage },
   init: {
-    args: () => Tuple.make({ id: 'actions', isAnimated: true }),
+    startupToArgs: () => Tuple.make({ id: 'actions', isAnimated: true }),
   },
 })
 

@@ -1388,11 +1388,11 @@ export const block = CalendarComposition.makeBlock({
   update,
   view,
   operations: {
-    selectDate: (date: CalendarDate) =>
+    requestSelectDate: (date: CalendarDate) =>
       Tuple.make(Message.RequestedSelectDate({ date })),
-    focusDate: (date: CalendarDate) =>
+    requestFocusDate: (date: CalendarDate) =>
       Tuple.make(Message.RequestedFocusDate({ date })),
-    dropToDays: CalendarComposition.makeOperation(Message.RequestedDropToDays),
+    requestDropToDays: Message.RequestedDropToDays,
     /** Supplies a new minimum selectable date without reconciling selection. */
     informMinDateChanged: (maybeMinDate: Option.Option<CalendarDate>) =>
       Tuple.make(Message.InformedOfMinDateChange({ maybeMinDate })),
@@ -1415,8 +1415,8 @@ export const block = CalendarComposition.makeBlock({
 
 /** Moves the Calendar view and cursor to a date without changing the
  * parent-owned selection. */
-export const focusDate = block.operations.focusDate
+export const focusDate = block.operations.requestFocusDate
 
 /** Returns the Calendar to Days mode and rebuilds its focused date from the
  * visible year and month. */
-export const dropToDays = block.operations.dropToDays
+export const dropToDays = block.operations.requestDropToDays

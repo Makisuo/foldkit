@@ -69,6 +69,9 @@ export type Model = typeof Model.Type
 
 /** Union of all messages the menu component can produce. */
 export const Message = defineMessageUnion({
+  RequestedOpen: {},
+  RequestedClose: {},
+  RequestedSelectItem: { index: Schema.Number, item: Schema.String },
   Opened: { maybeActiveItemIndex: Schema.Option(Schema.Number) },
   Closed: {},
   BlurredItems: {},
@@ -115,6 +118,9 @@ export const Message = defineMessageUnion({
 })
 
 export type Message = typeof Message.Type
+export type RequestedOpen = typeof Message.RequestedOpen.Type
+export type RequestedClose = typeof Message.RequestedClose.Type
+export type RequestedSelectItem = typeof Message.RequestedSelectItem.Type
 
 // OUT MESSAGE
 
@@ -400,7 +406,7 @@ const internalUpdate =
       if (model.isAnimated) {
         return Update.combine([
           () => ({ model: baseModel, commands: openCommands }),
-          animationBinding.show(),
+          animationBinding.requestShow(),
           stepModel => ({
             model: modifyFields(stepModel, { isOpen: () => true }),
           }),
@@ -429,7 +435,7 @@ const internalUpdate =
           Function.compose(
             Update.combine([
               () => ({ model: closed, commands }),
-              animationBinding.hide(),
+              animationBinding.requestHide(),
             ]),
             Update.withOutMessage(outMessage),
           ),
@@ -438,6 +444,28 @@ const internalUpdate =
 
       return Update.withOutMessage({ model: closed, commands }, outMessage)
     }
+
+    const openWithActiveItem = (maybeActiveItemIndex: Option.Option<number>) =>
+      openMenu(
+        modifyFields(model, {
+          maybeActiveItemIndex: () => maybeActiveItemIndex,
+          activationTrigger: () =>
+            Option.match(maybeActiveItemIndex, {
+              onNone: () => 'Pointer',
+              onSome: () => 'Keyboard',
+            }),
+          searchQuery: () => '',
+          searchVersion: () => 0,
+          maybeLastPointerPosition: () => Option.none(),
+        }),
+      )
+
+    const selectItem = (index: number, item: string) =>
+      closeMenu(
+        model,
+        closeWithFocusCommands,
+        OutMessage.Selected({ value: item, index }),
+      )
 
     return Message.match(message, {
       CompletedFocusMenuItems: () => ({ model }),
@@ -452,20 +480,14 @@ const internalUpdate =
       CompletedAnchorMenu: () => ({ model }),
       CompletedPortalMenuBackdrop: () => ({ model }),
 
+      RequestedOpen: () => openWithActiveItem(Option.none()),
+
+      RequestedClose: () => closeMenu(model, closeWithFocusCommands),
+
+      RequestedSelectItem: ({ index, item }) => selectItem(index, item),
+
       Opened: ({ maybeActiveItemIndex }) =>
-        openMenu(
-          modifyFields(model, {
-            maybeActiveItemIndex: () => maybeActiveItemIndex,
-            activationTrigger: () =>
-              Option.match(maybeActiveItemIndex, {
-                onNone: () => 'Pointer',
-                onSome: () => 'Keyboard',
-              }),
-            searchQuery: () => '',
-            searchVersion: () => 0,
-            maybeLastPointerPosition: () => Option.none(),
-          }),
-        ),
+        openWithActiveItem(maybeActiveItemIndex),
 
       Closed: () => closeMenu(model, closeWithFocusCommands),
 
@@ -519,12 +541,7 @@ const internalUpdate =
             }
           : { model },
 
-      SelectedItem: ({ index, item }) =>
-        closeMenu(
-          model,
-          closeWithFocusCommands,
-          OutMessage.Selected({ value: item, index }),
-        ),
+      SelectedItem: ({ index, item }) => selectItem(index, item),
 
       RequestedItemClick: ({ index }) => ({
         model,
@@ -555,7 +572,7 @@ const internalUpdate =
       },
 
       CompletedDetectMenuMovementOrAnimationEnd: ({ generation }) =>
-        animationBinding.finish(generation),
+        animationBinding.requestFinish(generation),
 
       PressedPointerOnButton: ({
         pointerType,
@@ -580,7 +597,7 @@ const internalUpdate =
           if (model.isAnimated) {
             return Update.combine([
               () => ({ model: closed, commands: closeWithFocusCommands }),
-              animationBinding.hide(),
+              animationBinding.requestHide(),
             ])
           }
 
@@ -1261,11 +1278,10 @@ const menuViewImpl = (
 const view = MenuComposition.makeView.withInputs<MenuInputs>(menuViewImpl)
 
 const operations = {
-  open: () =>
-    Tuple.make(Message.Opened({ maybeActiveItemIndex: Option.none() })),
-  close: MenuComposition.makeOperation(Message.Closed),
-  selectItem: (item: string, index: number) =>
-    Tuple.make(Message.SelectedItem({ index, item })),
+  requestOpen: Message.RequestedOpen,
+  requestClose: Message.RequestedClose,
+  requestSelectItem: (item: string, index: number) =>
+    Tuple.make(Message.RequestedSelectItem({ index, item })),
 }
 
 type RefineOutMessage<Return, OutMessage> =
@@ -1295,13 +1311,13 @@ export const block = MenuComposition.makeBlock({
 })
 
 /** Programmatically opens the Menu through Menu update. */
-export const open = block.operations.open
+export const open = block.operations.requestOpen
 
 /** Programmatically closes the Menu through Menu update. */
-export const close = block.operations.close
+export const close = block.operations.requestClose
 
 /** Programmatically selects a Menu item through Menu update. */
-export const selectItem = block.operations.selectItem
+export const selectItem = block.operations.requestSelectItem
 
 const makeBlockParts = <Item extends string>() => {
   const RefinedOutMessage =
@@ -1348,11 +1364,10 @@ const makeBlockParts = <Item extends string>() => {
   const view = MenuComposition.makeView.withInputs<ViewInputs<Item>>(
     (model, viewInputs, h) => refinedView(model, viewInputs, h),
   )
-  const open = () =>
-    Tuple.make(Message.Opened({ maybeActiveItemIndex: Option.none() }))
-  const close = MenuComposition.makeOperation(Message.Closed)
-  const selectItem = (item: Item, index: number) =>
-    Tuple.make(Message.SelectedItem({ index, item }))
+  const requestOpen = Message.RequestedOpen
+  const requestClose = Message.RequestedClose
+  const requestSelectItem = (item: Item, index: number) =>
+    Tuple.make(Message.RequestedSelectItem({ index, item }))
   return {
     composition: MenuComposition,
     implementation: {
@@ -1361,7 +1376,7 @@ const makeBlockParts = <Item extends string>() => {
       })),
       update: refinedUpdate,
       view,
-      operations: { open, close, selectItem },
+      operations: { requestOpen, requestClose, requestSelectItem },
       EffectsLayer,
     },
   }

@@ -38,7 +38,6 @@
     "foldkit/no-empty-to-parent-out-message": "error",
     "foldkit/no-empty-object-tagged-call": "error",
     "foldkit/prefer-callable-message-constructor": "error",
-    "foldkit/command-binding-matches-name": "error",
     "foldkit/no-module-level-mutable-state": "error",
     "foldkit/no-switch-on-message-tag": "error",
     "foldkit/acquire-release-constructs-in-acquire-body": "error",

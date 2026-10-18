@@ -107,13 +107,13 @@ DeclarationStartupGenericParentDefinition.bindChild(ChildBlock, {
   field: 'child',
   placement: 'external',
   parentMessage: ParentMessage.GotChildMessage,
-  init: { args: _startup => [] },
+  init: { startupToArgs: _startup => [] },
 })
 ApplicationDefinition.bindChild(ChildBlock, {
   field: 'child',
   placement: 'external',
   parentMessage: ParentMessage.GotChildMessage,
-  init: { args: _startup => [] },
+  init: { startupToArgs: _startup => [] },
 })
 DeclarationStartupDefaultsParentDefinition.bindChild(RequiredChildBlock, {
   field: 'automatic',
@@ -132,7 +132,7 @@ DeclarationStartupGenericParentDefinition.bindChild(ChildBlock, {
   placement: 'externalMutation',
   parentMessage: ParentMessage.GotChildMessage,
   init: {
-    args: startup => {
+    startupToArgs: startup => {
       // @ts-expect-error Emitted Startup fields remain readonly.
       startup.count = 2
       return []

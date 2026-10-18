@@ -31,7 +31,7 @@ export const SourceFileTabsBinding = ExampleDetailDefinition.bindChild(
     field: 'sourceFileTabs',
     parentMessage: Message.GotSourceFileTabsMessage,
     outMessage: { fold: foldSourceFileTabsOutMessage },
-    init: { args: () => Tuple.make({ id: SOURCE_FILE_TABS_ID }) },
+    init: { startupToArgs: () => Tuple.make({ id: SOURCE_FILE_TABS_ID }) },
   },
 )
 

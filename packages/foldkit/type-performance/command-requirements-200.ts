@@ -2060,9 +2060,7 @@ const Worker = TypePerformanceWorkerComposition.makeBlock({
     }),
   ),
   operations: {
-    runAll: TypePerformanceWorkerComposition.makeOperation(
-      WorkerMessage.RequestedRun,
-    ),
+    runAll: WorkerMessage.RequestedRun,
   },
   EffectsLayer: Layer.mergeAll(
     Run001.layer,

@@ -74,6 +74,7 @@ export type {
   MakeBlock,
   OwnedManagedResourceEntryBuilder,
   OwnedSubscriptionEntryBuilder,
+  OwnedSubscriptionRegistry,
   RefineViewInputs,
 } from './definition.js'
 export { define } from './define.js'
@@ -102,8 +103,6 @@ export type { DeferredBindingPolicy } from './deferredPolicy.js'
 export type { ValidateConcreteComposition } from './requirements.js'
 export type { InstanceKey } from './instanceContext.js'
 export type {
-  MakeOperation,
-  Operation,
   OperationMessageConstructor,
   OperationParameters,
   OperationPayload,

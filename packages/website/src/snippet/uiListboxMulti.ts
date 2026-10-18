@@ -66,7 +66,7 @@ const PeoplePickerDefinition = Block.define('PeoplePicker', {
 const PeopleListboxBinding = PeoplePickerDefinition.bindChild(PeopleListbox, {
   field: 'listboxMulti',
   parentMessage: Message.GotListboxMultiMessage,
-  init: { args: () => Tuple.make({ id: 'people' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'people' }) },
   outMessage: { fold: foldListboxMultiOutMessage },
 })
 

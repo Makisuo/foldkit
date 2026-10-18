@@ -3,7 +3,7 @@ import {
   type Effect,
   type Equivalence,
   Layer,
-  type Option,
+  Option,
   Predicate,
   Record,
   Schema,
@@ -75,17 +75,7 @@ import type {
   ValidateUniqueInitialFields,
 } from './initialization.js'
 import { makeInit } from './initializationRuntime.js'
-import {
-  type AnyOperation,
-  type MakeOperation,
-  type Operation,
-  type OperationMessageConstructor,
-  assertOperationOwner,
-  isOperation,
-  makeOperation,
-  operationInput,
-  operationMessage,
-} from './operation.js'
+import { isOperationMessageConstructor, prepareOperation } from './operation.js'
 import { withOperationGraph } from './operationGraph.js'
 import { makeOperationMessageValidator } from './operationMessage.js'
 import type { Owner } from './owner.js'
@@ -113,7 +103,12 @@ type ReturnOf<Function extends AnyFunction> = Function extends (
   : never
 type AnyLayer = Layer.Layer<never, any, any> | Layer.Layer<any, any, any>
 type EmptyRecord = Readonly<Record<never, never>>
-type AnySubscriptions = Subscription.Subscriptions<any, any, any>
+type AnySubscriptionEntries = Subscription.Subscriptions<any, any, any>
+type AnySubscriptions = AnySubscriptionEntries
+type AnySubscriptionInput =
+  | AnySubscriptionEntries
+  | (Subscription.Registry<AnySubscriptionEntries> &
+      Readonly<{ layer?: Layer.Any }>)
 type AnyManagedResources = Readonly<
   Record<string, ManagedResource.Entry<any, any, any, any, any, any, any, any>>
 >
@@ -591,6 +586,45 @@ type SubscriptionServices<Entry> =
     ? Services
     : never
 
+type OwnedSubscriptionEntries<Entries, Model, Message> = Readonly<{
+  [Key in keyof Entries]: Entries[Key] &
+    Subscription.Subscription<
+      Model,
+      Message,
+      SubscriptionDependencies<Entries[Key]>,
+      SubscriptionServices<Entries[Key]>
+    >
+}>
+
+type SubscriptionEntryLayers<Entries> =
+  Entries[keyof Entries] extends infer Entry
+    ? Entry extends Readonly<{ layer: infer EntryLayer extends Layer.Any }>
+      ? EntryLayer
+      : never
+    : never
+
+type SubscriptionRegistryLayer<Entries> = Readonly<{
+  layer: [keyof Entries] extends [never]
+    ? Layer.Layer<never>
+    : Layer.Layer<
+        Layer.Success<SubscriptionEntryLayers<Entries>>,
+        Layer.Error<SubscriptionEntryLayers<Entries>>,
+        Layer.Services<SubscriptionEntryLayers<Entries>>
+      >
+}>
+
+type MaybeSubscriptionRegistryLayer<Entries> = [keyof Entries] extends [never]
+  ? SubscriptionRegistryLayer<Entries>
+  : [Entries[keyof Entries]] extends [Readonly<{ layer: Layer.Any }>]
+    ? SubscriptionRegistryLayer<Entries>
+    : unknown
+
+/** An owned Subscription registry with an aggregate Layer when every entry has an attached handler. */
+export type OwnedSubscriptionRegistry<Entries, Model, Message> =
+  OwnedSubscriptionEntries<Entries, Model, Message> &
+    Subscription.Registry<OwnedSubscriptionEntries<Entries, Model, Message>> &
+    MaybeSubscriptionRegistryLayer<Entries>
+
 /** Defines Subscription registries against one Block's Model and Message. */
 export interface DefineSubscriptions<Id extends string, Model, Message> {
   <
@@ -600,16 +634,9 @@ export interface DefineSubscriptions<Id extends string, Model, Message> {
   >(
     build: (
       entry: OwnedSubscriptionEntryBuilder<Id, Model, Message>,
-    ) => Entries,
-  ): Readonly<{
-    [Key in keyof Entries]: Entries[Key] &
-      Subscription.Subscription<
-        Model,
-        Message,
-        SubscriptionDependencies<Entries[Key]>,
-        SubscriptionServices<Entries[Key]>
-      >
-  }>
+    ) => Entries &
+      ('layer' extends keyof Entries ? Readonly<{ layer: never }> : unknown),
+  ): OwnedSubscriptionRegistry<Entries, Model, Message>
 }
 
 /** Defines locally named Subscription entries for one Block. */
@@ -1077,7 +1104,7 @@ type ImplementationExposedOperations<Implementation> =
 
 type ImplementationSubscriptions<Implementation> =
   Implementation extends Readonly<{ subscriptions: infer Subscriptions }>
-    ? Subscriptions
+    ? Subscription.RegistryEntries<Subscriptions>
     : EmptyRecord
 
 type ImplementationManagedResources<Implementation> =
@@ -1097,7 +1124,7 @@ type ImplementationHostHandlers<Implementation> =
  * `satisfies Implementation<Model, Message, OutMessage>` to retain its inferred
  * service requirements; annotating it with this broad type erases them.
  */
-export type Implementation<Model, Message, OutMessage = never> = Readonly<{
+type ImplementationChannels<Model, Message, OutMessage, Operations> = Readonly<{
   /** Default view authored by the same Composition. Omit it for a headless Block
    * or when every parent supplies an alternate authored view. */
   view?: AnyAuthoredView
@@ -1111,18 +1138,20 @@ export type Implementation<Model, Message, OutMessage = never> = Readonly<{
     message: Message,
     ...context: ReadonlyArray<unknown>
   ): OwnedReturn<Model, Message, OutMessage>
-  /** Named parent-driven operations. Prefer descriptors authored with
-   * `Composition.makeOperation(Message.Variant)` for direct Message construction.
-   * A descriptor infers one constructor payload when fields exist, followed by
+  /** Named parent-driven operations. Prefer local Message constructors for direct Message construction.
+   * A constructor infers one constructor payload when fields exist, followed by
    * update's exact dispatch Context. Custom producers receive their declared
    * public arguments and return a nonempty `[Message, ...context]` tuple for
    * mapping, defaults, or refined inputs. Completion calls neither form. The
    * completed operation accepts the child Model first and synchronously passes
    * its Message through the completed update, preserving the full update
    * requirements and OutMessage contract. */
-  operations?: ExposedMessageOperations<Message>
+  operations?: Operations
   /** Subscription entries owned directly by this Block. */
-  subscriptions?: Subscription.Subscriptions<Model, Message, any>
+  subscriptions?:
+    | Subscription.Subscriptions<Model, Message, any>
+    | (Subscription.Registry<Subscription.Subscriptions<Model, Message, any>> &
+        Readonly<{ layer?: Layer.Any }>)
   /** ManagedResource entries owned directly by this Block. */
   managedResources?: Readonly<
     Record<
@@ -1141,14 +1170,31 @@ export type Implementation<Model, Message, OutMessage = never> = Readonly<{
   hostHandlers?: ReadonlyArray<unknown>
 }>
 
+/**
+ * The implementation channels accepted by a Block Composition. Use this type
+ * with `satisfies` so `makeBlock` can retain each channel's exact inferred
+ * service requirements.
+ */
+export type Implementation<
+  Model,
+  Message,
+  OutMessage = never,
+> = ImplementationChannels<
+  Model,
+  Message,
+  OutMessage,
+  ExposedMessageOperations<Message>
+>
+
 type DefinitionImplementation<
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
   OutMessageSchema,
-> = Implementation<
+> = ImplementationChannels<
   ModelSchema['Type'],
   MessageSchema['Type'],
-  OutMessageSchema extends AnySchema ? OutMessageSchema['Type'] : never
+  OutMessageSchema extends AnySchema ? OutMessageSchema['Type'] : never,
+  InferredExposedMessageOperations<MessageSchema['Type']>
 >
 
 type ExtraImplementationKeys<ImplementationValue> = Exclude<
@@ -1201,21 +1247,16 @@ type ExposedUpdateInput<UpdateFunction, Message> =
     ? MessageFoldInput<Message, Context>
     : never
 
-type ValidateExposedOperation<Source, UpdateFunction, Message, OwnerId> =
+type ValidateExposedOperation<Source, UpdateFunction, Message> =
   unknown extends Source
     ? never
-    : Source extends Operation<
-          infer DeclaredOwnerId,
-          ReadonlyArray<unknown>,
-          infer OperationMessage
-        >
-      ? [DeclaredOwnerId] extends [OwnerId]
-        ? unknown extends OperationMessage
-          ? never
-          : OperationMessage extends Message
-            ? unknown
-            : never
-        : never
+    : Source extends AnyFunction &
+          Readonly<{ '~type.make.in': unknown; Type: infer Output }>
+      ? unknown extends Output
+        ? never
+        : Output extends Message
+          ? unknown
+          : never
       : Source extends AnyFunction
         ? unknown extends ReturnType<Source>
           ? never
@@ -1227,11 +1268,11 @@ type ValidateExposedOperation<Source, UpdateFunction, Message, OwnerId> =
             : never
         : never
 
-type ValidateExposedOperations<ImplementationValue, Message, OwnerId> =
+type ValidateExposedOperations<ImplementationValue, Message> =
   ImplementationValue extends Readonly<{
     update: infer UpdateFunction extends AnyFunction
     operations: infer ExposedOperations extends Readonly<
-      Record<string, AnyFunction | AnyOperation>
+      Record<string, unknown>
     >
   }>
     ? IsAny<ExposedOperations> extends true
@@ -1241,17 +1282,26 @@ type ValidateExposedOperations<ImplementationValue, Message, OwnerId> =
             [Name in keyof ExposedOperations]: ValidateExposedOperation<
               ExposedOperations[Name],
               UpdateFunction,
-              Message,
-              OwnerId
+              Message
             >
           }>
         }>
     : unknown
 
 interface ExposedMessageOperations<Message> {
+  readonly [name: string]: (
+    ...args: ReadonlyArray<any>
+  ) => MessageFoldInput<Message> | Message
+}
+
+interface InferredExposedMessageOperations<Message> {
   readonly [name: string]:
+    | Readonly<{
+        fields: Readonly<Record<string, unknown>>
+        '~type.make.in': unknown
+        Type: Readonly<{ _tag: string }>
+      }>
     | ((...args: ReadonlyArray<any>) => MessageFoldInput<Message>)
-    | AnyOperation
 }
 
 type PublicProducerReturn<Output, Model, Message> = [
@@ -1328,7 +1378,11 @@ type ExposedProducerParameters<Producer> = Producer extends AnyFunction
   : never
 
 type PublicExposedProducer<Producer, UpdateFunction, Model> =
-  Producer extends Operation<string, infer OperationArguments, unknown>
+  Producer extends Readonly<{
+    fields: Readonly<Record<infer FieldName, unknown>>
+    '~type.make.in': infer Input
+    Type: infer Output extends Readonly<{ _tag: string }>
+  }>
     ? UpdateFunction extends AnyFunction
       ? Parameters<UpdateFunction> extends readonly [
           unknown,
@@ -1337,7 +1391,17 @@ type PublicExposedProducer<Producer, UpdateFunction, Model> =
         ]
         ? (
             model: Model,
-            ...args: [...OperationArguments, ...Context]
+            ...args: [
+              ...([FieldName] extends ['_tag']
+                ? readonly []
+                : readonly [
+                    payload:
+                      | Input
+                      | (Omit<Output, '_tag'> &
+                          Readonly<{ _tag?: Output['_tag'] }>),
+                  ]),
+              ...Context,
+            ]
           ) => PublicExposedUpdateReturn<ReturnType<UpdateFunction>>
         : never
       : never
@@ -2308,8 +2372,7 @@ type ValidateMakeBlockComposition<
   ('operations' extends keyof ImplementationValue
     ? ValidateExposedOperations<
         ImplementationValue,
-        AuthoredMessage<_MessageSchema['Type'], Children>,
-        OwnerValue['id']
+        AuthoredMessage<_MessageSchema['Type'], Children>
       >
     : unknown)
 
@@ -2610,12 +2673,10 @@ export interface MakeBlock<
     implementation: ImplementationValue &
       NoInfer<
         Omit<
-          Implementation<
-            ModelSchema['Type'],
-            MessageSchema['Type'],
-            OutMessageSchema extends Schema.Codec<any, any, any, any>
-              ? OutMessageSchema['Type']
-              : never
+          DefinitionImplementation<
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema
           >,
           'EffectsLayer'
         > &
@@ -2653,21 +2714,21 @@ export interface MakeBlock<
     >
   >
   <
-    const ErasedImplementation extends Implementation<
-      ModelSchema['Type'],
-      MessageSchema['Type'],
-      OutMessageSchema extends Schema.Codec<any, any, any, any>
-        ? OutMessageSchema['Type']
-        : never
+    const ErasedImplementation extends Omit<
+      DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>,
+      'operations'
     >,
   >(
     implementation: ErasedImplementation &
-      (Implementation<
-        ModelSchema['Type'],
-        MessageSchema['Type'],
-        OutMessageSchema extends Schema.Codec<any, any, any, any>
-          ? OutMessageSchema['Type']
-          : never
+      (Omit<
+        Implementation<
+          ModelSchema['Type'],
+          MessageSchema['Type'],
+          OutMessageSchema extends Schema.Codec<any, any, any, any>
+            ? OutMessageSchema['Type']
+            : never
+        >,
+        'operations'
       > extends ErasedImplementation
         ? unknown
         : never),
@@ -2675,13 +2736,7 @@ export interface MakeBlock<
   <const ImplementationValue extends object>(
     implementation: ImplementationValue &
       NoInfer<
-        Implementation<
-          ModelSchema['Type'],
-          MessageSchema['Type'],
-          OutMessageSchema extends Schema.Codec<any, any, any, any>
-            ? OutMessageSchema['Type']
-            : never
-        >
+        DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>
       > &
       ExactImplementationKeys<ImplementationValue> &
       ValidateInit<ImplementationValue> &
@@ -3195,13 +3250,6 @@ export type Composition<
     OutMessageSchema extends AnySchema ? OutMessageSchema['Type'] : never,
     Children
   >
-  /** Declares a parent-facing operation from a local Message constructor.
-   * Completion infers its payload and appends update's dispatch Context. The
-   * declaration is passive; the Message is constructed only when invoked. */
-  readonly makeOperation: MakeOperation<
-    OwnerValue['id'],
-    AuthoredMessage<MessageSchema['Type'], Children>
-  >
   /** Authors a view against this Composition's Model, Message, local Mounts,
    * and registered child Bindings. */
   readonly makeView: DefineView<
@@ -3493,41 +3541,95 @@ const makeDefineStep = <Model, Message, OutMessage>(): DefineStep<
   return defineStep
 }
 
+const isSubscriptionEntryRecord = (
+  value: unknown,
+): value is Readonly<globalThis.Record<PropertyKey, unknown>> =>
+  Predicate.isObject(value) && !globalThis.Array.isArray(value)
+
 const makeDefineSubscriptions = <Id extends string, Model, Message>(
   owner: Owner<Id>,
 ): DefineSubscriptions<Id, Model, Message> =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  ((build: AnyFunction) =>
-    Subscription.make<Model, Message>()(entry => {
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      const ownedEntry = ((
-        name: string,
-        fieldsOrConfig: unknown,
-        maybeConfig?: unknown,
-      ) => {
+  ((build: AnyFunction) => {
+    const builtSubscriptions: unknown = Subscription.make<Model, Message>()(
+      entry => {
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-        const qualifiedName = makeOwnedName(owner.id, name as never)
-        const definition =
-          maybeConfig === undefined
-            ? entry(
-                qualifiedName,
-                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                fieldsOrConfig as never,
-              )
-            : entry(
-                qualifiedName,
-                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                fieldsOrConfig as never,
-                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                maybeConfig as never,
-              )
-        registerDefinition(owner, definition, name)
-        return definition
-      }) as never
+        const ownedEntry = ((
+          name: string,
+          fieldsOrConfig: unknown,
+          maybeConfig?: unknown,
+        ) => {
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          const qualifiedName = makeOwnedName(owner.id, name as never)
+          const definition =
+            maybeConfig === undefined
+              ? entry(
+                  qualifiedName,
+                  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                  fieldsOrConfig as never,
+                )
+              : entry(
+                  qualifiedName,
+                  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                  fieldsOrConfig as never,
+                  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                  maybeConfig as never,
+                )
+          registerDefinition(owner, definition, name)
+          return definition
+        }) as never
 
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      return build(ownedEntry) as never
-    })) as never
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        return build(ownedEntry) as never
+      },
+    )
+
+    if (!isSubscriptionEntryRecord(builtSubscriptions)) {
+      throw new Error(
+        '[foldkit] Definition.subscriptions callback must return a Subscription entry record.',
+      )
+    }
+
+    if (Object.hasOwn(builtSubscriptions, 'layer')) {
+      throw new Error(
+        '[foldkit] Definition.subscriptions reserves "layer" for its aggregate handler Layer.',
+      )
+    }
+
+    const subscriptions = { ...builtSubscriptions }
+    Object.defineProperty(subscriptions, Subscription.RegistryEntriesTypeId, {
+      value: subscriptions,
+    })
+
+    const maybeLayers = Array.map(
+      Object.entries(subscriptions),
+      ([key, entry]) => {
+        if (!Predicate.isObject(entry) || !Object.hasOwn(entry, 'layer')) {
+          return Option.none()
+        }
+
+        const layer = Reflect.get(entry, 'layer')
+        if (!Layer.isLayer(layer)) {
+          throw new Error(
+            `[foldkit] Definition.subscriptions entry "${key}" has a "layer" value that is not an Effect Layer.`,
+          )
+        }
+
+        return Option.some(layer)
+      },
+    )
+
+    if (Array.every(maybeLayers, Option.isSome)) {
+      const layers = Array.getSomes(maybeLayers)
+      const layer = Array.match(layers, {
+        onEmpty: () => Layer.empty,
+        onNonEmpty: implementedEntries => Layer.mergeAll(...implementedEntries),
+      })
+      Object.defineProperty(subscriptions, 'layer', { value: layer })
+    }
+
+    return subscriptions
+  }) as never
 
 const makeDefineManagedResources =
   <Id extends string, Model, Message>(
@@ -3663,7 +3765,7 @@ export const makeDefinition = (
     typeof config.Message,
     typeof config.OutMessage
   >(parentContract)
-  type OperationSource = AnyFunction | AnyOperation
+  type OperationSource = AnyFunction
   const emptyOperations: Readonly<Record<string, OperationSource>> = {}
   const completedOperationsBySource = new WeakMap<
     Readonly<Record<string, OperationSource>>,
@@ -3684,21 +3786,22 @@ export const makeDefinition = (
       [config.Message],
     )
     const completed = Record.map(source, (operation, name) => {
-      if (isOperation(operation)) {
-        assertOperationOwner(operation, owner)
-        assertOperationMessage(operationMessage(operation))
-        assertLocalOperationMessage(operationMessage(operation), childBindings)
+      if (isOperationMessageConstructor(operation)) {
+        assertOperationMessage(operation)
+        assertLocalOperationMessage(operation, childBindings)
       } else if (!Predicate.isFunction(operation)) {
         throw new Error(
-          `[foldkit] Block "${owner.id}" operation "${name}" must be declared with makeOperation or a Message tuple producer.`,
+          `[foldkit] Block "${owner.id}" operation "${name}" must be a local Message constructor or a Message tuple producer.`,
         )
       }
 
+      const produce = isOperationMessageConstructor(operation)
+        ? prepareOperation(operation)
+        : operation
+
       return (model: unknown, ...args: ReadonlyArray<any>) =>
         withOperationGraph(childBindings, () => {
-          const input = isOperation(operation)
-            ? operationInput(operation, args)
-            : operation(...args)
+          const input = produce(...args)
           if (!globalThis.Array.isArray(input) || Array.isArrayEmpty(input)) {
             throw new Error(
               `[foldkit] Block "${owner.id}" exposed operation "${name}" must return a nonempty [Message, ...context] tuple.`,
@@ -3732,7 +3835,7 @@ export const makeDefinition = (
       readonly init: AnyFunction
       readonly update: AnyFunction
       readonly operations?: Readonly<Record<string, OperationSource>>
-      readonly subscriptions?: AnySubscriptions
+      readonly subscriptions?: AnySubscriptionInput
       readonly managedResources?: AnyManagedResources
       readonly EffectsLayer?: AnyLayer
       readonly hostHandlers?: ReadonlyArray<unknown>
@@ -3843,7 +3946,7 @@ export const makeDefinition = (
 
     registerDefaultView(block, implementation.view)
     localChannels.set(block, {
-      subscriptions: implementation.subscriptions ?? {},
+      subscriptions: Subscription.aggregate(implementation.subscriptions ?? {}),
       managedResources: implementation.managedResources ?? {},
     })
     registerBlockHostIdentities(block, hostIdentities)
@@ -3865,12 +3968,6 @@ export const makeDefinition = (
     makeView: defineView,
     makeInit: init,
     makeUpdate: update,
-    makeOperation: (Message: OperationMessageConstructor) => {
-      const operation = makeOperation(owner, Message)
-      assertOperationMessage(Message)
-      assertLocalOperationMessage(Message, childBindings)
-      return operation
-    },
     step: defineStep,
     subscriptions: defineSubscriptions,
     managedResources: defineManagedResources,
@@ -3909,7 +4006,6 @@ export const makeBaseDefinition = (
       childBindings: composition.childBindings,
       makeInit: composition.makeInit,
       makeUpdate: composition.makeUpdate,
-      makeOperation: composition.makeOperation,
       makeView: composition.makeView,
       makeBlock: composition.makeBlock,
     }

@@ -158,7 +158,7 @@ export const InitializedArgumentBinding = ParentDefinition.bindChild(
     field: 'argumentChild',
     parentMessage: ParentMessage.GotArgumentChildMessage,
     init: {
-      args: (context: InitializationContext) => [context.count],
+      startupToArgs: (context: InitializationContext) => [context.count],
     },
   },
 )
@@ -168,7 +168,7 @@ export const InitializedOptionalBinding = ParentDefinition.bindChild(
     field: 'maybeArgumentChild',
     parentMessage: ParentMessage.GotOptionalArgumentChildMessage,
     init: {
-      args: (context: InitializationContext) => {
+      startupToArgs: (context: InitializationContext) => {
         if (Option.isSome(context.maybeCount)) {
           return Option.some([context.maybeCount.value])
         }
@@ -185,7 +185,7 @@ export const NativeTupleOptionalBinding = ParentDefinition.bindChild(
     placement: 'nativeTupleOptional',
     parentMessage: ParentMessage.GotChildMessage,
     init: {
-      args: (context: Readonly<{ count: number }>) =>
+      startupToArgs: (context: Readonly<{ count: number }>) =>
         Option.some([context.count]),
     },
   },
@@ -199,7 +199,7 @@ export const InitializedCustomBinding = ParentDefinition.bindChild(
       Struct.modifyFields(model, { argumentChild: () => nextChild }),
     parentMessage: ParentMessage.GotChildMessage,
     init: {
-      args: (context: InitializationContext) => [context.count],
+      startupToArgs: (context: InitializationContext) => [context.count],
       model: childModel => ({ argumentChild: childModel }),
     },
   },

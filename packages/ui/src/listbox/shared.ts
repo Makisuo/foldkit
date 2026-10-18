@@ -94,6 +94,9 @@ export const baseInit = (config: BaseInitConfig): BaseModel => ({
 
 /** Union of all messages the listbox component can produce. */
 export const Message = defineMessageUnion({
+  RequestedOpen: {},
+  RequestedClose: {},
+  RequestedSelectItem: { item: Schema.String },
   Opened: { maybeActiveItemIndex: Schema.Option(Schema.Number) },
   Closed: {},
   BlurredItems: {},
@@ -137,6 +140,9 @@ export const Message = defineMessageUnion({
 
 export type Opened = typeof Message.Opened.Type
 export type Closed = typeof Message.Closed.Type
+export type RequestedOpen = typeof Message.RequestedOpen.Type
+export type RequestedClose = typeof Message.RequestedClose.Type
+export type RequestedSelectItem = typeof Message.RequestedSelectItem.Type
 export type BlurredItems = typeof Message.BlurredItems.Type
 export type ActivatedItem = typeof Message.ActivatedItem.Type
 export type DeactivatedItem = typeof Message.DeactivatedItem.Type
@@ -443,7 +449,7 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
       if (baseModel.isAnimated) {
         return Update.combine([
           () => ({ model: baseModel, commands: openCommands }),
-          AnimationBinding.show(),
+          AnimationBinding.requestShow(),
           stepModel => ({
             model: modifyBaseFields(stepModel, { isOpen: () => true }),
           }),
@@ -472,7 +478,7 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
           Function.compose(
             Update.combine([
               () => ({ model: closed, commands }),
-              AnimationBinding.hide(),
+              AnimationBinding.requestHide(),
             ]),
             Update.withOutMessage(outMessage),
           ),
@@ -480,6 +486,34 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
       }
 
       return Update.withOutMessage({ model: closed, commands }, outMessage)
+    }
+
+    const openWithActiveItem = (maybeActiveItemIndex: Option.Option<number>) =>
+      openListbox(
+        modifyBaseFields(model, {
+          maybeActiveItemIndex: () => maybeActiveItemIndex,
+          activationTrigger: () =>
+            Option.match(maybeActiveItemIndex, {
+              onNone: () => 'Pointer' as const,
+              onSome: () => 'Keyboard' as const,
+            }),
+          searchQuery: () => '',
+          searchVersion: () => 0,
+          maybeLastPointerPosition: () => Option.none(),
+        }),
+      )
+
+    const selectItem = (item: string) => {
+      const selection = handleSelectedItem(model, item)
+      if (selectionBehavior === 'CloseWithFocus') {
+        return closeListbox(
+          selection.model,
+          closeWithFocusCommands,
+          selection.outMessage,
+        )
+      } else {
+        return selection
+      }
     }
 
     return Message.match(message, {
@@ -495,20 +529,14 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
       SuppressedItemCommit: () => ({ model }),
       CompletedAnchorListbox: () => ({ model }),
       CompletedPortalListboxBackdrop: () => ({ model }),
+      RequestedOpen: () => openWithActiveItem(Option.none()),
+
+      RequestedClose: () => closeListbox(model, closeWithFocusCommands),
+
+      RequestedSelectItem: ({ item }) => selectItem(item),
+
       Opened: ({ maybeActiveItemIndex }) =>
-        openListbox(
-          modifyBaseFields(model, {
-            maybeActiveItemIndex: () => maybeActiveItemIndex,
-            activationTrigger: () =>
-              Option.match(maybeActiveItemIndex, {
-                onNone: () => 'Pointer' as const,
-                onSome: () => 'Keyboard' as const,
-              }),
-            searchQuery: () => '',
-            searchVersion: () => 0,
-            maybeLastPointerPosition: () => Option.none(),
-          }),
-        ),
+        openWithActiveItem(maybeActiveItemIndex),
 
       Closed: () => closeListbox(model, closeWithFocusCommands),
 
@@ -562,18 +590,7 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
             }
           : { model },
 
-      SelectedItem: ({ item }) => {
-        const selection = handleSelectedItem(model, item)
-        if (selectionBehavior === 'CloseWithFocus') {
-          return closeListbox(
-            selection.model,
-            closeWithFocusCommands,
-            selection.outMessage,
-          )
-        } else {
-          return selection
-        }
-      },
+      SelectedItem: ({ item }) => selectItem(item),
 
       RequestedItemClick: ({ index }) => ({
         model,
@@ -606,7 +623,7 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
       },
 
       CompletedDetectListboxMovementOrAnimationEnd: ({ generation }) =>
-        AnimationBinding.finish(generation),
+        AnimationBinding.requestFinish(generation),
 
       PressedPointerOnButton: ({ pointerType, button }) => {
         const withPointerType = modifyBaseFields(model, {
@@ -625,7 +642,7 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
           if (model.isAnimated) {
             return Update.combine([
               () => ({ model: closed, commands: closeWithFocusCommands }),
-              AnimationBinding.hide(),
+              AnimationBinding.requestHide(),
             ])
           }
 

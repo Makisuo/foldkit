@@ -365,7 +365,7 @@ const internalUpdate = (model: Model, message: AuthoredMessage) => {
         Function.compose(
           Update.combine([
             () => ({ model: baseModel, commands: openCommands }),
-            AnimationBinding.show(),
+            AnimationBinding.requestShow(),
             stepModel => ({
               model: modifyFields(stepModel, { isOpen: () => true }),
             }),
@@ -397,7 +397,7 @@ const internalUpdate = (model: Model, message: AuthoredMessage) => {
         Function.compose(
           Update.combine([
             () => ({ model: closed, commands }),
-            AnimationBinding.hide(),
+            AnimationBinding.requestHide(),
           ]),
           Update.withOutMessage(OutMessage.Closed()),
         ),
@@ -442,7 +442,7 @@ const internalUpdate = (model: Model, message: AuthoredMessage) => {
               Function.compose(
                 Update.combine([
                   () => ({ model: closed, commands: closeWithFocusCommands }),
-                  AnimationBinding.hide(),
+                  AnimationBinding.requestHide(),
                 ]),
                 Update.withOutMessage(OutMessage.Closed()),
               ),
@@ -460,7 +460,7 @@ const internalUpdate = (model: Model, message: AuthoredMessage) => {
       },
 
       CompletedDetectPopoverMovementOrAnimationEnd: ({ generation }) =>
-        AnimationBinding.finish(generation),
+        AnimationBinding.requestFinish(generation),
 
       CompletedFocusPopoverPanel: () => ({ model }),
       CompletedFocusPopoverButton: () => ({ model }),
@@ -724,8 +724,8 @@ const implementation = {
   update,
   view,
   operations: {
-    open: PopoverComposition.makeOperation(Message.RequestedOpen),
-    close: PopoverComposition.makeOperation(Message.RequestedClose),
+    requestOpen: Message.RequestedOpen,
+    requestClose: Message.RequestedClose,
   },
   EffectsLayer,
 }

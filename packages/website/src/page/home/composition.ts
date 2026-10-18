@@ -26,7 +26,7 @@ export const DemoTabsBinding = HomeDefinition.bindChild(DemoTab.DemoTabs, {
   field: 'demoTabs',
   parentMessage: Message.GotDemoTabsMessage,
   outMessage: { fold: foldDemoTabsOutMessage },
-  init: { args: () => Tuple.make({ id: 'demo-tabs' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'demo-tabs' }) },
 })
 
 const foldPlaygroundMenuOutMessage = PlaygroundMenu.OutMessage.match<
@@ -46,7 +46,8 @@ export const PlaygroundMenuBinding = HomeDefinition.bindChild(PlaygroundMenu, {
   parentMessage: Message.GotPlaygroundMenuMessage,
   outMessage: { fold: foldPlaygroundMenuOutMessage },
   init: {
-    args: () => Tuple.make({ id: 'playground-menu', isAnimated: true }),
+    startupToArgs: () =>
+      Tuple.make({ id: 'playground-menu', isAnimated: true }),
   },
 })
 

@@ -79,7 +79,7 @@ export const ChartModeRadioGroupBinding = ApplicationDefinition.bindChild(
   {
     field: 'chartModeRadioGroup',
     parentMessage: Message.GotChartModeRadioGroupMessage,
-    init: { args: () => [{ id: CHART_MODE_RADIO_GROUP_ID }] },
+    init: { startupToArgs: () => [{ id: CHART_MODE_RADIO_GROUP_ID }] },
     outMessage: { fold: foldChartModeRadioGroupOutMessage },
   },
 )
@@ -94,7 +94,7 @@ export const PeriodRadioGroupBinding = ApplicationDefinition.bindChild(
   {
     field: 'periodRadioGroup',
     parentMessage: Message.GotPeriodRadioGroupMessage,
-    init: { args: () => [{ id: PERIOD_RADIO_GROUP_ID }] },
+    init: { startupToArgs: () => [{ id: PERIOD_RADIO_GROUP_ID }] },
     outMessage: { fold: foldPeriodRadioGroupOutMessage },
   },
 )
@@ -109,7 +109,7 @@ export const PackageRadioGroupBinding = ApplicationDefinition.bindChild(
   {
     field: 'packageRadioGroup',
     parentMessage: Message.GotPackageRadioGroupMessage,
-    init: { args: () => [{ id: PACKAGE_RADIO_GROUP_ID }] },
+    init: { startupToArgs: () => [{ id: PACKAGE_RADIO_GROUP_ID }] },
     outMessage: { fold: foldPackageRadioGroupOutMessage },
   },
 )

@@ -3,10 +3,9 @@ import * as Home from './home'
 import { Message } from './message'
 import * as Room from './room'
 
-const foldHomeOutMessage = (outMessage: Home.OutMessage) =>
-  Home.OutMessage.match(outMessage, {
-    SelectedRoom: ({ roomId }) => RoomBinding.open(roomId),
-  })
+const foldHomeOutMessage = Home.OutMessage.match({
+  SelectedRoom: ({ roomId }) => RoomBinding.requestOpen(roomId),
+})
 
 export const HomeBinding = ApplicationDefinition.bindChild(Home.block, {
   field: 'home',
@@ -14,10 +13,9 @@ export const HomeBinding = ApplicationDefinition.bindChild(Home.block, {
   outMessage: { fold: foldHomeOutMessage },
 })
 
-const foldRoomOutMessage = (outMessage: Room.OutMessage) =>
-  Room.OutMessage.match(outMessage, {
-    SavedRoom: ({ roomId }) => HomeBinding.markRoomSaved(roomId),
-  })
+const foldRoomOutMessage = Room.OutMessage.match({
+  SavedRoom: ({ roomId }) => HomeBinding.informRoomSaved(roomId),
+})
 
 export const RoomBinding = ApplicationDefinition.bindChild(Room.block, {
   field: 'room',

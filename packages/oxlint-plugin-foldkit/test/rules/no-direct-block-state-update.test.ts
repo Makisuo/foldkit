@@ -108,6 +108,30 @@ const directPreferencesUpdate = (model: string) =>
     ]),
   )
 
+const copiedChildReturn = (
+  namespace: string,
+  operation: string,
+  fieldName: string,
+  resultName: string,
+) => [
+  Testing.varDecl(
+    'const',
+    resultName,
+    Testing.callOfMember(namespace, operation, [
+      Testing.memberExpr('model', fieldName),
+    ]),
+  ),
+  modifyFields(
+    'model',
+    objectExpression([
+      property(
+        fieldName,
+        Testing.arrowFn(Testing.memberExpr(resultName, 'model')),
+      ),
+    ]),
+  ),
+]
+
 const foldSettings = Testing.varDecl(
   'const',
   'foldSettings',
@@ -350,6 +374,57 @@ const runRule = (statements: ReadonlyArray<unknown>) =>
   )
 
 describe('no-direct-block-state-update', () => {
+  it('flags a copied raw child update result that can discard Commands', () => {
+    const result = runRule([
+      foldSettings,
+      foldSettingsDataFirst('model'),
+      ...copiedChildReturn('Settings', 'update', 'settings', 'settingsUpdate'),
+    ])
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.diagnostic.message).toContain('settingsUpdate.model')
+    expect(result[0]?.diagnostic.message).toContain('Settings.update')
+    expect(result[0]?.diagnostic.message).toContain('Commands')
+    expect(result[0]?.diagnostic.message).toContain('OutMessage')
+  })
+
+  it('flags a copied child operation result', () => {
+    const result = runRule([
+      foldSettings,
+      foldSettingsDataFirst('model'),
+      ...copiedChildReturn('Settings', 'close', 'settings', 'settingsClose'),
+    ])
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.diagnostic.message).toContain('Settings.close')
+    expect(result[0]?.diagnostic.message).toContain(
+      "registered Binding's named method",
+    )
+  })
+
+  it('allows child initialization without a current child Model argument', () => {
+    const result = runRule([
+      foldSettings,
+      foldSettingsDataFirst('model'),
+      Testing.varDecl(
+        'const',
+        'settingsInit',
+        Testing.callOfMember('Settings', 'init'),
+      ),
+      modifyFields(
+        'model',
+        objectExpression([
+          property(
+            'settings',
+            Testing.arrowFn(Testing.memberExpr('settingsInit', 'model')),
+          ),
+        ]),
+      ),
+    ])
+
+    expect(result).toHaveLength(0)
+  })
+
   it('flags nested modifyFields on a field wired as a child Block', () => {
     const result = runRule([
       foldSettings,
@@ -360,7 +435,7 @@ describe('no-direct-block-state-update', () => {
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain('`settings`')
     expect(result[0]?.diagnostic.message).toContain(
-      'child-owned Message producer',
+      "child Block's `operations` record",
     )
     expect(result[0]?.diagnostic.message).toContain('registered Binding')
   })

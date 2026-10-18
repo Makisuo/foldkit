@@ -14,7 +14,7 @@ Call `ParentDefinition.bindChild` with the completed Block, its parent Model `fi
 
 ### Programmatic API
 
-The completed Block exposes `open`, `close`, and `selectItem` as direct methods on its Binding. Call `cityCombobox.open()`, `cityCombobox.close(restingInputValue)`, or `cityCombobox.selectItem(item, displayText)` to get a connected parent Step for the owning Composition. Multi-select `close()` takes no input, and its `selectItem(item)` uses the item itself as display text.
+The completed Block exposes `requestOpen`, `requestClose`, and `requestSelectItem` as direct methods on its Binding. Call `cityCombobox.requestOpen()`, `cityCombobox.requestClose(restingInputValue)`, or `cityCombobox.requestSelectItem(item, displayText)` to get a connected parent Step for the owning Composition. Multi-select `requestClose()` takes no input, and its `requestSelectItem(item)` uses the item itself as display text.
 
 :::Info{label="See it in an app"}
 Check out how Combobox is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/combobox.ts).
@@ -72,7 +72,7 @@ What a read-only Combobox never does is commit. Its input carries the native `re
 
 #### Closing Preserves the Selection
 
-Closing does not change the selection either. A nullable Combobox normally reads an empty input on close as the user clearing it and emits `ClearedSelection`; a read-only one never does, so a user who opens and closes it, by `Escape`, blur, the toggle button, or a backdrop click, leaves the parent's selection exactly as it was. This matters most for multi-select, whose input rests empty by design, and for a single-select whose input was never seeded. The programmatic `close` helper is unaffected and clears as before.
+Closing does not change the selection either. A nullable Combobox normally reads an empty input on close as the user clearing it and emits `ClearedSelection`; a read-only one never does, so a user who opens and closes it, by `Escape`, blur, the toggle button, or a backdrop click, leaves the parent's selection exactly as it was. This matters most for multi-select, whose input rests empty by design, and for a single-select whose input was never seeded. The programmatic `requestClose` operation is unaffected and clears as before.
 
 ### Typing and Opening
 
@@ -82,11 +82,11 @@ Freezing typing removes an open path along with it. An interactive Combobox open
 
 ### Programmatic Changes
 
-`isReadOnly` describes what the user may do, not what the program may do. `selectItem` and a directly dispatched `SelectedItem` Message still select, because the parent owns the selection.
+`isReadOnly` describes what the user may do, not what the program may do. `requestSelectItem` and a directly dispatched `SelectedItem` Message still select, because the parent owns the selection.
 
 ### Displaying an Existing Selection
 
-A read-only single-select Combobox whose parent holds a preloaded selection renders an empty input until an open and close cycle happens, since `model.inputValue` starts empty and only becomes the selection's display text through a selection or a close. Read-only removes the user's usual recovery path, since they cannot type to surface it. After initializing the child and assembling its parent Model, apply the Binding's `selectItem` Step with the preloaded selection. This sets `inputValue` to the display text. A feature can expose the startup transition as a Message-producing `boot` operation when it is useful to its parent; see [startup Steps](/core/init-and-flags#startup-steps).
+A read-only single-select Combobox whose parent holds a preloaded selection renders an empty input until an open and close cycle happens, since `model.inputValue` starts empty and only becomes the selection's display text through a selection or a close. Read-only removes the user's usual recovery path, since they cannot type to surface it. After initializing the child and assembling its parent Model, apply the Binding's `requestSelectItem` Step with the preloaded selection. This sets `inputValue` to the display text. A feature can expose the startup transition as a Message-producing `boot` operation when it is useful to its parent; see [startup Steps](/core/init-and-flags#startup-steps).
 
 Seeding interacts with filtering. You derive `items` from `model.inputValue`, so a read-only Combobox seeded with its selection opens showing only the items matching that text, often just the one. Filter on a separate field, or skip filtering while read-only, when the full list should stay visible.
 

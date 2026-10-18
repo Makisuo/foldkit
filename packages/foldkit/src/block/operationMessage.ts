@@ -22,7 +22,7 @@ export const makeOperationMessageValidator = (Message: object) => {
   return (constructor: object): void => {
     if (!members.has(constructor)) {
       throw new Error(
-        "[foldkit] makeOperation requires a constructor from this Block's declared Message Schema. A same-shaped constructor from another union is not the same declaration.",
+        "[foldkit] A Block operation requires a constructor from this Block's declared Message Schema. A same-shaped constructor from another union is not the same declaration.",
       )
     }
   }

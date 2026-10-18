@@ -60,13 +60,13 @@ const LeftBinding = ApplicationDefinition.bindChild(childBlock, {
   placement: 'Left',
   field: 'left',
   parentMessage: Message.GotLeftMessage,
-  init: { args: () => ['left'] },
+  init: { startupToArgs: () => ['left'] },
 })
 const RightBinding = ApplicationDefinition.bindChild(childBlock, {
   placement: 'Right',
   field: 'right',
   parentMessage: Message.GotRightMessage,
-  init: { args: () => ['right'] },
+  init: { startupToArgs: () => ['right'] },
 })
 const composition = ApplicationDefinition.makeComposition({
   childBindings: [LeftBinding, RightBinding],

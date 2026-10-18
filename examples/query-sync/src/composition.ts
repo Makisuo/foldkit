@@ -39,7 +39,7 @@ const foldDietListboxOutMessage = DietListbox.OutMessage.match({
 export const DietListboxBinding = ApplicationDefinition.bindChild(DietListbox, {
   field: 'dietListbox',
   parentMessage: Message.GotDietListboxMessage,
-  init: { args: () => [{ id: 'diet-filter' }] },
+  init: { startupToArgs: () => [{ id: 'diet-filter' }] },
   outMessage: { fold: foldDietListboxOutMessage },
 })
 
@@ -64,7 +64,7 @@ export const PeriodListboxBinding = ApplicationDefinition.bindChild(
   {
     field: 'periodListbox',
     parentMessage: Message.GotPeriodListboxMessage,
-    init: { args: () => [{ id: 'period-filter' }] },
+    init: { startupToArgs: () => [{ id: 'period-filter' }] },
     outMessage: { fold: foldPeriodListboxOutMessage },
   },
 )

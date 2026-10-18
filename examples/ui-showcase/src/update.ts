@@ -1,12 +1,20 @@
 import { Update } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
-import { toString as urlToString } from 'foldkit/url'
+import { Url, toString as urlToString } from 'foldkit/url'
 
 import { LoadExternal, NavigateInternal } from './command'
 import { ApplicationComposition, UiBinding } from './composition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 import { urlToApplicationRoute } from './route'
+
+const stepRoute = (url: Url) =>
+  ApplicationDefinition.step(model => ({
+    model: modifyFields(model, {
+      route: () => urlToApplicationRoute(url),
+    }),
+  }))
 
 export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
@@ -27,14 +35,10 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
 
     ChangedUrl: ({ url }) =>
       Update.combine(model, [
-        stepModel => ({
-          model: modifyFields(stepModel, {
-            route: () => urlToApplicationRoute(url),
-          }),
-        }),
-        UiBinding.closeMobileMenu(),
+        stepRoute(url),
+        UiBinding.requestCloseMobileMenu(),
       ]),
 
-    ClickedOpenMobileMenu: () => UiBinding.openMobileMenu()(model),
+    ClickedOpenMobileMenu: () => UiBinding.requestOpenMobileMenu()(model),
   }),
 )

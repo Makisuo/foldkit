@@ -81,16 +81,18 @@ export const update = UiComposition.makeUpdate((model, message) =>
       }),
     }),
 
-    ClickedDeleteProject: () => NestedDialogChildDemoBinding.open()(model),
+    ClickedDeleteProject: () =>
+      NestedDialogChildDemoBinding.requestOpen()(model),
 
-    ClickedOpenDialog: () => DialogDemoBinding.open()(model),
+    ClickedOpenDialog: () => DialogDemoBinding.requestOpen()(model),
 
-    ClickedOpenAnimatedDialog: () => DialogAnimatedDemoBinding.open()(model),
+    ClickedOpenAnimatedDialog: () =>
+      DialogAnimatedDemoBinding.requestOpen()(model),
 
-    ClickedEditFilters: () => OverlayDialogDemoBinding.open()(model),
+    ClickedEditFilters: () => OverlayDialogDemoBinding.requestOpen()(model),
 
     ClickedOpenProjectSettings: () =>
-      NestedDialogParentDemoBinding.open()(model),
+      NestedDialogParentDemoBinding.requestOpen()(model),
 
     ToggledDisclosureDemo: ({ isOpen }) => ({
       model: modifyFields(model, { isDisclosureDemoOpen: () => isOpen }),
@@ -106,10 +108,11 @@ export const update = UiComposition.makeUpdate((model, message) =>
       model: modifyFields(model, { isSwitchDemoChecked: () => isChecked }),
     }),
 
-    ClickedHoverIntentMenuItem: () => HoverIntentMenuDemoBinding.close()(model),
+    ClickedHoverIntentMenuItem: () =>
+      HoverIntentMenuDemoBinding.requestClose()(model),
 
     ClickedShowInfoToast: () =>
-      ToastDemoBinding.show({
+      ToastDemoBinding.requestShow({
         variant: 'Info',
         payload: {
           title: 'Preferences updated',
@@ -118,7 +121,7 @@ export const update = UiComposition.makeUpdate((model, message) =>
       })(model),
 
     ClickedShowSuccessToast: () =>
-      ToastDemoBinding.show({
+      ToastDemoBinding.requestShow({
         variant: 'Success',
         payload: {
           title: 'Uploaded',
@@ -127,7 +130,7 @@ export const update = UiComposition.makeUpdate((model, message) =>
       })(model),
 
     ClickedShowErrorToast: () =>
-      ToastDemoBinding.show({
+      ToastDemoBinding.requestShow({
         variant: 'Error',
         payload: {
           title: 'Save failed',
@@ -136,7 +139,7 @@ export const update = UiComposition.makeUpdate((model, message) =>
       })(model),
 
     ClickedShowStickyToast: () =>
-      ToastDemoBinding.show({
+      ToastDemoBinding.requestShow({
         variant: 'Info',
         payload: {
           title: 'Action required',
@@ -145,12 +148,12 @@ export const update = UiComposition.makeUpdate((model, message) =>
         sticky: true,
       })(model),
 
-    ClickedDismissAllToasts: () => ToastDemoBinding.dismissAll()(model),
+    ClickedDismissAllToasts: () => ToastDemoBinding.requestDismissAll()(model),
 
     ClickedToggleAnimationDemo: () =>
       model.animationDemo.isShowing
-        ? AnimationDemoBinding.hide()(model)
-        : AnimationDemoBinding.show()(model),
+        ? AnimationDemoBinding.requestHide()(model)
+        : AnimationDemoBinding.requestShow()(model),
 
     ClickedRemoveFileDropDemoFile: ({ fileIndex }) => ({
       model: modifyFields(model, {
@@ -160,21 +163,21 @@ export const update = UiComposition.makeUpdate((model, message) =>
     }),
 
     ClickedVirtualListScrollToMiddle: () =>
-      VirtualListDemoBinding.scrollToIndex(
+      VirtualListDemoBinding.requestScrollToIndex(
         Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
       )(model),
 
     ClickedVirtualListVariableScrollToMiddle: () =>
-      VirtualListVariableDemoBinding.scrollToIndex(
+      VirtualListVariableDemoBinding.requestScrollToIndex(
         Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
       )(model),
 
     ClickedVirtualListChatPrepend: () => prependVirtualListChatMessages(model),
 
     ClickedVirtualListChatScrollToMessage: () =>
-      VirtualListChatDemoBinding.scrollToKey('7', { alignment: 'Center' })(
-        model,
-      ),
+      VirtualListChatDemoBinding.requestScrollToKey('7', {
+        alignment: 'Center',
+      })(model),
 
     ClickedVirtualListChatAppend: () => {
       const nextId = model.virtualListChatNextId

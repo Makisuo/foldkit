@@ -8,7 +8,8 @@ import { makeRuntime } from './update.js'
 export type {
   CompletedWaitBeforeDismissal,
   Dismissed,
-  DismissedAll,
+  RequestedDismiss,
+  RequestedDismissAll,
   GotAnimationMessage,
   PressedEntryPointer,
   MovedSwipePointer,
@@ -131,8 +132,8 @@ const LEFT_MOUSE_BUTTON = 0
  *  hover state, and swipe state.
  *
  *  Consume the completed Block everywhere. Use `Toast.Model` in your app
- *  Model, `Toast.Message` in your parent Message union, `Toast.operations.show`
- *  and `Toast.operations.dismiss` for raw Model operations, and
+ *  Model, `Toast.Message` in your parent Message union, `Toast.operations.requestShow`
+ *  and `Toast.operations.requestDismiss` for raw Model operations, and
  *  `Parent.bindChild(Toast, config)` in the parent Block. Exposed
  *  operations such as `show` and `dismiss` are available directly on the
  *  binding. The separate exports provide

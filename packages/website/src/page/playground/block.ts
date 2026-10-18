@@ -8,15 +8,11 @@ import {
   view,
 } from './playground'
 
-const informSupport = PlaygroundComposition.makeOperation(
-  Message.InformedOfSupport,
-)
-
 export const block = PlaygroundComposition.makeBlock({
   init,
   update,
   view,
   managedResources,
   EffectsLayer,
-  operations: { informSupport },
+  operations: { informSupport: Message.InformedOfSupport },
 })

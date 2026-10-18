@@ -74,7 +74,7 @@ const foldAnimationOutMessage = (
 const AnimationBinding = AnimationExampleDefinition.bindChild(Animation.block, {
   field: 'animation',
   parentMessage: Message.GotAnimationMessage,
-  init: { args: () => Tuple.make({ id: 'content' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'content' }) },
   outMessage: { fold: foldAnimationOutMessage },
 })
 
@@ -97,8 +97,8 @@ const update = AnimationExampleComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedToggleAnimation: () =>
       model.animation.isShowing
-        ? AnimationBinding.hide()(model)
-        : AnimationBinding.show()(model),
+        ? AnimationBinding.requestHide()(model)
+        : AnimationBinding.requestShow()(model),
   }),
 )
 

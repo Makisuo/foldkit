@@ -5,7 +5,9 @@
 
 Declare child startup inputs beside their Bindings and assemble their initial Models and Commands through the owning Composition. A completed Block already carries its initializer; the parent now supplies the startup policy without repeating Model placement and Command collection.
 
-A required exact direct field initializes automatically when the child's initializer can be called without arguments. Use `init: { args }` when it needs inputs, or `init: false` when the parent supplies the initial field. Optional, keyed, and accessor storage remains parent-owned when `init` is omitted. Select automatic optional presence with `Option<tuple>` and initial keyed membership with `init.occurrences`. Ordinary tuple literals retain the child's exact contextual argument types.
+A required exact direct field initializes automatically when the child's initializer can be called without arguments. Use `init: { startupToArgs }` when it needs inputs, or `init: false` when the parent supplies the initial field. Optional, keyed, and accessor storage remains parent-owned when `init` is omitted. Select automatic optional presence with `Option<tuple>` and initial keyed membership with `init.occurrences`. Ordinary tuple literals retain the child's exact contextual argument types.
+
+`init.startupToArgs` maps the shared startup input to child initializer arguments. Keep `args` for concrete tuples in `Binding.init({ args, toParentModel })` and keyed occurrence records. The startup callback has no `init.args` alias; `init.occurrences` still selects whole keyed collections.
 
 Author the complete startup plan with `ApplicationComposition.makeInit` or `FeatureComposition.makeInit`. Add a `Startup` Schema to the parent Definition when Binding selectors share decoded input. The callback supplies that value through `startup`, returns fields owned by the parent, and may list Commands and startup Steps. This remains the existing Composition startup boundary; it does not add a Runtime phase, construct Layers, or execute Commands.
 
@@ -51,7 +53,7 @@ export const ApplicationDefinition = defineApplication({
 Then declare the child inputs with the Binding in composition.ts. The Definition's `Startup` Schema contextually types the selector:
 
 ```ts
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 import * as Settings from './settings'
 
@@ -59,7 +61,7 @@ export const SettingsBinding = ApplicationDefinition.bindChild(Settings.block, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
   init: {
-    args: flags => [{ theme: flags.savedTheme }],
+    startupToArgs: flags => [{ theme: flags.savedTheme }],
   },
 })
 
@@ -106,7 +108,7 @@ Return a wrapper as a plain record. Its child field must retain the exact initia
 ```ts
 import { Array, Option } from 'effect'
 
-import { Application } from './definition'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
 import * as Counter from './counter'
 

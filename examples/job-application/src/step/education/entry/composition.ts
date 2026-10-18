@@ -26,7 +26,7 @@ export const GraduationYearListboxBinding = EducationEntryDefinition.bindChild(
     field: 'graduationYearListbox',
     parentMessage: Message.GotGraduationYearListboxMessage,
     init: {
-      args: entryId => [{ id: `${entryId}-graduation-year` }],
+      startupToArgs: entryId => [{ id: `${entryId}-graduation-year` }],
     },
     outMessage: { fold: foldGraduationYearListboxOutMessage },
   },

@@ -20,4 +20,4 @@ export const subscriptions = widget.subscriptions(entry => ({
   }),
 }))
 
-export const EffectsLayer = subscriptions.hostStepChanges.layer
+export const EffectsLayer = subscriptions.layer

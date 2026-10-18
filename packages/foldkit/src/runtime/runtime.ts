@@ -27,7 +27,10 @@ import type { ManagedResources } from '../managedResource/index.js'
 import type { AnyMountHandler, LayeredMountDefinition } from '../mount/index.js'
 import type { Ports } from '../port/index.js'
 import { RenderCommit, createCommitNotifier } from '../render/commit.js'
-import type { Subscriptions } from '../subscription/subscription.js'
+import {
+  type Registrations,
+  aggregate as aggregateSubscriptions,
+} from '../subscription/subscription.js'
 import type { Return as UpdateReturn } from '../update/index.js'
 import { Url, fromString as urlFromString } from '../url/index.js'
 import {
@@ -120,7 +123,7 @@ export type RuntimeConfig<
    * `makeElement` sets it to `false`.
    */
   manageDocument: boolean
-  subscriptions?: Subscriptions<
+  subscriptions?: Registrations<
     Model,
     Message,
     Resources | ManagedResourceServices
@@ -876,7 +879,7 @@ export const makeRuntime = <
 
         if (composition === undefined && subscriptions) {
           yield* forkSubscriptionFibers({
-            subscriptions,
+            subscriptions: aggregateSubscriptions(subscriptions),
             initModel,
             modelPubSub,
             runtimeScope,

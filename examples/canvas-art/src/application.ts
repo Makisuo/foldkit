@@ -191,7 +191,7 @@ export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
 
 export const EffectsLayer = Layer.mergeAll(
   GenerateBall.layer,
-  subscriptions.animationFrameTicks.layer,
+  subscriptions.layer,
 )
 
 const backgroundShape = Canvas.Rect({

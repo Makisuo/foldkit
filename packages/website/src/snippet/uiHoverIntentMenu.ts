@@ -54,7 +54,7 @@ const init = HoverMenuComposition.makeInit(() => ({
 // In the corresponding Message.match handlers:
 const update = HoverMenuComposition.makeUpdate((model, message) =>
   Message.match(message, {
-    ClickedHoverMenuItem: () => HoverMenuBinding.close()(model),
+    ClickedHoverMenuItem: () => HoverMenuBinding.requestClose()(model),
   }),
 )
 

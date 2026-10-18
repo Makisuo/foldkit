@@ -108,14 +108,15 @@ type UpdateReturn = ReturnType<typeof update>
 
 /** Programmatically opens the Combobox, updating the Model and returning
  *  focus and modal Commands. Use this in domain-event handlers. */
-export const open = (model: Model): UpdateReturn => block.operations.open(model)
+export const open = (model: Model): UpdateReturn =>
+  block.operations.requestOpen(model)
 
 /** Programmatically closes the Combobox, updating the Model and returning
  *  focus and modal Commands. `restingInputValue` is the text the input
  *  returns to (the parent-owned selection's display text, or empty). Use
  *  this in domain-event handlers to close the combobox. */
 export const close = (model: Model, restingInputValue: string): UpdateReturn =>
-  block.operations.close(model, restingInputValue)
+  block.operations.requestClose(model, restingInputValue)
 
 /** Programmatically selects an item in the single-select combobox, closing
  *  the combobox and emitting `Selected({ value })`. The Block treats the
@@ -127,7 +128,7 @@ export const selectItem = (
   model: Model,
   item: string,
   displayText: string,
-): UpdateReturn => block.operations.selectItem(model, item, displayText)
+): UpdateReturn => block.operations.requestSelectItem(model, item, displayText)
 
 // VIEW
 
@@ -213,16 +214,19 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
         h,
       ),
   )
-  const open = () =>
-    Tuple.make(ItemMessage.Opened({ maybeActiveItemIndex: Option.none() }))
-  const close = (restingInputValue: string) =>
-    Tuple.make(ItemMessage.Closed({ restingInputValue, isClearable: true }))
-  const selectItem = (item: Item, displayText: string) =>
+  const requestOpen = ItemMessage.RequestedOpen
+  const requestClose = (restingInputValue: string) =>
     Tuple.make(
-      ItemMessage.SelectedItem({
+      ItemMessage.RequestedClose({
+        restingInputValue,
+        isClearable: true,
+      }),
+    )
+  const requestSelectItem = (item: Item, displayText: string) =>
+    Tuple.make(
+      ItemMessage.RequestedSelectItem({
         item,
         displayText,
-        wasSelected: false,
       }),
     )
 
@@ -234,7 +238,7 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
         model: init(config),
       })),
       update,
-      operations: { open, close, selectItem },
+      operations: { requestOpen, requestClose, requestSelectItem },
       EffectsLayer,
     },
   }

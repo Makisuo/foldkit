@@ -72,7 +72,7 @@ const foldHoverIntentOutMessage = HoverIntent.OutMessage.match<
 export const MobileMenuDialogBinding = UiDefinition.bindChild(Dialog.block, {
   field: 'mobileMenuDialog',
   parentMessage: Message.GotMobileMenuDialogMessage,
-  init: { args: () => [{ id: 'mobile-menu' }] },
+  init: { startupToArgs: () => [{ id: 'mobile-menu' }] },
   outMessage: { fold: foldDialogOutMessage },
 })
 
@@ -92,7 +92,7 @@ const foldComboboxDemoOutMessage = CityCombobox.OutMessage.match<
 export const ComboboxDemoBinding = UiDefinition.bindChild(CityCombobox, {
   field: 'comboboxDemo',
   parentMessage: Message.GotComboboxDemoMessage,
-  init: { args: () => [{ id: 'combobox-demo' }] },
+  init: { startupToArgs: () => [{ id: 'combobox-demo' }] },
   outMessage: { fold: foldComboboxDemoOutMessage },
 })
 
@@ -122,7 +122,9 @@ export const ComboboxNullableDemoBinding = UiDefinition.bindChild(
   {
     field: 'comboboxNullableDemo',
     parentMessage: Message.GotComboboxNullableDemoMessage,
-    init: { args: () => [{ id: 'combobox-nullable-demo', nullable: true }] },
+    init: {
+      startupToArgs: () => [{ id: 'combobox-nullable-demo', nullable: true }],
+    },
     outMessage: { fold: foldComboboxNullableDemoOutMessage },
   },
 )
@@ -151,7 +153,7 @@ export const ComboboxMultiDemoBinding = UiDefinition.bindChild(
   {
     field: 'comboboxMultiDemo',
     parentMessage: Message.GotComboboxMultiDemoMessage,
-    init: { args: () => [{ id: 'combobox-multi-demo' }] },
+    init: { startupToArgs: () => [{ id: 'combobox-multi-demo' }] },
     outMessage: { fold: foldComboboxMultiDemoOutMessage },
   },
 )
@@ -174,7 +176,7 @@ export const ComboboxPlacementLockDemoBinding = UiDefinition.bindChild(
   {
     field: 'comboboxPlacementLockDemo',
     parentMessage: Message.GotComboboxPlacementLockDemoMessage,
-    init: { args: () => [{ id: 'combobox-placement-lock-demo' }] },
+    init: { startupToArgs: () => [{ id: 'combobox-placement-lock-demo' }] },
     outMessage: { fold: foldComboboxPlacementLockDemoOutMessage },
   },
 )
@@ -198,7 +200,7 @@ export const ComboboxSelectOnFocusDemoBinding = UiDefinition.bindChild(
     field: 'comboboxSelectOnFocusDemo',
     parentMessage: Message.GotComboboxSelectOnFocusDemoMessage,
     init: {
-      args: () => [
+      startupToArgs: () => [
         { id: 'combobox-select-on-focus-demo', selectInputOnFocus: true },
       ],
     },
@@ -209,21 +211,23 @@ export const ComboboxSelectOnFocusDemoBinding = UiDefinition.bindChild(
 export const DialogDemoBinding = UiDefinition.bindChild(Dialog.block, {
   field: 'dialogDemo',
   parentMessage: Message.GotDialogDemoMessage,
-  init: { args: () => [{ id: 'dialog-demo' }] },
+  init: { startupToArgs: () => [{ id: 'dialog-demo' }] },
   outMessage: { fold: foldDialogOutMessage },
 })
 
 export const DialogAnimatedDemoBinding = UiDefinition.bindChild(Dialog.block, {
   field: 'dialogAnimatedDemo',
   parentMessage: Message.GotDialogAnimatedDemoMessage,
-  init: { args: () => [{ id: 'dialog-animated-demo', isAnimated: true }] },
+  init: {
+    startupToArgs: () => [{ id: 'dialog-animated-demo', isAnimated: true }],
+  },
   outMessage: { fold: foldDialogOutMessage },
 })
 
 export const OverlayDialogDemoBinding = UiDefinition.bindChild(Dialog.block, {
   field: 'overlayDialogDemo',
   parentMessage: Message.GotOverlayDialogDemoMessage,
-  init: { args: () => [{ id: 'overlay-dialog-demo' }] },
+  init: { startupToArgs: () => [{ id: 'overlay-dialog-demo' }] },
   outMessage: { fold: foldDialogOutMessage },
 })
 
@@ -243,7 +247,7 @@ const foldOverlayComboboxDemoOutMessage = CityCombobox.OutMessage.match<
 export const OverlayComboboxDemoBinding = UiDefinition.bindChild(CityCombobox, {
   field: 'overlayComboboxDemo',
   parentMessage: Message.GotOverlayComboboxDemoMessage,
-  init: { args: () => [{ id: 'overlay-combobox-demo' }] },
+  init: { startupToArgs: () => [{ id: 'overlay-combobox-demo' }] },
   outMessage: { fold: foldOverlayComboboxDemoOutMessage },
 })
 
@@ -252,7 +256,7 @@ export const NestedDialogParentDemoBinding = UiDefinition.bindChild(
   {
     field: 'nestedDialogParentDemo',
     parentMessage: Message.GotNestedDialogParentDemoMessage,
-    init: { args: () => [{ id: 'nested-dialog-parent-demo' }] },
+    init: { startupToArgs: () => [{ id: 'nested-dialog-parent-demo' }] },
     outMessage: { fold: foldDialogOutMessage },
   },
 )
@@ -262,7 +266,7 @@ export const NestedDialogChildDemoBinding = UiDefinition.bindChild(
   {
     field: 'nestedDialogChildDemo',
     parentMessage: Message.GotNestedDialogChildDemoMessage,
-    init: { args: () => [{ id: 'nested-dialog-child-demo' }] },
+    init: { startupToArgs: () => [{ id: 'nested-dialog-child-demo' }] },
     outMessage: { fold: foldDialogOutMessage },
   },
 )
@@ -284,7 +288,7 @@ export const CalendarBasicDemoBinding = UiDefinition.bindChild(Calendar.block, {
   field: 'calendarBasicDemo',
   parentMessage: Message.GotCalendarBasicDemoMessage,
   init: {
-    args: today => [
+    startupToArgs: today => [
       {
         id: 'calendar-basic-demo',
         today,
@@ -320,7 +324,7 @@ export const DatePickerBasicDemoBinding = UiDefinition.bindChild(
     field: 'datePickerBasicDemo',
     parentMessage: Message.GotDatePickerBasicDemoMessage,
     init: {
-      args: today => [
+      startupToArgs: today => [
         {
           id: 'date-picker-basic-demo',
           today,
@@ -349,7 +353,7 @@ const foldFileDropBasicDemoOutMessage = FileDrop.OutMessage.match<
 export const FileDropBasicDemoBinding = UiDefinition.bindChild(FileDrop.block, {
   field: 'fileDropBasicDemo',
   parentMessage: Message.GotFileDropBasicDemoMessage,
-  init: { args: () => [{ id: 'file-drop-basic-demo' }] },
+  init: { startupToArgs: () => [{ id: 'file-drop-basic-demo' }] },
   outMessage: { fold: foldFileDropBasicDemoOutMessage },
 })
 
@@ -369,7 +373,7 @@ const foldListboxDemoOutMessage = ItemListbox.OutMessage.match<
 export const ListboxDemoBinding = UiDefinition.bindChild(ItemListbox, {
   field: 'listboxDemo',
   parentMessage: Message.GotListboxDemoMessage,
-  init: { args: () => [{ id: 'listbox-demo' }] },
+  init: { startupToArgs: () => [{ id: 'listbox-demo' }] },
   outMessage: { fold: foldListboxDemoOutMessage },
 })
 
@@ -397,7 +401,7 @@ export const ListboxMultiDemoBinding = UiDefinition.bindChild(
   {
     field: 'listboxMultiDemo',
     parentMessage: Message.GotListboxMultiDemoMessage,
-    init: { args: () => [{ id: 'listbox-multi-demo' }] },
+    init: { startupToArgs: () => [{ id: 'listbox-multi-demo' }] },
     outMessage: { fold: foldListboxMultiDemoOutMessage },
   },
 )
@@ -419,7 +423,7 @@ export const ListboxGroupedDemoBinding = UiDefinition.bindChild(
   {
     field: 'listboxGroupedDemo',
     parentMessage: Message.GotListboxGroupedDemoMessage,
-    init: { args: () => [{ id: 'listbox-grouped-demo' }] },
+    init: { startupToArgs: () => [{ id: 'listbox-grouped-demo' }] },
     outMessage: { fold: foldListboxGroupedDemoOutMessage },
   },
 )
@@ -427,21 +431,23 @@ export const ListboxGroupedDemoBinding = UiDefinition.bindChild(
 export const MenuBasicDemoBinding = UiDefinition.bindChild(DemoMenu, {
   field: 'menuBasicDemo',
   parentMessage: Message.GotMenuBasicDemoMessage,
-  init: { args: () => [{ id: 'menu-basic-demo' }] },
+  init: { startupToArgs: () => [{ id: 'menu-basic-demo' }] },
   outMessage: { fold: foldMenuOutMessage },
 })
 
 export const MenuAnimatedDemoBinding = UiDefinition.bindChild(DemoMenu, {
   field: 'menuAnimatedDemo',
   parentMessage: Message.GotMenuAnimatedDemoMessage,
-  init: { args: () => [{ id: 'menu-animated-demo', isAnimated: true }] },
+  init: {
+    startupToArgs: () => [{ id: 'menu-animated-demo', isAnimated: true }],
+  },
   outMessage: { fold: foldMenuOutMessage },
 })
 
 export const PopoverBasicDemoBinding = UiDefinition.bindChild(Popover.block, {
   field: 'popoverBasicDemo',
   parentMessage: Message.GotPopoverBasicDemoMessage,
-  init: { args: () => [{ id: 'popover-basic-demo' }] },
+  init: { startupToArgs: () => [{ id: 'popover-basic-demo' }] },
   outMessage: { fold: foldPopoverOutMessage },
 })
 
@@ -450,7 +456,9 @@ export const PopoverAnimatedDemoBinding = UiDefinition.bindChild(
   {
     field: 'popoverAnimatedDemo',
     parentMessage: Message.GotPopoverAnimatedDemoMessage,
-    init: { args: () => [{ id: 'popover-animated-demo', isAnimated: true }] },
+    init: {
+      startupToArgs: () => [{ id: 'popover-animated-demo', isAnimated: true }],
+    },
     outMessage: { fold: foldPopoverOutMessage },
   },
 )
@@ -461,7 +469,9 @@ export const PopoverNestedParentDemoBinding = UiDefinition.bindChild(
     field: 'popoverNestedParentDemo',
     parentMessage: Message.GotPopoverNestedParentDemoMessage,
     init: {
-      args: () => [{ id: 'popover-nested-parent-demo', contentFocus: true }],
+      startupToArgs: () => [
+        { id: 'popover-nested-parent-demo', contentFocus: true },
+      ],
     },
     outMessage: { fold: foldPopoverOutMessage },
   },
@@ -472,7 +482,7 @@ export const PopoverNestedChildDemoBinding = UiDefinition.bindChild(
   {
     field: 'popoverNestedChildDemo',
     parentMessage: Message.GotPopoverNestedChildDemoMessage,
-    init: { args: () => [{ id: 'popover-nested-child-demo' }] },
+    init: { startupToArgs: () => [{ id: 'popover-nested-child-demo' }] },
     outMessage: { fold: foldPopoverOutMessage },
   },
 )
@@ -495,7 +505,7 @@ export const VerticalRadioGroupDemoBinding = UiDefinition.bindChild(
   {
     field: 'verticalRadioGroupDemo',
     parentMessage: Message.GotVerticalRadioGroupDemoMessage,
-    init: { args: () => [{ id: 'vertical-radio-group-demo' }] },
+    init: { startupToArgs: () => [{ id: 'vertical-radio-group-demo' }] },
     outMessage: { fold: foldVerticalRadioGroupDemoOutMessage },
   },
 )
@@ -518,7 +528,7 @@ export const HorizontalRadioGroupDemoBinding = UiDefinition.bindChild(
   {
     field: 'horizontalRadioGroupDemo',
     parentMessage: Message.GotHorizontalRadioGroupDemoMessage,
-    init: { args: () => [{ id: 'horizontal-radio-group-demo' }] },
+    init: { startupToArgs: () => [{ id: 'horizontal-radio-group-demo' }] },
     outMessage: { fold: foldHorizontalRadioGroupDemoOutMessage },
   },
 )
@@ -537,7 +547,9 @@ export const SliderRatingDemoBinding = UiDefinition.bindChild(Slider.block, {
   field: 'sliderRatingDemo',
   parentMessage: Message.GotSliderRatingDemoMessage,
   init: {
-    args: () => [{ id: 'slider-rating-demo', min: 0, max: 10, step: 1 }],
+    startupToArgs: () => [
+      { id: 'slider-rating-demo', min: 0, max: 10, step: 1 },
+    ],
   },
   outMessage: { fold: foldSliderRatingDemoOutMessage },
 })
@@ -556,7 +568,9 @@ export const SliderVolumeDemoBinding = UiDefinition.bindChild(Slider.block, {
   field: 'sliderVolumeDemo',
   parentMessage: Message.GotSliderVolumeDemoMessage,
   init: {
-    args: () => [{ id: 'slider-volume-demo', min: 0, max: 1, step: 0.05 }],
+    startupToArgs: () => [
+      { id: 'slider-volume-demo', min: 0, max: 1, step: 0.05 },
+    ],
   },
   outMessage: { fold: foldSliderVolumeDemoOutMessage },
 })
@@ -575,7 +589,7 @@ const foldHorizontalTabsDemoOutMessage = DemoTabs.OutMessage.match<
 export const HorizontalTabsDemoBinding = UiDefinition.bindChild(DemoTabs, {
   field: 'horizontalTabsDemo',
   parentMessage: Message.GotHorizontalTabsDemoMessage,
-  init: { args: () => [{ id: 'horizontal-tabs-demo' }] },
+  init: { startupToArgs: () => [{ id: 'horizontal-tabs-demo' }] },
   outMessage: { fold: foldHorizontalTabsDemoOutMessage },
 })
 
@@ -593,28 +607,30 @@ const foldVerticalTabsDemoOutMessage = DemoTabs.OutMessage.match<
 export const VerticalTabsDemoBinding = UiDefinition.bindChild(DemoTabs, {
   field: 'verticalTabsDemo',
   parentMessage: Message.GotVerticalTabsDemoMessage,
-  init: { args: () => [{ id: 'vertical-tabs-demo' }] },
+  init: { startupToArgs: () => [{ id: 'vertical-tabs-demo' }] },
   outMessage: { fold: foldVerticalTabsDemoOutMessage },
 })
 
 export const ToastDemoBinding = UiDefinition.bindChild(Toast, {
   field: 'toastDemo',
   parentMessage: Message.GotToastDemoMessage,
-  init: { args: () => [{ id: 'toast-demo', swipeToDismiss: {} }] },
+  init: { startupToArgs: () => [{ id: 'toast-demo', swipeToDismiss: {} }] },
   outMessage: { fold: foldToastOutMessage },
 })
 
 export const TooltipBasicDemoBinding = UiDefinition.bindChild(Tooltip.block, {
   field: 'tooltipBasicDemo',
   parentMessage: Message.GotTooltipBasicDemoMessage,
-  init: { args: () => [{ id: 'tooltip-basic-demo' }] },
+  init: { startupToArgs: () => [{ id: 'tooltip-basic-demo' }] },
   outMessage: { fold: foldTooltipOutMessage },
 })
 
 export const TooltipNoDelayDemoBinding = UiDefinition.bindChild(Tooltip.block, {
   field: 'tooltipNoDelayDemo',
   parentMessage: Message.GotTooltipNoDelayDemoMessage,
-  init: { args: () => [{ id: 'tooltip-no-delay-demo', showDelay: 0 }] },
+  init: {
+    startupToArgs: () => [{ id: 'tooltip-no-delay-demo', showDelay: 0 }],
+  },
   outMessage: { fold: foldTooltipOutMessage },
 })
 
@@ -639,7 +655,9 @@ export const VirtualListDemoBinding = UiDefinition.bindChild(
     field: 'virtualListDemo',
     parentMessage: Message.GotVirtualListDemoMessage,
     outMessage: { fold: foldVirtualListOutMessage },
-    init: { args: () => [{ id: 'virtual-list-demo', rowHeightPx: 56 }] },
+    init: {
+      startupToArgs: () => [{ id: 'virtual-list-demo', rowHeightPx: 56 }],
+    },
   },
 )
 
@@ -650,7 +668,9 @@ export const VirtualListVariableDemoBinding = UiDefinition.bindChild(
     parentMessage: Message.GotVirtualListVariableDemoMessage,
     outMessage: { fold: foldVirtualListOutMessage },
     init: {
-      args: () => [{ id: 'virtual-list-variable-demo', rowHeightPx: 56 }],
+      startupToArgs: () => [
+        { id: 'virtual-list-variable-demo', rowHeightPx: 56 },
+      ],
     },
   },
 )

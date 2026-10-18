@@ -60,16 +60,16 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
 
     ClickedOpenMobileMenu: () =>
       Update.combine(model, [
-        MobileMenuDialogBinding.open(),
+        MobileMenuDialogBinding.requestOpen(),
         stepModel => ({
           model: stepModel,
           commands: [Command.ScrollMobileMenuActiveLinkIntoView()],
         }),
       ]),
 
-    ClickedOpenSearch: () => SearchBinding.open()(model),
+    ClickedOpenSearch: () => SearchBinding.requestOpen()(model),
 
-    PressedSearchShortcut: () => SearchBinding.open()(model),
+    PressedSearchShortcut: () => SearchBinding.requestOpen()(model),
 
     ToggledMobileTableOfContents: ({ isOpen }) => ({
       model: modifyFields(model, { isMobileTableOfContentsOpen: () => isOpen }),

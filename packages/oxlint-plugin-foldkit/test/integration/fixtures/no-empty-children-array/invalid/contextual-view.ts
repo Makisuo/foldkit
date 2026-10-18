@@ -12,3 +12,7 @@ const ContextualViewComposition = feature.makeComposition()
 export const view = ContextualViewComposition.makeView((_model, h) =>
   h.div([], []),
 )
+
+export const viewWithInputs = ContextualViewComposition.makeView.withInputs<
+  Readonly<{ label: string }>
+>((_model, h) => h.span([], []))

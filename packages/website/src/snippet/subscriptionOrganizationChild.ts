@@ -25,4 +25,4 @@ export const subscriptions = themeMenu.subscriptions(entry => ({
   ),
 }))
 
-export const EffectsLayer = subscriptions.themeMenuEscapePresses.layer
+export const EffectsLayer = subscriptions.layer

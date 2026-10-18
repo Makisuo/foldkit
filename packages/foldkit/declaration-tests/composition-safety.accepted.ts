@@ -182,7 +182,7 @@ export const StableProjectedBinding =
       Struct.modifyFields(model, { first: () => nextChild }),
     parentMessage: ParentMessage.RoutedProjectedMessage,
     init: {
-      args: () => [],
+      startupToArgs: () => [],
       model: child => ({ first: child }),
     },
   })

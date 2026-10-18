@@ -26,7 +26,7 @@ export const FileTabsBinding = PlaygroundDefinition.bindChild(
     field: 'fileTabs',
     parentMessage: Message.GotFileTabsMessage,
     outMessage: { fold: foldPlaygroundFileTabsOutMessage },
-    init: { args: () => Tuple.make({ id: 'playground-files' }) },
+    init: { startupToArgs: () => Tuple.make({ id: 'playground-files' }) },
   },
 )
 

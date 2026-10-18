@@ -6,7 +6,8 @@ import { Settings } from './settings'
 
 const Message = defineMessageUnion({
   GotSettingsMessage: {
-  message: Settings.Message,
-  timestamp: Schema.Number,
-},
+    key: Schema.String,
+    message: Settings.Message,
+    displayName: Schema.String,
+  },
 })

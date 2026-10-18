@@ -41,7 +41,7 @@ export const ErrorDialogBinding = ApplicationDefinition.bindChild(
   {
     field: 'errorDialog',
     parentMessage: Message.GotErrorDialogMessage,
-    init: { args: () => [{ id: 'export-error-dialog' }] },
+    init: { startupToArgs: () => [{ id: 'export-error-dialog' }] },
     outMessage: { fold: foldErrorDialogOutMessage },
   },
 )
@@ -61,7 +61,7 @@ export const GridSizeConfirmDialogBinding = ApplicationDefinition.bindChild(
   {
     field: 'gridSizeConfirmDialog',
     parentMessage: Message.GotGridSizeConfirmDialogMessage,
-    init: { args: () => [{ id: 'grid-size-confirm-dialog' }] },
+    init: { startupToArgs: () => [{ id: 'grid-size-confirm-dialog' }] },
     outMessage: { fold: foldGridSizeConfirmDialogOutMessage },
   },
 )
@@ -87,7 +87,7 @@ export const ToolRadioGroupBinding = ApplicationDefinition.bindChild(
   {
     field: 'toolRadioGroup',
     parentMessage: Message.GotToolRadioGroupMessage,
-    init: { args: () => [{ id: TOOL_RADIO_GROUP_ID }] },
+    init: { startupToArgs: () => [{ id: TOOL_RADIO_GROUP_ID }] },
     outMessage: { fold: foldToolRadioGroupOutMessage },
   },
 )
@@ -121,7 +121,7 @@ export const requestGridSizeChange = (size: number) =>
 
     return Update.combine([
       rememberGridSize,
-      GridSizeConfirmDialogBinding.open(),
+      GridSizeConfirmDialogBinding.requestOpen(),
     ])
   })
 
@@ -134,7 +134,7 @@ export const GridSizeRadioGroupBinding = ApplicationDefinition.bindChild(
   {
     field: 'gridSizeRadioGroup',
     parentMessage: Message.GotGridSizeRadioGroupMessage,
-    init: { args: () => [{ id: GRID_SIZE_RADIO_GROUP_ID }] },
+    init: { startupToArgs: () => [{ id: GRID_SIZE_RADIO_GROUP_ID }] },
     outMessage: { fold: foldGridSizeRadioGroupOutMessage },
   },
 )
@@ -154,7 +154,7 @@ export const PaletteRadioGroupBinding = ApplicationDefinition.bindChild(
   {
     field: 'paletteRadioGroup',
     parentMessage: Message.GotPaletteRadioGroupMessage,
-    init: { args: () => [{ id: PALETTE_RADIO_GROUP_ID }] },
+    init: { startupToArgs: () => [{ id: PALETTE_RADIO_GROUP_ID }] },
     outMessage: { fold: foldPaletteRadioGroupOutMessage },
   },
 )
@@ -180,7 +180,7 @@ export const ThemeListboxBinding = ApplicationDefinition.bindChild(
   {
     field: 'themeListbox',
     parentMessage: Message.GotThemeListboxMessage,
-    init: { args: () => [{ id: 'theme-picker' }] },
+    init: { startupToArgs: () => [{ id: 'theme-picker' }] },
     outMessage: { fold: foldThemeListboxOutMessage },
   },
 )

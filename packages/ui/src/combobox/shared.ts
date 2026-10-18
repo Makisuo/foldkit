@@ -94,6 +94,15 @@ export type ItemSchema<Item extends string> = Schema.Schema<Item> &
 /** Builds the Combobox Message union with item payloads refined by a Schema. */
 export const makeMessage = <Item extends string>(Item: ItemSchema<Item>) =>
   defineMessageUnion({
+    RequestedOpen: {},
+    RequestedClose: {
+      restingInputValue: Schema.String,
+      isClearable: Schema.Boolean,
+    },
+    RequestedSelectItem: {
+      item: Item,
+      displayText: Schema.String,
+    },
     Opened: { maybeActiveItemIndex: Schema.Option(Schema.Number) },
     Closed: {
       restingInputValue: Schema.String,
@@ -147,6 +156,9 @@ export const Message = makeMessage(Schema.String)
 
 export type Opened = typeof Message.Opened.Type
 export type Closed = typeof Message.Closed.Type
+export type RequestedOpen = typeof Message.RequestedOpen.Type
+export type RequestedClose = typeof Message.RequestedClose.Type
+export type RequestedSelectItem = typeof Message.RequestedSelectItem.Type
 export type BlurredInput = typeof Message.BlurredInput.Type
 export type ActivatedItem = typeof Message.ActivatedItem.Type
 export type DeactivatedItem = typeof Message.DeactivatedItem.Type
@@ -172,8 +184,10 @@ export type PressedToggleButton = typeof Message.PressedToggleButton.Type
 export type MessageSchema<Item extends string = string> =
   typeof Message extends MessageUnion<infer Cases>
     ? MessageUnion<
-        Omit<Cases, 'SelectedItem' | 'ActivatedItem'> &
+        Omit<Cases, 'RequestedSelectItem' | 'SelectedItem' | 'ActivatedItem'> &
           Readonly<{
+            RequestedSelectItem: Omit<Cases['RequestedSelectItem'], 'item'> &
+              Readonly<{ item: ItemSchema<Item> }>
             SelectedItem: Omit<Cases['SelectedItem'], 'item'> &
               Readonly<{ item: ItemSchema<Item> }>
             ActivatedItem: Omit<
@@ -462,7 +476,7 @@ export const makeUpdate = <
           Function.compose(
             Update.combine([
               () => ({ model: nextModel, commands }),
-              AnimationBinding.hide(),
+              AnimationBinding.requestHide(),
             ]),
             Update.withOutMessage(outMessage),
           ),
@@ -480,7 +494,7 @@ export const makeUpdate = <
       if (model.isAnimated) {
         return Update.combine([
           () => ({ model: baseModel, commands: openCommands }),
-          AnimationBinding.show(),
+          AnimationBinding.requestShow(),
           stepModel => ({
             model: modifyBaseFields(stepModel, { isOpen: () => true }),
           }),
@@ -510,7 +524,7 @@ export const makeUpdate = <
           Function.compose(
             Update.combine([
               () => ({ model: comboboxClose.model, commands }),
-              AnimationBinding.hide(),
+              AnimationBinding.requestHide(),
             ]),
             Update.withOutMessage(comboboxClose.outMessage),
           ),
@@ -525,6 +539,47 @@ export const makeUpdate = <
           commands,
           outMessage: comboboxClose.outMessage,
         }
+      }
+    }
+
+    const openWithActiveItem = (maybeActiveItemIndex: Option.Option<number>) =>
+      openCombobox(
+        modifyBaseFields(model, {
+          maybeActiveItemIndex: () => maybeActiveItemIndex,
+          activationTrigger: () =>
+            Option.match(maybeActiveItemIndex, {
+              onNone: () => 'Pointer' as const,
+              onSome: () => 'Keyboard' as const,
+            }),
+          maybeLastPointerPosition: () => Option.none(),
+        }),
+      )
+
+    const closeIfOpen = (
+      commands: typeof closeWithFocusCommands,
+      restingInputValue: string,
+      isClearable: boolean,
+    ) =>
+      model.isOpen
+        ? closeCombobox(model, commands, restingInputValue, isClearable)
+        : { model }
+
+    const selectItem = (
+      item: Item,
+      displayText: string,
+      wasSelected: boolean,
+    ) => {
+      const selection = handlers.handleSelectedItem(
+        model,
+        item,
+        displayText,
+        wasSelected,
+      )
+
+      if (selectionBehavior === 'CloseWithFocus') {
+        return closeSelectedItemWithFocus(selection.model, selection.outMessage)
+      } else {
+        return selection
       }
     }
 
@@ -543,41 +598,29 @@ export const makeUpdate = <
         CompletedAttachPreventBlur: () => ({ model }),
         CompletedAttachSelectOnFocus: () => ({ model }),
         CompletedPortalBackdrop: () => ({ model }),
+        RequestedOpen: () => openWithActiveItem(Option.none()),
+
+        RequestedClose: ({ restingInputValue, isClearable }) =>
+          closeIfOpen(closeWithFocusCommands, restingInputValue, isClearable),
+
+        RequestedSelectItem: ({ item, displayText }) =>
+          selectItem(item, displayText, false),
+
         Opened: ({ maybeActiveItemIndex }) =>
-          openCombobox(
-            modifyBaseFields(model, {
-              maybeActiveItemIndex: () => maybeActiveItemIndex,
-              activationTrigger: () =>
-                Option.match(maybeActiveItemIndex, {
-                  onNone: () => 'Pointer' as const,
-                  onSome: () => 'Keyboard' as const,
-                }),
-              maybeLastPointerPosition: () => Option.none(),
-            }),
-          ),
+          openWithActiveItem(maybeActiveItemIndex),
 
         // NOTE: A blur Message can arrive after selection has already closed the
         // Combobox. Ignore that stale Message so it cannot restore an old input
         // value or emit ClearedSelection again.
         Closed: ({ restingInputValue, isClearable }) =>
-          model.isOpen
-            ? closeCombobox(
-                model,
-                closeWithFocusCommands,
-                restingInputValue,
-                isClearable,
-              )
-            : { model },
+          closeIfOpen(closeWithFocusCommands, restingInputValue, isClearable),
 
         BlurredInput: ({ restingInputValue, isClearable }) =>
-          model.isOpen
-            ? closeCombobox(
-                model,
-                closeWithoutFocusCommands,
-                restingInputValue,
-                isClearable,
-              )
-            : { model },
+          closeIfOpen(
+            closeWithoutFocusCommands,
+            restingInputValue,
+            isClearable,
+          ),
 
         ActivatedItem: ({
           index,
@@ -641,23 +684,8 @@ export const makeUpdate = <
               }
             : { model },
 
-        SelectedItem: ({ item, displayText, wasSelected }) => {
-          const selection = handlers.handleSelectedItem(
-            model,
-            item,
-            displayText,
-            wasSelected,
-          )
-
-          if (selectionBehavior === 'CloseWithFocus') {
-            return closeSelectedItemWithFocus(
-              selection.model,
-              selection.outMessage,
-            )
-          } else {
-            return selection
-          }
-        },
+        SelectedItem: ({ item, displayText, wasSelected }) =>
+          selectItem(item, displayText, wasSelected),
 
         RequestedItemClick: ({ index }) => ({
           model,
@@ -705,7 +733,7 @@ export const makeUpdate = <
             return Update.combine([
               () => ({ model: toggledModel, commands: [focusInput] }),
               stepModel => ({ model: stepModel, commands: openCommands }),
-              AnimationBinding.show(),
+              AnimationBinding.requestShow(),
               stepModel => ({
                 model: modifyBaseFields(stepModel, { isOpen: () => true }),
               }),
@@ -719,7 +747,7 @@ export const makeUpdate = <
         },
 
         CompletedDetectMovementOrAnimationEnd: ({ generation }) =>
-          AnimationBinding.finish(generation),
+          AnimationBinding.requestFinish(generation),
       }),
     )
   }

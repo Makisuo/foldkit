@@ -1,4 +1,4 @@
-export { aggregate, lift, make } from './subscription.js'
+export { RegistryEntriesTypeId, aggregate, lift, make } from './subscription.js'
 
 export type {
   EntryGates,
@@ -8,6 +8,9 @@ export type {
   HandlerOf,
   LayeredEntryWithKeepAlive,
   LayeredEntryWithoutKeepAlive,
+  Registrations,
+  Registry,
+  RegistryEntries,
   Subscription,
   Subscriptions,
   ToLayerWithKeepAlive,

@@ -2,7 +2,7 @@
 
 ## Overview
 
-A stack of transient notifications positioned along an edge of the viewport. Each entry has its own enter and leave animation and hover state. Non-sticky entries have independent auto-dismiss timers that pause on hover. Swipe-to-dismiss is opt-in for the container. Keep the container at the app root and add entries with the Binding’s `show` operation.
+A stack of transient notifications positioned along an edge of the viewport. Each entry has its own enter and leave animation and hover state. Non-sticky entries have independent auto-dismiss timers that pause on hover. Swipe-to-dismiss is opt-in for the container. Keep the container at the app root and add entries with the Binding’s `requestShow` operation.
 
 Toast is parameterized on a payload Schema that you provide. The component owns entry IDs, variants, animations, optional dismiss timers, hover state, and swipe state. Your payload holds the content rendered by `entryToView`. `Toast.make(PayloadSchema)` returns a completed Block whose Model, programmatic API, view, Subscriptions, and handler recipes are bound to that payload type. Each parent Binding supplies its occurrence identity.
 
@@ -76,19 +76,19 @@ Configuration object passed to the Toast Binding’s `init()`.
 | Name              | Type                                                    | Default               | Description                                                                                                                                                                                                                        |
 | ----------------- | ------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`              | `string`                                                | —                     | Unique ID for the toast container.                                                                                                                                                                                                 |
-| `defaultDuration` | `Duration.Input`                                        | `Duration.seconds(4)` | Auto-dismiss duration for a `show` call without its own `duration` or `sticky: true`. Accepts any Effect Duration input; a bare number means milliseconds.                                                                         |
+| `defaultDuration` | `Duration.Input`                                        | `Duration.seconds(4)` | Auto-dismiss duration for a `requestShow` call without its own `duration` or `sticky: true`. Accepts any Effect Duration input; a bare number means milliseconds.                                                                  |
 | `swipeToDismiss`  | `{ threshold?: number; direction?: 'Left' \| 'Right' }` | —                     | Opts the container into swipe-to-dismiss. Omit it to leave swipe disabled. Defaults to a rightward 40px threshold. Set `threshold` for the dismissal distance and `direction: 'Left'` for a leftward swipe. Applies per container. |
 
 ### ShowInput {#show-input}
 
-Input shape for `toast.show(input)`.
+Input shape for `toast.requestShow(input)`.
 
 | Name       | Type                                          | Default  | Description                                                                                                                                                                                                                 |
 | ---------- | --------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `payload`  | `A (your payload type)`                       | —        | Content for this entry, in the shape you supplied to `Toast.make`. Toast passes it to your `entryToView` callback without reading it.                                                                                       |
 | `variant`  | `'Info' \| 'Success' \| 'Warning' \| 'Error'` | `'Info'` | Semantic category. Maps to data-variant for styling and to role=status (Info, Success) or role=alert (Warning, Error) for accessibility. The only content-adjacent field the component owns. Everything else is in payload. |
 | `duration` | `Duration.Input`                              | —        | Overrides the container's defaultDuration for this entry. No auto-dismiss timer is scheduled when `sticky: true`.                                                                                                           |
-| `sticky`   | `boolean`                                     | `false`  | When true, the entry does not auto-dismiss. It can still be closed with the close button, an enabled swipe, or `toast.dismiss`.                                                                                             |
+| `sticky`   | `boolean`                                     | `false`  | When true, the entry does not auto-dismiss. It can still be closed with the close button, an enabled swipe, or `toast.requestDismiss`.                                                                                      |
 
 ### ViewInputs {#view-config}
 
@@ -104,13 +104,13 @@ Pass the child Model as `model` and these fields as `viewInputs` to the Toast Bi
 
 ### Programmatic Helpers
 
-Toast operations are public parent Steps. Call the Binding’s `show`, `dismiss`, and `dismissAll` operations from the parent.
+Toast operations are public parent Steps. Call the Binding’s `requestShow`, `requestDismiss`, and `requestDismissAll` operations from the parent.
 
-| Name         | Type                                | Default | Description                                                                                                                                                                                  |
-| ------------ | ----------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `show`       | `(input: ShowInput) => parent Step` | —       | Adds a new toast entry. Fold it from any parent handler that needs to surface a notification. Returns the next Model plus Commands for the enter animation and, unless sticky, auto-dismiss. |
-| `dismiss`    | `(entryId: string) => parent Step`  | —       | Begins dismissing a specific entry. Calling it for an entry that is already leaving or has been removed is a no-op.                                                                          |
-| `dismissAll` | `() => parent Step`                 | —       | Begins dismissing every currently-visible entry.                                                                                                                                             |
+| Name                | Type                                | Default | Description                                                                                                                                                                                  |
+| ------------------- | ----------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `requestShow`       | `(input: ShowInput) => parent Step` | —       | Adds a new toast entry. Fold it from any parent handler that needs to surface a notification. Returns the next Model plus Commands for the enter animation and, unless sticky, auto-dismiss. |
+| `requestDismiss`    | `(entryId: string) => parent Step`  | —       | Begins dismissing a specific entry. Calling it for an entry that is already leaving or has been removed is a no-op.                                                                          |
+| `requestDismissAll` | `() => parent Step`                 | —       | Begins dismissing every currently-visible entry.                                                                                                                                             |
 
 ### Effects and Subscriptions
 

@@ -38,7 +38,7 @@ export const fixtureStats: Stats = {
   cacheHitRatePercent: 97,
 }
 
-const loadingPostsQueryModel = postsQuery.revalidateOrLoad(
+const loadingPostsQueryModel = postsQuery.requestRevalidationOrLoad(
   postsQuery.init().model,
 ).model
 
@@ -76,7 +76,7 @@ export const failedPostsModel = modifyFields(loadingPostsModel, {
 })
 
 const firstPostArgs = { postId: 'first-post' }
-const loadingFirstPostQueryModel = postQuery.loadIfMissing(
+const loadingFirstPostQueryModel = postQuery.requestLoadIfMissing(
   postQuery.init().model,
   firstPostArgs,
 ).model
@@ -111,7 +111,7 @@ export const failedFirstPostModel = modifyFields(loadedPostsModel, {
   postDetails: () => failedFirstPostQueryModel,
 })
 
-const loadingStatsQueryModel = statsQuery.revalidateOrLoad(
+const loadingStatsQueryModel = statsQuery.requestRevalidationOrLoad(
   statsQuery.init().model,
 ).model
 
@@ -133,7 +133,7 @@ export const loadedStatsModel = modifyFields(loadedPostsModel, {
   stats: () => loadedStatsQueryModel,
 })
 
-const refreshingStatsQueryModel = statsQuery.revalidate(
+const refreshingStatsQueryModel = statsQuery.requestRevalidation(
   loadedStatsQueryModel,
 ).model
 

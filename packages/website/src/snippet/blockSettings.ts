@@ -20,6 +20,7 @@ const update = SettingsComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ChangedTheme: ({ theme }) => changeTheme(model, theme),
     RequestedThemeChange: ({ theme }) => changeTheme(model, theme),
+    RequestedReset: () => changeTheme(model, 'System'),
     CompletedSaveTheme: () => ({ model }),
     FailedSaveTheme: () => ({ model }),
   }),
@@ -47,7 +48,7 @@ export const block = SettingsComposition.makeBlock({
   update,
   view,
   operations: {
-    reset: () => [Message.RequestedThemeChange({ theme: 'System' })],
+    requestReset: Message.RequestedReset,
   },
   EffectsLayer: SaveTheme.layer,
 })

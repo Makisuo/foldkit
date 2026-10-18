@@ -303,7 +303,7 @@ const AnimationBinding = DialogDefinition.bindChild(Animation.block, {
   outMessage: { fold: foldAnimationOutMessage },
 })
 
-const resumeAnimationAfterAcquisition = AnimationBinding.resume()
+const resumeAnimationAfterAcquisition = AnimationBinding.requestResume()
 
 const DialogComposition = DialogDefinition.makeComposition({
   mounts,
@@ -330,7 +330,7 @@ export const update = DialogComposition.makeUpdate((model, message) =>
       const dialogOpen = model.isAnimated
         ? Update.combine(model, [
             stepModel => ({ model: stepModel, commands }),
-            AnimationBinding.show(),
+            AnimationBinding.requestShow(),
             stepModel => ({
               model: modifyFields(stepModel, { isOpen: () => true }),
             }),
@@ -353,7 +353,7 @@ export const update = DialogComposition.makeUpdate((model, message) =>
           stepModel => ({
             model: modifyFields(stepModel, { isOpen: () => false }),
           }),
-          AnimationBinding.hide(),
+          AnimationBinding.requestHide(),
         ])
 
         return wasOpen
@@ -627,8 +627,8 @@ const implementation = {
   update,
   view,
   operations: {
-    open: DialogComposition.makeOperation(Message.RequestedOpen),
-    close: DialogComposition.makeOperation(Message.RequestedClose),
+    requestOpen: Message.RequestedOpen,
+    requestClose: Message.RequestedClose,
   },
   EffectsLayer,
 }

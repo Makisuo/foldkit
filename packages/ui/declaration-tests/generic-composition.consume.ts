@@ -26,10 +26,10 @@ type Equal<Left, Right> =
 type Expect<Value extends true> = Value
 
 export type RelocatedAssertions = [
-  Expect<Equal<Parameters<typeof DialogBinding.open>, []>>,
+  Expect<Equal<Parameters<typeof DialogBinding.requestOpen>, []>>,
   Expect<
     Equal<
-      Parameters<typeof PickerBinding.selectItem>,
+      Parameters<typeof PickerBinding.requestSelectItem>,
       [item: 'Apple' | 'Pear', displayText: string]
     >
   >,
@@ -43,12 +43,12 @@ export type RelocatedAssertions = [
   >,
 ]
 
-DialogBinding.open()
+DialogBinding.requestOpen()
 
 // @ts-expect-error The relocated Dialog operation takes no arguments.
-DialogBinding.open('unexpected')
+DialogBinding.requestOpen('unexpected')
 
-PickerBinding.selectItem('Apple', 'Apple')
+PickerBinding.requestSelectItem('Apple', 'Apple')
 
 Slider.block.operations.informRangeChanged(
   Slider.init({ id: 'relocated-range', min: 0, max: 100, step: 1 }),
@@ -62,13 +62,16 @@ Tooltip.block.operations.informShowDelayChanged(
   Tooltip.init({ id: 'relocated-tooltip' }),
   Duration.millis(250),
 )
-ToastBlock.operations.show(ToastBlock.init({ id: 'relocated-toast' }).model, {
-  payload: { kind: 'Saved' },
-  duration: '1 second',
-})
+ToastBlock.operations.requestShow(
+  ToastBlock.init({ id: 'relocated-toast' }).model,
+  {
+    payload: { kind: 'Saved' },
+    duration: '1 second',
+  },
+)
 
 // @ts-expect-error The emitted generic operation rejects an unrelated item.
-PickerBinding.selectItem('Banana', 'Banana')
+PickerBinding.requestSelectItem('Banana', 'Banana')
 
 Picker.Message.SelectedItem({
   // @ts-expect-error The emitted Message constructor keeps the refined payload.

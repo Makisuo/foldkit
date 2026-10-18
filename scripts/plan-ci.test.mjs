@@ -246,6 +246,17 @@ test('website deployment infrastructure selects the website scope', () => {
   }
 })
 
+test('preview deployment inputs select the website scope', () => {
+  for (const file of [
+    '.github/workflows/deploy-website-preview.yml',
+    'scripts/lib/preview-release.d.mts',
+    'scripts/lib/preview-release.mjs',
+    'scripts/preview-release-manifest.mjs',
+  ]) {
+    assert.equal(planCiForFile(file)['website'], 'true', file)
+  }
+})
+
 test('a lockfile change selects everything, including the typing game', () => {
   const scopes = planCiForFile('pnpm-lock.yaml')
 

@@ -66,11 +66,9 @@ export const block = SettingsComposition.makeBlock({ init, update, view })
 
 An authored update is dual: the Runtime uses
 `update(model, message, ...context)`, while application composition can use
-`update(message)(model, ...context)` as an internal Step. Prefer
-`Composition.makeOperation(Message.Constructor)` for a public operation that
-forwards its arguments directly into a Message. The descriptor remains passive
-and noncallable; `makeBlock` turns its `operations` entry into a completed
-callable operation. A constructor with fields takes one constructor payload
+`update(message)(model, ...context)` as an internal Step. Put a local Message
+constructor directly under `operations` when its payload is the public input.
+Completion creates the callable operation without constructing a Message. A constructor with fields takes one constructor payload
 object followed by the update context, with constructor defaults honored; a
 constructor without fields takes no payload placeholder. Keep a tuple producer
 under `operations` when public inputs need mapping, refinement, defaults, or an
@@ -79,6 +77,15 @@ as part of the pure transition; they do not enqueue another Runtime Message.
 Use `InformedOf*` for parent notifications and `Requested*` for requested
 actions. `Update.combine` accepts unary Steps, so wrap a contextual curried
 update in a unary adapter that supplies every required context argument.
+
+Parent-facing operation names describe the communication: `requestCloseMenu` produces `Message.RequestedCloseMenu`, `informJoined` produces `Message.InformedOfJoin`, and `informRouteChanged` produces `Message.InformedOfRouteChange`. Use `request*` for actions and `inform*` for notifications. Both enter child update; avoid silent `reflect*` Model synchronization. Keep an actual UI fact separate when it represents a different event.
+
+An owned `Definition.subscriptions(...)` registry exposes `subscriptions.layer`
+when every entry has an attached handler. Merge that passive recipe into
+`EffectsLayer`; constructor errors and ordinary Services remain precise. An empty
+record supplies an empty Layer. Mixed host contracts have no aggregate: provide
+those contracts explicitly. The entry key `layer` is reserved. Individual entry
+Layers remain available when intentionally selecting only part of a registry.
 
 Keep one Definition and one named Composition. Use the name-only
 `Block.define('Feature')` form only to establish shared early identity for a
@@ -159,8 +166,8 @@ export const ProfileComposition = ProfileDefinition.makeComposition({
 The Composition update callback handles parent-owned Message variants.
 Registered Bindings handle the wrappers they claim. A parent calls a declared
 child operation through its named Binding method. For example, when a Dialog
-Block declares `close` under `operations`, its parent calls
-`DialogBinding.close(...)`; it does not construct a child Message to force that
+Block declares `requestClose` under `operations`, its parent calls
+`DialogBinding.requestClose(...)`; it does not construct a child Message to force that
 transition. The operation producer constructs `RequestedClose`, and Dialog
 update owns the transition. Render through
 `h.block(SettingsBinding.embedView(...))`.
@@ -215,21 +222,21 @@ configuration and executes no child work.
 
 Choose startup policy from the storage and child initializer:
 
-| Situation                                                             | Policy                                                                                                                        |
-| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Required exact direct field; child init is callable with no arguments | Omit `init`; Composition initializes it                                                                                       |
-| Required exact direct field; child init needs arguments               | `init: { args }`                                                                                                              |
-| Parent supplies a required direct field itself                        | `init: false`                                                                                                                 |
-| Optional direct field                                                 | Omit `init` when the parent supplies the `Option`; use `init.args` when Composition should create `Some(child)` automatically |
-| Exact keyed array                                                     | `init.occurrences` plus `init.toItem`                                                                                         |
-| Accessor or custom storage                                            | Parent-owned unless initialized explicitly                                                                                    |
+| Situation                                                             | Policy                                                                                                                                 |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Required exact direct field; child init is callable with no arguments | Omit `init`; Composition initializes it                                                                                                |
+| Required exact direct field; child init needs arguments               | `init: { startupToArgs }`                                                                                                              |
+| Parent supplies a required direct field itself                        | `init: false`                                                                                                                          |
+| Optional direct field                                                 | Omit `init` when the parent supplies the `Option`; use `init.startupToArgs` when Composition should create `Some(child)` automatically |
+| Exact keyed array                                                     | `init.occurrences` plus `init.toItem`                                                                                                  |
+| Accessor or custom storage                                            | Parent-owned unless initialized explicitly                                                                                             |
 
 When an optional direct field omits `init`, the parent supplies its `Option`
-value; that value may be `Some(child)` or `None`. `init.args` instead asks the
+value; that value may be `Some(child)` or `None`. `init.startupToArgs` instead asks the
 Composition to initialize the child and place it in `Some` automatically.
 
 Add a `Startup` Schema to the parent Definition when several selectors share
-startup input. `init.args` and `init.occurrences` then receive that decoded
+startup input. `init.startupToArgs` and `init.occurrences` then receive that decoded
 value, and Composition init returns it as `startup`. The init plan's `model`
 contains only parent-owned fields. Composition initializes children once in
 `childBindings` order and applies `steps` afterward.

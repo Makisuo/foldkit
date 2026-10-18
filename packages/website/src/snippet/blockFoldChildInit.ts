@@ -59,7 +59,7 @@ const ThemePickerBinding = ProfileDefinition.bindChild(themePickerBlock, {
   field: 'themePicker',
   parentMessage: ProfileMessage.GotThemePickerMessage,
   init: {
-    args: ({ savedTheme }) => [savedTheme],
+    startupToArgs: ({ savedTheme }) => [savedTheme],
   },
 })
 

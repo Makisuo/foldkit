@@ -73,7 +73,7 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 - A field map defining the dependency Schema, in the same shape passed to `Schema.Struct`.
 - A config containing `messages`, `modelToDependencies`, and the `handler` generator that returns the Stream function. `messages` lists the Message Schemas that the handler Stream may emit. Use `messages: []` for scoped work that emits no Messages.
 
-`modelToDependencies` extracts the values that control the entry. The `handler` generator constructs the Stream factory, and `subscriptions.gameClockTicks.layer` supplies it to the application. Foldkit compares the extracted record structurally by default, so unrelated Model updates do not restart the timer.
+`modelToDependencies` extracts the values that control the entry. The `handler` generator constructs the Stream factory, and the owned registry’s `subscriptions.layer` supplies its attached handlers to the application. Foldkit compares the extracted record structurally by default, so unrelated Model updates do not restart the timer.
 
 When `isAutoCounting` changes to `true`, the new Stream starts ticking. When it changes back to `false`, the active scope closes and the timer stops.
 
@@ -94,6 +94,10 @@ The declared Message Schemas constrain the Stream returned by both the attached 
 ### Handler Construction and Layers
 
 Each entry, such as `subscriptions.gameClockTicks`, is an individual owned definition. Its record key identifies the local runtime entry, while its handler name becomes part of the owned Layer requirement that assembly must satisfy. Several child Bindings can carry one definition into different placements while retaining separate Stream scopes. Naming also gives tools a declared identity to display; Subscription lifecycle events in DevTools are follow-up work. An entry with `handler` exposes `.layer`; include that recipe in the local `EffectsLayer` passed to `FeatureComposition.makeBlock`.
+
+When every entry has an attached handler, the owned registry also exposes `subscriptions.layer`. Use it to include all the record's handlers in `EffectsLayer`. It merges the recipes passively; the Runtime still constructs them later. An empty record supplies an empty Layer. The aggregate preserves each handler's Service requirements and constructor errors.
+
+The aggregate is unavailable if any entry leaves its handler to the host. Supply those contracts explicitly through `hostHandlers` and `provideHandlers`. Individual `subscriptions.entry.layer` recipes remain available for intentionally selective assembly. The entry key `layer` is reserved; the aggregate recipe is metadata and never becomes a running Subscription or a Scene emission source.
 
 The Runtime runs the attached handler generator once while building the application Layer and obtains a `dependencies => Stream` function. Return that function directly when construction needs no services. The constructor must not capture the current dependency record; Foldkit passes that record when starting each Stream. A dependency change restarts the Stream scope without reconstructing the handler or its provider. Scoped resources owned by the application Layer release when the runtime stops.
 
@@ -119,7 +123,7 @@ A Subscription definition describes a scoped Stream. Its record key identifies t
 
 Name the events or scoped behavior the definition supplies, such as `KeyboardPresses`, `SystemThemeChanges`, `GameClockTicks`, or `DragSelectionStyles`. `KeyboardPresses` identifies the events produced from keyboard input; `GameClockTicks` identifies the events produced by a timer. The Model dependencies determine when the Stream is active and when its scope restarts; they do not need to appear in the handler name.
 
-Unlike a Command, a Subscription may emit many Messages or maintain scoped work without emitting any. Its handler name does not need to mirror a single result Message or follow the Command imperative naming convention. Compose the attached `.layer` directly in `EffectsLayer`. Create a named individual provider only when it is intentionally public or independently reused outside that bundle's assembly.
+Unlike a Command, a Subscription may emit many Messages or maintain scoped work without emitting any. Its handler name does not need to mirror a single result Message or follow the Command imperative naming convention. Compose the owned registry’s `subscriptions.layer` in `EffectsLayer` when every entry has an attached handler. Use an individual entry’s `.layer` for selective assembly. Create a named individual provider only when it is intentionally public or independently reused outside that bundle's assembly.
 
 ## Animation Frames
 

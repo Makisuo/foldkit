@@ -66,9 +66,6 @@ describe('configs', () => {
         expect(config.rules['foldkit/no-direct-block-state-update']).toBe(
           'error',
         )
-        expect(
-          config.rules['foldkit/require-fold-for-child-update-result'],
-        ).toBe('error')
         expect(config.rules['foldkit/no-noop-message']).toBe('error')
         expect(config.rules['foldkit/no-empty-commands-array']).toBe('error')
         expect(config.rules['foldkit/no-empty-to-parent-out-message']).toBe(

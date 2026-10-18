@@ -10,9 +10,7 @@ const Message = defineMessageUnion({
 })
 const RouteAwareDefinition = Block.define('RouteAware', { Model, Message })
 const RouteAwareComposition = RouteAwareDefinition.makeComposition()
-const informRouteChanged = RouteAwareComposition.makeOperation(
-  Message.InformedOfRouteChange,
-)
+const informRouteChanged = Message.InformedOfRouteChange
 
 const update = RouteAwareComposition.makeUpdate((model, message) =>
   Message.match(message, {

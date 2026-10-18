@@ -332,7 +332,9 @@ describe('HoverIntent', () => {
         panelHoveredUpdate.model,
         Message.FocusedPanel(),
       )
-      const closeUpdate = block.operations.close(panelFocusedUpdate.model)
+      const closeUpdate = block.operations.requestClose(
+        panelFocusedUpdate.model,
+      )
 
       expect(closeUpdate.model.isOpen).toBe(false)
       expect(closeUpdate.model.isPanelHovered).toBe(false)

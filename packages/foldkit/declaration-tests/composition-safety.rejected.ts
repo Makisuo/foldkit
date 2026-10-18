@@ -21,7 +21,7 @@ declare const useSecondField: boolean
 
 // @ts-expect-error An accessor init projection must always supply one stable parent Model field.
 // oxfmt-ignore
-CompositionSafetyParentDefinition.bindChild(PlainBlock, { placement: 'unstableProjected', read: model => Option.some(model.first), write: (model, nextChild) => Struct.modifyFields(model, { first: () => nextChild }), parentMessage: ParentMessage.RoutedProjectedMessage, init: { args: () => [], model: child => useSecondField ? { second: child } : { first: child } } })
+CompositionSafetyParentDefinition.bindChild(PlainBlock, { placement: 'unstableProjected', read: model => Option.some(model.first), write: (model, nextChild) => Struct.modifyFields(model, { first: () => nextChild }), parentMessage: ParentMessage.RoutedProjectedMessage, init: { startupToArgs: () => [], model: child => useSecondField ? { second: child } : { first: child } } })
 
 // @ts-expect-error An optional update context still requires an explicit incoming Message route.
 // oxfmt-ignore

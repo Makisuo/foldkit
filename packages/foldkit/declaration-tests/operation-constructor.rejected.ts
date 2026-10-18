@@ -1,5 +1,4 @@
 import { Layer, Schema } from 'effect'
-import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
 
 import {
@@ -12,6 +11,7 @@ import {
   OperationConstructorProofChildDefinition,
   OperationConstructorProofParentComposition,
   OperationConstructorProofParentDefinition,
+  ParentBlock,
   ParentMessage,
   RecordValue,
   update,
@@ -19,9 +19,6 @@ import {
 } from './operation-constructor.accepted.js'
 
 const model = Model.make({ value: '' })
-
-// @ts-expect-error An operation descriptor is passive until makeBlock completes it.
-updateValue(model, { value: 'next' }, { prefix: 'invalid' })
 
 // @ts-expect-error An empty constructor operation takes no payload argument.
 ChildBlock.operations.resetValue(model, {}, { prefix: 'invalid' })
@@ -75,47 +72,40 @@ Choice.operations.selectPositionally(
 )
 
 const ForeignMessage = defineMessageUnion({ UpdatedForeignValue: {} })
-OperationConstructorProofChildComposition.makeOperation(
-  // @ts-expect-error makeOperation accepts only a local Message constructor.
-  ForeignMessage.UpdatedForeignValue,
-)
-
-const OperationConstructorProofForeignDefinition = Block.define(
-  'OperationConstructorProofForeign',
-  {
-    Model,
-    Message,
-  },
-)
-const OperationConstructorProofForeignComposition =
-  OperationConstructorProofForeignDefinition.makeComposition()
-const foreignUpdateValue =
-  OperationConstructorProofForeignComposition.makeOperation(
-    Message.UpdatedValue,
-  )
-// @ts-expect-error A descriptor belongs to the exact Composition owner.
+// @ts-expect-error Operations accept only constructors from the local Message Schema.
 OperationConstructorProofChildComposition.makeBlock({
   init: () => ({ model }),
   update,
   operations: {
-    updateValue: foreignUpdateValue,
+    updateValue: ForeignMessage.UpdatedForeignValue,
   },
   EffectsLayer: Layer.empty,
   hostHandlers: [RecordValue],
 })
 
-const gotChildMessage =
-  OperationConstructorProofParentComposition.makeOperation(
+OperationConstructorProofParentComposition.makeBlock({
+  init: ParentBlock.init,
+  update: ParentBlock.update,
+  operations: {
     // @ts-expect-error Got* child wrappers are routed facts, not authored operations.
-    ParentMessage.GotChildMessage,
-  )
-void gotChildMessage
+    gotChildMessage: ParentMessage.GotChildMessage,
+  },
+  EffectsLayer: Layer.empty,
+})
 
 const plainTaggedStruct = Schema.TaggedStruct('UpdatedValue', {
   value: Schema.String,
 })
-// @ts-expect-error makeOperation requires a Foldkit callable Message constructor.
-OperationConstructorProofChildComposition.makeOperation(plainTaggedStruct)
+// @ts-expect-error Operations require a Foldkit callable Message constructor or tuple producer.
+OperationConstructorProofChildComposition.makeBlock({
+  init: () => ({ model }),
+  update,
+  operations: {
+    plainTaggedStruct,
+  },
+  EffectsLayer: Layer.empty,
+  hostHandlers: [RecordValue],
+})
 
 // @ts-expect-error Operation names cannot collide with reserved Block or Binding members.
 OperationConstructorProofChildComposition.makeBlock({
@@ -129,18 +119,13 @@ OperationConstructorProofChildComposition.makeBlock({
 // @ts-expect-error The completed Block has no legacy expose alias.
 ChildBlock.expose
 
-void OperationConstructorProofChildDefinition
-void Layer.empty
-
-// @ts-expect-error Operations are declared after the Composition fixes child ownership.
+// @ts-expect-error Definitions do not expose the retired makeOperation helper.
 OperationConstructorProofChildDefinition.makeOperation(Message.ResetValue)
+
+// @ts-expect-error Compositions do not expose the retired makeOperation helper.
+OperationConstructorProofChildComposition.makeOperation(Message.ResetValue)
 
 // @ts-expect-error A used child wrapper cannot lose its owning Binding registration.
 OperationConstructorProofParentDefinition.makeComposition({
   childBindings: [EntryBinding],
 })
-
-// oxlint-disable-next-line typescript/no-explicit-any -- Deliberately erased input must fail operation validation.
-declare const anyConstructor: any
-// @ts-expect-error An erased constructor cannot declare a checked operation.
-OperationConstructorProofChildComposition.makeOperation(anyConstructor)

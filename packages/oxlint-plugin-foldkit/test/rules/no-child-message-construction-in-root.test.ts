@@ -31,7 +31,7 @@ describe('no-child-message-construction-in-root', () => {
       "Block's `operations` record",
     )
     expect(result[0]?.diagnostic.message).toContain(
-      'child.clearSelection()(model)',
+      'child.requestClearSelection()(model)',
     )
   })
 

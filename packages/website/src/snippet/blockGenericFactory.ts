@@ -70,7 +70,9 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
     update,
     view,
     operations: {
-      select: (value: Value) => [Message.RequestedSelectValue({ value })],
+      requestSelectValue: (value: Value) => [
+        Message.RequestedSelectValue({ value }),
+      ],
     },
   })
 }
@@ -111,7 +113,7 @@ const PickerBinding = FruitSelectionDefinition.bindChild(FruitPicker, {
   },
 })
 
-export const selectApple = PickerBinding.select('Apple')
+export const selectApple = PickerBinding.requestSelectValue('Apple')
 
 const FruitSelectionComposition = FruitSelectionDefinition.makeComposition({
   childBindings: [PickerBinding],

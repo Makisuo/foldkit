@@ -101,7 +101,7 @@ const focusSearchInput = SearchDefinition.step(model => ({
 }))
 
 const open = SearchDefinition.step(() =>
-  Update.combine([DialogBinding.open(), focusSearchInput]),
+  Update.combine([DialogBinding.requestOpen(), focusSearchInput]),
 )
 
 export const update = SearchComposition.makeUpdate((model, message) =>
@@ -160,7 +160,7 @@ export const update = SearchComposition.makeUpdate((model, message) =>
     RequestedOpen: () => open(model),
 
     InformedOfRouteChange: () =>
-      Update.combine(model, [clearSearchQuery, DialogBinding.close()]),
+      Update.combine(model, [clearSearchQuery, DialogBinding.requestClose()]),
 
     PressedArrowKey: ({ direction }) => {
       const results = resultsFromState(model.searchState)

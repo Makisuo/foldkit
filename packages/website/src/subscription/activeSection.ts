@@ -262,4 +262,4 @@ export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   ),
 }))
 
-export const EffectsLayer = subscriptions.activeSectionChanges.layer
+export const EffectsLayer = subscriptions.layer

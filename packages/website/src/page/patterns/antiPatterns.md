@@ -204,7 +204,7 @@ Manually copying the child Model from a helper result causes a separate problem.
 
 ::Snippet{name="antiPatternBlockResultBad" label="❌ The parent keeps only the child Model" class="mb-4"}
 
-Prefer `Composition.makeOperation(Message.Constructor)` for a direct Message-producing operation, then select its passive descriptor under `operations` in the completed Block. Use a tuple producer there when the public inputs need mapping, refinement, defaults, or an exact update context tuple. The parent calls `binding.operation(...)`, which returns a connected parent Update.Step and preserves the child's complete update result. Apply it to the contextual Model inside the owning Composition.
+Put the local Message constructor directly under `operations` when its payload is the public input. Use a tuple producer there when the public inputs need mapping, refinement, defaults, or an exact update context tuple. The parent calls `binding.operation(...)`, which returns a connected parent Update.Step and preserves the child's complete update result. Apply it to the contextual Model inside the owning Composition.
 
 ::Snippet{name="antiPatternBlockBoundaryGood" label="✅ A public helper preserves the child's update boundary"}
 

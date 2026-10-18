@@ -44,6 +44,8 @@ import type {
 } from '../mount/index.js'
 import { Dispatch } from '../runtime/dispatch.js'
 import {
+  type Registrations as RuntimeRegistrations,
+  type RegistryEntries as RuntimeRegistryEntries,
   type Subscription as RuntimeSubscription,
   type MessageDeclaration as SubscriptionMessageDeclaration,
   __messageDeclarations as subscriptionMessageDeclarations,
@@ -223,12 +225,12 @@ export type OutMessagesStep<OutMessage> = Readonly<{
   expected: readonly [OutMessage, OutMessage, ...ReadonlyArray<OutMessage>]
 }>
 
-type AnySubscriptions = Readonly<
-  Record<string, RuntimeSubscription<any, any, any, any>>
->
+type AnySubscriptions = RuntimeRegistrations<any, any, any>
 
-type RegisteredSubscriptions<Model, Message> = Readonly<
-  Record<string, RuntimeSubscription<Model, Message, any, any>>
+type RegisteredSubscriptions<Model, Message> = RuntimeRegistrations<
+  Model,
+  Message,
+  any
 >
 
 type TestBindingDefinition = Readonly<{
@@ -254,21 +256,25 @@ type SubscriptionEmissionSource<Entry> =
  *  or scene simulation transform. */
 export type SceneStep<Model, Message, OutMessage, Subscriptions = undefined> =
   | GivenStep<NoInfer<Model>>
-  | (NoInfer<Subscriptions> extends Readonly<
+  | (RuntimeRegistryEntries<NoInfer<Subscriptions>> extends Readonly<
       Record<string, RuntimeSubscription<any, any, any, any>>
     >
       ? {
           readonly [
-            Key in keyof NoInfer<Subscriptions>
-          ]: NoInfer<Subscriptions>[Key] extends Readonly<{
+            Key in keyof RuntimeRegistryEntries<NoInfer<Subscriptions>>
+          ]: RuntimeRegistryEntries<
+            NoInfer<Subscriptions>
+          >[Key] extends Readonly<{
             messages: infer Messages extends ReadonlyArray<Schema.Top>
           }>
             ? SubscriptionMessageStep<
                 Schema.Schema.Type<Messages[number]>,
-                SubscriptionEmissionSource<NoInfer<Subscriptions>[Key]>
+                SubscriptionEmissionSource<
+                  RuntimeRegistryEntries<NoInfer<Subscriptions>>[Key]
+                >
               >
             : never
-        }[keyof NoInfer<Subscriptions>]
+        }[keyof RuntimeRegistryEntries<NoInfer<Subscriptions>>]
       : never)
   | InsideStep<
       ReadonlyArray<

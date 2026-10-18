@@ -144,7 +144,7 @@ const FirstBinding = Parent.bindChild(ChildBlock, {
   field: 'first',
   parentMessage: ParentMessage.GotFirstMessage,
   init: {
-    args: (startup: Startup) => {
+    startupToArgs: (startup: Startup) => {
       calls.push('first-selector')
       return single(startup.firstCount)
     },
@@ -154,7 +154,7 @@ const SecondBinding = Parent.bindChild(ChildBlock, {
   field: 'maybeSecond',
   parentMessage: ParentMessage.GotSecondMessage,
   init: {
-    args: (startup: Startup) => {
+    startupToArgs: (startup: Startup) => {
       calls.push('second-selector')
       return Option.map(startup.maybeSecondCount, single)
     },
@@ -484,7 +484,7 @@ it('initializes a projected accessor child and verifies Schema reconstruction', 
       args: (_model, { message }) => Option.some([message]),
     },
     init: {
-      args: () => single(7),
+      startupToArgs: () => single(7),
       model: second => ({ second }),
     },
   })
@@ -529,7 +529,7 @@ it('rejects a projected field that the accessor does not select', () => {
       args: (_model, { message }) => Option.some([message]),
     },
     init: {
-      args: () => single(7),
+      startupToArgs: () => single(7),
       model: second => ({ second }),
     },
   })
@@ -563,7 +563,7 @@ it('runs initialization callbacks and Steps under the exact registered operation
     placement: 'selectorFirst',
     parentMessage: ParentMessage.GotFirstMessage,
     init: {
-      args: () => {
+      startupToArgs: () => {
         assertRegisteredBinding(SelectorBinding, 'selectorFirst')
         assertRegisteredBinding(ForeignBinding, 'foreignFirst')
         return single(1)
@@ -608,7 +608,7 @@ it('runs initialization callbacks and Steps under the exact registered operation
       args: (_model, { message }) => Option.some([message]),
     },
     init: {
-      args: () => single(1),
+      startupToArgs: () => single(1),
       model: second => {
         assertRegisteredBinding(ProjectedBinding, 'projectedSecond')
         assertRegisteredBinding(
@@ -803,12 +803,12 @@ it('omits startup when every child selector has no input', () => {
   const FirstBinding = ConstantStartupParent.bindChild(ChildBlock, {
     field: 'first',
     parentMessage: ParentMessage.GotFirstMessage,
-    init: { args: () => [3] },
+    init: { startupToArgs: () => [3] },
   })
   const SecondBinding = ConstantStartupParent.bindChild(ChildBlock, {
     field: 'maybeSecond',
     parentMessage: ParentMessage.GotSecondMessage,
-    init: { args: () => Option.some([4]) },
+    init: { startupToArgs: () => Option.some([4]) },
   })
   const ConstantStartupParentComposition =
     ConstantStartupParent.makeComposition({

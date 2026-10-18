@@ -277,8 +277,7 @@ export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
 
 export const EffectsLayer = Layer.mergeAll(
   GenerateApplePosition.layer,
-  subscriptions.gameClockTicks.layer,
-  subscriptions.keyboardPresses.layer,
+  subscriptions.layer,
 )
 
 const cellClass = (x: number, y: number, model: Model): string => {

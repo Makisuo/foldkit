@@ -104,3 +104,8 @@ export const updateParentWithOtherFold = (
     commands: update.commands,
   }
 }
+
+export const inspectOrdinaryReflection = (model: ParentModel) => ({
+  model,
+  constructorName: Reflect.get(model.settings, 'constructor'),
+})

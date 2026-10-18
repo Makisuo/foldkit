@@ -2,7 +2,6 @@ import { Plugin } from 'effect-oxlint'
 
 import { acquireReleaseConstructsInAcquireBody } from './rules/acquire-release-constructs-in-acquire-body.ts'
 import { blockNameMatchesVariable } from './rules/block-name-matches-variable.ts'
-import { commandBindingMatchesName } from './rules/command-binding-matches-name.ts'
 import { commandDefinePascalConst } from './rules/command-define-pascal-const.ts'
 import { gotBlockMessageName } from './rules/got-block-message-name.ts'
 import { gotPrefixRequiresBlockPayload } from './rules/got-prefix-requires-block-payload.ts'
@@ -35,7 +34,6 @@ import { preferCallableMessageConstructor } from './rules/prefer-callable-messag
 import { preferCommandMapmessage } from './rules/prefer-command-mapmessage.ts'
 import { preferEffectModuleNames } from './rules/prefer-effect-module-names.ts'
 import { preferOptionOverNullableInModel } from './rules/prefer-option-over-nullable-in-model.ts'
-import { requireFoldForChildUpdateResult } from './rules/require-fold-for-child-update-result.ts'
 import { requireRelForExternalLink } from './rules/require-rel-for-external-link.ts'
 import { selectionBlockFactoryAtModuleScope } from './rules/selection-block-factory-at-module-scope.ts'
 import { wrapChildOutputInGotMessage } from './rules/wrap-child-output-in-got-message.ts'
@@ -47,7 +45,6 @@ const basePlugin = Plugin.define({
     'acquire-release-constructs-in-acquire-body':
       acquireReleaseConstructsInAcquireBody,
     'block-name-matches-variable': blockNameMatchesVariable,
-    'command-binding-matches-name': commandBindingMatchesName,
     'command-define-pascal-const': commandDefinePascalConst,
     'got-prefix-requires-block-payload': gotPrefixRequiresBlockPayload,
     'got-block-message-name': gotBlockMessageName,
@@ -80,7 +77,6 @@ const basePlugin = Plugin.define({
     'prefer-command-mapmessage': preferCommandMapmessage,
     'prefer-effect-module-names': preferEffectModuleNames,
     'prefer-option-over-nullable-in-model': preferOptionOverNullableInModel,
-    'require-fold-for-child-update-result': requireFoldForChildUpdateResult,
     'require-rel-for-external-link': requireRelForExternalLink,
     'selection-block-factory-at-module-scope':
       selectionBlockFactoryAtModuleScope,

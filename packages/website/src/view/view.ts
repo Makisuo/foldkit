@@ -1,6 +1,6 @@
 import { Match, Option } from 'effect'
 
-import { Shared } from '../component'
+import { PreviewBanner, Shared } from '../component'
 import type { ApplicationViewBuilder } from '../composition'
 import {
   ApplicationComposition,
@@ -107,6 +107,7 @@ export const view = ApplicationComposition.makeView((model, h) => {
     body: Deployment.match(model.deployment, {
       Production: () => body,
       Canary: ({ commit }) => h.div([], [body, Shared.canaryBanner(commit)]),
+      Preview: ({ release }) => h.div([], [body, PreviewBanner.view(release)]),
     }),
   }
 })

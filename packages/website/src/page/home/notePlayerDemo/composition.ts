@@ -32,7 +32,7 @@ export const NoteDurationRadioGroupBinding = NotePlayerDemoDefinition.bindChild(
     field: 'noteDurationRadioGroup',
     parentMessage: Message.GotNoteDurationMessage,
     outMessage: { fold: foldNoteDurationRadioGroupOutMessage },
-    init: { args: () => Tuple.make({ id: 'note-duration' }) },
+    init: { startupToArgs: () => Tuple.make({ id: 'note-duration' }) },
   },
 )
 

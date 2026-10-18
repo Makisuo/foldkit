@@ -216,7 +216,7 @@ export const RequiredRestBinding =
     field: 'requiredRest',
     parentMessage: ParentMessage.GotRequiredRestMessage,
 
-    init: { args: startup => [startup.count] },
+    init: { startupToArgs: startup => [startup.count] },
   })
 export const OptedOutBinding =
   DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, {
@@ -231,7 +231,7 @@ export const OptionalBinding =
     parentMessage: ParentMessage.GotOptionalChildMessage,
 
     init: {
-      args: startup =>
+      startupToArgs: startup =>
         startup.includeOptional ? Option.some([]) : Option.none(),
     },
   })
@@ -311,7 +311,7 @@ export const GenericBinding =
   DeclarationStartupGenericParentDefinition.bindChild(ChildBlock, {
     field: 'child',
     parentMessage: ParentMessage.GotChildMessage,
-    init: { args: _startup => [] },
+    init: { startupToArgs: _startup => [] },
   })
 export const WiderBinding = DeclarationStartupGenericParentDefinition.bindChild(
   ChildBlock,
@@ -319,7 +319,7 @@ export const WiderBinding = DeclarationStartupGenericParentDefinition.bindChild(
     field: 'child',
     placement: 'wider',
     parentMessage: ParentMessage.GotChildMessage,
-    init: { args: (_startup: object) => [] },
+    init: { startupToArgs: (_startup: object) => [] },
   },
 )
 export const DeclarationStartupGenericParentComposition =
@@ -332,7 +332,7 @@ export const initializeWithoutSelectorStartup =
       DeclarationStartupGenericParentDefinition.bindChild(ChildBlock, {
         field: 'child',
         parentMessage: ParentMessage.GotChildMessage,
-        init: { args: () => [] },
+        init: { startupToArgs: () => [] },
       }),
     ],
   }).makeInit(() => ({ model: {} }))
@@ -349,7 +349,7 @@ export const ForeignGenericBinding = ForeignGenericParentDefinition.bindChild(
   {
     field: 'child',
     parentMessage: ParentMessage.GotChildMessage,
-    init: { args: _startup => [] },
+    init: { startupToArgs: _startup => [] },
   },
 )
 
@@ -361,7 +361,7 @@ export const ApplicationDefinition = defineApplication({
 export const ApplicationBinding = ApplicationDefinition.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.GotChildMessage,
-  init: { args: _startup => [] },
+  init: { startupToArgs: _startup => [] },
 })
 
 export const DeclarationStartupOrdinaryParentDefinition = Block.define(
@@ -397,14 +397,14 @@ const CountStartupBinding =
     field: 'first',
     parentMessage: CompatibleParentMessage.GotFirstMessage,
 
-    init: { args: (_startup: Readonly<{ count: number }>) => [] },
+    init: { startupToArgs: (_startup: Readonly<{ count: number }>) => [] },
   })
 const LabelStartupBinding =
   DeclarationCompatibleStartupParentDefinition.bindChild(ChildBlock, {
     field: 'second',
     parentMessage: CompatibleParentMessage.GotSecondMessage,
 
-    init: { args: (_startup: Readonly<{ label: string }>) => [] },
+    init: { startupToArgs: (_startup: Readonly<{ label: string }>) => [] },
   })
 export const DeclarationCompatibleStartupParentComposition =
   DeclarationCompatibleStartupParentDefinition.makeComposition({
@@ -431,7 +431,7 @@ const NoInputBinding = DeclarationMixedStartupParentDefinition.bindChild(
     field: 'first',
     parentMessage: CompatibleParentMessage.GotFirstMessage,
 
-    init: { args: () => [] },
+    init: { startupToArgs: () => [] },
   },
 )
 const ContextInputBinding = DeclarationMixedStartupParentDefinition.bindChild(
@@ -440,7 +440,7 @@ const ContextInputBinding = DeclarationMixedStartupParentDefinition.bindChild(
     field: 'second',
     parentMessage: CompatibleParentMessage.GotSecondMessage,
 
-    init: { args: (_startup: Readonly<{ count: number }>) => [] },
+    init: { startupToArgs: (_startup: Readonly<{ count: number }>) => [] },
   },
 )
 export const DeclarationMixedStartupParentComposition =

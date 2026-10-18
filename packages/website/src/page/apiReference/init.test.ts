@@ -62,7 +62,9 @@ describe('API Reference startup', () => {
   })
 
   test('cold startup schedules the full reference load', () => {
-    const initialDataLoad = block.operations.loadInitialData(init().model)
+    const initialDataLoad = block.operations.requestLoadInitialData(
+      init().model,
+    )
 
     expect(initialDataLoad.model.apiData).toEqual(ApiDataAsyncData.Loading())
     expect(initialDataLoad.commands).toHaveLength(1)
@@ -70,12 +72,12 @@ describe('API Reference startup', () => {
       LoadApiData.name,
     ])
     expectTypeOf<
-      Update.RequirementsOf<typeof block.operations.loadInitialData>
+      Update.RequirementsOf<typeof block.operations.requestLoadInitialData>
     >().toEqualTypeOf<Command.HandlerOf<typeof LoadApiData>>()
   })
 
   test('prerendered data stays visible while the full reference loads', () => {
-    const initialDataLoad = block.operations.loadInitialData(
+    const initialDataLoad = block.operations.requestLoadInitialData(
       init().model,
       Option.some(seededData),
     )
@@ -93,7 +95,9 @@ describe('API Reference startup', () => {
   })
 
   test('failed cold loads can be requested again', () => {
-    const initialDataLoad = block.operations.loadInitialData(init().model)
+    const initialDataLoad = block.operations.requestLoadInitialData(
+      init().model,
+    )
     const apiReferenceFailure = failedLoad(initialDataLoad.model)
     const retry = block.operations.informRouteChanged(apiReferenceFailure.model)
 
@@ -107,7 +111,7 @@ describe('API Reference startup', () => {
   })
 
   test('failed full loads retain the seeded slice and retry on entry', () => {
-    const initialDataLoad = block.operations.loadInitialData(
+    const initialDataLoad = block.operations.requestLoadInitialData(
       init().model,
       Option.some(seededData),
     )
@@ -132,7 +136,7 @@ describe('API Reference startup', () => {
   })
 
   test('full success adds disclosures without resetting the seeded selection', () => {
-    const initialDataLoad = block.operations.loadInitialData(
+    const initialDataLoad = block.operations.requestLoadInitialData(
       init().model,
       Option.some(seededData),
     )

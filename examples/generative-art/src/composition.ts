@@ -31,7 +31,7 @@ export const FlowStrengthSliderBinding = ApplicationDefinition.bindChild(
     field: 'flowStrengthSlider',
     parentMessage: Message.GotFlowStrengthSliderMessage,
     init: {
-      args: () => [
+      startupToArgs: () => [
         {
           id: 'flow-strength-slider',
           min: FLOW_STRENGTH_MIN,
@@ -60,7 +60,7 @@ export const NoiseScaleSliderBinding = ApplicationDefinition.bindChild(
     field: 'noiseScaleSlider',
     parentMessage: Message.GotNoiseScaleSliderMessage,
     init: {
-      args: () => [
+      startupToArgs: () => [
         {
           id: 'noise-scale-slider',
           min: NOISE_SCALE_MIN_DIVISOR,

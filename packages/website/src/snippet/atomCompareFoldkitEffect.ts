@@ -51,6 +51,6 @@ export const subscriptions = TodoDefinition.subscriptions(entry => ({
 
 export const EffectsLayer = Layer.mergeAll(
   CreateTodo.layer,
-  subscriptions.mouseReleases.layer,
+  subscriptions.layer,
 )
 export const ServicesLayer = ApiLayer

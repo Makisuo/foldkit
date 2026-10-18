@@ -22,6 +22,6 @@ const foldAnimationDemoOutMessage = (
 export const AnimationDemoBinding = UiDefinition.bindChild(Animation.block, {
   field: 'animationDemo',
   parentMessage: Message.GotAnimationDemoMessage,
-  init: { args: () => [{ id: 'animation-demo' }] },
+  init: { startupToArgs: () => [{ id: 'animation-demo' }] },
   outMessage: { fold: foldAnimationDemoOutMessage },
 })

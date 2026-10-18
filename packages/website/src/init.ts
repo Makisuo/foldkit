@@ -64,8 +64,8 @@ export const init = ApplicationComposition.makeInit(
       },
       commands: browserStartupCommands(flags.deployment),
       steps: [
-        ApiReferenceBinding.loadInitialData(flags.maybeApiData),
-        ExampleDetailBinding.loadInitialSources(
+        ApiReferenceBinding.requestLoadInitialData(flags.maybeApiData),
+        ExampleDetailBinding.requestLoadInitialSources(
           maybeExampleSlugForRoute(route),
           flags.maybeExampleSources,
         ),

@@ -65,7 +65,7 @@ const CharacterListboxBinding = CharacterPickerDefinition.bindChild(
   {
     field: 'listbox',
     parentMessage: Message.GotListboxMessage,
-    init: { args: () => Tuple.make({ id: 'character' }) },
+    init: { startupToArgs: () => Tuple.make({ id: 'character' }) },
     outMessage: { fold: foldListboxOutMessage },
   },
 )

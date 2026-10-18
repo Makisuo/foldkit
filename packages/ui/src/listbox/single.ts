@@ -134,10 +134,10 @@ const makeBlockParts = <Item, Value extends string>() => {
   const view = ListboxComposition.makeView.withInputs<ViewInputs<Item, Value>>(
     (model, viewInputs, h) => refinedView(model, viewInputs, h),
   )
-  const open = () =>
-    Tuple.make(Message.Opened({ maybeActiveItemIndex: Option.none() }))
-  const close = ListboxComposition.makeOperation(Message.Closed)
-  const selectItem = (item: Value) => Tuple.make(Message.SelectedItem({ item }))
+  const requestOpen = Message.RequestedOpen
+  const requestClose = Message.RequestedClose
+  const requestSelectItem = (item: Value) =>
+    Tuple.make(Message.RequestedSelectItem({ item }))
   return {
     composition: ListboxComposition,
     implementation: {
@@ -146,7 +146,7 @@ const makeBlockParts = <Item, Value extends string>() => {
       })),
       update,
       view,
-      operations: { open, close, selectItem },
+      operations: { requestOpen, requestClose, requestSelectItem },
       EffectsLayer,
     },
   }
@@ -193,15 +193,16 @@ type UpdateReturn = ReturnType<typeof update>
 
 /** Programmatically opens the Listbox, updating the Model and returning focus
  *  and modal Commands. Use this in domain-event handlers. */
-export const open = (model: Model): UpdateReturn => block.operations.open(model)
+export const open = (model: Model): UpdateReturn =>
+  block.operations.requestOpen(model)
 
 /** Programmatically closes the listbox. If it is open, returns the closed Model
  *  with focus and modal Commands. If it is already closed, returns the Model
  *  unchanged with no Commands. Use this in domain-event handlers to close the
  *  listbox. */
 export const close = (model: Model): UpdateReturn =>
-  block.operations.close(model)
+  block.operations.requestClose(model)
 
 /** Programmatically selects an item in the single-select listbox, closing the listbox and emitting a `Selected({ value })` OutMessage. */
 export const selectItem = (model: Model, item: string): UpdateReturn =>
-  block.operations.selectItem(model, item)
+  block.operations.requestSelectItem(model, item)

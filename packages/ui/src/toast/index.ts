@@ -1,7 +1,8 @@
 export {
   type CompletedWaitBeforeDismissal,
   type Dismissed,
-  type DismissedAll,
+  type RequestedDismiss,
+  type RequestedDismissAll,
   type GotAnimationMessage,
   type PressedEntryPointer,
   type MovedSwipePointer,

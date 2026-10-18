@@ -6,7 +6,7 @@ A dropdown menu for actions, like a macOS context menu. Menu is fire-and-forget:
 
 ### Programmatic API and Completed Type
 
-Programmatic operations are exposed through the Binding. Call `menu.open()` and `menu.close()`. Call `menu.selectItem(item, index)` with the selected item and index.
+Programmatic operations are exposed through the Binding. Call `menu.requestOpen()` and `menu.requestClose()`. Call `menu.requestSelectItem(item, index)` with the selected item and index.
 
 What `Menu.create<Item>()` returns is typed [`Completed<Item>` from `@foldkit/ui/menu`](/ui/selection-blocks#completed-type), for the cases where a created Block has to be named rather than called directly.
 
@@ -125,6 +125,6 @@ Pass the child Model as `model` and these fields as `viewInputs` to the Menu Bin
 
 Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s `outMessage.fold` policy.
 
-| Name       | Type                             | Default | Description                                                                                                                                                                                                                                                                                                                                                      |
-| ---------- | -------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Selected` | `{ value: Item; index: number }` | —       | Emitted when a menu item is selected. Carries both the value (typed as your `Item` union via `Menu.create<Item>()`) and its index into the items array supplied at view time. Menu closes itself on selection; the parent does not need to call `menu.close()`. Handle it in the Binding's `outMessage.fold` policy to dispatch the corresponding domain action. |
+| Name       | Type                             | Default | Description                                                                                                                                                                                                                                                                                                                                                             |
+| ---------- | -------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Selected` | `{ value: Item; index: number }` | —       | Emitted when a menu item is selected. Carries both the value (typed as your `Item` union via `Menu.create<Item>()`) and its index into the items array supplied at view time. Menu closes itself on selection; the parent does not need to call `menu.requestClose()`. Handle it in the Binding's `outMessage.fold` policy to dispatch the corresponding domain action. |

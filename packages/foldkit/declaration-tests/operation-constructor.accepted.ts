@@ -93,10 +93,8 @@ export const update = OperationConstructorProofChildComposition.makeUpdate(
     }),
 )
 
-export const resetValue =
-  OperationConstructorProofChildComposition.makeOperation(Message.ResetValue)
-export const updateValue =
-  OperationConstructorProofChildComposition.makeOperation(Message.UpdatedValue)
+export const resetValue = Message.ResetValue
+export const updateValue = Message.UpdatedValue
 export const EffectsLayer = Layer.merge(
   Layer.empty,
   Layer.effect(
@@ -231,12 +229,8 @@ export const ParentBlock = OperationConstructorProofParentComposition.makeBlock(
         }),
     ),
     operations: {
-      updateChild: OperationConstructorProofParentComposition.makeOperation(
-        ParentMessage.RequestedUpdateChild,
-      ),
-      updateEntry: OperationConstructorProofParentComposition.makeOperation(
-        ParentMessage.RequestedUpdateEntry,
-      ),
+      updateChild: ParentMessage.RequestedUpdateChild,
+      updateEntry: ParentMessage.RequestedUpdateEntry,
     },
     EffectsLayer: RecordValue.toLayer(
       Effect.succeed(({ value }) =>
@@ -261,9 +255,7 @@ export function makeChoice<
   )
   const OperationConstructorProofChoiceComposition =
     OperationConstructorProofChoiceDefinition.makeComposition()
-  const select = OperationConstructorProofChoiceComposition.makeOperation(
-    ChoiceMessage.SelectedValue,
-  )
+  const select = ChoiceMessage.SelectedValue
 
   return OperationConstructorProofChoiceComposition.makeBlock({
     init: (selected: Values[number]) => ({
@@ -285,22 +277,14 @@ export function makeChoice<
 
 export const Choice = makeChoice(['First', 'Second'])
 
-type DescriptorFacade = Expect<
-  typeof updateValue extends Block.Operation<
-    'OperationConstructorProofChild',
-    Block.OperationParameters<typeof Message.UpdatedValue>,
-    ReturnType<typeof Message.UpdatedValue>
-  >
-    ? true
-    : false
->
-type DescriptorIsPassive = Expect<
+type ConstructorSourceInputRemains = Expect<
   Equal<
-    typeof updateValue extends (...args: ReadonlyArray<unknown>) => unknown
-      ? true
-      : false,
-    false
+    Parameters<typeof updateValue>,
+    [value: (typeof Message.UpdatedValue)['~type.make.in']]
   >
+>
+type ConstructorSourceReturnRemains = Expect<
+  Equal<ReturnType<typeof updateValue>, typeof Message.UpdatedValue.Type>
 >
 type EmptyConstructorArguments = Expect<
   Equal<
@@ -405,8 +389,8 @@ type NoExposeAlias = Expect<
 >
 
 export type OperationConstructorAssertions = readonly [
-  DescriptorFacade,
-  DescriptorIsPassive,
+  ConstructorSourceInputRemains,
+  ConstructorSourceReturnRemains,
   EmptyConstructorArguments,
   ConstructorPayloadAcceptsDecoded,
   ConstructorPayloadAcceptsMakeInput,
@@ -433,7 +417,7 @@ export const makeNamed = <const Name extends string>(name: Name) => {
     init: () => ({ model: Model.make({ value: '' }) }),
     update: NamedComposition.makeUpdate(model => ({ model })),
     operations: {
-      reset: NamedComposition.makeOperation(Message.ResetValue),
+      reset: Message.ResetValue,
     },
   })
 }

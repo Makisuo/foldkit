@@ -16,6 +16,7 @@ import {
   isIdentifierReference,
   isMemberExpression,
   isObjectExpression,
+  isVariableDeclarator,
   resolveFoldkitApiPath,
   resolveImportedPath,
   resolvedVariable,
@@ -28,7 +29,25 @@ import {
 } from '../guards.ts'
 
 const directBlockStateUpdateMessage = (fieldName: string): string =>
-  `Do not update the Block field \`${fieldName}\` directly from its parent. Expose a child-owned Message producer, then call it through the registered Binding so the child update handles the transition.`
+  `Do not update the Block field \`${fieldName}\` directly from its parent. Expose the local Message constructor through the child Block's \`operations\` record, then call the named method on the registered Binding so the child update handles the transition.`
+
+const discardedChildReturnMessage = (
+  fieldName: string,
+  helperLabel: string,
+  resultName: string,
+): string =>
+  `The parent writes \`${resultName}.model\` into \`${fieldName}\` after calling \`${helperLabel}\`. A child Return can include Commands or an OutMessage that this copy ignores. Apply the child operation through the registered Binding's named method.`
+
+type ChildReturnOrigin = Readonly<{
+  childField: string
+  helperLabel: string
+  parentModel: ESTree.IdentifierReference
+}>
+
+type ChildReturnOrigins = Readonly<{
+  byVariable: WeakMap<Variable, ChildReturnOrigin>
+  fallbackByName: ReadonlyMap<string, ChildReturnOrigin>
+}>
 
 const isNode = (value: unknown): value is ESTree.Node =>
   typeof value === 'object' &&
@@ -166,6 +185,26 @@ const directReadField = (
   }
   const [readValue] = returned.arguments
   return directMemberField(readValue, modelParameter.name)
+}
+
+const onlyReturnedModelField = (
+  callback: ESTree.ArrowFunctionExpression,
+): string | undefined => {
+  const [modelParameter] = callback.params
+  const returned = expressionReturnedBy(callback)
+  if (!isIdentifier(modelParameter) || returned === undefined) {
+    return undefined
+  }
+
+  const fields = new Set<string>()
+  walk(returned, node => {
+    const field = directMemberField(node, modelParameter.name)
+    if (field !== undefined) {
+      fields.add(field)
+    }
+  })
+
+  return fields.size === 1 ? fields.values().next().value : undefined
 }
 
 const propertyValue = (
@@ -568,7 +607,11 @@ const foldDefinitions = (
       }
 
       writeCallbacks.add(write)
-      const readField = directReadField(read)
+      const readField =
+        directReadField(read) ??
+        (Option.contains(bindingMethod, 'Keyed')
+          ? onlyReturnedModelField(read)
+          : undefined)
       const writeField = directWriteField(
         write,
         references,
@@ -1297,11 +1340,158 @@ const isLegacyReflectCall = (node: ESTree.CallExpression): boolean =>
     ),
   )
 
+const childReturnOrigin = (
+  node: ESTree.VariableDeclarator,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): ChildReturnOrigin | undefined => {
+  if (!isIdentifier(node.id) || !isCallExpression(node.init)) {
+    return undefined
+  }
+
+  const [childModel] = node.init.arguments
+  const maybeChildPath = staticMemberPath(childModel)
+  const maybeCalleePath = staticMemberPath(node.init.callee)
+  if (Option.isNone(maybeChildPath) || Option.isNone(maybeCalleePath)) {
+    return undefined
+  }
+
+  const [childField, extraChildMember] = maybeChildPath.value.members
+  const [helperName, extraHelperMember] = maybeCalleePath.value.members
+  if (
+    childField === undefined ||
+    extraChildMember !== undefined ||
+    helperName === undefined ||
+    extraHelperMember !== undefined
+  ) {
+    return undefined
+  }
+
+  if (references === undefined) {
+    if (!/^[A-Z]/u.test(maybeCalleePath.value.root.name)) {
+      return undefined
+    }
+  } else {
+    const imported = resolveImportedPath(references, node.init.callee)
+    if (
+      Option.isNone(imported) ||
+      !imported.value.source.startsWith('.') ||
+      imported.value.localMembers.length !== 2
+    ) {
+      return undefined
+    }
+  }
+
+  return {
+    childField,
+    helperLabel: `${maybeCalleePath.value.root.name}.${helperName}`,
+    parentModel: maybeChildPath.value.root,
+  }
+}
+
+const collectChildReturnOrigins = (
+  program: ESTree.Program,
+  scopes: ReadonlyArray<OxlintScope> | undefined,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): ChildReturnOrigins => {
+  const byVariable = new WeakMap<Variable, ChildReturnOrigin>()
+  const fallbackByName = new Map<string, ChildReturnOrigin>()
+  const variables = (scopes ?? []).flatMap(scope => scope.variables)
+
+  walk(program, node => {
+    if (!isVariableDeclarator(node) || !isIdentifier(node.id)) {
+      return
+    }
+
+    const origin = childReturnOrigin(node, references)
+    if (origin === undefined) {
+      return
+    }
+
+    fallbackByName.set(node.id.name, origin)
+    for (const variable of variables) {
+      if (variable.defs.some(definition => definition.node === node)) {
+        byVariable.set(variable, origin)
+      }
+    }
+  })
+
+  return { byVariable, fallbackByName }
+}
+
+const sameBinding = (
+  left: ESTree.IdentifierReference,
+  right: ESTree.IdentifierReference,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => {
+  if (references === undefined) {
+    return left.name === right.name
+  }
+
+  const leftVariable = resolvedVariable(references, left)
+  const rightVariable = resolvedVariable(references, right)
+  return Option.isSome(leftVariable) && Option.isSome(rightVariable)
+    ? leftVariable.value === rightVariable.value
+    : left.name === right.name
+}
+
+const copiedChildReturn = (
+  updater: ESTree.ArrowFunctionExpression,
+  parentModel: ESTree.IdentifierReference,
+  childField: string,
+  origins: ChildReturnOrigins,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Readonly<{ message: string }> | undefined => {
+  const returned = expressionsReturnedBy(updater)
+  if (returned.length !== 1) {
+    return undefined
+  }
+
+  const resultPath = staticMemberPath(returned[0])
+  if (
+    Option.isNone(resultPath) ||
+    resultPath.value.members.length !== 1 ||
+    resultPath.value.members[0] !== 'model'
+  ) {
+    return undefined
+  }
+
+  const { root: result } = resultPath.value
+  const origin =
+    references === undefined
+      ? origins.fallbackByName.get(result.name)
+      : Option.getOrUndefined(
+          Option.flatMap(resolvedVariable(references, result), variable =>
+            Option.fromNullishOr(origins.byVariable.get(variable)),
+          ),
+        )
+  if (
+    origin === undefined ||
+    origin.childField !== childField ||
+    !sameBinding(origin.parentModel, parentModel, references)
+  ) {
+    return undefined
+  }
+
+  return {
+    message: discardedChildReturnMessage(
+      childField,
+      origin.helperLabel,
+      result.name,
+    ),
+  }
+}
+
+type DirectChildStateUpdate = Readonly<{
+  fieldName: string
+  message: string
+}>
+
 const directChildModifyFieldsField = (
   node: ESTree.CallExpression,
   evidence: FoldEvidence,
+  origins: ChildReturnOrigins,
   references: WeakMap<ESTree.Node, Reference> | undefined,
-): string | undefined => {
+): DirectChildStateUpdate | undefined => {
   if (!isModifyFieldsCall(node, references)) {
     return undefined
   }
@@ -1364,18 +1554,35 @@ const directChildModifyFieldsField = (
             references,
           ))
     ) {
-      return property.key.name
+      return {
+        fieldName: property.key.name,
+        message: directBlockStateUpdateMessage(property.key.name),
+      }
     }
 
     if (
       isCallExpression(property.value) &&
       isLegacyReflectCall(property.value)
     ) {
-      return property.key.name
+      return {
+        fieldName: property.key.name,
+        message: directBlockStateUpdateMessage(property.key.name),
+      }
     }
 
     if (!isArrowFunction(property.value)) {
       continue
+    }
+
+    const copiedReturn = copiedChildReturn(
+      property.value,
+      model,
+      property.key.name,
+      origins,
+      references,
+    )
+    if (copiedReturn !== undefined) {
+      return { fieldName: property.key.name, message: copiedReturn.message }
     }
 
     const [childModel] = property.value.params
@@ -1384,7 +1591,10 @@ const directChildModifyFieldsField = (
     }
     for (const nestedUpdate of expressionsReturnedBy(property.value)) {
       if (isCallExpression(nestedUpdate) && isLegacyReflectCall(nestedUpdate)) {
-        return property.key.name
+        return {
+          fieldName: property.key.name,
+          message: directBlockStateUpdateMessage(property.key.name),
+        }
       }
       if (
         keyedChildFields?.has(property.key.name) === true &&
@@ -1397,7 +1607,10 @@ const directChildModifyFieldsField = (
               references,
             ))
       ) {
-        return property.key.name
+        return {
+          fieldName: property.key.name,
+          message: directBlockStateUpdateMessage(property.key.name),
+        }
       }
       if (
         !isCallExpression(nestedUpdate) ||
@@ -1407,14 +1620,18 @@ const directChildModifyFieldsField = (
       }
       const [nestedModel] = nestedUpdate.arguments
       if (isIdentifier(nestedModel, childModel.name)) {
-        return property.key.name
+        return {
+          fieldName: property.key.name,
+          message: directBlockStateUpdateMessage(property.key.name),
+        }
       }
     }
   }
   return undefined
 }
 
-/** Flags parent-owned modifyFields calls that directly update a child Block Model. */
+/** Flags parent-owned modifyFields calls that directly update a child Block Model
+ *  or copy a child Return's Model while discarding its Commands or OutMessage. */
 export const noDirectBlockStateUpdate = Rule.define({
   name: 'no-direct-block-state-update',
   meta: Rule.meta({
@@ -1432,6 +1649,7 @@ export const noDirectBlockStateUpdate = Rule.define({
           return Effect.void
         }
         const evidence = foldEvidence(node, scopes, references)
+        const origins = collectChildReturnOrigins(node, scopes, references)
         if (
           evidence.childFieldsByParentModel.size === 0 &&
           evidence.fallbackChildFieldsByParentModel.size === 0
@@ -1441,7 +1659,11 @@ export const noDirectBlockStateUpdate = Rule.define({
         return Effect.forEach(
           (() => {
             const findings: Array<
-              Readonly<{ node: ESTree.CallExpression; fieldName: string }>
+              Readonly<{
+                node: ESTree.CallExpression
+                fieldName: string
+                message: string
+              }>
             > = []
             walk(node, (candidate, ancestors) => {
               if (!isCallExpression(candidate)) {
@@ -1454,22 +1676,23 @@ export const noDirectBlockStateUpdate = Rule.define({
               ) {
                 return
               }
-              const fieldName = directChildModifyFieldsField(
+              const finding = directChildModifyFieldsField(
                 candidate,
                 evidence,
+                origins,
                 references,
               )
-              if (fieldName !== undefined) {
-                findings.push({ node: candidate, fieldName })
+              if (finding !== undefined) {
+                findings.push({ node: candidate, ...finding })
               }
             })
             return findings
           })(),
-          ({ node: findingNode, fieldName }) =>
+          ({ node: findingNode, message }) =>
             ctx.report(
               Diagnostic.make({
                 node: findingNode,
-                message: directBlockStateUpdateMessage(fieldName),
+                message,
               }),
             ),
           { discard: true },

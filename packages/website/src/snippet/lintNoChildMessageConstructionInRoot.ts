@@ -11,4 +11,4 @@ const badAliasRouting = () => GotChildMessage({ message: clickedSave() })
 
 // ✅ Good
 // The parent invokes the operation projected by its child Binding.
-const goodRouting = ApplicationDefinition.step(() => ChildBinding.save())
+const goodRouting = ApplicationDefinition.step(() => ChildBinding.requestSave())

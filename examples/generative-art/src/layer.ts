@@ -6,5 +6,5 @@ import { subscriptions } from './subscription'
 export const EffectsLayer = Layer.mergeAll(
   GenerateAmbientParticle.layer,
   GenerateBurstParticle.layer,
-  subscriptions.animationFrameTicks.layer,
+  subscriptions.layer,
 )

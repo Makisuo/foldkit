@@ -28,9 +28,7 @@ export const Entry = KeyedEntryComposition.makeBlock({
   init,
   update,
   operations: {
-    informThemeChanged: (theme: string) => [
-      Message.InformedOfThemeChange({ theme }),
-    ],
+    informThemeChanged: Message.InformedOfThemeChange,
   },
   EffectsLayer: Layer.empty,
 })

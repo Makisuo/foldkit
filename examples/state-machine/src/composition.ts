@@ -25,7 +25,7 @@ export const EditionRadioGroupBinding = ApplicationDefinition.bindChild(
   {
     field: 'editionRadioGroup',
     parentMessage: Message.GotEditionRadioGroupMessage,
-    init: { args: () => [{ id: EDITION_RADIO_GROUP_ID }] },
+    init: { startupToArgs: () => [{ id: EDITION_RADIO_GROUP_ID }] },
     outMessage: { fold: foldEditionRadioGroupOutMessage },
   },
 )

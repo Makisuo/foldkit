@@ -40,7 +40,7 @@ const CityPickerDefinition = Block.define('CityPicker', { Model, Message })
 const ComboboxBinding = CityPickerDefinition.bindChild(CityCombobox, {
   field: 'combobox',
   parentMessage: Message.GotComboboxMessage,
-  init: { args: () => Tuple.make({ id: 'city' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'city' }) },
   outMessage: { fold: foldComboboxOutMessage },
 })
 

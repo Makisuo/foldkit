@@ -66,4 +66,4 @@ const view = ActivityListExampleComposition.makeView((model, h) =>
 // the logical index and the Command aligns the live rendered row:
 // In the corresponding Message.match handler:
 ClickedScrollActivityListToMiddle: () =>
-  ActivityListBinding.scrollToIndex(500)(model)
+  ActivityListBinding.requestScrollToIndex(500)(model)

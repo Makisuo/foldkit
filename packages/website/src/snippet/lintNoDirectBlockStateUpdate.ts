@@ -19,5 +19,5 @@ const badReset = (model: Model) => ({
 
 // ✅ Good: the child decides the transition and the Binding preserves it.
 const goodReset = ApplicationDefinition.step(() =>
-  SettingsBinding.setTheme('Light'),
+  SettingsBinding.requestThemeChange('Light'),
 )

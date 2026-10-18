@@ -63,7 +63,7 @@ const PlanPickerDefinition = Block.define('PlanPicker', {
 const PlanRadioGroupBinding = PlanPickerDefinition.bindChild(PlanRadioGroup, {
   field: 'planRadioGroup',
   parentMessage: Message.GotPlanRadioGroupMessage,
-  init: { args: () => Tuple.make({ id: 'plan' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'plan' }) },
   outMessage: { fold: foldPlanRadioGroupOutMessage },
 })
 

@@ -45,5 +45,5 @@ const init = ApplicationComposition.makeInit(() => ({
     maybeRestoredQuery: Option.none(),
     maybeRestoredDocumentId: Option.none(),
   },
-  steps: [SearchBinding.restore(), EditorBinding.restore()],
+  steps: [SearchBinding.requestRestore(), EditorBinding.requestRestore()],
 }))

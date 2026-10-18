@@ -39,7 +39,7 @@ const HoverIntentBinding = HoverIntentExampleDefinition.bindChild(
     field: 'hoverIntent',
     parentMessage: Message.GotHoverIntentMessage,
     init: {
-      args: () => Tuple.make({ openDelay: 200, closeDelay: 300 }),
+      startupToArgs: () => Tuple.make({ openDelay: 200, closeDelay: 300 }),
     },
     outMessage: { fold: foldHoverIntentOutMessage },
   },

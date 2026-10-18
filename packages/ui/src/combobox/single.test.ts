@@ -99,11 +99,11 @@ const FruitComboboxTestComposition =
 const fruitParentUpdate = FruitComboboxTestComposition.makeUpdate(
   (model, { item }) =>
     Update.combine([
-      FruitComboboxBinding.selectItem(item, item),
-      FruitComboboxBinding.close(''),
+      FruitComboboxBinding.requestSelectItem(item, item),
+      FruitComboboxBinding.requestClose(''),
     ])(model),
 )
-const selectFruitAndClose = (item: Fruit) =>
+const requestSelectFruitAndClose = (item: Fruit) =>
   Tuple.make(FruitParentMessage.RequestedSelectFruitAndClose({ item }))
 
 const FruitComboboxTestBlock = FruitComboboxTestComposition.makeBlock({
@@ -114,7 +114,7 @@ const FruitComboboxTestBlock = FruitComboboxTestComposition.makeBlock({
     },
   })),
   update: fruitParentUpdate,
-  operations: { selectFruitAndClose },
+  operations: { requestSelectFruitAndClose },
   EffectsLayer: FruitCombobox.EffectsLayer,
 })
 
@@ -225,10 +225,11 @@ describe('Combobox', () => {
         combobox: init({ id: 'fruit' }),
         maybeSelectedFruit: Option.none(),
       }
-      const closed = FruitComboboxTestBlock.operations.selectFruitAndClose(
-        parent,
-        'Apple',
-      )
+      const closed =
+        FruitComboboxTestBlock.operations.requestSelectFruitAndClose(
+          parent,
+          'Apple',
+        )
       const embedded = FruitComboboxBinding.embedView({
         slotId: 'fruit-primary',
         model: closed.model.combobox,

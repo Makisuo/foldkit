@@ -17,7 +17,7 @@ type Model = typeof Model.Type
 
 // Embed the Dialog Message in your parent Message and delegate to
 // the Dialog update (open from a trigger with a fact and
-// `DialogBinding.open()`, as in the basic Dialog example):
+// `DialogBinding.requestOpen()`, as in the basic Dialog example):
 const Message = defineMessageUnion({
   GotDialogMessage: { message: Dialog.Message },
 })
@@ -40,7 +40,7 @@ const DialogBinding = AnimatedDialogExampleDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   init: {
-    args: () => Tuple.make({ id: 'confirm', isAnimated: true }),
+    startupToArgs: () => Tuple.make({ id: 'confirm', isAnimated: true }),
   },
   outMessage: { fold: foldDialogOutMessage },
 })

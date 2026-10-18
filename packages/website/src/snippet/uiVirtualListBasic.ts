@@ -51,7 +51,7 @@ const ActivityListBinding = ActivityListExampleDefinition.bindChild(
     parentMessage: Message.GotActivityListMessage,
     outMessage: { fold: foldActivityListOutMessage },
     init: {
-      args: () => Tuple.make({ id: 'activity-list', rowHeightPx: 56 }),
+      startupToArgs: () => Tuple.make({ id: 'activity-list', rowHeightPx: 56 }),
     },
   },
 )
@@ -72,7 +72,7 @@ const init = ActivityListExampleComposition.makeInit(() => ({
 const update = ActivityListExampleComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedScrollActivityListToMiddle: () =>
-      ActivityListBinding.scrollToIndex(500)(model),
+      ActivityListBinding.requestScrollToIndex(500)(model),
   }),
 )
 

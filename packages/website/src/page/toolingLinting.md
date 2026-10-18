@@ -68,15 +68,9 @@ Prevents constructing Messages by typing or casting object literals. Use the cal
 
 ## Command Shape {#command-rules}
 
-### foldkit/command-binding-matches-name {#command-binding-matches-name}
-
-Keeps a Command binding name in sync with the name passed to Command.define.
-
-::Snippet{name="lintCommandBindingMatchesName" label="Rule: foldkit/command-binding-matches-name"}
-
 ### foldkit/command-define-pascal-const {#command-define-pascal-const}
 
-Requires the const holding a Command.define result to be a non-empty PascalCase identifier that matches the Command name.
+Requires a Command declaration to use a nonempty PascalCase `const` whose name matches the declared Command name. It recognizes standalone `Command.define(...)` and owned `Definition.command(...)` declarations. This rule includes the former `command-binding-matches-name` checks; remove that retired rule ID from explicit configurations.
 
 ::Snippet{name="lintCommandDefinePascalConst" label="Rule: foldkit/command-define-pascal-const"}
 
@@ -302,7 +296,7 @@ Requires child Command and Subscription output to be wrapped through a Got\*Mess
 
 ### foldkit/got-wrapper-carries-only-routing {#got-wrapper-carries-only-routing}
 
-Keeps a Got wrapper payload to the child Message plus routing keys: message, id, or keys ending in Id.
+Keeps a Got wrapper payload to the child Message plus routing keys: `message`, `id`, `key`, or keys ending in `Id`. Unrelated business fields are rejected.
 
 ::Snippet{name="lintGotWrapperCarriesOnlyRouting" label="Rule: foldkit/got-wrapper-carries-only-routing"}
 
@@ -316,21 +310,15 @@ The rule follows inline and top-level extracted update callbacks and handler rec
 
 ### foldkit/no-child-message-construction-in-root {#no-child-message-construction-in-root}
 
-Rejects constructing a child Message variant from a parent, including through a local `const` alias of the child constructor or namespace. Expose a child-owned Message producer, then call the direct Binding method, such as `people.clearSelection()`. Forward received child Messages through `people.fold(model, message)` instead. Child-owned authoring helpers may construct that child's Messages. Schema/type references remain valid for parent wrapper Messages, and tests may construct Messages to exercise updates. The rule cannot infer the origin of an arbitrary prebuilt Message value. See [Informing Blocks](/patterns/informing-blocks) for the complete pattern.
+Rejects constructing a child Message variant from a parent, including through a local `const` alias of the child constructor or namespace. Expose a local Message constructor or a Message tuple producer under the child Block’s `operations`, then call the direct Binding method, such as `PeopleBinding.requestClearSelection()`. Forward received child Messages through `people.fold(model, message)` instead. Child-owned authoring helpers may construct that child's Messages. Schema/type references remain valid for parent wrapper Messages, and tests may construct Messages to exercise updates. The rule cannot infer the origin of an arbitrary prebuilt Message value. See [Informing Blocks](/patterns/informing-blocks) for the complete pattern.
 
 ::Snippet{name="lintNoChildMessageConstructionInRoot" label="Rule: foldkit/no-child-message-construction-in-root"}
 
 ### foldkit/no-direct-block-state-update {#no-direct-block-state-update}
 
-Flags a parent update that uses nested `modifyFields` or a namespace `reflect*` helper to change a known Block field directly. The child update does not run, so validation, Commands, and OutMessages can be skipped. The rule establishes ownership from a module-scope child Binding whose `read` and `write` point to the same field, then checks the parent Model passed through that Binding. Call a Message-producing child operation through the Binding so the child update owns the transition. The rule leaves an unrelated Model with the same field name and Binding `write` callbacks alone.
+Flags a parent update that uses nested `modifyFields` or a namespace `reflect*` helper to change a known Block field directly. The child update does not run, so validation, Commands, and OutMessages can be skipped. The rule establishes ownership from a module-scope child Binding whose `read` and `write` point to the same field, then checks the parent Model passed through that Binding. Call a Message-producing child operation through the Binding so the child update owns the transition. The rule also reports copying only `.model` from a child update or operation result, which can discard Commands or an OutMessage. Use a named Binding operation or forward a received child Message through `fold` to preserve the whole transition. It leaves initial Model assembly, parent-owned collection reconciliation, unrelated Models with the same field name, and Binding `write` callbacks alone. This rule includes the former `require-fold-for-child-update-result` checks; replace that retired rule ID in explicit configurations.
 
 ::Snippet{name="lintNoDirectBlockStateUpdate" label="Rule: foldkit/no-direct-block-state-update"}
-
-### foldkit/require-fold-for-child-update-result {#require-fold-for-child-update-result}
-
-Flags a parent that copies only `.model` from a child helper or update result into its own Model instead of using the Binding's projected Step. This can silently discard Commands or an OutMessage. The rule uses an in-file Binding whose `read` and `write` establish the child module and field, then follows a local result from that child's helper into the matching `modifyFields` field. The field need not be named after the module: `Products.update(model.productsPage)` is one example. It leaves unrelated helpers, initial Model assembly, and Binding `write` callbacks alone. It does not infer direct helper imports or parent assembly outside `modifyFields`.
-
-::Snippet{name="lintRequireFoldForChildUpdateResult" label="Rule: foldkit/require-fold-for-child-update-result"}
 
 ### foldkit/selection-block-factory-at-module-scope {#selection-block-factory-at-module-scope}
 
@@ -359,3 +347,33 @@ Rejects two OnMount handlers on one element, where the second silently overwrite
 Requires lazy view slots to be declared at module scope so their references stay stable and the memoization actually hits its cache.
 
 ::Snippet{name="lintLazyViewStableReferences" label="Rule: foldkit/lazy-view-stable-references"}
+
+## HTML Builder Recognition
+
+HTML rules recognize the builder passed by `Composition.makeView` and
+`makeView.withInputs`, explicit Foldkit `HtmlBuilder` annotations, and aliases of
+`Block.ViewBuilderFor<typeof FeatureComposition>`. Extracted helpers retain the
+same checks for duplicate `OnMount` attributes, empty children, keys, event attributes, and links.
+Imported aliases are traced through relative TypeScript modules and explicit
+barrels to their actual Foldkit type. A type name ending in `ViewBuilder` does
+not establish ownership by itself.
+
+The source resolver does not follow package path aliases, wildcard re-exports,
+or declaration-only modules. Use a local `HtmlBuilder` or `ViewBuilderFor` type
+annotation at those boundaries when lint recognition is needed.
+
+## Removed Rule IDs
+
+### Command binding names {#command-binding-matches-name}
+
+Replace `foldkit/command-binding-matches-name` with
+`foldkit/command-define-pascal-const` in explicit rule configurations. The latter
+now includes all Command declaration-name checks, including owned
+`Definition.command(...)` declarations.
+
+### Child update results {#require-fold-for-child-update-result}
+
+Replace `foldkit/require-fold-for-child-update-result` with
+`foldkit/no-direct-block-state-update`. Its checks include copying only a child
+result’s Model and losing Commands or an OutMessage. Use the registered Binding’s
+named operation or legitimate Message forwarding through `fold`.

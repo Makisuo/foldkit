@@ -189,7 +189,7 @@ const OptionalArgumentBinding = Parent.bindChild(OptionalArgumentChildBlock, {
 const RequiredRestBinding = Parent.bindChild(RequiredRestChildBlock, {
   field: 'requiredRest',
   parentMessage: ParentMessage.GotRequiredRestMessage,
-  init: { args: startup => [startup.count] },
+  init: { startupToArgs: startup => [startup.count] },
 })
 const OptedOutBinding = Parent.bindChild(ChildBlock, {
   field: 'optedOut',
@@ -204,7 +204,7 @@ const AutomaticOptionalBinding = Parent.bindChild(ChildBlock, {
   field: 'maybeAutomatic',
   parentMessage: ParentMessage.GotAutomaticOptionalMessage,
   init: {
-    args: startup =>
+    startupToArgs: startup =>
       startup.includeOptional ? Option.some([]) : Option.none(),
   },
 })
@@ -334,21 +334,27 @@ expectTypeOf<
 >().toEqualTypeOf<'StartupUnavailable'>()
 
 if (false) {
-  // @ts-expect-error A required-argument child needs init.args or init: false.
+  // @ts-expect-error The startup selector is named startupToArgs.
+  // oxfmt-ignore
+  Parent.bindChild(ChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotAutomaticMessage, init: { args: () => [] } })
+  // @ts-expect-error The removed args key cannot accompany startupToArgs.
+  // oxfmt-ignore
+  Parent.bindChild(ChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotAutomaticMessage, init: { startupToArgs: () => [], args: () => [] } })
+  // @ts-expect-error A required-argument child needs init.startupToArgs or init: false.
   // oxfmt-ignore
   Parent.bindChild(RequiredChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotAutomaticMessage })
   // @ts-expect-error Child init arguments retain their exact tuple.
   // oxfmt-ignore
-  Parent.bindChild(RequiredChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotAutomaticMessage, init: { args: () => ['wrong'] } })
+  Parent.bindChild(RequiredChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotAutomaticMessage, init: { startupToArgs: () => ['wrong'] } })
   // @ts-expect-error A selector must accept every value allowed by Startup.
   // oxfmt-ignore
-  Parent.bindChild(ChildBlock, { field: 'automatic', placement: 'narrowStartup', parentMessage: ParentMessage.GotAutomaticMessage, init: { args: (_startup: Readonly<{ count: 1 }>) => [] } })
+  Parent.bindChild(ChildBlock, { field: 'automatic', placement: 'narrowStartup', parentMessage: ParentMessage.GotAutomaticMessage, init: { startupToArgs: (_startup: Readonly<{ count: 1 }>) => [] } })
   Parent.bindChild(ChildBlock, {
     field: 'automatic',
     placement: 'readonlyStartup',
     parentMessage: ParentMessage.GotAutomaticMessage,
     init: {
-      args: startup => {
+      startupToArgs: startup => {
         // @ts-expect-error Startup Schema fields remain readonly.
         startup.count = 2
         return []
@@ -399,7 +405,7 @@ const ExactStartupDefinition = ExactStartupOwner.define({
 const WiderStartupBinding = ExactStartupDefinition.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ExactStartupMessage.GotChildMessage,
-  init: { args: (_startup: object) => [] },
+  init: { startupToArgs: (_startup: object) => [] },
 })
 const ExactStartupComposition = ExactStartupDefinition.makeComposition({
   childBindings: [WiderStartupBinding],
@@ -415,7 +421,7 @@ const ZeroParameterStartupBinding = ExactStartupDefinition.bindChild(
   {
     field: 'child',
     parentMessage: ExactStartupMessage.GotChildMessage,
-    init: { args: () => [] },
+    init: { startupToArgs: () => [] },
   },
 )
 const ZeroParameterStartupComposition = ExactStartupDefinition.makeComposition({
@@ -432,7 +438,7 @@ const ForeignStartupDefinition = ExactStartupOwner.define({
 const ForeignStartupBinding = ForeignStartupDefinition.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ExactStartupMessage.GotChildMessage,
-  init: { args: _startup => [] },
+  init: { startupToArgs: _startup => [] },
 })
 if (false) {
   // @ts-expect-error A Binding cannot change another Definition's Startup contract.
@@ -450,7 +456,7 @@ ApplicationDefinition.bindChild(ChildBlock, {
   field: 'child',
   parentMessage: ExactStartupMessage.GotChildMessage,
   init: {
-    args: startup => {
+    startupToArgs: startup => {
       expectTypeOf(startup).toEqualTypeOf<Startup>()
       return []
     },
@@ -510,6 +516,26 @@ it('rejects an erased Binding from an incompatible Startup contract', () => {
       { childBindings: [ForeignStartupBinding] },
     ]),
   ).toThrow('belongs to a different parent Definition contract')
+})
+
+it('rejects the removed init.args startup selector at runtime', () => {
+  const bindWithInit = (init: object) =>
+    Reflect.apply(Parent.bindChild, undefined, [
+      ChildBlock,
+      {
+        field: 'automatic',
+        placement: 'erasedStartupPolicy',
+        parentMessage: ParentMessage.GotAutomaticMessage,
+        init,
+      },
+    ])
+
+  expect(() => bindWithInit({ args: () => [] })).toThrow(
+    'object with a startupToArgs function',
+  )
+  expect(() =>
+    bindWithInit({ startupToArgs: () => [], args: () => [] }),
+  ).toThrow('does not support the policy field "args"')
 })
 
 void OptedOutBinding

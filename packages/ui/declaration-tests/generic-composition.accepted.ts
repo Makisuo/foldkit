@@ -50,7 +50,7 @@ export const ApplicationDefinition = defineApplication({
 export const DialogBinding = ApplicationDefinition.bindChild(Dialog.block, {
   field: 'dialog',
   parentMessage: ParentMessage.GotDialogMessage,
-  init: { args: () => [{ id: 'details' }] },
+  init: { startupToArgs: () => [{ id: 'details' }] },
   outMessage: {
     fold: Dialog.OutMessage.match({
       Opened: () => ApplicationDefinition.step(model => ({ model })),
@@ -63,7 +63,7 @@ export const DialogBinding = ApplicationDefinition.bindChild(Dialog.block, {
 export const PickerBinding = ApplicationDefinition.bindChild(Picker, {
   field: 'picker',
   parentMessage: ParentMessage.GotPickerMessage,
-  init: { args: () => [{ id: 'fruit' }] },
+  init: { startupToArgs: () => [{ id: 'fruit' }] },
   outMessage: {
     fold: Picker.OutMessage.match({
       Selected: ({ value }) =>
@@ -85,7 +85,7 @@ export const PickerBinding = ApplicationDefinition.bindChild(Picker, {
 export const PopoverBinding = ApplicationDefinition.bindChild(Popover.block, {
   field: 'popover',
   parentMessage: ParentMessage.GotPopoverMessage,
-  init: { args: () => [{ id: 'help' }] },
+  init: { startupToArgs: () => [{ id: 'help' }] },
   outMessage: {
     fold: Popover.OutMessage.match({
       Opened: () => ApplicationDefinition.step(model => ({ model })),
@@ -158,10 +158,10 @@ export const author = (composition: Composition) => {
 export const application = author(createComposition())
 
 export type GenericAssertions = [
-  Expect<Equal<Parameters<typeof DialogBinding.open>, []>>,
+  Expect<Equal<Parameters<typeof DialogBinding.requestOpen>, []>>,
   Expect<
     Equal<
-      Parameters<typeof PickerBinding.selectItem>,
+      Parameters<typeof PickerBinding.requestSelectItem>,
       [item: 'Apple' | 'Pear', displayText: string]
     >
   >,
@@ -190,7 +190,7 @@ export type GenericAssertions = [
   >,
   Expect<
     Equal<
-      Parameters<typeof ToastBlock.operations.show>,
+      Parameters<typeof ToastBlock.operations.requestShow>,
       [
         model: typeof ToastBlock.Model.Type,
         input: Toast.ShowInput<typeof ToastPayload.Type>,
@@ -223,15 +223,21 @@ export const tooltipDelayFromDuration =
     Duration.millis(350),
   )
 const toastModel = ToastBlock.init({ id: 'notifications' }).model
-export const toastFromStringDuration = ToastBlock.operations.show(toastModel, {
-  payload: { kind: 'Saved' },
-  duration: '1 second',
-})
-export const toastFromNumberDuration = ToastBlock.operations.show(toastModel, {
-  payload: { kind: 'Failed' },
-  duration: 1_000,
-})
-export const toastFromDuration = ToastBlock.operations.show(toastModel, {
+export const toastFromStringDuration = ToastBlock.operations.requestShow(
+  toastModel,
+  {
+    payload: { kind: 'Saved' },
+    duration: '1 second',
+  },
+)
+export const toastFromNumberDuration = ToastBlock.operations.requestShow(
+  toastModel,
+  {
+    payload: { kind: 'Failed' },
+    duration: 1_000,
+  },
+)
+export const toastFromDuration = ToastBlock.operations.requestShow(toastModel, {
   payload: { kind: 'Saved' },
   duration: Duration.seconds(2),
 })

@@ -139,7 +139,7 @@ describe('Toast', () => {
   describe('show', () => {
     it('appends an entry and schedules enter + dismiss commands', () => {
       const initial = toastInit({ id: 'test' })
-      const toastShow = block.operations.show(initial, {
+      const toastShow = block.operations.requestShow(initial, {
         payload: { body: 'Saved' },
       })
 
@@ -154,20 +154,26 @@ describe('Toast', () => {
     })
 
     it('does not schedule a dismiss command when sticky', () => {
-      const toastShow = block.operations.show(toastInit({ id: 'test' }), {
-        payload: { body: 'Sticky' },
-        sticky: true,
-      })
+      const toastShow = block.operations.requestShow(
+        toastInit({ id: 'test' }),
+        {
+          payload: { body: 'Sticky' },
+          sticky: true,
+        },
+      )
       const [entry] = toastShow.model.entries
       expect(entry?.maybeDuration).toStrictEqual(Option.none())
       expect(toastShow.commands ?? []).toHaveLength(1)
     })
 
     it('uses a caller-provided duration over the default', () => {
-      const toastShow = block.operations.show(toastInit({ id: 'test' }), {
-        payload: { body: 'Quick' },
-        duration: 100,
-      })
+      const toastShow = block.operations.requestShow(
+        toastInit({ id: 'test' }),
+        {
+          payload: { body: 'Quick' },
+          duration: 100,
+        },
+      )
       const [entry] = toastShow.model.entries
       expect(entry?.maybeDuration).toStrictEqual(
         Option.some(Duration.millis(100)),
@@ -175,10 +181,13 @@ describe('Toast', () => {
     })
 
     it('generates sequential entry ids using nextEntryKey', () => {
-      const firstShow = block.operations.show(toastInit({ id: 'test' }), {
-        payload: { body: 'One' },
-      })
-      const secondShow = block.operations.show(firstShow.model, {
+      const firstShow = block.operations.requestShow(
+        toastInit({ id: 'test' }),
+        {
+          payload: { body: 'One' },
+        },
+      )
+      const secondShow = block.operations.requestShow(firstShow.model, {
         payload: { body: 'Two' },
       })
       const ids = secondShow.model.entries.map(entry => entry.id)
@@ -187,11 +196,14 @@ describe('Toast', () => {
     })
 
     it('sticky wins over an explicit duration', () => {
-      const toastShow = block.operations.show(toastInit({ id: 'test' }), {
-        payload: { body: 'Sticky beats duration' },
-        sticky: true,
-        duration: 100,
-      })
+      const toastShow = block.operations.requestShow(
+        toastInit({ id: 'test' }),
+        {
+          payload: { body: 'Sticky beats duration' },
+          sticky: true,
+          duration: 100,
+        },
+      )
       const [entry] = toastShow.model.entries
       expect(entry?.maybeDuration).toStrictEqual(Option.none())
     })
@@ -498,7 +510,7 @@ describe('Toast', () => {
       })
     })
 
-    describe('DismissedAll', () => {
+    describe('RequestedDismissAll', () => {
       it('starts leave transition on every non-leaving entry', () => {
         const entryOne = makeSettledEntry({
           id: 'test-entry-0',
@@ -521,7 +533,7 @@ describe('Toast', () => {
         Story.story(
           block.update,
           Story.given(model),
-          Story.message(Message.DismissedAll()),
+          Story.message(Message.RequestedDismissAll()),
           Story.model(next => {
             expect(requireEntry(next, 0).animation.transitionState).toBe(
               'LeaveStart',
@@ -1677,18 +1689,18 @@ describe('Toast', () => {
   })
 
   describe('programmatic helpers', () => {
-    it('dismiss(model, entryId) dispatches Dismissed', () => {
+    it('requestDismiss(model, entryId) dispatches RequestedDismiss', () => {
       const model: Model = modifyFields(toastInit({ id: 'test' }), {
         entries: () => [makeSettledEntry()],
         nextEntryKey: () => 1,
       })
-      const toastDismiss = block.operations.dismiss(model, firstEntryId)
+      const toastDismiss = block.operations.requestDismiss(model, firstEntryId)
       expect(
         requireEntry(toastDismiss.model, 0).animation.transitionState,
       ).toBe('LeaveStart')
     })
 
-    it('dismissAll(model) dispatches DismissedAll', () => {
+    it('requestDismissAll(model) dispatches RequestedDismissAll', () => {
       const model: Model = modifyFields(toastInit({ id: 'test' }), {
         entries: () => [
           makeSettledEntry({ id: 'test-entry-0' }),
@@ -1696,7 +1708,7 @@ describe('Toast', () => {
         ],
         nextEntryKey: () => 2,
       })
-      const toastDismissAll = block.operations.dismissAll(model)
+      const toastDismissAll = block.operations.requestDismissAll(model)
       toastDismissAll.model.entries.forEach(entry => {
         expect(entry.animation.transitionState).toBe('LeaveStart')
       })

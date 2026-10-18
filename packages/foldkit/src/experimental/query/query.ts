@@ -276,28 +276,28 @@ type QueryMessageType<A, AI, E, EI> = QueryMessage<A, AI, E, EI>['Type']
 
 type QueryExposedOperations<Name extends string, A, AI, E, EI> = Readonly<{
   /** Returns the Query to Idle without starting a fetch. */
-  reset: Update.Step<
+  requestReset: Update.Step<
     QueryModelType<A, AI, E, EI>,
     QueryMessageType<A, AI, E, EI>,
     QueryFetchHandler<Name, A, AI, E, EI>
   >
   /** Starts a fetch for `Success` or `Stale` data while retaining that data.
    * Other states remain unchanged. */
-  revalidate: Update.Step<
+  requestRevalidation: Update.Step<
     QueryModelType<A, AI, E, EI>,
     QueryMessageType<A, AI, E, EI>,
     QueryFetchHandler<Name, A, AI, E, EI>
   >
   /** Revalidates retained data and starts an initial or retry fetch when no
    * successful data is available. */
-  revalidateOrLoad: Update.Step<
+  requestRevalidationOrLoad: Update.Step<
     QueryModelType<A, AI, E, EI>,
     QueryMessageType<A, AI, E, EI>,
     QueryFetchHandler<Name, A, AI, E, EI>
   >
   /** Starts a fetch while the Query is `Idle` or `Failure`. Loaded and pending
    * states remain unchanged. */
-  loadIfMissing: Update.Step<
+  requestLoadIfMissing: Update.Step<
     QueryModelType<A, AI, E, EI>,
     QueryMessageType<A, AI, E, EI>,
     QueryFetchHandler<Name, A, AI, E, EI>
@@ -455,14 +455,10 @@ const makeHostQuery = <Name extends string, A, AI, E, EI>(
     init,
     update: QueryComposition.makeUpdate(api.update),
     operations: {
-      reset: QueryComposition.makeOperation(Message.RequestedReset),
-      revalidate: QueryComposition.makeOperation(Message.RequestedRevalidation),
-      revalidateOrLoad: QueryComposition.makeOperation(
-        Message.RequestedRevalidationOrLoad,
-      ),
-      loadIfMissing: QueryComposition.makeOperation(
-        Message.RequestedLoadIfMissing,
-      ),
+      requestReset: Message.RequestedReset,
+      requestRevalidation: Message.RequestedRevalidation,
+      requestRevalidationOrLoad: Message.RequestedRevalidationOrLoad,
+      requestLoadIfMissing: Message.RequestedLoadIfMissing,
     },
     EffectsLayer: Layer.empty,
     hostHandlers: [Fetch],
@@ -519,14 +515,10 @@ const makeCanonicalQuery = <
     init,
     update: QueryComposition.makeUpdate(api.update),
     operations: {
-      reset: QueryComposition.makeOperation(Message.RequestedReset),
-      revalidate: QueryComposition.makeOperation(Message.RequestedRevalidation),
-      revalidateOrLoad: QueryComposition.makeOperation(
-        Message.RequestedRevalidationOrLoad,
-      ),
-      loadIfMissing: QueryComposition.makeOperation(
-        Message.RequestedLoadIfMissing,
-      ),
+      requestReset: Message.RequestedReset,
+      requestRevalidation: Message.RequestedRevalidation,
+      requestRevalidationOrLoad: Message.RequestedRevalidationOrLoad,
+      requestLoadIfMissing: Message.RequestedLoadIfMissing,
     },
     EffectsLayer: api.toLayer(handler),
   })

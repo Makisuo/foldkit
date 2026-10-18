@@ -1,4 +1,4 @@
-import { Option, Schema, Tuple } from 'effect'
+import { Schema, Tuple } from 'effect'
 import type * as Block from 'foldkit/block'
 import { modifyFields } from 'foldkit/struct'
 
@@ -93,18 +93,19 @@ type UpdateReturn = ReturnType<typeof update>
 
 /** Programmatically opens the Combobox, updating the Model and returning
  *  focus and modal Commands. Use this in domain-event handlers. */
-export const open = (model: Model): UpdateReturn => block.operations.open(model)
+export const open = (model: Model): UpdateReturn =>
+  block.operations.requestOpen(model)
 
 /** Programmatically closes the Combobox, updating the Model and returning
  *  focus and modal Commands. The multi-select input always rests empty on
  *  close. Use this in domain-event handlers to close the combobox. */
 export const close = (model: Model): UpdateReturn =>
-  block.operations.close(model)
+  block.operations.requestClose(model)
 
 /** Programmatically activates an item in the multi-select combobox. Emits
  *  `Selected({ value })`; the parent toggles the value's membership. */
 export const selectItem = (model: Model, item: string): UpdateReturn =>
-  block.operations.selectItem(model, item)
+  block.operations.requestSelectItem(model, item)
 
 // VIEW
 
@@ -152,20 +153,23 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
   const view = ComboboxComposition.makeView.withInputs<ViewInputs<Item>>(
     makeView<Model, Item>({ ariaMultiSelectable: true }, ItemMessage),
   )
-  const open = () =>
-    Tuple.make(ItemMessage.Opened({ maybeActiveItemIndex: Option.none() }))
-  const close = () =>
-    Tuple.make(ItemMessage.Closed({ restingInputValue: '', isClearable: true }))
-  const selectItem = (item: Item) =>
+  const requestOpen = ItemMessage.RequestedOpen
+  const requestClose = () =>
     Tuple.make(
-      ItemMessage.SelectedItem({
+      ItemMessage.RequestedClose({
+        restingInputValue: '',
+        isClearable: true,
+      }),
+    )
+  const requestSelectItem = (item: Item) =>
+    Tuple.make(
+      ItemMessage.RequestedSelectItem({
         item,
         displayText: item,
-        wasSelected: false,
       }),
     )
 
-  const operations = { open, close, selectItem }
+  const operations = { requestOpen, requestClose, requestSelectItem }
   return {
     composition: ComboboxComposition,
     implementation: {

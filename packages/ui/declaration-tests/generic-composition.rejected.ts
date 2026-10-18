@@ -13,7 +13,7 @@ import {
 } from './generic-composition.accepted.js'
 
 // @ts-expect-error The connected Dialog operation takes no arguments.
-DialogBinding.open('unexpected')
+DialogBinding.requestOpen('unexpected')
 
 Picker.Message.SelectedItem({
   // @ts-expect-error The refined Message rejects an item outside its Schema.
@@ -23,19 +23,25 @@ Picker.Message.SelectedItem({
 })
 
 // @ts-expect-error The connected operation preserves the item Schema.
-PickerBinding.selectItem('Banana', 'Banana')
+PickerBinding.requestSelectItem('Banana', 'Banana')
 
-ToastBlock.operations.show(ToastBlock.init({ id: 'invalid-toast' }).model, {
-  payload: {
-    // @ts-expect-error Toast show retains the payload Schema refinement.
-    kind: 'Unknown',
+ToastBlock.operations.requestShow(
+  ToastBlock.init({ id: 'invalid-toast' }).model,
+  {
+    payload: {
+      // @ts-expect-error Toast show retains the payload Schema refinement.
+      kind: 'Unknown',
+    },
   },
-})
-ToastBlock.operations.show(ToastBlock.init({ id: 'invalid-duration' }).model, {
-  payload: { kind: 'Saved' },
-  // @ts-expect-error Toast show accepts Effect Duration inputs only.
-  duration: false,
-})
+)
+ToastBlock.operations.requestShow(
+  ToastBlock.init({ id: 'invalid-duration' }).model,
+  {
+    payload: { kind: 'Saved' },
+    // @ts-expect-error Toast show accepts Effect Duration inputs only.
+    duration: false,
+  },
+)
 Slider.block.operations.informRangeChanged(
   Slider.init({ id: 'invalid-range', min: 0, max: 100, step: 1 }),
   // @ts-expect-error The Slider range requires both numeric bounds.

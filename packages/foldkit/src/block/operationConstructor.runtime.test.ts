@@ -78,8 +78,8 @@ const update = Composition.makeUpdate(
       CompletedRecordValue: () => ({ model }),
     }),
 )
-const resetValue = Composition.makeOperation(Message.ResetValue)
-const updateValue = Composition.makeOperation(Message.UpdatedValue)
+const resetValue = Message.ResetValue
+const updateValue = Message.UpdatedValue
 const operations = { resetValue, updateValue }
 
 const makeBlock = (selectedUpdate: typeof update) =>
@@ -170,12 +170,8 @@ const ParentBlock = ParentComposition.makeBlock({
     }),
   ),
   operations: {
-    updateChild: ParentComposition.makeOperation(
-      ParentMessage.RequestedUpdateChild,
-    ),
-    updateEntry: ParentComposition.makeOperation(
-      ParentMessage.RequestedUpdateEntry,
-    ),
+    updateChild: ParentMessage.RequestedUpdateChild,
+    updateEntry: ParentMessage.RequestedUpdateEntry,
   },
   EffectsLayer: Layer.empty,
 })
@@ -187,7 +183,7 @@ const initialParent = ParentModel.make({
 })
 
 describe('Message constructor operations', () => {
-  it('constructs passively and completes one descriptor-update pair once', () => {
+  it('completes one operations-update pair once without running constructor defaults', () => {
     const SamePair = makeBlock(update)
     const secondUpdate = Composition.makeUpdate(
       (
@@ -257,6 +253,39 @@ describe('Message constructor operations', () => {
     >()
   })
 
+  it('recognizes a symbol field as payload and keeps update Context after it', () => {
+    const valueField = Symbol('value')
+    const SymbolModel = Schema.Struct({ value: Schema.String })
+    const SymbolMessage = defineMessageUnion({
+      UpdatedValue: { [valueField]: Schema.String },
+    })
+    const SymbolDefinition = define('OperationConstructorRuntimeSymbolField', {
+      Model: SymbolModel,
+      Message: SymbolMessage,
+    })
+    const SymbolComposition = SymbolDefinition.makeComposition()
+    const SymbolBlock = SymbolComposition.makeBlock({
+      init: () => ({ model: SymbolModel.make({ value: '' }) }),
+      update: SymbolComposition.makeUpdate(
+        (model, message, suffix: string) => ({
+          model: modifyFields(model, {
+            value: () => `${message[valueField]}${suffix}`,
+          }),
+        }),
+      ),
+      operations: { updateValue: SymbolMessage.UpdatedValue },
+      EffectsLayer: Layer.empty,
+    })
+
+    const result = SymbolBlock.operations.updateValue(
+      SymbolModel.make({ value: '' }),
+      { [valueField]: 'payload' },
+      ':context',
+    )
+
+    expect(result.model.value).toBe('payload:context')
+  })
+
   it('prepends a key for keyed Bindings and preserves absent child behavior', () => {
     const direct = ParentBlock.operations.updateChild(initialParent, {
       value: 'direct',
@@ -315,27 +344,55 @@ describe('Message constructor operations', () => {
     const NestedComposition = NestedDefinition.makeComposition()
 
     expect(() =>
-      SingleComposition.makeOperation(Message.ResetValue),
+      SingleComposition.makeBlock({
+        init: () => ({ model: initialModel }),
+        update: SingleComposition.makeUpdate(model => ({ model })),
+        operations: { resetValue: Message.ResetValue },
+        EffectsLayer: Layer.empty,
+      }),
     ).not.toThrow()
     expect(() =>
-      NestedComposition.makeOperation(Message.UpdatedValue),
+      NestedComposition.makeBlock({
+        init: () => ({ model: initialModel }),
+        update: NestedComposition.makeUpdate(model => ({ model })),
+        operations: { updateValue: Message.UpdatedValue },
+        EffectsLayer: Layer.empty,
+      }),
     ).not.toThrow()
   })
 
-  it('rejects routed, foreign, wrong-owner, reserved, and malformed descriptors', () => {
-    const ForeignMessage = defineMessageUnion({ UpdatedForeignValue: {} })
-    const SameIdDefinition = define('OperationConstructorRuntimeSameId', {
-      Model,
-      Message,
-    })
-    const FirstComposition = SameIdDefinition.makeComposition()
-    const SecondComposition = define('OperationConstructorRuntimeSameId', {
+  it('accepts the same local constructor in multiple Definitions', () => {
+    const FirstComposition = define('OperationConstructorRuntimeFirst', {
       Model,
       Message,
     }).makeComposition()
-    const foreignOwnerOperation = FirstComposition.makeOperation(
-      Message.ResetValue,
+    const SecondComposition = define('OperationConstructorRuntimeSecond', {
+      Model,
+      Message,
+    }).makeComposition()
+    const FirstBlock = FirstComposition.makeBlock({
+      init: () => ({ model: initialModel }),
+      update: FirstComposition.makeUpdate(model => ({ model })),
+      operations: { resetValue: Message.ResetValue },
+      EffectsLayer: Layer.empty,
+    })
+    const SecondBlock = SecondComposition.makeBlock({
+      init: () => ({ model: initialModel }),
+      update: SecondComposition.makeUpdate(model => ({ model })),
+      operations: { resetValue: Message.ResetValue },
+      EffectsLayer: Layer.empty,
+    })
+
+    expect(FirstBlock.operations.resetValue(initialModel).model).toBe(
+      initialModel,
     )
+    expect(SecondBlock.operations.resetValue(initialModel).model).toBe(
+      initialModel,
+    )
+  })
+
+  it('rejects routed, foreign, reserved, and malformed operation sources', () => {
+    const ForeignMessage = defineMessageUnion({ UpdatedForeignValue: {} })
     const dynamicReservedName: string = 'fold'
     const SameShapeMessage = defineMessageUnion({
       UpdatedValue: {
@@ -347,37 +404,54 @@ describe('Message constructor operations', () => {
     })
 
     expect(() =>
-      Reflect.apply(ParentComposition.makeOperation, undefined, [
-        ParentMessage.GotChildMessage,
+      Reflect.apply(ParentComposition.makeBlock, undefined, [
+        {
+          init: ParentBlock.init,
+          update: ParentBlock.update,
+          operations: { routed: ParentMessage.GotChildMessage },
+          EffectsLayer: Layer.empty,
+        },
       ]),
     ).toThrow(/Got|routed|authored/)
     expect(() =>
-      Reflect.apply(Composition.makeOperation, undefined, [
-        ForeignMessage.UpdatedForeignValue,
-      ]),
-    ).toThrow(/declared Message Schema/)
-    expect(() =>
-      Composition.makeOperation(SameShapeMessage.UpdatedValue),
-    ).toThrow(/same-shaped|declared Message Schema/)
-
-    expect(() =>
-      Reflect.apply(Composition.makeOperation, undefined, [
-        Schema.TaggedStruct('UpdatedValue', { value: Schema.String }),
-      ]),
-    ).toThrow(/callable|Message constructor/)
-    expect(() =>
-      Reflect.apply(Composition.makeOperation, undefined, [() => ({})]),
-    ).toThrow(/callable|Message constructor/)
-    expect(() =>
-      Reflect.apply(SecondComposition.makeBlock, undefined, [
+      Reflect.apply(Composition.makeBlock, undefined, [
         {
           init: () => ({ model: initialModel }),
           update,
-          operations: { resetValue: foreignOwnerOperation },
+          operations: { foreign: ForeignMessage.UpdatedForeignValue },
           EffectsLayer: RecordValue.layer,
         },
       ]),
-    ).toThrow(/owner|Composition/)
+    ).toThrow(/declared Message Schema/)
+    expect(() =>
+      Reflect.apply(Composition.makeBlock, undefined, [
+        {
+          init: () => ({ model: initialModel }),
+          update,
+          operations: { sameShape: SameShapeMessage.UpdatedValue },
+          EffectsLayer: RecordValue.layer,
+        },
+      ]),
+    ).toThrow(/same-shaped|declared Message Schema/)
+
+    const PlainSchemaBlock = Reflect.apply(Composition.makeBlock, undefined, [
+      {
+        init: () => ({ model: initialModel }),
+        update,
+        operations: {
+          plainSchema: Schema.TaggedStruct('UpdatedValue', {
+            value: Schema.String,
+          }),
+        },
+        EffectsLayer: RecordValue.layer,
+      },
+    ])
+
+    expect(() =>
+      PlainSchemaBlock.operations.plainSchema(initialModel, {
+        value: 'invalid',
+      }),
+    ).toThrow(/nonempty \[Message, \.\.\.context\] tuple/)
     expect(() =>
       Reflect.apply(Composition.makeBlock, undefined, [
         {
@@ -397,7 +471,7 @@ describe('Message constructor operations', () => {
           EffectsLayer: RecordValue.layer,
         },
       ]),
-    ).toThrow(/operation|descriptor|producer/)
+    ).toThrow(/operation|constructor|producer/)
     expect(() =>
       Reflect.apply(Composition.makeBlock, undefined, [
         {
@@ -408,6 +482,21 @@ describe('Message constructor operations', () => {
         },
       ]),
     ).toThrow(/removed "expose" field.*"operations"/)
+
+    expect(Reflect.get(Composition, 'makeOperation')).toBeUndefined()
+
+    const InvalidTupleBlock = Reflect.apply(Composition.makeBlock, undefined, [
+      {
+        init: () => ({ model: initialModel }),
+        update,
+        operations: { invalidTuple: () => ({}) },
+        EffectsLayer: RecordValue.layer,
+      },
+    ])
+
+    expect(() =>
+      InvalidTupleBlock.operations.invalidTuple(initialModel),
+    ).toThrow(/nonempty \[Message, \.\.\.context\] tuple/)
 
     const BypassBlock = Reflect.apply(ParentComposition.makeBlock, undefined, [
       {

@@ -80,26 +80,27 @@ const registered = Child.makeComposition({ mounts: [Observe] })
 const view = registered.makeView((model, h) =>
   h.div([h.OnMount(Observe())], [globalThis.String(model.count)]),
 )
+const childUpdate = registered.makeUpdate((model, message) =>
+  Message.match(message, {
+    RequestedRead: () => ({
+      model,
+      commands: [Read()],
+      outMessage: OutMessage.ReadRequested(),
+    }),
+    RequestedReadOperation: () => ({ model, commands: [Read()] }),
+    CompletedRead: ({ count }) => ({
+      model: modifyFields(model, { count: () => count }),
+    }),
+    ObservedTick: () => ({ model }),
+    CompletedObserve: () => ({ model }),
+    AcquiredSession: () => ({ model }),
+    ReleasedSession: () => ({ model }),
+    FailedAcquireSession: () => ({ model }),
+  }),
+)
 const block = registered.makeBlock({
   init: () => ({ model: Model.make({ count: 0 }) }),
-  update: registered.makeUpdate((model, message) =>
-    Message.match(message, {
-      RequestedRead: () => ({
-        model,
-        commands: [Read()],
-        outMessage: OutMessage.ReadRequested(),
-      }),
-      RequestedReadOperation: () => ({ model, commands: [Read()] }),
-      CompletedRead: ({ count }) => ({
-        model: modifyFields(model, { count: () => count }),
-      }),
-      ObservedTick: () => ({ model }),
-      CompletedObserve: () => ({ model }),
-      AcquiredSession: () => ({ model }),
-      ReleasedSession: () => ({ model }),
-      FailedAcquireSession: () => ({ model }),
-    }),
-  ),
+  update: childUpdate,
   view,
   subscriptions,
   managedResources,

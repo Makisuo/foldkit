@@ -51,7 +51,7 @@ const PopoverExampleDefinition = Block.define('PopoverExample', {
 const PopoverBinding = PopoverExampleDefinition.bindChild(Popover.block, {
   field: 'popover',
   parentMessage: Message.GotPopoverMessage,
-  init: { args: () => Tuple.make({ id: 'info' }) },
+  init: { startupToArgs: () => Tuple.make({ id: 'info' }) },
   outMessage: { fold: foldPopoverOutMessage },
 })
 

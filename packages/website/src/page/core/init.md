@@ -35,10 +35,12 @@ A completed Block already carries its initializer. The parent Binding decides wh
 For a child stored in an exact required direct field:
 
 - Omit `init` when the child's initializer takes no arguments. Composition initializes it automatically.
-- Use `init: { args }` when the child needs startup arguments.
+- Use `init: { startupToArgs }` when the child needs startup arguments.
 - Use `init: false` when the parent supplies that field in the init plan's `model`.
 
-When several Bindings read the same startup input, add a `Startup` Schema to the parent Definition. That Schema contextually types each `init.args` selector. Put its decoded value in the Composition init plan's `startup` field.
+When several Bindings read the same startup input, add a `Startup` Schema to the parent Definition. That Schema contextually types each `init.startupToArgs` selector. Put its decoded value in the Composition init plan's `startup` field.
+
+`startupToArgs` maps those startup inputs to the child's initializer arguments. The separate `Binding.init({ args, toParentModel })` operation takes a concrete argument tuple for one initialization. Keyed `init.occurrences` also keeps each occurrence's concrete `args` tuple.
 
 The following Profile contains a ThemePicker whose initializer requires a Theme. The Binding selects that child input from `startup`, while the init plan supplies only the parent-owned username:
 
@@ -54,7 +56,7 @@ These calls assemble values only. They do not construct Services, build handler 
 
 ### Optional and custom child storage
 
-For an exact `Option` field, omitting `init` leaves presence with the parent. Return `Option.none()` from `init.args` for absence or `Option.some(args)` for presence. Keyed and accessor Bindings also remain parent-owned when `init` is omitted; use `init.occurrences` or `init.args` when Composition should initialize them.
+For an exact `Option` field, omitting `init` leaves presence with the parent. Return `Option.none()` from `init.startupToArgs` for absence or `Option.some(args)` for presence. Keyed and accessor Bindings also remain parent-owned when `init` is omitted; use `init.occurrences` or `init.startupToArgs` when Composition should initialize them.
 
 The final parent Model determines which initialized occurrences are active. Init Commands for absent or `presentWhen`-inactive children are omitted. A `subscriptions.when` policy only gates Subscription Streams; it does not suppress child init Commands. Initial Steps may change the child Model without discarding its init Commands.
 
@@ -86,9 +88,9 @@ Put initial Steps in the plan's `steps` array. The Composition assembles the com
 
 An optional `boot` helper is a public Message-producing operation called through the Binding after the child Model is stored. It may accept Flags, the current URL, or prerendered data, and update returns the normal next Model and Commands through that Binding. The Runtime later performs those Commands through their handlers. A feature need not define both init and `boot` helpers.
 
-When an existing domain operation such as `restore` or `open` already describes the transition, declare its existing Message constructor with `Composition.makeOperation` and put the descriptor under `operations`. Use a tuple producer there when the public inputs need mapping, refinement, defaults, or an exact update context tuple. Do not create a separate startup-only Message.
+When an existing domain operation such as `requestRestore` or `requestOpen` already describes the transition, put its existing Message constructor directly under `operations`. Use a tuple producer there when the public inputs need mapping, refinement, defaults, or an exact update context tuple. Do not create a separate startup-only Message.
 
-The following excerpt assumes `SettingsBinding` and `SessionBinding` have init policies and provide startup operations. The `steps` array is sequential, so `SessionBinding.resume` receives the Model returned by `SettingsBinding.restore`. The result retains Commands from both child initializers and both Steps:
+The following excerpt assumes `SettingsBinding` and `SessionBinding` have init policies and provide startup operations. The `steps` array is sequential, so `SessionBinding.requestResume` receives the Model returned by `SettingsBinding.requestRestore`. The result retains Commands from both child initializers and both Steps:
 
 ::Snippet{name="initBootSteps" label="Composing startup Steps"}
 

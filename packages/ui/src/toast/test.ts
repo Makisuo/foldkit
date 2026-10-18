@@ -34,7 +34,7 @@ export const matchWaitForAnimationSettled = (
  *  auto-dismiss and its exit animation, ending with the entry removed from the
  *  stack and the `DismissedToast` OutMessage emitted.
  *
- *  Showing a toast via `Toast.operations.show` emits a multi-step lifecycle that a Story
+ *  Showing a toast via `Toast.operations.requestShow` emits a multi-step lifecycle that a Story
  *  test must resolve in full or the story fails on leftover Commands. The
  *  steps are:
  *

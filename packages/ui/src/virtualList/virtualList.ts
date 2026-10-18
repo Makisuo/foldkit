@@ -1514,32 +1514,30 @@ const viewImpl =
 const operations = {
   informItemsChanged: (itemKeys: ReadonlyArray<string>) =>
     Tuple.make(Message.InformedOfItemsChange({ itemKeys })),
-  scrollTo: (target: ScrollTarget, options: ScrollToOptions = {}) =>
+  requestScrollTo: (target: ScrollTarget, options: ScrollToOptions = {}) =>
     Tuple.make(
       Message.RequestedScrollTo({
         target,
         maybeAlignment: Option.fromNullishOr(options.alignment),
       }),
     ),
-  scrollToIndex: (index: number, options: ScrollToOptions = {}) =>
+  requestScrollToIndex: (index: number, options: ScrollToOptions = {}) =>
     Tuple.make(
       Message.RequestedScrollToIndex({
         index,
         maybeAlignment: Option.fromNullishOr(options.alignment),
       }),
     ),
-  scrollToKey: (key: string, options: ScrollToOptions = {}) =>
+  requestScrollToKey: (key: string, options: ScrollToOptions = {}) =>
     Tuple.make(
       Message.RequestedScrollToKey({
         key,
         maybeAlignment: Option.fromNullishOr(options.alignment),
       }),
     ),
-  scrollToOffset: (offset: number) =>
+  requestScrollToOffset: (offset: number) =>
     Tuple.make(Message.RequestedScrollToOffset({ offset })),
-  scrollToEnd: VirtualListComposition.makeOperation(
-    Message.RequestedScrollToEnd,
-  ),
+  requestScrollToEnd: Message.RequestedScrollToEnd,
 }
 
 /** Complete VirtualList Block definition using an unknown item type. */
@@ -1554,23 +1552,23 @@ export const block = VirtualListComposition.makeBlock({
 })
 
 /** Programmatically scrolls to a logical target. */
-export const scrollTo = block.operations.scrollTo
+export const scrollTo = block.operations.requestScrollTo
 
 /** Programmatically scrolls the container so the row at `index` is visible.
  *  The next view resolves the logical index with its current sizing mode, and
  *  the Command aligns the live rendered row. */
-export const scrollToIndex = block.operations.scrollToIndex
+export const scrollToIndex = block.operations.requestScrollToIndex
 
 /** Programmatically scrolls to the row whose `itemToKey` result matches
  *  `key`. The next view resolves the key against its current items. */
-export const scrollToKey = block.operations.scrollToKey
+export const scrollToKey = block.operations.requestScrollToKey
 
 /** Programmatically scrolls to an exact pixel offset from the start of the
  *  list. Negative offsets clamp to zero. */
-export const scrollToOffset = block.operations.scrollToOffset
+export const scrollToOffset = block.operations.requestScrollToOffset
 
 /** Programmatically scrolls to the end of the list. */
-export const scrollToEnd = block.operations.scrollToEnd
+export const scrollToEnd = block.operations.requestScrollToEnd
 
 /** Creates a completed VirtualList Block refined to one item type. */
 export const create = <Item>() => {

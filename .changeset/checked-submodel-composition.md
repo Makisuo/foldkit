@@ -88,8 +88,6 @@ import { modifyFields } from 'foldkit/struct'
 import { SearchComposition } from './composition'
 import { Message } from './message'
 
-export const reset = SearchComposition.makeOperation(Message.RequestedReset)
-
 export const update = SearchComposition.makeUpdate((model, message) =>
   Message.match(message, {
     RequestedReset: () => ({
@@ -101,26 +99,68 @@ export const update = SearchComposition.makeUpdate((model, message) =>
 // block.ts
 import { SearchComposition } from './composition'
 import { init } from './init'
-import { reset, update } from './update'
+import { Message } from './message'
+import { update } from './update'
 import { view } from './view'
 
 export const block = SearchComposition.makeBlock({
   init,
   update,
   view,
-  operations: { reset },
+  operations: { requestReset: Message.RequestedReset },
 })
 ```
 
-Prefer `Composition.makeOperation(Message.Constructor)` when the operation forwards its public arguments directly into that Message. It returns a passive, noncallable descriptor. TypeScript checks that the constructor produces the Block's Message shape. Runtime creation and completion verify that it is an actual constructor member owned by that Block; routed `Got*` wrappers remain Binding delivery. `makeBlock` creates the completed operation that dispatches through the Block's update. A constructor with fields gives the completed Block operation the signature `(model, payload, ...context)`, where `payload` is one constructor payload object and constructor defaults remain accepted. A constructor without fields takes `(model, ...context)` with no dummy payload. The corresponding Binding method omits the child Model, and a keyed Binding prepends its key.
+Put the local Message constructor directly under `operations` when its payload is the public input. Completion associates it with the Block's update without constructing a Message. TypeScript checks its Message shape. Completion also verifies exact constructor membership in the declared Message Schema; a same-shaped constructor from another union is rejected at runtime. Routed `Got*` wrappers remain Binding delivery. A constructor with payload fields gives the completed Block operation `(model, payload, ...context)`, with constructor defaults accepted. A constructor without payload fields gives `(model, ...context)` with no placeholder. The Binding method omits the child Model; a keyed Binding prepends its key. There is no separate `makeOperation` authoring helper.
 
-Keep a tuple producer under `operations` when the public inputs need mapping, refinement, defaults, or an exact update context tuple. Inline tuples receive contextual typing. An extracted producer returns `Tuple.make(Message.RequestedReset())`, with `Tuple` imported from `effect`. Constructor descriptors and tuple producers complete through the same execution path. The registry accepts these two Message-producing forms, not arbitrary Steps, and there is no `expose` compatibility alias.
+Keep a tuple producer under `operations` when the public inputs need mapping, refinement, defaults, or an exact update context tuple. Inline tuples receive contextual typing. An extracted producer returns `Tuple.make(Message.RequestedReset())`, with `Tuple` imported from `effect`. Local Message constructors and tuple producers complete through the same execution path. The registry accepts these two Message-producing forms, not arbitrary Steps, and there is no `expose` compatibility alias.
 
 Every completed operation uses the full return contract of the Block's update. If any update branch returns a Command or OutMessage, all operations carry that requirement or optional result in their type. Dispatching a Message for a pure branch does not run effects from another branch.
 
+Keep the authored `update` in a named value before passing it to `makeBlock`, as shown above. The current overloads can misinfer a handler Layer when `makeUpdate` is nested directly in a completion record that also contains a view, operations, Subscriptions, and ManagedResources. The named form preserves exact inference without extra type annotations.
+
 A raw Binding operation recipe exposes only channels produced directly by the child transition. Return it intact from the owning Composition callback. The Composition resolves registered OutMessage policy and sibling operations into the final parent Command Message, requirements, and OutMessage channels. Derive exported parent contracts from the Composition-authored update or completed Block.
 
-Use `InformedOf*` Messages for parent notifications, such as `const informRouteChanged = SearchComposition.makeOperation(Message.InformedOfRouteChange)`. Use `Requested*` for parent-invoked child actions. Selectors and derived view inputs remain ordinary helpers.
+Pair the operation and Message names: `informJoined` selects `Message.InformedOfJoin`, `informRouteChanged` selects `Message.InformedOfRouteChange`, and `requestCloseMenu` selects `Message.RequestedCloseMenu`. Notifications use `inform*`/`InformedOf*`; actions use `request*`/`Requested*`. Keep actual UI facts separate when their cause differs from the parent request. Selectors and derived view inputs remain ordinary helpers.
+
+### Name Binding actions
+
+Name action operations with `request*`, paired with `Requested*` Messages. For
+example, invoke `DialogBinding.requestOpen()` or
+`DialogBinding.requestClose()` through the registered Binding. Animation,
+Menu, Listbox, Combobox, DatePicker, Calendar, Toast, VirtualList, and Query
+Binding actions follow the same convention. Query uses `requestReset`,
+`requestRevalidation`, `requestRevalidationOrLoad`, and `requestLoadIfMissing`.
+Notification operations retain their `inform*` names and enter update through
+`InformedOf*` Messages. Custom tuple adapters follow the same naming rule.
+
+### Bundle owned Subscription handlers
+
+When all entries returned by `Definition.subscriptions(...)` have attached
+handlers, the registry exposes an aggregate `.layer`:
+
+Individual recipes (still supported):
+
+```ts
+const EffectsLayer = Layer.mergeAll(
+  subscriptions.pointerMoves.layer,
+  subscriptions.keyboardPresses.layer,
+)
+```
+
+All attached recipes in the owned registry:
+
+```ts
+const EffectsLayer = subscriptions.layer
+```
+
+The aggregate only merges passive recipes; it constructs no handlers or Streams.
+Its exact handler outputs, Service requirements, and constructor errors are
+preserved. An empty record supplies `Layer.empty`. A registry containing any
+host-provided contract has no aggregate `.layer`; supply that contract explicitly.
+The entry key `layer` is reserved and rejected by types and runtime validation.
+Individual entry Layers remain available for selective assembly. Standalone
+`Subscription.make` still returns an entry record without this owned aggregate.
 
 ## Move child integration to the parent
 

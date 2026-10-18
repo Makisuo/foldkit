@@ -5,10 +5,6 @@ import { EffectsLayer, init, update, view } from './example'
 import { Message } from './message'
 import type { ExampleSources } from './sources'
 
-const informRouteChanged = ExampleDetailComposition.makeOperation(
-  Message.InformedOfRouteChange,
-)
-
 export { mounts } from './composition'
 export {
   CurrentSourcesAsyncData,
@@ -27,7 +23,7 @@ export const block = ExampleDetailComposition.makeBlock({
   update,
   view,
   operations: {
-    loadInitialSources: (
+    requestLoadInitialSources: (
       maybeInitialSlug: Option.Option<string>,
       maybeExampleSources: Option.Option<
         typeof ExampleSources.Type
@@ -38,7 +34,7 @@ export const block = ExampleDetailComposition.makeBlock({
         maybeExampleSources,
       }),
     ],
-    informRouteChanged,
+    informRouteChanged: Message.InformedOfRouteChange,
   },
   EffectsLayer,
 })

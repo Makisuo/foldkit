@@ -136,7 +136,7 @@ describe('real-oxlint rule fixtures', () => {
   })
 
   it('traces direct, named, and automatically routed child updates', () => {
-    expect(countDiagnostics('no-direct-block-state-update', 'invalid')).toBe(12)
+    expect(countDiagnostics('no-direct-block-state-update', 'invalid')).toBe(15)
   })
 
   it('tracks registered child Bindings in Composition update callbacks', () => {
@@ -147,7 +147,7 @@ describe('real-oxlint rule fixtures', () => {
       diagnostic.filename.endsWith('composition-update.ts'),
     )
 
-    expect(diagnostics).toHaveLength(1)
+    expect(diagnostics).toHaveLength(2)
   })
 
   it('reports disabled, missing, and manual child routing', () => {
@@ -231,7 +231,7 @@ describe('real-oxlint rule fixtures', () => {
   })
 
   it('recognizes explicit and contextual HtmlBuilder parameters', () => {
-    expect(countDiagnostics('no-empty-children-array', 'invalid')).toBe(6)
+    expect(countDiagnostics('no-empty-children-array', 'invalid')).toBe(8)
   })
 
   it('reports every invalid Mount handler', () => {
@@ -244,17 +244,8 @@ describe('real-oxlint rule fixtures', () => {
     expect(countDiagnostics('no-empty-object-tagged-call', 'invalid')).toBe(3)
   })
 
-  it('derives child fields from folds and completed Block connections', () => {
-    expect(
-      countDiagnostics('require-fold-for-child-update-result', 'invalid'),
-    ).toBe(10)
-  })
-
   it('resolves namespace and aliased Update subpath imports', () => {
-    for (const rule of [
-      'no-direct-block-state-update',
-      'require-fold-for-child-update-result',
-    ]) {
+    for (const rule of ['no-direct-block-state-update']) {
       const diagnostics = diagnosticsFor(rule, 'invalid').filter(diagnostic =>
         diagnostic.filename.endsWith('subpath-update.ts'),
       )

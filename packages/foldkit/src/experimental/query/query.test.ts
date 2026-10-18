@@ -134,7 +134,7 @@ const stringNeedingEncode = Schema.flip(stringNeedingDecode)
 
 const loadedNoteById = (noteId: string) => {
   const args = { noteId }
-  const loading = noteById.loadIfMissing(noteById.init().model, args)
+  const loading = noteById.requestLoadIfMissing(noteById.init().model, args)
 
   return noteById.update(
     loading.model,
@@ -205,13 +205,13 @@ describe('Query.define Schema inputs', () => {
 
 describe('Query loading policies', () => {
   it('revalidateOrLoad starts an Idle Query and deduplicates pending work', () => {
-    const started = notes.revalidateOrLoad(notes.init().model)
+    const started = notes.requestRevalidationOrLoad(notes.init().model)
     expect(notes.read(started.model)).toEqual(AsyncData.Loading())
     expect(started.commands?.map(commandShape)).toEqual([
       commandShape(notes.Fetch({ generation: started.model.generation })),
     ])
 
-    const ignoredLoading = notes.revalidateOrLoad(started.model)
+    const ignoredLoading = notes.requestRevalidationOrLoad(started.model)
     expect(ignoredLoading.model).toBe(started.model)
     expect(ignoredLoading.commands).toBeUndefined()
 
@@ -219,7 +219,7 @@ describe('Query loading policies', () => {
       data: AsyncData.Refreshing({ data: hello }),
       generation: 1,
     })
-    const ignoredRefreshing = notes.revalidateOrLoad(refreshing)
+    const ignoredRefreshing = notes.requestRevalidationOrLoad(refreshing)
     expect(ignoredRefreshing.model).toBe(refreshing)
     expect(ignoredRefreshing.commands).toBeUndefined()
   })
@@ -229,7 +229,7 @@ describe('Query loading policies', () => {
       data: AsyncData.Success({ data: hello }),
       generation: 0,
     })
-    const fromSuccess = notes.revalidate(success)
+    const fromSuccess = notes.requestRevalidation(success)
     expect(notes.read(fromSuccess.model)).toEqual(
       AsyncData.Refreshing({ data: hello }),
     )
@@ -241,7 +241,7 @@ describe('Query loading policies', () => {
       data: AsyncData.Stale({ error: 'boom', data: hello }),
       generation: 0,
     })
-    const fromStale = notes.revalidate(stale)
+    const fromStale = notes.requestRevalidation(stale)
     expect(notes.read(fromStale.model)).toEqual(
       AsyncData.Refreshing({ data: hello }),
     )
@@ -250,12 +250,12 @@ describe('Query loading policies', () => {
     ])
 
     const idle = notes.init().model
-    expect(notes.revalidate(idle)).toEqual({ model: idle })
+    expect(notes.requestRevalidation(idle)).toEqual({ model: idle })
     const failure = notes.Model.make({
       data: AsyncData.Failure({ error: 'boom' }),
       generation: 0,
     })
-    expect(notes.revalidate(failure)).toEqual({ model: failure })
+    expect(notes.requestRevalidation(failure)).toEqual({ model: failure })
   })
 
   it('loadIfMissing starts only states without data', () => {
@@ -263,7 +263,7 @@ describe('Query loading policies', () => {
       data: AsyncData.Success({ data: hello }),
       generation: 0,
     })
-    const successHit = notes.loadIfMissing(loaded)
+    const successHit = notes.requestLoadIfMissing(loaded)
     expect(successHit.model).toBe(loaded)
     expect(successHit.commands).toBeUndefined()
 
@@ -271,17 +271,17 @@ describe('Query loading policies', () => {
       data: AsyncData.Stale({ error: 'boom', data: hello }),
       generation: 0,
     })
-    const staleHit = notes.loadIfMissing(stale)
+    const staleHit = notes.requestLoadIfMissing(stale)
     expect(staleHit.model).toBe(stale)
     expect(staleHit.commands).toBeUndefined()
 
-    const fromIdle = notes.loadIfMissing(notes.init().model)
+    const fromIdle = notes.requestLoadIfMissing(notes.init().model)
     expect(notes.read(fromIdle.model)).toEqual(AsyncData.Loading())
     expect(fromIdle.commands?.map(commandShape)).toEqual([
       commandShape(notes.Fetch({ generation: fromIdle.model.generation })),
     ])
 
-    const fromFailure = notes.loadIfMissing(
+    const fromFailure = notes.requestLoadIfMissing(
       notes.Model.make({
         data: AsyncData.Failure({ error: 'boom' }),
         generation: 0,
@@ -319,7 +319,7 @@ describe('Query loading policies', () => {
   })
 
   it('a failed refresh keeps the previous data', () => {
-    const loading = notes.revalidateOrLoad(notes.init().model)
+    const loading = notes.requestRevalidationOrLoad(notes.init().model)
     const success = notes.update(
       loading.model,
       notes.Message.CompletedFetch({
@@ -331,7 +331,7 @@ describe('Query loading policies', () => {
       AsyncData.Success({ data: hello }),
     )
 
-    const refreshing = notes.revalidate(success.model)
+    const refreshing = notes.requestRevalidation(success.model)
     expect(notes.read(refreshing.model)).toEqual(
       AsyncData.Refreshing({ data: hello }),
     )
@@ -349,7 +349,7 @@ describe('Query loading policies', () => {
   })
 
   it('a failed first load enters Failure', () => {
-    const loading = notes.loadIfMissing(notes.init().model)
+    const loading = notes.requestLoadIfMissing(notes.init().model)
     const failed = notes.update(
       loading.model,
       notes.Message.CompletedFetch({
@@ -363,9 +363,9 @@ describe('Query loading policies', () => {
   })
 
   it('reset ignores an earlier completion after a new fetch starts', () => {
-    const firstLoad = notes.loadIfMissing(notes.init().model)
-    const reset = notes.reset(firstLoad.model)
-    const secondLoad = notes.loadIfMissing(reset.model)
+    const firstLoad = notes.requestLoadIfMissing(notes.init().model)
+    const reset = notes.requestReset(firstLoad.model)
+    const secondLoad = notes.requestLoadIfMissing(reset.model)
 
     expect(notes.read(reset.model)).toEqual(AsyncData.Idle())
     expect(secondLoad.model.generation).toBe(2)
@@ -394,7 +394,7 @@ describe('Query loading policies', () => {
 
 describe('KeyedQuery loading and completion', () => {
   it('loadIfMissing starts a missing entry and keeps a loaded entry', () => {
-    const missing = noteById.loadIfMissing(noteById.init().model, {
+    const missing = noteById.requestLoadIfMissing(noteById.init().model, {
       noteId: '1',
     })
     expect(noteById.read(missing.model, { noteId: '1' })).toEqual(
@@ -411,7 +411,7 @@ describe('KeyedQuery loading and completion', () => {
     ])
 
     const loaded = loadedNoteById('1')
-    const hit = noteById.loadIfMissing(loaded, { noteId: '1' })
+    const hit = noteById.requestLoadIfMissing(loaded, { noteId: '1' })
     expect(hit.model).toBe(loaded)
     expect(hit.commands).toBeUndefined()
   })
@@ -419,8 +419,8 @@ describe('KeyedQuery loading and completion', () => {
   it('loadIfMissing supports data-first and data-last calls', () => {
     const model = noteById.init().model
     const args = { noteId: '1' }
-    const dataFirst = noteById.loadIfMissing(model, args)
-    const dataLast = noteById.loadIfMissing(args)(model)
+    const dataFirst = noteById.requestLoadIfMissing(model, args)
+    const dataLast = noteById.requestLoadIfMissing(args)(model)
     expect(Equal.equals(dataFirst.model, dataLast.model)).toBe(true)
     expect(dataFirst.commands?.map(commandShape)).toEqual(
       dataLast.commands?.map(commandShape),
@@ -433,7 +433,7 @@ describe('KeyedQuery loading and completion', () => {
       Effect.gen(function* () {
         const requestKey = '{"filter":{"id":"a","revision":"1"}}'
         const args = { filter: { id: 'a', revision: 1 } }
-        const started = noteByMutableFilter.loadIfMissing(
+        const started = noteByMutableFilter.requestLoadIfMissing(
           noteByMutableFilter.init().model,
           args,
         )
@@ -493,7 +493,10 @@ describe('KeyedQuery loading and completion', () => {
         },
       })
       const args = { id: 'a' }
-      const started = customKey.loadIfMissing(customKey.init().model, args)
+      const started = customKey.requestLoadIfMissing(
+        customKey.init().model,
+        args,
+      )
       const command = Option.getOrThrow(Array.head(started.commands ?? []))
       const keyCallsBeforeCompletion = keyCallCount
 
@@ -528,7 +531,7 @@ describe('KeyedQuery loading and completion', () => {
 
   it('revalidate refreshes a loaded entry', () => {
     const loaded = loadedNoteById('1')
-    const refreshed = noteById.revalidate(loaded, { noteId: '1' })
+    const refreshed = noteById.requestRevalidation(loaded, { noteId: '1' })
     expect(noteById.read(refreshed.model, { noteId: '1' })).toEqual(
       AsyncData.Refreshing({ data: { id: '1', body: 'hello' } }),
     )
@@ -544,10 +547,10 @@ describe('KeyedQuery loading and completion', () => {
   })
 
   it('a completion changes only its matching entry', () => {
-    const pendingOne = noteById.loadIfMissing(noteById.init().model, {
+    const pendingOne = noteById.requestLoadIfMissing(noteById.init().model, {
       noteId: '1',
     })
-    const bothPending = noteById.loadIfMissing(pendingOne.model, {
+    const bothPending = noteById.requestLoadIfMissing(pendingOne.model, {
       noteId: '2',
     })
     expect(bothPending.commands?.map(commandShape)).toEqual([
@@ -606,9 +609,9 @@ describe('KeyedQuery loading and completion', () => {
 
   it('reset ignores an earlier completion after the same key restarts', () => {
     const args = { noteId: '1' }
-    const firstLoad = noteById.loadIfMissing(noteById.init().model, args)
-    const reset = noteById.reset(firstLoad.model)
-    const secondLoad = noteById.loadIfMissing(reset.model, args)
+    const firstLoad = noteById.requestLoadIfMissing(noteById.init().model, args)
+    const reset = noteById.requestReset(firstLoad.model)
+    const secondLoad = noteById.requestLoadIfMissing(reset.model, args)
 
     expect(noteById.read(reset.model, args)).toEqual(AsyncData.Idle())
     expect(secondLoad.model.generation).toBe(2)
@@ -645,7 +648,7 @@ describe('Query Model encoding', () => {
       notes: notes.Model,
       noteById: noteById.Model,
     })
-    const notesLoad = notes.revalidateOrLoad(notes.init().model)
+    const notesLoad = notes.requestRevalidationOrLoad(notes.init().model)
     const notesSettle = notes.update(
       notesLoad.model,
       notes.Message.CompletedFetch({
@@ -653,10 +656,12 @@ describe('Query Model encoding', () => {
         result: Result.succeed(hello),
       }),
     )
-    const firstLoad = noteById.loadIfMissing(noteById.init().model, {
+    const firstLoad = noteById.requestLoadIfMissing(noteById.init().model, {
       noteId: '1',
     })
-    const secondLoad = noteById.loadIfMissing(firstLoad.model, { noteId: '2' })
+    const secondLoad = noteById.requestLoadIfMissing(firstLoad.model, {
+      noteId: '2',
+    })
     const firstSettle = noteById.update(
       secondLoad.model,
       noteById.Message.CompletedFetch({
@@ -705,7 +710,7 @@ describe('Query Block binding', () => {
   })
   const update = Composition.makeUpdate((model, message) =>
     Message.match(message, {
-      ClickedLoad: () => NotesChildBinding.revalidateOrLoad()(model),
+      ClickedLoad: () => NotesChildBinding.requestRevalidationOrLoad()(model),
     }),
   )
   const Parent = Composition.makeBlock({
@@ -774,7 +779,7 @@ describe('Query Block binding', () => {
     const update = KeyedComposition.makeUpdate((model, message) =>
       KeyedMessage.match(message, {
         RequestedLoad: ({ noteId }) =>
-          KeyedNotesBinding.loadIfMissing({ noteId })(model),
+          KeyedNotesBinding.requestLoadIfMissing({ noteId })(model),
       }),
     )
     const started = update(
@@ -802,7 +807,7 @@ describe('Query Block binding', () => {
 
 describe('KeyedQuery keys', () => {
   it('uses the full args when toKey is omitted', () => {
-    const started = noteByIdAndLocale.loadIfMissing(
+    const started = noteByIdAndLocale.requestLoadIfMissing(
       noteByIdAndLocale.init().model,
       {
         noteId: '1',
@@ -818,14 +823,14 @@ describe('KeyedQuery keys', () => {
   })
 
   it('a custom toKey shares one entry across extra args', () => {
-    const pending = noteByIdPreview.loadIfMissing(
+    const pending = noteByIdPreview.requestLoadIfMissing(
       noteByIdPreview.init().model,
       {
         noteId: '1',
         preview: true,
       },
     )
-    const sameKey = noteByIdPreview.loadIfMissing(pending.model, {
+    const sameKey = noteByIdPreview.requestLoadIfMissing(pending.model, {
       noteId: '1',
       preview: false,
     })
@@ -841,11 +846,11 @@ describe('KeyedQuery keys', () => {
       error: Schema.String,
       args: { noteId: Schema.String, preview: Schema.Boolean },
     })
-    const first = previewById.loadIfMissing(previewById.init().model, {
+    const first = previewById.requestLoadIfMissing(previewById.init().model, {
       noteId: '1',
       preview: true,
     })
-    const second = previewById.loadIfMissing(first.model, {
+    const second = previewById.requestLoadIfMissing(first.model, {
       noteId: '1',
       preview: false,
     })
@@ -867,11 +872,14 @@ describe('KeyedQuery keys', () => {
     const sameArgs = {
       filter: { owner: 'devin', status: 'open' },
     }
-    const firstLoad = notesByFilter.loadIfMissing(
+    const firstLoad = notesByFilter.requestLoadIfMissing(
       notesByFilter.init().model,
       firstArgs,
     )
-    const cacheHit = notesByFilter.loadIfMissing(firstLoad.model, sameArgs)
+    const cacheHit = notesByFilter.requestLoadIfMissing(
+      firstLoad.model,
+      sameArgs,
+    )
 
     expect(cacheHit.model).toBe(firstLoad.model)
     expect(cacheHit.commands).toBeUndefined()
@@ -889,10 +897,13 @@ describe('KeyedQuery keys', () => {
         }),
       },
     })
-    const firstLoad = notesByFilter.loadIfMissing(notesByFilter.init().model, {
-      filter: { status: 'open', owner: 'devin' },
-    })
-    const cacheHit = notesByFilter.loadIfMissing(firstLoad.model, {
+    const firstLoad = notesByFilter.requestLoadIfMissing(
+      notesByFilter.init().model,
+      {
+        filter: { status: 'open', owner: 'devin' },
+      },
+    )
+    const cacheHit = notesByFilter.requestLoadIfMissing(firstLoad.model, {
       filter: { owner: 'devin', status: 'open' },
     })
 
@@ -907,10 +918,10 @@ describe('KeyedQuery keys', () => {
       error: Schema.String,
       args: { ids: Schema.Array(Schema.String) },
     })
-    const firstLoad = notesByIds.loadIfMissing(notesByIds.init().model, {
+    const firstLoad = notesByIds.requestLoadIfMissing(notesByIds.init().model, {
       ids: ['1', '2'],
     })
-    const secondLoad = notesByIds.loadIfMissing(firstLoad.model, {
+    const secondLoad = notesByIds.requestLoadIfMissing(firstLoad.model, {
       ids: ['2', '1'],
     })
 
@@ -1397,12 +1408,12 @@ describe('Layer-backed Query handlers', () => {
     expect(replaced.Fetch).toBe(layeredNotes.Fetch)
     expect(replaced.read(replaced.init().model)).toEqual(AsyncData.Idle())
     expect(
-      replaced.revalidateOrLoad(replaced.init().model).commands,
+      replaced.requestRevalidationOrLoad(replaced.init().model).commands,
     ).toHaveLength(1)
   })
 
   it('carries each fetch handler through loading operations', () => {
-    expectTypeOf(layeredNotes.loadIfMissing).returns.toEqualTypeOf<
+    expectTypeOf(layeredNotes.requestLoadIfMissing).returns.toEqualTypeOf<
       Update.Return<
         (typeof layeredNotes.Model)['Type'],
         (typeof layeredNotes.Message)['Type'],
@@ -1547,17 +1558,17 @@ describe('Query handler requirements', () => {
         QueryFetchHandler<'ServedNotes', ReadonlyArray<Note>, string>
       >
     >()
-    expectTypeOf(served.reset).returns.toEqualTypeOf<
+    expectTypeOf(served.requestReset).returns.toEqualTypeOf<
       Update.Return<
         ServedModel,
         ServedMessage,
         QueryFetchHandler<'ServedNotes', ReadonlyArray<Note>, string>
       >
     >()
-    expectTypeOf(served.operations.reset).parameters.toEqualTypeOf<
+    expectTypeOf(served.operations.requestReset).parameters.toEqualTypeOf<
       [model: ServedModel]
     >()
-    expectTypeOf(served.loadIfMissing).returns.toEqualTypeOf<
+    expectTypeOf(served.requestLoadIfMissing).returns.toEqualTypeOf<
       Update.Return<
         ServedModel,
         ServedMessage,
@@ -1565,7 +1576,7 @@ describe('Query handler requirements', () => {
       >
     >()
 
-    const reset = served.reset(served.init().model)
+    const reset = served.requestReset(served.init().model)
     expect(reset.commands).toBeUndefined()
     expect(reset.model.data).toEqual(AsyncData.Idle())
 
@@ -1586,12 +1597,14 @@ describe('Query handler requirements', () => {
     expectTypeOf(ServedNotesBinding.fold)
       .parameter(1)
       .toEqualTypeOf<ServedMessage>()
-    expectTypeOf(ServedNotesBinding.reset).parameters.toEqualTypeOf<[]>()
-    expectTypeOf(ServedNotesBinding.loadIfMissing).parameters.toEqualTypeOf<
-      []
-    >()
+    expectTypeOf(ServedNotesBinding.requestReset).parameters.toEqualTypeOf<[]>()
+    expectTypeOf(
+      ServedNotesBinding.requestLoadIfMissing,
+    ).parameters.toEqualTypeOf<[]>()
     expectTypeOf<
-      Update.RequirementsOf<ReturnType<typeof ServedNotesBinding.loadIfMissing>>
+      Update.RequirementsOf<
+        ReturnType<typeof ServedNotesBinding.requestLoadIfMissing>
+      >
     >().toEqualTypeOf<
       Block.Qualify<
         'notes',
@@ -1655,7 +1668,7 @@ describe('Query types', () => {
       readonly generation: number
       readonly requestKey: string
     }>()
-    expectTypeOf(noteById.loadIfMissing).toEqualTypeOf<
+    expectTypeOf(noteById.requestLoadIfMissing).toEqualTypeOf<
       Update.Fold<
         (typeof noteById.Model)['Type'],
         (typeof noteById.Message)['Type'],
@@ -1703,9 +1716,9 @@ describe('Query types', () => {
     expectTypeOf(NotesChildBinding.fold)
       .parameter(1)
       .toEqualTypeOf<(typeof notes.Message)['Type']>()
-    expectTypeOf(NotesChildBinding.revalidateOrLoad).parameters.toEqualTypeOf<
-      []
-    >()
+    expectTypeOf(
+      NotesChildBinding.requestRevalidationOrLoad,
+    ).parameters.toEqualTypeOf<[]>()
 
     const KeyedParentModel = Schema.Struct({ notes: noteById.Model })
     const KeyedParentMessage = defineMessageUnion({
@@ -1720,10 +1733,12 @@ describe('Query types', () => {
       parentMessage: KeyedParentMessage.GotNoteMessage,
     })
 
-    expectTypeOf(NoteByIdChildBinding.loadIfMissing).parameters.toEqualTypeOf<
-      [args: Readonly<{ noteId: string }>]
-    >()
-    expectTypeOf(noteById.operations.loadIfMissing).parameters.toEqualTypeOf<
+    expectTypeOf(
+      NoteByIdChildBinding.requestLoadIfMissing,
+    ).parameters.toEqualTypeOf<[args: Readonly<{ noteId: string }>]>()
+    expectTypeOf(
+      noteById.operations.requestLoadIfMissing,
+    ).parameters.toEqualTypeOf<
       [
         model: (typeof noteById.Model)['Type'],
         args: { readonly noteId: string },

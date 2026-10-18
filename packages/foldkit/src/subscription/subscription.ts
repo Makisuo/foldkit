@@ -149,6 +149,28 @@ export type Subscriptions<Model, Message, Services = never> = Readonly<
   Record<string, Subscription<Model, Message, any, Services>>
 >
 
+/** @internal Retains the entry record behind an owned Subscription registry. */
+export const RegistryEntriesTypeId = Symbol(
+  'foldkit/Subscription/RegistryEntries',
+)
+
+/** @internal An owned registry whose non-entry fields are removed at Subscription boundaries. */
+export type Registry<Entries> = Readonly<{
+  [RegistryEntriesTypeId]: Entries
+}>
+
+/** A Subscription entry record, including an owned Definition registry with an aggregate Layer recipe. */
+export type Registrations<Model, Message, Services = never> =
+  | Subscriptions<Model, Message, Services>
+  | (Registry<Subscriptions<Model, Message, Services>> &
+      Readonly<{ layer?: Layer.Any }>)
+
+/** @internal Returns the exact Subscription entries represented by a plain or owned registry. */
+export type RegistryEntries<SubscriptionsValue> =
+  SubscriptionsValue extends Registry<infer Entries>
+    ? Entries
+    : SubscriptionsValue
+
 type LayeredEntryCallbacksWithoutKeepAlive<
   Model,
   Dependencies,
@@ -514,9 +536,18 @@ export const make =
     return build(entryBuilder) as any
   }
 
-type AnySubscriptions = Readonly<
+type AnySubscriptionEntries = Readonly<
   Record<string, Subscription<any, any, any, any>>
 >
+
+type AnySubscriptions =
+  | AnySubscriptionEntries
+  | Registry<AnySubscriptionEntries>
+
+const registryEntries = (
+  subscriptions: AnySubscriptions,
+): AnySubscriptionEntries =>
+  Reflect.get(subscriptions, RegistryEntriesTypeId) ?? subscriptions
 
 // NOTE: requiring one record keeps `aggregate()` unambiguously curried.
 type AnySubscriptionsList = readonly [
@@ -524,9 +555,12 @@ type AnySubscriptionsList = readonly [
   ...ReadonlyArray<AnySubscriptions>,
 ]
 
-type EntriesOfRecord<SubscriptionsRecord> = SubscriptionsRecord extends unknown
-  ? SubscriptionsRecord[keyof SubscriptionsRecord]
-  : never
+type EntriesOfRecord<SubscriptionsRecord> =
+  RegistryEntries<SubscriptionsRecord> extends infer Entries
+    ? Entries extends unknown
+      ? Entries[keyof Entries]
+      : never
+    : never
 
 type EntriesOf<Records extends AnySubscriptionsList> = EntriesOfRecord<
   Records[number]
@@ -572,11 +606,13 @@ type ReferenceModel<Records extends ReadonlyArray<AnySubscriptions>> =
 
 type CompatibleSubscriptions<Records extends AnySubscriptionsList> = {
   readonly [Index in keyof Records]: Records[Index] &
-    Subscriptions<
+    (RegistryEntries<Records[Index]> extends Subscriptions<
       ReferenceModel<Records>,
       MessageOf<Records>,
       ServicesOf<Records>
     >
+      ? unknown
+      : never)
 }
 
 type RuntimeKey<Key> = Key extends string
@@ -591,7 +627,7 @@ type RuntimeEntries<RecordType> = {
 
 type MergeSubscriptions<Records extends ReadonlyArray<unknown>> =
   Records extends readonly [infer Head, ...infer Rest]
-    ? RuntimeEntries<Head> &
+    ? RuntimeEntries<RegistryEntries<Head>> &
         (Rest extends ReadonlyArray<unknown> ? MergeSubscriptions<Rest> : {})
     : {}
 
@@ -600,7 +636,8 @@ const mergeSubscriptions = (
 ): Record<string, Subscription<any, any, any, any>> => {
   const result: Record<string, Subscription<any, any, any, any>> = {}
   for (const record of records) {
-    for (const key of Object.keys(record)) {
+    const entries = registryEntries(record)
+    for (const key of Object.keys(entries)) {
       if (Object.hasOwn(result, key)) {
         throw new Error(
           `Subscription.aggregate: duplicate key "${key}" across records`,
@@ -609,7 +646,7 @@ const mergeSubscriptions = (
       Object.defineProperty(result, key, {
         configurable: true,
         enumerable: true,
-        value: record[key],
+        value: Reflect.get(entries, key),
         writable: true,
       })
     }
@@ -656,7 +693,8 @@ const mergeSubscriptions = (
 export const aggregate: {
   <Model, Message>(): <
     Records extends ReadonlyArray<
-      Record<string, Subscription<Model, Message, any, any>>
+      | Record<string, Subscription<Model, Message, any, any>>
+      | Registry<Record<string, Subscription<Model, Message, any, any>>>
     >,
   >(
     ...records: Records
@@ -677,7 +715,7 @@ export const aggregate: {
 }) as any
 
 type ChildModelOf<ChildSubscriptions> =
-  ChildSubscriptions[keyof ChildSubscriptions] extends Subscription<
+  RegistryEntries<ChildSubscriptions>[keyof RegistryEntries<ChildSubscriptions>] extends Subscription<
     infer ChildModel,
     any,
     any,
@@ -687,7 +725,7 @@ type ChildModelOf<ChildSubscriptions> =
     : never
 
 type ChildMessageOf<ChildSubscriptions> =
-  ChildSubscriptions[keyof ChildSubscriptions] extends Subscription<
+  RegistryEntries<ChildSubscriptions>[keyof RegistryEntries<ChildSubscriptions>] extends Subscription<
     any,
     infer ChildMessage,
     any,
@@ -713,7 +751,9 @@ type WhenPredicate<ParentModel> = (parentModel: ParentModel) => boolean
  * Entries omitted from the map run whenever `read` returns a child Model.
  */
 export type EntryGates<ParentModel, Subscriptions> = Readonly<
-  Partial<Record<keyof Subscriptions, WhenPredicate<ParentModel>>>
+  Partial<
+    Record<keyof RegistryEntries<Subscriptions>, WhenPredicate<ParentModel>>
+  >
 >
 
 type LiftConfig<ParentModel, ParentMessage, Subscriptions> = Readonly<{
@@ -723,7 +763,9 @@ type LiftConfig<ParentModel, ParentMessage, Subscriptions> = Readonly<{
 }>
 
 type LiftedSubscriptions<ParentModel, ParentMessage, Subscriptions> = {
-  readonly [K in keyof Subscriptions]: Subscriptions[K] extends Subscription<
+  readonly [
+    K in keyof RegistryEntries<Subscriptions>
+  ]: RegistryEntries<Subscriptions>[K] extends Subscription<
     any,
     any,
     infer Dependencies,
@@ -735,16 +777,20 @@ type LiftedSubscriptions<ParentModel, ParentMessage, Subscriptions> = {
         GatedDependencies<Dependencies>,
         Services
       > &
-        (Subscriptions[K] extends { readonly messages: infer Messages }
+        (RegistryEntries<Subscriptions>[K] extends {
+          readonly messages: infer Messages
+        }
           ? Readonly<{ messages: Messages }>
           : unknown) &
-        (Subscriptions[K] extends {
+        (RegistryEntries<Subscriptions>[K] extends {
           readonly name: infer Name
           readonly toLayer: infer ToLayer
         }
           ? Readonly<{ name: Name; toLayer: ToLayer }>
           : unknown) &
-        (Subscriptions[K] extends { readonly layer: infer EntryLayer }
+        (RegistryEntries<Subscriptions>[K] extends {
+          readonly layer: infer EntryLayer
+        }
           ? Readonly<{ layer: EntryLayer }>
           : unknown)
     : never
@@ -933,18 +979,12 @@ const toLiftedEntry = (
  * ```
  */
 export const lift =
-  <
-    Subscriptions extends Readonly<
-      Record<string, Subscription<any, any, any, any>>
-    >,
-  >(
-    subscriptions: Subscriptions,
-  ) =>
+  <Subscriptions extends AnySubscriptions>(subscriptions: Subscriptions) =>
   <ParentModel, ParentMessage>(
     config: LiftConfig<ParentModel, ParentMessage, Subscriptions>,
   ): LiftedSubscriptions<ParentModel, ParentMessage, Subscriptions> =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    Record.map(subscriptions, (subscription, key) =>
+    Record.map(registryEntries(subscriptions), (subscription, key) =>
       toLiftedEntry(subscription, config, toEntryWhen(config.when, key)),
     ) as any
 
@@ -964,11 +1004,13 @@ export type MessageDeclaration = Readonly<{
  * `aggregate` for Scene's Subscription boundary.
  */
 export const __messageDeclarations = (
-  subscriptions: Readonly<Record<string, Subscription<any, any, any, any>>>,
+  subscriptions: AnySubscriptions,
 ): ReadonlyArray<MessageDeclaration> => {
   const declarations: Array<MessageDeclaration> = []
 
-  for (const [entryKey, subscription] of Object.entries(subscriptions)) {
+  for (const [entryKey, subscription] of Object.entries(
+    registryEntries(subscriptions),
+  )) {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const metadata = subscription as SubscriptionWithMessageMetadata
 

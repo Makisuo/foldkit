@@ -1,4 +1,4 @@
 const init = DialogExampleComposition.makeInit(() => ({
   model: {},
-  steps: [DialogBinding.open()],
+  steps: [DialogBinding.requestOpen()],
 }))

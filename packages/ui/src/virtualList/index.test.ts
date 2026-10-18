@@ -150,31 +150,33 @@ describe('VirtualList', () => {
   describe('exposed operations', () => {
     it('preserves the public model-first call shapes', () => {
       expectTypeOf<
-        Parameters<typeof block.operations.scrollTo>[1]
+        Parameters<typeof block.operations.requestScrollTo>[1]
       >().toEqualTypeOf<ScrollTarget>()
       expectTypeOf<
-        Parameters<typeof block.operations.scrollTo>[2]
+        Parameters<typeof block.operations.requestScrollTo>[2]
       >().toEqualTypeOf<ScrollToOptions | undefined>()
       expectTypeOf<
-        Parameters<typeof block.operations.scrollToIndex>[1]
+        Parameters<typeof block.operations.requestScrollToIndex>[1]
       >().toEqualTypeOf<number>()
       expectTypeOf<
-        Parameters<typeof block.operations.scrollToIndex>[2]
+        Parameters<typeof block.operations.requestScrollToIndex>[2]
       >().toEqualTypeOf<ScrollToOptions | undefined>()
       expectTypeOf<
-        Parameters<typeof block.operations.scrollToKey>[1]
+        Parameters<typeof block.operations.requestScrollToKey>[1]
       >().toEqualTypeOf<string>()
       expectTypeOf<
-        Parameters<typeof block.operations.scrollToKey>[2]
+        Parameters<typeof block.operations.requestScrollToKey>[2]
       >().toEqualTypeOf<ScrollToOptions | undefined>()
       expectTypeOf<
-        Parameters<typeof block.operations.scrollToOffset>[1]
+        Parameters<typeof block.operations.requestScrollToOffset>[1]
       >().toEqualTypeOf<number>()
       expectTypeOf<
         Parameters<typeof block.operations.informItemsChanged>[1]
       >().toEqualTypeOf<ReadonlyArray<string>>()
-      expectTypeOf(scrollTo).toEqualTypeOf(block.operations.scrollTo)
-      expectTypeOf(scrollToIndex).toEqualTypeOf(block.operations.scrollToIndex)
+      expectTypeOf(scrollTo).toEqualTypeOf(block.operations.requestScrollTo)
+      expectTypeOf(scrollToIndex).toEqualTypeOf(
+        block.operations.requestScrollToIndex,
+      )
     })
   })
 

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import type { Plugin } from 'vite'
 
 import { canaryVersion } from '../../../scripts/lib/package-version.mjs'
+import { validatePreviewReleaseManifest } from '../../../scripts/lib/preview-release.mjs'
 import {
   publicWorkspacePackages,
   readWorkspacePackages,
@@ -354,7 +355,27 @@ export const loadPlaygroundWorkspacePackageVersions = async (): Promise<
   Readonly<Record<string, string>>
 > => {
   const canaryCommit = process.env['VITE_FOLDKIT_CANARY_COMMIT']
+  const previewRelease = process.env['VITE_FOLDKIT_PREVIEW_RELEASE']
   const packages = publicWorkspacePackages(readWorkspacePackages(REPO_ROOT))
+
+  if (previewRelease !== undefined) {
+    if (canaryCommit !== undefined) {
+      throw new Error('A playground build cannot be both canary and preview')
+    }
+
+    const target = process.env['FOLDKIT_BUILD_ID']
+
+    if (target === undefined) {
+      throw new Error('A preview playground requires FOLDKIT_BUILD_ID')
+    }
+
+    return validatePreviewReleaseManifest({
+      manifest: JSON.parse(previewRelease),
+      target,
+      packages,
+    }).packages
+  }
+
   const entries = packages.map<readonly [string, string]>(({ packageJson }) => [
     packageJson.name,
     versionForDeployment(packageJson.version, canaryCommit),

@@ -7,7 +7,7 @@ import * as Ui from './ui'
 export const UiBinding = ApplicationDefinition.bindChild(Ui.block, {
   field: 'uiModel',
   parentMessage: Message.GotUiMessage,
-  init: { args: ({ today }) => [today] },
+  init: { startupToArgs: ({ today }) => [today] },
 })
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({

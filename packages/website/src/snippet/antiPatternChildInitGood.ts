@@ -7,6 +7,6 @@ const init = ApplicationComposition.makeInit(
       username,
       maybeRestoredTheme: Option.none(),
     },
-    steps: [SettingsBinding.restore({ theme: savedTheme })],
+    steps: [SettingsBinding.requestRestore({ theme: savedTheme })],
   }),
 )

@@ -7,5 +7,5 @@ export const init = ApplicationComposition.makeInit(() => ({
     activeTab: 'Posts',
     maybeSelectedPostId: Option.none(),
   },
-  steps: [PostsBinding.revalidateOrLoad()],
+  steps: [PostsBinding.requestRevalidationOrLoad()],
 }))

@@ -1,4 +1,4 @@
-import { Layer, Match, Option, Schema, Stream, pipe } from 'effect'
+import { Match, Option, Schema, Stream, pipe } from 'effect'
 import { Dom, Runtime } from 'foldkit'
 
 import { ApplicationDefinition } from './definition'
@@ -106,7 +106,4 @@ export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   ),
 }))
 
-export const EffectsLayer = Layer.mergeAll(
-  subscriptions.slowWarningReports.layer,
-  subscriptions.dependencyExtractionWork.layer,
-)
+export const EffectsLayer = subscriptions.layer

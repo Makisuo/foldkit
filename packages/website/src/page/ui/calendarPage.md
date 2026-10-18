@@ -210,11 +210,11 @@ Use `SelectedDate` to update the parent-owned selection. Use `ChangedViewMonth` 
 
 Call these operations through the registered Calendar Binding. Each Binding call returns a connected parent Step that dispatches the operation's Message through Calendar update. Return that Step from the parent handler or compose it with `Update.combine`.
 
-| Binding call                       | Arguments            | Behavior                                                                                                                                                              |
-| ---------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CalendarBinding.selectDate(date)` | `date: CalendarDate` | Requests selection. Calendar leaves the Model unchanged and emits nothing when the date is disabled; otherwise it moves the view and cursor and emits `SelectedDate`. |
-| `CalendarBinding.focusDate(date)`  | `date: CalendarDate` | Dispatches `RequestedFocusDate` to move the view and cursor without selecting. Use it when an external value should determine which month opens.                      |
-| `CalendarBinding.dropToDays()`     | None                 | Dispatches `RequestedDropToDays` to return to Days mode and reconcile the cursor with the visible month.                                                              |
+| Binding call                              | Arguments            | Behavior                                                                                                                                                              |
+| ----------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CalendarBinding.requestSelectDate(date)` | `date: CalendarDate` | Requests selection. Calendar leaves the Model unchanged and emits nothing when the date is disabled; otherwise it moves the view and cursor and emits `SelectedDate`. |
+| `CalendarBinding.requestFocusDate(date)`  | `date: CalendarDate` | Dispatches `RequestedFocusDate` to move the view and cursor without selecting. Use it when an external value should determine which month opens.                      |
+| `CalendarBinding.requestDropToDays()`     | None                 | Dispatches `RequestedDropToDays` to return to Days mode and reconcile the cursor with the visible month.                                                              |
 
 `Calendar.FocusGrid({ id })` is the Calendar Command that focuses the grid. A parent such as DatePicker can return it after opening.
 

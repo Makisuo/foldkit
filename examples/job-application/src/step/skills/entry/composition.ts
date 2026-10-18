@@ -27,7 +27,7 @@ export const ProficiencyRadioGroupBinding = SkillsEntryDefinition.bindChild(
     field: 'proficiencyRadioGroup',
     parentMessage: Message.GotProficiencyRadioGroupMessage,
     init: {
-      args: entryId => [{ id: proficiencyRadioGroupId(entryId) }],
+      startupToArgs: entryId => [{ id: proficiencyRadioGroupId(entryId) }],
     },
     outMessage: { fold: foldProficiencyRadioGroupOutMessage },
   },

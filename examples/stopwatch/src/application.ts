@@ -157,7 +157,7 @@ export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
 export const EffectsLayer = Layer.mergeAll(
   DetermineStartTime.layer,
   DetermineTickTime.layer,
-  subscriptions.stopwatchTicks.layer,
+  subscriptions.layer,
 )
 
 const formatTime = (ms: number): string => {

@@ -70,4 +70,4 @@ export const subscriptions = DragDefinition.subscriptions(entry => ({
   ),
 }))
 
-export const EffectsLayer = subscriptions.autoScrollDuringDrag.layer
+export const EffectsLayer = subscriptions.layer

@@ -1,6 +1,16 @@
 import assert from 'node:assert/strict'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import { resolve } from 'node:path'
 import { test } from 'node:test'
 
+import { injectBridgeScript } from '../build-examples.ts'
 import {
   previewInstallCommand,
   previewReadySummary,
@@ -101,4 +111,22 @@ test('reports exact scaffold and install commands from verified versions', () =>
   assert.match(summary, /https:\/\/example\.vercel\.app\//)
   assert.match(summary, /create-foldkit-app@3\.4\.5-canary\.0123456789ab/)
   assert.match(summary, /@foldkit\/ui@2\.3\.4-canary\.0123456789ab/)
+})
+
+test('marks embedded examples with the exact website build', context => {
+  const directory = mkdtempSync(resolve(tmpdir(), 'foldkit-example-build-'))
+  context.after(() => rmSync(directory, { recursive: true, force: true }))
+  const nestedDirectory = resolve(directory, 'nested')
+  const indexPath = resolve(nestedDirectory, 'index.html')
+  const buildId = `${COMMIT}/preview?attempt=2`
+
+  mkdirSync(nestedDirectory)
+  writeFileSync(indexPath, '<html><head></head><body></body></html>')
+  injectBridgeScript(directory, buildId)
+
+  assert.ok(
+    readFileSync(indexPath, 'utf8').includes(
+      `bridge.js?build=${encodeURIComponent(buildId)}`,
+    ),
+  )
 })

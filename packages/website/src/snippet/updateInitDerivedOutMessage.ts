@@ -1,40 +1,27 @@
+import { Block } from 'foldkit'
+
 const OutMessage = defineMessageUnion({
   SelectedEndDate: { date: Schema.String },
   CompletedRange: { startDate: Schema.String, endDate: Schema.String },
 })
-type OutMessage = typeof OutMessage.Type
 
-const foldEndDateOutMessage = DatePicker.OutMessage.match<
-  Update.StepWithOutMessage<Model, Message, OutMessage>
->({
-  SelectedDate:
-    ({ date }) =>
-    model => {
-      const nextModel = modifyFields(model, {
-        maybeEndDate: () => Option.some(date),
-      })
-
-      return Option.match(nextModel.maybeStartDate, {
-        onNone: () => ({ model: nextModel }),
-        onSome: startDate => ({
-          model: nextModel,
-          outMessage: OutMessage.CompletedRange({ startDate, endDate: date }),
-        }),
-      })
-    },
+const DateRangeDefinition = Block.define('DateRange', {
+  Model,
+  Message,
+  OutMessage,
 })
 
-const init = (maybeStartDate: Option.Option<string>) =>
-  Update.foldChildInit(DatePicker.boot(), {
-    toParentModel: endDatePicker =>
-      Model.make({
-        endDatePicker,
-        maybeStartDate,
-        maybeEndDate: Option.none(),
-      }),
-    toParentMessage: message => Message.GotEndDateMessage({ message }),
-    foldOutMessage: foldEndDateOutMessage,
-    toParentOutMessage: DatePicker.OutMessage.match<OutMessage>({
+const EndDatePickerBinding = DateRangeDefinition.bindChild(DatePicker.block, {
+  field: 'endDatePicker',
+  parentMessage: Message.GotEndDateMessage,
+  outMessage: {
+    fold: foldEndDateOutMessage,
+    forward: DatePicker.OutMessage.match({
       SelectedDate: ({ date }) => OutMessage.SelectedEndDate({ date }),
     }),
-  })
+  },
+})
+
+const restoreEndDate = DateRangeDefinition.step(() =>
+  EndDatePickerBinding.requestRestore(),
+)

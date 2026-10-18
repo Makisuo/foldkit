@@ -1,0 +1,280 @@
+import { Effect, Layer, Schema, Tuple } from 'effect'
+import * as Block from 'foldkit/block'
+import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
+
+import {
+  ChildBinding,
+  ChildBlock,
+  ChildComposition,
+  ChildDefinition,
+  ChildMessage,
+  ChildModel,
+  ContextComposition,
+  ContextMessage,
+  ContextModel,
+  EntryBinding,
+  ExactBlock,
+  FruitChoice,
+  MountedChoiceComposition,
+  MountedChoiceDefinition,
+  MountedChoiceMessage,
+  MountedChoiceModel,
+  ObserveSelection,
+  ParentComposition,
+  ParentDefinition,
+  ParentMessage,
+  ParentModel,
+  RecordValue,
+  childUpdate,
+  contextUpdate,
+  mountedChoiceUpdate,
+  mountedChoiceView,
+  parentUpdate,
+} from './exposed-message.accepted.js'
+
+const directModelStep = ChildDefinition.step((model, value: string) => ({
+  model: modifyFields(model, { value: () => value }),
+}))
+
+ChildComposition.makeBlock({
+  init: () => ({ model: ChildModel.make({ value: '' }) }),
+  update: childUpdate,
+  operations: {
+    // @ts-expect-error Exposed operations produce child update inputs, not Model transitions.
+    setDirectly: directModelStep,
+  },
+  EffectsLayer: Layer.empty,
+  hostHandlers: [RecordValue],
+})
+
+// oxlint-disable-next-line typescript/no-explicit-any -- This fixture deliberately probes erased any channels or detects any in an inferred public type.
+const erasedAnyProducer = (): any => [ChildMessage.RequestedReset()]
+// @ts-expect-error An any-returning producer cannot bypass tuple validation.
+ChildComposition.makeBlock({
+  init: () => ({ model: ChildModel.make({ value: '' }) }),
+  update: childUpdate,
+  operations: { erasedAnyProducer },
+  EffectsLayer: Layer.empty,
+  hostHandlers: [RecordValue],
+})
+
+// oxlint-disable-next-line typescript/no-explicit-any -- This fixture deliberately probes erased any channels or detects any in an inferred public type.
+const erasedExpose: any = { reset: () => [ChildMessage.RequestedReset()] }
+// @ts-expect-error An any-typed operations record cannot bypass operation validation.
+ChildComposition.makeBlock({
+  init: () => ({ model: ChildModel.make({ value: '' }) }),
+  update: childUpdate,
+  operations: erasedExpose,
+  EffectsLayer: Layer.empty,
+  hostHandlers: [RecordValue],
+})
+
+const erasedUnknownProducer = (): unknown => [ChildMessage.RequestedReset()]
+ChildComposition.makeBlock({
+  init: () => ({ model: ChildModel.make({ value: '' }) }),
+  update: childUpdate,
+  operations: {
+    // @ts-expect-error An unknown-returning producer cannot bypass tuple validation.
+    erasedUnknownProducer,
+  },
+  EffectsLayer: Layer.empty,
+  hostHandlers: [RecordValue],
+})
+
+const ForeignMessage = defineMessageUnion({ UpdatedForeignValue: {} })
+ChildComposition.makeBlock({
+  init: () => ({ model: ChildModel.make({ value: '' }) }),
+  update: childUpdate,
+  operations: {
+    // @ts-expect-error The tuple must start with this Block's authored Message.
+    sendForeign: () => [ForeignMessage.UpdatedForeignValue()],
+  },
+  EffectsLayer: Layer.empty,
+  hostHandlers: [RecordValue],
+})
+
+ContextComposition.makeBlock({
+  init: () => ({ model: ContextModel.make({ value: '' }) }),
+  update: contextUpdate,
+  operations: {
+    // @ts-expect-error A required update Context cannot be omitted.
+    omitContext: () => [ContextMessage.UpdatedValue({ value: '' })],
+  },
+  EffectsLayer: Layer.empty,
+})
+
+ContextComposition.makeBlock({
+  init: () => ({ model: ContextModel.make({ value: '' }) }),
+  update: contextUpdate,
+  operations: {
+    // @ts-expect-error The update Context tuple is checked positionally.
+    wrongContext: () => [ContextMessage.UpdatedValue({ value: '' }), 1],
+  },
+  EffectsLayer: Layer.empty,
+})
+
+ParentComposition.makeBlock({
+  init: ParentComposition.makeInit(() => ({
+    model: { entries: [{ id: 'first', child: { value: 'entry' } }] },
+  })),
+  update: parentUpdate,
+  operations: {
+    // @ts-expect-error Got* wrappers are routed child facts, not authored operations.
+    interceptChild: () => [
+      ParentMessage.GotChildMessage({
+        message: ChildMessage.UpdatedValue({ value: 'blocked' }),
+      }),
+    ],
+  },
+  EffectsLayer: Layer.empty,
+})
+
+// @ts-expect-error Exposed operation names cannot collide with Binding members.
+ChildComposition.makeBlock({
+  init: () => ({ model: ChildModel.make({ value: '' }) }),
+  update: childUpdate,
+  operations: { fold: () => [ChildMessage.RequestedReset()] },
+  EffectsLayer: Layer.empty,
+  hostHandlers: [RecordValue],
+})
+
+// @ts-expect-error A direct operation retains its exact payload arguments.
+ChildBinding.setValue(1)
+// @ts-expect-error A keyed operation requires its key before operation arguments.
+EntryBinding.setValue('value')
+FruitChoice.operations.select(
+  FruitChoice.Model.make({ selected: 'Apple' }),
+  // @ts-expect-error A generic Message producer retains the factory's refined payload.
+  'Orange',
+  { source: 'rejected' },
+)
+
+const ForeignMountedChoiceMessage = defineMessageUnion({
+  UpdatedForeignSelection: { value: Schema.String },
+})
+MountedChoiceComposition.makeBlock({
+  init: (selected: string) => ({
+    model: MountedChoiceModel.make({ selected }),
+  }),
+  update: mountedChoiceUpdate,
+  view: mountedChoiceView,
+  operations: {
+    // @ts-expect-error A view-backed exposed producer must return this Block's Message.
+    select: (value: string) =>
+      Tuple.make(
+        ForeignMountedChoiceMessage.UpdatedForeignSelection({ value }),
+      ),
+  },
+  EffectsLayer: ObserveSelection.layer,
+})
+
+MountedChoiceComposition.makeBlock({
+  init: (selected: string) => ({
+    model: MountedChoiceModel.make({ selected }),
+  }),
+  update: mountedChoiceUpdate,
+  view: mountedChoiceView,
+  managedResources: {},
+  operations: {
+    // @ts-expect-error The managed-resource overload validates exposed Messages too.
+    select: (value: string) =>
+      Tuple.make(
+        ForeignMountedChoiceMessage.UpdatedForeignSelection({ value }),
+      ),
+  },
+  EffectsLayer: ObserveSelection.layer,
+})
+
+// @ts-expect-error The registered Mount's handler must be present in EffectsLayer.
+MountedChoiceComposition.makeBlock({
+  init: (selected: string) => ({
+    model: MountedChoiceModel.make({ selected }),
+  }),
+  update: mountedChoiceUpdate,
+  view: mountedChoiceView,
+  operations: {
+    select: (value: string) =>
+      Tuple.make(MountedChoiceMessage.UpdatedSelection({ value })),
+  },
+  EffectsLayer: Layer.empty,
+})
+
+const GraphlessMountedChoiceComposition =
+  MountedChoiceDefinition.makeComposition()
+GraphlessMountedChoiceComposition.makeBlock({
+  init: (selected: string) => ({
+    model: MountedChoiceModel.make({ selected }),
+  }),
+  update: mountedChoiceUpdate,
+  // @ts-expect-error A Composition cannot complete a view that requires an omitted Mount.
+  view: mountedChoiceView,
+  operations: {
+    select: (value: string) =>
+      Tuple.make(MountedChoiceMessage.UpdatedSelection({ value })),
+  },
+  EffectsLayer: ObserveSelection.layer,
+})
+
+const ForeignMountedChoiceDefinition = Block.define('ForeignMountedChoice')
+const ObserveForeignSelection = ForeignMountedChoiceDefinition.mount(
+  'ObserveForeignSelection',
+  {
+    messages: [MountedChoiceMessage.CompletedObserveSelection],
+    handler: function* () {
+      return () =>
+        Effect.succeed(MountedChoiceMessage.CompletedObserveSelection())
+    },
+  },
+)
+const IncorrectMountedChoiceComposition =
+  MountedChoiceDefinition.makeComposition({
+    mounts: [ObserveForeignSelection],
+  })
+IncorrectMountedChoiceComposition.makeBlock({
+  init: (selected: string) => ({
+    model: MountedChoiceModel.make({ selected }),
+  }),
+  update: mountedChoiceUpdate,
+  // @ts-expect-error A sibling Mount cannot satisfy the authored view's capability.
+  view: mountedChoiceView,
+  operations: {
+    select: (value: string) =>
+      Tuple.make(MountedChoiceMessage.UpdatedSelection({ value })),
+  },
+  EffectsLayer: ObserveForeignSelection.layer,
+})
+
+// @ts-expect-error Exposed operation names cannot collide with Binding members.
+MountedChoiceComposition.makeBlock({
+  init: (selected: string) => ({
+    model: MountedChoiceModel.make({ selected }),
+  }),
+  update: mountedChoiceUpdate,
+  view: mountedChoiceView,
+  operations: {
+    fold: () =>
+      Tuple.make(MountedChoiceMessage.UpdatedSelection({ value: '' })),
+  },
+  EffectsLayer: ObserveSelection.layer,
+})
+
+const foldChildOutMessage = () => (model: ParentModel) => ({ model })
+const AlternativeChildBinding = ParentDefinition.bindChild(ChildBlock, {
+  field: 'child',
+  placement: 'alternative',
+  parentMessage: ParentMessage.GotChildMessage,
+  outMessage: { fold: foldChildOutMessage },
+})
+const OmittedComposition = ParentDefinition.makeComposition({
+  childBindings: [AlternativeChildBinding, EntryBinding],
+})
+OmittedComposition.makeUpdate((model, _message) =>
+  // @ts-expect-error Calling a bound exposed operation requires its Binding registration.
+  ChildBinding.setValue('unregistered')(model),
+)
+
+void ChildBlock
+
+// @ts-expect-error Tuple metadata cannot erase the completed operation's required Model argument.
+ExactBlock.operations.pingWithMetadata()

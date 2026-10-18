@@ -13,8 +13,16 @@ export {
 
 export type {
   Commands,
+  DefinedStep,
+  DefinedUpdate,
+  DeferredResultEvidence,
+  GraphCapability,
+  RegistrationEvidence,
+  RegistrationEvidenceOf,
+  ResultRecipe,
   RequirementsOf,
   Return,
+  ReturnWithRegistrationEvidence,
   ReturnWithOutMessage,
   Step,
   StepWithOutMessage,
@@ -36,4 +44,5 @@ export type {
   FoldAt,
   FoldAtWithOutMessage,
   FoldWithOutMessage,
+  WithRegistrationEvidence,
 } from './index.js'

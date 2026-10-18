@@ -17,7 +17,6 @@ export const EffectsLayer = Layer.mergeAll(
   Command.ClearSession.layer,
   Command.FocusRoomPageUsernameInput.layer,
   Command.FocusUserGameTextInput.layer,
-  subscriptions.roomUpdates.layer,
-  subscriptions.roomKeyPresses.layer,
+  subscriptions.layer,
   NavigateHome.layer,
 )

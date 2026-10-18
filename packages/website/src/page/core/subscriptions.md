@@ -67,39 +67,55 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 
 ### Defining Entries
 
-`Subscription.make<Model, Message>()` receives a function that builds a named record of entries. When a Layer-backed entry depends on the Model, `entry` takes three arguments:
+`FeatureDefinition.subscriptions` receives a function that builds a named record of entries for the Block. When a Layer-backed entry depends on the Model, `entry` takes three arguments:
 
 - A stable handler name for the Layer requirement.
 - A field map defining the dependency Schema, in the same shape passed to `Schema.Struct`.
 - A config containing `messages`, `modelToDependencies`, and the `handler` generator that returns the Stream function. `messages` lists the Message Schemas that the handler Stream may emit. Use `messages: []` for scoped work that emits no Messages.
 
-`modelToDependencies` extracts the values that control the entry. The `handler` generator constructs the Stream factory, and `subscriptions.gameClockTicks.layer` supplies it to the application. Foldkit compares the extracted record structurally by default, so unrelated Model updates do not restart the timer.
-
-The declared Message Schemas constrain the Stream returned by both the attached handler and an external `toLayer` implementation. Emitting an undeclared Message is a type error. Scene uses these Schemas to validate `Subscription.emit(entry, message)` against the registered source, including its Message mapping through parents. An empty declaration requires a `Stream<never>` for work that emits no Messages.
-
-Each entry, such as `subscriptions.gameClockTicks`, is an individual definition. Its record key identifies the runtime registration, while its handler name identifies the Layer requirement that assembly must satisfy. Several lifted registrations can share one definition and handler Layer while retaining separate Stream scopes. Naming also gives tools a declared identity to display; Subscription lifecycle events in DevTools are follow-up work. An entry with `handler` exposes `.layer`; `Application.provide` supplies that Layer. `Subscription.lift` and `Subscription.aggregate` preserve the definition, attached recipe, handler identity, and Model-driven restart behavior.
-
-The Runtime runs the attached handler generator once while building the application Layer and obtains a `dependencies => Stream` function. Return that function directly when construction needs no services. The constructor must not capture the current dependency record; Foldkit passes that record when starting each Stream. A dependency change restarts the Stream scope without reconstructing the handler or its provider. Scoped resources owned by the application Layer release when the runtime stops.
-
-Omit `handler` for a Subscription contract whose Stream belongs to an external host. Such an entry has no `.layer`; the host calls `toLayer` with its implementation Effect. A focused orchestration test can use the same seam, though ordinary execution tests keep the attached handler and replace its underlying service Layers.
-
-In a whole-application execution test, retain that real Stream handler and replace its upstream capabilities. A fake clock, event source, RPC transport, or browser service can make emissions deterministic while the real Subscription still transforms them and Foldkit still applies its Model-driven start, restart, and stop behavior.
-
-Distinct Subscription definitions within one application need distinct handler names. The same definition can be lifted into multiple registration keys and share one handler Layer. `Application.make` rejects duplicate registered names from different definitions.
-
-A Subscription handler requirement contains its name, decoded dependency record, and declared Message union. `Application.provide` rejects a same-named Layer with a different dependency or Message contract, including Layers combined with `Layer.mergeAll` or supplied through separate calls. Use `Subscription.HandlerOf<typeof subscriptions.gameClockTicks>` for an explicit requirement; the expanded form is `Subscription.Handler<Name, Dependencies, DeclaredMessage>`, with all three arguments required.
-
-Two definitions with the same name and identical protocol have the same structural type. If a Layer from one is supplied for the other, Foldkit rejects it when the Subscription starts because their private definition identities differ. An external implementation should use the registered entry's `toLayer`.
+`modelToDependencies` extracts the values that control the entry. The `handler` generator constructs the Stream factory, and the owned registry’s `subscriptions.layer` supplies its attached handlers to the application. Foldkit compares the extracted record structurally by default, so unrelated Model updates do not restart the timer.
 
 When `isAutoCounting` changes to `true`, the new Stream starts ticking. When it changes back to `false`, the active scope closes and the timer stops.
 
-### Wiring the Runtime
+### Completing the Block
 
-Defining `subscriptions` is only half of the setup. Pass the record to `Application.make` or no streams start. The field is optional, so omitting it still produces a valid application without Subscription behavior.
+Include the record when completing its owning Block. The completed value carries the Subscription registrations and their handler recipes through parent Bindings to the root. The typed root owns `makeApplication`; the entry supplies the implementation and container, calls `application.provide(layer)` when shared Services remain, and then starts the program:
 
-::Snippet{name="counterEntryWithSubscriptions" label="Subscription wiring"}
+::Snippet{name="counterEntryWithSubscriptions" label="Subscription application entry"}
 
 The [websocket-chat example](/example-apps/websocket-chat) shows a more involved event stream. [Typing Terminal](https://typingterminal.com) and its [source](https://github.com/foldkit/foldkit/tree/main/packages/typing-game) show Subscriptions inside a complete application.
+
+## Subscription Handler Contracts
+
+### Declared Messages
+
+The declared Message Schemas constrain the Stream returned by both the attached handler and an external `toLayer` implementation. Emitting an undeclared Message is a type error. Scene uses these Schemas to validate `Subscription.emit(entry, message)` against the composed source, including its Message mapping through parents. An empty declaration requires a `Stream<never>` for work that emits no Messages.
+
+### Handler Construction and Layers
+
+Each entry, such as `subscriptions.gameClockTicks`, is an individual owned definition. Its record key identifies the local runtime entry, while its handler name becomes part of the owned Layer requirement that assembly must satisfy. Several child Bindings can carry one definition into different placements while retaining separate Stream scopes. Naming also gives tools a declared identity to display; Subscription lifecycle events in DevTools are follow-up work. An entry with `handler` exposes `.layer`; include that recipe in the local `EffectsLayer` passed to `FeatureComposition.makeBlock`.
+
+When every entry has an attached handler, the owned registry also exposes `subscriptions.layer`. Use it to include all the record's handlers in `EffectsLayer`. It merges the recipes passively; the Runtime still constructs them later. An empty record supplies an empty Layer. The aggregate preserves each handler's Service requirements and constructor errors.
+
+The aggregate is unavailable if any entry leaves its handler to the host. Supply those contracts explicitly through `hostHandlers` and `provideHandlers`. Individual `subscriptions.entry.layer` recipes remain available for intentionally selective assembly. The entry key `layer` is reserved; the aggregate recipe is metadata and never becomes a running Subscription or a Scene emission source.
+
+The Runtime runs the attached handler generator once while building the application Layer and obtains a `dependencies => Stream` function. Return that function directly when construction needs no services. The constructor must not capture the current dependency record; Foldkit passes that record when starting each Stream. A dependency change restarts the Stream scope without reconstructing the handler or its provider. Scoped resources owned by the application Layer release when the runtime stops.
+
+### External Host Handlers
+
+Omit `handler` for a Subscription contract whose Stream belongs to an external host. Such an entry has no `.layer`. List it in the completed Block's `hostHandlers`, then let the host call `block.provideHandlers(entry.toLayer(...))` before connecting the feature. A focused orchestration test can use the same seam, though ordinary execution tests keep the attached handler and replace its underlying service Layers.
+
+### Execution Testing
+
+In a whole-application execution test, retain that real Stream handler and replace its upstream capabilities. A fake clock, event source, RPC transport, or browser service can make emissions deterministic while the real Subscription still transforms them and Foldkit still applies its Model-driven start, restart, and stop behavior.
+
+### Handler Requirements and Identity
+
+Subscription names are local to their named Block. Two features can both declare `GameClockTicks`; their owners keep the definitions distinct. Names must be unique within one owner. Composition derives a path for each Binding placement, so repeated uses of one completed child share its handler recipe while retaining separate Stream scopes.
+
+A Subscription handler requirement contains its owned name, decoded dependency record, and declared Message union. `FeatureComposition.makeBlock` checks that each local requirement is supplied by `EffectsLayer` or declared in `hostHandlers`; `block.provideHandlers` checks an external provider against those declared contracts. Use `Subscription.HandlerOf<typeof subscriptions.gameClockTicks>` for an explicit requirement; the expanded form is `Subscription.Handler<Name, Dependencies, DeclaredMessage>`, with all three arguments required.
+
+Definitions created by different named Blocks receive different owned names even when their local names and protocols match. Each definition also retains a private runtime identity. An external implementation should use the declared entry's `toLayer` so it keeps that identity.
 
 ### Naming a Subscription
 
@@ -107,7 +123,7 @@ A Subscription definition describes a scoped Stream. Its record key identifies t
 
 Name the events or scoped behavior the definition supplies, such as `KeyboardPresses`, `SystemThemeChanges`, `GameClockTicks`, or `DragSelectionStyles`. `KeyboardPresses` identifies the events produced from keyboard input; `GameClockTicks` identifies the events produced by a timer. The Model dependencies determine when the Stream is active and when its scope restarts; they do not need to appear in the handler name.
 
-Unlike a Command, a Subscription may emit many Messages or maintain scoped work without emitting any. Its handler name does not need to mirror a single result Message or follow the Command imperative naming convention. Compose the attached `.layer` directly in `EffectsLayer`. Create a named individual provider only when it is intentionally public or independently reused outside that bundle's assembly.
+Unlike a Command, a Subscription may emit many Messages or maintain scoped work without emitting any. Its handler name does not need to mirror a single result Message or follow the Command imperative naming convention. Compose the owned registry’s `subscriptions.layer` in `EffectsLayer` when every entry has an attached handler. Use an individual entry’s `.layer` for selective assembly. Create a named individual provider only when it is intentionally public or independently reused outside that bundle's assembly.
 
 ## Animation Frames
 
@@ -131,7 +147,7 @@ For a Layer-backed Subscription with no local Model dependencies, pass its stabl
 
 ::Snippet{name="subscriptionPersistent" label="Heartbeat without Model dependencies"}
 
-For work whose lifetime depends on the Model, define an entry with `Subscription.make` and derive its dependencies from the Model.
+For work whose lifetime depends on the Model, define an entry with `FeatureDefinition.subscriptions` and derive its dependencies from the Model.
 
 ## Dom Streams
 
@@ -157,10 +173,16 @@ Most entries should use the first `dependencies` argument directly. Reach for `r
 
 ## Lifting Subscriptions
 
-When a parent embeds a Submodel with Subscriptions, the parent must lift the child's Messages into its own Message type. `Subscription.lift` composes the entire record in one call. Its `read` returns an `Option` of the child Model, matching `Update.foldChild` and `ManagedResource.lift`. Returning `None` stops every child Stream without reading child dependencies. Wrap an always-present child in `Option.some`.
+When a parent embeds a Block with Subscriptions, its Binding lifts the child's Messages into the parent Message type and applies the same presence policy used by update. `None` in a direct Option field, `false` from `presentWhen`, or `None` from a custom `read` stops every child Stream without reading child dependencies.
+
+`ParentDefinition.bindChild(child, { field, parentMessage, ... })` performs that lift once for a direct child field. Custom storage uses `read` and `write`. Include the Binding in the parent's `childBindings` list, and the parent collects the lifted entries under placement-qualified keys. The same Composition routes the child's wrapper Messages through its Binding and installs the collected graph through `makeApplication({ init, update, view, ... })`.
 
 ### Gating Child Subscriptions
 
-The optional `when` field lets the parent add a condition the child cannot see, such as whether the child's page is the active route. One predicate can gate the whole record, or a map can gate selected entries. The child continues to own its own dependencies. Direct `Subscription.aggregate(first, second)` keeps each entry's declared Message collection, `.layer`, and `toLayer` helper. The curried form, `Subscription.aggregate<Model, Message>()(first, second)`, constrains the parent Model and Message while preserving the inferred entry definitions and their handler requirements. See [Subscription Organization](/patterns/subscription-organization) for the complete composition pattern.
+The optional `when` field lets the parent add a Stream condition the child cannot see. One predicate can gate the whole record, or a map can gate selected entries. Put the policy under `subscriptions.when` in the Binding. This gate controls Stream lifetime only: it does not make the child absent, stop ManagedResources or Mounts, or prevent `binding.fold` from running.
+
+Use direct-field `presentWhen` when the condition governs the whole child rather than its Streams. That predicate makes the Binding absent for updates and every lifecycle channel. A custom accessor expresses the same policy by returning `None` from `read`.
+
+The child continues to own its dependency projection. For a direct array of child Models with declared Struct key fields, use `bindChild` with `field`, a string-valued `key`, and `toParentMessage`. An exact array of closed Struct wrappers adds a distinct required `childField`, leaving its key on the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration retain general keyed accessors; Foldkit starts one independently scoped Stream set per active key. See [Subscription Organization](/patterns/subscription-organization) for the full composition pattern.
 
 The application now has state transitions, one-shot Commands, element-scoped Mounts, and ongoing Subscriptions. The remaining question is where the first Model and startup Commands come from. [Init & Flags](/core/init-and-flags) defines that boundary.

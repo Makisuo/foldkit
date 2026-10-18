@@ -1,22 +1,15 @@
-import { Array, Effect, Option, Record, Schema, pipe } from 'effect'
-import { AsyncData, Command, Update } from 'foldkit'
+import { Effect, Option, Record, Result, Schema } from 'effect'
+import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import {
-  ParsedApiReference,
-  SIGNATURE_COLLAPSE_THRESHOLD,
-  scopedId,
-  signaturesLength,
-} from './domain'
+import { ApiReferenceComposition } from './composition'
+import { ApiReferenceDefinition } from './definition'
+import { ParsedApiReference } from './domain'
 import { Message } from './message'
-import {
-  type ApiData,
-  ApiDataAsyncData,
-  type Disclosures,
-  type Model,
-} from './model'
+import { type ApiData, ApiDataAsyncData, disclosuresForApiData } from './model'
 
-const LoadApiData = Command.define('LoadApiData', {
+/** Loads the complete reference, including modules omitted from hydration data. */
+export const LoadApiData = ApiReferenceDefinition.command('LoadApiData', {
   messages: [Message.SucceededLoadApiData, Message.FailedLoadApiData],
   handler: function* () {
     return () =>
@@ -56,46 +49,58 @@ const LoadApiData = Command.define('LoadApiData', {
 
 export const EffectsLayer = LoadApiData.layer
 
-const disclosuresForApiData = (apiData: ApiData): Disclosures =>
-  pipe(
-    apiData.parsedApi.modules,
-    Array.flatMap(module =>
-      pipe(
-        module.functions,
-        Array.filter(
-          apiFunction =>
-            signaturesLength(apiFunction) > SIGNATURE_COLLAPSE_THRESHOLD,
-        ),
-        Array.map(apiFunction => {
-          const id = scopedId('function', module.name, apiFunction.name)
-          return [id, false] as const
+const loadInitialData = ApiReferenceDefinition.step(
+  (model, maybeApiData: Option.Option<ApiData>) => ({
+    model: Option.match(maybeApiData, {
+      onNone: () =>
+        modifyFields(model, { apiData: () => ApiDataAsyncData.Loading() }),
+      onSome: apiData =>
+        modifyFields(model, {
+          apiData: () => ApiDataAsyncData.Refreshing({ data: apiData }),
+          disclosures: () => disclosuresForApiData(apiData),
         }),
-      ),
-    ),
-    Record.fromEntries,
-  )
+    }),
+    commands: [LoadApiData()],
+  }),
+)
 
-export const update = Update.define((model: Model, message: Message) =>
-  Message.match(message, {
-    RequestedApiData: () =>
-      Option.match(AsyncData.loadIfMissing(model.apiData), {
-        onNone: () => ({ model }),
-        onSome: apiData => ({
-          model: modifyFields(model, { apiData: () => apiData }),
-          commands: [LoadApiData()],
-        }),
+const refreshApiData = ApiReferenceDefinition.step(model =>
+  Option.match(
+    AsyncData.isStale(model.apiData)
+      ? AsyncData.revalidate(model.apiData)
+      : AsyncData.loadIfMissing(model.apiData),
+    {
+      onNone: () => ({ model }),
+      onSome: apiData => ({
+        model: modifyFields(model, { apiData: () => apiData }),
+        commands: [LoadApiData()],
       }),
+    },
+  ),
+)
+
+export const update = ApiReferenceComposition.makeUpdate((model, message) =>
+  Message.match(message, {
+    RequestedLoadInitialData: ({ maybeApiData }) =>
+      loadInitialData(model, maybeApiData),
+
+    InformedOfRouteChange: () => refreshApiData(model),
 
     SucceededLoadApiData: ({ apiData }) => ({
       model: modifyFields(model, {
         apiData: () => ApiDataAsyncData.Success({ data: apiData }),
-        disclosures: () => disclosuresForApiData(apiData),
+        disclosures: disclosures =>
+          Record.union(
+            disclosures,
+            disclosuresForApiData(apiData),
+            isOpen => isOpen,
+          ),
       }),
     }),
 
     FailedLoadApiData: ({ error }) => ({
       model: modifyFields(model, {
-        apiData: () => ApiDataAsyncData.Failure({ error }),
+        apiData: apiData => AsyncData.settle(apiData, Result.fail(error)),
       }),
     }),
 
@@ -106,6 +111,3 @@ export const update = Update.define((model: Model, message: Message) =>
     }),
   }),
 )
-
-export const informRouteChanged = (model: Model) =>
-  update(model, Message.RequestedApiData())

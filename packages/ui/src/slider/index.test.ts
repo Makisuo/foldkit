@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest'
 import {
   Message,
   OutMessage,
+  block,
   fractionOfValue,
   init,
-  reflectRange,
   snapAndClamp,
   update,
   valueFromPointer,
@@ -604,19 +604,26 @@ describe('Slider', () => {
     })
   })
 
-  describe('reflectRange', () => {
+  describe('informRangeChanged', () => {
     it('updates min and max', () => {
       const before = defaultInit()
-      const after = reflectRange(before, { min: 100, max: 200 })
-      expect(after.min).toBe(100)
-      expect(after.max).toBe(200)
+      const after = block.operations.informRangeChanged(before, {
+        min: 100,
+        max: 200,
+      })
+      expect(after.model.min).toBe(100)
+      expect(after.model.max).toBe(200)
     })
 
-    it('supports the data-last form for point-free use in modifyFields', () => {
-      const widen = reflectRange({ min: 0, max: 50 })
-      const after = widen(defaultInit())
-      expect(after.min).toBe(0)
-      expect(after.max).toBe(50)
+    it('handles the informed range fact without emitting a value change', () => {
+      const after = update(
+        defaultInit(),
+        Message.InformedOfRangeChange({ min: 0, max: 50 }),
+      )
+      expect(after.outMessage).toBeUndefined()
+      expect(after.commands).toBeUndefined()
+      expect(after.model.min).toBe(0)
+      expect(after.model.max).toBe(50)
     })
 
     it('updates the range even while Dragging', () => {
@@ -626,10 +633,13 @@ describe('Slider', () => {
       )
       expect(dragStart.model.dragState._tag).toBe('Dragging')
 
-      const after = reflectRange(dragStart.model, { min: 7, max: 10 })
-      expect(after.min).toBe(7)
-      expect(after.max).toBe(10)
-      expect(after.dragState._tag).toBe('Dragging')
+      const after = block.operations.informRangeChanged(dragStart.model, {
+        min: 7,
+        max: 10,
+      })
+      expect(after.model.min).toBe(7)
+      expect(after.model.max).toBe(10)
+      expect(after.model.dragState._tag).toBe('Dragging')
     })
   })
 })

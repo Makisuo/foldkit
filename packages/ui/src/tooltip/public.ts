@@ -2,8 +2,8 @@ export {
   init,
   update,
   view,
+  block,
   triggerId,
-  reflectShowDelay,
   Model,
   Message,
   OutMessage,
@@ -17,7 +17,6 @@ export {
   type PressedPointerOnTrigger,
   WaitBeforeShowing,
   AnchorTooltip,
-  EffectsLayer,
   mounts,
 } from './index.js'
 

@@ -13,5 +13,18 @@ export type {
   LeftTrigger,
   Opened,
   PressedEscape,
+  RequestedClose,
 } from './message.js'
-export * from './hoverIntent.js'
+export {
+  Model,
+  type InitConfig,
+  init,
+  WaitBeforeOpening,
+  WaitBeforeClosing,
+  EffectsLayer,
+  update,
+  type RenderInfo,
+  type ViewInputs,
+  view,
+  block,
+} from './block.js'

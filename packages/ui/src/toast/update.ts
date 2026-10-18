@@ -8,32 +8,26 @@ import {
   Option,
   Schema,
   Stream,
+  Tuple,
   pipe,
 } from 'effect'
-import * as Command from 'foldkit/command'
+import * as Block from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
 import { modifyFields } from 'foldkit/struct'
-import * as Subscription from 'foldkit/subscription'
 import * as Update from 'foldkit/update'
 
+import * as Animation from '../animation/index.js'
 import {
   Message as AnimationMessage,
-  type Model as AnimationModel,
   OutMessage as AnimationOutMessage,
   init as animationInit,
 } from '../animation/schema.js'
-import {
-  EffectsLayer as AnimationEffectsLayer,
-  defaultLeaveCommand as animationDefaultLeaveCommand,
-  update as animationUpdate,
-} from '../animation/update.js'
-import * as OptionExt from '../internal/optionExtensions.js'
+import { defaultLeaveCommand as animationDefaultLeaveCommand } from '../animation/update.js'
 import {
   DEFAULT_DURATION,
   DEFAULT_SWIPE_DIRECTION,
   DEFAULT_SWIPE_THRESHOLD,
   type InitConfig,
-  Message,
   SWIPE_SETTLE_DURATION,
   type SwipeDirection,
   SwipeState,
@@ -46,7 +40,7 @@ import {
 
 // Factory-level ShowInput. The consumer supplies the full payload.
 
-/** Input for `show()`. `payload` is the consumer-defined content shape for an
+/** Input for the exposed `show` operation. `payload` is the consumer-defined content shape for an
  *  entry. Omit `duration` to use the container's `defaultDuration`; pass
  *  `sticky: true` to skip auto-dismiss entirely. */
 export type ShowInput<A> = Readonly<{
@@ -56,53 +50,7 @@ export type ShowInput<A> = Readonly<{
   sticky?: boolean
 }>
 
-/** Waits for an entry's auto-dismiss duration, then emits a versioned
- *  `CompletedWaitBeforeDismissal` Message so update can ignore stale timers. */
-export const WaitBeforeDismissal = Command.define('WaitBeforeDismissal', {
-  args: {
-    entryId: Schema.String,
-    version: Schema.Number,
-    duration: Schema.DurationFromMillis,
-  },
-  messages: [Message.CompletedWaitBeforeDismissal],
-  handler: function* () {
-    return ({ entryId, version, duration }) =>
-      Effect.gen(function* () {
-        yield* Effect.sleep(duration)
-        return Message.CompletedWaitBeforeDismissal({ entryId, version })
-      })
-  },
-})
-
 const DEFAULT_VARIANT: Variant = 'Info'
-
-/** Waits for a short or cancelled swipe to animate back, then emits
- *  `CompletedWaitForSwipeSettled` so update can clear `Settling`. */
-export const WaitForSwipeSettled = Command.define('WaitForSwipeSettled', {
-  args: {
-    entryId: Schema.String,
-    version: Schema.Number,
-  },
-  messages: [Message.CompletedWaitForSwipeSettled],
-  handler: function* () {
-    return ({ entryId, version }) =>
-      Effect.gen(function* () {
-        yield* Effect.sleep(SWIPE_SETTLE_DURATION)
-        return Message.CompletedWaitForSwipeSettled({ entryId, version })
-      })
-  },
-})
-
-const SharedEffectsLayer = Layer.mergeAll(
-  WaitBeforeDismissal.layer,
-  WaitForSwipeSettled.layer,
-)
-
-/** Provides Toast's payload-independent Command handlers. */
-export const EffectsLayer = Layer.mergeAll(
-  SharedEffectsLayer,
-  AnimationEffectsLayer,
-)
 
 /** Horizontal offset in pixels for an entry's swipe state. `Dragging`
  *  reports the distance travelled from the press point; `Dismissing` reports
@@ -150,29 +98,74 @@ const documentStylesWhileSwiping = Stream.callback<never>(() =>
 )
 
 /**
- * Factory that binds Toast's runtime (update fn, helpers, commands) to a
- *  specific payload schema. Called by `make` in index.ts; inner helpers close
- *  over the payload-specific Entry / Model / Added types so generics don't
+ * Factory that creates Toast's runtime (update fn, helpers, commands) for a
+ *  specific payload schema. Called by `make` in `Toast.ts`; inner helpers close
+ *  over the payload-specific Entry / Model / Message types so generics don't
  *  have to propagate through every helper signature.
  *
- *  @internal Consumers should use `Toast.make(name, PayloadSchema)`. This is
- *  only exported so `index.ts` can wire the view into the bound runtime.
+ *  @internal Consumers should use `Toast.make(PayloadSchema)`. This is
+ *  only exported so `Toast.ts` can wire the view into the runtime.
  */
-export const makeRuntime = <const Name extends string, A, I>(
-  name: Name,
-  payloadSchema: Schema.Codec<A, I>,
-) => {
+export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const EntrySchema = makeEntry(payloadSchema)
   const ModelSchema = makeModel(payloadSchema)
   const MessageSchema = makeMessage(payloadSchema)
   const OutMessageSchema = makeOutMessage(payloadSchema)
-  const Added = MessageSchema.Added
-  const DismissedToast = OutMessageSchema.DismissedToast
+  const ToastDefinition = Block.define('Toast', {
+    Model: ModelSchema,
+    Message: MessageSchema,
+    OutMessage: OutMessageSchema,
+  })
 
   type Entry = typeof EntrySchema.Type
   type Model = typeof ModelSchema.Type
   type Message = typeof MessageSchema.Type
-  type OutMessage = typeof OutMessageSchema.Type
+
+  /** Waits for an entry's auto-dismiss duration, then emits a versioned
+   *  `CompletedWaitBeforeDismissal` Message so update can ignore stale timers. */
+  const WaitBeforeDismissal = ToastDefinition.command('WaitBeforeDismissal', {
+    args: {
+      entryId: Schema.String,
+      version: Schema.Number,
+      duration: Schema.DurationFromMillis,
+    },
+    messages: [MessageSchema.CompletedWaitBeforeDismissal],
+    handler: function* () {
+      return ({ entryId, version, duration }) =>
+        Effect.gen(function* () {
+          yield* Effect.sleep(duration)
+          return MessageSchema.CompletedWaitBeforeDismissal({
+            entryId,
+            version,
+          })
+        })
+    },
+  })
+
+  /** Waits for a short or cancelled swipe to animate back, then emits
+   *  `CompletedWaitForSwipeSettled` so update can clear `Settling`. */
+  const WaitForSwipeSettled = ToastDefinition.command('WaitForSwipeSettled', {
+    args: {
+      entryId: Schema.String,
+      version: Schema.Number,
+    },
+    messages: [MessageSchema.CompletedWaitForSwipeSettled],
+    handler: function* () {
+      return ({ entryId, version }) =>
+        Effect.gen(function* () {
+          yield* Effect.sleep(SWIPE_SETTLE_DURATION)
+          return MessageSchema.CompletedWaitForSwipeSettled({
+            entryId,
+            version,
+          })
+        })
+    },
+  })
+
+  const SharedEffectsLayer = Layer.mergeAll(
+    WaitBeforeDismissal.layer,
+    WaitForSwipeSettled.layer,
+  )
 
   const updateEntry = (
     model: Model,
@@ -246,7 +239,7 @@ export const makeRuntime = <const Name extends string, A, I>(
   }
 
   const settleSnapBack = (entry: Entry) =>
-    Update.defineStep((model: Model) => {
+    ToastDefinition.step(model => {
       const nextSwipeVersion = Number.increment(entry.swipeVersion)
       const nextEntry = modifyFields(entry, {
         pendingDismissVersion: Number.increment,
@@ -271,111 +264,87 @@ export const makeRuntime = <const Name extends string, A, I>(
         Option.map(({ animation }) => animation),
       )
 
-  const writeEntryAnimation =
-    (entryId: string) =>
-    (model: Model, nextAnimation: Entry['animation']): Model =>
-      updateEntry(model, entryId, entry =>
-        modifyFields(entry, { animation: () => nextAnimation }),
-      )
-
-  const toGotAnimationMessage =
-    (entryId: string) =>
-    (message: AnimationMessage): Message =>
-      MessageSchema.GotAnimationMessage({ entryId, message })
-
-  const toDismissedToastOutMessage = (payload: A) =>
-    AnimationOutMessage.match<OutMessage | undefined>({
-      StartedLeaveAnimating: () => undefined,
-      TransitionedOut: () => OutMessageSchema.DismissedToast({ payload }),
-    })
-
-  const foldEntryAnimationOutMessage =
-    (entryId: string) =>
-    (
-      outMessage: AnimationOutMessage,
-      { liftCommand }: Update.FoldContext<AnimationMessage, Message>,
-    ) =>
-      AnimationOutMessage.match(outMessage, {
-        StartedLeaveAnimating: () =>
-          Update.defineStep((model: Model) =>
-            Option.match(readEntryAnimation(entryId)(model), {
-              onNone: () => ({ model }),
-              onSome: animation => ({
-                model,
-                commands: [
-                  liftCommand(animationDefaultLeaveCommand(animation)),
-                ],
-              }),
+  const foldEntryAnimationOutMessage = (
+    entryId: string,
+    outMessage: AnimationOutMessage,
+    { liftCommand }: Update.FoldContext<AnimationMessage, Message>,
+  ) =>
+    AnimationOutMessage.match(outMessage, {
+      StartedLeaveAnimating: () =>
+        ToastDefinition.step(model =>
+          Option.match(readEntryAnimation(entryId)(model), {
+            onNone: () => ({ model }),
+            onSome: animation => ({
+              model,
+              commands: [liftCommand(animationDefaultLeaveCommand(animation))],
             }),
+          }),
+        ),
+      TransitionedOut: () =>
+        ToastDefinition.step(model =>
+          Option.match(
+            Array.findFirst(model.entries, ({ id }) => id === entryId),
+            {
+              onNone: () => ({ model }),
+              onSome: entry => ({
+                model: removeEntry(model, entryId),
+                outMessage: OutMessageSchema.DismissedToast({
+                  payload: entry.payload,
+                }),
+              }),
+            },
           ),
-        TransitionedOut: () =>
-          Update.defineStep((model: Model) => ({
-            model: removeEntry(model, entryId),
-          })),
-      })
-
-  const foldEntryAnimation = (entry: Entry) =>
-    Update.foldChild({
-      update: (animation: AnimationModel, message: AnimationMessage) =>
-        animationUpdate(animation, message),
-      read: readEntryAnimation(entry.id),
-      write: writeEntryAnimation(entry.id),
-      toParentMessage: toGotAnimationMessage(entry.id),
-      toParentOutMessage: toDismissedToastOutMessage(entry.payload),
-      foldOutMessage: foldEntryAnimationOutMessage(entry.id),
+        ),
     })
+
+  const EntryAnimationBinding = ToastDefinition.bindChild(Animation.block, {
+    field: 'entries',
+    key: 'id',
+    childField: 'animation',
+    toParentMessage: (entryId, message) =>
+      MessageSchema.GotAnimationMessage({ entryId, message }),
+    fromParentMessage: {
+      parentMessage: MessageSchema.GotAnimationMessage,
+      args: (_model, { entryId, message }) => Option.some([entryId, message]),
+    },
+    outMessage: { fold: foldEntryAnimationOutMessage },
+  })
+
+  const ToastComposition = ToastDefinition.makeComposition({
+    childBindings: [EntryAnimationBinding],
+  })
 
   const foldEntryAnimationShow = (entry: Entry) =>
-    Update.foldChildStep({
-      update: (animation: AnimationModel) =>
-        animationUpdate(animation, AnimationMessage.Showed()),
-      read: readEntryAnimation(entry.id),
-      write: writeEntryAnimation(entry.id),
-      toParentMessage: toGotAnimationMessage(entry.id),
-    })
+    EntryAnimationBinding.requestShow(entry.id)
 
   const foldEntryAnimationHide = (entry: Entry) =>
-    Update.foldChildStep({
-      update: (animation: AnimationModel) =>
-        animationUpdate(animation, AnimationMessage.Hid()),
-      read: readEntryAnimation(entry.id),
-      write: writeEntryAnimation(entry.id),
-      toParentMessage: toGotAnimationMessage(entry.id),
-    })
+    EntryAnimationBinding.requestHide(entry.id)
 
-  const delegateToEntryAnimation = (
+  const createEntry = (
     model: Model,
-    entryId: string,
-    animationMessage: AnimationMessage,
-  ) =>
-    Option.match(
-      Array.findFirst(model.entries, ({ id }) => id === entryId),
-      {
-        onNone: () => ({ model }),
-        onSome: entry => foldEntryAnimation(entry)(model, animationMessage),
-      },
-    )
-
-  const createEntry = (model: Model, input: ShowInput<A>): Entry => {
+    {
+      payload,
+      variant,
+      maybeDuration,
+      isSticky,
+    }: typeof MessageSchema.RequestedShow.Type,
+  ): Entry => {
     const entryId = `${model.id}-entry-${model.nextEntryKey}`
-
-    const duration =
-      input.duration === undefined
-        ? model.defaultDuration
-        : Duration.fromInputUnsafe(input.duration)
-
-    const maybeDuration = OptionExt.when(!input.sticky, duration)
 
     return {
       id: entryId,
-      variant: input.variant ?? DEFAULT_VARIANT,
+      variant,
       animation: animationInit({ id: entryId, isShowing: false }),
-      maybeDuration,
+      maybeDuration: isSticky
+        ? Option.none()
+        : Option.orElse(maybeDuration, () =>
+            Option.some(model.defaultDuration),
+          ),
       pendingDismissVersion: 0,
       isHovered: false,
       swipeState: SwipeState.Idle(),
       swipeVersion: 0,
-      payload: input.payload,
+      payload,
     }
   }
 
@@ -397,59 +366,76 @@ export const makeRuntime = <const Name extends string, A, I>(
       })),
     ),
   })
+  const blockInit = ToastComposition.makeInit((config: InitConfig) => ({
+    model: init(config),
+  }))
+
+  const addEntry = (entry: Entry) => {
+    const appendEntry = ToastDefinition.step(model => ({
+      model: modifyFields(model, {
+        entries: entries => Array.append(entries, entry),
+        nextEntryKey: Number.increment,
+      }),
+    }))
+    const scheduleDismissal = ToastDefinition.step(model => ({
+      model,
+      commands: pipe(
+        Array.findFirst(model.entries, ({ id }) => id === entry.id),
+        Option.flatMap(scheduleWaitBeforeDismissal),
+        Array.fromOption,
+      ),
+    }))
+
+    return Update.combine([
+      appendEntry,
+      foldEntryAnimationShow(entry),
+      scheduleDismissal,
+    ])
+  }
+
+  const dismissEntries = (entries: ReadonlyArray<Entry>) =>
+    Update.combine(Array.map(entries, foldEntryAnimationHide))
 
   /** Processes a Toast Message and returns the next Model, optional Commands,
    *  and an optional `DismissedToast` OutMessage emitted once an entry has
    *  finished its leave animation. */
-  const update = Update.define((model: Model, message: Message) =>
-    MessageSchema.match(message, {
-      Added: ({ entry }) => {
-        return Update.combine(model, [
-          stepModel => ({
-            model: modifyFields(stepModel, {
-              entries: entries => Array.append(entries, entry),
-              nextEntryKey: Number.increment,
-            }),
-          }),
-          foldEntryAnimationShow(entry),
-          stepModel => ({
-            model: stepModel,
-            commands: pipe(
-              Array.findFirst(stepModel.entries, ({ id }) => id === entry.id),
-              Option.flatMap(scheduleWaitBeforeDismissal),
-              Array.fromOption,
-            ),
-          }),
-        ])
-      },
+  const update = ToastComposition.makeUpdate((model, message) => {
+    const dismissEntry = (entryId: string) => {
+      const maybeEntry = Array.findFirst(
+        model.entries,
+        ({ id }) => id === entryId,
+      )
 
-      Dismissed: ({ entryId }) => {
-        const maybeEntry = Array.findFirst(
+      return Option.match(maybeEntry, {
+        onNone: () => ({ model }),
+        onSome: entry => {
+          if (isEntryLeaving(entry)) {
+            return { model }
+          } else {
+            return foldEntryAnimationHide(entry)(model)
+          }
+        },
+      })
+    }
+
+    return MessageSchema.match(message, {
+      RequestedShow: input => addEntry(createEntry(model, input))(model),
+
+      Added: ({ entry }) => addEntry(entry)(model),
+
+      RequestedDismiss: ({ entryId }) => dismissEntry(entryId),
+
+      RequestedDismissAll: () => {
+        const dismissVisibleEntries = pipe(
           model.entries,
-          ({ id }) => id === entryId,
+          Array.filter(entry => !isEntryLeaving(entry)),
+          dismissEntries,
         )
 
-        return Option.match(maybeEntry, {
-          onNone: () => ({ model }),
-          onSome: entry => {
-            if (isEntryLeaving(entry)) {
-              return { model }
-            } else {
-              return foldEntryAnimationHide(entry)(model)
-            }
-          },
-        })
+        return dismissVisibleEntries(model)
       },
 
-      DismissedAll: () =>
-        Update.combine(
-          model,
-          pipe(
-            model.entries,
-            Array.filter(entry => !isEntryLeaving(entry)),
-            Array.map(foldEntryAnimationHide),
-          ),
-        ),
+      Dismissed: ({ entryId }) => dismissEntry(entryId),
 
       CompletedWaitBeforeDismissal: ({ entryId, version }) => {
         const maybeEntry = Array.findFirst(
@@ -595,7 +581,10 @@ export const makeRuntime = <const Name extends string, A, I>(
               if (isEntryLeaving(entry)) {
                 return { model: nextModel }
               } else {
-                return foldEntryAnimationHide(entry)(nextModel)
+                return Update.combine(model, [
+                  () => ({ model: nextModel }),
+                  foldEntryAnimationHide(entry),
+                ])
               }
             },
           },
@@ -638,23 +627,30 @@ export const makeRuntime = <const Name extends string, A, I>(
             },
           },
         ),
+    })
+  })
 
-      GotAnimationMessage: ({ entryId, message: animationMessage }) =>
-        delegateToEntryAnimation(model, entryId, animationMessage),
-    }),
-  )
-
-  /** Adds a new toast entry. */
-  const show = (model: Model, input: ShowInput<A>) =>
-    update(model, MessageSchema.Added({ entry: createEntry(model, input) }))
-
-  /** Begins dismissing a specific entry. */
-  const dismiss = (model: Model, entryId: string) =>
-    update(model, MessageSchema.Dismissed({ entryId }))
-
-  /** Begins dismissing every currently-visible entry. */
-  const dismissAll = (model: Model) =>
-    update(model, MessageSchema.DismissedAll())
+  const operations = {
+    /** Requests a new entry. The update allocates its identity and applies the
+     * container's default duration when no duration is supplied. */
+    requestShow: (input: ShowInput<A>) =>
+      Tuple.make(
+        MessageSchema.RequestedShow({
+          payload: input.payload,
+          variant: input.variant ?? DEFAULT_VARIANT,
+          maybeDuration: pipe(
+            Option.fromNullishOr(input.duration),
+            Option.map(Duration.fromInputUnsafe),
+          ),
+          isSticky: input.sticky ?? false,
+        }),
+      ),
+    /** Begins the selected entry's leave animation. Missing entries are ignored. */
+    requestDismiss: (entryId: string) =>
+      Tuple.make(MessageSchema.RequestedDismiss({ entryId })),
+    /** Begins leave animations for every visible entry. */
+    requestDismissAll: MessageSchema.RequestedDismissAll,
+  }
 
   const swipeDependencies = (model: Model) => ({
     isSwipeEnabled: Option.isSome(model.maybeSwipeConfig),
@@ -666,9 +662,9 @@ export const makeRuntime = <const Name extends string, A, I>(
     | typeof MessageSchema.ReleasedSwipePointer.Type
     | typeof MessageSchema.CancelledSwipe.Type
 
-  const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  const subscriptions = ToastDefinition.subscriptions(entry => ({
     swipePointer: entry(
-      `${name}SwipePointer`,
+      'SwipePointer',
       {
         isSwipeEnabled: Schema.Boolean,
         isAnyDragging: Schema.Boolean,
@@ -724,7 +720,7 @@ export const makeRuntime = <const Name extends string, A, I>(
     ),
 
     swipeEscape: entry(
-      `${name}SwipeEscape`,
+      'SwipeEscape',
       {
         isSwipeEnabled: Schema.Boolean,
         isAnyDragging: Schema.Boolean,
@@ -752,27 +748,23 @@ export const makeRuntime = <const Name extends string, A, I>(
   }))
 
   /** Provides this Toast instance's Command and Subscription handlers. */
-  const EffectsLayer = Layer.mergeAll(
-    SharedEffectsLayer,
-    subscriptions.swipePointer.layer,
-    subscriptions.swipeEscape.layer,
-    AnimationEffectsLayer,
-  )
+  const EffectsLayer = Layer.mergeAll(SharedEffectsLayer, subscriptions.layer)
 
   return {
+    ToastComposition,
+    EntryAnimationBinding,
     Entry: EntrySchema,
     Model: ModelSchema,
     Message: MessageSchema,
     OutMessage: OutMessageSchema,
-    Added,
-    DismissedToast,
     init,
+    blockInit,
     update,
-    show,
-    dismiss,
-    dismissAll,
+    operations,
     subscriptions,
     EffectsLayer,
+    WaitBeforeDismissal,
+    WaitForSwipeSettled,
     swipeOffset,
   }
 }

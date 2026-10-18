@@ -1,9 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, extname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { canaryVersion } from '../../../scripts/lib/package-version.mjs'
+import { previewUploadTag } from '../../../scripts/lib/preview-release.mjs'
 import { EXAMPLE_FILE_EXTENSIONS, EXAMPLE_ROOT_FILES } from '../vite.config'
 import {
   INCLUDED_EXTENSIONS,
@@ -16,6 +17,28 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
 
 const SERVER_RENDERED_EXAMPLES = ['ssr', 'ssg']
 const CANARY_COMMIT = '0123456789abcdef0123456789abcdef01234567'
+
+afterEach(() => vi.unstubAllEnvs())
+
+const previewManifest = async () => {
+  vi.stubEnv('VITE_FOLDKIT_CANARY_COMMIT', undefined)
+  vi.stubEnv('VITE_FOLDKIT_PREVIEW_RELEASE', undefined)
+
+  const versions = await loadPlaygroundWorkspacePackageVersions()
+
+  return {
+    schemaVersion: 1,
+    channel: 'canary',
+    sourceCommit: CANARY_COMMIT,
+    uploadTag: previewUploadTag(CANARY_COMMIT),
+    packages: Object.fromEntries(
+      Object.entries(versions).map(([name, version]) => [
+        name,
+        canaryVersion(version, CANARY_COMMIT),
+      ]),
+    ),
+  }
+}
 
 const buildScriptOf = (slug: string): string => {
   const manifest: Readonly<{ scripts: Readonly<Record<string, string>> }> =
@@ -165,5 +188,73 @@ describe('server-rendered example build scripts', () => {
         process.env['VITE_FOLDKIT_CANARY_COMMIT'] = previousCanaryCommit
       }
     }
+  })
+
+  it('pins preview playgrounds to the complete verified package manifest', async () => {
+    const release = await previewManifest()
+    vi.stubEnv('VITE_FOLDKIT_PREVIEW_RELEASE', JSON.stringify(release))
+    vi.stubEnv('FOLDKIT_BUILD_ID', CANARY_COMMIT)
+
+    expect(await loadPlaygroundWorkspacePackageVersions()).toEqual(
+      release.packages,
+    )
+
+    const bySlug = await loadPlaygroundFiles()
+
+    for (const [slug, { files }] of Object.entries(bySlug)) {
+      const source = files['package.json']
+
+      if (source === undefined) {
+        throw new Error(`the ${slug} playground omits package.json`)
+      }
+
+      const manifest: Readonly<{
+        dependencies?: Readonly<Record<string, string>>
+        devDependencies?: Readonly<Record<string, string>>
+      }> = JSON.parse(source)
+      const dependencies = {
+        ...manifest.dependencies,
+        ...manifest.devDependencies,
+      }
+
+      for (const [name, version] of Object.entries(release.packages)) {
+        if (dependencies[name] !== undefined) {
+          expect(dependencies[name], `${slug}: ${name}`).toBe(version)
+        }
+      }
+    }
+  })
+
+  it('rejects preview package versions from another source commit', async () => {
+    const release = await previewManifest()
+    vi.stubEnv('VITE_FOLDKIT_PREVIEW_RELEASE', JSON.stringify(release))
+    vi.stubEnv('FOLDKIT_BUILD_ID', 'f'.repeat(40))
+
+    await expect(loadPlaygroundWorkspacePackageVersions()).rejects.toThrow(
+      /preview release manifest belongs to/,
+    )
+  })
+
+  it('rejects incomplete or mixed preview package inputs', async () => {
+    const release = await previewManifest()
+    vi.stubEnv('FOLDKIT_BUILD_ID', CANARY_COMMIT)
+    vi.stubEnv(
+      'VITE_FOLDKIT_PREVIEW_RELEASE',
+      JSON.stringify({
+        ...release,
+        packages: { foldkit: release.packages['foldkit'] },
+      }),
+    )
+
+    await expect(loadPlaygroundWorkspacePackageVersions()).rejects.toThrow(
+      /preview release manifest has 1 packages/,
+    )
+
+    vi.stubEnv('VITE_FOLDKIT_PREVIEW_RELEASE', JSON.stringify(release))
+    vi.stubEnv('VITE_FOLDKIT_CANARY_COMMIT', CANARY_COMMIT)
+
+    await expect(loadPlaygroundWorkspacePackageVersions()).rejects.toThrow(
+      /cannot be both canary and preview/,
+    )
   })
 })

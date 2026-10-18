@@ -1,7 +1,7 @@
 import { Clock, Effect, Option, Schema } from 'effect'
-import { Command } from 'foldkit'
 
 import { ChartRegistry } from './chartRegistry'
+import { ApplicationDefinition } from './definition'
 import { ChartMode, PackageId, Period, Telemetry } from './domain'
 import { makeChartOption } from './echarts'
 import { GitHubApi } from './githubApi'
@@ -9,9 +9,7 @@ import { Message } from './message'
 import { NpmApi } from './npmApi'
 import { fetchRawTelemetry, transformTelemetry } from './telemetry'
 
-// COMMAND
-
-export const FetchTelemetry = Command.define('FetchTelemetry', {
+export const FetchTelemetry = ApplicationDefinition.command('FetchTelemetry', {
   messages: [Message.SucceededFetchTelemetry, Message.FailedFetchTelemetry],
   handler: function* () {
     const github = yield* GitHubApi
@@ -36,7 +34,7 @@ export const FetchTelemetry = Command.define('FetchTelemetry', {
   },
 })
 
-export const SyncChart = Command.define('SyncChart', {
+export const SyncChart = ApplicationDefinition.command('SyncChart', {
   args: {
     hostId: Schema.String,
     telemetry: Telemetry,

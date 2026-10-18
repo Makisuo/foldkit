@@ -8,5 +8,5 @@ export const EffectsLayer = Layer.mergeAll(
   Command.JoinRoomFromHome.layer,
   Command.FocusUsernameInput.layer,
   Command.FocusRoomIdInput.layer,
-  subscriptions.homeKeyPresses.layer,
+  subscriptions.layer,
 )

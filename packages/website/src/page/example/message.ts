@@ -7,9 +7,13 @@ import { ExampleSources } from './sources'
 
 export const Message = defineMessageUnion({
   GotSourceFileTabsMessage: { message: Tabs.Message },
+  RequestedLoadInitialSources: {
+    maybeInitialSlug: Schema.Option(Schema.String),
+    maybeExampleSources: Schema.Option(ExampleSources),
+  },
+  InformedOfRouteChange: { slug: Schema.String },
   ChangedExampleUrl: { url: Schema.String },
   ToggledLivePreview: { isOpen: Schema.Boolean },
-  RequestedExampleSources: { slug: Schema.String },
   SucceededLoadExampleSources: { sources: ExampleSources },
   FailedLoadExampleSources: { error: Schema.String },
 })

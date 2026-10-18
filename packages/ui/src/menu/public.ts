@@ -7,6 +7,9 @@ export {
   OutMessage,
   type Selected,
   type SelectedItem,
+  type RequestedOpen,
+  type RequestedClose,
+  type RequestedSelectItem,
   AnchorMenu,
   PortalMenuBackdrop,
   type CompletedDelayClearMenuSearch,
@@ -20,7 +23,7 @@ export {
   ClickMenuItem,
   DelayClearMenuSearch,
   DetectMenuMovementOrAnimationEnd,
-  EffectsLayer,
+  block,
   mounts,
   type Opened,
   type Closed,
@@ -42,7 +45,7 @@ export type {
   ViewInputs,
   ItemConfig,
   GroupHeading,
-  Bundle,
+  Completed,
 } from './index.js'
 
 export type { AnchorConfig } from '../anchor/index.js'

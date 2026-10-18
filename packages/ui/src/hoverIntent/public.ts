@@ -1,8 +1,8 @@
 export {
-  close,
   init,
   update,
   view,
+  block,
   Model,
   Message,
   OutMessage,
@@ -19,9 +19,9 @@ export {
   type LeftTrigger,
   type Opened,
   type PressedEscape,
+  type RequestedClose,
   WaitBeforeClosing,
   WaitBeforeOpening,
-  EffectsLayer,
 } from './index.js'
 
 export type { InitConfig, RenderInfo, ViewInputs } from './index.js'

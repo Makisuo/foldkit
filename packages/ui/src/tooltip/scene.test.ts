@@ -1,58 +1,94 @@
-import type { HtmlBuilder } from 'foldkit/html'
-import type * as Mount from 'foldkit/mount'
+import { Option } from 'effect'
+import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
 import * as Scene from 'foldkit/scene'
+import * as Update from 'foldkit/update'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import type { Model } from './index.js'
 import {
   AnchorTooltip,
   Message,
+  Model,
+  OutMessage,
+  block,
   init,
-  mounts,
   triggerId,
-  update,
-  view,
 } from './index.js'
 
-type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
+const TooltipSceneMessage = defineMessageUnion({
+  GotTooltipMessage: { message: Message },
+})
+
+const TooltipSceneDefinition = Block.define('TooltipScene', {
+  Model,
+  Message: TooltipSceneMessage,
+})
+
+const foldTooltipOutMessage = OutMessage.match<
+  Update.Step<Model, typeof TooltipSceneMessage.Type>
+>({
+  Shown: () => TooltipSceneDefinition.step(model => ({ model })),
+  Hidden: () => TooltipSceneDefinition.step(model => ({ model })),
+})
+
+const TooltipBinding = TooltipSceneDefinition.bindChild(block, {
+  read: model => Option.some(model),
+  write: (_model, nextTooltip) => nextTooltip,
+  parentMessage: TooltipSceneMessage.GotTooltipMessage,
+  outMessage: { fold: foldTooltipOutMessage },
+})
+
+const TooltipSceneComposition = TooltipSceneDefinition.makeComposition({
+  childBindings: [TooltipBinding],
+})
+
+const update = TooltipSceneComposition.makeUpdate()
 
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorTooltip,
   Message.CompletedAnchorTooltip(),
 )
 
-const sceneView =
-  (
-    overrides: {
-      isDisabled?: boolean
-      ariaLabel?: string
-      ariaLabelledBy?: string
-    } = {},
-  ) =>
-  (model: Model, h: TestHtmlBuilder) =>
-    h.submodel({
-      slotId: 'test',
-      view,
-      model,
-      viewInputs: {
-        anchor: { placement: 'top' },
-        ...overrides,
-        toView: ({ trigger, panel, isVisible }) =>
-          h.div(
-            [],
-            [h.button([...trigger]), ...(isVisible ? [h.div([...panel])] : [])],
-          ),
-      },
-      toParentMessage: message => message,
-    })
+type ViewInputs = Readonly<{
+  isDisabled?: boolean
+  ariaLabel?: string
+  ariaLabelledBy?: string
+}>
+
+const rootView = TooltipSceneComposition.makeView.withInputs<ViewInputs>(
+  (model, overrides, h) =>
+    h.block(
+      TooltipBinding.embedView({
+        slotId: 'test',
+        model,
+        viewInputs: {
+          anchor: { placement: 'top' },
+          ...overrides,
+          toView: ({ trigger, panel, isVisible }) =>
+            h.div(
+              [],
+              [
+                h.button([...trigger]),
+                ...(isVisible ? [h.div([...panel])] : []),
+              ],
+            ),
+        },
+      }),
+    ),
+)
+
+const sceneView = Scene.withViewInputs(rootView, {})
 
 const trigger = Scene.selector('#test-trigger')
 const panel = Scene.selector('#test-panel')
 
 const hiddenModel = init({ id: 'test' })
-const triggerFocus = update(init({ id: 'test' }), Message.FocusedTrigger())
+const triggerFocus = update(
+  init({ id: 'test' }),
+  TooltipSceneMessage.GotTooltipMessage({ message: Message.FocusedTrigger() }),
+)
 
 describe('Tooltip', () => {
   describe('view', () => {

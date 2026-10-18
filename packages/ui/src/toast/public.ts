@@ -10,7 +10,8 @@ export {
   SWIPE_SETTLE_DURATION,
   swipeOffset,
   type Dismissed,
-  type DismissedAll,
+  type RequestedDismiss,
+  type RequestedDismissAll,
   type CompletedWaitBeforeDismissal,
   type HoveredEntry,
   type LeftEntry,
@@ -21,13 +22,10 @@ export {
   type CancelledSwipe,
   type PressedEscape,
   type CompletedWaitForSwipeSettled,
-  WaitBeforeDismissal,
-  WaitForSwipeSettled,
-  EffectsLayer,
 } from './index.js'
 
 export * as test from './test.js'
 
-export type { EntryHandlers } from './index.js'
+export type { Completed, EntryHandlers } from './index.js'
 export type { InitConfig, ShowInput, SwipeToDismissConfig } from './index.js'
 export type { DrainEntryInput } from './test.js'

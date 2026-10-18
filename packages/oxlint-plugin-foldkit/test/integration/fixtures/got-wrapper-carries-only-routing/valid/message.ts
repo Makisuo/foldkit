@@ -6,7 +6,8 @@ import { Counter } from './counter'
 
 const Message = defineMessageUnion({
   GotCounterMessage: {
-  id: Schema.String,
-  message: Counter.Message,
-},
+    key: Schema.String,
+    message: Counter.Message,
+    workspaceId: Schema.String,
+  },
 })

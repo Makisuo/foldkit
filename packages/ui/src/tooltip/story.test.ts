@@ -8,8 +8,8 @@ import {
   Message,
   OutMessage,
   WaitBeforeShowing,
+  block,
   init,
-  reflectShowDelay,
   update,
 } from './index.js'
 
@@ -514,19 +514,25 @@ describe('Tooltip', () => {
       })
     })
 
-    describe('reflectShowDelay', () => {
-      it('reflects the show delay onto the model without side effects', () => {
-        const next = reflectShowDelay(init({ id: 'test' }), Duration.seconds(1))
-        expect(next.showDelay).toStrictEqual(Duration.seconds(1))
-        expect(next.isOpen).toBe(false)
-        expect(next.pendingShowVersion).toBe(0)
+    describe('informShowDelayChanged', () => {
+      it('records the informed delay without changing visibility or emitting an OutMessage', () => {
+        const next = block.operations.informShowDelayChanged(
+          init({ id: 'test' }),
+          '1 second',
+        )
+        expect(next.commands).toBeUndefined()
+        expect(next.outMessage).toBeUndefined()
+        expect(next.model.showDelay).toStrictEqual(Duration.seconds(1))
+        expect(next.model.isOpen).toBe(false)
+        expect(next.model.pendingShowVersion).toBe(0)
       })
 
-      it('uses the reflected delay on a fresh hover', () => {
+      it('uses the informed delay on a fresh hover', () => {
         Story.story(
           update,
           Story.given(
-            reflectShowDelay(init({ id: 'test' }), Duration.millis(50)),
+            block.operations.informShowDelayChanged(init({ id: 'test' }), 50)
+              .model,
           ),
           Story.message(Message.EnteredTrigger()),
           Story.model(model => {

@@ -1,13 +1,12 @@
 // settings.ts
 
+import { SettingsDefinition } from './definition'
+
 export const Theme = Schema.Literals(['Light', 'Dark'])
 export type Theme = typeof Theme.Type
 
-const BootArgs = Schema.Struct({ theme: Theme })
-type BootArgs = typeof BootArgs.Type
-
 export const Message = defineMessageUnion({
-  RestoredTheme: { theme: Theme },
+  RequestedRestore: { theme: Theme },
   CompletedRefreshAvailableThemes: {},
 })
 
@@ -15,11 +14,16 @@ export const OutMessage = defineMessageUnion({
   RestoredTheme: { theme: Theme },
 })
 
-export const init = () => ({ model: Model.make({ theme: 'Light' }) })
+const SettingsComposition = SettingsDefinition.makeComposition()
+const requestRestore = Message.RequestedRestore
 
-export const update = Update.define((model: Model, message: Message) =>
+export const init = SettingsComposition.makeInit(() => ({
+  model: Model.make({ theme: 'Light' }),
+}))
+
+export const update = SettingsComposition.makeUpdate((model, message) =>
   Message.match(message, {
-    RestoredTheme: ({ theme }) => ({
+    RequestedRestore: ({ theme }) => ({
       model: modifyFields(model, { theme: () => theme }),
       commands: [RefreshAvailableThemes()],
       outMessage: OutMessage.RestoredTheme({ theme }),
@@ -28,5 +32,9 @@ export const update = Update.define((model: Model, message: Message) =>
   }),
 )
 
-export const boot = ({ theme }: BootArgs) =>
-  update(init().model, Message.RestoredTheme({ theme }))
+export const block = SettingsComposition.makeBlock({
+  init,
+  update,
+  operations: { requestRestore },
+  EffectsLayer,
+})

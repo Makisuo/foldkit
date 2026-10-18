@@ -1,13 +1,14 @@
-import { Array, Effect, Match, Number, Option, Schema, String } from 'effect'
-import { Command, Update } from 'foldkit'
+import { Array, Effect, Match, Number, Schema, String } from 'effect'
+import { Update } from 'foldkit'
 import * as Dom from 'foldkit/dom'
 import { pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 
-import { Dialog } from '@foldkit/ui'
-
+import { clearSearchQuery } from './clear'
+import { SearchComposition } from './composition'
+import { DialogBinding } from './composition'
+import { SearchDefinition } from './definition'
 import { Message, SearchResult } from './message'
-import type { Model } from './model'
 import { SearchState, resultsFromState } from './model'
 import { PagefindService } from './pagefind'
 
@@ -18,48 +19,51 @@ export const KEYBOARD_WARMUP_INPUT_ID = 'search-keyboard-warmup'
 
 const SEARCH_RESULT_SELECTOR = '[data-search-result-index='
 
-export const FetchSearchResults = Command.define('FetchSearchResults', {
-  args: { query: Schema.String },
-  messages: [Message.CompletedFetchSearchResults],
-  handler: function* () {
-    const pagefind = yield* PagefindService
+export const FetchSearchResults = SearchDefinition.command(
+  'FetchSearchResults',
+  {
+    args: { query: Schema.String },
+    messages: [Message.CompletedFetchSearchResults],
+    handler: function* () {
+      const pagefind = yield* PagefindService
 
-    return ({ query }) =>
-      Effect.gen(function* () {
-        const searchResponse = yield* Effect.tryPromise({
-          try: () => pagefind.search(query),
-          catch: () => new Error('Pagefind search failed'),
-        })
+      return ({ query }) =>
+        Effect.gen(function* () {
+          const searchResponse = yield* Effect.tryPromise({
+            try: () => pagefind.search(query),
+            catch: () => new Error('Pagefind search failed'),
+          })
 
-        const topResults = Array.take(searchResponse.results, MAX_RESULTS)
+          const topResults = Array.take(searchResponse.results, MAX_RESULTS)
 
-        const loadedResults = yield* Effect.tryPromise({
-          try: () => Promise.all(topResults.map(result => result.data())),
-          catch: () => new Error('Failed to load result data'),
-        })
+          const loadedResults = yield* Effect.tryPromise({
+            try: () => Promise.all(topResults.map(result => result.data())),
+            catch: () => new Error('Failed to load result data'),
+          })
 
-        const results = Array.map(loadedResults, data =>
-          SearchResult.make({
-            url: data.url,
-            title: data.meta?.title ?? 'Untitled',
-            excerpt: data.excerpt,
-            section: data.meta?.section ?? '',
-            kind: data.meta?.kind ?? '',
-          }),
-        )
+          const results = Array.map(loadedResults, data =>
+            SearchResult.make({
+              url: data.url,
+              title: data.meta?.title ?? 'Untitled',
+              excerpt: data.excerpt,
+              section: data.meta?.section ?? '',
+              kind: data.meta?.kind ?? '',
+            }),
+          )
 
-        return Message.CompletedFetchSearchResults({ results, query })
-      }).pipe(
-        Effect.catch(() =>
-          Effect.succeed(
-            Message.CompletedFetchSearchResults({ results: [], query }),
+          return Message.CompletedFetchSearchResults({ results, query })
+        }).pipe(
+          Effect.catch(() =>
+            Effect.succeed(
+              Message.CompletedFetchSearchResults({ results: [], query }),
+            ),
           ),
-        ),
-      )
+        )
+    },
   },
-})
+)
 
-export const ScrollToResult = Command.define('ScrollToResult', {
+export const ScrollToResult = SearchDefinition.command('ScrollToResult', {
   args: { index: Schema.Number },
   messages: [Message.CompletedScrollToResult],
   handler: function* () {
@@ -71,7 +75,7 @@ export const ScrollToResult = Command.define('ScrollToResult', {
   },
 })
 
-export const NavigateToResult = Command.define('NavigateToResult', {
+export const NavigateToResult = SearchDefinition.command('NavigateToResult', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateToResult],
   handler: function* () {
@@ -80,7 +84,7 @@ export const NavigateToResult = Command.define('NavigateToResult', {
   },
 })
 
-export const FocusSearchInput = Command.define('FocusSearchInput', {
+export const FocusSearchInput = SearchDefinition.command('FocusSearchInput', {
   messages: [Message.CompletedFocusSearchInput],
   handler: function* () {
     return () =>
@@ -91,50 +95,16 @@ export const FocusSearchInput = Command.define('FocusSearchInput', {
   },
 })
 
-const foldSearchDialogOutMessage = Dialog.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => model => ({ model }),
-  Closed: () => model => ({ model }),
-})
+const focusSearchInput = SearchDefinition.step(model => ({
+  model,
+  commands: [FocusSearchInput()],
+}))
 
-const foldSearchDialog = Update.foldChild({
-  update: Dialog.update,
-  read: (model: Model) => Option.some(model.dialog),
-  write: (model, nextDialog) =>
-    modifyFields(model, { dialog: () => nextDialog }),
-  toParentMessage: message => Message.GotSearchDialogMessage({ message }),
-  foldOutMessage: foldSearchDialogOutMessage,
-})
+const open = SearchDefinition.step(() =>
+  Update.combine([DialogBinding.requestOpen(), focusSearchInput]),
+)
 
-const foldSearchDialogOpen = Update.foldChildStep({
-  update: Dialog.open,
-  read: (model: Model) => Option.some(model.dialog),
-  write: (model, nextDialog) =>
-    modifyFields(model, { dialog: () => nextDialog }),
-  toParentMessage: message => Message.GotSearchDialogMessage({ message }),
-  foldOutMessage: foldSearchDialogOutMessage,
-})
-
-const foldSearchDialogClose = Update.foldChildStep({
-  update: Dialog.close,
-  read: (model: Model) => Option.some(model.dialog),
-  write: (model, nextDialog) =>
-    modifyFields(model, { dialog: () => nextDialog }),
-  toParentMessage: message => Message.GotSearchDialogMessage({ message }),
-  foldOutMessage: foldSearchDialogOutMessage,
-})
-
-export const open = (model: Model) =>
-  Update.combine(model, [
-    foldSearchDialogOpen,
-    stepModel => ({
-      model: stepModel,
-      commands: [FocusSearchInput()],
-    }),
-  ])
-
-export const update = Update.define((model: Model, message: Message) =>
+export const update = SearchComposition.makeUpdate((model, message) =>
   Message.match(message, {
     UpdatedSearchQuery: ({ query }) => {
       if (query === model.query) {
@@ -185,28 +155,12 @@ export const update = Update.define((model: Model, message: Message) =>
       commands: [NavigateToResult({ url })],
     }),
 
-    GotSearchDialogMessage: ({ message }) =>
-      Update.combine(model, [
-        foldSearchDialog(message),
-        stepModel =>
-          message._tag === 'CompletedCloseDialog'
-            ? {
-                model: modifyFields(stepModel, {
-                  query: () => '',
-                  searchState: () => SearchState.Idle(),
-                  activeResultIndex: () => -1,
-                }),
-              }
-            : { model: stepModel },
-      ]),
+    ClearedSearchQuery: () => clearSearchQuery(model),
 
-    ClearedSearchQuery: () => ({
-      model: modifyFields(model, {
-        query: () => '',
-        searchState: () => SearchState.Idle(),
-        activeResultIndex: () => -1,
-      }),
-    }),
+    RequestedOpen: () => open(model),
+
+    InformedOfRouteChange: () =>
+      Update.combine(model, [clearSearchQuery, DialogBinding.requestClose()]),
 
     PressedArrowKey: ({ direction }) => {
       const results = resultsFromState(model.searchState)
@@ -237,9 +191,3 @@ export const update = Update.define((model: Model, message: Message) =>
     CompletedFocusSearchInput: () => ({ model }),
   }),
 )
-
-export const informRouteChanged = (model: Model) =>
-  Update.combine(model, [
-    stepModel => update(stepModel, Message.ClearedSearchQuery()),
-    foldSearchDialogClose,
-  ])

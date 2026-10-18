@@ -1,12 +1,12 @@
 import { Cause, Effect, Option, Schema, Stream } from 'effect'
-import { Subscription } from 'foldkit'
 
 import { capturedKeyDownStream } from '../../keyboard'
 import { RoomsClient } from '../../rpc'
+import { RoomDefinition } from './definition'
 import { Message } from './message'
-import { Model, capturesKeyboard } from './model'
+import { capturesKeyboard } from './model'
 
-export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+export const subscriptions = RoomDefinition.subscriptions(entry => ({
   roomUpdates: entry(
     'RoomUpdates',
     {

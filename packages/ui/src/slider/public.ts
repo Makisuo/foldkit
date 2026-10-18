@@ -1,11 +1,10 @@
 export {
   init,
   update,
-  reflectRange,
   view,
   subscriptions,
   forRoot,
-  EffectsLayer,
+  block,
   fractionOfValue,
   snapAndClamp,
   valueFromPointer,

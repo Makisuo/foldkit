@@ -9,7 +9,7 @@ import {
   OutMessage,
   WaitBeforeClosing,
   WaitBeforeOpening,
-  close,
+  block,
   init,
   update,
 } from './index.js'
@@ -332,7 +332,9 @@ describe('HoverIntent', () => {
         panelHoveredUpdate.model,
         Message.FocusedPanel(),
       )
-      const closeUpdate = close(panelFocusedUpdate.model)
+      const closeUpdate = block.operations.requestClose(
+        panelFocusedUpdate.model,
+      )
 
       expect(closeUpdate.model.isOpen).toBe(false)
       expect(closeUpdate.model.isPanelHovered).toBe(false)

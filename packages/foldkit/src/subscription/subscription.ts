@@ -13,6 +13,8 @@ import {
   pipe,
 } from 'effect'
 
+import { copyIdentity, registerIdentity } from '../block/identity.js'
+import type { ValidateConstructionRequirements } from '../block/scope.js'
 import {
   type Handler,
   type ToLayerWithKeepAlive,
@@ -30,6 +32,10 @@ export type {
 type SubscriptionBrand = {
   readonly __subscription: never
 }
+
+type ValidateHandlerConstruction<
+  Yielded extends Effect.Effect<unknown, unknown, unknown>,
+> = ValidateConstructionRequirements<Effect.Services<Yielded>>
 
 type DependenciesSchema<Dependencies> = Schema.Schema<Dependencies> & {
   readonly fields: Schema.Struct.Fields
@@ -143,6 +149,28 @@ export type Subscriptions<Model, Message, Services = never> = Readonly<
   Record<string, Subscription<Model, Message, any, Services>>
 >
 
+/** @internal Retains the entry record behind an owned Subscription registry. */
+export const RegistryEntriesTypeId = Symbol(
+  'foldkit/Subscription/RegistryEntries',
+)
+
+/** @internal An owned registry whose non-entry fields are removed at Subscription boundaries. */
+export type Registry<Entries> = Readonly<{
+  [RegistryEntriesTypeId]: Entries
+}>
+
+/** A Subscription entry record, including an owned Definition registry with an aggregate Layer recipe. */
+export type Registrations<Model, Message, Services = never> =
+  | Subscriptions<Model, Message, Services>
+  | (Registry<Subscriptions<Model, Message, Services>> &
+      Readonly<{ layer?: Layer.Any }>)
+
+/** @internal Returns the exact Subscription entries represented by a plain or owned registry. */
+export type RegistryEntries<SubscriptionsValue> =
+  SubscriptionsValue extends Registry<infer Entries>
+    ? Entries
+    : SubscriptionsValue
+
 type LayeredEntryCallbacksWithoutKeepAlive<
   Model,
   Dependencies,
@@ -219,7 +247,7 @@ export interface EntryBuilder<Model> {
         Schema.Struct.Type<NoInfer<Fields>>
       >
       dependenciesToStream?: never
-      handler: () => Generator<
+      handler: (() => Generator<
         Yielded,
         (
           dependencies: Schema.Struct.Type<NoInfer<Fields>>,
@@ -230,7 +258,8 @@ export interface EntryBuilder<Model> {
           StreamRequirements
         >,
         unknown
-      >
+      >) &
+        ValidateHandlerConstruction<Yielded>
     }>,
   ): LayeredEntryWithKeepAlive<
     Name,
@@ -265,7 +294,7 @@ export interface EntryBuilder<Model> {
       modelToDependencies: (model: Model) => Schema.Struct.Type<NoInfer<Fields>>
       keepAliveEquivalence?: never
       dependenciesToStream?: never
-      handler: () => Generator<
+      handler: (() => Generator<
         Yielded,
         (
           dependencies: Schema.Struct.Type<NoInfer<Fields>>,
@@ -275,7 +304,8 @@ export interface EntryBuilder<Model> {
           StreamRequirements
         >,
         unknown
-      >
+      >) &
+        ValidateHandlerConstruction<Yielded>
     }>,
   ): LayeredEntryWithoutKeepAlive<
     Name,
@@ -306,7 +336,7 @@ export interface EntryBuilder<Model> {
     config: Readonly<{
       messages: Messages
       dependenciesToStream?: never
-      handler: () => Generator<
+      handler: (() => Generator<
         Yielded,
         (
           dependencies: Record<string, never>,
@@ -316,7 +346,8 @@ export interface EntryBuilder<Model> {
           StreamRequirements
         >,
         unknown
-      >
+      >) &
+        ValidateHandlerConstruction<Yielded>
     }>,
   ): LayeredEntryWithoutKeepAlive<
     Name,
@@ -396,13 +427,14 @@ type RuntimeHandlerGenerator = () => Generator<
 >
 
 /**
- * Declares a Subscriptions record. The Model and Message generics are provided
- * up front; the entries record follows, built from
- * calls to the `entry` builder passed into the inner function.
+ * Low-level builder for a Subscription registry. The Model and Message
+ * generics are provided up front; the callback builds a record with `entry`.
  *
- * Reach for `Subscription.aggregate` to combine multiple records, and
- * `Subscription.lift` to translate a child Submodel's record into a parent
- * context.
+ * Application features use their Block definition's `subscriptions`
+ * helper, which also qualifies the handler identities. Pass the resulting
+ * registry as `subscriptions` and its local handler recipes through
+ * `EffectsLayer` when calling `Composition.makeBlock`. Registered child bindings
+ * collect their own registries automatically.
  *
  * @example
  * ```ts
@@ -458,14 +490,17 @@ export const make =
           dependenciesToStream: handler.toStream,
           toLayer: handler.toLayer,
         }
+        registerIdentity(entry, handler.identity)
 
         if (Predicate.isUndefined(config.handler)) {
           return entry
         } else {
+          // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context, typescript/consistent-type-assertions
+          const layer = handler.toLayer(Effect.gen(config.handler) as never)
           // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
-          const layer = handler.toLayer(Effect.gen(config.handler))
-          // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
-          return { ...entry, layer }
+          const implemented = { ...entry, layer }
+          registerIdentity(implemented, handler.identity)
+          return implemented
         }
       }
 
@@ -484,23 +519,35 @@ export const make =
         dependenciesToStream: handler.toStream,
         toLayer: handler.toLayer,
       }
+      registerIdentity(entry, handler.identity)
 
       if (Predicate.isUndefined(configuredHandler)) {
         return entry
       } else {
+        // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context, typescript/consistent-type-assertions
+        const layer = handler.toLayer(Effect.gen(configuredHandler) as never)
         // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
-        const layer = handler.toLayer(Effect.gen(configuredHandler))
-        // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
-        return { ...entry, layer }
+        const implemented = { ...entry, layer }
+        registerIdentity(implemented, handler.identity)
+        return implemented
       }
     }) as unknown as EntryBuilder<Model>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     return build(entryBuilder) as any
   }
 
-type AnySubscriptions = Readonly<
+type AnySubscriptionEntries = Readonly<
   Record<string, Subscription<any, any, any, any>>
 >
+
+type AnySubscriptions =
+  | AnySubscriptionEntries
+  | Registry<AnySubscriptionEntries>
+
+const registryEntries = (
+  subscriptions: AnySubscriptions,
+): AnySubscriptionEntries =>
+  Reflect.get(subscriptions, RegistryEntriesTypeId) ?? subscriptions
 
 // NOTE: requiring one record keeps `aggregate()` unambiguously curried.
 type AnySubscriptionsList = readonly [
@@ -508,9 +555,12 @@ type AnySubscriptionsList = readonly [
   ...ReadonlyArray<AnySubscriptions>,
 ]
 
-type EntriesOfRecord<SubscriptionsRecord> = SubscriptionsRecord extends unknown
-  ? SubscriptionsRecord[keyof SubscriptionsRecord]
-  : never
+type EntriesOfRecord<SubscriptionsRecord> =
+  RegistryEntries<SubscriptionsRecord> extends infer Entries
+    ? Entries extends unknown
+      ? Entries[keyof Entries]
+      : never
+    : never
 
 type EntriesOf<Records extends AnySubscriptionsList> = EntriesOfRecord<
   Records[number]
@@ -556,11 +606,13 @@ type ReferenceModel<Records extends ReadonlyArray<AnySubscriptions>> =
 
 type CompatibleSubscriptions<Records extends AnySubscriptionsList> = {
   readonly [Index in keyof Records]: Records[Index] &
-    Subscriptions<
+    (RegistryEntries<Records[Index]> extends Subscriptions<
       ReferenceModel<Records>,
       MessageOf<Records>,
       ServicesOf<Records>
     >
+      ? unknown
+      : never)
 }
 
 type RuntimeKey<Key> = Key extends string
@@ -575,7 +627,7 @@ type RuntimeEntries<RecordType> = {
 
 type MergeSubscriptions<Records extends ReadonlyArray<unknown>> =
   Records extends readonly [infer Head, ...infer Rest]
-    ? RuntimeEntries<Head> &
+    ? RuntimeEntries<RegistryEntries<Head>> &
         (Rest extends ReadonlyArray<unknown> ? MergeSubscriptions<Rest> : {})
     : {}
 
@@ -584,7 +636,8 @@ const mergeSubscriptions = (
 ): Record<string, Subscription<any, any, any, any>> => {
   const result: Record<string, Subscription<any, any, any, any>> = {}
   for (const record of records) {
-    for (const key of Object.keys(record)) {
+    const entries = registryEntries(record)
+    for (const key of Object.keys(entries)) {
       if (Object.hasOwn(result, key)) {
         throw new Error(
           `Subscription.aggregate: duplicate key "${key}" across records`,
@@ -593,7 +646,7 @@ const mergeSubscriptions = (
       Object.defineProperty(result, key, {
         configurable: true,
         enumerable: true,
-        value: record[key],
+        value: Reflect.get(entries, key),
         writable: true,
       })
     }
@@ -640,7 +693,8 @@ const mergeSubscriptions = (
 export const aggregate: {
   <Model, Message>(): <
     Records extends ReadonlyArray<
-      Record<string, Subscription<Model, Message, any, any>>
+      | Record<string, Subscription<Model, Message, any, any>>
+      | Registry<Record<string, Subscription<Model, Message, any, any>>>
     >,
   >(
     ...records: Records
@@ -661,7 +715,7 @@ export const aggregate: {
 }) as any
 
 type ChildModelOf<ChildSubscriptions> =
-  ChildSubscriptions[keyof ChildSubscriptions] extends Subscription<
+  RegistryEntries<ChildSubscriptions>[keyof RegistryEntries<ChildSubscriptions>] extends Subscription<
     infer ChildModel,
     any,
     any,
@@ -671,7 +725,7 @@ type ChildModelOf<ChildSubscriptions> =
     : never
 
 type ChildMessageOf<ChildSubscriptions> =
-  ChildSubscriptions[keyof ChildSubscriptions] extends Subscription<
+  RegistryEntries<ChildSubscriptions>[keyof RegistryEntries<ChildSubscriptions>] extends Subscription<
     any,
     infer ChildMessage,
     any,
@@ -697,7 +751,9 @@ type WhenPredicate<ParentModel> = (parentModel: ParentModel) => boolean
  * Entries omitted from the map run whenever `read` returns a child Model.
  */
 export type EntryGates<ParentModel, Subscriptions> = Readonly<
-  Partial<Record<keyof Subscriptions, WhenPredicate<ParentModel>>>
+  Partial<
+    Record<keyof RegistryEntries<Subscriptions>, WhenPredicate<ParentModel>>
+  >
 >
 
 type LiftConfig<ParentModel, ParentMessage, Subscriptions> = Readonly<{
@@ -707,7 +763,9 @@ type LiftConfig<ParentModel, ParentMessage, Subscriptions> = Readonly<{
 }>
 
 type LiftedSubscriptions<ParentModel, ParentMessage, Subscriptions> = {
-  readonly [K in keyof Subscriptions]: Subscriptions[K] extends Subscription<
+  readonly [
+    K in keyof RegistryEntries<Subscriptions>
+  ]: RegistryEntries<Subscriptions>[K] extends Subscription<
     any,
     any,
     infer Dependencies,
@@ -719,16 +777,20 @@ type LiftedSubscriptions<ParentModel, ParentMessage, Subscriptions> = {
         GatedDependencies<Dependencies>,
         Services
       > &
-        (Subscriptions[K] extends { readonly messages: infer Messages }
+        (RegistryEntries<Subscriptions>[K] extends {
+          readonly messages: infer Messages
+        }
           ? Readonly<{ messages: Messages }>
           : unknown) &
-        (Subscriptions[K] extends {
+        (RegistryEntries<Subscriptions>[K] extends {
           readonly name: infer Name
           readonly toLayer: infer ToLayer
         }
           ? Readonly<{ name: Name; toLayer: ToLayer }>
           : unknown) &
-        (Subscriptions[K] extends { readonly layer: infer EntryLayer }
+        (RegistryEntries<Subscriptions>[K] extends {
+          readonly layer: infer EntryLayer
+        }
           ? Readonly<{ layer: EntryLayer }>
           : unknown)
     : never
@@ -768,6 +830,12 @@ const SubscriptionMessageMappersTypeId = Symbol(
   'foldkit/SubscriptionMessageMappers',
 )
 
+/** @internal Reads the wrapper chain retained by a lifted declaration. */
+export const __messageMappers = (
+  entry: object,
+): ReadonlyArray<(message: unknown) => unknown> =>
+  Reflect.get(entry, SubscriptionMessageMappersTypeId) ?? []
+
 type SubscriptionWithMessageMetadata = Readonly<{
   messages?: ReadonlyArray<Schema.Top>
   [SubscriptionMessageMappersTypeId]?: ReadonlyArray<
@@ -775,7 +843,7 @@ type SubscriptionWithMessageMetadata = Readonly<{
   >
 }>
 
-const toLiftedEntry = (
+const makeLiftedEntry = (
   subscription: Subscription<any, any, any, any>,
   config: AnyLiftConfig,
   when: (parentModel: any) => boolean,
@@ -856,10 +924,23 @@ const toLiftedEntry = (
   }
 }
 
+const toLiftedEntry = (
+  subscription: Subscription<any, any, any, any>,
+  config: AnyLiftConfig,
+  when: (parentModel: any) => boolean,
+) => {
+  const lifted = makeLiftedEntry(subscription, config, when)
+  copyIdentity(subscription, lifted)
+  return lifted
+}
+
 /**
- * Lifts child Subscriptions into a parent's Model and Message context.
+ * Low-level transformation of a Subscription record into another Model and
+ * Message context. Application Blocks use registered `bind` or `bindEach`
+ * placements, which also compose their handler recipes and other lifecycles.
+ *
  * `read` returns `Some(childModel)` while the child exists and `None` while
- * it is absent, matching `Update.foldChild` and `ManagedResource.lift`.
+ * it is absent.
  * An absent child tears down every entry's Stream without reading the
  * child's dependencies. Use `Option.some` for a child that is always present.
  *
@@ -898,18 +979,12 @@ const toLiftedEntry = (
  * ```
  */
 export const lift =
-  <
-    Subscriptions extends Readonly<
-      Record<string, Subscription<any, any, any, any>>
-    >,
-  >(
-    subscriptions: Subscriptions,
-  ) =>
+  <Subscriptions extends AnySubscriptions>(subscriptions: Subscriptions) =>
   <ParentModel, ParentMessage>(
     config: LiftConfig<ParentModel, ParentMessage, Subscriptions>,
   ): LiftedSubscriptions<ParentModel, ParentMessage, Subscriptions> =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    Record.map(subscriptions, (subscription, key) =>
+    Record.map(registryEntries(subscriptions), (subscription, key) =>
       toLiftedEntry(subscription, config, toEntryWhen(config.when, key)),
     ) as any
 
@@ -929,11 +1004,13 @@ export type MessageDeclaration = Readonly<{
  * `aggregate` for Scene's Subscription boundary.
  */
 export const __messageDeclarations = (
-  subscriptions: Readonly<Record<string, Subscription<any, any, any, any>>>,
+  subscriptions: AnySubscriptions,
 ): ReadonlyArray<MessageDeclaration> => {
   const declarations: Array<MessageDeclaration> = []
 
-  for (const [entryKey, subscription] of Object.entries(subscriptions)) {
+  for (const [entryKey, subscription] of Object.entries(
+    registryEntries(subscriptions),
+  )) {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const metadata = subscription as SubscriptionWithMessageMetadata
 

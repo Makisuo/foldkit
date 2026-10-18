@@ -5,6 +5,8 @@ import {
   type Reference,
   type Variable,
 } from 'effect-oxlint'
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, extname, resolve } from 'node:path'
 
 export const isIdentifier = (
   node: unknown,
@@ -278,6 +280,7 @@ export const resolveImportedPath = (
   })
 
 const foldkitNamespaceBySource: Readonly<Record<string, string>> = {
+  'foldkit/application': 'Application',
   'foldkit/command': 'Command',
   'foldkit/experimental': 'Experimental',
   'foldkit/experimental/query': 'Query',
@@ -290,7 +293,7 @@ const foldkitNamespaceBySource: Readonly<Record<string, string>> = {
   'foldkit/runtime': 'Runtime',
   'foldkit/schema': 'Schema',
   'foldkit/struct': 'Struct',
-  'foldkit/submodel': 'Submodel',
+  'foldkit/block': 'Block',
   'foldkit/subscription': 'Subscription',
   'foldkit/update': 'Update',
 }
@@ -327,7 +330,395 @@ const isFunctionWithParameters = (
     node.type === 'FunctionDeclaration' ||
     node.type === 'FunctionExpression')
 
-const isFoldkitDefineViewCallback = (
+const isTypeReference = (node: unknown): node is ESTree.TSTypeReference =>
+  typeof node === 'object' &&
+  node !== null &&
+  'type' in node &&
+  node.type === 'TSTypeReference'
+
+const isTypeAliasDeclaration = (
+  node: unknown,
+): node is ESTree.TSTypeAliasDeclaration =>
+  typeof node === 'object' &&
+  node !== null &&
+  'type' in node &&
+  node.type === 'TSTypeAliasDeclaration'
+
+const escapedRegExp = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+
+type SanitizedModuleSource = Readonly<{
+  text: string
+  stringValues: ReadonlyMap<string, string>
+}>
+
+const sanitizedModuleSource = (sourceText: string): SanitizedModuleSource => {
+  let text = ''
+  let index = 0
+  const stringValues = new Map<string, string>()
+
+  while (index < sourceText.length) {
+    const character = sourceText.charAt(index)
+    const nextCharacter = sourceText.charAt(index + 1)
+
+    if (character === '/' && nextCharacter === '/') {
+      while (index < sourceText.length && sourceText.charAt(index) !== '\n') {
+        text += ' '
+        index += 1
+      }
+      continue
+    }
+
+    if (character === '/' && nextCharacter === '*') {
+      text += '  '
+      index += 2
+      while (
+        index < sourceText.length &&
+        !(
+          sourceText.charAt(index) === '*' &&
+          sourceText.charAt(index + 1) === '/'
+        )
+      ) {
+        text += sourceText.charAt(index) === '\n' ? '\n' : ' '
+        index += 1
+      }
+      if (index < sourceText.length) {
+        text += '  '
+        index += 2
+      }
+      continue
+    }
+
+    if (character === '`') {
+      text += ' '
+      index += 1
+      while (index < sourceText.length) {
+        const templateCharacter = sourceText.charAt(index)
+        if (templateCharacter === '\\') {
+          text += ' '
+          index += 1
+          if (index < sourceText.length) {
+            text += sourceText.charAt(index) === '\n' ? '\n' : ' '
+            index += 1
+          }
+          continue
+        }
+        if (templateCharacter === '`') {
+          text += ' '
+          index += 1
+          break
+        }
+
+        text += templateCharacter === '\n' ? '\n' : ' '
+        index += 1
+      }
+      continue
+    }
+
+    if (character === "'" || character === '"') {
+      const quote = character
+      let value = ''
+      index += 1
+      while (index < sourceText.length) {
+        const stringCharacter = sourceText.charAt(index)
+        if (stringCharacter === '\\') {
+          value += stringCharacter
+          index += 1
+          if (index < sourceText.length) {
+            value += sourceText.charAt(index)
+            index += 1
+          }
+          continue
+        }
+        if (stringCharacter === quote) {
+          index += 1
+          break
+        }
+
+        value += stringCharacter
+        index += 1
+      }
+
+      const marker = `__foldkit_module_string_${stringValues.size}__`
+      stringValues.set(marker, value)
+      text += `${quote}${marker}${quote}`
+      continue
+    }
+
+    text += character
+    index += 1
+  }
+
+  return { text, stringValues }
+}
+
+const moduleSourceValue = (
+  source: SanitizedModuleSource,
+  marker: string,
+): Option.Option<string> =>
+  Option.fromNullishOr(source.stringValues.get(marker))
+
+const moduleCandidates = (
+  importerFilename: string,
+  source: string,
+): ReadonlyArray<string> => {
+  if (!source.startsWith('.')) {
+    return []
+  }
+
+  const absolute = resolve(dirname(importerFilename), source)
+  const extension = extname(absolute)
+  if (extension === '.js' || extension === '.jsx') {
+    const withoutExtension = absolute.slice(0, -extension.length)
+    return [`${withoutExtension}.ts`, `${withoutExtension}.tsx`]
+  }
+  if (extension !== '') {
+    return [absolute]
+  }
+
+  return [
+    `${absolute}.ts`,
+    `${absolute}.tsx`,
+    resolve(absolute, 'index.ts'),
+    resolve(absolute, 'index.tsx'),
+  ]
+}
+
+const sourceFileForModule = (
+  importerFilename: string,
+  source: string,
+): Option.Option<string> =>
+  Array.findFirst(moduleCandidates(importerFilename, source), existsSync)
+
+const importsFoldkitBlockNamespace = (
+  source: SanitizedModuleSource,
+): boolean => {
+  const namespaceImport = source.text.match(
+    /^\s*import\s+(?:type\s+)?\*\s+as\s+Block\s+from\s*['"]([^'"]+)['"]/mu,
+  )
+  if (
+    namespaceImport !== null &&
+    Option.contains(
+      moduleSourceValue(source, namespaceImport[1] ?? ''),
+      'foldkit/block',
+    )
+  ) {
+    return true
+  }
+
+  const namedImports = source.text.matchAll(
+    /^\s*import\s*(?:type\s+)?\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/gmu,
+  )
+  for (const namedImport of namedImports) {
+    const specifiers = namedImport[1]
+    const sourceMarker = namedImport[2]
+    if (
+      specifiers !== undefined &&
+      sourceMarker !== undefined &&
+      /(?:^|,)\s*(?:type\s+)?Block\s*(?:,|$)/u.test(specifiers) &&
+      Option.contains(moduleSourceValue(source, sourceMarker), 'foldkit')
+    ) {
+      return true
+    }
+  }
+
+  return false
+}
+
+const directlyExportsFoldkitViewBuilder = (
+  source: SanitizedModuleSource,
+  exportedName: string,
+): boolean => {
+  if (!importsFoldkitBlockNamespace(source)) {
+    return false
+  }
+
+  return new RegExp(
+    `^\\s*export\\s+type\\s+${escapedRegExp(exportedName)}\\s*=\\s*Block\\.ViewBuilderFor\\s*<`,
+    'mu',
+  ).test(source.text)
+}
+
+type Reexport = Readonly<{ importedName: string; source: string }>
+
+type ImportedViewBuilderProvenanceCache = Map<string, boolean>
+
+const importedViewBuilderProvenanceCaches = new WeakMap<
+  WeakMap<ESTree.Node, Reference>,
+  ImportedViewBuilderProvenanceCache
+>()
+
+const importedViewBuilderProvenanceCacheFor = (
+  references: WeakMap<ESTree.Node, Reference>,
+): ImportedViewBuilderProvenanceCache => {
+  const existing = importedViewBuilderProvenanceCaches.get(references)
+  if (existing !== undefined) {
+    return existing
+  }
+
+  const created = new Map<string, boolean>()
+  importedViewBuilderProvenanceCaches.set(references, created)
+  return created
+}
+
+const reexportOf = (
+  source: SanitizedModuleSource,
+  exportedName: string,
+): Option.Option<Reexport> => {
+  const declarations = source.text.matchAll(
+    /^\s*export\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/gmu,
+  )
+  for (const declaration of declarations) {
+    const specifiers = declaration[1]
+    const sourceMarker = declaration[2]
+    if (specifiers === undefined || sourceMarker === undefined) {
+      continue
+    }
+
+    const reexportSource = moduleSourceValue(source, sourceMarker)
+    if (Option.isNone(reexportSource)) {
+      continue
+    }
+
+    for (const specifier of specifiers.split(',')) {
+      const match = specifier
+        .trim()
+        .match(
+          /^(?:type\s+)?([A-Za-z_$][\w$]*)(?:\s+as\s+([A-Za-z_$][\w$]*))?$/u,
+        )
+      if (match === null) {
+        continue
+      }
+
+      const importedName = match[1]
+      const reexportedName = match[2] ?? importedName
+      if (importedName !== undefined && reexportedName === exportedName) {
+        return Option.some({
+          importedName,
+          source: reexportSource.value,
+        })
+      }
+    }
+  }
+
+  return Option.none()
+}
+
+const importedViewBuilderHasFoldkitProvenance = (
+  importerFilename: string | undefined,
+  source: string,
+  exportedName: string,
+  cache: ImportedViewBuilderProvenanceCache,
+  visited: ReadonlySet<string> = new Set(),
+): boolean => {
+  if (importerFilename === undefined) {
+    return false
+  }
+
+  const cacheKey = `${importerFilename}\u0000${source}\u0000${exportedName}`
+  if (visited.size === 0) {
+    const cached = cache.get(cacheKey)
+    if (cached !== undefined) {
+      return cached
+    }
+  }
+
+  const sourceFile = sourceFileForModule(importerFilename, source)
+  if (Option.isNone(sourceFile) || visited.has(sourceFile.value)) {
+    if (visited.size === 0) {
+      cache.set(cacheKey, false)
+    }
+    return false
+  }
+
+  const sanitizedSource = sanitizedModuleSource(
+    readFileSync(sourceFile.value, 'utf8'),
+  )
+  const hasFoldkitProvenance =
+    directlyExportsFoldkitViewBuilder(sanitizedSource, exportedName) ||
+    Option.exists(reexportOf(sanitizedSource, exportedName), reexport =>
+      importedViewBuilderHasFoldkitProvenance(
+        sourceFile.value,
+        reexport.source,
+        reexport.importedName,
+        cache,
+        new Set([...visited, sourceFile.value]),
+      ),
+    )
+  if (visited.size === 0) {
+    cache.set(cacheKey, hasFoldkitProvenance)
+  }
+
+  return hasFoldkitProvenance
+}
+
+const isFoldkitViewBuilderType = (
+  references: WeakMap<ESTree.Node, Reference>,
+  node: unknown,
+  importerFilename?: string,
+  visited: ReadonlySet<Variable> = new Set(),
+): boolean => {
+  if (!isTypeReference(node)) {
+    return false
+  }
+
+  const foldkitPath = resolveFoldkitApiPath(references, node.typeName)
+  if (
+    Option.exists(foldkitPath, path => {
+      const [namespace, typeName, extraMember] = path
+      return (
+        extraMember === undefined &&
+        ((namespace === 'Html' && typeName === 'HtmlBuilder') ||
+          (namespace === 'Block' && typeName === 'ViewBuilderFor'))
+      )
+    })
+  ) {
+    return true
+  }
+
+  const importedPath = resolveImportedPath(references, node.typeName)
+  if (
+    Option.exists(importedPath, path => {
+      const typeName = Option.getOrUndefined(Array.last(path.members))
+      return (
+        typeName !== undefined &&
+        importedViewBuilderHasFoldkitProvenance(
+          importerFilename,
+          path.source,
+          typeName,
+          importedViewBuilderProvenanceCacheFor(references),
+        )
+      )
+    })
+  ) {
+    return true
+  }
+
+  return Option.exists(staticMemberPath(node.typeName), path => {
+    if (Array.isReadonlyArrayNonEmpty(path.members)) {
+      return false
+    }
+
+    return Option.exists(resolvedVariable(references, path.root), variable => {
+      if (visited.has(variable)) {
+        return false
+      }
+
+      return variable.defs.some(definition =>
+        isTypeAliasDeclaration(definition.node)
+          ? isFoldkitViewBuilderType(
+              references,
+              definition.node.typeAnnotation,
+              importerFilename,
+              new Set([...visited, variable]),
+            )
+          : false,
+      )
+    })
+  })
+}
+
+const isFoldkitDefinitionViewCallback = (
   references: WeakMap<ESTree.Node, Reference>,
   functionNode: ESTree.ArrowFunctionExpression | ESTree.Function,
 ): boolean => {
@@ -336,18 +727,21 @@ const isFoldkitDefineViewCallback = (
     return false
   }
 
-  return Option.exists(
-    resolveFoldkitApiPath(references, parent.callee),
-    path => {
-      const [namespace, helperName, extraMember] = path
+  if (isOwnedDefinitionCall(parent, 'makeView', references)) {
+    return true
+  }
 
-      return (
-        namespace === 'Submodel' &&
-        helperName === 'defineView' &&
-        extraMember === undefined
-      )
-    },
-  )
+  return Option.exists(staticMemberPath(parent.callee), path => {
+    const [previousMethod, method] = path.members.slice(-2)
+    if (previousMethod !== 'makeView' || method !== 'withInputs') {
+      return false
+    }
+
+    return (
+      isMemberExpression(parent.callee) &&
+      isOwnedDefinitionCallee(parent.callee.object, 'makeView', references)
+    )
+  })
 }
 
 const hasHtmlBuilderTypeAnnotation = (
@@ -356,29 +750,19 @@ const hasHtmlBuilderTypeAnnotation = (
     type: 'Identifier'
     typeAnnotation?: ESTree.TSTypeAnnotation | null
   }>,
+  importerFilename?: string,
 ): boolean => {
-  const typeAnnotation = identifier.typeAnnotation?.typeAnnotation
-  if (typeAnnotation?.type !== 'TSTypeReference') {
-    return false
-  }
-
-  return Option.exists(
-    resolveFoldkitApiPath(references, typeAnnotation.typeName),
-    path => {
-      const [namespace, typeName, extraMember] = path
-
-      return (
-        namespace === 'Html' &&
-        typeName === 'HtmlBuilder' &&
-        extraMember === undefined
-      )
-    },
+  return isFoldkitViewBuilderType(
+    references,
+    identifier.typeAnnotation?.typeAnnotation,
+    importerFilename,
   )
 }
 
 const isHtmlBuilderParameter = (
   references: WeakMap<ESTree.Node, Reference>,
   root: ESTree.IdentifierReference,
+  importerFilename?: string,
 ): boolean =>
   Option.exists(resolvedVariable(references, root), variable =>
     variable.defs.some(definition => {
@@ -389,7 +773,13 @@ const isHtmlBuilderParameter = (
         return false
       }
 
-      if (hasHtmlBuilderTypeAnnotation(references, definition.name)) {
+      if (
+        hasHtmlBuilderTypeAnnotation(
+          references,
+          definition.name,
+          importerFilename,
+        )
+      ) {
         return true
       }
 
@@ -401,7 +791,7 @@ const isHtmlBuilderParameter = (
         Option.exists(
           Array.last(definition.node.params),
           parameter => parameter === definition.name,
-        ) && isFoldkitDefineViewCallback(references, definition.node)
+        ) && isFoldkitDefinitionViewCallback(references, definition.node)
       )
     }),
   )
@@ -410,6 +800,7 @@ export const isFoldkitHtmlBuilderMember = (
   callee: unknown,
   memberName: string,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
 ): boolean => {
   if (references === undefined) {
     return calleeMatchesHelperName(callee, memberName)
@@ -437,7 +828,7 @@ export const isFoldkitHtmlBuilderMember = (
     return (
       member === memberName &&
       extraMember === undefined &&
-      isHtmlBuilderParameter(references, path.root)
+      isHtmlBuilderParameter(references, path.root, importerFilename)
     )
   })
 }
@@ -485,3 +876,215 @@ export const firstStringArgument = (
   const [first] = node.arguments
   return isStringLiteral(first) ? first : undefined
 }
+
+export const firstCommandNameArgument = (
+  node: ESTree.CallExpression,
+): ESTree.StringLiteral | undefined => {
+  const [first] = node.arguments
+  if (isStringLiteral(first)) {
+    return first
+  }
+
+  if (!isCallExpression(first) || !isMemberExpression(first.callee)) {
+    return undefined
+  }
+
+  if (first.callee.computed || !isIdentifier(first.callee.property, 'name')) {
+    return undefined
+  }
+
+  const [name] = first.arguments
+  return isStringLiteral(name) ? name : undefined
+}
+
+const bindingConfigHasProperties = (
+  node: ESTree.CallExpression,
+  names: ReadonlyArray<string>,
+): boolean => {
+  const config = blockBindingConfiguration(node)
+  if (!isObjectExpression(config)) {
+    return false
+  }
+
+  const properties = new Set(
+    config.properties.flatMap(property =>
+      isObjectProperty(property)
+        ? Option.match(staticPropertyName(property), {
+            onNone: () => [],
+            onSome: name => [name],
+          })
+        : [],
+    ),
+  )
+  return names.every(name => properties.has(name))
+}
+
+const bindingConfigHasStaticStringProperty = (
+  node: ESTree.CallExpression,
+  name: string,
+): boolean => {
+  const config = blockBindingConfiguration(node)
+  if (!isObjectExpression(config)) {
+    return false
+  }
+
+  return config.properties.some(
+    property =>
+      isObjectProperty(property) &&
+      Option.contains(staticPropertyName(property), name) &&
+      Option.isSome(staticStringValue(property.value)),
+  )
+}
+
+/** Returns a parent-owned Binding configuration, or a standalone fold configuration. */
+export const blockBindingConfiguration = (
+  node: ESTree.CallExpression,
+): ESTree.CallExpression['arguments'][number] | undefined =>
+  Option.getOrUndefined(
+    Array.get(
+      node.arguments,
+      Option.exists(staticMemberPath(node.callee), path =>
+        Option.contains(Array.last(path.members), 'bindChild'),
+      )
+        ? 1
+        : 0,
+    ),
+  )
+
+/** Recognizes static and keyed parent-owned child Bindings from their configuration. */
+export const blockBindingMethod = (
+  node: ESTree.CallExpression,
+  references?: WeakMap<ESTree.Node, Reference>,
+): Option.Option<'Static' | 'Keyed'> => {
+  if (!isOwnedDefinitionCall(node, 'bindChild', references)) {
+    return Option.none()
+  }
+
+  if (
+    bindingConfigHasProperties(node, ['field', 'key', 'toParentMessage']) &&
+    bindingConfigHasStaticStringProperty(node, 'key')
+  ) {
+    return Option.some('Keyed')
+  }
+
+  if (
+    bindingConfigHasProperties(node, [
+      'readAll',
+      'key',
+      'read',
+      'writeAt',
+      'toParentMessage',
+    ])
+  ) {
+    return Option.some('Keyed')
+  }
+
+  const hasMessageMapping =
+    bindingConfigHasProperties(node, ['parentMessage']) ||
+    bindingConfigHasProperties(node, ['toParentMessage'])
+
+  if (
+    hasMessageMapping &&
+    (bindingConfigHasProperties(node, ['read', 'write']) ||
+      bindingConfigHasProperties(node, ['field']))
+  ) {
+    return Option.some('Static')
+  }
+
+  return Option.none()
+}
+
+/** Recognizes a definition method on a Block, Application, or imported feature owner. */
+const isOwnedDefinitionCallee = (
+  callee: unknown,
+  method: string,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean =>
+  Option.exists(staticMemberPath(callee), path => {
+    if (!Option.contains(Array.last(path.members), method)) {
+      return false
+    }
+
+    if (references === undefined) {
+      return true
+    }
+
+    const importedOwner = resolveImportedPath(references, path.root)
+    if (Option.isSome(importedOwner)) {
+      const { source } = importedOwner.value
+      return (
+        source.startsWith('.') ||
+        source.startsWith('@/') ||
+        source.startsWith('~/')
+      )
+    }
+
+    const isOwnedVariable = (
+      variable: Variable,
+      visited: ReadonlySet<Variable> = new Set(),
+    ): boolean => {
+      if (visited.has(variable)) {
+        return false
+      }
+
+      const isOwnedStage = (call: ESTree.CallExpression): boolean => {
+        if (
+          Option.exists(
+            resolveFoldkitApiPath(references, call.callee),
+            apiPath => {
+              const path = Array.join(apiPath, '.')
+              return (
+                path === 'Block.define' ||
+                path === 'Application.define' ||
+                path === 'defineApplication'
+              )
+            },
+          )
+        ) {
+          return true
+        }
+
+        if (
+          isMemberExpression(call.callee) &&
+          Option.exists(staticMemberName(call.callee), member =>
+            Array.contains(['define', 'makeComposition'], member),
+          ) &&
+          isCallExpression(call.callee.object)
+        ) {
+          return isOwnedStage(call.callee.object)
+        }
+
+        return Option.exists(
+          staticMemberPath(call.callee),
+          definePath =>
+            Option.exists(Array.last(definePath.members), methodName =>
+              Array.contains(['define', 'makeComposition'], methodName),
+            ) &&
+            Option.exists(
+              resolvedVariable(references, definePath.root),
+              ownerVariable =>
+                isOwnedVariable(ownerVariable, new Set([...visited, variable])),
+            ),
+        )
+      }
+
+      return variable.defs.some(
+        definition =>
+          definition.type === 'Variable' &&
+          isVariableDeclarator(definition.node) &&
+          isCallExpression(definition.node.init) &&
+          isOwnedStage(definition.node.init),
+      )
+    }
+
+    return Option.exists(
+      resolvedVariable(references, path.root),
+      isOwnedVariable,
+    )
+  })
+
+export const isOwnedDefinitionCall = (
+  node: ESTree.CallExpression,
+  method: string,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => isOwnedDefinitionCallee(node.callee, method, references)

@@ -1,5 +1,5 @@
 import { Effect, Equivalence, Queue, Schema, Stream } from 'effect'
-import { Subscription } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Message = defineMessageUnion({
@@ -13,7 +13,9 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+const DragDefinition = Block.define('Drag', { Model, Message })
+
+export const subscriptions = DragDefinition.subscriptions(entry => ({
   autoScrollDuringDrag: entry(
     'AutoScrollDuringDrag',
     {
@@ -68,4 +70,4 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const EffectsLayer = subscriptions.autoScrollDuringDrag.layer
+export const EffectsLayer = subscriptions.layer

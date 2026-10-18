@@ -199,6 +199,7 @@ const FORCE_INCLUDED_EFFECT_ENTRIES: ReadonlyArray<string> = [
   'effect/String',
   'effect/Struct',
   'effect/SubscriptionRef',
+  'effect/Tuple',
   'effect/Types',
 ]
 

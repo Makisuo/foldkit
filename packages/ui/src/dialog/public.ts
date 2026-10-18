@@ -1,9 +1,6 @@
 export {
   init,
-  boot,
   update,
-  open,
-  close,
   view,
   titleId,
   descriptionId,
@@ -12,6 +9,7 @@ export {
   OutMessage,
   type Opened,
   type Closed,
+  type CompletedClose,
   type RequestedOpen,
   type RequestedClose,
   type SucceededShowDialog,
@@ -25,7 +23,8 @@ export {
   AcquireResources,
   CloseDialog,
   ReleaseDialogResources,
-  EffectsLayer,
+  type Completed,
+  block,
   mounts,
 } from './index.js'
 

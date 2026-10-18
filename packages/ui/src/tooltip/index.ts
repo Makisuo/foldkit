@@ -9,4 +9,18 @@ export type {
   PressedPointerOnTrigger,
   Shown,
 } from './message.js'
-export * from './tooltip.js'
+export {
+  Model,
+  triggerId,
+  type InitConfig,
+  init,
+  WaitBeforeShowing,
+  AnchorTooltip,
+  mounts,
+  EffectsLayer,
+  update,
+  type RenderInfo,
+  type ViewInputs,
+  view,
+  block,
+} from './block.js'

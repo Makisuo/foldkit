@@ -119,13 +119,14 @@ describe('got-wrapper-carries-only-routing', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('allows id and Id-suffixed routing fields', () => {
+  it('allows keyed and custom identity routing fields', () => {
     const result = runRule(
       defineMessageUnion(
         message(
           'GotPiRuntimeModelComboboxMessage',
           Testing.objectExpr([
             { key: 'message' },
+            { key: 'key' },
             { key: 'id' },
             { key: 'sessionId' },
           ]),
@@ -134,6 +135,24 @@ describe('got-wrapper-carries-only-routing', () => {
     )
 
     expect(result).toHaveLength(0)
+  })
+
+  it('still flags business payload beside a keyed routing field', () => {
+    const result = runRule(
+      defineMessageUnion(
+        message(
+          'GotChatMessage',
+          Testing.objectExpr([
+            { key: 'message' },
+            { key: 'key' },
+            { key: 'displayName' },
+          ]),
+        ),
+      ),
+    )
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.diagnostic.message).toContain('displayName')
   })
 
   it('ignores a wrapper without a fields argument', () => {

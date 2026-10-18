@@ -3609,13 +3609,15 @@ const makeDefineSubscriptions = <Id extends string, Model, Message>(
         }
 
         const layer = Reflect.get(entry, 'layer')
-        if (!Layer.isLayer(layer)) {
+        const isLayer: boolean = Layer.isLayer(layer)
+
+        if (!isLayer) {
           throw new Error(
             `[foldkit] Definition.subscriptions entry "${key}" has a "layer" value that is not an Effect Layer.`,
           )
         }
 
-        return Option.some(layer)
+        return Option.some<unknown>(layer)
       },
     )
 
@@ -3623,7 +3625,8 @@ const makeDefineSubscriptions = <Id extends string, Model, Message>(
       const layers = Array.getSomes(maybeLayers)
       const layer = Array.match(layers, {
         onEmpty: () => Layer.empty,
-        onNonEmpty: implementedEntries => Layer.mergeAll(...implementedEntries),
+        onNonEmpty: implementedEntries =>
+          Reflect.apply(Layer.mergeAll, undefined, implementedEntries),
       })
       Object.defineProperty(subscriptions, 'layer', { value: layer })
     }

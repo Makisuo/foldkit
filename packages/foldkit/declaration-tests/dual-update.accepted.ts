@@ -50,11 +50,10 @@ const Save = CounterDefinition.command('Save', {
 
 const SaveLayer = Save.toLayer<never, 'SaveConstructorUnavailable', SaveClient>(
   Effect.gen(function* () {
-    const client = yield* SaveClient
-    yield* Effect.fail<'SaveConstructorUnavailable'>(
+    yield* SaveClient
+    return yield* Effect.fail<'SaveConstructorUnavailable'>(
       'SaveConstructorUnavailable',
     )
-    return () => client.save.pipe(Effect.as(Message.CompletedSave()))
   }),
 )
 
@@ -403,9 +402,10 @@ const GraphFullSaveLayer = GraphFullSave.toLayer<
   SaveClient
 >(
   Effect.gen(function* () {
-    const client = yield* SaveClient
-    yield* Effect.fail<'GraphFullSaveUnavailable'>('GraphFullSaveUnavailable')
-    return () => client.save.pipe(Effect.as(GraphFullMessage.CompletedSave()))
+    yield* SaveClient
+    return yield* Effect.fail<'GraphFullSaveUnavailable'>(
+      'GraphFullSaveUnavailable',
+    )
   }),
 )
 const GraphFullChildBinding = GraphFullDefinition.bindChild(ChildBlock, {
@@ -583,11 +583,10 @@ const PersistLayer = Persist.toLayer<
   SaveClient
 >(
   Effect.gen(function* () {
-    const client = yield* SaveClient
-    yield* Effect.fail<'PersistConstructorUnavailable'>(
+    yield* SaveClient
+    return yield* Effect.fail<'PersistConstructorUnavailable'>(
       'PersistConstructorUnavailable',
     )
-    return () => client.save.pipe(Effect.as(Message.CompletedSave()))
   }),
 )
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.

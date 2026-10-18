@@ -13,6 +13,7 @@
       "ignoreFiles": [
         "scripts/fixtures/packed-ssr-consumer/**",
         "scripts/lib/package-version.d.mts",
+        "scripts/lib/preview-release.d.mts",
         "scripts/lib/workspace-packages.d.mts"
       ]
     },

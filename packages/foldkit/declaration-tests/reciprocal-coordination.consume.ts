@@ -248,7 +248,7 @@ type KeyedDispatchIsExact = Expect<
   >
 >
 
-const roomDelivery = Schema.decodeUnknownSync(ApplicationComposition.Message)({
+const roomDelivery = Schema.decodeSync(ApplicationComposition.Message)({
   _tag: 'GotDeclarationReciprocalRoomMessage',
   placement: 'DeclarationReciprocalRoom',
   generation: 0,

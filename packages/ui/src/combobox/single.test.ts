@@ -33,7 +33,7 @@ const TestCombobox = create()
 const gotAnimationMessage = ({
   message,
 }: Readonly<{ message: typeof Animation.AnimationBlock.Message.Type }>) =>
-  Schema.decodeUnknownSync(TestCombobox.Message)({
+  Schema.decodeSync(TestCombobox.Message)({
     _tag: 'GotAnimationMessage',
     placement: 'animation',
     generation: 0,

@@ -15,7 +15,7 @@ describe('home', () => {
       update,
       given(initialModel),
       message(
-        Schema.decodeUnknownSync(HomeComposition.Message)({
+        Schema.decodeSync(HomeComposition.Message)({
           _tag: 'GotDemoTabsMessage',
           placement: 'demoTabs',
           generation: 0,
@@ -35,7 +35,7 @@ describe('home', () => {
         DemoTabsBlock.Message.CompletedFocusTab(),
       ),
       message(
-        Schema.decodeUnknownSync(HomeComposition.Message)({
+        Schema.decodeSync(HomeComposition.Message)({
           _tag: 'GotDemoTabsMessage',
           placement: 'demoTabs',
           generation: 0,

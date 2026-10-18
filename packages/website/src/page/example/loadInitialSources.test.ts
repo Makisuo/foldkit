@@ -53,7 +53,7 @@ describe('example detail initial sources', () => {
     )
     const focused = update(
       loaded.model,
-      Schema.decodeUnknownSync(ExampleDetailComposition.Message)({
+      Schema.decodeSync(ExampleDetailComposition.Message)({
         _tag: 'GotSourceFileTabsMessage',
         placement: 'sourceFileTabs',
         generation: 0,

@@ -123,7 +123,7 @@ foldOptional(
 generatedUpdate(initial, GeneratedParentMessage.ClickedParent())
 generatedUpdate(
   initial,
-  Schema.decodeUnknownSync(GeneratedDirectFieldParentComposition.Message)({
+  Schema.decodeSync(GeneratedDirectFieldParentComposition.Message)({
     _tag: 'GotChildMessage',
     placement: 'child',
     generation: 0,

@@ -144,7 +144,7 @@ describe('application', () => {
     )
     const failedLoad = update(
       initialization.model,
-      Schema.decodeUnknownSync(ApplicationComposition.Message)({
+      Schema.decodeSync(ApplicationComposition.Message)({
         _tag: 'GotApiReferenceMessage',
         placement: 'apiReference',
         generation: 0,
@@ -290,7 +290,7 @@ describe('application', () => {
   test('changing API module slugs retries missing API data', () => {
     const failedLoad = update(
       initAt(commandApiUrl),
-      Schema.decodeUnknownSync(ApplicationComposition.Message)({
+      Schema.decodeSync(ApplicationComposition.Message)({
         _tag: 'GotApiReferenceMessage',
         placement: 'apiReference',
         generation: 0,
@@ -311,7 +311,7 @@ describe('application', () => {
   test('changing example slugs requests the next example sources', () => {
     const failedLoad = update(
       initAt(counterExampleUrl),
-      Schema.decodeUnknownSync(ApplicationComposition.Message)({
+      Schema.decodeSync(ApplicationComposition.Message)({
         _tag: 'GotExampleDetailMessage',
         placement: 'exampleDetail',
         generation: 0,
@@ -334,7 +334,7 @@ describe('application', () => {
       update,
       given(initAt(homeUrl)),
       message(
-        Schema.decodeUnknownSync(ApplicationComposition.Message)({
+        Schema.decodeSync(ApplicationComposition.Message)({
           _tag: 'GotMaybeHomeMessage',
           placement: 'maybeHome',
           generation: 0,
@@ -402,11 +402,11 @@ describe('application', () => {
       update,
       given(initAt(homeUrl)),
       message(
-        Schema.decodeUnknownSync(ApplicationComposition.Message)({
+        Schema.decodeSync(ApplicationComposition.Message)({
           _tag: 'GotMaybeHomeMessage',
           placement: 'maybeHome',
           generation: 0,
-          message: Schema.decodeUnknownSync(HomeBlock.Message)({
+          message: Schema.decodeSync(HomeBlock.Message)({
             _tag: 'GotNotePlayerDemoMessage',
             placement: 'notePlayerDemo',
             generation: 0,
@@ -436,11 +436,11 @@ describe('application', () => {
       update,
       given(initAt(newsletterUrl)),
       message(
-        Schema.decodeUnknownSync(ApplicationComposition.Message)({
+        Schema.decodeSync(ApplicationComposition.Message)({
           _tag: 'GotMaybeHomeMessage',
           placement: 'maybeHome',
           generation: 0,
-          message: Schema.decodeUnknownSync(HomeBlock.Message)({
+          message: Schema.decodeSync(HomeBlock.Message)({
             _tag: 'GotNotePlayerDemoMessage',
             placement: 'notePlayerDemo',
             generation: 0,
@@ -461,11 +461,11 @@ describe('application', () => {
       update,
       given(initAt(homeUrl)),
       message(
-        Schema.decodeUnknownSync(ApplicationComposition.Message)({
+        Schema.decodeSync(ApplicationComposition.Message)({
           _tag: 'GotMaybeHomeMessage',
           placement: 'maybeHome',
           generation: 0,
-          message: Schema.decodeUnknownSync(HomeBlock.Message)({
+          message: Schema.decodeSync(HomeBlock.Message)({
             _tag: 'GotPlaygroundMenuMessage',
             placement: 'playgroundMenu',
             generation: 0,
@@ -503,7 +503,7 @@ describe('application', () => {
       update,
       given(initAt(homeUrl)),
       message(
-        Schema.decodeUnknownSync(ApplicationComposition.Message)({
+        Schema.decodeSync(ApplicationComposition.Message)({
           _tag: 'GotSnippetCopyMessage',
           placement: 'snippetCopy',
           generation: 0,
@@ -536,7 +536,7 @@ describe('application', () => {
       update,
       given(initAt(homeUrl)),
       message(
-        Schema.decodeUnknownSync(ApplicationComposition.Message)({
+        Schema.decodeSync(ApplicationComposition.Message)({
           _tag: 'GotSnippetDisclosureMessage',
           placement: 'snippetDisclosure',
           generation: 0,

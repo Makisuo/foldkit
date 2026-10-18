@@ -36,7 +36,7 @@ const gotCalendarMessage = ({
 }: Readonly<{
   message: typeof UiCalendar.CalendarBlock.Message.Type
 }>) =>
-  Schema.decodeUnknownSync(DatePickerBlock.Message)({
+  Schema.decodeSync(DatePickerBlock.Message)({
     _tag: 'GotCalendarMessage',
     placement: 'calendar',
     generation: 0,

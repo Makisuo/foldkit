@@ -78,7 +78,7 @@ const deliverMenuMessage = (
 ) =>
   block.update(
     model,
-    Schema.decodeUnknownSync(block.Message)({
+    Schema.decodeSync(block.Message)({
       _tag: 'GotMenuMessage',
       placement: 'menu',
       generation: 0,
@@ -89,7 +89,7 @@ const deliverMenuMessage = (
 const deliverAnimationMessage = (model: Model, message: Animation.Message) =>
   deliverMenuMessage(
     model,
-    Schema.decodeUnknownSync(RefinedMenu.Message)({
+    Schema.decodeSync(RefinedMenu.Message)({
       _tag: 'GotAnimationMessage',
       placement: 'animation',
       generation: 0,

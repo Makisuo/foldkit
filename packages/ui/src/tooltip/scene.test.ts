@@ -72,7 +72,7 @@ const panel = Scene.selector('#test-panel')
 const hiddenModel = TooltipBlock.init({ id: 'test' }).model
 const triggerFocus = update(
   TooltipBlock.init({ id: 'test' }).model,
-  Schema.decodeUnknownSync(TooltipSceneComposition.Message)({
+  Schema.decodeSync(TooltipSceneComposition.Message)({
     _tag: 'GotTooltipMessage',
     placement: 'Tooltip',
     generation: 0,

@@ -78,7 +78,7 @@ export type KeyedGeneratedMessage = Expect<
   >
 >
 
-Schema.decodeUnknownSync(BindingMessagePolicyParentComposition.Message)({
+Schema.decodeSync(BindingMessagePolicyParentComposition.Message)({
   _tag: 'GotEntriesMessage',
   placement: 'entries',
   generation: 0,

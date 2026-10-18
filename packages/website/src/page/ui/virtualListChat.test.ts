@@ -11,7 +11,7 @@ test('chat scroll policy prepends after the child snapshot and preserves its row
   const initial = init({ year: 2026, month: 10, day: 17 }).model
   const firstObserved = update(
     initial,
-    Schema.decodeUnknownSync(UiComposition.Message)({
+    Schema.decodeSync(UiComposition.Message)({
       _tag: 'GotVirtualListChatDemoMessage',
       placement: 'virtualListChatDemo',
       generation: 0,
@@ -44,7 +44,7 @@ test('chat scroll policy prepends after the child snapshot and preserves its row
   )
   const remainedNear = update(
     firstObserved.model,
-    Schema.decodeUnknownSync(UiComposition.Message)({
+    Schema.decodeSync(UiComposition.Message)({
       _tag: 'GotVirtualListChatDemoMessage',
       placement: 'virtualListChatDemo',
       generation: 0,
@@ -64,7 +64,7 @@ test('chat scroll policy prepends after the child snapshot and preserves its row
   expect(remainedNear.commands).toEqual([])
   const movedAway = update(
     remainedNear.model,
-    Schema.decodeUnknownSync(UiComposition.Message)({
+    Schema.decodeSync(UiComposition.Message)({
       _tag: 'GotVirtualListChatDemoMessage',
       placement: 'virtualListChatDemo',
       generation: 0,
@@ -82,7 +82,7 @@ test('chat scroll policy prepends after the child snapshot and preserves its row
   )
   const enteredNearAgain = update(
     movedAway.model,
-    Schema.decodeUnknownSync(UiComposition.Message)({
+    Schema.decodeSync(UiComposition.Message)({
       _tag: 'GotVirtualListChatDemoMessage',
       placement: 'virtualListChatDemo',
       generation: 0,
@@ -106,7 +106,7 @@ test('chat scroll policy ignores programmatic scroll completion', () => {
   const initial = init({ year: 2026, month: 10, day: 17 }).model
   const completed = update(
     initial,
-    Schema.decodeUnknownSync(UiComposition.Message)({
+    Schema.decodeSync(UiComposition.Message)({
       _tag: 'GotVirtualListChatDemoMessage',
       placement: 'virtualListChatDemo',
       generation: 0,

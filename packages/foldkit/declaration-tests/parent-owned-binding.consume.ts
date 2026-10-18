@@ -136,7 +136,7 @@ export type CompleteKeyedDelivery = Expect<
 >
 
 const parentInit = ParentBlock.init()
-const directDelivery = Schema.decodeUnknownSync(
+const directDelivery = Schema.decodeSync(
   DeclarationParentOwnedParentComposition.Message,
 )({
   _tag: 'GotChildMessage',

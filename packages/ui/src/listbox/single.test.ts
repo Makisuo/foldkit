@@ -32,7 +32,7 @@ const TestListbox = create()
 const gotAnimationMessage = ({
   message,
 }: Readonly<{ message: typeof Animation.AnimationBlock.Message.Type }>) =>
-  Schema.decodeUnknownSync(TestListbox.Message)({
+  Schema.decodeSync(TestListbox.Message)({
     _tag: 'GotAnimationMessage',
     placement: 'animation',
     generation: 0,

@@ -75,9 +75,7 @@ describe('public completed Block Message Codecs', () => {
   })
 
   it('decodes generated child delivery through the completed parent Codec', () => {
-    const decoded = Schema.decodeUnknownSync(
-      DatePicker.DatePickerBlock.Message,
-    )({
+    const decoded = Schema.decodeSync(DatePicker.DatePickerBlock.Message)({
       _tag: 'GotCalendarMessage',
       placement: 'calendar',
       generation: 0,

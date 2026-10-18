@@ -465,7 +465,7 @@ it('restores the parent graph before folding a child OutMessage', () => {
 
   const result = lowered.update(
     initialModel,
-    Schema.decodeUnknownSync(policyParentComposition.Message)({
+    Schema.decodeSync(policyParentComposition.Message)({
       _tag: 'GotPolicyChildMessage',
       placement: 'policy-child',
       generation: 0,

@@ -337,7 +337,7 @@ foldTextEntry(
   TextMessage.ReplacedText({ value: 'next' }),
 )
 
-const generatedChoiceDelivery = Schema.decodeUnknownSync(
+const generatedChoiceDelivery = Schema.decodeSync(
   DeclarationWrappedKeyedFieldParentComposition.Message,
 )({
   _tag: 'GotDeclarationWrappedKeyedFieldChoiceMessage',

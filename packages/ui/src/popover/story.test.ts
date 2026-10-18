@@ -28,7 +28,7 @@ const STALE_ANIMATION_GENERATION = -1
 const gotAnimationMessage = ({
   message,
 }: Readonly<{ message: typeof Animation.AnimationBlock.Message.Type }>) =>
-  Schema.decodeUnknownSync(PopoverBlock.Message)({
+  Schema.decodeSync(PopoverBlock.Message)({
     _tag: 'GotAnimationMessage',
     placement: 'animation',
     generation: 0,

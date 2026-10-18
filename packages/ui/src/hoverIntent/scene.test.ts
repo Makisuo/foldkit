@@ -60,7 +60,7 @@ const panel = Scene.selector('#panel')
 const hiddenModel = HoverIntentBlock.init().model
 const focusedUpdate = update(
   hiddenModel,
-  Schema.decodeUnknownSync(HoverIntentSceneComposition.Message)({
+  Schema.decodeSync(HoverIntentSceneComposition.Message)({
     _tag: 'GotHoverIntentMessage',
     placement: 'HoverIntent',
     generation: 0,

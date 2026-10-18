@@ -186,7 +186,7 @@ describe('search', () => {
   test('close completion clears Search after cleanup, including after a reopen', () => {
     const opened = update(
       init_.model,
-      Schema.decodeUnknownSync(SearchComposition.Message)({
+      Schema.decodeSync(SearchComposition.Message)({
         _tag: 'GotDialogMessage',
         placement: 'dialog',
         generation: 0,
@@ -199,7 +199,7 @@ describe('search', () => {
     )
     const transitioned = update(
       queried.model,
-      Schema.decodeUnknownSync(SearchComposition.Message)({
+      Schema.decodeSync(SearchComposition.Message)({
         _tag: 'GotDialogMessage',
         placement: 'dialog',
         generation: 0,
@@ -208,7 +208,7 @@ describe('search', () => {
     )
     const reopened = update(
       transitioned.model,
-      Schema.decodeUnknownSync(SearchComposition.Message)({
+      Schema.decodeSync(SearchComposition.Message)({
         _tag: 'GotDialogMessage',
         placement: 'dialog',
         generation: 0,
@@ -217,7 +217,7 @@ describe('search', () => {
     )
     const completed = update(
       reopened.model,
-      Schema.decodeUnknownSync(SearchComposition.Message)({
+      Schema.decodeSync(SearchComposition.Message)({
         _tag: 'GotDialogMessage',
         placement: 'dialog',
         generation: 0,
@@ -234,7 +234,7 @@ describe('search', () => {
   test('route changes clear and close Search while keyboard clearing leaves it open', () => {
     const opened = update(
       init_.model,
-      Schema.decodeUnknownSync(SearchComposition.Message)({
+      Schema.decodeSync(SearchComposition.Message)({
         _tag: 'GotDialogMessage',
         placement: 'dialog',
         generation: 0,

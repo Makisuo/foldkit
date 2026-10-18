@@ -301,7 +301,7 @@ foldRoom(
   ChildBlock.Message.UpdatedCount({ count: 2 }),
 )
 
-const mapped = Schema.decodeUnknownSync(
+const mapped = Schema.decodeSync(
   DeclarationKeyedFieldParentComposition.Message,
 )({
   _tag: 'GotDeclarationKeyedFieldChildMessage',

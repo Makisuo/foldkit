@@ -55,7 +55,7 @@ describe('prerendered API Reference', () => {
     )
     const failedLoad = update(
       initialization.model,
-      Schema.decodeUnknownSync(ApplicationComposition.Message)({
+      Schema.decodeSync(ApplicationComposition.Message)({
         _tag: 'GotApiReferenceMessage',
         placement: 'apiReference',
         generation: 0,

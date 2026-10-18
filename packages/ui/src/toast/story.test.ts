@@ -34,7 +34,7 @@ const gotAnimationMessage = ({
   entryId: string
   message: typeof Animation.AnimationBlock.Message.Type
 }>) =>
-  Schema.decodeUnknownSync(block.Message)({
+  Schema.decodeSync(block.Message)({
     _tag: 'GotAnimationMessage',
     placement: 'Animation',
     generation: 0,

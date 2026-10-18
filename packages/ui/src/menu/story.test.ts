@@ -79,7 +79,7 @@ const refinedSceneUpdate = RefinedMenuStoryComposition.makeUpdate()
 const gotAnimationMessage = ({
   message,
 }: Readonly<{ message: typeof Animation.AnimationBlock.Message.Type }>) =>
-  Schema.decodeUnknownSync(TestMenu.Message)({
+  Schema.decodeSync(TestMenu.Message)({
     _tag: 'GotAnimationMessage',
     placement: 'animation',
     generation: 0,

@@ -13,41 +13,46 @@ export class Logger extends Context.Service<
 
 export const Model = Schema.Struct({ count: Schema.Number })
 export const Message = defineMessageUnion({ Ticked: {}, Logged: {} })
-export const RegistryDefinition = Block.define(
+export const DeclarationSubscriptionRegistryDefinition = Block.define(
   'DeclarationSubscriptionRegistry',
   {
     Model,
     Message,
   },
 )
-export const subscriptions = RegistryDefinition.subscriptions(entry => ({
-  clock: entry('Clock', {
-    messages: [Message.Ticked],
-    handler: function* () {
-      yield* Clock
-      yield* Effect.fail<'ClockUnavailable'>('ClockUnavailable')
-      return () => Stream.empty
-    },
-  }),
-  logger: entry('Logger', {
-    messages: [Message.Logged],
-    handler: function* () {
-      yield* Logger
-      yield* Effect.fail<'LoggerUnavailable'>('LoggerUnavailable')
-      return () => Stream.empty
-    },
-  }),
-}))
+export const subscriptions =
+  DeclarationSubscriptionRegistryDefinition.subscriptions(entry => ({
+    clock: entry('Clock', {
+      messages: [Message.Ticked],
+      handler: function* () {
+        yield* Clock
+        yield* Effect.fail<'ClockUnavailable'>('ClockUnavailable')
+        return () => Stream.empty
+      },
+    }),
+    logger: entry('Logger', {
+      messages: [Message.Logged],
+      handler: function* () {
+        yield* Logger
+        yield* Effect.fail<'LoggerUnavailable'>('LoggerUnavailable')
+        return () => Stream.empty
+      },
+    }),
+  }))
 
-export const RegistryComposition = RegistryDefinition.makeComposition()
-export const registryBlock = RegistryComposition.makeBlock({
-  init: RegistryComposition.makeInit(() => ({
-    model: Model.make({ count: 0 }),
-  })),
-  update: RegistryComposition.makeUpdate(model => ({ model })),
-  subscriptions,
-  EffectsLayer: subscriptions.layer,
-})
+export const DeclarationSubscriptionRegistryComposition =
+  DeclarationSubscriptionRegistryDefinition.makeComposition()
+export const registryBlock =
+  DeclarationSubscriptionRegistryComposition.makeBlock({
+    init: DeclarationSubscriptionRegistryComposition.makeInit(() => ({
+      model: Model.make({ count: 0 }),
+    })),
+    update: DeclarationSubscriptionRegistryComposition.makeUpdate(model => ({
+      model,
+    })),
+    subscriptions,
+    EffectsLayer: subscriptions.layer,
+  })
 
 export const aggregated = Subscription.aggregate(subscriptions)
 export const lifted = Subscription.lift(subscriptions)<
@@ -58,16 +63,18 @@ export const lifted = Subscription.lift(subscriptions)<
   toParentMessage: message => message,
 })
 
-export const emptySubscriptions = RegistryDefinition.subscriptions(() => ({}))
-export const mixedSubscriptions = RegistryDefinition.subscriptions(entry => ({
-  attached: entry('Attached', {
-    messages: [Message.Ticked],
-    handler: function* () {
-      return () => Stream.empty
-    },
-  }),
-  hosted: entry('Hosted', { messages: [Message.Logged] }),
-}))
+export const emptySubscriptions =
+  DeclarationSubscriptionRegistryDefinition.subscriptions(() => ({}))
+export const mixedSubscriptions =
+  DeclarationSubscriptionRegistryDefinition.subscriptions(entry => ({
+    attached: entry('Attached', {
+      messages: [Message.Ticked],
+      handler: function* () {
+        return () => Stream.empty
+      },
+    }),
+    hosted: entry('Hosted', { messages: [Message.Logged] }),
+  }))
 
 export type RegistryLayer = typeof subscriptions.layer
 export type EmptyRegistryLayer = typeof emptySubscriptions.layer

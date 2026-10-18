@@ -125,19 +125,11 @@ Pair the operation and Message names: `informJoined` selects `Message.InformedOf
 
 ### Name Binding actions
 
-Name action operations with `request*`, paired with `Requested*` Messages. For
-example, invoke `DialogBinding.requestOpen()` or
-`DialogBinding.requestClose()` through the registered Binding. Animation,
-Menu, Listbox, Combobox, DatePicker, Calendar, Toast, VirtualList, and Query
-Binding actions follow the same convention. Query uses `requestReset`,
-`requestRevalidation`, `requestRevalidationOrLoad`, and `requestLoadIfMissing`.
-Notification operations retain their `inform*` names and enter update through
-`InformedOf*` Messages. Custom tuple adapters follow the same naming rule.
+Name action operations with `request*`, paired with `Requested*` Messages. For example, invoke `DialogBinding.requestOpen()` or `DialogBinding.requestClose()` through the registered Binding. Animation, Menu, Listbox, Combobox, DatePicker, Calendar, Toast, VirtualList, and Query Binding actions follow the same convention. Query uses `requestReset`, `requestRevalidation`, `requestRevalidationOrLoad`, and `requestLoadIfMissing`. Notification operations retain their `inform*` names and enter update through `InformedOf*` Messages. Custom tuple adapters follow the same naming rule.
 
 ### Bundle owned Subscription handlers
 
-When all entries returned by `Definition.subscriptions(...)` have attached
-handlers, the registry exposes an aggregate `.layer`:
+When all entries returned by `Definition.subscriptions(...)` have attached handlers, the registry exposes an aggregate `.layer`:
 
 Individual recipes (still supported):
 
@@ -154,13 +146,7 @@ All attached recipes in the owned registry:
 const EffectsLayer = subscriptions.layer
 ```
 
-The aggregate only merges passive recipes; it constructs no handlers or Streams.
-Its exact handler outputs, Service requirements, and constructor errors are
-preserved. An empty record supplies `Layer.empty`. A registry containing any
-host-provided contract has no aggregate `.layer`; supply that contract explicitly.
-The entry key `layer` is reserved and rejected by types and runtime validation.
-Individual entry Layers remain available for selective assembly. Standalone
-`Subscription.make` still returns an entry record without this owned aggregate.
+The aggregate only merges passive recipes; it constructs no handlers or Streams. Its exact handler outputs, Service requirements, and constructor errors are preserved. An empty record supplies `Layer.empty`. A registry containing any host-provided contract has no aggregate `.layer`; supply that contract explicitly. The entry key `layer` is reserved and rejected by types and runtime validation. Individual entry Layers remain available for selective assembly. Standalone `Subscription.make` still returns an entry record without this owned aggregate.
 
 ## Move child integration to the parent
 

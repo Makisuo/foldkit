@@ -13,7 +13,10 @@ import { __htmlBuilder } from './index.js'
 import { clearRuntime, setRuntime } from './runtimeSingleton.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
-const ChildMessage = defineMessageUnion({ ClickedIncrement: {} })
+const ChildMessage = defineMessageUnion({
+  ClickedIncrement: {},
+  BlurredButton: {},
+})
 const ChildDefinition = makeDefinition('OriginViewChild', {
   Model: ChildModel,
   Message: ChildMessage,
@@ -23,7 +26,10 @@ const ChildBlock = ChildComposition.assembleBlock({
   init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
   update: ChildComposition.makeUpdate(model => ({ model })),
   view: ChildComposition.makeView((_model, h) =>
-    h.button([h.OnClick(ChildMessage.ClickedIncrement())]),
+    h.button([
+      h.OnClick(ChildMessage.ClickedIncrement()),
+      h.OnBlur(ChildMessage.BlurredButton()),
+    ]),
   ),
   EffectsLayer: Layer.empty,
 })
@@ -103,6 +109,49 @@ it('stamps a view emission with its rendered occurrence and drops it after repla
     generation: 9,
     message: ChildMessage.ClickedIncrement(),
   })
+})
+
+it('drops cleanup blur from an unmounted view while its Model occurrence remains active', () => {
+  const dispatched: Array<unknown> = []
+  const child = makeInstance(4, ChildBinding)
+  const root = makeInstance(0)
+  root.children.set(ChildBinding, new Map([[undefined, child]]))
+  const context = Context.add(Context.empty(), CurrentInstance, { node: root })
+  const registry = createBoundaryRegistry()
+  setRuntime(message => dispatched.push(message), context, registry)
+  beginRender(registry)
+
+  const oldVNode = parentView({ child: { count: 1 } }, parentHtml)
+  if (oldVNode === null) {
+    throw new Error('Expected the child view to return a VNode.')
+  }
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const blurOld = oldVNode.data?.on?.blur as (event: FocusEvent) => void
+  oldVNode.data?.hook?.destroy?.(oldVNode)
+
+  expect(child.isActive).toBe(true)
+  expect(() => blurOld(new FocusEvent('blur'))).not.toThrow()
+  expect(dispatched).toEqual([])
+
+  beginRender(registry)
+  const currentVNode = parentView({ child: { count: 1 } }, parentHtml)
+  if (currentVNode === null) {
+    throw new Error('Expected the child view to return a VNode.')
+  }
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const blurCurrent = currentVNode.data?.on?.blur as (event: FocusEvent) => void
+
+  blurOld(new FocusEvent('blur'))
+  blurCurrent(new FocusEvent('blur'))
+
+  expect(dispatched).toEqual([
+    {
+      _tag: 'GotChildMessage',
+      placement: 'child',
+      generation: 4,
+      message: ChildMessage.BlurredButton(),
+    },
+  ])
 })
 
 it('rejects a live generated view emission without a runtime occurrence', () => {

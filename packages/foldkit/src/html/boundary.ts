@@ -43,6 +43,8 @@ export type TrackedBoundaryWrap = Readonly<{
   callSite: string
   block: WrapBlock
   mountOuterDispatch: DispatchSync
+  eventOuterDispatch?: DispatchSync
+  eventDispatch?: DispatchSync
 }>
 
 export const ROOT_BOUNDARY: BoundaryId = ''
@@ -81,8 +83,10 @@ const splitBoundary = (boundaryId: BoundaryId): ReadonlyArray<string> =>
  *  their own per-boundary cache. Without this two-level keying, a
  *  dispatcher created during a live render would still close over the
  *  live outerDispatch after a jump-to and silently mutate the live app.
- *  `boundaryDispatchOwners` provides the reverse lookup needed to evict every
- *  cached dispatcher when its currently owning boundary leaves the DOM.
+ *  `boundaryDispatchOwners` provides the reverse lookup needed to deactivate
+ *  and evict every cached dispatcher when its currently owning boundary leaves
+ *  the DOM. `inactiveBoundaryDispatches` keeps handler closures captured by the
+ *  removed VNode inert after their cache entry is gone.
  *
  *  `mountWraps` provides the corresponding ownership-aware path for Mount
  *  results. Unlike event handlers, a surviving live Mount can emit while a
@@ -129,6 +133,7 @@ export type BoundaryRegistry = {
     Map<BoundaryId, DispatchSync>
   >
   readonly boundaryDispatchOwners: Map<BoundaryId, Set<DispatchSync>>
+  readonly inactiveBoundaryDispatches: WeakSet<DispatchSync>
   readonly mountWraps: WeakMap<DispatchSync, Map<BoundaryId, WrapBlock>>
   readonly mountWrapOwners: Map<BoundaryId, Set<DispatchSync>>
   readonly seenThisRender: Map<BoundaryId, string>
@@ -145,6 +150,7 @@ export const createBoundaryRegistry = (): BoundaryRegistry => ({
   wraps: new Map(),
   boundaryDispatches: new WeakMap(),
   boundaryDispatchOwners: new Map(),
+  inactiveBoundaryDispatches: new WeakSet(),
   mountWraps: new WeakMap(),
   mountWrapOwners: new Map(),
   seenThisRender: new Map(),
@@ -256,6 +262,24 @@ const writeBoundaryWrap = (
   }
 }
 
+const trackBoundaryDispatch = (
+  registry: BoundaryRegistry,
+  boundaryId: BoundaryId,
+  eventOuterDispatch: DispatchSync,
+  eventDispatch: DispatchSync,
+): void => {
+  for (const tracked of registry.lazyTrackingStack) {
+    const trackedBoundary = tracked.get(boundaryId)
+    if (trackedBoundary !== undefined) {
+      tracked.set(boundaryId, {
+        ...trackedBoundary,
+        eventOuterDispatch,
+        eventDispatch,
+      })
+    }
+  }
+}
+
 /** Starts capturing boundary registrations on a fresh set pushed onto
  *  `lazyTrackingStack`. Used by `createLazy`/`createKeyedLazy` around the
  *  wrapped view function. Must be paired with {@link endLazyTracking} on
@@ -296,7 +320,13 @@ export const restoreBoundaryWrapsForLazyHit = (
   trackedBoundaries: ReadonlyMap<BoundaryId, TrackedBoundaryWrap>,
 ): void => {
   for (const [boundaryId, trackedBoundary] of trackedBoundaries) {
-    const { callSite, block, mountOuterDispatch } = trackedBoundary
+    const {
+      callSite,
+      block,
+      mountOuterDispatch,
+      eventOuterDispatch,
+      eventDispatch,
+    } = trackedBoundary
     assertBoundaryNotSeen(registry, boundaryId)
 
     registry.seenThisRender.set(boundaryId, callSite)
@@ -306,13 +336,32 @@ export const restoreBoundaryWrapsForLazyHit = (
       }
     }
 
-    if (
+    const isWrapCurrent =
       registry.wraps.get(boundaryId) === block &&
       registry.mountWraps.get(mountOuterDispatch)?.get(boundaryId) === block
-    ) {
-      continue
+    if (!isWrapCurrent) {
+      writeBoundaryWrap(
+        registry,
+        boundaryId,
+        block,
+        mountOuterDispatch,
+        callSite,
+      )
     }
-    writeBoundaryWrap(registry, boundaryId, block, mountOuterDispatch, callSite)
+
+    if (eventOuterDispatch !== undefined && eventDispatch !== undefined) {
+      let dispatches = registry.boundaryDispatches.get(eventOuterDispatch)
+      if (dispatches === undefined) {
+        dispatches = new Map()
+        registry.boundaryDispatches.set(eventOuterDispatch, dispatches)
+      }
+      dispatches.set(boundaryId, eventDispatch)
+      const owners =
+        registry.boundaryDispatchOwners.get(boundaryId) ?? new Set()
+      owners.add(eventOuterDispatch)
+      registry.boundaryDispatchOwners.set(boundaryId, owners)
+      registry.inactiveBoundaryDispatches.delete(eventDispatch)
+    }
   }
 }
 
@@ -326,8 +375,16 @@ const clearBoundaryDispatches = (
   }
   for (const owner of owners) {
     const dispatches = registry.boundaryDispatches.get(owner)
-    dispatches?.delete(boundaryId)
-    if (dispatches?.size === 0) {
+    if (dispatches === undefined) {
+      continue
+    }
+    const dispatch = dispatches.get(boundaryId)
+    if (dispatch === undefined) {
+      continue
+    }
+    registry.inactiveBoundaryDispatches.add(dispatch)
+    dispatches.delete(boundaryId)
+    if (dispatches.size === 0) {
       registry.boundaryDispatches.delete(owner)
     }
   }
@@ -348,8 +405,8 @@ export const deregisterBoundaryWrap = (
   mountOuterDispatch: DispatchSync,
 ): void => {
   if (registry.wraps.get(boundaryId) === block) {
-    registry.wraps.delete(boundaryId)
     clearBoundaryDispatches(registry, boundaryId)
+    registry.wraps.delete(boundaryId)
     const mountWrapOwners = registry.mountWrapOwners.get(boundaryId)
     if (mountWrapOwners !== undefined) {
       for (const owner of mountWrapOwners) {
@@ -385,8 +442,8 @@ const rollbackBoundaryWrapRegistration = (
 ): void => {
   if (registry.wraps.get(boundaryId) === block) {
     if (previousBlock === undefined) {
-      registry.wraps.delete(boundaryId)
       clearBoundaryDispatches(registry, boundaryId)
+      registry.wraps.delete(boundaryId)
     } else {
       registry.wraps.set(boundaryId, previousBlock)
     }
@@ -718,9 +775,13 @@ export const getOrCreateBoundaryDispatch = (
   }
   const existing = perOuterDispatch.get(boundaryId)
   if (existing !== undefined) {
+    trackBoundaryDispatch(registry, boundaryId, outerDispatch, existing)
     return existing
   }
-  const dispatch: DispatchSync = (message, isCurrent) => {
+  function dispatch(message: unknown, isCurrent?: () => boolean): void {
+    if (registry.inactiveBoundaryDispatches.has(dispatch)) {
+      return
+    }
     dispatchAcrossBoundary(
       registry,
       outerDispatch,
@@ -730,6 +791,7 @@ export const getOrCreateBoundaryDispatch = (
     )
   }
   perOuterDispatch.set(boundaryId, dispatch)
+  trackBoundaryDispatch(registry, boundaryId, outerDispatch, dispatch)
   const owners = registry.boundaryDispatchOwners.get(boundaryId) ?? new Set()
   owners.add(outerDispatch)
   registry.boundaryDispatchOwners.set(boundaryId, owners)

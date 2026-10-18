@@ -23,8 +23,8 @@ check(
   'foldkit/experimental/server does not export renderToString',
 )
 check(
-  typeof application.define === 'function',
-  'foldkit/application does not export define',
+  typeof application.makeDefinition === 'function',
+  'foldkit/application does not export makeDefinition',
 )
 check(
   typeof umbrella.Server?.MissingBuildId === 'function',
@@ -39,7 +39,7 @@ check(
 const { Effect, Schema } = await import('effect')
 const Model = Schema.Struct({})
 const Message = message.defineMessageUnion({ IgnoredRender: {} })
-const Application = application.define({ Model, Message })
+const Application = application.makeDefinition({ Model, Message })
 const ApplicationComposition = Application.makeComposition()
 const error = await Effect.runPromise(
   Effect.flip(

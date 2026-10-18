@@ -1,4 +1,4 @@
-import { Array, Option, Schema } from 'effect'
+import { Array, Schema } from 'effect'
 import { Update, makeApplicationDefinition } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -13,23 +13,25 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 const Message = defineMessageUnion({
-  GotChildMessage: { message: Child.Message },
-  GotEntryMessage: { id: Schema.String, message: Child.Message },
+  ClickedApplyTheme: {},
 })
 const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
-const ChildBinding = ApplicationDefinition.bindChild(Child.block, {
-  field: 'child',
-  init: false,
-  parentMessage: Message.GotChildMessage,
-})
-const EntriesBinding = ApplicationDefinition.bindChild(Child.block, {
-  field: 'entries',
-  key: 'id',
-  toParentMessage: (id, message) => Message.GotEntryMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: Message.GotEntryMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
+const ChildBinding = ApplicationDefinition.bindChild(
+  Child.FunctionReferenceChildBlock,
+  {
+    field: 'child',
+    init: false,
   },
+)
+const EntriesBinding = ApplicationDefinition.bindChild(
+  Child.FunctionReferenceChildBlock,
+  {
+    field: 'entries',
+    key: 'id',
+  },
+)
+const ApplicationComposition = ApplicationDefinition.makeComposition({
+  bindings: [ChildBinding, EntriesBinding],
 })
 const revealPreferenceErrors = ApplicationDefinition.stepFields(() => ({
   preferences: Foreign.revealErrors,
@@ -38,7 +40,7 @@ const revealPreferenceErrors = ApplicationDefinition.stepFields(() => ({
 const revealPreferenceErrorsThroughParentHelper = (model: Model): Model =>
   modifyFields(model, { preferences: Foreign.revealErrors })
 
-export const update = (model: Model) => {
+export const update = ApplicationComposition.makeUpdate(model => {
   void modifyFields(model, { child: Foreign.revealErrors })
   void modifyFields(model, { preferences: Foreign.revealErrors })
   void revealPreferenceErrorsThroughParentHelper(model)
@@ -53,4 +55,4 @@ export const update = (model: Model) => {
     ChildBinding.informThemeChanged({ theme: 'Light' }),
     EntriesBinding.informThemeChanged('retained', { theme: 'Light' }),
   ])
-}
+})

@@ -27,11 +27,12 @@ const update = FunctionReferenceChildComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const block = FunctionReferenceChildComposition.assembleBlock({
-  init,
-  update,
-  operations: {
-    informThemeChanged: Message.InformedOfThemeChange,
-  },
-  EffectsLayer: Layer.empty,
-})
+export const FunctionReferenceChildBlock =
+  FunctionReferenceChildComposition.assembleBlock({
+    init,
+    update,
+    operations: {
+      informThemeChanged: Message.InformedOfThemeChange,
+    },
+    EffectsLayer: Layer.empty,
+  })

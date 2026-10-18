@@ -7,14 +7,16 @@ import * as BoundSettings from './boundSettings'
 
 const Model = Schema.Struct({ settings: BoundSettings.Model })
 const Message = defineMessageUnion({
-  GotSettingsMessage: { message: BoundSettings.Message },
+  ClickedChangeTheme: {},
 })
 const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
-const SettingsBinding = ApplicationDefinition.bindChild(BoundSettings.Settings, {
-  field: 'settings',
-  parentMessage: Message.GotSettingsMessage,
-  init: true,
-})
+const SettingsBinding = ApplicationDefinition.bindChild(
+  BoundSettings.BoundSettingsBlock,
+  {
+    field: 'settings',
+    init: true,
+  },
+)
 ApplicationDefinition.makeComposition({ bindings: [SettingsBinding] })
 
 const OtherMessage = defineMessageUnion({ ChangedTheme: {} })

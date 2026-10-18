@@ -24,7 +24,7 @@ const update = BoundSettingsComposition.makeUpdate((model, message) =>
     }),
   }),
 )
-export const Settings = BoundSettingsComposition.assembleBlock({
+export const BoundSettingsBlock = BoundSettingsComposition.assembleBlock({
   init,
   update,
   operations: {

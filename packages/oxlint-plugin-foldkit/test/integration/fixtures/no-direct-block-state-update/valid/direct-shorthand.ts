@@ -11,25 +11,17 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 const Message = defineMessageUnion({
-  GotEntryMessage: { id: Schema.String, message: KeyedEntry.Message },
-  GotSettingsMessage: { message: BoundSettings.Message },
   ClickedApplyThemes: {},
 })
 const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
-const EntriesBinding = ApplicationDefinition.bindChild(KeyedEntry.Entry, {
+const EntriesBinding = ApplicationDefinition.bindChild(KeyedEntry.KeyedEntryBlock, {
   field: 'entries',
   key: 'id',
-  toParentMessage: (id, message) =>
-    Message.GotEntryMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: Message.GotEntryMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
 })
-const MaybeSettingsBinding = ApplicationDefinition.bindChild(BoundSettings.Settings, {
-  field: 'maybeSettings',
-  parentMessage: Message.GotSettingsMessage,
-})
+const MaybeSettingsBinding = ApplicationDefinition.bindChild(
+  BoundSettings.BoundSettingsBlock,
+  { field: 'maybeSettings' },
+)
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [EntriesBinding, MaybeSettingsBinding],
 })

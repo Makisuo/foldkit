@@ -68,6 +68,16 @@ describe('server-rendered example build scripts', () => {
     expect(manifest.devDependencies).toHaveProperty('vite')
   })
 
+  it('disables the MCP relay in every runnable playground', async () => {
+    const bySlug = await loadPlaygroundFiles()
+
+    expect(Object.keys(bySlug)).not.toHaveLength(0)
+
+    for (const [slug, { files }] of Object.entries(bySlug)) {
+      expect(files['vite.config.ts'], slug).toContain('devToolsMcpPort: false')
+    }
+  })
+
   it('pins every transformed workspace dependency to its exact version', async () => {
     const [bySlug, versions] = await Promise.all([
       loadPlaygroundFiles(),

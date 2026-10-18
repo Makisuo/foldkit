@@ -768,6 +768,26 @@ test('non-production deployments block search indexing', () => {
   )
 })
 
+test('every reusable deployment hop permits reading the verified artifact', () => {
+  const releaseWorkflow = readFileSync(
+    resolve(REPO_ROOT, '.github/workflows/release.yml'),
+    'utf8',
+  )
+
+  for (const [name, workflow] of [
+    ['release', releaseWorkflow],
+    ['production', productionWorkflow],
+    ['canary', canaryWorkflow],
+    ['preview', previewWorkflow],
+    ['build', buildWorkflow],
+  ]) {
+    const permissions = workflow.match(/^permissions:\n((?:  [^\n]+\n)+)/m)
+
+    assert.notEqual(permissions, null, name)
+    assert.match(permissions[1], /^  actions: read$/m, name)
+  }
+})
+
 test('production, canary, and preview call the shared deployment with separate projects', () => {
   assert.match(
     productionWorkflow,

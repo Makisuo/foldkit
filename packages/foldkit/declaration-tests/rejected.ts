@@ -6,6 +6,7 @@ import * as Command from 'foldkit/command'
 import { Server } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Runtime from 'foldkit/runtime'
+import { Lazy } from 'foldkit/test'
 import * as Update from 'foldkit/update'
 import type { Url } from 'foldkit/url'
 
@@ -20,6 +21,7 @@ import {
   Measure,
   ParentMessage,
   ParentModel,
+  parentView,
   RecordApplicationComposition,
   RefinedChoice,
   makeProvisionElement,
@@ -838,3 +840,9 @@ RecordApplicationComposition.makeUpdate(
   // @ts-expect-error A graphless Application still rejects incompatible Record values.
   (model, { id }) => ({ model: Record.set(model, id, 'invalid') }),
 )
+
+Lazy.expectAllReused({
+  view: parentView,
+  // @ts-expect-error A registered view retains its exact parent Model at the public helper boundary.
+  model: { child: { value: 'invalid' } },
+})

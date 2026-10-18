@@ -1,5 +1,6 @@
 import { Effect, Option } from 'effect'
 import { load } from 'foldkit/navigation'
+import { modifyFields } from 'foldkit/struct'
 
 import { ApplicationDefinition } from '../definition'
 import { Message } from '../message'
@@ -24,9 +25,15 @@ const loadPlaygroundExample = (exampleSlug: ExampleSlug) =>
     commands: [LoadPlayground({ exampleSlug })],
   }))
 
+const updateNewsletterEmail = (value: string) =>
+  ApplicationDefinition.step(model => ({
+    model: modifyFields(model, { newsletterEmail: () => value }),
+  }))
+
 const foldHomeOutMessage = Home.OutMessage.match({
   SelectedPlaygroundExample: ({ exampleSlug }) =>
     loadPlaygroundExample(exampleSlug),
+  UpdatedNewsletterEmail: ({ value }) => updateNewsletterEmail(value),
 })
 
 export const HomeBinding = ApplicationDefinition.bindChild(Home.block, {

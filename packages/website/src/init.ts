@@ -50,6 +50,7 @@ export const init = ApplicationComposition.makeInit(
         deployment: flags.deployment,
         maybeGitHubStarCount: Option.fromNullishOr(githubStarCount),
         currentYear: flags.currentYear,
+        newsletterEmail: '',
         isMobileTableOfContentsOpen: false,
         activeSection: Option.none(),
         isNarrowViewport: false,

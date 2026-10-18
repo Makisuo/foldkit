@@ -11,6 +11,7 @@ import {
 } from '../composition'
 import { Deployment } from '../deployment'
 import { Docs, Marketing } from '../layout'
+import { Message } from '../message'
 import { type Model } from '../model'
 import { Home, Newsletter } from '../page'
 import { routeToCanonicalUrl } from '../route'
@@ -46,6 +47,7 @@ const homeView = (
         maybeGitHubStarCount: model.maybeGitHubStarCount,
         resolvedTheme: model.resolvedTheme,
         isBrowserEnvironmentLoaded: Option.isSome(model.maybeThemePreference),
+        newsletterEmail: model.newsletterEmail,
       },
     }),
   )
@@ -65,7 +67,11 @@ const newsletterView = (model: Model, h: ApplicationViewBuilder) =>
   Marketing.view(
     model,
     {
-      content: Newsletter.content,
+      content: Newsletter.content(
+        model.newsletterEmail,
+        value => Message.UpdatedNewsletterEmail({ value }),
+        h,
+      ),
       mainClassName:
         'flex-1 flex items-center justify-center px-6 pb-20 pt-[calc(var(--header-height)+5rem)] md:px-12 lg:px-20',
       isPagefindBody: false,
